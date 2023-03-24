@@ -18,6 +18,7 @@ pydantic = "^1.10.2"
 pillow = "^9.3.0"
 requests = "^2.28.1"
 scikit-learn = "^1.2.1"
+spacy = "^3.5.1"
 tqdm = "^4.65.0"
 typing-extensions = "^4.4.0"
 uvicorn = {extras = ["standard"], version = "^0.20.0"}
@@ -30,9 +31,7 @@ tensorflow-macos = {version = "~2.9.0", markers = "platform_machine == 'arm64'"}
 tensorflow-metal = {version = "^0.6.0", markers = "platform_machine == 'arm64'"}
 tensorflow-datasets = "^4.6.0"
 
-# Deps for development.
-spacy = "^3.5.1"
-[tool.poetry.group.dev]
+[tool.poetry.group.dev]  # Deps for development.
 optional = true
 [tool.poetry.group.dev.dependencies]
 alembic = "^1.8.1"
