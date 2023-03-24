@@ -10,13 +10,13 @@ class SentenceSplitterSpacy(TextSplitter):
   """Splits documents into sentences."""
   name = 'sentences_spacy'
 
-  pipeline: str
+  spacy_pipeline: str
 
   _tokenizer: Language
 
-  def __init__(self, pipeline: str = 'en_core_web_sm'):
-    super().__init__(pipeline=pipeline)
-    self._tokenizer = load_spacy(pipeline)
+  def __init__(self, spacy_pipeline: str = 'en_core_web_sm'):
+    super().__init__(spacy_pipeline=spacy_pipeline)
+    self._tokenizer = load_spacy(spacy_pipeline)
 
   @override
   def split(self, text: str) -> list[TextSpan]:

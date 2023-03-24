@@ -290,7 +290,7 @@ class DatasetDuckDB(DatasetDB):
         log(f'Wrote signal manifest to {signal_manifest_filepath}')
 
   @override
-  def compute_split(self, splitter: TextSplitter, columns: Sequence[ColumnId]) -> None:
+  def compute_split_column(self, splitter: TextSplitter, columns: Sequence[ColumnId]) -> None:
     cols = [column_from_identifier(column) for column in columns]
     for column in cols:
       if isinstance(column.feature, Column):

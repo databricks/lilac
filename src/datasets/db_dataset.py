@@ -152,7 +152,7 @@ class DatasetDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def compute_split(self, splitter: TextSplitter, columns: Sequence[ColumnId]) -> None:
+  def compute_split_column(self, splitter: TextSplitter, columns: Sequence[ColumnId]) -> None:
     """Compute a split for a set of columns.
 
     Args:

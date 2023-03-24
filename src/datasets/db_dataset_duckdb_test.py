@@ -294,7 +294,7 @@ class TestSplitter(TextSplitter):
     ]
 
 
-def test_compute_split(tmp_path: pathlib.Path) -> None:
+def test_compute_split_column(tmp_path: pathlib.Path) -> None:
   register_splitter(TestSplitter)
 
   db = make_db(db_cls=DatasetDuckDB,
@@ -315,7 +315,7 @@ def test_compute_split(tmp_path: pathlib.Path) -> None:
                        'text2': Field(dtype=DataType.STRING),
                    }))
 
-  db.compute_split(splitter=TestSplitter(), columns=['text', 'text2'])
+  db.compute_split_column(splitter=TestSplitter(), columns=['text', 'text2'])
 
   # Check the enriched dataset manifest.
   dataset_manifest = db.manifest()
