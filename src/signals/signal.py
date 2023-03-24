@@ -3,24 +3,11 @@
 import abc
 from typing import Any, Callable, ClassVar, Iterable, Optional
 
-import pandas as pd
 from pydantic import BaseModel
 
 from ..embeddings.embedding_index import EmbeddingIndex
 from ..embeddings.embedding_registry import EmbeddingId, EmbedFn, get_embed_fn
 from ..schema import EnrichmentType, Field, Item, RichData
-
-
-class SignalScoredDataset(BaseModel):
-  """The result of a call to score dataset for a signal."""
-
-  class Config:
-    arbitrary_types_allowed = True
-
-  df: pd.DataFrame
-
-  # Maps the original column name to a list of the new columns that were added.
-  score_columns: dict[str, list[str]]
 
 
 class Signal(abc.ABC, BaseModel):
@@ -79,8 +66,3 @@ class Signal(abc.ABC, BaseModel):
       An iterable of items. The signal should return "None" if the signal is sparse for the input.
     """
     pass
-
-
-def signal_column_name(column: str, signal_feature_name: str) -> str:
-  """Get the name of a signal feature column."""
-  return f'{column}.{signal_feature_name}'

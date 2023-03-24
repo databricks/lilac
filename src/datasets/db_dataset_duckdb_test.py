@@ -6,7 +6,7 @@ from typing import Iterable, Optional
 
 import pyarrow.parquet as pq
 import pytest
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..schema import (
@@ -21,6 +21,15 @@ from ..schema import (
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
+from ..splitters.splitter_registry import clear_splitter_registry, register_splitter  # type: ignore
+from ..splitters.text_splitter import (
+    SPLITS_FEATURE,
+    SPLITS_FIELDS,
+    SPLITS_SPAN_END_FEATURE,
+    SPLITS_SPAN_START_FEATURE,
+    TextSpan,
+    TextSplitter,
+)
 from ..utils import get_dataset_output_dir, open_file
 from .db_dataset import DatasetManifest
 from .db_dataset_duckdb import (
@@ -269,3 +278,128 @@ def test_compute_signal_columns_repeated(tmp_path: pathlib.Path) -> None:
           'flen': float(len('hello2 hello2'))
       }]
   }]
+
+
+class TestSplitter(TextSplitter):
+  """Splits documents into sentence by splitting on period."""
+  name = 'test_splitter'
+
+  @override
+  def split(self, text: str) -> list[TextSpan]:
+    sentences = text.split('.')
+    return [
+        TextSpan(start=text.index(sentence), end=text.index(sentence) + len(sentence))
+        for sentence in sentences
+        if sentence
+    ]
+
+
+def test_compute_split(tmp_path: pathlib.Path) -> None:
+  register_splitter(TestSplitter)
+
+  db = make_db(db_cls=DatasetDuckDB,
+               tmp_path=tmp_path,
+               items=[{
+                   UUID_COLUMN: b'1' * 16,
+                   'text': '[1, 1] first sentence. [1, 1] second sentence.',
+                   'text2': '[1, 2] first sentence. [1, 2] second sentence.',
+               }, {
+                   UUID_COLUMN: b'2' * 16,
+                   'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
+                   'text2': 'b2 [2, 2] first sentence. [2, 2] second sentence.',
+               }],
+               schema=Schema(
+                   fields={
+                       UUID_COLUMN: Field(dtype=DataType.BINARY),
+                       'text': Field(dtype=DataType.STRING),
+                       'text2': Field(dtype=DataType.STRING),
+                   }))
+
+  db.compute_split(splitter=TestSplitter(), columns=['text', 'text2'])
+
+  # Check the enriched dataset manifest.
+  dataset_manifest = db.manifest()
+  expected_dataset_manifest = DatasetManifest(
+      namespace=TEST_NAMESPACE,
+      dataset_name=TEST_DATASET_NAME,
+      data_schema=Schema(
+          fields={
+              UUID_COLUMN: Field(dtype=DataType.BINARY),
+              'text': Field(dtype=DataType.STRING),
+              'text2': Field(dtype=DataType.STRING),
+              'text.test_splitter': Field(fields=SPLITS_FIELDS, enriched=True),
+              'text2.test_splitter': Field(fields=SPLITS_FIELDS, enriched=True)
+          }))
+  assert dataset_manifest == expected_dataset_manifest
+
+  dataset_path = get_dataset_output_dir(tmp_path, db.namespace, db.dataset_name)
+
+  # Make sure the parquet file for 'text' was written and does not include information about the
+  # second column.
+  split_parquet_filename = 'text.test_splitter-00000-of-00001.parquet'
+  dataset_path = get_dataset_output_dir(tmp_path, db.namespace, db.dataset_name)
+
+  # Make sure the parquet file for 'text' was written and does not include information about the
+  # second column.
+  sentences_parquet_filepath = os.path.join(dataset_path, split_parquet_filename)
+  split_items = pq.read_table(sentences_parquet_filepath).to_pylist()
+
+  assert split_items == [{
+      UUID_COLUMN: b'1' * 16,
+      'text': {
+          SPLITS_FEATURE: [{
+              SPLITS_SPAN_START_FEATURE: 0,
+              SPLITS_SPAN_END_FEATURE: 21
+          }, {
+              SPLITS_SPAN_START_FEATURE: 22,
+              SPLITS_SPAN_END_FEATURE: 45
+          }]
+      }
+  }, {
+      UUID_COLUMN: b'2' * 16,
+      'text': {
+          SPLITS_FEATURE: [{
+              SPLITS_SPAN_START_FEATURE: 0,
+              SPLITS_SPAN_END_FEATURE: 24
+          }, {
+              SPLITS_SPAN_START_FEATURE: 25,
+              SPLITS_SPAN_END_FEATURE: 48
+          }]
+      }
+  }]
+
+  # Make sure the parquet file for 'text2' was written and does not include information about the
+  # first column.
+  split_parquet_filename = 'text2.test_splitter-00000-of-00001.parquet'
+  dataset_path = get_dataset_output_dir(tmp_path, db.namespace, db.dataset_name)
+
+  # Make sure the parquet file for 'text2' was written and does not include information about the
+  # first column.
+  sentences_parquet_filepath = os.path.join(dataset_path, split_parquet_filename)
+  split_items = pq.read_table(sentences_parquet_filepath).to_pylist()
+
+  assert split_items == [{
+      UUID_COLUMN: b'1' * 16,
+      'text2': {
+          SPLITS_FEATURE: [{
+              SPLITS_SPAN_START_FEATURE: 0,
+              SPLITS_SPAN_END_FEATURE: 21
+          }, {
+              SPLITS_SPAN_START_FEATURE: 22,
+              SPLITS_SPAN_END_FEATURE: 45
+          }]
+      }
+  }, {
+      UUID_COLUMN: b'2' * 16,
+      'text2': {
+          SPLITS_FEATURE: [{
+              SPLITS_SPAN_START_FEATURE: 0,
+              SPLITS_SPAN_END_FEATURE: 24
+          }, {
+              SPLITS_SPAN_START_FEATURE: 25,
+              SPLITS_SPAN_END_FEATURE: 48
+          }]
+      }
+  }]
+
+  clear_splitter_registry()

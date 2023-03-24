@@ -32,6 +32,7 @@ tensorflow-metal = {version = "^0.6.0", markers = "platform_machine == 'arm64'"}
 tensorflow-datasets = "^4.6.0"
 
 # Deps for development.
+spacy = "^3.5.1"
 [tool.poetry.group.dev]
 optional = true
 [tool.poetry.group.dev.dependencies]

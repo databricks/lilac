@@ -1,12 +1,16 @@
 """Utilities for working with datasets."""
 
-from typing import Iterable, Optional, Sequence, Union
+from typing import Iterable, Optional, Sequence, Union, cast
 
 from ..schema import (
     PATH_WILDCARD,
     UUID_COLUMN,
+    DataType,
+    Field,
     Item,
     Path,
+    Schema,
+    column_paths_match,
     normalize_path,
 )
 
@@ -31,21 +35,21 @@ def replace_repeated_wildcards(path: Path, path_repeated_idxs: Optional[list[int
 
 
 def make_enriched_items(source_path: Path, row_ids: Sequence[bytes],
-                        signal_items: Iterable[Optional[Item]],
+                        leaf_items: Iterable[Optional[Item]],
                         repeated_idxs: Iterable[Optional[list[int]]]) -> Iterable[Item]:
-  """Make enriched items from signal outputs.
+  """Make enriched items from leaf items and a path. This is used by both signals and splitters.
 
   NOTE: The iterables that are passed in are not 1:1 with row_ids. The logic of this method will
   merge the same UUIDs as long as they are contiguous.
   """
-  working_enriched_signal_item: Item = {}
-  num_signal_outputs = 0
-  signal_outputs_per_key = 0
+  working_enriched_item: Item = {}
+  num_outputs = 0
+  outputs_per_key = 0
 
   last_row_id: Optional[bytes] = None
 
-  for row_id, signal_output, path_repeated_idxs in zip(row_ids, signal_items, repeated_idxs):
-    num_signal_outputs += 1
+  for row_id, leaf_item, path_repeated_idxs in zip(row_ids, leaf_items, repeated_idxs):
+    num_outputs += 1
 
     # Duckdb currently just returns a single int as that's all we support. The rest of the code
     # supports arrays, so we make it an array for the future when duckdb gives us a list of indices.
@@ -54,72 +58,154 @@ def make_enriched_items(source_path: Path, row_ids: Sequence[bytes],
 
     if last_row_id is None:
       last_row_id = row_id
-      working_enriched_signal_item = {UUID_COLUMN: row_id}
+      working_enriched_item = {UUID_COLUMN: row_id}
 
     # When we're at a new row_id, yield the last working item.
     if last_row_id != row_id:
-      if signal_outputs_per_key > 0:
-        yield working_enriched_signal_item
+      if outputs_per_key > 0:
+        yield working_enriched_item
       last_row_id = row_id
-      working_enriched_signal_item = {UUID_COLUMN: row_id}
-      signal_outputs_per_key = 0
+      working_enriched_item = {UUID_COLUMN: row_id}
+      outputs_per_key = 0
 
-    if not signal_output:
+    if not leaf_item:
       continue
 
-    # Tracking signal outputs per key allows us to know if we have a sparse signal so it will not be
+    # Tracking outputs per key allows us to know if we have a sparse output so it will not be
     # yielded at all.
-    signal_outputs_per_key += 1
+    outputs_per_key += 1
 
     # Apply the list of path indices to the path to replace wildcards.
     resolved_path = replace_repeated_wildcards(path=source_path,
                                                path_repeated_idxs=path_repeated_idxs)
 
     # Now that we have resolves indices, we can modify the enriched item.
-    enrich_item_from_signal_item(enriched_item=working_enriched_signal_item,
-                                 path=resolved_path,
-                                 signal_item=signal_output)
+    enrich_item_from_leaf_item(enriched_item=working_enriched_item,
+                               path=resolved_path,
+                               leaf_item=leaf_item)
 
-  if num_signal_outputs != len(row_ids):
-    raise ValueError('The signal output and the input data do not have the same length. '
-                     'This means the signal either didnt generate a "None" for a sparse signal, '
+  if num_outputs != len(row_ids):
+    raise ValueError('The enriched output and the input data do not have the same length. '
+                     'This means the enricher either didnt generate a "None" for a sparse output, '
                      'or generated too many items.')
 
-  if signal_outputs_per_key > 0:
-    yield working_enriched_signal_item
+  if outputs_per_key > 0:
+    yield working_enriched_item
 
 
-def enrich_item_from_signal_item(enriched_item: Item, path: Path, signal_item: Item) -> None:
-  """Create an enriched item that holds the output of a signal."""
+def enrich_item_from_leaf_item(enriched_item: Item, path: Path, leaf_item: Item) -> None:
+  """Create an enriched item with the same hierarchy as the source."""
   path = normalize_path(path)
 
-  signal_subitem = enriched_item
+  enriched_subitem = enriched_item
   for i in range(len(path) - 1):
     path_component = path[i]
     next_path_component = path[i + 1]
     if isinstance(path_component, str):
-      if path_component not in signal_subitem:
+      if path_component not in enriched_subitem:
         if isinstance(next_path_component, str):
-          signal_subitem[path_component] = {}
+          enriched_subitem[path_component] = {}
         else:
           # This needs to be filled to the length of the index. Since this is the first time we've
           # seen path_component, we can fill it exactly to the index we're going to inject.
-          signal_subitem[path_component] = [None] * (next_path_component + 1)
+          enriched_subitem[path_component] = [None] * (next_path_component + 1)
       else:
         if isinstance(next_path_component, int):
           # We may need to extend the length so we can write the new index.
-          cur_len = len(signal_subitem[path_component])  # type: ignore
+          cur_len = len(enriched_subitem[path_component])  # type: ignore
           if cur_len <= next_path_component:
-            signal_subitem[path_component].extend(  # type: ignore
+            enriched_subitem[path_component].extend(  # type: ignore
                 [None] * (next_path_component - cur_len + 1))
     elif isinstance(path_component, int):
       # The nested list of nones above will fill in integer indices.
       if isinstance(next_path_component, str):
-        signal_subitem[path_component] = {}  # type: ignore
+        enriched_subitem[path_component] = {}  # type: ignore
       elif isinstance(next_path_component, int):
-        signal_subitem[path_component] = []  # type: ignore
+        enriched_subitem[path_component] = []  # type: ignore
     else:
       raise ValueError(f'Unknown type {type(path_component)} in path {path}.')
-    signal_subitem = signal_subitem[path_component]  # type: ignore
+    enriched_subitem = enriched_subitem[path_component]  # type: ignore
 
-  signal_subitem[path[-1]] = signal_item  # type: ignore
+  enriched_subitem[path[-1]] = leaf_item  # type: ignore
+
+
+def create_enriched_schema(source_schema: Schema, enrich_paths: list[Path],
+                           enrich_fields: dict[str, Field]) -> Schema:
+  """Create a schema describing the enriched fields added an enrichment."""
+  enriched_schema = Schema(fields={UUID_COLUMN: Field(dtype=DataType.BINARY)})
+  return _add_enriched_fields_to_schema(source_schema=source_schema,
+                                        enriched_schema=enriched_schema,
+                                        enrich_fields=enrich_fields,
+                                        enrich_paths=enrich_paths)
+
+
+def _add_enriched_fields_to_schema(source_schema: Schema, enriched_schema: Schema,
+                                   enrich_fields: dict[str,
+                                                       Field], enrich_paths: list[Path]) -> Schema:
+  enrich_paths = [normalize_path(field) for field in enrich_paths]
+  source_leafs = source_schema.leafs
+  # Validate that the enrich fields are actually a valid leaf path.
+  for enrich_path in enrich_paths:
+    if enrich_path not in source_leafs:
+      raise ValueError(f'Field for enrichment "{enrich_path}" is not a valid leaf path. '
+                       f'Leaf paths: {source_leafs.keys()}')
+
+  for leaf_path, _ in source_leafs.items():
+    field_is_enriched = False
+    for enrich_path in enrich_paths:
+      if column_paths_match(enrich_path, leaf_path):
+        field_is_enriched = True
+    if not field_is_enriched:
+      continue
+
+    # Find the inner most repeated subpath as we will put the enriched schema next to its parent.
+    inner_struct_path_idx = len(leaf_path) - 1
+    for i, path_part in reversed(list(enumerate(leaf_path))):
+      if path_part == PATH_WILDCARD:
+        inner_struct_path_idx = i - 1
+      else:
+        break
+
+    repeated_depth = len(leaf_path) - 1 - inner_struct_path_idx
+
+    inner_field = Field(fields=enrich_fields, enriched=True)
+
+    # Wrap in a list to mirror the input structure.
+    for i in range(repeated_depth):
+      inner_field = Field(repeated_field=inner_field, enriched=True)
+
+    enrich_path: Path = leaf_path[0:inner_struct_path_idx + 1]
+
+    # Merge the source schema into the enriched schema up until inner struct parent.
+    for i in reversed(range(inner_struct_path_idx + 1)):
+      path_component = cast(str, enrich_path[i])
+
+      if path_component == PATH_WILDCARD:
+        inner_field = Field(repeated_field=inner_field)
+      else:
+        field = get_field_if_exists(enriched_schema, enrich_path[0:i])
+        if field and field.fields:
+          field.fields[path_component] = inner_field
+          break
+        else:
+          inner_field = Field(fields={path_component: inner_field})
+
+  return enriched_schema
+
+
+def get_field_if_exists(schema: Schema, path: Path) -> Optional[Field]:
+  """Return a field from a path if it exists in the schema."""
+  # Wrap in a field for convenience.
+  field = cast(Field, schema)
+  for path_part in path:
+    if isinstance(path_part, int) or path_part == PATH_WILDCARD:
+      if not field.repeated_field:
+        return None
+      field = field.repeated_field
+    elif isinstance(path_part, str):
+      if not field.fields:
+        return None
+      if path_part not in cast(dict, field.fields):
+        return None
+      field = field.fields[path_part]
+  return field

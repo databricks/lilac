@@ -167,5 +167,5 @@ class TestComputeSignalItems:
                  }))
 
     with pytest.raises(ValueError,
-                       match='The signal output and the input data do not have the same length'):
+                       match='The enriched output and the input data do not have the same length'):
       db.compute_signal_columns(signal=signal, columns=[('text',)])

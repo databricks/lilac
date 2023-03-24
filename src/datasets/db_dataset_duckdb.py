@@ -7,7 +7,7 @@ from typing import Iterable, Optional, Sequence, cast
 import duckdb
 import pandas as pd
 from pydantic import BaseModel, validator
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
 from ..constants import data_path
 from ..embeddings.embedding_index import EmbeddingIndexer
@@ -16,6 +16,7 @@ from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import (
     MANIFEST_FILENAME,
     UUID_COLUMN,
+    Item,
     Path,
     Schema,
     SourceManifest,
@@ -24,7 +25,8 @@ from ..schema import (
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import resolve_signal
-from ..signals.signal_utils import create_signal_schema
+from ..splitters.splitter_registry import resolve_splitter
+from ..splitters.text_splitter import SPLITS_FIELDS, TextSplitter, item_from_spans  # type: ignore
 from ..utils import (
     DebugTimer,
     get_dataset_output_dir,
@@ -32,7 +34,7 @@ from ..utils import (
     open_file,
     write_items_to_parquet,
 )
-from .dataset_utils import make_enriched_items
+from .dataset_utils import create_enriched_schema, make_enriched_items
 from .db_dataset import (
     Column,
     ColumnId,
@@ -48,6 +50,9 @@ from .db_dataset import (
 DEBUG = os.environ['DEBUG'] == 'true' if 'DEBUG' in os.environ else False
 UUID_INDEX_FILENAME = 'uuids.npy'
 
+SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
+SPLIT_MANIFEST_SUFFIX = 'split_manifest.json'
+
 
 class ColumnGroup(BaseModel):
   """A group of columns stored in a parquet file."""
@@ -56,6 +61,8 @@ class ColumnGroup(BaseModel):
 
   # The signal name that created this group.
   signal_name: Optional[str]
+  # The split name that created this group.
+  splitter_name: Optional[str]
   # The column path that this group is derived from.
   original_column_path: Optional[Path]
 
@@ -106,14 +113,25 @@ class DatasetDuckDB(DatasetDB):
     signal_manifest_filepaths: list[str] = []
     for root, _, files in os.walk(self.dataset_path):
       for file in files:
-        if file.endswith('signal_manifest.json'):
+        if file.endswith(SIGNAL_MANIFEST_SUFFIX):
           signal_manifest_filepaths.append(os.path.join(root, file))
 
     return tuple(signal_manifest_filepaths)
 
+  def _column_split_manifest_files(self) -> tuple[str, ...]:
+    """Return the signal manifests for all enriched columns."""
+    split_manifest_filepaths: list[str] = []
+    for root, _, files in os.walk(self.dataset_path):
+      for file in files:
+        if file.endswith(SPLIT_MANIFEST_SUFFIX):
+          split_manifest_filepaths.append(os.path.join(root, file))
+
+    return tuple(split_manifest_filepaths)
+
   @functools.cache
   # NOTE: This is cached, but when the list of filepaths changed the results are invalidated.
-  def _column_groups(self, manifest_filepaths: list[str]) -> list[ColumnGroup]:
+  def _column_groups(self, signal_manifest_filepaths: list[str],
+                     split_manifest_filepaths: list[str]) -> list[ColumnGroup]:
     column_groups: list[ColumnGroup] = []
     # Add the source column group.
     column_groups.append(
@@ -123,7 +141,7 @@ class DatasetDuckDB(DatasetDB):
                     data_schema=self._source_manifest.data_schema))
 
     # Add the signal column groups.
-    for signal_manifest_filepath in manifest_filepaths:
+    for signal_manifest_filepath in signal_manifest_filepaths:
       with open_file(signal_manifest_filepath) as f:
         signal_manifest = SignalManifest.parse_raw(f.read())
 
@@ -133,15 +151,28 @@ class DatasetDuckDB(DatasetDB):
                       original_column_path=signal_manifest.enriched_path,
                       data_schema=signal_manifest.data_schema))
 
+    # Add the split column groups.
+    for split_manifest_filepath in split_manifest_filepaths:
+      with open_file(split_manifest_filepath) as f:
+        split_manifest = SplitManifest.parse_raw(f.read())
+
+      column_groups.append(
+          ColumnGroup(files=split_manifest.files,
+                      splitter_name=split_manifest.splitter.splitter_name,
+                      original_column_path=split_manifest.enriched_path,
+                      data_schema=split_manifest.data_schema))
+
     return column_groups
 
   @override
   def manifest(self) -> DatasetManifest:
     merged_schema = Schema(fields={**self._source_manifest.data_schema.fields})
-    column_groups = self._column_groups(self._column_signal_manifest_files())
+
+    column_groups = self._column_groups(self._column_signal_manifest_files(),
+                                        self._column_split_manifest_files())
     for column_group in column_groups:
       # The source schema is already merged.
-      if column_group.signal_name is None:
+      if column_group.signal_name is None and column_group.splitter_name is None:
         continue
       if column_group.original_column_path is None:
         print(f'Column group {column_group} has no original column path.')
@@ -154,10 +185,11 @@ class DatasetDuckDB(DatasetDB):
         normalized_path = cast(list[str], original_path)
 
       original_top_level_column = normalized_path[0]
-      top_level_column_name = self._top_level_col_name(column_group.original_column_path,
-                                                       column_group.signal_name)
+      top_level_column_name = self._top_level_col_name(
+          column_group.original_column_path, column_group.signal_name or column_group.splitter_name)
       merged_schema.fields[top_level_column_name] = column_group.data_schema.fields[
           original_top_level_column]
+
     return DatasetManifest(namespace=self.namespace,
                            dataset_name=self.dataset_name,
                            data_schema=merged_schema)
@@ -204,10 +236,9 @@ class DatasetDuckDB(DatasetDB):
         raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')
 
       source_path = normalize_path(column.feature)
-      signal_out_prefix = signal_parquet_prefix(column_name=column.alias, signal_name=signal.name)
-      signal_schema = create_signal_schema(source_schema=self._source_manifest.data_schema,
-                                           signal_enrich_fields=[source_path],
-                                           signal_fields=signal_fields)
+      signal_schema = create_enriched_schema(source_schema=self._source_manifest.data_schema,
+                                             enrich_paths=[source_path],
+                                             enrich_fields=signal_fields)
 
       if signal.embedding_based:
         raise ValueError('Embedding based signal cannot yet be computed.')
@@ -232,9 +263,10 @@ class DatasetDuckDB(DatasetDB):
 
         enriched_signal_items = make_enriched_items(source_path=source_path,
                                                     row_ids=leafs_df[UUID_COLUMN],
-                                                    signal_items=signal_outputs,
+                                                    leaf_items=signal_outputs,
                                                     repeated_idxs=repeated_idxs_iter)
 
+        signal_out_prefix = signal_parquet_prefix(column_name=column.alias, signal_name=signal.name)
         parquet_filename, _ = write_items_to_parquet(items=enriched_signal_items,
                                                      output_dir=self.dataset_path,
                                                      schema=signal_schema,
@@ -252,6 +284,58 @@ class DatasetDuckDB(DatasetDB):
         with open_file(signal_manifest_filepath, 'w') as f:
           f.write(signal_manifest.json())
         log(f'Wrote signal manifest to {signal_manifest_filepath}')
+
+  @override
+  def compute_split(self, splitter: TextSplitter, columns: Sequence[ColumnId]) -> None:
+    cols = [column_from_identifier(column) for column in columns]
+    for column in cols:
+      source_path = normalize_path(column.feature)
+      split_schema = create_enriched_schema(source_schema=self._source_manifest.data_schema,
+                                            enrich_paths=[source_path],
+                                            enrich_fields=SPLITS_FIELDS)
+      with DebugTimer(f'"_select_leafs" over "{source_path}"'):
+        leaf_alias = 'text'
+        select_leafs_result = self._select_leafs(path=source_path, leaf_alias=leaf_alias)
+        leafs_df = select_leafs_result.duckdb_result.to_df()
+
+      split_items: list[Item] = []
+      with DebugTimer(f'"split" for splitter "{splitter.name}" over "{source_path}"'):
+        for text in leafs_df[leaf_alias]:
+          splits = splitter.split(text=text)
+          split_items.append(item_from_spans(splits))
+
+      # Use the repeated indices to generate the correct output structure.
+      if select_leafs_result.repeated_idxs_col:
+        repeated_idxs = leafs_df[select_leafs_result.repeated_idxs_col]
+
+      # Repeat "None" if there are no repeated indices without allocating an array. This happens
+      # when the object is a simple structure.
+      repeated_idxs_iter: Iterable[Optional[list[int]]] = (
+          itertools.repeat(None) if not select_leafs_result.repeated_idxs_col else repeated_idxs)
+
+      enriched_split_items = list(
+          make_enriched_items(source_path=source_path,
+                              row_ids=leafs_df[UUID_COLUMN],
+                              leaf_items=split_items,
+                              repeated_idxs=repeated_idxs_iter))
+
+      split_out_prefix = split_parquet_prefix(column_name=column.alias, splitter_name=splitter.name)
+      parquet_filename, _ = write_items_to_parquet(items=enriched_split_items,
+                                                   output_dir=self.dataset_path,
+                                                   schema=split_schema,
+                                                   filename_prefix=split_out_prefix,
+                                                   shard_index=0,
+                                                   num_shards=1)
+      split_manifest = SplitManifest(files=[parquet_filename],
+                                     data_schema=split_schema,
+                                     splitter=splitter,
+                                     enriched_path=source_path)
+      split_manifest_filepath = os.path.join(
+          self.dataset_path,
+          split_manifest_filename(column_name=column.alias, splitter_name=splitter.name))
+      with open_file(split_manifest_filepath, 'w') as f:
+        f.write(split_manifest.json())
+      log(f'Wrote split manifest to {split_manifest_filepath}')
 
   def _select_leafs(self, path: Path, leaf_alias: str) -> SelectLeafsResult:
     path = normalize_path(path)
@@ -390,13 +474,13 @@ class DatasetDuckDB(DatasetDB):
       return path
     return '.'.join([str(path_comp) for path_comp in path])
 
-  def _top_level_col_name(self, path: Path, signal_name: str) -> str:
+  def _top_level_col_name(self, path: Path, enricher_name: str) -> str:
     column_name = self._path_to_col(path)
     if column_name.endswith('.*'):
       # Remove the trailing .* from the column name.
       column_name = column_name[:-2]
 
-    return f'{column_name}.{signal_name}'
+    return f'{column_name}.{enricher_name}'
 
 
 def read_source_manifest(dataset_path: str) -> SourceManifest:
@@ -412,12 +496,27 @@ def signal_parquet_prefix(column_name: str, signal_name: str) -> str:
 
 def signal_manifest_filename(column_name: str, signal_name: str) -> str:
   """Get the filename for a signal output."""
-  return f'{column_name}.{signal_name}.signal_manifest.json'
+  return f'{column_name}.{signal_name}.{SIGNAL_MANIFEST_SUFFIX}'
+
+
+def split_column_name(column: str, split_name: str) -> str:
+  """Get the name of a split column."""
+  return f'{column}.{split_name}'
+
+
+def split_parquet_prefix(column_name: str, splitter_name: str) -> str:
+  """Get the filename prefix for a split parquet file."""
+  return f'{column_name}.{splitter_name}'
+
+
+def split_manifest_filename(column_name: str, splitter_name: str) -> str:
+  """Get the filename for a split output."""
+  return f'{column_name}.{splitter_name}.{SPLIT_MANIFEST_SUFFIX}'
 
 
 class SignalManifest(BaseModel):
-  """The manifest that describes the dataset run, including schema and parquet files."""
-  # List of a parquet filepaths storing the data. The paths can be relative to `manifest.json`.
+  """The manifest that describes a signal computation including schema and parquet files."""
+  # List of a parquet filepaths storing the data. The paths are relative to the manifest.
   files: list[str]
 
   data_schema: Schema
@@ -430,3 +529,20 @@ class SignalManifest(BaseModel):
   def parse_signal(cls, signal: dict) -> Signal:
     """Parse a signal to its specific subclass instance."""
     return resolve_signal(signal)
+
+
+class SplitManifest(BaseModel):
+  """The manifest that describes a split computation including schema and parquet files."""
+  # List of a parquet filepaths storing the data. The paths are relative to the manifest
+  files: list[str]
+
+  data_schema: Schema
+  splitter: TextSplitter
+
+  # The column path that this split is derived from.
+  enriched_path: Path
+
+  @validator('splitter', pre=True)
+  def parse_splitter(cls, splitter: dict) -> TextSplitter:
+    """Parse a splitter to its specific subclass instance."""
+    return resolve_splitter(splitter)
