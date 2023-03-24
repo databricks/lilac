@@ -6,7 +6,7 @@ from typing import Iterable, Optional
 
 import pyarrow.parquet as pq
 import pytest
-from typing_extensions import override
+from typing_extensions import override  # type: ignore
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..schema import (
@@ -21,7 +21,7 @@ from ..schema import (
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
-from ..splitters.splitter_registry import clear_splitter_registry, register_splitter  # type: ignore
+from ..splitters.splitter_registry import clear_splitter_registry, register_splitter
 from ..splitters.text_splitter import (
     SPLITS_FEATURE,
     SPLITS_FIELDS,

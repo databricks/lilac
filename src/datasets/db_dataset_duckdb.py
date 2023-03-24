@@ -7,7 +7,7 @@ from typing import Iterable, Optional, Sequence, cast
 import duckdb
 import pandas as pd
 from pydantic import BaseModel, validator
-from typing_extensions import override
+from typing_extensions import override  # type: ignore
 
 from ..constants import data_path
 from ..embeddings.embedding_index import EmbeddingIndexer
@@ -26,7 +26,7 @@ from ..schema import (
 from ..signals.signal import Signal
 from ..signals.signal_registry import resolve_signal
 from ..splitters.splitter_registry import resolve_splitter
-from ..splitters.text_splitter import SPLITS_FIELDS, TextSplitter, item_from_spans  # type: ignore
+from ..splitters.text_splitter import SPLITS_FIELDS, TextSplitter, item_from_spans
 from ..utils import (
     DebugTimer,
     get_dataset_output_dir,
@@ -185,8 +185,12 @@ class DatasetDuckDB(DatasetDB):
         normalized_path = cast(list[str], original_path)
 
       original_top_level_column = normalized_path[0]
-      top_level_column_name = self._top_level_col_name(
-          column_group.original_column_path, column_group.signal_name or column_group.splitter_name)
+      enricher_name = column_group.signal_name or column_group.splitter_name
+      if not enricher_name:
+        raise ValueError(
+            'One of column_group.signal_name or column_group.splitter_name must be defined.')
+      top_level_column_name = self._top_level_col_name(column_group.original_column_path,
+                                                       enricher_name)
       merged_schema.fields[top_level_column_name] = column_group.data_schema.fields[
           original_top_level_column]
 
@@ -289,6 +293,9 @@ class DatasetDuckDB(DatasetDB):
   def compute_split(self, splitter: TextSplitter, columns: Sequence[ColumnId]) -> None:
     cols = [column_from_identifier(column) for column in columns]
     for column in cols:
+      if isinstance(column.feature, Column):
+        raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')
+
       source_path = normalize_path(column.feature)
       split_schema = create_enriched_schema(source_schema=self._source_manifest.data_schema,
                                             enrich_paths=[source_path],

@@ -174,16 +174,16 @@ def _add_enriched_fields_to_schema(source_schema: Schema, enriched_schema: Schem
     for i in range(repeated_depth):
       inner_field = Field(repeated_field=inner_field, enriched=True)
 
-    enrich_path: Path = leaf_path[0:inner_struct_path_idx + 1]
+    inner_enrich_path: Path = leaf_path[0:inner_struct_path_idx + 1]
 
     # Merge the source schema into the enriched schema up until inner struct parent.
     for i in reversed(range(inner_struct_path_idx + 1)):
-      path_component = cast(str, enrich_path[i])
+      path_component = cast(str, inner_enrich_path[i])
 
       if path_component == PATH_WILDCARD:
         inner_field = Field(repeated_field=inner_field)
       else:
-        field = get_field_if_exists(enriched_schema, enrich_path[0:i])
+        field = get_field_if_exists(enriched_schema, inner_enrich_path[0:i])
         if field and field.fields:
           field.fields[path_component] = inner_field
           break

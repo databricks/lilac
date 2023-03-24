@@ -1,12 +1,13 @@
 """Utilities for spaCy."""
 from importlib import import_module
+from typing import Any
 
 from spacy import Language
 from spacy.cli import download
 
 
 # This was taken from https://github.com/BramVanroy/spacy_download
-def load_spacy(model_name: str, **kwargs) -> Language:
+def load_spacy(model_name: str, **kwargs: Any) -> Language:
   """Load a spaCy model, download it if it has not been installed yet.
 
   Args:
