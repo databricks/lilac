@@ -4,7 +4,7 @@ set -e # Fail if any of the commands below fail.
 # Returns "arm64" on m1 devices.
 ARCHITECTURE=$(uname -m)
 
-poetry install --with dev,http_service
+poetry install --with dev
 
 # On arm64 we have to build the tensorflow-io wheel manually.
 if [ "$ARCHITECTURE" = "arm64" ]; then

@@ -2,7 +2,7 @@
 set -e # Fail if any of the commands below fail.
 
 echo "Linting typescript & javascript..."
-npx eslint server/
+npx eslint src/web
 
 
 echo "Building typescript..."

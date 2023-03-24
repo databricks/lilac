@@ -8,9 +8,10 @@ from typing import Iterable, Optional, TypeVar, cast
 import cohere
 import numpy as np
 import pandas as pd
-from datasets import DatasetDict, load_dataset
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import normalize
+
+from datasets import DatasetDict, load_dataset
 
 from .constants import (
     DATA_JSON_FILENAME,

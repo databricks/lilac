@@ -127,7 +127,7 @@ export const FilterMaker = React.memo(function FilterMaker(): JSX.Element {
   const isLoading =
     isLoadModelFetching || isModelFetching || isSaveModelLoading || isSearchExamplesLoading;
 
-  const labeledExamples = Object.entries(labeledData).map(([rowIdx, label]) => ({
+  const labeledExamples = Object.entries(labeledData).map(([rowIdx]) => ({
     text: modelData?.dataset?.data[+rowIdx].text ?? '',
     id: rowIdx,
   }));

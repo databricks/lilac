@@ -82,7 +82,6 @@ export const Table = React.memo(function Table({
   tableHeightPx,
   exampleRemoved,
   labelSelected,
-  addExample,
   sortBy,
   rowIdxFilter,
 }: TableProps): JSX.Element {
@@ -205,14 +204,7 @@ export const Table = React.memo(function Table({
           {
             Header: 'Prediction',
             accessor: 'prediction',
-            Cell: ({
-              cell: {
-                value,
-                row: {index},
-              },
-            }: {
-              cell: {value: number; row: {index: number}};
-            }) => {
+            Cell: ({cell: {value}}: {cell: {value: number; row: {index: number}}}) => {
               const predictionColor = LABEL_COLORS[value];
               const predictionLabel = labelSet[value];
               return (
@@ -229,7 +221,6 @@ export const Table = React.memo(function Table({
             accessor: 'label',
             Cell: ({
               cell: {
-                value,
                 row: {index},
               },
             }: {
