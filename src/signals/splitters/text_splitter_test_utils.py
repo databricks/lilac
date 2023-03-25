@@ -1,6 +1,6 @@
 """Utilities for testing text splitters."""
 
-from .text_splitter import TextSpan
+from .splitter import TextSpan
 
 
 def text_to_expected_spans(text: str, splits: list[str]) -> list[TextSpan]:
@@ -10,7 +10,7 @@ def text_to_expected_spans(text: str, splits: list[str]) -> list[TextSpan]:
   for split in splits:
     start = text.find(split, start_offset)
     end = start + len(split)
-    expected_spans.append(TextSpan(start=start, end=end))
+    expected_spans.append((start, end))
     start_offset = end
 
   return expected_spans
