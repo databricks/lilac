@@ -157,7 +157,7 @@ class TestSignal(Signal):
 
 
 class TestSplitterWithLen(Signal):
-  """Splits documents into sentence by splitting on period. Also produces the length as a feature."""
+  """Split documents into sentence by splitting on period. Also produces the length as a feature."""
   name = 'test_splitter'
   enrichment_type = EnrichmentType.TEXT
 
