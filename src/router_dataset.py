@@ -45,7 +45,7 @@ def compute_embedding_index(namespace: str, dataset_name: str,
 def compute_signal_column(namespace: str, dataset_name: str, options: ComputeSignalOptions) -> dict:
   """Compute a signal for a dataset."""
   dataset_db = get_dataset_db(namespace, dataset_name)
-  dataset_db.compute_signal_columns(options.signal, [options.column])
+  dataset_db.compute_signal_column(options.signal, options.column)
 
   return {}
 
