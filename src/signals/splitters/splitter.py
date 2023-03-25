@@ -1,4 +1,4 @@
-"""Interface for splitting individual documents into smaller chunks."""
+"""Utilities for working with splitters."""
 
 from ...schema import DataType, Field, Item
 
