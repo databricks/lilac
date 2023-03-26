@@ -9,7 +9,6 @@ from pydantic import BaseModel
 from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import Item, Path, Schema, path_to_alias
 from ..signals.signal import Signal
-from ..splitters.text_splitter import TextSplitter
 
 
 class SelectRowsResult():
@@ -142,22 +141,12 @@ class DatasetDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def compute_signal_columns(self, signal: Signal, columns: Sequence[ColumnId]) -> None:
-    """Compute a signal for a set of columns.
+  def compute_signal_column(self, signal: Signal, column: ColumnId) -> None:
+    """Compute a signal for a column.
 
     Args:
       signal: The signal to compute over the given columns.
-      columns: The columns to compute the signal on.
-    """
-    pass
-
-  @abc.abstractmethod
-  def compute_split_column(self, splitter: TextSplitter, columns: Sequence[ColumnId]) -> None:
-    """Compute a split for a set of columns.
-
-    Args:
-      splitter: The split to compute over the given columns.
-      columns: The columns to compute the split on.
+      column: The column to compute the signal on.
     """
     pass
 
