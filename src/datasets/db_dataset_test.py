@@ -47,7 +47,7 @@ SIMPLE_SCHEMA = Schema(
     })
 
 
-class TestSelectRows:
+class SelectRowsSuite:
 
   @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_default(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -146,7 +146,7 @@ class TestInvalidSignal(Signal):
     return []
 
 
-class TestComputeSignalItems:
+class ComputeSignalItemsSuite:
 
   @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_signal_output_validation(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:

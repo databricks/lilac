@@ -16,6 +16,7 @@ from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import (
     MANIFEST_FILENAME,
     UUID_COLUMN,
+    Field,
     Item,
     Path,
     Schema,
@@ -54,20 +55,20 @@ SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
 SPLIT_MANIFEST_SUFFIX = 'split_manifest.json'
 
 
-class ColumnGroup(BaseModel):
-  """A group of columns stored in a parquet file."""
+class ComputedColumn(BaseModel):
+  """A column that is computed/derived from another column."""
 
+  # The parquet files that contain the column values.
   files: list[str]
 
-  # The signal name that created this group.
-  signal_name: Optional[str]
-  # The split name that created this group.
-  splitter_name: Optional[str]
-  # The column path that this group is derived from.
-  original_column_path: Optional[Path]
+  # The name of the column when merged into a larger table.
+  alias: str
 
-  # The schema of this column group.
-  data_schema: Schema
+  # The name of the field that contains the values.
+  value_field_name: str
+
+  # The field schema of column value.
+  value_field_schema: Field
 
 
 class SelectLeafsResult(BaseModel):
@@ -78,6 +79,12 @@ class SelectLeafsResult(BaseModel):
 
   duckdb_result: duckdb.DuckDBPyRelation
   repeated_idxs_col: Optional[str]
+
+
+class DuckDBTableInfo(BaseModel):
+  """Internal representation of a DuckDB table."""
+  manifest: DatasetManifest
+  computed_columns: list[ComputedColumn]
 
 
 class DatasetDuckDB(DatasetDB):
@@ -105,7 +112,7 @@ class DatasetDuckDB(DatasetDB):
   def _create_view(self, view_name: str, files: list[str]) -> None:
     parquet_files = [os.path.join(self.dataset_path, filename) for filename in files]
     self.con.execute(f"""
-      CREATE OR REPLACE VIEW {view_name} AS (SELECT * FROM read_parquet({parquet_files}));
+      CREATE OR REPLACE VIEW "{view_name}" AS (SELECT * FROM read_parquet({parquet_files}));
     """)
 
   def _column_signal_manifest_files(self) -> tuple[str, ...]:
@@ -130,73 +137,79 @@ class DatasetDuckDB(DatasetDB):
 
   @functools.cache
   # NOTE: This is cached, but when the list of filepaths changed the results are invalidated.
-  def _column_groups(self, signal_manifest_filepaths: list[str],
-                     split_manifest_filepaths: list[str]) -> list[ColumnGroup]:
-    column_groups: list[ColumnGroup] = []
-    # Add the source column group.
-    column_groups.append(
-        ColumnGroup(files=self._source_manifest.files,
-                    signal_name=None,
-                    original_column_path=None,
-                    data_schema=self._source_manifest.data_schema))
+  def _recompute_joint_table(self, signal_manifest_filepaths: list[str],
+                             split_manifest_filepaths: list[str]) -> DuckDBTableInfo:
+    computed_columns: list[ComputedColumn] = []
 
     # Add the signal column groups.
     for signal_manifest_filepath in signal_manifest_filepaths:
       with open_file(signal_manifest_filepath) as f:
         signal_manifest = SignalManifest.parse_raw(f.read())
-
-      column_groups.append(
-          ColumnGroup(files=signal_manifest.files,
-                      signal_name=signal_manifest.signal.signal_name,
-                      original_column_path=signal_manifest.enriched_path,
-                      data_schema=signal_manifest.data_schema))
+      alias = self._top_level_col_name(signal_manifest.enriched_path,
+                                       signal_manifest.signal.signal_name)
+      value_field_name = cast(str, signal_manifest.enriched_path[0])
+      signal_column = ComputedColumn(
+          files=signal_manifest.files,
+          alias=alias,
+          value_field_name=value_field_name,
+          value_field_schema=signal_manifest.data_schema.fields[value_field_name])
+      computed_columns.append(signal_column)
 
     # Add the split column groups.
     for split_manifest_filepath in split_manifest_filepaths:
       with open_file(split_manifest_filepath) as f:
         split_manifest = SplitManifest.parse_raw(f.read())
+      alias = self._top_level_col_name(split_manifest.enriched_path, split_manifest.splitter.name)
+      value_field_name = cast(str, split_manifest.enriched_path[0])
+      split_column = ComputedColumn(
+          files=split_manifest.files,
+          alias=alias,
+          value_field_name=value_field_name,
+          value_field_schema=split_manifest.data_schema.fields[value_field_name])
+      computed_columns.append(split_column)
 
-      column_groups.append(
-          ColumnGroup(files=split_manifest.files,
-                      splitter_name=split_manifest.splitter.splitter_name,
-                      original_column_path=split_manifest.enriched_path,
-                      data_schema=split_manifest.data_schema))
+    # Merge the source manifest with the computed columns.
+    merged_schema = Schema(fields={**self._source_manifest.data_schema.fields})
 
-    return column_groups
+    for col in computed_columns:
+      merged_schema.fields[col.alias] = col.value_field_schema
+
+    manifest = DatasetManifest(namespace=self.namespace,
+                               dataset_name=self.dataset_name,
+                               data_schema=merged_schema)
+
+    # Make a joined view of all the column groups.
+    self._create_view('source', self._source_manifest.files)
+    for column in computed_columns:
+      self._create_view(column.alias, column.files)
+
+    # The logic below generates the following example query:
+    # CREATE OR REPLACE VIEW t AS (
+    #   SELECT
+    #     source.*,
+    #     "enriched.signal1"."enriched" AS "enriched.signal1",
+    #     "enriched.signal2"."enriched" AS "enriched.signal2"
+    #   FROM source JOIN "enriched.signal1" USING (uuid,) JOIN "enriched.signal2" USING (uuid,)
+    # );
+
+    select_sql = ', '.join(
+        ['source.*'] +
+        [f'"{col.alias}"."{col.value_field_name}" AS "{col.alias}"' for col in computed_columns])
+    join_sql = ' '.join(['source'] +
+                        [f'join "{col.alias}" using ({UUID_COLUMN},)' for col in computed_columns])
+
+    sql_cmd = f"""CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})"""
+    self.con.execute(sql_cmd)
+
+    return DuckDBTableInfo(manifest=manifest, computed_columns=computed_columns)
+
+  def _table_info(self) -> DuckDBTableInfo:
+    return self._recompute_joint_table(self._column_signal_manifest_files(),
+                                       self._column_split_manifest_files())
 
   @override
   def manifest(self) -> DatasetManifest:
-    merged_schema = Schema(fields={**self._source_manifest.data_schema.fields})
-
-    column_groups = self._column_groups(self._column_signal_manifest_files(),
-                                        self._column_split_manifest_files())
-    for column_group in column_groups:
-      # The source schema is already merged.
-      if column_group.signal_name is None and column_group.splitter_name is None:
-        continue
-      if column_group.original_column_path is None:
-        print(f'Column group {column_group} has no original column path.')
-        continue
-
-      original_path = column_group.original_column_path
-      if isinstance(original_path, str):
-        normalized_path = [original_path]
-      else:
-        normalized_path = cast(list[str], original_path)
-
-      original_top_level_column = normalized_path[0]
-      enricher_name = column_group.signal_name or column_group.splitter_name
-      if not enricher_name:
-        raise ValueError(
-            'One of column_group.signal_name or column_group.splitter_name must be defined.')
-      top_level_column_name = self._top_level_col_name(column_group.original_column_path,
-                                                       enricher_name)
-      merged_schema.fields[top_level_column_name] = column_group.data_schema.fields[
-          original_top_level_column]
-
-    return DatasetManifest(namespace=self.namespace,
-                           dataset_name=self.dataset_name,
-                           data_schema=merged_schema)
+    return self._table_info().manifest
 
   @functools.cache
   def columns(self) -> list[Column]:
@@ -453,7 +466,7 @@ class DatasetDuckDB(DatasetDB):
       if isinstance(column.feature, Column):
         raise ValueError('Transforms are not yet supported.')
       aliases.append(column.alias)
-      select_queries.append(f'"{self._path_to_col(column.feature)}" AS {column.alias}')
+      select_queries.append(f'{self._path_to_col(column.feature)} AS "{column.alias}"')
 
     return ', '.join(select_queries), aliases
 
@@ -475,14 +488,14 @@ class DatasetDuckDB(DatasetDB):
 
     return result
 
-  def _path_to_col(self, path: Path) -> str:
+  def _path_to_col(self, path: Path, quote_each_part: bool = True) -> str:
     """Convert a path to a column name."""
     if isinstance(path, str):
-      return path
-    return '.'.join([str(path_comp) for path_comp in path])
+      path = (path,)
+    return '.'.join([f'"{path_comp}"' if quote_each_part else str(path_comp) for path_comp in path])
 
   def _top_level_col_name(self, path: Path, enricher_name: str) -> str:
-    column_name = self._path_to_col(path)
+    column_name = self._path_to_col(path, quote_each_part=False)
     if column_name.endswith('.*'):
       # Remove the trailing .* from the column name.
       column_name = column_name[:-2]

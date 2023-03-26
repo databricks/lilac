@@ -50,7 +50,7 @@ def _make_indexer(embedding_indexer_cls: Type[EmbeddingIndexer],
   raise ValueError('Cant create embedding indexer class ', embedding_indexer_cls)
 
 
-class TestEmbeddingIndexer:
+class EmbeddingIndexerSuite:
 
   @pytest.mark.parametrize('indexer_cls', ALL_INDEXERS)
   def test_get_full_index(self, tmp_path: pathlib.Path, mocker: MockerFixture,
