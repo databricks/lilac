@@ -1,4 +1,4 @@
-"""Tests implentations of db_dataset."""
+"""Implementation-agnostic tests of the Dataset DB API."""
 
 import pathlib
 from typing import Iterable, Optional, Type
