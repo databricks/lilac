@@ -5,7 +5,7 @@ from typing import Iterable, Optional, Union
 
 import numpy as np
 import pandas as pd
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
 from ..schema import Path, RichData, path_to_alias
 from ..utils import file_exists, open_file

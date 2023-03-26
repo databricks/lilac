@@ -6,11 +6,11 @@ from typing import Iterable, Optional, cast
 import numpy as np
 import pytest
 from pytest_mock import MockerFixture
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
 from ..embeddings.embedding_index import EmbeddingIndex, EmbeddingIndexer
 from ..embeddings.embedding_registry import EmbeddingId, clear_embedding_registry, register_embed_fn
-from ..schema import RichData
+from ..schema import Path, RichData
 from .semantic_search import SIMILARITY_FEATURE_NAME, SemanticSearchSignal
 
 TEST_EMBEDDING_NAME = 'test_embedding'
@@ -32,15 +32,16 @@ class TestEmbeddingIndexer(EmbeddingIndexer):
   """A test embedding indexer with fixed embeddings."""
 
   @override
-  def get_embedding_index(self, column: str, embedding: EmbeddingId,
-                          row_ids: Iterable[bytes]) -> EmbeddingIndex:
+  def get_embedding_index(self,
+                          column: Path,
+                          embedding: EmbeddingId,
+                          row_ids: Optional[Iterable[bytes]] = None) -> EmbeddingIndex:
+    row_ids = row_ids or []
     return EmbeddingIndex(embeddings=np.array([EMBEDDINGS[row_id] for row_id in row_ids]))
 
   @override
-  def compute_embedding_index(self,
-                              column: str,
-                              embedding: EmbeddingId,
-                              rows: Optional[Iterable[bytes]] = None) -> None:
+  def compute_embedding_index(self, column: Path, embedding: EmbeddingId, keys: Iterable[bytes],
+                              data: Iterable[RichData]) -> None:
     pass
 
 

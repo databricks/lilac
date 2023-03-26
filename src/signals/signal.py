@@ -1,11 +1,11 @@
 """Interface for implementing a signal."""
 
 import abc
-from typing import Any, Callable, ClassVar, Iterable, Optional
+from typing import Any, ClassVar, Iterable, Optional
 
 from pydantic import BaseModel
 
-from ..embeddings.embedding_index import EmbeddingIndex
+from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import EmbeddingId, EmbedFn, get_embed_fn
 from ..schema import EnrichmentType, Field, Item, RichData
 
@@ -53,8 +53,7 @@ class Signal(abc.ABC, BaseModel):
       self,
       data: Optional[Iterable[RichData]] = None,
       keys: Optional[Iterable[bytes]] = None,
-      get_embedding_index: Optional[Callable[[EmbeddingId, Iterable[bytes]], EmbeddingIndex]] = None
-  ) -> Iterable[Optional[Item]]:
+      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
     """Compute the signal for an iterable of row-keyed documents or images.
 
     Args:

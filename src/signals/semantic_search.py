@@ -1,10 +1,10 @@
 """A signal to compute semantic search for a document."""
-from typing import Any, Callable, Iterable, Optional, Union
+from typing import Any, Iterable, Optional, Union
 
 import numpy as np
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
-from ..embeddings.embedding_index import EmbeddingIndex
+from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import EmbeddingId, EmbedFn
 from ..schema import DataType, EnrichmentType, Field, Item, RichData
 from .signal import Signal
@@ -46,8 +46,7 @@ class SemanticSearchSignal(Signal):
       self,
       data: Optional[Iterable[RichData]] = None,
       keys: Optional[Iterable[bytes]] = None,
-      get_embedding_index: Optional[Callable[[EmbeddingId, Iterable[bytes]], EmbeddingIndex]] = None
-  ) -> Iterable[Optional[Item]]:
+      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
     if data and keys:
       raise ValueError('"data" and "keys" cannot both be provided for SemanticSearch.compute().')
 

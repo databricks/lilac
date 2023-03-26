@@ -11,7 +11,7 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import normalize
 
-from datasets import DatasetDict, load_dataset
+from datasets import DatasetDict, load_dataset  # type: ignore
 
 from .constants import (
     DATA_JSON_FILENAME,

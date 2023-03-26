@@ -7,7 +7,7 @@ import duckdb
 import pandas as pd
 import pyarrow.parquet as pq
 from pydantic import BaseModel
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
 from ...schema import PARQUET_FILENAME_PREFIX, ImageInfo, Path, arrow_schema_to_schema
 from ...utils import (

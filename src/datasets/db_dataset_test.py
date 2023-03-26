@@ -1,15 +1,15 @@
 """Tests implentations of db_dataset."""
 
 import pathlib
-from typing import Callable, Iterable, Optional, Type
+from typing import Iterable, Optional, Type
 
 import pytest
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
-from ..embeddings.embedding_index import EmbeddingIndex, GetEmbeddingIndexFn
-from ..embeddings.embedding_registry import EmbeddingId
+from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..schema import UUID_COLUMN, DataType, EnrichmentType, Field, Item, RichData, Schema
 from ..signals.signal import Signal
+from ..signals.signal_registry import clear_signal_registry, register_signal
 from ..signals.splitters.splitter import (
     TEXT_SPAN_END_FEATURE,
     TEXT_SPAN_FEATURE_NAME,
@@ -53,6 +53,19 @@ SIMPLE_SCHEMA = Schema(
         'bool': Field(dtype=DataType.BOOLEAN),
         'float': Field(dtype=DataType.FLOAT64),
     })
+
+
+@pytest.fixture(scope='module', autouse=True)
+def setup_teardown() -> Iterable[None]:
+  # Setup.
+  register_signal(TestSignal)
+  register_signal(TestSplitterWithLen)
+
+  # Unit test runs.
+  yield
+
+  # Teardown.
+  clear_signal_registry()
 
 
 class SelectRowsSuite:
@@ -169,16 +182,16 @@ class TestSplitterWithLen(Signal):
     }
 
   @override
-  def compute(
-      self,
-      data: Optional[Iterable[str]] = None,
-      keys: Optional[Iterable[bytes]] = None,
-      get_embedding_index: Optional[Callable[[EmbeddingId, Iterable[bytes]], EmbeddingIndex]] = None
-  ) -> Iterable[Item]:
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[bytes]] = None,
+              get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Item]:
     if data is None:
       raise ValueError('Sentence splitter requires text data.')
 
     for text in data:
+      if not isinstance(text, str):
+        raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = text.split('.')
       yield {
           'sentences': [
@@ -277,7 +290,7 @@ class ComputeSignalItemsSuite:
             }))
     assert dataset_manifest == expected_dataset_manifest
 
-    db.compute_signal_column(signal=test_signal, column='text2')
+    db.compute_signal_column(signal=test_signal, column=('text2', '*'))
 
     # Check the enriched dataset manifest has both enriched.
     dataset_manifest = db.manifest()

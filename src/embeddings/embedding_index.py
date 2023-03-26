@@ -18,7 +18,7 @@ class EmbeddingIndex(BaseModel):
   embeddings: np.ndarray
 
 
-GetEmbeddingIndexFn = Callable[[Optional[Iterable[bytes]]], EmbeddingIndex]
+GetEmbeddingIndexFn = Callable[[EmbeddingId, Iterable[bytes]], EmbeddingIndex]
 
 
 class EmbeddingIndexer(abc.ABC):

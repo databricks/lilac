@@ -7,7 +7,7 @@ from typing import Iterable, Optional, Sequence, cast
 import duckdb
 import pandas as pd
 from pydantic import BaseModel, validator
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
 from ..constants import data_path
 from ..embeddings.embedding_index import EmbeddingIndexer
@@ -177,8 +177,7 @@ class DatasetDuckDB(DatasetDB):
     return DuckDBTableInfo(manifest=manifest, computed_columns=computed_columns)
 
   def _table_info(self) -> DuckDBTableInfo:
-    return self._recompute_joint_table(self._column_signal_manifest_files(),
-                                       self._column_split_manifest_files())
+    return self._recompute_joint_table(self._column_signal_manifest_files())
 
   @override
   def manifest(self) -> DatasetManifest:

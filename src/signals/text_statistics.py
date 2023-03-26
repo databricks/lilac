@@ -1,7 +1,7 @@
 """A signal to compute semantic search for a document."""
 from typing import Iterable, Optional
 
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..schema import DataType, EnrichmentType, Field, Item, RichData

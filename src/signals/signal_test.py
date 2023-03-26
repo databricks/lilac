@@ -3,7 +3,7 @@ from typing import Iterable, Optional
 
 import numpy as np
 import pytest
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import (

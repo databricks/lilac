@@ -2,9 +2,10 @@
 from typing import Iterable, Optional
 
 import pytest
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
-from ..schema import EnrichmentType, Field, Item
+from ..embeddings.embedding_index import GetEmbeddingIndexFn
+from ..schema import EnrichmentType, Field, Item, RichData
 from ..signals.signal_registry import (
     clear_signal_registry,
     get_signal_cls,
@@ -28,7 +29,10 @@ class TestSignal(Signal):
     return {}
 
   @override
-  def compute(self, data: Iterable[str]) -> list[Optional[Item]]:
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[bytes]] = None,
+              get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> list[Optional[Item]]:
     del data
     return []
 

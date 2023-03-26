@@ -1,8 +1,8 @@
 """A source to compute semantic search for a document."""
-from typing import Iterable
+from typing import Iterable, cast
 
 import pytest
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
 from .source import ShardsLoader, Source, SourceProcessResult
 from .source_registry import clear_source_registry, get_source_cls, register_source, resolve_source
@@ -13,12 +13,12 @@ class TestSource(Source):
   name = 'test_source'
 
   @override
-  def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:
-    pass
+  async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:
+    return cast(SourceProcessResult, None)
 
   @override
   def process_shard(self, shard_info_dict: dict) -> dict:
-    pass
+    return {}
 
 
 @pytest.fixture(scope='module', autouse=True)

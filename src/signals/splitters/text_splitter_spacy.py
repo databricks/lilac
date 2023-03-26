@@ -1,12 +1,11 @@
 """Text splitters using spaCy."""
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Iterable, Optional
 
 from spacy import Language
-from typing_extensions import override  # type: ignore
+from typing_extensions import override
 
-from ...embeddings.embedding_index import EmbeddingIndex
-from ...embeddings.embedding_registry import EmbeddingId
-from ...schema import EnrichmentType, Field, Item
+from ...embeddings.embedding_index import GetEmbeddingIndexFn
+from ...schema import EnrichmentType, Field, Item, RichData
 from ...signals.signal import Signal
 from .spacy_utils import load_spacy
 from .splitter import SpanFields, SpanItem
@@ -32,16 +31,16 @@ class SentenceSplitterSpacy(Signal):
     return {SENTENCES_FEATURE_NAME: Field(repeated_field=Field(fields=SpanFields({})))}
 
   @override
-  def compute(
-      self,
-      data: Optional[Iterable[str]] = None,
-      keys: Optional[Iterable[bytes]] = None,
-      get_embedding_index: Optional[Callable[[EmbeddingId, Iterable[bytes]], EmbeddingIndex]] = None
-  ) -> Iterable[Item]:
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[bytes]] = None,
+              get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Item]:
     if data is None:
       raise ValueError('Sentence splitter requires text data.')
 
     for text in data:
+      if not isinstance(text, str):
+        raise ValueError('Sentence splitter requires text data.')
       sentences = self._tokenizer(text).sents
       yield {
           SENTENCES_FEATURE_NAME: [
