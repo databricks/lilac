@@ -15,6 +15,7 @@ from ..embeddings.embedding_index_disk import EmbeddingIndexerDisk
 from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import (
     MANIFEST_FILENAME,
+    PATH_WILDCARD,
     UUID_COLUMN,
     Field,
     Path,
@@ -310,6 +311,31 @@ class DatasetDuckDB(DatasetDB):
     return SelectLeafsResult(duckdb_result=self._query(query),
                              repeated_idxs_col=repeated_indices_col)
 
+  def _validate_columns(self, columns: Sequence[Column]) -> None:
+    manifest = self.manifest()
+    manifest.data_schema
+    for column in columns:
+      current_field = Field(fields=manifest.data_schema.fields)
+      path = cast(Path, column.feature)
+      for path_part in path:
+        if isinstance(path_part, int) or path_part.isdigit():
+          raise ValueError(f'Unable to select path {path}. Selecting a specific index of '
+                           'a repeated field is currently not supported.')
+        if current_field.fields:
+          if path_part not in current_field.fields:
+            raise ValueError(f'Unable to select path {path}. '
+                             f'Path part "{path_part}" not found in the dataset.')
+          current_field = current_field.fields[path_part]
+          continue
+        elif current_field.repeated_field:
+          if path_part != PATH_WILDCARD:
+            raise ValueError(f'Unable to select path {path}. '
+                             f'Path part "{path_part}" should be a wildcard.')
+          current_field = current_field.repeated_field
+        else:
+          raise ValueError(f'Unable to select path {path}. '
+                           f'Path part "{path_part}" is not defined on a primitive value.')
+
   @override
   def select_groups(self,
                     columns: Optional[Sequence[ColumnId]] = None,
@@ -327,6 +353,7 @@ class DatasetDuckDB(DatasetDB):
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
                   limit: Optional[int] = 100) -> SelectRowsResult:
     cols = [column_from_identifier(column) for column in columns or []]
+    self._validate_columns(cols)
 
     select_query, col_aliases = self._create_select(cols)
     where_query = self._create_where(filters)

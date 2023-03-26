@@ -17,7 +17,7 @@ from ..signals.splitters.splitter import (
     SpanFields,
     SpanItem,
 )
-from .db_dataset import DatasetDB, DatasetManifest, SortOrder
+from .db_dataset import Column, DatasetDB, DatasetManifest, SortOrder
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
 
@@ -97,6 +97,149 @@ class SelectRowsSuite:
         'str': 'b',
         'float': 1.0
     }]
+
+  @pytest.mark.parametrize('db_cls', ALL_DBS)
+  def test_signal_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+    test_signal = TestSignal()
+    db.compute_signal_column(signal=test_signal, column='str')
+
+    result = db.select_rows(columns=['str', 'str.test_signal'])
+
+    assert list(result) == [{
+        UUID_COLUMN: b'1' * 16,
+        'str': 'a',
+        'str.test_signal': {
+            'len': 1,
+            'flen': 1.0
+        }
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'str': 'b',
+        'str.test_signal': {
+            'len': 1,
+            'flen': 1.0
+        }
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'str': 'b',
+        'str.test_signal': {
+            'len': 1,
+            'flen': 1.0
+        }
+    }]
+
+    # Select a specific signal leaf test_signal.flen.
+    result = db.select_rows(columns=['str', ('str.test_signal', 'flen')])
+
+    assert list(result) == [{
+        UUID_COLUMN: b'1' * 16,
+        'str': 'a',
+        'str.test_signal.flen': 1.0
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'str': 'b',
+        'str.test_signal.flen': 1.0
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'str': 'b',
+        'str.test_signal.flen': 1.0
+    }]
+
+    # Select multiple signal leafs with aliasing.
+    result = db.select_rows(columns=[
+        'str',
+        Column(('str.test_signal', 'flen'), alias='flen'),
+        Column(('str.test_signal', 'len'), alias='len')
+    ])
+
+    assert list(result) == [{
+        UUID_COLUMN: b'1' * 16,
+        'str': 'a',
+        'flen': 1.0,
+        'len': 1
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'str': 'b',
+        'flen': 1.0,
+        'len': 1
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'str': 'b',
+        'flen': 1.0,
+        'len': 1
+    }]
+
+  @pytest.mark.parametrize('db_cls', ALL_DBS)
+  def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls,
+                 tmp_path,
+                 items=[{
+                     UUID_COLUMN: b'1' * 16,
+                     'text': ['hello', 'everybody'],
+                 }, {
+                     UUID_COLUMN: b'2' * 16,
+                     'text': ['hello2', 'everybody2'],
+                 }],
+                 schema=Schema(
+                     fields={
+                         UUID_COLUMN: Field(dtype=DataType.BINARY),
+                         'text': Field(repeated_field=Field(dtype=DataType.STRING)),
+                     }))
+    test_signal = TestSignal()
+    # Run the signal on the repeated field.
+    db.compute_signal_column(signal=test_signal, column=('text', '*'))
+
+    result = db.select_rows(columns=[('text.test_signal')])
+
+    assert list(result) == [{
+        UUID_COLUMN: b'1' * 16,
+        'text.test_signal': [{
+            'len': 5,
+            'flen': 5.0
+        }, {
+            'len': 9,
+            'flen': 9.0
+        }]
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'text.test_signal': [{
+            'len': 6,
+            'flen': 6.0
+        }, {
+            'len': 10,
+            'flen': 10.0
+        }]
+    }]
+
+  @pytest.mark.parametrize('db_cls', ALL_DBS)
+  def test_invalid_column_paths(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls,
+                 tmp_path,
+                 items=[{
+                     UUID_COLUMN: b'1' * 16,
+                     'text': 'hello',
+                     'text2': ['hello', 'world'],
+                 }, {
+                     UUID_COLUMN: b'2' * 16,
+                     'text': 'hello world',
+                     'text2': ['hello2', 'world2'],
+                 }],
+                 schema=Schema(
+                     fields={
+                         UUID_COLUMN: Field(dtype=DataType.BINARY),
+                         'text': Field(dtype=DataType.STRING),
+                         'text2': Field(repeated_field=Field(dtype=DataType.STRING)),
+                     }))
+    test_signal = TestSignal()
+    db.compute_signal_column(signal=test_signal, column='text')
+    db.compute_signal_column(signal=test_signal, column=('text2', '*'))
+
+    with pytest.raises(ValueError, match='Path part "invalid" not found in the dataset'):
+      db.select_rows(columns=[('text.test_signal', 'invalid')])
+
+    with pytest.raises(ValueError, match='Selecting a specific index of a repeated field'):
+      db.select_rows(columns=[('text2.test_signal', 4)])
 
   @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_sort(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
