@@ -313,7 +313,6 @@ class DatasetDuckDB(DatasetDB):
 
   def _validate_columns(self, columns: Sequence[Column]) -> None:
     manifest = self.manifest()
-    manifest.data_schema
     for column in columns:
       current_field = Field(fields=manifest.data_schema.fields)
       path = cast(Path, column.feature)

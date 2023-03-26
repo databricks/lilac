@@ -72,6 +72,7 @@ class Column(BaseModel):
         alias = feature
       else:
         alias = path_to_alias(feature)
+
     super().__init__(feature=feature, alias=alias, **kwargs)
 
 
