@@ -51,6 +51,7 @@ UUID_INDEX_FILENAME = 'uuids.npy'
 
 SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
 SPLIT_MANIFEST_SUFFIX = 'split_manifest.json'
+SOURCE_VIEW_NAME = 'source'
 
 
 class ComputedColumn(BaseModel):
@@ -153,7 +154,7 @@ class DatasetDuckDB(DatasetDB):
                                data_schema=merged_schema)
 
     # Make a joined view of all the column groups.
-    self._create_view('source', self._source_manifest.files)
+    self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
     for column in computed_columns:
       self._create_view(column.alias, column.files)
 
@@ -165,11 +166,10 @@ class DatasetDuckDB(DatasetDB):
     #     "enriched.signal2"."enriched" AS "enriched.signal2"
     #   FROM source JOIN "enriched.signal1" USING (uuid,) JOIN "enriched.signal2" USING (uuid,)
     # );
-
     select_sql = ', '.join(
-        ['source.*'] +
+        [f'{SOURCE_VIEW_NAME}.*'] +
         [f'"{col.alias}"."{col.value_field_name}" AS "{col.alias}"' for col in computed_columns])
-    join_sql = ' '.join(['source'] +
+    join_sql = ' '.join([SOURCE_VIEW_NAME] +
                         [f'join "{col.alias}" using ({UUID_COLUMN},)' for col in computed_columns])
 
     sql_cmd = f"""CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})"""

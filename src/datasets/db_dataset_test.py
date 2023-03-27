@@ -99,7 +99,8 @@ class SelectRowsSuite:
     }]
 
   @pytest.mark.parametrize('db_cls', ALL_DBS)
-  def test_signal_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_source_joined_with_signal_column(self, tmp_path: pathlib.Path,
+                                            db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
     test_signal = TestSignal()
     db.compute_signal_column(signal=test_signal, column='str')
@@ -211,6 +212,64 @@ class SelectRowsSuite:
             'flen': 10.0
         }]
     }]
+
+  @pytest.mark.parametrize('db_cls', ALL_DBS)
+  def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls=db_cls,
+                 tmp_path=tmp_path,
+                 items=[{
+                     UUID_COLUMN: b'1' * 16,
+                     'text': '[1, 1] first sentence. [1, 1] second sentence.',
+                 }, {
+                     UUID_COLUMN: b'2' * 16,
+                     'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
+                 }],
+                 schema=Schema(fields={
+                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     'text': Field(dtype=DataType.STRING),
+                 }))
+
+    db.compute_signal_column(signal=TestSplitterWithLen(), column='text')
+
+    result = db.select_rows(columns=['text', 'text.test_splitter'])
+    expected_result = [{
+        UUID_COLUMN: b'1' * 16,
+        'text': '[1, 1] first sentence. [1, 1] second sentence.',
+        'text.test_splitter': {
+            'sentences': [{
+                'len': 21,
+                TEXT_SPAN_FEATURE_NAME: {
+                    'start': 0,
+                    'end': 21
+                }
+            }, {
+                'len': 23,
+                TEXT_SPAN_FEATURE_NAME: {
+                    'start': 22,
+                    'end': 45
+                }
+            }]
+        }
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
+        'text.test_splitter': {
+            'sentences': [{
+                'len': 24,
+                TEXT_SPAN_FEATURE_NAME: {
+                    'start': 0,
+                    'end': 24
+                }
+            }, {
+                'len': 23,
+                TEXT_SPAN_FEATURE_NAME: {
+                    'start': 25,
+                    'end': 48
+                }
+            }]
+        }
+    }]
+    assert list(result) == expected_result
 
   @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_invalid_column_paths(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:

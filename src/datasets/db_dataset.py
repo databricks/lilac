@@ -19,8 +19,7 @@ class SelectRowsResult():
     self.rows = rows
 
   def __iter__(self) -> Iterator:
-    for row in self.rows:
-      yield row
+    return iter(self.rows)
 
 
 class Comparison(str, enum.Enum):
