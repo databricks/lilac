@@ -33,7 +33,11 @@ from ..utils import (
     open_file,
     write_items_to_parquet,
 )
-from .dataset_utils import create_enriched_schema, make_enriched_items
+from .dataset_utils import (
+    create_enriched_schema,
+    make_enriched_items,
+    top_level_signal_col_name,
+)
 from .db_dataset import (
     Column,
     ColumnId,
@@ -61,7 +65,7 @@ class ComputedColumn(BaseModel):
   files: list[str]
 
   # The name of the column when merged into a larger table.
-  alias: str
+  top_level_column_name: str
 
   # The name of the field that contains the values.
   value_field_name: str
@@ -133,12 +137,10 @@ class DatasetDuckDB(DatasetDB):
     for signal_manifest_filepath in signal_manifest_filepaths:
       with open_file(signal_manifest_filepath) as f:
         signal_manifest = SignalManifest.parse_raw(f.read())
-      alias = self._top_level_col_name(signal_manifest.enriched_path,
-                                       signal_manifest.signal.signal_name)
       value_field_name = cast(str, signal_manifest.enriched_path[0])
       signal_column = ComputedColumn(
           files=signal_manifest.files,
-          alias=alias,
+          top_level_column_name=signal_manifest.top_level_column_name,
           value_field_name=value_field_name,
           value_field_schema=signal_manifest.data_schema.fields[value_field_name])
       computed_columns.append(signal_column)
@@ -147,7 +149,7 @@ class DatasetDuckDB(DatasetDB):
     merged_schema = Schema(fields={**self._source_manifest.data_schema.fields})
 
     for col in computed_columns:
-      merged_schema.fields[col.alias] = col.value_field_schema
+      merged_schema.fields[col.top_level_column_name] = col.value_field_schema
 
     manifest = DatasetManifest(namespace=self.namespace,
                                dataset_name=self.dataset_name,
@@ -156,7 +158,7 @@ class DatasetDuckDB(DatasetDB):
     # Make a joined view of all the column groups.
     self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
     for column in computed_columns:
-      self._create_view(column.alias, column.files)
+      self._create_view(column.top_level_column_name, column.files)
 
     # The logic below generates the following example query:
     # CREATE OR REPLACE VIEW t AS (
@@ -166,11 +168,13 @@ class DatasetDuckDB(DatasetDB):
     #     "enriched.signal2"."enriched" AS "enriched.signal2"
     #   FROM source JOIN "enriched.signal1" USING (uuid,) JOIN "enriched.signal2" USING (uuid,)
     # );
-    select_sql = ', '.join(
-        [f'{SOURCE_VIEW_NAME}.*'] +
-        [f'"{col.alias}"."{col.value_field_name}" AS "{col.alias}"' for col in computed_columns])
-    join_sql = ' '.join([SOURCE_VIEW_NAME] +
-                        [f'join "{col.alias}" using ({UUID_COLUMN},)' for col in computed_columns])
+    select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [
+        f'"{col.top_level_column_name}"."{col.value_field_name}" AS "{col.top_level_column_name}"'
+        for col in computed_columns
+    ])
+    join_sql = ' '.join(
+        [SOURCE_VIEW_NAME] +
+        [f'join "{col.top_level_column_name}" using ({UUID_COLUMN},)' for col in computed_columns])
 
     sql_cmd = f"""CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})"""
     self.con.execute(sql_cmd)
@@ -216,8 +220,13 @@ class DatasetDuckDB(DatasetDB):
                                                       data=data)
 
   @override
-  def compute_signal_column(self, signal: Signal, column: ColumnId) -> None:
+  def compute_signal_columns(self,
+                             signal: Signal,
+                             column: ColumnId,
+                             signal_column_name: Optional[str] = None) -> str:
     column = column_from_identifier(column)
+    if not signal_column_name:
+      signal_column_name = top_level_signal_col_name(signal, column)
 
     signal_fields = signal.fields()
 
@@ -266,13 +275,16 @@ class DatasetDuckDB(DatasetDB):
       signal_manifest = SignalManifest(files=[parquet_filename],
                                        data_schema=signal_schema,
                                        signal=signal,
-                                       enriched_path=source_path)
+                                       enriched_path=source_path,
+                                       top_level_column_name=signal_column_name)
       signal_manifest_filepath = os.path.join(
           self.dataset_path,
           signal_manifest_filename(column_name=column.alias, signal_name=signal.name))
       with open_file(signal_manifest_filepath, 'w') as f:
         f.write(signal_manifest.json())
       log(f'Wrote signal manifest to {signal_manifest_filepath}')
+
+    return signal_column_name
 
   def _select_leafs(self, path: Path, leaf_alias: str) -> SelectLeafsResult:
     path = normalize_path(path)
@@ -436,14 +448,6 @@ class DatasetDuckDB(DatasetDB):
       path = (path,)
     return '.'.join([f'"{path_comp}"' if quote_each_part else str(path_comp) for path_comp in path])
 
-  def _top_level_col_name(self, path: Path, signal_name: str) -> str:
-    column_name = self._path_to_col(path, quote_each_part=False)
-    if column_name.endswith('.*'):
-      # Remove the trailing .* from the column name.
-      column_name = column_name[:-2]
-
-    return f'{column_name}.{signal_name}'
-
 
 def read_source_manifest(dataset_path: str) -> SourceManifest:
   """Read the manifest file."""
@@ -480,6 +484,10 @@ class SignalManifest(BaseModel):
   """The manifest that describes a signal computation including schema and parquet files."""
   # List of a parquet filepaths storing the data. The paths are relative to the manifest.
   files: list[str]
+
+  # The column name that this signal is stored in. This provides the top-level path to the computed
+  # signal values.
+  top_level_column_name: str
 
   data_schema: Schema
   signal: Signal

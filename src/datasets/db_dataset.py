@@ -146,12 +146,20 @@ class DatasetDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def compute_signal_column(self, signal: Signal, column: ColumnId) -> None:
+  def compute_signal_columns(self,
+                             signal: Signal,
+                             column: ColumnId,
+                             signal_column_name: Optional[str] = None) -> str:
     """Compute a signal for a column.
 
     Args:
       signal: The signal to compute over the given columns.
       column: The column to compute the signal on.
+      signal_column_name: The name of the result signal columns. This acts as a namespace for
+        the set of columns the signal produces.
+
+    Returns
+      The name of the result columns.
     """
     pass
 
