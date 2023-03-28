@@ -168,8 +168,7 @@ class DiskConceptDB(ConceptDB):
         raise ValueError(f'Example with id "{example.id}" does not exist.')
       # Remove the old example and make a new one with a new id to keep it functional.
       concept.data.pop(example.id)
-      id = uuid4().hex
-      concept.data[id] = Example(id=id, **example.dict())
+      concept.data[example.id] = example.copy()
 
     concept.version += 1
 
