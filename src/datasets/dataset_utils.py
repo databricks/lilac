@@ -219,4 +219,8 @@ def top_level_signal_col_name(signal: Signal, column: Column) -> str:
     raise ValueError('Transforms are not yet supported.')
 
   column_alias = '_'.join([str(path_part).replace('.', '_') for path_part in column.feature])
-  return f'{column_alias}[{signal.name}]'
+  if column_alias.endswith('_*'):
+    # Remove the trailing .* from the column name.
+    column_alias = column_alias[:-2]
+
+  return f'{column_alias}({signal.name})'
