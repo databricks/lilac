@@ -111,56 +111,90 @@ class SelectRowsSuite:
   def test_source_joined_with_signal_column(self, tmp_path: pathlib.Path,
                                             db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
-    test_signal = TestSignal()
-    db.compute_signal_column(signal=test_signal, column='str')
+    assert db.manifest() == DatasetManifest(namespace=TEST_NAMESPACE,
+                                            dataset_name=TEST_DATASET_NAME,
+                                            data_schema=Schema(
+                                                fields={
+                                                    UUID_COLUMN: Field(dtype=DataType.BINARY),
+                                                    'str': Field(dtype=DataType.STRING),
+                                                    'int': Field(dtype=DataType.INT64),
+                                                    'bool': Field(dtype=DataType.BOOLEAN),
+                                                    'float': Field(dtype=DataType.FLOAT64),
+                                                }))
 
-    result = db.select_rows(columns=['str', 'str.test_signal'])
+    test_signal = TestSignal()
+    db.compute_signal_columns(signal=test_signal, column='str')
+
+    result = db.select_rows(columns=['str', 'str(test_signal)'])
 
     assert list(result) == [{
         UUID_COLUMN: b'1' * 16,
         'str': 'a',
-        'str.test_signal': {
+        'str(test_signal)': {
             'len': 1,
             'flen': 1.0
         }
     }, {
         UUID_COLUMN: b'2' * 16,
         'str': 'b',
-        'str.test_signal': {
+        'str(test_signal)': {
             'len': 1,
             'flen': 1.0
         }
     }, {
         UUID_COLUMN: b'2' * 16,
         'str': 'b',
-        'str.test_signal': {
+        'str(test_signal)': {
             'len': 1,
             'flen': 1.0
         }
     }]
 
+    # Check the enriched dataset manifest has 'text' enriched.
+    assert db.manifest() == DatasetManifest(namespace=TEST_NAMESPACE,
+                                            dataset_name=TEST_DATASET_NAME,
+                                            data_schema=Schema(
+                                                fields={
+                                                    UUID_COLUMN:
+                                                        Field(dtype=DataType.BINARY),
+                                                    'str':
+                                                        Field(dtype=DataType.STRING),
+                                                    'int':
+                                                        Field(dtype=DataType.INT64),
+                                                    'bool':
+                                                        Field(dtype=DataType.BOOLEAN),
+                                                    'float':
+                                                        Field(dtype=DataType.FLOAT64),
+                                                    'str(test_signal)':
+                                                        Field(fields={
+                                                            'len': Field(dtype=DataType.INT32),
+                                                            'flen': Field(dtype=DataType.FLOAT32)
+                                                        },
+                                                              enriched=True)
+                                                }))
+
     # Select a specific signal leaf test_signal.flen.
-    result = db.select_rows(columns=['str', ('str.test_signal', 'flen')])
+    result = db.select_rows(columns=['str', ('str(test_signal)', 'flen')])
 
     assert list(result) == [{
         UUID_COLUMN: b'1' * 16,
         'str': 'a',
-        'str.test_signal.flen': 1.0
+        'str(test_signal).flen': 1.0
     }, {
         UUID_COLUMN: b'2' * 16,
         'str': 'b',
-        'str.test_signal.flen': 1.0
+        'str(test_signal).flen': 1.0
     }, {
         UUID_COLUMN: b'2' * 16,
         'str': 'b',
-        'str.test_signal.flen': 1.0
+        'str(test_signal).flen': 1.0
     }]
 
     # Select multiple signal leafs with aliasing.
     result = db.select_rows(columns=[
         'str',
-        Column(('str.test_signal', 'flen'), alias='flen'),
-        Column(('str.test_signal', 'len'), alias='len')
+        Column(('str(test_signal)', 'flen'), alias='flen'),
+        Column(('str(test_signal)', 'len'), alias='len')
     ])
 
     assert list(result) == [{
@@ -197,13 +231,32 @@ class SelectRowsSuite:
                      }))
     test_signal = TestSignal()
     # Run the signal on the repeated field.
-    db.compute_signal_column(signal=test_signal, column=('text', '*'))
+    db.compute_signal_columns(signal=test_signal, column=('text', '*'))
 
-    result = db.select_rows(columns=[('text.test_signal')])
+    # Check the enriched dataset manifest has 'text' enriched.
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(
+            fields={
+                UUID_COLUMN:
+                    Field(dtype=DataType.BINARY),
+                'text':
+                    Field(repeated_field=Field(dtype=DataType.STRING)),
+                'text(test_signal)':
+                    Field(repeated_field=Field(fields={
+                        'len': Field(dtype=DataType.INT32),
+                        'flen': Field(dtype=DataType.FLOAT32)
+                    },
+                                               enriched=True),
+                          enriched=True)
+            }))
+
+    result = db.select_rows(columns=[('text(test_signal)')])
 
     assert list(result) == [{
         UUID_COLUMN: b'1' * 16,
-        'text.test_signal': [{
+        'text(test_signal)': [{
             'len': 5,
             'flen': 5.0
         }, {
@@ -212,7 +265,7 @@ class SelectRowsSuite:
         }]
     }, {
         UUID_COLUMN: b'2' * 16,
-        'text.test_signal': [{
+        'text(test_signal)': [{
             'len': 6,
             'flen': 6.0
         }, {
@@ -220,6 +273,73 @@ class SelectRowsSuite:
             'flen': 10.0
         }]
     }]
+
+  def test_source_joined_with_named_signal_column(self, tmp_path: pathlib.Path,
+                                                  db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+    assert db.manifest() == DatasetManifest(namespace=TEST_NAMESPACE,
+                                            dataset_name=TEST_DATASET_NAME,
+                                            data_schema=Schema(
+                                                fields={
+                                                    UUID_COLUMN: Field(dtype=DataType.BINARY),
+                                                    'str': Field(dtype=DataType.STRING),
+                                                    'int': Field(dtype=DataType.INT64),
+                                                    'bool': Field(dtype=DataType.BOOLEAN),
+                                                    'float': Field(dtype=DataType.FLOAT64),
+                                                }))
+
+    test_signal = TestSignal()
+    db.compute_signal_columns(signal=test_signal,
+                              column='str',
+                              signal_column_name='test_signal_on_str')
+
+    result = db.select_rows(columns=['str', 'test_signal_on_str'])
+
+    assert list(result) == [{
+        UUID_COLUMN: b'1' * 16,
+        'str': 'a',
+        'test_signal_on_str': {
+            'len': 1,
+            'flen': 1.0
+        }
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'str': 'b',
+        'test_signal_on_str': {
+            'len': 1,
+            'flen': 1.0
+        }
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'str': 'b',
+        'test_signal_on_str': {
+            'len': 1,
+            'flen': 1.0
+        }
+    }]
+
+    # Check the enriched dataset manifest has 'text' enriched.
+    assert db.manifest() == DatasetManifest(namespace=TEST_NAMESPACE,
+                                            dataset_name=TEST_DATASET_NAME,
+                                            data_schema=Schema(
+                                                fields={
+                                                    UUID_COLUMN:
+                                                        Field(dtype=DataType.BINARY),
+                                                    'str':
+                                                        Field(dtype=DataType.STRING),
+                                                    'int':
+                                                        Field(dtype=DataType.INT64),
+                                                    'bool':
+                                                        Field(dtype=DataType.BOOLEAN),
+                                                    'float':
+                                                        Field(dtype=DataType.FLOAT64),
+                                                    'test_signal_on_str':
+                                                        Field(fields={
+                                                            'len': Field(dtype=DataType.INT32),
+                                                            'flen': Field(dtype=DataType.FLOAT32)
+                                                        },
+                                                              enriched=True)
+                                                }))
 
   def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls=db_cls,
@@ -236,42 +356,42 @@ class SelectRowsSuite:
                      'text': Field(dtype=DataType.STRING),
                  }))
 
-    db.compute_signal_column(signal=TestSplitterWithLen(), column='text')
+    db.compute_signal_columns(signal=TestSplitterWithLen(), column='text')
 
-    result = db.select_rows(columns=['text', 'text.test_splitter'])
+    result = db.select_rows(columns=['text', 'text(test_splitter)'])
     expected_result = [{
         UUID_COLUMN: b'1' * 16,
         'text': '[1, 1] first sentence. [1, 1] second sentence.',
-        'text.test_splitter': {
+        'text(test_splitter)': {
             'sentences': [{
                 'len': 21,
                 TEXT_SPAN_FEATURE_NAME: {
-                    'start': 0,
-                    'end': 21
+                    TEXT_SPAN_START_FEATURE: 0,
+                    TEXT_SPAN_END_FEATURE: 21
                 }
             }, {
                 'len': 23,
                 TEXT_SPAN_FEATURE_NAME: {
-                    'start': 22,
-                    'end': 45
+                    TEXT_SPAN_START_FEATURE: 22,
+                    TEXT_SPAN_END_FEATURE: 45
                 }
             }]
         }
     }, {
         UUID_COLUMN: b'2' * 16,
         'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-        'text.test_splitter': {
+        'text(test_splitter)': {
             'sentences': [{
                 'len': 24,
                 TEXT_SPAN_FEATURE_NAME: {
-                    'start': 0,
-                    'end': 24
+                    TEXT_SPAN_START_FEATURE: 0,
+                    TEXT_SPAN_END_FEATURE: 24
                 }
             }, {
                 'len': 23,
                 TEXT_SPAN_FEATURE_NAME: {
-                    'start': 25,
-                    'end': 48
+                    TEXT_SPAN_START_FEATURE: 25,
+                    TEXT_SPAN_END_FEATURE: 48
                 }
             }]
         }
@@ -297,14 +417,14 @@ class SelectRowsSuite:
                          'text2': Field(repeated_field=Field(dtype=DataType.STRING)),
                      }))
     test_signal = TestSignal()
-    db.compute_signal_column(signal=test_signal, column='text')
-    db.compute_signal_column(signal=test_signal, column=('text2', '*'))
+    db.compute_signal_columns(signal=test_signal, column='text')
+    db.compute_signal_columns(signal=test_signal, column=('text2', '*'))
 
     with pytest.raises(ValueError, match='Path part "invalid" not found in the dataset'):
-      db.select_rows(columns=[('text.test_signal', 'invalid')])
+      db.select_rows(columns=[('text(test_signal)', 'invalid')])
 
     with pytest.raises(ValueError, match='Selecting a specific index of a repeated field'):
-      db.select_rows(columns=[('text2.test_signal', 4)])
+      db.select_rows(columns=[('text2(test_signal)', 4)])
 
   def test_sort(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
@@ -447,132 +567,4 @@ class ComputeSignalItemsSuite:
 
     with pytest.raises(ValueError,
                        match='The enriched output and the input data do not have the same length'):
-      db.compute_signal_column(signal=signal, column=('text',))
-
-  def test_compute_signal_column_simple(self, tmp_path: pathlib.Path,
-                                        db_cls: Type[DatasetDB]) -> None:
-    test_signal = TestSignal()
-
-    db = make_db(db_cls=db_cls,
-                 tmp_path=tmp_path,
-                 items=[{
-                     UUID_COLUMN: b'1' * 16,
-                     'text': 'hello',
-                     'text2': ['hello', 'world'],
-                 }, {
-                     UUID_COLUMN: b'2' * 16,
-                     'text': 'hello world',
-                     'text2': ['hello2', 'world2'],
-                 }],
-                 schema=Schema(
-                     fields={
-                         UUID_COLUMN: Field(dtype=DataType.BINARY),
-                         'text': Field(dtype=DataType.STRING),
-                         'text2': Field(repeated_field=Field(dtype=DataType.STRING)),
-                     }))
-
-    db.compute_signal_column(signal=test_signal, column='text')
-
-    # Check the enriched dataset manifest has 'text' enriched, but not 'text2'.
-    dataset_manifest = db.manifest()
-    expected_dataset_manifest = DatasetManifest(
-        namespace=TEST_NAMESPACE,
-        dataset_name=TEST_DATASET_NAME,
-        data_schema=Schema(
-            fields={
-                UUID_COLUMN:
-                    Field(dtype=DataType.BINARY),
-                'text':
-                    Field(dtype=DataType.STRING),
-                'text2':
-                    Field(repeated_field=Field(dtype=DataType.STRING)),
-                'text.test_signal':
-                    Field(fields={
-                        'len': Field(dtype=DataType.INT32),
-                        'flen': Field(dtype=DataType.FLOAT32)
-                    },
-                          enriched=True)
-            }))
-    assert dataset_manifest == expected_dataset_manifest
-
-    db.compute_signal_column(signal=test_signal, column=('text2', '*'))
-
-    # Check the enriched dataset manifest has both enriched.
-    dataset_manifest = db.manifest()
-    expected_dataset_manifest = DatasetManifest(
-        namespace=TEST_NAMESPACE,
-        dataset_name=TEST_DATASET_NAME,
-        data_schema=Schema(
-            fields={
-                UUID_COLUMN:
-                    Field(dtype=DataType.BINARY),
-                'text':
-                    Field(dtype=DataType.STRING),
-                'text2':
-                    Field(repeated_field=Field(dtype=DataType.STRING)),
-                'text.test_signal':
-                    Field(fields={
-                        'len': Field(dtype=DataType.INT32),
-                        'flen': Field(dtype=DataType.FLOAT32)
-                    },
-                          enriched=True),
-                'text2.test_signal':
-                    Field(repeated_field=Field(fields={
-                        'len': Field(dtype=DataType.INT32),
-                        'flen': Field(dtype=DataType.FLOAT32)
-                    },
-                                               enriched=True),
-                          enriched=True)
-            }))
-    assert dataset_manifest == expected_dataset_manifest
-
-  def test_compute_signal_column_splits(self, tmp_path: pathlib.Path,
-                                        db_cls: Type[DatasetDB]) -> None:
-
-    db = make_db(db_cls=db_cls,
-                 tmp_path=tmp_path,
-                 items=[{
-                     UUID_COLUMN: b'1' * 16,
-                     'text': '[1, 1] first sentence. [1, 1] second sentence.',
-                 }, {
-                     UUID_COLUMN: b'2' * 16,
-                     'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-                 }],
-                 schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.BINARY),
-                     'text': Field(dtype=DataType.STRING),
-                 }))
-
-    db.compute_signal_column(signal=TestSplitterWithLen(), column='text')
-
-    # Check the enriched dataset manifest.
-    dataset_manifest = db.manifest()
-    expected_dataset_manifest = DatasetManifest(
-        namespace=TEST_NAMESPACE,
-        dataset_name=TEST_DATASET_NAME,
-        data_schema=Schema(
-            fields={
-                UUID_COLUMN:
-                    Field(dtype=DataType.BINARY),
-                'text':
-                    Field(dtype=DataType.STRING),
-                'text.test_splitter':
-                    Field(fields={
-                        'sentences':
-                            Field(repeated_field=Field(
-                                fields={
-                                    'len':
-                                        Field(dtype=DataType.INT32),
-                                    TEXT_SPAN_FEATURE_NAME:
-                                        Field(
-                                            fields={
-                                                TEXT_SPAN_START_FEATURE:
-                                                    Field(dtype=DataType.INT32),
-                                                TEXT_SPAN_END_FEATURE:
-                                                    Field(dtype=DataType.INT32)
-                                            })
-                                }))
-                    },
-                          enriched=True),
-            }))
-    assert dataset_manifest == expected_dataset_manifest
+      db.compute_signal_columns(signal=signal, column=('text',))

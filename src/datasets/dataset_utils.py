@@ -13,6 +13,8 @@ from ..schema import (
     column_paths_match,
     normalize_path,
 )
+from ..signals.signal import Signal
+from .db_dataset import Column
 
 
 def replace_repeated_wildcards(path: Path, path_repeated_idxs: Optional[list[int]]) -> Path:
@@ -209,3 +211,16 @@ def get_field_if_exists(schema: Schema, path: Path) -> Optional[Field]:
         return None
       field = field.fields[path_part]
   return field
+
+
+def top_level_signal_col_name(signal: Signal, column: Column) -> str:
+  """Return the default name for a result column."""
+  if isinstance(column.feature, Column):
+    raise ValueError('Transforms are not yet supported.')
+
+  column_alias = '_'.join([str(path_part).replace('.', '_') for path_part in column.feature])
+  if column_alias.endswith('_*'):
+    # Remove the trailing .* from the column name.
+    column_alias = column_alias[:-2]
+
+  return f'{column_alias}({signal.name})'
