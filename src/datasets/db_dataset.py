@@ -100,7 +100,9 @@ def column_from_identifier(column: ColumnId) -> Column:
 
 class ConceptTransform(Transform):
   """Computes a concept transformation over a field."""
-  concept: str
+  namespace: str
+  concept_name: str
+  embedding_name: str
 
 
 class BucketizeTransform(Transform):

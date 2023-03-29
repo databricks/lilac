@@ -1,8 +1,8 @@
 """Defines the concept and the concept models."""
-from typing import Any, Literal, Optional, Sequence, Union
+from typing import Iterable, Literal, Optional, Union
 
 import numpy as np
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sklearn import linear_model
 
 from ..embeddings.embedding_registry import get_embed_fn
@@ -53,7 +53,7 @@ class ConceptModel(BaseModel):
 
   class Config:
     arbitrary_types_allowed = True
-    private_attributes_are_hidden = True
+    underscore_attrs_are_private = True
 
   # The concept that this model is for.
   namespace: str
@@ -64,24 +64,50 @@ class ConceptModel(BaseModel):
   version: int = -1
 
   # The following fields are excluded from JSON serialization, but still pickleable.
-  embeddings: dict[str, np.ndarray] = Field(exclude=True)
-
-  _model: linear_model.LogisticRegression = Field(exclude=True)
-
-  def __init__(self, **data: Any):
-    super().__init__(**data)
-    self._model = linear_model.LogisticRegression(solver='liblinear', class_weight='balanced')
-
-  def fit(self, embeddings: Union[np.ndarray, list[np.ndarray]], labels: list[bool]) -> None:
-    """Fit the model to the provided data."""
-    self._model.fit(embeddings, labels)
+  _embeddings: dict[str, np.ndarray] = {}
+  _model: linear_model.LogisticRegression = linear_model.LogisticRegression(solver='liblinear',
+                                                                            class_weight='balanced')
 
   def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
     return self._model.predict_proba(embeddings)[:, 1]
 
-  def score(self, examples: Sequence[RichData]) -> list[float]:
+  def score(self, examples: Iterable[RichData]) -> list[float]:
     """Get the scores for the provided examples."""
     _, embed_fn = get_embed_fn(self.embedding_name)
     embeddings = embed_fn(examples)
     return self.score_embeddings(embeddings).tolist()
+
+  def sync(self, concept: Concept) -> bool:
+    """Update the model with the latest labeled concept data."""
+    if concept.version == self.version:
+      # The model is up to date.
+      return False
+
+    _, embed_fn = get_embed_fn(self.embedding_name)
+    concept_embeddings: dict[str, np.ndarray] = {}
+
+    # Compute the embeddings for the examples with cache miss.
+    texts_of_missing_embeddings: dict[str, str] = {}
+    for id, example in concept.data.items():
+      if id in self._embeddings:
+        # Cache hit.
+        concept_embeddings[id] = self._embeddings[id]
+      else:
+        # Cache miss.
+        # TODO(smilkov): Support images.
+        texts_of_missing_embeddings[id] = example.text or ''
+    missing_ids = texts_of_missing_embeddings.keys()
+    missing_embeddings = embed_fn(list(texts_of_missing_embeddings.values()))
+
+    for id, embedding in zip(missing_ids, missing_embeddings):
+      concept_embeddings[id] = embedding
+
+    embedding_matrix = list(concept_embeddings.values())
+    new_labels = [concept.data[id].label for id in concept_embeddings.keys()]
+
+    self._model.fit(embedding_matrix, new_labels)
+    self._embeddings = concept_embeddings
+    # Synchronize the model version with the concept version.
+    self.version = concept.version
+    return True

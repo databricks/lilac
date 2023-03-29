@@ -1,7 +1,8 @@
 """Implementation-agnostic tests of the Dataset DB API."""
 
+import os
 import pathlib
-from typing import Iterable, Optional, Type, cast
+from typing import Generator, Iterable, Optional, Type, cast
 
 import numpy as np
 import pytest
@@ -89,9 +90,19 @@ def setup_teardown() -> Iterable[None]:
   clear_embedding_registry()
 
 
+@pytest.fixture(autouse=True)
+def set_data_path(tmp_path: pathlib.Path) -> Generator:
+  data_path = os.environ.get('LILAC_DATA_PATH', None)
+  os.environ['LILAC_DATA_PATH'] = str(tmp_path)
+
+  yield
+
+  os.environ['LILAC_DATA_PATH'] = data_path or ''
+
+
+@pytest.mark.parametrize('db_cls', ALL_DBS)
 class SelectRowsSuite:
 
-  @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_default(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
 
@@ -99,7 +110,6 @@ class SelectRowsSuite:
 
     assert list(result) == SIMPLE_ITEMS
 
-  @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
 
@@ -119,7 +129,6 @@ class SelectRowsSuite:
         'float': 1.0
     }]
 
-  @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_source_joined_with_signal_column(self, tmp_path: pathlib.Path,
                                             db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
@@ -226,7 +235,6 @@ class SelectRowsSuite:
         'len': 1
     }]
 
-  @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls,
                  tmp_path,
@@ -287,7 +295,6 @@ class SelectRowsSuite:
         }]
     }]
 
-  @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_source_joined_with_named_signal_column(self, tmp_path: pathlib.Path,
                                                   db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
@@ -355,7 +362,6 @@ class SelectRowsSuite:
                                                               enriched=True)
                                                 }))
 
-  @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls=db_cls,
                  tmp_path=tmp_path,
@@ -413,7 +419,6 @@ class SelectRowsSuite:
     }]
     assert list(result) == expected_result
 
-  @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_embedding_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls=db_cls,
                  tmp_path=tmp_path,
@@ -461,7 +466,6 @@ class SelectRowsSuite:
     }]
     assert list(result) == expected_result
 
-  @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_embedding_signal_splits(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls=db_cls,
                  tmp_path=tmp_path,
@@ -592,7 +596,6 @@ class SelectRowsSuite:
     }]
     assert list(result) == expected_result
 
-  @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_invalid_column_paths(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls,
                  tmp_path,
@@ -621,7 +624,6 @@ class SelectRowsSuite:
     with pytest.raises(ValueError, match='Selecting a specific index of a repeated field'):
       db.select_rows(columns=[('text2(test_signal)', 4)])
 
-  @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_sort(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
 
@@ -655,7 +657,6 @@ class SelectRowsSuite:
         'float': 1.0
     }]
 
-  @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_limit(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
 
@@ -771,9 +772,9 @@ class TestInvalidSignal(Signal):
     return []
 
 
+@pytest.mark.parametrize('db_cls', ALL_DBS)
 class ComputeSignalItemsSuite:
 
-  @pytest.mark.parametrize('db_cls', ALL_DBS)
   def test_signal_output_validation(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     signal = TestInvalidSignal()
 

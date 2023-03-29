@@ -50,15 +50,38 @@ class ConceptDB(abc.ABC):
 class ConceptModelDB(abc.ABC):
   """Interface for the concept model database."""
 
+  _concept_db: ConceptDB
+
+  def __init__(self, concept_db: ConceptDB) -> None:
+    self._concept_db = concept_db
+
   @abc.abstractmethod
-  def get(self, namespace: str, concept_name: str, embedding_name: str) -> Optional[ConceptModel]:
-    """Get the model associated with the provided concept and the embedding, or None."""
+  def get(self, namespace: str, concept_name: str, embedding_name: str) -> ConceptModel:
+    """Get the model associated with the provided concept and the embedding."""
     pass
 
   @abc.abstractmethod
-  def save(self, concept_model: ConceptModel) -> None:
+  def _save(self, concept_model: ConceptModel) -> None:
     """Save the concept model."""
     pass
+
+  def in_sync(self, concept_model: ConceptModel) -> bool:
+    """Return True if the model is up to date with the concept."""
+    concept = self._concept_db.get(concept_model.namespace, concept_model.concept_name)
+    if not concept:
+      raise ValueError(
+          f'Concept "{concept_model.namespace}/{concept_model.concept_name}" does not exist.')
+    return concept.version == concept_model.version
+
+  def sync(self, concept_model: ConceptModel) -> bool:
+    """Sync the concept model. Returns true if the model was updated."""
+    concept = self._concept_db.get(concept_model.namespace, concept_model.concept_name)
+    if not concept:
+      raise ValueError(
+          f'Concept "{concept_model.namespace}/{concept_model.concept_name}" does not exist.')
+    model_updated = concept_model.sync(concept)
+    self._save(concept_model)
+    return model_updated
 
   @abc.abstractmethod
   def remove(self, namespace: str, concept_name: str, embedding_name: str) -> None:
@@ -69,12 +92,12 @@ class ConceptModelDB(abc.ABC):
 class DiskConceptModelDB(ConceptModelDB):
   """Interface for the concept model database."""
 
-  def get(self, namespace: str, concept_name: str, embedding_name: str) -> Optional[ConceptModel]:
+  def get(self, namespace: str, concept_name: str, embedding_name: str) -> ConceptModel:
     """Get the model associated with the provided concept and the embedding."""
     # Make sure the concept exists.
-    concept = CONCEPT_DB.get(namespace, concept_name)
+    concept = self._concept_db.get(namespace, concept_name)
     if not concept:
-      return None
+      raise ValueError(f'Concept "{namespace}/{concept_name}" does not exist.')
 
     # Make sure that the embedding exists.
     if not get_embed_fn(embedding_name):
@@ -91,7 +114,7 @@ class DiskConceptModelDB(ConceptModelDB):
     with open_file(concept_model_path, 'rb') as f:
       return pickle.load(f)
 
-  def save(self, model: ConceptModel) -> None:
+  def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
     concept_model_path = _concept_model_path(model.namespace, model.concept_name,
                                              model.embedding_name)
@@ -168,8 +191,7 @@ class DiskConceptDB(ConceptDB):
         raise ValueError(f'Example with id "{example.id}" does not exist.')
       # Remove the old example and make a new one with a new id to keep it functional.
       concept.data.pop(example.id)
-      id = uuid4().hex
-      concept.data[id] = Example(id=id, **example.dict())
+      concept.data[example.id] = example.copy()
 
     concept.version += 1
 
@@ -189,5 +211,5 @@ class DiskConceptDB(ConceptDB):
 
 
 # A singleton concept database.
-CONCEPT_DB = DiskConceptDB()
-CONCEPT_MODEL_DB = DiskConceptModelDB()
+DISK_CONCEPT_DB = DiskConceptDB()
+DISK_CONCEPT_MODEL_DB = DiskConceptModelDB(DISK_CONCEPT_DB)

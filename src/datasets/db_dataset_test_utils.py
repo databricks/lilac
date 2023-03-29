@@ -15,14 +15,7 @@ def make_db(db_cls: Type[DatasetDB], tmp_path: pathlib.Path, items: list[Item],
             schema: Schema) -> DatasetDB:
   """Create a test database."""
   _write_items(tmp_path, TEST_DATASET_NAME, items, schema)
-
-  # Override the data base path to point to the temp directory so the database knows where to read
-  # files. This is only needed for the DuckDB file basedimplementation.
-  olddata_path = os.environ['LILAC_DATA_PATH'] if 'LILAC_DATA_PATH' in os.environ else None
-  os.environ['LILAC_DATA_PATH'] = str(tmp_path)
-  db = db_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
-  os.environ['LILAC_DATA_PATH'] = olddata_path or ''
-  return db
+  return db_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
 
 
 def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
