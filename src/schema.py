@@ -21,6 +21,10 @@ PARQUET_FILENAME_PREFIX = 'data'
 UUID_COLUMN = '__rowid__'
 PATH_WILDCARD = '*'
 
+TEXT_SPAN_FEATURE_NAME = '__textspan__'
+TEXT_SPAN_START_FEATURE = 'start'
+TEXT_SPAN_END_FEATURE = 'end'
+
 # Python doesn't work with recursive types. These types provide some notion of type-safety.
 Scalar = Union[bool, datetime, int, float, str, bytes]
 ItemValue = Union[dict, list, np.ndarray, Scalar]
@@ -33,7 +37,8 @@ RowKeyedItem = tuple[bytes, Item]
 #  ['article', 'field'] represents {'article': {'field': VALUES}}
 #  ['article', '*', 'field'] represents {'article': [{'field': VALUES}, {'field': VALUES}]}
 #  ['article', 0, 'field'] represents {'article': [{'field': VALUES}, {'field': UNRELATED}]}
-Path = Union[str, tuple[Union[str, int], ...]]
+PathTuple = tuple[Union[str, int], ...]
+Path = Union[str, PathTuple]
 
 PathKeyedItem = tuple[Path, Item]
 
@@ -99,6 +104,8 @@ class Field(BaseModel):
   fields: Optional[dict[str, 'Field']]
   dtype: Optional[DataType]
   enriched: Optional[bool]
+  # When defined, this field points to another column.
+  references_column: Optional[Path]
 
   @validator('fields')
   def either_fields_or_repeated_field_is_defined(cls, fields: dict[str, 'Field'],
@@ -133,19 +140,23 @@ class Schema(BaseModel):
   """Database schema."""
   fields: dict[str, Field]
   # We exclude the computed property `leafs` from the dict() and json() serialization.
-  leafs: dict[Path, Field] = pydantic_Field(exclude=True, default={})
+  leafs: dict[PathTuple, Field] = pydantic_Field(exclude=True, default={})
 
   @validator('leafs', pre=True, always=True)
-  def compute_leafs(cls, leafs: dict[Path, Field], values: dict[str, Any]) -> dict[Path, Field]:
+  def compute_leafs(cls, leafs: dict[PathTuple, Field],
+                    values: dict[str, Any]) -> dict[PathTuple, Field]:
     """Return all the leaf fields in the schema (a leaf holds a primitive value)."""
     if leafs:
       return leafs
     fields = cast(dict[str, Field], values.get('fields'))
-    result: dict[Path, Field] = {}
-    q: deque[tuple[Path, Field]] = deque([((), Field(fields=fields))])
+    result: dict[PathTuple, Field] = {}
+    q: deque[tuple[PathTuple, Field]] = deque([((), Field(fields=fields))])
     while q:
       path, field = q.popleft()
       if field.fields:
+        if TEXT_SPAN_FEATURE_NAME in field.fields:
+          result[(*path, TEXT_SPAN_FEATURE_NAME)] = field.fields[TEXT_SPAN_FEATURE_NAME]
+
         for name, child_field in field.fields.items():
           child_path = (*path, name)
           q.append((child_path, child_field))
@@ -277,7 +288,7 @@ def path_to_alias(path: Path) -> str:
   return '.'.join([str(path_comp) for path_comp in path])
 
 
-def normalize_path(path: Path) -> Path:
+def normalize_path(path: Path) -> PathTuple:
   """Normalize a path."""
   if isinstance(path, str):
     path = (path,)

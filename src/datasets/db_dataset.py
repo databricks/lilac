@@ -141,8 +141,8 @@ class DatasetDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def compute_embedding_index(self, embedding: EmbeddingId, columns: Sequence[ColumnId]) -> None:
-    """Compute an embedding index for a set of columns."""
+  def compute_embedding_index(self, embedding: EmbeddingId, column: ColumnId) -> None:
+    """Compute an embedding index for a column."""
     pass
 
   @abc.abstractmethod

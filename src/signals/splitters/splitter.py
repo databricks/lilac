@@ -1,10 +1,13 @@
 """Utilities for working with splitters."""
 
-from ...schema import DataType, Field, Item
-
-TEXT_SPAN_FEATURE_NAME = '__textspan__'
-TEXT_SPAN_START_FEATURE = 'start'
-TEXT_SPAN_END_FEATURE = 'end'
+from ...schema import (
+    TEXT_SPAN_END_FEATURE,
+    TEXT_SPAN_FEATURE_NAME,
+    TEXT_SPAN_START_FEATURE,
+    DataType,
+    Field,
+    Item,
+)
 
 TextSpan = tuple[int, int]
 

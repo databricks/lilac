@@ -37,20 +37,23 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
           F'Embedding index for column "{column}" and embedding "{embedding_name}" does not exist. '
           'Please run "db.compute_embedding_index" on the database first.')
 
-    keys_ndarray: Optional[np.ndarray] = None
+    np_keys: Optional[np.ndarray] = None
     if keys is not None:
-      keys_ndarray = np.array(keys, dtype=bytes)
+      if isinstance(keys, pd.Series):
+        np_keys = keys.to_numpy().astype('bytes')
+      else:
+        np_keys = np.array(keys, dtype=bytes)
 
     # Read the embedding index from disk.
     with open_file(index_path, 'rb') as f:
       np_index: dict[str, np.ndarray] = np.load(f)
-      if keys_ndarray is not None:
+      if np_keys is not None:
         # NOTE: Calling tolist() here is necessary because we can't put the entire matrix into the
         # dataframe. This will store each embedding a list. This could be sped up if we write our
         # own implementation, or use something faster.
         df = pd.DataFrame({NP_EMBEDDINGS_KWD: np_index[NP_EMBEDDINGS_KWD].tolist()},
                           index=np_index[NP_INDEX_KEYS_KWD])
-        embeddings = np.stack(df.loc[keys_ndarray][NP_EMBEDDINGS_KWD])
+        embeddings = np.stack(df.loc[np_keys][NP_EMBEDDINGS_KWD])
       else:
         embeddings = np_index[NP_EMBEDDINGS_KWD]
 
@@ -70,8 +73,13 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
 
     embeddings = embed_fn(data)
     # Write the embedding index and the ordered UUID column to disk so they can be joined later.
+    if isinstance(keys, pd.Series):
+      np_keys = keys.to_numpy().astype('bytes')
+    else:
+      np_keys = np.array(keys, dtype=bytes)
+
     with open_file(index_path, 'wb') as f:
-      np.savez(f, **{NP_INDEX_KEYS_KWD: np.array(keys, dtype=bytes), NP_EMBEDDINGS_KWD: embeddings})
+      np.savez(f, **{NP_INDEX_KEYS_KWD: np_keys, NP_EMBEDDINGS_KWD: embeddings})
 
 
 def embedding_index_filename(column: Path, embedding_name: str) -> str:

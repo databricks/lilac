@@ -9,6 +9,7 @@ from ..schema import (
     Field,
     Item,
     Path,
+    PathTuple,
     Schema,
     column_paths_match,
     normalize_path,
@@ -87,9 +88,10 @@ def make_enriched_items(source_path: Path, row_ids: Sequence[bytes],
                                leaf_item=leaf_item)
 
   if num_outputs != len(row_ids):
-    raise ValueError('The enriched output and the input data do not have the same length. '
-                     'This means the enricher either didnt generate a "None" for a sparse output, '
-                     'or generated too many items.')
+    raise ValueError(
+        f'The enriched outputs ({num_outputs}) and the input data ({len(row_ids)}) do not have the same length. '
+        'This means the enricher either didnt generate a "None" for a sparse output, '
+        'or generated too many items.')
 
   if outputs_per_key > 0:
     yield working_enriched_item
@@ -131,32 +133,29 @@ def enrich_item_from_leaf_item(enriched_item: Item, path: Path, leaf_item: Item)
   enriched_subitem[path[-1]] = leaf_item  # type: ignore
 
 
-def create_enriched_schema(source_schema: Schema, enrich_paths: list[Path],
+def create_enriched_schema(source_schema: Schema, enrich_path: Path,
                            enrich_fields: dict[str, Field]) -> Schema:
   """Create a schema describing the enriched fields added an enrichment."""
   enriched_schema = Schema(fields={UUID_COLUMN: Field(dtype=DataType.BINARY)})
   return _add_enriched_fields_to_schema(source_schema=source_schema,
                                         enriched_schema=enriched_schema,
                                         enrich_fields=enrich_fields,
-                                        enrich_paths=enrich_paths)
+                                        enrich_path=normalize_path(enrich_path))
 
 
 def _add_enriched_fields_to_schema(source_schema: Schema, enriched_schema: Schema,
                                    enrich_fields: dict[str,
-                                                       Field], enrich_paths: list[Path]) -> Schema:
-  enrich_paths = [normalize_path(field) for field in enrich_paths]
+                                                       Field], enrich_path: PathTuple) -> Schema:
   source_leafs = source_schema.leafs
   # Validate that the enrich fields are actually a valid leaf path.
-  for enrich_path in enrich_paths:
-    if enrich_path not in source_leafs:
-      raise ValueError(f'Field for enrichment "{enrich_path}" is not a valid leaf path. '
-                       f'Leaf paths: {source_leafs.keys()}')
+  if enrich_path not in source_leafs:
+    raise ValueError(f'Field for enrichment "{enrich_path}" is not a valid leaf path. '
+                     f'Leaf paths: {source_leafs.keys()}')
 
   for leaf_path, _ in source_leafs.items():
     field_is_enriched = False
-    for enrich_path in enrich_paths:
-      if column_paths_match(enrich_path, leaf_path):
-        field_is_enriched = True
+    if column_paths_match(enrich_path, leaf_path):
+      field_is_enriched = True
     if not field_is_enriched:
       continue
 

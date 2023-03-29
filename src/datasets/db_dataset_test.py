@@ -1,12 +1,14 @@
 """Implementation-agnostic tests of the Dataset DB API."""
 
 import pathlib
-from typing import Iterable, Optional, Type
+from typing import Iterable, Optional, Type, cast
 
+import numpy as np
 import pytest
 from typing_extensions import override
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
+from ..embeddings.embedding_registry import clear_embedding_registry, register_embed_fn
 from ..schema import UUID_COLUMN, DataType, EnrichmentType, Field, Item, RichData, Schema
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
@@ -54,18 +56,37 @@ SIMPLE_SCHEMA = Schema(
         'float': Field(dtype=DataType.FLOAT64),
     })
 
+TEST_EMBEDDING_NAME = 'test_embedding'
+
+EMBEDDINGS: list[tuple[bytes, str, list[float]]] = [(b'1', 'hello.', [1.0, 0.0, 0.0]),
+                                                    (b'2', 'hello2.', [1.0, 1.0, 0.0]),
+                                                    (b'3', 'hello world.', [1.0, 1.0, 1.0]),
+                                                    (b'4', 'hello world2.', [2.0, 1.0, 1.0])]
+
+STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for _, text, embedding in EMBEDDINGS}
+KEY_EMBEDDINGS: dict[bytes, list[float]] = {key: embedding for key, _, embedding in EMBEDDINGS}
+
+
+def embed(examples: Iterable[RichData]) -> np.ndarray:
+  """Embed the examples, use a hashmap to the vector for simplicity."""
+  return np.array([STR_EMBEDDINGS[cast(str, example)] for example in examples])
+
 
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(TestSignal)
   register_signal(TestSplitterWithLen)
+  register_signal(TestEmbeddingSumSignal)
+  # We register the embed function like this so we can mock it and assert how many times its called.
+  register_embed_fn(TEST_EMBEDDING_NAME)(lambda examples: embed(examples))
 
   # Unit test runs.
   yield
 
   # Teardown.
   clear_signal_registry()
+  clear_embedding_registry()
 
 
 class SelectRowsSuite:
@@ -358,16 +379,16 @@ class SelectRowsSuite:
         'text': '[1, 1] first sentence. [1, 1] second sentence.',
         'text(test_splitter)': {
             'sentences': [{
-                'len': 21,
+                'len': 22,
                 TEXT_SPAN_FEATURE_NAME: {
                     TEXT_SPAN_START_FEATURE: 0,
-                    TEXT_SPAN_END_FEATURE: 21
+                    TEXT_SPAN_END_FEATURE: 22
                 }
             }, {
                 'len': 23,
                 TEXT_SPAN_FEATURE_NAME: {
-                    TEXT_SPAN_START_FEATURE: 22,
-                    TEXT_SPAN_END_FEATURE: 45
+                    TEXT_SPAN_START_FEATURE: 23,
+                    TEXT_SPAN_END_FEATURE: 46
                 }
             }]
         }
@@ -376,16 +397,195 @@ class SelectRowsSuite:
         'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
         'text(test_splitter)': {
             'sentences': [{
-                'len': 24,
+                'len': 25,
                 TEXT_SPAN_FEATURE_NAME: {
                     TEXT_SPAN_START_FEATURE: 0,
-                    TEXT_SPAN_END_FEATURE: 24
+                    TEXT_SPAN_END_FEATURE: 25
                 }
             }, {
                 'len': 23,
                 TEXT_SPAN_FEATURE_NAME: {
-                    TEXT_SPAN_START_FEATURE: 25,
-                    TEXT_SPAN_END_FEATURE: 48
+                    TEXT_SPAN_START_FEATURE: 26,
+                    TEXT_SPAN_END_FEATURE: 49
+                }
+            }]
+        }
+    }]
+    assert list(result) == expected_result
+
+  @pytest.mark.parametrize('db_cls', ALL_DBS)
+  def test_embedding_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls=db_cls,
+                 tmp_path=tmp_path,
+                 items=[{
+                     UUID_COLUMN: b'1' * 16,
+                     'text': 'hello.',
+                 }, {
+                     UUID_COLUMN: b'2' * 16,
+                     'text': 'hello2.',
+                 }],
+                 schema=Schema(fields={
+                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     'text': Field(dtype=DataType.STRING),
+                 }))
+
+    db.compute_embedding_index(embedding=TEST_EMBEDDING_NAME, column='text')
+
+    db.compute_signal_columns(signal=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
+                              column='text',
+                              signal_column_name='text_emb_sum')
+
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.BINARY),
+                'text': Field(dtype=DataType.STRING),
+                'text_emb_sum': Field(fields={'sum': Field(dtype=DataType.FLOAT32)}, enriched=True),
+            }))
+
+    result = db.select_rows(columns=['text', 'text_emb_sum'])
+    expected_result = [{
+        UUID_COLUMN: b'1' * 16,
+        'text': 'hello.',
+        'text_emb_sum': {
+            'sum': 1.0
+        }
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'text': 'hello2.',
+        'text_emb_sum': {
+            'sum': 2.0
+        }
+    }]
+    assert list(result) == expected_result
+
+  @pytest.mark.parametrize('db_cls', ALL_DBS)
+  def test_embedding_signal_splits(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls=db_cls,
+                 tmp_path=tmp_path,
+                 items=[{
+                     UUID_COLUMN: b'1' * 16,
+                     'text': 'hello. hello2.',
+                 }, {
+                     UUID_COLUMN: b'2' * 16,
+                     'text': 'hello world. hello world2.',
+                 }],
+                 schema=Schema(fields={
+                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     'text': Field(dtype=DataType.STRING),
+                 }))
+
+    db.compute_signal_columns(signal=TestSplitterWithLen(),
+                              column='text',
+                              signal_column_name='text_sentences')
+
+    db.compute_embedding_index(embedding=TEST_EMBEDDING_NAME,
+                               column=('text_sentences', 'sentences', '*', TEXT_SPAN_FEATURE_NAME))
+
+    db.compute_signal_columns(signal=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
+                              column=('text_sentences', 'sentences', '*', TEXT_SPAN_FEATURE_NAME),
+                              signal_column_name='text_sentences_emb_sum')
+
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(
+            fields={
+                UUID_COLUMN:
+                    Field(dtype=DataType.BINARY),
+                'text':
+                    Field(dtype=DataType.STRING),
+                'text_sentences_emb_sum':
+                    Field(
+                        fields={
+                            'sentences':
+                                Field(repeated_field=Field(
+                                    fields={
+                                        TEXT_SPAN_FEATURE_NAME:
+                                            Field(fields={
+                                                'sum': Field(dtype=DataType.FLOAT32),
+                                            },
+                                                  enriched=True)
+                                    }))
+                        }),
+                'text_sentences':
+                    Field(fields={
+                        'sentences':
+                            Field(repeated_field=Field(
+                                fields={
+                                    'len':
+                                        Field(dtype=DataType.INT32),
+                                    TEXT_SPAN_FEATURE_NAME:
+                                        Field(
+                                            fields={
+                                                TEXT_SPAN_START_FEATURE:
+                                                    Field(dtype=DataType.INT32),
+                                                TEXT_SPAN_END_FEATURE:
+                                                    Field(dtype=DataType.INT32)
+                                            })
+                                }))
+                    },
+                          enriched=True)
+            }))
+
+    result = db.select_rows(columns=['text', 'text_sentences', 'text_sentences_emb_sum'])
+    expected_result = [{
+        UUID_COLUMN: b'1' * 16,
+        'text': 'hello. hello2.',
+        'text_sentences': {
+            'sentences': [{
+                TEXT_SPAN_FEATURE_NAME: {
+                    TEXT_SPAN_START_FEATURE: 0,
+                    TEXT_SPAN_END_FEATURE: 6,
+                },
+                'len': 6
+            }, {
+                TEXT_SPAN_FEATURE_NAME: {
+                    TEXT_SPAN_START_FEATURE: 7,
+                    TEXT_SPAN_END_FEATURE: 14
+                },
+                'len': 7
+            }]
+        },
+        'text_sentences_emb_sum': {
+            'sentences': [{
+                TEXT_SPAN_FEATURE_NAME: {
+                    'sum': 1.0
+                }
+            }, {
+                TEXT_SPAN_FEATURE_NAME: {
+                    'sum': 2.0
+                }
+            }]
+        }
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'text': 'hello world. hello world2.',
+        'text_sentences': {
+            'sentences': [{
+                TEXT_SPAN_FEATURE_NAME: {
+                    TEXT_SPAN_START_FEATURE: 0,
+                    TEXT_SPAN_END_FEATURE: 12
+                },
+                'len': 12
+            }, {
+                TEXT_SPAN_FEATURE_NAME: {
+                    TEXT_SPAN_START_FEATURE: 13,
+                    TEXT_SPAN_END_FEATURE: 26
+                },
+                'len': 13
+            }]
+        },
+        'text_sentences_emb_sum': {
+            'sentences': [{
+                TEXT_SPAN_FEATURE_NAME: {
+                    'sum': 3.0
+                }
+            }, {
+                TEXT_SPAN_FEATURE_NAME: {
+                    'sum': 4.0
                 }
             }]
         }
@@ -515,13 +715,42 @@ class TestSplitterWithLen(Signal):
     for text in data:
       if not isinstance(text, str):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
-      sentences = text.split('.')
+      sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield {
           'sentences': [
               SpanItem(span=(text.index(sentence), text.index(sentence) + len(sentence)),
-                       item={'len': len(sentence)}) for sentence in sentences if sentence
+                       item={'len': len(sentence)}) for sentence in sentences
           ]
       }
+
+
+class TestEmbeddingSumSignal(Signal):
+  """Sums the embeddings to return a single floating point value."""
+  name = 'test_embedding_sum'
+  enrichment_type = EnrichmentType.TEXT
+  embedding_based = True
+
+  @override
+  def fields(self) -> dict[str, Field]:
+    return {'sum': Field(dtype=DataType.FLOAT32)}
+
+  @override
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[bytes]] = None,
+              get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Item]:
+    if keys is None:
+      raise ValueError('Sentence splitter requires text data.')
+    if get_embedding_index is None:
+      raise ValueError('get_embedding_index is None.')
+    if not self.embedding:
+      raise ValueError('self.embedding is None.')
+
+    embedding_index = get_embedding_index(self.embedding, keys)
+    # The signal just sums the values of the embedding.
+    embedding_sums = embedding_index.embeddings.sum(axis=1)
+    for embedding_sum in embedding_sums.tolist():
+      yield {'sum': embedding_sum}
 
 
 class TestInvalidSignal(Signal):
@@ -562,6 +791,8 @@ class ComputeSignalItemsSuite:
                      'text': Field(dtype=DataType.STRING),
                  }))
 
-    with pytest.raises(ValueError,
-                       match='The enriched output and the input data do not have the same length'):
+    with pytest.raises(
+        ValueError,
+        match='The enriched outputs \\(0\\) and the input data \\(2\\) do not have the same length'
+    ):
       db.compute_signal_columns(signal=signal, column=('text',))
