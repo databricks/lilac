@@ -332,14 +332,13 @@ class DatasetDuckDB(DatasetDB):
         raise ValueError(
             'Multiple repeated leafs for spans are not yet supported in _select_leafs. '
             f'Requested Path: {path}')
+
     repeated_indices_col: Optional[str] = None
-
-    from_table = 't'
     is_repeated = any([is_repeated_path_part(path_part) for path_part in path])
-
     if is_repeated:
       inner_repeated_col = self._path_to_col(path[0:path.index(PATH_WILDCARD)],
                                              quote_each_part=True)
+
     data_col = 'leaf_data'
     if select_span:
       span = make_select_column(path)
@@ -357,7 +356,8 @@ class DatasetDuckDB(DatasetDB):
             {span} as {span_name},
             {source_path_select} as {data_col},
       """
-      # In the outer select, return the sliced text. DuckDB 1-indexes array slices, so we add 1.
+      # In the outer select, return the sliced text. DuckDB 1-indexes array slices, and is inclusive
+      # to the last index, so we only add one to the start.
       value_column = f"""{data_col}[
         {span_name}.{TEXT_SPAN_START_FEATURE} + 1:{span_name}.{TEXT_SPAN_END_FEATURE}
       ]
@@ -528,7 +528,7 @@ class DatasetDuckDB(DatasetDB):
     return '.'.join([f'"{path_comp}"' if quote_each_part else str(path_comp) for path_comp in path])
 
 
-def inner_select(sub_paths: list[list[str]], inner_var: Optional[str] = None) -> str:
+def _inner_select(sub_paths: list[list[str]], inner_var: Optional[str] = None) -> str:
   """Recursively generate the inner select statement for a list of sub paths."""
   current_sub_path = sub_paths[0]
   lambda_var = inner_var + 'x' if inner_var else 'x'
@@ -540,10 +540,10 @@ def inner_select(sub_paths: list[list[str]], inner_var: Optional[str] = None) ->
   path_key = inner_var + ''.join([f"['{p}']" for p in current_sub_path])
   if len(sub_paths) == 1:
     return path_key
-  return f'list_transform({path_key}, {lambda_var} -> {inner_select(sub_paths[1:], lambda_var)})'
+  return f'list_transform({path_key}, {lambda_var} -> {_inner_select(sub_paths[1:], lambda_var)})'
 
 
-def split_path_into_subpaths_of_lists(leaf_path: list[str]) -> list[list[str]]:
+def _split_path_into_subpaths_of_lists(leaf_path: list[str]) -> list[list[str]]:
   """Split a path into a subpath of lists.
 
   E.g. [a, b, c, *, d, *, *] gets splits [[a, b, c], [d], [], []].
@@ -562,8 +562,8 @@ def split_path_into_subpaths_of_lists(leaf_path: list[str]) -> list[list[str]]:
 def make_select_column(leaf_path: Path) -> str:
   """Create a select column for a leaf path."""
   path = cast(list, normalize_path(leaf_path))
-  sub_paths = split_path_into_subpaths_of_lists(path)
-  selection = inner_select(sub_paths, None)
+  sub_paths = _split_path_into_subpaths_of_lists(path)
+  selection = _inner_select(sub_paths, None)
   # We only flatten when the result of a nested list to avoid segfault.
   is_result_nested_list = len(sub_paths) >= 3  # E.g. subPaths = [[a, b, c], *, *].
   if is_result_nested_list:

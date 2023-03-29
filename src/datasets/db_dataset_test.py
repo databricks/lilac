@@ -59,13 +59,12 @@ SIMPLE_SCHEMA = Schema(
 
 TEST_EMBEDDING_NAME = 'test_embedding'
 
-EMBEDDINGS: list[tuple[bytes, str, list[float]]] = [(b'1', 'hello.', [1.0, 0.0, 0.0]),
-                                                    (b'2', 'hello2.', [1.0, 1.0, 0.0]),
-                                                    (b'3', 'hello world.', [1.0, 1.0, 1.0]),
-                                                    (b'4', 'hello world2.', [2.0, 1.0, 1.0])]
+EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
+                                             ('hello2.', [1.0, 1.0, 0.0]),
+                                             ('hello world.', [1.0, 1.0, 1.0]),
+                                             ('hello world2.', [2.0, 1.0, 1.0])]
 
-STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for _, text, embedding in EMBEDDINGS}
-KEY_EMBEDDINGS: dict[bytes, list[float]] = {key: embedding for key, _, embedding in EMBEDDINGS}
+STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
 
 def embed(examples: Iterable[RichData]) -> np.ndarray:
