@@ -89,8 +89,8 @@ def make_enriched_items(source_path: Path, row_ids: Sequence[bytes],
 
   if num_outputs != len(row_ids):
     raise ValueError(
-        f'The enriched outputs ({num_outputs}) and the input data ({len(row_ids)}) do not have the same length. '
-        'This means the enricher either didnt generate a "None" for a sparse output, '
+        f'The enriched outputs ({num_outputs}) and the input data ({len(row_ids)}) do not have the '
+        'same length. This means the enricher either didnt generate a "None" for a sparse output, '
         'or generated too many items.')
 
   if outputs_per_key > 0:

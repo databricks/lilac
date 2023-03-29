@@ -330,8 +330,8 @@ class DatasetDuckDB(DatasetDB):
           num_repeated_parts += 1
       if num_repeated_parts > 1:
         raise ValueError(
-            f'Multiple repeated leafs for spans are not yet supported in _select_leafs. Requested Path: {path}'
-        )
+            'Multiple repeated leafs for spans are not yet supported in _select_leafs. '
+            f'Requested Path: {path}')
     repeated_indices_col: Optional[str] = None
 
     from_table = 't'

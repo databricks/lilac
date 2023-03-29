@@ -36,7 +36,7 @@ def compute_embedding_index(namespace: str, dataset_name: str,
   """Compute a signal for a dataset."""
   dataset_db = get_dataset_db(namespace, dataset_name)
 
-  dataset_db.compute_embedding_index(options.embedding, [options.column])
+  dataset_db.compute_embedding_index(options.embedding, options.column)
 
   return {}
 
