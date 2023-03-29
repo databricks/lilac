@@ -40,7 +40,7 @@ def setup_teardown() -> Generator:
     """Embed the examples, use a hashmap to the vector for simplicity."""
     for example in examples:
       if example not in EMBEDDING_MAP:
-        raise ValueError(f'Example "{example}" not in embedding map')
+        raise ValueError(f'Example "{str(example)}" not in embedding map')
     return np.array([EMBEDDING_MAP[cast(str, example)] for example in examples])
 
   # Unit test runs.
