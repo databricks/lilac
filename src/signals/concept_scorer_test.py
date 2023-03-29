@@ -15,6 +15,7 @@ from ..concepts.db_concept import (
     DiskConceptDB,
     DiskConceptModelDB,
 )
+from ..embeddings.embedding_index import EmbeddingIndex
 from ..embeddings.embedding_registry import clear_embedding_registry, register_embed_fn
 from ..schema import RichData
 from .concept_scorer import SCORE_FIELD_NAME, ConceptScoreSignal
@@ -125,5 +126,48 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
 
   scores = signal.compute(data=['a new data point', 'not in concept'])
   expected_scores = [{SCORE_FIELD_NAME: 0.504}, {SCORE_FIELD_NAME: 0.493}]
+  for score, expected_score in zip(scores, expected_scores):
+    assert pytest.approx(expected_score, 1e-3) == score
+
+
+@pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
+@pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
+def test_concept_model_score_embeddings(concept_db_cls: Type[ConceptDB],
+                                        model_db_cls: Type[ConceptModelDB]) -> None:
+  concept_db = concept_db_cls()
+  model_db = model_db_cls(concept_db)
+  namespace = 'test'
+  concept_name = 'test_concept'
+  train_data = [
+      ExampleIn(label=False, text='not in concept'),
+      ExampleIn(label=True, text='in concept')
+  ]
+  concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
+
+  signal = ConceptScoreSignal(namespace='test',
+                              concept_name='test_concept',
+                              embedding_name='test_embedding')
+
+  # Explicitly sync the model with the concept.
+  model_db.sync(
+      ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+
+  KEY_EMBEDDING_MAP: dict[bytes, list[float]] = {
+      b'1': [1.0, 0.0, 0.0],
+      b'2': [0.9, 0.1, 0.0],
+      b'3': [0.1, 0.2, 0.3],
+  }
+
+  scores = signal.compute(keys=[b'1', b'2', b'3'],
+                          get_embedding_index=lambda _, row_ids: EmbeddingIndex(embeddings=np.array(
+                              [KEY_EMBEDDING_MAP[x] for x in row_ids])))
+
+  expected_scores = [{
+      SCORE_FIELD_NAME: 0.493
+  }, {
+      SCORE_FIELD_NAME: 0.495
+  }, {
+      SCORE_FIELD_NAME: 0.504
+  }]
   for score, expected_score in zip(scores, expected_scores):
     assert pytest.approx(expected_score, 1e-3) == score

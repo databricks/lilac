@@ -74,7 +74,7 @@ class ConceptModelDB(abc.ABC):
     return concept.version == concept_model.version
 
   def sync(self, concept_model: ConceptModel) -> bool:
-    """Sync the concept model. Returns if the model was updated."""
+    """Sync the concept model. Returns true if the model was updated."""
     concept = self._concept_db.get(concept_model.namespace, concept_model.concept_name)
     if not concept:
       raise ValueError(
