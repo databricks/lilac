@@ -78,10 +78,6 @@ class ConceptModel(BaseModel):
     embeddings = embed_fn(examples)
     return self.score_embeddings(embeddings).tolist()
 
-  def in_sync(self, concept: Concept) -> bool:
-    """Return True if the model is up to date with the concept."""
-    return concept.version == self.version
-
   def sync(self, concept: Concept) -> bool:
     """Update the model with the latest labeled concept data."""
     if concept.version == self.version:

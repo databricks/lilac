@@ -74,37 +74,17 @@ def test_embedding_does_not_exist(db_cls: Type[ConceptDB]) -> None:
                        embedding_name='unknown_embedding')
 
 
-def test_concept_model_does_not_exist() -> None:
-  with pytest.raises(ValueError,
-                     match='Concept model "test/test_concept/test_embedding" not found'):
-    ConceptScoreSignal(namespace='test',
-                       concept_name='test_concept',
-                       embedding_name='test_embedding')
+def test_concept_does_not_exist() -> None:
+  signal = ConceptScoreSignal(namespace='test',
+                              concept_name='test_concept',
+                              embedding_name='test_embedding')
+  with pytest.raises(ValueError, match='Concept "test/test_concept" does not exist'):
+    signal.compute(data=['a new data point', 'not in concept'])
 
 
 @pytest.mark.parametrize('db_cls', ALL_CONCEPT_DBS)
 def test_concept_model_out_of_sync(db_cls: Type[ConceptDB]) -> None:
-  db = db_cls()
-  namespace = 'test'
-  concept_name = 'test_concept'
-  train_data = [
-      ExampleIn(label=False, text='not in concept'),
-      ExampleIn(label=True, text='in concept')
-  ]
-  db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
-
-  with pytest.raises(ValueError,
-                     match='Concept model "test/test_concept/test_embedding" is out of sync'):
-    ConceptScoreSignal(namespace='test',
-                       concept_name='test_concept',
-                       embedding_name='test_embedding')
-
-
-@pytest.mark.parametrize('concept_cls', ALL_CONCEPT_DBS)
-@pytest.mark.parametrize('model_cls', ALL_CONCEPT_MODEL_DBS)
-def test_concept_model_score(concept_cls: Type[ConceptDB], model_cls: Type[ConceptModelDB]) -> None:
-  concept_db = concept_cls()
-  model_db = model_cls(concept_db)
+  concept_db = db_cls()
   namespace = 'test'
   concept_name = 'test_concept'
   train_data = [
@@ -113,15 +93,36 @@ def test_concept_model_score(concept_cls: Type[ConceptDB], model_cls: Type[Conce
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-  concept_model = ConceptModel(namespace='test',
-                               concept_name='test_concept',
-                               embedding_name='test_embedding')
-  model_db.save(concept_model)
-  model_db.sync(concept_model)
+  signal = ConceptScoreSignal(namespace='test',
+                              concept_name='test_concept',
+                              embedding_name='test_embedding')
+  with pytest.raises(ValueError,
+                     match='Concept model "test/test_concept/test_embedding" is out of sync'):
+    signal.compute(data=['a new data point', 'not in concept'])
+
+
+@pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
+@pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
+def test_concept_model_score(concept_db_cls: Type[ConceptDB],
+                             model_db_cls: Type[ConceptModelDB]) -> None:
+  concept_db = concept_db_cls()
+  model_db = model_db_cls(concept_db)
+  namespace = 'test'
+  concept_name = 'test_concept'
+  train_data = [
+      ExampleIn(label=False, text='not in concept'),
+      ExampleIn(label=True, text='in concept')
+  ]
+  concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   signal = ConceptScoreSignal(namespace='test',
                               concept_name='test_concept',
                               embedding_name='test_embedding')
+
+  # Explicitly sync the model with the concept.
+  model_db.sync(
+      ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+
   scores = signal.compute(data=['a new data point', 'not in concept'])
   expected_scores = [{SCORE_FIELD_NAME: 0.504}, {SCORE_FIELD_NAME: 0.493}]
   for score, expected_score in zip(scores, expected_scores):

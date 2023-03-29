@@ -179,44 +179,42 @@ def _make_test_concept_model(concept_db: ConceptDB, model_db: ConceptModelDB) ->
       ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
-  concept_model = ConceptModel(namespace='test',
-                               concept_name='test_concept',
-                               embedding_name='test_embedding')
-  model_db.save(concept_model)
-  return concept_model
+  return ConceptModel(namespace='test',
+                      concept_name='test_concept',
+                      embedding_name='test_embedding')
 
 
-@pytest.mark.parametrize('concept_cls', ALL_CONCEPT_DBS)
-@pytest.mark.parametrize('model_cls', ALL_CONCEPT_MODEL_DBS)
+@pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
+@pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
 class ConceptModelDBSuite:
 
-  def test_save_and_get_model(self, concept_cls: Type[ConceptDB],
-                              model_cls: Type[ConceptModelDB]) -> None:
-    concept_db = concept_cls()
-    model_db = model_cls(concept_db)
+  def test_save_and_get_model(self, concept_db_cls: Type[ConceptDB],
+                              model_db_cls: Type[ConceptModelDB]) -> None:
+    concept_db = concept_db_cls()
+    model_db = model_db_cls(concept_db)
     model = _make_test_concept_model(concept_db, model_db)
 
+    model_db.sync(model)
     retrieved_model = model_db.get(namespace='test',
                                    concept_name='test_concept',
                                    embedding_name='test_embedding')
 
     assert retrieved_model == model
 
-  def test_sync_model(self, concept_cls: Type[ConceptDB], model_cls: Type[ConceptModelDB]) -> None:
-    concept_db = concept_cls()
-    model_db = model_cls(concept_db)
+  def test_sync_model(self, concept_db_cls: Type[ConceptDB],
+                      model_db_cls: Type[ConceptModelDB]) -> None:
+    concept_db = concept_db_cls()
+    model_db = model_db_cls(concept_db)
     model = _make_test_concept_model(concept_db, model_db)
 
     assert model_db.in_sync(model) is False
-
     model_db.sync(model)
-
     assert model_db.in_sync(model) is True
 
-  def test_out_of_sync_model(self, concept_cls: Type[ConceptDB],
-                             model_cls: Type[ConceptModelDB]) -> None:
-    concept_db = concept_cls()
-    model_db = model_cls(concept_db)
+  def test_out_of_sync_model(self, concept_db_cls: Type[ConceptDB],
+                             model_db_cls: Type[ConceptModelDB]) -> None:
+    concept_db = concept_db_cls()
+    model_db = model_db_cls(concept_db)
     model = _make_test_concept_model(concept_db, model_db)
     model_db.sync(model)
     assert model_db.in_sync(model) is True
@@ -231,10 +229,10 @@ class ConceptModelDBSuite:
     model_db.sync(model)
     assert model_db.in_sync(model) is True
 
-  def test_embedding_not_found_in_map(self, concept_cls: Type[ConceptDB],
-                                      model_cls: Type[ConceptModelDB]) -> None:
-    concept_db = concept_cls()
-    model_db = model_cls(concept_db)
+  def test_embedding_not_found_in_map(self, concept_db_cls: Type[ConceptDB],
+                                      model_db_cls: Type[ConceptModelDB]) -> None:
+    concept_db = concept_db_cls()
+    model_db = model_db_cls(concept_db)
     model = _make_test_concept_model(concept_db, model_db)
     model_db.sync(model)
 

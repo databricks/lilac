@@ -56,12 +56,12 @@ class ConceptModelDB(abc.ABC):
     self._concept_db = concept_db
 
   @abc.abstractmethod
-  def get(self, namespace: str, concept_name: str, embedding_name: str) -> Optional[ConceptModel]:
-    """Get the model associated with the provided concept and the embedding, or None."""
+  def get(self, namespace: str, concept_name: str, embedding_name: str) -> ConceptModel:
+    """Get the model associated with the provided concept and the embedding."""
     pass
 
   @abc.abstractmethod
-  def save(self, concept_model: ConceptModel) -> None:
+  def _save(self, concept_model: ConceptModel) -> None:
     """Save the concept model."""
     pass
 
@@ -80,7 +80,7 @@ class ConceptModelDB(abc.ABC):
       raise ValueError(
           f'Concept "{concept_model.namespace}/{concept_model.concept_name}" does not exist.')
     model_updated = concept_model.sync(concept)
-    self.save(concept_model)
+    self._save(concept_model)
     return model_updated
 
   @abc.abstractmethod
@@ -92,12 +92,12 @@ class ConceptModelDB(abc.ABC):
 class DiskConceptModelDB(ConceptModelDB):
   """Interface for the concept model database."""
 
-  def get(self, namespace: str, concept_name: str, embedding_name: str) -> Optional[ConceptModel]:
+  def get(self, namespace: str, concept_name: str, embedding_name: str) -> ConceptModel:
     """Get the model associated with the provided concept and the embedding."""
     # Make sure the concept exists.
     concept = self._concept_db.get(namespace, concept_name)
     if not concept:
-      return None
+      raise ValueError(f'Concept "{namespace}/{concept_name}" does not exist.')
 
     # Make sure that the embedding exists.
     if not get_embed_fn(embedding_name):
@@ -114,7 +114,7 @@ class DiskConceptModelDB(ConceptModelDB):
     with open_file(concept_model_path, 'rb') as f:
       return pickle.load(f)
 
-  def save(self, model: ConceptModel) -> None:
+  def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
     concept_model_path = _concept_model_path(model.namespace, model.concept_name,
                                              model.embedding_name)
