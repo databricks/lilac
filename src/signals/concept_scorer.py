@@ -1,5 +1,5 @@
 """A signal to compute a score along a concept."""
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 from typing_extensions import override
 
@@ -25,15 +25,15 @@ class ConceptScoreSignal(Signal):
   _concept_model: ConceptModel
   _concept_model_db: ConceptModelDB
 
-  def __init__(self, **data: dict):
-    super().__init__(**data)
+  def __init__(self, **data: Any):
+    super().__init__(embedding=data.get('embedding_name'), **data)
     self._concept_model_db = DISK_CONCEPT_MODEL_DB
     concept_model = self._concept_model_db.get(self.namespace, self.concept_name,
                                                self.embedding_name)
     model_name = f'{self.namespace}/{self.concept_name}/{self.embedding_name}'
     if not concept_model:
       raise ValueError(f'Concept model "{model_name}" not found')
-    if not self._concept_model_db.in_sync(self._concept_model):
+    if not self._concept_model_db.in_sync(concept_model):
       raise ValueError(f'Concept model "{model_name}" is out of sync with its concept')
     self._concept_model = concept_model
 
