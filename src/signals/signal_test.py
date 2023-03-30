@@ -10,7 +10,7 @@ from ..embeddings.embedding_registry import (
     clear_embedding_registry,
     register_embed_fn,
 )
-from ..schema import EnrichmentType, Field, Item, RichData
+from ..schema import DataType, EnrichmentType, Field, ItemValue, RichData
 from .signal import Signal
 
 TEST_EMBEDDING_NAME = 'test_embedding'
@@ -44,15 +44,15 @@ class TestSignal(Signal):
   query: str
 
   @override
-  def fields(self) -> dict[str, Field]:
-    return {}
+  def fields(self) -> Field:
+    return Field(dtype=DataType.FLOAT32)
 
   @override
   def compute(
       self,
       data: Optional[Iterable[RichData]] = None,
       keys: Optional[Iterable[bytes]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
+      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[ItemValue]]:
     del data
     return []
 

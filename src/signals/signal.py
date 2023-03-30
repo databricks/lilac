@@ -1,13 +1,13 @@
 """Interface for implementing a signal."""
 
 import abc
-from typing import Any, ClassVar, Iterable, Optional
+from typing import Any, ClassVar, Iterable, Optional, Union
 
 from pydantic import BaseModel
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import EmbeddingId, EmbedFn, get_embed_fn
-from ..schema import EnrichmentType, Field, Item, RichData
+from ..schema import EnrichmentType, Field, Item, ItemValue, RichData
 
 
 class Signal(abc.ABC, BaseModel):
@@ -44,7 +44,7 @@ class Signal(abc.ABC, BaseModel):
     self.signal_name = self.__class__.name
 
   @abc.abstractmethod
-  def fields(self) -> dict[str, Field]:
+  def fields(self) -> Field:
     """Return the fields schema for this signal."""
     pass
 
@@ -53,7 +53,8 @@ class Signal(abc.ABC, BaseModel):
       self,
       data: Optional[Iterable[RichData]] = None,
       keys: Optional[Iterable[bytes]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
+      get_embedding_index: Optional[GetEmbeddingIndexFn] = None
+  ) -> Iterable[Optional[Union[Item, ItemValue]]]:
     """Compute the signal for an iterable of row-keyed documents or images.
 
     Args:

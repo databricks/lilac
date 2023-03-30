@@ -6,7 +6,7 @@ from .text_statistics import NUM_CHARS_FEATURE_NAME, TextStatisticsSignal
 
 def test_text_statistics_fields() -> None:
   signal = TextStatisticsSignal()
-  assert signal.fields() == {NUM_CHARS_FEATURE_NAME: Field(dtype=DataType.INT32)}
+  assert signal.fields() == Field(fields={NUM_CHARS_FEATURE_NAME: Field(dtype=DataType.INT32)})
 
 
 def test_text_statistics_compute() -> None:

@@ -16,8 +16,8 @@ class TextStatisticsSignal(Signal):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def fields(self) -> dict[str, Field]:
-    return {NUM_CHARS_FEATURE_NAME: Field(dtype=DataType.INT32)}
+  def fields(self) -> Field:
+    return Field(fields={NUM_CHARS_FEATURE_NAME: Field(dtype=DataType.INT32)})
 
   @override
   def compute(

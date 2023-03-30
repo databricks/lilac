@@ -5,10 +5,8 @@ from typing_extensions import override
 
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
-from ..schema import DataType, EnrichmentType, Field, Item, RichData
+from ..schema import DataType, EnrichmentType, Field, ItemValue, RichData
 from .signal import Signal
-
-SCORE_FIELD_NAME = 'score'
 
 
 class ConceptScoreSignal(Signal):
@@ -28,15 +26,15 @@ class ConceptScoreSignal(Signal):
     self._concept_model_db = DISK_CONCEPT_MODEL_DB
 
   @override
-  def fields(self) -> dict[str, Field]:
-    return {SCORE_FIELD_NAME: Field(dtype=DataType.FLOAT32)}
+  def fields(self) -> Field:
+    return Field(dtype=DataType.FLOAT32)
 
   @override
   def compute(
       self,
       data: Optional[Iterable[RichData]] = None,
       keys: Optional[Iterable[bytes]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
+      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[ItemValue]]:
     if data and keys:
       raise ValueError(
           '"data" and "keys" cannot both be provided for ConceptScoreSignal.compute().')
@@ -56,4 +54,4 @@ class ConceptScoreSignal(Signal):
             '"get_embedding_index" is required in ConceptScoreSignal.compute() when passing "keys"')
       embeddings = get_embedding_index(self.embedding_name, keys).embeddings
       scores = concept_model.score_embeddings(embeddings)
-    return [{SCORE_FIELD_NAME: float(score)} for score in scores]
+    return [float(score) for score in scores]

@@ -18,7 +18,7 @@ from ..concepts.db_concept import (
 from ..embeddings.embedding_index import EmbeddingIndex
 from ..embeddings.embedding_registry import clear_embedding_registry, register_embed_fn
 from ..schema import RichData
-from .concept_scorer import SCORE_FIELD_NAME, ConceptScoreSignal
+from .concept_scorer import ConceptScoreSignal
 
 ALL_CONCEPT_DBS = [DiskConceptDB]
 ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
@@ -125,7 +125,7 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
       ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   scores = signal.compute(data=['a new data point', 'not in concept'])
-  expected_scores = [{SCORE_FIELD_NAME: 0.504}, {SCORE_FIELD_NAME: 0.493}]
+  expected_scores = [0.504, 0.493]
   for score, expected_score in zip(scores, expected_scores):
     assert pytest.approx(expected_score, 1e-3) == score
 
@@ -162,12 +162,6 @@ def test_concept_model_score_embeddings(concept_db_cls: Type[ConceptDB],
                           get_embedding_index=lambda _, row_ids: EmbeddingIndex(embeddings=np.array(
                               [KEY_EMBEDDING_MAP[x] for x in row_ids])))
 
-  expected_scores = [{
-      SCORE_FIELD_NAME: 0.493
-  }, {
-      SCORE_FIELD_NAME: 0.495
-  }, {
-      SCORE_FIELD_NAME: 0.504
-  }]
+  expected_scores = [0.493, 0.495, 0.504]
   for score, expected_score in zip(scores, expected_scores):
     assert pytest.approx(expected_score, 1e-3) == score

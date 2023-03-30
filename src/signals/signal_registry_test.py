@@ -5,7 +5,7 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
-from ..schema import EnrichmentType, Field, Item, RichData
+from ..schema import DataType, EnrichmentType, Field, ItemValue, RichData
 from ..signals.signal_registry import (
     clear_signal_registry,
     get_signal_cls,
@@ -25,14 +25,15 @@ class TestSignal(Signal):
   query: str
 
   @override
-  def fields(self) -> dict[str, Field]:
-    return {}
+  def fields(self) -> Field:
+    return Field(dtype=DataType.FLOAT32)
 
   @override
-  def compute(self,
-              data: Optional[Iterable[RichData]] = None,
-              keys: Optional[Iterable[bytes]] = None,
-              get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> list[Optional[Item]]:
+  def compute(
+      self,
+      data: Optional[Iterable[RichData]] = None,
+      keys: Optional[Iterable[bytes]] = None,
+      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> list[Optional[ItemValue]]:
     del data
     return []
 

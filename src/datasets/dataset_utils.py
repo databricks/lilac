@@ -133,19 +133,17 @@ def enrich_item_from_leaf_item(enriched_item: Item, path: Path, leaf_item: Item)
   enriched_subitem[path[-1]] = leaf_item  # type: ignore
 
 
-def create_enriched_schema(source_schema: Schema, enrich_path: Path,
-                           enrich_fields: dict[str, Field]) -> Schema:
+def create_enriched_schema(source_schema: Schema, enrich_path: Path, enrich_field: Field) -> Schema:
   """Create a schema describing the enriched fields added an enrichment."""
   enriched_schema = Schema(fields={UUID_COLUMN: Field(dtype=DataType.BINARY)})
   return _add_enriched_fields_to_schema(source_schema=source_schema,
                                         enriched_schema=enriched_schema,
-                                        enrich_fields=enrich_fields,
+                                        enrich_field=enrich_field,
                                         enrich_path=normalize_path(enrich_path))
 
 
 def _add_enriched_fields_to_schema(source_schema: Schema, enriched_schema: Schema,
-                                   enrich_fields: dict[str,
-                                                       Field], enrich_path: PathTuple) -> Schema:
+                                   enrich_field: Field, enrich_path: PathTuple) -> Schema:
   source_leafs = source_schema.leafs
   # Validate that the enrich fields are actually a valid leaf path.
   if enrich_path not in source_leafs:
@@ -169,7 +167,8 @@ def _add_enriched_fields_to_schema(source_schema: Schema, enriched_schema: Schem
 
     repeated_depth = len(leaf_path) - 1 - inner_struct_path_idx
 
-    inner_field = Field(fields=enrich_fields, enriched=True)
+    inner_field = enrich_field
+    inner_field.enriched = True
 
     # Wrap in a list to mirror the input structure.
     for i in range(repeated_depth):

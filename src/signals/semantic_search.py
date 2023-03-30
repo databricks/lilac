@@ -6,10 +6,8 @@ from typing_extensions import override
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import EmbeddingId, EmbedFn
-from ..schema import DataType, EnrichmentType, Field, Item, RichData
+from ..schema import DataType, EnrichmentType, Field, ItemValue, RichData
 from .signal import Signal
-
-SIMILARITY_FEATURE_NAME = 'semantic_similarity'
 
 
 class SemanticSearchSignal(Signal):
@@ -32,8 +30,8 @@ class SemanticSearchSignal(Signal):
     super().__init__(query=query, embedding=embedding, **kwargs)
 
   @override
-  def fields(self) -> dict[str, Field]:
-    return {SIMILARITY_FEATURE_NAME: Field(dtype=DataType.FLOAT32)}
+  def fields(self) -> Field:
+    return Field(dtype=DataType.FLOAT32)
 
   def _get_search_embedding(self) -> np.ndarray:
     """Return the embedding for the search text."""
@@ -46,7 +44,7 @@ class SemanticSearchSignal(Signal):
       self,
       data: Optional[Iterable[RichData]] = None,
       keys: Optional[Iterable[bytes]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
+      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[ItemValue]]:
     if data and keys:
       raise ValueError('"data" and "keys" cannot both be provided for SemanticSearch.compute().')
 
@@ -58,6 +56,6 @@ class SemanticSearchSignal(Signal):
             '"get_embedding_index" is required for SemanticSearch.compute() when passing "keys".')
       text_embeddings = get_embedding_index(self.embedding, keys).embeddings
 
-    scores = text_embeddings.dot(self._get_search_embedding()).flatten()
-
-    return [{SIMILARITY_FEATURE_NAME: score} for score in scores]
+    similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
+    for similarity in similarities:
+      yield float(similarity)

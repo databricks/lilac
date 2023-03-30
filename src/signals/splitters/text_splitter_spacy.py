@@ -5,12 +5,10 @@ from spacy import Language
 from typing_extensions import override
 
 from ...embeddings.embedding_index import GetEmbeddingIndexFn
-from ...schema import EnrichmentType, Field, Item, RichData
+from ...schema import EnrichmentType, Field, ItemValue, RichData
 from ...signals.signal import Signal
 from .spacy_utils import load_spacy
 from .splitter import SpanFields, SpanItem
-
-SENTENCES_FEATURE_NAME = 'sentences'
 
 
 class SentenceSplitterSpacy(Signal):
@@ -27,14 +25,14 @@ class SentenceSplitterSpacy(Signal):
     self._tokenizer = load_spacy(spacy_pipeline)
 
   @override
-  def fields(self) -> dict[str, Field]:
-    return {SENTENCES_FEATURE_NAME: Field(repeated_field=Field(fields=SpanFields({})))}
+  def fields(self) -> Field:
+    return Field(repeated_field=Field(fields=SpanFields({})))
 
   @override
   def compute(self,
               data: Optional[Iterable[RichData]] = None,
               keys: Optional[Iterable[bytes]] = None,
-              get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Item]:
+              get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[ItemValue]:
     if data is None:
       raise ValueError('Sentence splitter requires text data.')
 
@@ -42,8 +40,4 @@ class SentenceSplitterSpacy(Signal):
       if not isinstance(text, str):
         raise ValueError('Sentence splitter requires text data.')
       sentences = self._tokenizer(text).sents
-      yield {
-          SENTENCES_FEATURE_NAME: [
-              SpanItem(span=(token.start_char, token.end_char)) for token in sentences
-          ]
-      }
+      yield [SpanItem(span=(token.start_char, token.end_char)) for token in sentences]
