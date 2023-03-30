@@ -8,6 +8,7 @@ from ..schema import (
     DataType,
     Field,
     Item,
+    ItemValue,
     Path,
     PathTuple,
     Schema,
@@ -38,7 +39,7 @@ def replace_repeated_wildcards(path: Path, path_repeated_idxs: Optional[list[int
 
 
 def make_enriched_items(source_path: Path, row_ids: Sequence[bytes],
-                        leaf_items: Iterable[Optional[Item]],
+                        leaf_items: Iterable[Optional[Union[Item, ItemValue]]],
                         repeated_idxs: Iterable[Optional[list[int]]]) -> Iterable[Item]:
   """Make enriched items from leaf items and a path. This is used by both signals and splitters.
 
@@ -97,7 +98,8 @@ def make_enriched_items(source_path: Path, row_ids: Sequence[bytes],
     yield working_enriched_item
 
 
-def enrich_item_from_leaf_item(enriched_item: Item, path: Path, leaf_item: Item) -> None:
+def enrich_item_from_leaf_item(enriched_item: Item, path: Path,
+                               leaf_item: Union[Item, ItemValue]) -> None:
   """Create an enriched item with the same hierarchy as the source."""
   path = normalize_path(path)
 
