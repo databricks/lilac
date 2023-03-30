@@ -79,7 +79,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestSplitterWithLen)
   register_signal(TestEmbeddingSumSignal)
   # We register the embed function like this so we can mock it and assert how many times its called.
-  register_embed_fn(TEST_EMBEDDING_NAME)(lambda examples: embed(examples))
+  register_embed_fn(TEST_EMBEDDING_NAME)(embed)
 
   # Unit test runs.
   yield
@@ -740,7 +740,7 @@ class TestEmbeddingSumSignal(Signal):
               keys: Optional[Iterable[bytes]] = None,
               get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Item]:
     if keys is None:
-      raise ValueError('Sentence splitter requires text data.')
+      raise ValueError('Embedding sum signal requires keys.')
     if get_embedding_index is None:
       raise ValueError('get_embedding_index is None.')
     if not self.embedding:

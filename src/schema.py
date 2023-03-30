@@ -154,6 +154,8 @@ class Schema(BaseModel):
     while q:
       path, field = q.popleft()
       if field.fields:
+        # We treat __textspan__ as leafs as this effectively acts as a symlink to the original
+        # column, and the 'start' and 'end' subfields shouldn't be queried directly as leafs.
         if TEXT_SPAN_FEATURE_NAME in field.fields:
           result[(*path, TEXT_SPAN_FEATURE_NAME)] = field.fields[TEXT_SPAN_FEATURE_NAME]
 
