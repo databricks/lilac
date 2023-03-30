@@ -8,10 +8,10 @@ from ..schema import (
     DataType,
     Field,
     Item,
-    ItemValue,
     Path,
     PathTuple,
     Schema,
+    SignalOut,
     column_paths_match,
     normalize_path,
 )
@@ -39,7 +39,7 @@ def replace_repeated_wildcards(path: Path, path_repeated_idxs: Optional[list[int
 
 
 def make_enriched_items(source_path: Path, row_ids: Sequence[bytes],
-                        leaf_items: Iterable[Optional[Union[Item, ItemValue]]],
+                        leaf_items: Iterable[Optional[SignalOut]],
                         repeated_idxs: Iterable[Optional[list[int]]]) -> Iterable[Item]:
   """Make enriched items from leaf items and a path. This is used by both signals and splitters.
 
@@ -98,8 +98,7 @@ def make_enriched_items(source_path: Path, row_ids: Sequence[bytes],
     yield working_enriched_item
 
 
-def enrich_item_from_leaf_item(enriched_item: Item, path: Path,
-                               leaf_item: Union[Item, ItemValue]) -> None:
+def enrich_item_from_leaf_item(enriched_item: Item, path: Path, leaf_item: SignalOut) -> None:
   """Create an enriched item with the same hierarchy as the source."""
   path = normalize_path(path)
 
@@ -213,7 +212,7 @@ def get_field_if_exists(schema: Schema, path: Path) -> Optional[Field]:
   return field
 
 
-def top_level_signal_col_name(signal: Signal, column: Column) -> str:
+def default_top_level_signal_col_name(signal: Signal, column: Column) -> str:
   """Return the default name for a result column."""
   if isinstance(column.feature, Column):
     raise ValueError('Transforms are not yet supported.')
@@ -223,4 +222,4 @@ def top_level_signal_col_name(signal: Signal, column: Column) -> str:
     # Remove the trailing .* from the column name.
     column_alias = column_alias[:-2]
 
-  return f'{column_alias}({signal.name})'
+  return f'{signal.name}({column_alias})'

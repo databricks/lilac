@@ -145,26 +145,26 @@ class SelectRowsSuite:
     test_signal = TestSignal()
     db.compute_signal_columns(signal=test_signal, column='str')
 
-    result = db.select_rows(columns=['str', 'str(test_signal)'])
+    result = db.select_rows(columns=['str', 'test_signal(str)'])
 
     assert list(result) == [{
         UUID_COLUMN: b'1' * 16,
         'str': 'a',
-        'str(test_signal)': {
+        'test_signal(str)': {
             'len': 1,
             'flen': 1.0
         }
     }, {
         UUID_COLUMN: b'2' * 16,
         'str': 'b',
-        'str(test_signal)': {
+        'test_signal(str)': {
             'len': 1,
             'flen': 1.0
         }
     }, {
         UUID_COLUMN: b'2' * 16,
         'str': 'b',
-        'str(test_signal)': {
+        'test_signal(str)': {
             'len': 1,
             'flen': 1.0
         }
@@ -185,7 +185,7 @@ class SelectRowsSuite:
                                                         Field(dtype=DataType.BOOLEAN),
                                                     'float':
                                                         Field(dtype=DataType.FLOAT64),
-                                                    'str(test_signal)':
+                                                    'test_signal(str)':
                                                         Field(fields={
                                                             'len': Field(dtype=DataType.INT32),
                                                             'flen': Field(dtype=DataType.FLOAT32)
@@ -194,27 +194,27 @@ class SelectRowsSuite:
                                                 }))
 
     # Select a specific signal leaf test_signal.flen.
-    result = db.select_rows(columns=['str', ('str(test_signal)', 'flen')])
+    result = db.select_rows(columns=['str', ('test_signal(str)', 'flen')])
 
     assert list(result) == [{
         UUID_COLUMN: b'1' * 16,
         'str': 'a',
-        'str(test_signal).flen': 1.0
+        'test_signal(str).flen': 1.0
     }, {
         UUID_COLUMN: b'2' * 16,
         'str': 'b',
-        'str(test_signal).flen': 1.0
+        'test_signal(str).flen': 1.0
     }, {
         UUID_COLUMN: b'2' * 16,
         'str': 'b',
-        'str(test_signal).flen': 1.0
+        'test_signal(str).flen': 1.0
     }]
 
     # Select multiple signal leafs with aliasing.
     result = db.select_rows(columns=[
         'str',
-        Column(('str(test_signal)', 'flen'), alias='flen'),
-        Column(('str(test_signal)', 'len'), alias='len')
+        Column(('test_signal(str)', 'flen'), alias='flen'),
+        Column(('test_signal(str)', 'len'), alias='len')
     ])
 
     assert list(result) == [{
@@ -263,7 +263,7 @@ class SelectRowsSuite:
                     Field(dtype=DataType.BINARY),
                 'text':
                     Field(repeated_field=Field(dtype=DataType.STRING)),
-                'text(test_signal)':
+                'test_signal(text)':
                     Field(repeated_field=Field(fields={
                         'len': Field(dtype=DataType.INT32),
                         'flen': Field(dtype=DataType.FLOAT32)
@@ -272,11 +272,11 @@ class SelectRowsSuite:
                           enriched=True)
             }))
 
-    result = db.select_rows(columns=[('text(test_signal)')])
+    result = db.select_rows(columns=[('test_signal(text)')])
 
     assert list(result) == [{
         UUID_COLUMN: b'1' * 16,
-        'text(test_signal)': [{
+        'test_signal(text)': [{
             'len': 5,
             'flen': 5.0
         }, {
@@ -285,7 +285,7 @@ class SelectRowsSuite:
         }]
     }, {
         UUID_COLUMN: b'2' * 16,
-        'text(test_signal)': [{
+        'test_signal(text)': [{
             'len': 6,
             'flen': 6.0
         }, {
@@ -378,13 +378,13 @@ class SelectRowsSuite:
 
     db.compute_signal_columns(signal=TestSplitterWithLen(), column='text')
 
-    result = db.select_rows(columns=['text', 'text(test_splitter)'])
+    result = db.select_rows(columns=['text', 'test_splitter(text)'])
     expected_result = [{
         UUID_COLUMN:
             b'1' * 16,
         'text':
             '[1, 1] first sentence. [1, 1] second sentence.',
-        'text(test_splitter)': [{
+        'test_splitter(text)': [{
             'len': 22,
             TEXT_SPAN_FEATURE_NAME: {
                 TEXT_SPAN_START_FEATURE: 0,
@@ -402,7 +402,7 @@ class SelectRowsSuite:
             b'2' * 16,
         'text':
             'b2 [2, 1] first sentence. [2, 1] second sentence.',
-        'text(test_splitter)': [{
+        'test_splitter(text)': [{
             'len': 25,
             TEXT_SPAN_FEATURE_NAME: {
                 TEXT_SPAN_START_FEATURE: 0,
@@ -584,10 +584,10 @@ class SelectRowsSuite:
     db.compute_signal_columns(signal=test_signal, column=('text2', '*'))
 
     with pytest.raises(ValueError, match='Path part "invalid" not found in the dataset'):
-      db.select_rows(columns=[('text(test_signal)', 'invalid')])
+      db.select_rows(columns=[('test_signal(text)', 'invalid')])
 
     with pytest.raises(ValueError, match='Selecting a specific index of a repeated field'):
-      db.select_rows(columns=[('text2(test_signal)', 4)])
+      db.select_rows(columns=[('test_signal(text2)', 4)])
 
   def test_sort(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)

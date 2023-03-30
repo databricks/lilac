@@ -30,6 +30,7 @@ Scalar = Union[bool, datetime, int, float, str, bytes]
 ItemValue = Union[dict, list, np.ndarray, Scalar]
 Item = dict[str, ItemValue]
 RowKeyedItem = tuple[bytes, Item]
+SignalOut = Union[ItemValue, Item]
 
 # Contains a string field name, a wildcard for repeateds, or a specific integer index for repeateds.
 # This path represents a path to a particular column.

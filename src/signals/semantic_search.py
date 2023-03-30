@@ -57,5 +57,4 @@ class SemanticSearchSignal(Signal):
       text_embeddings = get_embedding_index(self.embedding, keys).embeddings
 
     similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
-    for similarity in similarities:
-      yield float(similarity)
+    return similarities.tolist()

@@ -41,8 +41,8 @@ from ..utils import (
 )
 from .dataset_utils import (
     create_enriched_schema,
+    default_top_level_signal_col_name,
     make_enriched_items,
-    top_level_signal_col_name,
 )
 from .db_dataset import (
     Column,
@@ -237,7 +237,7 @@ class DatasetDuckDB(DatasetDB):
                              signal_column_name: Optional[str] = None) -> str:
     column = column_from_identifier(column)
     if not signal_column_name:
-      signal_column_name = top_level_signal_col_name(signal, column)
+      signal_column_name = default_top_level_signal_col_name(signal, column)
 
     signal_field = signal.fields()
 
