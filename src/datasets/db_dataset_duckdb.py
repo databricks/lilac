@@ -494,65 +494,7 @@ class DatasetDuckDB(DatasetDB):
                     sort_by: Optional[GroupsSortBy] = None,
                     sort_order: Optional[SortOrder] = SortOrder.DESC,
                     limit: Optional[int] = 100) -> pd.DataFrame:
-    if not leaf_path:
-      raise ValueError('leaf_path must be provided')
-
-    path = normalize_path(leaf_path)
-    leaf = self.manifest().data_schema.leafs.get(path)
-    if not leaf:
-      raise ValueError(f'Leaf "{path}" not found in dataset')
-
-    # const countColumn = 'count';
-    # const valueColumn = 'value';
-    # if (leafPath == null) {
-    #   throw new Error('"leafPath" needs to be provided');
-    # }
-    # const {manifest, tableName} = await this.makeTable(runId);
-    # const leaf = manifest.schema.getLeaf(leafPath);
-    # if (leaf == null) {
-    #   throw new Error(`leaf "${leafPath}" not found in dataset run "${runId}"`);
-    # }
-    # const {approxCountDistinct} = await this.stats({runId, leafPath});
-    # if (approxCountDistinct >= TOO_MANY_DISTINCT) {
-    #   throw new Error(`Leaf "${leafPath}" has too many unique values: ${approxCountDistinct}`);
-    # }
-    # const innerVal = 'inner_val';
-    # let outerSelect = innerVal;
-    # if (isFloat(leaf.dtype) || isInteger(leaf.dtype)) {
-    #   if (bins == null) {
-    #     throw new Error(`"bins" needs to be defined for the int and float leaf "${leafPath}"`);
-    #   }
-    #   const bounds: string[] = [];
-    #   for (let i = 0; i < bins.length + 1; i++) {
-    #     const prev = i === 0 ? "'-Infinity'" : bins[i - 1];
-    #     const next = i === bins.length ? "'Infinity'" : bins[i];
-    #     bounds.push(`(${i}, ${prev}, ${next})`);
-    #   }
-    #   const binIndexColumn = 'col0';
-    #   const binMinColumn = 'col1';
-    #   const binMaxColumn = 'col2';
-    #   // We cast the field to `double` so bining works for both `float` and `int` fields.
-    #   outerSelect = `(
-    #     SELECT ${binIndexColumn} FROM (
-    #       VALUES ${bounds.join(',')}
-    #     ) WHERE ${innerVal}::DOUBLE >= ${binMinColumn} AND ${innerVal}::DOUBLE < ${binMaxColumn}
-    #   )`;
-    # }
-    # const innerSelect = makeSelectColumn(leafPath);
-    # const queryStr = `
-    #   SELECT COUNT() AS ${countColumn}, ${outerSelect} AS ${valueColumn}
-    #   FROM (SELECT ${innerSelect} AS ${innerVal} FROM "${tableName}")
-    #   GROUP BY ${valueColumn}
-    #   ORDER BY ${orderBy} ${sortOrder}
-    #   LIMIT ${limit}
-    # `;
-    # const queryResult = await this.query(queryStr);
-    # const groups = queryResult.map((rowResult) => {
-    #   return {
-    #     count: rowResult[countColumn] as number,
-    #     value: rowResult[valueColumn] as number | boolean | string,
-    #   };
-    # });
+    pass
 
   @override
   def select_rows(self,
