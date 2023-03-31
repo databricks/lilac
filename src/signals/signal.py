@@ -44,11 +44,15 @@ class Signal(abc.ABC, BaseModel):
     self.signal_name = self.__class__.name
 
   @abc.abstractmethod
-  def fields(self, references_column: Path) -> Field:
+  def fields(self, input_column: Path) -> Field:
     """Return the fields schema for this signal.
 
-    The source path reference column is passed so the signal can use it for fields that reference
-    the column from which it is derived.
+    Args:
+      input_column: The input column path that the signal is being applied to. This is useful for
+        fields that are references to other fields, like a STRING_SPAN.
+
+    Returns
+      A Field object that describes the schema of the signal.
     """
     pass
 

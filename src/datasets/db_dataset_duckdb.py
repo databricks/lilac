@@ -246,7 +246,7 @@ class DatasetDuckDB(DatasetDB):
       raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')
 
     source_path = normalize_path(column.feature)
-    signal_field = signal.fields(references_column=source_path)
+    signal_field = signal.fields(input_column=source_path)
 
     signal_schema = create_enriched_schema(source_schema=self.manifest().data_schema,
                                            enrich_path=source_path,
