@@ -24,9 +24,8 @@ class SentenceSplitterSpacy(Signal):
     self._tokenizer = load_spacy(spacy_pipeline)
 
   @override
-  def fields(self, references_column: Path) -> Field:
-    return Field(
-        repeated_field=Field(dtype=DataType.STRING_SPAN, references_column=references_column))
+  def fields(self, input_column: Path) -> Field:
+    return Field(repeated_field=Field(dtype=DataType.STRING_SPAN, references_column=input_column))
 
   @override
   def compute(self,

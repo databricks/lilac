@@ -61,10 +61,6 @@ SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
 SPLIT_MANIFEST_SUFFIX = 'split_manifest.json'
 SOURCE_VIEW_NAME = 'source'
 
-# TODO: DELETE
-TEXT_SPAN_FEATURE_NAME = '__textspan__'
-
-
 class ComputedColumn(BaseModel):
   """A column that is computed/derived from another column."""
 
