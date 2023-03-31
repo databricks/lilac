@@ -199,7 +199,7 @@ class DatasetDB(abc.ABC):
     Returns
       A dataframe with counts for each value of the leaf, applying the filters.
     """
-    pass
+    raise NotImplementedError
 
   @abc.abstractmethod
   def select_rows(self,
