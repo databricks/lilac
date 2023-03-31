@@ -10,6 +10,9 @@ from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import Item, Path, Schema, path_to_alias
 from ..signals.signal import Signal
 
+# Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
+TOO_MANY_DISTINCT = 100_000
+
 
 class SelectRowsResult():
   """The result of a select rows query."""
