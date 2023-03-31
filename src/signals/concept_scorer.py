@@ -5,7 +5,7 @@ from typing_extensions import override
 
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
-from ..schema import DataType, EnrichmentType, Field, ItemValue, RichData
+from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
 from .signal import Signal
 
 
@@ -26,7 +26,7 @@ class ConceptScoreSignal(Signal):
     self._concept_model_db = DISK_CONCEPT_MODEL_DB
 
   @override
-  def fields(self) -> Field:
+  def fields(self, input_column: Path) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   @override

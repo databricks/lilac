@@ -1,7 +1,7 @@
 """Test for the concept scorer."""
 
 import os
-from pathlib import Path
+import pathlib
 from typing import Generator, Iterable, Type, cast
 
 import numpy as np
@@ -25,7 +25,7 @@ ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
 
 
 @pytest.fixture(autouse=True)
-def set_data_path(tmp_path: Path) -> Generator:
+def set_data_path(tmp_path: pathlib.Path) -> Generator:
   data_path = os.environ.get('LILAC_DATA_PATH', None)
   os.environ['LILAC_DATA_PATH'] = str(tmp_path)
 

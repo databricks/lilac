@@ -4,7 +4,7 @@ from typing import Iterable, Optional
 from typing_extensions import override
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
-from ..schema import DataType, EnrichmentType, Field, Item, RichData
+from ..schema import DataType, EnrichmentType, Field, Item, Path, RichData
 from .signal import Signal
 
 NUM_CHARS_FEATURE_NAME = 'num_characters'
@@ -16,7 +16,7 @@ class TextStatisticsSignal(Signal):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def fields(self) -> Field:
+  def fields(self, input_column: Path) -> Field:
     return Field(fields={NUM_CHARS_FEATURE_NAME: Field(dtype=DataType.INT32)})
 
   @override

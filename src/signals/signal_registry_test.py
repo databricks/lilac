@@ -5,7 +5,7 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
-from ..schema import DataType, EnrichmentType, Field, ItemValue, RichData
+from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
 from ..signals.signal_registry import (
     clear_signal_registry,
     get_signal_cls,
@@ -25,7 +25,7 @@ class TestSignal(Signal):
   query: str
 
   @override
-  def fields(self) -> Field:
+  def fields(self, input_column: Path) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   @override

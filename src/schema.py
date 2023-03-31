@@ -21,7 +21,6 @@ PARQUET_FILENAME_PREFIX = 'data'
 UUID_COLUMN = '__rowid__'
 PATH_WILDCARD = '*'
 
-TEXT_SPAN_FEATURE_NAME = '__textspan__'
 TEXT_SPAN_START_FEATURE = 'start'
 TEXT_SPAN_END_FEATURE = 'end'
 
@@ -55,6 +54,8 @@ PathKeyedSignalItem = tuple[str, Path, Item]
 class DataType(str, Enum):
   """Enum holding the dtype for a field."""
   STRING = 'string'
+  # Contains {start, end} offset integers with a reference_column.
+  STRING_SPAN = 'string_span'
   BOOLEAN = 'boolean'
 
   # Ints.
@@ -106,7 +107,7 @@ class Field(BaseModel):
   dtype: Optional[DataType]
   enriched: Optional[bool]
   # When defined, this field points to another column.
-  references_column: Optional[Path]
+  refers_to: Optional[Path]
 
   @validator('fields')
   def either_fields_or_repeated_field_is_defined(cls, fields: dict[str, 'Field'],
@@ -115,6 +116,14 @@ class Field(BaseModel):
     if fields and values.get('repeated_field'):
       raise ValueError('Both "fields" and "repeated_field" should not be defined')
     return fields
+
+  @validator('refers_to', always=True)
+  def refers_to_is_defined_for_string_spans(cls, refers_to: Optional[Path],
+                                             values: dict[str, Any]) -> Optional[Path]:
+    """Error if both `fields` and `repeated_fields` are defined."""
+    if values.get('dtype') == DataType.STRING_SPAN and refers_to is None:
+      raise ValueError('refers_to must be defined for DataType.STRING_SPAN')
+    return refers_to
 
   @validator('dtype', always=True)
   def infer_default_dtype(cls, dtype: Optional[DataType], values: dict[str, Any]) -> DataType:
@@ -127,8 +136,10 @@ class Field(BaseModel):
       return dtype
     elif values.get('repeated_field'):
       return DataType.LIST
-    else:
+    elif values.get('fields'):
       return DataType.STRUCT
+    else:
+      raise ValueError('"dtype" is required when both "repeated_field" and "fields" are not set')
 
   def __str__(self) -> str:
     return _str_field(self, indent=0)
@@ -154,12 +165,10 @@ class Schema(BaseModel):
     q: deque[tuple[PathTuple, Field]] = deque([((), Field(fields=fields))])
     while q:
       path, field = q.popleft()
-      if field.fields:
-        # We treat __textspan__ as leafs as this effectively acts as a symlink to the original
-        # column, and the 'start' and 'end' subfields shouldn't be queried directly as leafs.
-        if TEXT_SPAN_FEATURE_NAME in field.fields:
-          result[(*path, TEXT_SPAN_FEATURE_NAME)] = field.fields[TEXT_SPAN_FEATURE_NAME]
-
+      if field.dtype == DataType.STRING_SPAN:
+        # String spans act as leafs.
+        result[path] = field
+      elif field.fields:
         for name, child_field in field.fields.items():
           child_path = (*path, name)
           q.append((child_path, child_field))
@@ -177,36 +186,9 @@ class Schema(BaseModel):
     return self.json(exclude_none=True, indent=2)
 
 
-def get_leaf_vals(item: ItemValue, emit_repeated_indices: bool) -> dict[Path, list[Scalar]]:
-  """Return a dictionary that maps a "leaf path" to all flatten values for that leaf.
-
-  Args:
-    item: The item.
-    emit_repeated_indices: When True emits integer indices for repeated values. When False emits
-  a "*" meaning all values for that repeated index.
-  """
-  result: dict[Path, list[Scalar]] = {}
-  q: deque[tuple[Path, ItemValue]] = deque([((), item)])
-  while q:
-    path, item = q.popleft()
-    if isinstance(item, dict):
-      for name, child_item in item.items():
-        child_path = (*path, name)
-        q.append((child_path, child_item))
-    elif isinstance(item, (tuple, list)):
-      if emit_repeated_indices:
-        for i, child_item in enumerate(item):
-          child_path = (*path, i)
-          q.append((child_path, child_item))
-      else:
-        for child_item in item:
-          child_path = (*path, PATH_WILDCARD)
-          q.append((child_path, child_item))
-    else:
-      if path not in result:
-        result[path] = []
-      result[path].append(cast(Scalar, item))
-  return result
+def TextSpan(start: int, end: int) -> Item:
+  """Return the span item from start and end character offets."""
+  return {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
 
 
 def child_item_from_column_path(item: Item, path: Path) -> Item:
@@ -399,6 +381,8 @@ def _schema_to_arrow_schema_impl(schema: Union[Schema, Field]) -> Union[pa.Schem
   field = cast(Field, schema)
   if field.repeated_field:
     return pa.list_(_schema_to_arrow_schema_impl(field.repeated_field))
+  if field.dtype == DataType.STRING_SPAN:
+    return pa.struct({TEXT_SPAN_START_FEATURE: pa.int32(), TEXT_SPAN_END_FEATURE: pa.int32()})
   return dtype_to_arrow_dtype(cast(DataType, field.dtype))
 
 
@@ -463,7 +447,6 @@ def _arrow_schema_to_schema_impl(schema: Union[pa.Schema, pa.DataType]) -> Union
   elif isinstance(schema, pa.ListType):
     return Field(repeated_field=cast(Field, _arrow_schema_to_schema_impl(schema.value_field.type)))
   else:
-
     return Field(dtype=arrow_dtype_to_dtype(schema))
 
 
