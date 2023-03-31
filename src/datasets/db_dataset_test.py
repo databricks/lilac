@@ -2,9 +2,11 @@
 
 import os
 import pathlib
+import re
 from typing import Any, Generator, Iterable, Optional, Type, cast
 
 import numpy as np
+import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
@@ -27,7 +29,7 @@ from ..schema import (
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
-from . import db_dataset_duckdb
+from . import db_dataset, db_dataset_duckdb
 from .db_dataset import Column, DatasetDB, DatasetManifest, SortOrder, StatsResult
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
@@ -845,3 +847,311 @@ class StatsSuite:
 
     with pytest.raises(ValueError, match='Leaf "\\(\'unknown\',\\)" not found in dataset'):
       db.stats(leaf_path='unknown')
+
+
+@pytest.mark.parametrize('db_cls', ALL_DBS)
+class SelectGroupsSuite:
+
+  def test_flat_data(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    items: list[Item] = [
+        {
+            'name': 'Name1',
+            'age': 34,
+            'active': False
+        },
+        {
+            'name': 'Name2',
+            'age': 45,
+            'active': True
+        },
+        {
+            'age': 17,
+            'active': True
+        },  # Missing "name".
+        {
+            'name': 'Name3',
+            'active': True
+        },  # Missing "age".
+        {
+            'name': 'Name4',
+            'age': 55
+        }  # Missing "active".
+    ]
+    schema = Schema(
+        fields={
+            UUID_COLUMN: Field(dtype=DataType.BINARY),
+            'name': Field(dtype=DataType.STRING),
+            'age': Field(dtype=DataType.INT32),
+            'active': Field(dtype=DataType.BOOLEAN)
+        })
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+
+    result = db.select_groups(leaf_path='name')
+    expected = pd.DataFrame.from_records([{
+        'value': 'Name1',
+        'count': 1
+    }, {
+        'value': 'Name2',
+        'count': 1
+    }, {
+        'value': None,
+        'count': 1
+    }, {
+        'value': 'Name3',
+        'count': 1
+    }, {
+        'value': 'Name4',
+        'count': 1
+    }])
+    pd.testing.assert_frame_equal(result, expected)
+
+    result = db.select_groups(leaf_path='age', bins=[20, 50, 60])
+    expected = pd.DataFrame.from_records([
+        {
+            'value': 1,  # age 20-50.
+            'count': 2
+        },
+        {
+            'value': 0,  # age < 20.
+            'count': 1
+        },
+        {
+            'value': None,  # Missing age.
+            'count': 1
+        },
+        {
+            'value': 2,  # age 50-60.
+            'count': 1
+        }
+    ])
+    pd.testing.assert_frame_equal(result, expected)
+
+    result = db.select_groups(leaf_path='active')
+    expected = pd.DataFrame.from_records([
+        {
+            'value': True,
+            'count': 3
+        },
+        {
+            'value': False,
+            'count': 1
+        },
+        {
+            'value': None,  # Missing "active".
+            'count': 1
+        }
+    ])
+    pd.testing.assert_frame_equal(result, expected)
+
+  def test_list_of_structs(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    items: list[Item] = [{
+        'list_of_structs': [{
+            'name': 'a'
+        }, {
+            'name': 'b'
+        }]
+    }, {
+        'list_of_structs': [{
+            'name': 'c'
+        }, {
+            'name': 'a'
+        }, {
+            'name': 'd'
+        }]
+    }, {
+        'list_of_structs': [{
+            'name': 'd'
+        }]
+    }]
+    schema = Schema(
+        fields={
+            UUID_COLUMN:
+                Field(dtype=DataType.BINARY),
+            'list_of_structs':
+                Field(repeated_field=Field(fields={'name': Field(dtype=DataType.STRING)})),
+        })
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+
+    result = db.select_groups(leaf_path='list_of_structs.*.name')
+    expected = pd.DataFrame.from_records([{
+        'value': 'a',
+        'count': 2
+    }, {
+        'value': 'd',
+        'count': 2
+    }, {
+        'value': 'b',
+        'count': 1
+    }, {
+        'value': 'c',
+        'count': 1
+    }])
+    pd.testing.assert_frame_equal(result, expected)
+
+  def test_nested_lists(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    items: list[Item] = [{
+        'nested_list': [[{
+            'name': 'a'
+        }], [{
+            'name': 'b'
+        }]]
+    }, {
+        'nested_list': [[{
+            'name': 'c'
+        }, {
+            'name': 'a'
+        }], [{
+            'name': 'd'
+        }]]
+    }, {
+        'nested_list': [[{
+            'name': 'd'
+        }]]
+    }]
+    schema = Schema(
+        fields={
+            UUID_COLUMN:
+                Field(dtype=DataType.BINARY),
+            'nested_list':
+                Field(repeated_field=Field(repeated_field=Field(
+                    fields={'name': Field(dtype=DataType.STRING)}))),
+        })
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+
+    result = db.select_groups(leaf_path='nested_list.*.*.name')
+    expected = pd.DataFrame.from_records([{
+        'value': 'a',
+        'count': 2
+    }, {
+        'value': 'd',
+        'count': 2
+    }, {
+        'value': 'b',
+        'count': 1
+    }, {
+        'value': 'c',
+        'count': 1
+    }])
+    pd.testing.assert_frame_equal(result, expected)
+
+  def test_nested_struct(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    items: list[Item] = [
+        {
+            'nested_struct': {
+                'struct': {
+                    'name': 'c'
+                }
+            }
+        },
+        {
+            'nested_struct': {
+                'struct': {
+                    'name': 'b'
+                }
+            }
+        },
+        {
+            'nested_struct': {
+                'struct': {
+                    'name': 'a'
+                }
+            }
+        },
+    ]
+    schema = Schema(
+        fields={
+            UUID_COLUMN:
+                Field(dtype=DataType.BINARY),
+            'nested_struct':
+                Field(fields={'struct': Field(fields={'name': Field(dtype=DataType.STRING)})}),
+        })
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+
+    result = db.select_groups(leaf_path='nested_struct.struct.name')
+    expected = pd.DataFrame.from_records([{
+        'value': 'c',
+        'count': 1
+    }, {
+        'value': 'b',
+        'count': 1
+    }, {
+        'value': 'a',
+        'count': 1
+    }])
+    pd.testing.assert_frame_equal(result, expected)
+
+  def test_invalid_leaf(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    items: list[Item] = [
+        {
+            'nested_struct': {
+                'struct': {
+                    'name': 'c'
+                }
+            }
+        },
+        {
+            'nested_struct': {
+                'struct': {
+                    'name': 'b'
+                }
+            }
+        },
+        {
+            'nested_struct': {
+                'struct': {
+                    'name': 'a'
+                }
+            }
+        },
+    ]
+    schema = Schema(
+        fields={
+            UUID_COLUMN:
+                Field(dtype=DataType.BINARY),
+            'nested_struct':
+                Field(fields={'struct': Field(fields={'name': Field(dtype=DataType.STRING)})}),
+        })
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+
+    with pytest.raises(ValueError,
+                       match=re.escape("Leaf \"('nested_struct',)\" not found in dataset")):
+      db.select_groups(leaf_path='nested_struct')
+
+    with pytest.raises(
+        ValueError, match=re.escape("Leaf \"('nested_struct', 'struct')\" not found in dataset")):
+      db.select_groups(leaf_path='nested_struct.struct')
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Leaf \"('nested_struct', 'struct', 'wrong_name')\" not found in dataset")):
+      db.select_groups(leaf_path='nested_struct.struct.wrong_name')
+
+  def test_too_many_distinct(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB],
+                             mocker: MockerFixture) -> None:
+    too_many_distinct = 5
+    mocker.patch(f'{db_dataset.__name__}.TOO_MANY_DISTINCT', too_many_distinct)
+
+    items: list[Item] = [{'feature': str(i)} for i in range(too_many_distinct + 10)]
+    schema = Schema(fields={
+        UUID_COLUMN: Field(dtype=DataType.BINARY),
+        'feature': Field(dtype=DataType.STRING)
+    })
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+
+    with pytest.raises(ValueError,
+                       match=re.escape('Leaf "(\'feature\',)" has too many unique values: 15')):
+      db.select_groups('feature')
+
+  def test_bins_are_required_for_float(self, tmp_path: pathlib.Path,
+                                       db_cls: Type[DatasetDB]) -> None:
+    items: list[Item] = [{'feature': float(i)} for i in range(5)]
+    schema = Schema(fields={
+        UUID_COLUMN: Field(dtype=DataType.BINARY),
+        'feature': Field(dtype=DataType.FLOAT32)
+    })
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape('"bins" needs to be defined for the int/float leaf "(\'feature\',)"')):
+      db.select_groups('feature')

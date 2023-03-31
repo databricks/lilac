@@ -188,7 +188,8 @@ class DatasetDB(abc.ABC):
                     filters: Optional[Sequence[Filter]] = None,
                     sort_by: Optional[GroupsSortBy] = None,
                     sort_order: Optional[SortOrder] = SortOrder.DESC,
-                    limit: Optional[int] = 100) -> pd.DataFrame:
+                    limit: Optional[int] = 100,
+                    bins: Optional[list[float]] = None) -> pd.DataFrame:
     """Select grouped columns to power a histogram.
 
     Args:
@@ -198,6 +199,7 @@ class DatasetDB(abc.ABC):
       sort_by: What to sort by, either "count" or "value".
       sort_order: The sort order.
       limit: The maximum number of rows to return.
+      bins: The bins to use when bucketizing a float column.
 
     Returns
       A dataframe with counts for each value of the leaf, applying the filters.

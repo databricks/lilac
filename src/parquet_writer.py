@@ -1,5 +1,5 @@
 """A Parquet file writer that wraps the pyarrow writer."""
-from typing import IO
+from typing import IO, Optional
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -18,7 +18,7 @@ class ParquetWriter:
     self._schema = schema_to_arrow_schema(schema)
     self._codec = codec
     self._row_group_buffer_size = row_group_buffer_size
-    self._buffer: list[list[ItemValue]] = [[] for _ in range(len(self._schema.names))]
+    self._buffer: list[list[Optional[ItemValue]]] = [[] for _ in range(len(self._schema.names))]
     self._buffer_size = record_batch_size
     self._record_batches: list[pa.RecordBatch] = []
     self._record_batches_byte_size = 0
@@ -38,7 +38,7 @@ class ParquetWriter:
 
     # reorder the data in columnar format.
     for i, n in enumerate(self._schema.names):
-      self._buffer[i].append(record[n])
+      self._buffer[i].append(record.get(n))
 
   def close(self) -> None:
     """Flushes the write buffer and closes the destination file."""

@@ -40,13 +40,13 @@ from ..utils import (
     open_file,
     write_items_to_parquet,
 )
+from . import db_dataset
 from .dataset_utils import (
     create_enriched_schema,
     default_top_level_signal_col_name,
     make_enriched_items,
 )
 from .db_dataset import (
-    TOO_MANY_DISTINCT,
     Column,
     ColumnId,
     DatasetDB,
@@ -481,10 +481,10 @@ class DatasetDuckDB(DatasetDB):
   def select_groups(self,
                     leaf_path: Path,
                     filters: Optional[Sequence[Filter]] = None,
-                    sort_by: Optional[GroupsSortBy] = None,
+                    sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
                     sort_order: Optional[SortOrder] = SortOrder.DESC,
                     limit: Optional[int] = 100,
-                    bins: Optional[Iterable[float]] = None) -> pd.DataFrame:
+                    bins: Optional[list[float]] = None) -> pd.DataFrame:
     if not leaf_path:
       raise ValueError('leaf_path must be provided')
     path = normalize_path(leaf_path)
@@ -494,63 +494,40 @@ class DatasetDuckDB(DatasetDB):
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     stats = self.stats(leaf_path)
-    if stats.approx_count_distinct >= TOO_MANY_DISTINCT:
-      raise ValueError(
-          f'Leaf "{leaf_path}" has too many unique values: {stats.approx_count_distinct}')
+    if stats.approx_count_distinct >= db_dataset.TOO_MANY_DISTINCT:
+      raise ValueError(f'Leaf "{path}" has too many unique values: {stats.approx_count_distinct}')
 
     inner_val = 'inner_val'
     outer_select = inner_val
     if is_float(leaf.dtype) or is_integer(leaf.dtype):
       if bins is None:
-        raise ValueError(f'"bins" needs to be defined for the int/float leaf "{leaf_path}"')
+        raise ValueError(f'"bins" needs to be defined for the int/float leaf "{path}"')
       bounds = []
       for i in range(len(bins) + 1):
-        prev = bins[i - 1] if i > 0 else '-Infinity'
-        next = bins[i] if i < len(bins) else 'Infinity'
-        bounds.append(f'WHEN {inner_val} > {prev} AND {inner_val} <= {next} THEN {i}')
-    # const {approxCountDistinct} = await this.stats({runId, leafPath});
-    # if (approxCountDistinct >= TOO_MANY_DISTINCT) {
-    #   throw new Error(`Leaf "${leafPath}" has too many unique values: ${approxCountDistinct}`);
-    # }
-    # const innerVal = 'inner_val';
-    # let outerSelect = innerVal;
-    # if (isFloat(leaf.dtype) || isInteger(leaf.dtype)) {
-    #   if (bins == null) {
-    #     throw new Error(`"bins" needs to be defined for the int and float leaf "${leafPath}"`);
-    #   }
-    #   const bounds: string[] = [];
-    #   for (let i = 0; i < bins.length + 1; i++) {
-    #     const prev = i === 0 ? "'-Infinity'" : bins[i - 1];
-    #     const next = i === bins.length ? "'Infinity'" : bins[i];
-    #     bounds.push(`(${i}, ${prev}, ${next})`);
-    #   }
-    #   const binIndexColumn = 'col0';
-    #   const binMinColumn = 'col1';
-    #   const binMaxColumn = 'col2';
-    #   // We cast the field to `double` so bining works for both `float` and `int` fields.
-    #   outerSelect = `(
-    #     SELECT ${binIndexColumn} FROM (
-    #       VALUES ${bounds.join(',')}
-    #     ) WHERE ${innerVal}::DOUBLE >= ${binMinColumn} AND ${innerVal}::DOUBLE < ${binMaxColumn}
-    #   )`;
-    # }
-    # const innerSelect = makeSelectColumn(leafPath);
-    # const queryStr = `
-    #   SELECT COUNT() AS ${countColumn}, ${outerSelect} AS ${valueColumn}
-    #   FROM (SELECT ${innerSelect} AS ${innerVal} FROM "${tableName}")
-    #   GROUP BY ${valueColumn}
-    #   ORDER BY ${orderBy} ${sortOrder}
-    #   LIMIT ${limit}
-    # `;
-    # const queryResult = await this.query(queryStr);
-    # const groups = queryResult.map((rowResult) => {
-    #   return {
-    #     count: rowResult[countColumn] as number,
-    #     value: rowResult[valueColumn] as number | boolean | string,
-    #   };
-    # });
+        prev = bins[i - 1] if i > 0 else "'-Infinity'"
+        next = bins[i] if i < len(bins) else "'Infinity'"
+        bounds.append(f'({i}, {prev}, {next})')
+      bin_index_col = 'col0'
+      bin_min_col = 'col1'
+      bin_max_col = 'col2'
+      # We cast the field to `double` so bining works for both `float` and `int` fields.
+      outer_select = f"""(
+        SELECT {bin_index_col} FROM (
+          VALUES {', '.join(bounds)}
+        ) WHERE {inner_val}::DOUBLE >= {bin_min_col} AND {inner_val}::DOUBLE < {bin_max_col}
+      )"""
+    count_column = 'count'
+    value_column = 'value'
 
-    # return {leafPath, groups};
+    inner_select = make_select_column(path)
+    query = f"""
+      SELECT {outer_select} AS {value_column}, COUNT() AS {count_column}
+      FROM (SELECT {inner_select} AS {inner_val} FROM t)
+      GROUP BY {value_column}
+      ORDER BY {sort_by} {sort_order}
+      LIMIT {limit}
+    """
+    return self._query(query).to_df()
 
   @override
   def select_rows(self,
