@@ -465,3 +465,26 @@ def _arrow_schema_to_schema_impl(schema: Union[pa.Schema, pa.DataType]) -> Union
   else:
 
     return Field(dtype=arrow_dtype_to_dtype(schema))
+
+
+def is_float(dtype: DataType) -> bool:
+  """Check if a dtype is a float dtype."""
+  return dtype in [DataType.FLOAT16, DataType.FLOAT32, DataType.FLOAT64]
+
+
+def is_integer(dtype: DataType) -> bool:
+  """Check if a dtype is an integer dtype."""
+  return dtype in [
+      DataType.INT8, DataType.INT16, DataType.INT32, DataType.INT64, DataType.UINT8,
+      DataType.UINT16, DataType.UINT32, DataType.UINT64
+  ]
+
+
+def is_temporal(dtype: DataType) -> bool:
+  """Check if a dtype is a temporal dtype."""
+  return dtype in [DataType.TIME, DataType.DATE, DataType.TIMESTAMP, DataType.INTERVAL]
+
+
+def is_ordinal(dtype: DataType) -> bool:
+  """Check if a dtype is an ordinal dtype."""
+  return is_float(dtype) or is_integer(dtype) or is_temporal(dtype)
