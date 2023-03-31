@@ -457,13 +457,12 @@ class DatasetDuckDB(DatasetDB):
 
     approx_count_query = f"""
       SELECT approx_count_distinct(val) as approxCountDistinct {avg_length_query}
-      FROM (SELECT ${inner_select} AS val FROM t LIMIT {sample_size});
+      FROM (SELECT {inner_select} AS val FROM t LIMIT {sample_size});
     """
     row = cast(Any, self._query(approx_count_query).fetchone())
     approx_count_distinct = row[0]
     # Adjust the distinct count for the sample size.
     approx_count_distinct = round((approx_count_distinct / sample_size) * manifest.num_items)
-
     result = StatsResult(approx_count_distinct=approx_count_distinct)
 
     if leaf.dtype == DataType.STRING:
@@ -473,7 +472,7 @@ class DatasetDuckDB(DatasetDB):
     if is_ordinal(leaf.dtype):
       min_max_query = f"""
         SELECT MIN(val) AS minVal, MAX(val) AS maxVal
-        FROM (SELECT ${inner_select} AS val FROM t);
+        FROM (SELECT {inner_select} AS val FROM t);
       """
       row = self._query(min_max_query).fetchone()
       result.min_val, result.max_val = row

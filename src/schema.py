@@ -294,7 +294,7 @@ def path_to_alias(path: Path) -> str:
 def normalize_path(path: Path) -> PathTuple:
   """Normalize a path."""
   if isinstance(path, str):
-    path = (path,)
+    return tuple(path.split('.'))
   return path
 
 

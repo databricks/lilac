@@ -2,10 +2,11 @@
 
 import os
 import pathlib
-from typing import Generator, Iterable, Optional, Type, cast
+from typing import Any, Generator, Iterable, Optional, Type, cast
 
 import numpy as np
 import pytest
+from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
@@ -20,7 +21,8 @@ from ..signals.splitters.splitter import (
     SpanFields,
     SpanItem,
 )
-from .db_dataset import Column, DatasetDB, DatasetManifest, SortOrder
+from . import db_dataset_duckdb
+from .db_dataset import Column, DatasetDB, DatasetManifest, SortOrder, StatsResult
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
 
@@ -764,3 +766,91 @@ class ComputeSignalItemsSuite:
         match='The enriched outputs \\(0\\) and the input data \\(2\\) do not have the same length'
     ):
       db.compute_signal_columns(signal=signal, column=('text',))
+
+
+@pytest.mark.parametrize('db_cls', ALL_DBS)
+class StatsSuite:
+
+  def test_simple_stats(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+
+    result = db.stats(leaf_path='str')
+    assert result == StatsResult(approx_count_distinct=2, avg_text_length=1)
+
+    result = db.stats(leaf_path='float')
+    assert result == StatsResult(approx_count_distinct=3, min_val=1.0, max_val=3.0)
+
+    result = db.stats(leaf_path='bool')
+    assert result == StatsResult(approx_count_distinct=2)
+
+    result = db.stats(leaf_path='int')
+    assert result == StatsResult(approx_count_distinct=2, min_val=1, max_val=2)
+
+  def test_nested_stats(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    nested_items: list[Item] = [
+        {
+            'name': 'Name1',
+            'addresses': [{
+                'zips': [5, 8]
+            }]
+        },
+        {
+            'name': 'Name2',
+            'addresses': [{
+                'zips': [3]
+            }, {
+                'zips': [11, 8]
+            }]
+        },
+        {
+            'name': 'Name2',
+            'addresses': []
+        },  # No addresses.
+        {
+            'name': 'Name2',
+            'addresses': [{
+                'zips': []
+            }]
+        }  # No zips in the first address.
+    ]
+    nested_schema = Schema(
+        fields={
+            UUID_COLUMN:
+                Field(dtype=DataType.BINARY),
+            'name':
+                Field(dtype=DataType.STRING),
+            'addresses':
+                Field(repeated_field=Field(
+                    fields={'zips': Field(repeated_field=Field(dtype=DataType.INT32))}))
+        })
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
+
+    result = db.stats(leaf_path='name')
+    assert result == StatsResult(approx_count_distinct=2, avg_text_length=5)
+
+    result = db.stats(leaf_path='addresses.*.zips.*')
+    assert result == StatsResult(approx_count_distinct=4, min_val=3, max_val=11)
+
+  def test_stats_approximation(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB],
+                               mocker: MockerFixture) -> None:
+    sample_size = 5
+    mocker.patch(f'{db_dataset_duckdb.__name__}.SAMPLE_SIZE_DISTINCT_COUNT', sample_size)
+
+    nested_items: list[Item] = [{'feature': str(i)} for i in range(sample_size * 10)]
+    nested_schema = Schema(fields={
+        UUID_COLUMN: Field(dtype=DataType.BINARY),
+        'feature': Field(dtype=DataType.STRING)
+    })
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
+
+    result = db.stats(leaf_path='feature')
+    assert result == StatsResult(approx_count_distinct=50, avg_text_length=1)
+
+  def test_error_handling(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=SIMPLE_ITEMS, schema=SIMPLE_SCHEMA)
+
+    with pytest.raises(ValueError, match='leaf_path must be provided'):
+      db.stats(cast(Any, None))
+
+    with pytest.raises(ValueError, match='Leaf "\\(\'unknown\',\\)" not found in dataset'):
+      db.stats(leaf_path='unknown')
