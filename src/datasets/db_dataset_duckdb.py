@@ -16,8 +16,8 @@ from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import (
     MANIFEST_FILENAME,
     PATH_WILDCARD,
-    TEXT_SPAN_FEATURE_NAME,
     UUID_COLUMN,
+    DataType,
     Field,
     Path,
     PathTuple,
@@ -62,6 +62,9 @@ UUID_INDEX_FILENAME = 'uuids.npy'
 SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
 SPLIT_MANIFEST_SUFFIX = 'split_manifest.json'
 SOURCE_VIEW_NAME = 'source'
+
+# TODO: DELETE
+TEXT_SPAN_FEATURE_NAME = '__textspan__'
 
 
 class ComputedColumn(BaseModel):
@@ -239,12 +242,12 @@ class DatasetDuckDB(DatasetDB):
     if not signal_column_name:
       signal_column_name = default_top_level_signal_col_name(signal, column)
 
-    signal_field = signal.fields()
-
     if isinstance(column.feature, Column):
       raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')
 
     source_path = normalize_path(column.feature)
+    signal_field = signal.fields(references_column=source_path)
+
     signal_schema = create_enriched_schema(source_schema=self.manifest().data_schema,
                                            enrich_path=source_path,
                                            enrich_field=signal_field)
@@ -314,7 +317,8 @@ class DatasetDuckDB(DatasetDB):
     if path not in schema_leafs:
       raise ValueError(f'Path "{path}" not found in schema leafs: {schema_leafs}')
 
-    select_span = path[-1] == TEXT_SPAN_FEATURE_NAME
+    leaf_field = schema_leafs[path]
+    select_span = leaf_field.dtype == DataType.STRING_SPAN
 
     if not select_span:
       for path_component in path[0:-1]:
@@ -341,20 +345,17 @@ class DatasetDuckDB(DatasetDB):
 
     data_col = 'leaf_data'
     if select_span:
-      span = make_select_column(path)
-      top_level_column_name = path[0]
-      for computed_column in self._table_info().computed_columns:
-        if computed_column.top_level_column_name == top_level_column_name:
-          source_path = computed_column.enriched_path
-          break
+      if not leaf_field.references_column:
+        raise ValueError(f'Leaf span field {leaf_field} does not have a references column.')
 
-      source_path_select = make_select_column(source_path)
+      span_select = make_select_column(path)
+      references_path_select = make_select_column(leaf_field.references_column)
 
       # In the sub-select, return both the original text and the span.
       span_name = 'span'
       data_select = f"""
-            {span} as {span_name},
-            {source_path_select} as {data_col},
+            {span_select} as {span_name},
+            {references_path_select} as {data_col},
       """
       # In the outer select, return the sliced text. DuckDB 1-indexes array slices, and is inclusive
       # to the last index, so we only add one to the start.

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import EmbeddingId, EmbedFn, get_embed_fn
-from ..schema import EnrichmentType, Field, RichData, SignalOut
+from ..schema import EnrichmentType, Field, Path, RichData, SignalOut
 
 
 class Signal(abc.ABC, BaseModel):
@@ -44,8 +44,12 @@ class Signal(abc.ABC, BaseModel):
     self.signal_name = self.__class__.name
 
   @abc.abstractmethod
-  def fields(self) -> Field:
-    """Return the fields schema for this signal."""
+  def fields(self, references_column: Path) -> Field:
+    """Return the fields schema for this signal.
+
+    The source path reference column is passed so the signal can use it for fields that reference
+    the column from which it is derived.
+    """
     pass
 
   @abc.abstractmethod

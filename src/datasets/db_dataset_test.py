@@ -10,15 +10,23 @@ from typing_extensions import override
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import clear_embedding_registry, register_embed_fn
-from ..schema import UUID_COLUMN, DataType, EnrichmentType, Field, Item, ItemValue, RichData, Schema
+from ..schema import (
+    UUID_COLUMN,
+    DataType,
+    EnrichmentType,
+    Field,
+    Item,
+    ItemValue,
+    Path,
+    RichData,
+    Schema,
+)
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
 from ..signals.splitters.splitter import (
     TEXT_SPAN_END_FEATURE,
-    TEXT_SPAN_FEATURE_NAME,
     TEXT_SPAN_START_FEATURE,
-    SpanFields,
-    SpanItem,
+    TextSpan,
 )
 from .db_dataset import Column, DatasetDB, DatasetManifest, SortOrder
 from .db_dataset_duckdb import DatasetDuckDB
@@ -378,21 +386,21 @@ class SelectRowsSuite:
 
     db.compute_signal_columns(signal=TestSplitterWithLen(), column='text')
 
-    result = db.select_rows(columns=['text', 'test_splitter(text)'])
+    result = db.select_rows(columns=['text', 'test_splitter_len(text)'])
     expected_result = [{
         UUID_COLUMN:
             b'1' * 16,
         'text':
             '[1, 1] first sentence. [1, 1] second sentence.',
-        'test_splitter(text)': [{
+        'test_splitter_len(text)': [{
             'len': 22,
-            TEXT_SPAN_FEATURE_NAME: {
+            'split': {
                 TEXT_SPAN_START_FEATURE: 0,
                 TEXT_SPAN_END_FEATURE: 22
             }
         }, {
             'len': 23,
-            TEXT_SPAN_FEATURE_NAME: {
+            'split': {
                 TEXT_SPAN_START_FEATURE: 23,
                 TEXT_SPAN_END_FEATURE: 46
             }
@@ -402,15 +410,15 @@ class SelectRowsSuite:
             b'2' * 16,
         'text':
             'b2 [2, 1] first sentence. [2, 1] second sentence.',
-        'test_splitter(text)': [{
+        'test_splitter_len(text)': [{
             'len': 25,
-            TEXT_SPAN_FEATURE_NAME: {
+            'split': {
                 TEXT_SPAN_START_FEATURE: 0,
                 TEXT_SPAN_END_FEATURE: 25
             }
         }, {
             'len': 23,
-            TEXT_SPAN_FEATURE_NAME: {
+            'split': {
                 TEXT_SPAN_START_FEATURE: 26,
                 TEXT_SPAN_END_FEATURE: 49
             }
@@ -481,10 +489,10 @@ class SelectRowsSuite:
                               signal_column_name='text_sentences')
 
     db.compute_embedding_index(embedding=TEST_EMBEDDING_NAME,
-                               column=('text_sentences', '*', TEXT_SPAN_FEATURE_NAME))
+                               column=('text_sentences', '*', 'split'))
 
     db.compute_signal_columns(signal=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
-                              column=('text_sentences', '*', TEXT_SPAN_FEATURE_NAME),
+                              column=('text_sentences', '*', 'split'),
                               signal_column_name='text_sentences_emb_sum')
 
     assert db.manifest() == DatasetManifest(
@@ -497,20 +505,13 @@ class SelectRowsSuite:
                 'text':
                     Field(dtype=DataType.STRING),
                 'text_sentences_emb_sum':
-                    Field(repeated_field=Field(fields={
-                        TEXT_SPAN_FEATURE_NAME: Field(dtype=DataType.FLOAT32, enriched=True)
-                    })),
+                    Field(repeated_field=Field(
+                        fields={'split': Field(dtype=DataType.FLOAT32, enriched=True)})),
                 'text_sentences':
                     Field(repeated_field=Field(
                         fields={
-                            'len':
-                                Field(dtype=DataType.INT32),
-                            TEXT_SPAN_FEATURE_NAME:
-                                Field(
-                                    fields={
-                                        TEXT_SPAN_START_FEATURE: Field(dtype=DataType.INT32),
-                                        TEXT_SPAN_END_FEATURE: Field(dtype=DataType.INT32)
-                                    })
+                            'len': Field(dtype=DataType.INT32),
+                            'split': Field(dtype=DataType.STRING_SPAN, references_column=('text',))
                         }),
                           enriched=True)
             }))
@@ -520,43 +521,31 @@ class SelectRowsSuite:
         UUID_COLUMN: b'1' * 16,
         'text': 'hello. hello2.',
         'text_sentences': [{
-            TEXT_SPAN_FEATURE_NAME: {
-                TEXT_SPAN_START_FEATURE: 0,
-                TEXT_SPAN_END_FEATURE: 6,
-            },
+            'split': TextSpan(start=0, end=6),
             'len': 6
         }, {
-            TEXT_SPAN_FEATURE_NAME: {
-                TEXT_SPAN_START_FEATURE: 7,
-                TEXT_SPAN_END_FEATURE: 14
-            },
+            'split': TextSpan(start=7, end=14),
             'len': 7
         }],
         'text_sentences_emb_sum': [{
-            TEXT_SPAN_FEATURE_NAME: 1.0
+            'split': 1.0
         }, {
-            TEXT_SPAN_FEATURE_NAME: 2.0
+            'split': 2.0
         }]
     }, {
         UUID_COLUMN: b'2' * 16,
         'text': 'hello world. hello world2.',
         'text_sentences': [{
-            TEXT_SPAN_FEATURE_NAME: {
-                TEXT_SPAN_START_FEATURE: 0,
-                TEXT_SPAN_END_FEATURE: 12
-            },
+            'split': TextSpan(start=0, end=12),
             'len': 12
         }, {
-            TEXT_SPAN_FEATURE_NAME: {
-                TEXT_SPAN_START_FEATURE: 13,
-                TEXT_SPAN_END_FEATURE: 26
-            },
+            'split': TextSpan(start=13, end=26),
             'len': 13
         }],
         'text_sentences_emb_sum': [{
-            TEXT_SPAN_FEATURE_NAME: 3.0
+            'split': 3.0
         }, {
-            TEXT_SPAN_FEATURE_NAME: 4.0
+            'split': 4.0
         }]
     }]
     assert list(result) == expected_result
@@ -644,7 +633,7 @@ class TestSignal(Signal):
   embedding_based = False
 
   @override
-  def fields(self) -> Field:
+  def fields(self, references_column: Path) -> Field:
     return Field(fields={'len': Field(dtype=DataType.INT32), 'flen': Field(dtype=DataType.FLOAT32)})
 
   @override
@@ -658,14 +647,15 @@ class TestSignal(Signal):
     return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
 
 
-class TestSplitterWithLen(Signal):
-  """Split documents into sentence by splitting on period. Also produces the length as a feature."""
+class TestSplitter(Signal):
+  """Split documents into sentence by splitting on period."""
   name = 'test_splitter'
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def fields(self) -> Field:
-    return Field(repeated_field=Field(fields=SpanFields({'len': Field(dtype=DataType.INT32)})))
+  def fields(self, references_column: Path) -> Field:
+    return Field(
+        repeated_field=Field(dtype=DataType.STRING_SPAN, references_column=references_column))
 
   @override
   def compute(self,
@@ -680,9 +670,40 @@ class TestSplitterWithLen(Signal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-          SpanItem(span=(text.index(sentence), text.index(sentence) + len(sentence)),
-                   item={'len': len(sentence)}) for sentence in sentences
+          TextSpan(start=text.index(sentence), end=text.index(sentence) + len(sentence))
+          for sentence in sentences
       ]
+
+
+class TestSplitterWithLen(Signal):
+  """Split documents into sentence by splitting on period. Also produces the length as a feature."""
+  name = 'test_splitter_len'
+  enrichment_type = EnrichmentType.TEXT
+
+  @override
+  def fields(self, references_column: Path) -> Field:
+    return Field(repeated_field=Field(
+        fields={
+            'len': Field(dtype=DataType.INT32),
+            'split': Field(dtype=DataType.STRING_SPAN, references_column=references_column)
+        }))
+
+  @override
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[bytes]] = None,
+              get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[ItemValue]:
+    if data is None:
+      raise ValueError('Sentence splitter requires text data.')
+
+    for text in data:
+      if not isinstance(text, str):
+        raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
+      sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
+      yield [{
+          'len': len(sentence),
+          'split': TextSpan(start=text.index(sentence), end=text.index(sentence) + len(sentence))
+      } for sentence in sentences]
 
 
 class TestEmbeddingSumSignal(Signal):
@@ -692,7 +713,7 @@ class TestEmbeddingSumSignal(Signal):
   embedding_based = True
 
   @override
-  def fields(self) -> Field:
+  def fields(self, references_column: Path) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   @override
@@ -719,7 +740,7 @@ class TestInvalidSignal(Signal):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def fields(self) -> Field:
+  def fields(self, references_column: Path) -> Field:
     return Field(dtype=DataType.INT32)
 
   @override
@@ -757,3 +778,64 @@ class ComputeSignalItemsSuite:
         match='The enriched outputs \\(0\\) and the input data \\(2\\) do not have the same length'
     ):
       db.compute_signal_columns(signal=signal, column=('text',))
+
+
+# a = {
+#     'text': 'Hello World',
+# }
+
+# b = {
+#     'words(text)': [{
+#         '__textspan__': {
+#             'start': 0,
+#             'end': 5
+#         },
+#         len: 5
+#     }, {
+#         '__textspan__': {
+#             'start': 6,
+#             'end': 10
+#         },
+#         len: 4
+#     }],
+# }
+
+# c = {
+#     'concept("toxic", words(text))': [0.5, 0.9],
+# }
+
+# [a, b, c]
+
+# x = {
+#     'text': 'blah blah blah',
+#     'concept("toxicity", text)': 0.5,
+# }
+
+# d = {'text': 'blah blah blah', 'metadata': 1}
+# # should be equivalent to
+# x = {
+#     'text': {
+#         '__textspan__': {
+#             'start': 0,
+#             'end': 5
+#         }
+#     },
+# }
+
+# x = {
+#     'sentences': ['sentence1', 'sentence2'],
+# }
+# # should be equivalent
+# x = {
+#     'sentences': [{
+#         '__textspan__': {
+#             'start': 0,
+#             'end': 5
+#         }
+#     }],
+# }
+
+# # {‘text’: ‘hello world’}
+# # {'sentences(text)': ['hello', 'world']}
+
+# # {'score(sentences(text))': [0.5, 0.9]}

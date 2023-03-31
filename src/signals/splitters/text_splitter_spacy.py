@@ -5,10 +5,10 @@ from spacy import Language
 from typing_extensions import override
 
 from ...embeddings.embedding_index import GetEmbeddingIndexFn
-from ...schema import EnrichmentType, Field, ItemValue, RichData
+from ...schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
 from ...signals.signal import Signal
 from .spacy_utils import load_spacy
-from .splitter import SpanFields, SpanItem
+from .splitter import TextSpan
 
 
 class SentenceSplitterSpacy(Signal):
@@ -25,8 +25,9 @@ class SentenceSplitterSpacy(Signal):
     self._tokenizer = load_spacy(spacy_pipeline)
 
   @override
-  def fields(self) -> Field:
-    return Field(repeated_field=Field(fields=SpanFields({})))
+  def fields(self, references_column: Path) -> Field:
+    return Field(
+        repeated_field=Field(dtype=DataType.STRING_SPAN, references_column=references_column))
 
   @override
   def compute(self,
@@ -40,4 +41,4 @@ class SentenceSplitterSpacy(Signal):
       if not isinstance(text, str):
         raise ValueError('Sentence splitter requires text data.')
       sentences = self._tokenizer(text).sents
-      yield [SpanItem(span=(token.start_char, token.end_char)) for token in sentences]
+      yield [TextSpan(start=token.start_char, end=token.end_char) for token in sentences]
