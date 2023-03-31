@@ -324,9 +324,9 @@ class DatasetDuckDB(DatasetDB):
       raise ValueError(f'Path "{path}" not found in schema leafs: {schema_leafs}')
 
     leaf_field = schema_leafs[path]
-    select_span = leaf_field.dtype == DataType.STRING_SPAN
+    is_span = leaf_field.dtype == DataType.STRING_SPAN
 
-    if not select_span:
+    if not is_span:
       for path_component in path[0:-1]:
         if is_repeated_path_part(path_component):
           raise ValueError(
@@ -350,7 +350,7 @@ class DatasetDuckDB(DatasetDB):
                                              quote_each_part=True)
 
     data_col = 'leaf_data'
-    if select_span:
+    if is_span:
       if not leaf_field.references_column:
         raise ValueError(f'Leaf span field {leaf_field} does not have a references column.')
 

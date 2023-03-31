@@ -54,7 +54,7 @@ PathKeyedSignalItem = tuple[str, Path, Item]
 class DataType(str, Enum):
   """Enum holding the dtype for a field."""
   STRING = 'string'
-  # Contains a tuple (start, end) integers.
+  # Contains {start, end} offset integers with a reference_column.
   STRING_SPAN = 'string_span'
   BOOLEAN = 'boolean'
 
@@ -166,6 +166,7 @@ class Schema(BaseModel):
     while q:
       path, field = q.popleft()
       if field.dtype == DataType.STRING_SPAN:
+        # String spans act as leafs.
         result[path] = field
       elif field.fields:
         for name, child_field in field.fields.items():
