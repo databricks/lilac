@@ -140,7 +140,8 @@ class SelectRowsSuite:
                                                     'int': Field(dtype=DataType.INT64),
                                                     'bool': Field(dtype=DataType.BOOLEAN),
                                                     'float': Field(dtype=DataType.FLOAT64),
-                                                }))
+                                                }),
+                                            num_items=3)
 
     test_signal = TestSignal()
     db.compute_signal_columns(signal=test_signal, column='str')
@@ -191,7 +192,8 @@ class SelectRowsSuite:
                                                             'flen': Field(dtype=DataType.FLOAT32)
                                                         },
                                                               enriched=True)
-                                                }))
+                                                }),
+                                            num_items=3)
 
     # Select a specific signal leaf test_signal.flen.
     result = db.select_rows(columns=['str', ('test_signal(str)', 'flen')])
@@ -270,7 +272,8 @@ class SelectRowsSuite:
                     },
                                                enriched=True),
                           enriched=True)
-            }))
+            }),
+        num_items=2)
 
     result = db.select_rows(columns=[('test_signal(text)')])
 
@@ -306,7 +309,8 @@ class SelectRowsSuite:
                                                     'int': Field(dtype=DataType.INT64),
                                                     'bool': Field(dtype=DataType.BOOLEAN),
                                                     'float': Field(dtype=DataType.FLOAT64),
-                                                }))
+                                                }),
+                                            num_items=3)
 
     test_signal = TestSignal()
     db.compute_signal_columns(signal=test_signal,
@@ -359,7 +363,8 @@ class SelectRowsSuite:
                                                             'flen': Field(dtype=DataType.FLOAT32)
                                                         },
                                                               enriched=True)
-                                                }))
+                                                }),
+                                            num_items=3)
 
   def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls=db_cls,
@@ -447,7 +452,8 @@ class SelectRowsSuite:
                 UUID_COLUMN: Field(dtype=DataType.BINARY),
                 'text': Field(dtype=DataType.STRING),
                 'text_emb_sum': Field(dtype=DataType.FLOAT32, enriched=True)
-            }))
+            }),
+        num_items=2)
 
     result = db.select_rows(columns=['text', 'text_emb_sum'])
     expected_result = [{
@@ -513,7 +519,8 @@ class SelectRowsSuite:
                                     })
                         }),
                           enriched=True)
-            }))
+            }),
+        num_items=2)
 
     result = db.select_rows(columns=['text', 'text_sentences', 'text_sentences_emb_sum'])
     expected_result = [{

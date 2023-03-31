@@ -189,7 +189,7 @@ class DatasetDuckDB(DatasetDB):
     # Get the total size of the table.
     size_query = 'SELECT COUNT() as count FROM t'
     size_query_result = cast(list, self._query(size_query).fetchall())
-    num_items = cast(int, size_query_result[0]['count'])
+    num_items = cast(int, size_query_result[0][0])
 
     # Merge the source manifest with the computed columns.
     merged_schema = Schema(
@@ -463,14 +463,14 @@ class DatasetDuckDB(DatasetDB):
     if len(query_result) != 1:
       raise ValueError(f'Got more than 1 result for query {approx_count_query}')
     row = query_result[0]
-    approx_count_distinct = row['approxCountDistinct']
+    approx_count_distinct = row[0]
     # Adjust the distinct count for the sample size.
     approx_count_distinct = round((approx_count_distinct / sample_size) * manifest.num_items)
 
     result = StatsResult(approx_count_distinct=approx_count_distinct)
 
     if leaf.dtype == DataType.STRING:
-      result.avg_text_length = row['avgTextLength']
+      result.avg_text_length = row[1]
 
     # Compute min/max values for ordinal leafs, without sampling the data.
     if is_ordinal(leaf.dtype):
@@ -482,8 +482,8 @@ class DatasetDuckDB(DatasetDB):
       if len(query_result) != 1:
         raise ValueError(f'Got more than 1 result for query {min_max_query}')
       row = query_result[0]
-      result.min_val = row['minVal']
-      result.max_val = row['maxVal']
+      result.min_val = row[0]
+      result.max_val = row[1]
 
     return result
 
