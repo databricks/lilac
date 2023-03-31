@@ -2,7 +2,7 @@
 import functools
 import itertools
 import os
-from typing import Iterable, Optional, Sequence, Union, cast
+from typing import Any, Iterable, Optional, Sequence, Union, cast
 
 import duckdb
 import pandas as pd
@@ -25,6 +25,7 @@ from ..schema import (
     PathTuple,
     Schema,
     SourceManifest,
+    is_ordinal,
     is_repeated_path_part,
     normalize_path,
 )
@@ -51,6 +52,7 @@ from .db_dataset import (
     GroupsSortBy,
     SelectRowsResult,
     SortOrder,
+    StatsResult,
     column_from_identifier,
 )
 
@@ -60,6 +62,10 @@ UUID_INDEX_FILENAME = 'uuids.npy'
 SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
 SPLIT_MANIFEST_SUFFIX = 'split_manifest.json'
 SOURCE_VIEW_NAME = 'source'
+
+# Sample size for approximating the distinct count of a column.
+SAMPLE_SIZE_DISTINCT_COUNT = 100_000
+
 
 class ComputedColumn(BaseModel):
   """A column that is computed/derived from another column."""
@@ -153,17 +159,6 @@ class DatasetDuckDB(DatasetDB):
           enriched_path=signal_manifest.enriched_path)
       computed_columns.append(signal_column)
 
-    # Merge the source manifest with the computed columns.
-    merged_schema = Schema(
-        fields={
-            **self._source_manifest.data_schema.fields,
-            **{col.top_level_column_name: col.value_field_schema for col in computed_columns}
-        })
-
-    manifest = DatasetManifest(namespace=self.namespace,
-                               dataset_name=self.dataset_name,
-                               data_schema=merged_schema)
-
     # Make a joined view of all the column groups.
     self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
     for column in computed_columns:
@@ -187,6 +182,23 @@ class DatasetDuckDB(DatasetDB):
 
     sql_cmd = f"""CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})"""
     self.con.execute(sql_cmd)
+
+    # Get the total size of the table.
+    size_query = 'SELECT COUNT() as count FROM t'
+    size_query_result = cast(Any, self._query(size_query).fetchone())
+    num_items = cast(int, size_query_result[0])
+
+    # Merge the source manifest with the computed columns.
+    merged_schema = Schema(
+        fields={
+            **self._source_manifest.data_schema.fields,
+            **{col.top_level_column_name: col.value_field_schema for col in computed_columns}
+        })
+
+    manifest = DatasetManifest(namespace=self.namespace,
+                               dataset_name=self.dataset_name,
+                               data_schema=merged_schema,
+                               num_items=num_items)
 
     return DuckDBTableInfo(manifest=manifest, computed_columns=computed_columns)
 
@@ -422,13 +434,54 @@ class DatasetDuckDB(DatasetDB):
                            f'Path part "{path_part}" is not defined on a primitive value.')
 
   @override
+  def stats(self, leaf_path: Path) -> StatsResult:
+    if not leaf_path:
+      raise ValueError('leaf_path must be provided')
+    path = normalize_path(leaf_path)
+    manifest = self.manifest()
+    leaf = manifest.data_schema.leafs.get(path)
+    if not leaf or not leaf.dtype:
+      raise ValueError(f'Leaf "{path}" not found in dataset')
+
+    inner_select = make_select_column(path)
+    # Compute approximate count by sampling the data to avoid OOM.
+    sample_size = min(manifest.num_items, SAMPLE_SIZE_DISTINCT_COUNT)
+    avg_length_query = ''
+    if leaf.dtype == DataType.STRING:
+      avg_length_query = ', avg(length(val)) as avgTextLength'
+
+    approx_count_query = f"""
+      SELECT approx_count_distinct(val) as approxCountDistinct {avg_length_query}
+      FROM (SELECT {inner_select} AS val FROM t LIMIT {sample_size});
+    """
+    row = cast(Any, self._query(approx_count_query).fetchone())
+    approx_count_distinct = row[0]
+    # Adjust the distinct count for the sample size.
+    approx_count_distinct = round((approx_count_distinct / sample_size) * manifest.num_items)
+    result = StatsResult(approx_count_distinct=approx_count_distinct)
+
+    if leaf.dtype == DataType.STRING:
+      result.avg_text_length = row[1]
+
+    # Compute min/max values for ordinal leafs, without sampling the data.
+    if is_ordinal(leaf.dtype):
+      min_max_query = f"""
+        SELECT MIN(val) AS minVal, MAX(val) AS maxVal
+        FROM (SELECT {inner_select} AS val FROM t);
+      """
+      row = self._query(min_max_query).fetchone()
+      result.min_val, result.max_val = row
+
+    return result
+
+  @override
   def select_groups(self,
-                    columns: Optional[Sequence[ColumnId]] = None,
+                    leaf_path: Path,
                     filters: Optional[Sequence[Filter]] = None,
                     sort_by: Optional[GroupsSortBy] = None,
                     sort_order: Optional[SortOrder] = SortOrder.DESC,
                     limit: Optional[int] = 100) -> pd.DataFrame:
-    raise NotImplementedError
+    pass
 
   @override
   def select_rows(self,
@@ -523,7 +576,7 @@ class DatasetDuckDB(DatasetDB):
     return '.'.join([f'"{path_comp}"' if quote_each_part else str(path_comp) for path_comp in path])
 
 
-def _inner_select(sub_paths: list[list[str]], inner_var: Optional[str] = None) -> str:
+def _inner_select(sub_paths: list[PathTuple], inner_var: Optional[str] = None) -> str:
   """Recursively generate the inner select statement for a list of sub paths."""
   current_sub_path = sub_paths[0]
   lambda_var = inner_var + 'x' if inner_var else 'x'
@@ -538,12 +591,12 @@ def _inner_select(sub_paths: list[list[str]], inner_var: Optional[str] = None) -
   return f'list_transform({path_key}, {lambda_var} -> {_inner_select(sub_paths[1:], lambda_var)})'
 
 
-def _split_path_into_subpaths_of_lists(leaf_path: list[str]) -> list[list[str]]:
+def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
   """Split a path into a subpath of lists.
 
   E.g. [a, b, c, *, d, *, *] gets splits [[a, b, c], [d], [], []].
   """
-  sub_paths: list[list[str]] = []
+  sub_paths: list[PathTuple] = []
   offset = 0
   while offset <= len(leaf_path):
     new_offset = leaf_path.index(PATH_WILDCARD,
@@ -556,7 +609,7 @@ def _split_path_into_subpaths_of_lists(leaf_path: list[str]) -> list[list[str]]:
 
 def make_select_column(leaf_path: Path) -> str:
   """Create a select column for a leaf path."""
-  path = cast(list, normalize_path(leaf_path))
+  path = normalize_path(leaf_path)
   sub_paths = _split_path_into_subpaths_of_lists(path)
   selection = _inner_select(sub_paths, None)
   # We only flatten when the result of a nested list to avoid segfault.

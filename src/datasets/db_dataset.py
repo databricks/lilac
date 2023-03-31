@@ -22,6 +22,18 @@ class SelectRowsResult():
     return iter(self.rows)
 
 
+class StatsResult(BaseModel):
+  """The result of a stats() query."""
+  approx_count_distinct: int
+
+  # Defined for ordinal features.
+  min_val: Optional[float]
+  max_val: Optional[float]
+
+  # Defined for text features.
+  avg_text_length: Optional[float]
+
+
 class Comparison(str, enum.Enum):
   """The comparison operator between a column and a feature value."""
   EQUALS = '='
@@ -83,6 +95,8 @@ class DatasetManifest(BaseModel):
   namespace: str
   dataset_name: str
   data_schema: Schema
+  # Number of items in the dataset.
+  num_items: int
 
 
 def column_from_identifier(column: ColumnId) -> Column:
@@ -167,7 +181,7 @@ class DatasetDB(abc.ABC):
 
   @abc.abstractmethod
   def select_groups(self,
-                    column_ids: Optional[Sequence[ColumnId]] = None,
+                    leaf_path: Path,
                     filters: Optional[Sequence[Filter]] = None,
                     sort_by: Optional[GroupsSortBy] = None,
                     sort_order: Optional[SortOrder] = SortOrder.DESC,
@@ -175,17 +189,17 @@ class DatasetDB(abc.ABC):
     """Select grouped columns to power a histogram.
 
     Args:
-      column_ids: The columns to select. A column is an instance of `Column` which can either
-        define a path to a feature, or a column with an applied Transform, e.g. a Concept.
+      leaf_path: The leaf path to group by. The path can be a dot-seperated string path, or a tuple
+                 of fields.
       filters: The filters to apply to the query.
       sort_by: What to sort by, either "count" or "value".
       sort_order: The sort order.
       limit: The maximum number of rows to return.
 
     Returns
-      A dataframe with counts for each selected columnm, applying the filters.
+      A dataframe with counts for each value of the leaf, applying the filters.
     """
-    pass
+    raise NotImplementedError
 
   @abc.abstractmethod
   def select_rows(self,
@@ -210,5 +224,17 @@ class DatasetDB(abc.ABC):
 
     Returns
       A SelectRowsResult iterator with rows of `Item`s.
+    """
+    pass
+
+  @abc.abstractmethod
+  def stats(self, leaf_path: Path) -> StatsResult:
+    """Compute stats for a leaf path.
+
+    Args:
+      leaf_path: The leaf path to compute stats for.
+
+    Returns
+      A StatsResult.
     """
     pass
