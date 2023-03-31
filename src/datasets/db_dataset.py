@@ -197,7 +197,7 @@ class DatasetDB(abc.ABC):
       limit: The maximum number of rows to return.
 
     Returns
-      A dataframe with counts for each selected column, applying the filters.
+      A dataframe with counts for each value of the leaf, applying the filters.
     """
     pass
 
