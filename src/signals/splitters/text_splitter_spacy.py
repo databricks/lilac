@@ -5,10 +5,9 @@ from spacy import Language
 from typing_extensions import override
 
 from ...embeddings.embedding_index import GetEmbeddingIndexFn
-from ...schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
+from ...schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData, TextSpan
 from ...signals.signal import Signal
 from .spacy_utils import load_spacy
-from .splitter import TextSpan
 
 
 class SentenceSplitterSpacy(Signal):

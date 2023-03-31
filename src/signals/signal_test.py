@@ -44,7 +44,7 @@ class TestSignal(Signal):
   query: str
 
   @override
-  def fields(self, references_column: Path) -> Field:
+  def fields(self, input_column: Path) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   @override

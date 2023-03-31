@@ -16,6 +16,8 @@ from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import (
     MANIFEST_FILENAME,
     PATH_WILDCARD,
+    TEXT_SPAN_END_FEATURE,
+    TEXT_SPAN_START_FEATURE,
     UUID_COLUMN,
     DataType,
     Field,
@@ -28,10 +30,6 @@ from ..schema import (
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import resolve_signal
-from ..signals.splitters.splitter import (
-    TEXT_SPAN_END_FEATURE,
-    TEXT_SPAN_START_FEATURE,
-)
 from ..utils import (
     DebugTimer,
     get_dataset_output_dir,

@@ -185,6 +185,11 @@ class Schema(BaseModel):
     return self.json(exclude_none=True, indent=2)
 
 
+def TextSpan(start: int, end: int) -> Item:
+  """Return the span item from start and end character offets."""
+  return {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
+
+
 def child_item_from_column_path(item: Item, path: Path) -> Item:
   """Return the last (child) item from a column path."""
   child_item_value = item

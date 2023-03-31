@@ -11,6 +11,8 @@ from typing_extensions import override
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import clear_embedding_registry, register_embed_fn
 from ..schema import (
+    TEXT_SPAN_END_FEATURE,
+    TEXT_SPAN_START_FEATURE,
     UUID_COLUMN,
     DataType,
     EnrichmentType,
@@ -20,14 +22,10 @@ from ..schema import (
     Path,
     RichData,
     Schema,
+    TextSpan,
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
-from ..signals.splitters.splitter import (
-    TEXT_SPAN_END_FEATURE,
-    TEXT_SPAN_START_FEATURE,
-    TextSpan,
-)
 from .db_dataset import Column, DatasetDB, DatasetManifest, SortOrder
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
@@ -633,7 +631,7 @@ class TestSignal(Signal):
   embedding_based = False
 
   @override
-  def fields(self, references_column: Path) -> Field:
+  def fields(self, input_column: Path) -> Field:
     return Field(fields={'len': Field(dtype=DataType.INT32), 'flen': Field(dtype=DataType.FLOAT32)})
 
   @override
@@ -647,45 +645,17 @@ class TestSignal(Signal):
     return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
 
 
-class TestSplitter(Signal):
-  """Split documents into sentence by splitting on period."""
-  name = 'test_splitter'
-  enrichment_type = EnrichmentType.TEXT
-
-  @override
-  def fields(self, references_column: Path) -> Field:
-    return Field(
-        repeated_field=Field(dtype=DataType.STRING_SPAN, references_column=references_column))
-
-  @override
-  def compute(self,
-              data: Optional[Iterable[RichData]] = None,
-              keys: Optional[Iterable[bytes]] = None,
-              get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[ItemValue]:
-    if data is None:
-      raise ValueError('Sentence splitter requires text data.')
-
-    for text in data:
-      if not isinstance(text, str):
-        raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
-      sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
-      yield [
-          TextSpan(start=text.index(sentence), end=text.index(sentence) + len(sentence))
-          for sentence in sentences
-      ]
-
-
 class TestSplitterWithLen(Signal):
   """Split documents into sentence by splitting on period. Also produces the length as a feature."""
   name = 'test_splitter_len'
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def fields(self, references_column: Path) -> Field:
+  def fields(self, input_column: Path) -> Field:
     return Field(repeated_field=Field(
         fields={
             'len': Field(dtype=DataType.INT32),
-            'split': Field(dtype=DataType.STRING_SPAN, references_column=references_column)
+            'split': Field(dtype=DataType.STRING_SPAN, references_column=input_column)
         }))
 
   @override
@@ -713,7 +683,7 @@ class TestEmbeddingSumSignal(Signal):
   embedding_based = True
 
   @override
-  def fields(self, references_column: Path) -> Field:
+  def fields(self, input_column: Path) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   @override
@@ -740,7 +710,7 @@ class TestInvalidSignal(Signal):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def fields(self, references_column: Path) -> Field:
+  def fields(self, input_column: Path) -> Field:
     return Field(dtype=DataType.INT32)
 
   @override

@@ -26,7 +26,7 @@ class ConceptScoreSignal(Signal):
     self._concept_model_db = DISK_CONCEPT_MODEL_DB
 
   @override
-  def fields(self, references_column: Path) -> Field:
+  def fields(self, input_column: Path) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   @override

@@ -1,6 +1,6 @@
 """Test the text splitter utils."""
 
-from .splitter import TextSpan
+from ...schema import TextSpan
 from .text_splitter_test_utils import text_to_expected_spans
 
 

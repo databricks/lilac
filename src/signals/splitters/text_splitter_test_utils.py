@@ -1,7 +1,6 @@
 """Utilities for testing text splitters."""
 
-from ...schema import Item
-from .splitter import TextSpan
+from ...schema import Item, TextSpan
 
 
 def text_to_expected_spans(text: str, splits: list[str]) -> list[Item]:
