@@ -118,7 +118,7 @@ class Field(BaseModel):
     return fields
 
   @validator('refers_to', always=True)
-  def references_is_defined_for_string_spans(cls, refers_to: Optional[Path],
+  def refers_to_is_defined_for_string_spans(cls, refers_to: Optional[Path],
                                              values: dict[str, Any]) -> Optional[Path]:
     """Error if both `fields` and `repeated_fields` are defined."""
     if values.get('dtype') == DataType.STRING_SPAN and refers_to is None:

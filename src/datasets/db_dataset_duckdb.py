@@ -352,16 +352,16 @@ class DatasetDuckDB(DatasetDB):
     data_col = 'leaf_data'
     if is_span:
       if not leaf_field.refers_to:
-        raise ValueError(f'Leaf span field {leaf_field} does not have a references column.')
+        raise ValueError(f'Leaf span field {leaf_field} does not have a "refers_to" attribute.')
 
       span_select = make_select_column(path)
-      references_path_select = make_select_column(leaf_field.refers_to)
+      refers_to_path_select = make_select_column(leaf_field.refers_to)
 
       # In the sub-select, return both the original text and the span.
       span_name = 'span'
       data_select = f"""
             {span_select} as {span_name},
-            {references_path_select} as {data_col},
+            {refers_to_path_select} as {data_col},
       """
       # In the outer select, return the sliced text. DuckDB 1-indexes array slices, and is inclusive
       # to the last index, so we only add one to the start.

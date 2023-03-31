@@ -49,7 +49,7 @@ class Signal(abc.ABC, BaseModel):
 
     Args:
       input_column: The input column path that the signal is being applied to. This is useful for
-        fields that are references to other fields, like a STRING_SPAN.
+        fields that are references (Field.refers_to) to other fields, like a STRING_SPAN.
 
     Returns
       A Field object that describes the schema of the signal.
