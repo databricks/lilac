@@ -2,7 +2,7 @@
 import functools
 import itertools
 import os
-from typing import Iterable, Optional, Sequence, Union, cast
+from typing import Any, Iterable, Optional, Sequence, Union, cast
 
 import duckdb
 import pandas as pd
@@ -188,8 +188,8 @@ class DatasetDuckDB(DatasetDB):
 
     # Get the total size of the table.
     size_query = 'SELECT COUNT() as count FROM t'
-    size_query_result = cast(list, self._query(size_query).fetchall())
-    num_items = cast(int, size_query_result[0][0])
+    size_query_result = cast(Any, self._query(size_query).fetchone())
+    num_items = cast(int, size_query_result[0])
 
     # Merge the source manifest with the computed columns.
     merged_schema = Schema(
@@ -459,10 +459,7 @@ class DatasetDuckDB(DatasetDB):
       SELECT approx_count_distinct(val) as approxCountDistinct {avg_length_query}
       FROM (SELECT ${inner_select} AS val FROM t LIMIT {sample_size});
     """
-    query_result = cast(list, self._query(approx_count_query).fetchall())
-    if len(query_result) != 1:
-      raise ValueError(f'Got more than 1 result for query {approx_count_query}')
-    row = query_result[0]
+    row = cast(Any, self._query(approx_count_query).fetchone())
     approx_count_distinct = row[0]
     # Adjust the distinct count for the sample size.
     approx_count_distinct = round((approx_count_distinct / sample_size) * manifest.num_items)
@@ -478,12 +475,8 @@ class DatasetDuckDB(DatasetDB):
         SELECT MIN(val) AS minVal, MAX(val) AS maxVal
         FROM (SELECT ${inner_select} AS val FROM t);
       """
-      query_result = cast(list, self._query(min_max_query).fetchall())
-      if len(query_result) != 1:
-        raise ValueError(f'Got more than 1 result for query {min_max_query}')
-      row = query_result[0]
-      result.min_val = row[0]
-      result.max_val = row[1]
+      row = self._query(min_max_query).fetchone()
+      result.min_val, result.max_val = row
 
     return result
 
