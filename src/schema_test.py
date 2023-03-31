@@ -23,7 +23,7 @@ NESTED_TEST_SCHEMA = Schema(
                     'name':
                         Field(dtype=DataType.STRING),
                     'last_name':
-                        Field(dtype=DataType.STRING_SPAN, references_column=('person', 'name')),
+                        Field(dtype=DataType.STRING_SPAN, refers_to=('person', 'name')),
                     # Contains a double nested array of primitives.
                     'data':
                         Field(repeated_field=Field(repeated_field=Field(dtype=DataType.FLOAT32)))
@@ -102,8 +102,7 @@ def test_field_ctor_validation() -> None:
         repeated_field=Field(dtype=DataType.INT32),
     )
 
-  with pytest.raises(ValueError,
-                     match='references_column must be defined for DataType.STRING_SPAN'):
+  with pytest.raises(ValueError, match='refers_to must be defined for DataType.STRING_SPAN'):
     Field(dtype=DataType.STRING_SPAN)
 
 
@@ -124,7 +123,7 @@ def test_schema_leafs() -> None:
       ('person', 'name'):
           Field(dtype=DataType.STRING),
       ('person', 'last_name'):
-          Field(dtype=DataType.STRING_SPAN, references_column=('person', 'name')),
+          Field(dtype=DataType.STRING_SPAN, refers_to=('person', 'name')),
       ('person', 'data', PATH_WILDCARD, PATH_WILDCARD):
           Field(dtype=DataType.FLOAT32)
   }

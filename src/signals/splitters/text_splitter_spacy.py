@@ -25,7 +25,7 @@ class SentenceSplitterSpacy(Signal):
 
   @override
   def fields(self, input_column: Path) -> Field:
-    return Field(repeated_field=Field(dtype=DataType.STRING_SPAN, references_column=input_column))
+    return Field(repeated_field=Field(dtype=DataType.STRING_SPAN, refers_to=input_column))
 
   @override
   def compute(self,

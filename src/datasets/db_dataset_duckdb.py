@@ -351,11 +351,11 @@ class DatasetDuckDB(DatasetDB):
 
     data_col = 'leaf_data'
     if is_span:
-      if not leaf_field.references_column:
+      if not leaf_field.refers_to:
         raise ValueError(f'Leaf span field {leaf_field} does not have a references column.')
 
       span_select = make_select_column(path)
-      references_path_select = make_select_column(leaf_field.references_column)
+      references_path_select = make_select_column(leaf_field.refers_to)
 
       # In the sub-select, return both the original text and the span.
       span_name = 'span'

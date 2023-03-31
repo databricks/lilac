@@ -517,7 +517,7 @@ class SelectRowsSuite:
                     Field(repeated_field=Field(
                         fields={
                             'len': Field(dtype=DataType.INT32),
-                            'split': Field(dtype=DataType.STRING_SPAN, references_column=('text',))
+                            'split': Field(dtype=DataType.STRING_SPAN, refers_to=('text',))
                         }),
                           enriched=True)
             }),
@@ -664,7 +664,7 @@ class TestSplitterWithLen(Signal):
     return Field(repeated_field=Field(
         fields={
             'len': Field(dtype=DataType.INT32),
-            'split': Field(dtype=DataType.STRING_SPAN, references_column=input_column)
+            'split': Field(dtype=DataType.STRING_SPAN, refers_to=input_column)
         }))
 
   @override

@@ -107,7 +107,7 @@ class Field(BaseModel):
   dtype: Optional[DataType]
   enriched: Optional[bool]
   # When defined, this field points to another column.
-  references_column: Optional[Path]
+  refers_to: Optional[Path]
 
   @validator('fields')
   def either_fields_or_repeated_field_is_defined(cls, fields: dict[str, 'Field'],
@@ -117,13 +117,13 @@ class Field(BaseModel):
       raise ValueError('Both "fields" and "repeated_field" should not be defined')
     return fields
 
-  @validator('references_column', always=True)
-  def references_is_defined_for_string_spans(cls, references_column: Optional[Path],
+  @validator('refers_to', always=True)
+  def references_is_defined_for_string_spans(cls, refers_to: Optional[Path],
                                              values: dict[str, Any]) -> Optional[Path]:
     """Error if both `fields` and `repeated_fields` are defined."""
-    if values.get('dtype') == DataType.STRING_SPAN and references_column is None:
-      raise ValueError('references_column must be defined for DataType.STRING_SPAN')
-    return references_column
+    if values.get('dtype') == DataType.STRING_SPAN and refers_to is None:
+      raise ValueError('refers_to must be defined for DataType.STRING_SPAN')
+    return refers_to
 
   @validator('dtype', always=True)
   def infer_default_dtype(cls, dtype: Optional[DataType], values: dict[str, Any]) -> DataType:
