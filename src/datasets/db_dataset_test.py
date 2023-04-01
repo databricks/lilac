@@ -30,7 +30,7 @@ from ..schema import (
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
 from . import db_dataset, db_dataset_duckdb
-from .db_dataset import Column, DatasetDB, DatasetManifest, SortOrder, StatsResult
+from .db_dataset import Column, DatasetDB, DatasetManifest, NamedBins, SortOrder, StatsResult
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
 
@@ -886,7 +886,7 @@ class SelectGroupsSuite:
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
-    result = db.select_groups(leaf_path='name')
+    result = db.select_groups(leaf_path='name').to_df()
     expected = pd.DataFrame.from_records([{
         'value': 'Name1',
         'count': 1
@@ -905,7 +905,7 @@ class SelectGroupsSuite:
     }])
     pd.testing.assert_frame_equal(result, expected)
 
-    result = db.select_groups(leaf_path='age', bins=[20, 50, 60])
+    result = db.select_groups(leaf_path='age', bins=[20, 50, 60]).to_df()
     expected = pd.DataFrame.from_records([
         {
             'value': 1,  # age 20-50.
@@ -926,7 +926,7 @@ class SelectGroupsSuite:
     ])
     pd.testing.assert_frame_equal(result, expected)
 
-    result = db.select_groups(leaf_path='active')
+    result = db.select_groups(leaf_path='active').to_df()
     expected = pd.DataFrame.from_records([
         {
             'value': True,
@@ -942,6 +942,32 @@ class SelectGroupsSuite:
         }
     ])
     pd.testing.assert_frame_equal(result, expected)
+
+  def test_result_is_iterable(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    items: list[Item] = [
+        {
+            'active': False
+        },
+        {
+            'active': True
+        },
+        {
+            'active': True
+        },
+        {
+            'active': True
+        },
+        {}  # Missing "active".
+    ]
+    schema = Schema(fields={
+        UUID_COLUMN: Field(dtype=DataType.BINARY),
+        'active': Field(dtype=DataType.BOOLEAN)
+    })
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+
+    result = db.select_groups(leaf_path='active')
+    groups = list(result)
+    assert groups == [(True, 3), (False, 1), (None, 1)]
 
   def test_list_of_structs(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     items: list[Item] = [{
@@ -972,7 +998,7 @@ class SelectGroupsSuite:
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
-    result = db.select_groups(leaf_path='list_of_structs.*.name')
+    result = db.select_groups(leaf_path='list_of_structs.*.name').to_df()
     expected = pd.DataFrame.from_records([{
         'value': 'a',
         'count': 2
@@ -1018,7 +1044,7 @@ class SelectGroupsSuite:
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
-    result = db.select_groups(leaf_path='nested_list.*.*.name')
+    result = db.select_groups(leaf_path='nested_list.*.*.name').to_df()
     expected = pd.DataFrame.from_records([{
         'value': 'a',
         'count': 2
@@ -1067,7 +1093,7 @@ class SelectGroupsSuite:
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
-    result = db.select_groups(leaf_path='nested_struct.struct.name')
+    result = db.select_groups(leaf_path='nested_struct.struct.name').to_df()
     expected = pd.DataFrame.from_records([{
         'value': 'c',
         'count': 1
@@ -1078,6 +1104,48 @@ class SelectGroupsSuite:
         'value': 'a',
         'count': 1
     }])
+    pd.testing.assert_frame_equal(result, expected)
+
+  def test_named_bins(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    items: list[Item] = [{
+        'age': 34,
+    }, {
+        'age': 45,
+    }, {
+        'age': 17,
+    }, {
+        'age': 80
+    }, {
+        'age': 55
+    }]
+    schema = Schema(fields={
+        UUID_COLUMN: Field(dtype=DataType.BINARY),
+        'age': Field(dtype=DataType.INT32),
+    })
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+
+    result = db.select_groups(leaf_path='age',
+                              bins=NamedBins(bins=[20, 50, 65],
+                                             labels=['young', 'adult', 'middle-aged',
+                                                     'senior'])).to_df()
+    expected = pd.DataFrame.from_records([
+        {
+            'value': 'adult',  # age 20-50.
+            'count': 2
+        },
+        {
+            'value': 'young',  # age < 20.
+            'count': 1
+        },
+        {
+            'value': 'senior',  # age > 65.
+            'count': 1
+        },
+        {
+            'value': 'middle-aged',  # age 50-65.
+            'count': 1
+        }
+    ])
     pd.testing.assert_frame_equal(result, expected)
 
   def test_invalid_leaf(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
