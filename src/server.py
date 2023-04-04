@@ -42,9 +42,7 @@ def custom_generate_unique_id(route: APIRoute) -> str:
   return route.name
 
 
-app = FastAPI(generate_unique_id_function=custom_generate_unique_id,
-              openapi_tags=tags_metadata,
-              prefix='/api/v1')
+app = FastAPI(generate_unique_id_function=custom_generate_unique_id, openapi_tags=tags_metadata)
 
 v1_router = APIRouter()
 v1_router.include_router(router_dataset.router, prefix='/datasets', tags=['dataset'])
