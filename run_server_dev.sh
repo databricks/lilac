@@ -11,7 +11,7 @@ pid[2]=$!
 
 # Run the node server.
 poetry run uvicorn src.server:app --reload --port 5432 --host 0.0.0.0 \
-  --reload-dir src --reload-exclude src/web --timeout-keep-alive 20 &
+  --reload-dir src --reload-exclude src/web &
 pid[1]=$!
 
 poetry run watchmedo shell-command \
