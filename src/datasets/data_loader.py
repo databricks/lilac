@@ -13,7 +13,8 @@ import os
 import time
 from concurrent.futures import ProcessPoolExecutor
 from inspect import signature
-from typing import Awaitable, Callable
+from types import GenericAlias
+from typing import Awaitable, Callable, Literal, Optional, Union, get_args, get_origin
 
 import click
 from fastapi import APIRouter
@@ -36,18 +37,6 @@ class ProcessSourceRequest(BaseModel):
   dataset_name: str
 
 
-class SourceField(BaseModel):
-  """The interface to the /process_source endpoint."""
-  name: str
-  type: str
-  required: bool
-
-
-class SourceFields(BaseModel):
-  """The interface to the /process_source endpoint."""
-  fields: list[SourceField]
-
-
 class SourcesList(BaseModel):
   """The interface to the /process_source endpoint."""
   sources: list[str]
@@ -63,20 +52,48 @@ def get_sources() -> SourcesList:
   return SourcesList(sources=list(sources.keys()))
 
 
+supported_primitives = [str, int]
+
+
+class PydanticField(BaseModel):
+  """The interface to the /process_source endpoint."""
+  name: str
+  type: Union[Literal['str'], Literal['int']]
+  optional: bool
+
+
+def is_optional(field: GenericAlias) -> bool:
+  """Check if a field is optional."""
+  return field == Optional or (get_origin(field) is Union and type(None) in get_args(field))
+
+
 @router.get('/{source_name}')
-def get_source_fields(source_name: str) -> SourceFields:
+def get_source_fields(source_name: str) -> list[PydanticField]:
   """Get the fields for a source."""
   source_cls = get_source_cls(source_name)
   sig = signature(source_cls)
-  fields: list[SourceField] = []
+  fields: list[PydanticField] = []
 
   for name, parameter in sig.parameters.items():
-    fields.append(
-        SourceField(name=name,
-                    type=str(parameter.annotation),
-                    required=parameter.default is not None))
+    if name == 'args' or name == 'source_name':
+      continue
+    print()
+    print(parameter)
+    print(parameter.annotation)
+    print('is required', not is_optional(parameter.annotation))
+    origin_type = get_origin(parameter.annotation)
+    optional = is_optional(parameter.annotation)
+    print('origin_type', origin_type)
+    if origin_type not in supported_primitives and parameter.annotation not in supported_primitives:
+      log(f'Unsupported type {parameter.annotation} for parameter {name}')
 
-  return SourceFields(fields=fields)
+    fields.append(
+        PydanticField(name=name,
+                      type=parameter.annotation.__name__
+                      if not optional else parameter.annotation.__args__[0].__name__,
+                      optional=optional))
+
+  return fields
 
 
 async def _process_source(base_dir: str, namespace: str, dataset_name: str, source: Source,

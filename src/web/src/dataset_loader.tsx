@@ -1,4 +1,4 @@
-import {SlOption, SlSelect, SlSpinner} from '@shoelace-style/shoelace/dist/react';
+import {SlInput, SlOption, SlSelect, SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {useGetSourceFieldsQuery, useGetSourcesQuery} from './store/api_data_loader';
 import {queryResult as renderQuery, renderError} from './utils';
@@ -7,7 +7,7 @@ export const DatasetLoader = (): JSX.Element => {
   const sources = useGetSourcesQuery();
   const [sourceName, setSourceName] = React.useState<string>();
 
-  const source = useGetSourceFieldsQuery({sourceName: sourceName}, {skip: sourceName == null});
+  const source = useGetSourceFieldsQuery({sourceName: sourceName!}, {skip: sourceName == null});
   console.log(source, source.currentData);
 
   const sourcesSelect = sources.isFetching ? (
@@ -32,23 +32,27 @@ export const DatasetLoader = (): JSX.Element => {
     </>
   );
 
-  const sourceFieldsForm = renderQuery(source, (data) => <div>Form! {JSON.stringify(data)}</div>);
-
-  // let sourceFieldsForm: JSX.Element;
-  // if (source == null) {
-  //   sourceFieldsForm = <></>;
-  // } else if (source.isFetching) {
-  //   sourceFieldsForm = <SlSpinner />;
-  // } else if (source.error || source.currentData == null) {
-  //   sourceFieldsForm = renderError(sources.error);
-  // } else {
-  //   sourceFieldsForm = <div>Form! {JSON.stringify(source.currentData)}</div>;
-  // }
+  const sourceFieldsForm = renderQuery(source, (pydanticFields) => (
+    <div>
+      {pydanticFields.map((field) => (
+        <div>
+          <SlInput
+            // value={modelName}
+            label={field.name}
+            helpText={field.type}
+            // onSlChange={(e) => setModelName((e.target as HTMLInputElement).value)}
+          />
+        </div>
+      ))}
+    </div>
+  ));
 
   return sources.currentData != null ? (
     <>
-      {sourcesSelect}
-      {sourceFieldsForm}
+      <div className="flex flex-col">
+        <div>{sourcesSelect}</div>
+        <div>{sourceFieldsForm}</div>
+      </div>
     </>
   ) : (
     <>nuthin</>
