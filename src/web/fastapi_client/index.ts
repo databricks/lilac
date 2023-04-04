@@ -30,6 +30,6 @@ export type { SourcesList } from './models/SourcesList';
 export type { ValidationError } from './models/ValidationError';
 
 export { ConceptService } from './services/ConceptService';
+export { DataLoaderService } from './services/DataLoaderService';
 export { DatasetService } from './services/DatasetService';
 export { DefaultService } from './services/DefaultService';
-export { LoaderService } from './services/LoaderService';

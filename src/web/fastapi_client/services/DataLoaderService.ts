@@ -8,7 +8,7 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
-export class LoaderService {
+export class DataLoaderService {
 
     /**
      * Get Sources
@@ -19,7 +19,7 @@ export class LoaderService {
     public static getSources(): CancelablePromise<SourcesList> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/loader/get_sources',
+            url: '/data_loader/get_sources',
         });
     }
 
@@ -35,7 +35,7 @@ export class LoaderService {
     ): CancelablePromise<SourceFieldsResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/loader/get_source_fields/{source_name}',
+            url: '/data_loader/get_source_fields/{source_name}',
             path: {
                 'source_name': sourceName,
             },
