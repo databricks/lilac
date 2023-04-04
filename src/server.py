@@ -108,7 +108,7 @@ def add_data(options: AddDatasetOptions) -> dict:
 
 
 @app.get('/{full_path:path}', response_class=HTMLResponse)
-def read_index(full_path: str) -> str:
+def read_index() -> str:
   """Return the index.html file."""
   with open(os.path.join(DIST_PATH, 'index.html')) as f:
     return f.read()

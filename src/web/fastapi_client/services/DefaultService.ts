@@ -168,22 +168,13 @@ export class DefaultService {
     /**
      * Read Index
      * Return the index.html file.
-     * @param fullPath
      * @returns string Successful Response
      * @throws ApiError
      */
-    public static readIndex(
-        fullPath: string,
-    ): CancelablePromise<string> {
+    public static readIndex(): CancelablePromise<string> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/{full_path}',
-            path: {
-                'full_path': fullPath,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
         });
     }
 
