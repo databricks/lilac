@@ -103,7 +103,6 @@ def search_examples(options: SearchExamplesOptions = Depends()) -> dict:
 def add_data(options: AddDatasetOptions) -> dict:
   """Add data to a model."""
   db_deprecated.add_dataset(options)
-
   return {}
 
 
