@@ -1,14 +1,14 @@
 import {SlButton, SlIcon, SlInput, SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {useParams} from 'react-router-dom';
-import {LabeledExample} from '../server_api';
+import {LabeledExample} from '../server_api_deprecated';
 import {
   useAddExamplesMutation,
   useLazySearchExamplesQuery,
   useLoadModelQuery,
   useModelInfoQuery,
   useSaveModelMutation,
-} from '../store';
+} from '../store/store';
 import {renderError} from '../utils';
 import {DatasetLoader} from './dataset_loader';
 import {Label, Table, TableExample} from './table';

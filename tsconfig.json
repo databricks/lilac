@@ -8,6 +8,7 @@
     // To allow const a = require('module');
     "esModuleInterop": true,
     "incremental": true,
+    "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,

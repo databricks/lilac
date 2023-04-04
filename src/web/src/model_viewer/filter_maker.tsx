@@ -13,7 +13,7 @@ import {
   useLoadModelQuery,
   useModelInfoQuery,
   useSaveModelMutation,
-} from '../store';
+} from '../store/store';
 import {renderError} from '../utils';
 import {DatasetLoader} from './dataset_loader';
 import {Example, ExampleViewer, LabeledData} from './example_viewer';

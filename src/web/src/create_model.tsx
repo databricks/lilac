@@ -10,7 +10,7 @@ import {
 import * as React from 'react';
 import {Link} from 'react-router-dom';
 import styles from './create_model.module.css';
-import {useCreateModelMutation} from './store';
+import {useCreateModelMutation} from './store/store';
 import {getModelLink, renderError} from './utils';
 
 export const CreateModel = React.memo(function CreateModel(): JSX.Element {

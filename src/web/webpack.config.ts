@@ -48,7 +48,7 @@ export const WEBPACK_CONFIG: Configuration = {
       {
         test: /\.(ts|tsx)$/,
         // Only compile the browser typescript code.
-        include: [path.resolve('src/'), path.resolve('../shared/src/')],
+        include: [path.resolve('src/'), path.resolve('fastapi_client/')],
         use: [{loader: 'ts-loader'}],
       },
       {
@@ -85,7 +85,7 @@ export const WEBPACK_CONFIG: Configuration = {
     }),
     {
       apply: (compiler: Compiler) => {
-        compiler.hooks.afterCompile.tap('OpenAfterBuild', () => {
+        compiler.hooks.afterEmit.tap('AfterEmitPlugin', () => {
           if (!hasOpened) {
             // Opens the browser window to this URL automatically when the first build completes.
             open(`http://localhost:${SERVER_PORT}`);

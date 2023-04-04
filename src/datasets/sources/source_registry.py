@@ -23,6 +23,11 @@ def get_source_cls(source_name: str) -> Type[Source]:
   return SOURCE_REGISTRY[source_name]
 
 
+def registered_sources() -> dict[str, Type[Source]]:
+  """Return all registered sources."""
+  return SOURCE_REGISTRY
+
+
 def resolve_source(source: Union[dict, Source]) -> Source:
   """Resolve a generic source base class to a specific source class."""
   if isinstance(source, Source):

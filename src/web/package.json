@@ -28,6 +28,7 @@
     "@shoelace-style/shoelace": "2.1.0",
     "@types/react-table": "~7.7.14",
     "@types/react-window": "~1.8.5",
+    "openapi-typescript-codegen": "~0.23.0",
     "react": "~18.2.0",
     "react-dom": "~18.1.0",
     "react-redux": "~8.0.4",
