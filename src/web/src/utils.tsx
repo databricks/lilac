@@ -1,6 +1,27 @@
 import {SerializedError} from '@reduxjs/toolkit';
-import {SlTooltip} from '@shoelace-style/shoelace/dist/react';
+import {SlSpinner, SlTooltip} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
+
+export function queryResult<T>(
+  queryResult: {
+    isFetching?: boolean;
+    error?: string | SerializedError | undefined;
+    currentData?: T;
+  },
+  render: (data: T) => JSX.Element
+): JSX.Element {
+  if (queryResult == null) {
+    return <></>;
+  }
+  const {isFetching, error, currentData} = queryResult;
+  if (isFetching) {
+    return <SlSpinner />;
+  }
+  if (error || currentData == null) {
+    return renderError(error);
+  }
+  return render(queryResult.currentData!);
+}
 
 export function renderError(error: string | SerializedError | undefined): JSX.Element {
   if (error == null) {

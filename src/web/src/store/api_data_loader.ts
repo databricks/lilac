@@ -16,8 +16,11 @@ export const dataLoaderApi = createApi({
         return {data: await DataLoaderService.getSources()};
       },
     }),
-    getSourceFields: builder.query<SourceFields, {sourceName: string}>({
-      queryFn: async ({sourceName}: {sourceName: string}) => {
+    getSourceFields: builder.query<SourceFields | null, {sourceName?: string}>({
+      queryFn: async ({sourceName}: {sourceName?: string}) => {
+        if (sourceName == null) {
+          return {data: null};
+        }
         return {data: await DataLoaderService.getSourceFields(sourceName)};
       },
     }),

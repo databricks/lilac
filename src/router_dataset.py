@@ -35,12 +35,12 @@ class DatasetInfo(BaseModel):
 @router.get('/datasets')
 def get_datasets() -> list[DatasetInfo]:
   """List the datasets."""
-  dataset_infos: list[DatasetInfo] = []
   datasets_path = os.path.join(data_path(), DATASETS_DIR_NAME)
   # Skip if 'datasets' doesn't exist.
   if not os.path.isdir(datasets_path):
     return []
 
+  dataset_infos: list[DatasetInfo] = []
   for namespace in os.listdir(datasets_path):
     dataset_dir = os.path.join(datasets_path, namespace)
     # Skip if namespace is not a directory.
