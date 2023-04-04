@@ -104,7 +104,6 @@ def column_from_identifier(column: ColumnId) -> Column:
   if isinstance(column, Column):
     result = column.copy()
   else:
-
     result = Column(feature=column)
   # We normalize the feature to always be a path.
   if isinstance(result.feature, (str, int)):

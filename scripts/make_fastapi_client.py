@@ -31,7 +31,7 @@ def main(api_json_from_server: bool) -> None:
     popd > /dev/null
   """)
 
-  print('[make_fastapi_client] Web client written to ./src/web/fastapi_client')
+  print(f'[make_fastapi_client] Web client written to {output}')
 
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:
