@@ -18,7 +18,7 @@ import {
   SearchExamplesOptions,
   SearchExamplesResponse,
 } from '../server_api_deprecated';
-import {serverApi} from './api_server_loader';
+import {serverApi} from './api_data_loader';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface AppState {}

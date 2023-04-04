@@ -24,25 +24,22 @@ DIST_PATH = os.path.abspath(os.path.join('dist'))
 tags_metadata: list[dict[str, Any]] = [
     {
         'name': 'datasets',
-        'description': 'Operations querying a loaded dataset.',
+        'description': 'API for querying a dataset.',
     },
     {
         'name': 'concepts',
-        'description': 'Operations managing concepts.',
+        'description': 'API for managing concepts.',
     },
     {
         'name': 'loader',
-        'description': 'Operations loading datasets.',
+        'description': 'API for loading data.',
     },
 ]
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
   """Generate the name for the API endpoint."""
-  if route.tags:
-    return f'{route.tags[0]}-{route.name}'
-  else:
-    return route.name
+  return route.name
 
 
 app = FastAPI(generate_unique_id_function=custom_generate_unique_id, openapi_tags=tags_metadata)

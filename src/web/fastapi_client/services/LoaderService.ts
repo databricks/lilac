@@ -11,31 +11,31 @@ import { request as __request } from '../core/request';
 export class LoaderService {
 
     /**
-     * Sources
+     * Get Sources
      * Get the list of available sources.
      * @returns SourcesList Successful Response
      * @throws ApiError
      */
-    public static loaderSources(): CancelablePromise<SourcesList> {
+    public static getSources(): CancelablePromise<SourcesList> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/loader/sources',
+            url: '/loader/get_sources',
         });
     }
 
     /**
-     * Source Fields
-     * Get the list of available sources.
+     * Get Source Fields
+     * Get the fields for a source.
      * @param sourceName
      * @returns SourceFieldsResponse Successful Response
      * @throws ApiError
      */
-    public static loaderSourceFields(
+    public static getSourceFields(
         sourceName: string,
     ): CancelablePromise<SourceFieldsResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/loader/source_fields/{source_name}',
+            url: '/loader/get_source_fields/{source_name}',
             path: {
                 'source_name': sourceName,
             },

@@ -12,17 +12,17 @@ export const serverApi = createApi({
     return {error: 'baseQuery should never be called.'};
   },
   endpoints: (builder) => ({
-    loaderSources: builder.query<SourcesList, void>({
+    getSources: builder.query<SourcesList, void>({
       queryFn: async () => {
-        return {data: await LoaderService.loaderSources()};
+        return {data: await LoaderService.getSources()};
       },
     }),
-    loaderSourceFields: builder.query<SourceFieldsResponse, {sourceName: string}>({
+    getSourceFields: builder.query<SourceFieldsResponse, {sourceName: string}>({
       queryFn: async ({sourceName}: {sourceName: string}) => {
-        return {data: await LoaderService.loaderSourceFields(sourceName)};
+        return {data: await LoaderService.getSourceFields(sourceName)};
       },
     }),
   }),
 });
 
-export const {useLoaderSourcesQuery, useLoaderSourceFieldsQuery} = serverApi;
+export const {useGetSourcesQuery, useGetSourceFieldsQuery} = serverApi;

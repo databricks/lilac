@@ -20,7 +20,7 @@ export class ConceptsService {
      * @returns Concept Successful Response
      * @throws ApiError
      */
-    public static conceptsGetConcept(
+    public static getConcept(
         namespace: string,
         conceptName: string,
     ): CancelablePromise<Concept> {
@@ -46,7 +46,7 @@ export class ConceptsService {
      * @returns Concept Successful Response
      * @throws ApiError
      */
-    public static conceptsPostConcept(
+    public static postConcept(
         namespace: string,
         conceptName: string,
         requestBody: ConceptUpdate,
@@ -75,7 +75,7 @@ export class ConceptsService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static conceptsGetConceptModel(
+    public static getConceptModel(
         namespace: string,
         conceptName: string,
         embeddingName: string,
@@ -104,7 +104,7 @@ export class ConceptsService {
      * @returns ScoreResponse Successful Response
      * @throws ApiError
      */
-    public static conceptsScore(
+    public static score(
         namespace: string,
         conceptName: string,
         embeddingName: string,

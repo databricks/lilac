@@ -56,16 +56,16 @@ class SourcesList(BaseModel):
 router = APIRouter()
 
 
-@router.get('/sources')
-def sources() -> SourcesList:
+@router.get('/get_sources')
+def get_sources() -> SourcesList:
   """Get the list of available sources."""
   sources = registered_sources()
   return SourcesList(sources=list(sources.keys()))
 
 
-@router.get('/source_fields/{source_name}')
-def source_fields(source_name: str) -> SourceFieldsResponse:
-  """Get the list of available sources."""
+@router.get('/get_source_fields/{source_name}')
+def get_source_fields(source_name: str) -> SourceFieldsResponse:
+  """Get the fields for a source."""
   source_cls = get_source_cls(source_name)
   sig = signature(source_cls)
   fields: list[SourceField] = []

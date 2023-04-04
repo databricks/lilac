@@ -19,7 +19,7 @@ export class DatasetsService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static datasetsManifest(
+    public static manifest(
         namespace: string,
         datasetName: string,
     ): CancelablePromise<any> {
@@ -45,7 +45,7 @@ export class DatasetsService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static datasetsComputeEmbeddingIndex(
+    public static computeEmbeddingIndex(
         namespace: string,
         datasetName: string,
         requestBody: ComputeEmbeddingIndexOptions,
@@ -74,7 +74,7 @@ export class DatasetsService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static datasetsComputeSignalColumn(
+    public static computeSignalColumn(
         namespace: string,
         datasetName: string,
         requestBody: ComputeSignalOptions,
@@ -107,7 +107,7 @@ export class DatasetsService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static datasetsSelectRows(
+    public static selectRows(
         namespace: string,
         datasetName: string,
         columns?: string,

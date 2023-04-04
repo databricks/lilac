@@ -1,10 +1,9 @@
 import * as React from 'react';
-//import styles from './dataset_loader.module.css';
-import {useLoaderSourceFieldsQuery, useLoaderSourcesQuery} from './store/api_server_loader';
+import {useGetSourceFieldsQuery, useGetSourcesQuery} from './store/api_data_loader';
 
 export const DatasetLoader = (): JSX.Element => {
-  const sources = useLoaderSourcesQuery();
-  const csvSource = useLoaderSourceFieldsQuery({sourceName: 'csv'});
+  const sources = useGetSourcesQuery();
+  const csvSource = useGetSourceFieldsQuery({sourceName: 'csv'});
   return sources.currentData != null ? (
     <>
       {sources.currentData.sources}
