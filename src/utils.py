@@ -27,6 +27,7 @@ GCS_PROTOCOL = 'gs://'
 GCS_REGEX = re.compile(f'{GCS_PROTOCOL}(.*?)/(.*)')
 GCS_COPY_CHUNK_SIZE = 1_000
 IMAGES_DIR_NAME = 'images'
+DATASETS_DIR_NAME = 'datasets'
 
 
 @functools.cache
@@ -84,7 +85,7 @@ def get_output_dir(base_dir: str, username: str, model_name: str) -> str:
 def get_dataset_output_dir(base_dir: Union[str, pathlib.Path], namespace: str,
                            model_name: str) -> str:
   """Return the output directory for a given model."""
-  return os.path.join(base_dir, 'datasets', namespace, model_name)
+  return os.path.join(base_dir, DATASETS_DIR_NAME, namespace, model_name)
 
 
 class CopyRequest(BaseModel):
