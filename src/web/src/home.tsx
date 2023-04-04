@@ -1,7 +1,6 @@
 import {SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {Link} from 'react-router-dom';
-import {SearchBox} from './search_box';
 import {useListModelsQuery} from './store/store';
 import {getModelLink, renderError} from './utils';
 
@@ -25,7 +24,6 @@ export const Home = React.memo(function Home(): JSX.Element {
           )}
         </div>
       </div>
-      <SearchBox />
     </>
   );
 });

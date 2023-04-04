@@ -48,7 +48,7 @@ export const SearchBox = () => {
   }
 
   return (
-    <div>
+    <div className="w-full">
       <Command
         tabIndex={0}
         ref={ref}
@@ -77,16 +77,9 @@ export const SearchBox = () => {
           }
         }}
       >
-        <div>
-          {pages.map((p) => (
-            <div key={p} cmdk-badge="">
-              {p}
-            </div>
-          ))}
-        </div>
         <Command.Input
           ref={inputRef}
-          placeholder="What do you need?"
+          placeholder="Search and run commands..."
           onValueChange={(value) => {
             setInputValue(value);
           }}
@@ -94,6 +87,13 @@ export const SearchBox = () => {
         <Command.List>
           {isFocused && (
             <>
+              <div>
+                {pages.map((p) => (
+                  <div key={p} cmdk-badge="">
+                    {p}
+                  </div>
+                ))}
+              </div>
               <Command.Empty>No results found.</Command.Empty>
               {activePage === 'home' && (
                 <HomeMenu
