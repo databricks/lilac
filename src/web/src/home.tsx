@@ -1,25 +1,24 @@
 import {SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
-import {Link} from 'react-router-dom';
-import {useListModelsQuery} from './store/store';
-import {getModelLink, renderError} from './utils';
+import {useGetDatasetsQuery} from './store/api_dataset';
+import {renderError} from './utils';
 
 export const Home = React.memo(function Home(): JSX.Element {
-  const models = useListModelsQuery();
+  const datasets = useGetDatasetsQuery();
 
   return (
     <>
       <div className="flex flex-col">
         <div className="flex flex-col">
-          {models.isFetching ? (
+          {datasets.isFetching ? (
             <SlSpinner />
-          ) : models.error || models.currentData == null ? (
-            renderError(models.error)
+          ) : datasets.error || datasets.currentData == null ? (
+            renderError(datasets.error)
           ) : (
-            models.currentData.models.map((model, i) => (
-              <Link key={`model-link-${i}`} to={getModelLink(model.username, model.name)}>
-                {model.username}/{model.name}
-              </Link>
+            datasets.currentData.map((datasetInfo) => (
+              <div>
+                {datasetInfo.namespace}/{datasetInfo.dataset_name}
+              </div>
             ))
           )}
         </div>

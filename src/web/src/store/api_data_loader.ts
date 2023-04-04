@@ -4,8 +4,8 @@
 import {createApi} from '@reduxjs/toolkit/dist/query/react';
 import {DataLoaderService, SourceFields, SourcesList} from '../../fastapi_client';
 
-const serverReducerPath = 'serverApi';
-export const serverApi = createApi({
+const serverReducerPath = 'dataLoaderApi';
+export const dataLoaderApi = createApi({
   reducerPath: serverReducerPath,
   baseQuery: () => {
     return {error: 'baseQuery should never be called.'};
@@ -24,4 +24,4 @@ export const serverApi = createApi({
   }),
 });
 
-export const {useGetSourcesQuery, useGetSourceFieldsQuery} = serverApi;
+export const {useGetSourcesQuery, useGetSourceFieldsQuery} = dataLoaderApi;

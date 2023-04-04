@@ -35,16 +35,25 @@ class DatasetInfo(BaseModel):
 def get_datasets() -> list[DatasetInfo]:
   """List the datasets."""
   dataset_infos: list[DatasetInfo] = []
-  for root, _, files in os.walk(os.path.join(data_path(), 'datasets')):
-    print(root)
-    if len(files) > 0:
-      subdir = root[len(data_path() + '/'):]
-      split = list(filter(lambda path: path != '', os.path.split(subdir)))
-      if len(split) == 2:  # The subdir is a (namespace, dataset_name)
-        namespace, dataset_name = split
-        dataset_infos.append(DatasetInfo(namespace=namespace, dataset_name=dataset_name))
+  datasets_path = os.path.join(data_path(), 'datasets')
+  for namespace in os.listdir(datasets_path):
+    dataset_dir = os.path.join(datasets_path, namespace)
+    # Skip if namespace is not a directory.
+    if not os.path.isdir(dataset_dir):
+      continue
+    if namespace.startswith('.'):
+      continue
 
-  print(dataset_infos)
+    for dataset_name in os.listdir(dataset_dir):
+      # Skip if dataset_name is not a directory.
+      dataset_path = os.path.join(dataset_dir, dataset_name)
+      if not os.path.isdir(dataset_path):
+        continue
+      if dataset_name.startswith('.'):
+        continue
+
+      dataset_infos.append(DatasetInfo(namespace=namespace, dataset_name=dataset_name))
+
   return dataset_infos
 
 
