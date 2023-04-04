@@ -12,7 +12,7 @@ export const Header = React.memo(function Header(): JSX.Element {
           <Link to="/">Lilac</Link>
         </div>
       </div>
-      <div className="w-96 z-50 flex">
+      <div className="w-96 z-50 flex mt-2">
         <SearchBox />
       </div>
       <div className="flex items-center">

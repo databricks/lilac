@@ -1,6 +1,8 @@
+import {SlIcon, SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import {Command} from 'cmdk';
 import * as React from 'react';
 import './search_box.css';
+import {useGetDatasetsQuery} from './store/api_dataset';
 
 export const SearchBox = () => {
   const ref = React.useRef<HTMLDivElement | null>(null);
@@ -17,9 +19,9 @@ export const SearchBox = () => {
     }
     setIsFocused(false);
   };
-  const [pages, setPages] = React.useState<string[]>(['home']);
+  const [pages, setPages] = React.useState<string[]>([]);
   const activePage = pages[pages.length - 1];
-  const isHome = activePage === 'home';
+  const isHome = activePage == null;
 
   const popPage = React.useCallback(() => {
     setPages((pages) => {
@@ -31,6 +33,7 @@ export const SearchBox = () => {
 
   const pushPage = React.useCallback((page: string) => {
     setPages([...pages, page]);
+    inputRef.current?.focus();
   }, []);
 
   function bounce() {
@@ -95,15 +98,8 @@ export const SearchBox = () => {
                 ))}
               </div>
               <Command.Empty>No results found.</Command.Empty>
-              {activePage === 'home' && (
-                <HomeMenu
-                  searchProjects={() => {
-                    inputRef.current?.focus();
-                    pushPage('projects');
-                  }}
-                />
-              )}
-              {activePage === 'projects' && <Projects />}
+              {isHome && <HomeMenu pushPage={pushPage} />}
+              {activePage === 'datasets' && <Datasets />}
             </>
           )}
         </Command.List>
@@ -112,56 +108,66 @@ export const SearchBox = () => {
   );
 };
 
-function HomeMenu({searchProjects}: {searchProjects: () => void}) {
+function HomeMenu({pushPage}: {pushPage: (page: string) => void}) {
   return (
     <>
-      <Command.Group heading="Projects">
-        <Item shortcut="S P" onSelect={searchProjects}>
-          <ProjectsIcon />
-          Search Projects...
+      <Command.Group heading="Datasets">
+        <Item
+          onSelect={() => {
+            pushPage('datasets');
+          }}
+        >
+          <SlIcon className="text-xl" name="database" />
+          Open dataset
         </Item>
         <Item>
-          <PlusIcon />
-          Create New Project...
+          <SlIcon className="text-xl" name="database-add" />
+          Create new dataset
         </Item>
       </Command.Group>
-      <Command.Group heading="Teams">
-        <Item shortcut="⇧ P">
-          <TeamsIcon />
-          Search Teams...
+      <Command.Group heading="Concepts">
+        <Item>
+          <SlIcon className="text-xl" name="stars" />
+          Open concept
         </Item>
         <Item>
-          <PlusIcon />
-          Create New Team...
+          <SlIcon className="text-xl" name="plus-lg" />
+          Create new concept
         </Item>
       </Command.Group>
       <Command.Group heading="Help">
-        <Item shortcut="⇧ D">
+        <Item>
           <DocsIcon />
           Search Docs...
         </Item>
         <Item>
           <FeedbackIcon />
-          Send Feedback...
+          Create a GitHub issue
         </Item>
         <Item>
           <ContactIcon />
-          Contact Support
+          Contact us
         </Item>
       </Command.Group>
     </>
   );
 }
 
-function Projects() {
+function Datasets() {
+  const {isFetching, currentData} = useGetDatasetsQuery();
+  if (isFetching || currentData == null) {
+    return <SlSpinner />;
+  }
   return (
     <>
-      <Item>Project 1</Item>
-      <Item>Project 2</Item>
-      <Item>Project 3</Item>
-      <Item>Project 4</Item>
-      <Item>Project 5</Item>
-      <Item>Project 6</Item>
+      {currentData.map((d) => {
+        const key = `${d.namespace}/${d.dataset_name}`;
+        return (
+          <Item key={key}>
+            {d.namespace} / {d.dataset_name}
+          </Item>
+        );
+      })}
     </>
   );
 }
@@ -188,67 +194,6 @@ function Item({
         </div>
       )}
     </Command.Item>
-  );
-}
-
-function ProjectsIcon() {
-  return (
-    <svg
-      fill="none"
-      height="24"
-      shapeRendering="geometricPrecision"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.5"
-      viewBox="0 0 24 24"
-      width="24"
-    >
-      <path d="M3 3h7v7H3z"></path>
-      <path d="M14 3h7v7h-7z"></path>
-      <path d="M14 14h7v7h-7z"></path>
-      <path d="M3 14h7v7H3z"></path>
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg
-      fill="none"
-      height="24"
-      shapeRendering="geometricPrecision"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.5"
-      viewBox="0 0 24 24"
-      width="24"
-    >
-      <path d="M12 5v14"></path>
-      <path d="M5 12h14"></path>
-    </svg>
-  );
-}
-
-function TeamsIcon() {
-  return (
-    <svg
-      fill="none"
-      height="24"
-      shapeRendering="geometricPrecision"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.5"
-      viewBox="0 0 24 24"
-      width="24"
-    >
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
-      <circle cx="9" cy="7" r="4"></circle>
-      <path d="M23 21v-2a4 4 0 00-3-3.87"></path>
-      <path d="M16 3.13a4 4 0 010 7.75"></path>
-    </svg>
   );
 }
 

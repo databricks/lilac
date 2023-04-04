@@ -185,7 +185,12 @@ export const store = configureStore({
     [dataLoaderApi.reducerPath]: dataLoaderApi.reducer,
     [datasetApi.reducerPath]: datasetApi.reducer,
   },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat([dbApi.middleware]),
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat([
+      dbApi.middleware,
+      dataLoaderApi.middleware,
+      datasetApi.middleware,
+    ]),
   devTools: process.env.NODE_ENV !== 'production',
 });
 

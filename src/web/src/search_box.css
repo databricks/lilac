@@ -53,12 +53,15 @@
   overflow: hidden;
   font-family: var(--font-sans);
   border: 1px solid var(--gray6);
-  box-shadow: var(--cmdk-shadow);
   transition: transform 100ms ease;
 
   .dark & {
     background: rgba(22, 22, 22, 0.7);
   }
+}
+
+[cmdk-root]:focus {
+  box-shadow: var(--cmdk-shadow);
 }
 
 [cmdk-input] {
@@ -135,8 +138,7 @@
 }
 
 [cmdk-list] {
-  height: min(330px, calc(var(--cmdk-list-height)));
-  max-height: 400px;
+  max-height: 600px;
   overflow: auto;
   overscroll-behavior: contain;
   transition: 100ms ease;
