@@ -82,7 +82,7 @@ export const SearchBox = () => {
       >
         <Command.Input
           ref={inputRef}
-          placeholder="Search and run commands..."
+          placeholder="Search and run commands"
           onValueChange={(value) => {
             setInputValue(value);
           }}
