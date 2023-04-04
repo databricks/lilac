@@ -43,7 +43,7 @@ class SourceField(BaseModel):
   required: bool
 
 
-class SourceFieldsResponse(BaseModel):
+class SourceFields(BaseModel):
   """The interface to the /process_source endpoint."""
   fields: list[SourceField]
 
@@ -64,7 +64,7 @@ def get_sources() -> SourcesList:
 
 
 @router.get('/get_source_fields/{source_name}')
-def get_source_fields(source_name: str) -> SourceFieldsResponse:
+def get_source_fields(source_name: str) -> SourceFields:
   """Get the fields for a source."""
   source_cls = get_source_cls(source_name)
   sig = signature(source_cls)
@@ -76,7 +76,7 @@ def get_source_fields(source_name: str) -> SourceFieldsResponse:
                     type=str(parameter.annotation),
                     required=parameter.default is not None))
 
-  return SourceFieldsResponse(fields=fields)
+  return SourceFields(fields=fields)
 
 
 async def _process_source(base_dir: str, namespace: str, dataset_name: str, source: Source,

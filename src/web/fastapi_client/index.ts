@@ -13,6 +13,7 @@ export type { ComputeEmbeddingIndexOptions } from './models/ComputeEmbeddingInde
 export type { ComputeSignalOptions } from './models/ComputeSignalOptions';
 export type { Concept } from './models/Concept';
 export type { ConceptUpdate } from './models/ConceptUpdate';
+export type { DatasetInfo } from './models/DatasetInfo';
 export type { Example } from './models/Example';
 export type { ExampleIn } from './models/ExampleIn';
 export type { ExampleOrigin } from './models/ExampleOrigin';
@@ -25,7 +26,7 @@ export type { ScoreResponse } from './models/ScoreResponse';
 export type { Signal } from './models/Signal';
 export { SortOrder } from './models/SortOrder';
 export type { SourceField } from './models/SourceField';
-export type { SourceFieldsResponse } from './models/SourceFieldsResponse';
+export type { SourceFields } from './models/SourceFields';
 export type { SourcesList } from './models/SourcesList';
 export type { ValidationError } from './models/ValidationError';
 

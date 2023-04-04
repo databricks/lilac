@@ -1,8 +1,11 @@
 """Router for the dataset database."""
+import os
 from typing import Optional
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 
+from .constants import data_path
 from .datasets.db_dataset import ColumnId
 from .db_manager import get_dataset_db
 from .embeddings import default_embeddings  # noqa # pylint: disable=unused-import
@@ -19,6 +22,30 @@ from .signals.default_signals import register_default_signals
 router = APIRouter()
 
 register_default_signals()
+
+
+class DatasetInfo(BaseModel):
+  """Information about a dataset."""
+  namespace: str
+  dataset_name: str
+  description: Optional[str]
+
+
+@router.get('/datasets')
+def get_datasets() -> list[DatasetInfo]:
+  """List the datasets."""
+  dataset_infos: list[DatasetInfo] = []
+  for root, _, files in os.walk(os.path.join(data_path(), 'datasets')):
+    print(root)
+    if len(files) > 0:
+      subdir = root[len(data_path() + '/'):]
+      split = list(filter(lambda path: path != '', os.path.split(subdir)))
+      if len(split) == 2:  # The subdir is a (namespace, dataset_name)
+        namespace, dataset_name = split
+        dataset_infos.append(DatasetInfo(namespace=namespace, dataset_name=dataset_name))
+
+  print(dataset_infos)
+  return dataset_infos
 
 
 @router.get('/{namespace}/{dataset_name}/manifest')
