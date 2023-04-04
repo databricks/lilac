@@ -137,15 +137,15 @@ function HomeMenu({pushPage}: {pushPage: (page: string) => void}) {
       </Command.Group>
       <Command.Group heading="Help">
         <Item>
-          <DocsIcon />
+          <SlIcon className="text-xl" name="file-earmark-text" />
           Search Docs...
         </Item>
         <Item>
-          <FeedbackIcon />
+          <SlIcon className="text-xl" name="github" />
           Create a GitHub issue
         </Item>
         <Item>
-          <ContactIcon />
+          <SlIcon className="text-xl" name="envelope" />
           Contact us
         </Item>
       </Command.Group>
@@ -194,65 +194,5 @@ function Item({
         </div>
       )}
     </Command.Item>
-  );
-}
-
-function DocsIcon() {
-  return (
-    <svg
-      fill="none"
-      height="24"
-      shapeRendering="geometricPrecision"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.5"
-      viewBox="0 0 24 24"
-      width="24"
-    >
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
-      <path d="M14 2v6h6"></path>
-      <path d="M16 13H8"></path>
-      <path d="M16 17H8"></path>
-      <path d="M10 9H8"></path>
-    </svg>
-  );
-}
-
-function FeedbackIcon() {
-  return (
-    <svg
-      fill="none"
-      height="24"
-      shapeRendering="geometricPrecision"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.5"
-      viewBox="0 0 24 24"
-      width="24"
-    >
-      {/* eslint-disable-next-line max-len */}
-      <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path>
-    </svg>
-  );
-}
-
-function ContactIcon() {
-  return (
-    <svg
-      fill="none"
-      height="24"
-      shapeRendering="geometricPrecision"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.5"
-      viewBox="0 0 24 24"
-      width="24"
-    >
-      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-      <path d="M22 6l-10 7L2 6"></path>
-    </svg>
   );
 }
