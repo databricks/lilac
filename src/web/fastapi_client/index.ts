@@ -29,7 +29,7 @@ export type { SourceFieldsResponse } from './models/SourceFieldsResponse';
 export type { SourcesList } from './models/SourcesList';
 export type { ValidationError } from './models/ValidationError';
 
-export { ConceptsService } from './services/ConceptsService';
-export { DatasetsService } from './services/DatasetsService';
+export { ConceptService } from './services/ConceptService';
+export { DatasetService } from './services/DatasetService';
 export { DefaultService } from './services/DefaultService';
 export { LoaderService } from './services/LoaderService';
