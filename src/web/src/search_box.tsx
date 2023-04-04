@@ -1,7 +1,7 @@
 import {SlIcon, SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import {Command} from 'cmdk';
 import * as React from 'react';
-import {Location, useLocation} from 'react-router-dom';
+import {Location, useLocation, useNavigate} from 'react-router-dom';
 import './search_box.css';
 import {useGetDatasetsQuery} from './store/api_dataset';
 
@@ -172,6 +172,7 @@ function HomeMenu({pushPage, location}: {pushPage: (page: string) => void; locat
 
 function Datasets() {
   const {isFetching, currentData} = useGetDatasetsQuery();
+  const navigate = useNavigate();
   if (isFetching || currentData == null) {
     return <SlSpinner />;
   }
@@ -180,7 +181,12 @@ function Datasets() {
       {currentData.map((d) => {
         const key = `${d.namespace}/${d.dataset_name}`;
         return (
-          <Item key={key}>
+          <Item
+            key={key}
+            onSelect={() => {
+              navigate(`/datasets/${d.namespace}/${d.dataset_name}`);
+            }}
+          >
             {d.namespace} / {d.dataset_name}
           </Item>
         );

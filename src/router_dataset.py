@@ -118,4 +118,4 @@ def select_rows(namespace: str, dataset_name: str,
   for item in items:
     item[UUID_COLUMN] = item[UUID_COLUMN].hex()
 
-  return list(items)
+  return items

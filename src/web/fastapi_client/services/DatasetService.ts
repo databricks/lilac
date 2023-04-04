@@ -22,7 +22,7 @@ export class DatasetService {
     public static getDatasets(): CancelablePromise<Array<DatasetInfo>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/datasets/',
+            url: '/api/v1/datasets/',
         });
     }
 
@@ -40,7 +40,7 @@ export class DatasetService {
     ): CancelablePromise<WebManifest> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/datasets/{namespace}/{dataset_name}',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,
@@ -67,7 +67,7 @@ export class DatasetService {
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/datasets/{namespace}/{dataset_name}/compute_embedding_index',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/compute_embedding_index',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,
@@ -96,7 +96,7 @@ export class DatasetService {
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/datasets/{namespace}/{dataset_name}/compute_signal_column',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/compute_signal_column',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,
@@ -133,7 +133,7 @@ export class DatasetService {
     ): CancelablePromise<Array<any>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/datasets/{namespace}/{dataset_name}/select_rows',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/select_rows',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,

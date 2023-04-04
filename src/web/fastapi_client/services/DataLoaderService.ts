@@ -19,7 +19,7 @@ export class DataLoaderService {
     public static getSources(): CancelablePromise<SourcesList> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/data_loaders/get_sources',
+            url: '/api/v1/data_loaders/get_sources',
         });
     }
 
@@ -35,7 +35,7 @@ export class DataLoaderService {
     ): CancelablePromise<SourceFields> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/data_loaders/get_source_fields/{source_name}',
+            url: '/api/v1/data_loaders/get_source_fields/{source_name}',
             path: {
                 'source_name': sourceName,
             },
