@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { SourceFieldsResponse } from '../models/SourceFieldsResponse';
+import type { SourceFields } from '../models/SourceFields';
 import type { SourcesList } from '../models/SourcesList';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -27,12 +27,12 @@ export class DataLoaderService {
      * Get Source Fields
      * Get the fields for a source.
      * @param sourceName
-     * @returns SourceFieldsResponse Successful Response
+     * @returns SourceFields Successful Response
      * @throws ApiError
      */
     public static getSourceFields(
         sourceName: string,
-    ): CancelablePromise<SourceFieldsResponse> {
+    ): CancelablePromise<SourceFields> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/data_loader/get_source_fields/{source_name}',

@@ -26,7 +26,7 @@ def get_concept(namespace: str, concept_name: str) -> Concept:
 
 
 @router.post('/{namespace}/{concept_name}', response_model_exclude_none=True)
-def post_concept(namespace: str, concept_name: str, change: ConceptUpdate) -> Concept:
+def edit_concept(namespace: str, concept_name: str, change: ConceptUpdate) -> Concept:
   """Edit a concept in the database."""
   return DISK_CONCEPT_DB.edit(namespace, concept_name, change)
 

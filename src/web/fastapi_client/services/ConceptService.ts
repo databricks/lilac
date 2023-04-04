@@ -38,7 +38,7 @@ export class ConceptService {
     }
 
     /**
-     * Post Concept
+     * Edit Concept
      * Edit a concept in the database.
      * @param namespace
      * @param conceptName
@@ -46,7 +46,7 @@ export class ConceptService {
      * @returns Concept Successful Response
      * @throws ApiError
      */
-    public static postConcept(
+    public static editConcept(
         namespace: string,
         conceptName: string,
         requestBody: ConceptUpdate,

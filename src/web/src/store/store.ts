@@ -18,7 +18,8 @@ import {
   SearchExamplesOptions,
   SearchExamplesResponse,
 } from '../server_api_deprecated';
-import {serverApi} from './api_data_loader';
+import {datasetApi} from './api_dataset';
+import {dataLoaderApi} from './api_data_loader';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface AppState {}
@@ -181,7 +182,8 @@ export const store = configureStore({
   reducer: {
     [appSlice.name]: appSlice.reducer,
     [dbApi.reducerPath]: dbApi.reducer,
-    [serverApi.reducerPath]: serverApi.reducer,
+    [dataLoaderApi.reducerPath]: dataLoaderApi.reducer,
+    [datasetApi.reducerPath]: datasetApi.reducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat([dbApi.middleware]),
   devTools: process.env.NODE_ENV !== 'production',

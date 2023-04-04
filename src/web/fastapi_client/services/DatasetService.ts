@@ -3,6 +3,7 @@
 /* eslint-disable */
 import type { ComputeEmbeddingIndexOptions } from '../models/ComputeEmbeddingIndexOptions';
 import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
+import type { DatasetInfo } from '../models/DatasetInfo';
 import type { SortOrder } from '../models/SortOrder';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -10,6 +11,19 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
 export class DatasetService {
+
+    /**
+     * Get Datasets
+     * List the datasets.
+     * @returns DatasetInfo Successful Response
+     * @throws ApiError
+     */
+    public static getDatasets(): CancelablePromise<Array<DatasetInfo>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/dataset/datasets',
+        });
+    }
 
     /**
      * Manifest

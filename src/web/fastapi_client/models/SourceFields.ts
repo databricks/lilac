@@ -7,7 +7,7 @@ import type { SourceField } from './SourceField';
 /**
  * The interface to the /process_source endpoint.
  */
-export type SourceFieldsResponse = {
+export type SourceFields = {
     fields: Array<SourceField>;
 };
 
