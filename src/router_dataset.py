@@ -51,9 +51,8 @@ def compute_signal_column(namespace: str, dataset_name: str, options: ComputeSig
 
 
 @router.get('/{namespace}/{dataset_name}/select_rows')
-def dataset_select_rows(namespace: str,
-                        dataset_name: str,
-                        options: SelectDatasetRowsOptions = Depends()) -> list:
+def select_rows(namespace: str, dataset_name: str,
+                options: SelectDatasetRowsOptions = Depends()) -> list:
   """Select rows from the dataset database."""
   dataset_db = get_dataset_db(namespace, dataset_name)
 

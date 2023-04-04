@@ -1,3 +1,6 @@
+/**
+ * The global application redux state store.
+ */
 import {configureStore} from '@reduxjs/toolkit';
 import {createApi} from '@reduxjs/toolkit/query/react';
 
@@ -14,7 +17,8 @@ import {
   SaveModelOptions,
   SearchExamplesOptions,
   SearchExamplesResponse,
-} from './server_api';
+} from '../server_api_deprecated';
+import {serverApi} from './api_data_loader';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface AppState {}
@@ -22,7 +26,6 @@ interface AppState {}
 // Define the initial state using that type
 const initialState: AppState = {};
 
-// NOTE: We might want to split the state into multiple slices in the future.
 const appSlice = createSlice({
   name: 'app',
   initialState,
@@ -178,6 +181,7 @@ export const store = configureStore({
   reducer: {
     [appSlice.name]: appSlice.reducer,
     [dbApi.reducerPath]: dbApi.reducer,
+    [serverApi.reducerPath]: serverApi.reducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat([dbApi.middleware]),
   devTools: process.env.NODE_ENV !== 'production',

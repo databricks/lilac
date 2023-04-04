@@ -1,4 +1,5 @@
 """Methods for interfacing with the db."""
+import functools
 import itertools
 import os
 import re
@@ -37,7 +38,12 @@ from .server_api import (
 from .utils import get_output_dir, log, open_file
 
 PREFIX = ''
-co = cohere.Client(os.environ['COHERE_API_KEY'])
+
+
+@functools.cache
+def _co() -> cohere.Client:
+  return cohere.Client(os.environ['COHERE_API_KEY'])
+
 
 BATCH_SIZE = 96
 DATA_DIR = '/Users/niku/Code/datasets/jigsaw-toxic-comment-classification-challenge'
@@ -77,7 +83,7 @@ def _fix_text(text: str) -> str:
 
 def _compute_embedding(texts: list[str]) -> np.ndarray:
   texts = [_fix_text(PREFIX + text) for text in texts]
-  cohere_embeddings = co.embed(texts, truncate='START').embeddings
+  cohere_embeddings = _co().embed(texts, truncate='START').embeddings
   return normalize(np.array(cohere_embeddings)).astype(np.float16)
 
 

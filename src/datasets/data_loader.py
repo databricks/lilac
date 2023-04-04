@@ -2,27 +2,28 @@
 
 To run the source loader as a binary directly:
 
-poetry run python -m src.datasets.dataset_loader \
+poetry run python -m src.datasets.loader \
   --dataset_name=$DATASET \
   --output_dir=./gcs_cache/ \
   --config_path=./datasets/the_movies_dataset.json
 """
-
 import asyncio
 import json
 import os
 import time
 from concurrent.futures import ProcessPoolExecutor
+from inspect import signature
 from typing import Awaitable, Callable
 
 import click
+from fastapi import APIRouter
 from pydantic import BaseModel
 
 from ..schema import MANIFEST_FILENAME, SourceManifest
 from ..utils import async_wrap, get_dataset_output_dir, log, open_file
 from .sources.default_sources import register_default_sources
 from .sources.source import Source
-from .sources.source_registry import resolve_source
+from .sources.source_registry import get_source_cls, registered_sources, resolve_source
 
 REQUEST_TIMEOUT_SEC = 30 * 60  # 30 mins.
 
@@ -33,6 +34,49 @@ class ProcessSourceRequest(BaseModel):
   """The interface to the /process_source endpoint."""
   username: str
   dataset_name: str
+
+
+class SourceField(BaseModel):
+  """The interface to the /process_source endpoint."""
+  name: str
+  type: str
+  required: bool
+
+
+class SourceFieldsResponse(BaseModel):
+  """The interface to the /process_source endpoint."""
+  fields: list[SourceField]
+
+
+class SourcesList(BaseModel):
+  """The interface to the /process_source endpoint."""
+  sources: list[str]
+
+
+router = APIRouter()
+
+
+@router.get('/get_sources')
+def get_sources() -> SourcesList:
+  """Get the list of available sources."""
+  sources = registered_sources()
+  return SourcesList(sources=list(sources.keys()))
+
+
+@router.get('/get_source_fields/{source_name}')
+def get_source_fields(source_name: str) -> SourceFieldsResponse:
+  """Get the fields for a source."""
+  source_cls = get_source_cls(source_name)
+  sig = signature(source_cls)
+  fields: list[SourceField] = []
+
+  for name, parameter in sig.parameters.items():
+    fields.append(
+        SourceField(name=name,
+                    type=str(parameter.annotation),
+                    required=parameter.default is not None))
+
+  return SourceFieldsResponse(fields=fields)
 
 
 async def _process_source(base_dir: str, namespace: str, dataset_name: str, source: Source,

@@ -11,11 +11,12 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import {CreateModel} from './create_model';
+import {DatasetLoader} from './dataset_loader';
 import {Header} from './header';
 import {Home} from './home';
 import './index.css';
 import {FilterMaker} from './model_viewer/filter_maker';
-import {store} from './store';
+import {store} from './store/store';
 setBasePath('/static/shoelace');
 
 export const PageNotFound = React.memo(function PageNotFound(): JSX.Element {
@@ -40,6 +41,7 @@ const router = createBrowserRouter(
     <Route path="/" element={<AppContainer />}>
       <Route index element={<Home />} />
       <Route path="create" element={<CreateModel />} />
+      <Route path="dataset_loader" element={<DatasetLoader />} />
       <Route path="/:username/:modelName" element={<FilterMaker />} />
       <Route path="*" element={<PageNotFound />} />
     </Route>

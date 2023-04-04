@@ -1,6 +1,6 @@
 import {SlButton, SlInput, SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
-import {useAddModelDataMutation} from '../store';
+import {useAddModelDataMutation} from '../store/store';
 import {renderError} from '../utils';
 import styles from './dataset_loader.module.css';
 
