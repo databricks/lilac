@@ -1,15 +1,19 @@
 import {SlIcon, SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import {Command} from 'cmdk';
 import * as React from 'react';
+import {Location, useLocation} from 'react-router-dom';
 import './search_box.css';
 import {useGetDatasetsQuery} from './store/api_dataset';
+
+/** Time to debounce (ms). */
+const DEBOUNCE_TIME_MS = 100;
 
 export const SearchBox = () => {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [inputValue, setInputValue] = React.useState('');
-  // const [open, setOpen] = React.useState(false);
   const [isFocused, setIsFocused] = React.useState(false);
+  const location = useLocation();
 
   const handleFocus = () => setIsFocused(true);
   const handleBlur = (e: React.FocusEvent) => {
@@ -45,7 +49,7 @@ export const SearchBox = () => {
       if (ref.current) {
         ref.current.style.transform = '';
       }
-    }, 100);
+    }, DEBOUNCE_TIME_MS);
 
     setInputValue('');
   }
@@ -98,7 +102,7 @@ export const SearchBox = () => {
                 ))}
               </div>
               <Command.Empty>No results found.</Command.Empty>
-              {isHome && <HomeMenu pushPage={pushPage} />}
+              {isHome && <HomeMenu pushPage={pushPage} location={location} />}
               {activePage === 'datasets' && <Datasets />}
             </>
           )}
@@ -108,7 +112,8 @@ export const SearchBox = () => {
   );
 };
 
-function HomeMenu({pushPage}: {pushPage: (page: string) => void}) {
+function HomeMenu({pushPage, location}: {pushPage: (page: string) => void; location: Location}) {
+  const datasetSelected = location.pathname.startsWith('/dataset/');
   return (
     <>
       <Command.Group heading="Datasets">
@@ -135,6 +140,18 @@ function HomeMenu({pushPage}: {pushPage: (page: string) => void}) {
           Create new concept
         </Item>
       </Command.Group>
+      {datasetSelected && (
+        <Command.Group heading="Filters">
+          <Item>
+            <SlIcon className="text-xl" name="database" />
+            Add filter
+          </Item>
+          <Item>
+            <SlIcon className="text-xl" name="database" />
+            Remove filter
+          </Item>
+        </Command.Group>
+      )}
       <Command.Group heading="Help">
         <Item>
           <SlIcon className="text-xl" name="file-earmark-text" />
