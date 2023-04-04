@@ -5,6 +5,7 @@ import type { ComputeEmbeddingIndexOptions } from '../models/ComputeEmbeddingInd
 import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
 import type { DatasetInfo } from '../models/DatasetInfo';
 import type { SortOrder } from '../models/SortOrder';
+import type { WebManifest } from '../models/WebManifest';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -21,25 +22,25 @@ export class DatasetService {
     public static getDatasets(): CancelablePromise<Array<DatasetInfo>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/dataset/datasets',
+            url: '/datasets/',
         });
     }
 
     /**
-     * Manifest
+     * Get Manifest
      * Get the web manifest for the dataset.
      * @param namespace
      * @param datasetName
-     * @returns any Successful Response
+     * @returns WebManifest Successful Response
      * @throws ApiError
      */
-    public static manifest(
+    public static getManifest(
         namespace: string,
         datasetName: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<WebManifest> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/dataset/{namespace}/{dataset_name}/manifest',
+            url: '/datasets/{namespace}/{dataset_name}',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,
@@ -66,7 +67,7 @@ export class DatasetService {
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/dataset/{namespace}/{dataset_name}/compute_embedding_index',
+            url: '/datasets/{namespace}/{dataset_name}/compute_embedding_index',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,
@@ -95,7 +96,7 @@ export class DatasetService {
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/dataset/{namespace}/{dataset_name}/compute_signal_column',
+            url: '/datasets/{namespace}/{dataset_name}/compute_signal_column',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,
@@ -132,7 +133,7 @@ export class DatasetService {
     ): CancelablePromise<Array<any>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/dataset/{namespace}/{dataset_name}/select_rows',
+            url: '/datasets/{namespace}/{dataset_name}/select_rows',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,

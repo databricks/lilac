@@ -14,7 +14,6 @@ from .server_api import (
     ComputeEmbeddingIndexOptions,
     ComputeSignalOptions,
     SelectDatasetRowsOptions,
-    WebColumnInfo,
     WebManifest,
 )
 from .signals.default_signals import register_default_signals
@@ -32,7 +31,7 @@ class DatasetInfo(BaseModel):
   description: Optional[str]
 
 
-@router.get('/datasets')
+@router.get('/')
 def get_datasets() -> list[DatasetInfo]:
   """List the datasets."""
   datasets_path = os.path.join(data_path(), DATASETS_DIR_NAME)
@@ -62,13 +61,11 @@ def get_datasets() -> list[DatasetInfo]:
   return dataset_infos
 
 
-@router.get('/{namespace}/{dataset_name}/manifest')
-def manifest(namespace: str, dataset_name: str) -> dict:
+@router.get('/{namespace}/{dataset_name}')
+def get_manifest(namespace: str, dataset_name: str) -> WebManifest:
   """Get the web manifest for the dataset."""
   dataset_db = get_dataset_db(namespace, dataset_name)
-  web_manifest = WebManifest(
-      columns=[WebColumnInfo(name=column.alias) for column in dataset_db.columns()])
-  return web_manifest.dict()
+  return WebManifest(dataset_manifest=dataset_db.manifest())
 
 
 @router.post('/{namespace}/{dataset_name}/compute_embedding_index')

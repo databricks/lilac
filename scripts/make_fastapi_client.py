@@ -18,7 +18,7 @@ def main(api_json_from_server: bool) -> None:
   # The API JSON from server is much faster than running the make_openapi script as the make_openapi script
   # needs to import all dependencies and run the FastAPI server.
   if api_json_from_server:
-    openapi_input = 'http://localhost:5432/openapi.json'
+    openapi_input = 'http://0.0.0.0:5432/openapi.json'
   else:
     openapi_input = '/tmp/openapi.json'
     # Call the make_openapi script to generate the openapi.json file.

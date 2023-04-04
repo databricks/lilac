@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import BaseModel, validator
 
 from .constants import AddExample, Dataset, LabeledExample
-from .datasets.db_dataset import SortOrder
+from .datasets.db_dataset import DatasetManifest, SortOrder
 from .signals.signal import Signal
 from .signals.signal_registry import resolve_signal
 
@@ -123,7 +123,7 @@ class WebColumnInfo(BaseModel):
 
 class WebManifest(BaseModel):
   """Information about a dataset."""
-  columns: list[WebColumnInfo]
+  dataset_manifest: DatasetManifest
 
 
 # Dataset DB methods.

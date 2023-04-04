@@ -23,7 +23,7 @@ export const PageNotFound = React.memo(function PageNotFound(): JSX.Element {
   return <>Error: Page not found!</>;
 });
 
-export const AppContainer = React.memo(function App(): JSX.Element {
+export const AppContainer = function App(): JSX.Element {
   return (
     <>
       <div className="flex flex-col h-full w-full">
@@ -34,7 +34,7 @@ export const AppContainer = React.memo(function App(): JSX.Element {
       </div>
     </>
   );
-});
+};
 
 const router = createBrowserRouter(
   createRoutesFromElements(

@@ -2,6 +2,7 @@ import {SlButton} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {Link} from 'react-router-dom';
 import styles from './header.module.css';
+import {SearchBox} from './search_box';
 
 export const Header = React.memo(function Header(): JSX.Element {
   return (
@@ -11,7 +12,10 @@ export const Header = React.memo(function Header(): JSX.Element {
           <Link to="/">Lilac</Link>
         </div>
       </div>
-      <div className="content-end self-end h-full">
+      <div className="w-96 z-50 flex mt-2">
+        <SearchBox />
+      </div>
+      <div className="flex items-center">
         <Link to="/create">
           <SlButton variant="success" className="mt-1 mr-4">
             New model

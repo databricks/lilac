@@ -10,7 +10,8 @@ rm -rf dist/ && npm run --prefix src/web dev --watch &
 pid[2]=$!
 
 # Run the node server.
-poetry run uvicorn src.server:app --reload --port 5432 --host 0.0.0.0 --reload-dir src &
+poetry run uvicorn src.server:app --reload --port 5432 --host 0.0.0.0 \
+  --reload-dir src --reload-exclude src/web &
 pid[1]=$!
 
 poetry run watchmedo shell-command \
