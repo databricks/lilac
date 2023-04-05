@@ -1,6 +1,7 @@
 #!/bin/bash
 
 export NODE_ENV=development
+export LILAC_DATA_LOADER_URL=http://0.0.0.0:5432
 
 # Make the web client upon bootup to make sure TypeScript files are in sync.
 poetry run python -m scripts.make_fastapi_client

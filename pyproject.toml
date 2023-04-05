@@ -29,7 +29,7 @@ tensorflow = {version = "~2.9", markers = "platform_machine != 'arm64'"}
 # https://developer.apple.com/metal/tensorflow-plugin/
 tensorflow-macos = {version = "~2.9.0", markers = "platform_machine == 'arm64'"}
 tensorflow-metal = {version = "^0.6.0", markers = "platform_machine == 'arm64'"}
-tensorflow-datasets = "^4.6.0"
+tensorflow-datasets = "^4.8.3"
 
 [tool.poetry.group.dev]  # Deps for development.
 optional = true

@@ -122,22 +122,24 @@ def _tfds_schema_to_schema(feature: tfds.features.FeaturesDict) -> Schema:
   return Schema(fields=fields)
 
 
-class TFDSSource(Source):
+class TensorFlowDataset(Source):
   """TFDS source."""
   name = 'tfds'
 
-  dataset_name: str
+  tfds_name: str
   split: Optional[str] = None
 
   async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:
     """Process the source upload request."""
-    builder = tfds.builder(self.dataset_name)
+    print('tfds name', self.tfds_name)
+    builder = tfds.builder(self.tfds_name)
+    print(builder.info)
     split = list(builder.info.splits.keys())[0]
     if self.split:
       split = self.split
     elif 'train' in builder.info.splits:
       split = 'train'
-    log(f'TFDS({self.dataset_name}): Using split "{split}"')
+    log(f'TFDS({self.tfds_name}): Using split "{split}"')
 
     if not builder.info.splits.total_num_examples:
       raise ValueError(f'No examples found in {builder.name!r}. Was the dataset generated ?')
@@ -152,7 +154,7 @@ class TFDSSource(Source):
     schema = _tfds_schema_to_schema(builder.info.features)
     num_shards = builder.info.splits[split].num_shards
     shard_infos = [
-        ShardInfo(dataset_name=self.dataset_name,
+        ShardInfo(dataset_name=self.tfds_name,
                   split=split,
                   data_schema=schema,
                   shard_index=shard_index,

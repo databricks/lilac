@@ -2,7 +2,7 @@ import {SerializedError} from '@reduxjs/toolkit';
 import {SlSpinner, SlTooltip} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 
-export function queryResult<T>(
+export function renderQuery<T>(
   queryResult: {
     isFetching?: boolean;
     error?: string | SerializedError | undefined;

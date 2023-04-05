@@ -52,6 +52,7 @@ class CSVSource(Source):
   delim: Optional[str] = ','
   image_columns: Optional[list[ImageColumn]]
 
+  @override
   async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:
     """Process the source upload request."""
     start_time = time.time()

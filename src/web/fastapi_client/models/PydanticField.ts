@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 /**
- * The interface to the /process_source endpoint.
+ * A pydantic field metadata to generate a UI form.
  */
 export type PydanticField = {
     name: string;

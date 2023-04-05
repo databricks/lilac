@@ -1,0 +1,14 @@
+.container {
+  width: 36rem;
+  margin: auto;
+}
+
+.row {
+  padding: 16px 4px;
+  width: 100%;
+  border-bottom-width: 1px;
+}
+
+.row:last-child {
+  border-bottom-width: 0px;
+}
