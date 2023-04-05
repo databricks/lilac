@@ -52,8 +52,9 @@ from .db_dataset import (
     ColumnId,
     DatasetDB,
     DatasetManifest,
-    Filter,
+    FilterLike,
     GroupsSortBy,
+    MediaResult,
     NamedBins,
     SelectGroupsResult,
     SelectRowsResult,
@@ -240,9 +241,9 @@ class DatasetDuckDB(DatasetDB):
       columns.append(Column(feature=path))
     return columns
 
-  def count(self, filters: Optional[list[Filter]] = None) -> int:
+  def count(self, filters: Optional[list[FilterLike]] = None) -> int:
     """Count the number of rows."""
-    raise NotImplementedError
+    raise NotImplementedError('count is not yet implemented for DuckDB.')
 
   @override
   def compute_embedding_index(self, embedding: EmbeddingId, column: ColumnId) -> None:
@@ -500,7 +501,7 @@ class DatasetDuckDB(DatasetDB):
   @override
   def select_groups(self,
                     leaf_path: Path,
-                    filters: Optional[Sequence[Filter]] = None,
+                    filters: Optional[Sequence[FilterLike]] = None,
                     sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
                     sort_order: Optional[SortOrder] = SortOrder.DESC,
                     limit: Optional[int] = 100,
@@ -557,10 +558,11 @@ class DatasetDuckDB(DatasetDB):
   @override
   def select_rows(self,
                   columns: Optional[Sequence[ColumnId]] = None,
-                  filters: Optional[Sequence[Filter]] = None,
+                  filters: Optional[Sequence[FilterLike]] = None,
                   sort_by: Optional[Sequence[str]] = None,
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
-                  limit: Optional[int] = 100) -> SelectRowsResult:
+                  limit: Optional[int] = 100,
+                  offset: Optional[int] = 0) -> SelectRowsResult:
     cols = [column_from_identifier(column) for column in columns or []]
     self._validate_columns(cols)
 
@@ -587,6 +589,7 @@ class DatasetDuckDB(DatasetDB):
       sort_query = f'ORDER BY {sort_by_query} {sort_order_query}'
 
     limit_query = f'LIMIT {limit}' if limit else ''
+    offset_query = f'OFFSET {offset}' if offset else ''
 
     query = f"""
       SELECT {select_query}
@@ -594,12 +597,17 @@ class DatasetDuckDB(DatasetDB):
       {where_query}
       {sort_query}
       {limit_query}
+      {offset_query}
     """
 
     query_results = cast(list, self._query(query).fetchall())
 
     item_rows = map(lambda row: dict(zip(col_aliases, row)), query_results)
     return SelectRowsResult(item_rows)
+
+  @override
+  def media(self, item_id: str, leaf_path: Path) -> MediaResult:
+    raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
   def _create_select(
       self,
@@ -622,7 +630,7 @@ class DatasetDuckDB(DatasetDB):
 
     return ', '.join(select_queries), aliases
 
-  def _create_where(self, filters: Optional[Sequence[Filter]] = None) -> str:
+  def _create_where(self, filters: Optional[Sequence[FilterLike]] = None) -> str:
     if not filters:
       return ''
     raise ValueError('Filters are not yet supported for the DuckDB implementation.')

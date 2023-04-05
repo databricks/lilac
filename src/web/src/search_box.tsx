@@ -1,7 +1,7 @@
 import {SlIcon, SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import {Command} from 'cmdk';
 import * as React from 'react';
-import {Location, useLocation} from 'react-router-dom';
+import {Location, useLocation, useNavigate} from 'react-router-dom';
 import './search_box.css';
 import {useGetDatasetsQuery} from './store/api_dataset';
 
@@ -14,6 +14,13 @@ export const SearchBox = () => {
   const [inputValue, setInputValue] = React.useState('');
   const [isFocused, setIsFocused] = React.useState(false);
   const location = useLocation();
+
+  /** Closes the menu. */
+  const closeMenu = () => {
+    ref.current?.blur();
+    inputRef.current?.blur();
+    setIsFocused(false);
+  };
 
   const handleFocus = () => setIsFocused(true);
   const handleBlur = (e: React.FocusEvent) => {
@@ -103,7 +110,7 @@ export const SearchBox = () => {
               </div>
               <Command.Empty>No results found.</Command.Empty>
               {isHome && <HomeMenu pushPage={pushPage} location={location} />}
-              {activePage === 'datasets' && <Datasets />}
+              {activePage === 'datasets' && <Datasets closeMenu={closeMenu} />}
             </>
           )}
         </Command.List>
@@ -170,8 +177,9 @@ function HomeMenu({pushPage, location}: {pushPage: (page: string) => void; locat
   );
 }
 
-function Datasets() {
+function Datasets({closeMenu}: {closeMenu: () => void}) {
   const {isFetching, currentData} = useGetDatasetsQuery();
+  const navigate = useNavigate();
   if (isFetching || currentData == null) {
     return <SlSpinner />;
   }
@@ -180,7 +188,13 @@ function Datasets() {
       {currentData.map((d) => {
         const key = `${d.namespace}/${d.dataset_name}`;
         return (
-          <Item key={key}>
+          <Item
+            key={key}
+            onSelect={() => {
+              closeMenu();
+              navigate(`/datasets/${d.namespace}/${d.dataset_name}`);
+            }}
+          >
             {d.namespace} / {d.dataset_name}
           </Item>
         );

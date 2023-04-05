@@ -1,0 +1,3 @@
+.browser_preview_dropdown sl-menu-item::part(base) {
+  font-size: var(--sl-font-size-small);
+}

@@ -5,26 +5,4 @@
 /**
  * Enum holding the dtype for a field.
  */
-export enum DataType {
-    STRING = 'string',
-    STRING_SPAN = 'string_span',
-    BOOLEAN = 'boolean',
-    INT8 = 'int8',
-    INT16 = 'int16',
-    INT32 = 'int32',
-    INT64 = 'int64',
-    UINT8 = 'uint8',
-    UINT16 = 'uint16',
-    UINT32 = 'uint32',
-    UINT64 = 'uint64',
-    FLOAT16 = 'float16',
-    FLOAT32 = 'float32',
-    FLOAT64 = 'float64',
-    TIME = 'time',
-    DATE = 'date',
-    TIMESTAMP = 'timestamp',
-    INTERVAL = 'interval',
-    STRUCT = 'struct',
-    LIST = 'list',
-    BINARY = 'binary',
-}
+export type DataType = 'string' | 'string_span' | 'boolean' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float16' | 'float32' | 'float64' | 'time' | 'date' | 'timestamp' | 'interval' | 'struct' | 'list' | 'binary';

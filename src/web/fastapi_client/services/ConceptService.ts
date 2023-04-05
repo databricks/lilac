@@ -26,7 +26,7 @@ export class ConceptService {
     ): CancelablePromise<Concept> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/concepts/{namespace}/{concept_name}',
+            url: '/api/v1/concepts/{namespace}/{concept_name}',
             path: {
                 'namespace': namespace,
                 'concept_name': conceptName,
@@ -53,7 +53,7 @@ export class ConceptService {
     ): CancelablePromise<Concept> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/concepts/{namespace}/{concept_name}',
+            url: '/api/v1/concepts/{namespace}/{concept_name}',
             path: {
                 'namespace': namespace,
                 'concept_name': conceptName,
@@ -82,7 +82,7 @@ export class ConceptService {
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/concepts/{namespace}/{concept_name}/{embedding_name}',
+            url: '/api/v1/concepts/{namespace}/{concept_name}/{embedding_name}',
             path: {
                 'namespace': namespace,
                 'concept_name': conceptName,
@@ -112,7 +112,7 @@ export class ConceptService {
     ): CancelablePromise<ScoreResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/concepts/{namespace}/{concept_name}/{embedding_name}/score',
+            url: '/api/v1/concepts/{namespace}/{concept_name}/{embedding_name}/score',
             path: {
                 'namespace': namespace,
                 'concept_name': conceptName,

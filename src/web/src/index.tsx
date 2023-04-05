@@ -12,6 +12,7 @@ import {
 } from 'react-router-dom';
 import {CreateModel} from './create_model';
 import {DatasetLoader} from './dataset_loader';
+import {DatasetViewer} from './dataset_viewer/dataset_viewer';
 import {Header} from './header';
 import {Home} from './home';
 import './index.css';
@@ -40,9 +41,10 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path="/" element={<AppContainer />}>
       <Route index element={<Home />} />
+      <Route path="/datasets/:namespace/:datasetName" element={<DatasetViewer />} />
       <Route path="create" element={<CreateModel />} />
       <Route path="dataset_loader" element={<DatasetLoader />} />
-      <Route path="/:username/:modelName" element={<FilterMaker />} />
+      <Route path="/concepts/:namespace/:conceptName" element={<FilterMaker />} />
       <Route path="*" element={<PageNotFound />} />
     </Route>
   )

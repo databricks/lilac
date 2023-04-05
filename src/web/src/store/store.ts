@@ -1,10 +1,11 @@
 /**
  * The global application redux state store.
  */
-import {configureStore} from '@reduxjs/toolkit';
+import {configureStore, PayloadAction} from '@reduxjs/toolkit';
 import {createApi} from '@reduxjs/toolkit/query/react';
 
 import {createSlice} from '@reduxjs/toolkit';
+import {Path} from '../schema';
 import {
   AddDatasetOptions,
   AddExamplesOptions,
@@ -21,16 +22,48 @@ import {
 import {datasetApi} from './api_dataset';
 import {dataLoaderApi} from './api_data_loader';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface AppState {}
+interface SelectedData {
+  namespace?: string;
+  datasetName?: string;
+
+  browser: {
+    /** A list of paths to preview in the browser. Each path gets its own column. */
+    previewPaths?: Path[];
+    /** Row height when in list view (spreadsheet-like table). */
+    rowHeightListPx: number;
+    /** Row height when in gallery view (multiple square-ish items in the same row). */
+    rowHeightGalleryPx: number;
+  };
+}
+
+interface AppState {
+  selectedData: SelectedData;
+}
 
 // Define the initial state using that type
-const initialState: AppState = {};
+const initialState: AppState = {
+  selectedData: {browser: {rowHeightListPx: 60, rowHeightGalleryPx: 165}},
+};
 
 const appSlice = createSlice({
   name: 'app',
   initialState,
-  reducers: {},
+  reducers: {
+    setDataset(state, action: PayloadAction<{namespace: string; datasetName: string}>) {
+      state.selectedData.namespace = action.payload.namespace;
+      state.selectedData.datasetName = action.payload.datasetName;
+      state.selectedData.browser.previewPaths = undefined;
+    },
+    setBrowserPreviewPaths(state, action: PayloadAction<Path[]>) {
+      state.selectedData.browser.previewPaths = action.payload;
+    },
+    setRowHeightListPx(state, action: PayloadAction<number>) {
+      state.selectedData.browser.rowHeightListPx = action.payload;
+    },
+    setRowHeightGalleryPx(state, action: PayloadAction<number>) {
+      state.selectedData.browser.rowHeightGalleryPx = action.payload;
+    },
+  },
 });
 
 const MODELS_TAG = 'models';
@@ -193,6 +226,10 @@ export const store = configureStore({
     ]),
   devTools: process.env.NODE_ENV !== 'production',
 });
+
+// Export the actions.
+export const {setDataset, setBrowserPreviewPaths, setRowHeightListPx, setRowHeightGalleryPx} =
+  appSlice.actions;
 
 export const {
   useCreateModelMutation,

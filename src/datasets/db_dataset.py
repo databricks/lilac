@@ -7,7 +7,7 @@ import pandas as pd
 from pydantic import BaseModel, validator
 
 from ..embeddings.embedding_registry import EmbeddingId
-from ..schema import Item, Path, Schema, path_to_alias
+from ..schema import Item, Path, PathTuple, Schema, path_to_alias
 from ..signals.signal import Signal
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -50,14 +50,19 @@ class StatsResult(BaseModel):
   avg_text_length: Optional[float]
 
 
+class MediaResult(BaseModel):
+  """The result of a media() query."""
+  data: bytes
+
+
 class Comparison(str, enum.Enum):
   """The comparison operator between a column and a feature value."""
-  EQUALS = '='
-  NOT_EQUAL = '!='
-  GREATER = '>'
-  GREATER_EQUAL = '>='
-  LESS = '<'
-  LESS_EQUAL = '<='
+  EQUALS = 'equals'
+  NOT_EQUAL = 'not_equal'
+  GREATER = 'greater'
+  GREATER_EQUAL = 'greater_equal'
+  LESS = 'less'
+  LESS_EQUAL = 'less_equal'
 
 
 class SortOrder(str, enum.Enum):
@@ -168,7 +173,17 @@ def Bucketize(column: Column, bins: list[float]) -> Column:
 
 
 FeatureValue = Union[int, float, bool, str]
-Filter = tuple[Column, Comparison, FeatureValue]
+FilterTuple = tuple[Union[Path, Column], Comparison, FeatureValue]
+
+
+class Filter(BaseModel):
+  """A filter on a column."""
+  path: PathTuple
+  comparison: Comparison
+  value: FeatureValue
+
+
+FilterLike = Union[Filter, FilterTuple]
 
 
 class DatasetDB(abc.ABC):
@@ -247,7 +262,8 @@ class DatasetDB(abc.ABC):
                   filters: Optional[Sequence[Filter]] = None,
                   sort_by: Optional[list[str]] = None,
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
-                  limit: Optional[int] = 100) -> SelectRowsResult:
+                  limit: Optional[int] = 100,
+                  offset: Optional[int] = 0) -> SelectRowsResult:
     """Select grouped columns to power a histogram.
 
     Args:
@@ -261,6 +277,7 @@ class DatasetDB(abc.ABC):
         an alias must be provided explicitly.
       sort_order: The sort order.
       limit: The maximum number of rows to return.
+      offset: The offset to start returning rows from.
 
     Returns
       A SelectRowsResult iterator with rows of `Item`s.
@@ -276,5 +293,18 @@ class DatasetDB(abc.ABC):
 
     Returns
       A StatsResult.
+    """
+    pass
+
+  @abc.abstractmethod
+  def media(self, item_id: str, leaf_path: Path) -> MediaResult:
+    """Return the media for a leaf path.
+
+    Args:
+      item_id: The item id to get media for.
+      leaf_path: The leaf path for the media.
+
+    Returns
+      A MediaResult.
     """
     pass
