@@ -1,6 +1,7 @@
 import {SerializedError} from '@reduxjs/toolkit';
 import {SlTooltip} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
+import {Path} from './schema';
 
 export function renderError(error: string | SerializedError | undefined): JSX.Element {
   if (error == null) {
@@ -19,6 +20,10 @@ export function renderError(error: string | SerializedError | undefined): JSX.El
       </span>
     </SlTooltip>
   );
+}
+
+export function renderPath(leafPath: Path): string {
+  return leafPath.join('.');
 }
 
 export function getModelLink(username: string, modelName: string): string {

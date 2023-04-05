@@ -15,6 +15,13 @@ export const SearchBox = () => {
   const [isFocused, setIsFocused] = React.useState(false);
   const location = useLocation();
 
+  /** Closes the menu. */
+  const closeMenu = () => {
+    ref.current?.blur();
+    inputRef.current?.blur();
+    setIsFocused(false);
+  };
+
   const handleFocus = () => setIsFocused(true);
   const handleBlur = (e: React.FocusEvent) => {
     // Ignore blur if the focus is moving to a child of the parent.
@@ -103,7 +110,7 @@ export const SearchBox = () => {
               </div>
               <Command.Empty>No results found.</Command.Empty>
               {isHome && <HomeMenu pushPage={pushPage} location={location} />}
-              {activePage === 'datasets' && <Datasets />}
+              {activePage === 'datasets' && <Datasets closeMenu={closeMenu} />}
             </>
           )}
         </Command.List>
@@ -170,7 +177,7 @@ function HomeMenu({pushPage, location}: {pushPage: (page: string) => void; locat
   );
 }
 
-function Datasets() {
+function Datasets({closeMenu}: {closeMenu: () => void}) {
   const {isFetching, currentData} = useGetDatasetsQuery();
   const navigate = useNavigate();
   if (isFetching || currentData == null) {
@@ -184,6 +191,7 @@ function Datasets() {
           <Item
             key={key}
             onSelect={() => {
+              closeMenu();
               navigate(`/datasets/${d.namespace}/${d.dataset_name}`);
             }}
           >

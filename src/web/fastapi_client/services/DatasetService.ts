@@ -1,10 +1,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ComputeEmbeddingIndexOptions } from '../models/ComputeEmbeddingIndexOptions';
 import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
 import type { DatasetInfo } from '../models/DatasetInfo';
-import type { SortOrder } from '../models/SortOrder';
+import type { GetStatsOptions } from '../models/GetStatsOptions';
+import type { SelectGroupsOptions } from '../models/SelectGroupsOptions';
+import type { SelectRowsOptions } from '../models/SelectRowsOptions';
+import type { StatsResult } from '../models/StatsResult';
 import type { WebManifest } from '../models/WebManifest';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -56,14 +58,16 @@ export class DatasetService {
      * Compute a signal for a dataset.
      * @param namespace
      * @param datasetName
-     * @param requestBody
+     * @param embedding
+     * @param column
      * @returns any Successful Response
      * @throws ApiError
      */
     public static computeEmbeddingIndex(
         namespace: string,
         datasetName: string,
-        requestBody: ComputeEmbeddingIndexOptions,
+        embedding: string,
+        column: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -72,8 +76,10 @@ export class DatasetService {
                 'namespace': namespace,
                 'dataset_name': datasetName,
             },
-            body: requestBody,
-            mediaType: 'application/json',
+            query: {
+                'embedding': embedding,
+                'column': column,
+            },
             errors: {
                 422: `Validation Error`,
             },
@@ -110,40 +116,118 @@ export class DatasetService {
     }
 
     /**
+     * Get Stats
+     * Get the stats for the dataset.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns StatsResult Successful Response
+     * @throws ApiError
+     */
+    public static getStats(
+        namespace: string,
+        datasetName: string,
+        requestBody: GetStatsOptions,
+    ): CancelablePromise<StatsResult> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/stats',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Select Rows
      * Select rows from the dataset database.
      * @param namespace
      * @param datasetName
-     * @param columns
-     * @param filters
-     * @param sortBy
-     * @param sortOrder
-     * @param limit
+     * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
     public static selectRows(
         namespace: string,
         datasetName: string,
-        columns?: string,
-        filters?: string,
-        sortBy?: string,
-        sortOrder?: SortOrder,
-        limit?: number,
+        requestBody: SelectRowsOptions,
     ): CancelablePromise<Array<any>> {
         return __request(OpenAPI, {
-            method: 'GET',
+            method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/select_rows',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,
             },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Select Groups
+     * Select groups from the dataset database.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static selectGroups(
+        namespace: string,
+        datasetName: string,
+        requestBody: SelectGroupsOptions,
+    ): CancelablePromise<Array<any>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/select_groups',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Media
+     * Get the media for the dataset.
+     * @param namespace
+     * @param datasetName
+     * @param itemId
+     * @param leafPath
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getMedia(
+        namespace: string,
+        datasetName: string,
+        itemId: string,
+        leafPath: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/media',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
             query: {
-                'columns': columns,
-                'filters': filters,
-                'sort_by': sortBy,
-                'sort_order': sortOrder,
-                'limit': limit,
+                'item_id': itemId,
+                'leaf_path': leafPath,
             },
             errors: {
                 422: `Validation Error`,

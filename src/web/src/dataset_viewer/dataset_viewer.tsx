@@ -1,7 +1,10 @@
-import {SlSpinner} from '@shoelace-style/shoelace/dist/react';
+import {SlIcon, SlSpinner, SlSplitPanel} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {useParams} from 'react-router-dom';
 import {useGetManifestQuery} from '../store/api_dataset';
+import {Browser} from './browser';
+import styles from './dataset_viewer.module.css';
+import {Stats} from './stats';
 
 export const DatasetViewer = React.memo(function DatasetViewer(): JSX.Element {
   const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
@@ -12,9 +15,20 @@ export const DatasetViewer = React.memo(function DatasetViewer(): JSX.Element {
   if (isFetching || currentData == null) {
     return <SlSpinner />;
   }
+  const statsUI = <Stats namespace={namespace} datasetName={datasetName}></Stats>;
+  const browserUI = <Browser namespace={namespace} datasetName={datasetName}></Browser>;
+
   return (
-    <>
-      Viewing dataset {namespace} / {datasetName}
-    </>
+    <div className={`${styles.body} flex w-full h-full overflow-hidden`}>
+      <SlSplitPanel position={65} className="w-full h-full">
+        <SlIcon slot="handle" name="grip-vertical" />
+        <div slot="start" className={`p-4 h-full w-full ${styles.stats}`}>
+          {statsUI}
+        </div>
+        <div slot="end" className={`p-4 w-full h-full ${styles.browser}`}>
+          {browserUI}
+        </div>
+      </SlSplitPanel>
+    </div>
   );
 });

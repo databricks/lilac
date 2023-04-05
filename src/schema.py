@@ -119,7 +119,7 @@ class Field(BaseModel):
 
   @validator('refers_to', always=True)
   def refers_to_is_defined_for_string_spans(cls, refers_to: Optional[Path],
-                                             values: dict[str, Any]) -> Optional[Path]:
+                                            values: dict[str, Any]) -> Optional[Path]:
     """Error if both `fields` and `repeated_fields` are defined."""
     if values.get('dtype') == DataType.STRING_SPAN and refers_to is None:
       raise ValueError('refers_to must be defined for DataType.STRING_SPAN')

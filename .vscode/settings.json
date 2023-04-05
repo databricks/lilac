@@ -1,9 +1,9 @@
 {
   "search.exclude": {
-    "**/node_modules": true,
-    "**/.venv/": true,
-    "**/.mypy_cache/": true,
-    "**/dist/": true,
+    "**/node_modules/**": true,
+    "**/.venv/**": true,
+    "**/.mypy_cache/**": true,
+    "**/dist/**": true,
     "**/yarn.lock": true,
     "**/poetry.lock": true,
     "**/package-lock.json": true
