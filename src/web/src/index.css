@@ -1,2 +1,14 @@
 @tailwind base;
 @tailwind utilities;
+
+@layer base {
+  h1 {
+    @apply text-3xl lg:text-5xl;
+  }
+  h2 {
+    @apply text-2xl lg:text-3xl;
+  }
+  h3 {
+    @apply text-lg lg:text-xl font-bold;
+  }
+}

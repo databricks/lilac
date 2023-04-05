@@ -25,7 +25,6 @@ export type { HTTPValidationError } from './models/HTTPValidationError';
 export type { LabeledExample } from './models/LabeledExample';
 export type { LoadDatasetOptions } from './models/LoadDatasetOptions';
 export type { LoadDatasetShardOptions } from './models/LoadDatasetShardOptions';
-export type { PydanticField } from './models/PydanticField';
 export type { SaveModelOptions } from './models/SaveModelOptions';
 export type { Schema } from './models/Schema';
 export type { ScoreBody } from './models/ScoreBody';

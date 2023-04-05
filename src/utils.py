@@ -208,7 +208,6 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
     num_items += 1
   writer.close()
   f.close()
-  log(f'[Parquet writer] Wrote shard {shard_index + 1} of {num_shards} to {output_dir}')
   return parquet_filename, num_items
 
 

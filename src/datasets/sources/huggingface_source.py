@@ -3,7 +3,10 @@ import multiprocessing
 from typing import Iterable, Optional, Union
 
 import tensorflow as tf
-from pydantic import BaseModel
+from pydantic import (
+    BaseModel,
+    Field as PydanticField,
+)
 from typing_extensions import override
 
 from datasets import ClassLabel, DatasetDict, Value, load_dataset
@@ -97,13 +100,22 @@ def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> 
 
 
 class HuggingFaceDataset(Source[ShardInfo]):
-  """Huggingface data loader."""
+  """HuggingFace data loader
+
+  For a list of datasets see: [https://huggingface.co/datasets](https://huggingface.co/datasets).
+
+  For documentation on dataset loading see:
+      [https://huggingface.co/docs/datasets/index](https://huggingface.co/docs/datasets/index)
+  """ # noqa: D415, D400
   name = 'huggingface'
   shard_info_cls = ShardInfo
 
-  huggingface_dataset_name: str
-  revision: Optional[str] = None
-  split: Optional[str] = None
+  huggingface_dataset_name: str = PydanticField(description='The huggingface dataset name.')
+  revision: Optional[str] = PydanticField(description='The optional huggingface dataset revision.',
+                                          default=None)
+  split: Optional[str] = PydanticField(
+      description='The optional huggingface dataset split. When not defined, loads all splits.',
+      default=None)
 
   @override
   async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:

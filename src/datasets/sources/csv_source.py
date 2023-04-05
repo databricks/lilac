@@ -7,7 +7,7 @@ from typing import Optional
 import duckdb
 import pyarrow.parquet as pq
 import requests
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing_extensions import override
 
 from ...constants import data_path
@@ -45,12 +45,17 @@ class ShardInfo(BaseModel):
 
 
 class CSVSource(Source):
-  """CSV source."""
+  """CSV data loader
+
+  CSV files can live locally as a filepath, or point to an external URL.
+  """ # noqa: D415, D400
   name = 'csv'
 
-  filepaths: list[str]
-  delim: Optional[str] = ','
-  image_columns: Optional[list[ImageColumn]]
+  filepaths: list[str] = Field(description='A list of filepaths to CSV files.')
+  delim: Optional[str] = Field(default=',', description='The CSV file delimiter to use.')
+  image_columns: Optional[list[ImageColumn]] = Field(
+      description=
+      'A list of image columns specifying which columns associate with image information.')
 
   @override
   async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:

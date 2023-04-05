@@ -11,9 +11,7 @@ import asyncio
 import json
 import os
 from concurrent.futures import ProcessPoolExecutor
-from inspect import signature
-from types import GenericAlias
-from typing import Any, Awaitable, Callable, Literal, Optional, Union, get_args, get_origin
+from typing import Any, Awaitable, Callable, Literal, Optional, Union
 
 import click
 import requests
@@ -61,45 +59,29 @@ class PydanticField(BaseModel):
   name: str
   type: Union[Literal['str'], Literal['int']]
   optional: bool
+  description: Optional[str]
 
 
-def is_optional(field: GenericAlias) -> bool:
-  """Check if a field is optional."""
-  return field == Optional or (get_origin(field) is Union and type(None) in get_args(field))
+class PydanticSchema(BaseModel):
+  """A pydantic schema to generate a UI form.
+
+  NOTE: Pydantic doesn't expose their own schema() as a class, so we do this to generate typings
+  in the frontend.
+  """
+  fields: list[PydanticField]
 
 
 @router.get('/{source_name}')
-def get_source_fields(source_name: str) -> list[PydanticField]:
+def get_source_schema(source_name: str) -> dict[str, Any]:
   """Get the fields for a source."""
   source_cls = get_source_cls(source_name)
-  sig = signature(source_cls)
-  fields: list[PydanticField] = []
-
-  for name, parameter in sig.parameters.items():
-    if name == 'args' or name == 'source_name':
-      continue
-    print()
-    print(parameter)
-    print(parameter.annotation)
-    print('is required', not is_optional(parameter.annotation))
-    origin_type = get_origin(parameter.annotation)
-    optional = is_optional(parameter.annotation)
-    print('origin_type', origin_type)
-    if origin_type not in supported_primitives and parameter.annotation not in supported_primitives:
-      log(f'Unsupported type {parameter.annotation} for parameter {name}')
-
-    fields.append(
-        PydanticField(name=name,
-                      type=parameter.annotation.__name__
-                      if not optional else parameter.annotation.__args__[0].__name__,
-                      optional=optional))
-
-  return fields
+  return source_cls.schema()
 
 
 class LoadDatasetOptions(BaseModel):
   """Options for loading a dataset."""
   source_name: str
+  """The optional huggingface split."""
   namespace: str
   dataset_name: str
   config: dict[str, Any]
@@ -114,14 +96,14 @@ async def load(options: LoadDatasetOptions) -> None:
   public_url = os.environ.get('LILAC_DATA_LOADER_URL')
 
   @async_wrap
-  def process_shard(shard_info_dict: dict) -> dict:
+  def process_shard(shard_info: BaseShardInfo) -> SourceShardOut:
     url = f'{public_url}/data_loaders/load_shard'
-    load_dataset_shard_options = LoadDatasetShardOptions(source=source, shard_info=shard_info_dict)
+    load_dataset_shard_options = LoadDatasetShardOptions(source=source, shard_info=shard_info)
     res = requests.post(url,
                         data=load_dataset_shard_options.json(),
                         timeout=REQUEST_TIMEOUT_SEC,
                         headers={'Content-Type': 'application/json'})
-    return res.json()
+    return SourceShardOut(**res.json())
 
   await _process_source(data_path(), options.namespace, options.dataset_name, source, process_shard)
 

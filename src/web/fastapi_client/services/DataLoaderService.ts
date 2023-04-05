@@ -3,7 +3,6 @@
 /* eslint-disable */
 import type { LoadDatasetOptions } from '../models/LoadDatasetOptions';
 import type { LoadDatasetShardOptions } from '../models/LoadDatasetShardOptions';
-import type { PydanticField } from '../models/PydanticField';
 import type { SourceShardOut } from '../models/SourceShardOut';
 import type { SourcesList } from '../models/SourcesList';
 
@@ -27,15 +26,15 @@ export class DataLoaderService {
     }
 
     /**
-     * Get Source Fields
+     * Get Source Schema
      * Get the fields for a source.
      * @param sourceName
-     * @returns PydanticField Successful Response
+     * @returns any Successful Response
      * @throws ApiError
      */
-    public static getSourceFields(
+    public static getSourceSchema(
         sourceName: string,
-    ): CancelablePromise<Array<PydanticField>> {
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/data_loaders/{source_name}',

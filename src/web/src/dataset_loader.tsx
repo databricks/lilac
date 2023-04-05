@@ -6,10 +6,10 @@ import {
   SlSpinner,
 } from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
-import {PydanticField} from '../fastapi_client';
 import styles from './dataset_loader.module.css';
+import {JSONSchemaForm} from './json_schema_form';
 import {
-  useGetSourceFieldsQuery,
+  useGetSourceSchemaQuery,
   useGetSourcesQuery,
   useLoadDatasetMutation,
 } from './store/api_data_loader';
@@ -20,8 +20,12 @@ export const DatasetLoader = (): JSX.Element => {
   const [namespace, setNamespace] = React.useState<string>('local');
   const [datasetName, setDatasetName] = React.useState<string>('');
   const [sourceName, setSourceName] = React.useState<string>();
+  const [formData, setFormData] = React.useState<{[key: string]: string}>({});
 
-  const source = useGetSourceFieldsQuery({sourceName: sourceName!}, {skip: sourceName == null});
+  const sourceSchema = useGetSourceSchemaQuery(
+    {sourceName: sourceName!},
+    {skip: sourceName == null}
+  );
 
   const sourcesSelect = renderQuery(sources, (sources) => (
     <div className={styles.row}>
@@ -29,7 +33,7 @@ export const DatasetLoader = (): JSX.Element => {
         size="medium"
         value={sourceName}
         hoist={true}
-        label="Source"
+        label="Choose a data loader"
         onSlChange={(e) => setSourceName((e.target as HTMLInputElement).value)}
       >
         {sources.sources.map((sourceName) => (
@@ -53,67 +57,33 @@ export const DatasetLoader = (): JSX.Element => {
 
   const loadDatasetButtonDisabled =
     sources.currentData == null ||
-    source.currentData == null ||
-    datasetName == null ||
-    namespace == null;
-  const FieldsForm = React.memo(function Form({
-    pydanticFields,
-  }: {
-    pydanticFields: PydanticField[];
-  }): JSX.Element {
-    const [formData, setFormData] = React.useState<{[key: string]: string}>({});
-    const loadClicked = () => {
-      loadDataset({
-        source_name: sourceName!,
-        config: formData,
-        namespace,
-        dataset_name: datasetName,
-      });
-    };
-    return (
-      <>
-        <div className={styles.row}>
-          {pydanticFields.map((field) => (
-            <div key={field.name} className="mt-4">
-              <SlInput
-                value={formData[field.name] || ''}
-                label={field.name}
-                type={field.type === 'int' ? 'number' : 'text'}
-                required={!field.optional}
-                onSlChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    [field.name]: (e.target as HTMLInputElement).value,
-                  })
-                }
-              />
-            </div>
-          ))}
-        </div>
-        <div className={styles.row}>
-          <SlButton
-            disabled={loadDatasetButtonDisabled}
-            variant="success"
-            className="mt-1 mr-4"
-            onClick={() => loadClicked()}
-          >
-            Load dataset
-          </SlButton>
-          {isLoadDatasetLoading ? <SlSpinner></SlSpinner> : null}
-          {isLoadDatasetError ? renderError(loadDatasetError) : null}
-          {isLoadDatasetSuccess ? 'SUCCESS' : null}
-        </div>
-      </>
-    );
-  });
+    sourceSchema.currentData == null ||
+    datasetName == '' ||
+    namespace == '';
 
-  const sourceFieldsForm = renderQuery(source, (pydanticFields) => (
-    <FieldsForm pydanticFields={pydanticFields}></FieldsForm>
+  const sourceFieldsForm = renderQuery(sourceSchema, (sourceSchema) => (
+    <JSONSchemaForm
+      schema={sourceSchema}
+      ignoreProperties={['source_name']}
+      onFormData={(formData) => setFormData(formData)}
+    ></JSONSchemaForm>
   ));
+  const loadClicked = () => {
+    loadDataset({
+      source_name: sourceName!,
+      config: formData,
+      namespace,
+      dataset_name: datasetName,
+    });
+  };
 
   return (
     <>
-      <div className={`flex flex-col items-center ${styles.container}`}>
+      <div
+        className={`
+          flex flex-col items-center ${styles.container}
+          rounded overflow-hidden shadow-lg`}
+      >
         <div className={styles.row}>
           <div className="text-2xl font-bold">Load a dataset</div>
         </div>
@@ -129,12 +99,26 @@ export const DatasetLoader = (): JSX.Element => {
           <SlInput
             value={datasetName}
             label="Dataset Name"
+            help-text="The name of the dataset after it has been loaded."
             required={true}
             onSlChange={(e) => setDatasetName((e.target as HTMLInputElement).value)}
           />
         </div>
         {sourcesSelect}
-        {sourceFieldsForm}
+        <div className={styles.row}>{sourceFieldsForm}</div>
+        <div className={styles.row}>
+          <SlButton
+            disabled={loadDatasetButtonDisabled}
+            variant="success"
+            className="mt-1 mr-4"
+            onClick={() => loadClicked()}
+          >
+            Load dataset
+          </SlButton>
+          {isLoadDatasetLoading ? <SlSpinner></SlSpinner> : null}
+          {isLoadDatasetError ? renderError(loadDatasetError) : null}
+          {isLoadDatasetSuccess ? 'SUCCESS' : null}
+        </div>
       </div>
     </>
   );

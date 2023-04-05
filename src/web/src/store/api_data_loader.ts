@@ -2,12 +2,8 @@
  * RTK Query APIs for the data loader service: 'data_loader' tag in FastAPI.
  */
 import {createApi} from '@reduxjs/toolkit/dist/query/react';
-import {
-  DataLoaderService,
-  LoadDatasetOptions,
-  PydanticField,
-  SourcesList,
-} from '../../fastapi_client';
+import {JSONSchema7} from 'json-schema';
+import {DataLoaderService, LoadDatasetOptions, SourcesList} from '../../fastapi_client';
 
 const serverReducerPath = 'dataLoaderApi';
 export const dataLoaderApi = createApi({
@@ -21,9 +17,9 @@ export const dataLoaderApi = createApi({
         return {data: await DataLoaderService.getSources()};
       },
     }),
-    getSourceFields: builder.query<PydanticField[], {sourceName: string}>({
+    getSourceSchema: builder.query<JSONSchema7, {sourceName: string}>({
       queryFn: async ({sourceName}: {sourceName: string}) => {
-        return {data: await DataLoaderService.getSourceFields(sourceName)};
+        return {data: await DataLoaderService.getSourceSchema(sourceName)};
       },
     }),
     loadDataset: builder.mutation<null, LoadDatasetOptions>({
@@ -34,4 +30,4 @@ export const dataLoaderApi = createApi({
   }),
 });
 
-export const {useGetSourcesQuery, useGetSourceFieldsQuery, useLoadDatasetMutation} = dataLoaderApi;
+export const {useGetSourcesQuery, useGetSourceSchemaQuery, useLoadDatasetMutation} = dataLoaderApi;
