@@ -58,12 +58,12 @@ class MediaResult(BaseModel):
 
 class Comparison(str, enum.Enum):
   """The comparison operator between a column and a feature value."""
-  EQUALS = '='
-  NOT_EQUAL = '!='
-  GREATER = '>'
-  GREATER_EQUAL = '>='
-  LESS = '<'
-  LESS_EQUAL = '<='
+  EQUALS = 'equals'
+  NOT_EQUAL = 'not_equal'
+  GREATER = 'greater'
+  GREATER_EQUAL = 'greater_equal'
+  LESS = 'less'
+  LESS_EQUAL = 'less_equal'
 
 
 class SortOrder(str, enum.Enum):

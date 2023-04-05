@@ -1,6 +1,6 @@
 import {SerializedError} from '@reduxjs/toolkit';
 import * as React from 'react';
-import {Comparison, Filter} from '../../fastapi_client';
+import {Filter} from '../../fastapi_client';
 import {getLeafVals, Item, LeafValue, Path, serializePath, UUID_COLUMN} from '../schema';
 import {useGetMediaURLQuery, useSelectRowsQuery} from '../store/api_dataset';
 import {renderError, roundNumber} from '../utils';
@@ -78,9 +78,7 @@ function useGetItem(
   datasetName: string,
   itemId: string
 ): {isFetching: boolean; item: Item | null; error?: SerializedError | string} {
-  // TODO(smilkov): Figure out why typescript openAPI autogenerates incorrect enum.
-  const equalOperation = Comparison._;
-  const filters: Filter[] = [{path: [UUID_COLUMN], comparison: equalOperation, value: itemId}];
+  const filters: Filter[] = [{path: [UUID_COLUMN], comparison: 'equals', value: itemId}];
   const {
     isFetching,
     currentData: items,

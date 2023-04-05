@@ -8,7 +8,4 @@
  * Either "count" which sorts by the count of feature value, or "value" which sorts by the
  * feature value itself.
  */
-export enum GroupsSortBy {
-    COUNT = 'count',
-    VALUE = 'value',
-}
+export type GroupsSortBy = 'count' | 'value';

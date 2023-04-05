@@ -5,7 +5,4 @@
 /**
  * The sort order for a database query.
  */
-export enum SortOrder {
-    DESC = 'DESC',
-    ASC = 'ASC',
-}
+export type SortOrder = 'DESC' | 'ASC';

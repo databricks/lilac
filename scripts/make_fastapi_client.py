@@ -27,7 +27,7 @@ def main(api_json_from_server: bool) -> None:
   # Generate the web client.
   run(f"""
     pushd src/web > /dev/null && \
-    npx openapi --input {openapi_input} --output {output} && \
+    npx openapi --input {openapi_input} --output {output} --useUnionTypes && \
     popd > /dev/null
   """)
 
