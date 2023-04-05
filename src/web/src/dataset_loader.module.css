@@ -13,3 +13,8 @@
 .row:last-child {
   border-bottom-width: 0px;
 }
+
+sl-icon.load_data_success {
+  color: white;
+  background: var(--sl-color-green-500);
+}

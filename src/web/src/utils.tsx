@@ -19,6 +19,7 @@ export function renderQuery<T>(
     return <SlSpinner />;
   }
   if (error || currentData == null) {
+    console.log(error);
     return renderError(error);
   }
   return render(queryResult.currentData!);
@@ -47,8 +48,8 @@ export function renderPath(leafPath: Path): string {
   return leafPath.join('.');
 }
 
-export function getModelLink(username: string, modelName: string): string {
-  return `/${username}/${modelName}`;
+export function getDatasetLink(namespace: string, datasetName: string): string {
+  return `/datasets/${namespace}/${datasetName}`;
 }
 
 export function roundNumber(val: number, precision: number): number {

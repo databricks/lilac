@@ -16,9 +16,9 @@ export const Header = React.memo(function Header(): JSX.Element {
         <SearchBox />
       </div>
       <div className="flex items-center">
-        <Link to="/create">
+        <Link to="/dataset_loader">
           <SlButton variant="success" className="mt-1 mr-4">
-            New model
+            Load a dataset
           </SlButton>
         </Link>
       </div>

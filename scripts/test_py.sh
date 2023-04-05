@@ -21,4 +21,4 @@ export DISABLE_LOGS=True
 # --capture=tee-sys enables printing for passing tests.
 # Optional: Add `-v /path/to/test_file.py` to test a single file.
 # Optional: Add `-k test_default` to test a single test.
-pytest -vv --capture=tee-sys -m "$PYTEST_MARKS" -k test_simple_hf
+pytest -vv --capture=tee-sys -m "$PYTEST_MARKS"

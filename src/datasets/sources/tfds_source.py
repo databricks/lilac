@@ -5,11 +5,14 @@ from typing import Optional, Union
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from pydantic import BaseModel
+from pydantic import (
+    BaseModel,
+    Field as PydanticField,
+)
 
 from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, DataType, Field, Item, Schema
 from ...utils import log, write_items_to_parquet
-from .source import ShardsLoader, Source, SourceProcessResult
+from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut
 
 TFDSElement = Union[dict, tf.RaggedTensor, tf.Tensor]
 
@@ -122,12 +125,22 @@ def _tfds_schema_to_schema(feature: tfds.features.FeaturesDict) -> Schema:
   return Schema(fields=fields)
 
 
-class TensorFlowDataset(Source):
-  """TFDS source."""
+class TensorFlowDataset(Source[ShardInfo]):
+  """TensorFlow datasets data loader
+
+  For a list of datasets see:
+    [https://www.tensorflow.org/datasets/catalog/overview](https://www.tensorflow.org/datasets/catalog/overview).
+
+  For documentation on dataset loading see:
+      [https://www.tensorflow.org/datasets/overview](https://www.tensorflow.org/datasets/overview)
+  """ # noqa: D415, D400
   name = 'tfds'
+  shard_info_cls = ShardInfo
 
   tfds_name: str
-  split: Optional[str] = None
+  split: Optional[str] = PydanticField(
+      default=None,
+      description='The TensorFlow dataset split name. If not provided, loads all splits.')
 
   async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:
     """Process the source upload request."""
@@ -161,18 +174,18 @@ class TensorFlowDataset(Source):
                   num_shards=num_shards,
                   output_dir=output_dir) for shard_index in range(num_shards)
     ]
-    shard_outs = await shards_loader([x.dict(exclude_none=True) for x in shard_infos])
-    filepaths: list[str] = [x['filepath'] for x in shard_outs]
-    num_items = sum(x['num_items'] for x in shard_outs)
+
+    shard_outs = await shards_loader(shard_infos)
+    filepaths = [shard_out.filepath for shard_out in shard_outs]
+    num_items = sum(shard_out.num_items for shard_out in shard_outs)
 
     return SourceProcessResult(filepaths=filepaths,
                                data_schema=schema,
                                images=None,
                                num_items=num_items)
 
-  def process_shard(self, shard_info_dict: dict) -> dict:
+  def process_shard(self, shard_info: ShardInfo) -> SourceShardOut:
     """Process an input file shard. Each shard is processed in parallel by different workers."""
-    shard_info = ShardInfo(**shard_info_dict)
     ds = tfds.load(shard_info.dataset_name,
                    split=f'{shard_info.split}[{shard_info.shard_index}shard]')
 
@@ -184,4 +197,4 @@ class TensorFlowDataset(Source):
                                                  filename_prefix=PARQUET_FILENAME_PREFIX,
                                                  shard_index=shard_info.shard_index,
                                                  num_shards=shard_info.num_shards)
-    return {'filepath': filepath, 'num_items': num_items}
+    return SourceShardOut(filepath=filepath, num_items=num_items)

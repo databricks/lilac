@@ -1,5 +1,6 @@
 import {
   SlButton,
+  SlIcon,
   SlInput,
   SlOption,
   SlSelect,
@@ -13,7 +14,7 @@ import {
   useGetSourcesQuery,
   useLoadDatasetMutation,
 } from './store/api_data_loader';
-import {renderError, renderQuery} from './utils';
+import {getDatasetLink, renderError, renderQuery} from './utils';
 
 export const DatasetLoader = (): JSX.Element => {
   const sources = useGetSourcesQuery();
@@ -62,11 +63,13 @@ export const DatasetLoader = (): JSX.Element => {
     namespace == '';
 
   const sourceFieldsForm = renderQuery(sourceSchema, (sourceSchema) => (
-    <JSONSchemaForm
-      schema={sourceSchema}
-      ignoreProperties={['source_name']}
-      onFormData={(formData) => setFormData(formData)}
-    ></JSONSchemaForm>
+    <div className={styles.row}>
+      <JSONSchemaForm
+        schema={sourceSchema}
+        ignoreProperties={['source_name']}
+        onFormData={(formData) => setFormData(formData)}
+      ></JSONSchemaForm>
+    </div>
   ));
   const loadClicked = () => {
     loadDataset({
@@ -76,6 +79,10 @@ export const DatasetLoader = (): JSX.Element => {
       dataset_name: datasetName,
     });
   };
+
+  if (isLoadDatasetSuccess) {
+    location.href = getDatasetLink(namespace, datasetName);
+  }
 
   return (
     <>
@@ -88,24 +95,30 @@ export const DatasetLoader = (): JSX.Element => {
           <div className="text-2xl font-bold">Load a dataset</div>
         </div>
         <div className={styles.row}>
-          <SlInput
-            value={namespace}
-            label="Namespace"
-            required={true}
-            onSlChange={(e) => setNamespace((e.target as HTMLInputElement).value)}
-          />
-        </div>
-        <div className={styles.row}>
-          <SlInput
-            value={datasetName}
-            label="Dataset Name"
-            help-text="The name of the dataset after it has been loaded."
-            required={true}
-            onSlChange={(e) => setDatasetName((e.target as HTMLInputElement).value)}
-          />
+          <div className="flex flex-row justify-left items-left flex-grow">
+            <div className="flex-grow">
+              <SlInput
+                value={namespace}
+                label="Namespace"
+                required={true}
+                onSlChange={(e) => setNamespace((e.target as HTMLInputElement).value)}
+              />
+            </div>
+            <div className="mx-2">
+              <span className="inline-block align-text-bottom text-xl pt-8">/</span>
+            </div>
+            <div className="flex-grow">
+              <SlInput
+                value={datasetName}
+                label="Dataset Name"
+                required={true}
+                onSlChange={(e) => setDatasetName((e.target as HTMLInputElement).value)}
+              />
+            </div>
+          </div>
         </div>
         {sourcesSelect}
-        <div className={styles.row}>{sourceFieldsForm}</div>
+        {sourceFieldsForm}
         <div className={styles.row}>
           <SlButton
             disabled={loadDatasetButtonDisabled}
@@ -117,7 +130,9 @@ export const DatasetLoader = (): JSX.Element => {
           </SlButton>
           {isLoadDatasetLoading ? <SlSpinner></SlSpinner> : null}
           {isLoadDatasetError ? renderError(loadDatasetError) : null}
-          {isLoadDatasetSuccess ? 'SUCCESS' : null}
+          {isLoadDatasetSuccess ? (
+            <SlIcon className={styles.load_data_success} name="check-lg"></SlIcon>
+          ) : null}
         </div>
       </div>
     </>

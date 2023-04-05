@@ -24,7 +24,7 @@ from ...utils import (
     makedirs,
     open_file,
 )
-from .source import ShardsLoader, Source, SourceProcessResult
+from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut
 
 
 class ImageColumn(BaseModel):
@@ -93,13 +93,11 @@ class CSVSource(Source):
     ]
     shard_info_dicts = [x.dict(exclude_none=True) for x in shard_infos]
 
-    start_time = time.time()
     shard_outs = await shards_loader(shard_info_dicts)
-    elapsed = time.time() - start_time
-    log(f'[CSV Source] Converting files {gcs_filepaths} to parquet took {elapsed:.2f} seconds.')
 
-    filepaths: list[str] = [x['filepath'] for x in shard_outs]
-    num_items = sum(x['num_items'] for x in shard_outs)
+    filepaths = [shard_out.filepath for shard_out in shard_outs]
+    num_items = sum(shard_out.num_items for shard_out in shard_outs)
+
     arrow_schema = pq.read_schema(open_file(filepaths[0], mode='rb'))
     schema = arrow_schema_to_schema(arrow_schema)
     images: Optional[list[ImageInfo]] = None
@@ -118,8 +116,7 @@ class CSVSource(Source):
                                num_items=num_items)
 
   @override
-  def process_shard(self, shard_info_dict: dict) -> dict:
-    shard_info = ShardInfo(**shard_info_dict)
+  def process_shard(self, shard_info: ShardInfo) -> SourceShardOut:
     filepath = shard_info.filepath
     con = duckdb.connect(database=':memory:')
     con.install_extension('httpfs')
@@ -188,7 +185,7 @@ class CSVSource(Source):
                  input_gcs=GCS_REGEX.match(shard_info.filepath) is not None,
                  output_gcs=GCS_REGEX.match(out_filepath) is not None)
     con.close()
-    return {'filepath': out_filepath, 'num_items': int(shard_num_items)}
+    return SourceShardOut(filepath=filepath, num_items=int(shard_num_items))
 
 
 def _csv_column_to_path(column_name: str) -> Path:

@@ -9,7 +9,8 @@ from pydantic import (
 )
 from typing_extensions import override
 
-from datasets import ClassLabel, DatasetDict, Value, load_dataset
+# We ignore the types here because "datasets" conflicts with our module.
+from datasets import ClassLabel, DatasetDict, Value, load_dataset, load_from_disk  # type: ignore
 
 from ...schema import (
     PARQUET_FILENAME_PREFIX,
@@ -110,18 +111,26 @@ class HuggingFaceDataset(Source[ShardInfo]):
   name = 'huggingface'
   shard_info_cls = ShardInfo
 
-  huggingface_dataset_name: str = PydanticField(description='The huggingface dataset name.')
-  revision: Optional[str] = PydanticField(description='The optional huggingface dataset revision.',
-                                          default=None)
+  huggingface_dataset_name: str
   split: Optional[str] = PydanticField(
-      description='The optional huggingface dataset split. When not defined, loads all splits.',
+      description='The optional HuggingFace dataset split. When not defined, loads all splits.',
       default=None)
+  revision: Optional[str] = PydanticField(description='The optional HuggingFace dataset revision.',
+                                          default=None)
+  load_from_disk: Optional[bool] = PydanticField(
+      description=
+      'Whether to load from disk or from the HuggingFace Hub. Defaults to the HuggingFace Hub.',
+      default=False)
 
   @override
   async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:
     """Process the source upload request."""
-    hf_dataset_dict = load_dataset(self.huggingface_dataset_name,
-                                   num_proc=multiprocessing.cpu_count())
+    if self.load_from_disk:
+      # Load from disk.
+      hf_dataset_dict = {'default': load_from_disk(self.huggingface_dataset_name)}
+    else:
+      hf_dataset_dict = load_dataset(self.huggingface_dataset_name,
+                                     num_proc=multiprocessing.cpu_count())
 
     schema_info = _hf_schema_to_schema(hf_dataset_dict, self.split)
 
@@ -142,10 +151,12 @@ class HuggingFaceDataset(Source[ShardInfo]):
   @override
   def process_shard(self, shard_info: ShardInfo) -> SourceShardOut:
     """Process an input file shard. Each shard is processed in parallel by different workers."""
-    hf_dataset_dict = load_dataset(self.huggingface_dataset_name,
-                                   num_proc=multiprocessing.cpu_count())
-
-    print(shard_info)
+    if self.load_from_disk:
+      # Load from disk.
+      hf_dataset_dict = {'default': load_from_disk(self.huggingface_dataset_name)}
+    else:
+      hf_dataset_dict = load_dataset(self.huggingface_dataset_name,
+                                     num_proc=multiprocessing.cpu_count())
     items = _convert_to_items(hf_dataset_dict, shard_info.schema_info.class_labels,
                               shard_info.split)
     filepath, num_items = write_items_to_parquet(items=items,

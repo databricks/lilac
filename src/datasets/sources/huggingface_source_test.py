@@ -1,26 +1,40 @@
 """Tests for the pandas source."""
+import os
 import pathlib
 
-from ...schema import UUID_COLUMN, Field, Schema
-from .huggingface_source import HuggingFaceDataset
-from .source import SourceProcessResult
+import pandas as pd
+
+# We ignore the types here because "datasets" conflicts with our module.
+from datasets import Dataset  # type: ignore
+
+from ...schema import UUID_COLUMN, DataType, Field, Schema
+from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceDataset, ShardInfo
+from .source import SourceProcessResult, SourceShardOut
 
 
 async def test_simple_hf(tmp_path: pathlib.Path) -> None:
-  source = HuggingFaceDataset(huggingface_dataset_name='imdb')
 
-  async def shards_loader(shard_infos: list[dict]) -> list[dict]:
+  df = pd.DataFrame.from_records([{'x': 1, 'y': '10'}, {'x': 1, 'y': '10'}])
+  dataset = Dataset.from_pandas(df)
+
+  dataset_name = os.path.join(tmp_path, 'hf-test-dataset')
+  dataset.save_to_disk(dataset_name)
+
+  source = HuggingFaceDataset(huggingface_dataset_name=dataset_name, load_from_disk=True)
+
+  async def shards_loader(shard_infos: list[ShardInfo]) -> list[SourceShardOut]:
     return [source.process_shard(x) for x in shard_infos]
 
-  print(tmp_path, shards_loader)
-  result = await source.process(str(tmp_path), shards_loader)
+  result = await source.process(str(os.path.join(tmp_path, 'data')), shards_loader)
+
   expected_result = SourceProcessResult(data_schema=Schema(
       fields={
-          UUID_COLUMN: Field(dtype='binary'),
-          'name': Field(dtype='string'),
-          'age': Field(dtype='int64')
+          UUID_COLUMN: Field(dtype=DataType.BINARY),
+          HF_SPLIT_COLUMN: Field(dtype=DataType.STRING),
+          'x': Field(dtype=DataType.INT64),
+          'y': Field(dtype=DataType.STRING)
       }),
-                                        num_items=3,
+                                        num_items=2,
                                         filepaths=[])
 
   # Validate except for the filepaths, which are not deterministic.

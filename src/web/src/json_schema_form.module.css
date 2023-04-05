@@ -1,0 +1,11 @@
+.markdown_container p {
+  margin: 8px 0;
+}
+
+.optional_details::part(header) {
+  padding: var(--sl-spacing-small);
+}
+
+.optional_details::part(content) {
+  padding: var(--sl-spacing-small);
+}

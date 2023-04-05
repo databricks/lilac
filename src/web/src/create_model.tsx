@@ -11,7 +11,7 @@ import * as React from 'react';
 import {Link} from 'react-router-dom';
 import styles from './create_model.module.css';
 import {useCreateModelMutation} from './store/store';
-import {getModelLink, renderError} from './utils';
+import {renderError} from './utils';
 
 export const CreateModel = React.memo(function CreateModel(): JSX.Element {
   const [username, setUsername] = React.useState('nikhil');
@@ -105,7 +105,7 @@ export const CreateModel = React.memo(function CreateModel(): JSX.Element {
           {isCreateSuccess ? (
             <div className="mt-4">
               <div className="mt-4">
-                <Link to={getModelLink(username, modelName)}>
+                <Link to={`/${username}/${modelName}`}>
                   <SlButton variant="primary" pill>
                     View model
                   </SlButton>
