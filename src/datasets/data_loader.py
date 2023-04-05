@@ -11,7 +11,7 @@ import asyncio
 import json
 import os
 from concurrent.futures import ProcessPoolExecutor
-from typing import Any, Awaitable, Callable, Literal, Optional, Union
+from typing import Any, Awaitable, Callable
 
 import click
 import requests
@@ -51,26 +51,6 @@ def get_sources() -> SourcesList:
   return SourcesList(sources=list(sources.keys()))
 
 
-supported_primitives = [str, int]
-
-
-class PydanticField(BaseModel):
-  """A pydantic field metadata to generate a UI form."""
-  name: str
-  type: Union[Literal['str'], Literal['int']]
-  optional: bool
-  description: Optional[str]
-
-
-class PydanticSchema(BaseModel):
-  """A pydantic schema to generate a UI form.
-
-  NOTE: Pydantic doesn't expose their own schema() as a class, so we do this to generate typings
-  in the frontend.
-  """
-  fields: list[PydanticField]
-
-
 @router.get('/{source_name}')
 def get_source_schema(source_name: str) -> dict[str, Any]:
   """Get the fields for a source."""
@@ -81,7 +61,6 @@ def get_source_schema(source_name: str) -> dict[str, Any]:
 class LoadDatasetOptions(BaseModel):
   """Options for loading a dataset."""
   source_name: str
-  """The optional huggingface split."""
   namespace: str
   dataset_name: str
   config: dict[str, Any]

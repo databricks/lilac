@@ -144,9 +144,7 @@ class TensorFlowDataset(Source[ShardInfo]):
 
   async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:
     """Process the source upload request."""
-    print('tfds name', self.tfds_name)
     builder = tfds.builder(self.tfds_name)
-    print(builder.info)
     split = list(builder.info.splits.keys())[0]
     if self.split:
       split = self.split

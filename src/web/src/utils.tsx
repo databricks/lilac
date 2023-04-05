@@ -19,7 +19,6 @@ export function renderQuery<T>(
     return <SlSpinner />;
   }
   if (error || currentData == null) {
-    console.log(error);
     return renderError(error);
   }
   return render(queryResult.currentData!);

@@ -28,6 +28,9 @@ TFDSElement = Union[dict, tf.RaggedTensor, tf.Tensor]
 
 HF_SPLIT_COLUMN = '__hfsplit__'
 
+# Used when the dataset is saved locally.
+DEFAULT_LOCAL_SPLIT_NAME = 'default'
+
 
 class SchemaInfo(BaseModel):
   """Information about the processed huggingface schema."""
@@ -127,7 +130,7 @@ class HuggingFaceDataset(Source[ShardInfo]):
     """Process the source upload request."""
     if self.load_from_disk:
       # Load from disk.
-      hf_dataset_dict = {'default': load_from_disk(self.huggingface_dataset_name)}
+      hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.huggingface_dataset_name)}
     else:
       hf_dataset_dict = load_dataset(self.huggingface_dataset_name,
                                      num_proc=multiprocessing.cpu_count())
@@ -153,7 +156,7 @@ class HuggingFaceDataset(Source[ShardInfo]):
     """Process an input file shard. Each shard is processed in parallel by different workers."""
     if self.load_from_disk:
       # Load from disk.
-      hf_dataset_dict = {'default': load_from_disk(self.huggingface_dataset_name)}
+      hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.huggingface_dataset_name)}
     else:
       hf_dataset_dict = load_dataset(self.huggingface_dataset_name,
                                      num_proc=multiprocessing.cpu_count())
