@@ -178,4 +178,4 @@ def get_media(namespace: str, dataset_name: str, item_id: str, leaf_path: str) -
   path = tuple(leaf_path.split('.'))
   result = db.media(item_id, path)
   # Return the response via HTTP.
-  return Response(content=result.data, media_type=result.mime_type)
+  return Response(content=result.data)

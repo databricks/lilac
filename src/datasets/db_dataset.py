@@ -53,7 +53,6 @@ class StatsResult(BaseModel):
 class MediaResult(BaseModel):
   """The result of a media() query."""
   data: bytes
-  mime_type: str
 
 
 class Comparison(str, enum.Enum):
