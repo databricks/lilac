@@ -78,7 +78,9 @@ function useGetItem(
   datasetName: string,
   itemId: string
 ): {isFetching: boolean; item: Item | null; error?: SerializedError | string} {
-  const filters: Filter[] = [{path: [UUID_COLUMN], comparison: Comparison._, value: itemId}];
+  // TODO(smilkov): Figure out why typescript openAPI autogenerates incorrect enum.
+  const equalOperation = Comparison._;
+  const filters: Filter[] = [{path: [UUID_COLUMN], comparison: equalOperation, value: itemId}];
   const {
     isFetching,
     currentData: items,
