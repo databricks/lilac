@@ -15,7 +15,7 @@ from typing import Any, Awaitable, Callable
 
 import click
 import requests
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, validator
 
 from ..constants import data_path
@@ -60,23 +60,23 @@ def get_source_schema(source_name: str) -> dict[str, Any]:
 
 class LoadDatasetOptions(BaseModel):
   """Options for loading a dataset."""
-  source_name: str
   namespace: str
   dataset_name: str
   config: dict[str, Any]
 
 
-@router.post('/load')
-async def load(options: LoadDatasetOptions) -> None:
+@router.post('/{source_name}/load')
+async def load(source_name: str, options: LoadDatasetOptions, request: Request) -> None:
   """Load a dataset."""
-  source_cls = get_source_cls(options.source_name)
+  source_cls = get_source_cls(source_name)
   source = source_cls(**options.config)
 
-  public_url = os.environ.get('LILAC_DATA_LOADER_URL')
+  public_url = os.environ.get('LILAC_DATA_LOADER_URL',
+                              f'{request.url.scheme}://{request.url.hostname}:{request.url.port}')
 
   @async_wrap
   def process_shard(shard_info: BaseShardInfo) -> SourceShardOut:
-    url = f'{public_url}/api/v1/data_loaders/load_shard'
+    url = f'{public_url}/api/v1/data_loaders/{source_name}/load_shard'
     load_dataset_shard_options = LoadDatasetShardOptions(source=source, shard_info=shard_info)
     res = requests.post(url,
                         data=load_dataset_shard_options.json(),
@@ -103,8 +103,8 @@ class LoadDatasetShardOptions(BaseModel):
     return values['source'].shard_info_cls.parse_obj(shard_info_dict)
 
 
-@router.post('/load_shard')
-def load_shard(options: LoadDatasetShardOptions) -> SourceShardOut:
+@router.post('/{source_name}/load_shard')
+def load_shard(source_name: str, options: LoadDatasetShardOptions) -> SourceShardOut:
   """Process an individual source shard. Each shard is processed in a parallel POST request."""
   return options.source.process_shard(options.shard_info)
 

@@ -22,9 +22,9 @@ export const dataLoaderApi = createApi({
         return {data: await DataLoaderService.getSourceSchema(sourceName)};
       },
     }),
-    loadDataset: builder.mutation<null, LoadDatasetOptions>({
-      queryFn: async (options) => {
-        return {data: await DataLoaderService.load(options)};
+    loadDataset: builder.mutation<null, {sourceName: string; options: LoadDatasetOptions}>({
+      queryFn: async ({sourceName, options}: {sourceName: string; options: LoadDatasetOptions}) => {
+        return {data: await DataLoaderService.load(sourceName, options)};
       },
     }),
   }),

@@ -4,18 +4,15 @@ import pathlib
 import pandas as pd
 
 from ...schema import UUID_COLUMN, DataType, Field, Schema
-from .pandas_source import PandasSource, ShardInfo
-from .source import SourceProcessResult, SourceShardOut
+from .pandas_source import PandasDataset
+from .source import SourceProcessResult
 
 
 async def test_simple_dataframe(tmp_path: pathlib.Path) -> None:
   df = pd.DataFrame({'name': ['a', 'b', 'c'], 'age': [1, 2, 3]})
-  source = PandasSource(df)
+  source = PandasDataset(df)
 
-  async def shards_loader(shard_infos: list[ShardInfo]) -> list[SourceShardOut]:
-    return [source.process_shard(x) for x in shard_infos]
-
-  result = await source.process(str(tmp_path), shards_loader)
+  result = await source.process(str(tmp_path))
 
   expected_result = SourceProcessResult(data_schema=Schema(
       fields={

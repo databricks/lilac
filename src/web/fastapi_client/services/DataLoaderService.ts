@@ -50,16 +50,21 @@ export class DataLoaderService {
     /**
      * Load
      * Load a dataset.
+     * @param sourceName
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
     public static load(
+        sourceName: string,
         requestBody: LoadDatasetOptions,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/v1/data_loaders/load',
+            url: '/api/v1/data_loaders/{source_name}/load',
+            path: {
+                'source_name': sourceName,
+            },
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -71,16 +76,21 @@ export class DataLoaderService {
     /**
      * Load Shard
      * Process an individual source shard. Each shard is processed in a parallel POST request.
+     * @param sourceName
      * @param requestBody
      * @returns SourceShardOut Successful Response
      * @throws ApiError
      */
     public static loadShard(
+        sourceName: string,
         requestBody: LoadDatasetShardOptions,
     ): CancelablePromise<SourceShardOut> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/v1/data_loaders/load_shard',
+            url: '/api/v1/data_loaders/{source_name}/load_shard',
+            path: {
+                'source_name': sourceName,
+            },
             body: requestBody,
             mediaType: 'application/json',
             errors: {

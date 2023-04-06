@@ -1,5 +1,5 @@
 """A source to compute semantic search for a document."""
-from typing import Iterable, cast
+from typing import Iterable, Optional, cast
 
 import pytest
 from pydantic import BaseModel
@@ -14,7 +14,9 @@ class TestSource(Source[BaseModel]):
   name = 'test_source'
 
   @override
-  async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:
+  async def process(self,
+                    output_dir: str,
+                    shards_loader: Optional[ShardsLoader] = None) -> SourceProcessResult:
     return cast(SourceProcessResult, None)
 
   @override

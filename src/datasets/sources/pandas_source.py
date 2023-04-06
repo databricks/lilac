@@ -19,7 +19,7 @@ from ...utils import (
     makedirs,
     open_file,
 )
-from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut
+from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut, default_shards_loader
 
 
 class ImageColumn(BaseModel):
@@ -36,7 +36,7 @@ class ShardInfo(BaseModel):
   image_columns: Optional[list[ImageColumn]]
 
 
-class PandasSource(Source[ShardInfo]):
+class PandasDataset(Source[ShardInfo]):
   """Pandas source."""
   name = 'pandas'
 
@@ -53,8 +53,12 @@ class PandasSource(Source[ShardInfo]):
     super().__init__(**kwargs)
     self._df = df
 
-  async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:
+  async def process(self,
+                    output_dir: str,
+                    shards_loader: Optional[ShardsLoader] = None) -> SourceProcessResult:
     """Process the source upload request."""
+    shards_loader = shards_loader or default_shards_loader(self)
+
     shard_info = ShardInfo(image_base_path=self.image_base_path,
                            output_dir=output_dir,
                            image_columns=self.image_columns)

@@ -2,6 +2,7 @@
 @tailwind utilities;
 
 @layer base {
+  /* These styles set the default classes for the header tags as they are not styled by default. */
   h1 {
     @apply text-3xl lg:text-5xl;
   }

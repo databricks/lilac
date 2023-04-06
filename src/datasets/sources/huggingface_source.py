@@ -9,7 +9,7 @@ from pydantic import (
 )
 from typing_extensions import override
 
-# We ignore the types here because "datasets" conflicts with our module.
+# TODO(nsthorat): Rename the "dataset" directory to avoid conflicting with HuggingFace.
 from datasets import ClassLabel, DatasetDict, Value, load_dataset, load_from_disk  # type: ignore
 
 from ...schema import (
@@ -22,7 +22,7 @@ from ...schema import (
     arrow_dtype_to_dtype,
 )
 from ...utils import write_items_to_parquet
-from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut
+from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut, default_shards_loader
 
 TFDSElement = Union[dict, tf.RaggedTensor, tf.Tensor]
 
@@ -69,7 +69,7 @@ def _convert_to_items(hf_dataset_dict: DatasetDict, class_labels: dict[str, list
 
 
 def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> SchemaInfo:
-  """Convert the TFDS schema to our schema."""
+  """Convert the HuggingFace schema to our schema."""
   if split:
     split_datasets = [hf_dataset_dict[split]]
   else:
@@ -114,7 +114,7 @@ class HuggingFaceDataset(Source[ShardInfo]):
   name = 'huggingface'
   shard_info_cls = ShardInfo
 
-  huggingface_dataset_name: str
+  dataset_name: str
   split: Optional[str] = PydanticField(
       description='The optional HuggingFace dataset split. When not defined, loads all splits.',
       default=None)
@@ -126,19 +126,22 @@ class HuggingFaceDataset(Source[ShardInfo]):
       default=False)
 
   @override
-  async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:
+  async def process(self,
+                    output_dir: str,
+                    shards_loader: Optional[ShardsLoader] = None) -> SourceProcessResult:
     """Process the source upload request."""
+    shards_loader = shards_loader or default_shards_loader(self)
+
     if self.load_from_disk:
       # Load from disk.
-      hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.huggingface_dataset_name)}
+      hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.dataset_name)}
     else:
-      hf_dataset_dict = load_dataset(self.huggingface_dataset_name,
-                                     num_proc=multiprocessing.cpu_count())
+      hf_dataset_dict = load_dataset(self.dataset_name, num_proc=multiprocessing.cpu_count())
 
     schema_info = _hf_schema_to_schema(hf_dataset_dict, self.split)
 
     shard_infos = [
-        ShardInfo(hf_dataset_name=self.huggingface_dataset_name,
+        ShardInfo(hf_dataset_name=self.dataset_name,
                   split=self.split,
                   schema_info=schema_info,
                   output_dir=output_dir)
@@ -156,10 +159,9 @@ class HuggingFaceDataset(Source[ShardInfo]):
     """Process an input file shard. Each shard is processed in parallel by different workers."""
     if self.load_from_disk:
       # Load from disk.
-      hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.huggingface_dataset_name)}
+      hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.dataset_name)}
     else:
-      hf_dataset_dict = load_dataset(self.huggingface_dataset_name,
-                                     num_proc=multiprocessing.cpu_count())
+      hf_dataset_dict = load_dataset(self.dataset_name, num_proc=multiprocessing.cpu_count())
     items = _convert_to_items(hf_dataset_dict, shard_info.schema_info.class_labels,
                               shard_info.split)
     filepath, num_items = write_items_to_parquet(items=items,

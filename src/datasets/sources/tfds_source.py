@@ -12,7 +12,7 @@ from pydantic import (
 
 from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, DataType, Field, Item, Schema
 from ...utils import log, write_items_to_parquet
-from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut
+from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut, default_shards_loader
 
 TFDSElement = Union[dict, tf.RaggedTensor, tf.Tensor]
 
@@ -142,8 +142,12 @@ class TensorFlowDataset(Source[ShardInfo]):
       default=None,
       description='The TensorFlow dataset split name. If not provided, loads all splits.')
 
-  async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:
+  async def process(self,
+                    output_dir: str,
+                    shards_loader: Optional[ShardsLoader] = None) -> SourceProcessResult:
     """Process the source upload request."""
+    shards_loader = shards_loader or default_shards_loader(self)
+
     builder = tfds.builder(self.tfds_name)
     split = list(builder.info.splits.keys())[0]
     if self.split:

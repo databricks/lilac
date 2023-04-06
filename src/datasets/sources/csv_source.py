@@ -24,7 +24,7 @@ from ...utils import (
     makedirs,
     open_file,
 )
-from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut
+from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut, default_shards_loader
 
 
 class ImageColumn(BaseModel):
@@ -44,7 +44,7 @@ class ShardInfo(BaseModel):
   image_columns: Optional[list[ImageColumn]]
 
 
-class CSVSource(Source):
+class CSVDataset(Source):
   """CSV data loader
 
   CSV files can live locally as a filepath, or point to an external URL.
@@ -58,8 +58,12 @@ class CSVSource(Source):
       'A list of image columns specifying which columns associate with image information.')
 
   @override
-  async def process(self, output_dir: str, shards_loader: ShardsLoader) -> SourceProcessResult:
+  async def process(self,
+                    output_dir: str,
+                    shards_loader: Optional[ShardsLoader] = None) -> SourceProcessResult:
     """Process the source upload request."""
+    shards_loader = shards_loader or default_shards_loader(self)
+
     start_time = time.time()
     gcs_filepaths: list[str] = []
     temp_files_to_delete = []

@@ -8,24 +8,20 @@ import pandas as pd
 from datasets import Dataset  # type: ignore
 
 from ...schema import UUID_COLUMN, DataType, Field, Schema
-from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceDataset, ShardInfo
-from .source import SourceProcessResult, SourceShardOut
+from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceDataset
+from .source import SourceProcessResult
 
 
 async def test_simple_hf(tmp_path: pathlib.Path) -> None:
-
   df = pd.DataFrame.from_records([{'x': 1, 'y': '10'}, {'x': 1, 'y': '10'}])
   dataset = Dataset.from_pandas(df)
 
   dataset_name = os.path.join(tmp_path, 'hf-test-dataset')
   dataset.save_to_disk(dataset_name)
 
-  source = HuggingFaceDataset(huggingface_dataset_name=dataset_name, load_from_disk=True)
+  source = HuggingFaceDataset(dataset_name=dataset_name, load_from_disk=True)
 
-  async def shards_loader(shard_infos: list[ShardInfo]) -> list[SourceShardOut]:
-    return [source.process_shard(x) for x in shard_infos]
-
-  result = await source.process(str(os.path.join(tmp_path, 'data')), shards_loader)
+  result = await source.process(str(os.path.join(tmp_path, 'data')))
 
   expected_result = SourceProcessResult(data_schema=Schema(
       fields={

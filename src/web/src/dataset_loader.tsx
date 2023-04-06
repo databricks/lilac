@@ -73,10 +73,12 @@ export const DatasetLoader = (): JSX.Element => {
   ));
   const loadClicked = () => {
     loadDataset({
-      source_name: sourceName!,
-      config: formData,
-      namespace,
-      dataset_name: datasetName,
+      sourceName: sourceName!,
+      options: {
+        config: formData,
+        namespace,
+        dataset_name: datasetName,
+      },
     });
   };
 
