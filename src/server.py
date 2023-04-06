@@ -30,7 +30,7 @@ tags_metadata: list[dict[str, Any]] = [
         'description': 'API for managing concepts.',
     },
     {
-        'name': 'data_loader',
+        'name': 'data_loaders',
         'description': 'API for loading data.',
     },
 ]
