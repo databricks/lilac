@@ -5,7 +5,7 @@ import {createApi} from '@reduxjs/toolkit/dist/query/react';
 import {JSONSchema7} from 'json-schema';
 import {
   ComputeSignalOptions,
-  DataLoaderService,
+  DataLoadersService,
   DatasetInfo,
   DatasetsService,
   GetStatsOptions,
@@ -77,15 +77,15 @@ export const datasetApi = createApi({
     }),
     // Loading datasets APIs.
     getSources: builder.query<SourcesList, void>({
-      queryFn: () => query(() => DataLoaderService.getSources()),
+      queryFn: () => query(() => DataLoadersService.getSources()),
     }),
     getSourceSchema: builder.query<JSONSchema7, {sourceName: string}>({
       queryFn: async ({sourceName}: {sourceName: string}) =>
-        query(() => DataLoaderService.getSourceSchema(sourceName)),
+        query(() => DataLoadersService.getSourceSchema(sourceName)),
     }),
     loadDataset: builder.mutation<null, {sourceName: string; options: LoadDatasetOptions}>({
       queryFn: ({sourceName, options}: {sourceName: string; options: LoadDatasetOptions}) =>
-        query(() => DataLoaderService.load(sourceName, options)),
+        query(() => DataLoadersService.load(sourceName, options)),
       invalidatesTags: [DATASETS_TAG],
     }),
     // Dataset specific APIs.

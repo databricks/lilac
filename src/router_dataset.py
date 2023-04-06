@@ -16,6 +16,7 @@ from .data.db_dataset import (
     StatsResult,
 )
 from .db_manager import get_dataset_db
+from .embeddings import default_embeddings  # noqa # pylint: disable=unused-import
 from .router_utils import RouteErrorHandler
 from .schema import PathTuple
 from .signals.default_signals import register_default_signals

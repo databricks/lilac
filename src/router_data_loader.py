@@ -73,7 +73,7 @@ async def load(source_name: str, options: LoadDatasetOptions, request: Request) 
 
   @async_wrap
   def process_shard(shard_info: BaseShardInfo) -> SourceShardOut:
-    url = f'{public_url}/api/v1/data_loader/{source_name}/load_shard'
+    url = f'{public_url}/api/v1/data_loaders/{source_name}/load_shard'
     load_dataset_shard_options = LoadDatasetShardOptions(source=source, shard_info=shard_info)
     res = requests.post(url,
                         data=load_dataset_shard_options.json(),

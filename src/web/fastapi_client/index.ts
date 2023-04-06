@@ -46,6 +46,6 @@ export type { ValidationError } from './models/ValidationError';
 export type { WebManifest } from './models/WebManifest';
 
 export { ConceptsService } from './services/ConceptsService';
-export { DataLoaderService } from './services/DataLoaderService';
+export { DataLoadersService } from './services/DataLoadersService';
 export { DatasetsService } from './services/DatasetsService';
 export { DefaultService } from './services/DefaultService';
