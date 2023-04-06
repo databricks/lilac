@@ -116,7 +116,6 @@ export const JSONSchemaForm = ({
         }
 
         const isRequired = schema.required?.includes(name);
-        console.log({name, field});
         let input: JSX.Element = <></>;
         if (field.type === 'boolean') {
           input = (
