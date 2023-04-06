@@ -23,7 +23,7 @@ export async function query<T>(
       console.error('Request:', e.request);
       return {
         error: {
-          name: `${e.request.method} ${e.url} ${e.status} (${e.name})`,
+          name: `${e.request.method} ${e.url} ${e.status} (${e.statusText})`,
           message: `${e.body['detail']}`,
         },
       };

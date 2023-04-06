@@ -28,7 +28,6 @@ export function renderError(error: string | SerializedError | undefined): JSX.El
   if (error == null) {
     return <></>;
   }
-  console.log(error, typeof error);
   if (typeof error === 'string') {
     return <>{error}</>;
   }
