@@ -2,13 +2,17 @@
  * RTK Query APIs for the dataset service: 'dataset' tag in FastAPI.
  */
 import {createApi} from '@reduxjs/toolkit/dist/query/react';
+import {JSONSchema7} from 'json-schema';
 import {
   ComputeSignalOptions,
+  DataLoadersService,
   DatasetInfo,
-  DatasetService,
+  DatasetsService,
   GetStatsOptions,
+  LoadDatasetOptions,
   SelectGroupsOptions,
   SelectRowsOptions,
+  SourcesList,
   StatsResult,
   WebManifest,
 } from '../../fastapi_client';
@@ -59,42 +63,59 @@ export interface MultipleStatsQueryArg {
   leafPaths: Path[];
 }
 
+const DATASETS_TAG = 'datasets';
 export const datasetApi = createApi({
   reducerPath: 'datasetApi',
   baseQuery: () => {
     return {error: 'baseQuery should never be called.'};
   },
+  tagTypes: [DATASETS_TAG],
   endpoints: (builder) => ({
     getDatasets: builder.query<DatasetInfo[], void>({
-      queryFn: () => query(() => DatasetService.getDatasets()),
+      queryFn: () => query(() => DatasetsService.getDatasets()),
+      providesTags: [DATASETS_TAG],
     }),
+    // Loading datasets APIs.
+    getSources: builder.query<SourcesList, void>({
+      queryFn: () => query(() => DataLoadersService.getSources()),
+    }),
+    getSourceSchema: builder.query<JSONSchema7, {sourceName: string}>({
+      queryFn: async ({sourceName}: {sourceName: string}) =>
+        query(() => DataLoadersService.getSourceSchema(sourceName)),
+    }),
+    loadDataset: builder.mutation<null, {sourceName: string; options: LoadDatasetOptions}>({
+      queryFn: ({sourceName, options}: {sourceName: string; options: LoadDatasetOptions}) =>
+        query(() => DataLoadersService.load(sourceName, options)),
+      invalidatesTags: [DATASETS_TAG],
+    }),
+    // Dataset specific APIs.
     getManifest: builder.query<WebManifest, {namespace: string; datasetName: string}>({
       queryFn: async ({namespace, datasetName}) =>
-        query(() => DatasetService.getManifest(namespace, datasetName)),
+        query(() => DatasetsService.getManifest(namespace, datasetName)),
     }),
     computeEmbeddingIndex: builder.query<Record<string, never>, ComputeEmbeddingQueryArg>({
       queryFn: async ({namespace, datasetName, embedding, column}) =>
         query(() =>
-          DatasetService.computeEmbeddingIndex(namespace, datasetName, embedding, column)
+          DatasetsService.computeEmbeddingIndex(namespace, datasetName, embedding, column)
         ),
     }),
     computeSignalColumn: builder.query<Record<string, never>, ComputeSignalColumnQueryArg>({
       queryFn: async ({namespace, datasetName, options: body}) =>
-        query(() => DatasetService.computeSignalColumn(namespace, datasetName, body)),
+        query(() => DatasetsService.computeSignalColumn(namespace, datasetName, body)),
     }),
     getStats: builder.query<StatsResult, StatsQueryArg>({
       queryFn: async ({namespace, datasetName, options}) =>
-        query(() => DatasetService.getStats(namespace, datasetName, options)),
+        query(() => DatasetsService.getStats(namespace, datasetName, options)),
     }),
     selectRows: builder.query<Item[], SelectRowsQueryArg>({
       queryFn: async ({namespace, datasetName, options}) =>
-        query(() => DatasetService.selectRows(namespace, datasetName, options)),
+        query(() => DatasetsService.selectRows(namespace, datasetName, options)),
     }),
     selectGroups: builder.query<[LeafValue, number][], SelectGroupsQueryArg>({
       queryFn: async ({namespace, datasetName, options}) =>
         query(
           async () =>
-            (await DatasetService.selectGroups(namespace, datasetName, options)) as [
+            (await DatasetsService.selectGroups(namespace, datasetName, options)) as [
               LeafValue,
               number
             ][]
@@ -114,7 +135,7 @@ export const datasetApi = createApi({
         query(async () => {
           const ps: Promise<StatsResult>[] = [];
           for (const leafPath of leafPaths) {
-            ps.push(DatasetService.getStats(namespace, datasetName, {leaf_path: leafPath}));
+            ps.push(DatasetsService.getStats(namespace, datasetName, {leaf_path: leafPath}));
           }
           const statResults = await Promise.all(ps);
           return statResults;
@@ -124,7 +145,6 @@ export const datasetApi = createApi({
 });
 
 export const {
-  useGetDatasetsQuery,
   useComputeEmbeddingIndexQuery,
   useComputeSignalColumnQuery,
   useGetManifestQuery,
@@ -133,4 +153,8 @@ export const {
   useGetStatsQuery,
   useGetMediaURLQuery,
   useGetMultipleStatsQuery,
+  useGetDatasetsQuery,
+  useGetSourcesQuery,
+  useGetSourceSchemaQuery,
+  useLoadDatasetMutation,
 } = datasetApi;

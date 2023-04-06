@@ -1,5 +1,6 @@
 """Utils for routers."""
 
+import traceback
 from typing import Callable
 
 from fastapi import HTTPException, Request, Response
@@ -22,7 +23,9 @@ class RouteErrorHandler(APIRoute):
 
         print('Route error:', request.url)
         print(ex)
+        print(traceback.format_exc())
+
         # wrap error into pretty 500 exception
-        raise HTTPException(status_code=500, detail=str(ex))
+        raise HTTPException(status_code=500, detail=traceback.format_exc())
 
     return custom_route_handler

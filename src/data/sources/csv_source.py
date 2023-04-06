@@ -50,6 +50,7 @@ class CSVDataset(Source):
   CSV files can live locally as a filepath, or point to an external URL.
   """ # noqa: D415, D400
   name = 'csv'
+  shard_info_cls = ShardInfo
 
   filepaths: list[str] = Field(description='A list of filepaths to CSV files.')
   delim: Optional[str] = Field(default=',', description='The CSV file delimiter to use.')
@@ -95,9 +96,7 @@ class CSVDataset(Source):
                   delim=delim,
                   image_columns=self.image_columns) for i, path in enumerate(gcs_filepaths)
     ]
-    shard_info_dicts = [x.dict(exclude_none=True) for x in shard_infos]
-
-    shard_outs = await shards_loader(shard_info_dicts)
+    shard_outs = await shards_loader(shard_infos)
 
     filepaths = [shard_out.filepath for shard_out in shard_outs]
     num_items = sum(shard_out.num_items for shard_out in shard_outs)
@@ -189,7 +188,7 @@ class CSVDataset(Source):
                  input_gcs=GCS_REGEX.match(shard_info.filepath) is not None,
                  output_gcs=GCS_REGEX.match(out_filepath) is not None)
     con.close()
-    return SourceShardOut(filepath=filepath, num_items=int(shard_num_items))
+    return SourceShardOut(filepath=out_filepath, num_items=int(shard_num_items))
 
 
 def _csv_column_to_path(column_name: str) -> Path:

@@ -45,7 +45,7 @@ export type { StatsResult } from './models/StatsResult';
 export type { ValidationError } from './models/ValidationError';
 export type { WebManifest } from './models/WebManifest';
 
-export { ConceptService } from './services/ConceptService';
-export { DataLoaderService } from './services/DataLoaderService';
-export { DatasetService } from './services/DatasetService';
+export { ConceptsService } from './services/ConceptsService';
+export { DataLoadersService } from './services/DataLoadersService';
+export { DatasetsService } from './services/DatasetsService';
 export { DefaultService } from './services/DefaultService';

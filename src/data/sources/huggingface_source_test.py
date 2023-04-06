@@ -4,8 +4,8 @@ import pathlib
 
 import pandas as pd
 
-# We ignore the types here because "datasets" conflicts with our module.
-from datasets import Dataset  # type: ignore
+# mypy: disable-error-code="attr-defined"
+from datasets import Dataset
 
 from ...schema import UUID_COLUMN, DataType, Field, Schema
 from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceDataset

@@ -9,8 +9,8 @@ from pydantic import (
 )
 from typing_extensions import override
 
-# TODO(nsthorat): Rename the "dataset" directory to avoid conflicting with HuggingFace.
-from datasets import ClassLabel, DatasetDict, Value, load_dataset, load_from_disk  # type: ignore
+# mypy: disable-error-code="attr-defined"
+from datasets import ClassLabel, DatasetDict, Value, load_dataset, load_from_disk
 
 from ...schema import (
     PARQUET_FILENAME_PREFIX,
@@ -116,14 +116,10 @@ class HuggingFaceDataset(Source[ShardInfo]):
 
   dataset_name: str
   split: Optional[str] = PydanticField(
-      description='The optional HuggingFace dataset split. When not defined, loads all splits.',
-      default=None)
-  revision: Optional[str] = PydanticField(description='The optional HuggingFace dataset revision.',
-                                          default=None)
+      description='HuggingFace dataset split. Loads all splits by default.', default=None)
+  revision: Optional[str] = PydanticField(description='HuggingFace dataset revision.', default=None)
   load_from_disk: Optional[bool] = PydanticField(
-      description=
-      'Whether to load from disk or from the HuggingFace Hub. Defaults to the HuggingFace Hub.',
-      default=False)
+      description='Load from local disk instead of the hub.', default=False)
 
   @override
   async def process(self,

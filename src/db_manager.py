@@ -1,7 +1,7 @@
 """Manages mapping the dataset name to the database instance."""
 
-from .datasets.db_dataset import DatasetDB
-from .datasets.db_dataset_duckdb import DatasetDuckDB
+from .data.db_dataset import DatasetDB
+from .data.db_dataset_duckdb import DatasetDuckDB
 
 _DATASET_DBS: dict[str, DatasetDB] = {}
 

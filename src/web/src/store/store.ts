@@ -20,7 +20,6 @@ import {
   SearchExamplesResponse,
 } from '../server_api_deprecated';
 import {datasetApi} from './api_dataset';
-import {dataLoaderApi} from './api_data_loader';
 
 interface SelectedData {
   namespace?: string;
@@ -215,15 +214,10 @@ export const store = configureStore({
   reducer: {
     [appSlice.name]: appSlice.reducer,
     [dbApi.reducerPath]: dbApi.reducer,
-    [dataLoaderApi.reducerPath]: dataLoaderApi.reducer,
     [datasetApi.reducerPath]: datasetApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat([
-      dbApi.middleware,
-      dataLoaderApi.middleware,
-      datasetApi.middleware,
-    ]),
+    getDefaultMiddleware().concat([dbApi.middleware, datasetApi.middleware]),
   devTools: process.env.NODE_ENV !== 'production',
 });
 

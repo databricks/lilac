@@ -6,7 +6,7 @@ from fastapi import APIRouter, Response
 from pydantic import BaseModel, validator
 
 from .constants import data_path
-from .datasets.db_dataset import (
+from .data.db_dataset import (
     Bins,
     ColumnId,
     DatasetManifest,
