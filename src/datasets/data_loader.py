@@ -19,6 +19,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, validator
 
 from ..constants import data_path
+from ..router_utils import RouteErrorHandler
 from ..schema import MANIFEST_FILENAME, SourceManifest
 from ..utils import DebugTimer, async_wrap, get_dataset_output_dir, log, open_file
 from .sources.default_sources import register_default_sources
@@ -41,7 +42,7 @@ class SourcesList(BaseModel):
   sources: list[str]
 
 
-router = APIRouter()
+router = APIRouter(route_class=RouteErrorHandler)
 
 
 @router.get('/')

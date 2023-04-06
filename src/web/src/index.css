@@ -13,3 +13,11 @@
     @apply text-lg lg:text-xl font-bold;
   }
 }
+
+.sl-toast-stack {
+  width: auto;
+  max-width: 42rem;
+}
+pre {
+  white-space: pre-wrap;
+}

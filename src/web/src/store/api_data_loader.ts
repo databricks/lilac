@@ -4,6 +4,7 @@
 import {createApi} from '@reduxjs/toolkit/dist/query/react';
 import {JSONSchema7} from 'json-schema';
 import {DataLoaderService, LoadDatasetOptions, SourcesList} from '../../fastapi_client';
+import {query} from './api_utils';
 
 const serverReducerPath = 'dataLoaderApi';
 export const dataLoaderApi = createApi({
@@ -13,19 +14,15 @@ export const dataLoaderApi = createApi({
   },
   endpoints: (builder) => ({
     getSources: builder.query<SourcesList, void>({
-      queryFn: async () => {
-        return {data: await DataLoaderService.getSources()};
-      },
+      queryFn: () => query(() => DataLoaderService.getSources()),
     }),
     getSourceSchema: builder.query<JSONSchema7, {sourceName: string}>({
-      queryFn: async ({sourceName}: {sourceName: string}) => {
-        return {data: await DataLoaderService.getSourceSchema(sourceName)};
-      },
+      queryFn: async ({sourceName}: {sourceName: string}) =>
+        query(() => DataLoaderService.getSourceSchema(sourceName)),
     }),
     loadDataset: builder.mutation<null, {sourceName: string; options: LoadDatasetOptions}>({
-      queryFn: async ({sourceName, options}: {sourceName: string; options: LoadDatasetOptions}) => {
-        return {data: await DataLoaderService.load(sourceName, options)};
-      },
+      queryFn: ({sourceName, options}: {sourceName: string; options: LoadDatasetOptions}) =>
+        query(() => DataLoaderService.load(sourceName, options)),
     }),
   }),
 });

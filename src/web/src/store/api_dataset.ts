@@ -13,6 +13,7 @@ import {
   WebManifest,
 } from '../../fastapi_client';
 import {Item, LeafValue, Path} from '../schema';
+import {query} from './api_utils';
 
 export interface SelectRowsQueryArg {
   namespace: string;
@@ -65,75 +66,59 @@ export const datasetApi = createApi({
   },
   endpoints: (builder) => ({
     getDatasets: builder.query<DatasetInfo[], void>({
-      queryFn: async () => {
-        return {data: await DatasetService.getDatasets()};
-      },
+      queryFn: () => query(() => DatasetService.getDatasets()),
     }),
     getManifest: builder.query<WebManifest, {namespace: string; datasetName: string}>({
-      queryFn: async ({namespace, datasetName}) => {
-        return {data: await DatasetService.getManifest(namespace, datasetName)};
-      },
+      queryFn: async ({namespace, datasetName}) =>
+        query(() => DatasetService.getManifest(namespace, datasetName)),
     }),
     computeEmbeddingIndex: builder.query<Record<string, never>, ComputeEmbeddingQueryArg>({
-      queryFn: async ({namespace, datasetName, embedding, column}) => {
-        return {
-          data: await DatasetService.computeEmbeddingIndex(
-            namespace,
-            datasetName,
-            embedding,
-            column
-          ),
-        };
-      },
+      queryFn: async ({namespace, datasetName, embedding, column}) =>
+        query(() =>
+          DatasetService.computeEmbeddingIndex(namespace, datasetName, embedding, column)
+        ),
     }),
     computeSignalColumn: builder.query<Record<string, never>, ComputeSignalColumnQueryArg>({
-      queryFn: async ({namespace, datasetName, options: body}) => {
-        return {
-          data: await DatasetService.computeSignalColumn(namespace, datasetName, body),
-        };
-      },
+      queryFn: async ({namespace, datasetName, options: body}) =>
+        query(() => DatasetService.computeSignalColumn(namespace, datasetName, body)),
     }),
     getStats: builder.query<StatsResult, StatsQueryArg>({
-      queryFn: async ({namespace, datasetName, options}) => {
-        return {
-          data: await DatasetService.getStats(namespace, datasetName, options),
-        };
-      },
+      queryFn: async ({namespace, datasetName, options}) =>
+        query(() => DatasetService.getStats(namespace, datasetName, options)),
     }),
     selectRows: builder.query<Item[], SelectRowsQueryArg>({
-      queryFn: async ({namespace, datasetName, options}) => {
-        return {
-          data: await DatasetService.selectRows(namespace, datasetName, options),
-        };
-      },
+      queryFn: async ({namespace, datasetName, options}) =>
+        query(() => DatasetService.selectRows(namespace, datasetName, options)),
     }),
     selectGroups: builder.query<[LeafValue, number][], SelectGroupsQueryArg>({
-      queryFn: async ({namespace, datasetName, options}) => {
-        return {
-          data: (await DatasetService.selectGroups(namespace, datasetName, options)) as [
-            LeafValue,
-            number
-          ][],
-        };
-      },
+      queryFn: async ({namespace, datasetName, options}) =>
+        query(
+          async () =>
+            (await DatasetService.selectGroups(namespace, datasetName, options)) as [
+              LeafValue,
+              number
+            ][]
+        ),
     }),
     getMediaURL: builder.query<string, GetMediaQueryArg>({
-      queryFn: async ({namespace, datasetName, itemId, leafPath}) => {
-        const url = new URL(`/api/v1/datasets/${namespace}/${datasetName}/media`);
-        const params = {item_id: itemId, leaf_path: leafPath.join(',')};
-        url.search = new URLSearchParams(params).toString();
-        return {data: url.toString()};
-      },
+      queryFn: async ({namespace, datasetName, itemId, leafPath}) =>
+        query(() => {
+          const url = new URL(`/api/v1/datasets/${namespace}/${datasetName}/media`);
+          const params = {item_id: itemId, leaf_path: leafPath.join(',')};
+          url.search = new URLSearchParams(params).toString();
+          return url.toString();
+        }),
     }),
     getMultipleStats: builder.query<StatsResult[], MultipleStatsQueryArg>({
-      queryFn: async ({namespace, datasetName, leafPaths}) => {
-        const ps: Promise<StatsResult>[] = [];
-        for (const leafPath of leafPaths) {
-          ps.push(DatasetService.getStats(namespace, datasetName, {leaf_path: leafPath}));
-        }
-        const statResults = await Promise.all(ps);
-        return {data: statResults};
-      },
+      queryFn: async ({namespace, datasetName, leafPaths}) =>
+        query(async () => {
+          const ps: Promise<StatsResult>[] = [];
+          for (const leafPath of leafPaths) {
+            ps.push(DatasetService.getStats(namespace, datasetName, {leaf_path: leafPath}));
+          }
+          const statResults = await Promise.all(ps);
+          return statResults;
+        }),
     }),
   }),
 });
