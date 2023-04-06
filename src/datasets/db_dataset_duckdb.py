@@ -673,12 +673,17 @@ class DatasetDuckDB(DatasetDB):
     for filter in filters:
       col_name = self._path_to_col(filter.path)
       op = COMPARISON_TO_OP[filter.comparison]
-      if isinstance(filter.value, str):
-        filter_val = f"'{filter.value}'"
-      elif isinstance(filter.value, bytes):
-        filter_val = f'{str(filter.value)[1:]}::BLOB'
+      filter_val = filter.value
+      if filter.path == (UUID_COLUMN,) and isinstance(filter.value, str):
+        # Convert the filter value from hex to bytes.
+        filter_val = bytes.fromhex(filter.value)
+
+      if isinstance(filter_val, str):
+        filter_val = f"'{filter_val}'"
+      elif isinstance(filter_val, bytes):
+        filter_val = f'{str(filter_val)[1:]}::BLOB'
       else:
-        filter_val = str(filter.value)
+        filter_val = str(filter_val)
       filter_query = f'{col_name} {op} {filter_val}'
       filter_queries.append(filter_query)
     return 'WHERE ' + ' AND '.join(filter_queries)

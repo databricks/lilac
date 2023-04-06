@@ -3,7 +3,14 @@ import os
 import pathlib
 from typing import Type
 
-from ..schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, Item, Schema, SourceManifest
+from ..schema import (
+    MANIFEST_FILENAME,
+    PARQUET_FILENAME_PREFIX,
+    UUID_COLUMN,
+    Item,
+    Schema,
+    SourceManifest,
+)
 from ..utils import get_dataset_output_dir, open_file, write_items_to_parquet
 from .db_dataset import DatasetDB
 
@@ -23,7 +30,17 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
   """Write the items JSON to the dataset format: manifest.json and parquet files."""
   source_dir = get_dataset_output_dir(str(tmpdir), TEST_NAMESPACE, dataset_name)
   os.makedirs(source_dir)
-  simple_parquet_files, _ = write_items_to_parquet(items,
+  parquet_items: list[Item] = []
+  for item in items:
+    parquet_item = item.copy()
+    # Convert the hex UUID to bytes.
+    if UUID_COLUMN in parquet_item:
+      uuid_val = parquet_item[UUID_COLUMN]
+      if isinstance(uuid_val, str):
+        parquet_item[UUID_COLUMN] = bytes.fromhex(uuid_val)
+    parquet_items.append(parquet_item)
+
+  simple_parquet_files, _ = write_items_to_parquet(parquet_items,
                                                    source_dir,
                                                    schema,
                                                    filename_prefix=PARQUET_FILENAME_PREFIX,
