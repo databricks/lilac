@@ -55,7 +55,7 @@ export const JSONSchemaForm = ({
         );
 
         return (
-          <div key={name} className="mt-4">
+          <div key={name} className="mt-4 w-96">
             {inputDetails}
           </div>
         );

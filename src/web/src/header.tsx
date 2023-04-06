@@ -18,7 +18,7 @@ export const Header = React.memo(function Header(): JSX.Element {
       <div className="flex items-center">
         <Link to="/dataset_loader">
           <SlButton variant="success" className="mt-1 mr-4">
-            Load a dataset
+            Create a dataset
           </SlButton>
         </Link>
       </div>
