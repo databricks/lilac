@@ -28,7 +28,7 @@ export const JSONSchemaForm = ({
       </div>
       {Object.entries(schema.properties || {}).map(([name, field]: [string, JSONSchema7]) => {
         if (ignoreProperties.includes(name)) {
-          return <></>;
+          return <div key={name}></div>;
         }
         const isRequired = schema.required?.includes(name);
         const input = (
