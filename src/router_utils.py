@@ -5,6 +5,8 @@ from typing import Callable
 from fastapi import HTTPException, Request, Response
 from fastapi.routing import APIRoute
 
+from .utils import log
+
 
 class RouteErrorHandler(APIRoute):
   """Custom APIRoute that handles application errors and exceptions."""
@@ -20,7 +22,8 @@ class RouteErrorHandler(APIRoute):
         if isinstance(ex, HTTPException):
           raise ex
 
-        print('GOT AN ERROR', str(ex))
+        log('Route error:', request.url)
+        log(ex)
         # wrap error into pretty 500 exception
         raise HTTPException(status_code=500, detail=str(ex))
 
