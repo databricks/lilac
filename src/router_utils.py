@@ -12,7 +12,6 @@ class RouteErrorHandler(APIRoute):
   def get_route_handler(self) -> Callable:
     """Get the route handler."""
     original_route_handler = super().get_route_handler()
-    print('router error handler')
 
     async def custom_route_handler(request: Request) -> Response:
       try:

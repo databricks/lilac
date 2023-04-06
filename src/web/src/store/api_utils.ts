@@ -5,6 +5,11 @@
 import {QueryReturnValue} from '@reduxjs/toolkit/dist/query/baseQueryTypes';
 import {ApiError} from '../../fastapi_client';
 
+/**
+ * Wraps an RTK Query queryFn in a method that pretty formats error messages.
+ * @param fn The queryFn to wrap.
+ * @returns A queryFn with error messages handled.
+ */
 export async function query<T>(
   fn: (() => Promise<T>) | (() => T)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

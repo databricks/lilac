@@ -11,8 +11,6 @@ export function renderQuery<T>(
   },
   render: (data: T) => JSX.Element
 ): JSX.Element {
-  console.log(queryResult);
-
   if (queryResult == null) {
     return <></>;
   }
