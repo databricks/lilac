@@ -116,14 +116,10 @@ class HuggingFaceDataset(Source[ShardInfo]):
 
   dataset_name: str
   split: Optional[str] = PydanticField(
-      description='The optional HuggingFace dataset split. When not defined, loads all splits.',
-      default=None)
-  revision: Optional[str] = PydanticField(description='The optional HuggingFace dataset revision.',
-                                          default=None)
+      description='HuggingFace dataset split. Loads all splits by default.', default=None)
+  revision: Optional[str] = PydanticField(description='HuggingFace dataset revision.', default=None)
   load_from_disk: Optional[bool] = PydanticField(
-      description=
-      'Whether to load from disk or from the HuggingFace Hub. Defaults to the HuggingFace Hub.',
-      default=False)
+      description='Load from local disk instead of the hub.', default=False)
 
   @override
   async def process(self,

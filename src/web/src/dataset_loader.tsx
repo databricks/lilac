@@ -6,6 +6,7 @@ import {
   SlSelect,
   SlSpinner,
 } from '@shoelace-style/shoelace/dist/react';
+import {JSONSchema7Type} from 'json-schema';
 import * as React from 'react';
 import styles from './dataset_loader.module.css';
 import {JSONSchemaForm} from './json_schema_form';
@@ -20,29 +21,28 @@ export const DatasetLoader = (): JSX.Element => {
   const sources = useGetSourcesQuery();
   const [namespace, setNamespace] = React.useState<string>('local');
   const [datasetName, setDatasetName] = React.useState<string>('');
-  const [sourceName, setSourceName] = React.useState<string>();
-  const [formData, setFormData] = React.useState<{[key: string]: string}>({});
+  const [sourceName, setSourceName] = React.useState<string>('');
+  const [formData, setFormData] = React.useState<{[key: string]: JSONSchema7Type}>({});
 
-  const sourceSchema = useGetSourceSchemaQuery(
-    {sourceName: sourceName!},
-    {skip: sourceName == null}
-  );
+  const sourceSchema = useGetSourceSchemaQuery({sourceName: sourceName!}, {skip: sourceName == ''});
 
   const sourcesSelect = renderQuery(sources, (sources) => (
-    <SlSelect
-      size="medium"
-      value={sourceName}
-      label="Data loader"
-      hoist={true}
-      onSlChange={(e) => setSourceName((e.target as HTMLInputElement).value)}
-    >
-      <SlOption key={'clear'} value={undefined}></SlOption>
-      {sources.sources.map((sourceName) => (
-        <SlOption key={sourceName} value={sourceName}>
-          {sourceName}
-        </SlOption>
-      ))}
-    </SlSelect>
+    <div className="w-60">
+      <SlSelect
+        size="medium"
+        value={sourceName}
+        label="Data loader"
+        hoist={true}
+        clearable
+        onSlChange={(e) => setSourceName((e.target as HTMLInputElement).value)}
+      >
+        {sources.sources.map((sourceName) => (
+          <SlOption key={sourceName} value={sourceName}>
+            {sourceName}
+          </SlOption>
+        ))}
+      </SlSelect>
+    </div>
   ));
 
   const [
@@ -102,7 +102,7 @@ export const DatasetLoader = (): JSX.Element => {
         </div>
         <div className={styles.row}>
           <div className="flex flex-row justify-left items-left flex-grow">
-            <div className="w-44 mx-2">
+            <div className="w-44">
               <SlInput
                 value={namespace}
                 label="namespace"
@@ -110,10 +110,10 @@ export const DatasetLoader = (): JSX.Element => {
                 onSlChange={(e) => setNamespace((e.target as HTMLInputElement).value)}
               />
             </div>
-            <div className="mx-2">
+            <div className="mx-4">
               <span className="inline-block align-text-bottom text-xl pt-8">/</span>
             </div>
-            <div className="w-44 w-48">
+            <div className="w-44">
               <SlInput
                 value={datasetName}
                 label="name"
@@ -124,7 +124,7 @@ export const DatasetLoader = (): JSX.Element => {
           </div>
         </div>
 
-        <div className={`${styles.row} w-44`}>{sourcesSelect}</div>
+        <div className={styles.row}>{sourcesSelect}</div>
         {sourceFieldsForm}
         <div className={styles.row}>
           <SlButton

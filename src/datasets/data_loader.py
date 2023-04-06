@@ -15,7 +15,7 @@ from typing import Any, Awaitable, Callable
 
 import click
 import requests
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, status
 from pydantic import BaseModel, validator
 
 from ..constants import data_path
@@ -83,6 +83,12 @@ async def load(source_name: str, options: LoadDatasetOptions, request: Request) 
                         data=load_dataset_shard_options.json(),
                         timeout=REQUEST_TIMEOUT_SEC,
                         headers={'Content-Type': 'application/json'})
+
+    if res.status_code != status.HTTP_200_OK:
+      error_details = res.json()['detail']
+      raise ValueError(f'Failed to load shard: {res.text}. \n'
+                       f'Error details: {error_details}')
+
     return SourceShardOut(**res.json())
 
   await _process_source(data_path(), options.namespace, options.dataset_name, source, process_shard)
