@@ -4,7 +4,15 @@ import enum
 from typing import Any, Iterable, Iterator, Optional, Sequence, Union
 
 import pandas as pd
-from pydantic import BaseModel, validator
+from pydantic import (
+    BaseModel,
+    StrictBool,
+    StrictBytes,
+    StrictFloat,
+    StrictInt,
+    StrictStr,
+    validator,
+)
 
 from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import Item, Path, PathTuple, Schema, path_to_alias
@@ -172,7 +180,7 @@ def Bucketize(column: Column, bins: list[float]) -> Column:
   return Column(feature=column, transform=BucketizeTransform(bins=bins))
 
 
-FeatureValue = Union[int, float, bool, str, bytes]
+FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes]
 FilterTuple = tuple[Union[Path, Column], Comparison, FeatureValue]
 
 

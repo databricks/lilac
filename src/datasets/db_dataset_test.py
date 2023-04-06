@@ -155,6 +155,28 @@ class SelectRowsSuite:
         'float': 3.0
     }]
 
+    id_filter = (UUID_COLUMN, Comparison.EQUALS, b'2' * 16)
+    result = db.select_rows(filters=[id_filter])
+
+    assert list(result) == [{
+        UUID_COLUMN: b'2' * 16,
+        'str': 'b',
+        'int': 2,
+        'bool': True,
+        'float': 2.0
+    }, {
+        UUID_COLUMN: b'2' * 16,
+        'str': 'b',
+        'int': 2,
+        'bool': True,
+        'float': 1.0
+    }]
+
+    id_filter = (UUID_COLUMN, Comparison.EQUALS, b'f' * 16)
+    result = db.select_rows(filters=[id_filter])
+
+    assert list(result) == []
+
   def test_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
 

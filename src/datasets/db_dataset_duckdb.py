@@ -21,6 +21,7 @@ from ..schema import (
     UUID_COLUMN,
     DataType,
     Field,
+    Item,
     Path,
     PathTuple,
     Schema,
@@ -50,8 +51,10 @@ from .db_dataset import (
     Bins,
     Column,
     ColumnId,
+    Comparison,
     DatasetDB,
     DatasetManifest,
+    Filter,
     FilterLike,
     GroupsSortBy,
     MediaResult,
@@ -72,6 +75,15 @@ SOURCE_VIEW_NAME = 'source'
 
 # Sample size for approximating the distinct count of a column.
 SAMPLE_SIZE_DISTINCT_COUNT = 100_000
+
+COMPARISON_TO_OP: dict[Comparison, str] = {
+    Comparison.EQUALS: '=',
+    Comparison.NOT_EQUAL: '!=',
+    Comparison.GREATER: '>',
+    Comparison.GREATER_EQUAL: '>=',
+    Comparison.LESS: '<',
+    Comparison.LESS_EQUAL: '<=',
+}
 
 
 class DuckDBSelectGroupsResult(SelectGroupsResult):
@@ -568,6 +580,7 @@ class DatasetDuckDB(DatasetDB):
     self._validate_columns(cols)
 
     select_query, col_aliases = self._create_select(cols)
+    filters = self._normalize_filters(filters)
     where_query = self._create_where(filters)
 
     # Sort.
@@ -600,10 +613,17 @@ class DatasetDuckDB(DatasetDB):
       {limit_query}
       {offset_query}
     """
-
     query_results = cast(list, self._query(query).fetchall())
 
-    item_rows = map(lambda row: dict(zip(col_aliases, row)), query_results)
+    def parse_row(row: list[Any]) -> Item:
+      item = dict(zip(col_aliases, row))
+      # Convert UUID to hex.
+      if UUID_COLUMN in item:
+        bytes_val = cast(bytes, item[UUID_COLUMN])
+        item[UUID_COLUMN] = bytes_val.hex()
+      return item
+
+    item_rows = map(parse_row, query_results)
     return SelectRowsResult(item_rows)
 
   @override
@@ -631,10 +651,37 @@ class DatasetDuckDB(DatasetDB):
 
     return ', '.join(select_queries), aliases
 
-  def _create_where(self, filters: Optional[Sequence[FilterLike]] = None) -> str:
+  def _normalize_filters(self, filter_likes: Optional[Sequence[FilterLike]] = None) -> list[Filter]:
+    filter_likes = filter_likes or []
+    filters: list[Filter] = []
+    for filter in filter_likes:
+      # Normalize `FilterLike` to `Filter`.
+      if not isinstance(filter, Filter):
+        path_tuple = filter[0]
+        if isinstance(path_tuple, str):
+          path_tuple = (path_tuple,)
+        elif isinstance(path_tuple, Column):
+          path_tuple = cast(PathTuple, path_tuple.feature)
+        filter = Filter(path=path_tuple, comparison=filter[1], value=filter[2])
+      filters.append(filter)
+    return filters
+
+  def _create_where(self, filters: list[Filter]) -> str:
     if not filters:
       return ''
-    raise ValueError('Filters are not yet supported for the DuckDB implementation.')
+    filter_queries: list[str] = []
+    for filter in filters:
+      col_name = self._path_to_col(filter.path)
+      op = COMPARISON_TO_OP[filter.comparison]
+      if isinstance(filter.value, str):
+        filter_val = f"'{filter.value}'"
+      elif isinstance(filter.value, bytes):
+        filter_val = f'{str(filter.value)[1:]}::BLOB'
+      else:
+        filter_val = str(filter.value)
+      filter_query = f'{col_name} {op} {filter_val}'
+      filter_queries.append(filter_query)
+    return 'WHERE ' + ' AND '.join(filter_queries)
 
   def _query(self, query: str) -> duckdb.DuckDBPyRelation:
     """Execute a query that returns a dataframe."""
