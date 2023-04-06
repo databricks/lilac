@@ -12,7 +12,7 @@ import {
   StatsResult,
   WebManifest,
 } from '../../fastapi_client';
-import {Item, Path} from '../schema';
+import {Item, LeafValue, Path} from '../schema';
 import {query} from './api_utils';
 
 export interface SelectRowsQueryArg {
@@ -90,9 +90,15 @@ export const datasetApi = createApi({
       queryFn: async ({namespace, datasetName, options}) =>
         query(() => DatasetService.selectRows(namespace, datasetName, options)),
     }),
-    selectGroups: builder.query<Item[], SelectGroupsQueryArg>({
+    selectGroups: builder.query<[LeafValue, number][], SelectGroupsQueryArg>({
       queryFn: async ({namespace, datasetName, options}) =>
-        query(() => DatasetService.selectGroups(namespace, datasetName, options)),
+        query(
+          async () =>
+            (await DatasetService.selectGroups(namespace, datasetName, options)) as [
+              LeafValue,
+              number
+            ][]
+        ),
     }),
     getMediaURL: builder.query<string, GetMediaQueryArg>({
       queryFn: async ({namespace, datasetName, itemId, leafPath}) =>

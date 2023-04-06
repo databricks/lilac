@@ -19,6 +19,7 @@ export const SearchBox = () => {
   const closeMenu = () => {
     ref.current?.blur();
     inputRef.current?.blur();
+    setPages([]);
     setIsFocused(false);
   };
 
@@ -109,7 +110,7 @@ export const SearchBox = () => {
                 ))}
               </div>
               <Command.Empty>No results found.</Command.Empty>
-              {isHome && <HomeMenu pushPage={pushPage} location={location} />}
+              {isHome && <HomeMenu pushPage={pushPage} location={location} closeMenu={closeMenu} />}
               {activePage === 'datasets' && <Datasets closeMenu={closeMenu} />}
             </>
           )}
@@ -119,7 +120,16 @@ export const SearchBox = () => {
   );
 };
 
-function HomeMenu({pushPage, location}: {pushPage: (page: string) => void; location: Location}) {
+function HomeMenu({
+  pushPage,
+  location,
+  closeMenu,
+}: {
+  pushPage: (page: string) => void;
+  location: Location;
+  closeMenu: () => void;
+}) {
+  const navigate = useNavigate();
   const datasetSelected = location.pathname.startsWith('/dataset/');
   return (
     <>
@@ -132,7 +142,12 @@ function HomeMenu({pushPage, location}: {pushPage: (page: string) => void; locat
           <SlIcon className="text-xl" name="database" />
           Open dataset
         </Item>
-        <Item>
+        <Item
+          onSelect={() => {
+            closeMenu();
+            navigate(`/dataset_loader`);
+          }}
+        >
           <SlIcon className="text-xl" name="database-add" />
           Create new dataset
         </Item>

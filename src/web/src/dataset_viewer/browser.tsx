@@ -348,7 +348,8 @@ export const Browser = React.memo(function Browser({
     estimateSize: () => rowHeightPx,
     overscan: 5,
   });
-  const previousRowHeightPx = rowVirtualizer.getVirtualItems()[0].size;
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const previousRowHeightPx = virtualItems[0]?.size || rowHeightPx;
   if (rowHeightPx !== previousRowHeightPx) {
     rowVirtualizer.measure();
   }
