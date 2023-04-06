@@ -30,7 +30,16 @@ from ..schema import (
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
 from . import db_dataset, db_dataset_duckdb
-from .db_dataset import Column, DatasetDB, DatasetManifest, NamedBins, SortOrder, StatsResult
+from .db_dataset import (
+    Column,
+    Comparison,
+    DatasetDB,
+    DatasetManifest,
+    FilterTuple,
+    NamedBins,
+    SortOrder,
+    StatsResult,
+)
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
 
@@ -118,6 +127,33 @@ class SelectRowsSuite:
     result = db.select_rows()
 
     assert list(result) == SIMPLE_ITEMS
+
+  def test_select_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+
+    result = db.select_rows([UUID_COLUMN])
+
+    assert list(result) == [{
+        UUID_COLUMN: b'1' * 16
+    }, {
+        UUID_COLUMN: b'2' * 16
+    }, {
+        UUID_COLUMN: b'2' * 16
+    }]
+
+  def test_filter_by_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+
+    id_filter: FilterTuple = (UUID_COLUMN, Comparison.EQUALS, b'1' * 16)
+    result = db.select_rows(filters=[id_filter])
+
+    assert list(result) == [{
+        UUID_COLUMN: b'1' * 16,
+        'str': 'a',
+        'int': 1,
+        'bool': False,
+        'float': 3.0
+    }]
 
   def test_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)

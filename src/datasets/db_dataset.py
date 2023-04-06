@@ -172,7 +172,7 @@ def Bucketize(column: Column, bins: list[float]) -> Column:
   return Column(feature=column, transform=BucketizeTransform(bins=bins))
 
 
-FeatureValue = Union[int, float, bool, str]
+FeatureValue = Union[int, float, bool, str, bytes]
 FilterTuple = tuple[Union[Path, Column], Comparison, FeatureValue]
 
 
@@ -235,7 +235,7 @@ class DatasetDB(abc.ABC):
   @abc.abstractmethod
   def select_groups(self,
                     leaf_path: Path,
-                    filters: Optional[Sequence[Filter]] = None,
+                    filters: Optional[Sequence[FilterLike]] = None,
                     sort_by: Optional[GroupsSortBy] = None,
                     sort_order: Optional[SortOrder] = SortOrder.DESC,
                     limit: Optional[int] = 100,
@@ -259,7 +259,7 @@ class DatasetDB(abc.ABC):
   @abc.abstractmethod
   def select_rows(self,
                   columns: Optional[Sequence[ColumnId]] = None,
-                  filters: Optional[Sequence[Filter]] = None,
+                  filters: Optional[Sequence[FilterLike]] = None,
                   sort_by: Optional[list[str]] = None,
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
                   limit: Optional[int] = 100,
