@@ -186,7 +186,7 @@ export class DatasetService {
         namespace: string,
         datasetName: string,
         requestBody: SelectGroupsOptions,
-    ): CancelablePromise<Array<any>> {
+    ): CancelablePromise<Array<Array<any>>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/select_groups',

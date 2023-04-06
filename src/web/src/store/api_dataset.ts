@@ -12,7 +12,7 @@ import {
   StatsResult,
   WebManifest,
 } from '../../fastapi_client';
-import {Item, Path} from '../schema';
+import {Item, LeafValue, Path} from '../schema';
 
 export interface SelectRowsQueryArg {
   namespace: string;
@@ -107,10 +107,13 @@ export const datasetApi = createApi({
         };
       },
     }),
-    selectGroups: builder.query<Item[], SelectGroupsQueryArg>({
+    selectGroups: builder.query<[LeafValue, number][], SelectGroupsQueryArg>({
       queryFn: async ({namespace, datasetName, options}) => {
         return {
-          data: await DatasetService.selectGroups(namespace, datasetName, options),
+          data: (await DatasetService.selectGroups(namespace, datasetName, options)) as [
+            LeafValue,
+            number
+          ][],
         };
       },
     }),

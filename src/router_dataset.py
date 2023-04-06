@@ -1,6 +1,6 @@
 """Router for the dataset database."""
 import os
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Response
 from pydantic import BaseModel, validator
@@ -35,7 +35,7 @@ class DatasetInfo(BaseModel):
   description: Optional[str]
 
 
-@router.get('/')
+@router.get('/', response_model_exclude_unset=True)
 def get_datasets() -> list[DatasetInfo]:
   """List the datasets."""
   datasets_path = os.path.join(data_path(), DATASETS_DIR_NAME)
@@ -70,7 +70,7 @@ class WebManifest(BaseModel):
   dataset_manifest: DatasetManifest
 
 
-@router.get('/{namespace}/{dataset_name}')
+@router.get('/{namespace}/{dataset_name}', response_model_exclude_unset=True)
 def get_manifest(namespace: str, dataset_name: str) -> WebManifest:
   """Get the web manifest for the dataset."""
   dataset_db = get_dataset_db(namespace, dataset_name)
@@ -158,12 +158,13 @@ class SelectGroupsOptions(BaseModel):
   filters: Optional[list[Filter]]
   sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT
   sort_order: Optional[SortOrder] = SortOrder.DESC
-  limit: Optional[int]
+  limit: Optional[int] = 100
   bins: Optional[Bins]
 
 
 @router.post('/{namespace}/{dataset_name}/select_groups')
-def select_groups(namespace: str, dataset_name: str, options: SelectGroupsOptions) -> list[dict]:
+def select_groups(namespace: str, dataset_name: str,
+                  options: SelectGroupsOptions) -> list[tuple[Any, int]]:
   """Select groups from the dataset database."""
   db = get_dataset_db(namespace, dataset_name)
   result = db.select_groups(options.leaf_path, options.filters, options.sort_by, options.sort_order,

@@ -504,7 +504,7 @@ class DatasetDuckDB(DatasetDB):
                     filters: Optional[Sequence[FilterLike]] = None,
                     sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
                     sort_order: Optional[SortOrder] = SortOrder.DESC,
-                    limit: Optional[int] = 100,
+                    limit: Optional[int] = None,
                     bins: Optional[Bins] = None) -> SelectGroupsResult:
     if not leaf_path:
       raise ValueError('leaf_path must be provided')
@@ -545,13 +545,14 @@ class DatasetDuckDB(DatasetDB):
     count_column = 'count'
     value_column = 'value'
 
+    limit_query = f'LIMIT {limit}' if limit else ''
     inner_select = make_select_column(path)
     query = f"""
       SELECT {outer_select} AS {value_column}, COUNT() AS {count_column}
       FROM (SELECT {inner_select} AS {inner_val} FROM t)
       GROUP BY {value_column}
       ORDER BY {sort_by} {sort_order}
-      LIMIT {limit}
+      {limit_query}
     """
     return DuckDBSelectGroupsResult(self._query(query))
 

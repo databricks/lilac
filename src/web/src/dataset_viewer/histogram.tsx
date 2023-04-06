@@ -49,8 +49,8 @@ export const Histogram = React.memo(function Histogram({
   }
   const histogramData = groupsResult.map((row) => {
     return {
-      [BAR_COUNT_LABEL]: row['count'],
-      [BAR_VALUE_LABEL]: row['value'],
+      [BAR_VALUE_LABEL]: row[0],
+      [BAR_COUNT_LABEL]: row[1],
     };
   });
 
