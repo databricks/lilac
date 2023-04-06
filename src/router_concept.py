@@ -11,8 +11,9 @@ from .concepts.db_concept import (
     DISK_CONCEPT_MODEL_DB,
     ConceptUpdate,
 )
+from .router_utils import RouteErrorHandler
 
-router = APIRouter()
+router = APIRouter(route_class=RouteErrorHandler)
 
 
 @router.get('/{namespace}/{concept_name}', response_model_exclude_none=True)

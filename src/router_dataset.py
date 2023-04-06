@@ -17,13 +17,14 @@ from .datasets.db_dataset import (
 )
 from .db_manager import get_dataset_db
 from .embeddings import default_embeddings  # noqa # pylint: disable=unused-import
+from .router_utils import RouteErrorHandler
 from .schema import UUID_COLUMN, PathTuple
 from .signals.default_signals import register_default_signals
 from .signals.signal import Signal
 from .signals.signal_registry import resolve_signal
 from .utils import DATASETS_DIR_NAME
 
-router = APIRouter()
+router = APIRouter(route_class=RouteErrorHandler)
 
 register_default_signals()
 

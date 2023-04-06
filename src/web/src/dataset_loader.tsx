@@ -55,7 +55,12 @@ export const DatasetLoader = (): JSX.Element => {
       isSuccess: isLoadDatasetSuccess,
     },
   ] = useLoadDatasetMutation();
-
+  console.log({
+    isLoading: isLoadDatasetLoading,
+    isError: isLoadDatasetError,
+    error: loadDatasetError,
+    isSuccess: isLoadDatasetSuccess,
+  });
   const loadDatasetButtonDisabled =
     sources.currentData == null ||
     sourceSchema.currentData == null ||
