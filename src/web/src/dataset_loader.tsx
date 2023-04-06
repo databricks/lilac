@@ -14,7 +14,7 @@ import {
   useGetSourceSchemaQuery,
   useGetSourcesQuery,
   useLoadDatasetMutation,
-} from './store/api_data_loader';
+} from './store/api_dataset';
 import {getDatasetLink, renderError, renderQuery} from './utils';
 
 export const DatasetLoader = (): JSX.Element => {

@@ -21,7 +21,7 @@ export class DataLoaderService {
     public static getSources(): CancelablePromise<SourcesList> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/v1/data_loaders/',
+            url: '/api/v1/data_loader/',
         });
     }
 
@@ -37,7 +37,7 @@ export class DataLoaderService {
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/v1/data_loaders/{source_name}',
+            url: '/api/v1/data_loader/{source_name}',
             path: {
                 'source_name': sourceName,
             },
@@ -61,7 +61,7 @@ export class DataLoaderService {
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/v1/data_loaders/{source_name}/load',
+            url: '/api/v1/data_loader/{source_name}/load',
             path: {
                 'source_name': sourceName,
             },
@@ -87,7 +87,7 @@ export class DataLoaderService {
     ): CancelablePromise<SourceShardOut> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/v1/data_loaders/{source_name}/load_shard',
+            url: '/api/v1/data_loader/{source_name}/load_shard',
             path: {
                 'source_name': sourceName,
             },

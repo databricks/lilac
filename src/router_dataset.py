@@ -6,7 +6,7 @@ from fastapi import APIRouter, Response
 from pydantic import BaseModel, validator
 
 from .constants import data_path
-from .datasets.db_dataset import (
+from .data.db_dataset import (
     Bins,
     ColumnId,
     DatasetManifest,
@@ -16,7 +16,6 @@ from .datasets.db_dataset import (
     StatsResult,
 )
 from .db_manager import get_dataset_db
-from .embeddings import default_embeddings  # noqa # pylint: disable=unused-import
 from .router_utils import RouteErrorHandler
 from .schema import PathTuple
 from .signals.default_signals import register_default_signals

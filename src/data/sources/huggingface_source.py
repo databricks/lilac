@@ -9,8 +9,8 @@ from pydantic import (
 )
 from typing_extensions import override
 
-# TODO(nsthorat): Rename the "dataset" directory to avoid conflicting with HuggingFace.
-from datasets import ClassLabel, DatasetDict, Value, load_dataset, load_from_disk  # type: ignore
+# mypy: disable-error-code="attr-defined"
+from datasets import ClassLabel, DatasetDict, Value, load_dataset, load_from_disk
 
 from ...schema import (
     PARQUET_FILENAME_PREFIX,
