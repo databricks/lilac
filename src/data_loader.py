@@ -2,7 +2,7 @@
 
 To run the source loader as a binary directly:
 
-poetry run python -m src.datasets.data_loader \
+poetry run python -m src.data_loader \
   --dataset_name=$DATASET \
   --output_dir=./gcs_cache/ \
   --config_path=./datasets/the_movies_dataset.json
