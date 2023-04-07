@@ -25,7 +25,7 @@ export const DatasetViewer = React.memo(function DatasetViewer(): JSX.Element {
         <div slot="start" className={`p-4 h-full w-full ${styles.stats}`}>
           {statsUI}
         </div>
-        <div slot="end" className={`p-4 w-full h-full ${styles.browser}`}>
+        <div slot="end" className={`p-4 h-full w-full ${styles.browser}`}>
           {browserUI}
         </div>
       </SlSplitPanel>

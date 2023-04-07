@@ -26,6 +26,6 @@ class RouteErrorHandler(APIRoute):
         print(traceback.format_exc())
 
         # wrap error into pretty 500 exception
-        raise HTTPException(status_code=500, detail=traceback.format_exc())
+        raise HTTPException(status_code=500, detail=traceback.format_exc()) from ex
 
     return custom_route_handler

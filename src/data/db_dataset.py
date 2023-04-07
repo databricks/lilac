@@ -1,5 +1,6 @@
 """The interface for the database."""
 import abc
+import datetime
 import enum
 from typing import Any, Iterable, Iterator, Optional, Sequence, Union
 
@@ -51,8 +52,8 @@ class StatsResult(BaseModel):
   approx_count_distinct: int
 
   # Defined for ordinal features.
-  min_val: Optional[float]
-  max_val: Optional[float]
+  min_val: Optional[Union[float, datetime.date, datetime.datetime]]
+  max_val: Optional[Union[float, datetime.date, datetime.datetime]]
 
   # Defined for text features.
   avg_text_length: Optional[float]

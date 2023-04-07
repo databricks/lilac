@@ -2,6 +2,7 @@
 import functools
 import itertools
 import os
+import re
 from typing import Any, Iterable, Iterator, Optional, Sequence, Union, cast
 
 import duckdb
@@ -674,14 +675,13 @@ class DatasetDuckDB(DatasetDB):
       col_name = self._path_to_col(filter.path)
       op = COMPARISON_TO_OP[filter.comparison]
       filter_val = filter.value
-      if filter.path == (UUID_COLUMN,) and isinstance(filter.value, str):
-        # Convert the filter value from hex to bytes.
-        filter_val = bytes.fromhex(filter.value)
-
       if isinstance(filter_val, str):
-        filter_val = f"'{filter_val}'"
+        if filter.path == (UUID_COLUMN,):
+          filter_val = _hex_to_blob_literal(filter_val)
+        else:
+          filter_val = f"'{filter_val}'"
       elif isinstance(filter_val, bytes):
-        filter_val = f'{str(filter_val)[1:]}::BLOB'
+        filter_val = _bytes_to_blob_literal(filter_val)
       else:
         filter_val = str(filter_val)
       filter_query = f'{col_name} {op} {filter_val}'
@@ -804,6 +804,17 @@ def split_parquet_prefix(column_name: str, splitter_name: str) -> str:
 def split_manifest_filename(column_name: str, splitter_name: str) -> str:
   """Get the filename for a split output."""
   return f'{column_name}.{splitter_name}.{SPLIT_MANIFEST_SUFFIX}'
+
+
+def _bytes_to_blob_literal(bytes: bytes) -> str:
+  """Convert bytes to a blob literal."""
+  return _hex_to_blob_literal(bytes.hex())
+
+
+def _hex_to_blob_literal(hex: str) -> str:
+  """Convert hex to a blob literal."""
+  escaped_hex = re.sub(r'(.{2})', r'\\x\1', hex)
+  return f"'{escaped_hex}'::BLOB"
 
 
 class SignalManifest(BaseModel):
