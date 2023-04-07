@@ -11,6 +11,9 @@ export function getEqualBins(stats: StatsResult, leafPath: Path, numBins: number
       `Can not compute equal bins for leaf "${leafPath}". Missing "stats.{min|max}Val"`
     );
   }
+  if (typeof stats.min_val === 'string' || typeof stats.max_val === 'string') {
+    throw new Error('Can not compute equal bins for temporal fields.');
+  }
   const binWidth = (stats.max_val - stats.min_val) / numBins;
   const bins: number[] = [];
   for (let i = 1; i < numBins; i++) {

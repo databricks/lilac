@@ -7,8 +7,8 @@
  */
 export type StatsResult = {
     approx_count_distinct: number;
-    min_val?: number;
-    max_val?: number;
+    min_val?: (number | string);
+    max_val?: (number | string);
     avg_text_length?: number;
 };
 

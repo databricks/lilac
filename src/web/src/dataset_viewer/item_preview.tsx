@@ -30,6 +30,10 @@ function renderValue(val: LeafValue): string {
 function renderCell(item: Item, previewPath: Path): JSX.Element {
   const leafVals = getLeafVals(item);
   const vals = leafVals[serializePath(previewPath)];
+  if (vals == null) {
+    // The preview path doesn't exist in this item.
+    return <>N/A</>;
+  }
   if (vals.length === 1) {
     return <>{renderValue(vals[0])}</>;
   }

@@ -92,9 +92,7 @@ export const DatasetLoader = (): JSX.Element => {
   return (
     <>
       <div
-        className={`
-          flex flex-col ${styles.container}
-          rounded overflow-hidden shadow-lg
+        className={`flex flex-col ${styles.container} rounded h-full overflow-auto shadow-lg
           bg-slate-50`}
       >
         <div className={styles.row}>

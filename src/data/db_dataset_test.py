@@ -140,6 +140,29 @@ class SelectRowsSuite:
         UUID_COLUMN: '32' * 16
     }]
 
+  def test_select_ids_with_limit_and_offset(self, tmp_path: pathlib.Path,
+                                            db_cls: Type[DatasetDB]) -> None:
+    items: list[Item] = [{UUID_COLUMN: str(i) * 16} for i in range(10, 20)]
+    db = make_db(db_cls, tmp_path, items, SIMPLE_SCHEMA)
+
+    result = db.select_rows([UUID_COLUMN], offset=1, limit=3)
+    assert list(result) == [{
+        UUID_COLUMN: '11' * 16
+    }, {
+        UUID_COLUMN: '12' * 16
+    }, {
+        UUID_COLUMN: '13' * 16
+    }]
+
+    result = db.select_rows([UUID_COLUMN], offset=7, limit=2)
+    assert list(result) == [{UUID_COLUMN: '17' * 16}, {UUID_COLUMN: '18' * 16}]
+
+    result = db.select_rows([UUID_COLUMN], offset=9, limit=200)
+    assert list(result) == [{UUID_COLUMN: '19' * 16}]
+
+    result = db.select_rows([UUID_COLUMN], offset=10, limit=200)
+    assert list(result) == []
+
   def test_filter_by_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
 
