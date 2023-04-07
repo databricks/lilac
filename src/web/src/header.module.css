@@ -7,3 +7,30 @@
   font-size: 20px;
   padding: 10px 14px 12px;
 }
+
+.task_container {
+  border-bottom-width: 1px;
+}
+
+.tasks_drawer {
+  width: 28rem;
+  overflow: hidden;
+}
+
+.task_element {
+  transition: margin-top 0.5s ease-in-out;
+  position: relative;
+  border-width: 1px;
+}
+
+.task_elements_open {
+  margin-top: 0;
+}
+
+.task_elements_closed {
+  margin-top: calc(-100%);
+}
+
+sl-icon.completed_task_icon {
+  color: var(--sl-color-success-500);
+}

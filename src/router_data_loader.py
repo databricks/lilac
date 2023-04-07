@@ -88,7 +88,7 @@ async def load(source_name: str, options: LoadDatasetOptions, request: Request) 
 
     return SourceShardOut(**res.json())
 
-  task_id = TASK_MANAGER.task_id(name=f'Loading {options.namespace}/{options.dataset_name}',
+  task_id = TASK_MANAGER.task_id(name=f'Loading dataset {options.namespace}/{options.dataset_name}',
                                  description=f'Loader: {source.name}. \n Config: {source}')
   await process_source(data_path(), options.namespace, options.dataset_name, source, process_shard)
   TASK_MANAGER.update_task(task_id=task_id, status=TaskStatus.COMPLETED)

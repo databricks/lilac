@@ -1,6 +1,7 @@
 """Manage FastAPI background tasks."""
 
 import uuid
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
@@ -21,12 +22,30 @@ class TaskInfo(BaseModel):
   status: TaskStatus
   progress: Optional[float]
   description: Optional[str]
+  start_timestamp: str
+  end_timestamp: Optional[str]
 
 
 class TaskManager(BaseModel):
   """Manage FastAPI background tasks."""
   tasks: dict[str, TaskInfo] = {
-      #'fake_task': TaskInfo(name='Fake task', status=TaskStatus.PENDING, progress=.5)
+      'fake_task':
+          TaskInfo(name='Fake task',
+                   status=TaskStatus.PENDING,
+                   progress=.36,
+                   start_timestamp=datetime.now().isoformat()),
+      'fake_task2':
+          TaskInfo(
+              name="Loading dataset 'local/hf_imdb'",
+              status=TaskStatus.PENDING,
+              #progress=.78,
+              start_timestamp=datetime.now().isoformat()),
+      'fake_task3':
+          TaskInfo(name="Loading dataset 'local/glue'",
+                   status=TaskStatus.COMPLETED,
+                   progress=1.0,
+                   start_timestamp=datetime.now().isoformat(),
+                   end_timestamp=datetime.now().isoformat()),
   }
 
   def task_id(self, name: str, description: Optional[str] = None) -> TaskId:
@@ -35,7 +54,8 @@ class TaskManager(BaseModel):
     self.tasks[task_id] = TaskInfo(name=name,
                                    status=TaskStatus.PENDING,
                                    progress=None,
-                                   description=description)
+                                   description=description,
+                                   start_timestamp=datetime.now().isoformat())
     return task_id
 
   def update_task(self,
@@ -49,6 +69,7 @@ class TaskManager(BaseModel):
     self.tasks[task_id].status = status
     if status == TaskStatus.COMPLETED:
       self.tasks[task_id].progress = 1.0
+      self.tasks[task_id].end_timestamp = datetime.now().isoformat()
     else:
       self.tasks[task_id].progress = progress
 

@@ -249,7 +249,7 @@ export const {
   useAddExamplesMutation,
   useLazySearchExamplesQuery,
 } = dbApi;
-export const {useGetTasksQuery} = serverApi;
+export const {useGetTasksQuery, useLazyGetTasksQuery} = serverApi;
 
 // See: https://react-redux.js.org/tutorials/typescript-quick-start
 export type RootState = ReturnType<typeof store.getState>;
