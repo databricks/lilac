@@ -13,15 +13,23 @@ const spinnerSizePx = 40;
 export const Task = ({task}: {task: TaskInfo}): JSX.Element => {
   const startDateTime = new Date(task.start_timestamp);
   const endDateTime = new Date(task.end_timestamp || '');
-  const datetimeInfo =
-    task.status === 'pending' ? (
-      <>{formatDatetime(startDateTime)}</>
-    ) : (
-      <>
-        Finished {formatDatetime(endDateTime)} (
-        {Math.round(endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60)} mins)
-      </>
-    );
+  let datetimeInfo = '';
+  if (task.status === 'pending') {
+    datetimeInfo = formatDatetime(startDateTime);
+  } else {
+    const elapsedTimeSeconds = (endDateTime.getTime() - startDateTime.getTime()) / 1000;
+    let ellapsedTimeMessage = '';
+    if (elapsedTimeSeconds < 60) {
+      ellapsedTimeMessage = `${Math.round(elapsedTimeSeconds)} seconds`;
+    } else if (elapsedTimeSeconds < 60 * 60) {
+      ellapsedTimeMessage = `${(elapsedTimeSeconds / 60).toFixed(1)} minutes`;
+    } else {
+      ellapsedTimeMessage = `${(elapsedTimeSeconds / (60 * 60)).toFixed(1)} hours`;
+    }
+
+    datetimeInfo = `Finished ${formatDatetime(endDateTime)} (${ellapsedTimeMessage})`;
+  }
+
   return (
     <div className={`${styles.task_container} border-bottom-2 last:border-b-0`}>
       <div className="bg-slate-50 p-2 flex flex-row">
@@ -63,7 +71,7 @@ export const Task = ({task}: {task: TaskInfo}): JSX.Element => {
 
 export const TaskViewer = (): JSX.Element => {
   const [loadTaskManager, taskManager] = useLazyGetTasksQuery();
-  const [tasksPanelOpen, setTasksPanelOpen] = React.useState(true);
+  const [tasksPanelOpen, setTasksPanelOpen] = React.useState(false);
   const tasksDrawerRef = React.useRef<HTMLDivElement>(null);
   const buttonContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -97,18 +105,18 @@ export const TaskViewer = (): JSX.Element => {
       return aStart > bStart ? -1 : 1;
     });
 
-    for (const [taskId, task] of Object.entries(taskManager.tasks || {})) {
+    for (const [taskId, task] of tasks) {
       numTasks++;
       if (task.status === 'pending') {
         numPending++;
       }
       taskElements.push(<Task task={task} key={taskId}></Task>);
     }
-    let buttonVariant: 'default' | 'primary' | 'success' | undefined = 'default';
+    let buttonVariant: 'default' | 'primary' | 'success' | 'text' | undefined = 'default';
 
     let taskMessage = '';
     if (numTasks === 0) {
-      buttonVariant = undefined;
+      buttonVariant = 'text';
       taskMessage = 'No tasks';
     } else if (numPending == 0) {
       buttonVariant = 'success';
@@ -118,15 +126,15 @@ export const TaskViewer = (): JSX.Element => {
       taskMessage = `${numPending} ${numPending === 1 ? 'task' : 'tasks'} pending`;
     }
 
-    console.log(tasksPanelOpen);
     return (
       <>
         <div className="mr-4" ref={buttonContainerRef}>
           <SlButton
             variant={buttonVariant}
+            disabled={numTasks === 0}
             outline
             size="medium"
-            onClick={() => setTasksPanelOpen(!tasksPanelOpen)}
+            onClick={() => (numTasks > 0 ? setTasksPanelOpen(!tasksPanelOpen) : null)}
           >
             <span className="mx-2">{taskMessage}</span>
           </SlButton>
@@ -134,8 +142,8 @@ export const TaskViewer = (): JSX.Element => {
         <div
           ref={tasksDrawerRef}
           className={
-            `absolute  ${styles.tasks_drawer} z-50 ` +
-            `right-0 -mt-4 mr-4 top-full bg-white transition-2 `
+            `absolute ${styles.tasks_drawer} z-50 ` +
+            `right-0 -mt-2 mr-4 top-full bg-white transition-2 `
           }
         >
           <div
@@ -160,7 +168,7 @@ export const Header = (): JSX.Element => {
           <Link to="/">Lilac</Link>
         </div>
       </div>
-      <div className="w-96 z-50 flex mt-2">
+      <div className="w-96 z-50 flex my-2">
         <SearchBox />
       </div>
       <div className="relative flex items-center">

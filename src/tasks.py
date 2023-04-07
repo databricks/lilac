@@ -28,25 +28,7 @@ class TaskInfo(BaseModel):
 
 class TaskManager(BaseModel):
   """Manage FastAPI background tasks."""
-  tasks: dict[str, TaskInfo] = {
-      'fake_task':
-          TaskInfo(name='Fake task',
-                   status=TaskStatus.PENDING,
-                   progress=.36,
-                   start_timestamp=datetime.now().isoformat()),
-      'fake_task2':
-          TaskInfo(
-              name="Loading dataset 'local/hf_imdb'",
-              status=TaskStatus.PENDING,
-              #progress=.78,
-              start_timestamp=datetime.now().isoformat()),
-      'fake_task3':
-          TaskInfo(name="Loading dataset 'local/glue'",
-                   status=TaskStatus.COMPLETED,
-                   progress=1.0,
-                   start_timestamp=datetime.now().isoformat(),
-                   end_timestamp=datetime.now().isoformat()),
-  }
+  tasks: dict[str, TaskInfo] = {}
 
   def task_id(self, name: str, description: Optional[str] = None) -> TaskId:
     """Create a unique ID for a task."""

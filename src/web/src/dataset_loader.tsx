@@ -1,6 +1,5 @@
 import {
   SlButton,
-  SlIcon,
   SlInput,
   SlOption,
   SlSelect,
@@ -15,13 +14,20 @@ import {
   useGetSourcesQuery,
   useLoadDatasetMutation,
 } from './store/api_dataset';
+import {useLazyGetTasksQuery} from './store/store';
 import {getDatasetLink, renderError, renderQuery} from './utils';
+
+const DATASET_TASK_POLL_INTERVAL_MS = 500;
 
 export const DatasetLoader = (): JSX.Element => {
   const sources = useGetSourcesQuery();
+  const [loadTaskManager, taskManager] = useLazyGetTasksQuery();
+
   const [namespace, setNamespace] = React.useState<string>('local');
   const [datasetName, setDatasetName] = React.useState<string>('');
   const [sourceName, setSourceName] = React.useState<string>('');
+  // For polling when the task is ready to redirect the user to the datasets page.
+  const [taskId, setTaskId] = React.useState<string | null>(null);
   const [formData, setFormData] = React.useState<{[key: string]: JSONSchema7Type}>({});
 
   const sourceSchema = useGetSourceSchemaQuery({sourceName: sourceName!}, {skip: sourceName == ''});
@@ -74,18 +80,27 @@ export const DatasetLoader = (): JSX.Element => {
       <></>
     )
   );
-  const loadClicked = () => {
-    loadDataset({
+
+  const loadClicked = async () => {
+    const response = await loadDataset({
       sourceName: sourceName!,
       options: {
         config: formData,
         namespace,
         dataset_name: datasetName,
       },
-    });
+    }).unwrap();
+    // Set the task ID and poll for it to be ready before redirecting.
+    setTaskId(response.task_id);
+    setInterval(() => loadTaskManager(), DATASET_TASK_POLL_INTERVAL_MS);
   };
 
-  if (isLoadDatasetSuccess) {
+  if (
+    taskId != null &&
+    taskManager.currentData != null &&
+    taskManager.currentData.tasks != null &&
+    taskManager.currentData.tasks[taskId].status == 'completed'
+  ) {
     location.href = getDatasetLink(namespace, datasetName);
   }
 
@@ -136,7 +151,14 @@ export const DatasetLoader = (): JSX.Element => {
           {isLoadDatasetLoading ? <SlSpinner></SlSpinner> : null}
           {isLoadDatasetError ? renderError(loadDatasetError) : null}
           {isLoadDatasetSuccess ? (
-            <SlIcon className={styles.load_data_success} name="check-lg"></SlIcon>
+            <>
+              <SlSpinner></SlSpinner>
+              <br />
+              <div className="text-gray-500 mt-2">
+                <p>Loading dataset with task_id "{taskId}".</p>
+                <p>You will be redirected when it is complete. You may leave this page now.</p>
+              </div>
+            </>
           ) : null}
         </div>
       </div>

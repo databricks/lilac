@@ -10,6 +10,7 @@ import {
   DatasetsService,
   GetStatsOptions,
   LoadDatasetOptions,
+  LoadDatasetResponse,
   SelectGroupsOptions,
   SelectRowsOptions,
   SourcesList,
@@ -83,7 +84,10 @@ export const datasetApi = createApi({
       queryFn: async ({sourceName}: {sourceName: string}) =>
         query(() => DataLoadersService.getSourceSchema(sourceName)),
     }),
-    loadDataset: builder.mutation<null, {sourceName: string; options: LoadDatasetOptions}>({
+    loadDataset: builder.mutation<
+      LoadDatasetResponse,
+      {sourceName: string; options: LoadDatasetOptions}
+    >({
       queryFn: ({sourceName, options}: {sourceName: string; options: LoadDatasetOptions}) =>
         query(() => DataLoadersService.load(sourceName, options)),
       invalidatesTags: [DATASETS_TAG],
@@ -145,6 +149,7 @@ export const datasetApi = createApi({
 });
 
 export const {
+  useGetSourcesQuery,
   useComputeEmbeddingIndexQuery,
   useComputeSignalColumnQuery,
   useGetManifestQuery,
@@ -154,7 +159,6 @@ export const {
   useGetMediaURLQuery,
   useGetMultipleStatsQuery,
   useGetDatasetsQuery,
-  useGetSourcesQuery,
   useGetSourceSchemaQuery,
   useLoadDatasetMutation,
 } = datasetApi;

@@ -9,10 +9,10 @@ poetry run python -m src.datasets.loader \
 """
 import asyncio
 import os
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, Optional
 
 import requests
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, BackgroundTasks, Request, status
 from pydantic import BaseModel, validator
 
 from .constants import data_path
@@ -21,7 +21,7 @@ from .data.sources.source import BaseShardInfo, Source, SourceShardOut
 from .data.sources.source_registry import get_source_cls, registered_sources, resolve_source
 from .router_utils import RouteErrorHandler
 from .schema import MANIFEST_FILENAME, SourceManifest
-from .tasks import TASK_MANAGER, TaskStatus
+from .tasks import TASK_MANAGER, TaskId, TaskStatus
 from .utils import DebugTimer, async_wrap, get_dataset_output_dir, log, open_file
 
 REQUEST_TIMEOUT_SEC = 30 * 60  # 30 mins.
@@ -63,8 +63,14 @@ class LoadDatasetOptions(BaseModel):
   config: dict[str, Any]
 
 
+class LoadDatasetResponse(BaseModel):
+  """Response of the load dataset endpoint."""
+  task_id: TaskId
+
+
 @router.post('/{source_name}/load')
-async def load(source_name: str, options: LoadDatasetOptions, request: Request) -> None:
+async def load(source_name: str, options: LoadDatasetOptions, request: Request,
+               background_tasks: BackgroundTasks) -> LoadDatasetResponse:
   """Load a dataset."""
   source_cls = get_source_cls(source_name)
   source = source_cls(**options.config)
@@ -90,8 +96,11 @@ async def load(source_name: str, options: LoadDatasetOptions, request: Request) 
 
   task_id = TASK_MANAGER.task_id(name=f'Loading dataset {options.namespace}/{options.dataset_name}',
                                  description=f'Loader: {source.name}. \n Config: {source}')
-  await process_source(data_path(), options.namespace, options.dataset_name, source, process_shard)
-  TASK_MANAGER.update_task(task_id=task_id, status=TaskStatus.COMPLETED)
+
+  background_tasks.add_task(process_source, data_path(), options.namespace, options.dataset_name,
+                            source, process_shard, task_id)
+
+  return LoadDatasetResponse(task_id=task_id)
 
 
 class LoadDatasetShardOptions(BaseModel):
@@ -116,9 +125,9 @@ def load_shard(source_name: str, options: LoadDatasetShardOptions) -> SourceShar
   return options.source.process_shard(options.shard_info)
 
 
-async def process_source(
-    base_dir: str, namespace: str, dataset_name: str, source: Source,
-    process_shard: Callable[[BaseShardInfo], Awaitable[SourceShardOut]]) -> tuple[str, int]:
+async def process_source(base_dir: str, namespace: str, dataset_name: str, source: Source,
+                         process_shard: Callable[[BaseShardInfo], Awaitable[SourceShardOut]],
+                         task_id: Optional[TaskId]) -> tuple[str, int]:
   """Process a source."""
 
   async def shards_loader(shard_infos: list[BaseShardInfo]) -> list[SourceShardOut]:
@@ -136,4 +145,8 @@ async def process_source(
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.json(indent=2, exclude_none=True))
   log(f'Manifest for dataset "{dataset_name}" written to {output_dir}')
+
+  if task_id:
+    TASK_MANAGER.update_task(task_id=task_id, status=TaskStatus.COMPLETED)
+
   return output_dir, source_process_result.num_items

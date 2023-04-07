@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { LoadDatasetOptions } from '../models/LoadDatasetOptions';
+import type { LoadDatasetResponse } from '../models/LoadDatasetResponse';
 import type { LoadDatasetShardOptions } from '../models/LoadDatasetShardOptions';
 import type { SourceShardOut } from '../models/SourceShardOut';
 import type { SourcesList } from '../models/SourcesList';
@@ -52,13 +53,13 @@ export class DataLoadersService {
      * Load a dataset.
      * @param sourceName
      * @param requestBody
-     * @returns any Successful Response
+     * @returns LoadDatasetResponse Successful Response
      * @throws ApiError
      */
     public static load(
         sourceName: string,
         requestBody: LoadDatasetOptions,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<LoadDatasetResponse> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/data_loaders/{source_name}/load',
