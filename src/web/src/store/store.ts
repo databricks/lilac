@@ -5,6 +5,7 @@ import {configureStore, PayloadAction} from '@reduxjs/toolkit';
 import {createApi} from '@reduxjs/toolkit/query/react';
 
 import {createSlice} from '@reduxjs/toolkit';
+import {DefaultService, TaskManager} from '../../fastapi_client';
 import {Path} from '../schema';
 import {
   AddDatasetOptions,
@@ -20,6 +21,7 @@ import {
   SearchExamplesResponse,
 } from '../server_api_deprecated';
 import {datasetApi} from './api_dataset';
+import {query} from './api_utils';
 
 interface SelectedData {
   namespace?: string;
@@ -63,6 +65,17 @@ const appSlice = createSlice({
       state.selectedData.browser.rowHeightGalleryPx = action.payload;
     },
   },
+});
+export const serverApi = createApi({
+  reducerPath: 'serverApi',
+  baseQuery: () => {
+    return {error: 'baseQuery should never be called.'};
+  },
+  endpoints: (builder) => ({
+    getTasks: builder.query<TaskManager, void>({
+      queryFn: async () => query(() => DefaultService.getTasks()),
+    }),
+  }),
 });
 
 const MODELS_TAG = 'models';
@@ -214,6 +227,7 @@ export const store = configureStore({
   reducer: {
     [appSlice.name]: appSlice.reducer,
     [dbApi.reducerPath]: dbApi.reducer,
+    [serverApi.reducerPath]: serverApi.reducer,
     [datasetApi.reducerPath]: datasetApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -235,6 +249,7 @@ export const {
   useAddExamplesMutation,
   useLazySearchExamplesQuery,
 } = dbApi;
+export const {useGetTasksQuery} = serverApi;
 
 // See: https://react-redux.js.org/tutorials/typescript-quick-start
 export type RootState = ReturnType<typeof store.getState>;

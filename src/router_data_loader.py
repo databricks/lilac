@@ -21,6 +21,7 @@ from .data.sources.source import BaseShardInfo, Source, SourceShardOut
 from .data.sources.source_registry import get_source_cls, registered_sources, resolve_source
 from .router_utils import RouteErrorHandler
 from .schema import MANIFEST_FILENAME, SourceManifest
+from .tasks import TASK_MANAGER, TaskStatus
 from .utils import DebugTimer, async_wrap, get_dataset_output_dir, log, open_file
 
 REQUEST_TIMEOUT_SEC = 30 * 60  # 30 mins.
@@ -87,7 +88,10 @@ async def load(source_name: str, options: LoadDatasetOptions, request: Request) 
 
     return SourceShardOut(**res.json())
 
+  task_id = TASK_MANAGER.task_id(name=f'Loading {options.namespace}/{options.dataset_name}',
+                                 description=f'Loader: {source.name}. \n Config: {source}')
   await process_source(data_path(), options.namespace, options.dataset_name, source, process_shard)
+  TASK_MANAGER.update_task(task_id=task_id, status=TaskStatus.COMPLETED)
 
 
 class LoadDatasetShardOptions(BaseModel):

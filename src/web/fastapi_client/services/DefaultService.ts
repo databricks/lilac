@@ -4,12 +4,26 @@
 import type { AddDatasetOptions } from '../models/AddDatasetOptions';
 import type { AddExamplesOptions } from '../models/AddExamplesOptions';
 import type { SaveModelOptions } from '../models/SaveModelOptions';
+import type { TaskManager } from '../models/TaskManager';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
 export class DefaultService {
+
+    /**
+     * Get Tasks
+     * Get the running tasks.
+     * @returns TaskManager Successful Response
+     * @throws ApiError
+     */
+    public static getTasks(): CancelablePromise<TaskManager> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/tasks',
+        });
+    }
 
     /**
      * List Models

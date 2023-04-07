@@ -17,6 +17,7 @@ from .server_api import (
     SaveModelOptions,
     SearchExamplesOptions,
 )
+from .tasks import TASK_MANAGER, TaskManager
 
 DIST_PATH = os.path.abspath(os.path.join('dist'))
 
@@ -58,6 +59,12 @@ app.mount('/static',
 app.mount('/hot',
           StaticFiles(directory=os.path.join(DIST_PATH, 'hot'), check_dir=False),
           name='hot')
+
+
+@app.get('/tasks')
+def get_tasks() -> TaskManager:
+  """Get the running tasks."""
+  return TASK_MANAGER
 
 
 @app.get('/db/list_models')
