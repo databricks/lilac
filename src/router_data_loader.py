@@ -125,9 +125,12 @@ def load_shard(source_name: str, options: LoadDatasetShardOptions) -> SourceShar
   return options.source.process_shard(options.shard_info)
 
 
-async def process_source(base_dir: str, namespace: str, dataset_name: str, source: Source,
+async def process_source(base_dir: str,
+                         namespace: str,
+                         dataset_name: str,
+                         source: Source,
                          process_shard: Callable[[BaseShardInfo], Awaitable[SourceShardOut]],
-                         task_id: Optional[TaskId]) -> tuple[str, int]:
+                         task_id: Optional[TaskId] = None) -> tuple[str, int]:
   """Process a source."""
 
   async def shards_loader(shard_infos: list[BaseShardInfo]) -> list[SourceShardOut]:
