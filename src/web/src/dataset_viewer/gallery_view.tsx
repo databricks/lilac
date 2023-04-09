@@ -1,5 +1,5 @@
 import {SerializedError} from '@reduxjs/toolkit';
-import {SlButton, SlDrawer, SlOption, SlRange, SlSelect} from '@shoelace-style/shoelace/dist/react';
+import {SlOption, SlSelect} from '@shoelace-style/shoelace/dist/react';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import * as React from 'react';
 import {DataType, Field, Filter, StatsResult, WebManifest} from '../../fastapi_client';
@@ -10,7 +10,7 @@ import {
   useGetMultipleStatsQuery,
   useSelectRowsQuery,
 } from '../store/api_dataset';
-import {setBrowserPreviewPaths, setRowHeightListPx} from '../store/store';
+import {setBrowserPreviewPaths} from '../store/store';
 import {renderPath} from '../utils';
 import {GalleryItem} from './gallery_item';
 import styles from './gallery_view.module.css';
@@ -78,7 +78,6 @@ function useInfiniteItemsQuery(namespace: string, datasetName: string) {
 export interface GalleryMenuProps {
   schema: Schema;
   previewPaths: Path[];
-  rowHeightListPx: number;
 }
 
 interface VisualLeaf {
@@ -91,10 +90,8 @@ export const IMAGE_PATH_PREFIX = '__image__';
 export const GalleryMenu = React.memo(function GalleryMenu({
   schema,
   previewPaths,
-  rowHeightListPx,
 }: GalleryMenuProps): JSX.Element {
   const dispatch = useAppDispatch();
-  const [drawerIsOpen, setDrawerIsOpen] = React.useState(false);
   const leafs: [Path, VisualLeaf | Field][] = [...schema.leafs];
 
   const items = leafs.map(([path, field], i) => {
@@ -125,10 +122,6 @@ export const GalleryMenu = React.memo(function GalleryMenu({
     dispatch(setBrowserPreviewPaths(paths));
   };
 
-  const rowHeightListChanged = (newRowHeightPx: number) => {
-    dispatch(setRowHeightListPx(newRowHeightPx));
-  };
-
   return (
     <div className="flex h-16">
       {/* Features preview dropdown. */}
@@ -153,40 +146,6 @@ export const GalleryMenu = React.memo(function GalleryMenu({
           </SlSelect>
         </div>
       </div>
-
-      {/* Settings button */}
-      <div className="flex flex-col">
-        <div>
-          <label>&nbsp;</label>
-        </div>
-        <div className="flex h-full items-center">
-          <SlButton size="small" onClick={() => setDrawerIsOpen(true)}>
-            Settings
-          </SlButton>
-        </div>
-      </div>
-      <SlDrawer
-        label="Browser settings"
-        placement="start"
-        open={drawerIsOpen}
-        onSlAfterHide={() => setDrawerIsOpen(false)}
-      >
-        <div className="font-bold">Row height (pixels)</div>
-        <div className="flex items-center justify-between">
-          <label>List view</label>
-          <div>
-            <SlRange
-              min={40}
-              max={500}
-              value={rowHeightListPx}
-              step={5}
-              onSlChange={(e) =>
-                rowHeightListChanged((e.target as HTMLInputElement).value as unknown as number)
-              }
-            />
-          </div>
-        </div>
-      </SlDrawer>
     </div>
   );
 });
@@ -270,7 +229,6 @@ export const Gallery = React.memo(function Gallery({
   } = useGetManifestQuery({namespace, datasetName});
   const schema = webManifest != null ? new Schema(webManifest.dataset_manifest.data_schema) : null;
   const previewPaths = usePreviewPaths(namespace, datasetName, webManifest, schema);
-  const rowHeightListPx = useAppSelector((state) => state.app.selectedData.browser.rowHeightListPx);
 
   const {error, isFetchingNextPage, allIds, hasNextPage, fetchNextPage} = useInfiniteItemsQuery(
     namespace,
@@ -331,11 +289,7 @@ export const Gallery = React.memo(function Gallery({
   return (
     <div className="flex h-full w-full flex-col">
       <div className="mb-4">
-        <GalleryMenu
-          schema={schema}
-          previewPaths={previewPaths}
-          rowHeightListPx={rowHeightListPx}
-        ></GalleryMenu>
+        <GalleryMenu schema={schema} previewPaths={previewPaths}></GalleryMenu>
       </div>
       <div ref={parentRef} className="overflow-y-scroll h-full w-full">
         <div
