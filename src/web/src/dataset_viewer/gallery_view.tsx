@@ -12,23 +12,23 @@ import {
 } from '../store/api_dataset';
 import {setBrowserPreviewPaths, setRowHeightListPx} from '../store/store';
 import {renderPath} from '../utils';
-import styles from './browser.module.css';
-import {ItemPreview} from './item_preview';
+import {GalleryItem} from './gallery_item';
+import styles from './gallery_view.module.css';
 
-export interface BrowserProps {
+export interface GalleryProps {
   namespace: string;
   datasetName: string;
 }
 
 /** Number of items to be fetched when fetching the next page. */
-const ITEMS_PAGE_SIZE = 90;
+const ITEMS_PAGE_SIZE = 40;
 
 function useGetIds(
   namespace: string,
   datasetName: string,
   limit: number,
   offset: number
-): {isFetching: boolean; ids: string[]; error?: SerializedError | string} {
+): {isFetching: boolean; ids: string[] | null; error?: SerializedError | string} {
   const filters: Filter[] = [];
   /** Select only the UUID column. */
   const columns: string[] = [UUID_COLUMN];
@@ -37,7 +37,7 @@ function useGetIds(
     currentData: items,
     error,
   } = useSelectRowsQuery({namespace, datasetName, options: {filters, columns, limit, offset}});
-  let ids: string[] = [];
+  let ids: string[] | null = null;
   if (items) {
     ids = items.map((item) => item[UUID_COLUMN] as string);
   }
@@ -75,7 +75,7 @@ function useInfiniteItemsQuery(namespace: string, datasetName: string) {
   };
 }
 
-export interface BrowserMenuProps {
+export interface GalleryMenuProps {
   schema: Schema;
   previewPaths: Path[];
   rowHeightListPx: number;
@@ -88,20 +88,14 @@ interface VisualLeaf {
 // TODO(smilkov): Remove this once we make a logical image dtype.
 export const IMAGE_PATH_PREFIX = '__image__';
 
-export const BrowserMenu = React.memo(function BrowserMenu({
+export const GalleryMenu = React.memo(function GalleryMenu({
   schema,
   previewPaths,
   rowHeightListPx,
-}: BrowserMenuProps): JSX.Element {
+}: GalleryMenuProps): JSX.Element {
   const dispatch = useAppDispatch();
   const [drawerIsOpen, setDrawerIsOpen] = React.useState(false);
   const leafs: [Path, VisualLeaf | Field][] = [...schema.leafs];
-
-  // TODO(smilkov): Add support for images.
-  // for (const imageInfo of manifest.images) {
-  //   const path = [IMAGE_PATH_PREFIX, ...imageInfo.path];
-  //   leafs.push([path, {dtype: 'image'}]);
-  // }
 
   const items = leafs.map(([path, field], i) => {
     return (
@@ -144,7 +138,7 @@ export const BrowserMenu = React.memo(function BrowserMenu({
         </div>
         <div className="flex h-full items-center">
           <SlSelect
-            className={`mr-2 w-full ${styles.browser_preview_dropdown}`}
+            className={`mr-2 w-full ${styles.gallery_preview_dropdown}`}
             size="small"
             value={selectedIndices}
             placeholder="Select fields to preview"
@@ -197,7 +191,7 @@ export const BrowserMenu = React.memo(function BrowserMenu({
   );
 });
 
-export interface BrowserRowProps {
+export interface GalleryRowProps {
   /** List of run ids to render in a single row. */
   namespace: string;
   datasetName: string;
@@ -205,24 +199,24 @@ export interface BrowserRowProps {
   previewPaths: Path[];
 }
 
-export const BrowserRow = React.memo(function BrowserRow({
+export const GalleryRow = React.memo(function GalleryRow({
   namespace,
   datasetName,
   itemIds,
   previewPaths,
-}: BrowserRowProps): JSX.Element {
-  const itemPreviews = itemIds.map((itemId) => {
+}: GalleryRowProps): JSX.Element {
+  const galleryItems = itemIds.map((itemId) => {
     return (
-      <ItemPreview
+      <GalleryItem
         key={itemId}
         namespace={namespace}
         datasetName={datasetName}
         itemId={itemId}
         previewPaths={previewPaths!}
-      ></ItemPreview>
+      ></GalleryItem>
     );
   });
-  return <div className="flex w-full h-full py-px">{itemPreviews}</div>;
+  return <div className="flex w-full h-full py-px">{galleryItems}</div>;
 });
 
 export function usePreviewPaths(
@@ -249,14 +243,6 @@ export function usePreviewPaths(
       return [];
     }
 
-    // TODO(smilkov): Add support for images.
-    // Auto-select the first media leaf.
-    // if (manifest.images.length > 0) {
-    //   const imageInfo = manifest.images[0];
-    //   const imagePath: Path = [IMAGE_PATH_PREFIX, ...imageInfo.path];
-    //   return [imagePath];
-    // }
-
     // If no media leaf is found, select the longest string.
     if (multipleStats.currentData == null) {
       return [];
@@ -273,10 +259,10 @@ export function usePreviewPaths(
   return previewPaths;
 }
 
-export const Browser = React.memo(function Browser({
+export const Gallery = React.memo(function Gallery({
   namespace,
   datasetName,
-}: BrowserProps): JSX.Element {
+}: GalleryProps): JSX.Element {
   const {
     currentData: webManifest,
     isFetching: isManifestFetching,
@@ -285,8 +271,6 @@ export const Browser = React.memo(function Browser({
   const schema = webManifest != null ? new Schema(webManifest.dataset_manifest.data_schema) : null;
   const previewPaths = usePreviewPaths(namespace, datasetName, webManifest, schema);
   const rowHeightListPx = useAppSelector((state) => state.app.selectedData.browser.rowHeightListPx);
-  const inGalleryMode = previewPaths.length === 1;
-  const rowHeightPx = rowHeightListPx;
 
   const {error, isFetchingNextPage, allIds, hasNextPage, fetchNextPage} = useInfiniteItemsQuery(
     namespace,
@@ -294,54 +278,43 @@ export const Browser = React.memo(function Browser({
   );
   // `useVirtualizer needs a reference to the scrolling element below.
   const parentRef = React.useRef<HTMLDivElement | null>(null);
-  const [browserWidthPx, setBrowserWidthPx] = React.useState(100);
-  const thumbWidthPx = rowHeightPx;
-  // Try to pack as many squarish thumbnails per row when in gallery mode.
-  const itemsPerRow = inGalleryMode ? Math.max(1, Math.round(browserWidthPx / thumbWidthPx)) : 1;
+  const [itemsPerRow, setItemsPerRow] = React.useState(1);
+  const itemWidthPx = 500;
 
   React.useEffect(() => {
     if (parentRef.current == null) {
       return;
     }
     const observer = new ResizeObserver((entries) => {
-      const browserWidthPx = entries[0].contentRect.width;
-      setBrowserWidthPx(browserWidthPx);
+      const galleryWidthPx = entries[0].contentRect.width;
+      const itemsPerRow = Math.max(1, Math.round(galleryWidthPx / itemWidthPx));
+      setItemsPerRow(itemsPerRow);
     });
     observer.observe(parentRef.current);
     return () => observer.disconnect();
   }, [parentRef.current, webManifest]);
 
-  const numVirtualRows = Math.ceil(allIds.length / itemsPerRow);
-  const rowVirtualizer = useVirtualizer({
-    count: hasNextPage ? numVirtualRows + 1 : numVirtualRows,
+  const numRows = Math.ceil(allIds.length / itemsPerRow);
+  const virtualizer = useVirtualizer({
+    count: hasNextPage ? numRows + 1 : numRows,
     getScrollElement: () => parentRef.current || null,
-    // The estimated height of an individual item in pixels.
-    estimateSize: () => rowHeightPx,
-    overscan: 5,
+    // The estimated height of an individual item in pixels. This doesn't matter since we will
+    // compute the actual height after the initial render.
+    estimateSize: () => 200,
+    overscan: 1,
   });
-  const virtualItems = rowVirtualizer.getVirtualItems();
-  const previousRowHeightPx = virtualItems[0]?.size || rowHeightPx;
-  if (rowHeightPx !== previousRowHeightPx) {
-    rowVirtualizer.measure();
-  }
 
   React.useEffect(
     function maybeFetchNextPage() {
-      const lastVirtualRow = rowVirtualizer.getVirtualItems().slice().reverse()[0];
+      const lastVirtualRow = virtualizer.getVirtualItems().slice().reverse()[0];
       if (lastVirtualRow == null) {
         return;
       }
-      if (lastVirtualRow.index >= numVirtualRows && hasNextPage && !isFetchingNextPage) {
+      if (lastVirtualRow.index >= numRows && hasNextPage && !isFetchingNextPage) {
         fetchNextPage();
       }
     },
-    [
-      hasNextPage,
-      fetchNextPage,
-      numVirtualRows,
-      isFetchingNextPage,
-      rowVirtualizer.getVirtualItems(),
-    ]
+    [hasNextPage, fetchNextPage, numRows, isFetchingNextPage, virtualizer.getVirtualItems()]
   );
 
   if (error || manifestError) {
@@ -353,66 +326,61 @@ export const Browser = React.memo(function Browser({
   if (webManifest == null || schema == null) {
     return <>This should not happen since the manifest has loaded and there is no error</>;
   }
-  const columns = previewPaths.map((path, i) => {
-    let className = 'grow w-full truncate px-2 font-medium';
-    if (i > 0) {
-      className += ' border-l';
-    }
-    return (
-      <div key={serializePath(path)} className={className}>
-        {renderPath(path)}
-      </div>
-    );
-  });
+  const virtualRows = virtualizer.getVirtualItems();
+  const transformY = virtualRows[0]?.start || 0;
   return (
     <div className="flex h-full w-full flex-col">
       <div className="mb-4">
-        <BrowserMenu
+        <GalleryMenu
           schema={schema}
           previewPaths={previewPaths}
           rowHeightListPx={rowHeightListPx}
-        ></BrowserMenu>
+        ></GalleryMenu>
       </div>
-      <div className="flex border-b py-2 overflow-y-scroll">{columns}</div>
       <div ref={parentRef} className="overflow-y-scroll h-full w-full">
         <div
           style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
+            height: `${virtualizer.getTotalSize()}px`,
             width: '100%',
             position: 'relative',
           }}
         >
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const isLoaderRow = virtualRow.index >= numVirtualRows;
-            const startIndex = virtualRow.index * itemsPerRow;
-            const endIndex = (virtualRow.index + 1) * itemsPerRow;
-            const itemIds = allIds.slice(startIndex, endIndex);
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${transformY}px)`,
+            }}
+          >
+            {virtualRows.map((virtualRow) => {
+              const isLoaderRow = virtualRow.index >= numRows;
+              const startIndex = virtualRow.index * itemsPerRow;
+              const endIndex = (virtualRow.index + 1) * itemsPerRow;
+              const itemIds = allIds.slice(startIndex, endIndex);
 
-            return (
-              <div
-                key={virtualRow.index}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: `${virtualRow.size}px`,
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                {isLoaderRow ? (
-                  'Loading more...'
-                ) : (
-                  <BrowserRow
-                    namespace={namespace}
-                    datasetName={datasetName}
-                    itemIds={itemIds}
-                    previewPaths={previewPaths!}
-                  ></BrowserRow>
-                )}
-              </div>
-            );
-          })}
+              return (
+                <div
+                  key={virtualRow.index}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  style={{width: '100%'}}
+                >
+                  {isLoaderRow ? (
+                    <div className={styles.loader_row}>Loading more...</div>
+                  ) : (
+                    <GalleryRow
+                      namespace={namespace}
+                      datasetName={datasetName}
+                      itemIds={itemIds}
+                      previewPaths={previewPaths!}
+                    ></GalleryRow>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

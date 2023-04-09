@@ -30,8 +30,6 @@ interface SelectedData {
     previewPaths?: Path[];
     /** Row height when in list view (spreadsheet-like table). */
     rowHeightListPx: number;
-    /** Row height when in gallery view (multiple square-ish items in the same row). */
-    rowHeightGalleryPx: number;
   };
 }
 
@@ -41,7 +39,7 @@ interface AppState {
 
 // Define the initial state using that type
 const initialState: AppState = {
-  selectedData: {browser: {rowHeightListPx: 60, rowHeightGalleryPx: 165}},
+  selectedData: {browser: {rowHeightListPx: 60}},
 };
 
 const appSlice = createSlice({
@@ -58,9 +56,6 @@ const appSlice = createSlice({
     },
     setRowHeightListPx(state, action: PayloadAction<number>) {
       state.selectedData.browser.rowHeightListPx = action.payload;
-    },
-    setRowHeightGalleryPx(state, action: PayloadAction<number>) {
-      state.selectedData.browser.rowHeightGalleryPx = action.payload;
     },
   },
 });
@@ -222,8 +217,7 @@ export const store = configureStore({
 });
 
 // Export the actions.
-export const {setDataset, setBrowserPreviewPaths, setRowHeightListPx, setRowHeightGalleryPx} =
-  appSlice.actions;
+export const {setDataset, setBrowserPreviewPaths, setRowHeightListPx} = appSlice.actions;
 
 export const {
   useCreateModelMutation,
