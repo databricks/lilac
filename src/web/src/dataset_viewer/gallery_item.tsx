@@ -80,42 +80,6 @@ function Metadata({item, paths}: {item: Item | null; paths?: Path[]}): JSX.Eleme
   );
 }
 
-function GalleryMedia({item, path}: {item: Item | null; path: Path}): JSX.Element {
-  const label = renderPath(path);
-  const mediaContent = item != null ? renderCell(item, path) : 'Loading...';
-  return (
-    <div className={styles.media_container}>
-      <div className={`${styles.media_label} truncate`}>{label}</div>
-      <div className={styles.media_content_container}>
-        <div className={styles.media_content}>{mediaContent}</div>
-      </div>
-    </div>
-  );
-}
-
-function GalleryMetadata({item, paths}: {item: Item | null; paths?: Path[]}): JSX.Element {
-  if (paths == null) {
-    return <></>;
-  }
-  const metadata = paths.map((path) => {
-    const pathKey = serializePath(path);
-    return (
-      <div key={pathKey} className="flex justify-between w-full text-sm">
-        <div className={`${styles.metadata_field} ${styles.metadata_key}`}>{renderPath(path)}</div>
-        <div className={styles.metadata_field}>
-          {item != null ? renderCell(item, path) : 'Loading...'}
-        </div>
-      </div>
-    );
-  });
-  return (
-    <div className="mt-4">
-      <div className={styles.metadata_label}>Metadata</div>
-      {metadata}
-    </div>
-  );
-}
-
 export const GalleryItem = React.memo(function GalleryItem({
   namespace,
   datasetName,
