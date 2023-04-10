@@ -4,7 +4,7 @@ import {Link} from 'react-router-dom';
 import {TaskInfo} from '../fastapi_client';
 import styles from './header.module.css';
 import {SearchBox} from './search_box';
-import {useLazyGetTasksQuery} from './store/store';
+import {useLazyGetTaskManifestQuery} from './store/store';
 import {formatDatetime, renderQuery, useClickOutside} from './utils';
 
 const TASKS_POLL_INTERVAL_MS = 2000;
@@ -47,7 +47,7 @@ export const Task = ({task}: {task: TaskInfo}): JSX.Element => {
               name="check-lg"
               style={{fontSize: '1.5rem'}}
             ></SlIcon>
-          ) : task.progress != null ? (
+          ) : task.progress != null && task.progress > 0.0 ? (
             <SlProgressRing
               value={task.progress * 100}
               style={
@@ -70,7 +70,7 @@ export const Task = ({task}: {task: TaskInfo}): JSX.Element => {
 };
 
 export const TaskViewer = (): JSX.Element => {
-  const [loadTaskManager, taskManager] = useLazyGetTasksQuery();
+  const [loadTaskManifest, taskManifest] = useLazyGetTaskManifestQuery();
   const [tasksPanelOpen, setTasksPanelOpen] = React.useState(false);
   const tasksDrawerRef = React.useRef<HTMLDivElement>(null);
   const buttonContainerRef = React.useRef<HTMLDivElement>(null);
@@ -79,15 +79,15 @@ export const TaskViewer = (): JSX.Element => {
 
   // Poll for tasks.
   React.useEffect(() => {
-    loadTaskManager();
-    setInterval(() => loadTaskManager(), TASKS_POLL_INTERVAL_MS);
+    loadTaskManifest();
+    setInterval(() => loadTaskManifest(), TASKS_POLL_INTERVAL_MS);
 
     if (tasksDrawerRef.current != null) {
       tasksDrawerRef.current.focus();
     }
   }, []);
 
-  const tasksElement = renderQuery(taskManager, (taskManager) => {
+  const tasksElement = renderQuery(taskManifest, (taskManager) => {
     let numPending = 0;
     let numTasks = 0;
     const taskElements: JSX.Element[] = [];

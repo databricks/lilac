@@ -21,6 +21,7 @@ from ...schema import (
     Schema,
     arrow_dtype_to_dtype,
 )
+from ...tasks import TaskId
 from ...utils import write_items_to_parquet
 from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut, default_shards_loader
 
@@ -124,9 +125,12 @@ class HuggingFaceDataset(Source[ShardInfo]):
       description='Load from local disk instead of the hub.', default=False)
 
   @override
-  async def process(self,
-                    output_dir: str,
-                    shards_loader: Optional[ShardsLoader] = None) -> SourceProcessResult:
+  async def process(
+      self,
+      output_dir: str,
+      shards_loader: Optional[ShardsLoader] = None,
+      task_id: Optional[TaskId] = None,
+  ) -> SourceProcessResult:
     """Process the source upload request."""
     shards_loader = shards_loader or default_shards_loader(self)
 

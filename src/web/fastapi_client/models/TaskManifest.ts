@@ -5,9 +5,9 @@
 import type { TaskInfo } from './TaskInfo';
 
 /**
- * Manage FastAPI background tasks.
+ * Information for tasks that are running or completed.
  */
-export type TaskManager = {
-    tasks?: Record<string, TaskInfo>;
+export type TaskManifest = {
+    tasks: Record<string, TaskInfo>;
 };
 

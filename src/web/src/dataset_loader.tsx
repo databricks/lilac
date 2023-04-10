@@ -14,14 +14,14 @@ import {
   useGetSourcesQuery,
   useLoadDatasetMutation,
 } from './store/api_dataset';
-import {useLazyGetTasksQuery} from './store/store';
+import {useLazyGetTaskManifestQuery} from './store/store';
 import {getDatasetLink, renderError, renderQuery} from './utils';
 
 const DATASET_TASK_POLL_INTERVAL_MS = 500;
 
 export const DatasetLoader = (): JSX.Element => {
   const sources = useGetSourcesQuery();
-  const [loadTaskManager, taskManager] = useLazyGetTasksQuery();
+  const [loadTaskManifest, taskManifest] = useLazyGetTaskManifestQuery();
 
   const [namespace, setNamespace] = React.useState<string>('local');
   const [datasetName, setDatasetName] = React.useState<string>('');
@@ -92,14 +92,14 @@ export const DatasetLoader = (): JSX.Element => {
     }).unwrap();
     // Set the task ID and poll for it to be ready before redirecting.
     setTaskId(response.task_id);
-    setInterval(() => loadTaskManager(), DATASET_TASK_POLL_INTERVAL_MS);
+    setInterval(() => loadTaskManifest(), DATASET_TASK_POLL_INTERVAL_MS);
   };
 
   if (
     taskId != null &&
-    taskManager.currentData != null &&
-    taskManager.currentData.tasks != null &&
-    taskManager.currentData.tasks[taskId].status == 'completed'
+    taskManifest.currentData != null &&
+    taskManifest.currentData.tasks != null &&
+    taskManifest.currentData.tasks[taskId]?.status == 'completed'
   ) {
     location.href = getDatasetLink(namespace, datasetName);
   }

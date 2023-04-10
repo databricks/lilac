@@ -5,7 +5,7 @@ import {configureStore, PayloadAction} from '@reduxjs/toolkit';
 import {createApi} from '@reduxjs/toolkit/query/react';
 
 import {createSlice} from '@reduxjs/toolkit';
-import {DefaultService, TaskManager} from '../../fastapi_client';
+import {DefaultService, TaskManifest} from '../../fastapi_client';
 import {Path} from '../schema';
 import {
   AddDatasetOptions,
@@ -72,8 +72,8 @@ export const serverApi = createApi({
     return {error: 'baseQuery should never be called.'};
   },
   endpoints: (builder) => ({
-    getTasks: builder.query<TaskManager, void>({
-      queryFn: async () => query(() => DefaultService.getTasks()),
+    getTaskManifest: builder.query<TaskManifest, void>({
+      queryFn: async () => query(() => DefaultService.getTaskManifest()),
     }),
   }),
 });
@@ -249,7 +249,7 @@ export const {
   useAddExamplesMutation,
   useLazySearchExamplesQuery,
 } = dbApi;
-export const {useGetTasksQuery, useLazyGetTasksQuery} = serverApi;
+export const {useGetTaskManifestQuery, useLazyGetTaskManifestQuery} = serverApi;
 
 // See: https://react-redux.js.org/tutorials/typescript-quick-start
 export type RootState = ReturnType<typeof store.getState>;

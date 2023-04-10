@@ -1,7 +1,8 @@
 """Serves the agile model server."""
 
 import os
-from typing import Any
+from contextlib import asynccontextmanager
+from typing import Any, AsyncGenerator
 
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import HTMLResponse
@@ -17,7 +18,7 @@ from .server_api import (
     SaveModelOptions,
     SearchExamplesOptions,
 )
-from .tasks import TASK_MANAGER, TaskManager
+from .tasks import TaskManifest, task_manager
 
 DIST_PATH = os.path.abspath(os.path.join('dist'))
 
@@ -42,7 +43,21 @@ def custom_generate_unique_id(route: APIRoute) -> str:
   return route.name
 
 
-app = FastAPI(generate_unique_id_function=custom_generate_unique_id, openapi_tags=tags_metadata)
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator:
+  """Lifespan for the app."""
+  # Set up the task manager singleton.
+  task_manager()
+
+  yield
+
+  # Stop the task manager so we can kill dask.
+  task_manager().stop()
+
+
+app = FastAPI(generate_unique_id_function=custom_generate_unique_id,
+              openapi_tags=tags_metadata,
+              lifespan=lifespan)
 
 v1_router = APIRouter()
 v1_router.include_router(router_dataset.router, prefix='/datasets', tags=['datasets'])
@@ -62,9 +77,9 @@ app.mount('/hot',
 
 
 @app.get('/tasks')
-def get_tasks() -> TaskManager:
-  """Get the running tasks."""
-  return TASK_MANAGER
+def get_task_manifest() -> TaskManifest:
+  """Get the tasks, both completed and pending."""
+  return task_manager().manifest()
 
 
 @app.get('/db/list_models')

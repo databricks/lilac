@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from typing_extensions import override
 
 from ...schema import PARQUET_FILENAME_PREFIX, ImageInfo, Path, arrow_schema_to_schema
+from ...tasks import TaskId
 from ...utils import (
     GCS_REGEX,
     UUID_COLUMN,
@@ -55,7 +56,8 @@ class PandasDataset(Source[ShardInfo]):
 
   async def process(self,
                     output_dir: str,
-                    shards_loader: Optional[ShardsLoader] = None) -> SourceProcessResult:
+                    shards_loader: Optional[ShardsLoader] = None,
+                    task_id: Optional[TaskId] = None) -> SourceProcessResult:
     """Process the source upload request."""
     shards_loader = shards_loader or default_shards_loader(self)
 

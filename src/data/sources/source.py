@@ -6,6 +6,7 @@ from typing import Any, Awaitable, Callable, ClassVar, Generic, Optional, Type, 
 from pydantic import BaseModel
 
 from ...schema import ImageInfo, Schema
+from ...tasks import TaskId
 
 
 class SourceShardOut(BaseModel):
@@ -50,14 +51,19 @@ class Source(abc.ABC, BaseModel, Generic[BaseShardInfo]):
     self.source_name = self.__class__.name
 
   @abc.abstractmethod
-  async def process(self,
-                    output_dir: str,
-                    shards_loader: Optional[ShardsLoader] = None) -> SourceProcessResult:
+  async def process(
+      self,
+      output_dir: str,
+      shards_loader: Optional[ShardsLoader] = None,
+      task_id: Optional[TaskId] = None,
+  ) -> SourceProcessResult:
     """Process the source upload request.
 
     Args:
       output_dir: The directory to write the output files to.
       shards_loader: The function to use to load the shards. If None, the default shards loader
+      task_id: The TaskManager `task_id` for this process run. This is used to update the progress
+        of the task.
     """
     pass
 

@@ -5,6 +5,7 @@ import pytest
 from pydantic import BaseModel
 from typing_extensions import override
 
+from ...tasks import TaskId
 from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut
 from .source_registry import clear_source_registry, get_source_cls, register_source, resolve_source
 
@@ -16,7 +17,8 @@ class TestSource(Source[BaseModel]):
   @override
   async def process(self,
                     output_dir: str,
-                    shards_loader: Optional[ShardsLoader] = None) -> SourceProcessResult:
+                    shards_loader: Optional[ShardsLoader] = None,
+                    task_id: Optional[TaskId] = None) -> SourceProcessResult:
     return cast(SourceProcessResult, None)
 
   @override

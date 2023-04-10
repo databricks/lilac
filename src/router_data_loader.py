@@ -21,7 +21,7 @@ from .data.sources.source import BaseShardInfo, Source, SourceShardOut
 from .data.sources.source_registry import get_source_cls, registered_sources, resolve_source
 from .router_utils import RouteErrorHandler
 from .schema import MANIFEST_FILENAME, SourceManifest
-from .tasks import TASK_MANAGER, TaskId, TaskStatus
+from .tasks import TaskId, task_manager
 from .utils import DebugTimer, async_wrap, get_dataset_output_dir, log, open_file
 
 REQUEST_TIMEOUT_SEC = 30 * 60  # 30 mins.
@@ -94,11 +94,11 @@ async def load(source_name: str, options: LoadDatasetOptions, request: Request,
 
     return SourceShardOut(**res.json())
 
-  task_id = TASK_MANAGER.task_id(name=f'Loading dataset {options.namespace}/{options.dataset_name}',
-                                 description=f'Loader: {source.name}. \n Config: {source}')
-
-  background_tasks.add_task(process_source, data_path(), options.namespace, options.dataset_name,
-                            source, process_shard, task_id)
+  task_id = task_manager().task_id(
+      name=f'Loading dataset {options.namespace}/{options.dataset_name}',
+      description=f'Loader: {source.name}. \n Config: {source}')
+  task_manager().execute(task_id, process_source, data_path(), options.namespace,
+                         options.dataset_name, source, process_shard)
 
   return LoadDatasetResponse(task_id=task_id)
 
@@ -139,7 +139,7 @@ async def process_source(base_dir: str,
   output_dir = get_dataset_output_dir(base_dir, namespace, dataset_name)
 
   with DebugTimer(f'[{source.name}] Processing dataset "{dataset_name}"'):
-    source_process_result = await source.process(output_dir, shards_loader)
+    source_process_result = await source.process(output_dir, shards_loader, task_id)
 
   filenames = [os.path.basename(filepath) for filepath in source_process_result.filepaths]
   manifest = SourceManifest(files=filenames,
@@ -148,8 +148,5 @@ async def process_source(base_dir: str,
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.json(indent=2, exclude_none=True))
   log(f'Manifest for dataset "{dataset_name}" written to {output_dir}')
-
-  if task_id:
-    TASK_MANAGER.update_task(task_id=task_id, status=TaskStatus.COMPLETED)
 
   return output_dir, source_process_result.num_items
