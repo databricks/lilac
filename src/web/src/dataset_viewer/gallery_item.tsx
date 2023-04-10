@@ -1,4 +1,6 @@
+import {SlTooltip} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
+
 import {getLeafVals, Item, LeafValue, Path, serializePath} from '../schema';
 import {useGetItem} from '../store/store';
 import {renderError, renderPath, roundNumber} from '../utils';
@@ -25,26 +27,20 @@ function renderValue(val: LeafValue): string {
 }
 
 /** Renders an individual item, which can be an arbitrary nested struct with lists. */
-function renderCell(item: Item, path: Path): JSX.Element {
+function renderCell(item: Item, path: Path): string {
   const leafVals = getLeafVals(item);
   const vals = leafVals[serializePath(path)];
   if (vals == null) {
     // The path doesn't exist in this item.
-    return <>N/A</>;
+    return 'N/A';
   }
   if (vals.length === 1) {
-    return <>{renderValue(vals[0])}</>;
+    return renderValue(vals[0]);
   }
-  return (
-    <ul>
-      {vals.map((v, i) => (
-        <li key={i}>{renderValue(v)}</li>
-      ))}
-    </ul>
-  );
+  return vals.map((v) => renderValue(v)).join(', ');
 }
 
-function GalleryMedia({item, path}: {item: Item | null; path: Path}): JSX.Element {
+function Media({item, path}: {item: Item | null; path: Path}): JSX.Element {
   const label = renderPath(path);
   const mediaContent = item != null ? renderCell(item, path) : 'Loading...';
   return (
@@ -57,18 +53,22 @@ function GalleryMedia({item, path}: {item: Item | null; path: Path}): JSX.Elemen
   );
 }
 
-function GalleryMetadata({item, paths}: {item: Item | null; paths?: Path[]}): JSX.Element {
+function Metadata({item, paths}: {item: Item | null; paths?: Path[]}): JSX.Element {
   if (paths == null) {
     return <></>;
   }
   const metadata = paths.map((path) => {
     const pathKey = serializePath(path);
+    const pathStr = renderPath(path);
+    const content = item != null ? renderCell(item, path) : 'Loading...';
     return (
       <div key={pathKey} className="flex justify-between w-full text-sm">
-        <div className={`${styles.metadata_field} ${styles.metadata_key}`}>{renderPath(path)}</div>
-        <div className={styles.metadata_field}>
-          {item != null ? renderCell(item, path) : 'Loading...'}
-        </div>
+        <SlTooltip content={pathStr} hoist>
+          <div className={`${styles.metadata_key} truncate`}>{pathStr}</div>
+        </SlTooltip>
+        <SlTooltip content={content} hoist>
+          <div className="truncate">{content}</div>
+        </SlTooltip>
       </div>
     );
   });
@@ -92,14 +92,14 @@ export const GalleryItem = React.memo(function GalleryItem({
     return <div>{renderError(error)}</div>;
   }
   const medias = mediaPaths.map((path) => {
-    return <GalleryMedia key={serializePath(path)} item={item} path={path} />;
+    return <Media key={serializePath(path)} item={item} path={path} />;
   });
 
   return (
     <>
       <div className={styles.overview}>
         {medias}
-        <GalleryMetadata item={item} paths={metadataPaths} />
+        <Metadata item={item} paths={metadataPaths} />
       </div>
     </>
   );

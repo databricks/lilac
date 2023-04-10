@@ -12,12 +12,6 @@
   color: var(--sl-color-gray-500);
 }
 
-.metadata_field {
-  white-space: nowrap;
-  overflow: hidden !important;
-  text-overflow: ellipsis;
-}
-
 .metadata_key {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
