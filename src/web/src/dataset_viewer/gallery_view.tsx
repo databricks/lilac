@@ -1,16 +1,11 @@
-import {SerializedError} from '@reduxjs/toolkit';
 import {SlOption, SlSelect} from '@shoelace-style/shoelace/dist/react';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import * as React from 'react';
-import {DataType, Field, Filter, StatsResult, WebManifest} from '../../fastapi_client';
+import {DataType, Field, StatsResult, WebManifest} from '../../fastapi_client';
 import {useAppDispatch, useAppSelector} from '../hooks';
-import {Path, Schema, serializePath, UUID_COLUMN} from '../schema';
-import {
-  useGetManifestQuery,
-  useGetMultipleStatsQuery,
-  useSelectRowsQuery,
-} from '../store/api_dataset';
-import {setBrowserPreviewPaths} from '../store/store';
+import {Path, Schema, serializePath} from '../schema';
+import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/api_dataset';
+import {setBrowserPreviewPaths, useGetIds} from '../store/store';
 import {renderPath} from '../utils';
 import {GalleryItem} from './gallery_item';
 import styles from './gallery_view.module.css';
@@ -22,27 +17,6 @@ export interface GalleryProps {
 
 /** Number of items to be fetched when fetching the next page. */
 const ITEMS_PAGE_SIZE = 40;
-
-function useGetIds(
-  namespace: string,
-  datasetName: string,
-  limit: number,
-  offset: number
-): {isFetching: boolean; ids: string[] | null; error?: SerializedError | string} {
-  const filters: Filter[] = [];
-  /** Select only the UUID column. */
-  const columns: string[] = [UUID_COLUMN];
-  const {
-    isFetching,
-    currentData: items,
-    error,
-  } = useSelectRowsQuery({namespace, datasetName, options: {filters, columns, limit, offset}});
-  let ids: string[] | null = null;
-  if (items) {
-    ids = items.map((item) => item[UUID_COLUMN] as string);
-  }
-  return {isFetching, ids, error};
-}
 
 /**
  * A hook that allows for infinite fetch with paging. The hook exports fetchNextPage which should
@@ -238,21 +212,8 @@ export const Gallery = React.memo(function Gallery({
   const parentRef = React.useRef<HTMLDivElement | null>(null);
   const [itemsPerRow, setItemsPerRow] = React.useState(1);
   const itemWidthPx = 500;
-
-  React.useEffect(() => {
-    if (parentRef.current == null) {
-      return;
-    }
-    const observer = new ResizeObserver((entries) => {
-      const galleryWidthPx = entries[0].contentRect.width;
-      const itemsPerRow = Math.max(1, Math.round(galleryWidthPx / itemWidthPx));
-      setItemsPerRow(itemsPerRow);
-    });
-    observer.observe(parentRef.current);
-    return () => observer.disconnect();
-  }, [parentRef.current, webManifest]);
-
   const numRows = Math.ceil(allIds.length / itemsPerRow);
+
   const virtualizer = useVirtualizer({
     count: hasNextPage ? numRows + 1 : numRows,
     getScrollElement: () => parentRef.current || null,
@@ -273,6 +234,22 @@ export const Gallery = React.memo(function Gallery({
       }
     },
     [hasNextPage, fetchNextPage, numRows, isFetchingNextPage, virtualizer.getVirtualItems()]
+  );
+
+  React.useEffect(
+    function addResizeObserver() {
+      if (parentRef.current == null) {
+        return;
+      }
+      const observer = new ResizeObserver((entries) => {
+        const galleryWidthPx = entries[0].contentRect.width;
+        const itemsPerRow = Math.max(1, Math.round(galleryWidthPx / itemWidthPx));
+        setItemsPerRow(itemsPerRow);
+      });
+      observer.observe(parentRef.current);
+      return () => observer.disconnect();
+    },
+    [parentRef.current, webManifest]
   );
 
   if (error || manifestError) {

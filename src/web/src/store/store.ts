@@ -1,11 +1,12 @@
 /**
  * The global application redux state store.
  */
-import {configureStore, PayloadAction} from '@reduxjs/toolkit';
+import {configureStore, PayloadAction, SerializedError} from '@reduxjs/toolkit';
 import {createApi} from '@reduxjs/toolkit/query/react';
 
 import {createSlice} from '@reduxjs/toolkit';
-import {Path} from '../schema';
+import {Filter} from '../../fastapi_client';
+import {Item, Path, UUID_COLUMN} from '../schema';
 import {
   AddDatasetOptions,
   AddExamplesOptions,
@@ -19,7 +20,7 @@ import {
   SearchExamplesOptions,
   SearchExamplesResponse,
 } from '../server_api_deprecated';
-import {datasetApi} from './api_dataset';
+import {datasetApi, useSelectRowsQuery} from './api_dataset';
 
 interface SelectedData {
   namespace?: string;
@@ -229,6 +230,44 @@ export const {
   useAddExamplesMutation,
   useLazySearchExamplesQuery,
 } = dbApi;
+
+/** Fetches the data associated with an item from the dataset. */
+export function useGetItem(
+  namespace: string,
+  datasetName: string,
+  itemId: string
+): {isFetching: boolean; item: Item | null; error?: SerializedError | string} {
+  const filters: Filter[] = [{path: [UUID_COLUMN], comparison: 'equals', value: itemId}];
+  const {
+    isFetching,
+    currentData: items,
+    error,
+  } = useSelectRowsQuery({namespace, datasetName, options: {filters}});
+  const item = items != null ? items[0] : null;
+  return {isFetching, item, error};
+}
+
+/** Fetches a set of ids from the dataset that satisfy the specified filters. */
+export function useGetIds(
+  namespace: string,
+  datasetName: string,
+  limit: number,
+  offset: number
+): {isFetching: boolean; ids: string[] | null; error?: SerializedError | string} {
+  const filters: Filter[] = [];
+  /** Select only the UUID column. */
+  const columns: string[] = [UUID_COLUMN];
+  const {
+    isFetching,
+    currentData: items,
+    error,
+  } = useSelectRowsQuery({namespace, datasetName, options: {filters, columns, limit, offset}});
+  let ids: string[] | null = null;
+  if (items) {
+    ids = items.map((item) => item[UUID_COLUMN] as string);
+  }
+  return {isFetching, ids, error};
+}
 
 // See: https://react-redux.js.org/tutorials/typescript-quick-start
 export type RootState = ReturnType<typeof store.getState>;

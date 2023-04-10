@@ -1,5 +1,5 @@
 .card-overview {
-  border-color: rgb(209 213 219);
+  border-color: var(--sl-color-gray-300);
   border-radius: 0.25rem;
   border-width: 1px;
   margin: 4px;
@@ -20,6 +20,6 @@
 }
 
 .card-metadata {
-  border-top: 1px solid rgb(209 213 219);
+  border-top: 1px solid var(--sl-color-gray-300);
   padding-top: 10px;
 }

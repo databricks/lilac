@@ -1,9 +1,7 @@
-import {SerializedError} from '@reduxjs/toolkit';
 import {SlButton} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
-import {Filter} from '../../fastapi_client';
-import {getLeafVals, Item, LeafValue, Path, serializePath, UUID_COLUMN} from '../schema';
-import {useSelectRowsQuery} from '../store/api_dataset';
+import {getLeafVals, Item, LeafValue, Path, serializePath} from '../schema';
+import {useGetItem} from '../store/store';
 import {renderError, roundNumber} from '../utils';
 import './dataset_viewer.module.css';
 import styles from './gallery_item.module.css';
@@ -44,21 +42,6 @@ function renderCell(item: Item, previewPath: Path): JSX.Element {
       ))}
     </ul>
   );
-}
-
-function useGetItem(
-  namespace: string,
-  datasetName: string,
-  itemId: string
-): {isFetching: boolean; item: Item | null; error?: SerializedError | string} {
-  const filters: Filter[] = [{path: [UUID_COLUMN], comparison: 'equals', value: itemId}];
-  const {
-    isFetching,
-    currentData: items,
-    error,
-  } = useSelectRowsQuery({namespace, datasetName, options: {filters}});
-  const item = items != null ? items[0] : null;
-  return {isFetching, item, error};
 }
 
 export const GalleryItem = React.memo(function GalleryItem({
