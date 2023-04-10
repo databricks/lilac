@@ -1,8 +1,7 @@
-import {SlButton} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {getLeafVals, Item, LeafValue, Path, serializePath} from '../schema';
 import {useGetItem} from '../store/store';
-import {renderError, roundNumber} from '../utils';
+import {renderError, renderPath, roundNumber} from '../utils';
 import './dataset_viewer.module.css';
 import styles from './gallery_item.module.css';
 
@@ -10,7 +9,8 @@ export interface GalleryItemProps {
   namespace: string;
   datasetName: string;
   itemId: string;
-  previewPaths: Path[];
+  mediaPaths: Path[];
+  paths?: Path[];
 }
 
 /** Renders an individual value. Rounds floating numbers to 3 decimals. */
@@ -25,11 +25,11 @@ function renderValue(val: LeafValue): string {
 }
 
 /** Renders an individual item, which can be an arbitrary nested struct with lists. */
-function renderCell(item: Item, previewPath: Path): JSX.Element {
+function renderCell(item: Item, path: Path): JSX.Element {
   const leafVals = getLeafVals(item);
-  const vals = leafVals[serializePath(previewPath)];
+  const vals = leafVals[serializePath(path)];
   if (vals == null) {
-    // The preview path doesn't exist in this item.
+    // The path doesn't exist in this item.
     return <>N/A</>;
   }
   if (vals.length === 1) {
@@ -44,27 +44,61 @@ function renderCell(item: Item, previewPath: Path): JSX.Element {
   );
 }
 
+function GalleryMedia({item, path}: {item: Item | null; path: Path}): JSX.Element {
+  const label = renderPath(path);
+  const mediaContent = item != null ? renderCell(item, path) : 'Loading...';
+  return (
+    <div className={styles.media_container}>
+      <div className={`${styles.media_label} truncate`}>{label}</div>
+      <div className={styles.media_content_container}>
+        <div className={styles.media_content}>{mediaContent}</div>
+      </div>
+    </div>
+  );
+}
+
+function GalleryMetadata({item, paths}: {item: Item | null; paths?: Path[]}): JSX.Element {
+  if (paths == null) {
+    return <></>;
+  }
+  const metadata = paths.map((path) => {
+    return (
+      <div className="flex justify-between w-full text-sm">
+        <div className={`${styles.metadata_field} ${styles.metadata_key}`}>{renderPath(path)}</div>
+        <div className={styles.metadata_field}>
+          {item != null ? renderCell(item, path) : 'Loading...'}
+        </div>
+      </div>
+    );
+  });
+  return (
+    <div className="mt-4">
+      <div className={styles.metadata_label}>Metadata</div>
+      {metadata}
+    </div>
+  );
+}
+
 export const GalleryItem = React.memo(function GalleryItem({
   namespace,
   datasetName,
   itemId,
-  previewPaths,
+  mediaPaths,
+  paths,
 }: GalleryItemProps): JSX.Element {
-  const {isFetching, item, error} = useGetItem(namespace, datasetName, itemId);
+  const {item, error} = useGetItem(namespace, datasetName, itemId);
   if (error) {
     return <div>{renderError(error)}</div>;
   }
-  const isReady = !isFetching && item != null;
-  const mediaContent = !isReady ? 'Loading...' : renderCell(item, previewPaths[0]);
+  const medias = mediaPaths.map((path) => {
+    return <GalleryMedia key={serializePath(path)} item={item} path={path} />;
+  });
+
   return (
     <>
-      <div className={styles['card-overview']}>
-        <div className={`card-media ${styles['card-media']}`}>{mediaContent}</div>
-        <div slot="footer">
-          <SlButton variant="primary" pill>
-            Open
-          </SlButton>
-        </div>
+      <div className={styles.overview}>
+        {medias}
+        <GalleryMetadata item={item} paths={paths} />
       </div>
     </>
   );

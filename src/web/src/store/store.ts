@@ -27,8 +27,10 @@ interface SelectedData {
   datasetName?: string;
 
   browser: {
-    /** A list of paths to preview in the browser. Each path gets its own column. */
-    previewPaths?: Path[];
+    /** A list of paths to preview as "media" in the gallery item. */
+    selectedMediaPaths?: Path[];
+    /** A list of paths to preview as metadata (non-media) in the gallery item .*/
+    selectedPaths?: Path[];
     /** Row height when in list view (spreadsheet-like table). */
     rowHeightListPx: number;
   };
@@ -50,10 +52,13 @@ const appSlice = createSlice({
     setDataset(state, action: PayloadAction<{namespace: string; datasetName: string}>) {
       state.selectedData.namespace = action.payload.namespace;
       state.selectedData.datasetName = action.payload.datasetName;
-      state.selectedData.browser.previewPaths = undefined;
+      state.selectedData.browser.selectedMediaPaths = undefined;
     },
-    setBrowserPreviewPaths(state, action: PayloadAction<Path[]>) {
-      state.selectedData.browser.previewPaths = action.payload;
+    setSelectedMediaPaths(state, action: PayloadAction<Path[]>) {
+      state.selectedData.browser.selectedMediaPaths = action.payload;
+    },
+    setSelectedPaths(state, action: PayloadAction<Path[]>) {
+      state.selectedData.browser.selectedPaths = action.payload;
     },
     setRowHeightListPx(state, action: PayloadAction<number>) {
       state.selectedData.browser.rowHeightListPx = action.payload;
@@ -218,7 +223,8 @@ export const store = configureStore({
 });
 
 // Export the actions.
-export const {setDataset, setBrowserPreviewPaths, setRowHeightListPx} = appSlice.actions;
+export const {setDataset, setSelectedMediaPaths, setSelectedPaths, setRowHeightListPx} =
+  appSlice.actions;
 
 export const {
   useCreateModelMutation,

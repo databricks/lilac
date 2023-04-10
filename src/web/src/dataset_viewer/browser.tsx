@@ -10,7 +10,7 @@ import {
   useGetMultipleStatsQuery,
   useSelectRowsQuery,
 } from '../store/api_dataset';
-import {setBrowserPreviewPaths, setRowHeightListPx} from '../store/store';
+import {setRowHeightListPx, setSelectedMediaPaths} from '../store/store';
 import {renderPath} from '../utils';
 import styles from './browser.module.css';
 import {ItemPreview} from './item_preview';
@@ -128,7 +128,7 @@ export const BrowserMenu = React.memo(function BrowserMenu({
       return;
     }
     const paths = indices.map((index) => leafs[Number(index)][0]);
-    dispatch(setBrowserPreviewPaths(paths));
+    dispatch(setSelectedMediaPaths(paths));
   };
 
   const rowHeightListChanged = (newRowHeightPx: number) => {
@@ -239,7 +239,7 @@ export function usePreviewPaths(
       }
     }
   }
-  let previewPaths = useAppSelector((state) => state.app.selectedData.browser.previewPaths);
+  let previewPaths = useAppSelector((state) => state.app.selectedData.browser.selectedMediaPaths);
   const multipleStats = useGetMultipleStatsQuery({namespace, datasetName, leafPaths: stringLeafs});
   previewPaths = React.useMemo(() => {
     if (previewPaths != null) {

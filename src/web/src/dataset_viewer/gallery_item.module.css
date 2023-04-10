@@ -1,13 +1,37 @@
-.card-overview {
+.overview {
   border-color: var(--sl-color-gray-300);
   border-radius: 0.25rem;
   border-width: 1px;
-  margin: 4px;
-  width: 100%;
+  margin: 8px;
   padding: 10px;
 }
 
-.card-media {
+.media_label,
+.metadata_label {
+  font-size: 0.8rem;
+  color: var(--sl-color-gray-500);
+}
+
+.metadata_field {
+  white-space: nowrap;
+  overflow: hidden !important;
+  text-overflow: ellipsis;
+}
+
+.metadata_key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  margin-right: 0.5rem;
+}
+
+.media_content_container {
+  background-color: var(--sl-color-gray-100);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  color: var(--sl-color-gray-900);
+}
+
+.media_content {
   --line-clamp: 5; /* Number of lines of text to be displayed */
   --line-height: 1.5; /* Line height of the text */
   display: -webkit-box;
@@ -17,9 +41,4 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.card-metadata {
-  border-top: 1px solid var(--sl-color-gray-300);
-  padding-top: 10px;
 }
