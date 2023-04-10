@@ -30,7 +30,7 @@ interface SelectedData {
     /** A list of paths to preview as "media" in the gallery item. */
     selectedMediaPaths?: Path[];
     /** A list of paths to preview as metadata (non-media) in the gallery item .*/
-    selectedPaths?: Path[];
+    selectedMetadataPaths?: Path[];
     /** Row height when in list view (spreadsheet-like table). */
     rowHeightListPx: number;
   };
@@ -57,8 +57,8 @@ const appSlice = createSlice({
     setSelectedMediaPaths(state, action: PayloadAction<Path[]>) {
       state.selectedData.browser.selectedMediaPaths = action.payload;
     },
-    setSelectedPaths(state, action: PayloadAction<Path[]>) {
-      state.selectedData.browser.selectedPaths = action.payload;
+    setSelectedMetadataPaths(state, action: PayloadAction<Path[]>) {
+      state.selectedData.browser.selectedMetadataPaths = action.payload;
     },
     setRowHeightListPx(state, action: PayloadAction<number>) {
       state.selectedData.browser.rowHeightListPx = action.payload;
@@ -223,7 +223,7 @@ export const store = configureStore({
 });
 
 // Export the actions.
-export const {setDataset, setSelectedMediaPaths, setSelectedPaths, setRowHeightListPx} =
+export const {setDataset, setSelectedMediaPaths, setSelectedMetadataPaths, setRowHeightListPx} =
   appSlice.actions;
 
 export const {

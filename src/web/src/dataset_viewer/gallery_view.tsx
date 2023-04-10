@@ -5,7 +5,7 @@ import {DataType, Field, StatsResult, WebManifest} from '../../fastapi_client';
 import {useAppDispatch, useAppSelector} from '../hooks';
 import {Path, Schema, serializePath} from '../schema';
 import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/api_dataset';
-import {setSelectedMediaPaths, setSelectedPaths, useGetIds} from '../store/store';
+import {setSelectedMediaPaths, setSelectedMetadataPaths, useGetIds} from '../store/store';
 import {renderPath} from '../utils';
 import {GalleryItem} from './gallery_item';
 import styles from './gallery_view.module.css';
@@ -53,7 +53,7 @@ function useInfiniteItemsQuery(namespace: string, datasetName: string) {
 export interface GalleryMenuProps {
   schema: Schema;
   mediaPaths: Path[];
-  paths?: Path[];
+  metadataPaths?: Path[];
 }
 
 interface VisualLeaf {
@@ -66,7 +66,7 @@ export const IMAGE_PATH_PREFIX = '__image__';
 export const GalleryMenu = React.memo(function GalleryMenu({
   schema,
   mediaPaths,
-  paths,
+  metadataPaths,
 }: GalleryMenuProps): JSX.Element {
   const dispatch = useAppDispatch();
 
@@ -89,9 +89,9 @@ export const GalleryMenu = React.memo(function GalleryMenu({
       {/* Metadata dropdown. */}
       <FeatureDropdown
         label="Metadata to preview"
-        selectedPaths={paths}
+        selectedPaths={metadataPaths}
         leafs={leafs}
-        onSelectedPathsChanged={(paths) => dispatch(setSelectedPaths(paths))}
+        onSelectedPathsChanged={(paths) => dispatch(setSelectedMetadataPaths(paths))}
       />
     </div>
   );
@@ -168,7 +168,7 @@ export interface GalleryRowProps {
   datasetName: string;
   itemIds: string[];
   mediaPaths: Path[];
-  paths?: Path[];
+  metadataPaths?: Path[];
 }
 
 export const GalleryRow = React.memo(function GalleryRow({
@@ -176,19 +176,19 @@ export const GalleryRow = React.memo(function GalleryRow({
   datasetName,
   itemIds,
   mediaPaths,
-  paths,
+  metadataPaths,
 }: GalleryRowProps): JSX.Element {
-  const width = (100 / itemIds.length).toFixed(2);
+  const hundredPerc = 100;
+  const widthPerc = (hundredPerc / itemIds.length).toFixed(2);
   const galleryItems = itemIds.map((itemId) => {
     return (
-      <div style={{width: `${width}%`}}>
+      <div key={itemId} style={{width: `${widthPerc}%`}}>
         <GalleryItem
-          key={itemId}
           namespace={namespace}
           datasetName={datasetName}
           itemId={itemId}
           mediaPaths={mediaPaths}
-          paths={paths}
+          metadataPaths={metadataPaths}
         ></GalleryItem>
       </div>
     );
@@ -247,7 +247,9 @@ export const Gallery = React.memo(function Gallery({
   } = useGetManifestQuery({namespace, datasetName});
   const schema = webManifest != null ? new Schema(webManifest.dataset_manifest.data_schema) : null;
   const mediaPaths = useMediaPaths(namespace, datasetName, webManifest, schema);
-  const paths = useAppSelector((state) => state.app.selectedData.browser.selectedPaths);
+  const metadataPaths = useAppSelector(
+    (state) => state.app.selectedData.browser.selectedMetadataPaths
+  );
 
   const {error, isFetchingNextPage, allIds, hasNextPage, fetchNextPage} = useInfiniteItemsQuery(
     namespace,
@@ -310,7 +312,11 @@ export const Gallery = React.memo(function Gallery({
   return (
     <div className="flex h-full w-full flex-col">
       <div className="mb-4">
-        <GalleryMenu schema={schema} mediaPaths={mediaPaths} paths={paths}></GalleryMenu>
+        <GalleryMenu
+          schema={schema}
+          mediaPaths={mediaPaths}
+          metadataPaths={metadataPaths}
+        ></GalleryMenu>
       </div>
       <div ref={parentRef} className="overflow-y-scroll h-full w-full">
         <div
@@ -340,7 +346,7 @@ export const Gallery = React.memo(function Gallery({
                   key={virtualRow.index}
                   data-index={virtualRow.index}
                   ref={virtualizer.measureElement}
-                  style={{width: '100%', display: 'flex'}}
+                  className="w-full"
                 >
                   {isLoaderRow ? (
                     <div className={styles.loader_row}>Loading more...</div>
@@ -350,7 +356,7 @@ export const Gallery = React.memo(function Gallery({
                       datasetName={datasetName}
                       itemIds={itemIds}
                       mediaPaths={mediaPaths}
-                      paths={paths}
+                      metadataPaths={metadataPaths}
                     ></GalleryRow>
                   )}
                 </div>

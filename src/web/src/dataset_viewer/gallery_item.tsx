@@ -10,7 +10,7 @@ export interface GalleryItemProps {
   datasetName: string;
   itemId: string;
   mediaPaths: Path[];
-  paths?: Path[];
+  metadataPaths?: Path[];
 }
 
 /** Renders an individual value. Rounds floating numbers to 3 decimals. */
@@ -62,8 +62,9 @@ function GalleryMetadata({item, paths}: {item: Item | null; paths?: Path[]}): JS
     return <></>;
   }
   const metadata = paths.map((path) => {
+    const pathKey = serializePath(path);
     return (
-      <div className="flex justify-between w-full text-sm">
+      <div key={pathKey} className="flex justify-between w-full text-sm">
         <div className={`${styles.metadata_field} ${styles.metadata_key}`}>{renderPath(path)}</div>
         <div className={styles.metadata_field}>
           {item != null ? renderCell(item, path) : 'Loading...'}
@@ -84,7 +85,7 @@ export const GalleryItem = React.memo(function GalleryItem({
   datasetName,
   itemId,
   mediaPaths,
-  paths,
+  metadataPaths,
 }: GalleryItemProps): JSX.Element {
   const {item, error} = useGetItem(namespace, datasetName, itemId);
   if (error) {
@@ -98,7 +99,7 @@ export const GalleryItem = React.memo(function GalleryItem({
     <>
       <div className={styles.overview}>
         {medias}
-        <GalleryMetadata item={item} paths={paths} />
+        <GalleryMetadata item={item} paths={metadataPaths} />
       </div>
     </>
   );
