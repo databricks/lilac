@@ -1,11 +1,5 @@
 import {SerializedError} from '@reduxjs/toolkit';
-import {
-  SlButton,
-  SlDrawer,
-  SlMenuItem,
-  SlRange,
-  SlSelect,
-} from '@shoelace-style/shoelace/dist/react';
+import {SlButton, SlDrawer, SlOption, SlRange, SlSelect} from '@shoelace-style/shoelace/dist/react';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import * as React from 'react';
 import {DataType, Field, Filter, StatsResult, WebManifest} from '../../fastapi_client';
@@ -16,7 +10,7 @@ import {
   useGetMultipleStatsQuery,
   useSelectRowsQuery,
 } from '../store/api_dataset';
-import {setBrowserPreviewPaths, setRowHeightGalleryPx, setRowHeightListPx} from '../store/store';
+import {setRowHeightListPx, setSelectedMediaPaths} from '../store/store';
 import {renderPath} from '../utils';
 import styles from './browser.module.css';
 import {ItemPreview} from './item_preview';
@@ -85,7 +79,6 @@ export interface BrowserMenuProps {
   schema: Schema;
   previewPaths: Path[];
   rowHeightListPx: number;
-  rowHeightGalleryPx: number;
 }
 
 interface VisualLeaf {
@@ -99,7 +92,6 @@ export const BrowserMenu = React.memo(function BrowserMenu({
   schema,
   previewPaths,
   rowHeightListPx,
-  rowHeightGalleryPx,
 }: BrowserMenuProps): JSX.Element {
   const dispatch = useAppDispatch();
   const [drawerIsOpen, setDrawerIsOpen] = React.useState(false);
@@ -113,9 +105,9 @@ export const BrowserMenu = React.memo(function BrowserMenu({
 
   const items = leafs.map(([path, field], i) => {
     return (
-      <SlMenuItem key={i} value={i.toString()}>
+      <SlOption key={i} value={i.toString()}>
         {renderPath(path)} : {field.dtype}
-      </SlMenuItem>
+      </SlOption>
     );
   });
 
@@ -136,15 +128,11 @@ export const BrowserMenu = React.memo(function BrowserMenu({
       return;
     }
     const paths = indices.map((index) => leafs[Number(index)][0]);
-    dispatch(setBrowserPreviewPaths(paths));
+    dispatch(setSelectedMediaPaths(paths));
   };
 
   const rowHeightListChanged = (newRowHeightPx: number) => {
     dispatch(setRowHeightListPx(newRowHeightPx));
-  };
-
-  const rowHeightGalleryChanged = (newRowHeightPx: number) => {
-    dispatch(setRowHeightGalleryPx(newRowHeightPx));
   };
 
   return (
@@ -204,20 +192,6 @@ export const BrowserMenu = React.memo(function BrowserMenu({
             />
           </div>
         </div>
-        <div className="flex items-center justify-between">
-          <label>Gallery view</label>
-          <div>
-            <SlRange
-              min={80}
-              max={500}
-              value={rowHeightGalleryPx}
-              step={10}
-              onSlChange={(e) =>
-                rowHeightGalleryChanged((e.target as HTMLInputElement).value as unknown as number)
-              }
-            />
-          </div>
-        </div>
       </SlDrawer>
     </div>
   );
@@ -265,7 +239,7 @@ export function usePreviewPaths(
       }
     }
   }
-  let previewPaths = useAppSelector((state) => state.app.selectedData.browser.previewPaths);
+  let previewPaths = useAppSelector((state) => state.app.selectedData.browser.selectedMediaPaths);
   const multipleStats = useGetMultipleStatsQuery({namespace, datasetName, leafPaths: stringLeafs});
   previewPaths = React.useMemo(() => {
     if (previewPaths != null) {
@@ -311,11 +285,8 @@ export const Browser = React.memo(function Browser({
   const schema = webManifest != null ? new Schema(webManifest.dataset_manifest.data_schema) : null;
   const previewPaths = usePreviewPaths(namespace, datasetName, webManifest, schema);
   const rowHeightListPx = useAppSelector((state) => state.app.selectedData.browser.rowHeightListPx);
-  const rowHeightGalleryPx = useAppSelector(
-    (state) => state.app.selectedData.browser.rowHeightGalleryPx
-  );
   const inGalleryMode = previewPaths.length === 1;
-  const rowHeightPx = inGalleryMode ? rowHeightGalleryPx : rowHeightListPx;
+  const rowHeightPx = rowHeightListPx;
 
   const {error, isFetchingNextPage, allIds, hasNextPage, fetchNextPage} = useInfiniteItemsQuery(
     namespace,
@@ -400,7 +371,6 @@ export const Browser = React.memo(function Browser({
           schema={schema}
           previewPaths={previewPaths}
           rowHeightListPx={rowHeightListPx}
-          rowHeightGalleryPx={rowHeightGalleryPx}
         ></BrowserMenu>
       </div>
       <div className="flex border-b py-2 overflow-y-scroll">{columns}</div>

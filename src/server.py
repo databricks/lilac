@@ -1,8 +1,7 @@
 """Serves the agile model server."""
 
 import os
-from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator
+from typing import Any
 
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import HTMLResponse
@@ -43,21 +42,7 @@ def custom_generate_unique_id(route: APIRoute) -> str:
   return route.name
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator:
-  """Lifespan for the app."""
-  # Set up the task manager singleton.
-  task_manager()
-
-  yield
-
-  # Stop the task manager so we can kill dask.
-  task_manager().stop()
-
-
-app = FastAPI(generate_unique_id_function=custom_generate_unique_id,
-              openapi_tags=tags_metadata,
-              lifespan=lifespan)
+app = FastAPI(generate_unique_id_function=custom_generate_unique_id, openapi_tags=tags_metadata)
 
 v1_router = APIRouter()
 v1_router.include_router(router_dataset.router, prefix='/datasets', tags=['datasets'])
@@ -74,6 +59,12 @@ app.mount('/static',
 app.mount('/hot',
           StaticFiles(directory=os.path.join(DIST_PATH, 'hot'), check_dir=False),
           name='hot')
+
+
+@app.on_event('shutdown')
+def shutdown_event() -> None:
+  """Kill the task manager when FastAPI shuts down."""
+  task_manager().stop()
 
 
 @app.get('/tasks')

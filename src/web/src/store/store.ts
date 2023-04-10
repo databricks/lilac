@@ -1,12 +1,12 @@
 /**
  * The global application redux state store.
  */
-import {configureStore, PayloadAction} from '@reduxjs/toolkit';
+import {configureStore, PayloadAction, SerializedError} from '@reduxjs/toolkit';
 import {createApi} from '@reduxjs/toolkit/query/react';
 
 import {createSlice} from '@reduxjs/toolkit';
-import {DefaultService, TaskManifest} from '../../fastapi_client';
-import {Path} from '../schema';
+import {DefaultService, Filter, TaskManifest} from '../../fastapi_client';
+import {Item, Path, UUID_COLUMN} from '../schema';
 import {
   AddDatasetOptions,
   AddExamplesOptions,
@@ -20,7 +20,7 @@ import {
   SearchExamplesOptions,
   SearchExamplesResponse,
 } from '../server_api_deprecated';
-import {datasetApi} from './api_dataset';
+import {datasetApi, useSelectRowsQuery} from './api_dataset';
 import {query} from './api_utils';
 
 interface SelectedData {
@@ -28,12 +28,12 @@ interface SelectedData {
   datasetName?: string;
 
   browser: {
-    /** A list of paths to preview in the browser. Each path gets its own column. */
-    previewPaths?: Path[];
+    /** A list of paths to preview as "media" in the gallery item. */
+    selectedMediaPaths?: Path[];
+    /** A list of paths to preview as metadata (non-media) in the gallery item .*/
+    selectedMetadataPaths?: Path[];
     /** Row height when in list view (spreadsheet-like table). */
     rowHeightListPx: number;
-    /** Row height when in gallery view (multiple square-ish items in the same row). */
-    rowHeightGalleryPx: number;
   };
 }
 
@@ -43,7 +43,7 @@ interface AppState {
 
 // Define the initial state using that type
 const initialState: AppState = {
-  selectedData: {browser: {rowHeightListPx: 60, rowHeightGalleryPx: 165}},
+  selectedData: {browser: {rowHeightListPx: 60}},
 };
 
 const appSlice = createSlice({
@@ -53,16 +53,16 @@ const appSlice = createSlice({
     setDataset(state, action: PayloadAction<{namespace: string; datasetName: string}>) {
       state.selectedData.namespace = action.payload.namespace;
       state.selectedData.datasetName = action.payload.datasetName;
-      state.selectedData.browser.previewPaths = undefined;
+      state.selectedData.browser.selectedMediaPaths = undefined;
     },
-    setBrowserPreviewPaths(state, action: PayloadAction<Path[]>) {
-      state.selectedData.browser.previewPaths = action.payload;
+    setSelectedMediaPaths(state, action: PayloadAction<Path[]>) {
+      state.selectedData.browser.selectedMediaPaths = action.payload;
+    },
+    setSelectedMetadataPaths(state, action: PayloadAction<Path[]>) {
+      state.selectedData.browser.selectedMetadataPaths = action.payload;
     },
     setRowHeightListPx(state, action: PayloadAction<number>) {
       state.selectedData.browser.rowHeightListPx = action.payload;
-    },
-    setRowHeightGalleryPx(state, action: PayloadAction<number>) {
-      state.selectedData.browser.rowHeightGalleryPx = action.payload;
     },
   },
 });
@@ -236,7 +236,7 @@ export const store = configureStore({
 });
 
 // Export the actions.
-export const {setDataset, setBrowserPreviewPaths, setRowHeightListPx, setRowHeightGalleryPx} =
+export const {setDataset, setSelectedMediaPaths, setSelectedMetadataPaths, setRowHeightListPx} =
   appSlice.actions;
 
 export const {
@@ -250,6 +250,44 @@ export const {
   useLazySearchExamplesQuery,
 } = dbApi;
 export const {useGetTaskManifestQuery, useLazyGetTaskManifestQuery} = serverApi;
+
+/** Fetches the data associated with an item from the dataset. */
+export function useGetItem(
+  namespace: string,
+  datasetName: string,
+  itemId: string
+): {isFetching: boolean; item: Item | null; error?: SerializedError | string} {
+  const filters: Filter[] = [{path: [UUID_COLUMN], comparison: 'equals', value: itemId}];
+  const {
+    isFetching,
+    currentData: items,
+    error,
+  } = useSelectRowsQuery({namespace, datasetName, options: {filters}});
+  const item = items != null ? items[0] : null;
+  return {isFetching, item, error};
+}
+
+/** Fetches a set of ids from the dataset that satisfy the specified filters. */
+export function useGetIds(
+  namespace: string,
+  datasetName: string,
+  limit: number,
+  offset: number
+): {isFetching: boolean; ids: string[] | null; error?: SerializedError | string} {
+  const filters: Filter[] = [];
+  /** Select only the UUID column. */
+  const columns: string[] = [UUID_COLUMN];
+  const {
+    isFetching,
+    currentData: items,
+    error,
+  } = useSelectRowsQuery({namespace, datasetName, options: {filters, columns, limit, offset}});
+  let ids: string[] | null = null;
+  if (items) {
+    ids = items.map((item) => item[UUID_COLUMN] as string);
+  }
+  return {isFetching, ids, error};
+}
 
 // See: https://react-redux.js.org/tutorials/typescript-quick-start
 export type RootState = ReturnType<typeof store.getState>;

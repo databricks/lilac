@@ -1,0 +1,11 @@
+.gallery_preview_dropdown sl-option::part(base) {
+  font-size: var(--sl-font-size-small);
+}
+
+.loader_row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  width: 100%;
+}

@@ -45,7 +45,6 @@ class TaskManager():
 
     A user can pass in a dask client to use a different executor.
     """
-    print('Creating task manager, passed', dask_client)
     self._dask_client = dask_client or Client()
 
   def manifest(self) -> TaskManifest:
