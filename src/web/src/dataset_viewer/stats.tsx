@@ -54,6 +54,6 @@ export const Stats = React.memo(function Stats({namespace, datasetName}: StatsPr
       </div>
     );
   }
-  return <></>;
-  // return <>{leafStats}</>;
+
+  return <>{leafStats}</>;
 });
