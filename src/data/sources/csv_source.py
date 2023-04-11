@@ -1,6 +1,5 @@
 """CSV source."""
 import os
-import time
 import uuid
 from typing import Optional
 
@@ -25,7 +24,7 @@ from ...utils import (
     makedirs,
     open_file,
 )
-from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut, default_shards_loader
+from .source import ShardsLoader, Source, SourceProcessResult, default_shards_loader
 
 
 class ImageColumn(BaseModel):
@@ -65,9 +64,6 @@ class CSVDataset(Source):
                     shards_loader: Optional[ShardsLoader] = None,
                     task_id: Optional[TaskId] = None) -> SourceProcessResult:
     """Process the source upload request."""
-    shards_loader = shards_loader or default_shards_loader(self)
-
-    start_time = time.time()
     gcs_filepaths: list[str] = []
     temp_files_to_delete = []
     for filepath in self.filepaths:
@@ -86,59 +82,22 @@ class CSVDataset(Source):
           raise ValueError(f'CSV file {filepath} was not found.')
       gcs_filepaths.append(filepath)
 
-    elapsed = time.time() - start_time
-    log(f'[CSV Source] Checking input CSV file existence took {elapsed:.2f} seconds.')
-    num_shards = len(self.filepaths)
     delim = self.delim or ','
-    shard_infos = [
-        ShardInfo(filepath=path,
-                  shard_index=i,
-                  num_shards=num_shards,
-                  output_dir=output_dir,
-                  delim=delim,
-                  image_columns=self.image_columns) for i, path in enumerate(gcs_filepaths)
-    ]
-    shard_outs = await shards_loader(shard_infos)
-
-    filepaths = [shard_out.filepath for shard_out in shard_outs]
-    num_items = sum(shard_out.num_items for shard_out in shard_outs)
-
-    arrow_schema = pq.read_schema(open_file(filepaths[0], mode='rb'))
-    schema = arrow_schema_to_schema(arrow_schema)
-    images: Optional[list[ImageInfo]] = None
-    if self.image_columns:
-      images = [
-          ImageInfo(path=_csv_column_to_path(image_column.name))
-          for image_column in self.image_columns
-      ]
-
-    # Clean up the temporary files that we created for http CSV requests.
-    for temp_filename in temp_files_to_delete:
-      delete_file(temp_filename)
-    return SourceProcessResult(filepaths=filepaths,
-                               data_schema=schema,
-                               images=images,
-                               num_items=num_items)
-
-  @override
-  def process_shard(self, shard_info: ShardInfo) -> SourceShardOut:
-    filepath = shard_info.filepath
     con = duckdb.connect(database=':memory:')
     con.install_extension('httpfs')
     con.load_extension('httpfs')
-    delim = shard_info.delim
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
-    s3_filepath = filepath.replace('gs://', 's3://')
+    s3_filepaths = [path.replace('gs://', 's3://') for path in gcs_filepaths]
     # The sample size here is just used to infer the schema.
     # TODO(https://github.com/lilacml/lilac/issues/1): Remove this workaround when duckdb
     # supports direct casting uuid --> blob.
     blob_uuid = "regexp_replace(replace(uuid(), '-', ''), '.{2}', '\\\\x\\0', 'g')::BLOB"
     csv_sql = f"SELECT {blob_uuid} as {UUID_COLUMN}, * FROM read_csv_auto(\
-      '{s3_filepath}', SAMPLE_SIZE=500000, DELIM='{delim}', IGNORE_ERRORS=true)"
+      {s3_filepaths}, SAMPLE_SIZE=500000, DELIM='{delim}', IGNORE_ERRORS=true)"
 
-    prefix = os.path.join(shard_info.output_dir, PARQUET_FILENAME_PREFIX)
-    shard_index = shard_info.shard_index
-    num_shards = shard_info.num_shards
+    prefix = os.path.join(output_dir, PARQUET_FILENAME_PREFIX)
+    shard_index = 0
+    num_shards = 1
     out_filepath = f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.parquet'
 
     # DuckDB won't create the parent dirs so we have to create it.
@@ -161,14 +120,14 @@ class CSVDataset(Source):
       COPY ({csv_sql}) TO '{s3_out_filepath}'
     """)
 
-    shard_num_items = con.execute(f"""
+    num_items = con.execute(f"""
       CREATE VIEW csv_view AS (SELECT * FROM read_parquet('{s3_out_filepath}'));
       SELECT COUNT({UUID_COLUMN}) FROM csv_view;
     """).fetchall()[0][0]
 
     # Copy the images from the source to the output dir.
-    if shard_info.image_columns:
-      image_col_names = ', '.join([column.name for column in shard_info.image_columns])
+    if self.image_columns:
+      image_col_names = ', '.join([column.name for column in self.image_columns])
       result = con.execute(f"""
         SELECT {image_col_names}, {UUID_COLUMN} FROM csv_view;
       """).fetchall()
@@ -176,21 +135,41 @@ class CSVDataset(Source):
       copy_image_infos: list[CopyRequest] = []
       for row in result:
         row_id = row[-1]
-        for i, image_column in enumerate(shard_info.image_columns):
-          input_image_path = os.path.join(os.path.dirname(shard_info.filepath), image_column.subdir,
+        for i, image_column in enumerate(self.image_columns):
+          input_image_path = os.path.join(os.path.dirname(gcs_filepaths[0]), image_column.subdir,
                                           f'{row[i]}{image_column.path_suffix}')
           copy_image_infos.append(
               CopyRequest(from_path=input_image_path,
-                          to_path=get_image_path(output_dir=shard_info.output_dir,
+                          to_path=get_image_path(output_dir=output_dir,
                                                  path=_csv_column_to_path(image_column.name),
                                                  row_id=row_id)))
 
       log(f'[CSV Source] Copying {len(copy_image_infos)} images...')
       copy_files(copy_image_infos,
-                 input_gcs=GCS_REGEX.match(shard_info.filepath) is not None,
+                 input_gcs=GCS_REGEX.match(gcs_filepaths[0]) is not None,
                  output_gcs=GCS_REGEX.match(out_filepath) is not None)
     con.close()
-    return SourceShardOut(filepath=out_filepath, num_items=int(shard_num_items))
+
+    shards_loader = shards_loader or default_shards_loader(self)
+
+    filepaths = [s3_out_filepath]
+
+    arrow_schema = pq.read_schema(open_file(filepaths[0], mode='rb'))
+    schema = arrow_schema_to_schema(arrow_schema)
+    images: Optional[list[ImageInfo]] = None
+    if self.image_columns:
+      images = [
+          ImageInfo(path=_csv_column_to_path(image_column.name))
+          for image_column in self.image_columns
+      ]
+
+    # Clean up the temporary files that we created for http CSV requests.
+    for temp_filename in temp_files_to_delete:
+      delete_file(temp_filename)
+    return SourceProcessResult(filepaths=filepaths,
+                               data_schema=schema,
+                               images=images,
+                               num_items=num_items)
 
 
 def _csv_column_to_path(column_name: str) -> Path:

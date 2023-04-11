@@ -67,10 +67,9 @@ class Source(abc.ABC, BaseModel, Generic[BaseShardInfo]):
     """
     pass
 
-  @abc.abstractmethod
   def process_shard(self, shard_info: BaseShardInfo) -> SourceShardOut:
     """Process an individual file shard from an input dataset."""
-    pass
+    raise NotImplementedError('process_shard must be implemented by the source.')
 
 
 def default_shards_loader(source: Source) -> ShardsLoader:

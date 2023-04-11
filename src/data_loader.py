@@ -13,12 +13,9 @@ from concurrent.futures import ProcessPoolExecutor
 
 import click
 
-from .data.sources.default_sources import register_default_sources
 from .data.sources.source_registry import resolve_source
 from .router_data_loader import process_source
 from .utils import async_wrap, open_file
-
-register_default_sources()
 
 
 @click.command()

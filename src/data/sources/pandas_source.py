@@ -6,7 +6,6 @@ import duckdb
 import pandas as pd
 import pyarrow.parquet as pq
 from pydantic import BaseModel
-from typing_extensions import override
 
 from ...schema import PARQUET_FILENAME_PREFIX, ImageInfo, Path, arrow_schema_to_schema
 from ...tasks import TaskId
@@ -20,7 +19,7 @@ from ...utils import (
     makedirs,
     open_file,
 )
-from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut, default_shards_loader
+from .source import ShardsLoader, Source, SourceProcessResult, default_shards_loader
 
 
 class ImageColumn(BaseModel):
@@ -60,30 +59,6 @@ class PandasDataset(Source[ShardInfo]):
                     task_id: Optional[TaskId] = None) -> SourceProcessResult:
     """Process the source upload request."""
     shards_loader = shards_loader or default_shards_loader(self)
-
-    shard_info = ShardInfo(image_base_path=self.image_base_path,
-                           output_dir=output_dir,
-                           image_columns=self.image_columns)
-
-    shard_outs = await shards_loader([shard_info])
-    filepaths = [shard_out.filepath for shard_out in shard_outs]
-    num_items = sum(shard_out.num_items for shard_out in shard_outs)
-    arrow_schema = pq.read_schema(open_file(filepaths[0], mode='rb'))
-    schema = arrow_schema_to_schema(arrow_schema)
-    images: Optional[list[ImageInfo]] = None
-    if self.image_columns:
-      images = [
-          ImageInfo(path=_pandas_column_to_path(image_column.name))
-          for image_column in self.image_columns
-      ]
-
-    return SourceProcessResult(filepaths=filepaths,
-                               data_schema=schema,
-                               images=images,
-                               num_items=num_items)
-
-  @override
-  def process_shard(self, shard_info: ShardInfo) -> SourceShardOut:
     con = duckdb.connect(database=':memory:')
     con.install_extension('httpfs')
     con.load_extension('httpfs')
@@ -96,7 +71,7 @@ class PandasDataset(Source[ShardInfo]):
     blob_uuid = "regexp_replace(replace(uuid(), '-', ''), '.{2}', '\\\\x\\0', 'g')::BLOB"
     pd_sql = f'SELECT {blob_uuid} as {UUID_COLUMN}, * FROM df'
 
-    prefix = os.path.join(shard_info.output_dir, PARQUET_FILENAME_PREFIX)
+    prefix = os.path.join(output_dir, PARQUET_FILENAME_PREFIX)
     shard_index = 0
     num_shards = 1
     out_filepath = f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.parquet'
@@ -120,18 +95,18 @@ class PandasDataset(Source[ShardInfo]):
       COPY ({pd_sql}) TO '{s3_out_filepath}'
     """)
 
-    shard_num_items = con.execute(f"""
+    num_items = con.execute(f"""
       CREATE VIEW pd_view AS (SELECT * FROM read_parquet('{s3_out_filepath}'));
       SELECT COUNT({UUID_COLUMN}) FROM pd_view;
     """).fetchall()[0][0]
 
     # Copy the images from the source to the output dir.
-    if shard_info.image_columns:
-      if not shard_info.image_base_path:
+    if self.image_columns:
+      if not self.image_base_path:
         raise ValueError('image_base_path must be set if image_columns is set.')
 
-      image_base_path = shard_info.image_base_path
-      image_col_names = ', '.join([column.name for column in shard_info.image_columns])
+      image_base_path = self.image_base_path
+      image_col_names = ', '.join([column.name for column in self.image_columns])
       result = con.execute(f"""
         SELECT {image_col_names}, {UUID_COLUMN} FROM pd_view;
       """).fetchall()
@@ -139,12 +114,12 @@ class PandasDataset(Source[ShardInfo]):
       copy_image_infos: list[CopyRequest] = []
       for row in result:
         row_id = row[-1]
-        for i, image_column in enumerate(shard_info.image_columns):
+        for i, image_column in enumerate(self.image_columns):
           input_image_path = os.path.join(os.path.dirname(image_base_path), image_column.subdir,
                                           f'{row[i]}{image_column.path_suffix}')
           copy_image_infos.append(
               CopyRequest(from_path=input_image_path,
-                          to_path=get_image_path(output_dir=shard_info.output_dir,
+                          to_path=get_image_path(output_dir=output_dir,
                                                  path=_pandas_column_to_path(image_column.name),
                                                  row_id=row_id)))
 
@@ -153,7 +128,20 @@ class PandasDataset(Source[ShardInfo]):
                  input_gcs=GCS_REGEX.match(image_base_path) is not None,
                  output_gcs=GCS_REGEX.match(out_filepath) is not None)
     con.close()
-    return SourceShardOut(filepath=out_filepath, num_items=int(shard_num_items))
+
+    arrow_schema = pq.read_schema(open_file(out_filepath, mode='rb'))
+    schema = arrow_schema_to_schema(arrow_schema)
+    images: Optional[list[ImageInfo]] = None
+    if self.image_columns:
+      images = [
+          ImageInfo(path=_pandas_column_to_path(image_column.name))
+          for image_column in self.image_columns
+      ]
+
+    return SourceProcessResult(filepaths=[out_filepath],
+                               data_schema=schema,
+                               images=images,
+                               num_items=num_items)
 
 
 def _pandas_column_to_path(column_name: str) -> Path:
