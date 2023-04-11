@@ -69,7 +69,7 @@ def test_task_manager(test_client: Client) -> None:
                 )
         })
 
-  wait(task_id)
+  wait([task_id])
 
   assert manifest == TaskManifest(
       tasks={
