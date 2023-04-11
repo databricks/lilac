@@ -21,7 +21,7 @@ from ...schema import (
     Schema,
     arrow_dtype_to_dtype,
 )
-from ...tasks import TaskId
+from ...tasks import TaskId, progress
 from ...utils import write_items_to_parquet
 from .source import ShardsLoader, Source, SourceProcessResult
 
@@ -37,6 +37,7 @@ class SchemaInfo(BaseModel):
   """Information about the processed huggingface schema."""
   data_schema: Schema
   class_labels: dict[str, list[str]]
+  num_items: int
 
 
 class ShardInfo(BaseModel):
@@ -78,8 +79,10 @@ def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> 
 
   fields: dict[str, Field] = {}
   class_labels: dict[str, list[str]] = {}
+  num_items = 0
 
   for split_dataset in split_datasets:
+    num_items += len(split_dataset)
     features = split_dataset.features
     for feature_name, feature_value in features.items():
       if feature_name in fields:
@@ -101,7 +104,9 @@ def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> 
   # Add UUID to the Schema.
   fields[UUID_COLUMN] = Field(dtype=DataType.BINARY)
 
-  return SchemaInfo(data_schema=Schema(fields=fields), class_labels=class_labels)
+  return SchemaInfo(data_schema=Schema(fields=fields),
+                    class_labels=class_labels,
+                    num_items=num_items)
 
 
 class HuggingFaceDataset(Source[ShardInfo]):
@@ -142,7 +147,11 @@ class HuggingFaceDataset(Source[ShardInfo]):
 
     schema_info = _hf_schema_to_schema(hf_dataset_dict, self.split)
 
-    items = _convert_to_items(hf_dataset_dict, schema_info.class_labels, self.split)
+    print('NUM ITEMS', schema_info.num_items, task_id)
+    items = progress(_convert_to_items(hf_dataset_dict, schema_info.class_labels, self.split),
+                     task_id=task_id,
+                     estimated_len=schema_info.num_items)
+
     filepath, num_items = write_items_to_parquet(items=items,
                                                  output_dir=output_dir,
                                                  schema=schema_info.data_schema,

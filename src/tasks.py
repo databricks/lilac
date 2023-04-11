@@ -4,7 +4,7 @@ import functools
 import uuid
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Awaitable, Callable, Optional, Union
+from typing import Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
 
 from dask.distributed import Client, Variable
 from pydantic import BaseModel
@@ -101,6 +101,28 @@ def task_manager() -> TaskManager:
 def _progress_variable(task_id: TaskId) -> Variable:
   """Return the name of the progress variable for a task."""
   return Variable(f'{task_id}_progress')
+
+
+TProgress = TypeVar('TProgress')
+
+
+def progress(it: Iterable[TProgress],
+             task_id: Optional[TaskId],
+             estimated_len: int,
+             emit_every_frac: float = .01) -> Iterable[TProgress]:
+  """An iterable wrapper that emits progress and yields the original iterable."""
+  if not task_id:
+    return it
+
+  emit_every = int(estimated_len * emit_every_frac)
+  it_idx = 0
+  for t in it:
+    if it_idx % emit_every == 0:
+      print('setting progress', float(it_idx / estimated_len))
+      set_worker_task_progress(task_id, float(it_idx / estimated_len))
+    yield t
+
+  set_worker_task_progress(task_id, 1.0)
 
 
 def set_worker_task_progress(task_id: TaskId, progress: float) -> None:
