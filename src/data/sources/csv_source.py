@@ -154,7 +154,6 @@ class CSVDataset(Source):
       """
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     s3_out_filepath = out_filepath.replace('gs://', 's3://')
-
     con.execute(f"""
       {gcs_setup}
       SET preserve_insertion_order=false;
