@@ -76,7 +76,7 @@ class CSVDataset(Source):
         gcs_filepath = f'{data_path()}/local_cache/{tmp_filename}'
         if not file_exists(gcs_filepath):
           log(f'Downloading CSV from url {filepath} to {gcs_filepath}')
-          dl = requests.get(filepath, timeout=10000)
+          dl = requests.get(filepath, timeout=10000, allow_redirects=True)
           with open_file(gcs_filepath, 'wb') as f:
             f.write(dl.content)
           temp_files_to_delete.append(gcs_filepath)
@@ -154,6 +154,7 @@ class CSVDataset(Source):
       """
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     s3_out_filepath = out_filepath.replace('gs://', 's3://')
+
     con.execute(f"""
       {gcs_setup}
       SET preserve_insertion_order=false;
