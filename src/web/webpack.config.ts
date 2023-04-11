@@ -60,6 +60,7 @@ export const WEBPACK_CONFIG: Configuration = {
             options: {
               modules: {
                 auto: true,
+                // https://webpack.js.org/loaders/css-loader/#localidentname
                 // This is for development. Use '[hash:base64]' for production.
                 localIdentName: '[path][name]__[local]--[hash:base64:5]',
               },
