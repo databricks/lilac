@@ -1,7 +1,7 @@
 """Test the task manager."""
 
 import pytest
-from distributed import Client, Event, wait
+from distributed import Client, Event, Future, as_completed
 
 from .tasks import TaskInfo, TaskManager, TaskManifest, TaskStatus, set_worker_task_progress
 
@@ -69,17 +69,16 @@ def test_task_manager(test_client: Client) -> None:
                 )
         })
 
-  wait([task_id])
-
-  assert manifest == TaskManifest(
-      tasks={
-          task_id:
-              TaskInfo(
-                  name='test_task',
-                  status=TaskStatus.COMPLETED,
-                  progress=1.0,
-                  description='test_description',
-                  start_timestamp=manifest.tasks[task_id].start_timestamp,
-                  end_timestamp=manifest.tasks[task_id].end_timestamp,
-              )
-      })
+  for _ in as_completed([Future(task_id)]):
+    assert manifest == TaskManifest(
+        tasks={
+            task_id:
+                TaskInfo(
+                    name='test_task',
+                    status=TaskStatus.COMPLETED,
+                    progress=1.0,
+                    description='test_description',
+                    start_timestamp=manifest.tasks[task_id].start_timestamp,
+                    end_timestamp=manifest.tasks[task_id].end_timestamp,
+                )
+        })
