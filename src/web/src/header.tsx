@@ -80,11 +80,9 @@ export const TaskViewer = (): JSX.Element => {
   // Poll for tasks.
   React.useEffect(() => {
     loadTaskManifest();
-    setInterval(() => loadTaskManifest(), TASKS_POLL_INTERVAL_MS);
 
-    if (tasksDrawerRef.current != null) {
-      tasksDrawerRef.current.focus();
-    }
+    const timer = setInterval(() => loadTaskManifest(), TASKS_POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
   }, []);
 
   const tasksElement = renderQuery(taskManifest, (taskManager) => {

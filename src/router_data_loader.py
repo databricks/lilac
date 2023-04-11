@@ -12,7 +12,7 @@ import os
 from typing import Any, Awaitable, Callable, Optional
 
 import requests
-from fastapi import APIRouter, BackgroundTasks, Request, status
+from fastapi import APIRouter, Request, status
 from pydantic import BaseModel, validator
 
 from .constants import data_path
@@ -69,8 +69,8 @@ class LoadDatasetResponse(BaseModel):
 
 
 @router.post('/{source_name}/load')
-async def load(source_name: str, options: LoadDatasetOptions, request: Request,
-               background_tasks: BackgroundTasks) -> LoadDatasetResponse:
+async def load(source_name: str, options: LoadDatasetOptions,
+               request: Request) -> LoadDatasetResponse:
   """Load a dataset."""
   source_cls = get_source_cls(source_name)
   source = source_cls(**options.config)

@@ -73,6 +73,8 @@ class TaskManager():
     end_timestamp = datetime.now().isoformat()
     self._tasks[task_id].end_timestamp = end_timestamp
 
+    _progress_variable(task_id).delete()
+
     elapsed = datetime.fromisoformat(end_timestamp) - datetime.fromisoformat(
         self._tasks[task_id].start_timestamp)
     log(f'Task completed "{task_id}": "{self._tasks[task_id].name}" in '

@@ -90,10 +90,19 @@ export const DatasetLoader = (): JSX.Element => {
         dataset_name: datasetName,
       },
     }).unwrap();
-    // Set the task ID and poll for it to be ready before redirecting.
+
+    // Set the task ID, triggering the polling for the task below.
     setTaskId(response.task_id);
-    setInterval(() => loadTaskManifest(), DATASET_TASK_POLL_INTERVAL_MS);
   };
+
+  // Poll for the task to be ready when the task is defined.
+  React.useEffect(() => {
+    if (taskId == null) {
+      return;
+    }
+    const timer = setInterval(() => loadTaskManifest(), DATASET_TASK_POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [taskId]);
 
   if (
     taskId != null &&
