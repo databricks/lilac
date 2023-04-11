@@ -12,10 +12,19 @@
   color: var(--sl-color-gray-500);
 }
 
-.metadata_key {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  margin-right: 0.5rem;
+.metadata {
+  --min_num_chars: 3rem; /* Minimum number of characters for a metadata entry. */
+
+  .metadata_key {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+      'Courier New', monospace;
+    margin-right: 0.5rem;
+    min-width: var(--min_num_chars);
+  }
+
+  .metadata_value {
+    min-width: var(--min_num_chars);
+  }
 }
 
 .media_content_container {

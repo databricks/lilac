@@ -53,7 +53,20 @@ export const WEBPACK_CONFIG: Configuration = {
       },
       {
         test: /\.css$/i,
-        use: ['style-loader', 'css-loader', 'postcss-loader'],
+        use: [
+          'style-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              modules: {
+                auto: true,
+                // This is for development. Use '[hash:base64]' for production.
+                localIdentName: '[path][name]__[local]--[hash:base64:5]',
+              },
+            },
+          },
+          'postcss-loader',
+        ],
       },
     ],
   },

@@ -54,7 +54,7 @@ function Media({item, path}: {item: Item | null; path: Path}): JSX.Element {
 }
 
 function Metadata({item, paths}: {item: Item | null; paths?: Path[]}): JSX.Element {
-  if (paths == null) {
+  if (paths == null || paths.length == 0) {
     return <></>;
   }
   const metadata = paths.map((path) => {
@@ -62,12 +62,12 @@ function Metadata({item, paths}: {item: Item | null; paths?: Path[]}): JSX.Eleme
     const pathStr = renderPath(path);
     const content = item != null ? renderCell(item, path) : 'Loading...';
     return (
-      <div key={pathKey} className="flex justify-between w-full text-sm">
+      <div key={pathKey} className={`flex justify-between w-full text-sm ${styles.metadata}`}>
         <SlTooltip content={pathStr} hoist>
           <div className={`${styles.metadata_key} truncate`}>{pathStr}</div>
         </SlTooltip>
         <SlTooltip content={content} hoist>
-          <div className="truncate">{content}</div>
+          <div className={`${styles.metadata_value} truncate`}>{content}</div>
         </SlTooltip>
       </div>
     );
