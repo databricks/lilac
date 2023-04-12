@@ -1,7 +1,7 @@
 import {SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {DatasetManifest, DataType} from '../../fastapi_client';
-import {getEqualBins, TOO_MANY_DISTINCT} from '../db';
+import {getEqualBins, NUM_AUTO_BINS, TOO_MANY_DISTINCT} from '../db';
 import {isOrdinal, Path, Schema} from '../schema';
 import {useGetStatsQuery} from '../store/api_dataset';
 import {renderError} from '../utils';
@@ -13,7 +13,6 @@ export interface LeafStatsProps {
   leafPath: Path;
   manifest: DatasetManifest;
 }
-const NUM_AUTO_BINS = 20;
 const SUPPORTED_DTYPES: DataType[] = [
   'string',
   'int8',

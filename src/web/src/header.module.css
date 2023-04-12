@@ -34,3 +34,10 @@
 sl-icon.completed_task_icon {
   color: var(--sl-color-success-500);
 }
+
+.search_box {
+  width: 640px;
+  z-index: 50;
+  display: flex;
+  margin: 0.5rem 0; /* my-2 */
+}

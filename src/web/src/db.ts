@@ -3,6 +3,7 @@ import {Path} from './schema';
 
 // Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
 export const TOO_MANY_DISTINCT = 100_000;
+export const NUM_AUTO_BINS = 20;
 
 /** Returns equally sized bins for a given field. */
 export function getEqualBins(stats: StatsResult, leafPath: Path, numBins: number): number[] {

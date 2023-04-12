@@ -166,7 +166,7 @@ export const Header = (): JSX.Element => {
           <Link to="/">Lilac</Link>
         </div>
       </div>
-      <div className="w-96 z-50 flex my-2">
+      <div className={styles.search_box}>
         <SearchBox />
       </div>
       <div className="relative flex items-center">
