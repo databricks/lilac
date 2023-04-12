@@ -122,7 +122,7 @@ export const SearchBox = () => {
       >
         <div className="flex">
           {pages.map((p) => (
-            <div key={`${p.type}_${p.name}`} cmdk-badge="" style={{margin: 'auto 2px'}}>
+            <div key={`${p.type}_${p.name}`} cmdk-badge="" className="truncate">
               {p.name}
             </div>
           ))}
@@ -137,6 +137,7 @@ export const SearchBox = () => {
         <Command.List>
           {isFocused && (
             <>
+              <div className="mt-4"></div>
               <Command.Empty>No results found.</Command.Empty>
               {isHome && <HomeMenu pushPage={pushPage} location={location} closeMenu={closeMenu} />}
               {activePage?.type === 'open-dataset' && <Datasets closeMenu={closeMenu} />}

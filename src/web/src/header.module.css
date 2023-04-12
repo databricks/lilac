@@ -1,5 +1,6 @@
 .app_header {
   height: 80px;
+  min-height: 80px;
 }
 
 .app_header_title {
@@ -39,5 +40,5 @@ sl-icon.completed_task_icon {
   width: 640px;
   z-index: 50;
   display: flex;
-  margin: 0.5rem 0; /* my-2 */
+  margin: 1rem 0; /* my-2 */
 }
