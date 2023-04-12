@@ -273,10 +273,10 @@ class DatasetDuckDB(DatasetDB):
                                                     data=leaf_values)
 
   @override
-  def compute_signal_columns(self,
-                             signal: Signal,
-                             column: ColumnId,
-                             signal_column_name: Optional[str] = None) -> str:
+  def compute_signal_column(self,
+                            signal: Signal,
+                            column: ColumnId,
+                            signal_column_name: Optional[str] = None) -> str:
     column = column_from_identifier(column)
     if not signal_column_name:
       signal_column_name = default_top_level_signal_col_name(signal, column)

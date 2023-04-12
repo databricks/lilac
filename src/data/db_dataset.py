@@ -224,10 +224,10 @@ class DatasetDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def compute_signal_columns(self,
-                             signal: Signal,
-                             column: ColumnId,
-                             signal_column_name: Optional[str] = None) -> str:
+  def compute_signal_column(self,
+                            signal: Signal,
+                            column: ColumnId,
+                            signal_column_name: Optional[str] = None) -> str:
     """Compute a signal for a column.
 
     Args:
