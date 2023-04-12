@@ -3,7 +3,7 @@ import {Command} from 'cmdk';
 import * as React from 'react';
 import {Location, useLocation, useNavigate, useParams} from 'react-router-dom';
 import {Field} from '../fastapi_client';
-import {getEqualBins, NUM_AUTO_BINS} from './db';
+import {getEqualBins, NUM_AUTO_BINS, TOO_MANY_DISTINCT} from './db';
 import {isOrdinal, LeafValue, Path, Schema, serializePath} from './schema';
 import './search_box.css';
 import {
@@ -16,7 +16,6 @@ import {renderPath, roundNumber} from './utils';
 
 /** Time to debounce (ms). */
 const DEBOUNCE_TIME_MS = 100;
-const MAX_FILTER_VALUES_TO_RENDER = 100;
 
 type PageType = 'open-dataset' | 'add-filter' | 'add-filter-value';
 
@@ -262,34 +261,32 @@ function Datasets({closeMenu}: {closeMenu: () => void}) {
   );
 }
 
-function AddFilterValue({
-  closeMenu,
-  inputValue,
-  page,
-}: {
-  inputValue: string;
-  closeMenu: () => void;
-  page: Page<'add-filter-value'>;
-}) {
-  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
-  if (namespace == null || datasetName == null) {
-    throw new Error('Invalid route');
-  }
-  const leafPath = page.metadata!.path;
-  const field = page.metadata!.field;
+function useTopKValues(
+  namespace: string,
+  datasetName: string,
+  leafPath: Path,
+  field: Field,
+  topK: number
+): {isFetching: boolean; values: LeafValue[]; tooManyDistinct: boolean; onlyTopK: boolean} {
   const stats = useGetStatsQuery({namespace, datasetName, options: {leaf_path: leafPath}});
   let values: LeafValue[] = [];
   let skipSelectGroups = false;
-  let tooManyValues = false;
+  let tooManyDistinct = false;
+  let onlyTopK = false;
   if (stats.currentData == null) {
     skipSelectGroups = true;
-  } else if (stats.currentData.approx_count_distinct > MAX_FILTER_VALUES_TO_RENDER) {
+  } else if (stats.currentData.approx_count_distinct > TOO_MANY_DISTINCT) {
     skipSelectGroups = true;
-    tooManyValues = true;
+    tooManyDistinct = true;
+    onlyTopK = false;
+  } else if (stats.currentData.approx_count_distinct > topK) {
+    onlyTopK = true;
   }
+
   if (isOrdinal(field.dtype!) && stats.currentData != null) {
-    tooManyValues = false;
     skipSelectGroups = true;
+    tooManyDistinct = false;
+    onlyTopK = false;
     const bins = getEqualBins(stats.currentData, leafPath, NUM_AUTO_BINS);
     values = [...bins, bins[bins.length - 1]].map((b, i) => {
       const num = roundNumber(b, 2).toLocaleString();
@@ -307,17 +304,46 @@ function AddFilterValue({
     {
       namespace,
       datasetName,
-      options: {leaf_path: leafPath, limit: 0},
+      options: {leaf_path: leafPath, limit: onlyTopK ? topK : 0},
     },
     {skip: skipSelectGroups}
   );
 
   if (isFetching) {
-    return <SlSpinner />;
+    return {isFetching, values, tooManyDistinct, onlyTopK};
   }
-
   if (groupsResult != null) {
     values = groupsResult.map(([value]) => value);
+  }
+  return {isFetching, values, tooManyDistinct, onlyTopK};
+}
+
+function AddFilterValue({
+  closeMenu,
+  inputValue,
+  page,
+}: {
+  inputValue: string;
+  closeMenu: () => void;
+  page: Page<'add-filter-value'>;
+}) {
+  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
+  if (namespace == null || datasetName == null) {
+    throw new Error('Invalid route');
+  }
+  const leafPath = page.metadata!.path;
+  const field = page.metadata!.field;
+  const topK = 100;
+  const {isFetching, tooManyDistinct, onlyTopK, values} = useTopKValues(
+    namespace,
+    datasetName,
+    leafPath,
+    field,
+    topK
+  );
+
+  if (isFetching) {
+    return <SlSpinner />;
   }
 
   // Add the current input value to the list of values, and wrap it in quotes.
@@ -340,8 +366,9 @@ function AddFilterValue({
   });
   return (
     <>
+      {onlyTopK && <Item disabled>Showing only the top {topK} values...</Item>}
       {items}
-      {tooManyValues && <Item disabled>Too many unique values to list...</Item>}
+      {tooManyDistinct && <Item disabled>Too many unique values to list...</Item>}
     </>
   );
 }
