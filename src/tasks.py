@@ -81,7 +81,6 @@ class TaskManager():
     return task_id
 
   def _set_task_completed(self, task_id: TaskId, task_future: Future) -> None:
-    print('TASK FUTURE', task_future, task_future.status)
     if task_future.status == 'error':
       self._tasks[task_id].status = TaskStatus.ERROR
       tb = traceback.format_tb(task_future.traceback())
