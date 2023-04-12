@@ -11,7 +11,7 @@ from .signal import Signal
 
 
 class SemanticSearchSignal(Signal):
-  """A signal to compute semantic search for a document."""
+  """Compute semantic search for a document."""
 
   name = 'semantic_search'
   enrichment_type = EnrichmentType.TEXT

@@ -14,6 +14,8 @@ import {
   LoadDatasetResponse,
   SelectGroupsOptions,
   SelectRowsOptions,
+  SignalInfo,
+  SignalsService,
   SourcesList,
   StatsResult,
   WebManifest,
@@ -162,6 +164,10 @@ export const datasetApi = createApi({
           return statResults;
         }),
     }),
+
+    getSignals: builder.query<SignalInfo[], void>({
+      queryFn: async () => query(async () => await SignalsService.getSignals()),
+    }),
   }),
 });
 
@@ -178,4 +184,5 @@ export const {
   useGetDatasetsQuery,
   useGetSourceSchemaQuery,
   useLoadDatasetMutation,
+  useGetSignalsQuery,
 } = datasetApi;

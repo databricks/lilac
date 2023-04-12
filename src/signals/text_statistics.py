@@ -1,4 +1,4 @@
-"""A signal to compute semantic search for a document."""
+"""Compute text statistics for a document."""
 from typing import Iterable, Optional
 
 from typing_extensions import override
@@ -11,7 +11,7 @@ NUM_CHARS_FEATURE_NAME = 'num_characters'
 
 
 class TextStatisticsSignal(Signal):
-  """A signal to compute text statistics for a document."""
+  """Compute text statistics for a document."""
   name = 'text_statistics'
   enrichment_type = EnrichmentType.TEXT
 
