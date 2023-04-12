@@ -20,7 +20,7 @@ from ..schema import Item, Path, PathTuple, Schema, path_to_alias
 from ..signals.signal import Signal
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
-TOO_MANY_DISTINCT = 100_000
+TOO_MANY_DISTINCT = 10_000
 
 
 class SelectRowsResult():

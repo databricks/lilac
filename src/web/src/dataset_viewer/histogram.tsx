@@ -1,10 +1,7 @@
-import {SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {VegaLite} from 'react-vega';
 import {compile, Config, TopLevelSpec} from 'vega-lite';
-import {Path} from '../schema';
-import {useSelectGroupsQuery} from '../store/api_dataset';
-import {renderError} from '../utils';
+import {LeafValue} from '../schema';
 
 const BAR_COUNT_LABEL = 'count';
 const BAR_VALUE_LABEL = 'value';
@@ -12,38 +9,11 @@ const BAR_COLOR = 'rgb(163,191,250)'; // Light indigo.
 const LABEL_COLOR = 'rgb(45,55,72)'; // Dark gray.
 
 export interface HistogramProps {
-  leafPath: Path;
-  namespace: string;
-  datasetName: string;
-  bins?: number[];
+  values: [LeafValue, number][];
 }
 
-export const Histogram = React.memo(function Histogram({
-  leafPath,
-  namespace,
-  datasetName,
-  bins,
-}: HistogramProps): JSX.Element {
-  // Fetch groups from database.
-  const {
-    isFetching,
-    error,
-    currentData: groupsResult,
-  } = useSelectGroupsQuery({
-    namespace,
-    datasetName,
-    options: {leaf_path: leafPath, bins, limit: 0},
-  });
-  if (isFetching) {
-    return <SlSpinner />;
-  }
-  if (error) {
-    return renderError(error);
-  }
-  if (groupsResult == null) {
-    return <div className="error">Groups result was null</div>;
-  }
-  const histogramData = groupsResult.map((row) => {
+export const Histogram = React.memo(function Histogram({values}: HistogramProps): JSX.Element {
+  const histogramData = values.map((row) => {
     return {
       [BAR_VALUE_LABEL]: row[0],
       [BAR_COUNT_LABEL]: row[1],

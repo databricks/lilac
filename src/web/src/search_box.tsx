@@ -3,16 +3,11 @@ import {Command} from 'cmdk';
 import * as React from 'react';
 import {Location, useLocation, useNavigate, useParams} from 'react-router-dom';
 import {Field} from '../fastapi_client';
-import {getEqualBins, NUM_AUTO_BINS, TOO_MANY_DISTINCT} from './db';
-import {isOrdinal, LeafValue, Path, Schema, serializePath} from './schema';
+import {Path, Schema, serializePath} from './schema';
 import './search_box.css';
-import {
-  useGetDatasetsQuery,
-  useGetManifestQuery,
-  useGetStatsQuery,
-  useSelectGroupsQuery,
-} from './store/api_dataset';
-import {renderPath, roundNumber} from './utils';
+import {useGetDatasetsQuery, useGetManifestQuery} from './store/api_dataset';
+import {useTopKValues} from './store/store';
+import {renderPath} from './utils';
 
 /** Time to debounce (ms). */
 const DEBOUNCE_TIME_MS = 100;
@@ -262,63 +257,6 @@ function Datasets({closeMenu}: {closeMenu: () => void}) {
   );
 }
 
-function useTopKValues(
-  namespace: string,
-  datasetName: string,
-  leafPath: Path,
-  field: Field,
-  topK: number
-): {isFetching: boolean; values: LeafValue[]; tooManyDistinct: boolean; onlyTopK: boolean} {
-  const stats = useGetStatsQuery({namespace, datasetName, options: {leaf_path: leafPath}});
-  let values: LeafValue[] = [];
-  let skipSelectGroups = false;
-  let tooManyDistinct = false;
-  let onlyTopK = false;
-  if (stats.currentData == null) {
-    skipSelectGroups = true;
-  } else if (stats.currentData.approx_count_distinct > TOO_MANY_DISTINCT) {
-    skipSelectGroups = true;
-    tooManyDistinct = true;
-    onlyTopK = false;
-  } else if (stats.currentData.approx_count_distinct > topK) {
-    onlyTopK = true;
-  }
-
-  if (isOrdinal(field.dtype!) && stats.currentData != null) {
-    skipSelectGroups = true;
-    tooManyDistinct = false;
-    onlyTopK = false;
-    const bins = getEqualBins(stats.currentData, leafPath, NUM_AUTO_BINS);
-    values = [...bins, bins[bins.length - 1]].map((b, i) => {
-      const num = roundNumber(b, 2).toLocaleString();
-      if (i === 0) {
-        return `< ${num}`;
-      }
-      if (i === bins.length) {
-        return `≥ ${num}`;
-      }
-      const prevNum = roundNumber(bins[i - 1], 2).toLocaleString();
-      return `${prevNum} - ${num}`;
-    });
-  }
-  const {isFetching, currentData: groupsResult} = useSelectGroupsQuery(
-    {
-      namespace,
-      datasetName,
-      options: {leaf_path: leafPath, limit: onlyTopK ? topK : 0},
-    },
-    {skip: skipSelectGroups}
-  );
-
-  if (isFetching) {
-    return {isFetching, values, tooManyDistinct, onlyTopK};
-  }
-  if (groupsResult != null) {
-    values = groupsResult.map(([value]) => value);
-  }
-  return {isFetching, values, tooManyDistinct, onlyTopK};
-}
-
 function AddFilterValue({
   closeMenu,
   inputValue,
@@ -335,13 +273,9 @@ function AddFilterValue({
   const leafPath = page.metadata!.path;
   const field = page.metadata!.field;
   const topK = 100;
-  const {isFetching, tooManyDistinct, onlyTopK, values} = useTopKValues(
-    namespace,
-    datasetName,
-    leafPath,
-    field,
-    topK
-  );
+  const {isFetching, tooManyDistinct, onlyTopK, values, dtypeNotSupported, statsResult} =
+    useTopKValues({namespace, datasetName, leafPath, field, topK, vocabOnly: true});
+  const vocab = values.map(([v]) => v);
 
   if (isFetching) {
     return <SlSpinner />;
@@ -349,10 +283,10 @@ function AddFilterValue({
 
   // Add the current input value to the list of values, and wrap it in quotes.
   if (inputValue.length > 0) {
-    values.unshift(`"${inputValue}"`);
+    vocab.unshift(`"${inputValue}"`);
   }
 
-  const items = values.map((value, i) => {
+  const items = vocab.map((value, i) => {
     return (
       <Item
         key={i}
@@ -369,7 +303,13 @@ function AddFilterValue({
     <>
       {onlyTopK && <Item disabled>Showing only the top {topK} values...</Item>}
       {items}
-      {tooManyDistinct && <Item disabled>Too many unique values to list...</Item>}
+      {tooManyDistinct && (
+        <Item disabled>
+          Too many distinct values ({statsResult?.approx_count_distinct.toLocaleString()}) to
+          list...
+        </Item>
+      )}
+      {dtypeNotSupported && <Item disabled>Dtype {field.dtype} is not supported...</Item>}
     </>
   );
 }

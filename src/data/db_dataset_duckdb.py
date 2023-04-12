@@ -548,7 +548,7 @@ class DatasetDuckDB(DatasetDB):
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     stats = self.stats(leaf_path)
-    if stats.approx_count_distinct >= db_dataset.TOO_MANY_DISTINCT:
+    if not bins and stats.approx_count_distinct >= db_dataset.TOO_MANY_DISTINCT:
       raise ValueError(f'Leaf "{path}" has too many unique values: {stats.approx_count_distinct}')
 
     inner_val = 'inner_val'

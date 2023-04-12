@@ -1,13 +1,11 @@
 import {SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
-import {DatasetManifest, DataType} from '../../fastapi_client';
-import {getEqualBins, NUM_AUTO_BINS} from '../db';
-import {isOrdinal, Path, Schema} from '../schema';
-import {useGetStatsQuery} from '../store/api_dataset';
-import {renderError} from '../utils';
+import {DatasetManifest} from '../../fastapi_client';
+import {Path, Schema} from '../schema';
+import {useTopKValues} from '../store/store';
 import {Histogram} from './histogram';
 
-const MAX_NUM_GROUPS_TO_RENDER = 100;
+const MAX_NUM_GROUPS_TO_RENDER = 20;
 
 export interface LeafStatsProps {
   namespace: string;
@@ -15,20 +13,6 @@ export interface LeafStatsProps {
   leafPath: Path;
   manifest: DatasetManifest;
 }
-const SUPPORTED_DTYPES: DataType[] = [
-  'string',
-  'int8',
-  'int16',
-  'int32',
-  'int64',
-  'uint8',
-  'uint16',
-  'uint32',
-  'uint64',
-  'float16',
-  'float32',
-  'float64',
-];
 
 export const LeafStats = React.memo(function LeafStats({
   leafPath,
@@ -36,36 +20,28 @@ export const LeafStats = React.memo(function LeafStats({
   datasetName,
   manifest,
 }: LeafStatsProps): JSX.Element {
-  // Fetch stats.
-  const stats = useGetStatsQuery({namespace, datasetName, options: {leaf_path: leafPath}});
-  if (stats.isFetching) {
-    return <SlSpinner />;
-  }
-  if (stats.error) {
-    return renderError(stats.error);
-  }
-  if (stats.currentData == null) {
-    return <div className="error">Stats was null</div>;
-  }
-  const {approx_count_distinct} = stats.currentData;
-  if (approx_count_distinct > MAX_NUM_GROUPS_TO_RENDER) {
-    return <div className="error">Too many distinct values: {approx_count_distinct}</div>;
-  }
   const schema = new Schema(manifest.data_schema);
   const field = schema.getLeaf(leafPath);
-  if (field != null && !SUPPORTED_DTYPES.includes(field.dtype!)) {
+  const topK = MAX_NUM_GROUPS_TO_RENDER;
+  const {isFetching, values, tooManyDistinct, dtypeNotSupported, onlyTopK, statsResult} =
+    useTopKValues({namespace, datasetName, leafPath, field, topK: MAX_NUM_GROUPS_TO_RENDER});
+  if (isFetching) {
+    return <SlSpinner />;
+  }
+  if (tooManyDistinct) {
+    return (
+      <div className="error">
+        Too many distinct values: {statsResult?.approx_count_distinct.toLocaleString()}
+      </div>
+    );
+  }
+  if (dtypeNotSupported) {
     return <div className="error">"{field.dtype}" dtype is not yet supported.</div>;
   }
-  let bins: number[] | undefined = undefined;
-  if (isOrdinal(field.dtype!)) {
-    bins = getEqualBins(stats.currentData, leafPath, NUM_AUTO_BINS);
-  }
   return (
-    <Histogram
-      namespace={namespace}
-      datasetName={datasetName}
-      leafPath={leafPath}
-      bins={bins}
-    ></Histogram>
+    <>
+      {onlyTopK && <div>Showing only the top {topK} values.</div>}
+      <Histogram values={values}></Histogram>
+    </>
   );
 });
