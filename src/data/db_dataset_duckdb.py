@@ -595,7 +595,7 @@ class DatasetDuckDB(DatasetDB):
                   filters: Optional[Sequence[FilterLike]] = None,
                   sort_by: Optional[Sequence[str]] = None,
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
-                  limit: Optional[int] = 100,
+                  limit: Optional[int] = None,
                   offset: Optional[int] = 0) -> SelectRowsResult:
     cols = [column_from_identifier(column) for column in columns or []]
     self._validate_columns(cols)

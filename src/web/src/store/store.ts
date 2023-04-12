@@ -262,7 +262,7 @@ export function useGetItem(
     isFetching,
     currentData: items,
     error,
-  } = useSelectRowsQuery({namespace, datasetName, options: {filters}});
+  } = useSelectRowsQuery({namespace, datasetName, options: {filters, limit: 1}});
   const item = items != null ? items[0] : null;
   return {isFetching, item, error};
 }

@@ -8,7 +8,6 @@ import {renderError} from '../utils';
 
 const BAR_COUNT_LABEL = 'count';
 const BAR_VALUE_LABEL = 'value';
-const MAX_GROUPS = 1000;
 const BAR_COLOR = 'rgb(163,191,250)'; // Light indigo.
 const LABEL_COLOR = 'rgb(45,55,72)'; // Dark gray.
 
@@ -30,7 +29,11 @@ export const Histogram = React.memo(function Histogram({
     isFetching,
     error,
     currentData: groupsResult,
-  } = useSelectGroupsQuery({namespace, datasetName, options: {leaf_path: leafPath, bins}});
+  } = useSelectGroupsQuery({
+    namespace,
+    datasetName,
+    options: {leaf_path: leafPath, bins, limit: 0},
+  });
   if (isFetching) {
     return <SlSpinner />;
   }
@@ -39,13 +42,6 @@ export const Histogram = React.memo(function Histogram({
   }
   if (groupsResult == null) {
     return <div className="error">Groups result was null</div>;
-  }
-  if (groupsResult.length > MAX_GROUPS) {
-    return (
-      <div className="error">
-        Too many groups {groupsResult.length}. Max is {MAX_GROUPS}
-      </div>
-    );
   }
   const histogramData = groupsResult.map((row) => {
     return {

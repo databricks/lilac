@@ -1,11 +1,13 @@
 import {SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {DatasetManifest, DataType} from '../../fastapi_client';
-import {getEqualBins, NUM_AUTO_BINS, TOO_MANY_DISTINCT} from '../db';
+import {getEqualBins, NUM_AUTO_BINS} from '../db';
 import {isOrdinal, Path, Schema} from '../schema';
 import {useGetStatsQuery} from '../store/api_dataset';
 import {renderError} from '../utils';
 import {Histogram} from './histogram';
+
+const MAX_NUM_GROUPS_TO_RENDER = 100;
 
 export interface LeafStatsProps {
   namespace: string;
@@ -46,7 +48,7 @@ export const LeafStats = React.memo(function LeafStats({
     return <div className="error">Stats was null</div>;
   }
   const {approx_count_distinct} = stats.currentData;
-  if (approx_count_distinct >= TOO_MANY_DISTINCT) {
+  if (approx_count_distinct > MAX_NUM_GROUPS_TO_RENDER) {
     return <div className="error">Too many distinct values: {approx_count_distinct}</div>;
   }
   const schema = new Schema(manifest.data_schema);

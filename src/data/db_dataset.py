@@ -247,7 +247,7 @@ class DatasetDB(abc.ABC):
                     filters: Optional[Sequence[FilterLike]] = None,
                     sort_by: Optional[GroupsSortBy] = None,
                     sort_order: Optional[SortOrder] = SortOrder.DESC,
-                    limit: Optional[int] = 100,
+                    limit: Optional[int] = None,
                     bins: Optional[Bins] = None) -> SelectGroupsResult:
     """Select grouped columns to power a histogram.
 

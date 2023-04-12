@@ -3,7 +3,7 @@ import {Command} from 'cmdk';
 import * as React from 'react';
 import {Location, useLocation, useNavigate, useParams} from 'react-router-dom';
 import {Field} from '../fastapi_client';
-import {getEqualBins, NUM_AUTO_BINS, TOO_MANY_DISTINCT} from './db';
+import {getEqualBins, NUM_AUTO_BINS} from './db';
 import {isOrdinal, LeafValue, Path, Schema, serializePath} from './schema';
 import './search_box.css';
 import {
@@ -16,6 +16,7 @@ import {renderPath, roundNumber} from './utils';
 
 /** Time to debounce (ms). */
 const DEBOUNCE_TIME_MS = 100;
+const MAX_FILTER_VALUES_TO_RENDER = 100;
 
 type PageType = 'open-dataset' | 'add-filter' | 'add-filter-value';
 
@@ -277,13 +278,17 @@ function AddFilterValue({
   const leafPath = page.metadata!.path;
   const field = page.metadata!.field;
   const stats = useGetStatsQuery({namespace, datasetName, options: {leaf_path: leafPath}});
-  let values: LeafValue[] | null = null;
+  let values: LeafValue[] = [];
   let skipSelectGroups = false;
+  let tooManyValues = false;
   if (stats.currentData == null) {
     skipSelectGroups = true;
-  } else if (stats.currentData.approx_count_distinct >= TOO_MANY_DISTINCT) {
+  } else if (stats.currentData.approx_count_distinct > MAX_FILTER_VALUES_TO_RENDER) {
     skipSelectGroups = true;
-  } else if (isOrdinal(field.dtype!)) {
+    tooManyValues = true;
+  }
+  if (isOrdinal(field.dtype!) && stats.currentData != null) {
+    tooManyValues = false;
     skipSelectGroups = true;
     const bins = getEqualBins(stats.currentData, leafPath, NUM_AUTO_BINS);
     values = [...bins, bins[bins.length - 1]].map((b, i) => {
@@ -295,32 +300,31 @@ function AddFilterValue({
         return `≥ ${num}`;
       }
       const prevNum = roundNumber(bins[i - 1], 2).toLocaleString();
-      return `${prevNum} - ${b}`;
+      return `${prevNum} - ${num}`;
     });
   }
-  let tooManyValues = false;
   const {isFetching, currentData: groupsResult} = useSelectGroupsQuery(
     {
       namespace,
       datasetName,
-      options: {leaf_path: leafPath},
+      options: {leaf_path: leafPath, limit: 0},
     },
     {skip: skipSelectGroups}
   );
-  if (values == null) {
-    if (isFetching || groupsResult == null) {
-      return <SlSpinner />;
-    }
-    if (groupsResult.length < 100) {
-      values = groupsResult.map(([value]) => value);
-    } else {
-      values = [];
-      tooManyValues = true;
-    }
+
+  if (isFetching) {
+    return <SlSpinner />;
   }
+
+  if (groupsResult != null) {
+    values = groupsResult.map(([value]) => value);
+  }
+
+  // Add the current input value to the list of values, and wrap it in quotes.
   if (inputValue.length > 0) {
     values.unshift(`"${inputValue}"`);
   }
+
   const items = values.map((value, i) => {
     return (
       <Item
