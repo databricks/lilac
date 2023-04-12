@@ -327,7 +327,7 @@ export interface TopKValuesOptions {
  * If the vocab is larger than top K, it returns the top K values with `onlyTopK` set to true.
  * If `vocabOnly` is true, it returns the top K values without the counts.
  */
-export function useTopKValues({
+export function useTopValues({
   namespace,
   datasetName,
   leafPath,

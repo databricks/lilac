@@ -6,7 +6,7 @@ import {Field} from '../fastapi_client';
 import {Path, Schema, serializePath} from './schema';
 import './search_box.css';
 import {useGetDatasetsQuery, useGetManifestQuery} from './store/api_dataset';
-import {useTopKValues} from './store/store';
+import {useTopValues} from './store/store';
 import {renderPath} from './utils';
 
 /** Time to debounce (ms). */
@@ -274,7 +274,7 @@ function AddFilterValue({
   const field = page.metadata!.field;
   const topK = 100;
   const {isFetching, tooManyDistinct, onlyTopK, values, dtypeNotSupported, statsResult} =
-    useTopKValues({namespace, datasetName, leafPath, field, topK, vocabOnly: true});
+    useTopValues({namespace, datasetName, leafPath, field, topK, vocabOnly: true});
   const vocab = values.map(([v]) => v);
 
   if (isFetching) {

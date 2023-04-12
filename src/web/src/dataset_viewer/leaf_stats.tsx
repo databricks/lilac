@@ -2,7 +2,7 @@ import {SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {DatasetManifest} from '../../fastapi_client';
 import {Path, Schema} from '../schema';
-import {useTopKValues} from '../store/store';
+import {useTopValues} from '../store/store';
 import {Histogram} from './histogram';
 
 const MAX_NUM_GROUPS_TO_RENDER = 20;
@@ -24,7 +24,7 @@ export const LeafStats = React.memo(function LeafStats({
   const field = schema.getLeaf(leafPath);
   const topK = MAX_NUM_GROUPS_TO_RENDER;
   const {isFetching, values, tooManyDistinct, dtypeNotSupported, onlyTopK, statsResult} =
-    useTopKValues({namespace, datasetName, leafPath, field, topK: MAX_NUM_GROUPS_TO_RENDER});
+    useTopValues({namespace, datasetName, leafPath, field, topK: MAX_NUM_GROUPS_TO_RENDER});
   if (isFetching) {
     return <SlSpinner />;
   }
