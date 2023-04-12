@@ -13,10 +13,10 @@ const spinnerSizePx = 40;
 export const Task = ({task}: {task: TaskInfo}): JSX.Element => {
   const startDateTime = new Date(task.start_timestamp);
   const endDateTime = new Date(task.end_timestamp || '');
-  let datetimeInfo = '';
+  let datetimeInfo: string | JSX.Element = '';
   if (task.status === 'pending') {
     datetimeInfo = formatDatetime(startDateTime);
-  } else {
+  } else if (task.status === 'completed') {
     const elapsedTimeSeconds = (endDateTime.getTime() - startDateTime.getTime()) / 1000;
     let ellapsedTimeMessage = '';
     if (elapsedTimeSeconds < 60) {
@@ -28,8 +28,53 @@ export const Task = ({task}: {task: TaskInfo}): JSX.Element => {
     }
 
     datetimeInfo = `Finished ${formatDatetime(endDateTime)} (${ellapsedTimeMessage})`;
+  } else if (task.status === 'error') {
+    datetimeInfo = (
+      <p className="text-red-400">
+        Failed {formatDatetime(endDateTime)}. <br></br>
+        {task.error}`
+      </p>
+    );
   }
 
+  let taskStatusEl: JSX.Element = <></>;
+  if (task.status === 'completed') {
+    taskStatusEl = (
+      <SlIcon
+        className={styles.completed_task_icon}
+        name="check-lg"
+        style={{fontSize: '1.5rem'}}
+      ></SlIcon>
+    );
+  } else if (task.status === 'error') {
+    taskStatusEl = (
+      <SlIcon
+        className={styles.error_task_icon}
+        name="exclamation-circle"
+        style={{fontSize: '1.5rem'}}
+      ></SlIcon>
+    );
+  } else {
+    if (task.progress != null) {
+      taskStatusEl = (
+        <SlProgressRing
+          value={task.progress * 100}
+          style={
+            {
+              '--size': `${spinnerSizePx}px`,
+              '--track-width': '2px',
+              '--indicator-width': '2px',
+            } as React.CSSProperties
+          }
+        >
+          {' '}
+          {Math.round(task.progress * 100)}%
+        </SlProgressRing>
+      );
+    } else {
+      taskStatusEl = <SlSpinner style={{fontSize: `${spinnerSizePx}px`}} />;
+    }
+  }
   return (
     <div className={`${styles.task_container} border-bottom-2 last:border-b-0`}>
       <div className="bg-slate-50 p-2 flex flex-row">
@@ -41,28 +86,7 @@ export const Task = ({task}: {task: TaskInfo}): JSX.Element => {
           style={{width: `${spinnerSizePx}px`}}
           className="text-sm flex justify-center items-center"
         >
-          {task.status === 'completed' ? (
-            <SlIcon
-              className={styles.completed_task_icon}
-              name="check-lg"
-              style={{fontSize: '1.5rem'}}
-            ></SlIcon>
-          ) : task.progress != null && task.progress > 0.0 ? (
-            <SlProgressRing
-              value={task.progress * 100}
-              style={
-                {
-                  '--size': `${spinnerSizePx}px`,
-                  '--track-width': '2px',
-                  '--indicator-width': '2px',
-                } as React.CSSProperties
-              }
-            >
-              {Math.round(task.progress * 100)}%
-            </SlProgressRing>
-          ) : (
-            <SlSpinner style={{fontSize: `${spinnerSizePx}px`}} />
-          )}
+          {taskStatusEl}
         </div>
       </div>
     </div>

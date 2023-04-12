@@ -22,6 +22,8 @@
   transition: margin-top 0.5s ease-in-out;
   position: relative;
   border-width: 1px;
+  max-height: 400px;
+  overflow-y: scroll;
 }
 
 .task_elements_open {
@@ -29,11 +31,15 @@
 }
 
 .task_elements_closed {
-  margin-top: calc(-100%);
+  margin-top: -100%;
 }
 
 sl-icon.completed_task_icon {
   color: var(--sl-color-success-500);
+}
+
+sl-icon.error_task_icon {
+  color: var(--sl-color-danger-500);
 }
 
 .search_box {

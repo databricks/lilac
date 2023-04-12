@@ -104,13 +104,17 @@ export const DatasetLoader = (): JSX.Element => {
     return () => clearInterval(timer);
   }, [taskId]);
 
+  let loadDatasetTaskError: string | null = null;
   if (
     taskId != null &&
     taskManifest.currentData != null &&
-    taskManifest.currentData.tasks != null &&
-    taskManifest.currentData.tasks[taskId]?.status == 'completed'
+    taskManifest.currentData.tasks != null
   ) {
-    location.href = getDatasetLink(namespace, datasetName);
+    if (taskManifest.currentData.tasks[taskId]?.status == 'completed') {
+      location.href = getDatasetLink(namespace, datasetName);
+    } else {
+      loadDatasetTaskError = taskManifest.currentData.tasks[taskId]?.error || '';
+    }
   }
 
   return (
@@ -159,7 +163,9 @@ export const DatasetLoader = (): JSX.Element => {
           </SlButton>
           {isLoadDatasetLoading ? <SlSpinner></SlSpinner> : null}
           {isLoadDatasetError ? renderError(loadDatasetError) : null}
-          {isLoadDatasetSuccess ? (
+          {loadDatasetTaskError ? (
+            renderError(loadDatasetTaskError)
+          ) : isLoadDatasetSuccess ? (
             <>
               <SlSpinner></SlSpinner>
               <br />

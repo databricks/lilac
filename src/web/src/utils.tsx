@@ -52,7 +52,11 @@ export function renderError(error: string | SerializedError | undefined): JSX.El
     return <></>;
   }
   if (typeof error === 'string') {
-    return <>{error}</>;
+    return (
+      <p className="text-red-500">
+        <pre>{error}</pre>
+      </p>
+    );
   }
 
   return (

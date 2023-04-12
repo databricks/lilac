@@ -14,5 +14,6 @@ export type TaskInfo = {
     description?: string;
     start_timestamp: string;
     end_timestamp?: string;
+    error?: string;
 };
 

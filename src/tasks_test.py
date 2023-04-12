@@ -20,7 +20,6 @@ def test_client() -> Client:
 
 
 async def test_task_manager(test_client: Client) -> None:
-  """Test the task manager."""
   task_manager = TaskManager(test_client)
 
   # Test that the task manager can create a task.
