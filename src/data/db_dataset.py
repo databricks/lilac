@@ -20,7 +20,7 @@ from ..schema import Item, Path, PathTuple, Schema, path_to_alias
 from ..signals.signal import Signal
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
-TOO_MANY_DISTINCT = 100_000
+TOO_MANY_DISTINCT = 10_000
 
 
 class SelectRowsResult():
@@ -247,7 +247,7 @@ class DatasetDB(abc.ABC):
                     filters: Optional[Sequence[FilterLike]] = None,
                     sort_by: Optional[GroupsSortBy] = None,
                     sort_order: Optional[SortOrder] = SortOrder.DESC,
-                    limit: Optional[int] = 100,
+                    limit: Optional[int] = None,
                     bins: Optional[Bins] = None) -> SelectGroupsResult:
     """Select grouped columns to power a histogram.
 

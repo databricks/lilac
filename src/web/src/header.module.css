@@ -1,5 +1,6 @@
 .app_header {
   height: 80px;
+  min-height: 80px;
 }
 
 .app_header_title {
@@ -33,4 +34,11 @@
 
 sl-icon.completed_task_icon {
   color: var(--sl-color-success-500);
+}
+
+.search_box {
+  width: 640px;
+  z-index: 50;
+  display: flex;
+  margin: 1rem 0; /* my-2 */
 }

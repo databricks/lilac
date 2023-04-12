@@ -168,19 +168,9 @@ class DatasetDuckDB(DatasetDB):
       CREATE OR REPLACE VIEW "{view_name}" AS (SELECT * FROM read_parquet({parquet_files}));
     """)
 
-  def _column_signal_manifest_files(self) -> tuple[str, ...]:
-    """Return the signal manifests for all enriched columns."""
-    signal_manifest_filepaths: list[str] = []
-    for root, _, files in os.walk(self.dataset_path):
-      for file in files:
-        if file.endswith(SIGNAL_MANIFEST_SUFFIX):
-          signal_manifest_filepaths.append(os.path.join(root, file))
-
-    return tuple(signal_manifest_filepaths)
-
   @functools.cache
   # NOTE: This is cached, but when the list of filepaths changed the results are invalidated.
-  def _recompute_joint_table(self, signal_manifest_filepaths: list[str]) -> DuckDBTableInfo:
+  def _recompute_joint_table(self, signal_manifest_filepaths: tuple[str]) -> DuckDBTableInfo:
     computed_columns: list[ComputedColumn] = []
 
     # Add the signal column groups.
@@ -240,7 +230,13 @@ class DatasetDuckDB(DatasetDB):
     return DuckDBTableInfo(manifest=manifest, computed_columns=computed_columns)
 
   def _table_info(self) -> DuckDBTableInfo:
-    return self._recompute_joint_table(self._column_signal_manifest_files())
+    signal_manifest_filepaths: list[str] = []
+    for root, _, files in os.walk(self.dataset_path):
+      for file in files:
+        if file.endswith(SIGNAL_MANIFEST_SUFFIX):
+          signal_manifest_filepaths.append(os.path.join(root, file))
+
+    return self._recompute_joint_table(tuple(signal_manifest_filepaths))
 
   @override
   def manifest(self) -> DatasetManifest:
@@ -446,6 +442,30 @@ class DatasetDuckDB(DatasetDB):
                              value_column=value_column_alias,
                              repeated_idxs_col=repeated_indices_col)
 
+  def _validate_filters(self, filters: Sequence[Filter]) -> None:
+    manifest = self.manifest()
+    for filter in filters:
+      current_field = Field(fields=manifest.data_schema.fields)
+      for path_part in filter.path:
+        if path_part == PATH_WILDCARD:
+          raise ValueError(f'Unable to filter on path {filter.path}. '
+                           'Filtering on a repeated field is currently not supported.')
+        if current_field.fields:
+          if path_part not in current_field.fields:
+            raise ValueError(f'Unable to filter on path {filter.path}. '
+                             f'Path part "{path_part}" not found in the dataset.')
+          current_field = current_field.fields[str(path_part)]
+          continue
+        elif current_field.repeated_field:
+          if not isinstance(path_part, int) and not path_part.isdigit():
+            raise ValueError(f'Unable to filter on path {filter.path}. '
+                             'Filtering must be on a specific index of a repeated field')
+          current_field = current_field.repeated_field
+          continue
+        else:
+          raise ValueError(f'Unable to filter on path {filter.path}. '
+                           f'Path part "{path_part}" is not defined on a primitive value.')
+
   def _validate_columns(self, columns: Sequence[Column]) -> None:
     manifest = self.manifest()
     for column in columns:
@@ -528,7 +548,7 @@ class DatasetDuckDB(DatasetDB):
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     stats = self.stats(leaf_path)
-    if stats.approx_count_distinct >= db_dataset.TOO_MANY_DISTINCT:
+    if not bins and stats.approx_count_distinct >= db_dataset.TOO_MANY_DISTINCT:
       raise ValueError(f'Leaf "{path}" has too many unique values: {stats.approx_count_distinct}')
 
     inner_val = 'inner_val'
@@ -575,7 +595,7 @@ class DatasetDuckDB(DatasetDB):
                   filters: Optional[Sequence[FilterLike]] = None,
                   sort_by: Optional[Sequence[str]] = None,
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
-                  limit: Optional[int] = 100,
+                  limit: Optional[int] = None,
                   offset: Optional[int] = 0) -> SelectRowsResult:
     cols = [column_from_identifier(column) for column in columns or []]
     self._validate_columns(cols)
@@ -665,6 +685,8 @@ class DatasetDuckDB(DatasetDB):
           path_tuple = cast(PathTuple, path_tuple.feature)
         filter = Filter(path=path_tuple, comparison=filter[1], value=filter[2])
       filters.append(filter)
+
+    self._validate_filters(filters)
     return filters
 
   def _create_where(self, filters: list[Filter]) -> str:

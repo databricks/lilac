@@ -8,6 +8,7 @@ import {
   DataLoadersService,
   DatasetInfo,
   DatasetsService,
+  DataType,
   GetStatsOptions,
   LoadDatasetOptions,
   LoadDatasetResponse,
@@ -63,6 +64,22 @@ export interface MultipleStatsQueryArg {
   datasetName: string;
   leafPaths: Path[];
 }
+
+export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
+  'string',
+  'int8',
+  'int16',
+  'int32',
+  'int64',
+  'uint8',
+  'uint16',
+  'uint32',
+  'uint64',
+  'float16',
+  'float32',
+  'float64',
+  'boolean',
+];
 
 const DATASETS_TAG = 'datasets';
 export const datasetApi = createApi({

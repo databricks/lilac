@@ -1,27 +1,46 @@
 import {SlIcon, SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import {Command} from 'cmdk';
 import * as React from 'react';
-import {Location, useLocation, useNavigate} from 'react-router-dom';
+import {Location, useLocation, useNavigate, useParams} from 'react-router-dom';
+import {Field} from '../fastapi_client';
+import {Path, Schema, serializePath} from './schema';
 import './search_box.css';
-import {useGetDatasetsQuery} from './store/api_dataset';
+import {useGetDatasetsQuery, useGetManifestQuery} from './store/api_dataset';
+import {useTopValues} from './store/store';
+import {renderPath} from './utils';
 
 /** Time to debounce (ms). */
 const DEBOUNCE_TIME_MS = 100;
+
+type PageType = 'open-dataset' | 'add-filter' | 'add-filter-value';
+
+type PageMetadata = {
+  'open-dataset': Record<string, never>;
+  'add-filter': Record<string, never>;
+  'add-filter-value': {path: Path; field: Field};
+};
+
+interface Page<T extends PageType = PageType> {
+  type: T;
+  name: string;
+  metadata?: PageMetadata[T];
+}
 
 export const SearchBox = () => {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [inputValue, setInputValue] = React.useState('');
   const [isFocused, setIsFocused] = React.useState(false);
+  const [pages, setPages] = React.useState<Page[]>([]);
   const location = useLocation();
 
   /** Closes the menu. */
-  const closeMenu = () => {
+  const closeMenu = React.useCallback(() => {
     ref.current?.blur();
     inputRef.current?.blur();
     setPages([]);
     setIsFocused(false);
-  };
+  }, []);
 
   const handleFocus = () => setIsFocused(true);
   const handleBlur = (e: React.FocusEvent) => {
@@ -31,8 +50,11 @@ export const SearchBox = () => {
     }
     setIsFocused(false);
   };
-  const [pages, setPages] = React.useState<string[]>([]);
-  const activePage = pages[pages.length - 1];
+
+  let activePage: Page | null = null;
+  if (pages.length > 0) {
+    activePage = pages[pages.length - 1];
+  }
   const isHome = activePage == null;
 
   const popPage = React.useCallback(() => {
@@ -43,16 +65,17 @@ export const SearchBox = () => {
     });
   }, []);
 
-  const pushPage = React.useCallback((page: string) => {
-    setPages([...pages, page]);
+  const pushPage = React.useCallback((page: Page) => {
+    setInputValue('');
     inputRef.current?.focus();
+    setPages((pages) => [...pages, page]);
   }, []);
 
   function bounce() {
     if (ref.current == null) {
       return;
     }
-    ref.current.style.transform = 'scale(0.96)';
+    ref.current.style.transform = 'scale(0.985)';
     setTimeout(() => {
       if (ref.current) {
         ref.current.style.transform = '';
@@ -92,26 +115,35 @@ export const SearchBox = () => {
           }
         }}
       >
-        <Command.Input
-          ref={inputRef}
-          placeholder="Search and run commands"
-          onValueChange={(value) => {
-            setInputValue(value);
-          }}
-        />
+        <div className="flex">
+          {pages.map((p) => (
+            <div key={`${p.type}_${p.name}`} cmdk-badge="" className="truncate">
+              {p.name}
+            </div>
+          ))}
+          <Command.Input
+            value={inputValue}
+            ref={inputRef}
+            style={{width: 'auto', flexGrow: 1}}
+            placeholder="Search and run commands"
+            onValueChange={setInputValue}
+          />
+        </div>
         <Command.List>
           {isFocused && (
             <>
-              <div>
-                {pages.map((p) => (
-                  <div key={p} cmdk-badge="">
-                    {p}
-                  </div>
-                ))}
-              </div>
+              <div className="mt-4"></div>
               <Command.Empty>No results found.</Command.Empty>
               {isHome && <HomeMenu pushPage={pushPage} location={location} closeMenu={closeMenu} />}
-              {activePage === 'datasets' && <Datasets closeMenu={closeMenu} />}
+              {activePage?.type === 'open-dataset' && <Datasets closeMenu={closeMenu} />}
+              {activePage?.type == 'add-filter' && <AddFilter pushPage={pushPage} />}
+              {activePage?.type == 'add-filter-value' && (
+                <AddFilterValue
+                  inputValue={inputValue}
+                  closeMenu={closeMenu}
+                  page={activePage as Page<'add-filter-value'>}
+                />
+              )}
             </>
           )}
         </Command.List>
@@ -125,18 +157,33 @@ function HomeMenu({
   location,
   closeMenu,
 }: {
-  pushPage: (page: string) => void;
+  pushPage: (page: Page) => void;
   location: Location;
   closeMenu: () => void;
 }) {
   const navigate = useNavigate();
-  const datasetSelected = location.pathname.startsWith('/dataset/');
+  const datasetSelected = location.pathname.startsWith('/datasets/');
   return (
     <>
+      {/* Filtering */}
+      {datasetSelected && (
+        <Command.Group heading="Filters">
+          <Item onSelect={() => pushPage({type: 'add-filter', name: 'Add filter'})}>
+            <SlIcon className="text-xl" name="database" />
+            Add filter
+          </Item>
+          <Item>
+            <SlIcon className="text-xl" name="database" />
+            Remove filter
+          </Item>
+        </Command.Group>
+      )}
+
+      {/* Datasets */}
       <Command.Group heading="Datasets">
         <Item
           onSelect={() => {
-            pushPage('datasets');
+            pushPage({type: 'open-dataset', name: 'Open dataset'});
           }}
         >
           <SlIcon className="text-xl" name="database" />
@@ -152,6 +199,8 @@ function HomeMenu({
           Create new dataset
         </Item>
       </Command.Group>
+
+      {/* Concepts */}
       <Command.Group heading="Concepts">
         <Item>
           <SlIcon className="text-xl" name="stars" />
@@ -162,18 +211,8 @@ function HomeMenu({
           Create new concept
         </Item>
       </Command.Group>
-      {datasetSelected && (
-        <Command.Group heading="Filters">
-          <Item>
-            <SlIcon className="text-xl" name="database" />
-            Add filter
-          </Item>
-          <Item>
-            <SlIcon className="text-xl" name="database" />
-            Remove filter
-          </Item>
-        </Command.Group>
-      )}
+
+      {/* Help */}
       <Command.Group heading="Help">
         <Item>
           <SlIcon className="text-xl" name="file-earmark-text" />
@@ -218,19 +257,109 @@ function Datasets({closeMenu}: {closeMenu: () => void}) {
   );
 }
 
+function AddFilterValue({
+  closeMenu,
+  inputValue,
+  page,
+}: {
+  inputValue: string;
+  closeMenu: () => void;
+  page: Page<'add-filter-value'>;
+}) {
+  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
+  if (namespace == null || datasetName == null) {
+    throw new Error('Invalid route');
+  }
+  const leafPath = page.metadata!.path;
+  const field = page.metadata!.field;
+  const topK = 100;
+  const {isFetching, tooManyDistinct, onlyTopK, values, dtypeNotSupported, statsResult} =
+    useTopValues({namespace, datasetName, leafPath, field, topK, vocabOnly: true});
+  const vocab = values.map(([v]) => v);
+
+  if (isFetching) {
+    return <SlSpinner />;
+  }
+
+  // Add the current input value to the list of values, and wrap it in quotes.
+  if (inputValue.length > 0) {
+    vocab.unshift(`"${inputValue}"`);
+  }
+
+  const items = vocab.map((value, i) => {
+    return (
+      <Item
+        key={i}
+        onSelect={() => {
+          closeMenu();
+          // TODO(smilkov): Add the filter to the app state.
+        }}
+      >
+        {value ? value.toString() : 'N/A'}
+      </Item>
+    );
+  });
+  return (
+    <>
+      {onlyTopK && <Item disabled>Showing only the top {topK} values...</Item>}
+      {items}
+      {tooManyDistinct && (
+        <Item disabled>
+          Too many distinct values ({statsResult?.approx_count_distinct.toLocaleString()}) to
+          list...
+        </Item>
+      )}
+      {dtypeNotSupported && <Item disabled>Dtype {field.dtype} is not supported...</Item>}
+    </>
+  );
+}
+
+function AddFilter({pushPage}: {pushPage: (page: Page) => void}) {
+  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
+  if (namespace == null || datasetName == null) {
+    throw new Error('Invalid route');
+  }
+  const {isFetching, currentData: webManifest} = useGetManifestQuery({namespace, datasetName});
+  if (isFetching || webManifest == null) {
+    return <SlSpinner />;
+  }
+  const schema = new Schema(webManifest.dataset_manifest.data_schema);
+  const items = schema.leafs.map(([path, field]) => {
+    const pathKey = serializePath(path);
+    const pathStr = renderPath(path);
+    return (
+      <Item
+        key={pathKey}
+        onSelect={() => {
+          pushPage({type: 'add-filter-value', name: pathStr, metadata: {path, field}});
+        }}
+      >
+        {pathStr}
+      </Item>
+    );
+  });
+  return <>{items}</>;
+}
+
 function Item({
   children,
   shortcut,
   onSelect = () => {
     return;
   },
+  disabled,
 }: {
   children: React.ReactNode;
   shortcut?: string;
   onSelect?: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
-    <Command.Item onSelect={onSelect}>
+    <Command.Item
+      onSelect={onSelect}
+      disabled={disabled}
+      style={{color: disabled ? 'var(--sl-color-gray-500)' : ''}}
+    >
       {children}
       {shortcut && (
         <div cmdk-shortcuts="">

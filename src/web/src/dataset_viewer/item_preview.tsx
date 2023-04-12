@@ -1,8 +1,7 @@
-import {SerializedError} from '@reduxjs/toolkit';
 import * as React from 'react';
-import {Filter} from '../../fastapi_client';
-import {getLeafVals, Item, LeafValue, Path, serializePath, UUID_COLUMN} from '../schema';
-import {useGetMediaURLQuery, useSelectRowsQuery} from '../store/api_dataset';
+import {getLeafVals, Item, LeafValue, Path, serializePath} from '../schema';
+import {useGetMediaURLQuery} from '../store/api_dataset';
+import {useGetItem} from '../store/store';
 import {renderError, roundNumber} from '../utils';
 import {IMAGE_PATH_PREFIX} from './browser';
 import './dataset_viewer.module.css';
@@ -76,21 +75,6 @@ export const ImageThumbnail = React.memo(function ImageThumbnail({
   }
   return <img className={`${styles.center_cropped} h-full w-full`} src={mediaUrl}></img>;
 });
-
-function useGetItem(
-  namespace: string,
-  datasetName: string,
-  itemId: string
-): {isFetching: boolean; item: Item | null; error?: SerializedError | string} {
-  const filters: Filter[] = [{path: [UUID_COLUMN], comparison: 'equals', value: itemId}];
-  const {
-    isFetching,
-    currentData: items,
-    error,
-  } = useSelectRowsQuery({namespace, datasetName, options: {filters}});
-  const item = items != null ? items[0] : null;
-  return {isFetching, item, error};
-}
 
 export const ItemPreview = React.memo(function ItemPreview({
   namespace,
