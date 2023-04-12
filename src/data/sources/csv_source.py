@@ -24,7 +24,7 @@ from ...utils import (
     makedirs,
     open_file,
 )
-from .source import ShardsLoader, Source, SourceProcessResult
+from .source import Source, SourceProcessResult
 
 
 class ImageColumn(BaseModel):
@@ -59,11 +59,9 @@ class CSVDataset(Source):
       'A list of image columns specifying which columns associate with image information.')
 
   @override
-  async def process(self,
-                    output_dir: str,
-                    shards_loader: Optional[ShardsLoader] = None,
-                    task_id: Optional[TaskId] = None) -> SourceProcessResult:
+  def process(self, output_dir: str, task_id: Optional[TaskId] = None) -> SourceProcessResult:
     """Process the source upload request."""
+    # Download CSV files to local cache if they are remote to speed up duckdb.
     gcs_filepaths: list[str] = []
     temp_files_to_delete = []
     for filepath in self.filepaths:

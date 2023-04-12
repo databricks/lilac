@@ -5,4 +5,4 @@
 /**
  * Enum holding a tasks status.
  */
-export type TaskStatus = 'pending' | 'completed';
+export type TaskStatus = 'pending' | 'completed' | 'error';

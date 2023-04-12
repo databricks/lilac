@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
 
 from dask.distributed import Client, Variable
+from distributed import get_worker
 from pydantic import BaseModel
 
 from .utils import log
@@ -19,6 +20,7 @@ class TaskStatus(str, Enum):
   """Enum holding a tasks status."""
   PENDING = 'pending'
   COMPLETED = 'completed'
+  ERROR = 'error'
 
 
 class TaskInfo(BaseModel):
@@ -36,6 +38,9 @@ class TaskManifest(BaseModel):
   tasks: dict[str, TaskInfo]
 
 
+PROGRESS_LOG_KEY = 'progress'
+
+
 class TaskManager():
   """Manage FastAPI background tasks."""
   _tasks: dict[str, TaskInfo] = {}
@@ -45,14 +50,21 @@ class TaskManager():
 
     A user can pass in a dask client to use a different executor.
     """
-    self._dask_client = dask_client or Client()
+    self._dask_client = dask_client or Client(asynchronous=True)
 
-  def manifest(self) -> TaskManifest:
+  async def manifest(self) -> TaskManifest:
     """Get all tasks."""
     # If the task has not completed, read the progress from dask.
     for task_id, task in self._tasks.items():
       if task.status != TaskStatus.COMPLETED:
-        task.progress = _progress_variable(task_id).get()
+        progress_events = self._dask_client.get_events(_progress_event_topic(task_id))
+        # This allows us to work with both sync and async clients.
+        if not isinstance(progress_events, tuple):
+          progress_events = await progress_events
+
+        if progress_events:
+          _, log_message = progress_events[-1]
+          task.progress = log_message[PROGRESS_LOG_KEY]
 
     return TaskManifest(tasks=self._tasks)
 
@@ -64,7 +76,6 @@ class TaskManager():
                                     progress=None,
                                     description=description,
                                     start_timestamp=datetime.now().isoformat())
-    _progress_variable(task_id).set(0.0)
     return task_id
 
   def _set_task_completed(self, task_id: TaskId) -> None:
@@ -72,8 +83,6 @@ class TaskManager():
     self._tasks[task_id].progress = 1.0
     end_timestamp = datetime.now().isoformat()
     self._tasks[task_id].end_timestamp = end_timestamp
-
-    _progress_variable(task_id).delete()
 
     elapsed = datetime.fromisoformat(end_timestamp) - datetime.fromisoformat(
         self._tasks[task_id].start_timestamp)
@@ -87,9 +96,9 @@ class TaskManager():
     task_future = self._dask_client.submit(task, *args, key=task_id)
     task_future.add_done_callback(lambda _: self._set_task_completed(task_id))
 
-  def stop(self) -> None:
+  async def stop(self) -> None:
     """Stop the task manager and close the dask client."""
-    self._dask_client.close()
+    await self._dask_client.close()
 
 
 @functools.cache
@@ -98,9 +107,8 @@ def task_manager() -> TaskManager:
   return TaskManager()
 
 
-def _progress_variable(task_id: TaskId) -> Variable:
-  """Return the name of the progress variable for a task."""
-  return Variable(f'{task_id}_progress')
+def _progress_event_topic(task_id: TaskId) -> Variable:
+  return f'{task_id}_progress'
 
 
 TProgress = TypeVar('TProgress')
@@ -112,14 +120,16 @@ def progress(it: Iterable[TProgress],
              emit_every_frac: float = .01) -> Iterable[TProgress]:
   """An iterable wrapper that emits progress and yields the original iterable."""
   if not task_id:
-    return it
+    for t in it:
+      yield t
+    return
 
   emit_every = int(estimated_len * emit_every_frac)
   it_idx = 0
   for t in it:
     if it_idx % emit_every == 0:
-      print('setting progress', float(it_idx / estimated_len))
       set_worker_task_progress(task_id, float(it_idx / estimated_len))
+    it_idx += 1
     yield t
 
   set_worker_task_progress(task_id, 1.0)
@@ -131,7 +141,7 @@ def set_worker_task_progress(task_id: TaskId, progress: float) -> None:
   This method does not exist on the TaskManager as it is meant to be a standalone method used by
   workers running tasks on separate processes so does not have access to task manager state.
   """
-  _progress_variable(task_id).set(progress)
+  get_worker().log_event(_progress_event_topic(task_id), {PROGRESS_LOG_KEY: progress})
 
 
 def _pretty_timedelta(delta: timedelta) -> str:

@@ -19,7 +19,7 @@ from ...utils import (
     makedirs,
     open_file,
 )
-from .source import ShardsLoader, Source, SourceProcessResult, default_shards_loader
+from .source import Source, SourceProcessResult
 
 
 class ImageColumn(BaseModel):
@@ -53,12 +53,8 @@ class PandasDataset(Source[ShardInfo]):
     super().__init__(**kwargs)
     self._df = df
 
-  async def process(self,
-                    output_dir: str,
-                    shards_loader: Optional[ShardsLoader] = None,
-                    task_id: Optional[TaskId] = None) -> SourceProcessResult:
+  def process(self, output_dir: str, task_id: Optional[TaskId] = None) -> SourceProcessResult:
     """Process the source upload request."""
-    shards_loader = shards_loader or default_shards_loader(self)
     con = duckdb.connect(database=':memory:')
     con.install_extension('httpfs')
     con.load_extension('httpfs')

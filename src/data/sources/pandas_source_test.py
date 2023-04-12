@@ -8,11 +8,11 @@ from .pandas_source import PandasDataset
 from .source import SourceProcessResult
 
 
-async def test_simple_dataframe(tmp_path: pathlib.Path) -> None:
+def test_simple_dataframe(tmp_path: pathlib.Path) -> None:
   df = pd.DataFrame({'name': ['a', 'b', 'c'], 'age': [1, 2, 3]})
   source = PandasDataset(df)
 
-  result = await source.process(str(tmp_path))
+  result = source.process(str(tmp_path))
 
   expected_result = SourceProcessResult(data_schema=Schema(
       fields={

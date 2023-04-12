@@ -13,7 +13,7 @@ from pydantic import (
 from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, DataType, Field, Item, Schema
 from ...tasks import TaskId
 from ...utils import log, write_items_to_parquet
-from .source import ShardsLoader, Source, SourceProcessResult, SourceShardOut, default_shards_loader
+from .source import Source, SourceProcessResult, SourceShardOut
 
 TFDSElement = Union[dict, tf.RaggedTensor, tf.Tensor]
 
@@ -143,15 +143,12 @@ class TensorFlowDataset(Source[ShardInfo]):
       default=None,
       description='The TensorFlow dataset split name. If not provided, loads all splits.')
 
-  async def process(
+  def process(
       self,
       output_dir: str,
-      shards_loader: Optional[ShardsLoader] = None,
       task_id: Optional[TaskId] = None,
   ) -> SourceProcessResult:
     """Process the source upload request."""
-    shards_loader = shards_loader or default_shards_loader(self)
-
     builder = tfds.builder(self.tfds_name)
     split = list(builder.info.splits.keys())[0]
     if self.split:
@@ -181,7 +178,8 @@ class TensorFlowDataset(Source[ShardInfo]):
                   output_dir=output_dir) for shard_index in range(num_shards)
     ]
 
-    shard_outs = await shards_loader(shard_infos)
+    # TODO(nsthorat): Use dask to parallelize this if we ever use TFDS again.
+    shard_outs = [self.process_shard(shard_info) for shard_info in shard_infos]
     filepaths = [shard_out.filepath for shard_out in shard_outs]
     num_items = sum(shard_out.num_items for shard_out in shard_outs)
 

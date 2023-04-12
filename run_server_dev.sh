@@ -1,8 +1,6 @@
 #!/bin/bash
 
 export NODE_ENV=development
-PORT=5432
-export LILAC_DATA_LOADER_URL=http://0.0.0.0:$PORT
 
 # Make the web client upon bootup to make sure TypeScript files are in sync.
 poetry run python -m scripts.make_fastapi_client
@@ -12,7 +10,7 @@ rm -rf dist/ && npm run --prefix src/web dev --watch &
 pid[2]=$!
 
 # Run the node server.
-poetry run uvicorn src.server:app --reload --port $PORT --host 0.0.0.0 \
+poetry run uvicorn src.server:app --reload --port 5432 --host 0.0.0.0 \
   --reload-dir src --reload-exclude src/web &
 pid[1]=$!
 

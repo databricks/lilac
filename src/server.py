@@ -62,15 +62,15 @@ app.mount('/hot',
 
 
 @app.on_event('shutdown')
-def shutdown_event() -> None:
+async def shutdown_event() -> None:
   """Kill the task manager when FastAPI shuts down."""
-  task_manager().stop()
+  await task_manager().stop()
 
 
 @app.get('/tasks')
-def get_task_manifest() -> TaskManifest:
+async def get_task_manifest() -> TaskManifest:
   """Get the tasks, both completed and pending."""
-  return task_manager().manifest()
+  return await task_manager().manifest()
 
 
 @app.get('/db/list_models')

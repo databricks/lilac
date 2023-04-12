@@ -51,10 +51,9 @@ class Source(abc.ABC, BaseModel, Generic[BaseShardInfo]):
     self.source_name = self.__class__.name
 
   @abc.abstractmethod
-  async def process(
+  def process(
       self,
       output_dir: str,
-      shards_loader: Optional[ShardsLoader] = None,
       task_id: Optional[TaskId] = None,
   ) -> SourceProcessResult:
     """Process the source upload request.
@@ -66,16 +65,3 @@ class Source(abc.ABC, BaseModel, Generic[BaseShardInfo]):
         of the task.
     """
     pass
-
-  def process_shard(self, shard_info: BaseShardInfo) -> SourceShardOut:
-    """Process an individual file shard from an input dataset."""
-    raise NotImplementedError('process_shard must be implemented by the source.')
-
-
-def default_shards_loader(source: Source) -> ShardsLoader:
-  """Default shards loader that just calls process_shard on each shard."""
-
-  async def shards_loader(shard_infos: list[BaseShardInfo]) -> list[SourceShardOut]:
-    return [source.process_shard(x) for x in shard_infos]
-
-  return shards_loader

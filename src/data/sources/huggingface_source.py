@@ -23,7 +23,7 @@ from ...schema import (
 )
 from ...tasks import TaskId, progress
 from ...utils import write_items_to_parquet
-from .source import ShardsLoader, Source, SourceProcessResult
+from .source import Source, SourceProcessResult
 
 TFDSElement = Union[dict, tf.RaggedTensor, tf.Tensor]
 
@@ -130,10 +130,9 @@ class HuggingFaceDataset(Source[ShardInfo]):
       description='Load from local disk instead of the hub.', default=False)
 
   @override
-  async def process(
+  def process(
       self,
       output_dir: str,
-      shards_loader: Optional[ShardsLoader] = None,
       task_id: Optional[TaskId] = None,
   ) -> SourceProcessResult:
     """Process the source upload request."""
@@ -147,7 +146,6 @@ class HuggingFaceDataset(Source[ShardInfo]):
 
     schema_info = _hf_schema_to_schema(hf_dataset_dict, self.split)
 
-    print('NUM ITEMS', schema_info.num_items, task_id)
     items = progress(_convert_to_items(hf_dataset_dict, schema_info.class_labels, self.split),
                      task_id=task_id,
                      estimated_len=schema_info.num_items)
