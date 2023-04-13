@@ -90,7 +90,7 @@ COMPARISON_TO_OP: dict[Comparison, str] = {
 class DuckDBSelectGroupsResult(SelectGroupsResult):
   """The result of a select groups query backed by DuckDB."""
 
-  def __init__(self, duckdb_result: duckdb.DuckDBPyRelation) -> None:
+  def __init__(self, duckdb_result: duckdb.DuckDBPyConnection) -> None:
     """Initialize the result."""
     self._duckdb_result = duckdb_result
 
