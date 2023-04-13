@@ -68,7 +68,6 @@ from .db_dataset import (
 )
 
 DEBUG = os.environ['DEBUG'] == 'true' if 'DEBUG' in os.environ else False
-DEBUG = True
 UUID_INDEX_FILENAME = 'uuids.npy'
 
 SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
@@ -100,9 +99,9 @@ class DuckDBSelectGroupsResult(SelectGroupsResult):
     return iter(cast(Iterable, self._duckdb_result.fetchall()))
 
   @override
-  def to_df(self) -> pd.DataFrame:
+  def df(self) -> pd.DataFrame:
     """Convert the result to a pandas DataFrame."""
-    return self._duckdb_result.to_df()
+    return self._duckdb_result.df()
 
 
 class ComputedColumn(BaseModel):
@@ -255,7 +254,7 @@ class DatasetDuckDB(DatasetDB):
 
     with DebugTimer(f'"_select_leafs" over "{col.feature}"'):
       select_leafs_result = self._select_leafs(path=normalize_path(col.feature))
-      leafs_df = select_leafs_result.duckdb_result.to_df()
+      leafs_df = select_leafs_result.duckdb_result.df()
 
     keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
     leaf_values = leafs_df[select_leafs_result.value_column]
@@ -289,7 +288,7 @@ class DatasetDuckDB(DatasetDB):
       # key + index to pass to the signal.
       with DebugTimer(f'"_select_leafs" over "{source_path}"'):
         select_leafs_result = self._select_leafs(path=source_path, only_keys=True)
-        leafs_df = select_leafs_result.duckdb_result.to_df()
+        leafs_df = select_leafs_result.duckdb_result.df()
 
       keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
 
@@ -303,7 +302,7 @@ class DatasetDuckDB(DatasetDB):
       # For non-embedding bsaed signals, get the leaf values and indices.
       with DebugTimer(f'"_select_leafs" over "{source_path}"'):
         select_leafs_result = self._select_leafs(path=source_path)
-        leafs_df = select_leafs_result.duckdb_result.to_df()
+        leafs_df = select_leafs_result.duckdb_result.df()
 
       with DebugTimer(f'"compute" for signal "{signal.name}" over "{source_path}"'):
         signal_outputs = signal.compute(data=leafs_df[select_leafs_result.value_column])
@@ -602,7 +601,6 @@ class DatasetDuckDB(DatasetDB):
 
     self._validate_columns(cols)
 
-    print('colzzz', cols)
     select_query, col_aliases = self._create_select(cols)
     filters = self._normalize_filters(filters)
     where_query = self._create_where(filters)

@@ -13,7 +13,7 @@ from pydantic import (
 from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, DataType, Field, Item, Schema
 from ...tasks import TaskId
 from ...utils import log, write_items_to_parquet
-from .source import Source, SourceProcessResult, SourceShardOut
+from .source import Source, SourceProcessResult
 
 TFDSElement = Union[dict, tf.RaggedTensor, tf.Tensor]
 
@@ -126,7 +126,13 @@ def _tfds_schema_to_schema(feature: tfds.features.FeaturesDict) -> Schema:
   return Schema(fields=fields)
 
 
-class TensorFlowDataset(Source[ShardInfo]):
+class ShardOut(BaseModel):
+  """The result of a single shard of a source dataset."""
+  filepath: str
+  num_items: int
+
+
+class TensorFlowDataset(Source):
   """TensorFlow datasets data loader
 
   For a list of datasets see:
@@ -136,7 +142,6 @@ class TensorFlowDataset(Source[ShardInfo]):
       [https://www.tensorflow.org/datasets/overview](https://www.tensorflow.org/datasets/overview)
   """ # noqa: D415, D400
   name = 'tfds'
-  shard_info_cls = ShardInfo
 
   tfds_name: str
   split: Optional[str] = PydanticField(
@@ -188,7 +193,7 @@ class TensorFlowDataset(Source[ShardInfo]):
                                images=None,
                                num_items=num_items)
 
-  def process_shard(self, shard_info: ShardInfo) -> SourceShardOut:
+  def process_shard(self, shard_info: ShardInfo) -> ShardOut:
     """Process an input file shard. Each shard is processed in parallel by different workers."""
     ds = tfds.load(shard_info.dataset_name,
                    split=f'{shard_info.split}[{shard_info.shard_index}shard]')
@@ -201,4 +206,4 @@ class TensorFlowDataset(Source[ShardInfo]):
                                                  filename_prefix=PARQUET_FILENAME_PREFIX,
                                                  shard_index=shard_info.shard_index,
                                                  num_shards=shard_info.num_shards)
-    return SourceShardOut(filepath=filepath, num_items=num_items)
+    return ShardOut(filepath=filepath, num_items=num_items)

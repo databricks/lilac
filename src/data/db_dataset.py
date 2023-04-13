@@ -42,7 +42,7 @@ class SelectGroupsResult():
     pass
 
   @abc.abstractmethod
-  def to_df(self) -> pd.DataFrame:
+  def df(self) -> pd.DataFrame:
     """Convert the result to a pandas DataFrame."""
     pass
 

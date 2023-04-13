@@ -1,24 +1,12 @@
 """Interface for implementing a source."""
 
 import abc
-from typing import Any, Awaitable, Callable, ClassVar, Generic, Optional, Type, TypeVar
+from typing import Any, ClassVar, Optional
 
 from pydantic import BaseModel
 
 from ...schema import ImageInfo, Schema
 from ...tasks import TaskId
-
-
-class SourceShardOut(BaseModel):
-  """The result of a single shard of a source dataset."""
-  filepath: str
-  num_items: int
-
-
-BaseShardInfo = TypeVar('BaseShardInfo', bound=BaseModel)
-
-# Loads an input shard and returns the output of `process_shard`.
-ShardsLoader = Callable[[list[BaseShardInfo]], Awaitable[list[SourceShardOut]]]
 
 
 class SourceProcessResult(BaseModel):
@@ -29,11 +17,10 @@ class SourceProcessResult(BaseModel):
   num_items: int
 
 
-class Source(abc.ABC, BaseModel, Generic[BaseShardInfo]):
+class Source(abc.ABC, BaseModel):
   """Interface for sources to implement. A source processes a set of shards and writes files."""
   # ClassVars do not get serialized with pydantic.
   name: ClassVar[str]
-  shard_info_cls: ClassVar[Type[BaseModel]]
 
   # The source_name will get populated in init automatically from the class name so it gets
   # serialized and the source author doesn't have to define both the static property and the field.

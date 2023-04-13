@@ -40,14 +40,6 @@ class SchemaInfo(BaseModel):
   num_items: int
 
 
-class ShardInfo(BaseModel):
-  """Information about an individual source file shard."""
-  hf_dataset_name: str
-  split: Optional[str]
-  schema_info: SchemaInfo
-  output_dir: str
-
-
 def _convert_to_items(hf_dataset_dict: DatasetDict, class_labels: dict[str, list[str]],
                       split: Optional[str]) -> Iterable[Item]:
   """Convert a huggingface split datasets to an iterable of items."""
@@ -109,7 +101,7 @@ def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> 
                     num_items=num_items)
 
 
-class HuggingFaceDataset(Source[ShardInfo]):
+class HuggingFaceDataset(Source):
   """HuggingFace data loader
 
   For a list of datasets see: [https://huggingface.co/datasets](https://huggingface.co/datasets).
@@ -118,7 +110,6 @@ class HuggingFaceDataset(Source[ShardInfo]):
       [https://huggingface.co/docs/datasets/index](https://huggingface.co/docs/datasets/index)
   """ # noqa: D415, D400
   name = 'huggingface'
-  shard_info_cls = ShardInfo
 
   dataset_name: str
   config_name: Optional[str] = PydanticField(

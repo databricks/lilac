@@ -34,23 +34,12 @@ class ImageColumn(BaseModel):
   path_suffix = ''
 
 
-class ShardInfo(BaseModel):
-  """Info about an individual csv file shard. Each shard is processed in parallel."""
-  filepath: str
-  shard_index: int
-  num_shards: int
-  output_dir: str
-  delim: str
-  image_columns: Optional[list[ImageColumn]]
-
-
 class CSVDataset(Source):
   """CSV data loader
 
   CSV files can live locally as a filepath, or point to an external URL.
   """ # noqa: D415, D400
   name = 'csv'
-  shard_info_cls = ShardInfo
 
   filepaths: list[str] = Field(description='A list of filepaths to CSV files.')
   delim: Optional[str] = Field(default=',', description='The CSV file delimiter to use.')

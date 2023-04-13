@@ -966,7 +966,7 @@ class SelectGroupsSuite:
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
-    result = db.select_groups(leaf_path='name').to_df()
+    result = db.select_groups(leaf_path='name').df()
     expected = pd.DataFrame.from_records([{
         'value': 'Name1',
         'count': 1
@@ -985,7 +985,7 @@ class SelectGroupsSuite:
     }])
     pd.testing.assert_frame_equal(result, expected)
 
-    result = db.select_groups(leaf_path='age', bins=[20, 50, 60]).to_df()
+    result = db.select_groups(leaf_path='age', bins=[20, 50, 60]).df()
     expected = pd.DataFrame.from_records([
         {
             'value': 1,  # age 20-50.
@@ -1006,7 +1006,7 @@ class SelectGroupsSuite:
     ])
     pd.testing.assert_frame_equal(result, expected)
 
-    result = db.select_groups(leaf_path='active').to_df()
+    result = db.select_groups(leaf_path='active').df()
     expected = pd.DataFrame.from_records([
         {
             'value': True,
@@ -1078,7 +1078,7 @@ class SelectGroupsSuite:
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
-    result = db.select_groups(leaf_path='list_of_structs.*.name').to_df()
+    result = db.select_groups(leaf_path='list_of_structs.*.name').df()
     expected = pd.DataFrame.from_records([{
         'value': 'a',
         'count': 2
@@ -1124,7 +1124,7 @@ class SelectGroupsSuite:
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
-    result = db.select_groups(leaf_path='nested_list.*.*.name').to_df()
+    result = db.select_groups(leaf_path='nested_list.*.*.name').df()
     expected = pd.DataFrame.from_records([{
         'value': 'a',
         'count': 2
@@ -1173,7 +1173,7 @@ class SelectGroupsSuite:
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
-    result = db.select_groups(leaf_path='nested_struct.struct.name').to_df()
+    result = db.select_groups(leaf_path='nested_struct.struct.name').df()
     expected = pd.DataFrame.from_records([{
         'value': 'c',
         'count': 1
@@ -1207,7 +1207,7 @@ class SelectGroupsSuite:
     result = db.select_groups(leaf_path='age',
                               bins=NamedBins(bins=[20, 50, 65],
                                              labels=['young', 'adult', 'middle-aged',
-                                                     'senior'])).to_df()
+                                                     'senior'])).df()
     expected = pd.DataFrame.from_records([
         {
             'value': 'adult',  # age 20-50.

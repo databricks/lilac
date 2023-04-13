@@ -1,12 +1,13 @@
 """CSV source."""
 import os
 import uuid
+from enum import Enum
 from typing import Optional
 
 import duckdb
 import pyarrow.parquet as pq
 import requests
-from pydantic import BaseModel, Field
+from pydantic import Field
 from typing_extensions import override
 
 from ...constants import data_path
@@ -23,6 +24,15 @@ from ...utils import (
 from .source import Source, SourceProcessResult
 
 
+class JSONFormat(str, Enum):
+  """JSON format options."""
+  AUTO = 'auto'
+  RECORDS = 'records'
+  ARRAY_OF_RECORDS = 'array_of_records'
+  VALUES = 'values'
+  ARRAY_OF_VALUES = 'array_of_values'
+
+
 class JSONDataset(Source):
   """JSON data loader
 
@@ -31,14 +41,12 @@ class JSONDataset(Source):
   JSON files can live locally as a filepath, or point to an external URL.
   """ # noqa: D415, D400
   name = 'json'
-  # TODO(nsthorat): Delete all of this
-  shard_info_cls = BaseModel
 
   filepaths: list[str] = Field(description='A list of filepaths to JSON files.')
-  lines: bool = Field(
-      default=False,
+  json_format: JSONFormat = Field(
+      default=JSONFormat.AUTO,
       description=
-      'Whether the JSON files are newline delimited. If True, each line is a JSON object.')
+      "Can be one of ['auto', 'records', 'array_of_records', 'values', 'array_of_values'].")
 
   @override
   def process(self, output_dir: str, task_id: Optional[TaskId] = None) -> SourceProcessResult:
@@ -74,7 +82,7 @@ class JSONDataset(Source):
     # supports direct casting uuid --> blob.
     blob_uuid = "regexp_replace(replace(uuid(), '-', ''), '.{2}', '\\\\x\\0', 'g')::BLOB"
     json_sql = f'SELECT {blob_uuid} as {UUID_COLUMN}, * FROM read_json(\
-      {s3_filepaths}, LINES={self.lines}, IGNORE_ERRORS=true, AUTO_DETECT=true)'
+      {s3_filepaths}, json_format="{self.json_format}", IGNORE_ERRORS=true, AUTO_DETECT=true)'
 
     prefix = os.path.join(output_dir, PARQUET_FILENAME_PREFIX)
     shard_index = 0
@@ -94,10 +102,6 @@ class JSONDataset(Source):
       """
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     s3_out_filepath = out_filepath.replace('gs://', 's3://')
-    print(f"""
-      {gcs_setup}
-      COPY ({json_sql}) TO '{s3_out_filepath}'
-    """)
     con.execute(f"""
       {gcs_setup}
       COPY ({json_sql}) TO '{s3_out_filepath}'

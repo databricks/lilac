@@ -29,14 +29,7 @@ class ImageColumn(BaseModel):
   path_suffix = ''
 
 
-class ShardInfo(BaseModel):
-  """Info about an individual file shard. Each shard is processed in parallel."""
-  output_dir: str
-  image_base_path: Optional[str]
-  image_columns: Optional[list[ImageColumn]]
-
-
-class PandasDataset(Source[ShardInfo]):
+class PandasDataset(Source):
   """Pandas source."""
   name = 'pandas'
 

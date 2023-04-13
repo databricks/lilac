@@ -2,7 +2,6 @@
 from typing import Iterable, Optional, cast
 
 import pytest
-from pydantic import BaseModel
 from typing_extensions import override
 
 from ...tasks import TaskId
@@ -10,7 +9,7 @@ from .source import Source, SourceProcessResult
 from .source_registry import clear_source_registry, get_source_cls, register_source, resolve_source
 
 
-class TestSource(Source[BaseModel]):
+class TestSource(Source):
   """A test source."""
   name = 'test_source'
 
