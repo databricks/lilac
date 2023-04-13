@@ -36,7 +36,7 @@ class JSONFormat(str, Enum):
 class JSONDataset(Source):
   """JSON data loader
 
-  Supports both JSON and JSONL. If using JSONL, set `lines=True`.
+  Supports both JSON and JSONL. If using JSONL, set `json_format=records`.
 
   JSON files can live locally as a filepath, or point to an external URL.
   """ # noqa: D415, D400
@@ -118,7 +118,7 @@ class JSONDataset(Source):
 
     arrow_schema = pq.read_schema(open_file(filepaths[0], mode='rb'))
     schema = arrow_schema_to_schema(arrow_schema)
-    # Clean up the temporary files that we created for http CSV requests.
+    # Clean up the temporary files that we created for http JSON requests.
     for temp_filename in temp_files_to_delete:
       delete_file(temp_filename)
 
