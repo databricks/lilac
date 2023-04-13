@@ -8,6 +8,7 @@ export function renderQuery<T>(
     isFetching?: boolean;
     error?: string | SerializedError | undefined | unknown;
     currentData?: T;
+    data?: T;
   },
   render: (data: T) => JSX.Element
 ): JSX.Element {
@@ -20,12 +21,12 @@ export function renderQuery<T>(
     return <div>Failed to render. See the toast notification for error details.</div>;
   }
 
-  if (isFetching) {
-    return <SlSpinner />;
-  }
-
   if (currentData != null) {
     return render(currentData);
+  }
+
+  if (isFetching) {
+    return <SlSpinner />;
   }
 
   return <></>;
