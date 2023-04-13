@@ -68,6 +68,7 @@ from .db_dataset import (
 )
 
 DEBUG = os.environ['DEBUG'] == 'true' if 'DEBUG' in os.environ else False
+DEBUG = True
 UUID_INDEX_FILENAME = 'uuids.npy'
 
 SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
@@ -129,7 +130,7 @@ class SelectLeafsResult(BaseModel):
   class Config:
     arbitrary_types_allowed = True
 
-  duckdb_result: duckdb.DuckDBPyRelation
+  duckdb_result: duckdb.DuckDBPyConnection
   repeated_idxs_col: Optional[str]
   value_column: Optional[str]
 
@@ -636,9 +637,7 @@ class DatasetDuckDB(DatasetDB):
       {limit_query}
       {offset_query}
     """
-    print(query)
-    print(self.con)
-    query_results = self.con.query(query).fetchall()
+    query_results = self._query(query).fetchall()
 
     def parse_row(row: list[Any]) -> Item:
       item = dict(zip(col_aliases, row))
@@ -706,16 +705,19 @@ class DatasetDuckDB(DatasetDB):
       filter_queries.append(filter_query)
     return 'WHERE ' + ' AND '.join(filter_queries)
 
-  def _query(self, query: str) -> duckdb.DuckDBPyRelation:
+  def _query(self, query: str) -> duckdb.DuckDBPyConnection:
     """Execute a query that returns a dataframe."""
+    # FastAPI is multi-threaded so we have to create a thread-specific connection cursor to allow
+    # these queries to be thread-safe.
+    local_con = self.con.cursor()
     if not DEBUG:
-      return self.con.query(query)
+      return local_con.execute(query)
 
     # Debug mode.
     log('Executing:')
     log(query)
     with DebugTimer('Query'):
-      result = self.con.query(query)
+      result = local_con.execute(query)
 
     return result
 
