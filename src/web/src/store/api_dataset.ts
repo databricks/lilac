@@ -131,13 +131,13 @@ export const datasetApi = createApi({
     selectRows: builder.query<Item[], SelectRowsQueryArg>({
       query:
         ({namespace, datasetName, options}) =>
-        async () =>
+        () =>
           DatasetsService.selectRows(namespace, datasetName, options),
     }),
     selectGroups: builder.query<[LeafValue, number][], SelectGroupsQueryArg>({
       query:
         ({namespace, datasetName, options}) =>
-        async () =>
+        () =>
           DatasetsService.selectGroups(namespace, datasetName, options),
     }),
     getMediaURL: builder.query<string, GetMediaQueryArg>({
