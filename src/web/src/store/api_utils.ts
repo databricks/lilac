@@ -2,7 +2,7 @@
  * Utils for RTK Query APIs.
  */
 
-import {QueryReturnValue} from '@reduxjs/toolkit/dist/query/baseQueryTypes';
+import {BaseQueryFn, QueryReturnValue} from '@reduxjs/toolkit/dist/query/baseQueryTypes';
 import {ApiError} from '../../fastapi_client';
 
 /**
@@ -31,3 +31,21 @@ export async function query<T>(
     return {error: e.toString()};
   }
 }
+
+export const fastAPIBaseQuery =
+  (): BaseQueryFn<() => Promise<unknown>, unknown, unknown> => async (fn) => {
+    try {
+      const data = await fn();
+      return {data};
+    } catch (e) {
+      if (e instanceof ApiError) {
+        return {
+          error: {
+            name: `${e.request.method} ${e.url} ${e.status} (${e.statusText})`,
+            message: `${e.body['detail']}`,
+          },
+        };
+      }
+      return {error: e.toString()};
+    }
+  };

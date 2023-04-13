@@ -1,4 +1,3 @@
-import {SerializedError} from '@reduxjs/toolkit';
 import {SlButton, SlDrawer, SlOption, SlRange, SlSelect} from '@shoelace-style/shoelace/dist/react';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import * as React from 'react';
@@ -28,7 +27,7 @@ function useGetIds(
   datasetName: string,
   limit: number,
   offset: number
-): {isFetching: boolean; ids: string[]; error?: SerializedError | string} {
+): {isFetching: boolean; ids: string[]; error?: unknown} {
   const filters: Filter[] = [];
   /** Select only the UUID column. */
   const columns: string[] = [UUID_COLUMN];

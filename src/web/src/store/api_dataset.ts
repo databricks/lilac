@@ -21,7 +21,7 @@ import {
   WebManifest,
 } from '../../fastapi_client';
 import {Item, LeafValue, Path} from '../schema';
-import {query} from './api_utils';
+import {fastAPIBaseQuery, query} from './api_utils';
 
 export interface SelectRowsQueryArg {
   namespace: string;
@@ -86,9 +86,7 @@ export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
 const DATASETS_TAG = 'datasets';
 export const datasetApi = createApi({
   reducerPath: 'datasetApi',
-  baseQuery: () => {
-    return {error: 'baseQuery should never be called.'};
-  },
+  baseQuery: fastAPIBaseQuery(),
   tagTypes: [DATASETS_TAG],
   endpoints: (builder) => ({
     getDatasets: builder.query<DatasetInfo[], void>({
@@ -131,18 +129,16 @@ export const datasetApi = createApi({
         query(() => DatasetsService.getStats(namespace, datasetName, options)),
     }),
     selectRows: builder.query<Item[], SelectRowsQueryArg>({
-      queryFn: async ({namespace, datasetName, options}) =>
-        query(() => DatasetsService.selectRows(namespace, datasetName, options)),
+      query:
+        ({namespace, datasetName, options}) =>
+        async () =>
+          DatasetsService.selectRows(namespace, datasetName, options),
     }),
     selectGroups: builder.query<[LeafValue, number][], SelectGroupsQueryArg>({
-      queryFn: async ({namespace, datasetName, options}) =>
-        query(
-          async () =>
-            (await DatasetsService.selectGroups(namespace, datasetName, options)) as [
-              LeafValue,
-              number
-            ][]
-        ),
+      query:
+        ({namespace, datasetName, options}) =>
+        async () =>
+          DatasetsService.selectGroups(namespace, datasetName, options),
     }),
     getMediaURL: builder.query<string, GetMediaQueryArg>({
       queryFn: async ({namespace, datasetName, itemId, leafPath}) =>

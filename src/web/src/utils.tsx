@@ -6,7 +6,7 @@ import {Path} from './schema';
 export function renderQuery<T>(
   queryResult: {
     isFetching?: boolean;
-    error?: string | SerializedError | undefined;
+    error?: string | SerializedError | undefined | unknown;
     currentData?: T;
   },
   render: (data: T) => JSX.Element
@@ -15,18 +15,20 @@ export function renderQuery<T>(
     return <></>;
   }
   const {isFetching, error, currentData} = queryResult;
-  // Return current data early to avoid jumps.
-  if (currentData != null) {
-    return render(queryResult.currentData!);
+
+  if (error) {
+    return <div>Failed to render. See the toast notificatoin.</div>;
   }
 
   if (isFetching) {
     return <SlSpinner />;
   }
-  if (error || currentData == null) {
-    return renderError(error);
+
+  if (currentData != null) {
+    return render(currentData);
   }
-  return render(queryResult.currentData!);
+
+  return <></>;
 }
 
 const Error = ({error}: {error: SerializedError}): JSX.Element => {
@@ -47,7 +49,7 @@ const Error = ({error}: {error: SerializedError}): JSX.Element => {
   );
 };
 
-export function renderError(error: string | SerializedError | undefined): JSX.Element {
+export function renderError(error: unknown): JSX.Element {
   if (error == null) {
     return <></>;
   }
@@ -61,7 +63,7 @@ export function renderError(error: string | SerializedError | undefined): JSX.El
 
   return (
     <div>
-      <Error error={error}></Error>
+      <Error error={error as SerializedError}></Error>
     </div>
   );
 }

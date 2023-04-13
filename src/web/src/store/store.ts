@@ -1,10 +1,10 @@
 /**
  * The global application redux state store.
  */
-import {configureStore, PayloadAction, SerializedError} from '@reduxjs/toolkit';
+import type {Middleware} from '@reduxjs/toolkit';
+import {configureStore, createSlice, isRejectedWithValue, PayloadAction} from '@reduxjs/toolkit';
 import {createApi} from '@reduxjs/toolkit/query/react';
-
-import {createSlice} from '@reduxjs/toolkit';
+import {createRoot} from 'react-dom/client';
 import {
   DefaultService,
   Field,
@@ -28,6 +28,7 @@ import {
   SearchExamplesOptions,
   SearchExamplesResponse,
 } from '../server_api_deprecated';
+import {renderError} from '../utils';
 import {
   datasetApi,
   SELECT_GROUPS_SUPPORTED_DTYPES,
@@ -237,6 +238,19 @@ export const dbApi = createApi({
   }),
 });
 
+/** Log a warning and show a toast notification when we get errors from the server. */
+const rtkQueryErrorLogger: Middleware = () => (next) => (action) => {
+  if (isRejectedWithValue(action)) {
+    const errorToast = renderError(action.payload);
+    // Imperatively render the component.
+    const container = document.createElement('div');
+    createRoot(container).render(errorToast);
+    document.body.appendChild(container);
+  }
+
+  return next(action);
+};
+
 export const store = configureStore({
   reducer: {
     [appSlice.name]: appSlice.reducer,
@@ -245,7 +259,12 @@ export const store = configureStore({
     [datasetApi.reducerPath]: datasetApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat([dbApi.middleware, datasetApi.middleware, serverApi.middleware]),
+    getDefaultMiddleware().concat([
+      dbApi.middleware,
+      datasetApi.middleware,
+      serverApi.middleware,
+      rtkQueryErrorLogger,
+    ]),
   devTools: process.env.NODE_ENV !== 'production',
 });
 
@@ -270,7 +289,7 @@ export function useGetItem(
   namespace: string,
   datasetName: string,
   itemId: string
-): {isFetching: boolean; item: Item | null; error?: SerializedError | string} {
+): {isFetching: boolean; item: Item | null; error?: unknown} {
   const filters: Filter[] = [{path: [UUID_COLUMN], comparison: 'equals', value: itemId}];
   const {
     isFetching,
@@ -287,7 +306,7 @@ export function useGetIds(
   datasetName: string,
   limit: number,
   offset: number
-): {isFetching: boolean; ids: string[] | null; error?: SerializedError | string} {
+): {isFetching: boolean; ids: string[] | null; error?: unknown} {
   const filters: Filter[] = [];
   /** Select only the UUID column. */
   const columns: string[] = [UUID_COLUMN];
