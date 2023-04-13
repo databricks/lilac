@@ -8,7 +8,6 @@ from pydantic import BaseModel, validator
 from .constants import data_path
 from .data.db_dataset import (
     Bins,
-    ColumnId,
     DatasetManifest,
     Filter,
     GroupsSortBy,
@@ -136,12 +135,8 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   """Select rows from the dataset database."""
   db = get_dataset_db(namespace, dataset_name)
 
-  columns: Optional[list[ColumnId]] = None
-  if options.columns is not None:
-    columns = [column for column in db.columns() if column.alias in options.columns]
-
   items = list(
-      db.select_rows(columns=columns,
+      db.select_rows(columns=options.columns,
                      filters=options.filters,
                      sort_by=options.sort_by,
                      sort_order=options.sort_order,

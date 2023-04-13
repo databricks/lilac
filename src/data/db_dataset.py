@@ -98,7 +98,7 @@ class Transform(BaseModel):
 class Column(BaseModel):
   """A column in the dataset DB."""
   # The feature points to another column if this is a transformation of that column.
-  feature: Union[Path, 'Column']
+  feature: Union[PathTuple, 'Column']
   alias: str  # This is the renamed column during querying and response.
 
   # Defined when the feature is another column.
@@ -106,13 +106,13 @@ class Column(BaseModel):
 
   def __init__(self, feature: Union[Path, 'Column'], alias: Optional[str] = None, **kwargs: Any):
     """Initialize a column. We override __init__ to allow positional arguments for brevity."""
+    if isinstance(feature, str):
+      feature = (feature,)
+
     if not alias:
       if isinstance(feature, Column):
         raise ValueError('Please define an alias for the column when it has a transform.')
-      if isinstance(feature, str):
-        alias = feature
-      else:
-        alias = path_to_alias(feature)
+      alias = path_to_alias(feature)
 
     super().__init__(feature=feature, alias=alias, **kwargs)
 
@@ -214,11 +214,6 @@ class DatasetDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def columns(self) -> list[Column]:
-    """Return the list of columns supported for the dataset."""
-    pass
-
-  @abc.abstractmethod
   def compute_embedding_index(self, embedding: EmbeddingId, column: ColumnId) -> None:
     """Compute an embedding index for a column."""
     pass
@@ -277,7 +272,8 @@ class DatasetDB(abc.ABC):
 
     Args:
       columns: The columns to select. A column is an instance of `Column` which can either
-        define a path to a feature, or a column with an applied Transform, e.g. a Concept.
+        define a path to a feature, or a column with an applied Transform, e.g. a Concept. If none,
+        it selects all columns.
       filters: The filters to apply to the query.
       sort_by: An ordered list of what to sort by. When defined, this is a list of aliases of column
         names defined by the "alias" field in Column. If no alias is provided for a column, an

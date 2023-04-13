@@ -84,4 +84,6 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
 
 def embedding_index_filename(column: Path, embedding_name: str) -> str:
   """Return the filename for the embedding index."""
+  if isinstance(column, str):
+    column = (column,)
   return f'{path_to_alias(column)}.{embedding_name}.embedding_index.npy'
