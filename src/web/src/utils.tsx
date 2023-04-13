@@ -17,7 +17,7 @@ export function renderQuery<T>(
   const {isFetching, error, currentData} = queryResult;
 
   if (error) {
-    return <div>Failed to render. See the toast notificatoin.</div>;
+    return <div>Failed to render. See the toast notification for error details.</div>;
   }
 
   if (isFetching) {
