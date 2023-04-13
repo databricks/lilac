@@ -234,7 +234,7 @@ class SelectRowsSuite:
                                             num_items=3)
 
     test_signal = TestSignal()
-    db.compute_signal_columns(signal=test_signal, column='str')
+    db.compute_signal_column(signal=test_signal, column='str')
 
     result = db.select_rows(columns=['str', 'test_signal(str)'])
 
@@ -343,7 +343,7 @@ class SelectRowsSuite:
                      }))
     test_signal = TestSignal()
     # Run the signal on the repeated field.
-    db.compute_signal_columns(signal=test_signal, column=('text', '*'))
+    db.compute_signal_column(signal=test_signal, column=('text', '*'))
 
     # Check the enriched dataset manifest has 'text' enriched.
     assert db.manifest() == DatasetManifest(
@@ -403,9 +403,9 @@ class SelectRowsSuite:
                                             num_items=3)
 
     test_signal = TestSignal()
-    db.compute_signal_columns(signal=test_signal,
-                              column='str',
-                              signal_column_name='test_signal_on_str')
+    db.compute_signal_column(signal=test_signal,
+                             column='str',
+                             signal_column_name='test_signal_on_str')
 
     result = db.select_rows(columns=['str', 'test_signal_on_str'])
 
@@ -471,7 +471,7 @@ class SelectRowsSuite:
                      'text': Field(dtype=DataType.STRING),
                  }))
 
-    db.compute_signal_columns(signal=TestSplitterWithLen(), column='text')
+    db.compute_signal_column(signal=TestSplitterWithLen(), column='text')
 
     result = db.select_rows(columns=['text', 'test_splitter_len(text)'])
     expected_result = [{
@@ -530,9 +530,9 @@ class SelectRowsSuite:
 
     db.compute_embedding_index(embedding=TEST_EMBEDDING_NAME, column='text')
 
-    db.compute_signal_columns(signal=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
-                              column='text',
-                              signal_column_name='text_emb_sum')
+    db.compute_signal_column(signal=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
+                             column='text',
+                             signal_column_name='text_emb_sum')
 
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
@@ -572,16 +572,16 @@ class SelectRowsSuite:
                      'text': Field(dtype=DataType.STRING),
                  }))
 
-    db.compute_signal_columns(signal=TestSplitterWithLen(),
-                              column='text',
-                              signal_column_name='text_sentences')
+    db.compute_signal_column(signal=TestSplitterWithLen(),
+                             column='text',
+                             signal_column_name='text_sentences')
 
     db.compute_embedding_index(embedding=TEST_EMBEDDING_NAME,
                                column=('text_sentences', '*', 'split'))
 
-    db.compute_signal_columns(signal=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
-                              column=('text_sentences', '*', 'split'),
-                              signal_column_name='text_sentences_emb_sum')
+    db.compute_signal_column(signal=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
+                             column=('text_sentences', '*', 'split'),
+                             signal_column_name='text_sentences_emb_sum')
 
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
@@ -658,8 +658,8 @@ class SelectRowsSuite:
                          'text2': Field(repeated_field=Field(dtype=DataType.STRING)),
                      }))
     test_signal = TestSignal()
-    db.compute_signal_columns(signal=test_signal, column='text')
-    db.compute_signal_columns(signal=test_signal, column=('text2', '*'))
+    db.compute_signal_column(signal=test_signal, column='text')
+    db.compute_signal_column(signal=test_signal, column=('text2', '*'))
 
     with pytest.raises(ValueError, match='Path part "invalid" not found in the dataset'):
       db.select_rows(columns=[('test_signal(text)', 'invalid')])
@@ -838,7 +838,7 @@ class ComputeSignalItemsSuite:
         ValueError,
         match='The enriched outputs \\(0\\) and the input data \\(2\\) do not have the same length'
     ):
-      db.compute_signal_columns(signal=signal, column=('text',))
+      db.compute_signal_column(signal=signal, column=('text',))
 
 
 @pytest.mark.parametrize('db_cls', ALL_DBS)

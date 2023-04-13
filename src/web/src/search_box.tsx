@@ -1,23 +1,25 @@
 import {SlIcon, SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import {Command} from 'cmdk';
+import {JSONSchema7} from 'json-schema';
 import * as React from 'react';
 import {Location, useLocation, useNavigate, useParams} from 'react-router-dom';
 import {Field} from '../fastapi_client';
 import {Path, Schema, serializePath} from './schema';
 import './search_box.css';
-import {useGetDatasetsQuery, useGetManifestQuery} from './store/api_dataset';
+import {useGetDatasetsQuery, useGetManifestQuery, useGetSignalsQuery} from './store/api_dataset';
 import {useTopValues} from './store/store';
-import {renderPath} from './utils';
+import {renderPath, renderQuery} from './utils';
 
 /** Time to debounce (ms). */
 const DEBOUNCE_TIME_MS = 100;
 
-type PageType = 'open-dataset' | 'add-filter' | 'add-filter-value';
+type PageType = 'open-dataset' | 'add-filter' | 'add-filter-value' | 'run-signal';
 
 type PageMetadata = {
   'open-dataset': Record<string, never>;
   'add-filter': Record<string, never>;
   'add-filter-value': {path: Path; field: Field};
+  'run-signal': Record<string, never>;
 };
 
 interface Page<T extends PageType = PageType> {
@@ -144,6 +146,7 @@ export const SearchBox = () => {
                   page={activePage as Page<'add-filter-value'>}
                 />
               )}
+              {activePage?.type == 'run-signal' && <RunSignal closeMenu={closeMenu} />}
             </>
           )}
         </Command.List>
@@ -179,6 +182,32 @@ function HomeMenu({
         </Command.Group>
       )}
 
+      {/* Signals */}
+      {datasetSelected && (
+        <Command.Group heading="Signals">
+          <Item
+            onSelect={() => {
+              pushPage({type: 'run-signal', name: 'Run signal'});
+            }}
+          >
+            <SlIcon className="text-xl" name="stars" />
+            Run signal
+          </Item>
+        </Command.Group>
+      )}
+
+      {/* Concepts */}
+      <Command.Group heading="Concepts">
+        <Item>
+          <SlIcon className="text-xl" name="stars" />
+          Open concept
+        </Item>
+        <Item>
+          <SlIcon className="text-xl" name="plus-lg" />
+          Create new concept
+        </Item>
+      </Command.Group>
+
       {/* Datasets */}
       <Command.Group heading="Datasets">
         <Item
@@ -197,18 +226,6 @@ function HomeMenu({
         >
           <SlIcon className="text-xl" name="database-add" />
           Create new dataset
-        </Item>
-      </Command.Group>
-
-      {/* Concepts */}
-      <Command.Group heading="Concepts">
-        <Item>
-          <SlIcon className="text-xl" name="stars" />
-          Open concept
-        </Item>
-        <Item>
-          <SlIcon className="text-xl" name="plus-lg" />
-          Create new concept
         </Item>
       </Command.Group>
 
@@ -232,14 +249,12 @@ function HomeMenu({
 }
 
 function Datasets({closeMenu}: {closeMenu: () => void}) {
-  const {isFetching, currentData} = useGetDatasetsQuery();
+  const query = useGetDatasetsQuery();
   const navigate = useNavigate();
-  if (isFetching || currentData == null) {
-    return <SlSpinner />;
-  }
-  return (
+
+  return renderQuery(query, (datasets) => (
     <>
-      {currentData.map((d) => {
+      {datasets.map((d) => {
         const key = `${d.namespace}/${d.dataset_name}`;
         return (
           <Item
@@ -254,7 +269,7 @@ function Datasets({closeMenu}: {closeMenu: () => void}) {
         );
       })}
     </>
-  );
+  ));
 }
 
 function AddFilterValue({
@@ -339,6 +354,33 @@ function AddFilter({pushPage}: {pushPage: (page: Page) => void}) {
     );
   });
   return <>{items}</>;
+}
+
+function RunSignal({closeMenu}: {closeMenu: () => void}) {
+  const query = useGetSignalsQuery();
+  return renderQuery(query, (signals) => {
+    return (
+      <>
+        {signals.map((signal) => {
+          const jsonSchema = signal.json_schema as JSONSchema7;
+          return (
+            <Item
+              key={signal.name}
+              onSelect={() => {
+                closeMenu();
+                // TODO(smilkov): Run the signal.
+              }}
+            >
+              <div className="flex w-full justify-between">
+                <div className="truncate">{signal.name}</div>
+                <div className="truncate">{jsonSchema.description}</div>
+              </div>
+            </Item>
+          );
+        })}
+      </>
+    );
+  });
 }
 
 function Item({

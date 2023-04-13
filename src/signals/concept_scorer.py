@@ -10,7 +10,7 @@ from .signal import Signal
 
 
 class ConceptScoreSignal(Signal):
-  """A signal to compute scores along a "concept" for documents."""
+  """Compute scores along a "concept" for documents."""
   name = 'concept_score'
   enrichment_type = EnrichmentType.TEXT
   embedding_based = True
