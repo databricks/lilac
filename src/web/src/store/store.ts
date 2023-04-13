@@ -36,7 +36,7 @@ import {
   useSelectGroupsQuery,
   useSelectRowsQuery,
 } from './api_dataset';
-import {query} from './api_utils';
+import {fastAPIBaseQuery} from './api_utils';
 
 interface SelectedData {
   namespace?: string;
@@ -83,12 +83,10 @@ const appSlice = createSlice({
 });
 export const serverApi = createApi({
   reducerPath: 'serverApi',
-  baseQuery: () => {
-    return {error: 'baseQuery should never be called.'};
-  },
+  baseQuery: fastAPIBaseQuery(),
   endpoints: (builder) => ({
     getTaskManifest: builder.query<TaskManifest, void>({
-      queryFn: async () => query(() => DefaultService.getTaskManifest()),
+      query: () => () => DefaultService.getTaskManifest(),
     }),
   }),
 });
@@ -97,42 +95,40 @@ const MODELS_TAG = 'models';
 const MODEL_DATA_TAG = 'model_data';
 export const dbApi = createApi({
   reducerPath: 'dpiApi',
-  baseQuery: () => {
-    return {error: 'baseQuery should never be called.'};
-  },
+  baseQuery: fastAPIBaseQuery(),
   tagTypes: [MODELS_TAG, MODEL_DATA_TAG],
   endpoints: (builder) => ({
     modelInfo: builder.query<ModelInfo, ModelOptions>({
-      queryFn: async (options) => {
+      query: (options) => async () => {
         const {username, name} = options;
         if (username == null || name == null) {
-          return {data: null};
+          return null;
         }
         const response = await fetch(`/db/model_info?username=${username}&name=${name}`);
-        return {data: await response.json()};
+        return response.json();
       },
     }),
     loadModel: builder.query<LoadModelResponse, ModelOptions>({
-      queryFn: async (options) => {
+      query: (options) => async () => {
         const {username, name} = options;
         if (username == null || name == null) {
-          return {data: null};
+          return null;
         }
         const response = await fetch(`/db/load_model?username=${username}&name=${name}`);
-        return {data: await response.json()};
+        return response.json();
       },
       providesTags: [MODEL_DATA_TAG],
     }),
     searchExamples: builder.query<SearchExamplesResponse, SearchExamplesOptions>({
-      queryFn: async (options) => {
+      query: (options) => async () => {
         const {username, modelName, query} = options;
         if (username == null || modelName == null || query == '') {
-          return {data: null};
+          return null;
         }
         const response = await fetch(
           `/db/search_examples?username=${username}&model_name=${modelName}&query=${query}`
         );
-        return {data: await response.json()};
+        return response.json();
       },
     }),
     listModels: builder.query<
@@ -140,14 +136,14 @@ export const dbApi = createApi({
       ListModelsResponse,
       void
     >({
-      queryFn: async () => {
+      query: () => async () => {
         const response = await fetch(`/db/list_models`);
-        return {data: await response.json()};
+        return response.json();
       },
       providesTags: [MODELS_TAG],
     }),
     createModel: builder.mutation<CreateModelResponse, CreateModelOptions>({
-      queryFn: async (options) => {
+      query: (options) => async () => {
         const createModelResponse = await fetch(`/db/create_model`, {
           method: 'POST',
           headers: {
@@ -160,14 +156,13 @@ export const dbApi = createApi({
           return {error: `/db/create_model returned status code ${createModelResponse.status}.`};
         }
 
-        const createModelResponseJson: CreateModelResponse = await createModelResponse.json();
-        return {data: createModelResponseJson};
+        return createModelResponse.json();
       },
       // Invalidate the list of datasets to force a refetch.
       invalidatesTags: [MODELS_TAG],
     }),
     saveModel: builder.mutation<null, SaveModelOptions>({
-      queryFn: async (options) => {
+      query: (options) => async () => {
         const saveModelResponse = await fetch(`/db/save_model`, {
           method: 'POST',
           headers: {
@@ -183,7 +178,7 @@ export const dbApi = createApi({
           };
         }
 
-        return {data: null};
+        return null;
       },
       // Invalidate the model data.
       // NOTE: This is very inneficient as it causes *all* data to be invalidated. We can update
@@ -191,7 +186,7 @@ export const dbApi = createApi({
       invalidatesTags: [MODEL_DATA_TAG],
     }),
     addExamples: builder.mutation<null, AddExamplesOptions>({
-      queryFn: async (options) => {
+      query: (options) => async () => {
         const addExamplesResponse = await fetch(`/db/add_examples`, {
           method: 'POST',
           headers: {
@@ -207,7 +202,7 @@ export const dbApi = createApi({
           };
         }
 
-        return {data: null};
+        return null;
       },
       // Invalidate the model data.
       // NOTE: This is very inneficient as it causes *all* data to be invalidated. We can update
@@ -215,7 +210,7 @@ export const dbApi = createApi({
       invalidatesTags: [MODEL_DATA_TAG],
     }),
     addModelData: builder.mutation<null, AddDatasetOptions>({
-      queryFn: async (options) => {
+      query: (options) => async () => {
         const addDatasetResponse = await fetch(`/db/add_dataset`, {
           method: 'POST',
           headers: {
@@ -228,7 +223,7 @@ export const dbApi = createApi({
           return {error: `/db/add_dataset returned status code ${addDatasetResponse.status}.`};
         }
 
-        return {data: null};
+        return null;
       },
       // Invalidate the model data.
       // NOTE: This is very inneficient as it causes *all* data to be invalidated. We can update

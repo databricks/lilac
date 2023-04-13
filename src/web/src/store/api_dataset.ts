@@ -21,7 +21,7 @@ import {
   WebManifest,
 } from '../../fastapi_client';
 import {Item, LeafValue, Path} from '../schema';
-import {fastAPIBaseQuery, query} from './api_utils';
+import {fastAPIBaseQuery} from './api_utils';
 
 export interface SelectRowsQueryArg {
   namespace: string;
@@ -90,43 +90,53 @@ export const datasetApi = createApi({
   tagTypes: [DATASETS_TAG],
   endpoints: (builder) => ({
     getDatasets: builder.query<DatasetInfo[], void>({
-      queryFn: () => query(() => DatasetsService.getDatasets()),
+      query: () => () => DatasetsService.getDatasets(),
       providesTags: [DATASETS_TAG],
     }),
     // Loading datasets APIs.
     getSources: builder.query<SourcesList, void>({
-      queryFn: () => query(() => DataLoadersService.getSources()),
+      query: () => () => DataLoadersService.getSources(),
     }),
     getSourceSchema: builder.query<JSONSchema7, {sourceName: string}>({
-      queryFn: async ({sourceName}: {sourceName: string}) =>
-        query(() => DataLoadersService.getSourceSchema(sourceName)),
+      query:
+        ({sourceName}: {sourceName: string}) =>
+        () =>
+          DataLoadersService.getSourceSchema(sourceName),
     }),
     loadDataset: builder.mutation<
       LoadDatasetResponse,
       {sourceName: string; options: LoadDatasetOptions}
     >({
-      queryFn: ({sourceName, options}: {sourceName: string; options: LoadDatasetOptions}) =>
-        query(() => DataLoadersService.load(sourceName, options)),
+      query:
+        ({sourceName, options}: {sourceName: string; options: LoadDatasetOptions}) =>
+        () =>
+          DataLoadersService.load(sourceName, options),
       invalidatesTags: [DATASETS_TAG],
     }),
     // Dataset specific APIs.
     getManifest: builder.query<WebManifest, {namespace: string; datasetName: string}>({
-      queryFn: async ({namespace, datasetName}) =>
-        query(() => DatasetsService.getManifest(namespace, datasetName)),
+      query:
+        ({namespace, datasetName}) =>
+        () =>
+          DatasetsService.getManifest(namespace, datasetName),
     }),
     computeEmbeddingIndex: builder.query<Record<string, never>, ComputeEmbeddingQueryArg>({
-      queryFn: async ({namespace, datasetName, embedding, column}) =>
-        query(() =>
-          DatasetsService.computeEmbeddingIndex(namespace, datasetName, embedding, column)
-        ),
+      query:
+        ({namespace, datasetName, embedding, column}) =>
+        () =>
+          DatasetsService.computeEmbeddingIndex(namespace, datasetName, embedding, column),
     }),
     computeSignalColumn: builder.query<Record<string, never>, ComputeSignalColumnQueryArg>({
-      queryFn: async ({namespace, datasetName, options: body}) =>
-        query(() => DatasetsService.computeSignalColumn(namespace, datasetName, body)),
+      query:
+        ({namespace, datasetName, options: body}) =>
+        () =>
+          DatasetsService.computeSignalColumn(namespace, datasetName, body),
     }),
     getStats: builder.query<StatsResult, StatsQueryArg>({
-      queryFn: async ({namespace, datasetName, options}) =>
-        query(() => DatasetsService.getStats(namespace, datasetName, options)),
+      query:
+        ({namespace, datasetName, options}) =>
+        () =>
+          DatasetsService.getStats(namespace, datasetName, options),
     }),
     selectRows: builder.query<Item[], SelectRowsQueryArg>({
       query:
@@ -141,28 +151,30 @@ export const datasetApi = createApi({
           DatasetsService.selectGroups(namespace, datasetName, options),
     }),
     getMediaURL: builder.query<string, GetMediaQueryArg>({
-      queryFn: async ({namespace, datasetName, itemId, leafPath}) =>
-        query(() => {
+      query:
+        ({namespace, datasetName, itemId, leafPath}) =>
+        () => {
           const url = new URL(`/api/v1/datasets/${namespace}/${datasetName}/media`);
           const params = {item_id: itemId, leaf_path: leafPath.join(',')};
           url.search = new URLSearchParams(params).toString();
           return url.toString();
-        }),
+        },
     }),
     getMultipleStats: builder.query<StatsResult[], MultipleStatsQueryArg>({
-      queryFn: async ({namespace, datasetName, leafPaths}) =>
-        query(async () => {
+      query:
+        ({namespace, datasetName, leafPaths}) =>
+        async () => {
           const ps: Promise<StatsResult>[] = [];
           for (const leafPath of leafPaths) {
             ps.push(DatasetsService.getStats(namespace, datasetName, {leaf_path: leafPath}));
           }
           const statResults = await Promise.all(ps);
           return statResults;
-        }),
+        },
     }),
 
     getSignals: builder.query<SignalInfo[], void>({
-      queryFn: async () => query(async () => await SignalsService.getSignals()),
+      query: () => () => SignalsService.getSignals(),
     }),
   }),
 });
