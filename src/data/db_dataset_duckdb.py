@@ -242,14 +242,6 @@ class DatasetDuckDB(DatasetDB):
   def manifest(self) -> DatasetManifest:
     return self._table_info().manifest
 
-  @functools.cache
-  def columns(self) -> list[Column]:
-    """Get the columns."""
-    columns: list[Column] = []
-    for path in self._source_manifest.data_schema.leafs.keys():
-      columns.append(Column(feature=path))
-    return columns
-
   def count(self, filters: Optional[list[FilterLike]] = None) -> int:
     """Count the number of rows."""
     raise NotImplementedError('count is not yet implemented for DuckDB.')
@@ -597,7 +589,16 @@ class DatasetDuckDB(DatasetDB):
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
                   limit: Optional[int] = None,
                   offset: Optional[int] = 0) -> SelectRowsResult:
+    if not columns:
+      # Select all columns.
+      columns = list(self.manifest().data_schema.fields.keys())
+
     cols = [column_from_identifier(column) for column in columns or []]
+
+    # Always return the UUID column.
+    if (UUID_COLUMN,) not in [col.feature for col in cols]:
+      cols.append(column_from_identifier(UUID_COLUMN))
+
     self._validate_columns(cols)
 
     select_query, col_aliases = self._create_select(cols)
@@ -651,16 +652,8 @@ class DatasetDuckDB(DatasetDB):
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
-  def _create_select(
-      self,
-      columns: Optional[list[Column]] = None,
-  ) -> tuple[str, list[str]]:
+  def _create_select(self, columns: list[Column]) -> tuple[str, list[str]]:
     """Create the select statement."""
-    if not columns:
-      columns = self.columns()
-    # Always return the UUID column.
-    columns += [Column(UUID_COLUMN)]
-
     select_queries: list[str] = []
     aliases: list[str] = []
 

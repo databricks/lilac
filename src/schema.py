@@ -268,7 +268,7 @@ def column_paths_match(path_match: Path, specific_path: Path) -> bool:
   return True
 
 
-def path_to_alias(path: Path) -> str:
+def path_to_alias(path: PathTuple) -> str:
   """Convert a path to a string."""
   return '.'.join([str(path_comp) for path_comp in path])
 
