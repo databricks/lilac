@@ -84,8 +84,9 @@ class TaskManager():
     if task_future.status == 'error':
       self._tasks[task_id].status = TaskStatus.ERROR
       tb = traceback.format_tb(task_future.traceback())
-      self._tasks[task_id].error = f'{task_future.exception()}: \n{tb}'
-
+      e = task_future.exception()
+      self._tasks[task_id].error = f'{e}: \n{tb}'
+      raise e
     else:
       self._tasks[task_id].status = TaskStatus.COMPLETED
       self._tasks[task_id].progress = 1.0

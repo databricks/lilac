@@ -600,6 +600,7 @@ class DatasetDuckDB(DatasetDB):
     cols = [column_from_identifier(column) for column in columns or []]
     self._validate_columns(cols)
 
+    print('colzzz', cols)
     select_query, col_aliases = self._create_select(cols)
     filters = self._normalize_filters(filters)
     where_query = self._create_where(filters)
@@ -634,7 +635,9 @@ class DatasetDuckDB(DatasetDB):
       {limit_query}
       {offset_query}
     """
-    query_results = cast(list, self._query(query).fetchall())
+    print(query)
+    print(self.con)
+    query_results = self.con.query(query).fetchall()
 
     def parse_row(row: list[Any]) -> Item:
       item = dict(zip(col_aliases, row))
@@ -658,8 +661,12 @@ class DatasetDuckDB(DatasetDB):
     """Create the select statement."""
     if not columns:
       columns = self.columns()
+    print('2 now columns are columns', columns)
+    print('self cols', self.columns())
+
     # Always return the UUID column.
     columns += [Column(UUID_COLUMN)]
+    print('1 now columns are columns', columns)
 
     select_queries: list[str] = []
     aliases: list[str] = []
