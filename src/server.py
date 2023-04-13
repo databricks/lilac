@@ -21,20 +21,19 @@ from .tasks import TaskManifest, task_manager
 
 DIST_PATH = os.path.abspath(os.path.join('dist'))
 
-tags_metadata: list[dict[str, Any]] = [
-    {
-        'name': 'datasets',
-        'description': 'API for querying a dataset.',
-    },
-    {
-        'name': 'concepts',
-        'description': 'API for managing concepts.',
-    },
-    {
-        'name': 'data_loaders',
-        'description': 'API for loading data.',
-    },
-]
+tags_metadata: list[dict[str, Any]] = [{
+    'name': 'datasets',
+    'description': 'API for querying a dataset.',
+}, {
+    'name': 'concepts',
+    'description': 'API for managing concepts.',
+}, {
+    'name': 'data_loaders',
+    'description': 'API for loading data.',
+}, {
+    'name': 'signals',
+    'description': 'API for managing signals.',
+}]
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:

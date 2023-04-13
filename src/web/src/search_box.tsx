@@ -8,7 +8,7 @@ import {Path, Schema, serializePath} from './schema';
 import './search_box.css';
 import {useGetDatasetsQuery, useGetManifestQuery, useGetSignalsQuery} from './store/api_dataset';
 import {useTopValues} from './store/store';
-import {renderPath} from './utils';
+import {renderPath, renderQuery} from './utils';
 
 /** Time to debounce (ms). */
 const DEBOUNCE_TIME_MS = 100;
@@ -249,14 +249,12 @@ function HomeMenu({
 }
 
 function Datasets({closeMenu}: {closeMenu: () => void}) {
-  const {isFetching, currentData} = useGetDatasetsQuery();
+  const query = useGetDatasetsQuery();
   const navigate = useNavigate();
-  if (isFetching || currentData == null) {
-    return <SlSpinner />;
-  }
-  return (
+
+  return renderQuery(query, (datasets) => (
     <>
-      {currentData.map((d) => {
+      {datasets.map((d) => {
         const key = `${d.namespace}/${d.dataset_name}`;
         return (
           <Item
@@ -271,7 +269,7 @@ function Datasets({closeMenu}: {closeMenu: () => void}) {
         );
       })}
     </>
-  );
+  ));
 }
 
 function AddFilterValue({
@@ -359,28 +357,30 @@ function AddFilter({pushPage}: {pushPage: (page: Page) => void}) {
 }
 
 function RunSignal({closeMenu}: {closeMenu: () => void}) {
-  const {isFetching, currentData} = useGetSignalsQuery();
-  if (isFetching || currentData == null) {
-    return <SlSpinner />;
-  }
-  const items = currentData.map((signalInfo) => {
-    const jsonSchema = signalInfo.json_schema as JSONSchema7;
+  const query = useGetSignalsQuery();
+  return renderQuery(query, (signals) => {
     return (
-      <Item
-        key={signalInfo.name}
-        onSelect={() => {
-          closeMenu();
-          // TODO(smilkov): Run the signal.
-        }}
-      >
-        <div className="flex w-full justify-between">
-          <div className="truncate">{signalInfo.name}</div>
-          <div className="truncate">{jsonSchema.description}</div>
-        </div>
-      </Item>
+      <>
+        {signals.map((signal) => {
+          const jsonSchema = signal.json_schema as JSONSchema7;
+          return (
+            <Item
+              key={signal.name}
+              onSelect={() => {
+                closeMenu();
+                // TODO(smilkov): Run the signal.
+              }}
+            >
+              <div className="flex w-full justify-between">
+                <div className="truncate">{signal.name}</div>
+                <div className="truncate">{jsonSchema.description}</div>
+              </div>
+            </Item>
+          );
+        })}
+      </>
     );
   });
-  return <>{items}</>;
 }
 
 function Item({
