@@ -9,6 +9,6 @@ import type { Signal } from './Signal';
  */
 export type ComputeSignalOptions = {
     signal: Signal;
-    column: string;
+    leaf_path: Array<(string | number)>;
 };
 

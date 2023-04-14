@@ -19,7 +19,7 @@
 }
 
 .task_element {
-  transition: margin-top 0.5s ease-in-out;
+  transition: margin-top 0.2s ease-in-out;
   position: relative;
   border-width: 1px;
   max-height: 400px;

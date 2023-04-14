@@ -14,8 +14,6 @@ import {
   LoadDatasetResponse,
   SelectGroupsOptions,
   SelectRowsOptions,
-  SignalInfo,
-  SignalsService,
   SourcesList,
   StatsResult,
   WebManifest,
@@ -126,7 +124,7 @@ export const datasetApi = createApi({
         () =>
           DatasetsService.computeEmbeddingIndex(namespace, datasetName, embedding, column),
     }),
-    computeSignalColumn: builder.query<Record<string, never>, ComputeSignalColumnQueryArg>({
+    computeSignalColumn: builder.mutation<Record<string, never>, ComputeSignalColumnQueryArg>({
       query:
         ({namespace, datasetName, options: body}) =>
         () =>
@@ -172,17 +170,13 @@ export const datasetApi = createApi({
           return statResults;
         },
     }),
-
-    getSignals: builder.query<SignalInfo[], void>({
-      query: () => () => SignalsService.getSignals(),
-    }),
   }),
 });
 
 export const {
   useGetSourcesQuery,
   useComputeEmbeddingIndexQuery,
-  useComputeSignalColumnQuery,
+  useComputeSignalColumnMutation,
   useGetManifestQuery,
   useSelectRowsQuery,
   useSelectGroupsQuery,
@@ -192,5 +186,4 @@ export const {
   useGetDatasetsQuery,
   useGetSourceSchemaQuery,
   useLoadDatasetMutation,
-  useGetSignalsQuery,
 } = datasetApi;

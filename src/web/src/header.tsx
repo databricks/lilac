@@ -10,7 +10,7 @@ import {formatDatetime, renderQuery, useClickOutside} from './utils';
 const TASKS_POLL_INTERVAL_MS = 2000;
 
 const spinnerSizePx = 40;
-export const Task = ({task}: {task: TaskInfo}): JSX.Element => {
+export const Task = React.memo(({task}: {task: TaskInfo}): JSX.Element => {
   const startDateTime = new Date(task.start_timestamp);
   const endDateTime = new Date(task.end_timestamp || '');
   let datetimeInfo: string | JSX.Element = '';
@@ -91,7 +91,7 @@ export const Task = ({task}: {task: TaskInfo}): JSX.Element => {
       </div>
     </div>
   );
-};
+});
 
 export const TaskViewer = (): JSX.Element => {
   const [loadTaskManifest, taskManifest] = useLazyGetTaskManifestQuery();
@@ -152,6 +152,7 @@ export const TaskViewer = (): JSX.Element => {
       <>
         <div className="mr-4" ref={buttonContainerRef}>
           <SlButton
+            className="w-48"
             variant={buttonVariant}
             disabled={numTasks === 0}
             outline

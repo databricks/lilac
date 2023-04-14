@@ -36,6 +36,7 @@ import {
   useSelectGroupsQuery,
   useSelectRowsQuery,
 } from './api_dataset';
+import {signalApi} from './api_signal';
 import {fastAPIBaseQuery} from './api_utils';
 
 interface SelectedData {
@@ -252,11 +253,13 @@ export const store = configureStore({
     [dbApi.reducerPath]: dbApi.reducer,
     [serverApi.reducerPath]: serverApi.reducer,
     [datasetApi.reducerPath]: datasetApi.reducer,
+    [signalApi.reducerPath]: signalApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat([
       dbApi.middleware,
       datasetApi.middleware,
+      signalApi.middleware,
       serverApi.middleware,
       rtkQueryErrorLogger,
     ]),

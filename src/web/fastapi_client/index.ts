@@ -11,6 +11,7 @@ export type { AddExample } from './models/AddExample';
 export type { AddExamplesOptions } from './models/AddExamplesOptions';
 export type { Comparison } from './models/Comparison';
 export type { ComputeSignalOptions } from './models/ComputeSignalOptions';
+export type { ComputeSignalResponse } from './models/ComputeSignalResponse';
 export type { Concept } from './models/Concept';
 export type { ConceptUpdate } from './models/ConceptUpdate';
 export type { DatasetInfo } from './models/DatasetInfo';

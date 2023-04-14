@@ -1,7 +1,7 @@
 import {SlOption, SlSelect} from '@shoelace-style/shoelace/dist/react';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import * as React from 'react';
-import {DataType, Field, StatsResult, WebManifest} from '../../fastapi_client';
+import {Field, StatsResult, WebManifest} from '../../fastapi_client';
 import {useAppDispatch, useAppSelector} from '../hooks';
 import {Path, Schema, serializePath} from '../schema';
 import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/api_dataset';
@@ -56,10 +56,6 @@ export interface GalleryMenuProps {
   metadataPaths?: Path[];
 }
 
-interface VisualLeaf {
-  dtype: DataType | 'image';
-}
-
 // TODO(smilkov): Remove this once we make a logical image dtype.
 export const IMAGE_PATH_PREFIX = '__image__';
 
@@ -70,7 +66,7 @@ export const GalleryMenu = React.memo(function GalleryMenu({
 }: GalleryMenuProps): JSX.Element {
   const dispatch = useAppDispatch();
 
-  const mediaLeafs: [Path, VisualLeaf | Field][] = [...schema.leafs].filter(([, field]) => {
+  const mediaLeafs: [Path, Field][] = [...schema.leafs].filter(([, field]) => {
     if (field.dtype === 'string' || field.dtype === 'string_span') {
       return true;
     }
@@ -101,7 +97,7 @@ interface FeatureDropdownProps {
   label: string;
   selectedPaths?: Path[];
   onSelectedPathsChanged: (paths: Path[]) => void;
-  leafs: [Path, VisualLeaf | Field][];
+  leafs: [Path, Field][];
 }
 
 function FeatureDropdown({

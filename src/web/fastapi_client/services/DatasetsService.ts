@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
+import type { ComputeSignalResponse } from '../models/ComputeSignalResponse';
 import type { DatasetInfo } from '../models/DatasetInfo';
 import type { GetStatsOptions } from '../models/GetStatsOptions';
 import type { SelectGroupsOptions } from '../models/SelectGroupsOptions';
@@ -92,14 +93,14 @@ export class DatasetsService {
      * @param namespace
      * @param datasetName
      * @param requestBody
-     * @returns any Successful Response
+     * @returns ComputeSignalResponse Successful Response
      * @throws ApiError
      */
     public static computeSignalColumn(
         namespace: string,
         datasetName: string,
         requestBody: ComputeSignalOptions,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<ComputeSignalResponse> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/compute_signal_column',

@@ -1,25 +1,36 @@
-import {SlIcon, SlSpinner} from '@shoelace-style/shoelace/dist/react';
+import {SlButton, SlIcon, SlOption, SlSelect, SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import {Command} from 'cmdk';
 import {JSONSchema7} from 'json-schema';
 import * as React from 'react';
 import {Location, useLocation, useNavigate, useParams} from 'react-router-dom';
-import {Field} from '../fastapi_client';
+import {EnrichmentType, Field, SignalInfo} from '../fastapi_client';
 import {Path, Schema, serializePath} from './schema';
 import './search_box.css';
-import {useGetDatasetsQuery, useGetManifestQuery, useGetSignalsQuery} from './store/api_dataset';
+import {
+  useComputeSignalColumnMutation,
+  useGetDatasetsQuery,
+  useGetManifestQuery,
+} from './store/api_dataset';
+import {useGetSignalsQuery} from './store/api_signal';
 import {useTopValues} from './store/store';
-import {renderPath, renderQuery} from './utils';
+import {renderPath, renderQuery, useClickOutside} from './utils';
 
 /** Time to debounce (ms). */
 const DEBOUNCE_TIME_MS = 100;
 
-type PageType = 'open-dataset' | 'add-filter' | 'add-filter-value' | 'run-signal';
+type PageType =
+  | 'open-dataset'
+  | 'add-filter'
+  | 'add-filter-value'
+  | 'compute-signal'
+  | 'compute-signal-setup';
 
 type PageMetadata = {
   'open-dataset': Record<string, never>;
   'add-filter': Record<string, never>;
   'add-filter-value': {path: Path; field: Field};
-  'run-signal': Record<string, never>;
+  'compute-signal': Record<string, never>;
+  'compute-signal-setup': {signal: SignalInfo};
 };
 
 interface Page<T extends PageType = PageType> {
@@ -44,14 +55,13 @@ export const SearchBox = () => {
     setIsFocused(false);
   }, []);
 
-  const handleFocus = () => setIsFocused(true);
-  const handleBlur = (e: React.FocusEvent) => {
-    // Ignore blur if the focus is moving to a child of the parent.
-    if (e.relatedTarget === ref.current) {
-      return;
-    }
+  const handleFocus = React.useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  useClickOutside(ref, [], () => {
     setIsFocused(false);
-  };
+  });
 
   let activePage: Page | null = null;
   if (pages.length > 0) {
@@ -93,7 +103,6 @@ export const SearchBox = () => {
         tabIndex={0}
         ref={ref}
         onFocus={handleFocus}
-        onBlur={handleBlur}
         onKeyDown={(e: React.KeyboardEvent) => {
           if (e.key === 'Enter') {
             bounce();
@@ -135,7 +144,9 @@ export const SearchBox = () => {
           {isFocused && (
             <>
               <div className="mt-4"></div>
-              <Command.Empty>No results found.</Command.Empty>
+              {activePage?.type !== 'compute-signal-setup' && (
+                <Command.Empty>No results found.</Command.Empty>
+              )}
               {isHome && <HomeMenu pushPage={pushPage} location={location} closeMenu={closeMenu} />}
               {activePage?.type === 'open-dataset' && <Datasets closeMenu={closeMenu} />}
               {activePage?.type == 'add-filter' && <AddFilter pushPage={pushPage} />}
@@ -146,7 +157,10 @@ export const SearchBox = () => {
                   page={activePage as Page<'add-filter-value'>}
                 />
               )}
-              {activePage?.type == 'run-signal' && <RunSignal closeMenu={closeMenu} />}
+              {activePage?.type == 'compute-signal' && <ComputeSignal pushPage={pushPage} />}
+              {activePage?.type == 'compute-signal-setup' && (
+                <ComputeSignalSetup page={activePage as Page<'compute-signal-setup'>} />
+              )}
             </>
           )}
         </Command.List>
@@ -187,11 +201,11 @@ function HomeMenu({
         <Command.Group heading="Signals">
           <Item
             onSelect={() => {
-              pushPage({type: 'run-signal', name: 'Run signal'});
+              pushPage({type: 'compute-signal', name: 'Compute signal'});
             }}
           >
             <SlIcon className="text-xl" name="stars" />
-            Run signal
+            Compute signal
           </Item>
         </Command.Group>
       )}
@@ -356,7 +370,11 @@ function AddFilter({pushPage}: {pushPage: (page: Page) => void}) {
   return <>{items}</>;
 }
 
-function RunSignal({closeMenu}: {closeMenu: () => void}) {
+function ComputeSignal({pushPage}: {pushPage: (page: Page) => void}) {
+  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
+  if (namespace == null || datasetName == null) {
+    throw new Error('Invalid route');
+  }
   const query = useGetSignalsQuery();
   return renderQuery(query, (signals) => {
     return (
@@ -367,8 +385,11 @@ function RunSignal({closeMenu}: {closeMenu: () => void}) {
             <Item
               key={signal.name}
               onSelect={() => {
-                closeMenu();
-                // TODO(smilkov): Run the signal.
+                pushPage({
+                  type: 'compute-signal-setup',
+                  name: signal.name,
+                  metadata: {signal},
+                });
               }}
             >
               <div className="flex w-full justify-between">
@@ -381,6 +402,90 @@ function RunSignal({closeMenu}: {closeMenu: () => void}) {
       </>
     );
   });
+}
+
+function getLeafsByEnrichmentType(leafs: [Path, Field][], enrichmentType: EnrichmentType) {
+  if (enrichmentType !== 'text') {
+    throw new Error(`Unsupported enrichment type: ${enrichmentType}`);
+  }
+  return leafs.filter(([, field]) => {
+    if (enrichmentType === 'text' && ['string', 'string_span'].includes(field.dtype!)) {
+      return true;
+    }
+    return false;
+  });
+}
+
+function ComputeSignalSetup({page}: {page: Page<'compute-signal-setup'>}) {
+  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
+  if (namespace == null || datasetName == null) {
+    throw new Error('Invalid route');
+  }
+  const [selectedLeafIndex, setSelectedLeafIndex] = React.useState<number | null>(null);
+  const signal = page.metadata!.signal;
+  const [computeSignal, {isLoading: isComputeSignalLoading, isSuccess: isComputeSignalSuccess}] =
+    useComputeSignalColumnMutation();
+  const {currentData: webManifest, isFetching: isManifestFetching} = useGetManifestQuery({
+    namespace,
+    datasetName,
+  });
+  const schema = webManifest != null ? new Schema(webManifest.dataset_manifest.data_schema) : null;
+  if (isManifestFetching || schema == null) {
+    return <SlSpinner />;
+  }
+  const signalLeafs = getLeafsByEnrichmentType(schema.leafs, signal.enrichment_type);
+  return (
+    <>
+      <SlSelect
+        className="w-80"
+        hoist
+        size="small"
+        placeholder="Which column to run the signal on?"
+        value={(selectedLeafIndex && selectedLeafIndex.toString()) || ''}
+        onSlChange={(e) => {
+          const index = Number((e.target as HTMLInputElement).value);
+          setSelectedLeafIndex(index);
+        }}
+      >
+        {signalLeafs.map(([path], i) => {
+          return (
+            <SlOption key={i} value={i.toString()}>
+              {renderPath(path)}
+            </SlOption>
+          );
+        })}
+      </SlSelect>
+      <SlButton
+        size="small"
+        disabled={isComputeSignalLoading}
+        className="mt-4"
+        onClick={() => {
+          const leafPath = selectedLeafIndex != null ? signalLeafs[selectedLeafIndex][0] : null;
+          if (leafPath == null) {
+            return;
+          }
+          computeSignal({
+            namespace,
+            datasetName,
+            options: {leaf_path: leafPath, signal: {signal_name: signal.name}},
+          });
+        }}
+      >
+        Compute signal
+      </SlButton>
+      <div className="mt-4 flex items-center">
+        <div>
+          {isComputeSignalLoading && <SlSpinner />}
+          {isComputeSignalSuccess && <SlIcon name="check-lg" />}
+        </div>
+        {isComputeSignalSuccess && (
+          <div className="ml-4 text-sm">
+            Check the task list. When the task is complete, refresh the page to see the new signal.
+          </div>
+        )}
+      </div>
+    </>
+  );
 }
 
 function Item({

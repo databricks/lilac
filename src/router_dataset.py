@@ -17,10 +17,11 @@ from .data.db_dataset import (
 from .db_manager import get_dataset_db
 from .embeddings import default_embeddings  # noqa # pylint: disable=unused-import
 from .router_utils import RouteErrorHandler
-from .schema import PathTuple
+from .schema import PathTuple, path_to_alias
 from .signals.default_signals import register_default_signals
 from .signals.signal import Signal
 from .signals.signal_registry import resolve_signal
+from .tasks import TaskId, task_manager
 from .utils import DATASETS_DIR_NAME
 
 router = APIRouter(route_class=RouteErrorHandler)
@@ -90,8 +91,8 @@ class ComputeSignalOptions(BaseModel):
   """The request for the compute signal endpoint."""
   signal: Signal
 
-  # The columns to compute the signal on.
-  column: str
+  # The leaf path to compute the signal on.
+  leaf_path: PathTuple
 
   @validator('signal', pre=True)
   def parse_signal(cls, signal: dict) -> Signal:
@@ -99,13 +100,28 @@ class ComputeSignalOptions(BaseModel):
     return resolve_signal(signal)
 
 
-@router.post('/{namespace}/{dataset_name}/compute_signal_column')
-def compute_signal_column(namespace: str, dataset_name: str, options: ComputeSignalOptions) -> dict:
-  """Compute a signal for a dataset."""
-  dataset_db = get_dataset_db(namespace, dataset_name)
-  dataset_db.compute_signal_column(options.signal, options.column)
+class ComputeSignalResponse(BaseModel):
+  """Response of the load dataset endpoint."""
+  task_id: TaskId
 
-  return {}
+
+@router.post('/{namespace}/{dataset_name}/compute_signal_column')
+def compute_signal_column(namespace: str, dataset_name: str,
+                          options: ComputeSignalOptions) -> ComputeSignalResponse:
+  """Compute a signal for a dataset."""
+
+  def compute_signal(namespace: str, dataset_name: str, options: ComputeSignalOptions,
+                     task_id: TaskId) -> None:
+    dataset_db = get_dataset_db(namespace, dataset_name)
+    dataset_db.compute_signal_column(options.signal, options.leaf_path)
+
+  alias = path_to_alias(options.leaf_path)
+  task_id = task_manager().task_id(name=f'Compute signal "{options.signal.name}" on "{alias}" '
+                                   f'in dataset "{namespace}/{dataset_name}"',
+                                   description=f'Config: {options.signal}')
+  task_manager().execute(task_id, compute_signal, namespace, dataset_name, options, task_id)
+
+  return ComputeSignalResponse(task_id=task_id)
 
 
 class GetStatsOptions(BaseModel):
