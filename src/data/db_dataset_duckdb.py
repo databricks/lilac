@@ -35,6 +35,7 @@ from ..schema import (
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import resolve_signal
+from ..tasks import TaskId, progress
 from ..utils import (
     DebugTimer,
     get_dataset_output_dir,
@@ -268,7 +269,8 @@ class DatasetDuckDB(DatasetDB):
   def compute_signal_column(self,
                             signal: Signal,
                             column: ColumnId,
-                            signal_column_name: Optional[str] = None) -> str:
+                            signal_column_name: Optional[str] = None,
+                            task_id: Optional[TaskId] = None) -> str:
     column = column_from_identifier(column)
     if not signal_column_name:
       signal_column_name = default_top_level_signal_col_name(signal, column)
@@ -306,6 +308,10 @@ class DatasetDuckDB(DatasetDB):
 
       with DebugTimer(f'"compute" for signal "{signal.name}" over "{source_path}"'):
         signal_outputs = signal.compute(data=leafs_df[select_leafs_result.value_column])
+
+    # Add progress.
+    if task_id is not None:
+      signal_outputs = progress(signal_outputs, task_id=task_id, estimated_len=len(leafs_df))
 
     # Use the repeated indices to generate the correct signal output structure.
     if select_leafs_result.repeated_idxs_col:
