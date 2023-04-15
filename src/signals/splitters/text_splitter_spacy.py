@@ -1,5 +1,4 @@
 """Text splitters using spaCy."""
-import multiprocessing
 from typing import Any, Iterable, Optional
 
 import spacy
@@ -37,6 +36,6 @@ class SentenceSplitterSpacy(Signal):
     if data is None:
       raise ValueError('Sentence splitter requires text data.')
 
-    for doc in self._tokenizer.pipe(data, n_process=multiprocessing.cpu_count()):  # type: ignore
+    for doc in self._tokenizer.pipe(data):  # type: ignore
       sentences = doc.sents
       yield [TextSpan(start=token.start_char, end=token.end_char) for token in sentences]
