@@ -110,16 +110,19 @@ def compute_signal_column(namespace: str, dataset_name: str,
                           options: ComputeSignalOptions) -> ComputeSignalResponse:
   """Compute a signal for a dataset."""
 
-  def compute_signal(namespace: str, dataset_name: str, options: ComputeSignalOptions,
+  def compute_signal(namespace: str, dataset_name: str, options_dict: dict,
                      task_id: TaskId) -> None:
+    # NOTE: We manually call .dict() to avoid the dask serializer, which doesn't call the underlying
+    # pydantic serializer.
+    options = ComputeSignalOptions(**options_dict)
     dataset_db = get_dataset_db(namespace, dataset_name)
-    dataset_db.compute_signal_column(options.signal, options.leaf_path)
+    dataset_db.compute_signal_column(options.signal, options.leaf_path, task_id=task_id)
 
   alias = path_to_alias(options.leaf_path)
   task_id = task_manager().task_id(name=f'Compute signal "{options.signal.name}" on "{alias}" '
                                    f'in dataset "{namespace}/{dataset_name}"',
                                    description=f'Config: {options.signal}')
-  task_manager().execute(task_id, compute_signal, namespace, dataset_name, options, task_id)
+  task_manager().execute(task_id, compute_signal, namespace, dataset_name, options.dict(), task_id)
 
   return ComputeSignalResponse(task_id=task_id)
 

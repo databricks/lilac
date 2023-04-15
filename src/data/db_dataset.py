@@ -18,6 +18,7 @@ from pydantic import (
 from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import Item, Path, PathTuple, Schema, path_to_alias
 from ..signals.signal import Signal
+from ..tasks import TaskId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
 TOO_MANY_DISTINCT = 10_000
@@ -222,7 +223,8 @@ class DatasetDB(abc.ABC):
   def compute_signal_column(self,
                             signal: Signal,
                             column: ColumnId,
-                            signal_column_name: Optional[str] = None) -> str:
+                            signal_column_name: Optional[str] = None,
+                            task_id: Optional[TaskId] = None) -> str:
     """Compute a signal for a column.
 
     Args:
@@ -230,6 +232,8 @@ class DatasetDB(abc.ABC):
       column: The column to compute the signal on.
       signal_column_name: The name of the result signal columns. This acts as a namespace for
         the set of columns the signal produces.
+      task_id: The TaskManager `task_id` for this process run. This is used to update the progress
+        of the task.
 
     Returns
       The name of the result columns.

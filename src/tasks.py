@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
 
+import dask
 from dask.distributed import Client, Variable
 from distributed import Future, get_worker
 from pydantic import BaseModel
@@ -52,6 +53,10 @@ class TaskManager():
 
     A user can pass in a dask client to use a different executor.
     """
+    # Set dasks workers to be non-daemonic so they can spawn child processes if they need to. This
+    # is particularly useful for signals that use libraries with multiprocessing support.
+    dask.config.set({'distributed.worker.daemon': False})
+
     self._dask_client = dask_client or Client(asynchronous=True)
 
   async def manifest(self) -> TaskManifest:
