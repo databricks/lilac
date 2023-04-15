@@ -86,7 +86,7 @@ def _infer_field(feature_value: Union[Value, dict]) -> Field:
     raise ValueError('Nested ClassLabel is not supported.')
 
   else:
-    raise ValueError(f'Feature is not a `Value` or `dict`: {feature_value}')
+    raise ValueError(f'Feature is not a `Value`, `Sequence`, or `dict`: {feature_value}')
 
 
 def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> SchemaInfo:
