@@ -90,7 +90,7 @@ COMPARISON_TO_OP: dict[Comparison, str] = {
 class DuckDBSelectGroupsResult(SelectGroupsResult):
   """The result of a select groups query backed by DuckDB."""
 
-  def __init__(self, duckdb_result: duckdb.DuckDBPyConnection) -> None:
+  def __init__(self, duckdb_result: duckdb.DuckDBPyRelation) -> None:
     """Initialize the result."""
     self._duckdb_result = duckdb_result
 
@@ -129,7 +129,7 @@ class SelectLeafsResult(BaseModel):
   class Config:
     arbitrary_types_allowed = True
 
-  duckdb_result: duckdb.DuckDBPyConnection
+  duckdb_result: duckdb.DuckDBPyRelation
   repeated_idxs_col: Optional[str]
   value_column: Optional[str]
 
@@ -703,19 +703,19 @@ class DatasetDuckDB(DatasetDB):
       filter_queries.append(filter_query)
     return 'WHERE ' + ' AND '.join(filter_queries)
 
-  def _query(self, query: str) -> duckdb.DuckDBPyConnection:
+  def _query(self, query: str) -> duckdb.DuckDBPyRelation:
     """Execute a query that returns a dataframe."""
     # FastAPI is multi-threaded so we have to create a thread-specific connection cursor to allow
     # these queries to be thread-safe.
     local_con = self.con.cursor()
     if not DEBUG:
-      return local_con.execute(query)
+      return local_con.query(query)
 
     # Debug mode.
     log('Executing:')
     log(query)
     with DebugTimer('Query'):
-      result = local_con.execute(query)
+      result = local_con.query(query)
 
     return result
 
