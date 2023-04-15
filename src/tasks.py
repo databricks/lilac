@@ -53,6 +53,8 @@ class TaskManager():
 
     A user can pass in a dask client to use a different executor.
     """
+    # Set dasks workers to be non-daemonic so they can spawn child processes if they need to. This
+    # is particularly useful for signals that use libraries with multiprocessing support.
     dask.config.set({'distributed.worker.daemon': False})
 
     self._dask_client = dask_client or Client(asynchronous=True)
