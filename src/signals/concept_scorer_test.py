@@ -6,6 +6,7 @@ from typing import Generator, Iterable, Type, cast
 
 import numpy as np
 import pytest
+from typing_extensions import override
 
 from ..concepts.concept import ConceptModel, ExampleIn
 from ..concepts.db_concept import (
@@ -16,8 +17,8 @@ from ..concepts.db_concept import (
     DiskConceptModelDB,
 )
 from ..embeddings.embedding_index import EmbeddingIndex
-from ..embeddings.embedding_registry import clear_embedding_registry, register_embed_fn
-from ..schema import RichData
+from ..embeddings.embedding_registry import Embedding, clear_embedding_registry, register_embedding
+from ..schema import EnrichmentType, RichData
 from .concept_scorer import ConceptScoreSignal
 
 ALL_CONCEPT_DBS = [DiskConceptDB]
@@ -34,22 +35,31 @@ def set_data_path(tmp_path: pathlib.Path) -> Generator:
   os.environ['LILAC_DATA_PATH'] = data_path or ''
 
 
-@pytest.fixture(scope='module', autouse=True)
-def setup_teardown() -> Generator:
+EMBEDDING_MAP: dict[str, list[float]] = {
+    'not in concept': [1.0, 0.0, 0.0],
+    'in concept': [0.9, 0.1, 0.0],
+    'a new data point': [0.1, 0.2, 0.3],
+}
 
-  EMBEDDING_MAP: dict[str, list[float]] = {
-      'not in concept': [1.0, 0.0, 0.0],
-      'in concept': [0.9, 0.1, 0.0],
-      'a new data point': [0.1, 0.2, 0.3],
-  }
 
-  @register_embed_fn('test_embedding')
-  def embed(examples: Iterable[RichData]) -> np.ndarray:
+class TestEmbedding(Embedding):
+  """A test embed function."""
+  name = 'test_embedding'
+  enrichment_type = EnrichmentType.TEXT
+
+  @override
+  def __call__(self, examples: Iterable[RichData]) -> np.ndarray:
     """Embed the examples, use a hashmap to the vector for simplicity."""
     for example in examples:
       if example not in EMBEDDING_MAP:
         raise ValueError(f'Example "{str(example)}" not in embedding map')
     return np.array([EMBEDDING_MAP[cast(str, example)] for example in examples])
+
+
+@pytest.fixture(scope='module', autouse=True)
+def setup_teardown() -> Generator:
+  # Setup.
+  register_embedding(TestEmbedding)
 
   # Unit test runs.
   yield

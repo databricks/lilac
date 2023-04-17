@@ -4,6 +4,7 @@
 import {createApi} from '@reduxjs/toolkit/dist/query/react';
 import {JSONSchema7} from 'json-schema';
 import {
+  ComputeEmbeddingIndexOptions,
   ComputeSignalOptions,
   DataLoadersService,
   DatasetInfo,
@@ -46,11 +47,10 @@ export interface StatsQueryArg {
   options: GetStatsOptions;
 }
 
-export interface ComputeEmbeddingQueryArg {
+export interface ComputeEmbeddingIndexQueryArg {
   namespace: string;
   datasetName: string;
-  embedding: string;
-  column: string;
+  options: ComputeEmbeddingIndexOptions;
 }
 
 export interface ComputeSignalColumnQueryArg {
@@ -118,11 +118,11 @@ export const datasetApi = createApi({
         () =>
           DatasetsService.getManifest(namespace, datasetName),
     }),
-    computeEmbeddingIndex: builder.query<Record<string, never>, ComputeEmbeddingQueryArg>({
+    computeEmbeddingIndex: builder.mutation<Record<string, never>, ComputeEmbeddingIndexQueryArg>({
       query:
-        ({namespace, datasetName, embedding, column}) =>
+        ({namespace, datasetName, options: body}) =>
         () =>
-          DatasetsService.computeEmbeddingIndex(namespace, datasetName, embedding, column),
+          DatasetsService.computeEmbeddingIndex(namespace, datasetName, body),
     }),
     computeSignalColumn: builder.mutation<Record<string, never>, ComputeSignalColumnQueryArg>({
       query:
@@ -175,7 +175,7 @@ export const datasetApi = createApi({
 
 export const {
   useGetSourcesQuery,
-  useComputeEmbeddingIndexQuery,
+  useComputeEmbeddingIndexMutation,
   useComputeSignalColumnMutation,
   useGetManifestQuery,
   useSelectRowsQuery,

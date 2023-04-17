@@ -12,7 +12,11 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
-from ..embeddings.embedding_registry import clear_embedding_registry, register_embed_fn
+from ..embeddings.embedding_registry import (
+    Embedding,
+    clear_embedding_registry,
+    register_embedding,
+)
 from ..schema import (
     TEXT_SPAN_END_FEATURE,
     TEXT_SPAN_START_FEATURE,
@@ -86,9 +90,15 @@ EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
 
-def embed(examples: Iterable[RichData]) -> np.ndarray:
-  """Embed the examples, use a hashmap to the vector for simplicity."""
-  return np.array([STR_EMBEDDINGS[cast(str, example)] for example in examples])
+class TestEmbedding(Embedding):
+  """A test embed function."""
+  name = TEST_EMBEDDING_NAME
+  enrichment_type = EnrichmentType.TEXT
+
+  @override
+  def __call__(self, data: Iterable[RichData]) -> np.ndarray:
+    """Embed the examples, use a hashmap to the vector for simplicity."""
+    return np.array([STR_EMBEDDINGS[cast(str, example)] for example in data])
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -97,8 +107,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestSignal)
   register_signal(TestSplitterWithLen)
   register_signal(TestEmbeddingSumSignal)
-  # We register the embed function like this so we can mock it and assert how many times its called.
-  register_embed_fn(TEST_EMBEDDING_NAME)(embed)
+  register_embedding(TestEmbedding)
 
   # Unit test runs.
   yield
@@ -528,9 +537,9 @@ class SelectRowsSuite:
                      'text': Field(dtype=DataType.STRING),
                  }))
 
-    db.compute_embedding_index(embedding=TEST_EMBEDDING_NAME, column='text')
+    db.compute_embedding_index(embedding=TestEmbedding(), column='text')
 
-    db.compute_signal_column(signal=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
+    db.compute_signal_column(signal=TestEmbeddingSumSignal(embedding=TestEmbedding()),
                              column='text',
                              signal_column_name='text_emb_sum')
 
@@ -576,10 +585,9 @@ class SelectRowsSuite:
                              column='text',
                              signal_column_name='text_sentences')
 
-    db.compute_embedding_index(embedding=TEST_EMBEDDING_NAME,
-                               column=('text_sentences', '*', 'split'))
+    db.compute_embedding_index(embedding=TestEmbedding(), column=('text_sentences', '*', 'split'))
 
-    db.compute_signal_column(signal=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
+    db.compute_signal_column(signal=TestEmbeddingSumSignal(embedding=TestEmbedding()),
                              column=('text_sentences', '*', 'split'),
                              signal_column_name='text_sentences_emb_sum')
 

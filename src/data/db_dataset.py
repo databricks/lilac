@@ -15,7 +15,7 @@ from pydantic import (
     validator,
 )
 
-from ..embeddings.embedding_registry import EmbeddingId
+from ..embeddings.embedding_registry import Embedding
 from ..schema import Item, Path, PathTuple, Schema, path_to_alias
 from ..signals.signal import Signal
 from ..tasks import TaskId
@@ -215,8 +215,18 @@ class DatasetDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def compute_embedding_index(self, embedding: EmbeddingId, column: ColumnId) -> None:
-    """Compute an embedding index for a column."""
+  def compute_embedding_index(self,
+                              embedding: Embedding,
+                              column: ColumnId,
+                              task_id: Optional[TaskId] = None) -> None:
+    """Compute an embedding index for a column.
+
+    Args:
+      embedding: The embedding to compute the index for.
+      column: The column to compute the signal on.
+      task_id: The TaskManager `task_id` for this process run. This is used to update the progress
+        of the task.
+    """
     pass
 
   @abc.abstractmethod

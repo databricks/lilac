@@ -7,8 +7,9 @@ from typing_extensions import override
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import (
+    Embedding,
     clear_embedding_registry,
-    register_embed_fn,
+    register_embedding,
 )
 from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
 from .signal import Signal
@@ -16,16 +17,22 @@ from .signal import Signal
 TEST_EMBEDDING_NAME = 'test_embedding'
 
 
-def embed(examples: Iterable[RichData]) -> np.ndarray:
-  """Embed the examples, use a hashmap to the vector for simplicity."""
-  return np.array([1.0])
+class TestEmbedding(Embedding):
+  """A test embed function."""
+  name = TEST_EMBEDDING_NAME
+  enrichment_type = EnrichmentType.TEXT
+
+  @override
+  def __call__(self, data: Iterable[RichData]) -> np.ndarray:
+    """Call the embedding function."""
+    return np.array([1.0])
 
 
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
 
   # We register the embed function like this so we can mock it and assert how many times its called.
-  register_embed_fn(TEST_EMBEDDING_NAME)(lambda examples: embed(examples))
+  register_embedding(TestEmbedding)
 
   # Unit test runs.
   yield

@@ -1,12 +1,12 @@
 """Interface for implementing a signal."""
 
 import abc
-from typing import Any, ClassVar, Iterable, Optional
+from typing import Any, ClassVar, Iterable, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
-from ..embeddings.embedding_registry import EmbeddingId, EmbedFn, get_embed_fn
+from ..embeddings.embedding_registry import Embedding, get_embedding_cls, resolve_embedding
 from ..schema import EnrichmentType, Field, Path, RichData, SignalOut
 
 
@@ -20,12 +20,12 @@ class Signal(abc.ABC, BaseModel):
   # The signal_name will get populated in init automatically from the class name so it gets
   # serialized and the signal author doesn't have to define both the static property and the field.
   signal_name: str = 'signal_base'
-  embedding: Optional[EmbeddingId] = None
+  embedding: Optional[Union[str, Embedding]] = None
 
   class Config:
     underscore_attrs_are_private = True
 
-  _embed_fn: Optional[EmbedFn] = None
+  _embed_fn: Optional[Embedding] = None
 
   def __init__(self, *args: Any, **kwargs: Any) -> None:
     super().__init__(*args, **kwargs)
@@ -38,8 +38,10 @@ class Signal(abc.ABC, BaseModel):
           'Signal attribute "embedding" must be defined for "embedding_based" signals.')
 
     if self.embedding:
-      _, embed_fn = get_embed_fn(self.embedding)
-      self._embed_fn = embed_fn
+      if isinstance(self.embedding, str):
+        self._embed_fn = get_embedding_cls(self.embedding)()
+      else:
+        self._embed_fn = self.embedding
 
     self.signal_name = self.__class__.name
 
@@ -73,3 +75,12 @@ class Signal(abc.ABC, BaseModel):
       An iterable of items. The signal should return "None" if the signal is sparse for the input.
     """
     pass
+
+  @validator('embedding', pre=True)
+  def parse_embedding(cls, embedding: Union[dict, str]) -> Union[str, Embedding]:
+    """Parse an embedding to its specific subclass instance."""
+    if embedding is None:
+      return embedding
+    if isinstance(embedding, str):
+      return embedding
+    return resolve_embedding(embedding)

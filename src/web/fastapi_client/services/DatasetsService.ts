@@ -1,6 +1,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ComputeEmbeddingIndexOptions } from '../models/ComputeEmbeddingIndexOptions';
+import type { ComputeEmbeddingIndexResponse } from '../models/ComputeEmbeddingIndexResponse';
 import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
 import type { ComputeSignalResponse } from '../models/ComputeSignalResponse';
 import type { DatasetInfo } from '../models/DatasetInfo';
@@ -56,20 +58,18 @@ export class DatasetsService {
 
     /**
      * Compute Embedding Index
-     * Compute a signal for a dataset.
+     * Compute an embedding index for a dataset.
      * @param namespace
      * @param datasetName
-     * @param embedding
-     * @param column
-     * @returns any Successful Response
+     * @param requestBody
+     * @returns ComputeEmbeddingIndexResponse Successful Response
      * @throws ApiError
      */
     public static computeEmbeddingIndex(
         namespace: string,
         datasetName: string,
-        embedding: string,
-        column: string,
-    ): CancelablePromise<any> {
+        requestBody: ComputeEmbeddingIndexOptions,
+    ): CancelablePromise<ComputeEmbeddingIndexResponse> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/compute_embedding_index',
@@ -77,10 +77,8 @@ export class DatasetsService {
                 'namespace': namespace,
                 'dataset_name': datasetName,
             },
-            query: {
-                'embedding': embedding,
-                'column': column,
-            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

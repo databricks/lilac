@@ -38,6 +38,7 @@ import {
 } from './api_dataset';
 import {signalApi} from './api_signal';
 import {fastAPIBaseQuery} from './api_utils';
+import { embeddingApi } from './api_embeddings';
 
 interface SelectedData {
   namespace?: string;
@@ -254,6 +255,7 @@ export const store = configureStore({
     [serverApi.reducerPath]: serverApi.reducer,
     [datasetApi.reducerPath]: datasetApi.reducer,
     [signalApi.reducerPath]: signalApi.reducer,
+    [embeddingApi.reducerPath]: embeddingApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat([
@@ -261,6 +263,7 @@ export const store = configureStore({
       datasetApi.middleware,
       signalApi.middleware,
       serverApi.middleware,
+      embeddingApi.middleware,
       rtkQueryErrorLogger,
     ]),
   devTools: process.env.NODE_ENV !== 'production',

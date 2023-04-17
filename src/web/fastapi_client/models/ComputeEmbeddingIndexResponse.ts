@@ -3,9 +3,9 @@
 /* eslint-disable */
 
 /**
- * Response of the compute signal column endpoint.
+ * Response of the compute embedding index endpoint.
  */
-export type ComputeSignalResponse = {
+export type ComputeEmbeddingIndexResponse = {
     task_id: string;
 };
 

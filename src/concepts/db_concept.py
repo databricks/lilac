@@ -9,7 +9,7 @@ from uuid import uuid4
 from pydantic import BaseModel
 
 from ..constants import data_path
-from ..embeddings.embedding_registry import get_embed_fn
+from ..embeddings.embedding_registry import get_embedding_cls
 from ..utils import delete_file, file_exists, open_file
 from .concept import Concept, ConceptModel, Example, ExampleIn
 
@@ -100,7 +100,7 @@ class DiskConceptModelDB(ConceptModelDB):
       raise ValueError(f'Concept "{namespace}/{concept_name}" does not exist.')
 
     # Make sure that the embedding exists.
-    if not get_embed_fn(embedding_name):
+    if not get_embedding_cls(embedding_name):
       raise ValueError(f'Embedding "{embedding_name}" is not registered in the registry.')
 
     concept_model_path = _concept_model_path(namespace, concept_name, embedding_name)

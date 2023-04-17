@@ -1,6 +1,5 @@
 """Test the semantic search signal."""
 
-import sys
 from typing import Iterable, Optional, cast
 
 import numpy as np
@@ -9,8 +8,13 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..embeddings.embedding_index import EmbeddingIndex, EmbeddingIndexer
-from ..embeddings.embedding_registry import EmbeddingId, clear_embedding_registry, register_embed_fn
-from ..schema import Path, RichData
+from ..embeddings.embedding_registry import (
+    Embedding,
+    EmbeddingId,
+    clear_embedding_registry,
+    register_embedding,
+)
+from ..schema import EnrichmentType, Path, RichData
 from .semantic_search import SemanticSearchSignal
 
 TEST_EMBEDDING_NAME = 'test_embedding'
@@ -45,16 +49,20 @@ class TestEmbeddingIndexer(EmbeddingIndexer):
     pass
 
 
-def embed(examples: Iterable[RichData]) -> np.ndarray:
-  """Embed the examples, use a hashmap to the vector for simplicity."""
-  return np.array([STR_EMBEDDINGS[cast(str, example)] for example in examples])
+class TestEmbedding(Embedding):
+  """A test embed function."""
+  name = TEST_EMBEDDING_NAME
+  enrichment_type = EnrichmentType.TEXT
+
+  @override
+  def __call__(self, data: Iterable[RichData]) -> np.ndarray:
+    """Embed the examples, use a hashmap to the vector for simplicity."""
+    return np.array([STR_EMBEDDINGS[cast(str, example)] for example in data])
 
 
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
-
-  # We register the embed function like this so we can mock it and assert how many times its called.
-  register_embed_fn(TEST_EMBEDDING_NAME)(lambda examples: embed(examples))
+  register_embedding(TestEmbedding)
 
   # Unit test runs.
   yield
@@ -66,7 +74,7 @@ def setup_teardown() -> Iterable[None]:
 def test_semantic_search_compute_keys(mocker: MockerFixture) -> None:
   embedding_indexer = TestEmbeddingIndexer()
 
-  embed_mock = mocker.spy(sys.modules[__name__], embed.__name__)
+  embed_mock = mocker.spy(TestEmbedding, '__call__')
 
   signal = SemanticSearchSignal(query='hello', embedding=TEST_EMBEDDING_NAME)
   scores = list(
@@ -81,7 +89,7 @@ def test_semantic_search_compute_keys(mocker: MockerFixture) -> None:
 
 
 def test_semantic_search_compute_data(mocker: MockerFixture) -> None:
-  embed_mock = mocker.spy(sys.modules[__name__], embed.__name__)
+  embed_mock = mocker.spy(TestEmbedding, '__call__')
 
   signal = SemanticSearchSignal(query='hello', embedding=TEST_EMBEDDING_NAME)
   # Compute over the text.

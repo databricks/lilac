@@ -8,7 +8,14 @@ from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 
-from . import db_deprecated, router_concept, router_data_loader, router_dataset, router_signal
+from . import (
+    db_deprecated,
+    router_concept,
+    router_data_loader,
+    router_dataset,
+    router_embedding,
+    router_signal,
+)
 from .server_api import (
     AddDatasetOptions,
     AddExamplesOptions,
@@ -33,6 +40,9 @@ tags_metadata: list[dict[str, Any]] = [{
 }, {
     'name': 'signals',
     'description': 'API for managing signals.',
+}, {
+    'name': 'embeddings',
+    'description': 'API for managing embeddings.',
 }]
 
 
@@ -48,6 +58,7 @@ v1_router.include_router(router_dataset.router, prefix='/datasets', tags=['datas
 v1_router.include_router(router_concept.router, prefix='/concepts', tags=['concepts'])
 v1_router.include_router(router_data_loader.router, prefix='/data_loaders', tags=['data_loaders'])
 v1_router.include_router(router_signal.router, prefix='/signals', tags=['signals'])
+v1_router.include_router(router_embedding.router, prefix='/embeddings', tags=['embeddings'])
 
 app.include_router(v1_router, prefix='/api/v1')
 

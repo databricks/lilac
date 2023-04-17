@@ -1,4 +1,4 @@
-"""A signal to compute semantic search for a document."""
+"""Tests for the signal registry."""
 from typing import Iterable, Optional
 
 import pytest

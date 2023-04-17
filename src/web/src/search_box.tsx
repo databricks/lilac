@@ -3,14 +3,16 @@ import {Command} from 'cmdk';
 import {JSONSchema7} from 'json-schema';
 import * as React from 'react';
 import {Location, useLocation, useNavigate, useParams} from 'react-router-dom';
-import {EnrichmentType, Field, SignalInfo} from '../fastapi_client';
+import {EmbeddingInfo, EnrichmentType, Field, SignalInfo} from '../fastapi_client';
 import {Path, Schema, serializePath} from './schema';
 import './search_box.css';
 import {
+  useComputeEmbeddingIndexMutation,
   useComputeSignalColumnMutation,
   useGetDatasetsQuery,
   useGetManifestQuery,
 } from './store/api_dataset';
+import {useGetEmbeddingsQuery} from './store/api_embeddings';
 import {useGetSignalsQuery} from './store/api_signal';
 import {useTopValues} from './store/store';
 import {renderPath, renderQuery, useClickOutside} from './utils';
@@ -23,7 +25,9 @@ type PageType =
   | 'add-filter'
   | 'add-filter-value'
   | 'compute-signal'
-  | 'compute-signal-setup';
+  | 'compute-signal-setup'
+  | 'compute-embedding-index'
+  | 'compute-embedding-index-setup';
 
 type PageMetadata = {
   'open-dataset': Record<string, never>;
@@ -31,6 +35,8 @@ type PageMetadata = {
   'add-filter-value': {path: Path; field: Field};
   'compute-signal': Record<string, never>;
   'compute-signal-setup': {signal: SignalInfo};
+  'compute-embedding-index': Record<string, never>;
+  'compute-embedding-index-setup': {embedding: EmbeddingInfo};
 };
 
 interface Page<T extends PageType = PageType> {
@@ -161,6 +167,14 @@ export const SearchBox = () => {
               {activePage?.type == 'compute-signal-setup' && (
                 <ComputeSignalSetup page={activePage as Page<'compute-signal-setup'>} />
               )}
+              {activePage?.type == 'compute-embedding-index' && (
+                <ComputeEmbeddingIndex pushPage={pushPage} />
+              )}
+              {activePage?.type == 'compute-embedding-index-setup' && (
+                <ComputeEmbeddingIndexSetup
+                  page={activePage as Page<'compute-embedding-index-setup'>}
+                />
+              )}
             </>
           )}
         </Command.List>
@@ -204,8 +218,16 @@ function HomeMenu({
               pushPage({type: 'compute-signal', name: 'Compute signal'});
             }}
           >
-            <SlIcon className="text-xl" name="stars" />
+            <SlIcon className="text-xl" name="magic" />
             Compute signal
+          </Item>
+          <Item
+            onSelect={() => {
+              pushPage({type: 'compute-embedding-index', name: 'Compute embedding index'});
+            }}
+          >
+            <SlIcon className="text-xl" name="cpu" />
+            Compute embedding index
           </Item>
         </Command.Group>
       )}
@@ -486,6 +508,114 @@ function ComputeSignalSetup({page}: {page: Page<'compute-signal-setup'>}) {
       </div>
     </>
   );
+}
+
+function ComputeEmbeddingIndexSetup({page}: {page: Page<'compute-embedding-index-setup'>}) {
+  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
+  if (namespace == null || datasetName == null) {
+    throw new Error('Invalid route');
+  }
+  const [selectedLeafIndex, setSelectedLeafIndex] = React.useState<number | null>(null);
+  const embedding_name = page.metadata!.embedding;
+  const [
+    computeEmbedding,
+    {isLoading: isComputeEmbeddingLoading, isSuccess: isComputeEmbeddingSuccess},
+  ] = useComputeEmbeddingIndexMutation();
+  const {currentData: webManifest, isFetching: isManifestFetching} = useGetManifestQuery({
+    namespace,
+    datasetName,
+  });
+  const schema = webManifest != null ? new Schema(webManifest.dataset_manifest.data_schema) : null;
+  if (isManifestFetching || schema == null) {
+    return <SlSpinner />;
+  }
+  const signalLeafs = getLeafsByEnrichmentType(schema.leafs, embedding_name.enrichment_type);
+  return (
+    <>
+      <SlSelect
+        className="w-80"
+        hoist
+        size="small"
+        placeholder="Which column to compute the embedding index on?"
+        value={(selectedLeafIndex && selectedLeafIndex.toString()) || ''}
+        onSlChange={(e) => {
+          const index = Number((e.target as HTMLInputElement).value);
+          setSelectedLeafIndex(index);
+        }}
+      >
+        {signalLeafs.map(([path], i) => {
+          return (
+            <SlOption key={i} value={i.toString()}>
+              {renderPath(path)}
+            </SlOption>
+          );
+        })}
+      </SlSelect>
+      <SlButton
+        size="small"
+        disabled={isComputeEmbeddingLoading}
+        className="mt-4"
+        onClick={() => {
+          const leafPath = selectedLeafIndex != null ? signalLeafs[selectedLeafIndex][0] : null;
+          if (leafPath == null) {
+            return;
+          }
+          computeEmbedding({
+            namespace,
+            datasetName,
+            options: {leaf_path: leafPath, embedding: {embedding_name: embedding_name.name}},
+          });
+        }}
+      >
+        Compute embedding index
+      </SlButton>
+      <div className="mt-4 flex items-center">
+        <div>
+          {isComputeEmbeddingLoading && <SlSpinner />}
+          {isComputeEmbeddingSuccess && <SlIcon name="check-lg" />}
+        </div>
+        {isComputeEmbeddingSuccess && (
+          <div className="ml-4 text-sm">
+            Check the task list. When the task is complete, refresh the page to see the index.
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function ComputeEmbeddingIndex({pushPage}: {pushPage: (page: Page) => void}) {
+  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
+  if (namespace == null || datasetName == null) {
+    throw new Error('Invalid route');
+  }
+  const query = useGetEmbeddingsQuery();
+  return renderQuery(query, (embeddings) => {
+    return (
+      <>
+        {embeddings.map((embedding) => {
+          const jsonSchema = embedding.json_schema as JSONSchema7;
+          return (
+            <Item
+              key={embedding.name}
+              onSelect={() => {
+                pushPage({
+                  type: 'compute-embedding-index-setup',
+                  name: embedding.name,
+                  metadata: {embedding},
+                });
+              }}
+            >
+              <div className="flex w-full justify-between">
+                <div className="truncate">{embedding.name}</div>
+                <div className="truncate">{jsonSchema.description}</div>
+              </div>
+            </Item>
+          );
+        })}
+      </>
+    );
+  });
 }
 
 function Item({

@@ -1,17 +1,17 @@
 """Tests for embedding indexers."""
 
 import pathlib
-import sys
 from typing import Iterable, Type, cast
 
 import numpy as np
 import pytest
 from pytest_mock import MockerFixture
+from typing_extensions import override
 
-from ..schema import RichData
+from ..schema import EnrichmentType, RichData
 from .embedding_index import EmbeddingIndexer
 from .embedding_index_disk import EmbeddingIndexerDisk
-from .embedding_registry import clear_embedding_registry, register_embed_fn
+from .embedding_registry import Embedding, clear_embedding_registry, register_embedding
 
 ALL_INDEXERS: list[Type[EmbeddingIndexer]] = [EmbeddingIndexerDisk]
 
@@ -25,11 +25,21 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for _, text, embedding
 KEY_EMBEDDINGS: dict[bytes, list[float]] = {key: embedding for key, _, embedding in EMBEDDINGS}
 
 
+class TestEmbedding(Embedding):
+  """A test embed function."""
+  name = TEST_EMBEDDING_NAME
+  enrichment_type = EnrichmentType.TEXT
+
+  @override
+  def __call__(self, data: Iterable[RichData]) -> np.ndarray:
+    """Call the embedding function."""
+    return np.array([STR_EMBEDDINGS[cast(str, example)] for example in data])
+
+
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
-
-  # We register the embed function like this so we can mock it and assert how many times its called.
-  register_embed_fn(TEST_EMBEDDING_NAME)(lambda examples: embed(examples))
+  # Setup.
+  register_embedding(TestEmbedding)
 
   # Unit test runs.
   yield
@@ -55,19 +65,19 @@ class EmbeddingIndexerSuite:
   @pytest.mark.parametrize('indexer_cls', ALL_INDEXERS)
   def test_get_full_index(self, tmp_path: pathlib.Path, mocker: MockerFixture,
                           indexer_cls: Type[EmbeddingIndexer]) -> None:
-    embed_mock = mocker.spy(sys.modules[__name__], embed.__name__)
+    embed_mock = mocker.spy(TestEmbedding, '__call__')
 
     indexer = _make_indexer(indexer_cls, tmp_path)
 
     indexer.compute_embedding_index('test_column',
-                                    TEST_EMBEDDING_NAME,
+                                    TestEmbedding(),
                                     keys=[key for key, _, _ in EMBEDDINGS],
                                     data=[text for _, text, _ in EMBEDDINGS])
 
     # Embed should only be called once.
     assert embed_mock.call_count == 1
 
-    index = indexer.get_embedding_index('test_column', TEST_EMBEDDING_NAME)
+    index = indexer.get_embedding_index('test_column', TestEmbedding())
 
     np.testing.assert_array_equal(index.embeddings,
                                   np.array([embedding for _, _, embedding in EMBEDDINGS]))
@@ -78,12 +88,12 @@ class EmbeddingIndexerSuite:
   @pytest.mark.parametrize('indexer_cls', ALL_INDEXERS)
   def test_get_partial_index(self, tmp_path: pathlib.Path, mocker: MockerFixture,
                              indexer_cls: Type[EmbeddingIndexer]) -> None:
-    embed_mock = mocker.spy(sys.modules[__name__], embed.__name__)
+    embed_mock = mocker.spy(TestEmbedding, '__call__')
 
     indexer = _make_indexer(indexer_cls, tmp_path)
 
     indexer.compute_embedding_index('test_column',
-                                    TEST_EMBEDDING_NAME,
+                                    TestEmbedding(),
                                     keys=[key for key, _, _ in EMBEDDINGS],
                                     data=[text for _, text, _ in EMBEDDINGS])
 
@@ -92,7 +102,7 @@ class EmbeddingIndexerSuite:
 
     index = indexer.get_embedding_index(
         'test_column',
-        TEST_EMBEDDING_NAME,
+        TestEmbedding(),
         # Keys are partial.
         keys=[b'1', b'2'])
 

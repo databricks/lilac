@@ -6,27 +6,27 @@ from typing import Iterable
 import cohere
 import numpy as np
 from sklearn.preprocessing import normalize
-from tqdm import tqdm
 
-from ..schema import RichData
-from ..utils import chunks
-from .embedding_registry import register_embed_fn
-
-# Cohere only accepts 96 inputs at a time.
-COHERE_EXAMPLE_LIMIT = 96
+from ..schema import EnrichmentType, RichData
+from .embedding_registry import Embedding
 
 
 @functools.cache
 def _co() -> cohere.Client:
-  return cohere.Client(os.environ['COHERE_API_KEY'])
+  api_key = os.environ.get('COHERE_API_KEY', None)
+  if not api_key:
+    raise ValueError('`COHERE_API_KEY` environment variable not set.')
+  return cohere.Client(api_key)
 
 
-@register_embed_fn('cohere')
-def embed(examples: Iterable[RichData]) -> np.ndarray:
-  """Embed the examples using cohere."""
-  embeddings = np.concatenate([
-      np.array(_co().embed(chunk, truncate='START').embeddings)
-      for chunk in tqdm(list(chunks(examples, size=COHERE_EXAMPLE_LIMIT)))
-  ])
+class Cohere(Embedding):
+  """Cohere embedding."""
+  name = 'cohere'
+  enrichment_type = EnrichmentType.TEXT
+  # Cohere only accepts 96 inputs at a time.
+  batch_size = 96
 
-  return normalize(embeddings).astype(np.float16)
+  def __call__(self, data: Iterable[RichData]) -> np.ndarray:
+    """Call the embedding function."""
+    return normalize(np.array(_co().embed(list(data),
+                                          truncate='START').embeddings)).astype(np.float16)

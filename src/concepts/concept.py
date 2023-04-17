@@ -5,7 +5,7 @@ import numpy as np
 from pydantic import BaseModel
 from sklearn import linear_model
 
-from ..embeddings.embedding_registry import get_embed_fn
+from ..embeddings.embedding_registry import get_embedding_cls
 from ..schema import RichData
 
 LOCAL_CONCEPT_NAMESPACE = 'local'
@@ -74,7 +74,7 @@ class ConceptModel(BaseModel):
 
   def score(self, examples: Iterable[RichData]) -> list[float]:
     """Get the scores for the provided examples."""
-    _, embed_fn = get_embed_fn(self.embedding_name)
+    embed_fn = get_embedding_cls(self.embedding_name)()
     embeddings = embed_fn(examples)
     return self.score_embeddings(embeddings).tolist()
 
@@ -84,7 +84,7 @@ class ConceptModel(BaseModel):
       # The model is up to date.
       return False
 
-    _, embed_fn = get_embed_fn(self.embedding_name)
+    embed_fn = get_embedding_cls(self.embedding_name)()
     concept_embeddings: dict[str, np.ndarray] = {}
 
     # Compute the embeddings for the examples with cache miss.

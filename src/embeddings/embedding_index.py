@@ -5,8 +5,9 @@ from typing import Callable, Iterable, Optional
 import numpy as np
 from pydantic import BaseModel
 
-from ..embeddings.embedding_registry import EmbeddingId
+from ..embeddings.embedding_registry import Embedding, EmbeddingId
 from ..schema import Path, RichData
+from ..tasks import TaskId
 
 
 class EmbeddingIndex(BaseModel):
@@ -27,7 +28,7 @@ class EmbeddingIndexer(abc.ABC):
   @abc.abstractmethod
   def get_embedding_index(self,
                           column: Path,
-                          embedding: EmbeddingId,
+                          embedding: Embedding,
                           keys: Optional[Iterable[bytes]] = None) -> EmbeddingIndex:
     """Get an embedding index for a column, throw if it doesn't exist.
 
@@ -43,8 +44,12 @@ class EmbeddingIndexer(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def compute_embedding_index(self, column: Path, embedding: EmbeddingId, keys: Iterable[bytes],
-                              data: Iterable[RichData]) -> None:
+  def compute_embedding_index(self,
+                              column: Path,
+                              embedding: Embedding,
+                              keys: Iterable[bytes],
+                              data: Iterable[RichData],
+                              task_id: Optional[TaskId] = None) -> None:
     """Get an embedding index for a column, throw if it doesn't exist.
 
     Args:

@@ -15,7 +15,8 @@ from .data.db_dataset import (
     StatsResult,
 )
 from .db_manager import get_dataset_db
-from .embeddings import default_embeddings  # noqa # pylint: disable=unused-import
+from .embeddings.default_embeddings import register_default_embeddings
+from .embeddings.embedding_registry import Embedding, resolve_embedding
 from .router_utils import RouteErrorHandler
 from .schema import PathTuple, path_to_alias
 from .signals.default_signals import register_default_signals
@@ -27,6 +28,7 @@ from .utils import DATASETS_DIR_NAME
 router = APIRouter(route_class=RouteErrorHandler)
 
 register_default_signals()
+register_default_embeddings()
 
 
 class DatasetInfo(BaseModel):
@@ -78,13 +80,46 @@ def get_manifest(namespace: str, dataset_name: str) -> WebManifest:
   return WebManifest(dataset_manifest=dataset_db.manifest())
 
 
-@router.post('/{namespace}/{dataset_name}/compute_embedding_index')
-def compute_embedding_index(namespace: str, dataset_name: str, embedding: str, column: str) -> dict:
-  """Compute a signal for a dataset."""
-  dataset_db = get_dataset_db(namespace, dataset_name)
-  dataset_db.compute_embedding_index(embedding, column)
+class ComputeEmbeddingIndexOptions(BaseModel):
+  """The request for the compute embedding index endpoint."""
+  embedding: Embedding
 
-  return {}
+  # The leaf path to compute the signal on.
+  leaf_path: PathTuple
+
+  @validator('embedding', pre=True)
+  def parse_embedding(cls, embedding: dict) -> Embedding:
+    """Parse an embedding to its specific subclass instance."""
+    return resolve_embedding(embedding)
+
+
+class ComputeEmbeddingIndexResponse(BaseModel):
+  """Response of the compute embedding index endpoint."""
+  task_id: TaskId
+
+
+@router.post('/{namespace}/{dataset_name}/compute_embedding_index')
+def compute_embedding_index(namespace: str, dataset_name: str,
+                            options: ComputeEmbeddingIndexOptions) -> ComputeEmbeddingIndexResponse:
+  """Compute an embedding index for a dataset."""
+
+  def compute_embedding_index(namespace: str, dataset_name: str, options_dict: dict,
+                              task_id: TaskId) -> None:
+    # NOTE: We manually call .dict() to avoid the dask serializer, which doesn't call the underlying
+    # pydantic serializer.
+    options = ComputeEmbeddingIndexOptions(**options_dict)
+    dataset_db = get_dataset_db(namespace, dataset_name)
+    dataset_db.compute_embedding_index(options.embedding, options.leaf_path, task_id=task_id)
+
+  alias = path_to_alias(options.leaf_path)
+  task_id = task_manager().task_id(
+      name=f'Compute embedding index "{options.embedding.name}" on "{alias}" '
+      f'in dataset "{namespace}/{dataset_name}"',
+      description=f'Config: {options.embedding}')
+  task_manager().execute(task_id, compute_embedding_index, namespace, dataset_name, options.dict(),
+                         task_id)
+
+  return ComputeEmbeddingIndexResponse(task_id=task_id)
 
 
 class ComputeSignalOptions(BaseModel):
@@ -101,7 +136,7 @@ class ComputeSignalOptions(BaseModel):
 
 
 class ComputeSignalResponse(BaseModel):
-  """Response of the load dataset endpoint."""
+  """Response of the compute signal column endpoint."""
   task_id: TaskId
 
 

@@ -1,4 +1,4 @@
-"""Embedding registry."""
+"""Signal registry."""
 from typing import Type, Union
 
 from .signal import Signal
