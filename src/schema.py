@@ -369,7 +369,7 @@ def dtype_to_arrow_dtype(dtype: DataType) -> pa.DataType:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
 
 
-def schema_to_arrow_schema(schema: Schema) -> pa.Schema:
+def schema_to_arrow_schema(schema: Union[Schema, Field]) -> pa.Schema:
   """Convert our schema to arrow schema."""
   arrow_schema = cast(pa.Schema, _schema_to_arrow_schema_impl(schema))
   arrow_fields = {field.name: field.type for field in arrow_schema}
@@ -439,49 +439,6 @@ def arrow_dtype_to_dtype(arrow_dtype: pa.DataType) -> DataType:
     return DataType.BOOLEAN
   else:
     raise ValueError(f'Can not convert arrow dtype "{arrow_dtype}" to our dtype')
-
-
-def dtype_to_sample_value(
-    dtype: DataType) -> Union[np.number, str, bool, np.datetime64, np.timedelta64, bytearray]:
-  """Convert the dtype to a sample numpy value."""
-  if dtype == DataType.STRING:
-    return ''
-  elif dtype == DataType.BOOLEAN:
-    return False
-  elif dtype == DataType.FLOAT16:
-    return np.float16(0)
-  elif dtype == DataType.FLOAT32:
-    return np.float32(0)
-  elif dtype == DataType.FLOAT64:
-    return np.float64(0)
-  elif dtype == DataType.INT8:
-    return np.int8(0)
-  elif dtype == DataType.INT16:
-    return np.int16(0)
-  elif dtype == DataType.INT32:
-    return np.int32(0)
-  elif dtype == DataType.INT64:
-    return np.int64(0)
-  elif dtype == DataType.UINT8:
-    return np.uint8(0)
-  elif dtype == DataType.UINT16:
-    return np.uint16(0)
-  elif dtype == DataType.UINT32:
-    return np.uint32(0)
-  elif dtype == DataType.UINT64:
-    return np.uint64()
-  elif dtype == DataType.BINARY:
-    return bytearray([0])
-  elif dtype == DataType.TIME:
-    return np.datetime64()
-  elif dtype == DataType.DATE:
-    return np.datetime64()
-  elif dtype == DataType.TIMESTAMP:
-    return np.datetime64()
-  elif dtype == DataType.INTERVAL:
-    return np.timedelta64(0)
-  else:
-    raise ValueError(f'Can not convert dtype "{dtype}" to a numpy value')
 
 
 def arrow_schema_to_schema(schema: pa.Schema) -> Schema:

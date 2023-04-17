@@ -408,7 +408,7 @@ class SelectRowsSuite:
       if data is None:
         raise ValueError('data is not defined')
       for text in data:
-        yield {'len': np.int32(len(text)), 'flen': np.float32(len(text))}
+        yield {'len': len(text), 'flen': float(len(text))}
 
   def test_signal_transform(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls,

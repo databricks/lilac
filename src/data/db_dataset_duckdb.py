@@ -3,10 +3,11 @@ import functools
 import itertools
 import os
 import re
-from typing import Any, Callable, Iterable, Iterator, Optional, Sequence, Union, cast
+from typing import Any, Iterable, Iterator, Optional, Sequence, Union, cast
 
 import duckdb
 import pandas as pd
+import pyarrow as pa
 from pydantic import BaseModel, validator
 from typing_extensions import override
 
@@ -27,13 +28,13 @@ from ..schema import (
     PathTuple,
     Schema,
     SourceManifest,
-    dtype_to_sample_value,
     enrichment_supports_dtype,
     is_float,
     is_integer,
     is_ordinal,
     is_repeated_path_part,
     normalize_path,
+    schema_to_arrow_schema,
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import resolve_signal
@@ -608,42 +609,6 @@ class DatasetDuckDB(DatasetDB):
     """
     return DuckDBSelectGroupsResult(self._query(query))
 
-  def _field_to_sample_value(self, field: Field) -> Any:
-    if field.fields:
-      return {name: self._field_to_sample_value(field) for name, field in field.fields.items()}
-    elif field.repeated_field:
-      return [self._field_to_sample_value(field.repeated_field)]
-    elif not field.dtype:
-      raise ValueError(f'Field "{field}" has no dtype')
-    else:
-      return dtype_to_sample_value(field.dtype)
-
-  def _signal_udf_fn(self, signal: Signal, col: Column) -> Callable[[pd.DataFrame], pd.DataFrame]:
-
-    sample_result = self._field_to_sample_value(signal.fields(col.feature))
-    sample_df = pd.DataFrame({UUID_COLUMN: [bytearray([0])]})
-    if type(sample_result) == dict:
-      for key, value in sample_result.items():
-        sample_df[key] = [value]
-    else:
-      sample_df[col.alias] = [sample_result]
-
-    def udf_fn(df: pd.DataFrame) -> pd.DataFrame:
-      if df.size == 0:
-        # Return a sample dataframe with the same schema as the output.
-        return sample_df
-
-      result = pd.DataFrame({UUID_COLUMN: df[UUID_COLUMN]})
-      signal_results = list(signal.compute(df['value']))
-      if type(sample_result) == dict:
-        for key in sample_result.keys():
-          result[key] = [cast(dict, signal_result)[key] for signal_result in signal_results]
-      else:
-        result[col.alias] = signal_results
-      return result
-
-    return udf_fn
-
   @override
   def select_rows(self,
                   columns: Optional[Sequence[ColumnId]] = None,
@@ -673,22 +638,29 @@ class DatasetDuckDB(DatasetDB):
       query = query.filter(' AND '.join(filter_queries))
 
     query = query.set_alias('r1')
-    # Run UDFs on the filtered rows.
-    for col in cols:
-      if not col.transform:
-        continue
-      path = col.feature
-      udf_query = self.con.sql(f'SELECT {UUID_COLUMN}, {self._path_to_col(path)} as value FROM t')
-      if isinstance(col.transform, SignalTransform):
-        udf_query = udf_query.map(self._signal_udf_fn(col.transform.signal, col))
-      else:
+    transform_columns = [col for col in cols if col.transform]
+
+    # Run UDFs on the transformed columns.
+    for col in transform_columns:
+      if not isinstance(col.transform, SignalTransform):
         raise ValueError(f'Unsupported transform: {col.transform}')
-      signal_fields = col.transform.signal.fields(col.feature).fields
-      if signal_fields:
-        # This signal results a dict.
-        signal_fields.keys()
-        project_cols = ', '.join([f'{key}: {key}' for key in signal_fields.keys()])
-        udf_query = udf_query.project(f'{UUID_COLUMN}, {{{project_cols}}} as "{col.alias}"')
+      source_path = col.feature
+      select_leafs_result = self._select_leafs(path=source_path)
+      leafs_df = select_leafs_result.duckdb_result.df()
+      signal = col.transform.signal
+      signal_outs = signal.compute(data=leafs_df[select_leafs_result.value_column])
+      # Import the signal results into DuckDB.
+      # Add UUIDs to the signal outs.
+      signal_outs = [{
+          UUID_COLUMN: uuid,
+          col.alias: value
+      } for uuid, value in zip(leafs_df[UUID_COLUMN], signal_outs)]
+      schema = Schema(fields={
+          UUID_COLUMN: Field(dtype=DataType.BINARY),
+          col.alias: signal.fields(source_path)
+      })
+      table = pa.Table.from_pylist(signal_outs, schema=schema_to_arrow_schema(schema))
+      udf_query = self.con.from_arrow(table)
       udf_query = udf_query.set_alias('r2')
       query = query.join(udf_query, f'r1.{UUID_COLUMN} = r2.{UUID_COLUMN}')
       col_aliases.extend([UUID_COLUMN, col.alias])
