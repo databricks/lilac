@@ -646,8 +646,8 @@ class DatasetDuckDB(DatasetDB):
       signal = col.transform.signal
 
       if signal.embedding_based:
-        # For embedding based signals, get the leaf keys and indices, creating a combined key for the
-        # key + index to pass to the signal.
+        # For embedding based signals, get the leaf keys and indices, creating a combined key for
+        # the key + index to pass to the signal.
         select_leafs_result = self._select_leafs(path=source_path, only_keys=True)
         leafs_df = select_leafs_result.duckdb_result.df()
         keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)

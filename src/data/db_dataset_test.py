@@ -463,7 +463,7 @@ class SelectRowsSuite:
     transform = SignalTransform(signal=SelectRowsSuite.LengthOfText())
 
     # Filter by source feature.
-    filters = [('text', Comparison.EQUALS, 'everybody')]
+    filters: list[FilterTuple] = [('text', Comparison.EQUALS, 'everybody')]
     result = db.select_rows(columns=['text', Column(feature='text', transform=transform)],
                             filters=filters)
     assert list(result) == [{
