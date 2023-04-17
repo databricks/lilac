@@ -36,9 +36,9 @@ import {
   useSelectGroupsQuery,
   useSelectRowsQuery,
 } from './api_dataset';
+import {embeddingApi} from './api_embeddings';
 import {signalApi} from './api_signal';
 import {fastAPIBaseQuery} from './api_utils';
-import { embeddingApi } from './api_embeddings';
 
 interface SelectedData {
   namespace?: string;

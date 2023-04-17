@@ -144,7 +144,6 @@ def progress(it: Iterable[TProgress],
   it_idx = 0
   for t in it:
     if it_idx % emit_every == 0:
-      print('setting worker progress to', float(it_idx / estimated_len))
       set_worker_task_progress(task_id, float(it_idx / estimated_len))
     it_idx += 1
     yield t
