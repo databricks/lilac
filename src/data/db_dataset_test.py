@@ -37,7 +37,7 @@ from .db_dataset import (
     DatasetManifest,
     FilterTuple,
     NamedBins,
-    SignalTransform,
+    SignalMap,
     SortOrder,
     StatsResult,
 )
@@ -388,28 +388,6 @@ class SelectRowsSuite:
         }]
     }]
 
-  class LengthOfText(Signal):
-    name = 'length_of_text'
-    enrichment_type = EnrichmentType.TEXT
-
-    @override
-    def fields(self, input_column: Path) -> Field:
-      return Field(fields={
-          'len': Field(dtype=DataType.INT32),
-          'flen': Field(dtype=DataType.FLOAT32)
-      })
-
-    @override
-    def compute(
-        self,
-        data: Optional[Iterable[RichData]] = None,
-        keys: Optional[Iterable[bytes]] = None,
-        get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
-      if data is None:
-        raise ValueError('data is not defined')
-      for text in data:
-        yield {'len': len(text), 'flen': float(len(text))}
-
   def test_signal_transform(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls,
                  tmp_path,
@@ -425,20 +403,20 @@ class SelectRowsSuite:
                      'text': Field(dtype=DataType.STRING),
                  }))
 
-    transform = SignalTransform(signal=SelectRowsSuite.LengthOfText())
-    result = db.select_rows(columns=['text', Column(feature='text', transform=transform)])
+    signal_col = SignalMap(TestSignal(), 'text')
+    result = db.select_rows(columns=['text', signal_col])
 
     assert list(result) == [{
         UUID_COLUMN: '31' * 16,
         'text': 'hello',
-        'length_of_text(text)': {
+        'test_signal(text)': {
             'len': 5,
             'flen': 5.0
         }
     }, {
         UUID_COLUMN: '32' * 16,
         'text': 'everybody',
-        'length_of_text(text)': {
+        'test_signal(text)': {
             'len': 9,
             'flen': 9.0
         }
@@ -460,47 +438,90 @@ class SelectRowsSuite:
                      'text': Field(dtype=DataType.STRING),
                  }))
 
-    transform = SignalTransform(signal=SelectRowsSuite.LengthOfText())
-
+    signal_col = SignalMap(TestSignal(), 'text')
     # Filter by source feature.
     filters: list[FilterTuple] = [('text', Comparison.EQUALS, 'everybody')]
-    result = db.select_rows(columns=['text', Column(feature='text', transform=transform)],
-                            filters=filters)
+    result = db.select_rows(columns=['text', signal_col], filters=filters)
     assert list(result) == [{
         UUID_COLUMN: '32' * 16,
         'text': 'everybody',
-        'length_of_text(text)': {
+        'test_signal(text)': {
             'len': 9,
             'flen': 9.0
         }
     }]
 
     # Filter by transformed feature.
-    filters = [(('length_of_text(text)', 'len'), Comparison.LESS, 7)]
-    result = db.select_rows(columns=['text', Column(feature='text', transform=transform)],
-                            filters=filters)
+    filters = [(('test_signal(text)', 'len'), Comparison.LESS, 7)]
+    result = db.select_rows(columns=['text', signal_col], filters=filters)
 
     assert list(result) == [{
         UUID_COLUMN: '31' * 16,
         'text': 'hello',
-        'length_of_text(text)': {
+        'test_signal(text)': {
             'len': 5,
             'flen': 5.0
         }
     }]
 
-    filters = [(('length_of_text(text)', 'flen'), Comparison.GREATER, 6.0)]
-    result = db.select_rows(columns=['text', Column(feature='text', transform=transform)],
-                            filters=filters)
+    filters = [(('test_signal(text)', 'flen'), Comparison.GREATER, 6.0)]
+    result = db.select_rows(columns=['text', signal_col], filters=filters)
 
     assert list(result) == [{
         UUID_COLUMN: '32' * 16,
         'text': 'everybody',
-        'length_of_text(text)': {
+        'test_signal(text)': {
             'len': 9,
             'flen': 9.0
         }
     }]
+
+  def test_signal_transform_with_embedding(self, tmp_path: pathlib.Path,
+                                           db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls=db_cls,
+                 tmp_path=tmp_path,
+                 items=[{
+                     UUID_COLUMN: '31' * 16,
+                     'text': 'hello.',
+                 }, {
+                     UUID_COLUMN: '32' * 16,
+                     'text': 'hello2.',
+                 }],
+                 schema=Schema(fields={
+                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     'text': Field(dtype=DataType.STRING),
+                 }))
+
+    db.compute_embedding_index(embedding=TEST_EMBEDDING_NAME, column='text')
+
+    signal_col = SignalMap(TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), column='text')
+    result = db.select_rows(columns=['text', signal_col])
+    expected_result = [{
+        UUID_COLUMN: '31' * 16,
+        'text': 'hello.',
+        'test_embedding_sum(text)': 1.0
+    }, {
+        UUID_COLUMN: '32' * 16,
+        'text': 'hello2.',
+        'test_embedding_sum(text)': 2.0
+    }]
+    assert list(result) == expected_result
+
+    # Select rows with alias.
+    signal_col = SignalMap(TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
+                           Column('text'),
+                           alias='emb_sum')
+    result = db.select_rows(columns=['text', signal_col])
+    expected_result = [{
+        UUID_COLUMN: '31' * 16,
+        'text': 'hello.',
+        'emb_sum': 1.0
+    }, {
+        UUID_COLUMN: '32' * 16,
+        'text': 'hello2.',
+        'emb_sum': 2.0
+    }]
+    assert list(result) == expected_result
 
   def test_source_joined_with_named_signal_column(self, tmp_path: pathlib.Path,
                                                   db_cls: Type[DatasetDB]) -> None:
