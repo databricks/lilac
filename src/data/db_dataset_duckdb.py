@@ -643,11 +643,25 @@ class DatasetDuckDB(DatasetDB):
       if not isinstance(col.transform, SignalTransform):
         raise ValueError(f'Unsupported transform: {col.transform}')
       source_path = col.feature
-      select_leafs_result = self._select_leafs(path=source_path)
-      leafs_df = select_leafs_result.duckdb_result.df()
       signal = col.transform.signal
-      signal_outs = signal.compute(data=leafs_df[select_leafs_result.value_column])
-      # Import the signal results into DuckDB and and UUIDs.
+
+      if signal.embedding_based:
+        # For embedding based signals, get the leaf keys and indices, creating a combined key for the
+        # key + index to pass to the signal.
+        select_leafs_result = self._select_leafs(path=source_path, only_keys=True)
+        leafs_df = select_leafs_result.duckdb_result.df()
+        keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
+        signal_outs = signal.compute(
+            keys=keys,
+            get_embedding_index=(
+                lambda embedding, keys: self._embedding_indexer.get_embedding_index(
+                    column=source_path, embedding=embedding, keys=keys)))
+      else:
+        select_leafs_result = self._select_leafs(path=source_path)
+        leafs_df = select_leafs_result.duckdb_result.df()
+        signal_outs = signal.compute(data=leafs_df[select_leafs_result.value_column])
+
+      # Import the signal results into DuckDB and UUIDs.
       signal_outs = [{
           UUID_COLUMN: uuid,
           col.alias: value
@@ -658,6 +672,7 @@ class DatasetDuckDB(DatasetDB):
       })
       table = pa.Table.from_pylist(signal_outs, schema=schema_to_arrow_schema(schema))
       udf_query = con.from_arrow(table).set_alias('r2')
+
       query = query.join(udf_query, f'r1.{UUID_COLUMN} = r2.{UUID_COLUMN}')
       col_aliases.extend([UUID_COLUMN, col.alias])
 
