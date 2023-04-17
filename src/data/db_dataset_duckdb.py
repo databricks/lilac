@@ -13,7 +13,7 @@ from typing_extensions import override
 from ..constants import data_path
 from ..embeddings.embedding_index import EmbeddingIndexer
 from ..embeddings.embedding_index_disk import EmbeddingIndexerDisk
-from ..embeddings.embedding_registry import Embedding
+from ..embeddings.embedding_registry import EmbeddingId, get_embedding_cls
 from ..schema import (
     MANIFEST_FILENAME,
     PATH_WILDCARD,
@@ -249,9 +249,12 @@ class DatasetDuckDB(DatasetDB):
 
   @override
   def compute_embedding_index(self,
-                              embedding: Embedding,
+                              embedding: EmbeddingId,
                               column: ColumnId,
                               task_id: Optional[TaskId] = None) -> None:
+    if isinstance(embedding, str):
+      embedding = get_embedding_cls(embedding)()
+
     col = column_from_identifier(column)
     if isinstance(col.feature, Column):
       raise ValueError(f'Cannot compute a signal for {col} as it is not a leaf feature.')
@@ -264,7 +267,7 @@ class DatasetDuckDB(DatasetDB):
     leaf_values = leafs_df[select_leafs_result.value_column]
 
     self._embedding_indexer.compute_embedding_index(column=col.feature,
-                                                    embedding_id=embedding,
+                                                    embedding=embedding,
                                                     keys=keys,
                                                     data=leaf_values,
                                                     task_id=task_id)

@@ -15,7 +15,7 @@ from pydantic import (
     validator,
 )
 
-from ..embeddings.embedding_registry import Embedding
+from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import Item, Path, PathTuple, Schema, path_to_alias
 from ..signals.signal import Signal
 from ..tasks import TaskId
@@ -216,7 +216,7 @@ class DatasetDB(abc.ABC):
 
   @abc.abstractmethod
   def compute_embedding_index(self,
-                              embedding: Embedding,
+                              embedding: EmbeddingId,
                               column: ColumnId,
                               task_id: Optional[TaskId] = None) -> None:
     """Compute an embedding index for a column.

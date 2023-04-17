@@ -67,16 +67,16 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
   @override
   def compute_embedding_index(self,
                               column: Path,
-                              embedding_id: EmbeddingId,
+                              embedding: EmbeddingId,
                               keys: Iterable[bytes],
                               data: Iterable[RichData],
                               task_id: Optional[TaskId] = None) -> None:
-    if isinstance(embedding_id, str):
-      embedding = get_embedding_cls(embedding_id)()
+    if isinstance(embedding, str):
+      embed_fn = get_embedding_cls(embedding)()
     else:
-      embedding = embedding_id
+      embed_fn = embedding
 
-    embedding_name = embedding.name
+    embedding_name = embed_fn.name
 
     index_filename = embedding_index_filename(column, embedding_name)
     index_path = os.path.join(self.dataset_path, index_filename)
@@ -91,15 +91,15 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
     else:
       np_keys = np.array(keys, dtype=bytes)
 
-    batches = chunks(data, size=embedding.batch_size)
+    batches = chunks(data, size=embed_fn.batch_size)
 
     def _compute_embeddings(batches: Iterable[list[RichData]]) -> Iterable[np.ndarray]:
       for batch in batches:
-        yield embedding(batch)
+        yield embed_fn(batch)
 
     batched_embeddings = progress(_compute_embeddings(batches),
                                   task_id=task_id,
-                                  estimated_len=math.floor(len(np_keys) / embedding.batch_size))
+                                  estimated_len=math.floor(len(np_keys) / embed_fn.batch_size))
     embeddings = np.concatenate(list(batched_embeddings))
 
     with open_file(index_path, 'wb') as f:
