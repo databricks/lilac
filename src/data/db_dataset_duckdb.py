@@ -95,7 +95,7 @@ COMPARISON_TO_OP: dict[Comparison, str] = {
 class DuckDBSelectGroupsResult(SelectGroupsResult):
   """The result of a select groups query backed by DuckDB."""
 
-  def __init__(self, duckdb_result: duckdb.DuckDBPyRelation) -> None:
+  def __init__(self, duckdb_result: duckdb.DuckDBPyConnection) -> None:
     """Initialize the result."""
     self._duckdb_result = duckdb_result
 
@@ -134,7 +134,7 @@ class SelectLeafsResult(BaseModel):
   class Config:
     arbitrary_types_allowed = True
 
-  duckdb_result: duckdb.DuckDBPyRelation
+  duckdb_result: duckdb.DuckDBPyConnection
   repeated_idxs_col: Optional[str]
   value_column: Optional[str]
 
@@ -444,9 +444,13 @@ class DatasetDuckDB(DatasetDB):
                              value_column=value_column_alias,
                              repeated_idxs_col=repeated_indices_col)
 
-  def _validate_filters(self, filters: Sequence[Filter]) -> None:
+  def _validate_filters(self, filters: Sequence[Filter], col_aliases: list[str]) -> None:
     manifest = self.manifest()
     for filter in filters:
+      if filter.path[0] in col_aliases:
+        # This is a filter on a column alias, which is always allowed.
+        continue
+
       current_field = Field(fields=manifest.data_schema.fields)
       for path_part in filter.path:
         if path_part == PATH_WILDCARD:
@@ -630,16 +634,10 @@ class DatasetDuckDB(DatasetDB):
     self._validate_columns(cols)
 
     select_query, col_aliases = self._create_select(cols)
-    query = self.con.sql(f'SELECT {select_query} FROM t')
+    con = self.con.cursor()
+    query = con.sql(f'SELECT {select_query} FROM t').set_alias('r1')
 
-    filters = self._normalize_filters(filters)
-    filter_queries = self._create_where(filters)
-    if filter_queries:
-      query = query.filter(' AND '.join(filter_queries))
-
-    query = query.set_alias('r1')
     transform_columns = [col for col in cols if col.transform]
-
     # Run UDFs on the transformed columns.
     for col in transform_columns:
       if not isinstance(col.transform, SignalTransform):
@@ -649,8 +647,7 @@ class DatasetDuckDB(DatasetDB):
       leafs_df = select_leafs_result.duckdb_result.df()
       signal = col.transform.signal
       signal_outs = signal.compute(data=leafs_df[select_leafs_result.value_column])
-      # Import the signal results into DuckDB.
-      # Add UUIDs to the signal outs.
+      # Import the signal results into DuckDB and and UUIDs.
       signal_outs = [{
           UUID_COLUMN: uuid,
           col.alias: value
@@ -660,10 +657,14 @@ class DatasetDuckDB(DatasetDB):
           col.alias: signal.fields(source_path)
       })
       table = pa.Table.from_pylist(signal_outs, schema=schema_to_arrow_schema(schema))
-      udf_query = self.con.from_arrow(table)
-      udf_query = udf_query.set_alias('r2')
+      udf_query = con.from_arrow(table).set_alias('r2')
       query = query.join(udf_query, f'r1.{UUID_COLUMN} = r2.{UUID_COLUMN}')
       col_aliases.extend([UUID_COLUMN, col.alias])
+
+    filters = self._normalize_filters(filters, col_aliases)
+    filter_queries = self._create_where(filters)
+    if filter_queries:
+      query = query.filter(' AND '.join(filter_queries))
 
     if sort_by:
       for sort_by_alias in sort_by:
@@ -711,7 +712,9 @@ class DatasetDuckDB(DatasetDB):
 
     return ', '.join(select_queries), aliases
 
-  def _normalize_filters(self, filter_likes: Optional[Sequence[FilterLike]] = None) -> list[Filter]:
+  def _normalize_filters(self,
+                         filter_likes: Optional[Sequence[FilterLike]] = None,
+                         col_aliases: list[str] = []) -> list[Filter]:
     filter_likes = filter_likes or []
     filters: list[Filter] = []
     for filter in filter_likes:
@@ -725,7 +728,7 @@ class DatasetDuckDB(DatasetDB):
         filter = Filter(path=path_tuple, comparison=filter[1], value=filter[2])
       filters.append(filter)
 
-    self._validate_filters(filters)
+    self._validate_filters(filters, col_aliases)
     return filters
 
   def _create_where(self, filters: list[Filter]) -> list[str]:
@@ -749,19 +752,19 @@ class DatasetDuckDB(DatasetDB):
       filter_queries.append(filter_query)
     return filter_queries
 
-  def _query(self, query: str) -> duckdb.DuckDBPyRelation:
+  def _query(self, query: str) -> duckdb.DuckDBPyConnection:
     """Execute a query that returns a dataframe."""
     # FastAPI is multi-threaded so we have to create a thread-specific connection cursor to allow
     # these queries to be thread-safe.
     local_con = self.con.cursor()
     if not DEBUG:
-      return local_con.sql(query)
+      return local_con.execute(query)
 
     # Debug mode.
     log('Executing:')
     log(query)
     with DebugTimer('Query'):
-      result = local_con.sql(query)
+      result = local_con.execute(query)
 
     return result
 

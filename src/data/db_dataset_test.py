@@ -444,6 +444,64 @@ class SelectRowsSuite:
         }
     }]
 
+  def test_signal_transform_with_filters(self, tmp_path: pathlib.Path,
+                                         db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls,
+                 tmp_path,
+                 items=[{
+                     UUID_COLUMN: '31' * 16,
+                     'text': 'hello'
+                 }, {
+                     UUID_COLUMN: '32' * 16,
+                     'text': 'everybody'
+                 }],
+                 schema=Schema(fields={
+                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     'text': Field(dtype=DataType.STRING),
+                 }))
+
+    transform = SignalTransform(signal=SelectRowsSuite.LengthOfText())
+
+    # Filter by source feature.
+    filters = [('text', Comparison.EQUALS, 'everybody')]
+    result = db.select_rows(columns=['text', Column(feature='text', transform=transform)],
+                            filters=filters)
+    assert list(result) == [{
+        UUID_COLUMN: '32' * 16,
+        'text': 'everybody',
+        'length_of_text(text)': {
+            'len': 9,
+            'flen': 9.0
+        }
+    }]
+
+    # Filter by transformed feature.
+    filters = [(('length_of_text(text)', 'len'), Comparison.LESS, 7)]
+    result = db.select_rows(columns=['text', Column(feature='text', transform=transform)],
+                            filters=filters)
+
+    assert list(result) == [{
+        UUID_COLUMN: '31' * 16,
+        'text': 'hello',
+        'length_of_text(text)': {
+            'len': 5,
+            'flen': 5.0
+        }
+    }]
+
+    filters = [(('length_of_text(text)', 'flen'), Comparison.GREATER, 6.0)]
+    result = db.select_rows(columns=['text', Column(feature='text', transform=transform)],
+                            filters=filters)
+
+    assert list(result) == [{
+        UUID_COLUMN: '32' * 16,
+        'text': 'everybody',
+        'length_of_text(text)': {
+            'len': 9,
+            'flen': 9.0
+        }
+    }]
+
   def test_source_joined_with_named_signal_column(self, tmp_path: pathlib.Path,
                                                   db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
