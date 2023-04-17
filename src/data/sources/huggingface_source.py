@@ -10,7 +10,7 @@ from pydantic import (
 from typing_extensions import override
 
 # mypy: disable-error-code="attr-defined"
-from datasets import ClassLabel, DatasetDict, Value, load_dataset, load_from_disk
+from datasets import ClassLabel, DatasetDict, Sequence, Value, load_dataset, load_from_disk
 
 from ...schema import (
     PARQUET_FILENAME_PREFIX,
@@ -62,6 +62,33 @@ def _convert_to_items(hf_dataset_dict: DatasetDict, class_labels: dict[str, list
       yield example
 
 
+def _infer_field(feature_value: Union[Value, dict]) -> Field:
+  """Infer the field type from the feature value."""
+  if isinstance(feature_value, dict):
+    return Field(dtype=DataType.STRUCT,
+                 fields={name: _infer_field(value) for name, value in feature_value.items()})
+  elif isinstance(feature_value, Value):
+    return Field(dtype=arrow_dtype_to_dtype(feature_value.pa_type))
+  elif isinstance(feature_value, Sequence):
+    # Huggingface Sequences can contain a dictionary of feature values, e.g.
+    #   Sequence(feature={'x': Value(dtype='int32'), 'y': Value(dtype='float32')}}
+    # These are converted to {'x': [...]} and {'y': [...]}
+    if isinstance(feature_value.feature, dict):
+      return Field(dtype=DataType.STRUCT,
+                   fields={
+                       name: Field(repeated_field=_infer_field(value))
+                       for name, value in feature_value.feature.items()
+                   })
+    else:
+      return Field(dtype=DataType.LIST, repeated_field=_infer_field(feature_value.feature))
+
+  elif isinstance(feature_value, ClassLabel):
+    raise ValueError('Nested ClassLabel is not supported.')
+
+  else:
+    raise ValueError(f'Feature is not a `Value`, `Sequence`, or `dict`: {feature_value}')
+
+
 def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> SchemaInfo:
   """Convert the HuggingFace schema to our schema."""
   if split:
@@ -80,16 +107,12 @@ def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> 
       if feature_name in fields:
         continue
 
-      # We currently don't support recursive structures.
-      if not isinstance(feature_value, (ClassLabel, Value)):
-        raise ValueError(f'Feature "{feature_name}" is not a Value or ClassLabel: {feature_value}')
-
-      if isinstance(feature_value, Value):
-        fields[feature_name] = Field(dtype=arrow_dtype_to_dtype(feature_value.pa_type))
-      elif isinstance(feature_value, ClassLabel):
+      if isinstance(feature_value, ClassLabel):
         # Class labels act as strings and we map the integer to a string before writing.
         fields[feature_name] = Field(dtype=DataType.STRING)
         class_labels[feature_name] = feature_value.names
+      else:
+        fields[feature_name] = _infer_field(feature_value)
 
   # Add the split column to the schema.
   fields[HF_SPLIT_COLUMN] = Field(dtype=DataType.STRING)
