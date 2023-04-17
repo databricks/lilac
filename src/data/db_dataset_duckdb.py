@@ -264,7 +264,7 @@ class DatasetDuckDB(DatasetDB):
     leaf_values = leafs_df[select_leafs_result.value_column]
 
     self._embedding_indexer.compute_embedding_index(column=col.feature,
-                                                    embedding=embedding,
+                                                    embedding_id=embedding,
                                                     keys=keys,
                                                     data=leaf_values,
                                                     task_id=task_id)
@@ -303,7 +303,7 @@ class DatasetDuckDB(DatasetDB):
             keys=keys,
             get_embedding_index=(
                 lambda embedding, keys: self._embedding_indexer.get_embedding_index(
-                    column=source_path, embedding=embedding, keys=keys)))
+                    column=source_path, embedding_id=embedding, keys=keys)))
     else:
       # For non-embedding bsaed signals, get the leaf values and indices.
       with DebugTimer(f'"_select_leafs" over "{source_path}"'):

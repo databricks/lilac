@@ -40,7 +40,7 @@ class Embedding(BaseModel):
     pass
 
 
-EmbeddingId = Union[str, Type[Embedding]]
+EmbeddingId = Union[str, Embedding]
 
 EMBEDDING_REGISTRY: dict[str, Type[Embedding]] = {}
 
@@ -53,16 +53,12 @@ def register_embedding(embedding_cls: Type[Embedding]) -> None:
   EMBEDDING_REGISTRY[embedding_cls.name] = embedding_cls
 
 
-def get_embedding_cls(embedding: EmbeddingId) -> Type[Embedding]:
+def get_embedding_cls(embedding_name: str) -> Type[Embedding]:
   """Return a registered signal given the name in the registry."""
-  if isinstance(embedding, str):
-    if embedding not in EMBEDDING_REGISTRY:
-      raise ValueError(f'Embedding "{embedding}" not found in the registry')
+  if embedding_name not in EMBEDDING_REGISTRY:
+    raise ValueError(f'Embedding "{embedding_name}" not found in the registry')
 
-    return EMBEDDING_REGISTRY[embedding]
-
-  # The embedding is already a class.
-  return embedding
+  return EMBEDDING_REGISTRY[embedding_name]
 
 
 def resolve_embedding(embedding: Union[dict, Embedding]) -> Embedding:

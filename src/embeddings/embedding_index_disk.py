@@ -12,7 +12,7 @@ from ..schema import Path, RichData, path_to_alias
 from ..tasks import TaskId, progress
 from ..utils import chunks, file_exists, open_file
 from .embedding_index import EmbeddingIndex, EmbeddingIndexer
-from .embedding_registry import Embedding
+from .embedding_registry import EmbeddingId, get_embedding_cls
 
 NP_INDEX_KEYS_KWD = 'keys'
 NP_EMBEDDINGS_KWD = 'embeddings'
@@ -27,9 +27,12 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
   @override
   def get_embedding_index(self,
                           column: Path,
-                          embedding: Embedding,
+                          embedding_id: EmbeddingId,
                           keys: Optional[Iterable[bytes]] = None) -> EmbeddingIndex:
-    embedding_name = embedding.name
+    if isinstance(embedding_id, str):
+      embedding_name = embedding_id
+    else:
+      embedding_name = embedding_id.name
 
     index_filename = embedding_index_filename(column, embedding_name)
     index_path = os.path.join(self.dataset_path, index_filename)
@@ -64,10 +67,15 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
   @override
   def compute_embedding_index(self,
                               column: Path,
-                              embedding: Embedding,
+                              embedding_id: EmbeddingId,
                               keys: Iterable[bytes],
                               data: Iterable[RichData],
                               task_id: Optional[TaskId] = None) -> None:
+    if isinstance(embedding_id, str):
+      embedding = get_embedding_cls(embedding_id)()
+    else:
+      embedding = embedding_id
+
     embedding_name = embedding.name
 
     index_filename = embedding_index_filename(column, embedding_name)

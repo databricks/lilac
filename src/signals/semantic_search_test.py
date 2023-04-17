@@ -15,6 +15,7 @@ from ..embeddings.embedding_registry import (
     register_embedding,
 )
 from ..schema import EnrichmentType, Path, RichData
+from ..tasks import TaskId
 from .semantic_search import SemanticSearchSignal
 
 TEST_EMBEDDING_NAME = 'test_embedding'
@@ -38,14 +39,18 @@ class TestEmbeddingIndexer(EmbeddingIndexer):
   @override
   def get_embedding_index(self,
                           column: Path,
-                          embedding: EmbeddingId,
+                          embedding_id: EmbeddingId,
                           row_ids: Optional[Iterable[bytes]] = None) -> EmbeddingIndex:
     row_ids = row_ids or []
     return EmbeddingIndex(embeddings=np.array([EMBEDDINGS[row_id] for row_id in row_ids]))
 
   @override
-  def compute_embedding_index(self, column: Path, embedding: EmbeddingId, keys: Iterable[bytes],
-                              data: Iterable[RichData]) -> None:
+  def compute_embedding_index(self,
+                              column: Path,
+                              embedding_id: EmbeddingId,
+                              keys: Iterable[bytes],
+                              data: Iterable[RichData],
+                              task_id: Optional[TaskId] = None) -> None:
     pass
 
 
@@ -78,9 +83,10 @@ def test_semantic_search_compute_keys(mocker: MockerFixture) -> None:
 
   signal = SemanticSearchSignal(query='hello', embedding=TEST_EMBEDDING_NAME)
   scores = list(
-      signal.compute(keys=[b'1', b'2', b'3'],
-                     get_embedding_index=lambda embedding, row_ids: embedding_indexer.
-                     get_embedding_index(column='test_col', embedding=embedding, row_ids=row_ids)))
+      signal.compute(
+          keys=[b'1', b'2', b'3'],
+          get_embedding_index=lambda embedding, row_ids: embedding_indexer.get_embedding_index(
+              column='test_col', embedding_id=embedding, row_ids=row_ids)))
 
   # Embeddings should be called only 1 time for the search.
   assert embed_mock.call_count == 1
