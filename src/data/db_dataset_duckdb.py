@@ -3,7 +3,7 @@ import functools
 import itertools
 import os
 import re
-from typing import Any, Iterable, Iterator, Optional, Sequence, Union, cast
+from typing import Any, Callable, Iterable, Iterator, Optional, Sequence, Union, cast
 
 import duckdb
 import pandas as pd
@@ -27,6 +27,8 @@ from ..schema import (
     PathTuple,
     Schema,
     SourceManifest,
+    dtype_to_sample_value,
+    enrichment_supports_dtype,
     is_float,
     is_integer,
     is_ordinal,
@@ -46,7 +48,6 @@ from ..utils import (
 from . import db_dataset
 from .dataset_utils import (
     create_enriched_schema,
-    default_top_level_signal_col_name,
     make_enriched_items,
 )
 from .db_dataset import (
@@ -63,9 +64,11 @@ from .db_dataset import (
     NamedBins,
     SelectGroupsResult,
     SelectRowsResult,
+    SignalTransform,
     SortOrder,
     StatsResult,
     column_from_identifier,
+    default_top_level_signal_col_name,
 )
 
 DEBUG = os.environ['DEBUG'] == 'true' if 'DEBUG' in os.environ else False
@@ -467,8 +470,26 @@ class DatasetDuckDB(DatasetDB):
   def _validate_columns(self, columns: Sequence[Column]) -> None:
     manifest = self.manifest()
     for column in columns:
+      if column.transform:
+        if isinstance(column.transform, SignalTransform):
+          path = column.feature
+
+          # Signal transforms must operate on a leaf field.
+          leaf = manifest.data_schema.leafs.get(path)
+          if not leaf or not leaf.dtype:
+            raise ValueError(f'Leaf "{path}" not found in dataset. '
+                             'Signal transforms must operate on a leaf field.')
+
+          # Signal transforms must have the same dtype as the leaf field.
+          signal = column.transform.signal
+          enrich_type = signal.enrichment_type
+
+          if not enrichment_supports_dtype(enrich_type, leaf.dtype):
+            raise ValueError(f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
+                             f'by "{signal.name}" with enrichment type "{enrich_type}".')
+
       current_field = Field(fields=manifest.data_schema.fields)
-      path = cast(Path, column.feature)
+      path = column.feature
       for path_part in path:
         if isinstance(path_part, int) or path_part.isdigit():
           raise ValueError(f'Unable to select path {path}. Selecting a specific index of '
@@ -587,6 +608,42 @@ class DatasetDuckDB(DatasetDB):
     """
     return DuckDBSelectGroupsResult(self._query(query))
 
+  def _field_to_sample_value(self, field: Field) -> Any:
+    if field.fields:
+      return {name: self._field_to_sample_value(field) for name, field in field.fields.items()}
+    elif field.repeated_field:
+      return [self._field_to_sample_value(field.repeated_field)]
+    elif not field.dtype:
+      raise ValueError(f'Field "{field}" has no dtype')
+    else:
+      return dtype_to_sample_value(field.dtype)
+
+  def _signal_udf_fn(self, signal: Signal, col: Column) -> Callable[[pd.DataFrame], pd.DataFrame]:
+
+    sample_result = self._field_to_sample_value(signal.fields(col.feature))
+    sample_df = pd.DataFrame({UUID_COLUMN: [bytearray([0])]})
+    if type(sample_result) == dict:
+      for key, value in sample_result.items():
+        sample_df[key] = [value]
+    else:
+      sample_df[col.alias] = [sample_result]
+
+    def udf_fn(df: pd.DataFrame) -> pd.DataFrame:
+      if df.size == 0:
+        # Return a sample dataframe with the same schema as the output.
+        return sample_df
+
+      result = pd.DataFrame({UUID_COLUMN: df[UUID_COLUMN]})
+      signal_results = list(signal.compute(df['value']))
+      if type(sample_result) == dict:
+        for key in sample_result.keys():
+          result[key] = [cast(dict, signal_result)[key] for signal_result in signal_results]
+      else:
+        result[col.alias] = signal_results
+      return result
+
+    return udf_fn
+
   @override
   def select_rows(self,
                   columns: Optional[Sequence[ColumnId]] = None,
@@ -608,40 +665,51 @@ class DatasetDuckDB(DatasetDB):
     self._validate_columns(cols)
 
     select_query, col_aliases = self._create_select(cols)
-    filters = self._normalize_filters(filters)
-    where_query = self._create_where(filters)
+    query = self.con.sql(f'SELECT {select_query} FROM t')
 
-    # Sort.
-    sort_query = ''
+    filters = self._normalize_filters(filters)
+    filter_queries = self._create_where(filters)
+    if filter_queries:
+      query = query.filter(' AND '.join(filter_queries))
+
+    query = query.set_alias('r1')
+    # Run UDFs on the filtered rows.
+    for col in cols:
+      if not col.transform:
+        continue
+      path = col.feature
+      udf_query = self.con.sql(f'SELECT {UUID_COLUMN}, {self._path_to_col(path)} as value FROM t')
+      if isinstance(col.transform, SignalTransform):
+        udf_query = udf_query.map(self._signal_udf_fn(col.transform.signal, col))
+      else:
+        raise ValueError(f'Unsupported transform: {col.transform}')
+      signal_fields = col.transform.signal.fields(col.feature).fields
+      if signal_fields:
+        # This signal results a dict.
+        signal_fields.keys()
+        project_cols = ', '.join([f'{key}: {key}' for key in signal_fields.keys()])
+        udf_query = udf_query.project(f'{UUID_COLUMN}, {{{project_cols}}} as "{col.alias}"')
+      udf_query = udf_query.set_alias('r2')
+      query = query.join(udf_query, f'r1.{UUID_COLUMN} = r2.{UUID_COLUMN}')
+      col_aliases.extend([UUID_COLUMN, col.alias])
+
     if sort_by:
-      sort_by_query_parts = []
       for sort_by_alias in sort_by:
         if sort_by_alias not in col_aliases:
           raise ValueError(
               f'Column {sort_by_alias} is not defined as an alias in the given columns. '
               f'Available sort by aliases: {col_aliases}')
-        sort_by_query_parts.append(sort_by_alias)
 
       if not sort_order:
         raise ValueError(
             'Sort order is undefined but sort by is defined. Please define a sort_order')
-      sort_order_query = sort_order.value
 
-      sort_by_query = ', '.join(sort_by_query_parts)
-      sort_query = f'ORDER BY {sort_by_query} {sort_order_query}'
+      query = query.order(f'{", ".join(sort_by)} {sort_order.value}')
 
-    limit_query = f'LIMIT {limit}' if limit else ''
-    offset_query = f'OFFSET {offset}' if offset else ''
+    if limit:
+      query = query.limit(limit, offset or 0)
 
-    query = f"""
-      SELECT {select_query}
-      FROM t
-      {where_query}
-      {sort_query}
-      {limit_query}
-      {offset_query}
-    """
-    query_results = self._query(query).fetchall()
+    rows = query.fetchall()
 
     def parse_row(row: list[Any]) -> Item:
       item = dict(zip(col_aliases, row))
@@ -651,7 +719,7 @@ class DatasetDuckDB(DatasetDB):
         item[UUID_COLUMN] = bytes_val.hex()
       return item
 
-    item_rows = map(parse_row, query_results)
+    item_rows = map(parse_row, rows)
     return SelectRowsResult(item_rows)
 
   @override
@@ -664,8 +732,8 @@ class DatasetDuckDB(DatasetDB):
     aliases: list[str] = []
 
     for column in columns:
-      if isinstance(column.feature, Column):
-        raise ValueError('Transforms are not yet supported.')
+      if column.transform:
+        continue
       aliases.append(column.alias)
       select_queries.append(f'{self._path_to_col(column.feature)} AS "{column.alias}"')
 
@@ -681,16 +749,16 @@ class DatasetDuckDB(DatasetDB):
         if isinstance(path_tuple, str):
           path_tuple = (path_tuple,)
         elif isinstance(path_tuple, Column):
-          path_tuple = cast(PathTuple, path_tuple.feature)
+          path_tuple = path_tuple.feature
         filter = Filter(path=path_tuple, comparison=filter[1], value=filter[2])
       filters.append(filter)
 
     self._validate_filters(filters)
     return filters
 
-  def _create_where(self, filters: list[Filter]) -> str:
+  def _create_where(self, filters: list[Filter]) -> list[str]:
     if not filters:
-      return ''
+      return []
     filter_queries: list[str] = []
     for filter in filters:
       col_name = self._path_to_col(filter.path)
@@ -707,7 +775,7 @@ class DatasetDuckDB(DatasetDB):
         filter_val = str(filter_val)
       filter_query = f'{col_name} {op} {filter_val}'
       filter_queries.append(filter_query)
-    return 'WHERE ' + ' AND '.join(filter_queries)
+    return filter_queries
 
   def _query(self, query: str) -> duckdb.DuckDBPyRelation:
     """Execute a query that returns a dataframe."""
@@ -715,13 +783,13 @@ class DatasetDuckDB(DatasetDB):
     # these queries to be thread-safe.
     local_con = self.con.cursor()
     if not DEBUG:
-      return local_con.query(query)
+      return local_con.sql(query)
 
     # Debug mode.
     log('Executing:')
     log(query)
     with DebugTimer('Query'):
-      result = local_con.query(query)
+      result = local_con.sql(query)
 
     return result
 

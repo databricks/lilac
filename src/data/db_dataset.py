@@ -98,24 +98,28 @@ class Transform(BaseModel):
 
 class Column(BaseModel):
   """A column in the dataset DB."""
-  # The feature points to another column if this is a transformation of that column.
-  feature: Union[PathTuple, 'Column']
+  feature: PathTuple
   alias: str  # This is the renamed column during querying and response.
 
   # Defined when the feature is another column.
   transform: Optional[Transform]
 
-  def __init__(self, feature: Union[Path, 'Column'], alias: Optional[str] = None, **kwargs: Any):
+  def __init__(self,
+               feature: Path,
+               alias: Optional[str] = None,
+               transform: Optional[Transform] = None,
+               **kwargs: Any):
     """Initialize a column. We override __init__ to allow positional arguments for brevity."""
     if isinstance(feature, str):
       feature = (feature,)
 
     if not alias:
-      if isinstance(feature, Column):
-        raise ValueError('Please define an alias for the column when it has a transform.')
-      alias = path_to_alias(feature)
+      if transform and isinstance(transform, SignalTransform):
+        alias = default_top_level_signal_col_name(transform.signal, Column(feature))
+      else:
+        alias = path_to_alias(feature)
 
-    super().__init__(feature=feature, alias=alias, **kwargs)
+    super().__init__(feature=feature, alias=alias, transform=transform, **kwargs)
 
 
 ColumnId = Union[Path, Column]
@@ -177,9 +181,9 @@ class BucketizeTransform(Transform):
   bins: list[float]
 
 
-def Bucketize(column: Column, bins: list[float]) -> Column:
-  """Bucketize a column."""
-  return Column(feature=column, transform=BucketizeTransform(bins=bins))
+class SignalTransform(Transform):
+  """Computes a signal transformation over a field."""
+  signal: Signal
 
 
 FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes]
@@ -317,3 +321,16 @@ class DatasetDB(abc.ABC):
       A MediaResult.
     """
     pass
+
+
+def default_top_level_signal_col_name(signal: Signal, column: Column) -> str:
+  """Return the default name for a result column."""
+  if isinstance(column.feature, Column):
+    raise ValueError('Transforms are not yet supported.')
+
+  column_alias = '_'.join([str(path_part).replace('.', '_') for path_part in column.feature])
+  if column_alias.endswith('_*'):
+    # Remove the trailing .* from the column name.
+    column_alias = column_alias[:-2]
+
+  return f'{signal.name}({column_alias})'

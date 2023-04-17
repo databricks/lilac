@@ -100,6 +100,15 @@ class EnrichmentType(str, Enum):
     return self.value
 
 
+def enrichment_supports_dtype(enrichment_type: EnrichmentType, dtype: DataType) -> bool:
+  """Returns True if the enrichment type supports the dtype."""
+  if enrichment_type == EnrichmentType.TEXT:
+    return dtype in (DataType.STRING, DataType.STRING_SPAN)
+  elif enrichment_type == EnrichmentType.IMAGE:
+    return dtype == DataType.BINARY
+  return False
+
+
 class Field(BaseModel):
   """Holds information for a field in the schema."""
   repeated_field: Optional['Field']
@@ -430,6 +439,49 @@ def arrow_dtype_to_dtype(arrow_dtype: pa.DataType) -> DataType:
     return DataType.BOOLEAN
   else:
     raise ValueError(f'Can not convert arrow dtype "{arrow_dtype}" to our dtype')
+
+
+def dtype_to_sample_value(
+    dtype: DataType) -> Union[np.number, str, bool, np.datetime64, np.timedelta64, bytearray]:
+  """Convert the dtype to a sample numpy value."""
+  if dtype == DataType.STRING:
+    return ''
+  elif dtype == DataType.BOOLEAN:
+    return False
+  elif dtype == DataType.FLOAT16:
+    return np.float16(0)
+  elif dtype == DataType.FLOAT32:
+    return np.float32(0)
+  elif dtype == DataType.FLOAT64:
+    return np.float64(0)
+  elif dtype == DataType.INT8:
+    return np.int8(0)
+  elif dtype == DataType.INT16:
+    return np.int16(0)
+  elif dtype == DataType.INT32:
+    return np.int32(0)
+  elif dtype == DataType.INT64:
+    return np.int64(0)
+  elif dtype == DataType.UINT8:
+    return np.uint8(0)
+  elif dtype == DataType.UINT16:
+    return np.uint16(0)
+  elif dtype == DataType.UINT32:
+    return np.uint32(0)
+  elif dtype == DataType.UINT64:
+    return np.uint64()
+  elif dtype == DataType.BINARY:
+    return bytearray([0])
+  elif dtype == DataType.TIME:
+    return np.datetime64()
+  elif dtype == DataType.DATE:
+    return np.datetime64()
+  elif dtype == DataType.TIMESTAMP:
+    return np.datetime64()
+  elif dtype == DataType.INTERVAL:
+    return np.timedelta64(0)
+  else:
+    raise ValueError(f'Can not convert dtype "{dtype}" to a numpy value')
 
 
 def arrow_schema_to_schema(schema: pa.Schema) -> Schema:

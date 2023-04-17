@@ -37,6 +37,7 @@ from .db_dataset import (
     DatasetManifest,
     FilterTuple,
     NamedBins,
+    SignalTransform,
     SortOrder,
     StatsResult,
 )
@@ -385,6 +386,62 @@ class SelectRowsSuite:
             'len': 10,
             'flen': 10.0
         }]
+    }]
+
+  class LengthOfText(Signal):
+    name = 'length_of_text'
+    enrichment_type = EnrichmentType.TEXT
+
+    @override
+    def fields(self, input_column: Path) -> Field:
+      return Field(fields={
+          'len': Field(dtype=DataType.INT32),
+          'flen': Field(dtype=DataType.FLOAT32)
+      })
+
+    @override
+    def compute(
+        self,
+        data: Optional[Iterable[RichData]] = None,
+        keys: Optional[Iterable[bytes]] = None,
+        get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
+      if data is None:
+        raise ValueError('data is not defined')
+      for text in data:
+        yield {'len': np.int32(len(text)), 'flen': np.float32(len(text))}
+
+  def test_signal_transform(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls,
+                 tmp_path,
+                 items=[{
+                     UUID_COLUMN: '31' * 16,
+                     'text': 'hello'
+                 }, {
+                     UUID_COLUMN: '32' * 16,
+                     'text': 'everybody'
+                 }],
+                 schema=Schema(fields={
+                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     'text': Field(dtype=DataType.STRING),
+                 }))
+
+    transform = SignalTransform(signal=SelectRowsSuite.LengthOfText())
+    result = db.select_rows(columns=['text', Column(feature='text', transform=transform)])
+
+    assert list(result) == [{
+        UUID_COLUMN: '31' * 16,
+        'text': 'hello',
+        'length_of_text(text)': {
+            'len': 5,
+            'flen': 5.0
+        }
+    }, {
+        UUID_COLUMN: '32' * 16,
+        'text': 'everybody',
+        'length_of_text(text)': {
+            'len': 9,
+            'flen': 9.0
+        }
     }]
 
   def test_source_joined_with_named_signal_column(self, tmp_path: pathlib.Path,
