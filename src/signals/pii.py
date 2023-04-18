@@ -34,7 +34,7 @@ class PIISignal(Signal):
   def compute(
       self,
       data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[bytes]] = None,
+      keys: Optional[Iterable[str]] = None,
       get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
     if data is None:
       raise ValueError('"data" is required for TextStatistics.compute().')

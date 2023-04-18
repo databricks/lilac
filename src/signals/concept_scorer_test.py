@@ -162,13 +162,13 @@ def test_concept_model_score_embeddings(concept_db_cls: Type[ConceptDB],
   model_db.sync(
       ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
-  KEY_EMBEDDING_MAP: dict[bytes, list[float]] = {
-      b'1': [1.0, 0.0, 0.0],
-      b'2': [0.9, 0.1, 0.0],
-      b'3': [0.1, 0.2, 0.3],
+  KEY_EMBEDDING_MAP: dict[str, list[float]] = {
+      '1': [1.0, 0.0, 0.0],
+      '2': [0.9, 0.1, 0.0],
+      '3': [0.1, 0.2, 0.3],
   }
 
-  scores = signal.compute(keys=[b'1', b'2', b'3'],
+  scores = signal.compute(keys=['1', '2', '3'],
                           get_embedding_index=lambda _, row_ids: EmbeddingIndex(embeddings=np.array(
                               [KEY_EMBEDDING_MAP[x] for x in row_ids])))
 

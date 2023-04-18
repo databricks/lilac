@@ -22,7 +22,7 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
 
   expected_result = SourceProcessResult(data_schema=Schema(
       fields={
-          UUID_COLUMN: Field(dtype=DataType.BINARY),
+          UUID_COLUMN: Field(dtype=DataType.STRING),
           'x': Field(dtype=DataType.UINT64),
           'y': Field(dtype=DataType.STRING),
       }),
@@ -50,7 +50,7 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
 
   expected_result = SourceProcessResult(data_schema=Schema(
       fields={
-          UUID_COLUMN: Field(dtype=DataType.BINARY),
+          UUID_COLUMN: Field(dtype=DataType.STRING),
           'x': Field(dtype=DataType.UINT64),
           'y': Field(dtype=DataType.STRING),
       }),

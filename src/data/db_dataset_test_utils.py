@@ -6,7 +6,6 @@ from typing import Type
 from ..schema import (
     MANIFEST_FILENAME,
     PARQUET_FILENAME_PREFIX,
-    UUID_COLUMN,
     Item,
     Schema,
     SourceManifest,
@@ -32,13 +31,7 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
   os.makedirs(source_dir)
   parquet_items: list[Item] = []
   for item in items:
-    parquet_item = item.copy()
-    # Convert the hex UUID to bytes.
-    if UUID_COLUMN in parquet_item:
-      uuid_val = parquet_item[UUID_COLUMN]
-      if isinstance(uuid_val, str):
-        parquet_item[UUID_COLUMN] = bytes.fromhex(uuid_val)
-    parquet_items.append(parquet_item)
+    parquet_items.append(item.copy())
 
   simple_parquet_files, _ = write_items_to_parquet(parquet_items,
                                                    source_dir,

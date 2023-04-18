@@ -3,7 +3,7 @@ import functools
 import itertools
 import os
 import re
-from typing import Any, Iterable, Iterator, Optional, Sequence, Union, cast
+from typing import Any, Iterable, Iterator, Optional, Sequence, cast
 
 import duckdb
 import numpy as np
@@ -684,7 +684,7 @@ class DatasetDuckDB(DatasetDB):
           col.alias: value
       } for uuid, value in zip(leafs_df[UUID_COLUMN], signal_outs)]
       schema = Schema(fields={
-          UUID_COLUMN: Field(dtype=DataType.BINARY),
+          UUID_COLUMN: Field(dtype=DataType.STRING),
           col.alias: signal.fields(source_path)
       })
       table = pa.Table.from_pylist(signal_outs, schema=schema_to_arrow_schema(schema))
@@ -719,12 +719,7 @@ class DatasetDuckDB(DatasetDB):
     con.close()
 
     def parse_row(row: list[Any]) -> Item:
-      item = dict(zip(col_aliases, row))
-      # Convert UUID to hex.
-      if UUID_COLUMN in item:
-        bytes_val = cast(bytes, item[UUID_COLUMN])
-        item[UUID_COLUMN] = bytes_val.hex()
-      return item
+      return dict(zip(col_aliases, row))
 
     item_rows = map(parse_row, rows)
     return SelectRowsResult(item_rows)
@@ -774,10 +769,7 @@ class DatasetDuckDB(DatasetDB):
       op = COMPARISON_TO_OP[filter.comparison]
       filter_val = filter.value
       if isinstance(filter_val, str):
-        if filter.path == (UUID_COLUMN,):
-          filter_val = _hex_to_blob_literal(filter_val)
-        else:
-          filter_val = f"'{filter_val}'"
+        filter_val = f"'{filter_val}'"
       elif isinstance(filter_val, bytes):
         filter_val = _bytes_to_blob_literal(filter_val)
       else:
@@ -867,12 +859,12 @@ def make_select_column(leaf_path: Path) -> str:
   return selection
 
 
-def _get_repeated_key(row_id: Union[bytes, bytearray], repeated_idxs: list[int]) -> bytes:
-  return bytes(row_id) + b'_' + bytes(repeated_idxs)
+def _get_repeated_key(row_id: str, repeated_idxs: list[int]) -> str:
+  return row_id + '_' + ','.join(map(str, repeated_idxs))
 
 
 def _get_keys_from_leafs(leafs_df: pd.DataFrame,
-                         select_leafs_result: SelectLeafsResult) -> Iterable[bytes]:
+                         select_leafs_result: SelectLeafsResult) -> Iterable[str]:
   """Compute the keys from the dataframe and select leafs result, adding indices to keys."""
   # Add the repeated indices to the create a repeated key so we can store different values for the
   # same row uuid.
@@ -882,9 +874,7 @@ def _get_keys_from_leafs(leafs_df: pd.DataFrame,
     return leafs_df.apply(lambda row: _get_repeated_key(row[
         UUID_COLUMN], [row[select_leafs_result.repeated_idxs_col]]),
                           axis=1)
-  else:
-    # Cast from bytearray => bytes.
-    return leafs_df[UUID_COLUMN].apply(lambda row_id: bytes(row_id))
+  return leafs_df[UUID_COLUMN]
 
 
 def read_source_manifest(dataset_path: str) -> SourceManifest:
@@ -920,12 +910,7 @@ def split_manifest_filename(column_name: str, splitter_name: str) -> str:
 
 def _bytes_to_blob_literal(bytes: bytes) -> str:
   """Convert bytes to a blob literal."""
-  return _hex_to_blob_literal(bytes.hex())
-
-
-def _hex_to_blob_literal(hex: str) -> str:
-  """Convert hex to a blob literal."""
-  escaped_hex = re.sub(r'(.{2})', r'\\x\1', hex)
+  escaped_hex = re.sub(r'(.{2})', r'\\x\1', bytes.hex())
   return f"'{escaped_hex}'::BLOB"
 
 

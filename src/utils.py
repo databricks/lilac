@@ -7,10 +7,10 @@ import os
 import pathlib
 import pprint
 import re
+import secrets
 import shutil
 import threading
 import time
-import uuid
 from asyncio import AbstractEventLoop
 from concurrent.futures import Executor, ThreadPoolExecutor
 from functools import partial, wraps
@@ -206,7 +206,7 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
   for item in items:
     # Add a UUID column.
     if UUID_COLUMN not in item:
-      item[UUID_COLUMN] = uuid.uuid4().bytes
+      item[UUID_COLUMN] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
     if os.getenv('DEBUG'):
       _validate(item, arrow_schema)
     writer.write(item)

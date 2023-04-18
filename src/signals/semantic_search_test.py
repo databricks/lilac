@@ -20,10 +20,10 @@ from .semantic_search import SemanticSearchSignal
 
 TEST_EMBEDDING_NAME = 'test_embedding'
 
-EMBEDDINGS: dict[bytes, list[float]] = {
-    b'1': [1.0, 0.0, 0.0],
-    b'2': [0.9, 0.1, 0.0],
-    b'3': [0.0, 0.0, 1.0]
+EMBEDDINGS: dict[str, list[float]] = {
+    '1': [1.0, 0.0, 0.0],
+    '2': [0.9, 0.1, 0.0],
+    '3': [0.0, 0.0, 1.0]
 }
 
 STR_EMBEDDINGS: dict[str, list[float]] = {
@@ -40,7 +40,7 @@ class TestEmbeddingIndexer(EmbeddingIndexer):
   def get_embedding_index(self,
                           column: Path,
                           embedding_id: EmbeddingId,
-                          row_ids: Optional[Iterable[bytes]] = None) -> EmbeddingIndex:
+                          row_ids: Optional[Iterable[str]] = None) -> EmbeddingIndex:
     row_ids = row_ids or []
     return EmbeddingIndex(embeddings=np.array([EMBEDDINGS[row_id] for row_id in row_ids]))
 
@@ -48,7 +48,7 @@ class TestEmbeddingIndexer(EmbeddingIndexer):
   def compute_embedding_index(self,
                               column: Path,
                               embedding_id: EmbeddingId,
-                              keys: Iterable[bytes],
+                              keys: Iterable[str],
                               data: Iterable[RichData],
                               task_id: Optional[TaskId] = None) -> None:
     pass
@@ -84,7 +84,7 @@ def test_semantic_search_compute_keys(mocker: MockerFixture) -> None:
   signal = SemanticSearchSignal(query='hello', embedding=TEST_EMBEDDING_NAME)
   scores = list(
       signal.compute(
-          keys=[b'1', b'2', b'3'],
+          keys=['1', '2', '3'],
           get_embedding_index=lambda embedding, row_ids: embedding_indexer.get_embedding_index(
               column='test_col', embedding_id=embedding, row_ids=row_ids)))
 
