@@ -27,12 +27,12 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
   @override
   def get_embedding_index(self,
                           column: Path,
-                          embedding_id: EmbeddingId,
+                          embedding: EmbeddingId,
                           keys: Optional[Iterable[bytes]] = None) -> EmbeddingIndex:
-    if isinstance(embedding_id, str):
-      embedding_name = embedding_id
+    if isinstance(embedding, str):
+      embedding_name = embedding
     else:
-      embedding_name = embedding_id.name
+      embedding_name = embedding.name
 
     index_filename = embedding_index_filename(column, embedding_name)
     index_path = os.path.join(self.dataset_path, index_filename)

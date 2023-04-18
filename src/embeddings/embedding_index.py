@@ -28,7 +28,7 @@ class EmbeddingIndexer(abc.ABC):
   @abc.abstractmethod
   def get_embedding_index(self,
                           column: Path,
-                          embedding_id: EmbeddingId,
+                          embedding: EmbeddingId,
                           keys: Optional[Iterable[bytes]] = None) -> EmbeddingIndex:
     """Get an embedding index for a column, throw if it doesn't exist.
 
