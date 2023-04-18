@@ -206,7 +206,7 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
   for item in items:
     # Add a UUID column.
     if UUID_COLUMN not in item:
-      item[UUID_COLUMN] = secrets.token_urlsafe(nbytes=12)
+      item[UUID_COLUMN] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
     if os.getenv('DEBUG'):
       _validate(item, arrow_schema)
     writer.write(item)
