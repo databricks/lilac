@@ -45,13 +45,13 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
     np_keys: Optional[np.ndarray] = None
     if keys is not None:
       if isinstance(keys, pd.Series):
-        np_keys = keys.to_numpy().astype('bytes')
+        np_keys = keys.to_numpy()
       else:
-        np_keys = np.array(keys, dtype=bytes)
+        np_keys = np.array(keys)
 
     # Read the embedding index from disk.
     with open_file(index_path, 'rb') as f:
-      np_index: dict[str, np.ndarray] = np.load(f)
+      np_index: dict[str, np.ndarray] = np.load(f, allow_pickle=True)
       if np_keys is not None:
         # NOTE: Calling tolist() here is necessary because we can't put the entire matrix into the
         # dataframe. This will store each embedding a list. This could be sped up if we write our

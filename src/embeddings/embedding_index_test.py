@@ -104,12 +104,12 @@ class EmbeddingIndexerSuite:
         'test_column',
         TestEmbedding(),
         # Keys are partial.
-        keys=[b'1', b'2'])
+        keys=['1', '2'])
 
     np.testing.assert_array_equal(
         index.embeddings,
         # Results should be partial.
-        np.array([KEY_EMBEDDINGS[b'1'], KEY_EMBEDDINGS[b'2']]))
+        np.array([KEY_EMBEDDINGS['1'], KEY_EMBEDDINGS['2']]))
 
     # Embed should not be called again.
     assert embed_mock.call_count == 1
