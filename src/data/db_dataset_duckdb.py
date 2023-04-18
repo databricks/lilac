@@ -6,8 +6,11 @@ import re
 from typing import Any, Iterable, Iterator, Optional, Sequence, Union, cast
 
 import duckdb
+import numpy as np
 import pandas as pd
 import pyarrow as pa
+from pandas.api.types import (
+    is_object_dtype,)
 from pydantic import BaseModel, validator
 from typing_extensions import override
 
@@ -95,18 +98,26 @@ COMPARISON_TO_OP: dict[Comparison, str] = {
 class DuckDBSelectGroupsResult(SelectGroupsResult):
   """The result of a select groups query backed by DuckDB."""
 
-  def __init__(self, duckdb_result: duckdb.DuckDBPyConnection) -> None:
+  def __init__(self, df: pd.DataFrame) -> None:
     """Initialize the result."""
-    self._duckdb_result = duckdb_result
+    # Dataframes with np.nan cannot be JSON-encoded, so we replace them with None before
+    # shipping to the browser. DuckDB returns np.nan in string columns when there is a missing field
+    # so we have to remove np.nan for string columns as well.
+    value_column = 'value'
+    # TODO(https://github.com/duckdb/duckdb/issues/4066): Remove this once duckdb fixes upstream.
+    if is_object_dtype(df[value_column]):
+      df[value_column].replace(np.nan, None, inplace=True)
+
+    self._df = df
 
   @override
   def __iter__(self) -> Iterator:
-    return iter(cast(Iterable, self._duckdb_result.fetchall()))
+    return (tuple(row) for _, row in self._df.iterrows())
 
   @override
   def df(self) -> pd.DataFrame:
     """Convert the result to a pandas DataFrame."""
-    return self._duckdb_result.df()
+    return self._df
 
 
 class ComputedColumn(BaseModel):
@@ -134,7 +145,7 @@ class SelectLeafsResult(BaseModel):
   class Config:
     arbitrary_types_allowed = True
 
-  duckdb_result: duckdb.DuckDBPyConnection
+  df: pd.DataFrame
   repeated_idxs_col: Optional[str]
   value_column: Optional[str]
 
@@ -217,7 +228,7 @@ class DatasetDuckDB(DatasetDB):
 
     # Get the total size of the table.
     size_query = 'SELECT COUNT() as count FROM t'
-    size_query_result = cast(Any, self._query(size_query).fetchone())
+    size_query_result = cast(Any, self._query(size_query)[0])
     num_items = cast(int, size_query_result[0])
 
     # Merge the source manifest with the computed columns.
@@ -265,7 +276,7 @@ class DatasetDuckDB(DatasetDB):
 
     with DebugTimer(f'"_select_leafs" over "{col.feature}"'):
       select_leafs_result = self._select_leafs(path=normalize_path(col.feature))
-      leafs_df = select_leafs_result.duckdb_result.df()
+      leafs_df = select_leafs_result.df
 
     keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
     leaf_values = leafs_df[select_leafs_result.value_column]
@@ -301,7 +312,7 @@ class DatasetDuckDB(DatasetDB):
       # key + index to pass to the signal.
       with DebugTimer(f'"_select_leafs" over "{source_path}"'):
         select_leafs_result = self._select_leafs(path=source_path, only_keys=True)
-        leafs_df = select_leafs_result.duckdb_result.df()
+        leafs_df = select_leafs_result.df
 
       keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
 
@@ -315,7 +326,7 @@ class DatasetDuckDB(DatasetDB):
       # For non-embedding bsaed signals, get the leaf values and indices.
       with DebugTimer(f'"_select_leafs" over "{source_path}"'):
         select_leafs_result = self._select_leafs(path=source_path)
-        leafs_df = select_leafs_result.duckdb_result.df()
+        leafs_df = select_leafs_result.df
 
       with DebugTimer(f'"compute" for signal "{signal.name}" over "{source_path}"'):
         signal_outputs = signal.compute(data=leafs_df[select_leafs_result.value_column])
@@ -447,7 +458,7 @@ class DatasetDuckDB(DatasetDB):
       {leaf_select if not only_keys else ''}
     FROM {from_table}
     """
-    return SelectLeafsResult(duckdb_result=self._query(query),
+    return SelectLeafsResult(df=self._query_df(query),
                              value_column=value_column_alias,
                              repeated_idxs_col=repeated_indices_col)
 
@@ -542,7 +553,7 @@ class DatasetDuckDB(DatasetDB):
       SELECT approx_count_distinct(val) as approxCountDistinct {avg_length_query}
       FROM (SELECT {inner_select} AS val FROM t LIMIT {sample_size});
     """
-    row = cast(Any, self._query(approx_count_query).fetchone())
+    row = cast(Any, self._query(approx_count_query)[0])
     approx_count_distinct = row[0]
     # Adjust the distinct count for the sample size.
     approx_count_distinct = round((approx_count_distinct / sample_size) * manifest.num_items)
@@ -557,7 +568,7 @@ class DatasetDuckDB(DatasetDB):
         SELECT MIN(val) AS minVal, MAX(val) AS maxVal
         FROM (SELECT {inner_select} AS val FROM t);
       """
-      row = self._query(min_max_query).fetchone()
+      row = self._query(min_max_query)[0]
       result.min_val, result.max_val = row
 
     return result
@@ -618,7 +629,7 @@ class DatasetDuckDB(DatasetDB):
       ORDER BY {sort_by} {sort_order}
       {limit_query}
     """
-    return DuckDBSelectGroupsResult(self._query(query))
+    return DuckDBSelectGroupsResult(self._query_df(query))
 
   @override
   def select_rows(self,
@@ -656,7 +667,7 @@ class DatasetDuckDB(DatasetDB):
         # For embedding based signals, get the leaf keys and indices, creating a combined key for
         # the key + index to pass to the signal.
         select_leafs_result = self._select_leafs(path=source_path, only_keys=True)
-        leafs_df = select_leafs_result.duckdb_result.df()
+        leafs_df = select_leafs_result.df
         keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
         signal_outs = signal.compute(
             keys=keys,
@@ -665,7 +676,7 @@ class DatasetDuckDB(DatasetDB):
                     column=source_path, embedding=embedding, keys=keys)))
       else:
         select_leafs_result = self._select_leafs(path=source_path)
-        leafs_df = select_leafs_result.duckdb_result.df()
+        leafs_df = select_leafs_result.df
         signal_outs = signal.compute(data=leafs_df[select_leafs_result.value_column])
 
       # Import the signal results into DuckDB and UUIDs.
@@ -705,6 +716,8 @@ class DatasetDuckDB(DatasetDB):
       query = query.limit(limit, offset or 0)
 
     rows = query.fetchall()
+    query.close()
+    con.close()
 
     def parse_row(row: list[Any]) -> Item:
       item = dict(zip(col_aliases, row))
@@ -774,8 +787,8 @@ class DatasetDuckDB(DatasetDB):
       filter_queries.append(filter_query)
     return filter_queries
 
-  def _query(self, query: str) -> duckdb.DuckDBPyConnection:
-    """Execute a query that returns a dataframe."""
+  def _execute(self, query: str) -> duckdb.DuckDBPyConnection:
+    """Execute a query in duckdb."""
     # FastAPI is multi-threaded so we have to create a thread-specific connection cursor to allow
     # these queries to be thread-safe.
     local_con = self.con.cursor()
@@ -786,9 +799,20 @@ class DatasetDuckDB(DatasetDB):
     log('Executing:')
     log(query)
     with DebugTimer('Query'):
-      result = local_con.execute(query)
+      return local_con.execute(query)
 
-    return result
+  def _query(self, query: str) -> list[tuple]:
+    result = self._execute(query)
+    rows = result.fetchall()
+    result.close()
+    return rows
+
+  def _query_df(self, query: str) -> pd.DataFrame:
+    """Execute a query that returns a dataframe."""
+    result = self._execute(query)
+    df = result.df()
+    result.close()
+    return df
 
   def _path_to_col(self, path: Path, quote_each_part: bool = True) -> str:
     """Convert a path to a column name."""
