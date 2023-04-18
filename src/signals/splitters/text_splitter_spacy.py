@@ -29,13 +29,19 @@ class SentenceSplitterSpacy(Signal):
     return Field(repeated_field=Field(dtype=DataType.STRING_SPAN, refers_to=input_column))
 
   @override
-  def compute(self,
-              data: Optional[Iterable[RichData]] = None,
-              keys: Optional[Iterable[bytes]] = None,
-              get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[ItemValue]:
+  def compute(
+      self,
+      data: Optional[Iterable[RichData]] = None,
+      keys: Optional[Iterable[bytes]] = None,
+      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[ItemValue]]:
     if data is None:
       raise ValueError('Sentence splitter requires text data.')
 
-    for doc in self._tokenizer.pipe(data):  # type: ignore
+    text_data = [row if isinstance(row, str) else '' for row in data]
+    for doc in self._tokenizer.pipe(text_data):
       sentences = doc.sents
-      yield [TextSpan(start=token.start_char, end=token.end_char) for token in sentences]
+      result = [TextSpan(start=token.start_char, end=token.end_char) for token in sentences]
+      if result:
+        yield result
+      else:
+        yield None

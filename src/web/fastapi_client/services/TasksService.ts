@@ -1,22 +1,24 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { TaskManifest } from '../models/TaskManifest';
+
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
-export class DefaultService {
+export class TasksService {
 
     /**
-     * Read Index
-     * Return the index.html file.
-     * @returns string Successful Response
+     * Get Task Manifest
+     * Get the tasks, both completed and pending.
+     * @returns TaskManifest Successful Response
      * @throws ApiError
      */
-    public static readIndex(): CancelablePromise<string> {
+    public static getTaskManifest(): CancelablePromise<TaskManifest> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/{full_path}',
+            url: '/api/v1/tasks/',
         });
     }
 

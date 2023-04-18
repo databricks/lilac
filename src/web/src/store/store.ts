@@ -6,28 +6,16 @@ import {configureStore, createSlice, isRejectedWithValue, PayloadAction} from '@
 import {createApi} from '@reduxjs/toolkit/query/react';
 import {createRoot} from 'react-dom/client';
 import {
-  DefaultService,
   Field,
   Filter,
   NamedBins,
   StatsResult,
   TaskManifest,
+  TasksService,
 } from '../../fastapi_client';
 import {getEqualBins, getNamedBins, NUM_AUTO_BINS, TOO_MANY_DISTINCT} from '../db';
 import {isOrdinal, isTemporal, Item, LeafValue, Path, UUID_COLUMN} from '../schema';
-import {
-  AddDatasetOptions,
-  AddExamplesOptions,
-  CreateModelOptions,
-  CreateModelResponse,
-  ListModelsResponse,
-  LoadModelResponse,
-  ModelInfo,
-  ModelOptions,
-  SaveModelOptions,
-  SearchExamplesOptions,
-  SearchExamplesResponse,
-} from '../server_api_deprecated';
+
 import {renderError} from '../utils';
 import {
   datasetApi,
@@ -88,149 +76,7 @@ export const serverApi = createApi({
   baseQuery: fastAPIBaseQuery(),
   endpoints: (builder) => ({
     getTaskManifest: builder.query<TaskManifest, void>({
-      query: () => () => DefaultService.getTaskManifest(),
-    }),
-  }),
-});
-
-const MODELS_TAG = 'models';
-const MODEL_DATA_TAG = 'model_data';
-export const dbApi = createApi({
-  reducerPath: 'dpiApi',
-  baseQuery: fastAPIBaseQuery(),
-  tagTypes: [MODELS_TAG, MODEL_DATA_TAG],
-  endpoints: (builder) => ({
-    modelInfo: builder.query<ModelInfo, ModelOptions>({
-      query: (options) => async () => {
-        const {username, name} = options;
-        if (username == null || name == null) {
-          return null;
-        }
-        const response = await fetch(`/db/model_info?username=${username}&name=${name}`);
-        return response.json();
-      },
-    }),
-    loadModel: builder.query<LoadModelResponse, ModelOptions>({
-      query: (options) => async () => {
-        const {username, name} = options;
-        if (username == null || name == null) {
-          return null;
-        }
-        const response = await fetch(`/db/load_model?username=${username}&name=${name}`);
-        return response.json();
-      },
-      providesTags: [MODEL_DATA_TAG],
-    }),
-    searchExamples: builder.query<SearchExamplesResponse, SearchExamplesOptions>({
-      query: (options) => async () => {
-        const {username, modelName, query} = options;
-        if (username == null || modelName == null || query == '') {
-          return null;
-        }
-        const response = await fetch(
-          `/db/search_examples?username=${username}&model_name=${modelName}&query=${query}`
-        );
-        return response.json();
-      },
-    }),
-    listModels: builder.query<
-      // A row of the 'model' table.
-      ListModelsResponse,
-      void
-    >({
-      query: () => async () => {
-        const response = await fetch(`/db/list_models`);
-        return response.json();
-      },
-      providesTags: [MODELS_TAG],
-    }),
-    createModel: builder.mutation<CreateModelResponse, CreateModelOptions>({
-      query: (options) => async () => {
-        const createModelResponse = await fetch(`/db/create_model`, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(options),
-        });
-        if (createModelResponse.status != 200) {
-          return {error: `/db/create_model returned status code ${createModelResponse.status}.`};
-        }
-
-        return createModelResponse.json();
-      },
-      // Invalidate the list of datasets to force a refetch.
-      invalidatesTags: [MODELS_TAG],
-    }),
-    saveModel: builder.mutation<null, SaveModelOptions>({
-      query: (options) => async () => {
-        const saveModelResponse = await fetch(`/db/save_model`, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(options),
-        });
-        if (saveModelResponse.status != 200) {
-          return {
-            error: `/db/save_model returned status code ${saveModelResponse.status}.
-            ${await saveModelResponse.text()}`,
-          };
-        }
-
-        return null;
-      },
-      // Invalidate the model data.
-      // NOTE: This is very inneficient as it causes *all* data to be invalidated. We can update
-      // this later as we figure out the data loading story.
-      invalidatesTags: [MODEL_DATA_TAG],
-    }),
-    addExamples: builder.mutation<null, AddExamplesOptions>({
-      query: (options) => async () => {
-        const addExamplesResponse = await fetch(`/db/add_examples`, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(options),
-        });
-        if (addExamplesResponse.status != 200) {
-          return {
-            error: `/db/save_model returned status code ${addExamplesResponse.status}.
-            ${await addExamplesResponse.text()}`,
-          };
-        }
-
-        return null;
-      },
-      // Invalidate the model data.
-      // NOTE: This is very inneficient as it causes *all* data to be invalidated. We can update
-      // this later as we figure out the data loading story.
-      invalidatesTags: [MODEL_DATA_TAG],
-    }),
-    addModelData: builder.mutation<null, AddDatasetOptions>({
-      query: (options) => async () => {
-        const addDatasetResponse = await fetch(`/db/add_dataset`, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(options),
-        });
-        if (addDatasetResponse.status != 200) {
-          return {error: `/db/add_dataset returned status code ${addDatasetResponse.status}.`};
-        }
-
-        return null;
-      },
-      // Invalidate the model data.
-      // NOTE: This is very inneficient as it causes *all* data to be invalidated. We can update
-      // this later as we figure out the data loading story.
-      invalidatesTags: [MODEL_DATA_TAG],
+      query: () => () => TasksService.getTaskManifest(),
     }),
   }),
 });
@@ -251,7 +97,6 @@ const rtkQueryErrorLogger: Middleware = () => (next) => (action) => {
 export const store = configureStore({
   reducer: {
     [appSlice.name]: appSlice.reducer,
-    [dbApi.reducerPath]: dbApi.reducer,
     [serverApi.reducerPath]: serverApi.reducer,
     [datasetApi.reducerPath]: datasetApi.reducer,
     [signalApi.reducerPath]: signalApi.reducer,
@@ -259,7 +104,6 @@ export const store = configureStore({
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat([
-      dbApi.middleware,
       datasetApi.middleware,
       signalApi.middleware,
       serverApi.middleware,
@@ -273,16 +117,6 @@ export const store = configureStore({
 export const {setDataset, setSelectedMediaPaths, setSelectedMetadataPaths, setRowHeightListPx} =
   appSlice.actions;
 
-export const {
-  useCreateModelMutation,
-  useModelInfoQuery,
-  useListModelsQuery,
-  useLoadModelQuery,
-  useAddModelDataMutation,
-  useSaveModelMutation,
-  useAddExamplesMutation,
-  useLazySearchExamplesQuery,
-} = dbApi;
 export const {useGetTaskManifestQuery, useLazyGetTaskManifestQuery} = serverApi;
 
 /** Fetches the data associated with an item from the dataset. */

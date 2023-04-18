@@ -1,30 +1,22 @@
-"""Serves the agile model server."""
+"""Serves the Lilac server."""
 
 import os
 from typing import Any
 
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 
 from . import (
-    db_deprecated,
     router_concept,
     router_data_loader,
     router_dataset,
     router_embedding,
     router_signal,
+    router_tasks,
 )
-from .server_api import (
-    AddDatasetOptions,
-    AddExamplesOptions,
-    GetModelInfoOptions,
-    LoadModelOptions,
-    SaveModelOptions,
-    SearchExamplesOptions,
-)
-from .tasks import TaskManifest, task_manager
+from .tasks import task_manager
 
 DIST_PATH = os.path.abspath(os.path.join('dist'))
 
@@ -59,6 +51,7 @@ v1_router.include_router(router_concept.router, prefix='/concepts', tags=['conce
 v1_router.include_router(router_data_loader.router, prefix='/data_loaders', tags=['data_loaders'])
 v1_router.include_router(router_signal.router, prefix='/signals', tags=['signals'])
 v1_router.include_router(router_embedding.router, prefix='/embeddings', tags=['embeddings'])
+v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
 
 app.include_router(v1_router, prefix='/api/v1')
 
@@ -77,60 +70,6 @@ app.mount('/hot',
 async def shutdown_event() -> None:
   """Kill the task manager when FastAPI shuts down."""
   await task_manager().stop()
-
-
-@app.get('/tasks')
-async def get_task_manifest() -> TaskManifest:
-  """Get the tasks, both completed and pending."""
-  return await task_manager().manifest()
-
-
-@app.get('/db/list_models')
-def list_models() -> dict:
-  """List the models."""
-  model_infos = db_deprecated.list_models()
-  return model_infos.dict()
-
-
-@app.get('/db/model_info')
-def model_info(options: GetModelInfoOptions = Depends()) -> dict:
-  """List the models."""
-  model_infos = db_deprecated.get_model_info(options)
-  return model_infos.dict()
-
-
-@app.get('/db/load_model')
-def load_model(options: LoadModelOptions = Depends()) -> dict:
-  """List the models."""
-  load_model_response = db_deprecated.load_model(options)
-  return load_model_response.dict()
-
-
-@app.post('/db/save_model')
-def save_model(options: SaveModelOptions) -> dict:
-  """Save cached model to GCS."""
-  db_deprecated.save_model(options)
-  return {}
-
-
-@app.post('/db/add_examples')
-def add_examples(options: AddExamplesOptions) -> dict:
-  """Save cached model to GCS."""
-  db_deprecated.add_examples(options)
-  return {}
-
-
-@app.get('/db/search_examples')
-def search_examples(options: SearchExamplesOptions = Depends()) -> dict:
-  """Search exmaples."""
-  return db_deprecated.search_examples(options).dict()
-
-
-@app.post('/db/add_dataset')
-def add_data(options: AddDatasetOptions) -> dict:
-  """Add data to a model."""
-  db_deprecated.add_dataset(options)
-  return {}
 
 
 @app.get('/{full_path:path}', response_class=HTMLResponse)
