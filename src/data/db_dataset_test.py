@@ -1148,7 +1148,6 @@ class SelectGroupsSuite:
             'count': 1
         }
     ])
-    expected['value'] = expected['value'].astype('object')
     pd.testing.assert_frame_equal(result, expected)
 
     result = db.select_groups(leaf_path='active').df()

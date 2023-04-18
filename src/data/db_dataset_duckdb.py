@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 from pandas.api.types import (
-    is_float_dtype,
     is_object_dtype,
 )
 from pydantic import BaseModel, validator
@@ -106,7 +105,7 @@ class DuckDBSelectGroupsResult(SelectGroupsResult):
     # shipping to the browser. DuckDB returns np.nan in string columns when there is a missing field
     # so we have to remove np.nan for string columns as well.
     value_column = 'value'
-    if is_float_dtype(df[value_column]) or is_object_dtype(df[value_column]):
+    if is_object_dtype(df[value_column]):
       df[value_column].replace(np.nan, None, inplace=True)
 
     self._df = df
