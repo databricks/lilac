@@ -55,10 +55,7 @@ class PandasDataset(Source):
     # Register the dataframe as a duckdb view.
     con.register('df', self._df)
 
-    # TODO(https://github.com/lilacml/lilac/issues/1): Remove this workaround when duckdb
-    # supports direct casting uuid --> blob.
-    blob_uuid = "regexp_replace(replace(uuid(), '-', ''), '.{2}', '\\\\x\\0', 'g')::BLOB"
-    pd_sql = f'SELECT {blob_uuid} as {UUID_COLUMN}, * FROM df'
+    pd_sql = f"SELECT nextval('serial')::STRING as {UUID_COLUMN}, * FROM df"
 
     prefix = os.path.join(output_dir, PARQUET_FILENAME_PREFIX)
     shard_index = 0
@@ -81,6 +78,7 @@ class PandasDataset(Source):
     con.execute(f"""
       {gcs_setup}
       SET preserve_insertion_order=false;
+      CREATE SEQUENCE serial START 1;
       COPY ({pd_sql}) TO '{s3_out_filepath}'
     """)
 

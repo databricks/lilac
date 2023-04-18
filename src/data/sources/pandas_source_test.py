@@ -16,7 +16,7 @@ def test_simple_dataframe(tmp_path: pathlib.Path) -> None:
 
   expected_result = SourceProcessResult(data_schema=Schema(
       fields={
-          UUID_COLUMN: Field(dtype=DataType.BINARY),
+          UUID_COLUMN: Field(dtype=DataType.STRING),
           'name': Field(dtype=DataType.STRING),
           'age': Field(dtype=DataType.INT64)
       }),

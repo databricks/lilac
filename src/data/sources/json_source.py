@@ -77,12 +77,8 @@ class JSONDataset(Source):
     con.load_extension('json')
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     s3_filepaths = [path.replace('gs://', 's3://') for path in gcs_filepaths]
-    # The sample size here is just used to infer the schema.
-    # TODO(https://github.com/lilacml/lilac/issues/1): Remove this workaround when duckdb
-    # supports direct casting uuid --> blob.
-    blob_uuid = "regexp_replace(replace(uuid(), '-', ''), '.{2}', '\\\\x\\0', 'g')::BLOB"
-    json_sql = f'SELECT {blob_uuid} as {UUID_COLUMN}, * FROM read_json(\
-      {s3_filepaths}, json_format="{self.json_format}", IGNORE_ERRORS=true, AUTO_DETECT=true)'
+    json_sql = f"SELECT nextval('serial')::STRING as {UUID_COLUMN}, * FROM read_json(\
+      {s3_filepaths}, json_format='{self.json_format}', IGNORE_ERRORS=true, AUTO_DETECT=true)"
 
     prefix = os.path.join(output_dir, PARQUET_FILENAME_PREFIX)
     shard_index = 0
@@ -104,6 +100,7 @@ class JSONDataset(Source):
     s3_out_filepath = out_filepath.replace('gs://', 's3://')
     con.execute(f"""
       {gcs_setup}
+      CREATE SEQUENCE serial START 1;
       COPY ({json_sql}) TO '{s3_out_filepath}'
     """)
 

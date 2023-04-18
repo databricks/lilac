@@ -134,7 +134,7 @@ def enrich_item_from_leaf_item(enriched_item: Item, path: Path, leaf_item: Signa
 
 def create_enriched_schema(source_schema: Schema, enrich_path: Path, enrich_field: Field) -> Schema:
   """Create a schema describing the enriched fields added an enrichment."""
-  enriched_schema = Schema(fields={UUID_COLUMN: Field(dtype=DataType.BINARY)})
+  enriched_schema = Schema(fields={UUID_COLUMN: Field(dtype=DataType.STRING)})
   return _add_enriched_fields_to_schema(source_schema=source_schema,
                                         enriched_schema=enriched_schema,
                                         enrich_field=enrich_field,

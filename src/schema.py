@@ -373,10 +373,6 @@ def schema_to_arrow_schema(schema: Union[Schema, Field]) -> pa.Schema:
   """Convert our schema to arrow schema."""
   arrow_schema = cast(pa.Schema, _schema_to_arrow_schema_impl(schema))
   arrow_fields = {field.name: field.type for field in arrow_schema}
-  # Since UUID is a fixed size binary of 16 bytes, we mark it as such in the schema -- leads to
-  # optimizations by DuckDB and aligns with DuckDB's own UUID dtype.
-  if UUID_COLUMN in arrow_fields:
-    arrow_fields[UUID_COLUMN] = pa.binary(16)
   return pa.schema(arrow_fields)
 
 

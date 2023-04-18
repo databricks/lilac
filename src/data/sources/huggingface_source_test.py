@@ -23,7 +23,7 @@ def test_hf(tmp_path: pathlib.Path) -> None:
 
   expected_result = SourceProcessResult(data_schema=Schema(
       fields={
-          UUID_COLUMN: Field(dtype=DataType.BINARY),
+          UUID_COLUMN: Field(dtype=DataType.STRING),
           HF_SPLIT_COLUMN: Field(dtype=DataType.STRING),
           'x': Field(dtype=DataType.INT64),
           'y': Field(dtype=DataType.STRING),
@@ -81,7 +81,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
   expected_result = SourceProcessResult(data_schema=Schema(
       fields={
           UUID_COLUMN:
-              Field(dtype=DataType.BINARY),
+              Field(dtype=DataType.STRING),
           HF_SPLIT_COLUMN:
               Field(dtype=DataType.STRING),
           'scalar':

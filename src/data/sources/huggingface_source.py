@@ -117,7 +117,7 @@ def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> 
   # Add the split column to the schema.
   fields[HF_SPLIT_COLUMN] = Field(dtype=DataType.STRING)
   # Add UUID to the Schema.
-  fields[UUID_COLUMN] = Field(dtype=DataType.BINARY)
+  fields[UUID_COLUMN] = Field(dtype=DataType.STRING)
 
   return SchemaInfo(data_schema=Schema(fields=fields),
                     class_labels=class_labels,
