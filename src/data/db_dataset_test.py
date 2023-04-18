@@ -507,10 +507,10 @@ class SelectRowsSuite:
     db = make_db(db_cls,
                  tmp_path,
                  items=[{
-                     UUID_COLUMN: '31' * 16,
+                     UUID_COLUMN: '1',
                      'text': 'hello'
                  }, {
-                     UUID_COLUMN: '32' * 16,
+                     UUID_COLUMN: '2',
                      'text': 'everybody'
                  }],
                  schema=Schema(fields={
@@ -519,10 +519,29 @@ class SelectRowsSuite:
                  }))
 
     signal = SelectRowsSuite.UDF()
-    # Filter by source feature.
-    filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '31' * 16)]
+    # Filter by a specific UUID.
+    filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '1')]
     result = db.select_rows(columns=['text', SignalUDF(signal, 'text')], filters=filters)
-    assert list(result) == [{UUID_COLUMN: '31' * 16, 'text': 'hello', 'udf_func(text)': 5}]
+    assert list(result) == [{UUID_COLUMN: '1', 'text': 'hello', 'udf_func(text)': 5}]
+    assert signal.call_count == 1
+
+    filters = [(UUID_COLUMN, Comparison.EQUALS, '2')]
+    result = db.select_rows(columns=['text', SignalUDF(signal, 'text')], filters=filters)
+    assert list(result) == [{UUID_COLUMN: '2', 'text': 'everybody', 'udf_func(text)': 9}]
+    assert signal.call_count == 2
+
+    # No filters.
+    result = db.select_rows(columns=['text', SignalUDF(signal, 'text')])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        'udf_func(text)': 5
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        'udf_func(text)': 9
+    }]
+    assert signal.call_count == 4
 
   def test_signal_transform_with_embedding(self, tmp_path: pathlib.Path,
                                            db_cls: Type[DatasetDB]) -> None:

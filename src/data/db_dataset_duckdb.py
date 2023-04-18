@@ -436,7 +436,7 @@ class DatasetDuckDB(DatasetDB):
 
     where_query = ''
     if row_uuid:
-      where_query = f'WHERE {UUID_COLUMN} = {_hex_to_blob_literal(row_uuid)}'
+      where_query = f"WHERE {UUID_COLUMN} = '{row_uuid}'"
 
     if is_repeated:
       # Currently we only allow inner repeated leafs, so we can use a simple UNNEST(RANGE(...)) to
@@ -780,7 +780,6 @@ class DatasetDuckDB(DatasetDB):
     return filters
 
   def _create_where(self, filters: list[Filter], alias: Optional[str] = None) -> list[str]:
-    alias_prefix = f'"{alias}".' if alias else ''
     if not filters:
       return []
     filter_queries: list[str] = []
@@ -794,6 +793,7 @@ class DatasetDuckDB(DatasetDB):
         filter_val = _bytes_to_blob_literal(filter_val)
       else:
         filter_val = str(filter_val)
+      alias_prefix = f'"{alias}".' if alias and filter.path == (UUID_COLUMN,) else ''
       filter_query = f'{alias_prefix}{col_name} {op} {filter_val}'
       filter_queries.append(filter_query)
     return filter_queries
