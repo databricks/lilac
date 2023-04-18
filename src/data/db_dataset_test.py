@@ -873,7 +873,7 @@ class TestSignal(Signal):
   def compute(
       self,
       data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[bytes]] = None,
+      keys: Optional[Iterable[str]] = None,
       get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
     if data is None:
       raise ValueError('data is not defined')
@@ -896,7 +896,7 @@ class TestSplitterWithLen(Signal):
   @override
   def compute(self,
               data: Optional[Iterable[RichData]] = None,
-              keys: Optional[Iterable[bytes]] = None,
+              keys: Optional[Iterable[str]] = None,
               get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[ItemValue]:
     if data is None:
       raise ValueError('Sentence splitter requires text data.')
@@ -924,7 +924,7 @@ class TestEmbeddingSumSignal(Signal):
   @override
   def compute(self,
               data: Optional[Iterable[RichData]] = None,
-              keys: Optional[Iterable[bytes]] = None,
+              keys: Optional[Iterable[str]] = None,
               get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[ItemValue]:
     if keys is None:
       raise ValueError('Embedding sum signal requires keys.')
@@ -952,7 +952,7 @@ class TestInvalidSignal(Signal):
   def compute(
       self,
       data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[bytes]] = None,
+      keys: Optional[Iterable[str]] = None,
       get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
     # Return an invalid output that doesn't match the input length.
     return []

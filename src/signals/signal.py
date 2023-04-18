@@ -67,7 +67,7 @@ class Signal(abc.ABC, BaseModel):
   def compute(
       self,
       data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[bytes]] = None,
+      keys: Optional[Iterable[str]] = None,
       get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[SignalOut]]:
     """Compute the signal for an iterable of row-keyed documents or images.
 

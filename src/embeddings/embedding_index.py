@@ -19,7 +19,7 @@ class EmbeddingIndex(BaseModel):
   embeddings: np.ndarray
 
 
-GetEmbeddingIndexFn = Callable[[EmbeddingId, Iterable[bytes]], EmbeddingIndex]
+GetEmbeddingIndexFn = Callable[[EmbeddingId, Iterable[str]], EmbeddingIndex]
 
 
 class EmbeddingIndexer(abc.ABC):
@@ -29,7 +29,7 @@ class EmbeddingIndexer(abc.ABC):
   def get_embedding_index(self,
                           column: Path,
                           embedding: EmbeddingId,
-                          keys: Optional[Iterable[bytes]] = None) -> EmbeddingIndex:
+                          keys: Optional[Iterable[str]] = None) -> EmbeddingIndex:
     """Get an embedding index for a column, throw if it doesn't exist.
 
     Args:
@@ -47,7 +47,7 @@ class EmbeddingIndexer(abc.ABC):
   def compute_embedding_index(self,
                               column: Path,
                               embedding: Embedding,
-                              keys: Iterable[bytes],
+                              keys: Iterable[str],
                               data: Iterable[RichData],
                               task_id: Optional[TaskId] = None) -> None:
     """Get an embedding index for a column, throw if it doesn't exist.

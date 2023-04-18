@@ -17,12 +17,12 @@ ALL_INDEXERS: list[Type[EmbeddingIndexer]] = [EmbeddingIndexerDisk]
 
 TEST_EMBEDDING_NAME = 'test_embedding'
 
-EMBEDDINGS: list[tuple[bytes, str, list[float]]] = [(b'1', 'hello', [1.0, 0.0, 0.0]),
-                                                    (b'2', 'hello world', [0.9, 0.1, 0.0]),
-                                                    (b'3', 'far', [0.0, 0.0, 1.0])]
+EMBEDDINGS: list[tuple[str, str, list[float]]] = [('1', 'hello', [1.0, 0.0, 0.0]),
+                                                  ('2', 'hello world', [0.9, 0.1, 0.0]),
+                                                  ('3', 'far', [0.0, 0.0, 1.0])]
 
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for _, text, embedding in EMBEDDINGS}
-KEY_EMBEDDINGS: dict[bytes, list[float]] = {key: embedding for key, _, embedding in EMBEDDINGS}
+KEY_EMBEDDINGS: dict[str, list[float]] = {key: embedding for key, _, embedding in EMBEDDINGS}
 
 
 class TestEmbedding(Embedding):
