@@ -6,7 +6,7 @@ export NODE_ENV=development
 poetry run python -m scripts.make_fastapi_client
 
 # Start the webpack devserver.
-rm -rf dist/ && npm run --prefix src/web dev --watch &
+rm -rf dist/ && npm run --prefix src/web dev -- --open &
 pid[2]=$!
 
 # Run the node server.
