@@ -17,12 +17,12 @@ ALL_INDEXERS: list[Type[EmbeddingIndexer]] = [EmbeddingIndexerDisk]
 
 TEST_EMBEDDING_NAME = 'test_embedding'
 
-EMBEDDINGS: list[tuple[bytes, str, list[float]]] = [(b'1', 'hello', [1.0, 0.0, 0.0]),
-                                                    (b'2', 'hello world', [0.9, 0.1, 0.0]),
-                                                    (b'3', 'far', [0.0, 0.0, 1.0])]
+EMBEDDINGS: list[tuple[str, str, list[float]]] = [('1', 'hello', [1.0, 0.0, 0.0]),
+                                                  ('2', 'hello world', [0.9, 0.1, 0.0]),
+                                                  ('3', 'far', [0.0, 0.0, 1.0])]
 
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for _, text, embedding in EMBEDDINGS}
-KEY_EMBEDDINGS: dict[bytes, list[float]] = {key: embedding for key, _, embedding in EMBEDDINGS}
+KEY_EMBEDDINGS: dict[str, list[float]] = {key: embedding for key, _, embedding in EMBEDDINGS}
 
 
 class TestEmbedding(Embedding):
@@ -104,12 +104,12 @@ class EmbeddingIndexerSuite:
         'test_column',
         TestEmbedding(),
         # Keys are partial.
-        keys=[b'1', b'2'])
+        keys=['1', '2'])
 
     np.testing.assert_array_equal(
         index.embeddings,
         # Results should be partial.
-        np.array([KEY_EMBEDDINGS[b'1'], KEY_EMBEDDINGS[b'2']]))
+        np.array([KEY_EMBEDDINGS['1'], KEY_EMBEDDINGS['2']]))
 
     # Embed should not be called again.
     assert embed_mock.call_count == 1

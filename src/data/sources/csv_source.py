@@ -76,10 +76,7 @@ class CSVDataset(Source):
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     s3_filepaths = [path.replace('gs://', 's3://') for path in gcs_filepaths]
     # The sample size here is just used to infer the schema.
-    # TODO(https://github.com/lilacml/lilac/issues/1): Remove this workaround when duckdb
-    # supports direct casting uuid --> blob.
-    blob_uuid = "regexp_replace(replace(uuid(), '-', ''), '.{2}', '\\\\x\\0', 'g')::BLOB"
-    csv_sql = f"SELECT {blob_uuid} as {UUID_COLUMN}, * FROM read_csv_auto(\
+    csv_sql = f"SELECT nextval('serial')::STRING as {UUID_COLUMN}, * FROM read_csv_auto(\
       {s3_filepaths}, SAMPLE_SIZE=500000, DELIM='{delim}', IGNORE_ERRORS=true)"
 
     prefix = os.path.join(output_dir, PARQUET_FILENAME_PREFIX)
@@ -104,6 +101,7 @@ class CSVDataset(Source):
       {gcs_setup}
       SET preserve_insertion_order=false;
       SET experimental_parallel_csv=true;
+      CREATE SEQUENCE serial START 1;
       COPY ({csv_sql}) TO '{s3_out_filepath}'
     """)
 

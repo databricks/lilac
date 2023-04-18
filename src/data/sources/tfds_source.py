@@ -121,7 +121,7 @@ def _tfds_schema_to_schema(feature: tfds.features.FeaturesDict) -> Schema:
       fields[name] = field
 
   # Add UUID to the Schema.
-  fields[UUID_COLUMN] = Field(dtype=DataType.BINARY)
+  fields[UUID_COLUMN] = Field(dtype=DataType.STRING)
 
   return Schema(fields=fields)
 

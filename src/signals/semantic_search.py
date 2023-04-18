@@ -43,7 +43,7 @@ class SemanticSearchSignal(Signal):
   def compute(
       self,
       data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[bytes]] = None,
+      keys: Optional[Iterable[str]] = None,
       get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[ItemValue]]:
     if data and keys:
       raise ValueError('"data" and "keys" cannot both be provided for SemanticSearch.compute().')

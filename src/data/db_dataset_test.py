@@ -75,7 +75,7 @@ SIMPLE_ITEMS: list[Item] = [{
 
 SIMPLE_SCHEMA = Schema(
     fields={
-        UUID_COLUMN: Field(dtype=DataType.BINARY),
+        UUID_COLUMN: Field(dtype=DataType.STRING),
         'str': Field(dtype=DataType.STRING),
         'int': Field(dtype=DataType.INT64),
         'bool': Field(dtype=DataType.BOOLEAN),
@@ -236,7 +236,7 @@ class SelectRowsSuite:
                                             dataset_name=TEST_DATASET_NAME,
                                             data_schema=Schema(
                                                 fields={
-                                                    UUID_COLUMN: Field(dtype=DataType.BINARY),
+                                                    UUID_COLUMN: Field(dtype=DataType.STRING),
                                                     'str': Field(dtype=DataType.STRING),
                                                     'int': Field(dtype=DataType.INT64),
                                                     'bool': Field(dtype=DataType.BOOLEAN),
@@ -278,7 +278,7 @@ class SelectRowsSuite:
                                             data_schema=Schema(
                                                 fields={
                                                     UUID_COLUMN:
-                                                        Field(dtype=DataType.BINARY),
+                                                        Field(dtype=DataType.STRING),
                                                     'str':
                                                         Field(dtype=DataType.STRING),
                                                     'int':
@@ -349,7 +349,7 @@ class SelectRowsSuite:
                  }],
                  schema=Schema(
                      fields={
-                         UUID_COLUMN: Field(dtype=DataType.BINARY),
+                         UUID_COLUMN: Field(dtype=DataType.STRING),
                          'text': Field(repeated_field=Field(dtype=DataType.STRING)),
                      }))
     test_signal = TestSignal()
@@ -363,7 +363,7 @@ class SelectRowsSuite:
         data_schema=Schema(
             fields={
                 UUID_COLUMN:
-                    Field(dtype=DataType.BINARY),
+                    Field(dtype=DataType.STRING),
                 'text':
                     Field(repeated_field=Field(dtype=DataType.STRING)),
                 'test_signal(text)':
@@ -409,7 +409,7 @@ class SelectRowsSuite:
                      'text': 'everybody'
                  }],
                  schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     UUID_COLUMN: Field(dtype=DataType.STRING),
                      'text': Field(dtype=DataType.STRING),
                  }))
 
@@ -444,7 +444,7 @@ class SelectRowsSuite:
                      'text': 'everybody'
                  }],
                  schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     UUID_COLUMN: Field(dtype=DataType.STRING),
                      'text': Field(dtype=DataType.STRING),
                  }))
 
@@ -536,7 +536,7 @@ class SelectRowsSuite:
                      'text': 'hello2.',
                  }],
                  schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     UUID_COLUMN: Field(dtype=DataType.STRING),
                      'text': Field(dtype=DataType.STRING),
                  }))
 
@@ -578,7 +578,7 @@ class SelectRowsSuite:
                                             dataset_name=TEST_DATASET_NAME,
                                             data_schema=Schema(
                                                 fields={
-                                                    UUID_COLUMN: Field(dtype=DataType.BINARY),
+                                                    UUID_COLUMN: Field(dtype=DataType.STRING),
                                                     'str': Field(dtype=DataType.STRING),
                                                     'int': Field(dtype=DataType.INT64),
                                                     'bool': Field(dtype=DataType.BOOLEAN),
@@ -622,7 +622,7 @@ class SelectRowsSuite:
                                             data_schema=Schema(
                                                 fields={
                                                     UUID_COLUMN:
-                                                        Field(dtype=DataType.BINARY),
+                                                        Field(dtype=DataType.STRING),
                                                     'str':
                                                         Field(dtype=DataType.STRING),
                                                     'int':
@@ -651,7 +651,7 @@ class SelectRowsSuite:
                      'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
                  }],
                  schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     UUID_COLUMN: Field(dtype=DataType.STRING),
                      'text': Field(dtype=DataType.STRING),
                  }))
 
@@ -708,7 +708,7 @@ class SelectRowsSuite:
                      'text': 'hello2.',
                  }],
                  schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     UUID_COLUMN: Field(dtype=DataType.STRING),
                      'text': Field(dtype=DataType.STRING),
                  }))
 
@@ -723,7 +723,7 @@ class SelectRowsSuite:
         dataset_name=TEST_DATASET_NAME,
         data_schema=Schema(
             fields={
-                UUID_COLUMN: Field(dtype=DataType.BINARY),
+                UUID_COLUMN: Field(dtype=DataType.STRING),
                 'text': Field(dtype=DataType.STRING),
                 'text_emb_sum': Field(dtype=DataType.FLOAT32, enriched=True)
             }),
@@ -752,7 +752,7 @@ class SelectRowsSuite:
                      'text': 'hello world. hello world2.',
                  }],
                  schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     UUID_COLUMN: Field(dtype=DataType.STRING),
                      'text': Field(dtype=DataType.STRING),
                  }))
 
@@ -772,7 +772,7 @@ class SelectRowsSuite:
         data_schema=Schema(
             fields={
                 UUID_COLUMN:
-                    Field(dtype=DataType.BINARY),
+                    Field(dtype=DataType.STRING),
                 'text':
                     Field(dtype=DataType.STRING),
                 'text_sentences_emb_sum':
@@ -836,7 +836,7 @@ class SelectRowsSuite:
                  }],
                  schema=Schema(
                      fields={
-                         UUID_COLUMN: Field(dtype=DataType.BINARY),
+                         UUID_COLUMN: Field(dtype=DataType.STRING),
                          'text': Field(dtype=DataType.STRING),
                          'text2': Field(repeated_field=Field(dtype=DataType.STRING)),
                      }))
@@ -912,7 +912,7 @@ class TestSignal(Signal):
   def compute(
       self,
       data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[bytes]] = None,
+      keys: Optional[Iterable[str]] = None,
       get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
     if data is None:
       raise ValueError('data is not defined')
@@ -935,7 +935,7 @@ class TestSplitterWithLen(Signal):
   @override
   def compute(self,
               data: Optional[Iterable[RichData]] = None,
-              keys: Optional[Iterable[bytes]] = None,
+              keys: Optional[Iterable[str]] = None,
               get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[ItemValue]:
     if data is None:
       raise ValueError('Sentence splitter requires text data.')
@@ -963,7 +963,7 @@ class TestEmbeddingSumSignal(Signal):
   @override
   def compute(self,
               data: Optional[Iterable[RichData]] = None,
-              keys: Optional[Iterable[bytes]] = None,
+              keys: Optional[Iterable[str]] = None,
               get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[ItemValue]:
     if keys is None:
       raise ValueError('Embedding sum signal requires keys.')
@@ -991,7 +991,7 @@ class TestInvalidSignal(Signal):
   def compute(
       self,
       data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[bytes]] = None,
+      keys: Optional[Iterable[str]] = None,
       get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
     # Return an invalid output that doesn't match the input length.
     return []
@@ -1013,7 +1013,7 @@ class ComputeSignalItemsSuite:
                      'text': 'hello world',
                  }],
                  schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     UUID_COLUMN: Field(dtype=DataType.STRING),
                      'text': Field(dtype=DataType.STRING),
                  }))
 
@@ -1072,7 +1072,7 @@ class StatsSuite:
     nested_schema = Schema(
         fields={
             UUID_COLUMN:
-                Field(dtype=DataType.BINARY),
+                Field(dtype=DataType.STRING),
             'name':
                 Field(dtype=DataType.STRING),
             'addresses':
@@ -1094,7 +1094,7 @@ class StatsSuite:
 
     nested_items: list[Item] = [{'feature': str(i)} for i in range(sample_size * 10)]
     nested_schema = Schema(fields={
-        UUID_COLUMN: Field(dtype=DataType.BINARY),
+        UUID_COLUMN: Field(dtype=DataType.STRING),
         'feature': Field(dtype=DataType.STRING)
     })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
@@ -1142,7 +1142,7 @@ class SelectGroupsSuite:
     ]
     schema = Schema(
         fields={
-            UUID_COLUMN: Field(dtype=DataType.BINARY),
+            UUID_COLUMN: Field(dtype=DataType.STRING),
             'name': Field(dtype=DataType.STRING),
             'age': Field(dtype=DataType.INT32),
             'active': Field(dtype=DataType.BOOLEAN)
@@ -1223,7 +1223,7 @@ class SelectGroupsSuite:
         {}  # Missing "active".
     ]
     schema = Schema(fields={
-        UUID_COLUMN: Field(dtype=DataType.BINARY),
+        UUID_COLUMN: Field(dtype=DataType.STRING),
         'active': Field(dtype=DataType.BOOLEAN)
     })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
@@ -1255,7 +1255,7 @@ class SelectGroupsSuite:
     schema = Schema(
         fields={
             UUID_COLUMN:
-                Field(dtype=DataType.BINARY),
+                Field(dtype=DataType.STRING),
             'list_of_structs':
                 Field(repeated_field=Field(fields={'name': Field(dtype=DataType.STRING)})),
         })
@@ -1300,7 +1300,7 @@ class SelectGroupsSuite:
     schema = Schema(
         fields={
             UUID_COLUMN:
-                Field(dtype=DataType.BINARY),
+                Field(dtype=DataType.STRING),
             'nested_list':
                 Field(repeated_field=Field(repeated_field=Field(
                     fields={'name': Field(dtype=DataType.STRING)}))),
@@ -1350,7 +1350,7 @@ class SelectGroupsSuite:
     schema = Schema(
         fields={
             UUID_COLUMN:
-                Field(dtype=DataType.BINARY),
+                Field(dtype=DataType.STRING),
             'nested_struct':
                 Field(fields={'struct': Field(fields={'name': Field(dtype=DataType.STRING)})}),
         })
@@ -1382,7 +1382,7 @@ class SelectGroupsSuite:
         'age': 55
     }]
     schema = Schema(fields={
-        UUID_COLUMN: Field(dtype=DataType.BINARY),
+        UUID_COLUMN: Field(dtype=DataType.STRING),
         'age': Field(dtype=DataType.INT32),
     })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
@@ -1438,7 +1438,7 @@ class SelectGroupsSuite:
     schema = Schema(
         fields={
             UUID_COLUMN:
-                Field(dtype=DataType.BINARY),
+                Field(dtype=DataType.STRING),
             'nested_struct':
                 Field(fields={'struct': Field(fields={'name': Field(dtype=DataType.STRING)})}),
         })
@@ -1464,7 +1464,7 @@ class SelectGroupsSuite:
 
     items: list[Item] = [{'feature': str(i)} for i in range(too_many_distinct + 10)]
     schema = Schema(fields={
-        UUID_COLUMN: Field(dtype=DataType.BINARY),
+        UUID_COLUMN: Field(dtype=DataType.STRING),
         'feature': Field(dtype=DataType.STRING)
     })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
@@ -1477,7 +1477,7 @@ class SelectGroupsSuite:
                                        db_cls: Type[DatasetDB]) -> None:
     items: list[Item] = [{'feature': float(i)} for i in range(5)]
     schema = Schema(fields={
-        UUID_COLUMN: Field(dtype=DataType.BINARY),
+        UUID_COLUMN: Field(dtype=DataType.STRING),
         'feature': Field(dtype=DataType.FLOAT32)
     })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
