@@ -9,9 +9,7 @@ import duckdb
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-from pandas.api.types import (
-    is_object_dtype,
-)
+from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, validator
 from typing_extensions import override
 
