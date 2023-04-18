@@ -16,6 +16,12 @@ from .concept import Concept, ConceptModel, Example, ExampleIn
 CONCEPT_JSON_FILENAME = 'concept.json'
 
 
+class ConceptInfo(BaseModel):
+  """Information about a concept."""
+  namespace: str
+  name: str
+
+
 class ConceptUpdate(BaseModel):
   """An update to a concept."""
   # List of examples to be inserted.
@@ -30,6 +36,11 @@ class ConceptUpdate(BaseModel):
 
 class ConceptDB(abc.ABC):
   """Interface for the concept database."""
+
+  @abc.abstractmethod
+  def list(self) -> list[ConceptInfo]:
+    """List all the concepts."""
+    pass
 
   @abc.abstractmethod
   def get(self, namespace: str, name: str) -> Optional[Concept]:
@@ -146,6 +157,14 @@ def _concept_model_path(namespace: str, concept_name: str, embedding_name: str) 
 
 class DiskConceptDB(ConceptDB):
   """A concept database."""
+
+  def list(self) -> list[ConceptInfo]:
+    # Read the concepts and return a ConceptInfo containing the namespace and name.
+    concept_infos = []
+    for namespace in os.listdir(data_path()):
+      for concept_name in os.listdir(os.path.join(data_path(), namespace)):
+        concept_infos.append(ConceptInfo(namespace=namespace, name=concept_name))
+    return concept_infos
 
   def get(self, namespace: str, name: str) -> Optional[Concept]:
     """Get a concept."""

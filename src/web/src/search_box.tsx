@@ -27,7 +27,8 @@ type PageType =
   | 'compute-signal'
   | 'compute-signal-setup'
   | 'compute-embedding-index'
-  | 'compute-embedding-index-setup';
+  | 'compute-embedding-index-setup'
+  | 'edit-concept';
 
 type PageMetadata = {
   'open-dataset': Record<string, never>;
@@ -37,6 +38,7 @@ type PageMetadata = {
   'compute-signal-setup': {signal: SignalInfo};
   'compute-embedding-index': Record<string, never>;
   'compute-embedding-index-setup': {embedding: EmbeddingInfo};
+  'edit-concept': Record<string, never>;
 };
 
 interface Page<T extends PageType = PageType> {
@@ -175,6 +177,7 @@ export const SearchBox = () => {
                   page={activePage as Page<'compute-embedding-index-setup'>}
                 />
               )}
+              {activePage?.type === 'edit-concept' && <Concepts pushPage={pushPage} />}
             </>
           )}
         </Command.List>
@@ -235,8 +238,14 @@ function HomeMenu({
       {/* Concepts */}
       <Command.Group heading="Concepts">
         <Item>
-          <SlIcon className="text-xl" name="stars" />
-          Open concept
+          <SlIcon
+            className="text-xl"
+            name="stars"
+            onSelect={() => {
+              pushPage({type: 'edit-concept', name: 'Edit concept'});
+            }}
+          />
+          Edit concept
         </Item>
         <Item>
           <SlIcon className="text-xl" name="plus-lg" />
@@ -608,6 +617,40 @@ function ComputeEmbeddingIndex({pushPage}: {pushPage: (page: Page) => void}) {
             >
               <div className="flex w-full justify-between">
                 <div className="truncate">{embedding.name}</div>
+                <div className="truncate">{jsonSchema.description}</div>
+              </div>
+            </Item>
+          );
+        })}
+      </>
+    );
+  });
+}
+
+function Concepts({pushPage}: {pushPage: (page: Page) => void}) {
+  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
+  if (namespace == null || datasetName == null) {
+    throw new Error('Invalid route');
+  }
+  const query = useGetSignalsQuery();
+  return renderQuery(query, (signals) => {
+    return (
+      <>
+        {signals.map((signal) => {
+          const jsonSchema = signal.json_schema as JSONSchema7;
+          return (
+            <Item
+              key={signal.name}
+              onSelect={() => {
+                pushPage({
+                  type: 'compute-signal-setup',
+                  name: signal.name,
+                  metadata: {signal},
+                });
+              }}
+            >
+              <div className="flex w-full justify-between">
+                <div className="truncate">{signal.name}</div>
                 <div className="truncate">{jsonSchema.description}</div>
               </div>
             </Item>

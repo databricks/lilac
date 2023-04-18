@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { Concept } from '../models/Concept';
+import type { ConceptInfo } from '../models/ConceptInfo';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
 import type { ScoreBody } from '../models/ScoreBody';
 import type { ScoreResponse } from '../models/ScoreResponse';
@@ -11,6 +12,31 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
 export class ConceptsService {
+
+    /**
+     * Get Concepts
+     * Get a concept from a database.
+     * @param namespace
+     * @param conceptName
+     * @returns ConceptInfo Successful Response
+     * @throws ApiError
+     */
+    public static getConcepts(
+        namespace: string,
+        conceptName: string,
+    ): CancelablePromise<Array<ConceptInfo>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/concepts/',
+            query: {
+                'namespace': namespace,
+                'concept_name': conceptName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
 
     /**
      * Get Concept
