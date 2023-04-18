@@ -40,7 +40,7 @@ class SentenceSplitterSpacy(Signal):
     text_data = [row if isinstance(row, str) else '' for row in data]
     for doc in self._tokenizer.pipe(text_data):
       sentences = doc.sents
-      result = (TextSpan(start=token.start_char, end=token.end_char) for token in sentences)
+      result = [TextSpan(start=token.start_char, end=token.end_char) for token in sentences]
       if result:
         yield result
       else:
