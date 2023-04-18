@@ -449,8 +449,8 @@ class DatasetDuckDB(DatasetDB):
             {data_select if not only_keys else ''}
             UNNEST(RANGE(ARRAY_LENGTH({inner_repeated_col}))) as {repeated_indices_col},
             {UUID_COLUMN}
-          {where_query}
           FROM t
+          {where_query}
         )
       """
       leaf_select = f'{value_column} as {value_column_alias}'
@@ -464,8 +464,8 @@ class DatasetDuckDB(DatasetDB):
       {UUID_COLUMN},
       {f'{repeated_indices_col},' if repeated_indices_col else ''}
       {leaf_select if not only_keys else ''}
-    {where_query}
     FROM {from_table}
+    {where_query}
     """
     return SelectLeafsResult(df=self._query_df(query),
                              value_column=value_column_alias,
@@ -713,7 +713,7 @@ class DatasetDuckDB(DatasetDB):
 
       query = query.join(udf_query, f'r1.{UUID_COLUMN} = r2.{UUID_COLUMN}')
 
-    filter_queries = self._create_where(filters)
+    filter_queries = self._create_where(filters, 'r1')
     if filter_queries:
       query = query.filter(' AND '.join(filter_queries))
 
@@ -784,7 +784,8 @@ class DatasetDuckDB(DatasetDB):
     self._validate_filters(filters, col_aliases)
     return filters
 
-  def _create_where(self, filters: list[Filter]) -> list[str]:
+  def _create_where(self, filters: list[Filter], alias: Optional[str] = None) -> list[str]:
+    alias_prefix = f'"{alias}".' if alias else ''
     if not filters:
       return []
     filter_queries: list[str] = []
@@ -801,7 +802,7 @@ class DatasetDuckDB(DatasetDB):
         filter_val = _bytes_to_blob_literal(filter_val)
       else:
         filter_val = str(filter_val)
-      filter_query = f'{col_name} {op} {filter_val}'
+      filter_query = f'{alias_prefix}{col_name} {op} {filter_val}'
       filter_queries.append(filter_query)
     return filter_queries
 

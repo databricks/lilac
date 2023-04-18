@@ -192,7 +192,7 @@ def Bucketize(column: ColumnId, bins: list[float]) -> Column:
   return Column(feature=column.feature, transform=BucketizeTransform(bins=bins))
 
 
-def SignalMap(signal: Signal, column: ColumnId, alias: Optional[str] = None) -> Column:
+def SignalUDF(signal: Signal, column: ColumnId, alias: Optional[str] = None) -> Column:
   """Map a column to a signal."""
   result_column = Column(feature=column_from_identifier(column).feature,
                          transform=SignalTransform(signal=signal))

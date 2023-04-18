@@ -29,6 +29,7 @@ from ..schema import (
     Path,
     RichData,
     Schema,
+    SignalOut,
     TextSpan,
 )
 from ..signals.signal import Signal
@@ -41,7 +42,7 @@ from .db_dataset import (
     DatasetManifest,
     FilterTuple,
     NamedBins,
-    SignalMap,
+    SignalUDF,
     SortOrder,
     StatsResult,
 )
@@ -412,7 +413,7 @@ class SelectRowsSuite:
                      'text': Field(dtype=DataType.STRING),
                  }))
 
-    signal_col = SignalMap(TestSignal(), 'text')
+    signal_col = SignalUDF(TestSignal(), 'text')
     result = db.select_rows(columns=['text', signal_col])
 
     assert list(result) == [{
@@ -447,7 +448,7 @@ class SelectRowsSuite:
                      'text': Field(dtype=DataType.STRING),
                  }))
 
-    signal_col = SignalMap(TestSignal(), 'text')
+    signal_col = SignalUDF(TestSignal(), 'text')
     # Filter by source feature.
     filters: list[FilterTuple] = [('text', Comparison.EQUALS, 'everybody')]
     result = db.select_rows(columns=['text', signal_col], filters=filters)
@@ -485,6 +486,44 @@ class SelectRowsSuite:
         }
     }]
 
+  class UDF(Signal):
+    name = 'udf_func'
+    enrichment_type = EnrichmentType.TEXT
+    embedding_based = False
+
+    call_count: int = 0
+
+    def fields(self, input_column: Path) -> Field:  # type: ignore
+      return Field(dtype=DataType.INT32)
+
+    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:  # type: ignore
+      for text_content in data:
+        self.call_count += 1
+        yield len(text_content)
+
+  def test_signal_transform_with_uuid_filter(self, tmp_path: pathlib.Path,
+                                             db_cls: Type[DatasetDB]) -> None:
+
+    db = make_db(db_cls,
+                 tmp_path,
+                 items=[{
+                     UUID_COLUMN: '31' * 16,
+                     'text': 'hello'
+                 }, {
+                     UUID_COLUMN: '32' * 16,
+                     'text': 'everybody'
+                 }],
+                 schema=Schema(fields={
+                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     'text': Field(dtype=DataType.STRING),
+                 }))
+
+    signal = SelectRowsSuite.UDF()
+    # Filter by source feature.
+    filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '31' * 16)]
+    result = db.select_rows(columns=['text', SignalUDF(signal, 'text')], filters=filters)
+    assert list(result) == [{UUID_COLUMN: '31' * 16, 'text': 'hello', 'udf_func(text)': 5}]
+
   def test_signal_transform_with_embedding(self, tmp_path: pathlib.Path,
                                            db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls=db_cls,
@@ -503,7 +542,7 @@ class SelectRowsSuite:
 
     db.compute_embedding_index(embedding=TEST_EMBEDDING_NAME, column='text')
 
-    signal_col = SignalMap(TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), column='text')
+    signal_col = SignalUDF(TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), column='text')
     result = db.select_rows(columns=['text', signal_col])
     expected_result = [{
         UUID_COLUMN: '31' * 16,
@@ -517,7 +556,7 @@ class SelectRowsSuite:
     assert list(result) == expected_result
 
     # Select rows with alias.
-    signal_col = SignalMap(TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
+    signal_col = SignalUDF(TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
                            Column('text'),
                            alias='emb_sum')
     result = db.select_rows(columns=['text', signal_col])
