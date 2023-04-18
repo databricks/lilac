@@ -874,9 +874,7 @@ def _get_keys_from_leafs(leafs_df: pd.DataFrame,
     return leafs_df.apply(lambda row: _get_repeated_key(row[
         UUID_COLUMN], [row[select_leafs_result.repeated_idxs_col]]),
                           axis=1)
-  else:
-    # Cast from bytearray => bytes.
-    return leafs_df[UUID_COLUMN]
+  return leafs_df[UUID_COLUMN]
 
 
 def read_source_manifest(dataset_path: str) -> SourceManifest:
