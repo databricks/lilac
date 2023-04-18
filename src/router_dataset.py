@@ -84,7 +84,7 @@ class ComputeEmbeddingIndexOptions(BaseModel):
   """The request for the compute embedding index endpoint."""
   embedding: Embedding
 
-  # The leaf path to compute the signal on.
+  # The leaf path to compute the embedding on.
   leaf_path: PathTuple
 
   @validator('embedding', pre=True)
@@ -103,8 +103,8 @@ def compute_embedding_index(namespace: str, dataset_name: str,
                             options: ComputeEmbeddingIndexOptions) -> ComputeEmbeddingIndexResponse:
   """Compute an embedding index for a dataset."""
 
-  def compute_embedding_index(namespace: str, dataset_name: str, options_dict: dict,
-                              task_id: TaskId) -> None:
+  def _task_compute_embedding_index(namespace: str, dataset_name: str, options_dict: dict,
+                                    task_id: TaskId) -> None:
     # NOTE: We manually call .dict() to avoid the dask serializer, which doesn't call the underlying
     # pydantic serializer.
     options = ComputeEmbeddingIndexOptions(**options_dict)
@@ -116,8 +116,8 @@ def compute_embedding_index(namespace: str, dataset_name: str,
       name=f'Compute embedding index "{options.embedding.name}" on "{alias}" '
       f'in dataset "{namespace}/{dataset_name}"',
       description=f'Config: {options.embedding}')
-  task_manager().execute(task_id, compute_embedding_index, namespace, dataset_name, options.dict(),
-                         task_id)
+  task_manager().execute(task_id, _task_compute_embedding_index, namespace, dataset_name,
+                         options.dict(), task_id)
 
   return ComputeEmbeddingIndexResponse(task_id=task_id)
 
@@ -145,8 +145,8 @@ def compute_signal_column(namespace: str, dataset_name: str,
                           options: ComputeSignalOptions) -> ComputeSignalResponse:
   """Compute a signal for a dataset."""
 
-  def compute_signal(namespace: str, dataset_name: str, options_dict: dict,
-                     task_id: TaskId) -> None:
+  def _task_compute_signal(namespace: str, dataset_name: str, options_dict: dict,
+                           task_id: TaskId) -> None:
     # NOTE: We manually call .dict() to avoid the dask serializer, which doesn't call the underlying
     # pydantic serializer.
     options = ComputeSignalOptions(**options_dict)
@@ -157,7 +157,8 @@ def compute_signal_column(namespace: str, dataset_name: str,
   task_id = task_manager().task_id(name=f'Compute signal "{options.signal.name}" on "{alias}" '
                                    f'in dataset "{namespace}/{dataset_name}"',
                                    description=f'Config: {options.signal}')
-  task_manager().execute(task_id, compute_signal, namespace, dataset_name, options.dict(), task_id)
+  task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name, options.dict(),
+                         task_id)
 
   return ComputeSignalResponse(task_id=task_id)
 

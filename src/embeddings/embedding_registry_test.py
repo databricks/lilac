@@ -39,7 +39,7 @@ def setup_teardown() -> Iterable[None]:
 
 
 def test_get_embedding_cls() -> None:
-  """Test getting a signal."""
+  """Test getting a embedding."""
   assert TestEmbedding == get_embedding_cls('test_embedding')
 
 
@@ -47,7 +47,7 @@ def test_resolve_embedding() -> None:
   """Test resolving an embedding function."""
   test_embedding = TestEmbedding()
 
-  # Signals pass through.
+  # Embeddings pass through.
   assert resolve_embedding(test_embedding) == test_embedding
 
   # Dicts resolve to the base class.

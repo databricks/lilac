@@ -12,7 +12,7 @@ from .embedding_registry import Embedding
 
 
 @functools.cache
-def _co() -> cohere.Client:
+def _cohere() -> cohere.Client:
   api_key = os.environ.get('COHERE_API_KEY', None)
   if not api_key:
     raise ValueError('`COHERE_API_KEY` environment variable not set.')
@@ -28,5 +28,5 @@ class Cohere(Embedding):
 
   def __call__(self, data: Iterable[RichData]) -> np.ndarray:
     """Call the embedding function."""
-    return normalize(np.array(_co().embed(list(data),
-                                          truncate='START').embeddings)).astype(np.float16)
+    return normalize(np.array(_cohere().embed(list(data),
+                                              truncate='START').embeddings)).astype(np.float16)

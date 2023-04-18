@@ -54,7 +54,7 @@ def register_embedding(embedding_cls: Type[Embedding]) -> None:
 
 
 def get_embedding_cls(embedding_name: str) -> Type[Embedding]:
-  """Return a registered signal given the name in the registry."""
+  """Return a registered embedding given the name in the registry."""
   if embedding_name not in EMBEDDING_REGISTRY:
     raise ValueError(f'Embedding "{embedding_name}" not found in the registry')
 
@@ -62,9 +62,9 @@ def get_embedding_cls(embedding_name: str) -> Type[Embedding]:
 
 
 def resolve_embedding(embedding: Union[dict, Embedding]) -> Embedding:
-  """Resolve a generic signal base class to a specific signal class."""
+  """Resolve a generic embedding base class to a specific embedding class."""
   if isinstance(embedding, Embedding):
-    # The signal config is already parsed.
+    # The embedding config is already parsed.
     return embedding
 
   embedding_name = embedding.get('embedding_name')
