@@ -14,3 +14,14 @@ def test_splitter_spacy() -> None:
   expected_spans = text_to_expected_spans(text, ['Hello.', 'This is a test.', 'Final sentence.'])
 
   assert split_items == [expected_spans]
+
+
+def test_splitter_spacy_float() -> None:
+  signal = SentenceSplitterSpacy()
+  text = 1.2
+
+  # Compute over the input, make sure it doesn't crash when we pass a non-string value which can
+  # happen accidentally in user data.
+  split_items = list(signal.compute(data=[text]))  # type: ignore
+
+  assert split_items == [None]

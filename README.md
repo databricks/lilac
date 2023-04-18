@@ -25,10 +25,10 @@ To run the web server in dev mode with fast edit-refresh:
 
 #### Testing
 
-Run all the presubmits:
+Run all the checks before mailing:
 
 ```sh
-./scripts/presubmit.sh
+./scripts/checks.sh
 ```
 
 Test python:
