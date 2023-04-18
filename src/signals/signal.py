@@ -6,7 +6,12 @@ from typing import Any, ClassVar, Iterable, Optional, Union
 from pydantic import BaseModel, validator
 
 from ..embeddings.embedding_index import GetEmbeddingIndexFn
-from ..embeddings.embedding_registry import Embedding, get_embedding_cls, resolve_embedding
+from ..embeddings.embedding_registry import (
+    Embedding,
+    EmbeddingId,
+    get_embedding_cls,
+    resolve_embedding,
+)
 from ..schema import EnrichmentType, Field, Path, RichData, SignalOut
 
 
@@ -20,7 +25,7 @@ class Signal(abc.ABC, BaseModel):
   # The signal_name will get populated in init automatically from the class name so it gets
   # serialized and the signal author doesn't have to define both the static property and the field.
   signal_name: str = 'signal_base'
-  embedding: Optional[Union[str, Embedding]] = None
+  embedding: Optional[EmbeddingId] = None
 
   class Config:
     underscore_attrs_are_private = True
@@ -77,7 +82,7 @@ class Signal(abc.ABC, BaseModel):
     pass
 
   @validator('embedding', pre=True)
-  def parse_embedding(cls, embedding: Union[dict, str]) -> Union[str, Embedding]:
+  def parse_embedding(cls, embedding: Union[dict, str]) -> EmbeddingId:
     """Parse an embedding to its specific subclass instance."""
     if embedding is None:
       return embedding
