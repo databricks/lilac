@@ -1130,24 +1130,26 @@ class SelectGroupsSuite:
     pd.testing.assert_frame_equal(result, expected)
 
     result = db.select_groups(leaf_path='age', bins=[20, 50, 60]).df()
-    expected = pd.DataFrame.from_records([
-        {
-            'value': 1,  # age 20-50.
-            'count': 2
-        },
-        {
-            'value': 0,  # age < 20.
-            'count': 1
-        },
-        {
-            'value': None,  # Missing age.
-            'count': 1
-        },
-        {
-            'value': 2,  # age 50-60.
-            'count': 1
-        }
-    ])
+    expected = pd.DataFrame.from_records(
+        [
+            {
+                'value': 1,  # age 20-50.
+                'count': 2
+            },
+            {
+                'value': 0,  # age < 20.
+                'count': 1
+            },
+            {
+                'value': None,  # Missing age.
+                'count': 1
+            },
+            {
+                'value': 2,  # age 50-60.
+                'count': 1
+            }
+        ],)
+    expected['value'] = expected['value'].astype('object')
     pd.testing.assert_frame_equal(result, expected)
 
     result = db.select_groups(leaf_path='active').df()
