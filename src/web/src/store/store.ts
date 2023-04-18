@@ -6,12 +6,12 @@ import {configureStore, createSlice, isRejectedWithValue, PayloadAction} from '@
 import {createApi} from '@reduxjs/toolkit/query/react';
 import {createRoot} from 'react-dom/client';
 import {
-  DefaultService,
   Field,
   Filter,
   NamedBins,
   StatsResult,
   TaskManifest,
+  TasksService,
 } from '../../fastapi_client';
 import {getEqualBins, getNamedBins, NUM_AUTO_BINS, TOO_MANY_DISTINCT} from '../db';
 import {isOrdinal, isTemporal, Item, LeafValue, Path, UUID_COLUMN} from '../schema';
@@ -88,7 +88,7 @@ export const serverApi = createApi({
   baseQuery: fastAPIBaseQuery(),
   endpoints: (builder) => ({
     getTaskManifest: builder.query<TaskManifest, void>({
-      query: () => () => DefaultService.getTaskManifest(),
+      query: () => () => TasksService.getTaskManifest(),
     }),
   }),
 });

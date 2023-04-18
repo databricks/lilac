@@ -41,6 +41,9 @@ export type { SignalInfo } from './models/SignalInfo';
 export type { SortOrder } from './models/SortOrder';
 export type { SourcesList } from './models/SourcesList';
 export type { StatsResult } from './models/StatsResult';
+export type { TaskInfo } from './models/TaskInfo';
+export type { TaskManifest } from './models/TaskManifest';
+export type { TaskStatus } from './models/TaskStatus';
 export type { ValidationError } from './models/ValidationError';
 export type { WebManifest } from './models/WebManifest';
 
@@ -50,3 +53,4 @@ export { DatasetsService } from './services/DatasetsService';
 export { DefaultService } from './services/DefaultService';
 export { EmbeddingsService } from './services/EmbeddingsService';
 export { SignalsService } from './services/SignalsService';
+export { TasksService } from './services/TasksService';

@@ -51,7 +51,7 @@ v1_router.include_router(router_concept.router, prefix='/concepts', tags=['conce
 v1_router.include_router(router_data_loader.router, prefix='/data_loaders', tags=['data_loaders'])
 v1_router.include_router(router_signal.router, prefix='/signals', tags=['signals'])
 v1_router.include_router(router_embedding.router, prefix='/embeddings', tags=['embeddings'])
-v1_router.include_router(router_tasks, prefix='/tasks', tags=['tasks'])
+v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
 
 app.include_router(v1_router, prefix='/api/v1')
 
