@@ -137,7 +137,7 @@ export const BrowserMenu = React.memo(function BrowserMenu({
   return (
     <div className="flex h-16">
       {/* Features preview dropdown. */}
-      <div className="flex flex-col w-96">
+      <div className="flex w-96 flex-col">
         <div>
           <label>Preview features</label>
         </div>
@@ -221,7 +221,7 @@ export const BrowserRow = React.memo(function BrowserRow({
       ></ItemPreview>
     );
   });
-  return <div className="flex w-full h-full py-px">{itemPreviews}</div>;
+  return <div className="flex h-full w-full py-px">{itemPreviews}</div>;
 });
 
 export function usePreviewPaths(
@@ -372,8 +372,8 @@ export const Browser = React.memo(function Browser({
           rowHeightListPx={rowHeightListPx}
         ></BrowserMenu>
       </div>
-      <div className="flex border-b py-2 overflow-y-scroll">{columns}</div>
-      <div ref={parentRef} className="overflow-y-scroll h-full w-full">
+      <div className="flex overflow-y-scroll border-b py-2">{columns}</div>
+      <div ref={parentRef} className="h-full w-full overflow-y-scroll">
         <div
           style={{
             height: `${rowVirtualizer.getTotalSize()}px`,

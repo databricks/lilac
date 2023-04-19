@@ -128,7 +128,7 @@ function FeatureDropdown({
   }
 
   return (
-    <div className="flex flex-col w-96">
+    <div className="flex w-96 flex-col">
       <div>
         <label>{label}</label>
       </div>
@@ -189,7 +189,7 @@ export const GalleryRow = React.memo(function GalleryRow({
       </div>
     );
   });
-  return <div className="flex w-full h-full py-px shrink">{galleryItems}</div>;
+  return <div className="flex h-full w-full shrink py-px">{galleryItems}</div>;
 });
 
 export function useMediaPaths(
@@ -314,7 +314,7 @@ export const Gallery = React.memo(function Gallery({
           metadataPaths={metadataPaths}
         ></GalleryMenu>
       </div>
-      <div ref={parentRef} className="overflow-y-scroll h-full w-full">
+      <div ref={parentRef} className="h-full w-full overflow-y-scroll">
         <div
           style={{
             height: `${virtualizer.getTotalSize()}px`,

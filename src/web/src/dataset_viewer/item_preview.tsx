@@ -121,7 +121,7 @@ export const ItemPreview = React.memo(function ItemPreview({
     );
   });
   if (!inGalleryMode) {
-    return <div className="flex w-full h-full border-b py-1">{columns}</div>;
+    return <div className="flex h-full w-full border-b py-1">{columns}</div>;
   } else {
     return <>{columns}</>;
   }

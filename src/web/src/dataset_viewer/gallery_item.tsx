@@ -62,7 +62,7 @@ function Metadata({item, paths}: {item: Item | null; paths?: Path[]}): JSX.Eleme
     const pathStr = renderPath(path);
     const content = item != null ? renderCell(item, path) : 'Loading...';
     return (
-      <div key={pathKey} className={`flex justify-between w-full text-sm ${styles.metadata}`}>
+      <div key={pathKey} className={`flex w-full justify-between text-sm ${styles.metadata}`}>
         <SlTooltip content={pathStr} hoist>
           <div className={`${styles.metadata_key} truncate`}>{pathStr}</div>
         </SlTooltip>

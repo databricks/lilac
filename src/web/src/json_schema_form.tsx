@@ -37,7 +37,7 @@ export const MultiInput = ({
   const inputs: JSX.Element[] = [];
   for (let i = 0; i < formData.length; i++) {
     inputs.push(
-      <div className="flex flex-row mb-1">
+      <div className="mb-1 flex flex-row">
         <SlInput
           className="w-full"
           value={(formData[i] as string) || ''}
@@ -66,7 +66,7 @@ export const MultiInput = ({
     );
   }
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex w-full flex-col">
       <div className="flex flex-row">
         <div className={styles.multi_form_field_name}>
           {showName ? `${name} ${isRequired ? '*' : ''}` : ''}
