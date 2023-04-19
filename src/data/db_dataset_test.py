@@ -570,7 +570,7 @@ class SelectRowsSuite:
     assert signal.call_count == 2
 
     # Filter by a specific UUID.
-    filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '2')]
+    filters = [(UUID_COLUMN, Comparison.EQUALS, '2')]
     result = db.select_rows(columns=['text', SignalUDF(signal, ('text', '*'))], filters=filters)
     assert list(result) == [{
         UUID_COLUMN: '2',
