@@ -5,7 +5,6 @@ import {getLeafVals, Item, LeafValue, Path, serializePath} from '../schema';
 import {useGetItem} from '../store/store';
 import {renderError, renderPath, roundNumber} from '../utils';
 import './dataset_viewer.module.css';
-import styles from './gallery_item.module.css';
 
 export interface GalleryItemProps {
   namespace: string;
@@ -44,10 +43,10 @@ function Media({item, path}: {item: Item | null; path: Path}): JSX.Element {
   const label = renderPath(path);
   const mediaContent = item != null ? renderCell(item, path) : 'Loading...';
   return (
-    <div className={styles.media_container}>
-      <div className={`${styles.media_label} truncate`}>{label}</div>
-      <div className={styles.media_content_container}>
-        <div className={styles.media_content}>{mediaContent}</div>
+    <div>
+      <div className="text-sm text-gray-500 truncate">{label}</div>
+      <div className="bg-gray-100 rounded-lg p-2 text-gray-900">
+        <div className="line-clamp-5 leading-6">{mediaContent}</div>
       </div>
     </div>
   );
@@ -62,19 +61,19 @@ function Metadata({item, paths}: {item: Item | null; paths?: Path[]}): JSX.Eleme
     const pathStr = renderPath(path);
     const content = item != null ? renderCell(item, path) : 'Loading...';
     return (
-      <div key={pathKey} className={`flex w-full justify-between text-sm ${styles.metadata}`}>
+      <div key={pathKey} className="flex justify-between w-full text-sm gap-2">
         <SlTooltip content={pathStr} hoist>
-          <div className={`${styles.metadata_key} truncate`}>{pathStr}</div>
+          <div className="truncate min-w-[1rem] font-mono">{pathStr}</div>
         </SlTooltip>
         <SlTooltip content={content} hoist>
-          <div className={`${styles.metadata_value} truncate`}>{content}</div>
+          <div className="truncate min-w-[1rem]">{content}</div>
         </SlTooltip>
       </div>
     );
   });
   return (
     <div className="mt-4">
-      <div className={styles.metadata_label}>Metadata</div>
+      <div className="text-sm text-gray-500">Metadata</div>
       {metadata}
     </div>
   );
@@ -97,7 +96,7 @@ export const GalleryItem = React.memo(function GalleryItem({
 
   return (
     <>
-      <div className={styles.overview}>
+      <div className="border border-gray-300 rounded-md m-2 p-2">
         {medias}
         <Metadata item={item} paths={metadataPaths} />
       </div>
