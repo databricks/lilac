@@ -218,9 +218,6 @@ export const SearchBox = () => {
                 />
               )}
               {activePage?.type == 'edit-concept-column' && (
-                // <EditConceptSetup
-                //   page={activePage as Page<'edit-concept-column'>}
-                // ></EditConceptSetup>
                 <Columns
                   enrichmentType="text"
                   onSelect={(path) => {
@@ -240,7 +237,6 @@ export const SearchBox = () => {
               {activePage?.type == 'edit-concept-accept' && (
                 <EditConceptAccept
                   page={activePage as Page<'edit-concept-accept'>}
-                  closeMenu={closeMenu}
                 ></EditConceptAccept>
               )}
               {activePage?.type == 'compute-signal' && <ComputeSignal pushPage={pushPage} />}
@@ -758,29 +754,12 @@ function Columns({
             </Item>
           );
         })}
-        {/* {embeddings.map((embedding) => {
-          const jsonSchema = embedding.json_schema as JSONSchema7;
-          return (
-            <Item key={embedding.name} onSelect={() => onSelect(embedding)}>
-              <div className="flex w-full justify-between">
-                <div className="truncate">{embedding.name}</div>
-                <div className="truncate">{jsonSchema.description}</div>
-              </div>
-            </Item>
-          );
-        })} */}
       </>
     );
   });
 }
 
-function EditConceptAccept({
-  closeMenu,
-  page,
-}: {
-  closeMenu: () => void;
-  page: Page<'edit-concept-accept'>;
-}) {
+function EditConceptAccept({page}: {page: Page<'edit-concept-accept'>}) {
   const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
   if (namespace == null || datasetName == null) {
     throw new Error('Invalid route');
