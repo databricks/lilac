@@ -27,7 +27,7 @@ export const AppContainer = function App(): JSX.Element {
     <>
       <div className="flex h-full w-full flex-col">
         <Header></Header>
-        <div className="body flex h-full w-full overflow-hidden pt-4">
+        <div className="flex h-full w-full overflow-hidden">
           <Outlet />
         </div>
       </div>

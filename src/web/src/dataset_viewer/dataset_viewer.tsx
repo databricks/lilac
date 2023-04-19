@@ -22,10 +22,10 @@ export const DatasetViewer = React.memo(function DatasetViewer(): JSX.Element {
     <div className={`${styles.body} flex h-full w-full overflow-hidden`}>
       <SlSplitPanel position={65} className="h-full w-full">
         <SlIcon slot="handle" name="grip-vertical" />
-        <div slot="start" className={`h-full w-full p-4 ${styles.stats}`}>
+        <div slot="start" className={`h-full w-full overflow-scroll`}>
           {gallery}
         </div>
-        <div slot="end" className={`h-full w-full p-4 ${styles.browser}`}>
+        <div slot="end" className={`h-full w-full overflow-scroll px-4 py-2`}>
           {stats}
         </div>
       </SlSplitPanel>

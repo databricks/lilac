@@ -1,5 +1,5 @@
 .gallery_preview_dropdown sl-option::part(base) {
-  font-size: var(--sl-font-size-small);
+  @apply text-sm;
 }
 
 .loader_row {
