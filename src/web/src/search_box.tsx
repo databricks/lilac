@@ -776,17 +776,17 @@ function EditConceptAccept({page}: {page: Page<'edit-concept-accept'>}) {
       <SlAlert open variant="warning">
         <SlIcon slot="icon" name="exclamation-triangle" />
         <div className="flex flex-col">
-          <div className="text-xs text-gray-500 flex flex-row">
+          <div className="flex flex-row text-xs text-gray-500">
             <div className="mr-2">Embedding:</div>
             <div>{page.metadata!.embedding!.name}</div>
           </div>
           <div className="text-xs text-gray-500">
-            <div className="text-xs text-gray-500 flex flex-row">
+            <div className="flex flex-row text-xs text-gray-500">
               <div className="mr-2">Column:</div>
               <div>{renderPath(page.metadata!.column!)}</div>
             </div>
           </div>
-          <div className="text-xs mt-2">
+          <div className="mt-2 text-xs">
             <b>This may be expensive!</b>
           </div>
         </div>
@@ -806,7 +806,7 @@ function EditConceptAccept({page}: {page: Page<'edit-concept-accept'>}) {
           }}
           outline
           variant="success"
-          className="mt-1 mr-4 w-16"
+          className="mr-4 mt-1 w-16"
         >
           Compute
         </SlButton>
@@ -817,7 +817,7 @@ function EditConceptAccept({page}: {page: Page<'edit-concept-accept'>}) {
           <>
             <SlSpinner></SlSpinner>
             <br />
-            <div className="text-gray-500 mt-2">
+            <div className="mt-2 text-gray-500">
               <p>Loading dataset with task_id "{taskId}".</p>
               <p>When the task is complete,</p>
             </div>
