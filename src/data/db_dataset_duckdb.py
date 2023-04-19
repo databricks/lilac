@@ -690,25 +690,46 @@ class DatasetDuckDB(DatasetDB):
       if not isinstance(transform_col.transform, SignalTransform):
         raise ValueError(f'Unsupported transform: {transform_col.transform}')
       signal = transform_col.transform.signal
+      signal_column = transform_col.alias
+
+      def make_list(x: Any) -> list[Any]:
+        if not isinstance(x, str) and isinstance(x, Iterable):
+          return list(x)
+        return [x]
+
+      def undo_list(x: Any, res: Iterable[Any]) -> Union[list[Any], Any]:
+        res = list(res)
+        if not isinstance(x, str) and isinstance(x, Iterable):
+          return res
+        return res[0]
 
       if signal.embedding_based:
-        raise ValueError('Embedding-based signals are not supported in DuckDB')
+        # For embedding based signals, get the leaf keys and indices, creating a combined key for
+        # the key + index to pass to the signal.
+        source_path = transform_col.feature
+
+        def compute_row(row: pd.Series) -> Union[list[Any], Any]:
+          input = row[signal_column]
+          if not isinstance(input, str) and isinstance(input, Iterable):
+            keys = [
+                _get_repeated_key(row_id=row[UUID_COLUMN], repeated_idxs=[i])
+                for i, _ in enumerate(input)
+            ]
+          else:
+            keys = [row[UUID_COLUMN]]
+
+          signal_out = signal.compute(
+              keys=keys,
+              get_embedding_index=(
+                  lambda embedding, keys: self._embedding_indexer.get_embedding_index(
+                      column=source_path, embedding=embedding, keys=keys)))
+          return undo_list(row[signal_column], signal_out)
+
+        df[signal_column] = df.apply(compute_row, axis=1)
       else:
-        output_column = transform_col.alias
-
-        def make_iterable(x: Any) -> Iterable[Any]:
-          if not isinstance(x, str) and isinstance(x, Iterable):
-            return x
-          return (x,)
-
-        def undo_iterable(x: Any, res: Iterable[Any]) -> Union[list[Any], Any]:
-          res = list(res)
-          if not isinstance(x, str) and isinstance(x, Iterable):
-            return res
-          return res[0]
-
-        df[output_column] = df[output_column].apply(
-            lambda x: undo_iterable(x, signal.compute(make_iterable(x))))
+        signal_column = transform_col.alias
+        df[signal_column] = df[signal_column].apply(
+            lambda x: undo_list(x, signal.compute(make_list(x))))
 
     if transform_filters:
       query = con.from_df(df)
