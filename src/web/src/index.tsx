@@ -25,9 +25,9 @@ export const PageNotFound = React.memo(function PageNotFound(): JSX.Element {
 export const AppContainer = function App(): JSX.Element {
   return (
     <>
-      <div className="flex flex-col h-full w-full">
+      <div className="flex h-full w-full flex-col">
         <Header></Header>
-        <div className="body flex w-full h-full overflow-hidden pt-4">
+        <div className="body flex h-full w-full overflow-hidden pt-4">
           <Outlet />
         </div>
       </div>

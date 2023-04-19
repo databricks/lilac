@@ -77,14 +77,14 @@ export const Task = React.memo(({task}: {task: TaskInfo}): JSX.Element => {
   }
   return (
     <div className={`${styles.task_container} border-bottom-2 last:border-b-0`}>
-      <div className="bg-slate-50 p-2 flex flex-row">
-        <div className="flex flex-col flex-grow justify-center">
+      <div className="flex flex-row bg-slate-50 p-2">
+        <div className="flex flex-grow flex-col justify-center">
           <div>{task.name}</div>
-          <div className="text-slate-400 text-sm">{datetimeInfo}</div>
+          <div className="text-sm text-slate-400">{datetimeInfo}</div>
         </div>
         <div
           style={{width: `${spinnerSizePx}px`}}
-          className="text-sm flex justify-center items-center"
+          className="flex items-center justify-center text-sm"
         >
           {taskStatusEl}
         </div>
@@ -166,7 +166,7 @@ export const TaskViewer = (): JSX.Element => {
           ref={tasksDrawerRef}
           className={
             `absolute ${styles.tasks_drawer} z-50 ` +
-            `right-0 -mt-2 mr-4 top-full bg-white transition-2 `
+            `transition-2 right-0 top-full -mt-2 mr-4 bg-white `
           }
         >
           <div
