@@ -1,6 +1,7 @@
 """Utilities for working with datasets."""
 
-from typing import Iterable, Optional, Sequence, Union, cast
+from collections.abc import Iterable
+from typing import Generator, Iterator, Optional, Sequence, Union, cast
 
 from ..schema import (
     PATH_WILDCARD,
@@ -34,6 +35,38 @@ def replace_repeated_wildcards(path: Path, path_repeated_idxs: Optional[list[int
       replaced_path.append(path_part)
 
   return tuple(replaced_path)
+
+
+def is_primitive(obj: object) -> bool:
+  """Returns True if the object is an iterable but not a string or bytes."""
+  return not isinstance(obj, Iterable) or isinstance(obj, (str, bytes))
+
+
+def _flatten(input: Union[Iterable, object]) -> Generator:
+  """Flattens a nested iterable."""
+  if is_primitive(input):
+    yield input
+  else:
+    for elem in cast(Iterable, input):
+      yield from _flatten(elem)
+
+
+def flatten(input: Union[Iterable, object]) -> list[object]:
+  """Flattens a nested iterable."""
+  return list(_flatten(input))
+
+
+def _unflatten(flat_input: Iterator[list[object]], original_input: Union[Iterable, object]) -> list:
+  """Unflattens a flattened iterable according to the original iterable's structure."""
+  if is_primitive(original_input):
+    return next(flat_input)
+  else:
+    return [_unflatten(flat_input, orig_elem) for orig_elem in cast(Iterable, original_input)]
+
+
+def unflatten(flat_input: Iterable, original_input: Union[Iterable, object]) -> list:
+  """Unflattens a flattened iterable according to the original iterable's structure."""
+  return _unflatten(iter(flat_input), original_input)
 
 
 def make_enriched_items(source_path: Path, row_ids: Sequence[str],

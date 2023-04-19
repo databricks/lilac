@@ -1,3 +1,4 @@
+import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import {defineConfig} from 'vite';
 import {viteStaticCopy} from 'vite-plugin-static-copy';
@@ -8,6 +9,9 @@ export default defineConfig({
   server: {
     proxy: {
       '^/api': 'http://0.0.0.0:5432',
+      // OpenAPI docs
+      '^/docs': 'http://0.0.0.0:5432',
+      '/openapi.json': 'http://0.0.0.0:5432',
     },
   },
 
@@ -17,6 +21,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   plugins: [
+    react(),
     viteStaticCopy({
       targets: [
         {

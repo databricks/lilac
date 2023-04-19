@@ -8,7 +8,6 @@ from typing import Any, Iterable, Iterator, Optional, Sequence, Type, cast
 import duckdb
 import numpy as np
 import pandas as pd
-import pyarrow as pa
 from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, validator
 from typing_extensions import override
@@ -27,9 +26,9 @@ from ..schema import (
     UUID_COLUMN,
     DataType,
     Field,
-    Item,
     Path,
     PathTuple,
+    RichData,
     Schema,
     SourceManifest,
     enrichment_supports_dtype,
@@ -38,7 +37,6 @@ from ..schema import (
     is_ordinal,
     is_repeated_path_part,
     normalize_path,
-    schema_to_arrow_schema,
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import resolve_signal
@@ -53,7 +51,10 @@ from ..utils import (
 from . import db_dataset
 from .dataset_utils import (
     create_enriched_schema,
+    flatten,
+    is_primitive,
     make_enriched_items,
+    unflatten,
 )
 from .db_dataset import (
     Bins,
@@ -496,7 +497,7 @@ class DatasetDuckDB(DatasetDB):
                              value_column=value_column_alias,
                              repeated_idxs_col=repeated_indices_col)
 
-  def _validate_filters(self, filters: Sequence[Filter], col_aliases: list[str]) -> None:
+  def _validate_filters(self, filters: Sequence[Filter], col_aliases: dict[str, bool]) -> None:
     manifest = self.manifest()
     for filter in filters:
       if filter.path[0] in col_aliases:
@@ -678,82 +679,17 @@ class DatasetDuckDB(DatasetDB):
       columns = list(self.manifest().data_schema.fields.keys())
 
     cols = [column_from_identifier(column) for column in columns or []]
-
     # Always return the UUID column.
     if (UUID_COLUMN,) not in [col.feature for col in cols]:
       cols.append(column_from_identifier(UUID_COLUMN))
 
     self._validate_columns(cols)
-
     select_query, col_aliases = self._create_select(cols)
     con = self.con.cursor()
-    query = con.sql(f'SELECT {select_query} FROM t').set_alias('r1')
-    transform_columns = [col for col in cols if col.transform]
+    query = con.sql(f'SELECT {select_query} FROM t')
 
-    for col in transform_columns:
-      col_aliases.extend([UUID_COLUMN, col.alias])
-    filters = self._normalize_filters(filters, col_aliases)
-
-    row_uuid: Optional[str] = None
-    for filter in filters:
-      if filter.path == (UUID_COLUMN,):
-        row_uuid = cast(str, filter.value)
-
-    # Run UDFs on the transformed columns.
-    for col in transform_columns:
-      if not isinstance(col.transform, SignalTransform):
-        raise ValueError(f'Unsupported transform: {col.transform}')
-      source_path = col.feature
-      signal = col.transform.signal
-
-      if signal.embedding_based:
-        # For embedding based signals, get the leaf keys and indices, creating a combined key for
-        # the key + index to pass to the signal.
-        select_leafs_result = self._select_leafs(path=source_path,
-                                                 only_keys=True,
-                                                 row_uuid=row_uuid)
-        leafs_df = select_leafs_result.df
-        keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
-        signal_outs = signal.compute(
-            keys=keys,
-            get_embedding_index=(
-                lambda embedding, keys: self._embedding_indexer.get_embedding_index(
-                    column=source_path, embedding=embedding, keys=keys)))
-      else:
-        select_leafs_result = self._select_leafs(path=source_path, row_uuid=row_uuid)
-        leafs_df = select_leafs_result.df
-        signal_outs = signal.compute(data=leafs_df[select_leafs_result.value_column])
-
-      # Use the repeated indices to generate the correct signal output structure.
-      if select_leafs_result.repeated_idxs_col:
-        repeated_idxs = leafs_df[select_leafs_result.repeated_idxs_col]
-
-      # Repeat "None" if there are no repeated indices without allocating an array. This happens
-      # when the object is a simple structure.
-      repeated_idxs_iter: Iterable[Optional[list[int]]] = (
-          itertools.repeat(None) if not select_leafs_result.repeated_idxs_col else repeated_idxs)
-      enriched_signal_outs = make_enriched_items(source_path=source_path,
-                                                 row_ids=leafs_df[UUID_COLUMN],
-                                                 leaf_items=signal_outs,
-                                                 repeated_idxs=repeated_idxs_iter)
-      # Rename the signal column to the alias.
-      enriched_signal_outs = [{
-          UUID_COLUMN: signal_out[UUID_COLUMN],
-          col.alias: signal_out[cast(str, source_path[0])]
-      } for signal_out in enriched_signal_outs]
-
-      field = signal.fields(source_path)
-      for path_component in source_path:
-        if is_repeated_path_part(path_component):
-          field = Field(repeated_field=field)
-
-      schema = Schema(fields={UUID_COLUMN: Field(dtype=DataType.STRING), col.alias: field})
-      table = pa.Table.from_pylist(enriched_signal_outs, schema=schema_to_arrow_schema(schema))
-      udf_query = con.from_arrow(table).set_alias('r2')
-
-      query = query.join(udf_query, f'r1.{UUID_COLUMN} = r2.{UUID_COLUMN}')
-
-    filter_queries = self._create_where(filters, 'r1')
+    filters, transform_filters = self._normalize_filters(filters, col_aliases)
+    filter_queries = self._create_where(filters)
     if filter_queries:
       query = query.filter(' AND '.join(filter_queries))
 
@@ -773,38 +709,77 @@ class DatasetDuckDB(DatasetDB):
     if limit:
       query = query.limit(limit, offset or 0)
 
-    rows = query.fetchall()
+    # Download the data so we can run UDFs on it in Python.
+    df = query.df()
+
+    # Run UDFs on the transformed columns.
+    transform_columns = [col for col in cols if col.transform]
+    for transform_col in transform_columns:
+      if not isinstance(transform_col.transform, SignalTransform):
+        raise ValueError(f'Unsupported transform: {transform_col.transform}')
+      signal = transform_col.transform.signal
+      signal_column = transform_col.alias
+      input = df[signal_column]
+
+      if signal.embedding_based:
+        # For embedding based signals, get the leaf keys and indices, creating a combined key for
+        # the key + index to pass to the signal.
+        flat_keys: list[str] = []
+        for value, uuid in zip(input, df[UUID_COLUMN]):
+          if is_primitive(value):
+            flat_keys.append(uuid)
+          else:
+            for i, _ in enumerate(value):
+              flat_keys.append(_get_repeated_key(row_id=uuid, repeated_idxs=[i]))
+
+        flat_output = signal.compute(
+            keys=flat_keys,
+            get_embedding_index=(
+                lambda embedding, keys: self._embedding_indexer.get_embedding_index(
+                    column=transform_col.feature, embedding=embedding, keys=keys)))
+        df[signal_column] = unflatten(flat_output, input)
+      else:
+        flat_input = cast(Iterable[RichData], flatten(input))
+        df[signal_column] = unflatten(signal.compute(flat_input), input)
+
+    if transform_filters:
+      # Re-upload the udf outputs to duckdb so we can filter on them.
+      query = con.from_df(df)
+      transform_filter_queries = self._create_where(transform_filters)
+      if transform_filter_queries:
+        query = query.filter(' AND '.join(transform_filter_queries))
+      df = query.df()
+
     query.close()
     con.close()
 
-    def parse_row(row: list[Any]) -> Item:
-      return dict(zip(col_aliases, row))
-
-    item_rows = map(parse_row, rows)
+    item_rows = (row.to_dict() for _, row in df.iterrows())
     return SelectRowsResult(item_rows)
 
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
-  def _create_select(self, columns: list[Column]) -> tuple[str, list[str]]:
+  def _create_select(self, columns: list[Column]) -> tuple[str, dict[str, bool]]:
     """Create the select statement."""
     select_queries: list[str] = []
-    aliases: list[str] = []
+    alias_and_transform: dict[str, bool] = {}
 
     for column in columns:
-      if column.transform:
-        continue
-      aliases.append(column.alias)
-      select_queries.append(f'{self._path_to_col(column.feature)} AS "{column.alias}"')
+      alias_and_transform[column.alias] = bool(column.transform)
+      col = make_select_column(column.feature, flatten=False)
+      select_queries.append(f'{col} AS "{column.alias}"')
 
-    return ', '.join(select_queries), aliases
+    return ', '.join(select_queries), alias_and_transform
 
   def _normalize_filters(self,
                          filter_likes: Optional[Sequence[FilterLike]] = None,
-                         col_aliases: list[str] = []) -> list[Filter]:
+                         col_aliases: dict[str, bool] = {}) -> tuple[list[Filter], list[Filter]]:
+    """Normalize `FilterLike` to `Filter` and split into filters on source and filters on UDFs."""
     filter_likes = filter_likes or []
     filters: list[Filter] = []
+    transform_filters: list[Filter] = []
+
     for filter in filter_likes:
       # Normalize `FilterLike` to `Filter`.
       if not isinstance(filter, Filter):
@@ -814,12 +789,16 @@ class DatasetDuckDB(DatasetDB):
         elif isinstance(path_tuple, Column):
           path_tuple = path_tuple.feature
         filter = Filter(path=path_tuple, comparison=filter[1], value=filter[2])
-      filters.append(filter)
+      is_transform_filter = col_aliases.get(str(filter.path[0]), False)
+      if is_transform_filter:
+        transform_filters.append(filter)
+      else:
+        filters.append(filter)
 
     self._validate_filters(filters, col_aliases)
-    return filters
+    return filters, transform_filters
 
-  def _create_where(self, filters: list[Filter], alias: Optional[str] = None) -> list[str]:
+  def _create_where(self, filters: list[Filter]) -> list[str]:
     if not filters:
       return []
     filter_queries: list[str] = []
@@ -833,8 +812,7 @@ class DatasetDuckDB(DatasetDB):
         filter_val = _bytes_to_blob_literal(filter_val)
       else:
         filter_val = str(filter_val)
-      alias_prefix = f'"{alias}".' if alias and filter.path == (UUID_COLUMN,) else ''
-      filter_query = f'{alias_prefix}{col_name} {op} {filter_val}'
+      filter_query = f'{col_name} {op} {filter_val}'
       filter_queries.append(filter_query)
     return filter_queries
 
@@ -903,18 +881,18 @@ def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
   return sub_paths
 
 
-def make_select_column(leaf_path: Path) -> str:
+def make_select_column(leaf_path: Path, flatten: bool = True) -> str:
   """Create a select column for a leaf path."""
   path = normalize_path(leaf_path)
   sub_paths = _split_path_into_subpaths_of_lists(path)
   selection = _inner_select(sub_paths, None)
   # We only flatten when the result of a nested list to avoid segfault.
   is_result_nested_list = len(sub_paths) >= 3  # E.g. subPaths = [[a, b, c], *, *].
-  if is_result_nested_list:
+  if flatten and is_result_nested_list:
     selection = f'flatten({selection})'
   # We only unnest when the result is a list. // E.g. subPaths = [[a, b, c], *].
   is_result_a_list = len(sub_paths) >= 2
-  if is_result_a_list:
+  if flatten and is_result_a_list:
     selection = f'unnest({selection})'
   return selection
 
