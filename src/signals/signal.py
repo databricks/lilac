@@ -73,7 +73,7 @@ class Signal(abc.ABC, BaseModel):
     Args:
       data: An iterable of rich data to compute the signal over
       keys: An iterable of row-uuids. These are used to lookup pre-computed embeddings.
-      get_embedding_index: A method to get embeddings from a set of keys.
+      vector_store: The vector store to lookup pre-computed embeddings.
 
     Returns
       An iterable of items. The signal should return "None" if the signal is sparse for the input.

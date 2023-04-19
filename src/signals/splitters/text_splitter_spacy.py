@@ -5,7 +5,7 @@ import spacy
 from spacy import Language
 from typing_extensions import override
 
-from ...embeddings.embedding_index import GetEmbeddingIndexFn
+from ...embeddings.vector_store import VectorStore
 from ...schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData, TextSpan
 from ...signals.signal import Signal
 
@@ -29,11 +29,10 @@ class SentenceSplitterSpacy(Signal):
     return Field(repeated_field=Field(dtype=DataType.STRING_SPAN, refers_to=input_column))
 
   @override
-  def compute(
-      self,
-      data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[str]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[ItemValue]]:
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[str]] = None,
+              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[ItemValue]]:
     if data is None:
       raise ValueError('Sentence splitter requires text data.')
 

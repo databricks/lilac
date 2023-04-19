@@ -5,12 +5,12 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import (
     Embedding,
     clear_embedding_registry,
     register_embedding,
 )
+from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
 from .signal import Signal
 
@@ -55,11 +55,10 @@ class TestSignal(Signal):
     return Field(dtype=DataType.FLOAT32)
 
   @override
-  def compute(
-      self,
-      data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[str]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[ItemValue]]:
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[str]] = None,
+              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[ItemValue]]:
     del data
     return []
 

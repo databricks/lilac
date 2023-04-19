@@ -4,7 +4,7 @@ from typing import Iterable, Optional
 
 from typing_extensions import override
 
-from ..embeddings.embedding_index import GetEmbeddingIndexFn
+from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, EnrichmentType, Field, Item, Path, RichData, TextSpan
 from .signal import Signal
 
@@ -31,11 +31,10 @@ class PIISignal(Signal):
         })
 
   @override
-  def compute(
-      self,
-      data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[str]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[str]] = None,
+              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[Item]]:
     if data is None:
       raise ValueError('"data" is required for TextStatistics.compute().')
     if keys:

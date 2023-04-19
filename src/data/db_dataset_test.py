@@ -11,12 +11,12 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import (
     Embedding,
     clear_embedding_registry,
     register_embedding,
 )
+from ..embeddings.vector_store import VectorStore
 from ..schema import (
     TEXT_SPAN_END_FEATURE,
     TEXT_SPAN_START_FEATURE,
@@ -1008,11 +1008,10 @@ class TestSignal(Signal):
     return Field(fields={'len': Field(dtype=DataType.INT32), 'flen': Field(dtype=DataType.FLOAT32)})
 
   @override
-  def compute(
-      self,
-      data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[str]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[str]] = None,
+              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[Item]]:
     if data is None:
       raise ValueError('data is not defined')
     return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
@@ -1035,7 +1034,7 @@ class TestSplitterWithLen(Signal):
   def compute(self,
               data: Optional[Iterable[RichData]] = None,
               keys: Optional[Iterable[str]] = None,
-              get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[ItemValue]:
+              vector_store: Optional[VectorStore] = None) -> Iterable[ItemValue]:
     if data is None:
       raise ValueError('Sentence splitter requires text data.')
 
@@ -1063,17 +1062,16 @@ class TestEmbeddingSumSignal(Signal):
   def compute(self,
               data: Optional[Iterable[RichData]] = None,
               keys: Optional[Iterable[str]] = None,
-              get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[ItemValue]:
+              vector_store: Optional[VectorStore] = None) -> Iterable[ItemValue]:
     if keys is None:
       raise ValueError('Embedding sum signal requires keys.')
-    if get_embedding_index is None:
-      raise ValueError('get_embedding_index is None.')
+    if vector_store is None:
+      raise ValueError('vector_store is None.')
     if not self.embedding:
       raise ValueError('self.embedding is None.')
 
-    embedding_index = get_embedding_index(self.embedding, keys)
     # The signal just sums the values of the embedding.
-    embedding_sums = embedding_index.embeddings.sum(axis=1)
+    embedding_sums = vector_store.get(keys).sum(axis=1)
     for embedding_sum in embedding_sums.tolist():
       yield embedding_sum
 
@@ -1087,11 +1085,10 @@ class TestInvalidSignal(Signal):
     return Field(dtype=DataType.INT32)
 
   @override
-  def compute(
-      self,
-      data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[str]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[Item]]:
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[str]] = None,
+              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[Item]]:
     # Return an invalid output that doesn't match the input length.
     return []
 

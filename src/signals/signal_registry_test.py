@@ -4,7 +4,7 @@ from typing import Iterable, Optional
 import pytest
 from typing_extensions import override
 
-from ..embeddings.embedding_index import GetEmbeddingIndexFn
+from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
 from ..signals.signal_registry import (
     clear_signal_registry,
@@ -29,11 +29,10 @@ class TestSignal(Signal):
     return Field(dtype=DataType.FLOAT32)
 
   @override
-  def compute(
-      self,
-      data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[str]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> list[Optional[ItemValue]]:
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[str]] = None,
+              vector_store: Optional[VectorStore] = None) -> list[Optional[ItemValue]]:
     del data
     return []
 
