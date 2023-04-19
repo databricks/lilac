@@ -468,8 +468,8 @@ class SelectRowsSuite:
         }
     }]
 
-  class UDF(Signal):
-    name = 'udf_func'
+  class LengthSignal(Signal):
+    name = 'length_signal'
     enrichment_type = EnrichmentType.TEXT
     embedding_based = False
 
@@ -500,16 +500,16 @@ class SelectRowsSuite:
                      'text': Field(dtype=DataType.STRING),
                  }))
 
-    signal = SelectRowsSuite.UDF()
+    signal = SelectRowsSuite.LengthSignal()
     # Filter by a specific UUID.
     filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '1')]
     result = db.select_rows(columns=['text', SignalUDF(signal, 'text')], filters=filters)
-    assert list(result) == [{UUID_COLUMN: '1', 'text': 'hello', 'udf_func(text)': 5}]
+    assert list(result) == [{UUID_COLUMN: '1', 'text': 'hello', 'length_signal(text)': 5}]
     assert signal.call_count == 1
 
     filters = [(UUID_COLUMN, Comparison.EQUALS, '2')]
     result = db.select_rows(columns=['text', SignalUDF(signal, 'text')], filters=filters)
-    assert list(result) == [{UUID_COLUMN: '2', 'text': 'everybody', 'udf_func(text)': 9}]
+    assert list(result) == [{UUID_COLUMN: '2', 'text': 'everybody', 'length_signal(text)': 9}]
     assert signal.call_count == 1 + 1
 
     # No filters.
@@ -517,11 +517,11 @@ class SelectRowsSuite:
     assert list(result) == [{
         UUID_COLUMN: '1',
         'text': 'hello',
-        'udf_func(text)': 5
+        'length_signal(text)': 5
     }, {
         UUID_COLUMN: '2',
         'text': 'everybody',
-        'udf_func(text)': 9
+        'length_signal(text)': 9
     }]
     assert signal.call_count == 2 + 2
 
@@ -543,12 +543,16 @@ class SelectRowsSuite:
                          'text': Field(repeated_field=Field(dtype=DataType.STRING)),
                      }))
 
-    signal = SelectRowsSuite.UDF()
+    signal = SelectRowsSuite.LengthSignal()
 
     # Filter by a specific UUID.
     filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '1')]
     result = db.select_rows(columns=['text', SignalUDF(signal, ('text', '*'))], filters=filters)
-    assert list(result) == [{UUID_COLUMN: '1', 'text': ['hello', 'hi'], 'udf_func(text)': [5, 2]}]
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': ['hello', 'hi'],
+        'length_signal(text)': [5, 2]
+    }]
     assert signal.call_count == 2
 
     # Filter by a specific UUID.
@@ -557,7 +561,7 @@ class SelectRowsSuite:
     assert list(result) == [{
         UUID_COLUMN: '2',
         'text': ['everybody', 'bye', 'test'],
-        'udf_func(text)': [9, 3, 4]
+        'length_signal(text)': [9, 3, 4]
     }]
     assert signal.call_count == 2 + 3
 
@@ -580,15 +584,15 @@ class SelectRowsSuite:
                 'text': Field(repeated_field=Field(repeated_field=Field(dtype=DataType.STRING))),
             }))
 
-    signal = SelectRowsSuite.UDF()
+    signal = SelectRowsSuite.LengthSignal()
 
     result = db.select_rows(columns=[SignalUDF(signal, ('text', '*', '*'))])
     assert list(result) == [{
         UUID_COLUMN: '1',
-        'udf_func(text_*)': [[5], [2, 3]]
+        'length_signal(text_*)': [[5], [2, 3]]
     }, {
         UUID_COLUMN: '2',
-        'udf_func(text_*)': [[9, 3], [4]]
+        'length_signal(text_*)': [[9, 3], [4]]
     }]
     assert signal.call_count == 6
 

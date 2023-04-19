@@ -719,6 +719,7 @@ class DatasetDuckDB(DatasetDB):
         df[signal_column] = unflatten(signal.compute(flat_input), input)
 
     if transform_filters:
+      # Re-upload the udf outputs to duckdb so we can filter on them.
       query = con.from_df(df)
       transform_filter_queries = self._create_where(transform_filters)
       if transform_filter_queries:
@@ -750,6 +751,7 @@ class DatasetDuckDB(DatasetDB):
   def _normalize_filters(self,
                          filter_likes: Optional[Sequence[FilterLike]] = None,
                          col_aliases: dict[str, bool] = {}) -> tuple[list[Filter], list[Filter]]:
+    """Normalize `FilterLike` to `Filter` and split into filters on source and filters on UDFs."""
     filter_likes = filter_likes or []
     filters: list[Filter] = []
     transform_filters: list[Filter] = []
