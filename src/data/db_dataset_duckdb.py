@@ -27,6 +27,7 @@ from ..schema import (
     Field,
     Path,
     PathTuple,
+    RichData,
     Schema,
     SourceManifest,
     enrichment_supports_dtype,
@@ -49,7 +50,9 @@ from ..utils import (
 from . import db_dataset
 from .dataset_utils import (
     create_enriched_schema,
+    flatten,
     make_enriched_items,
+    unflatten,
 )
 from .db_dataset import (
     Bins,
@@ -692,17 +695,6 @@ class DatasetDuckDB(DatasetDB):
       signal = transform_col.transform.signal
       signal_column = transform_col.alias
 
-      def make_list(x: Any) -> list[Any]:
-        if not isinstance(x, str) and isinstance(x, Iterable):
-          return list(x)
-        return [x]
-
-      def undo_list(x: Any, res: Iterable[Any]) -> Union[list[Any], Any]:
-        res = list(res)
-        if not isinstance(x, str) and isinstance(x, Iterable):
-          return res
-        return res[0]
-
       if signal.embedding_based:
         # For embedding based signals, get the leaf keys and indices, creating a combined key for
         # the key + index to pass to the signal.
@@ -723,13 +715,14 @@ class DatasetDuckDB(DatasetDB):
               get_embedding_index=(
                   lambda embedding, keys: self._embedding_indexer.get_embedding_index(
                       column=source_path, embedding=embedding, keys=keys)))
-          return undo_list(row[signal_column], signal_out)
+          return unflatten(signal_out, input)
 
         df[signal_column] = df.apply(compute_row, axis=1)
       else:
         signal_column = transform_col.alias
-        df[signal_column] = df[signal_column].apply(
-            lambda x: undo_list(x, signal.compute(make_list(x))))
+        input = df[signal_column]
+        flat_input = cast(Iterable[RichData], flatten(input))
+        df[signal_column] = unflatten(signal.compute(flat_input), input)
 
     if transform_filters:
       query = con.from_df(df)

@@ -579,6 +579,37 @@ class SelectRowsSuite:
     }]
     assert signal.call_count == 2 + 3
 
+  def test_signal_transform_deeply_nested(self, tmp_path: pathlib.Path,
+                                          db_cls: Type[DatasetDB]) -> None:
+
+    db = make_db(
+        db_cls,
+        tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': [['hello'], ['hi', 'bye']]
+        }, {
+            UUID_COLUMN: '2',
+            'text': [['everybody', 'bye'], ['test']]
+        }],
+        schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'text': Field(repeated_field=Field(repeated_field=Field(dtype=DataType.STRING))),
+            }))
+
+    signal = SelectRowsSuite.UDF()
+
+    result = db.select_rows(columns=[SignalUDF(signal, ('text', '*', '*'))])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'udf_func(text_*)': [[5], [2, 3]]
+    }, {
+        UUID_COLUMN: '2',
+        'udf_func(text_*)': [[9, 3], [4]]
+    }]
+    assert signal.call_count == 6
+
   def test_signal_transform_with_embedding(self, tmp_path: pathlib.Path,
                                            db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls=db_cls,
