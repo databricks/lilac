@@ -700,23 +700,17 @@ class DatasetDuckDB(DatasetDB):
       if signal.embedding_based:
         # For embedding based signals, get the leaf keys and indices, creating a combined key for
         # the key + index to pass to the signal.
-        flat_keys: list[str] = []
-        for value, uuid in zip(input, df[UUID_COLUMN]):
-          if is_primitive(value):
-            flat_keys.append(uuid)
-          else:
-            for i, _ in enumerate(value):
-              flat_keys.append(_get_repeated_key(row_id=uuid, repeated_idxs=[i]))
-
+        flat_keys = flatten_keys(df[UUID_COLUMN], input)
         flat_output = signal.compute(
             keys=flat_keys,
             get_embedding_index=(
                 lambda embedding, keys: self._embedding_indexer.get_embedding_index(
                     column=transform_col.feature, embedding=embedding, keys=keys)))
-        df[signal_column] = unflatten(flat_output, input)
       else:
         flat_input = cast(Iterable[RichData], flatten(input))
-        df[signal_column] = unflatten(signal.compute(flat_input), input)
+        flat_output = signal.compute(flat_input)
+
+      df[signal_column] = unflatten(flat_output, input)
 
     if transform_filters:
       # Re-upload the udf outputs to duckdb so we can filter on them.
@@ -743,7 +737,9 @@ class DatasetDuckDB(DatasetDB):
 
     for column in columns:
       alias_and_transform[column.alias] = bool(column.transform)
-      col = make_select_column(column.feature, flatten=False)
+      empty = bool(column.transform and isinstance(column.transform, SignalTransform) and
+                   column.transform.signal.embedding_based)
+      col = make_select_column(column.feature, flatten=False, empty=empty)
       select_queries.append(f'{col} AS "{column.alias}"')
 
     return ', '.join(select_queries), alias_and_transform
@@ -826,7 +822,9 @@ class DatasetDuckDB(DatasetDB):
     return '.'.join([f'"{path_comp}"' if quote_each_part else str(path_comp) for path_comp in path])
 
 
-def _inner_select(sub_paths: list[PathTuple], inner_var: Optional[str] = None) -> str:
+def _inner_select(sub_paths: list[PathTuple],
+                  inner_var: Optional[str] = None,
+                  empty: bool = False) -> str:
   """Recursively generate the inner select statement for a list of sub paths."""
   current_sub_path = sub_paths[0]
   lambda_var = inner_var + 'x' if inner_var else 'x'
@@ -837,8 +835,9 @@ def _inner_select(sub_paths: list[PathTuple], inner_var: Optional[str] = None) -
   # Select the path inside structs. E.g. x['a']['b']['c'] given current_sub_path = [a, b, c].
   path_key = inner_var + ''.join([f"['{p}']" for p in current_sub_path])
   if len(sub_paths) == 1:
-    return path_key
-  return f'list_transform({path_key}, {lambda_var} -> {_inner_select(sub_paths[1:], lambda_var)})'
+    return 'NULL' if empty else path_key
+  return (f'list_transform({path_key}, {lambda_var} -> '
+          f'{_inner_select(sub_paths[1:], lambda_var, empty)})')
 
 
 def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
@@ -857,11 +856,11 @@ def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
   return sub_paths
 
 
-def make_select_column(leaf_path: Path, flatten: bool = True) -> str:
+def make_select_column(leaf_path: Path, flatten: bool = True, empty: bool = False) -> str:
   """Create a select column for a leaf path."""
   path = normalize_path(leaf_path)
   sub_paths = _split_path_into_subpaths_of_lists(path)
-  selection = _inner_select(sub_paths, None)
+  selection = _inner_select(sub_paths, None, empty)
   # We only flatten when the result of a nested list to avoid segfault.
   is_result_nested_list = len(sub_paths) >= 3  # E.g. subPaths = [[a, b, c], *, *].
   if flatten and is_result_nested_list:
@@ -874,7 +873,27 @@ def make_select_column(leaf_path: Path, flatten: bool = True) -> str:
 
 
 def _get_repeated_key(row_id: str, repeated_idxs: list[int]) -> str:
+  if not repeated_idxs:
+    return row_id
   return row_id + '_' + ','.join(map(str, repeated_idxs))
+
+
+def _flatten_keys(uuid: str, nested_input: Iterable, repeated_idxs: list[int]) -> list[str]:
+  if is_primitive(nested_input):
+    return [_get_repeated_key(uuid, repeated_idxs)]
+  else:
+    result: list[str] = []
+    for i, input in enumerate(nested_input):
+      result.extend(_flatten_keys(uuid, input, [*repeated_idxs, i]))
+    return result
+
+
+def flatten_keys(uuids: Iterable[str], nested_input: Iterable) -> list[str]:
+  """Flatten the uuid keys of a nested input."""
+  result: list[str] = []
+  for uuid, input in zip(uuids, nested_input):
+    result.extend(_flatten_keys(uuid, input, []))
+  return result
 
 
 def _get_keys_from_leafs(leafs_df: pd.DataFrame,
