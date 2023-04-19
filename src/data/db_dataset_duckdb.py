@@ -158,7 +158,7 @@ class DuckDBTableInfo(BaseModel):
   computed_columns: list[ComputedColumn]
 
 
-ColumnEmbedding = tuple[PathTuple, EmbeddingId]
+ColumnEmbedding = tuple[PathTuple, str]
 
 
 class DatasetDuckDB(DatasetDB):
@@ -272,8 +272,13 @@ class DatasetDuckDB(DatasetDB):
     """Count the number of rows."""
     raise NotImplementedError('count is not yet implemented for DuckDB.')
 
-  def _make_vector_store(self, path: PathTuple, embedding: EmbeddingId) -> VectorStore:
-    store_key: ColumnEmbedding = (path, embedding)
+  def _get_vector_store(self, path: PathTuple, embedding: EmbeddingId) -> VectorStore:
+    if isinstance(embedding, str):
+      embedding_key = embedding
+    else:
+      embedding_key = embedding.__class__.__name__
+
+    store_key: ColumnEmbedding = (path, embedding_key)
     if store_key not in self._col_embedding_stores:
       # Get the embedding index for the column and embedding.
       embedding_index = self._embedding_indexer.get_embedding_index(path, embedding)
@@ -339,14 +344,13 @@ class DatasetDuckDB(DatasetDB):
 
       keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
 
-      vector_store = self._col_embedding_stores.get((column.feature, signal.embedding))
+      if signal.embedding is None:
+        raise ValueError('`Signal.embedding` must be defined for embedding-based signals.')
+
+      vector_store = self._get_vector_store(column.feature, signal.embedding)
 
       with DebugTimer(f'"compute" for embedding signal "{signal.name}" over "{source_path}"'):
-        signal_outputs = signal.compute(
-            keys=keys,
-            get_embedding_index=(
-                lambda embedding, keys: self._embedding_indexer.get_embedding_index(
-                    column=source_path, embedding=embedding, keys=keys)))
+        signal_outputs = signal.compute(keys=keys, vector_store=vector_store)
     else:
       # For non-embedding bsaed signals, get the leaf values and indices.
       with DebugTimer(f'"_select_leafs" over "{source_path}"'):
@@ -732,11 +736,9 @@ class DatasetDuckDB(DatasetDB):
             for i, _ in enumerate(value):
               flat_keys.append(_get_repeated_key(row_id=uuid, repeated_idxs=[i]))
 
-        flat_output = signal.compute(
-            keys=flat_keys,
-            get_embedding_index=(
-                lambda embedding, keys: self._embedding_indexer.get_embedding_index(
-                    column=transform_col.feature, embedding=embedding, keys=keys)))
+        vector_store = self._get_vector_store(transform_col.feature, signal.embedding)
+        flat_output = signal.compute(keys=flat_keys, vector_store=vector_store)
+
         df[signal_column] = unflatten(flat_output, input)
       else:
         flat_input = cast(Iterable[RichData], flatten(input))

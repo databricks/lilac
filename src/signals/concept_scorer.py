@@ -4,7 +4,7 @@ from typing import Any, Iterable, Optional
 from typing_extensions import override
 
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
-from ..embeddings.embedding_index import GetEmbeddingIndexFn
+from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
 from .signal import Signal
 
@@ -30,11 +30,10 @@ class ConceptScoreSignal(Signal):
     return Field(dtype=DataType.FLOAT32)
 
   @override
-  def compute(
-      self,
-      data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[str]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[ItemValue]]:
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[str]] = None,
+              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[ItemValue]]:
     if data and keys:
       raise ValueError(
           '"data" and "keys" cannot both be provided for ConceptScoreSignal.compute().')
@@ -49,9 +48,9 @@ class ConceptScoreSignal(Signal):
     if data:
       scores: Iterable[float] = concept_model.score(data)
     elif keys:
-      if not get_embedding_index:
+      if not vector_store:
         raise ValueError(
-            '"get_embedding_index" is required in ConceptScoreSignal.compute() when passing "keys"')
-      embeddings = get_embedding_index(self.embedding_name, keys).embeddings
+            '"vector_store" is required in ConceptScoreSignal.compute() when passing "keys"')
+      embeddings = vector_store.get(keys)
       scores = concept_model.score_embeddings(embeddings)
     return [float(score) for score in scores]

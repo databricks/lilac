@@ -31,7 +31,6 @@ class VectorStore(abc.ABC):
     """
     pass
 
-  @abc.abstractmethod
   def topk(self, query: np.ndarray, k: int) -> np.ndarray:
     """Return the top k most similar vectors.
 
@@ -42,4 +41,4 @@ class VectorStore(abc.ABC):
     Returns
       A list of (id, score) tuples.
     """
-    pass
+    raise NotImplementedError

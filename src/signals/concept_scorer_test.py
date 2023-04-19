@@ -2,7 +2,7 @@
 
 import os
 import pathlib
-from typing import Generator, Iterable, Type, cast
+from typing import Generator, Iterable, Optional, Type, cast
 
 import numpy as np
 import pytest
@@ -16,8 +16,8 @@ from ..concepts.db_concept import (
     DiskConceptDB,
     DiskConceptModelDB,
 )
-from ..embeddings.embedding_index import EmbeddingIndex
 from ..embeddings.embedding_registry import Embedding, clear_embedding_registry, register_embedding
+from ..embeddings.vector_store import VectorStore
 from ..schema import EnrichmentType, RichData
 from .concept_scorer import ConceptScoreSignal
 
@@ -54,6 +54,23 @@ class TestEmbedding(Embedding):
       if example not in EMBEDDING_MAP:
         raise ValueError(f'Example "{str(example)}" not in embedding map')
     return np.array([EMBEDDING_MAP[cast(str, example)] for example in examples])
+
+
+class TestVectorStore(VectorStore):
+  """A test vector store with fixed embeddings."""
+
+  def __init__(self, key_embedding_map: dict[str, list[float]]):
+    self._key_embedding_map = key_embedding_map
+
+  @override
+  def add(self, keys: list[str], embeddings: np.ndarray) -> None:
+    # We fix the vectors for the test vector store.
+    pass
+
+  @override
+  def get(self, keys: Optional[Iterable[str]]) -> np.ndarray:
+    keys = keys or []
+    return np.array([self._key_embedding_map[x] for x in keys])
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -162,15 +179,13 @@ def test_concept_model_score_embeddings(concept_db_cls: Type[ConceptDB],
   model_db.sync(
       ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
-  KEY_EMBEDDING_MAP: dict[str, list[float]] = {
+  vector_store = TestVectorStore({
       '1': [1.0, 0.0, 0.0],
       '2': [0.9, 0.1, 0.0],
       '3': [0.1, 0.2, 0.3],
-  }
+  })
 
-  scores = signal.compute(keys=['1', '2', '3'],
-                          get_embedding_index=lambda _, row_ids: EmbeddingIndex(embeddings=np.array(
-                              [KEY_EMBEDDING_MAP[x] for x in row_ids])))
+  scores = signal.compute(keys=['1', '2', '3'], vector_store=vector_store)
 
   expected_scores = [0.493, 0.495, 0.504]
   for score, expected_score in zip(scores, expected_scores):

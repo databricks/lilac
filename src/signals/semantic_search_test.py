@@ -7,15 +7,13 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..embeddings.embedding_index import EmbeddingIndex, EmbeddingIndexer
 from ..embeddings.embedding_registry import (
     Embedding,
-    EmbeddingId,
     clear_embedding_registry,
     register_embedding,
 )
-from ..schema import EnrichmentType, Path, RichData
-from ..tasks import TaskId
+from ..embeddings.vector_store import VectorStore
+from ..schema import EnrichmentType, RichData
 from .semantic_search import SemanticSearchSignal
 
 TEST_EMBEDDING_NAME = 'test_embedding'
@@ -33,25 +31,18 @@ STR_EMBEDDINGS: dict[str, list[float]] = {
 }
 
 
-class TestEmbeddingIndexer(EmbeddingIndexer):
-  """A test embedding indexer with fixed embeddings."""
+class TestVectorStore(VectorStore):
+  """A test vector store with fixed embeddings."""
 
   @override
-  def get_embedding_index(self,
-                          column: Path,
-                          embedding_id: EmbeddingId,
-                          row_ids: Optional[Iterable[str]] = None) -> EmbeddingIndex:
-    row_ids = row_ids or []
-    return EmbeddingIndex(embeddings=np.array([EMBEDDINGS[row_id] for row_id in row_ids]))
-
-  @override
-  def compute_embedding_index(self,
-                              column: Path,
-                              embedding_id: EmbeddingId,
-                              keys: Iterable[str],
-                              data: Iterable[RichData],
-                              task_id: Optional[TaskId] = None) -> None:
+  def add(self, keys: list[str], embeddings: np.ndarray) -> None:
+    # We fix the vectors for the test vector store.
     pass
+
+  @override
+  def get(self, keys: Optional[Iterable[str]]) -> np.ndarray:
+    keys = keys or []
+    return np.array([EMBEDDINGS[row_id] for row_id in keys])
 
 
 class TestEmbedding(Embedding):
@@ -77,16 +68,12 @@ def setup_teardown() -> Iterable[None]:
 
 
 def test_semantic_search_compute_keys(mocker: MockerFixture) -> None:
-  embedding_indexer = TestEmbeddingIndexer()
+  vector_store = TestVectorStore()
 
   embed_mock = mocker.spy(TestEmbedding, '__call__')
 
   signal = SemanticSearchSignal(query='hello', embedding=TEST_EMBEDDING_NAME)
-  scores = list(
-      signal.compute(
-          keys=['1', '2', '3'],
-          get_embedding_index=lambda embedding, row_ids: embedding_indexer.get_embedding_index(
-              column='test_col', embedding_id=embedding, row_ids=row_ids)))
+  scores = list(signal.compute(keys=['1', '2', '3'], vector_store=vector_store))
 
   # Embeddings should be called only 1 time for the search.
   assert embed_mock.call_count == 1

@@ -19,8 +19,6 @@ class NumpyVectorStore(VectorStore):
 
   @override
   def add(self, keys: list[str], embeddings: np.ndarray) -> None:
-    if self._embeddings is not None:
-      raise ValueError('Cannot add to a vector store that already has data.')
     if len(keys) != embeddings.shape[0]:
       raise ValueError(
           f'Length of keys ({len(keys)}) does not match number of embeddings {embeddings.shape[0]}.'
