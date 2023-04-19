@@ -857,7 +857,13 @@ def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
 
 
 def make_select_column(leaf_path: Path, flatten: bool = True, empty: bool = False) -> str:
-  """Create a select column for a leaf path."""
+  """Create a select column for a leaf path.
+
+  Args:
+    leaf_path: A path to a leaf feature. E.g. ['a', 'b', 'c'].
+    flatten: Whether to flatten the result.
+    empty: Whether to return an empty list (used for embedding signals that don't need the data).
+  """
   path = normalize_path(leaf_path)
   sub_paths = _split_path_into_subpaths_of_lists(path)
   selection = _inner_select(sub_paths, None, empty)
