@@ -9,6 +9,7 @@ from .concepts.concept import Concept, ConceptModel
 from .concepts.db_concept import (
     DISK_CONCEPT_DB,
     DISK_CONCEPT_MODEL_DB,
+    ConceptInfo,
     ConceptUpdate,
 )
 from .router_utils import RouteErrorHandler
@@ -16,20 +17,10 @@ from .router_utils import RouteErrorHandler
 router = APIRouter(route_class=RouteErrorHandler)
 
 
-class ConceptInfo(BaseModel):
-  """Information about a concept."""
-  name: str
-  embedding_based: bool
-
-
 @router.get('/', response_model_exclude_none=True)
-def get_concepts(namespace: str, concept_name: str) -> list[ConceptInfo]:
-  """Get a concept from a database."""
-  concept = DISK_CONCEPT_DB.get(namespace, concept_name)
-  if not concept:
-    raise HTTPException(status_code=404,
-                        detail=f'Concept "{namespace}/{concept_name}" was not found')
-  return concept
+def get_concepts() -> list[ConceptInfo]:
+  """List the concepts."""
+  return DISK_CONCEPT_DB.list()
 
 
 @router.get('/{namespace}/{concept_name}', response_model_exclude_none=True)

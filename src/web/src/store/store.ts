@@ -17,6 +17,7 @@ import {getEqualBins, getNamedBins, NUM_AUTO_BINS, TOO_MANY_DISTINCT} from '../d
 import {isOrdinal, isTemporal, Item, LeafValue, Path, UUID_COLUMN} from '../schema';
 
 import {renderError} from '../utils';
+import {conceptApi} from './api_concept';
 import {
   datasetApi,
   SELECT_GROUPS_SUPPORTED_DTYPES,
@@ -99,12 +100,14 @@ export const store = configureStore({
     [appSlice.name]: appSlice.reducer,
     [serverApi.reducerPath]: serverApi.reducer,
     [datasetApi.reducerPath]: datasetApi.reducer,
+    [conceptApi.reducerPath]: conceptApi.reducer,
     [signalApi.reducerPath]: signalApi.reducer,
     [embeddingApi.reducerPath]: embeddingApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat([
       datasetApi.middleware,
+      conceptApi.middleware,
       signalApi.middleware,
       serverApi.middleware,
       embeddingApi.middleware,

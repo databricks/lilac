@@ -7,9 +7,11 @@ from typing import Optional, cast
 from uuid import uuid4
 
 from pydantic import BaseModel
+from typing_extensions import override
 
 from ..constants import data_path
 from ..embeddings.embedding_registry import get_embedding_cls
+from ..schema import EnrichmentType
 from ..utils import delete_file, file_exists, open_file
 from .concept import Concept, ConceptModel, Example, ExampleIn
 
@@ -20,6 +22,7 @@ class ConceptInfo(BaseModel):
   """Information about a concept."""
   namespace: str
   name: str
+  enrichment_type: EnrichmentType
 
 
 class ConceptUpdate(BaseModel):
@@ -103,8 +106,8 @@ class ConceptModelDB(abc.ABC):
 class DiskConceptModelDB(ConceptModelDB):
   """Interface for the concept model database."""
 
+  @override
   def get(self, namespace: str, concept_name: str, embedding_name: str) -> ConceptModel:
-    """Get the model associated with the provided concept and the embedding."""
     # Make sure the concept exists.
     concept = self._concept_db.get(namespace, concept_name)
     if not concept:
@@ -132,8 +135,8 @@ class DiskConceptModelDB(ConceptModelDB):
     with open_file(concept_model_path, 'wb') as f:
       pickle.dump(model, f)
 
+  @override
   def remove(self, namespace: str, concept_name: str, embedding_name: str) -> None:
-    """Remove the model for a concept."""
     concept_model_path = _concept_model_path(namespace, concept_name, embedding_name)
 
     if not file_exists(concept_model_path):
@@ -158,16 +161,25 @@ def _concept_model_path(namespace: str, concept_name: str, embedding_name: str) 
 class DiskConceptDB(ConceptDB):
   """A concept database."""
 
+  @override
   def list(self) -> list[ConceptInfo]:
     # Read the concepts and return a ConceptInfo containing the namespace and name.
     concept_infos = []
-    for namespace in os.listdir(data_path()):
-      for concept_name in os.listdir(os.path.join(data_path(), namespace)):
-        concept_infos.append(ConceptInfo(namespace=namespace, name=concept_name))
+    for root, _, files in os.walk(data_path()):
+      for file in files:
+        if file == CONCEPT_JSON_FILENAME:
+          namespace, name = root.split('/')[-2:]
+          concept_infos.append(
+              ConceptInfo(
+                  namespace=namespace,
+                  name=name,
+                  # TODO(nsthorat): Generalize this to images.
+                  enrichment_type=EnrichmentType.TEXT))
+
     return concept_infos
 
+  @override
   def get(self, namespace: str, name: str) -> Optional[Concept]:
-    """Get a concept."""
     concept_json_path = _concept_json_path(namespace, name)
 
     if not file_exists(concept_json_path):
@@ -176,8 +188,8 @@ class DiskConceptDB(ConceptDB):
     with open_file(concept_json_path) as f:
       return Concept.parse_raw(f.read())
 
+  @override
   def edit(self, namespace: str, name: str, change: ConceptUpdate) -> Concept:
-    """Edit a concept."""
     concept_json_path = _concept_json_path(namespace, name)
 
     inserted_points = change.insert or []
@@ -219,8 +231,8 @@ class DiskConceptDB(ConceptDB):
 
     return concept
 
+  @override
   def remove(self, namespace: str, name: str) -> None:
-    """Remove a concept."""
     concept_json_path = _concept_json_path(namespace, name)
 
     if not file_exists(concept_json_path):

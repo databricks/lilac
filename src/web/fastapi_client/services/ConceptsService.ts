@@ -15,26 +15,14 @@ export class ConceptsService {
 
     /**
      * Get Concepts
-     * Get a concept from a database.
-     * @param namespace
-     * @param conceptName
+     * List the concepts.
      * @returns ConceptInfo Successful Response
      * @throws ApiError
      */
-    public static getConcepts(
-        namespace: string,
-        conceptName: string,
-    ): CancelablePromise<Array<ConceptInfo>> {
+    public static getConcepts(): CancelablePromise<Array<ConceptInfo>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/concepts/',
-            query: {
-                'namespace': namespace,
-                'concept_name': conceptName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
         });
     }
 
