@@ -19,13 +19,13 @@ export const DatasetViewer = React.memo(function DatasetViewer(): JSX.Element {
   const gallery = <Gallery namespace={namespace} datasetName={datasetName}></Gallery>;
 
   return (
-    <div className={`${styles.body} flex w-full h-full overflow-hidden`}>
-      <SlSplitPanel position={65} className="w-full h-full">
+    <div className={`${styles.body} flex h-full w-full overflow-hidden`}>
+      <SlSplitPanel position={65} className="h-full w-full">
         <SlIcon slot="handle" name="grip-vertical" />
-        <div slot="start" className={`p-4 h-full w-full ${styles.stats}`}>
+        <div slot="start" className={`h-full w-full p-4 ${styles.stats}`}>
           {gallery}
         </div>
-        <div slot="end" className={`p-4 h-full w-full ${styles.browser}`}>
+        <div slot="end" className={`h-full w-full p-4 ${styles.browser}`}>
           {stats}
         </div>
       </SlSplitPanel>

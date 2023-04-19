@@ -120,14 +120,14 @@ export const DatasetLoader = (): JSX.Element => {
   return (
     <>
       <div
-        className={`flex flex-col ${styles.container} rounded h-full overflow-auto shadow-lg
-          bg-slate-50`}
+        className={`flex flex-col ${styles.container} h-full overflow-auto rounded bg-slate-50
+          shadow-lg`}
       >
         <div className={styles.row}>
           <div className="text-3xl">Create a dataset</div>
         </div>
         <div className={styles.row}>
-          <div className="flex flex-row justify-left items-left flex-grow">
+          <div className="justify-left items-left flex flex-grow flex-row">
             <div className="w-44">
               <SlInput
                 value={namespace}
@@ -137,7 +137,7 @@ export const DatasetLoader = (): JSX.Element => {
               />
             </div>
             <div className="mx-4">
-              <span className="inline-block align-text-bottom text-xl pt-8">/</span>
+              <span className="inline-block pt-8 align-text-bottom text-xl">/</span>
             </div>
             <div className="w-44">
               <SlInput
@@ -156,7 +156,7 @@ export const DatasetLoader = (): JSX.Element => {
           <SlButton
             disabled={loadDatasetButtonDisabled}
             variant="success"
-            className="mt-1 mr-4"
+            className="mr-4 mt-1"
             onClick={() => loadClicked()}
           >
             Load dataset
@@ -169,7 +169,7 @@ export const DatasetLoader = (): JSX.Element => {
             <>
               <SlSpinner></SlSpinner>
               <br />
-              <div className="text-gray-500 mt-2">
+              <div className="mt-2 text-gray-500">
                 <p>Loading dataset with task_id "{taskId}".</p>
                 <p>You will be redirected when it is complete. You may leave this page now.</p>
               </div>
