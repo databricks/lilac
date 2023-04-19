@@ -699,16 +699,31 @@ class DatasetDuckDB(DatasetDB):
         leafs_df = select_leafs_result.df
         signal_outs = signal.compute(data=leafs_df[select_leafs_result.value_column])
 
-      # Import the signal results into DuckDB and UUIDs.
-      signal_outs = [{
-          UUID_COLUMN: uuid,
-          col.alias: value
-      } for uuid, value in zip(leafs_df[UUID_COLUMN], signal_outs)]
-      schema = Schema(fields={
-          UUID_COLUMN: Field(dtype=DataType.STRING),
-          col.alias: signal.fields(source_path)
-      })
-      table = pa.Table.from_pylist(signal_outs, schema=schema_to_arrow_schema(schema))
+      # Use the repeated indices to generate the correct signal output structure.
+      if select_leafs_result.repeated_idxs_col:
+        repeated_idxs = leafs_df[select_leafs_result.repeated_idxs_col]
+
+      # Repeat "None" if there are no repeated indices without allocating an array. This happens
+      # when the object is a simple structure.
+      repeated_idxs_iter: Iterable[Optional[list[int]]] = (
+          itertools.repeat(None) if not select_leafs_result.repeated_idxs_col else repeated_idxs)
+      enriched_signal_outs = make_enriched_items(source_path=source_path,
+                                                 row_ids=leafs_df[UUID_COLUMN],
+                                                 leaf_items=signal_outs,
+                                                 repeated_idxs=repeated_idxs_iter)
+      # Rename the signal column to the alias.
+      enriched_signal_outs = [{
+          UUID_COLUMN: signal_out[UUID_COLUMN],
+          col.alias: signal_out[cast(str, source_path[0])]
+      } for signal_out in enriched_signal_outs]
+
+      field = signal.fields(source_path)
+      for path_component in source_path:
+        if is_repeated_path_part(path_component):
+          field = Field(repeated_field=field)
+
+      schema = Schema(fields={UUID_COLUMN: Field(dtype=DataType.STRING), col.alias: field})
+      table = pa.Table.from_pylist(enriched_signal_outs, schema=schema_to_arrow_schema(schema))
       udf_query = con.from_arrow(table).set_alias('r2')
 
       query = query.join(udf_query, f'r1.{UUID_COLUMN} = r2.{UUID_COLUMN}')

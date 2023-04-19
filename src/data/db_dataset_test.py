@@ -493,7 +493,7 @@ class SelectRowsSuite:
 
     call_count: int = 0
 
-    def fields(self, input_column: Path) -> Field:  # type: ignore
+    def fields(self, input_column: Path) -> Field:
       return Field(dtype=DataType.INT32)
 
     def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:  # type: ignore
@@ -514,7 +514,7 @@ class SelectRowsSuite:
                      'text': 'everybody'
                  }],
                  schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.BINARY),
+                     UUID_COLUMN: Field(dtype=DataType.STRING),
                      'text': Field(dtype=DataType.STRING),
                  }))
 
@@ -528,7 +528,7 @@ class SelectRowsSuite:
     filters = [(UUID_COLUMN, Comparison.EQUALS, '2')]
     result = db.select_rows(columns=['text', SignalUDF(signal, 'text')], filters=filters)
     assert list(result) == [{UUID_COLUMN: '2', 'text': 'everybody', 'udf_func(text)': 9}]
-    assert signal.call_count == 2
+    assert signal.call_count == 1 + 1
 
     # No filters.
     result = db.select_rows(columns=['text', SignalUDF(signal, 'text')])
@@ -541,7 +541,43 @@ class SelectRowsSuite:
         'text': 'everybody',
         'udf_func(text)': 9
     }]
-    assert signal.call_count == 4
+    assert signal.call_count == 2 + 2
+
+  def test_signal_transform_with_uuid_filter_repeated(self, tmp_path: pathlib.Path,
+                                                      db_cls: Type[DatasetDB]) -> None:
+
+    db = make_db(db_cls,
+                 tmp_path,
+                 items=[{
+                     UUID_COLUMN: '1',
+                     'text': ['hello', 'hi']
+                 }, {
+                     UUID_COLUMN: '2',
+                     'text': ['everybody', 'bye', 'test']
+                 }],
+                 schema=Schema(
+                     fields={
+                         UUID_COLUMN: Field(dtype=DataType.STRING),
+                         'text': Field(repeated_field=Field(dtype=DataType.STRING)),
+                     }))
+
+    signal = SelectRowsSuite.UDF()
+
+    # Filter by a specific UUID.
+    filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '1')]
+    result = db.select_rows(columns=['text', SignalUDF(signal, ('text', '*'))], filters=filters)
+    assert list(result) == [{UUID_COLUMN: '1', 'text': ['hello', 'hi'], 'udf_func(text)': [5, 2]}]
+    assert signal.call_count == 2
+
+    # Filter by a specific UUID.
+    filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '2')]
+    result = db.select_rows(columns=['text', SignalUDF(signal, ('text', '*'))], filters=filters)
+    assert list(result) == [{
+        UUID_COLUMN: '2',
+        'text': ['everybody', 'bye', 'test'],
+        'udf_func(text)': [9, 3, 4]
+    }]
+    assert signal.call_count == 2 + 3
 
   def test_signal_transform_with_embedding(self, tmp_path: pathlib.Path,
                                            db_cls: Type[DatasetDB]) -> None:
