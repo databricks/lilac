@@ -54,19 +54,19 @@ ALL_DBS = [DatasetDuckDB]
 SIMPLE_DATASET_NAME = 'simple'
 
 SIMPLE_ITEMS: list[Item] = [{
-    UUID_COLUMN: '31' * 16,
+    UUID_COLUMN: '1',
     'str': 'a',
     'int': 1,
     'bool': False,
     'float': 3.0
 }, {
-    UUID_COLUMN: '32' * 16,
+    UUID_COLUMN: '2',
     'str': 'b',
     'int': 2,
     'bool': True,
     'float': 2.0
 }, {
-    UUID_COLUMN: '32' * 16,
+    UUID_COLUMN: '2',
     'str': 'b',
     'int': 2,
     'bool': True,
@@ -143,33 +143,21 @@ class SelectRowsSuite:
 
     result = db.select_rows([UUID_COLUMN])
 
-    assert list(result) == [{
-        UUID_COLUMN: '31' * 16
-    }, {
-        UUID_COLUMN: '32' * 16
-    }, {
-        UUID_COLUMN: '32' * 16
-    }]
+    assert list(result) == [{UUID_COLUMN: '1'}, {UUID_COLUMN: '2'}, {UUID_COLUMN: '2'}]
 
   def test_select_ids_with_limit_and_offset(self, tmp_path: pathlib.Path,
                                             db_cls: Type[DatasetDB]) -> None:
-    items: list[Item] = [{UUID_COLUMN: str(i) * 16} for i in range(10, 20)]
+    items: list[Item] = [{UUID_COLUMN: str(i)} for i in range(10, 20)]
     db = make_db(db_cls, tmp_path, items, SIMPLE_SCHEMA)
 
     result = db.select_rows([UUID_COLUMN], offset=1, limit=3)
-    assert list(result) == [{
-        UUID_COLUMN: '11' * 16
-    }, {
-        UUID_COLUMN: '12' * 16
-    }, {
-        UUID_COLUMN: '13' * 16
-    }]
+    assert list(result) == [{UUID_COLUMN: '11'}, {UUID_COLUMN: '12'}, {UUID_COLUMN: '13'}]
 
     result = db.select_rows([UUID_COLUMN], offset=7, limit=2)
-    assert list(result) == [{UUID_COLUMN: '17' * 16}, {UUID_COLUMN: '18' * 16}]
+    assert list(result) == [{UUID_COLUMN: '17'}, {UUID_COLUMN: '18'}]
 
     result = db.select_rows([UUID_COLUMN], offset=9, limit=200)
-    assert list(result) == [{UUID_COLUMN: '19' * 16}]
+    assert list(result) == [{UUID_COLUMN: '19'}]
 
     result = db.select_rows([UUID_COLUMN], offset=10, limit=200)
     assert list(result) == []
@@ -177,35 +165,29 @@ class SelectRowsSuite:
   def test_filter_by_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
 
-    id_filter: FilterTuple = (UUID_COLUMN, Comparison.EQUALS, '31' * 16)
+    id_filter: FilterTuple = (UUID_COLUMN, Comparison.EQUALS, '1')
+    result = db.select_rows(filters=[id_filter])
+
+    assert list(result) == [{UUID_COLUMN: '1', 'str': 'a', 'int': 1, 'bool': False, 'float': 3.0}]
+
+    id_filter = (UUID_COLUMN, Comparison.EQUALS, '2')
     result = db.select_rows(filters=[id_filter])
 
     assert list(result) == [{
-        UUID_COLUMN: '31' * 16,
-        'str': 'a',
-        'int': 1,
-        'bool': False,
-        'float': 3.0
-    }]
-
-    id_filter = (UUID_COLUMN, Comparison.EQUALS, '32' * 16)
-    result = db.select_rows(filters=[id_filter])
-
-    assert list(result) == [{
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'str': 'b',
         'int': 2,
         'bool': True,
         'float': 2.0
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'str': 'b',
         'int': 2,
         'bool': True,
         'float': 1.0
     }]
 
-    id_filter = (UUID_COLUMN, Comparison.EQUALS, b'f' * 16)
+    id_filter = (UUID_COLUMN, Comparison.EQUALS, b'f')
     result = db.select_rows(filters=[id_filter])
 
     assert list(result) == []
@@ -216,15 +198,15 @@ class SelectRowsSuite:
     result = db.select_rows(columns=['str', 'float'])
 
     assert list(result) == [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'str': 'a',
         'float': 3.0
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'str': 'b',
         'float': 2.0
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'str': 'b',
         'float': 1.0
     }]
@@ -250,21 +232,21 @@ class SelectRowsSuite:
     result = db.select_rows(columns=['str', 'test_signal(str)'])
 
     assert list(result) == [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'str': 'a',
         'test_signal(str)': {
             'len': 1,
             'flen': 1.0
         }
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'str': 'b',
         'test_signal(str)': {
             'len': 1,
             'flen': 1.0
         }
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'str': 'b',
         'test_signal(str)': {
             'len': 1,
@@ -300,15 +282,15 @@ class SelectRowsSuite:
     result = db.select_rows(columns=['str', ('test_signal(str)', 'flen')])
 
     assert list(result) == [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'str': 'a',
         'test_signal(str).flen': 1.0
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'str': 'b',
         'test_signal(str).flen': 1.0
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'str': 'b',
         'test_signal(str).flen': 1.0
     }]
@@ -321,17 +303,17 @@ class SelectRowsSuite:
     ])
 
     assert list(result) == [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'str': 'a',
         'flen': 1.0,
         'len': 1
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'str': 'b',
         'flen': 1.0,
         'len': 1
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'str': 'b',
         'flen': 1.0,
         'len': 1
@@ -341,10 +323,10 @@ class SelectRowsSuite:
     db = make_db(db_cls,
                  tmp_path,
                  items=[{
-                     UUID_COLUMN: '31' * 16,
+                     UUID_COLUMN: '1',
                      'text': ['hello', 'everybody'],
                  }, {
-                     UUID_COLUMN: '32' * 16,
+                     UUID_COLUMN: '2',
                      'text': ['hello2', 'everybody2'],
                  }],
                  schema=Schema(
@@ -379,7 +361,7 @@ class SelectRowsSuite:
     result = db.select_rows(columns=[('test_signal(text)')])
 
     assert list(result) == [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'test_signal(text)': [{
             'len': 5,
             'flen': 5.0
@@ -388,7 +370,7 @@ class SelectRowsSuite:
             'flen': 9.0
         }]
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'test_signal(text)': [{
             'len': 6,
             'flen': 6.0
@@ -402,10 +384,10 @@ class SelectRowsSuite:
     db = make_db(db_cls,
                  tmp_path,
                  items=[{
-                     UUID_COLUMN: '31' * 16,
+                     UUID_COLUMN: '1',
                      'text': 'hello'
                  }, {
-                     UUID_COLUMN: '32' * 16,
+                     UUID_COLUMN: '2',
                      'text': 'everybody'
                  }],
                  schema=Schema(fields={
@@ -417,14 +399,14 @@ class SelectRowsSuite:
     result = db.select_rows(columns=['text', signal_col])
 
     assert list(result) == [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'text': 'hello',
         'test_signal(text)': {
             'len': 5,
             'flen': 5.0
         }
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'text': 'everybody',
         'test_signal(text)': {
             'len': 9,
@@ -437,10 +419,10 @@ class SelectRowsSuite:
     db = make_db(db_cls,
                  tmp_path,
                  items=[{
-                     UUID_COLUMN: '31' * 16,
+                     UUID_COLUMN: '1',
                      'text': 'hello'
                  }, {
-                     UUID_COLUMN: '32' * 16,
+                     UUID_COLUMN: '2',
                      'text': 'everybody'
                  }],
                  schema=Schema(fields={
@@ -453,7 +435,7 @@ class SelectRowsSuite:
     filters: list[FilterTuple] = [('text', Comparison.EQUALS, 'everybody')]
     result = db.select_rows(columns=['text', signal_col], filters=filters)
     assert list(result) == [{
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'text': 'everybody',
         'test_signal(text)': {
             'len': 9,
@@ -466,7 +448,7 @@ class SelectRowsSuite:
     result = db.select_rows(columns=['text', signal_col], filters=filters)
 
     assert list(result) == [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'text': 'hello',
         'test_signal(text)': {
             'len': 5,
@@ -478,7 +460,7 @@ class SelectRowsSuite:
     result = db.select_rows(columns=['text', signal_col], filters=filters)
 
     assert list(result) == [{
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'text': 'everybody',
         'test_signal(text)': {
             'len': 9,
@@ -615,10 +597,10 @@ class SelectRowsSuite:
     db = make_db(db_cls=db_cls,
                  tmp_path=tmp_path,
                  items=[{
-                     UUID_COLUMN: '31' * 16,
+                     UUID_COLUMN: '1',
                      'text': 'hello.',
                  }, {
-                     UUID_COLUMN: '32' * 16,
+                     UUID_COLUMN: '2',
                      'text': 'hello2.',
                  }],
                  schema=Schema(fields={
@@ -631,11 +613,11 @@ class SelectRowsSuite:
     signal_col = SignalUDF(TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), column='text')
     result = db.select_rows(columns=['text', signal_col])
     expected_result = [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'text': 'hello.',
         'test_embedding_sum(text)': 1.0
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'text': 'hello2.',
         'test_embedding_sum(text)': 2.0
     }]
@@ -647,13 +629,46 @@ class SelectRowsSuite:
                            alias='emb_sum')
     result = db.select_rows(columns=['text', signal_col])
     expected_result = [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'text': 'hello.',
         'emb_sum': 1.0
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'text': 'hello2.',
         'emb_sum': 2.0
+    }]
+    assert list(result) == expected_result
+
+  def test_signal_transform_with_nested_embedding(self, tmp_path: pathlib.Path,
+                                                  db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls=db_cls,
+                 tmp_path=tmp_path,
+                 items=[{
+                     UUID_COLUMN: '1',
+                     'text': ['hello.', 'hello world.'],
+                 }, {
+                     UUID_COLUMN: '2',
+                     'text': ['hello world2.', 'hello2.'],
+                 }],
+                 schema=Schema(
+                     fields={
+                         UUID_COLUMN: Field(dtype=DataType.STRING),
+                         'text': Field(repeated_field=Field(dtype=DataType.STRING)),
+                     }))
+
+    db.compute_embedding_index(embedding=TEST_EMBEDDING_NAME, column=('text', '*'))
+
+    signal_col = SignalUDF(TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
+                           column=('text', '*'))
+    result = db.select_rows(columns=['text', signal_col])
+    expected_result = [{
+        UUID_COLUMN: '1',
+        'text': ['hello.', 'hello world.'],
+        'test_embedding_sum(text)': [1.0, 3.0]
+    }, {
+        UUID_COLUMN: '2',
+        'text': ['hello world2.', 'hello2.'],
+        'test_embedding_sum(text)': [4.0, 2.0]
     }]
     assert list(result) == expected_result
 
@@ -680,21 +695,21 @@ class SelectRowsSuite:
     result = db.select_rows(columns=['str', 'test_signal_on_str'])
 
     assert list(result) == [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'str': 'a',
         'test_signal_on_str': {
             'len': 1,
             'flen': 1.0
         }
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'str': 'b',
         'test_signal_on_str': {
             'len': 1,
             'flen': 1.0
         }
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'str': 'b',
         'test_signal_on_str': {
             'len': 1,
@@ -730,10 +745,10 @@ class SelectRowsSuite:
     db = make_db(db_cls=db_cls,
                  tmp_path=tmp_path,
                  items=[{
-                     UUID_COLUMN: '31' * 16,
+                     UUID_COLUMN: '1',
                      'text': '[1, 1] first sentence. [1, 1] second sentence.',
                  }, {
-                     UUID_COLUMN: '32' * 16,
+                     UUID_COLUMN: '2',
                      'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
                  }],
                  schema=Schema(fields={
@@ -746,7 +761,7 @@ class SelectRowsSuite:
     result = db.select_rows(columns=['text', 'test_splitter_len(text)'])
     expected_result = [{
         UUID_COLUMN:
-            '31' * 16,
+            '1',
         'text':
             '[1, 1] first sentence. [1, 1] second sentence.',
         'test_splitter_len(text)': [{
@@ -764,7 +779,7 @@ class SelectRowsSuite:
         }]
     }, {
         UUID_COLUMN:
-            '32' * 16,
+            '2',
         'text':
             'b2 [2, 1] first sentence. [2, 1] second sentence.',
         'test_splitter_len(text)': [{
@@ -787,10 +802,10 @@ class SelectRowsSuite:
     db = make_db(db_cls=db_cls,
                  tmp_path=tmp_path,
                  items=[{
-                     UUID_COLUMN: '31' * 16,
+                     UUID_COLUMN: '1',
                      'text': 'hello.',
                  }, {
-                     UUID_COLUMN: '32' * 16,
+                     UUID_COLUMN: '2',
                      'text': 'hello2.',
                  }],
                  schema=Schema(fields={
@@ -817,11 +832,11 @@ class SelectRowsSuite:
 
     result = db.select_rows(columns=['text', 'text_emb_sum'])
     expected_result = [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'text': 'hello.',
         'text_emb_sum': 1.0
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'text': 'hello2.',
         'text_emb_sum': 2.0
     }]
@@ -831,10 +846,10 @@ class SelectRowsSuite:
     db = make_db(db_cls=db_cls,
                  tmp_path=tmp_path,
                  items=[{
-                     UUID_COLUMN: '31' * 16,
+                     UUID_COLUMN: '1',
                      'text': 'hello. hello2.',
                  }, {
-                     UUID_COLUMN: '32' * 16,
+                     UUID_COLUMN: '2',
                      'text': 'hello world. hello world2.',
                  }],
                  schema=Schema(fields={
@@ -876,7 +891,7 @@ class SelectRowsSuite:
 
     result = db.select_rows(columns=['text', 'text_sentences', 'text_sentences_emb_sum'])
     expected_result = [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'text': 'hello. hello2.',
         'text_sentences': [{
             'split': TextSpan(start=0, end=6),
@@ -891,7 +906,7 @@ class SelectRowsSuite:
             'split': 2.0
         }]
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'text': 'hello world. hello world2.',
         'text_sentences': [{
             'split': TextSpan(start=0, end=12),
@@ -912,11 +927,11 @@ class SelectRowsSuite:
     db = make_db(db_cls,
                  tmp_path,
                  items=[{
-                     UUID_COLUMN: '31' * 16,
+                     UUID_COLUMN: '1',
                      'text': 'hello',
                      'text2': ['hello', 'world'],
                  }, {
-                     UUID_COLUMN: '32' * 16,
+                     UUID_COLUMN: '2',
                      'text': 'hello world',
                      'text2': ['hello2', 'world2'],
                  }],
@@ -944,13 +959,13 @@ class SelectRowsSuite:
                             sort_order=SortOrder.ASC)
 
     assert list(result) == [{
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'float': 1.0
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'float': 2.0
     }, {
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'float': 3.0
     }]
 
@@ -959,13 +974,13 @@ class SelectRowsSuite:
                             sort_order=SortOrder.DESC)
 
     assert list(result) == [{
-        UUID_COLUMN: '31' * 16,
+        UUID_COLUMN: '1',
         'float': 3.0
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'float': 2.0
     }, {
-        UUID_COLUMN: '32' * 16,
+        UUID_COLUMN: '2',
         'float': 1.0
     }]
 
@@ -976,13 +991,7 @@ class SelectRowsSuite:
                             sort_by=['float'],
                             sort_order=SortOrder.ASC,
                             limit=2)
-    assert list(result) == [{
-        UUID_COLUMN: '32' * 16,
-        'float': 1.0
-    }, {
-        UUID_COLUMN: '32' * 16,
-        'float': 2.0
-    }]
+    assert list(result) == [{UUID_COLUMN: '2', 'float': 1.0}, {UUID_COLUMN: '2', 'float': 2.0}]
 
 
 class TestSignal(Signal):
@@ -1092,10 +1101,10 @@ class ComputeSignalItemsSuite:
     db = make_db(db_cls=db_cls,
                  tmp_path=tmp_path,
                  items=[{
-                     UUID_COLUMN: '31' * 16,
+                     UUID_COLUMN: '1',
                      'text': 'hello',
                  }, {
-                     UUID_COLUMN: '32' * 16,
+                     UUID_COLUMN: '2',
                      'text': 'hello world',
                  }],
                  schema=Schema(fields={

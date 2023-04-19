@@ -4,7 +4,7 @@ import itertools
 import os
 import re
 from collections.abc import Iterable
-from typing import Any, Iterator, Optional, Sequence, Union, cast
+from typing import Any, Iterator, Optional, Sequence, cast
 
 import duckdb
 import numpy as np
@@ -51,6 +51,7 @@ from . import db_dataset
 from .dataset_utils import (
     create_enriched_schema,
     flatten,
+    is_primitive,
     make_enriched_items,
     unflatten,
 )
@@ -694,33 +695,26 @@ class DatasetDuckDB(DatasetDB):
         raise ValueError(f'Unsupported transform: {transform_col.transform}')
       signal = transform_col.transform.signal
       signal_column = transform_col.alias
+      input = df[signal_column]
 
       if signal.embedding_based:
         # For embedding based signals, get the leaf keys and indices, creating a combined key for
         # the key + index to pass to the signal.
-        source_path = transform_col.feature
-
-        def compute_row(row: pd.Series) -> Union[list[Any], Any]:
-          input = row[signal_column]
-          if not isinstance(input, str) and isinstance(input, Iterable):
-            keys = [
-                _get_repeated_key(row_id=row[UUID_COLUMN], repeated_idxs=[i])
-                for i, _ in enumerate(input)
-            ]
+        flat_keys: list[str] = []
+        for value, uuid in zip(input, df[UUID_COLUMN]):
+          if is_primitive(value):
+            flat_keys.append(uuid)
           else:
-            keys = [row[UUID_COLUMN]]
+            for i, _ in enumerate(value):
+              flat_keys.append(_get_repeated_key(row_id=uuid, repeated_idxs=[i]))
 
-          signal_out = signal.compute(
-              keys=keys,
-              get_embedding_index=(
-                  lambda embedding, keys: self._embedding_indexer.get_embedding_index(
-                      column=source_path, embedding=embedding, keys=keys)))
-          return unflatten(signal_out, input)
-
-        df[signal_column] = df.apply(compute_row, axis=1)
+        flat_output = signal.compute(
+            keys=flat_keys,
+            get_embedding_index=(
+                lambda embedding, keys: self._embedding_indexer.get_embedding_index(
+                    column=transform_col.feature, embedding=embedding, keys=keys)))
+        df[signal_column] = unflatten(flat_output, input)
       else:
-        signal_column = transform_col.alias
-        input = df[signal_column]
         flat_input = cast(Iterable[RichData], flatten(input))
         df[signal_column] = unflatten(signal.compute(flat_input), input)
 

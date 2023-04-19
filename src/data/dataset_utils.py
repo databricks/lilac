@@ -37,14 +37,14 @@ def replace_repeated_wildcards(path: Path, path_repeated_idxs: Optional[list[int
   return tuple(replaced_path)
 
 
-def _is_primitive(obj: object) -> bool:
+def is_primitive(obj: object) -> bool:
   """Returns True if the object is an iterable but not a string or bytes."""
   return not isinstance(obj, Iterable) or isinstance(obj, (str, bytes))
 
 
 def _flatten(input: Union[Iterable, object]) -> Generator:
   """Flattens a nested iterable."""
-  if _is_primitive(input):
+  if is_primitive(input):
     yield input
   else:
     for elem in cast(Iterable, input):
@@ -58,7 +58,7 @@ def flatten(input: Union[Iterable, object]) -> list[object]:
 
 def _unflatten(flat_input: Iterator[list[object]], original_input: Union[Iterable, object]) -> list:
   """Unflattens a flattened iterable according to the original iterable's structure."""
-  if _is_primitive(original_input):
+  if is_primitive(original_input):
     return next(flat_input)
   else:
     return [_unflatten(flat_input, orig_elem) for orig_elem in cast(Iterable, original_input)]
