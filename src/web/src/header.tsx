@@ -2,7 +2,6 @@ import {SlButton, SlIcon, SlProgressRing, SlSpinner} from '@shoelace-style/shoel
 import * as React from 'react';
 import {Link} from 'react-router-dom';
 import {TaskInfo} from '../fastapi_client';
-import styles from './header.module.css';
 import {SearchBox} from './search_box';
 import {useLazyGetTaskManifestQuery} from './store/store';
 import {formatDatetime, renderQuery, useClickOutside} from './utils';
@@ -32,28 +31,16 @@ export const Task = React.memo(({task}: {task: TaskInfo}): JSX.Element => {
     datetimeInfo = (
       <p className="text-red-400">
         Failed {formatDatetime(endDateTime)}. <br></br>
-        {task.error}`
+        {task.error}
       </p>
     );
   }
 
   let taskStatusEl: JSX.Element = <></>;
   if (task.status === 'completed') {
-    taskStatusEl = (
-      <SlIcon
-        className={styles.completed_task_icon}
-        name="check-lg"
-        style={{fontSize: '1.5rem'}}
-      ></SlIcon>
-    );
+    taskStatusEl = <SlIcon className="text-2xl text-green-500" name="check-lg"></SlIcon>;
   } else if (task.status === 'error') {
-    taskStatusEl = (
-      <SlIcon
-        className={styles.error_task_icon}
-        name="exclamation-circle"
-        style={{fontSize: '1.5rem'}}
-      ></SlIcon>
-    );
+    taskStatusEl = <SlIcon className="text-2xl text-red-500" name="exclamation-circle"></SlIcon>;
   } else {
     if (task.progress != null) {
       taskStatusEl = (
@@ -66,6 +53,7 @@ export const Task = React.memo(({task}: {task: TaskInfo}): JSX.Element => {
               '--indicator-width': '2px',
             } as React.CSSProperties
           }
+          className="text-xs"
         >
           {' '}
           {Math.round(task.progress * 100)}%
@@ -76,11 +64,11 @@ export const Task = React.memo(({task}: {task: TaskInfo}): JSX.Element => {
     }
   }
   return (
-    <div className={`${styles.task_container} border-bottom-2 last:border-b-0`}>
-      <div className="flex flex-row bg-slate-50 p-2">
+    <div className="border-b last:border-b-0">
+      <div className="flex flex-row bg-white p-4 text-sm">
         <div className="flex flex-grow flex-col justify-center">
           <div>{task.name}</div>
-          <div className="text-sm text-slate-400">{datetimeInfo}</div>
+          <div className="mt-0.5 text-sm font-light text-slate-400">{datetimeInfo}</div>
         </div>
         <div
           style={{width: `${spinnerSizePx}px`}}
@@ -135,7 +123,6 @@ export const TaskViewer = (): JSX.Element => {
       taskElements.push(<Task task={task} key={taskId}></Task>);
     }
     let buttonVariant: 'default' | 'primary' | 'success' | 'text' | undefined = 'default';
-
     let taskMessage = '';
     if (numTasks === 0) {
       buttonVariant = 'text';
@@ -150,9 +137,8 @@ export const TaskViewer = (): JSX.Element => {
 
     return (
       <>
-        <div className="mr-4" ref={buttonContainerRef}>
+        <div ref={buttonContainerRef}>
           <SlButton
-            className="w-48"
             variant={buttonVariant}
             disabled={numTasks === 0}
             outline
@@ -164,15 +150,12 @@ export const TaskViewer = (): JSX.Element => {
         </div>
         <div
           ref={tasksDrawerRef}
-          className={
-            `absolute ${styles.tasks_drawer} z-50 ` +
-            `transition-2 right-0 top-full -mt-2 mr-4 bg-white `
-          }
+          className={`absolute right-0 top-full
+           z-50 -mt-2 w-96 ${tasksPanelOpen ? 'visible' : 'hidden'}`}
         >
           <div
-            className={`flex flex-col border-slate-300 ${styles.task_element} ${
-              tasksPanelOpen ? styles.task_elements_open : styles.task_elements_closed
-            }`}
+            className={`flex max-h-96 flex-col overflow-y-scroll
+            rounded border border-slate-300 shadow-lg`}
           >
             {taskElements}
           </div>
@@ -185,13 +168,11 @@ export const TaskViewer = (): JSX.Element => {
 
 export const Header = (): JSX.Element => {
   return (
-    <div className={`${styles.app_header} flex justify-between border-b`}>
-      <div className="flex items-center">
-        <div className={`${styles.app_header_title} text-primary`}>
-          <Link to="/">Lilac</Link>
-        </div>
+    <div className="flex h-20 justify-between gap-x-4 border-b px-8">
+      <div className="flex items-center text-xl">
+        <Link to="/">Lilac</Link>
       </div>
-      <div className={styles.search_box}>
+      <div className="z-50 my-4 flex w-full max-w-2xl">
         <SearchBox />
       </div>
       <div className="relative flex items-center">
