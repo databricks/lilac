@@ -22,6 +22,10 @@ spacy = "^3.5.1"
 tqdm = "^4.65.0"
 typing-extensions = "^4.4.0"
 uvicorn = {extras = ["standard"], version = "^0.20.0"}
+
+# For fast JSON serialization: https://fastapi.tiangolo.com/advanced/custom-response/#use-orjsonresponse
+orjson = "^3.8.10"
+
 ##### Tensorflow #####
 # Install TF on all platforms but Macs with M1/M2 chips.
 tensorflow = {version = "~2.9", markers = "platform_machine != 'arm64'"}

@@ -723,6 +723,11 @@ class DatasetDuckDB(DatasetDB):
     query.close()
     con.close()
 
+    # Replace NaNs with None so they can be serialized to JSON.
+    for col in df.columns:
+      if is_object_dtype(df[col]):
+        df[col].replace(np.nan, None, inplace=True)
+
     item_rows = (row.to_dict() for _, row in df.iterrows())
     return SelectRowsResult(item_rows)
 

@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 from fastapi import APIRouter, FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 
@@ -43,7 +43,9 @@ def custom_generate_unique_id(route: APIRoute) -> str:
   return route.name
 
 
-app = FastAPI(generate_unique_id_function=custom_generate_unique_id, openapi_tags=tags_metadata)
+app = FastAPI(default_response_class=ORJSONResponse,
+              generate_unique_id_function=custom_generate_unique_id,
+              openapi_tags=tags_metadata)
 
 v1_router = APIRouter()
 v1_router.include_router(router_dataset.router, prefix='/datasets', tags=['datasets'])
