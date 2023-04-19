@@ -44,8 +44,8 @@ function Media({item, path}: {item: Item | null; path: Path}): JSX.Element {
   const mediaContent = item != null ? renderCell(item, path) : 'Loading...';
   return (
     <div>
-      <div className="text-sm text-gray-500 truncate">{label}</div>
-      <div className="bg-gray-100 rounded-lg p-2 text-gray-900">
+      <div className="truncate text-sm text-gray-500">{label}</div>
+      <div className="rounded-lg bg-gray-100 p-2 text-gray-900">
         <div className="line-clamp-5 leading-6">{mediaContent}</div>
       </div>
     </div>
@@ -61,12 +61,12 @@ function Metadata({item, paths}: {item: Item | null; paths?: Path[]}): JSX.Eleme
     const pathStr = renderPath(path);
     const content = item != null ? renderCell(item, path) : 'Loading...';
     return (
-      <div key={pathKey} className="flex justify-between w-full text-sm gap-2">
+      <div key={pathKey} className=" flex w-full justify-between gap-2 text-sm">
         <SlTooltip content={pathStr} hoist>
-          <div className="truncate min-w-[1rem] font-mono">{pathStr}</div>
+          <div className="min-w-[1rem] truncate font-mono">{pathStr}</div>
         </SlTooltip>
         <SlTooltip content={content} hoist>
-          <div className="truncate min-w-[1rem]">{content}</div>
+          <div className="min-w-[1rem] truncate">{content}</div>
         </SlTooltip>
       </div>
     );
@@ -96,7 +96,7 @@ export const GalleryItem = React.memo(function GalleryItem({
 
   return (
     <>
-      <div className="border border-gray-300 rounded-md m-2 p-2">
+      <div className="m-2 rounded-md border border-gray-300 p-2">
         {medias}
         <Metadata item={item} paths={metadataPaths} />
       </div>

@@ -2,5 +2,5 @@
   "singleQuote": true,
   "printWidth": 100,
   "bracketSpacing": false,
-  "plugins": ["prettier-plugin-tailwindcss"]
+  "pluginSearchDirs": ["."]
 }
