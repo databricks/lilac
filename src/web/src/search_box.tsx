@@ -192,7 +192,6 @@ export const SearchBox = () => {
                   Edit a concept.
                   Concept => Embedding => Column setup
                */}
-
               {activePage?.type == 'edit-concept' && (
                 <Concepts
                   onSelect={(concept) => {

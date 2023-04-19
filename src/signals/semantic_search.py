@@ -4,8 +4,8 @@ from typing import Any, Iterable, Optional, Union
 import numpy as np
 from typing_extensions import override
 
-from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import Embedding, EmbeddingId
+from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
 from .signal import Signal
 
@@ -40,21 +40,20 @@ class SemanticSearchSignal(Signal):
     return self._search_text_embedding
 
   @override
-  def compute(
-      self,
-      data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[str]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[ItemValue]]:
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[str]] = None,
+              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[ItemValue]]:
     if data and keys:
       raise ValueError('"data" and "keys" cannot both be provided for SemanticSearch.compute().')
 
     if data:
       text_embeddings = self._embed_fn(data)
     elif keys:
-      if not get_embedding_index:
+      if not vector_store:
         raise ValueError(
-            '"get_embedding_index" is required for SemanticSearch.compute() when passing "keys".')
-      text_embeddings = get_embedding_index(self.embedding, keys).embeddings
+            '"vector_store" is required for SemanticSearch.compute() when passing "keys".')
+      text_embeddings = vector_store.get(keys)
 
     similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
     return similarities.tolist()

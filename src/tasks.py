@@ -136,8 +136,7 @@ def progress(it: Iterable[TProgress],
              emit_every_frac: float = .01) -> Iterable[TProgress]:
   """An iterable wrapper that emits progress and yields the original iterable."""
   if not task_id:
-    for t in it:
-      yield t
+    yield from it
     return
 
   emit_every = int(estimated_len * emit_every_frac)

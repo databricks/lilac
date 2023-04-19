@@ -62,7 +62,9 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
       else:
         embeddings = np_index[NP_EMBEDDINGS_KWD]
 
-    return EmbeddingIndex(path=index_path, embeddings=embeddings)
+    # Return the keys passed in if defined, otherwise return all keys.
+    index_keys = np_keys.tolist() if np_keys is not None else np_index[NP_INDEX_KEYS_KWD].tolist()
+    return EmbeddingIndex(path=index_path, keys=index_keys, embeddings=embeddings)
 
   @override
   def compute_embedding_index(self,

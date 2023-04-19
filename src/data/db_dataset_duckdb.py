@@ -3,7 +3,7 @@ import functools
 import itertools
 import os
 import re
-from typing import Any, Iterable, Iterator, Optional, Sequence, cast
+from typing import Any, Iterable, Iterator, Optional, Sequence, Type, cast
 
 import duckdb
 import numpy as np
@@ -17,6 +17,8 @@ from ..constants import data_path
 from ..embeddings.embedding_index import EmbeddingIndexer
 from ..embeddings.embedding_index_disk import EmbeddingIndexerDisk
 from ..embeddings.embedding_registry import EmbeddingId, get_embedding_cls
+from ..embeddings.vector_store import VectorStore
+from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import (
     MANIFEST_FILENAME,
     PATH_WILDCARD,
@@ -155,13 +157,17 @@ class DuckDBTableInfo(BaseModel):
   computed_columns: list[ComputedColumn]
 
 
+ColumnEmbedding = tuple[PathTuple, EmbeddingId]
+
+
 class DatasetDuckDB(DatasetDB):
   """The DuckDB implementation of the dataset database."""
 
   def __init__(self,
                namespace: str,
                dataset_name: str,
-               embedding_indexer: Optional[EmbeddingIndexer] = None):
+               embedding_indexer: Optional[EmbeddingIndexer] = None,
+               vector_store_cls: Type[VectorStore] = NumpyVectorStore):
     super().__init__(namespace, dataset_name)
 
     self.dataset_path = get_dataset_output_dir(data_path(), namespace, dataset_name)
@@ -176,6 +182,10 @@ class DatasetDuckDB(DatasetDB):
       self._embedding_indexer: EmbeddingIndexer = EmbeddingIndexerDisk(self.dataset_path)
     else:
       self._embedding_indexer = embedding_indexer
+
+    # Maps a column path and embedding to the vector store. This is lazily generated as needed.
+    self._col_embedding_stores: dict[ColumnEmbedding, VectorStore] = {}
+    self.vector_store_cls = vector_store_cls
 
   def _create_view(self, view_name: str, files: list[str]) -> None:
     parquet_files = [os.path.join(self.dataset_path, filename) for filename in files]
@@ -261,6 +271,19 @@ class DatasetDuckDB(DatasetDB):
     """Count the number of rows."""
     raise NotImplementedError('count is not yet implemented for DuckDB.')
 
+  def _make_vector_store(self, path: PathTuple, embedding: EmbeddingId) -> VectorStore:
+    store_key: ColumnEmbedding = (path, embedding)
+    if store_key not in self._col_embedding_stores:
+      # Get the embedding index for the column and embedding.
+      embedding_index = self._embedding_indexer.get_embedding_index(path, embedding)
+      # Get all the embeddings and pass it to the vector store.
+      vector_store = self.vector_store_cls()
+      vector_store.add(embedding_index.keys, embedding_index.embeddings)
+      # Cache the vector store.
+      self._col_embedding_stores[store_key] = vector_store
+
+    return self._col_embedding_stores[store_key]
+
   @override
   def compute_embedding_index(self,
                               embedding: EmbeddingId,
@@ -314,6 +337,8 @@ class DatasetDuckDB(DatasetDB):
         leafs_df = select_leafs_result.df
 
       keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
+
+      vector_store = self._col_embedding_stores.get((column.feature, signal.embedding))
 
       with DebugTimer(f'"compute" for embedding signal "{signal.name}" over "{source_path}"'):
         signal_outputs = signal.compute(

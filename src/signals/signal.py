@@ -5,13 +5,13 @@ from typing import Any, ClassVar, Iterable, Optional, Union
 
 from pydantic import BaseModel, validator
 
-from ..embeddings.embedding_index import GetEmbeddingIndexFn
 from ..embeddings.embedding_registry import (
     Embedding,
     EmbeddingId,
     get_embedding_cls,
     resolve_embedding,
 )
+from ..embeddings.vector_store import VectorStore
 from ..schema import EnrichmentType, Field, Path, RichData, SignalOut
 
 
@@ -64,11 +64,10 @@ class Signal(abc.ABC, BaseModel):
     pass
 
   @abc.abstractmethod
-  def compute(
-      self,
-      data: Optional[Iterable[RichData]] = None,
-      keys: Optional[Iterable[str]] = None,
-      get_embedding_index: Optional[GetEmbeddingIndexFn] = None) -> Iterable[Optional[SignalOut]]:
+  def compute(self,
+              data: Optional[Iterable[RichData]] = None,
+              keys: Optional[Iterable[str]] = None,
+              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[SignalOut]]:
     """Compute the signal for an iterable of row-keyed documents or images.
 
     Args:
