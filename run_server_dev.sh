@@ -5,8 +5,8 @@ export NODE_ENV=development
 # Make the web client upon bootup to make sure TypeScript files are in sync.
 poetry run python -m scripts.make_fastapi_client
 
-# Start the webpack devserver.
-rm -rf dist/ && npm run --prefix src/web dev --watch &
+# Start the vite devserver.
+rm -rf dist/ && npm run --prefix src/web dev -- --open &
 pid[2]=$!
 
 # Run the node server.

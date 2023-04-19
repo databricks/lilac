@@ -37,7 +37,7 @@ class SentenceSplitterSpacy(Signal):
     if data is None:
       raise ValueError('Sentence splitter requires text data.')
 
-    text_data = [row if isinstance(row, str) else '' for row in data]
+    text_data = (row if isinstance(row, str) else '' for row in data)
     for doc in self._tokenizer.pipe(text_data):
       sentences = doc.sents
       result = [TextSpan(start=token.start_char, end=token.end_char) for token in sentences]

@@ -370,7 +370,10 @@ class DatasetDuckDB(DatasetDB):
 
     return signal_column_name
 
-  def _select_leafs(self, path: PathTuple, only_keys: Optional[bool] = False) -> SelectLeafsResult:
+  def _select_leafs(self,
+                    path: PathTuple,
+                    only_keys: Optional[bool] = False,
+                    row_uuid: Optional[str] = None) -> SelectLeafsResult:
     schema_leafs = self.manifest().data_schema.leafs
     if path not in schema_leafs:
       raise ValueError(f'Path "{path}" not found in schema leafs: {schema_leafs}')
@@ -430,6 +433,11 @@ class DatasetDuckDB(DatasetDB):
 
     value_column_alias = 'value'
     repeated_indices_col = None
+
+    where_query = ''
+    if row_uuid:
+      where_query = f"WHERE {UUID_COLUMN} = '{row_uuid}'"
+
     if is_repeated:
       # Currently we only allow inner repeated leafs, so we can use a simple UNNEST(RANGE(...)) to
       # get the indices. When this is generalized, the RANGE has to be updated to return the list of
@@ -442,6 +450,7 @@ class DatasetDuckDB(DatasetDB):
             UNNEST(RANGE(ARRAY_LENGTH({inner_repeated_col}))) as {repeated_indices_col},
             {UUID_COLUMN}
           FROM t
+          {where_query}
         )
       """
       leaf_select = f'{value_column} as {value_column_alias}'
@@ -456,6 +465,7 @@ class DatasetDuckDB(DatasetDB):
       {f'{repeated_indices_col},' if repeated_indices_col else ''}
       {leaf_select if not only_keys else ''}
     FROM {from_table}
+    {where_query}
     """
     return SelectLeafsResult(df=self._query_df(query),
                              value_column=value_column_alias,
@@ -653,8 +663,17 @@ class DatasetDuckDB(DatasetDB):
     select_query, col_aliases = self._create_select(cols)
     con = self.con.cursor()
     query = con.sql(f'SELECT {select_query} FROM t').set_alias('r1')
-
     transform_columns = [col for col in cols if col.transform]
+
+    for col in transform_columns:
+      col_aliases.extend([UUID_COLUMN, col.alias])
+    filters = self._normalize_filters(filters, col_aliases)
+
+    row_uuid: Optional[str] = None
+    for filter in filters:
+      if filter.path == (UUID_COLUMN,):
+        row_uuid = cast(str, filter.value)
+
     # Run UDFs on the transformed columns.
     for col in transform_columns:
       if not isinstance(col.transform, SignalTransform):
@@ -665,7 +684,9 @@ class DatasetDuckDB(DatasetDB):
       if signal.embedding_based:
         # For embedding based signals, get the leaf keys and indices, creating a combined key for
         # the key + index to pass to the signal.
-        select_leafs_result = self._select_leafs(path=source_path, only_keys=True)
+        select_leafs_result = self._select_leafs(path=source_path,
+                                                 only_keys=True,
+                                                 row_uuid=row_uuid)
         leafs_df = select_leafs_result.df
         keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
         signal_outs = signal.compute(
@@ -674,27 +695,40 @@ class DatasetDuckDB(DatasetDB):
                 lambda embedding, keys: self._embedding_indexer.get_embedding_index(
                     column=source_path, embedding=embedding, keys=keys)))
       else:
-        select_leafs_result = self._select_leafs(path=source_path)
+        select_leafs_result = self._select_leafs(path=source_path, row_uuid=row_uuid)
         leafs_df = select_leafs_result.df
         signal_outs = signal.compute(data=leafs_df[select_leafs_result.value_column])
 
-      # Import the signal results into DuckDB and UUIDs.
-      signal_outs = [{
-          UUID_COLUMN: uuid,
-          col.alias: value
-      } for uuid, value in zip(leafs_df[UUID_COLUMN], signal_outs)]
-      schema = Schema(fields={
-          UUID_COLUMN: Field(dtype=DataType.STRING),
-          col.alias: signal.fields(source_path)
-      })
-      table = pa.Table.from_pylist(signal_outs, schema=schema_to_arrow_schema(schema))
+      # Use the repeated indices to generate the correct signal output structure.
+      if select_leafs_result.repeated_idxs_col:
+        repeated_idxs = leafs_df[select_leafs_result.repeated_idxs_col]
+
+      # Repeat "None" if there are no repeated indices without allocating an array. This happens
+      # when the object is a simple structure.
+      repeated_idxs_iter: Iterable[Optional[list[int]]] = (
+          itertools.repeat(None) if not select_leafs_result.repeated_idxs_col else repeated_idxs)
+      enriched_signal_outs = make_enriched_items(source_path=source_path,
+                                                 row_ids=leafs_df[UUID_COLUMN],
+                                                 leaf_items=signal_outs,
+                                                 repeated_idxs=repeated_idxs_iter)
+      # Rename the signal column to the alias.
+      enriched_signal_outs = [{
+          UUID_COLUMN: signal_out[UUID_COLUMN],
+          col.alias: signal_out[cast(str, source_path[0])]
+      } for signal_out in enriched_signal_outs]
+
+      field = signal.fields(source_path)
+      for path_component in source_path:
+        if is_repeated_path_part(path_component):
+          field = Field(repeated_field=field)
+
+      schema = Schema(fields={UUID_COLUMN: Field(dtype=DataType.STRING), col.alias: field})
+      table = pa.Table.from_pylist(enriched_signal_outs, schema=schema_to_arrow_schema(schema))
       udf_query = con.from_arrow(table).set_alias('r2')
 
       query = query.join(udf_query, f'r1.{UUID_COLUMN} = r2.{UUID_COLUMN}')
-      col_aliases.extend([UUID_COLUMN, col.alias])
 
-    filters = self._normalize_filters(filters, col_aliases)
-    filter_queries = self._create_where(filters)
+    filter_queries = self._create_where(filters, 'r1')
     if filter_queries:
       query = query.filter(' AND '.join(filter_queries))
 
@@ -760,7 +794,7 @@ class DatasetDuckDB(DatasetDB):
     self._validate_filters(filters, col_aliases)
     return filters
 
-  def _create_where(self, filters: list[Filter]) -> list[str]:
+  def _create_where(self, filters: list[Filter], alias: Optional[str] = None) -> list[str]:
     if not filters:
       return []
     filter_queries: list[str] = []
@@ -774,7 +808,8 @@ class DatasetDuckDB(DatasetDB):
         filter_val = _bytes_to_blob_literal(filter_val)
       else:
         filter_val = str(filter_val)
-      filter_query = f'{col_name} {op} {filter_val}'
+      alias_prefix = f'"{alias}".' if alias and filter.path == (UUID_COLUMN,) else ''
+      filter_query = f'{alias_prefix}{col_name} {op} {filter_val}'
       filter_queries.append(filter_query)
     return filter_queries
 

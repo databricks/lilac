@@ -36,7 +36,7 @@ def replace_repeated_wildcards(path: Path, path_repeated_idxs: Optional[list[int
   return tuple(replaced_path)
 
 
-def make_enriched_items(source_path: Path, row_ids: Sequence[bytes],
+def make_enriched_items(source_path: Path, row_ids: Sequence[str],
                         leaf_items: Iterable[Optional[SignalOut]],
                         repeated_idxs: Iterable[Optional[list[int]]]) -> Iterable[Item]:
   """Make enriched items from leaf items and a path. This is used by both signals and splitters.
@@ -48,8 +48,7 @@ def make_enriched_items(source_path: Path, row_ids: Sequence[bytes],
   num_outputs = 0
   outputs_per_key = 0
 
-  last_row_id: Optional[bytes] = None
-
+  last_row_id: Optional[str] = None
   for row_id, leaf_item, path_repeated_idxs in zip(row_ids, leaf_items, repeated_idxs):
     num_outputs += 1
 
