@@ -11,6 +11,7 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
+from ..embeddings.embedding_index import EmbeddingIndexerManifest, EmbeddingIndexInfo
 from ..embeddings.embedding_registry import (
     Embedding,
     clear_embedding_registry,
@@ -224,6 +225,7 @@ class SelectRowsSuite:
                                                     'bool': Field(dtype=DataType.BOOLEAN),
                                                     'float': Field(dtype=DataType.FLOAT64),
                                                 }),
+                                            embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
                                             num_items=3)
 
     test_signal = TestSignal()
@@ -276,6 +278,7 @@ class SelectRowsSuite:
                                                         },
                                                               enriched=True)
                                                 }),
+                                            embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
                                             num_items=3)
 
     # Select a specific signal leaf test_signal.flen.
@@ -356,6 +359,7 @@ class SelectRowsSuite:
                                                enriched=True),
                           enriched=True)
             }),
+        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=2)
 
     result = db.select_rows(columns=[('test_signal(text)')])
@@ -689,6 +693,7 @@ class SelectRowsSuite:
                                                     'bool': Field(dtype=DataType.BOOLEAN),
                                                     'float': Field(dtype=DataType.FLOAT64),
                                                 }),
+                                            embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
                                             num_items=3)
 
     test_signal = TestSignal()
@@ -743,6 +748,7 @@ class SelectRowsSuite:
                                                         },
                                                               enriched=True)
                                                 }),
+                                            embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
                                             num_items=3)
 
   def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -817,7 +823,8 @@ class SelectRowsSuite:
                      'text': Field(dtype=DataType.STRING),
                  }))
 
-    db.compute_embedding_index(embedding=TestEmbedding(), column='text')
+    embedding = TestEmbedding()
+    db.compute_embedding_index(embedding=embedding, column='text')
 
     db.compute_signal_column(signal=TestEmbeddingSumSignal(embedding=TestEmbedding()),
                              column='text',
@@ -832,6 +839,8 @@ class SelectRowsSuite:
                 'text': Field(dtype=DataType.STRING),
                 'text_emb_sum': Field(dtype=DataType.FLOAT32, enriched=True)
             }),
+        embedding_manifest=EmbeddingIndexerManifest(
+            indexes=[EmbeddingIndexInfo(column=('text',), embedding=embedding)]),
         num_items=2)
 
     result = db.select_rows(columns=['text', 'text_emb_sum'])
@@ -865,7 +874,8 @@ class SelectRowsSuite:
                              column='text',
                              signal_column_name='text_sentences')
 
-    db.compute_embedding_index(embedding=TestEmbedding(), column=('text_sentences', '*', 'split'))
+    embedding = TestEmbedding()
+    db.compute_embedding_index(embedding=embedding, column=('text_sentences', '*', 'split'))
 
     db.compute_signal_column(signal=TestEmbeddingSumSignal(embedding=TestEmbedding()),
                              column=('text_sentences', '*', 'split'),
@@ -891,6 +901,9 @@ class SelectRowsSuite:
                         }),
                           enriched=True)
             }),
+        embedding_manifest=EmbeddingIndexerManifest(indexes=[
+            EmbeddingIndexInfo(column=('text_sentences', '*', 'split'), embedding=embedding)
+        ]),
         num_items=2)
 
     result = db.select_rows(columns=['text', 'text_sentences', 'text_sentences_emb_sum'])

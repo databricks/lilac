@@ -249,6 +249,7 @@ class DatasetDuckDB(DatasetDB):
     manifest = DatasetManifest(namespace=self.namespace,
                                dataset_name=self.dataset_name,
                                data_schema=merged_schema,
+                               embedding_manifest=self._embedding_indexer.manifest(),
                                num_items=num_items)
 
     return DuckDBTableInfo(manifest=manifest, computed_columns=computed_columns)

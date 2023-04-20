@@ -156,7 +156,7 @@ class DatasetManifest(BaseModel):
   namespace: str
   dataset_name: str
   data_schema: Schema
-  embedding_manifest: Optional[EmbeddingIndexerManifest] = None
+  embedding_manifest: EmbeddingIndexerManifest
   # Number of items in the dataset.
   num_items: int
 
