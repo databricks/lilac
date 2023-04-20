@@ -12,7 +12,7 @@ export type DatasetManifest = {
     namespace: string;
     dataset_name: string;
     data_schema: Schema;
-    embedding_manifest?: EmbeddingIndexerManifest;
+    embedding_manifest: EmbeddingIndexerManifest;
     num_items: number;
 };
 
