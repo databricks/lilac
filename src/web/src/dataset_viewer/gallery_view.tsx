@@ -74,7 +74,7 @@ export const GalleryMenu = React.memo(function GalleryMenu({
   });
   const leafs = [...schema.leafs];
   return (
-    <div className="flex h-16">
+    <div className="flex h-16 gap-x-4">
       {/* Media dropdown. */}
       <FeatureDropdown
         label="Media to preview"
@@ -129,12 +129,10 @@ function FeatureDropdown({
 
   return (
     <div className="flex w-96 flex-col">
-      <div>
-        <label>{label}</label>
-      </div>
+      <label className="text-sm font-light">{label}</label>
       <div className="flex h-full items-center">
         <SlSelect
-          className={`mr-2 w-full ${styles.gallery_preview_dropdown}`}
+          className={`w-full ${styles.gallery_preview_dropdown}`}
           size="small"
           value={selectedIndices}
           placeholder="Select features..."
@@ -189,7 +187,7 @@ export const GalleryRow = React.memo(function GalleryRow({
       </div>
     );
   });
-  return <div className="flex h-full w-full shrink py-px">{galleryItems}</div>;
+  return <div className="flex h-full w-full shrink gap-x-4">{galleryItems}</div>;
 });
 
 export function useMediaPaths(
@@ -307,14 +305,14 @@ export const Gallery = React.memo(function Gallery({
   const transformY = virtualRows[0]?.start || 0;
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="mb-4">
+      <div className="border-b border-gray-200 px-4 py-2">
         <GalleryMenu
           schema={schema}
           mediaPaths={mediaPaths}
           metadataPaths={metadataPaths}
         ></GalleryMenu>
       </div>
-      <div ref={parentRef} className="h-full w-full overflow-y-scroll">
+      <div ref={parentRef} className="h-full w-full overflow-y-scroll p-4">
         <div
           style={{
             height: `${virtualizer.getTotalSize()}px`,

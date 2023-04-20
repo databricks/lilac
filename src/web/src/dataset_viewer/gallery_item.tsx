@@ -95,11 +95,9 @@ export const GalleryItem = React.memo(function GalleryItem({
   });
 
   return (
-    <>
-      <div className="m-2 rounded-md border border-gray-300 p-2">
-        {medias}
-        <Metadata item={item} paths={metadataPaths} />
-      </div>
-    </>
+    <div className="mb-4 border p-2">
+      {medias}
+      <Metadata item={item} paths={metadataPaths} />
+    </div>
   );
 });
