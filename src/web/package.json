@@ -32,7 +32,9 @@
   "scripts": {
     "dev": "vite serve",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "prettier --plugin-search-dir . --check . && eslint .",
+    "lint:fix": "prettier --plugin-search-dir . --write . && eslint . --fix"
   },
   "private": true
 }
