@@ -101,9 +101,7 @@ class DuckDBSelectGroupsResult(SelectGroupsResult):
 
   def __init__(self, df: pd.DataFrame) -> None:
     """Initialize the result."""
-    # Dataframes with np.nan cannot be JSON-encoded, so we replace them with None before
-    # shipping to the browser. DuckDB returns np.nan in string columns when there is a missing field
-    # so we have to remove np.nan for string columns as well.
+    # DuckDB returns np.nan for missing field in string column, replace with None for correctness.
     value_column = 'value'
     # TODO(https://github.com/duckdb/duckdb/issues/4066): Remove this once duckdb fixes upstream.
     if is_object_dtype(df[value_column]):
@@ -723,7 +721,7 @@ class DatasetDuckDB(DatasetDB):
     query.close()
     con.close()
 
-    # Replace NaNs with None so they can be serialized to JSON.
+    # DuckDB returns np.nan for missing field in string column, replace with None for correctness.
     for col in df.columns:
       if is_object_dtype(df[col]):
         df[col].replace(np.nan, None, inplace=True)
