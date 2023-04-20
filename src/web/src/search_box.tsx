@@ -799,7 +799,7 @@ function Columns({
   const schema = dataSchema != null ? new Schema(dataSchema) : null;
   const leafs = schema != null ? getLeafsByEnrichmentType(schema.leafs, enrichmentType) : null;
   const stats = useGetMultipleStatsQuery(
-    {namespace, datasetName, leafPaths: leafs?.map(([path, _]) => path) || []},
+    {namespace, datasetName, leafPaths: leafs?.map(([path]) => path) || []},
     {skip: schema == null}
   );
 
