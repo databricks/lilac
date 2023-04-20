@@ -561,7 +561,7 @@ class DatasetDuckDB(DatasetDB):
       avg_length_query = ', avg(length(val)) as avgTextLength'
 
     approx_count_query = f"""
-      SELECT approx_count_distinct(val) as approxCountDistinct, count(val) as c {avg_length_query}
+      SELECT approx_count_distinct(val) as approxCountDistinct {avg_length_query}
       FROM (SELECT {inner_select} AS val FROM t LIMIT {sample_size});
     """
     row = self._query(approx_count_query)[0]
@@ -577,7 +577,7 @@ class DatasetDuckDB(DatasetDB):
     result = StatsResult(total_count=total_count, approx_count_distinct=approx_count_distinct)
 
     if leaf.dtype == DataType.STRING:
-      result.avg_text_length = row[2]
+      result.avg_text_length = row[1]
 
     # Compute min/max values for ordinal leafs, without sampling the data.
     if is_ordinal(leaf.dtype):
