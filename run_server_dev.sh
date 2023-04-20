@@ -6,7 +6,7 @@ export NODE_ENV=development
 poetry run python -m scripts.make_fastapi_client
 
 # Start the vite devserver.
-npm run --prefix src/web dev -- --open &
+npm run dev --workspace src/web -- --open &
 pid[2]=$!
 
 # Run the node server.
