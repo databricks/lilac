@@ -674,7 +674,7 @@ function ComputeEmbeddingIndexAccept({
             </div>
             <div className="mt-2 text-xs">
               "{path}" consists of {stats.total_count.toLocaleString()} documents with ~
-              {Math.floor(stats.avg_text_length!)} characters on average.
+              {Math.round(stats.avg_text_length!)} characters on average.
             </div>
             <div className="mt-2 text-xs">
               This may be expensive! For some embeddings, this will send data to a server.
@@ -820,6 +820,8 @@ function Columns({
         {leafs!.map(([path, field], i) => {
           const totalCount = stats?.currentData?.[i].total_count;
           const avgTextLength = stats?.currentData?.[i].avg_text_length;
+          const avgTextLengthDisplay =
+            avgTextLength != null ? Math.round(avgTextLength).toLocaleString() : null;
           return (
             <Item key={i} onSelect={() => onSelect(path)}>
               <div className="flex w-full justify-between">
@@ -829,11 +831,7 @@ function Columns({
                     {totalCount == null ? <SlSpinner></SlSpinner> : totalCount.toLocaleString()}
                   </div>
                   <div className="w-24 truncate">
-                    {avgTextLength == null ? (
-                      <SlSpinner></SlSpinner>
-                    ) : (
-                      avgTextLength.toLocaleString()
-                    )}
+                    {avgTextLength == null ? <SlSpinner></SlSpinner> : avgTextLengthDisplay}
                   </div>
                   <div className="w-24 truncate">{field.dtype}</div>
                 </div>
