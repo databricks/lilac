@@ -11,7 +11,9 @@ class VectorStore(abc.ABC):
 
   @abc.abstractmethod
   def add(self, keys: list[str], embeddings: np.ndarray) -> None:
-    """Add the given embeddings to the store.
+    """Add or edit the given keyed embeddings to the store.
+
+    If the keys already exist they will be overwritten, acting as an "upsert".
 
     Args:
       keys: The keys to add the embeddings for.

@@ -741,7 +741,6 @@ function Columns({
   return renderQuery(query, (webManifest) => {
     const schema = new Schema(webManifest.dataset_manifest.data_schema);
     const leafs = getLeafsByEnrichmentType(schema.leafs, enrichmentType);
-    console.log(leafs);
     return (
       <>
         {leafs.map(([path, field], i) => {
