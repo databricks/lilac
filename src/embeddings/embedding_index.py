@@ -3,10 +3,10 @@ import abc
 from typing import Callable, Iterable, Optional
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
-from ..embeddings.embedding_registry import Embedding, EmbeddingId
-from ..schema import Path, RichData
+from ..embeddings.embedding_registry import Embedding, EmbeddingId, resolve_embedding
+from ..schema import Path, PathTuple, RichData
 from ..tasks import TaskId
 
 
@@ -20,11 +20,32 @@ class EmbeddingIndex(BaseModel):
   embeddings: np.ndarray
 
 
+class EmbeddingIndexInfo(BaseModel):
+  """The information about an embedding index."""
+  column: PathTuple
+  embedding: Embedding
+
+  @validator('embedding', pre=True)
+  def parse_embedding(cls, embedding: dict) -> Embedding:
+    """Parse an embedding to its specific subclass instance."""
+    return resolve_embedding(embedding)
+
+
+class EmbeddingIndexerManifest(BaseModel):
+  """The manifest of an embedding indexer."""
+  indexes: list[EmbeddingIndexInfo]
+
+
 GetEmbeddingIndexFn = Callable[[EmbeddingId, Iterable[str]], EmbeddingIndex]
 
 
 class EmbeddingIndexer(abc.ABC):
   """An interface for embedding indexers."""
+
+  @abc.abstractmethod
+  def manifest(self) -> EmbeddingIndexerManifest:
+    """Get the manifest for this embedding indexer."""
+    pass
 
   @abc.abstractmethod
   def get_embedding_index(self,

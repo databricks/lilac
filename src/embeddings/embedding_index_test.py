@@ -9,7 +9,7 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..schema import EnrichmentType, RichData
-from .embedding_index import EmbeddingIndexer
+from .embedding_index import EmbeddingIndexer, EmbeddingIndexerManifest, EmbeddingIndexInfo
 from .embedding_index_disk import EmbeddingIndexerDisk
 from .embedding_registry import Embedding, clear_embedding_registry, register_embedding
 
@@ -69,8 +69,9 @@ class EmbeddingIndexerSuite:
 
     indexer = _make_indexer(indexer_cls, tmp_path)
 
+    embedding = TestEmbedding()
     indexer.compute_embedding_index('test_column',
-                                    TestEmbedding(),
+                                    embedding,
                                     keys=[key for key, _, _ in EMBEDDINGS],
                                     data=[text for _, text, _ in EMBEDDINGS])
 
@@ -85,6 +86,9 @@ class EmbeddingIndexerSuite:
     # Embed should not be called again.
     assert embed_mock.call_count == 1
 
+    assert indexer.manifest() == EmbeddingIndexerManifest(
+        indexes=[EmbeddingIndexInfo(column=('test_column',), embedding=embedding)])
+
   @pytest.mark.parametrize('indexer_cls', ALL_INDEXERS)
   def test_get_partial_index(self, tmp_path: pathlib.Path, mocker: MockerFixture,
                              indexer_cls: Type[EmbeddingIndexer]) -> None:
@@ -92,8 +96,9 @@ class EmbeddingIndexerSuite:
 
     indexer = _make_indexer(indexer_cls, tmp_path)
 
+    embedding = TestEmbedding()
     indexer.compute_embedding_index('test_column',
-                                    TestEmbedding(),
+                                    embedding,
                                     keys=[key for key, _, _ in EMBEDDINGS],
                                     data=[text for _, text, _ in EMBEDDINGS])
 
@@ -113,3 +118,6 @@ class EmbeddingIndexerSuite:
 
     # Embed should not be called again.
     assert embed_mock.call_count == 1
+
+    assert indexer.manifest() == EmbeddingIndexerManifest(
+        indexes=[EmbeddingIndexInfo(column=('test_column',), embedding=embedding)])

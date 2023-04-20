@@ -1,5 +1,7 @@
 import {
   SlAlert,
+  SlBreadcrumb,
+  SlBreadcrumbItem,
   SlButton,
   SlIcon,
   SlOption,
@@ -19,6 +21,8 @@ import {
   useComputeSignalColumnMutation,
   useGetDatasetsQuery,
   useGetManifestQuery,
+  useGetMultipleStatsQuery,
+  useGetStatsQuery,
 } from './store/api_dataset';
 import {useGetEmbeddingsQuery} from './store/api_embeddings';
 import {useGetSignalsQuery} from './store/api_signal';
@@ -36,7 +40,8 @@ interface PageMetadata {
   'compute-signal': Record<string, never>;
   'compute-signal-setup': {signal: SignalInfo};
   'compute-embedding-index': Record<string, never>;
-  'compute-embedding-index-setup': {embedding: EmbeddingInfo};
+  'compute-embedding-index-column': {embedding: EmbeddingInfo};
+  'compute-embedding-index-accept': {embedding: EmbeddingInfo; column: Path};
   'edit-concept': Record<string, never>;
   'edit-concept-embedding': {concept: ConceptInfo};
   'edit-concept-column': {concept: ConceptInfo; embedding: EmbeddingInfo};
@@ -52,15 +57,20 @@ const PAGE_SEARCH_TITLE: Record<PageType, string> = {
   'open-dataset': 'Select a dataset',
   'add-filter': 'Add filter',
   'add-filter-value': 'Add filter value',
-  'compute-signal': 'Compute signal',
-  'compute-signal-setup': 'Compute signal',
-  'compute-embedding-index': 'Compute embedding index',
-  'compute-embedding-index-setup': 'Compute embedding index',
-  'edit-concept': 'Select a concept',
-  'edit-concept-embedding': 'Select an embedding',
-  'edit-concept-column': 'Select a column',
+  'compute-signal': 'compute signal',
+  'compute-signal-setup': 'compute signal',
+  'compute-embedding-index': 'select embedding',
+  'compute-embedding-index-column': 'select column',
+  'compute-embedding-index-accept': '',
+  'edit-concept': 'select concept',
+  'edit-concept-embedding': 'select embedding',
+  'edit-concept-column': 'select column',
   'edit-concept-accept': '',
 };
+
+// TODO(nsthorat): Add the icon to the metadata so we can use it from breadcrumbs
+// TODO(nsthorat): When selecting a column for embeddings, have 2 sections one for ones that
+// have been computed, ones that haven't.
 
 interface Page<T extends PageType = PageType> {
   type: T;
@@ -155,23 +165,33 @@ export const SearchBox = () => {
           }
         }}
       >
-        <div className="flex">
-          {pages.map((p) => (
-            <div key={`${p.type}_${p.name}`} cmdk-badge="" className="truncate">
-              {p.name}
+        <div className="flex flex-row items-center justify-items-center">
+          {pages.length > 0 ? (
+            <div className="ml-2 mr-4">
+              <SlBreadcrumb>
+                {pages.map((p) => (
+                  <SlBreadcrumbItem key={`${p.type}_${p.name}`} className="truncate">
+                    {p.name}
+                  </SlBreadcrumbItem>
+                ))}
+              </SlBreadcrumb>
             </div>
-          ))}
-          <Command.Input
-            value={inputValue}
-            ref={inputRef}
-            style={{width: 'auto', flexGrow: 1}}
-            placeholder={
-              activePage?.type == null
-                ? 'Search and run commands'
-                : PAGE_SEARCH_TITLE[activePage?.type]
-            }
-            onValueChange={setInputValue}
-          />
+          ) : (
+            <></>
+          )}
+          <div className="flex-1 text-xs">
+            <Command.Input
+              value={inputValue}
+              ref={inputRef}
+              style={{flexGrow: 1}}
+              placeholder={
+                activePage?.type == null
+                  ? 'Search and run commands'
+                  : PAGE_SEARCH_TITLE[activePage?.type]
+              }
+              onValueChange={setInputValue}
+            />
+          </div>
         </div>
         <Command.List>
           {isFocused && (
@@ -247,16 +267,34 @@ export const SearchBox = () => {
                 <Embeddings
                   onSelect={(embedding) => {
                     pushPage({
-                      type: 'compute-embedding-index-setup',
+                      type: 'compute-embedding-index-column',
                       name: embedding.name,
                       metadata: {embedding},
                     });
                   }}
                 />
               )}
-              {activePage?.type == 'compute-embedding-index-setup' && (
-                <ComputeEmbeddingIndexSetup
-                  page={activePage as Page<'compute-embedding-index-setup'>}
+              {activePage?.type == 'compute-embedding-index-column' && (
+                <Columns
+                  enrichmentType="text"
+                  onSelect={(path) => {
+                    pushPage({
+                      type: 'compute-embedding-index-accept',
+                      name: renderPath(path),
+                      metadata: {
+                        embedding: (activePage as Page<'compute-embedding-index-column'>).metadata!
+                          .embedding,
+                        column: path,
+                        description: '',
+                      },
+                    });
+                  }}
+                ></Columns>
+              )}
+              {activePage?.type == 'compute-embedding-index-accept' && (
+                <ComputeEmbeddingIndexAccept
+                  closeMenu={closeMenu}
+                  page={activePage as Page<'compute-embedding-index-accept'>}
                 />
               )}
             </>
@@ -307,11 +345,11 @@ function HomeMenu({
           </Item>
           <Item
             onSelect={() => {
-              pushPage({type: 'compute-embedding-index', name: 'Compute embedding index'});
+              pushPage({type: 'compute-embedding-index', name: 'compute embeddings'});
             }}
           >
             <SlIcon className="text-xl" name="cpu" />
-            Compute embedding index
+            Compute embeddings
           </Item>
         </Command.Group>
       )}
@@ -598,79 +636,97 @@ function ComputeSignalSetup({page}: {page: Page<'compute-signal-setup'>}) {
   );
 }
 
-function ComputeEmbeddingIndexSetup({page}: {page: Page<'compute-embedding-index-setup'>}) {
+function ComputeEmbeddingIndexAccept({
+  page,
+  closeMenu,
+}: {
+  page: Page<'compute-embedding-index-accept'>;
+  closeMenu: () => void;
+}) {
   const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
   if (namespace == null || datasetName == null) {
     throw new Error('Invalid route');
   }
-  const [selectedLeafIndex, setSelectedLeafIndex] = React.useState<number | null>(null);
-  const embedding_name = page.metadata!.embedding;
+
   const [
     computeEmbedding,
     {isLoading: isComputeEmbeddingLoading, isSuccess: isComputeEmbeddingSuccess},
   ] = useComputeEmbeddingIndexMutation();
-  const {currentData: webManifest, isFetching: isManifestFetching} = useGetManifestQuery({
+  const [taskId, setTaskId] = React.useState<string | null>(null);
+
+  const query = useGetStatsQuery({
     namespace,
     datasetName,
+    options: {leaf_path: page.metadata!.column!},
   });
-  const schema = webManifest != null ? new Schema(webManifest.dataset_manifest.data_schema) : null;
-  if (isManifestFetching || schema == null) {
-    return <SlSpinner />;
-  }
-  const signalLeafs = getLeafsByEnrichmentType(schema.leafs, embedding_name.enrichment_type);
-  return (
-    <>
-      <SlSelect
-        className="w-80"
-        hoist
-        size="small"
-        placeholder="Which column to compute the embedding index on?"
-        value={(selectedLeafIndex && selectedLeafIndex.toString()) || ''}
-        onSlChange={(e) => {
-          const index = Number((e.target as HTMLInputElement).value);
-          setSelectedLeafIndex(index);
-        }}
-      >
-        {signalLeafs.map(([path], i) => {
-          return (
-            <SlOption key={i} value={i.toString()}>
-              {renderPath(path)}
-            </SlOption>
-          );
-        })}
-      </SlSelect>
-      <SlButton
-        size="small"
-        disabled={isComputeEmbeddingLoading}
-        className="mt-4"
-        onClick={() => {
-          const leafPath = selectedLeafIndex != null ? signalLeafs[selectedLeafIndex][0] : null;
-          if (leafPath == null) {
-            return;
-          }
-          computeEmbedding({
-            namespace,
-            datasetName,
-            options: {leaf_path: leafPath, embedding: {embedding_name: embedding_name.name}},
-          });
-        }}
-      >
-        Compute embedding index
-      </SlButton>
-      <div className="mt-4 flex items-center">
-        <div>
-          {isComputeEmbeddingLoading && <SlSpinner />}
-          {isComputeEmbeddingSuccess && <SlIcon name="check-lg" />}
-        </div>
-        {isComputeEmbeddingSuccess && (
-          <div className="ml-4 text-sm">
-            Check the task list. When the task is complete, refresh the page to see the index.
+  console.log(query.currentData);
+
+  return renderQuery(query, (stats) => {
+    const path = renderPath(page.metadata!.column!);
+    return (
+      <>
+        <SlAlert open variant="warning">
+          <SlIcon slot="icon" name="exclamation-triangle" />
+          <div className="flex flex-col">
+            <div className="font-semibold">
+              You are about to compute embeddings with "{page.metadata!.embedding!.name}" over the
+              column "{path}".
+            </div>
+            <div className="mt-2 text-xs">
+              "{path}" consists of {stats.total_count.toLocaleString()} documents with ~
+              {Math.floor(stats.avg_text_length!)} characters on average.
+            </div>
+            <div className="mt-2 text-xs">
+              This may be expensive! For some embeddings, this will send data to a server.
+            </div>
           </div>
-        )}
-      </div>
-    </>
-  );
+        </SlAlert>
+        <div className="mt-2"></div>
+        <div>
+          <SlButton
+            variant="primary"
+            outline
+            className="mr-0 w-48"
+            onClick={async () => {
+              const response = await computeEmbedding({
+                namespace,
+                datasetName,
+                options: {
+                  leaf_path: page.metadata!.column!,
+                  embedding: {embedding_name: page.metadata?.embedding.name},
+                },
+              }).unwrap();
+              setTaskId(response.task_id);
+              closeMenu();
+            }}
+          >
+            <div className="flex flex-row items-center justify-items-center">
+              {!isComputeEmbeddingLoading ? (
+                <SlIcon slot="prefix" name="cpu" className="mr-1"></SlIcon>
+              ) : (
+                <SlSpinner></SlSpinner>
+              )}
+              Compute embeddings
+            </div>
+          </SlButton>
+          <div>
+            {isComputeEmbeddingSuccess && (
+              <>
+                <SlSpinner></SlSpinner>
+                <br />
+                <div className="mt-2 text-gray-500">
+                  <p>Loading dataset with task_id "{taskId}".</p>
+                  <p>When the task is complete,</p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  });
 }
+
 function Embeddings({onSelect}: {onSelect: (embedding: EmbeddingInfo) => void}) {
   const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
   if (namespace == null || datasetName == null) {
@@ -738,17 +794,49 @@ function Columns({
     namespace,
     datasetName,
   });
-  return renderQuery(query, (webManifest) => {
-    const schema = new Schema(webManifest.dataset_manifest.data_schema);
-    const leafs = getLeafsByEnrichmentType(schema.leafs, enrichmentType);
+
+  const dataSchema = query.currentData?.dataset_manifest.data_schema;
+  const schema = dataSchema != null ? new Schema(dataSchema) : null;
+  const leafs = schema != null ? getLeafsByEnrichmentType(schema.leafs, enrichmentType) : null;
+  const stats = useGetMultipleStatsQuery(
+    {namespace, datasetName, leafPaths: leafs?.map(([path, _]) => path) || []},
+    {skip: schema == null}
+  );
+
+  return renderQuery(query, () => {
     return (
       <>
-        {leafs.map(([path, field], i) => {
+        <div
+          className="mb-1 flex w-full justify-between
+                     border-b-2 border-gray-100 px-4 pb-1 text-sm font-medium"
+        >
+          <div className="truncate">column</div>
+          <div className="flex flex-row items-end justify-items-end text-end">
+            <div className="w-24 truncate">count</div>
+            <div className="w-24 truncate">avg length</div>
+            <div className="w-24 truncate">dtype</div>
+          </div>
+        </div>
+        {leafs!.map(([path, field], i) => {
+          const totalCount = stats?.currentData?.[i].total_count;
+          const avgTextLength = stats?.currentData?.[i].avg_text_length;
           return (
             <Item key={i} onSelect={() => onSelect(path)}>
               <div className="flex w-full justify-between">
                 <div className="truncate">{renderPath(path)}</div>
-                <div className="truncate">{field.dtype}</div>
+                <div className="flex flex-row items-end justify-items-end text-end">
+                  <div className="w-24 truncate">
+                    {totalCount == null ? <SlSpinner></SlSpinner> : totalCount.toLocaleString()}
+                  </div>
+                  <div className="w-24 truncate">
+                    {avgTextLength == null ? (
+                      <SlSpinner></SlSpinner>
+                    ) : (
+                      avgTextLength.toLocaleString()
+                    )}
+                  </div>
+                  <div className="w-24 truncate">{field.dtype}</div>
+                </div>
               </div>
             </Item>
           );

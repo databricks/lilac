@@ -15,6 +15,7 @@ from pydantic import (
     validator,
 )
 
+from ..embeddings.embedding_index import EmbeddingIndexerManifest
 from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import Item, Path, PathTuple, Schema, path_to_alias
 from ..signals.signal import Signal
@@ -155,6 +156,7 @@ class DatasetManifest(BaseModel):
   namespace: str
   dataset_name: str
   data_schema: Schema
+  embedding_manifest: Optional[EmbeddingIndexerManifest] = None
   # Number of items in the dataset.
   num_items: int
 

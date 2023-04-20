@@ -1,4 +1,5 @@
 """An embedding indexer that stores the embedding index on disk."""
+import functools
 import math
 import os
 import pathlib
@@ -8,10 +9,15 @@ import numpy as np
 import pandas as pd
 from typing_extensions import override
 
-from ..schema import Path, RichData, path_to_alias
+from ..schema import Path, PathTuple, RichData, normalize_path, path_to_alias
 from ..tasks import TaskId, progress
 from ..utils import chunks, file_exists, open_file
-from .embedding_index import EmbeddingIndex, EmbeddingIndexer
+from .embedding_index import (
+    EmbeddingIndex,
+    EmbeddingIndexer,
+    EmbeddingIndexerManifest,
+    EmbeddingIndexInfo,
+)
 from .embedding_registry import EmbeddingId, get_embedding_cls
 
 NP_INDEX_KEYS_KWD = 'keys'
@@ -25,6 +31,25 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
     self.dataset_path = dataset_path
 
   @override
+  def manifest(self) -> EmbeddingIndexerManifest:
+    index_filenames: list[str] = []
+    for root, _, files in os.walk(self.dataset_path):
+      for file in files:
+        if file.endswith(EMBEDDING_INDEX_INFO_SUFFIX):
+          index_filenames.append(file)
+
+    return EmbeddingIndexerManifest(indexes=self._read_index_infos(tuple(index_filenames)))
+
+  @functools.cache
+  def _read_index_infos(self, index_filenames: tuple[str]) -> list[EmbeddingIndexInfo]:
+    index_infos: list[EmbeddingIndexInfo] = []
+    for index_filename in index_filenames:
+      with open_file(os.path.join(self.dataset_path, index_filename), 'r') as f:
+        index_info = EmbeddingIndexInfo.parse_raw(f.read())
+        index_infos.append(index_info)
+    return index_infos
+
+  @override
   def get_embedding_index(self,
                           column: Path,
                           embedding: EmbeddingId,
@@ -34,12 +59,13 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
     else:
       embedding_name = embedding.name
 
-    index_filename = embedding_index_filename(column, embedding_name)
+    path = normalize_path(column)
+    index_filename = embedding_index_filename(path, embedding_name)
     index_path = os.path.join(self.dataset_path, index_filename)
 
     if not file_exists(index_path):
       raise ValueError(
-          F'Embedding index for column "{column}" and embedding "{embedding_name}" does not exist. '
+          F'Embedding index for column "{path}" and embedding "{embedding_name}" does not exist. '
           'Please run "db.compute_embedding_index" on the database first.')
 
     np_keys: Optional[np.ndarray] = None
@@ -81,8 +107,13 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
 
     embedding_name = embed_fn.name
 
-    index_filename = embedding_index_filename(column, embedding_name)
+    path = normalize_path(column)
+
+    index_filename = embedding_index_filename(path, embedding_name)
     index_path = os.path.join(self.dataset_path, index_filename)
+
+    index_info_filename = embedding_index_info_filename(path, embedding_name)
+    index_info_path = os.path.join(self.dataset_path, index_info_filename)
 
     if file_exists(index_path):
       # The embedding index has already been computed.
@@ -108,9 +139,20 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
     with open_file(index_path, 'wb') as f:
       np.savez(f, **{NP_INDEX_KEYS_KWD: np_keys, NP_EMBEDDINGS_KWD: embeddings})
 
+    # Write the index info.
+    index_info = EmbeddingIndexInfo(column=path, embedding=embed_fn)
+    with open_file(index_info_path, 'w') as f:
+      f.write(index_info.json())
 
-def embedding_index_filename(column: Path, embedding_name: str) -> str:
+
+def embedding_index_filename(column: PathTuple, embedding_name: str) -> str:
   """Return the filename for the embedding index."""
-  if isinstance(column, str):
-    column = (column,)
   return f'{path_to_alias(column)}.{embedding_name}.embedding_index.npy'
+
+
+EMBEDDING_INDEX_INFO_SUFFIX = 'embedding_index_info.json'
+
+
+def embedding_index_info_filename(column: PathTuple, embedding_name: str) -> str:
+  """Return the filename for the embedding index info."""
+  return f'{path_to_alias(column)}.{embedding_name}.{EMBEDDING_INDEX_INFO_SUFFIX}'
