@@ -659,7 +659,6 @@ function ComputeEmbeddingIndexAccept({
     datasetName,
     options: {leaf_path: page.metadata!.column!},
   });
-  console.log(query.currentData);
 
   return renderQuery(query, (stats) => {
     const path = renderPath(page.metadata!.column!);
