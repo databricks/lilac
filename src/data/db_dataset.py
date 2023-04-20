@@ -50,6 +50,9 @@ class SelectGroupsResult():
 
 class StatsResult(BaseModel):
   """The result of a stats() query."""
+  # The number of leaf values.
+  total_count: int
+  # The approximate number of distinct leaf values.
   approx_count_distinct: int
 
   # Defined for ordinal features.

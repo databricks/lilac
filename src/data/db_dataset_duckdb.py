@@ -555,23 +555,29 @@ class DatasetDuckDB(DatasetDB):
 
     inner_select = make_select_column(path)
     # Compute approximate count by sampling the data to avoid OOM.
-    sample_size = min(manifest.num_items, SAMPLE_SIZE_DISTINCT_COUNT)
+    sample_size = SAMPLE_SIZE_DISTINCT_COUNT
     avg_length_query = ''
     if leaf.dtype == DataType.STRING:
       avg_length_query = ', avg(length(val)) as avgTextLength'
 
     approx_count_query = f"""
-      SELECT approx_count_distinct(val) as approxCountDistinct {avg_length_query}
+      SELECT approx_count_distinct(val) as approxCountDistinct, count(val) as c {avg_length_query}
       FROM (SELECT {inner_select} AS val FROM t LIMIT {sample_size});
     """
-    row = cast(Any, self._query(approx_count_query)[0])
+    row = self._query(approx_count_query)[0]
     approx_count_distinct = row[0]
-    # Adjust the distinct count for the sample size.
-    approx_count_distinct = round((approx_count_distinct / sample_size) * manifest.num_items)
-    result = StatsResult(approx_count_distinct=approx_count_distinct)
+
+    total_count_query = f'SELECT count(val) FROM (SELECT {inner_select} AS val FROM t)'
+    total_count = self._query(total_count_query)[0][0]
+
+    # Adjust the counts for the sample size.
+    factor = max(1, total_count / sample_size)
+    approx_count_distinct = round(approx_count_distinct * factor)
+
+    result = StatsResult(total_count=total_count, approx_count_distinct=approx_count_distinct)
 
     if leaf.dtype == DataType.STRING:
-      result.avg_text_length = row[1]
+      result.avg_text_length = row[2]
 
     # Compute min/max values for ordinal leafs, without sampling the data.
     if is_ordinal(leaf.dtype):

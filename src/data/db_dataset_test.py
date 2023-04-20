@@ -1130,16 +1130,16 @@ class StatsSuite:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
 
     result = db.stats(leaf_path='str')
-    assert result == StatsResult(approx_count_distinct=2, avg_text_length=1)
+    assert result == StatsResult(total_count=3, approx_count_distinct=2, avg_text_length=1)
 
     result = db.stats(leaf_path='float')
-    assert result == StatsResult(approx_count_distinct=3, min_val=1.0, max_val=3.0)
+    assert result == StatsResult(total_count=3, approx_count_distinct=3, min_val=1.0, max_val=3.0)
 
     result = db.stats(leaf_path='bool')
-    assert result == StatsResult(approx_count_distinct=2)
+    assert result == StatsResult(total_count=3, approx_count_distinct=2)
 
     result = db.stats(leaf_path='int')
-    assert result == StatsResult(approx_count_distinct=2, min_val=1, max_val=2)
+    assert result == StatsResult(total_count=3, approx_count_distinct=2, min_val=1, max_val=2)
 
   def test_nested_stats(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     nested_items: list[Item] = [
@@ -1181,10 +1181,10 @@ class StatsSuite:
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
 
     result = db.stats(leaf_path='name')
-    assert result == StatsResult(approx_count_distinct=2, avg_text_length=5)
+    assert result == StatsResult(total_count=4, approx_count_distinct=2, avg_text_length=5)
 
     result = db.stats(leaf_path='addresses.*.zips.*')
-    assert result == StatsResult(approx_count_distinct=4, min_val=3, max_val=11)
+    assert result == StatsResult(total_count=5, approx_count_distinct=4, min_val=3, max_val=11)
 
   def test_stats_approximation(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB],
                                mocker: MockerFixture) -> None:
@@ -1199,7 +1199,7 @@ class StatsSuite:
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
 
     result = db.stats(leaf_path='feature')
-    assert result == StatsResult(approx_count_distinct=50, avg_text_length=1)
+    assert result == StatsResult(total_count=50, approx_count_distinct=50, avg_text_length=1)
 
   def test_error_handling(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=SIMPLE_ITEMS, schema=SIMPLE_SCHEMA)
