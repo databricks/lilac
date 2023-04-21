@@ -265,11 +265,6 @@ export const SearchBox = () => {
                   }}
                 ></Columns>
               )}
-              {activePage?.type == 'edit-concept-accept' && (
-                <EditConceptAccept
-                  page={activePage as Page<'edit-concept-accept'>}
-                ></EditConceptAccept>
-              )}
               {activePage?.type == 'compute-signal' && <ComputeSignal pushPage={pushPage} />}
               {activePage?.type == 'compute-signal-setup' && (
                 <ComputeSignalSetup page={activePage as Page<'compute-signal-setup'>} />
@@ -897,75 +892,6 @@ function Columns({
       </>
     );
   });
-}
-
-function EditConceptAccept({page}: {page: Page<'edit-concept-accept'>}) {
-  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
-  if (namespace == null || datasetName == null) {
-    throw new Error('Invalid route');
-  }
-
-  const [
-    computeEmbedding,
-    {isLoading: isComputeEmbeddingLoading, isSuccess: isComputeEmbeddingSuccess},
-  ] = useComputeEmbeddingIndexMutation();
-  const [taskId, setTaskId] = React.useState<string | null>(null);
-
-  return (
-    <>
-      <SlAlert open variant="warning">
-        <SlIcon slot="icon" name="exclamation-triangle" />
-        <div className="flex flex-col">
-          <div className="flex flex-row text-xs text-gray-500">
-            <div className="mr-2">Embedding:</div>
-            <div>{page.metadata!.embedding!.name}</div>
-          </div>
-          <div className="text-xs text-gray-500">
-            <div className="flex flex-row text-xs text-gray-500">
-              <div className="mr-2">Column:</div>
-              <div>{renderPath(page.metadata!.column!)}</div>
-            </div>
-          </div>
-          <div className="mt-2 text-xs">
-            <b>This may be expensive!</b>
-          </div>
-        </div>
-      </SlAlert>
-      <div className="flex flex-col">
-        <SlButton
-          onClick={async () => {
-            const response = await computeEmbedding({
-              namespace,
-              datasetName,
-              options: {
-                leaf_path: page.metadata!.column!,
-                embedding: {embedding_name: page.metadata?.embedding.name},
-              },
-            }).unwrap();
-            setTaskId(response.task_id);
-          }}
-          outline
-          variant="success"
-          className="mr-4 mt-1 w-16"
-        >
-          Compute
-        </SlButton>
-      </div>
-      <div>{isComputeEmbeddingLoading && <SlSpinner></SlSpinner>}</div>
-      <div>
-        {isComputeEmbeddingSuccess && (
-          <>
-            <SlSpinner></SlSpinner>
-            <br />
-            <div className="mt-2 text-gray-500">
-              <p>Loading dataset with task_id "{taskId}".</p>
-              <p>When the task is complete,</p>
-            </div>
-          </>
-        )}
-      </div>
-    </>
-  );
 }
 
 function Item({
