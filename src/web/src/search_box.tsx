@@ -13,6 +13,7 @@ import {JSONSchema7} from 'json-schema';
 import * as React from 'react';
 import {Location, useLocation, useNavigate, useParams} from 'react-router-dom';
 import {ConceptInfo, EmbeddingInfo, EnrichmentType, Field, SignalInfo} from '../fastapi_client';
+import {useAppDispatch} from './hooks';
 import {Path, Schema, serializePath} from './schema';
 import './search_box.css';
 import {useGetConceptsQuery} from './store/api_concept';
@@ -26,7 +27,7 @@ import {
 } from './store/api_dataset';
 import {useGetEmbeddingsQuery} from './store/api_embeddings';
 import {useGetSignalsQuery} from './store/api_signal';
-import {useTopValues} from './store/store';
+import {setActiveConcept, setTasksPanelOpen, useTopValues} from './store/store';
 import {renderPath, renderQuery, useClickOutside} from './utils';
 
 /** Time to debounce (ms). */
@@ -79,6 +80,8 @@ interface Page<T extends PageType = PageType> {
 }
 
 export const SearchBox = () => {
+  const dispatch = useAppDispatch();
+
   const ref = React.useRef<HTMLDivElement | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [inputValue, setInputValue] = React.useState('');
@@ -239,18 +242,36 @@ export const SearchBox = () => {
               )}
               {activePage?.type == 'edit-concept-column' && (
                 <Columns
+                  leafFilter={(leaf, embeddings) => {
+                    console.log('filtering', leaf, embeddings);
+                    const hasEmbedding =
+                      embeddings == null
+                        ? false
+                        : embeddings.includes(
+                            (activePage as Page<'edit-concept-column'>).metadata!.embedding.name
+                          );
+                    return hasEmbedding;
+                  }}
                   enrichmentType="text"
                   onSelect={(path) => {
-                    pushPage({
-                      type: 'edit-concept-accept',
-                      name: renderPath(path),
-                      metadata: {
+                    dispatch(
+                      setActiveConcept({
                         concept: (activePage as Page<'edit-concept-column'>).metadata!.concept,
                         embedding: (activePage as Page<'edit-concept-column'>).metadata!.embedding,
                         column: path,
-                        description: '',
-                      },
-                    });
+                      })
+                    );
+                    closeMenu();
+                    // pushPage({
+                    //   type: 'edit-concept-accept',
+                    //   name: renderPath(path),
+                    //   metadata: {
+                    //     concept: (activePage as Page<'edit-concept-column'>).metadata!.concept,
+                    //     embedding: (activePage as Page<'edit-concept-column'>).metadata!.embedding,
+                    //     column: path,
+                    //     description: '',
+                    //   },
+                    // });
                   }}
                 ></Columns>
               )}
@@ -276,6 +297,7 @@ export const SearchBox = () => {
               )}
               {activePage?.type == 'compute-embedding-index-column' && (
                 <Columns
+                  leafFilter={() => true}
                   enrichmentType="text"
                   onSelect={(path) => {
                     pushPage({
@@ -556,12 +578,17 @@ function getLeafsByEnrichmentType(leafs: [Path, Field][], enrichmentType: Enrich
   if (enrichmentType !== 'text') {
     throw new Error(`Unsupported enrichment type: ${enrichmentType}`);
   }
-  return leafs.filter(([, field]) => {
-    if (enrichmentType === 'text' && ['string', 'string_span'].includes(field.dtype!)) {
-      return true;
-    }
-    return false;
-  });
+  return leafs.filter(([path, field]) => leafMatchesEnrichmentType([path, field], enrichmentType));
+}
+
+function leafMatchesEnrichmentType(
+  [, field]: [Path, Field],
+  enrichmentType: EnrichmentType
+): boolean {
+  if (enrichmentType === 'text' && ['string', 'string_span'].includes(field.dtype!)) {
+    return true;
+  }
+  return false;
 }
 
 function ComputeSignalSetup({page}: {page: Page<'compute-signal-setup'>}) {
@@ -647,12 +674,12 @@ function ComputeEmbeddingIndexAccept({
   if (namespace == null || datasetName == null) {
     throw new Error('Invalid route');
   }
+  const dispatch = useAppDispatch();
 
   const [
     computeEmbedding,
     {isLoading: isComputeEmbeddingLoading, isSuccess: isComputeEmbeddingSuccess},
   ] = useComputeEmbeddingIndexMutation();
-  const [taskId, setTaskId] = React.useState<string | null>(null);
 
   const query = useGetStatsQuery({
     namespace,
@@ -687,7 +714,8 @@ function ComputeEmbeddingIndexAccept({
             outline
             className="mr-0 w-48"
             onClick={async () => {
-              const response = await computeEmbedding({
+              // Compute the embedding, and pop the user over to the tasks panel.
+              await computeEmbedding({
                 namespace,
                 datasetName,
                 options: {
@@ -695,7 +723,7 @@ function ComputeEmbeddingIndexAccept({
                   embedding: {embedding_name: page.metadata?.embedding.name},
                 },
               }).unwrap();
-              setTaskId(response.task_id);
+              dispatch(setTasksPanelOpen(true));
               closeMenu();
             }}
           >
@@ -708,18 +736,6 @@ function ComputeEmbeddingIndexAccept({
               Compute embeddings
             </div>
           </SlButton>
-          <div>
-            {isComputeEmbeddingSuccess && (
-              <>
-                <SlSpinner></SlSpinner>
-                <br />
-                <div className="mt-2 text-gray-500">
-                  <p>Loading dataset with task_id "{taskId}".</p>
-                  <p>When the task is complete,</p>
-                </div>
-              </>
-            )}
-          </div>
         </div>
       </>
     );
@@ -778,9 +794,12 @@ function Concepts({onSelect}: {onSelect: (concept: ConceptInfo) => void}) {
 }
 
 function Columns({
+  leafFilter,
   enrichmentType,
+
   onSelect,
 }: {
+  leafFilter: (leaf: [Path, Field], embeddings: string[]) => boolean;
   enrichmentType: EnrichmentType;
   onSelect: (path: Path) => void;
 }) {
@@ -796,7 +815,30 @@ function Columns({
 
   const dataSchema = query.currentData?.dataset_manifest.data_schema;
   const schema = dataSchema != null ? new Schema(dataSchema) : null;
+  const pathToEmbeddings: {[path: string]: string[]} = {};
+  for (const {column, embedding} of query.currentData?.dataset_manifest.embedding_manifest
+    .indexes || []) {
+    if (embedding.embedding_name == null) {
+      continue;
+    }
+    const col = renderPath(column);
+    if (pathToEmbeddings[col] == null) {
+      pathToEmbeddings[col] = [];
+    }
+    pathToEmbeddings[col].push(embedding.embedding_name);
+  }
   const leafs = schema != null ? getLeafsByEnrichmentType(schema.leafs, enrichmentType) : null;
+
+  const inFilterLeafs: [Path, Field][] = [];
+  const outFilterLeafs: [Path, Field][] = [];
+  for (const leaf of leafs || []) {
+    if (leafFilter(leaf, pathToEmbeddings[renderPath(leaf[0])])) {
+      inFilterLeafs.push(leaf);
+    } else {
+      outFilterLeafs.push(leaf);
+    }
+  }
+
   const stats = useGetMultipleStatsQuery(
     {namespace, datasetName, leafPaths: leafs?.map(([path]) => path) || []},
     {skip: schema == null}
@@ -816,15 +858,39 @@ function Columns({
             <div className="w-24 truncate">dtype</div>
           </div>
         </div>
-        {leafs!.map(([path, field], i) => {
+        {inFilterLeafs!.map(([path, field], i) => {
           const totalCount = stats?.currentData?.[i].total_count;
           const avgTextLength = stats?.currentData?.[i].avg_text_length;
           const avgTextLengthDisplay =
             avgTextLength != null ? Math.round(avgTextLength).toLocaleString() : null;
+          const renderedPath = renderPath(path);
           return (
             <Item key={i} onSelect={() => onSelect(path)}>
               <div className="flex w-full justify-between">
-                <div className="truncate">{renderPath(path)}</div>
+                <div className="truncate">{renderedPath}</div>
+                <div className="flex flex-row items-end justify-items-end text-end">
+                  <div className="w-24 truncate">
+                    {totalCount == null ? <SlSpinner></SlSpinner> : totalCount.toLocaleString()}
+                  </div>
+                  <div className="w-24 truncate">
+                    {avgTextLength == null ? <SlSpinner></SlSpinner> : avgTextLengthDisplay}
+                  </div>
+                  <div className="w-24 truncate">{field.dtype}</div>
+                </div>
+              </div>
+            </Item>
+          );
+        })}
+        {outFilterLeafs!.map(([path, field], i) => {
+          const totalCount = stats?.currentData?.[i].total_count;
+          const avgTextLength = stats?.currentData?.[i].avg_text_length;
+          const avgTextLengthDisplay =
+            avgTextLength != null ? Math.round(avgTextLength).toLocaleString() : null;
+          const renderedPath = renderPath(path);
+          return (
+            <Item key={i} onSelect={() => onSelect(path)} disabled={true}>
+              <div className="flex w-full justify-between opacity-50">
+                <div className="truncate">{renderedPath}</div>
                 <div className="flex flex-row items-end justify-items-end text-end">
                   <div className="w-24 truncate">
                     {totalCount == null ? <SlSpinner></SlSpinner> : totalCount.toLocaleString()}

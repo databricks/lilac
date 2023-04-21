@@ -6,6 +6,8 @@ import {configureStore, createSlice, isRejectedWithValue, PayloadAction} from '@
 import {createApi} from '@reduxjs/toolkit/query/react';
 import {createRoot} from 'react-dom/client';
 import {
+  ConceptInfo,
+  EmbeddingInfo,
   Field,
   Filter,
   NamedBins,
@@ -33,6 +35,13 @@ interface SelectedData {
   namespace?: string;
   datasetName?: string;
 
+  // The active global concept. This is set when a column is actively being edited.
+  activeConcept?: {
+    concept: ConceptInfo;
+    column: Path;
+    embedding: EmbeddingInfo;
+  } | null;
+
   browser: {
     /** A list of paths to preview as "media" in the gallery item. */
     selectedMediaPaths?: Path[];
@@ -44,12 +53,16 @@ interface SelectedData {
 }
 
 interface AppState {
+  // The currently selected dataset.
   selectedData: SelectedData;
+  // Whether the tasks panel in the top right is open.
+  tasksPanelOpen: boolean;
 }
 
 // Define the initial state using that type
 const initialState: AppState = {
   selectedData: {browser: {rowHeightListPx: 60}},
+  tasksPanelOpen: false,
 };
 
 const appSlice = createSlice({
@@ -69,6 +82,15 @@ const appSlice = createSlice({
     },
     setRowHeightListPx(state, action: PayloadAction<number>) {
       state.selectedData.browser.rowHeightListPx = action.payload;
+    },
+    setTasksPanelOpen(state, action: PayloadAction<boolean>) {
+      state.tasksPanelOpen = action.payload;
+    },
+    setActiveConcept(
+      state,
+      action: PayloadAction<{concept: ConceptInfo; column: Path; embedding: EmbeddingInfo} | null>
+    ) {
+      state.selectedData.activeConcept = action.payload;
     },
   },
 });
@@ -117,8 +139,14 @@ export const store = configureStore({
 });
 
 // Export the actions.
-export const {setDataset, setSelectedMediaPaths, setSelectedMetadataPaths, setRowHeightListPx} =
-  appSlice.actions;
+export const {
+  setDataset,
+  setActiveConcept,
+  setTasksPanelOpen,
+  setSelectedMediaPaths,
+  setSelectedMetadataPaths,
+  setRowHeightListPx,
+} = appSlice.actions;
 
 export const {useGetTaskManifestQuery, useLazyGetTaskManifestQuery} = serverApi;
 

@@ -139,7 +139,11 @@ def progress(it: Iterable[TProgress],
     yield from it
     return
 
+  estimated_len = max(1, estimated_len)
+
   emit_every = int(estimated_len * emit_every_frac)
+  emit_every = max(1, emit_every)
+
   it_idx = 0
   for t in it:
     if it_idx % emit_every == 0:

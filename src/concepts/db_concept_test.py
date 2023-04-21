@@ -8,7 +8,11 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..embeddings.embedding_registry import Embedding, clear_embedding_registry, register_embedding
+from ..embeddings.embedding_registry import (
+    Embedding,
+    clear_embedding_registry,
+    register_embedding,
+)
 from ..schema import EnrichmentType, RichData
 from .concept import ConceptModel, Example, ExampleIn
 from .db_concept import ConceptDB, ConceptModelDB, ConceptUpdate, DiskConceptDB, DiskConceptModelDB

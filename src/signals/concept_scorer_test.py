@@ -16,7 +16,11 @@ from ..concepts.db_concept import (
     DiskConceptDB,
     DiskConceptModelDB,
 )
-from ..embeddings.embedding_registry import Embedding, clear_embedding_registry, register_embedding
+from ..embeddings.embedding_registry import (
+    Embedding,
+    clear_embedding_registry,
+    register_embedding,
+)
 from ..embeddings.vector_store import VectorStore
 from ..schema import EnrichmentType, RichData
 from .concept_scorer import ConceptScoreSignal
