@@ -9,26 +9,27 @@ import {
   SlSpinner,
 } from '@shoelace-style/shoelace/dist/react';
 import {Command} from 'cmdk';
-import {JSONSchema7} from 'json-schema';
 import * as React from 'react';
 import {Location, useLocation, useNavigate, useParams} from 'react-router-dom';
-import {ConceptInfo, EmbeddingInfo, EnrichmentType, Field, SignalInfo} from '../fastapi_client';
-import {useAppDispatch} from './hooks';
-import {Path, Schema, serializePath} from './schema';
-import './search_box.css';
-import {useGetConceptsQuery} from './store/api_concept';
+import {ConceptInfo, EmbeddingInfo, Field, SignalInfo} from '../../fastapi_client';
+import {useAppDispatch} from '../hooks';
+import {Path, Schema, serializePath} from '../schema';
 import {
   useComputeEmbeddingIndexMutation,
   useComputeSignalColumnMutation,
   useGetDatasetsQuery,
   useGetManifestQuery,
-  useGetMultipleStatsQuery,
   useGetStatsQuery,
-} from './store/api_dataset';
-import {useGetEmbeddingsQuery} from './store/api_embeddings';
-import {useGetSignalsQuery} from './store/api_signal';
-import {setActiveConcept, setTasksPanelOpen, useTopValues} from './store/store';
-import {renderPath, renderQuery, useClickOutside} from './utils';
+} from '../store/api_dataset';
+import {setActiveConcept, setTasksPanelOpen, useTopValues} from '../store/store';
+import {renderPath, renderQuery, useClickOutside} from '../utils';
+import {ColumnSelector} from './column_selector';
+import {ConceptSelector} from './concept_selector';
+import {EmbeddingSelector} from './embedding_selector';
+import {Item} from './item_selector';
+import './search_box.css';
+import {getLeafsByEnrichmentType} from './search_box_utils';
+import {SignalSelector} from './signal_selector';
 
 /** Time to debounce (ms). */
 const DEBOUNCE_TIME_MS = 100;
@@ -39,7 +40,7 @@ interface PageMetadata {
   'add-filter': Record<string, never>;
   'add-filter-value': {path: Path; field: Field};
   'compute-signal': Record<string, never>;
-  'compute-signal-setup': {signal: SignalInfo};
+  'compute-signal-column': {signal: SignalInfo};
   'compute-embedding-index': Record<string, never>;
   'compute-embedding-index-column': {embedding: EmbeddingInfo};
   'compute-embedding-index-accept': {embedding: EmbeddingInfo; column: Path};
@@ -59,7 +60,7 @@ const PAGE_SEARCH_TITLE: Record<PageType, string> = {
   'add-filter': 'Add filter',
   'add-filter-value': 'Add filter value',
   'compute-signal': 'compute signal',
-  'compute-signal-setup': 'compute signal',
+  'compute-signal-column': 'compute signal',
   'compute-embedding-index': 'select embedding',
   'compute-embedding-index-column': 'select column',
   'compute-embedding-index-accept': '',
@@ -88,6 +89,7 @@ export const SearchBox = () => {
   const [isFocused, setIsFocused] = React.useState(false);
   const [pages, setPages] = React.useState<Page[]>([]);
   const location = useLocation();
+  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
 
   /** Closes the menu. */
   const closeMenu = React.useCallback(() => {
@@ -138,6 +140,8 @@ export const SearchBox = () => {
 
     setInputValue('');
   }
+
+  const [computeSignal] = useComputeSignalColumnMutation();
 
   return (
     <div className="w-full">
@@ -216,7 +220,7 @@ export const SearchBox = () => {
                   Concept => Embedding => Column setup
                */}
               {activePage?.type == 'edit-concept' && (
-                <Concepts
+                <ConceptSelector
                   onSelect={(concept) => {
                     pushPage({
                       type: 'edit-concept-embedding',
@@ -227,7 +231,7 @@ export const SearchBox = () => {
                 />
               )}
               {activePage?.type == 'edit-concept-embedding' && (
-                <Embeddings
+                <EmbeddingSelector
                   onSelect={(embedding) => {
                     pushPage({
                       type: 'edit-concept-column',
@@ -241,7 +245,7 @@ export const SearchBox = () => {
                 />
               )}
               {activePage?.type == 'edit-concept-column' && (
-                <Columns
+                <ColumnSelector
                   leafFilter={(leaf, embeddings) => {
                     const hasEmbedding =
                       embeddings == null
@@ -262,14 +266,44 @@ export const SearchBox = () => {
                     );
                     closeMenu();
                   }}
-                ></Columns>
+                ></ColumnSelector>
               )}
-              {activePage?.type == 'compute-signal' && <ComputeSignal pushPage={pushPage} />}
-              {activePage?.type == 'compute-signal-setup' && (
-                <ComputeSignalSetup page={activePage as Page<'compute-signal-setup'>} />
+              {activePage?.type == 'compute-signal' && (
+                <SignalSelector
+                  onSelect={(signal) => {
+                    pushPage({
+                      type: 'compute-signal-column',
+                      name: signal.name,
+                      metadata: {signal},
+                    });
+                  }}
+                />
+              )}
+              {activePage?.type == 'compute-signal-column' && (
+                <ColumnSelector
+                  leafFilter={() => {
+                    // TODO(nsthorat): Use the embedding_based bit to determine the filter for
+                    // leafs. We should also determine whether to compute embeddings automatically
+                    // at this stage.
+                    return true;
+                  }}
+                  enrichmentType={
+                    (activePage as Page<'compute-signal-column'>).metadata!.signal.enrichment_type
+                  }
+                  onSelect={async (path) => {
+                    const signal = (activePage as Page<'compute-signal-column'>).metadata!.signal;
+                    await computeSignal({
+                      namespace: namespace!,
+                      datasetName: datasetName!,
+                      options: {leaf_path: path, signal: {signal_name: signal.name}},
+                    });
+                    dispatch(setTasksPanelOpen(true));
+                    closeMenu();
+                  }}
+                ></ColumnSelector>
               )}
               {activePage?.type == 'compute-embedding-index' && (
-                <Embeddings
+                <EmbeddingSelector
                   onSelect={(embedding) => {
                     pushPage({
                       type: 'compute-embedding-index-column',
@@ -280,7 +314,7 @@ export const SearchBox = () => {
                 />
               )}
               {activePage?.type == 'compute-embedding-index-column' && (
-                <Columns
+                <ColumnSelector
                   leafFilter={() => true}
                   enrichmentType="text"
                   onSelect={(path) => {
@@ -295,7 +329,7 @@ export const SearchBox = () => {
                       },
                     });
                   }}
-                ></Columns>
+                ></ColumnSelector>
               )}
               {activePage?.type == 'compute-embedding-index-accept' && (
                 <ComputeEmbeddingIndexAccept
@@ -524,58 +558,7 @@ function AddFilter({pushPage}: {pushPage: (page: Page) => void}) {
   return <>{items}</>;
 }
 
-function ComputeSignal({pushPage}: {pushPage: (page: Page) => void}) {
-  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
-  if (namespace == null || datasetName == null) {
-    throw new Error('Invalid route');
-  }
-  const query = useGetSignalsQuery();
-  return renderQuery(query, (signals) => {
-    return (
-      <>
-        {signals.map((signal) => {
-          const jsonSchema = signal.json_schema as JSONSchema7;
-          return (
-            <Item
-              key={signal.name}
-              onSelect={() => {
-                pushPage({
-                  type: 'compute-signal-setup',
-                  name: signal.name,
-                  metadata: {signal},
-                });
-              }}
-            >
-              <div className="flex w-full justify-between">
-                <div className="truncate">{signal.name}</div>
-                <div className="truncate">{jsonSchema.description}</div>
-              </div>
-            </Item>
-          );
-        })}
-      </>
-    );
-  });
-}
-
-function getLeafsByEnrichmentType(leafs: [Path, Field][], enrichmentType: EnrichmentType) {
-  if (enrichmentType !== 'text') {
-    throw new Error(`Unsupported enrichment type: ${enrichmentType}`);
-  }
-  return leafs.filter(([path, field]) => leafMatchesEnrichmentType([path, field], enrichmentType));
-}
-
-function leafMatchesEnrichmentType(
-  [, field]: [Path, Field],
-  enrichmentType: EnrichmentType
-): boolean {
-  if (enrichmentType === 'text' && ['string', 'string_span'].includes(field.dtype!)) {
-    return true;
-  }
-  return false;
-}
-
-function ComputeSignalSetup({page}: {page: Page<'compute-signal-setup'>}) {
+function ComputeSignalSetup({page}: {page: Page<'compute-signal-column'>}) {
   const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
   if (namespace == null || datasetName == null) {
     throw new Error('Invalid route');
@@ -722,202 +705,4 @@ function ComputeEmbeddingIndexAccept({
       </>
     );
   });
-}
-
-function Embeddings({onSelect}: {onSelect: (embedding: EmbeddingInfo) => void}) {
-  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
-  if (namespace == null || datasetName == null) {
-    throw new Error('Invalid route');
-  }
-  const query = useGetEmbeddingsQuery();
-  return renderQuery(query, (embeddings) => {
-    return (
-      <>
-        {embeddings.map((embedding) => {
-          const jsonSchema = embedding.json_schema as JSONSchema7;
-          return (
-            <Item key={embedding.name} onSelect={() => onSelect(embedding)}>
-              <div className="flex w-full justify-between">
-                <div className="truncate">{embedding.name}</div>
-                <div className="truncate">{jsonSchema.description}</div>
-              </div>
-            </Item>
-          );
-        })}
-      </>
-    );
-  });
-}
-
-function Concepts({onSelect}: {onSelect: (concept: ConceptInfo) => void}) {
-  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
-  if (namespace == null || datasetName == null) {
-    throw new Error('Invalid route');
-  }
-  const query = useGetConceptsQuery();
-  return renderQuery(query, (concepts) => {
-    return (
-      <>
-        {concepts.map((concept) => {
-          return (
-            <Item key={concept.name} onSelect={() => onSelect(concept)}>
-              <div className="flex w-full justify-between">
-                <div className="truncate">
-                  {concept.namespace}/{concept.name}
-                </div>
-                <div className="truncate">{/* Future description here */}</div>
-              </div>
-            </Item>
-          );
-        })}
-      </>
-    );
-  });
-}
-
-function Columns({
-  leafFilter,
-  enrichmentType,
-
-  onSelect,
-}: {
-  leafFilter: (leaf: [Path, Field], embeddings: string[]) => boolean;
-  enrichmentType: EnrichmentType;
-  onSelect: (path: Path) => void;
-}) {
-  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
-  if (namespace == null || datasetName == null) {
-    throw new Error('Invalid route');
-  }
-
-  const query = useGetManifestQuery({
-    namespace,
-    datasetName,
-  });
-
-  const dataSchema = query.currentData?.dataset_manifest.data_schema;
-  const schema = dataSchema != null ? new Schema(dataSchema) : null;
-  const pathToEmbeddings: {[path: string]: string[]} = {};
-  for (const {column, embedding} of query.currentData?.dataset_manifest.embedding_manifest
-    .indexes || []) {
-    if (embedding.embedding_name == null) {
-      continue;
-    }
-    const col = renderPath(column);
-    if (pathToEmbeddings[col] == null) {
-      pathToEmbeddings[col] = [];
-    }
-    pathToEmbeddings[col].push(embedding.embedding_name);
-  }
-  const leafs = schema != null ? getLeafsByEnrichmentType(schema.leafs, enrichmentType) : null;
-
-  const inFilterLeafs: [Path, Field][] = [];
-  const outFilterLeafs: [Path, Field][] = [];
-  for (const leaf of leafs || []) {
-    if (leafFilter(leaf, pathToEmbeddings[renderPath(leaf[0])])) {
-      inFilterLeafs.push(leaf);
-    } else {
-      outFilterLeafs.push(leaf);
-    }
-  }
-
-  const stats = useGetMultipleStatsQuery(
-    {namespace, datasetName, leafPaths: leafs?.map(([path]) => path) || []},
-    {skip: schema == null}
-  );
-
-  return renderQuery(query, () => {
-    return (
-      <>
-        <div
-          className="mb-1 flex w-full justify-between
-                     border-b-2 border-gray-100 px-4 pb-1 text-sm font-medium"
-        >
-          <div className="truncate">column</div>
-          <div className="flex flex-row items-end justify-items-end text-end">
-            <div className="w-24 truncate">count</div>
-            <div className="w-24 truncate">avg length</div>
-            <div className="w-24 truncate">dtype</div>
-          </div>
-        </div>
-        {inFilterLeafs!.map(([path, field], i) => {
-          const totalCount = stats?.currentData?.[i].total_count;
-          const avgTextLength = stats?.currentData?.[i].avg_text_length;
-          const avgTextLengthDisplay =
-            avgTextLength != null ? Math.round(avgTextLength).toLocaleString() : null;
-          const renderedPath = renderPath(path);
-          return (
-            <Item key={i} onSelect={() => onSelect(path)}>
-              <div className="flex w-full justify-between">
-                <div className="truncate">{renderedPath}</div>
-                <div className="flex flex-row items-end justify-items-end text-end">
-                  <div className="w-24 truncate">
-                    {totalCount == null ? <SlSpinner></SlSpinner> : totalCount.toLocaleString()}
-                  </div>
-                  <div className="w-24 truncate">
-                    {avgTextLength == null ? <SlSpinner></SlSpinner> : avgTextLengthDisplay}
-                  </div>
-                  <div className="w-24 truncate">{field.dtype}</div>
-                </div>
-              </div>
-            </Item>
-          );
-        })}
-        {outFilterLeafs!.map(([path, field], i) => {
-          const totalCount = stats?.currentData?.[i].total_count;
-          const avgTextLength = stats?.currentData?.[i].avg_text_length;
-          const avgTextLengthDisplay =
-            avgTextLength != null ? Math.round(avgTextLength).toLocaleString() : null;
-          const renderedPath = renderPath(path);
-          return (
-            <Item key={i} onSelect={() => onSelect(path)} disabled={true}>
-              <div className="flex w-full justify-between opacity-50">
-                <div className="truncate">{renderedPath}</div>
-                <div className="flex flex-row items-end justify-items-end text-end">
-                  <div className="w-24 truncate">
-                    {totalCount == null ? <SlSpinner></SlSpinner> : totalCount.toLocaleString()}
-                  </div>
-                  <div className="w-24 truncate">
-                    {avgTextLength == null ? <SlSpinner></SlSpinner> : avgTextLengthDisplay}
-                  </div>
-                  <div className="w-24 truncate">{field.dtype}</div>
-                </div>
-              </div>
-            </Item>
-          );
-        })}
-      </>
-    );
-  });
-}
-
-function Item({
-  children,
-  shortcut,
-  onSelect = () => {
-    return;
-  },
-  disabled,
-}: {
-  children: React.ReactNode;
-  shortcut?: string;
-  onSelect?: (value: string) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Command.Item
-      onSelect={onSelect}
-      disabled={disabled}
-      style={{color: disabled ? 'var(--sl-color-gray-500)' : ''}}
-    >
-      {children}
-      {shortcut && (
-        <div cmdk-shortcuts="">
-          {shortcut.split(' ').map((key) => {
-            return <kbd key={key}>{key}</kbd>;
-          })}
-        </div>
-      )}
-    </Command.Item>
-  );
 }

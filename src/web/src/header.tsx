@@ -3,7 +3,7 @@ import * as React from 'react';
 import {Link} from 'react-router-dom';
 import {TaskInfo} from '../fastapi_client';
 import {useAppDispatch, useAppSelector} from './hooks';
-import {SearchBox} from './search_box';
+import {SearchBox} from './search_box/search_box';
 import {setTasksPanelOpen, useLazyGetTaskManifestQuery} from './store/store';
 import {formatDatetime, renderQuery, useClickOutside} from './utils';
 
