@@ -1,11 +1,12 @@
 """Cohere embeddings."""
 import functools
 import os
-from typing import Iterable
+from typing import Any, Iterable
 
 import cohere
 import numpy as np
 from sklearn.preprocessing import normalize
+from typing_extensions import override
 
 from ..schema import EnrichmentType, RichData
 from .embedding_registry import Embedding
@@ -26,6 +27,11 @@ class Cohere(Embedding):
   # Cohere only accepts 96 inputs at a time.
   batch_size = 96
 
+  def __init__(self, *args: Any, **kwargs: Any) -> None:
+    super().__init__(*args, **kwargs)
+    print('cohere subclass')
+
+  @override
   def __call__(self, data: Iterable[RichData]) -> np.ndarray:
     """Call the embedding function."""
     return normalize(np.array(_cohere().embed(list(data),

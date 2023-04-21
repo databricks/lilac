@@ -1,11 +1,16 @@
-import {SlOption, SlSelect} from '@shoelace-style/shoelace/dist/react';
+import {SlIconButton, SlOption, SlSelect} from '@shoelace-style/shoelace/dist/react';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import * as React from 'react';
 import {Field, StatsResult, WebManifest} from '../../fastapi_client';
 import {useAppDispatch, useAppSelector} from '../hooks';
 import {Path, Schema, serializePath} from '../schema';
 import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/api_dataset';
-import {setSelectedMediaPaths, setSelectedMetadataPaths, useGetIds} from '../store/store';
+import {
+  setActiveConcept,
+  setSelectedMediaPaths,
+  setSelectedMetadataPaths,
+  useGetIds,
+} from '../store/store';
 import {renderPath} from '../utils';
 import {GalleryItem} from './gallery_item';
 import styles from './gallery_view.module.css';
@@ -89,6 +94,7 @@ export const GalleryMenu = React.memo(function GalleryMenu({
         leafs={leafs}
         onSelectedPathsChanged={(paths) => dispatch(setSelectedMetadataPaths(paths))}
       />
+      <ActiveConceptLegend></ActiveConceptLegend>
     </div>
   );
 });
@@ -152,6 +158,30 @@ function FeatureDropdown({
           })}
         </SlSelect>
       </div>
+    </div>
+  );
+}
+
+function ActiveConceptLegend(): JSX.Element {
+  const dispatch = useAppDispatch();
+
+  const activeConcept = useAppSelector((state) => state.app.selectedData.activeConcept);
+  if (activeConcept == null) {
+    return (
+      <div className="w-48">
+        <div className="text-sm font-light opacity-40">No active concept.</div>
+      </div>
+    );
+  }
+  console.log('active c', activeConcept);
+  return (
+    <div className="relative w-48 bg-yellow-100 p-2 text-xs opacity-60">
+      <div className="absolute right-0 top-0 p-1">
+        <SlIconButton name="X" onClick={() => dispatch(setActiveConcept(null))} />
+      </div>
+      <div className="font-light">"{activeConcept.concept.name}" concept</div>
+      <div className="font-light">"{renderPath(activeConcept.column)}" column</div>
+      <div className="font-light">"{activeConcept.embedding.name}" embedding</div>
     </div>
   );
 }

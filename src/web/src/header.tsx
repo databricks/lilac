@@ -2,11 +2,14 @@ import {SlButton, SlIcon, SlProgressRing, SlSpinner} from '@shoelace-style/shoel
 import * as React from 'react';
 import {Link} from 'react-router-dom';
 import {TaskInfo} from '../fastapi_client';
+import {useAppDispatch, useAppSelector} from './hooks';
 import {SearchBox} from './search_box';
-import {useLazyGetTaskManifestQuery} from './store/store';
+import {setTasksPanelOpen, useLazyGetTaskManifestQuery} from './store/store';
 import {formatDatetime, renderQuery, useClickOutside} from './utils';
 
-const TASKS_POLL_INTERVAL_MS = 2000;
+// The poll interval when the tasks tray is open vs closed.
+const TASKS_POLL_OPEN_INTERVAL_MS = 1000;
+const TASKS_POLL_CLOSED_INTERVAL_MS = 10000;
 
 const spinnerSizePx = 40;
 export const Task = React.memo(({task}: {task: TaskInfo}): JSX.Element => {
@@ -82,20 +85,26 @@ export const Task = React.memo(({task}: {task: TaskInfo}): JSX.Element => {
 });
 
 export const TaskViewer = (): JSX.Element => {
+  const dispatch = useAppDispatch();
+
   const [loadTaskManifest, taskManifest] = useLazyGetTaskManifestQuery();
-  const [tasksPanelOpen, setTasksPanelOpen] = React.useState(false);
+  const tasksPanelOpen = useAppSelector((state) => state.app.tasksPanelOpen);
+
   const tasksDrawerRef = React.useRef<HTMLDivElement>(null);
   const buttonContainerRef = React.useRef<HTMLDivElement>(null);
 
-  useClickOutside(tasksDrawerRef, [buttonContainerRef], () => setTasksPanelOpen(false));
+  useClickOutside(tasksDrawerRef, [buttonContainerRef], () => dispatch(setTasksPanelOpen(false)));
 
-  // Poll for tasks.
+  // Poll for tasks. When the tray is open, we poll faster.
   React.useEffect(() => {
     loadTaskManifest();
 
-    const timer = setInterval(() => loadTaskManifest(), TASKS_POLL_INTERVAL_MS);
+    const timer = setInterval(
+      () => loadTaskManifest(),
+      tasksPanelOpen ? TASKS_POLL_OPEN_INTERVAL_MS : TASKS_POLL_CLOSED_INTERVAL_MS
+    );
     return () => clearInterval(timer);
-  }, []);
+  }, [tasksPanelOpen]);
 
   const tasksElement = renderQuery(taskManifest, (taskManager) => {
     let numPending = 0;
@@ -143,7 +152,7 @@ export const TaskViewer = (): JSX.Element => {
             disabled={numTasks === 0}
             outline
             size="medium"
-            onClick={() => (numTasks > 0 ? setTasksPanelOpen(!tasksPanelOpen) : null)}
+            onClick={() => (numTasks > 0 ? dispatch(setTasksPanelOpen(!tasksPanelOpen)) : null)}
           >
             <span className="mx-2">{taskMessage}</span>
           </SlButton>
