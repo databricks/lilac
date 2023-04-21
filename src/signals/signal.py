@@ -24,7 +24,7 @@ class Signal(abc.ABC, BaseModel):
 
   # The signal_name will get populated in init automatically from the class name so it gets
   # serialized and the signal author doesn't have to define both the static property and the field.
-  signal_name: str = 'signal_base'
+  signal_name: Optional[str]
   embedding: Optional[EmbeddingId] = None
 
   class Config:
@@ -45,7 +45,7 @@ class Signal(abc.ABC, BaseModel):
   def validate_signal_name(cls, signal_name: str) -> str:
     """Return the static name when the signal name hasn't yet been set."""
     # When it's already been set from JSON, just return it.
-    if signal_name != 'signal_base':
+    if signal_name:
       return signal_name
 
     if 'name' not in cls.__dict__:

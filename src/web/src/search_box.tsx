@@ -243,7 +243,6 @@ export const SearchBox = () => {
               {activePage?.type == 'edit-concept-column' && (
                 <Columns
                   leafFilter={(leaf, embeddings) => {
-                    console.log('filtering', leaf, embeddings);
                     const hasEmbedding =
                       embeddings == null
                         ? false

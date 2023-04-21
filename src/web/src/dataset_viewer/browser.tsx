@@ -238,7 +238,7 @@ export function usePreviewPaths(
       }
     }
   }
-  let previewPaths = useAppSelector((state) => state.app.selectedData.browser.selectedMediaPaths);
+  let previewPaths = useAppSelector((state) => state.app.activeDataset.browser.selectedMediaPaths);
   const multipleStats = useGetMultipleStatsQuery({namespace, datasetName, leafPaths: stringLeafs});
   previewPaths = React.useMemo(() => {
     if (previewPaths != null) {
@@ -283,7 +283,9 @@ export const Browser = React.memo(function Browser({
   } = useGetManifestQuery({namespace, datasetName});
   const schema = webManifest != null ? new Schema(webManifest.dataset_manifest.data_schema) : null;
   const previewPaths = usePreviewPaths(namespace, datasetName, webManifest, schema);
-  const rowHeightListPx = useAppSelector((state) => state.app.selectedData.browser.rowHeightListPx);
+  const rowHeightListPx = useAppSelector(
+    (state) => state.app.activeDataset.browser.rowHeightListPx
+  );
   const inGalleryMode = previewPaths.length === 1;
   const rowHeightPx = rowHeightListPx;
 

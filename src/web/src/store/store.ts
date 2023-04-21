@@ -31,7 +31,7 @@ import {embeddingApi} from './api_embeddings';
 import {signalApi} from './api_signal';
 import {fastAPIBaseQuery} from './api_utils';
 
-interface SelectedData {
+interface ActiveDatasetState {
   namespace?: string;
   datasetName?: string;
 
@@ -54,14 +54,14 @@ interface SelectedData {
 
 interface AppState {
   // The currently selected dataset.
-  selectedData: SelectedData;
+  activeDataset: ActiveDatasetState;
   // Whether the tasks panel in the top right is open.
   tasksPanelOpen: boolean;
 }
 
 // Define the initial state using that type
 const initialState: AppState = {
-  selectedData: {browser: {rowHeightListPx: 60}},
+  activeDataset: {browser: {rowHeightListPx: 60}},
   tasksPanelOpen: false,
 };
 
@@ -70,18 +70,18 @@ const appSlice = createSlice({
   initialState,
   reducers: {
     setDataset(state, action: PayloadAction<{namespace: string; datasetName: string}>) {
-      state.selectedData.namespace = action.payload.namespace;
-      state.selectedData.datasetName = action.payload.datasetName;
-      state.selectedData.browser.selectedMediaPaths = undefined;
+      state.activeDataset.namespace = action.payload.namespace;
+      state.activeDataset.datasetName = action.payload.datasetName;
+      state.activeDataset.browser.selectedMediaPaths = undefined;
     },
     setSelectedMediaPaths(state, action: PayloadAction<Path[]>) {
-      state.selectedData.browser.selectedMediaPaths = action.payload;
+      state.activeDataset.browser.selectedMediaPaths = action.payload;
     },
     setSelectedMetadataPaths(state, action: PayloadAction<Path[]>) {
-      state.selectedData.browser.selectedMetadataPaths = action.payload;
+      state.activeDataset.browser.selectedMetadataPaths = action.payload;
     },
     setRowHeightListPx(state, action: PayloadAction<number>) {
-      state.selectedData.browser.rowHeightListPx = action.payload;
+      state.activeDataset.browser.rowHeightListPx = action.payload;
     },
     setTasksPanelOpen(state, action: PayloadAction<boolean>) {
       state.tasksPanelOpen = action.payload;
@@ -90,7 +90,7 @@ const appSlice = createSlice({
       state,
       action: PayloadAction<{concept: ConceptInfo; column: Path; embedding: EmbeddingInfo} | null>
     ) {
-      state.selectedData.activeConcept = action.payload;
+      state.activeDataset.activeConcept = action.payload;
     },
   },
 });

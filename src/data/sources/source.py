@@ -24,7 +24,7 @@ class Source(abc.ABC, BaseModel):
 
   # The source_name will get populated in init automatically from the class name so it gets
   # serialized and the source author doesn't have to define both the static property and the field.
-  source_name: str = 'source_base'
+  source_name: Optional[str]
 
   class Config:
     underscore_attrs_are_private = True
@@ -33,7 +33,7 @@ class Source(abc.ABC, BaseModel):
   def validate_source_name(cls, source_name: str) -> str:
     """Return the static name when the source_name name hasn't yet been set."""
     # When it's already been set from JSON, just return it.
-    if source_name != 'source_base':
+    if source_name:
       return source_name
 
     if 'name' not in cls.__dict__:

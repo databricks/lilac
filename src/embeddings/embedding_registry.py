@@ -1,5 +1,5 @@
 """Embedding registry."""
-from typing import ClassVar, Iterable, Type, Union
+from typing import ClassVar, Iterable, Optional, Type, Union
 
 import numpy as np
 from pydantic import BaseModel, validator
@@ -20,7 +20,7 @@ class Embedding(BaseModel):
   # The embedding_name will get populated in init automatically from the class name so it gets
   # serialized and the embedding author doesn't have to define both the static property and the
   # field.
-  embedding_name: str = 'embedding_base'
+  embedding_name: Optional[str]
 
   class Config:
     underscore_attrs_are_private = True
@@ -29,7 +29,7 @@ class Embedding(BaseModel):
   def validate_embedding_name(cls, embedding_name: str) -> str:
     """Return the static name when the embedding name hasn't yet been set."""
     # When it's already been set from JSON, just return it.
-    if embedding_name != 'embedding_base':
+    if embedding_name:
       return embedding_name
 
     if 'name' not in cls.__dict__:

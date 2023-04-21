@@ -165,7 +165,7 @@ function FeatureDropdown({
 function ActiveConceptLegend(): JSX.Element {
   const dispatch = useAppDispatch();
 
-  const activeConcept = useAppSelector((state) => state.app.selectedData.activeConcept);
+  const activeConcept = useAppSelector((state) => state.app.activeDataset.activeConcept);
   if (activeConcept == null) {
     return (
       <div className="w-48">
@@ -233,7 +233,7 @@ export function useMediaPaths(
       }
     }
   }
-  let mediaPaths = useAppSelector((state) => state.app.selectedData.browser.selectedMediaPaths);
+  let mediaPaths = useAppSelector((state) => state.app.activeDataset.browser.selectedMediaPaths);
   const multipleStats = useGetMultipleStatsQuery({namespace, datasetName, leafPaths: stringLeafs});
   mediaPaths = React.useMemo(() => {
     if (mediaPaths != null) {
@@ -271,7 +271,7 @@ export const Gallery = React.memo(function Gallery({
   const schema = webManifest != null ? new Schema(webManifest.dataset_manifest.data_schema) : null;
   const mediaPaths = useMediaPaths(namespace, datasetName, webManifest, schema);
   const metadataPaths = useAppSelector(
-    (state) => state.app.selectedData.browser.selectedMetadataPaths
+    (state) => state.app.activeDataset.browser.selectedMetadataPaths
   );
 
   const {error, isFetchingNextPage, allIds, hasNextPage, fetchNextPage} = useInfiniteItemsQuery(
