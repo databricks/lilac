@@ -4,7 +4,7 @@ from typing import Any, Iterable, Optional, Union
 import numpy as np
 from typing_extensions import override
 
-from ..embeddings.embedding_registry import EmbeddingComputer, EmbeddingId
+from ..embeddings.embedding_registry import Embedding, EmbeddingId
 from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
 from .signal import Signal
@@ -20,7 +20,7 @@ class SemanticSearchSignal(Signal):
   query: Union[str, bytes]
   embedding: EmbeddingId
 
-  _embed_fn: EmbeddingComputer
+  _embed_fn: Embedding
   _search_text_embedding: Optional[np.ndarray] = None
 
   def __init__(self, query: Union[str, bytes], embedding: EmbeddingId, **kwargs: dict[Any, Any]):
