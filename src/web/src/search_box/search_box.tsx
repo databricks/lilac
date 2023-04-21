@@ -4,8 +4,6 @@ import {
   SlBreadcrumbItem,
   SlButton,
   SlIcon,
-  SlOption,
-  SlSelect,
   SlSpinner,
 } from '@shoelace-style/shoelace/dist/react';
 import {Command} from 'cmdk';
@@ -28,7 +26,6 @@ import {ConceptSelector} from './concept_selector';
 import {EmbeddingSelector} from './embedding_selector';
 import {Item} from './item_selector';
 import './search_box.css';
-import {getLeafsByEnrichmentType} from './search_box_utils';
 import {SignalSelector} from './signal_selector';
 
 /** Time to debounce (ms). */
@@ -556,78 +553,6 @@ function AddFilter({pushPage}: {pushPage: (page: Page) => void}) {
     );
   });
   return <>{items}</>;
-}
-
-function ComputeSignalSetup({page}: {page: Page<'compute-signal-column'>}) {
-  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
-  if (namespace == null || datasetName == null) {
-    throw new Error('Invalid route');
-  }
-  const [selectedLeafIndex, setSelectedLeafIndex] = React.useState<number | null>(null);
-  const signal = page.metadata!.signal;
-  const [computeSignal, {isLoading: isComputeSignalLoading, isSuccess: isComputeSignalSuccess}] =
-    useComputeSignalColumnMutation();
-  const {currentData: webManifest, isFetching: isManifestFetching} = useGetManifestQuery({
-    namespace,
-    datasetName,
-  });
-  const schema = webManifest != null ? new Schema(webManifest.dataset_manifest.data_schema) : null;
-  if (isManifestFetching || schema == null) {
-    return <SlSpinner />;
-  }
-  const signalLeafs = getLeafsByEnrichmentType(schema.leafs, signal.enrichment_type);
-  return (
-    <>
-      <SlSelect
-        className="w-80"
-        hoist
-        size="small"
-        placeholder="Which column to run the signal on?"
-        value={(selectedLeafIndex && selectedLeafIndex.toString()) || ''}
-        onSlChange={(e) => {
-          const index = Number((e.target as HTMLInputElement).value);
-          setSelectedLeafIndex(index);
-        }}
-      >
-        {signalLeafs.map(([path], i) => {
-          return (
-            <SlOption key={i} value={i.toString()}>
-              {renderPath(path)}
-            </SlOption>
-          );
-        })}
-      </SlSelect>
-      <SlButton
-        size="small"
-        disabled={isComputeSignalLoading}
-        className="mt-4"
-        onClick={() => {
-          const leafPath = selectedLeafIndex != null ? signalLeafs[selectedLeafIndex][0] : null;
-          if (leafPath == null) {
-            return;
-          }
-          computeSignal({
-            namespace,
-            datasetName,
-            options: {leaf_path: leafPath, signal: {signal_name: signal.name}},
-          });
-        }}
-      >
-        Compute signal
-      </SlButton>
-      <div className="mt-4 flex items-center">
-        <div>
-          {isComputeSignalLoading && <SlSpinner />}
-          {isComputeSignalSuccess && <SlIcon name="check-lg" />}
-        </div>
-        {isComputeSignalSuccess && (
-          <div className="ml-4 text-sm">
-            Check the task list. When the task is complete, refresh the page to see the new signal.
-          </div>
-        )}
-      </div>
-    </>
-  );
 }
 
 function ComputeEmbeddingIndexAccept({
