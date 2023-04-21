@@ -15,5 +15,6 @@ py_coverage_html/
 node_modules/
 dist/
 
-# Data.
-gcs_cache/
+# Data to ignore.
+gcs_cache/datasets
+gcs_cache/local_cache
