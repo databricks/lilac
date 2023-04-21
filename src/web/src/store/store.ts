@@ -194,7 +194,7 @@ export function useGetIds(
 ): {isFetching: boolean; ids: string[] | null; error?: unknown} {
   const filters: Filter[] = [];
   /** Select only the UUID column. */
-  const columns: Path[] = [[UUID_COLUMN]];
+  const columns: Path[] = [[UUID_COLUMN], ...(sortBy ?? [])];
   const {
     isFetching,
     currentData: items,

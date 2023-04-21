@@ -704,17 +704,22 @@ class DatasetDuckDB(DatasetDB):
 
     if sort_by:
       sort_by = [normalize_path(path) for path in sort_by]
-      for sort_by_alias in sort_by:
-        if sort_by_alias not in col_aliases:
+
+      for sort_by_el in sort_by:
+        if sort_by_el not in col_aliases and sort_by_el not in columns:
           raise ValueError(
-              f'Column {sort_by_alias} is not defined as an alias in the given columns. '
-              f'Available sort by aliases: {col_aliases}')
+              f'Column {sort_by_el} is not defined as an alias in the given columns and is not '
+              'defined in the select. The sort by path must be defined in either the columns or as '
+              'a column alias.'
+              f'Available sort by aliases: {col_aliases}.\n'
+              f'Available columns: {columns}.\n')
 
       if not sort_order:
         raise ValueError(
             'Sort order is undefined but sort by is defined. Please define a sort_order')
 
-      query = query.order(f'{", ".join(sort_by)} {sort_order.value}')
+      sort_cols = [self._path_to_col(sort_by_el) for sort_by_el in sort_by]
+      query = query.order(f'{", ".join(sort_cols)} {sort_order.value}')
 
     if limit:
       query = query.limit(limit, offset or 0)
