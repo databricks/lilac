@@ -262,16 +262,6 @@ export const SearchBox = () => {
                       })
                     );
                     closeMenu();
-                    // pushPage({
-                    //   type: 'edit-concept-accept',
-                    //   name: renderPath(path),
-                    //   metadata: {
-                    //     concept: (activePage as Page<'edit-concept-column'>).metadata!.concept,
-                    //     embedding: (activePage as Page<'edit-concept-column'>).metadata!.embedding,
-                    //     column: path,
-                    //     description: '',
-                    //   },
-                    // });
                   }}
                 ></Columns>
               )}
