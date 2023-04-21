@@ -1,7 +1,7 @@
 """Cohere embeddings."""
 import functools
 import os
-from typing import Any, Iterable
+from typing import Iterable
 
 import cohere
 import numpy as np
@@ -26,10 +26,6 @@ class Cohere(Embedding):
   enrichment_type = EnrichmentType.TEXT
   # Cohere only accepts 96 inputs at a time.
   batch_size = 96
-
-  def __init__(self, *args: Any, **kwargs: Any) -> None:
-    super().__init__(*args, **kwargs)
-    print('cohere subclass')
 
   @override
   def __call__(self, data: Iterable[RichData]) -> np.ndarray:

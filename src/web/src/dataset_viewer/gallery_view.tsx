@@ -173,7 +173,6 @@ function ActiveConceptLegend(): JSX.Element {
       </div>
     );
   }
-  console.log('active c', activeConcept);
   return (
     <div className="relative w-48 bg-yellow-100 p-2 text-xs opacity-60">
       <div className="absolute right-0 top-0 p-1">

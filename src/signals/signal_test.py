@@ -78,7 +78,7 @@ def test_embedding_signal_serialization() -> None:
   signal = TestEmbeddingSignal(query='test', embedding='test_embedding')
 
   # The class variables should not be included. The embedding name should be included.
-  assert signal.dict(exclude_unset=True) == {
+  assert signal.dict() == {
       'signal_name': 'test_embedding_signal',
       'query': 'test',
       'embedding': TEST_EMBEDDING_NAME
@@ -89,4 +89,4 @@ def test_non_embedding_signal_serialization() -> None:
   signal = TestSignal(query='test')
 
   # The class variables should not be included.
-  assert signal.dict(exclude_unset=True) == {'signal_name': 'test_signal', 'query': 'test'}
+  assert signal.dict() == {'signal_name': 'test_signal', 'query': 'test', 'embedding': None}

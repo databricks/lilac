@@ -35,20 +35,32 @@ class Signal(abc.ABC, BaseModel):
   def __init__(self, *args: Any, **kwargs: Any) -> None:
     super().__init__(*args, **kwargs)
 
-    if 'name' not in self.__class__.__dict__:
-      raise ValueError('Signal attribute "name" must be defined.')
-
-    if self.__class__.embedding_based and not self.embedding:
-      raise ValueError(
-          'Signal attribute "embedding" must be defined for "embedding_based" signals.')
-
     if self.embedding:
       if isinstance(self.embedding, str):
         self._embed_fn = get_embedding_cls(self.embedding)()
       else:
         self._embed_fn = self.embedding
 
-    self.signal_name = self.__class__.name
+  @validator('signal_name', pre=True, always=True)
+  def validate_signal_name(cls, signal_name: str) -> str:
+    """Return the static name when the signal name hasn't yet been set."""
+    # When it's already been set from JSON, just return it.
+    if signal_name != 'signal_base':
+      return signal_name
+
+    if 'name' not in cls.__dict__:
+      raise ValueError('Signal attribute "name" must be defined.')
+
+    return cls.name
+
+  @validator('embedding', always=True)
+  def validate_embedding(cls, embedding: Optional[EmbeddingId]) -> Optional[EmbeddingId]:
+    """Return the static name when the signal name hasn't yet been set."""
+    if cls.embedding_based and not embedding:
+      raise ValueError(
+          'Signal attribute "embedding" must be defined for "embedding_based" signals.')
+
+    return embedding
 
   @abc.abstractmethod
   def fields(self, input_column: Path) -> Field:

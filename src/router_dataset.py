@@ -27,8 +27,8 @@ from .utils import DATASETS_DIR_NAME
 
 router = APIRouter(route_class=RouteErrorHandler)
 
-register_default_embeddings()
 register_default_signals()
+register_default_embeddings()
 
 
 class DatasetInfo(BaseModel):
