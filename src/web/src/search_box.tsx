@@ -661,10 +661,8 @@ function ComputeEmbeddingIndexAccept({
   }
   const dispatch = useAppDispatch();
 
-  const [
-    computeEmbedding,
-    {isLoading: isComputeEmbeddingLoading, isSuccess: isComputeEmbeddingSuccess},
-  ] = useComputeEmbeddingIndexMutation();
+  const [computeEmbedding, {isLoading: isComputeEmbeddingLoading}] =
+    useComputeEmbeddingIndexMutation();
 
   const query = useGetStatsQuery({
     namespace,
