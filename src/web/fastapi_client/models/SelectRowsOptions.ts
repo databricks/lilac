@@ -9,9 +9,9 @@ import type { SortOrder } from './SortOrder';
  * The request for the select rows endpoint.
  */
 export type SelectRowsOptions = {
-    columns?: Array<string>;
+    columns?: Array<Array<(string | number)>>;
     filters?: Array<Filter>;
-    sort_by?: Array<string>;
+    sort_by?: Array<Array<(string | number)>>;
     sort_order?: SortOrder;
     limit?: number;
     offset?: number;

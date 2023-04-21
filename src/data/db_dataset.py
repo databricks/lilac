@@ -302,7 +302,7 @@ class DatasetDB(abc.ABC):
   def select_rows(self,
                   columns: Optional[Sequence[ColumnId]] = None,
                   filters: Optional[Sequence[FilterLike]] = None,
-                  sort_by: Optional[list[str]] = None,
+                  sort_by: Optional[Sequence[Path]] = None,
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
                   limit: Optional[int] = 100,
                   offset: Optional[int] = 0) -> SelectRowsResult:

@@ -1,7 +1,10 @@
 import {EnrichmentType, Field} from '../../fastapi_client';
 import {Path} from '../schema';
 
-export function getLeafsByEnrichmentType(leafs: [Path, Field][], enrichmentType: EnrichmentType) {
+export function getLeafsByEnrichmentType(leafs: [Path, Field][], enrichmentType?: EnrichmentType) {
+  if (enrichmentType == null) {
+    return leafs;
+  }
   if (enrichmentType !== 'text') {
     throw new Error(`Unsupported enrichment type: ${enrichmentType}`);
   }

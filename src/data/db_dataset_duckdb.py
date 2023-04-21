@@ -679,7 +679,7 @@ class DatasetDuckDB(DatasetDB):
   def select_rows(self,
                   columns: Optional[Sequence[ColumnId]] = None,
                   filters: Optional[Sequence[FilterLike]] = None,
-                  sort_by: Optional[Sequence[str]] = None,
+                  sort_by: Optional[Sequence[Path]] = None,
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
                   limit: Optional[int] = None,
                   offset: Optional[int] = 0) -> SelectRowsResult:
@@ -703,6 +703,7 @@ class DatasetDuckDB(DatasetDB):
       query = query.filter(' AND '.join(filter_queries))
 
     if sort_by:
+      sort_by = [normalize_path(path) for path in sort_by]
       for sort_by_alias in sort_by:
         if sort_by_alias not in col_aliases:
           raise ValueError(

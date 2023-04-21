@@ -11,6 +11,7 @@ import {
   Field,
   Filter,
   NamedBins,
+  SortOrder,
   StatsResult,
   TaskManifest,
   TasksService,
@@ -43,10 +44,22 @@ interface ActiveDatasetState {
   } | null;
 
   browser: {
+    // Selects.
     /** A list of paths to preview as "media" in the gallery item. */
     selectedMediaPaths?: Path[];
     /** A list of paths to preview as metadata (non-media) in the gallery item .*/
     selectedMetadataPaths?: Path[];
+
+    // Filters.
+
+    // Order.
+    sort?: {
+      /** The column to sort by. */
+      by: Path[];
+      /** The order to sort, ASC or DESC. */
+      order: SortOrder;
+    } | null;
+
     /** Row height when in list view (spreadsheet-like table). */
     rowHeightListPx: number;
   };
@@ -79,6 +92,9 @@ const appSlice = createSlice({
     },
     setSelectedMetadataPaths(state, action: PayloadAction<Path[]>) {
       state.activeDataset.browser.selectedMetadataPaths = action.payload;
+    },
+    setSort(state, action: PayloadAction<{by: Path[]; order: SortOrder} | null>) {
+      state.activeDataset.browser.sort = action.payload;
     },
     setRowHeightListPx(state, action: PayloadAction<number>) {
       state.activeDataset.browser.rowHeightListPx = action.payload;
@@ -145,6 +161,7 @@ export const {
   setTasksPanelOpen,
   setSelectedMediaPaths,
   setSelectedMetadataPaths,
+  setSort,
   setRowHeightListPx,
 } = appSlice.actions;
 
@@ -171,16 +188,29 @@ export function useGetIds(
   namespace: string,
   datasetName: string,
   limit: number,
-  offset: number
+  offset: number,
+  sortBy?: Path[],
+  sortOrder?: SortOrder
 ): {isFetching: boolean; ids: string[] | null; error?: unknown} {
   const filters: Filter[] = [];
   /** Select only the UUID column. */
-  const columns: string[] = [UUID_COLUMN];
+  const columns: Path[] = [[UUID_COLUMN]];
   const {
     isFetching,
     currentData: items,
     error,
-  } = useSelectRowsQuery({namespace, datasetName, options: {filters, columns, limit, offset}});
+  } = useSelectRowsQuery({
+    namespace,
+    datasetName,
+    options: {
+      filters,
+      columns,
+      limit,
+      offset,
+      sort_by: sortBy,
+      sort_order: sortOrder,
+    },
+  });
   let ids: string[] | null = null;
   if (items) {
     ids = items.map((item) => item[UUID_COLUMN] as string);

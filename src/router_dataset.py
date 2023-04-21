@@ -1,6 +1,6 @@
 """Router for the dataset database."""
 import os
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from fastapi import APIRouter, Response
 from pydantic import BaseModel, validator
@@ -177,9 +177,9 @@ def get_stats(namespace: str, dataset_name: str, options: GetStatsOptions) -> St
 
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
-  columns: Optional[list[str]]
-  filters: Optional[list[Filter]]
-  sort_by: Optional[list[str]]
+  columns: Optional[Sequence[PathTuple]]
+  filters: Optional[Sequence[Filter]]
+  sort_by: Optional[Sequence[PathTuple]]
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int]
   offset: Optional[int]
@@ -190,6 +190,7 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   """Select rows from the dataset database."""
   db = get_dataset_db(namespace, dataset_name)
 
+  print('select rows options', options)
   items = list(
       db.select_rows(columns=options.columns,
                      filters=options.filters,

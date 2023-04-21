@@ -9,13 +9,13 @@ import {Item} from './item_selector';
 import {getLeafsByEnrichmentType} from './search_box_utils';
 
 export function ColumnSelector({
+  onSelect,
   leafFilter,
   enrichmentType,
-  onSelect,
 }: {
-  leafFilter: (leaf: [Path, Field], embeddings: string[]) => boolean;
-  enrichmentType: EnrichmentType;
-  onSelect: (path: Path) => void;
+  onSelect: (path: Path, field: Field) => void;
+  leafFilter?: (leaf: [Path, Field], embeddings: string[]) => boolean;
+  enrichmentType?: EnrichmentType;
 }) {
   const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
   if (namespace == null || datasetName == null) {
@@ -45,18 +45,24 @@ export function ColumnSelector({
 
   const inFilterLeafs: [Path, Field][] = [];
   const outFilterLeafs: [Path, Field][] = [];
-  for (const leaf of leafs || []) {
-    if (leafFilter(leaf, pathToEmbeddings[renderPath(leaf[0])])) {
-      inFilterLeafs.push(leaf);
-    } else {
-      outFilterLeafs.push(leaf);
+  if (leafFilter != null) {
+    for (const leaf of leafs || []) {
+      if (leafFilter(leaf, pathToEmbeddings[renderPath(leaf[0])])) {
+        inFilterLeafs.push(leaf);
+      } else {
+        outFilterLeafs.push(leaf);
+      }
     }
+  } else {
+    inFilterLeafs.push(...(leafs || []));
   }
 
   const stats = useGetMultipleStatsQuery(
     {namespace, datasetName, leafPaths: leafs?.map(([path]) => path) || []},
     {skip: schema == null}
   );
+
+  const showAvgLength = enrichmentType == 'text';
 
   return renderQuery(query, () => {
     return (
@@ -68,7 +74,7 @@ export function ColumnSelector({
           <div className="truncate">column</div>
           <div className="flex flex-row items-end justify-items-end text-end">
             <div className="w-24 truncate">count</div>
-            <div className="w-24 truncate">avg length</div>
+            {showAvgLength ? <div className="w-24 truncate">avg length</div> : <></>}
             <div className="w-24 truncate">dtype</div>
           </div>
         </div>
@@ -79,16 +85,20 @@ export function ColumnSelector({
             avgTextLength != null ? Math.round(avgTextLength).toLocaleString() : null;
           const renderedPath = renderPath(path);
           return (
-            <Item key={i} onSelect={() => onSelect(path)}>
+            <Item key={i} onSelect={() => onSelect(path, field)}>
               <div className="flex w-full justify-between">
                 <div className="truncate">{renderedPath}</div>
                 <div className="flex flex-row items-end justify-items-end text-end">
                   <div className="w-24 truncate">
                     {totalCount == null ? <SlSpinner></SlSpinner> : totalCount.toLocaleString()}
                   </div>
-                  <div className="w-24 truncate">
-                    {avgTextLength == null ? <SlSpinner></SlSpinner> : avgTextLengthDisplay}
-                  </div>
+                  {showAvgLength ? (
+                    <div className="w-24 truncate">
+                      {avgTextLength == null ? <SlSpinner></SlSpinner> : avgTextLengthDisplay}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
                   <div className="w-24 truncate">{field.dtype}</div>
                 </div>
               </div>
@@ -102,7 +112,7 @@ export function ColumnSelector({
             avgTextLength != null ? Math.round(avgTextLength).toLocaleString() : null;
           const renderedPath = renderPath(path);
           return (
-            <Item key={i} onSelect={() => onSelect(path)} disabled={true}>
+            <Item key={i} onSelect={() => onSelect(path, field)} disabled={true}>
               <div className="flex w-full justify-between opacity-50">
                 <div className="truncate">{renderedPath}</div>
                 <div className="flex flex-row items-end justify-items-end text-end">

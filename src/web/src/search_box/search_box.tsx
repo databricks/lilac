@@ -9,17 +9,16 @@ import {
 import {Command} from 'cmdk';
 import * as React from 'react';
 import {Location, useLocation, useNavigate, useParams} from 'react-router-dom';
-import {ConceptInfo, EmbeddingInfo, Field, SignalInfo} from '../../fastapi_client';
+import {ConceptInfo, EmbeddingInfo, Field, SignalInfo, SortOrder} from '../../fastapi_client';
 import {useAppDispatch} from '../hooks';
-import {Path, Schema, serializePath} from '../schema';
+import {Path} from '../schema';
 import {
   useComputeEmbeddingIndexMutation,
   useComputeSignalColumnMutation,
   useGetDatasetsQuery,
-  useGetManifestQuery,
   useGetStatsQuery,
 } from '../store/api_dataset';
-import {setActiveConcept, setTasksPanelOpen, useTopValues} from '../store/store';
+import {setActiveConcept, setSort, setTasksPanelOpen, useTopValues} from '../store/store';
 import {renderPath, renderQuery, useClickOutside} from '../utils';
 import {ColumnSelector} from './column_selector';
 import {ConceptSelector} from './concept_selector';
@@ -36,6 +35,8 @@ interface PageMetadata {
   'open-dataset': Record<string, never>;
   'add-filter': Record<string, never>;
   'add-filter-value': {path: Path; field: Field};
+  'sort-by': Record<string, never>;
+  'sort-by-order': {path: Path; field: Field};
   'compute-signal': Record<string, never>;
   'compute-signal-column': {signal: SignalInfo};
   'compute-embedding-index': Record<string, never>;
@@ -54,8 +55,10 @@ interface PageMetadata {
 
 const PAGE_SEARCH_TITLE: Record<PageType, string> = {
   'open-dataset': 'Select a dataset',
-  'add-filter': 'Add filter',
-  'add-filter-value': 'Add filter value',
+  'add-filter': 'select column',
+  'add-filter-value': 'select value',
+  'sort-by': 'select column',
+  'sort-by-order': 'select order',
   'compute-signal': 'compute signal',
   'compute-signal-column': 'compute signal',
   'compute-embedding-index': 'select embedding',
@@ -204,7 +207,17 @@ export const SearchBox = () => {
               {activePage?.type == null && <Command.Empty>No results found.</Command.Empty>}
               {isHome && <HomeMenu pushPage={pushPage} location={location} closeMenu={closeMenu} />}
               {activePage?.type == 'open-dataset' && <Datasets closeMenu={closeMenu} />}
-              {activePage?.type == 'add-filter' && <AddFilter pushPage={pushPage} />}
+              {activePage?.type == 'add-filter' && (
+                <ColumnSelector
+                  onSelect={(path, field) => {
+                    pushPage({
+                      type: 'add-filter-value',
+                      name: renderPath(path),
+                      metadata: {path, field},
+                    });
+                  }}
+                ></ColumnSelector>
+              )}
               {activePage?.type == 'add-filter-value' && (
                 <AddFilterValue
                   inputValue={inputValue}
@@ -212,9 +225,30 @@ export const SearchBox = () => {
                   page={activePage as Page<'add-filter-value'>}
                 />
               )}
+              {/* Viewer controls */}
+              {activePage?.type == 'sort-by' && (
+                <ColumnSelector
+                  onSelect={(path, field) => {
+                    pushPage({
+                      type: 'sort-by-order',
+                      name: renderPath(path),
+                      metadata: {path, field},
+                    });
+                  }}
+                ></ColumnSelector>
+              )}
+              {activePage?.type == 'sort-by-order' && (
+                <SortByOrder
+                  onSelect={(order) => {
+                    const by = (activePage as Page<'sort-by-order'>).metadata!.path;
+                    dispatch(setSort({by: [by], order}));
+                    closeMenu();
+                  }}
+                ></SortByOrder>
+              )}
               {/*
-                  Edit a concept.
-                  Concept => Embedding => Column setup
+                Edit a concept.
+                Concept => Embedding => Column setup
                */}
               {activePage?.type == 'edit-concept' && (
                 <ConceptSelector
@@ -365,6 +399,16 @@ function HomeMenu({
           <Item>
             <SlIcon className="text-xl" name="database" />
             Remove filter
+          </Item>
+        </Command.Group>
+      )}
+
+      {/* Viewer controls */}
+      {datasetSelected && (
+        <Command.Group heading="Viewer">
+          <Item onSelect={() => pushPage({type: 'sort-by', name: 'Sort by'})}>
+            <SlIcon className="text-xl" name="sort-down" />
+            Sort by
           </Item>
         </Command.Group>
       )}
@@ -528,31 +572,13 @@ function AddFilterValue({
   );
 }
 
-function AddFilter({pushPage}: {pushPage: (page: Page) => void}) {
-  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
-  if (namespace == null || datasetName == null) {
-    throw new Error('Invalid route');
-  }
-  const {isFetching, currentData: webManifest} = useGetManifestQuery({namespace, datasetName});
-  if (isFetching || webManifest == null) {
-    return <SlSpinner />;
-  }
-  const schema = new Schema(webManifest.dataset_manifest.data_schema);
-  const items = schema.leafs.map(([path, field]) => {
-    const pathKey = serializePath(path);
-    const pathStr = renderPath(path);
-    return (
-      <Item
-        key={pathKey}
-        onSelect={() => {
-          pushPage({type: 'add-filter-value', name: pathStr, metadata: {path, field}});
-        }}
-      >
-        {pathStr}
-      </Item>
-    );
-  });
-  return <>{items}</>;
+function SortByOrder({onSelect}: {onSelect: (sortOrder: SortOrder) => void}) {
+  return (
+    <>
+      <Item onSelect={() => onSelect('ASC')}>ascending</Item>
+      <Item onSelect={() => onSelect('DESC')}>descending</Item>
+    </>
+  );
 }
 
 function ComputeEmbeddingIndexAccept({

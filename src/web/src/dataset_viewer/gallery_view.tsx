@@ -9,6 +9,7 @@ import {
   setActiveConcept,
   setSelectedMediaPaths,
   setSelectedMetadataPaths,
+  setSort,
   useGetIds,
 } from '../store/store';
 import {renderPath} from '../utils';
@@ -30,13 +31,17 @@ const AVG_ITEM_WIDTH_PX = 500;
  */
 function useInfiniteItemsQuery(namespace: string, datasetName: string) {
   const datasetId = `${namespace}/${datasetName}`;
+  const sort = useAppSelector((state) => state.app.activeDataset.browser.sort);
+
   const [prevIds, setPrevIds] = React.useState<{[datasetId: string]: string[]}>({});
   const cachedIds = prevIds[datasetId] || [];
   const {error, isFetching, ids} = useGetIds(
     namespace,
     datasetName,
     ITEMS_PAGE_SIZE,
-    cachedIds.length
+    cachedIds.length,
+    sort?.by,
+    sort?.order
   );
   const allIds = cachedIds.concat(ids || []);
   const hasNextPage = ids == null || ids.length === ITEMS_PAGE_SIZE;
@@ -95,6 +100,7 @@ export const GalleryMenu = React.memo(function GalleryMenu({
         onSelectedPathsChanged={(paths) => dispatch(setSelectedMetadataPaths(paths))}
       />
       <ActiveConceptLegend></ActiveConceptLegend>
+      <SortMenu></SortMenu>
     </div>
   );
 });
@@ -166,21 +172,46 @@ function ActiveConceptLegend(): JSX.Element {
   const dispatch = useAppDispatch();
 
   const activeConcept = useAppSelector((state) => state.app.activeDataset.activeConcept);
-  if (activeConcept == null) {
-    return (
-      <div className="w-48">
-        <div className="text-sm font-light opacity-40">No active concept.</div>
-      </div>
-    );
-  }
   return (
-    <div className="relative w-48 bg-yellow-100 p-2 text-xs opacity-60">
-      <div className="absolute right-0 top-0 p-1">
-        <SlIconButton name="X" onClick={() => dispatch(setActiveConcept(null))} />
-      </div>
-      <div className="font-light">"{activeConcept.concept.name}" concept</div>
-      <div className="font-light">"{renderPath(activeConcept.column)}" column</div>
-      <div className="font-light">"{activeConcept.embedding.name}" embedding</div>
+    <div
+      className={`relative w-48   p-2 text-xs opacity-60
+      ${activeConcept != null ? 'bg-yellow-100' : ''}`}
+    >
+      {activeConcept == null ? (
+        <div className="text-sm font-light opacity-40">No active concept.</div>
+      ) : (
+        <>
+          <div className="absolute right-0 top-0 p-1">
+            <SlIconButton name="X" onClick={() => dispatch(setActiveConcept(null))} />
+          </div>
+          <div className="font-light">"{activeConcept.concept.name}" concept</div>
+          <div className="font-light">"{renderPath(activeConcept.column)}" column</div>
+          <div className="font-light">"{activeConcept.embedding.name}" embedding</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SortMenu(): JSX.Element {
+  const dispatch = useAppDispatch();
+
+  const sort = useAppSelector((state) => state.app.activeDataset.browser.sort);
+  const sortByDisplay = sort?.by.map((p) => `"${renderPath(p)}"`).join(' > ');
+  return (
+    <div className="relative w-48 p-2 text-xs opacity-60">
+      {sort == null ? (
+        <div className="text-sm font-light opacity-40">No active sort.</div>
+      ) : (
+        <>
+          <div className="absolute right-0 top-0 p-1">
+            <SlIconButton name="X" onClick={() => dispatch(setSort(null))} />
+          </div>
+          <div className="font-light">
+            sort by {sortByDisplay} {sort.order}
+          </div>
+        </>
+      )}
     </div>
   );
 }

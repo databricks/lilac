@@ -1,15 +1,11 @@
 import {SlButton, SlDrawer, SlOption, SlRange, SlSelect} from '@shoelace-style/shoelace/dist/react';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import * as React from 'react';
-import {DataType, Field, Filter, StatsResult, WebManifest} from '../../fastapi_client';
+import {DataType, Field, StatsResult, WebManifest} from '../../fastapi_client';
 import {useAppDispatch, useAppSelector} from '../hooks';
-import {Path, Schema, serializePath, UUID_COLUMN} from '../schema';
-import {
-  useGetManifestQuery,
-  useGetMultipleStatsQuery,
-  useSelectRowsQuery,
-} from '../store/api_dataset';
-import {setRowHeightListPx, setSelectedMediaPaths} from '../store/store';
+import {Path, Schema, serializePath} from '../schema';
+import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/api_dataset';
+import {setRowHeightListPx, setSelectedMediaPaths, useGetIds} from '../store/store';
 import {renderPath} from '../utils';
 import styles from './browser.module.css';
 import {ItemPreview} from './item_preview';
@@ -22,40 +18,23 @@ export interface BrowserProps {
 /** Number of items to be fetched when fetching the next page. */
 const ITEMS_PAGE_SIZE = 90;
 
-function useGetIds(
-  namespace: string,
-  datasetName: string,
-  limit: number,
-  offset: number
-): {isFetching: boolean; ids: string[]; error?: unknown} {
-  const filters: Filter[] = [];
-  /** Select only the UUID column. */
-  const columns: string[] = [UUID_COLUMN];
-  const {
-    isFetching,
-    currentData: items,
-    error,
-  } = useSelectRowsQuery({namespace, datasetName, options: {filters, columns, limit, offset}});
-  let ids: string[] = [];
-  if (items) {
-    ids = items.map((item) => item[UUID_COLUMN] as string);
-  }
-  return {isFetching, ids, error};
-}
-
 /**
  * A hook that allows for infinite fetch with paging. The hook exports fetchNextPage which should
  * be called by users to fetch the next page.
  */
 function useInfiniteItemsQuery(namespace: string, datasetName: string) {
   const datasetId = `${namespace}/${datasetName}`;
+  const sort = useAppSelector((state) => state.app.activeDataset.browser.sort);
+
   const [prevIds, setPrevIds] = React.useState<{[datasetId: string]: string[]}>({});
   const cachedIds = prevIds[datasetId] || [];
   const {error, isFetching, ids} = useGetIds(
     namespace,
     datasetName,
     ITEMS_PAGE_SIZE,
-    cachedIds.length
+    cachedIds.length,
+    sort?.by,
+    sort?.order
   );
   const allIds = cachedIds.concat(ids || []);
   const hasNextPage = ids == null || ids.length === ITEMS_PAGE_SIZE;
