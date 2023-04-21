@@ -190,7 +190,6 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   """Select rows from the dataset database."""
   db = get_dataset_db(namespace, dataset_name)
 
-  print('select rows options', options)
   items = list(
       db.select_rows(columns=options.columns,
                      filters=options.filters,

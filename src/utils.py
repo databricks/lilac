@@ -32,7 +32,7 @@ DATASETS_DIR_NAME = 'datasets'
 
 @functools.cache
 def _get_storage_client(thread_id: Optional[int] = None) -> Client:
-  # The storage client is not thread safe so we  use a thread_id to make sure each thread gets a
+  # The storage client is not thread safe so we use a thread_id to make sure each thread gets a
   # separate storage client.
   del thread_id
   return Client()

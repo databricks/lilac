@@ -1,4 +1,11 @@
-import {SlIconButton, SlOption, SlSelect} from '@shoelace-style/shoelace/dist/react';
+import {
+  SlIcon,
+  SlIconButton,
+  SlOption,
+  SlSelect,
+  SlTag,
+  SlTooltip,
+} from '@shoelace-style/shoelace/dist/react';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import * as React from 'react';
 import {Field, StatsResult, WebManifest} from '../../fastapi_client';
@@ -174,7 +181,7 @@ function ActiveConceptLegend(): JSX.Element {
   const activeConcept = useAppSelector((state) => state.app.activeDataset.activeConcept);
   return (
     <div
-      className={`relative w-48   p-2 text-xs opacity-60
+      className={`relative m-auto w-48 p-2 text-xs opacity-60
       ${activeConcept != null ? 'bg-yellow-100' : ''}`}
     >
       {activeConcept == null ? (
@@ -197,20 +204,27 @@ function SortMenu(): JSX.Element {
   const dispatch = useAppDispatch();
 
   const sort = useAppSelector((state) => state.app.activeDataset.browser.sort);
-  const sortByDisplay = sort?.by.map((p) => `"${renderPath(p)}"`).join(' > ');
+  const sortByDisplay = sort?.by.map((p) => renderPath(p)).join(' > ');
   return (
-    <div className="relative w-48 p-2 text-xs opacity-60">
+    <div className="m-auto w-36 text-xs">
       {sort == null ? (
         <div className="text-sm font-light opacity-40">No active sort.</div>
       ) : (
-        <>
-          <div className="absolute right-0 top-0 p-1">
-            <SlIconButton name="X" onClick={() => dispatch(setSort(null))} />
+        <div className="flex flex-col font-light">
+          <div className="mb-1">Sorted by</div>
+          <div>
+            <SlTooltip content={`Sorted by "${sortByDisplay}" ${sort.order}.`}>
+              <SlTag size="medium" pill removable onSlRemove={() => dispatch(setSort(null))}>
+                <div className="flex flex-row">
+                  <div className={`flex w-5 items-center ${styles.sort_icon}`}>
+                    <SlIcon name={sort.order === 'DESC' ? 'sort-down' : 'sort-up'}></SlIcon>
+                  </div>
+                  <div>{sortByDisplay}</div>
+                </div>
+              </SlTag>
+            </SlTooltip>
           </div>
-          <div className="font-light">
-            sort by {sortByDisplay} {sort.order}
-          </div>
-        </>
+        </div>
       )}
     </div>
   );
