@@ -62,5 +62,10 @@
   "python.analysis.indexing": true,
   "python.analysis.useLibraryCodeForTypes": true,
   "python.analysis.extraPaths": ["src"],
-  "python.analysis.include": ["src"]
+  "python.analysis.include": ["src"],
+  "notebook.output.textLineLimit": 200,
+  "notebook.output.scrolling": true,
+  "notebook.lineNumbers": "on",
+  "notebook.formatOnSave.enabled": true,
+  "jupyter.notebookFileRoot": "${workspaceFolder}"
 }

@@ -58,6 +58,8 @@ pytest-asyncio = "^0.20.2"
 types-Pillow = "^9.3.0.4"
 types-tqdm = "^4.65.0.0"
 watchdog = {extras = ["watchmedo"], version = "^3.0.0"}
+notebook = "^6.5.4"
+matplotlib = "^3.7.1"
 
 [tool.poetry.scripts]
 

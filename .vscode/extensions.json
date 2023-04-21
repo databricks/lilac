@@ -13,7 +13,8 @@
     "bungcip.better-toml",
     "breadnaught.vscode-ignore",
     "MS-vsliveshare.vsliveshare",
-    "charliermarsh.ruff"
+    "charliermarsh.ruff",
+    "ms-toolsai.jupyter"
   ],
   // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
   "unwantedRecommendations": []
