@@ -1025,7 +1025,7 @@ files = [
 name = "decorator"
 version = "5.1.1"
 description = "Decorators for Humans"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.5"
 files = [
@@ -1498,6 +1498,31 @@ files = [
     {file = "gast-0.4.0-py3-none-any.whl", hash = "sha256:b7adcdd5adbebf1adf17378da5ba3f543684dbec47b1cda1f3997e573cd542c4"},
     {file = "gast-0.4.0.tar.gz", hash = "sha256:40feb7b8b8434785585ab224d1568b857edb18297e5a3047f1ba012bc83b42c1"},
 ]
+
+[[package]]
+name = "gcsfs"
+version = "2023.4.0"
+description = "Convenient Filesystem interface over GCS"
+category = "main"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "gcsfs-2023.4.0-py2.py3-none-any.whl", hash = "sha256:53d087fc7327af4b1684cbb29e513215b5b8af5ff4029bbf81a29230cf45c911"},
+    {file = "gcsfs-2023.4.0.tar.gz", hash = "sha256:30fc1ab3b9c14eae678d3258df43520b5dd750ea92d9e2fa67cefb34f2cbd041"},
+]
+
+[package.dependencies]
+aiohttp = "<4.0.0a0 || >4.0.0a0,<4.0.0a1 || >4.0.0a1"
+decorator = ">4.1.2"
+fsspec = "2023.4.0"
+google-auth = ">=1.2"
+google-auth-oauthlib = "*"
+google-cloud-storage = "*"
+requests = "*"
+
+[package.extras]
+crc = ["crcmod"]
+gcsfuse = ["fusepy"]
 
 [[package]]
 name = "google-api-core"
@@ -6291,4 +6316,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.9"
-content-hash = "c09ee73534c4d550f56f638ecebd85a4ae164f463047432292675d465a3c2a7f"
+content-hash = "e70af287aafd9af84721f273835ec8d882815a03fec545d4c14cde14cfaf748e"

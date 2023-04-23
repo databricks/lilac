@@ -100,13 +100,33 @@ class Transform(BaseModel):
   pass
 
 
+class ConceptTransform(Transform):
+  """Computes a concept transformation over a field."""
+  namespace: str
+  concept_name: str
+  embedding_name: str
+
+
+class BucketizeTransform(Transform):
+  """Bucketizes the input float into descrete integer buckets."""
+  bins: list[float]
+
+
+class SignalTransform(Transform):
+  """Computes a signal transformation over a field."""
+  signal: Signal
+
+
 class Column(BaseModel):
   """A column in the dataset DB."""
   feature: PathTuple
   alias: str  # This is the renamed column during querying and response.
 
   # Defined when the feature is another column.
-  transform: Optional[Transform]
+  transform: Optional[Union[ConceptTransform, BucketizeTransform, SignalTransform]] = None
+
+  class Config:
+    smart_union = True
 
   def __init__(self,
                feature: Path,
@@ -172,23 +192,6 @@ def column_from_identifier(column: ColumnId) -> Column:
     result.feature = (result.feature,)
 
   return result
-
-
-class ConceptTransform(Transform):
-  """Computes a concept transformation over a field."""
-  namespace: str
-  concept_name: str
-  embedding_name: str
-
-
-class BucketizeTransform(Transform):
-  """Bucketizes the input float into descrete integer buckets."""
-  bins: list[float]
-
-
-class SignalTransform(Transform):
-  """Computes a signal transformation over a field."""
-  signal: Signal
 
 
 def Bucketize(column: ColumnId, bins: list[float]) -> Column:

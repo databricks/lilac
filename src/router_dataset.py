@@ -8,6 +8,7 @@ from pydantic import BaseModel, validator
 from .constants import data_path
 from .data.db_dataset import (
     Bins,
+    ColumnId,
     DatasetManifest,
     Filter,
     GroupsSortBy,
@@ -177,7 +178,7 @@ def get_stats(namespace: str, dataset_name: str, options: GetStatsOptions) -> St
 
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
-  columns: Optional[Sequence[PathTuple]]
+  columns: Optional[Sequence[ColumnId]]
   filters: Optional[Sequence[Filter]]
   sort_by: Optional[Sequence[PathTuple]]
   sort_order: Optional[SortOrder] = SortOrder.DESC
