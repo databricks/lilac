@@ -31,4 +31,4 @@ class Cohere(Embedding):
   def __call__(self, data: Iterable[RichData]) -> np.ndarray:
     """Call the embedding function."""
     return normalize(np.array(_cohere().embed(list(data),
-                                              truncate='START').embeddings)).astype(np.float16)
+                                              truncate='END').embeddings)).astype(np.float16)

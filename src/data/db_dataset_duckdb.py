@@ -150,12 +150,6 @@ class SelectLeafsResult(BaseModel):
   value_column: Optional[str]
 
 
-class DuckDBTableInfo(BaseModel):
-  """Internal representation of a DuckDB table."""
-  manifest: DatasetManifest
-  computed_columns: list[ComputedColumn]
-
-
 ColumnEmbedding = tuple[PathTuple, str]
 
 
@@ -194,7 +188,7 @@ class DatasetDuckDB(DatasetDB):
 
   @functools.cache
   # NOTE: This is cached, but when the list of filepaths changed the results are invalidated.
-  def _recompute_joint_table(self, signal_manifest_filepaths: tuple[str]) -> DuckDBTableInfo:
+  def _recompute_joint_table(self, signal_manifest_filepaths: tuple[str]) -> DatasetManifest:
     computed_columns: list[ComputedColumn] = []
 
     # Add the signal column groups.
@@ -246,15 +240,14 @@ class DatasetDuckDB(DatasetDB):
             **{col.top_level_column_name: col.value_field_schema for col in computed_columns}
         })
 
-    manifest = DatasetManifest(namespace=self.namespace,
-                               dataset_name=self.dataset_name,
-                               data_schema=merged_schema,
-                               embedding_manifest=self._embedding_indexer.manifest(),
-                               num_items=num_items)
+    return DatasetManifest(namespace=self.namespace,
+                           dataset_name=self.dataset_name,
+                           data_schema=merged_schema,
+                           embedding_manifest=self._embedding_indexer.manifest(),
+                           num_items=num_items)
 
-    return DuckDBTableInfo(manifest=manifest, computed_columns=computed_columns)
-
-  def _table_info(self) -> DuckDBTableInfo:
+  @override
+  def manifest(self) -> DatasetManifest:
     signal_manifest_filepaths: list[str] = []
     for root, _, files in os.walk(self.dataset_path):
       for file in files:
@@ -262,10 +255,6 @@ class DatasetDuckDB(DatasetDB):
           signal_manifest_filepaths.append(os.path.join(root, file))
 
     return self._recompute_joint_table(tuple(signal_manifest_filepaths))
-
-  @override
-  def manifest(self) -> DatasetManifest:
-    return self._table_info().manifest
 
   def count(self, filters: Optional[list[FilterLike]] = None) -> int:
     """Count the number of rows."""
@@ -496,7 +485,12 @@ class DatasetDuckDB(DatasetDB):
     FROM {from_table}
     {where_query}
     """
-    return SelectLeafsResult(df=self._query_df(query),
+    df = self._query_df(query)
+    # DuckDB returns np.nan for missing field in string column, replace with None for correctness.
+    for col in df.columns:
+      if is_object_dtype(df[col]):
+        df[col].replace(np.nan, None, inplace=True)
+    return SelectLeafsResult(df=df,
                              value_column=value_column_alias,
                              repeated_idxs_col=repeated_indices_col)
 
