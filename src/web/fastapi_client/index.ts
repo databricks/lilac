@@ -41,7 +41,6 @@ export type { SelectGroupsOptions } from './models/SelectGroupsOptions';
 export type { SelectRowsOptions } from './models/SelectRowsOptions';
 export type { Signal } from './models/Signal';
 export type { SignalInfo } from './models/SignalInfo';
-export type { SignalUDFOptions } from './models/SignalUDFOptions';
 export type { SortOrder } from './models/SortOrder';
 export type { SourcesList } from './models/SourcesList';
 export type { StatsResult } from './models/StatsResult';
