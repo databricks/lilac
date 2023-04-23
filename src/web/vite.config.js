@@ -25,7 +25,7 @@ export default defineConfig({
     viteStaticCopy({
       targets: [
         {
-          src: path.resolve(__dirname, './node_modules/@shoelace-style/shoelace/dist/assets'),
+          src: path.resolve(__dirname, '../../node_modules/@shoelace-style/shoelace/dist/assets'),
           dest: 'static/shoelace',
         },
       ],
