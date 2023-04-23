@@ -10,7 +10,7 @@ export interface ImageInfo {
   path: Path;
 }
 
-export type Path = Array<string | number>;
+export type Path = Array<string>;
 
 export const PATH_WILDCARD = '*';
 export const UUID_COLUMN = '__rowid__';

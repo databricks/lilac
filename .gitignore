@@ -18,3 +18,4 @@ dist/
 # Data to ignore.
 gcs_cache/datasets
 gcs_cache/local_cache
+gcs_cache/**/*.pkl

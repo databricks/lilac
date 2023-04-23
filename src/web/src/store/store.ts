@@ -6,7 +6,9 @@ import {configureStore, createSlice, isRejectedWithValue, PayloadAction} from '@
 import {createApi} from '@reduxjs/toolkit/query/react';
 import {createRoot} from 'react-dom/client';
 import {
+  Column,
   ConceptInfo,
+  ConceptTransform,
   EmbeddingInfo,
   Field,
   Filter,
@@ -19,6 +21,7 @@ import {
 import {getEqualBins, getNamedBins, NUM_AUTO_BINS, TOO_MANY_DISTINCT} from '../db';
 import {isOrdinal, isTemporal, Item, LeafValue, Path, UUID_COLUMN} from '../schema';
 
+import {useAppSelector} from '../hooks';
 import {renderError} from '../utils';
 import {conceptApi} from './api_concept';
 import {
@@ -193,8 +196,26 @@ export function useGetIds(
   sortOrder?: SortOrder
 ): {isFetching: boolean; ids: string[] | null; error?: unknown} {
   const filters: Filter[] = [];
-  /** Select only the UUID column. */
-  const columns: Path[] = [[UUID_COLUMN], ...(sortBy ?? [])];
+  /** Always select the UUID column and sort by column. */
+  let columns: (Column | string[])[] = [[UUID_COLUMN]];
+  if (sortBy != null) {
+    columns = [...columns, ...sortBy];
+  }
+  const activeConcept = useAppSelector((state) => state.app.activeDataset.activeConcept);
+  let conceptColumn: Column | null = null;
+  if (activeConcept != null) {
+    const transform: ConceptTransform = {
+      namespace: activeConcept.concept.namespace,
+      concept_name: activeConcept.concept.name,
+      embedding_name: activeConcept.embedding.name,
+    };
+    conceptColumn = {feature: activeConcept.column, transform, alias: 'activeConcept'};
+    columns = [...columns, conceptColumn];
+    if (sortBy == null) {
+      // If no sort is specified, sort by the active concept.
+      sortBy = [['activeConcept']];
+    }
+  }
   const {
     isFetching,
     currentData: items,

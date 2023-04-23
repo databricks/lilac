@@ -3,7 +3,7 @@ from typing import Iterable, Literal, Optional, Union
 
 import numpy as np
 from pydantic import BaseModel
-from sklearn import linear_model
+from sklearn.linear_model import LogisticRegression
 
 from ..embeddings.embedding_registry import get_embedding_cls
 from ..schema import RichData
@@ -65,8 +65,10 @@ class ConceptModel(BaseModel):
 
   # The following fields are excluded from JSON serialization, but still pickleable.
   _embeddings: dict[str, np.ndarray] = {}
-  _model: linear_model.LogisticRegression = linear_model.LogisticRegression(solver='liblinear',
-                                                                            class_weight='balanced')
+  _model: LogisticRegression = LogisticRegression(class_weight='balanced',
+                                                  C=30,
+                                                  warm_start=True,
+                                                  max_iter=1_000)
 
   def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""

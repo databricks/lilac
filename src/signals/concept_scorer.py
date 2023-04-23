@@ -47,7 +47,7 @@ class ConceptScoreSignal(Signal):
 
     if data:
       scores: Iterable[float] = concept_model.score(data)
-    elif keys:
+    else:
       if not vector_store:
         raise ValueError(
             '"vector_store" is required in ConceptScoreSignal.compute() when passing "keys"')

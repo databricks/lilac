@@ -12,7 +12,7 @@ from typing_extensions import override
 from ..constants import data_path
 from ..embeddings.embedding_registry import get_embedding_cls
 from ..schema import EnrichmentType
-from ..utils import delete_file, file_exists, open_file
+from ..utils import DebugTimer, delete_file, file_exists, open_file
 from .concept import Concept, ConceptModel, Example, ExampleIn
 
 CONCEPT_JSON_FILENAME = 'concept.json'
@@ -93,7 +93,10 @@ class ConceptModelDB(abc.ABC):
     if not concept:
       raise ValueError(
           f'Concept "{concept_model.namespace}/{concept_model.concept_name}" does not exist.')
-    model_updated = concept_model.sync(concept)
+    concept_path = (f'{concept_model.namespace}/{concept_model.concept_name}/'
+                    f'{concept_model.embedding_name}')
+    with DebugTimer(f'Syncing concept model "{concept_path}"'):
+      model_updated = concept_model.sync(concept)
     self._save(concept_model)
     return model_updated
 
