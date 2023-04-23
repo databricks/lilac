@@ -175,13 +175,6 @@ def get_stats(namespace: str, dataset_name: str, options: GetStatsOptions) -> St
   return dataset_db.stats(options.leaf_path)
 
 
-class SignalUDFOptions(BaseModel):
-  """The rest API for computing a UDF with a signal."""
-  signal: Signal
-  path: PathTuple
-  alias: str
-
-
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
   columns: Optional[Sequence[PathTuple]]
