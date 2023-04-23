@@ -33,7 +33,7 @@ export const DatasetLoader = (): JSX.Element => {
   const sourceSchema = useGetSourceSchemaQuery({sourceName: sourceName!}, {skip: sourceName == ''});
 
   const sourcesSelect = renderQuery(sources, (sources) => (
-    <div className="w-60">
+    <div className="w-60 font-light">
       <SlSelect
         size="medium"
         value={sourceName}
@@ -118,17 +118,14 @@ export const DatasetLoader = (): JSX.Element => {
   }
 
   return (
-    <>
-      <div
-        className={`flex flex-col ${styles.container} h-full overflow-auto rounded bg-slate-50
-          shadow-lg`}
-      >
+    <div className={`h-full overflow-y-scroll ${styles.container}`}>
+      <div className={`mt-2 flex flex-col border border-slate-300 px-4 shadow-lg`}>
         <div className={styles.row}>
-          <div className="text-3xl">Create a dataset</div>
+          <div className="text-2xl font-light">Create a dataset</div>
         </div>
         <div className={styles.row}>
           <div className="justify-left items-left flex flex-grow flex-row">
-            <div className="w-44">
+            <div className="w-44 font-light">
               <SlInput
                 value={namespace}
                 label="namespace"
@@ -139,7 +136,7 @@ export const DatasetLoader = (): JSX.Element => {
             <div className="mx-4">
               <span className="inline-block pt-8 align-text-bottom text-xl">/</span>
             </div>
-            <div className="w-44">
+            <div className="w-44 font-light">
               <SlInput
                 value={datasetName}
                 label="name"
@@ -177,6 +174,6 @@ export const DatasetLoader = (): JSX.Element => {
           ) : null}
         </div>
       </div>
-    </>
+    </div>
   );
 };

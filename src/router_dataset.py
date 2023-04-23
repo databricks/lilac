@@ -11,6 +11,7 @@ from .data.db_dataset import (
     DatasetManifest,
     Filter,
     GroupsSortBy,
+    SignalUDF,
     SortOrder,
     StatsResult,
 )
@@ -175,9 +176,17 @@ def get_stats(namespace: str, dataset_name: str, options: GetStatsOptions) -> St
   return dataset_db.stats(options.leaf_path)
 
 
+class SignalUDFOptions(BaseModel):
+  """The rest API for computing a UDF with a signal."""
+  signal: Signal
+  path: PathTuple
+  alias: str
+
+
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
   columns: Optional[Sequence[PathTuple]]
+  signal_udfs: Optional[Sequence[SignalUDFOptions]]
   filters: Optional[Sequence[Filter]]
   sort_by: Optional[Sequence[PathTuple]]
   sort_order: Optional[SortOrder] = SortOrder.DESC
@@ -190,8 +199,14 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   """Select rows from the dataset database."""
   db = get_dataset_db(namespace, dataset_name)
 
+  column_udfs = [
+      SignalUDF(signal=signal_udf.signal, column=signal_udf.path, alias=signal_udf.alias)
+      for signal_udf in options.signal_udfs or []
+  ]
+  print('col udfs', column_udfs)
+
   items = list(
-      db.select_rows(columns=options.columns,
+      db.select_rows(columns=(options.columns or []) + column_udfs,
                      filters=options.filters,
                      sort_by=options.sort_by,
                      sort_order=options.sort_order,

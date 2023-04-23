@@ -3,7 +3,7 @@
 }
 
 .optional_details::part(header) {
-  padding: var(--sl-spacing-x-small);
+  padding: var(--sl-spacing-3x-small);
 }
 
 .optional_details::part(content) {

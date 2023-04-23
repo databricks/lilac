@@ -1,11 +1,4 @@
-import {
-  SlIcon,
-  SlIconButton,
-  SlOption,
-  SlSelect,
-  SlTag,
-  SlTooltip,
-} from '@shoelace-style/shoelace/dist/react';
+import {SlIcon, SlOption, SlSelect, SlTag, SlTooltip} from '@shoelace-style/shoelace/dist/react';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import * as React from 'react';
 import {Field, StatsResult, WebManifest} from '../../fastapi_client';
@@ -180,21 +173,29 @@ function ActiveConceptLegend(): JSX.Element {
 
   const activeConcept = useAppSelector((state) => state.app.activeDataset.activeConcept);
   return (
-    <div
-      className={`relative m-auto w-48 p-2 text-xs opacity-60
-      ${activeConcept != null ? 'bg-yellow-100' : ''}`}
-    >
+    <div className={`relative m-auto w-48 p-2 text-xs`}>
       {activeConcept == null ? (
         <div className="text-sm font-light opacity-40">No active concept.</div>
       ) : (
-        <>
-          <div className="absolute right-0 top-0 p-1">
-            <SlIconButton name="X" onClick={() => dispatch(setActiveConcept(null))} />
-          </div>
-          <div className="font-light">"{activeConcept.concept.name}" concept</div>
-          <div className="font-light">"{renderPath(activeConcept.column)}" column</div>
-          <div className="font-light">"{activeConcept.embedding.name}" embedding</div>
-        </>
+        <div className="font-light">
+          <div className="mb-1">Active concept</div>
+          <SlTooltip
+            content={
+              `Active concept "${activeConcept.concept.name}" with ` +
+              `embedding "${activeConcept.embedding.name}" ` +
+              `over column "${renderPath(activeConcept.column)}".`
+            }
+          >
+            <SlTag size="medium" pill removable onSlRemove={() => dispatch(setActiveConcept(null))}>
+              <div className="flex flex-row">
+                <div className={`flex w-5 items-center ${styles.sort_icon}`}>
+                  <SlIcon name="stars"></SlIcon>
+                </div>
+                <div>{activeConcept.concept.name}</div>
+              </div>
+            </SlTag>
+          </SlTooltip>
+        </div>
       )}
     </div>
   );

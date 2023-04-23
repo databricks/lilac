@@ -3,6 +3,7 @@
 /* eslint-disable */
 
 import type { Filter } from './Filter';
+import type { SignalUDFOptions } from './SignalUDFOptions';
 import type { SortOrder } from './SortOrder';
 
 /**
@@ -10,6 +11,7 @@ import type { SortOrder } from './SortOrder';
  */
 export type SelectRowsOptions = {
     columns?: Array<Array<(string | number)>>;
+    signal_udfs?: Array<SignalUDFOptions>;
     filters?: Array<Filter>;
     sort_by?: Array<Array<(string | number)>>;
     sort_order?: SortOrder;
