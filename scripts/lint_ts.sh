@@ -5,4 +5,5 @@ echo "Linting typescript & javascript..."
 npm run lint --workspace src/web
 
 echo "Building typescript..."
+cd src/web && npx tsc --noEmit && cd ../..
 npm run build --workspace src/web

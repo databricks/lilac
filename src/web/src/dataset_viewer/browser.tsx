@@ -1,11 +1,11 @@
 import {SlButton, SlDrawer, SlOption, SlRange, SlSelect} from '@shoelace-style/shoelace/dist/react';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import * as React from 'react';
-import {DataType, Field, StatsResult, WebManifest} from '../../fastapi_client';
-import {useAppDispatch, useAppSelector} from '../hooks';
+import {DataType, Field, Filter, StatsResult, WebManifest} from '../../fastapi_client';
+import {useAppDispatch} from '../hooks';
 import {Path, Schema, serializePath} from '../schema';
 import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/api_dataset';
-import {setRowHeightListPx, setSelectedMediaPaths, useGetIds} from '../store/store';
+import {setRowHeightListPx, setSelectedMediaPaths, useDataset, useGetIds} from '../store/store';
 import {renderPath} from '../utils';
 import styles from './browser.module.css';
 import {ItemPreview} from './item_preview';
@@ -24,13 +24,16 @@ const ITEMS_PAGE_SIZE = 90;
  */
 function useInfiniteItemsQuery(namespace: string, datasetName: string) {
   const datasetId = `${namespace}/${datasetName}`;
-  const sort = useAppSelector((state) => state.app.activeDataset.browser.sort);
-
+  const sort = useDataset().browser.sort;
   const [prevIds, setPrevIds] = React.useState<{[datasetId: string]: string[]}>({});
   const cachedIds = prevIds[datasetId] || [];
+  const filters: Filter[] = [];
+  const activeConcept = null;
   const {error, isFetching, ids} = useGetIds(
     namespace,
     datasetName,
+    filters,
+    activeConcept,
     ITEMS_PAGE_SIZE,
     cachedIds.length,
     sort?.by,
@@ -54,6 +57,8 @@ function useInfiniteItemsQuery(namespace: string, datasetName: string) {
 }
 
 export interface BrowserMenuProps {
+  namespace: string;
+  datasetName: string;
   schema: Schema;
   previewPaths: Path[];
   rowHeightListPx: number;
@@ -67,6 +72,8 @@ interface VisualLeaf {
 export const IMAGE_PATH_PREFIX = '__image__';
 
 export const BrowserMenu = React.memo(function BrowserMenu({
+  namespace,
+  datasetName,
   schema,
   previewPaths,
   rowHeightListPx,
@@ -106,11 +113,11 @@ export const BrowserMenu = React.memo(function BrowserMenu({
       return;
     }
     const paths = indices.map((index) => leafs[Number(index)][0]);
-    dispatch(setSelectedMediaPaths(paths));
+    dispatch(setSelectedMediaPaths({namespace, datasetName, paths}));
   };
 
   const rowHeightListChanged = (newRowHeightPx: number) => {
-    dispatch(setRowHeightListPx(newRowHeightPx));
+    dispatch(setRowHeightListPx({namespace, datasetName, height: newRowHeightPx}));
   };
 
   return (
@@ -217,7 +224,7 @@ export function usePreviewPaths(
       }
     }
   }
-  let previewPaths = useAppSelector((state) => state.app.activeDataset.browser.selectedMediaPaths);
+  let previewPaths = useDataset().browser.selectedMediaPaths;
   const multipleStats = useGetMultipleStatsQuery({namespace, datasetName, leafPaths: stringLeafs});
   previewPaths = React.useMemo(() => {
     if (previewPaths != null) {
@@ -262,9 +269,7 @@ export const Browser = React.memo(function Browser({
   } = useGetManifestQuery({namespace, datasetName});
   const schema = webManifest != null ? new Schema(webManifest.dataset_manifest.data_schema) : null;
   const previewPaths = usePreviewPaths(namespace, datasetName, webManifest, schema);
-  const rowHeightListPx = useAppSelector(
-    (state) => state.app.activeDataset.browser.rowHeightListPx
-  );
+  const rowHeightListPx = useDataset().browser.rowHeightListPx;
   const inGalleryMode = previewPaths.length === 1;
   const rowHeightPx = rowHeightListPx;
 
@@ -348,6 +353,8 @@ export const Browser = React.memo(function Browser({
     <div className="flex h-full w-full flex-col">
       <div className="mb-4">
         <BrowserMenu
+          namespace={namespace}
+          datasetName={datasetName}
           schema={schema}
           previewPaths={previewPaths}
           rowHeightListPx={rowHeightListPx}

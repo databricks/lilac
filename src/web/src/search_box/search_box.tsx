@@ -18,13 +18,7 @@ import {
   useGetDatasetsQuery,
   useGetStatsQuery,
 } from '../store/api_dataset';
-import {
-  setActiveConcept,
-  setDataset,
-  setSort,
-  setTasksPanelOpen,
-  useTopValues,
-} from '../store/store';
+import {setActiveConcept, setSort, setTasksPanelOpen, useTopValues} from '../store/store';
 import {renderPath, renderQuery, useClickOutside} from '../utils';
 import {ColumnSelector} from './column_selector';
 import {ConceptSelector} from './concept_selector';
@@ -247,7 +241,13 @@ export const SearchBox = () => {
                 <SortByOrder
                   onSelect={(order) => {
                     const by = (activePage as Page<'sort-by-order'>).metadata!.path;
-                    dispatch(setSort({by: [by], order}));
+                    dispatch(
+                      setSort({
+                        namespace: namespace!,
+                        datasetName: datasetName!,
+                        sort: {by: [by], order},
+                      })
+                    );
                     closeMenu();
                   }}
                 ></SortByOrder>
@@ -296,9 +296,14 @@ export const SearchBox = () => {
                   onSelect={(path) => {
                     dispatch(
                       setActiveConcept({
-                        concept: (activePage as Page<'edit-concept-column'>).metadata!.concept,
-                        embedding: (activePage as Page<'edit-concept-column'>).metadata!.embedding,
-                        column: path,
+                        namespace: namespace!,
+                        datasetName: datasetName!,
+                        activeConcept: {
+                          concept: (activePage as Page<'edit-concept-column'>).metadata!.concept,
+                          embedding: (activePage as Page<'edit-concept-column'>).metadata!
+                            .embedding,
+                          column: path,
+                        },
                       })
                     );
                     closeMenu();
@@ -499,7 +504,6 @@ function HomeMenu({
 
 function Datasets({closeMenu}: {closeMenu: () => void}) {
   const query = useGetDatasetsQuery();
-  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   return renderQuery(query, (datasets) => (
@@ -511,7 +515,6 @@ function Datasets({closeMenu}: {closeMenu: () => void}) {
             key={key}
             onSelect={() => {
               closeMenu();
-              dispatch(setDataset({namespace: d.namespace, datasetName: d.dataset_name}));
               navigate(`/datasets/${d.namespace}/${d.dataset_name}`);
             }}
           >

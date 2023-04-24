@@ -22,6 +22,7 @@ import {
 import {getEqualBins, getNamedBins, NUM_AUTO_BINS, TOO_MANY_DISTINCT} from '../db';
 import {isOrdinal, isTemporal, Item, LeafValue, Path, UUID_COLUMN} from '../schema';
 
+import {useParams} from 'react-router-dom';
 import {useAppSelector} from '../hooks';
 import {getConceptAlias, renderError} from '../utils';
 import {conceptApi} from './api_concept';
@@ -42,10 +43,7 @@ interface ActiveConceptState {
   embedding: EmbeddingInfo;
 }
 
-interface ActiveDatasetState {
-  namespace?: string;
-  datasetName?: string;
-
+interface DatasetState {
   // The active global concept. This is set when a column is actively being edited.
   activeConcept?: ActiveConceptState | null;
 
@@ -72,50 +70,93 @@ interface ActiveDatasetState {
 }
 
 interface AppState {
-  // The currently selected dataset.
-  activeDataset: ActiveDatasetState;
+  datasetState: {[datasetId: string]: DatasetState};
   // Whether the tasks panel in the top right is open.
   tasksPanelOpen: boolean;
 }
 
+function getDatasetState(state: AppState, namespace: string, datasetName: string): DatasetState {
+  const datasetId = `${namespace}/${datasetName}`;
+  if (state.datasetState[datasetId] == null) {
+    const initialState = {browser: {rowHeightListPx: 60}};
+    if (Object.isExtensible(state.datasetState)) {
+      state.datasetState[datasetId] = initialState;
+    }
+    return initialState;
+  }
+  return state.datasetState[datasetId];
+}
+
+export function useDataset(): DatasetState {
+  const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
+  if (namespace == null || datasetName == null) {
+    throw new Error('Invalid route');
+  }
+  return useAppSelector((state) => getDatasetState(state.app, namespace, datasetName));
+}
+
 // Define the initial state using that type
 const initialState: AppState = {
-  activeDataset: {browser: {rowHeightListPx: 60}},
   tasksPanelOpen: false,
+  datasetState: {},
 };
 
 const appSlice = createSlice({
   name: 'app',
   initialState,
   reducers: {
-    setDataset(state, action: PayloadAction<{namespace: string; datasetName: string}>) {
-      state.activeDataset.activeConcept = null;
-      state.activeDataset.namespace = action.payload.namespace;
-      state.activeDataset.datasetName = action.payload.datasetName;
-      state.activeDataset.browser = {
-        rowHeightListPx: initialState.activeDataset.browser.rowHeightListPx,
-      };
+    setSelectedMediaPaths(
+      state,
+      action: PayloadAction<{namespace: string; datasetName: string; paths: Path[]}>
+    ) {
+      const {namespace, datasetName, paths} = action.payload;
+      getDatasetState(state, namespace, datasetName).browser.selectedMediaPaths = paths;
     },
-    setSelectedMediaPaths(state, action: PayloadAction<Path[]>) {
-      state.activeDataset.browser.selectedMediaPaths = action.payload;
+    setSelectedMetadataPaths(
+      state,
+      action: PayloadAction<{namespace: string; datasetName: string; paths: Path[]}>
+    ) {
+      const {namespace, datasetName, paths} = action.payload;
+      getDatasetState(state, namespace, datasetName).browser.selectedMetadataPaths = paths;
     },
-    setSelectedMetadataPaths(state, action: PayloadAction<Path[]>) {
-      state.activeDataset.browser.selectedMetadataPaths = action.payload;
+    setSort(
+      state,
+      action: PayloadAction<{
+        namespace: string;
+        datasetName: string;
+        sort: {
+          by: Path[];
+          order: SortOrder;
+        } | null;
+      }>
+    ) {
+      const {namespace, datasetName, sort} = action.payload;
+      getDatasetState(state, namespace, datasetName).browser.sort = sort;
     },
-    setSort(state, action: PayloadAction<{by: Path[]; order: SortOrder} | null>) {
-      state.activeDataset.browser.sort = action.payload;
-    },
-    setRowHeightListPx(state, action: PayloadAction<number>) {
-      state.activeDataset.browser.rowHeightListPx = action.payload;
+    setRowHeightListPx(
+      state,
+      action: PayloadAction<{namespace: string; datasetName: string; height: number}>
+    ) {
+      const {namespace, datasetName, height} = action.payload;
+      getDatasetState(state, namespace, datasetName).browser.rowHeightListPx = height;
     },
     setTasksPanelOpen(state, action: PayloadAction<boolean>) {
       state.tasksPanelOpen = action.payload;
     },
     setActiveConcept(
       state,
-      action: PayloadAction<{concept: ConceptInfo; column: Path; embedding: EmbeddingInfo} | null>
+      action: PayloadAction<{
+        namespace: string;
+        datasetName: string;
+        activeConcept: {
+          concept: ConceptInfo;
+          column: Path;
+          embedding: EmbeddingInfo;
+        } | null;
+      }>
     ) {
-      state.activeDataset.activeConcept = action.payload;
+      const {namespace, datasetName, activeConcept} = action.payload;
+      getDatasetState(state, namespace, datasetName).activeConcept = activeConcept;
     },
   },
 });
@@ -160,12 +201,10 @@ export const store = configureStore({
       embeddingApi.middleware,
       rtkQueryErrorLogger,
     ]),
-  devTools: process.env.NODE_ENV !== 'production',
 });
 
 // Export the actions.
 export const {
-  setDataset,
   setActiveConcept,
   setTasksPanelOpen,
   setSelectedMediaPaths,
@@ -196,19 +235,18 @@ export function useGetItem(
 export function useGetIds(
   namespace: string,
   datasetName: string,
+  filters: Filter[],
+  activeConcept: ActiveConceptState | null | undefined,
   limit: number,
   offset: number,
   sortBy?: Path[],
   sortOrder?: SortOrder
 ): {isFetching: boolean; ids: string[] | null; error?: unknown} {
-  const filters: Filter[] = [];
   /** Always select the UUID column and sort by column. */
   let columns: (Column | string[])[] = [[UUID_COLUMN]];
   if (sortBy != null) {
     columns = [...columns, ...sortBy];
   }
-  const activeConcept = useAppSelector((state) => state.app.activeDataset.activeConcept);
-  let conceptColumn: Column | null = null;
   // If there is an active concept, add it to the selected columns.
   if (activeConcept != null) {
     const signal: ConceptScoreSignal = {
@@ -223,7 +261,7 @@ export function useGetIds(
       activeConcept.embedding
     );
     const transform: SignalTransform = {signal};
-    conceptColumn = {feature: activeConcept.column, transform, alias};
+    const conceptColumn: Column = {feature: activeConcept.column, transform, alias};
     columns = [...columns, conceptColumn];
     // If no sort is specified, sort by the active concept.
     if (sortBy == null) {

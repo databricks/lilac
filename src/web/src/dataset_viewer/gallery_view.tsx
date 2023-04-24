@@ -1,8 +1,8 @@
 import {SlIcon, SlOption, SlSelect, SlTag, SlTooltip} from '@shoelace-style/shoelace/dist/react';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import * as React from 'react';
-import {Field, StatsResult, WebManifest} from '../../fastapi_client';
-import {useAppDispatch, useAppSelector} from '../hooks';
+import {Field, Filter, StatsResult, WebManifest} from '../../fastapi_client';
+import {useAppDispatch} from '../hooks';
 import {Path, Schema, serializePath} from '../schema';
 import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/api_dataset';
 import {
@@ -10,6 +10,7 @@ import {
   setSelectedMediaPaths,
   setSelectedMetadataPaths,
   setSort,
+  useDataset,
   useGetIds,
 } from '../store/store';
 import {renderPath} from '../utils';
@@ -30,14 +31,17 @@ const AVG_ITEM_WIDTH_PX = 500;
  * be called by users to fetch the next page.
  */
 function useInfiniteItemsQuery(namespace: string, datasetName: string) {
-  const datasetId = `${namespace}/${datasetName}`;
-  const sort = useAppSelector((state) => state.app.activeDataset.browser.sort);
-
+  const sort = useDataset().browser.sort;
   const [prevIds, setPrevIds] = React.useState<{[datasetId: string]: string[]}>({});
-  const cachedIds = prevIds[datasetId] || [];
+  const filters: Filter[] = [];
+  const activeConcept = useDataset().activeConcept;
+  const cacheKey = JSON.stringify({namespace, datasetName, filters, activeConcept, sort});
+  const cachedIds = prevIds[cacheKey] || [];
   const {error, isFetching, ids} = useGetIds(
     namespace,
     datasetName,
+    filters,
+    activeConcept,
     ITEMS_PAGE_SIZE,
     cachedIds.length,
     sort?.by,
@@ -48,7 +52,7 @@ function useInfiniteItemsQuery(namespace: string, datasetName: string) {
 
   function fetchNextPage() {
     // Remember the previous ids. Key by `datasetId` so that we invalidate when the dataset changes.
-    setPrevIds({[datasetId]: allIds});
+    setPrevIds({[cacheKey]: allIds});
   }
 
   return {
@@ -61,6 +65,8 @@ function useInfiniteItemsQuery(namespace: string, datasetName: string) {
 }
 
 export interface GalleryMenuProps {
+  namespace: string;
+  datasetName: string;
   schema: Schema;
   mediaPaths: Path[];
   metadataPaths?: Path[];
@@ -70,6 +76,8 @@ export interface GalleryMenuProps {
 export const IMAGE_PATH_PREFIX = '__image__';
 
 export const GalleryMenu = React.memo(function GalleryMenu({
+  namespace,
+  datasetName,
   schema,
   mediaPaths,
   metadataPaths,
@@ -90,17 +98,21 @@ export const GalleryMenu = React.memo(function GalleryMenu({
         label="Media to preview"
         selectedPaths={mediaPaths}
         leafs={mediaLeafs}
-        onSelectedPathsChanged={(paths) => dispatch(setSelectedMediaPaths(paths))}
+        onSelectedPathsChanged={(paths) =>
+          dispatch(setSelectedMediaPaths({namespace, datasetName, paths}))
+        }
       />
       {/* Metadata dropdown. */}
       <FeatureDropdown
         label="Metadata to preview"
         selectedPaths={metadataPaths}
         leafs={leafs}
-        onSelectedPathsChanged={(paths) => dispatch(setSelectedMetadataPaths(paths))}
+        onSelectedPathsChanged={(paths) =>
+          dispatch(setSelectedMetadataPaths({namespace, datasetName, paths}))
+        }
       />
-      <ActiveConceptLegend></ActiveConceptLegend>
-      <SortMenu></SortMenu>
+      <ActiveConceptLegend namespace={namespace} datasetName={datasetName}></ActiveConceptLegend>
+      <SortMenu namespace={namespace} datasetName={datasetName}></SortMenu>
     </div>
   );
 });
@@ -168,10 +180,16 @@ function FeatureDropdown({
   );
 }
 
-function ActiveConceptLegend(): JSX.Element {
+function ActiveConceptLegend({
+  namespace,
+  datasetName,
+}: {
+  namespace: string;
+  datasetName: string;
+}): JSX.Element {
   const dispatch = useAppDispatch();
 
-  const activeConcept = useAppSelector((state) => state.app.activeDataset.activeConcept);
+  const activeConcept = useDataset().activeConcept;
   return (
     <div className={`relative m-auto w-48 p-2 text-xs`}>
       {activeConcept == null ? (
@@ -186,7 +204,14 @@ function ActiveConceptLegend(): JSX.Element {
               `over column "${renderPath(activeConcept.column)}".`
             }
           >
-            <SlTag size="medium" pill removable onSlRemove={() => dispatch(setActiveConcept(null))}>
+            <SlTag
+              size="medium"
+              pill
+              removable
+              onSlRemove={() =>
+                dispatch(setActiveConcept({namespace, datasetName, activeConcept: null}))
+              }
+            >
               <div className="flex flex-row">
                 <div className={`flex w-5 items-center ${styles.sort_icon}`}>
                   <SlIcon name="stars"></SlIcon>
@@ -201,10 +226,10 @@ function ActiveConceptLegend(): JSX.Element {
   );
 }
 
-function SortMenu(): JSX.Element {
+function SortMenu({namespace, datasetName}: {namespace: string; datasetName: string}): JSX.Element {
   const dispatch = useAppDispatch();
 
-  const sort = useAppSelector((state) => state.app.activeDataset.browser.sort);
+  const sort = useDataset().browser.sort;
   const sortByDisplay = sort?.by.map((p) => renderPath(p)).join(' > ');
   return (
     <div className="m-auto w-36 text-xs">
@@ -215,7 +240,12 @@ function SortMenu(): JSX.Element {
           <div className="mb-1">Sorted by</div>
           <div>
             <SlTooltip content={`Sorted by "${sortByDisplay}" ${sort.order}.`}>
-              <SlTag size="medium" pill removable onSlRemove={() => dispatch(setSort(null))}>
+              <SlTag
+                size="medium"
+                pill
+                removable
+                onSlRemove={() => dispatch(setSort({namespace, datasetName, sort: null}))}
+              >
                 <div className="flex flex-row">
                   <div className={`flex w-5 items-center ${styles.sort_icon}`}>
                     <SlIcon name={sort.order === 'DESC' ? 'sort-down' : 'sort-up'}></SlIcon>
@@ -279,7 +309,7 @@ export function useMediaPaths(
       }
     }
   }
-  let mediaPaths = useAppSelector((state) => state.app.activeDataset.browser.selectedMediaPaths);
+  let mediaPaths = useDataset().browser.selectedMediaPaths;
   const multipleStats = useGetMultipleStatsQuery({namespace, datasetName, leafPaths: stringLeafs});
   mediaPaths = React.useMemo(() => {
     if (mediaPaths != null) {
@@ -316,9 +346,7 @@ export const Gallery = React.memo(function Gallery({
   } = useGetManifestQuery({namespace, datasetName});
   const schema = webManifest != null ? new Schema(webManifest.dataset_manifest.data_schema) : null;
   const mediaPaths = useMediaPaths(namespace, datasetName, webManifest, schema);
-  const metadataPaths = useAppSelector(
-    (state) => state.app.activeDataset.browser.selectedMetadataPaths
-  );
+  const metadataPaths = useDataset().browser.selectedMetadataPaths;
 
   const {error, isFetchingNextPage, allIds, hasNextPage, fetchNextPage} = useInfiniteItemsQuery(
     namespace,
@@ -382,6 +410,8 @@ export const Gallery = React.memo(function Gallery({
     <div className="flex h-full w-full flex-col">
       <div className="border-b border-gray-200 px-4 py-2">
         <GalleryMenu
+          namespace={namespace}
+          datasetName={datasetName}
           schema={schema}
           mediaPaths={mediaPaths}
           metadataPaths={metadataPaths}

@@ -12,7 +12,7 @@ from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, validator
 from typing_extensions import override
 
-from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB
+from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..constants import data_path
 from ..embeddings.embedding_index import EmbeddingIndexer
 from ..embeddings.embedding_index_disk import EmbeddingIndexerDisk
@@ -158,11 +158,14 @@ ColumnEmbedding = tuple[PathTuple, str]
 class DatasetDuckDB(DatasetDB):
   """The DuckDB implementation of the dataset database."""
 
-  def __init__(self,
-               namespace: str,
-               dataset_name: str,
-               embedding_indexer: Optional[EmbeddingIndexer] = None,
-               vector_store_cls: Type[VectorStore] = NumpyVectorStore):
+  def __init__(
+      self,
+      namespace: str,
+      dataset_name: str,
+      embedding_indexer: Optional[EmbeddingIndexer] = None,
+      vector_store_cls: Type[VectorStore] = NumpyVectorStore,
+      concept_model_db: ConceptModelDB = DISK_CONCEPT_MODEL_DB,
+  ):
     super().__init__(namespace, dataset_name)
 
     self.dataset_path = get_dataset_output_dir(data_path(), namespace, dataset_name)
@@ -181,6 +184,7 @@ class DatasetDuckDB(DatasetDB):
     # Maps a column path and embedding to the vector store. This is lazily generated as needed.
     self._col_embedding_stores: dict[ColumnEmbedding, VectorStore] = {}
     self.vector_store_cls = vector_store_cls
+    self._concept_model_db = concept_model_db
 
   def _create_view(self, view_name: str, files: list[str]) -> None:
     parquet_files = [os.path.join(self.dataset_path, filename) for filename in files]
@@ -489,6 +493,7 @@ class DatasetDuckDB(DatasetDB):
     """
     df = self._query_df(query)
     # DuckDB returns np.nan for missing field in string column, replace with None for correctness.
+    # TODO(https://github.com/duckdb/duckdb/issues/4066): Remove this once DuckDB/Pandas is fixed.
     for col in df.columns:
       if is_object_dtype(df[col]):
         df[col].replace(np.nan, None, inplace=True)
@@ -719,7 +724,7 @@ class DatasetDuckDB(DatasetDB):
       sort_cols_before_udf: list[str] = []
       for sort_by_path in sort_by_paths:
         sort_col = self._path_to_col(sort_by_path)
-        # Seperate sort columns into two groups: those that need to be sorted before and after UDFs.
+        # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
         if sort_by_transform or col_aliases.get(str(sort_by_path[0])):
           sort_by_transform = True
           sort_cols_after_udf.append(sort_col)
@@ -743,9 +748,10 @@ class DatasetDuckDB(DatasetDB):
       if isinstance(transform, SignalTransform):
         signal = transform.signal
         if isinstance(signal, ConceptScoreSignal):
-          concept_model = DISK_CONCEPT_MODEL_DB.get(signal.namespace, signal.concept_name,
-                                                    signal.embedding_name)
-          DISK_CONCEPT_MODEL_DB.sync(concept_model)
+          # Make sure the model is in sync.
+          concept_model = self._concept_model_db.get(signal.namespace, signal.concept_name,
+                                                     signal.embedding_name)
+          self._concept_model_db.sync(concept_model)
 
         signal_column = transform_col.alias
         input = df[signal_column]

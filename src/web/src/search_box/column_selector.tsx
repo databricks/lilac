@@ -35,7 +35,7 @@ export function ColumnSelector({
     if (embedding.embedding_name == null) {
       continue;
     }
-    const col = renderPath(column);
+    const col = renderPath(column as Path);
     if (pathToEmbeddings[col] == null) {
       pathToEmbeddings[col] = [];
     }
