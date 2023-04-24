@@ -1,6 +1,7 @@
 import {SerializedError} from '@reduxjs/toolkit';
 import {SlAlert, SlIcon, SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
+import {ConceptInfo, EmbeddingInfo} from '../fastapi_client';
 import {Path} from './schema';
 
 export function renderQuery<T>(
@@ -71,6 +72,14 @@ export function renderError(error: unknown): JSX.Element {
 
 export function renderPath(leafPath: Path): string {
   return leafPath.join('.');
+}
+
+export function getConceptAlias(
+  concept: ConceptInfo,
+  column: Path,
+  embedding: EmbeddingInfo
+): string {
+  return `${concept.namespace}/${concept.name}` + `(${renderPath(column)}, ${embedding.name})`;
 }
 
 export function getDatasetLink(namespace: string, datasetName: string): string {

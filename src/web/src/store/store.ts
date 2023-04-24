@@ -23,7 +23,7 @@ import {getEqualBins, getNamedBins, NUM_AUTO_BINS, TOO_MANY_DISTINCT} from '../d
 import {isOrdinal, isTemporal, Item, LeafValue, Path, UUID_COLUMN} from '../schema';
 
 import {useAppSelector} from '../hooks';
-import {renderError} from '../utils';
+import {getConceptAlias, renderError} from '../utils';
 import {conceptApi} from './api_concept';
 import {
   datasetApi,
@@ -36,16 +36,18 @@ import {embeddingApi} from './api_embeddings';
 import {signalApi} from './api_signal';
 import {fastAPIBaseQuery} from './api_utils';
 
+interface ActiveConceptState {
+  concept: ConceptInfo;
+  column: Path;
+  embedding: EmbeddingInfo;
+}
+
 interface ActiveDatasetState {
   namespace?: string;
   datasetName?: string;
 
   // The active global concept. This is set when a column is actively being edited.
-  activeConcept?: {
-    concept: ConceptInfo;
-    column: Path;
-    embedding: EmbeddingInfo;
-  } | null;
+  activeConcept?: ActiveConceptState | null;
 
   browser: {
     // Selects.
@@ -87,9 +89,12 @@ const appSlice = createSlice({
   initialState,
   reducers: {
     setDataset(state, action: PayloadAction<{namespace: string; datasetName: string}>) {
+      state.activeDataset.activeConcept = null;
       state.activeDataset.namespace = action.payload.namespace;
       state.activeDataset.datasetName = action.payload.datasetName;
-      state.activeDataset.browser.selectedMediaPaths = undefined;
+      state.activeDataset.browser = {
+        rowHeightListPx: initialState.activeDataset.browser.rowHeightListPx,
+      };
     },
     setSelectedMediaPaths(state, action: PayloadAction<Path[]>) {
       state.activeDataset.browser.selectedMediaPaths = action.payload;
@@ -204,6 +209,7 @@ export function useGetIds(
   }
   const activeConcept = useAppSelector((state) => state.app.activeDataset.activeConcept);
   let conceptColumn: Column | null = null;
+  // If there is an active concept, add it to the selected columns.
   if (activeConcept != null) {
     const signal: ConceptScoreSignal = {
       signal_name: 'concept_score',
@@ -211,12 +217,17 @@ export function useGetIds(
       concept_name: activeConcept.concept.name,
       embedding_name: activeConcept.embedding.name,
     };
+    const alias = getConceptAlias(
+      activeConcept.concept,
+      activeConcept.column,
+      activeConcept.embedding
+    );
     const transform: SignalTransform = {signal};
-    conceptColumn = {feature: activeConcept.column, transform, alias: 'activeConcept'};
+    conceptColumn = {feature: activeConcept.column, transform, alias};
     columns = [...columns, conceptColumn];
+    // If no sort is specified, sort by the active concept.
     if (sortBy == null) {
-      // If no sort is specified, sort by the active concept.
-      sortBy = [['activeConcept']];
+      sortBy = [[alias]];
     }
   }
   const {
