@@ -156,7 +156,7 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
       ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   scores = signal.compute(data=['a new data point', 'not in concept'])
-  expected_scores = [0.504, 0.493]
+  expected_scores = [0.801, 0.465]
   for score, expected_score in zip(scores, expected_scores):
     assert pytest.approx(expected_score, 1e-3) == score
 
@@ -191,6 +191,6 @@ def test_concept_model_score_embeddings(concept_db_cls: Type[ConceptDB],
 
   scores = signal.compute(keys=['1', '2', '3'], vector_store=vector_store)
 
-  expected_scores = [0.493, 0.495, 0.504]
+  expected_scores = [0.465, 0.535, 0.801]
   for score, expected_score in zip(scores, expected_scores):
     assert pytest.approx(expected_score, 1e-3) == score

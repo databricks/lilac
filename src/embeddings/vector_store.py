@@ -22,7 +22,7 @@ class VectorStore(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def get(self, keys: Optional[Iterable[str]] = None) -> np.ndarray:
+  def get(self, keys: Optional[Iterable[str]]) -> np.ndarray:
     """Return the embeddings for given keys.
 
     Args:

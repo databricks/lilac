@@ -755,8 +755,8 @@ class DatasetDuckDB(DatasetDB):
             if signal.embedding is None:
               raise ValueError('`Signal.embedding` must be defined for embedding-based signals.')
 
-            # For embedding based signals, get the leaf keys and indices, creating a combined key for
-            # the key + index to pass to the signal.
+            # For embedding based signals, get the leaf keys and indices, creating a combined key
+            # for the key + index to pass to the signal.
             flat_keys = flatten_keys(df[UUID_COLUMN], input)
             vector_store = self._get_vector_store(transform_col.feature, signal.embedding)
             flat_output = signal.compute(keys=flat_keys, vector_store=vector_store)
