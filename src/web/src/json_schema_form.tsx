@@ -102,7 +102,7 @@ export const JSONSchemaForm = ({
   React.useEffect(() => onFormData(formData), [formData]);
 
   return (
-    <div>
+    <div className="font-light">
       <div className={styles.markdown_container}>
         <ReactMarkdown>{descriptionMarkdown}</ReactMarkdown>
       </div>
