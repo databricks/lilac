@@ -66,6 +66,7 @@ class ConceptModel(BaseModel):
 
   # The following fields are excluded from JSON serialization, but still pickleable.
   _embeddings: dict[str, np.ndarray] = {}
+  # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
   _model: LogisticRegression = LogisticRegression(class_weight='balanced',
                                                   C=30,
                                                   tol=1e-5,
