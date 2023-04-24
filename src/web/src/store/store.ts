@@ -8,11 +8,12 @@ import {createRoot} from 'react-dom/client';
 import {
   Column,
   ConceptInfo,
-  ConceptTransform,
+  ConceptScoreSignal,
   EmbeddingInfo,
   Field,
   Filter,
   NamedBins,
+  SignalTransform,
   SortOrder,
   StatsResult,
   TaskManifest,
@@ -204,11 +205,13 @@ export function useGetIds(
   const activeConcept = useAppSelector((state) => state.app.activeDataset.activeConcept);
   let conceptColumn: Column | null = null;
   if (activeConcept != null) {
-    const transform: ConceptTransform = {
+    const signal: ConceptScoreSignal = {
+      signal_name: 'concept_score',
       namespace: activeConcept.concept.namespace,
       concept_name: activeConcept.concept.name,
       embedding_name: activeConcept.embedding.name,
     };
+    const transform: SignalTransform = {signal};
     conceptColumn = {feature: activeConcept.column, transform, alias: 'activeConcept'};
     columns = [...columns, conceptColumn];
     if (sortBy == null) {

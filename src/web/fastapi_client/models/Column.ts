@@ -3,7 +3,6 @@
 /* eslint-disable */
 
 import type { BucketizeTransform } from './BucketizeTransform';
-import type { ConceptTransform } from './ConceptTransform';
 import type { SignalTransform } from './SignalTransform';
 
 /**
@@ -12,6 +11,6 @@ import type { SignalTransform } from './SignalTransform';
 export type Column = {
     feature: Array<(string | number)>;
     alias: string;
-    transform?: (ConceptTransform | BucketizeTransform | SignalTransform);
+    transform?: (BucketizeTransform | SignalTransform);
 };
 

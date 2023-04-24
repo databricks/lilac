@@ -15,7 +15,7 @@ export type { ComputeSignalOptions } from './models/ComputeSignalOptions';
 export type { ComputeSignalResponse } from './models/ComputeSignalResponse';
 export type { Concept } from './models/Concept';
 export type { ConceptInfo } from './models/ConceptInfo';
-export type { ConceptTransform } from './models/ConceptTransform';
+export type { ConceptScoreSignal } from './models/ConceptScoreSignal';
 export type { ConceptUpdate } from './models/ConceptUpdate';
 export type { DatasetInfo } from './models/DatasetInfo';
 export type { DatasetManifest } from './models/DatasetManifest';

@@ -46,11 +46,11 @@ class ConceptScoreSignal(Signal):
           'is out of sync with its concept')
 
     if data:
-      scores: Iterable[float] = concept_model.score(data)
-    else:
-      if not vector_store:
-        raise ValueError(
-            '"vector_store" is required in ConceptScoreSignal.compute() when passing "keys"')
-      embeddings = vector_store.get(keys)
-      scores = concept_model.score_embeddings(embeddings)
-    return [float(score) for score in scores]
+      return concept_model.score(data)
+
+    if not vector_store:
+      raise ValueError(
+          '"vector_store" is required in ConceptScoreSignal.compute() when passing "keys"')
+
+    embeddings = vector_store.get(keys)
+    return concept_model.score_embeddings(embeddings).tolist()

@@ -37,7 +37,7 @@ class NumpyVectorStore(VectorStore):
         index=self._keys)
 
   @override
-  def get(self, keys: Optional[Iterable[str]]) -> np.ndarray:
+  def get(self, keys: Optional[Iterable[str]] = None) -> np.ndarray:
     """Return the embeddings for given keys.
 
     Args:

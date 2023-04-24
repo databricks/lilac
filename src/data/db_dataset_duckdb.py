@@ -63,7 +63,6 @@ from .db_dataset import (
     Column,
     ColumnId,
     Comparison,
-    ConceptTransform,
     DatasetDB,
     DatasetManifest,
     Filter,
@@ -734,21 +733,16 @@ class DatasetDuckDB(DatasetDB):
       query = query.limit(limit, offset or 0)
 
     # Download the data so we can run UDFs on it in Python.
-    print('BEFORE UDF')
-    print(query.sql_query())
     df = query.df()
 
     # Run UDFs on the transformed columns.
     transform_columns = [col for col in cols if col.transform]
     for transform_col in transform_columns:
       transform = transform_col.transform
-      if isinstance(transform, (ConceptTransform, SignalTransform)):
-        if isinstance(transform, SignalTransform):
-          signal = transform.signal
-        elif isinstance(transform, ConceptTransform):
-          signal = ConceptScoreSignal(namespace=transform.namespace,
-                                      concept_name=transform.concept_name,
-                                      embedding_name=transform.embedding_name)
+
+      if isinstance(transform, SignalTransform):
+        signal = transform.signal
+        if isinstance(signal, ConceptScoreSignal):
           concept_model = DISK_CONCEPT_MODEL_DB.get(signal.namespace, signal.concept_name,
                                                     signal.embedding_name)
           DISK_CONCEPT_MODEL_DB.sync(concept_model)
@@ -792,8 +786,6 @@ class DatasetDuckDB(DatasetDB):
       if limit:
         query = query.limit(limit, offset or 0)
 
-      print('AFTER UDF')
-      print(query.sql_query())
       df = query.df()
 
     query.close()
@@ -817,7 +809,6 @@ class DatasetDuckDB(DatasetDB):
     alias_and_transform: dict[str, bool] = {}
 
     for column in columns:
-      print(column)
       alias_and_transform[column.alias] = bool(column.transform)
       empty = bool(column.transform and isinstance(column.transform, SignalTransform) and
                    column.transform.signal.embedding_based)

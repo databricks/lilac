@@ -18,6 +18,7 @@ from pydantic import (
 from ..embeddings.embedding_index import EmbeddingIndexerManifest
 from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import Item, Path, PathTuple, Schema, path_to_alias
+from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import Signal
 from ..tasks import TaskId
 
@@ -100,13 +101,6 @@ class Transform(BaseModel):
   pass
 
 
-class ConceptTransform(Transform):
-  """Computes a concept transformation over a field."""
-  namespace: str
-  concept_name: str
-  embedding_name: str
-
-
 class BucketizeTransform(Transform):
   """Bucketizes the input float into descrete integer buckets."""
   bins: list[float]
@@ -114,7 +108,10 @@ class BucketizeTransform(Transform):
 
 class SignalTransform(Transform):
   """Computes a signal transformation over a field."""
-  signal: Signal
+  signal: Union[ConceptScoreSignal, Signal]
+
+  class Config:
+    smart_union = True
 
 
 class Column(BaseModel):
@@ -123,7 +120,7 @@ class Column(BaseModel):
   alias: str  # This is the renamed column during querying and response.
 
   # Defined when the feature is another column.
-  transform: Optional[Union[ConceptTransform, BucketizeTransform, SignalTransform]] = None
+  transform: Optional[Union[BucketizeTransform, SignalTransform]] = None
 
   class Config:
     smart_union = True
