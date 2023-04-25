@@ -111,7 +111,7 @@ def test_concept_does_not_exist() -> None:
                               concept_name='test_concept',
                               embedding_name='test_embedding')
   with pytest.raises(ValueError, match='Concept "test/test_concept" does not exist'):
-    signal.compute(data=['a new data point', 'not in concept'])
+    signal.compute(['a new data point', 'not in concept'])
 
 
 @pytest.mark.parametrize('db_cls', ALL_CONCEPT_DBS)
@@ -130,7 +130,7 @@ def test_concept_model_out_of_sync(db_cls: Type[ConceptDB]) -> None:
                               embedding_name='test_embedding')
   with pytest.raises(ValueError,
                      match='Concept model "test/test_concept/test_embedding" is out of sync'):
-    signal.compute(data=['a new data point', 'not in concept'])
+    signal.compute(['a new data point', 'not in concept'])
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
@@ -155,7 +155,7 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
   model_db.sync(
       ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
-  scores = signal.compute(data=['a new data point', 'not in concept'])
+  scores = signal.compute(['a new data point', 'not in concept'])
   expected_scores = [0.801, 0.465]
   for score, expected_score in zip(scores, expected_scores):
     assert pytest.approx(expected_score, 1e-3) == score
@@ -189,7 +189,7 @@ def test_concept_model_score_embeddings(concept_db_cls: Type[ConceptDB],
       '3': [0.1, 0.2, 0.3],
   })
 
-  scores = signal.compute(keys=['1', '2', '3'], vector_store=vector_store)
+  scores = signal.compute_with_keys(['1', '2', '3'], vector_store)
 
   expected_scores = [0.465, 0.535, 0.801]
   for score, expected_score in zip(scores, expected_scores):

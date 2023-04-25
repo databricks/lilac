@@ -18,7 +18,7 @@ def test_pii_compute() -> None:
   signal = PIISignal()
 
   text = 'This is an email nik@test.com. pii@gmail.com are where emails are read.'
-  emails = list(signal.compute(data=[text]))
+  emails = list(signal.compute([text]))
 
   expected_spans = text_to_expected_spans(text, ['nik@test.com', 'pii@gmail.com'])
 

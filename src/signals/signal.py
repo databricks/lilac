@@ -75,22 +75,42 @@ class Signal(abc.ABC, BaseModel):
     """
     pass
 
-  @abc.abstractmethod
-  def compute(self,
-              data: Optional[Iterable[RichData]] = None,
-              keys: Optional[Iterable[str]] = None,
-              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[SignalOut]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
     """Compute the signal for an iterable of row-keyed documents or images.
 
     Args:
-      data: An iterable of rich data to compute the signal over
+      data: An iterable of rich data to compute the signal over.
+
+    Returns
+      An iterable of items. The signal can be sparse and return "None" for certain inputs.
+    """
+    raise NotImplementedError
+
+  def compute_with_keys(self, keys: Iterable[str],
+                        vector_store: VectorStore) -> Iterable[Optional[SignalOut]]:
+    """Compute the signal for an iterable of keys that point to documents or images.
+
+    Args:
+      keys: An iterable of row ids. These are used to lookup pre-computed embeddings.
+      vector_store: The vector store to lookup pre-computed embeddings.
+
+    Returns
+      An iterable of items. The signal can be sparse and return "None" for certain inputs.
+    """
+    raise NotImplementedError
+
+  def compute_topk(self, topk: int,
+                   vector_store: VectorStore) -> list[tuple[str, Optional[SignalOut]]]:
+    """Compute the signal and return the results for only the top k documents or images.
+
+    Args:
       keys: An iterable of row-uuids. These are used to lookup pre-computed embeddings.
       vector_store: The vector store to lookup pre-computed embeddings.
 
     Returns
-      An iterable of items. The signal should return "None" if the signal is sparse for the input.
+      A list with the "topk" items. The signal can be sparse and return "None" for certain inputs.
     """
-    pass
+    raise NotImplementedError
 
   @validator('embedding', pre=True)
   def parse_embedding(cls, embedding: Union[dict, str]) -> EmbeddingId:

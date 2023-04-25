@@ -3,6 +3,7 @@ from typing import Any, Iterable, Optional
 
 from typing_extensions import override
 
+from ..concepts.concept import ConceptModel
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
@@ -29,28 +30,23 @@ class ConceptScoreSignal(Signal):
   def fields(self, input_column: Path) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
-  @override
-  def compute(self,
-              data: Optional[Iterable[RichData]] = None,
-              keys: Optional[Iterable[str]] = None,
-              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[ItemValue]]:
-    if data and keys:
-      raise ValueError(
-          '"data" and "keys" cannot both be provided for ConceptScoreSignal.compute().')
-
+  def _get_concept_model(self) -> ConceptModel:
     concept_model = self._concept_model_db.get(self.namespace, self.concept_name,
                                                self.embedding_name)
     if not self._concept_model_db.in_sync(concept_model):
       raise ValueError(
           f'Concept model "{self.namespace}/{self.concept_name}/{self.embedding_name}" '
           'is out of sync with its concept')
+    return concept_model
 
-    if data:
-      return concept_model.score(data)
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:
+    concept_model = self._get_concept_model()
+    return concept_model.score(data)
 
-    if not vector_store:
-      raise ValueError(
-          '"vector_store" is required in ConceptScoreSignal.compute() when passing "keys"')
-
+  @override
+  def compute_with_keys(self, keys: Iterable[str],
+                        vector_store: VectorStore) -> Iterable[Optional[ItemValue]]:
+    concept_model = self._get_concept_model()
     embeddings = vector_store.get(keys)
     return concept_model.score_embeddings(embeddings).tolist()

@@ -10,7 +10,6 @@ from ..embeddings.embedding_registry import (
     clear_embedding_registry,
     register_embedding,
 )
-from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
 from .signal import Signal
 
@@ -55,10 +54,7 @@ class TestSignal(Signal):
     return Field(dtype=DataType.FLOAT32)
 
   @override
-  def compute(self,
-              data: Optional[Iterable[RichData]] = None,
-              keys: Optional[Iterable[str]] = None,
-              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[ItemValue]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:
     del data
     return []
 

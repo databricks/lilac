@@ -4,7 +4,6 @@ from typing import Iterable, Optional
 
 from typing_extensions import override
 
-from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, EnrichmentType, Field, Item, Path, RichData, TextSpan
 from .signal import Signal
 
@@ -31,14 +30,7 @@ class PIISignal(Signal):
         })
 
   @override
-  def compute(self,
-              data: Optional[Iterable[RichData]] = None,
-              keys: Optional[Iterable[str]] = None,
-              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[Item]]:
-    if data is None:
-      raise ValueError('"data" is required for TextStatistics.compute().')
-    if keys:
-      raise ValueError('"keys" is not supported for TextStatistics.compute().')
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for text in data:
       if not isinstance(text, str):
         yield None

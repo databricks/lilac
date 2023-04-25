@@ -9,7 +9,7 @@ def test_splitter_spacy() -> None:
   text = 'Hello. This is a test. Final sentence.'
 
   # Compute over the text.
-  split_items = list(signal.compute(data=[text]))
+  split_items = list(signal.compute([text]))
 
   expected_spans = text_to_expected_spans(text, ['Hello.', 'This is a test.', 'Final sentence.'])
 
@@ -22,6 +22,6 @@ def test_splitter_spacy_float() -> None:
 
   # Compute over the input, make sure it doesn't crash when we pass a non-string value which can
   # happen accidentally in user data.
-  split_items = list(signal.compute(data=[text]))  # type: ignore
+  split_items = list(signal.compute([text]))
 
   assert split_items == [None]

@@ -344,7 +344,7 @@ class DatasetDuckDB(DatasetDB):
       vector_store = self._get_vector_store(column.feature, signal.embedding)
 
       with DebugTimer(f'"compute" for embedding signal "{signal.name}" over "{source_path}"'):
-        signal_outputs = signal.compute(keys=keys, vector_store=vector_store)
+        signal_outputs = signal.compute_with_keys(keys, vector_store)
     else:
       # For non-embedding bsaed signals, get the leaf values and indices.
       with DebugTimer(f'"_select_leafs" over "{source_path}"'):
@@ -352,7 +352,7 @@ class DatasetDuckDB(DatasetDB):
         leafs_df = select_leafs_result.df
 
       with DebugTimer(f'"compute" for signal "{signal.name}" over "{source_path}"'):
-        signal_outputs = signal.compute(data=leafs_df[select_leafs_result.value_column])
+        signal_outputs = signal.compute(leafs_df[select_leafs_result.value_column])
 
     # Add progress.
     if task_id is not None:
@@ -765,7 +765,7 @@ class DatasetDuckDB(DatasetDB):
             # for the key + index to pass to the signal.
             flat_keys = flatten_keys(df[UUID_COLUMN], input)
             vector_store = self._get_vector_store(transform_col.feature, signal.embedding)
-            flat_output = signal.compute(keys=flat_keys, vector_store=vector_store)
+            flat_output = signal.compute_with_keys(flat_keys, vector_store)
           else:
             flat_input = cast(Iterable[RichData], flatten(input))
             flat_output = signal.compute(flat_input)

@@ -13,9 +13,9 @@ def test_text_statistics_fields() -> None:
 def test_text_statistics_compute() -> None:
   signal = TextStatisticsSignal()
 
-  scores = signal.compute(data=['hello', 'hello world'])
+  scores = signal.compute(['hello', 'hello world'])
 
-  assert scores == [{
+  assert list(scores) == [{
       NUM_CHARS_FEATURE_NAME: len('hello')
   }, {
       NUM_CHARS_FEATURE_NAME: len('hello world')

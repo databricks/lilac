@@ -40,20 +40,14 @@ class SemanticSearchSignal(Signal):
     return self._search_text_embedding
 
   @override
-  def compute(self,
-              data: Optional[Iterable[RichData]] = None,
-              keys: Optional[Iterable[str]] = None,
-              vector_store: Optional[VectorStore] = None) -> Iterable[Optional[ItemValue]]:
-    if data and keys:
-      raise ValueError('"data" and "keys" cannot both be provided for SemanticSearch.compute().')
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:
+    text_embeddings = self._embed_fn(data)
+    similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
+    return similarities.tolist()
 
-    if data:
-      text_embeddings = self._embed_fn(data)
-    elif keys:
-      if not vector_store:
-        raise ValueError(
-            '"vector_store" is required for SemanticSearch.compute() when passing "keys".')
-      text_embeddings = vector_store.get(keys)
-
+  @override
+  def compute_with_keys(self, keys: Iterable[str],
+                        vector_store: VectorStore) -> Iterable[Optional[ItemValue]]:
+    text_embeddings = vector_store.get(keys)
     similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
     return similarities.tolist()

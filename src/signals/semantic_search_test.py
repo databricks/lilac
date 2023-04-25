@@ -73,7 +73,7 @@ def test_semantic_search_compute_keys(mocker: MockerFixture) -> None:
   embed_mock = mocker.spy(TestEmbedding, '__call__')
 
   signal = SemanticSearchSignal(query='hello', embedding=TEST_EMBEDDING_NAME)
-  scores = list(signal.compute(keys=['1', '2', '3'], vector_store=vector_store))
+  scores = list(signal.compute_with_keys(['1', '2', '3'], vector_store))
 
   # Embeddings should be called only 1 time for the search.
   assert embed_mock.call_count == 1
@@ -86,7 +86,7 @@ def test_semantic_search_compute_data(mocker: MockerFixture) -> None:
 
   signal = SemanticSearchSignal(query='hello', embedding=TEST_EMBEDDING_NAME)
   # Compute over the text.
-  scores = list(signal.compute(data=STR_EMBEDDINGS.keys()))
+  scores = list(signal.compute(STR_EMBEDDINGS.keys()))
 
   # Embeddings should be called only 2 times, once for the search, once for the query itself.
   assert embed_mock.call_count == 2
