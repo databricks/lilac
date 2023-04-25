@@ -1,5 +1,7 @@
 """Tests the spacy sentence splitter."""
 
+from typing import cast
+
 from .text_splitter_spacy import SentenceSplitterSpacy
 from .text_splitter_test_utils import text_to_expected_spans
 
@@ -22,6 +24,6 @@ def test_splitter_spacy_float() -> None:
 
   # Compute over the input, make sure it doesn't crash when we pass a non-string value which can
   # happen accidentally in user data.
-  split_items = list(signal.compute([text]))
+  split_items = list(signal.compute([cast(str, text)]))
 
   assert split_items == [None]
