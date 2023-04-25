@@ -103,11 +103,11 @@ class Signal(abc.ABC, BaseModel):
                    vector_store: VectorStore) -> list[tuple[str, Optional[SignalOut]]]:
     """Return signal results only for the top k documents or images.
 
-    Signals decide how to rank each document/image in the dataset, usually via a similarity score
+    Signals decide how to rank each document/image in the dataset, usually by a similarity score
     obtained via the vector store.
 
     Args:
-      keys: An iterable of row-uuids. These are used to lookup pre-computed embeddings.
+      topk: The number of items to return, ranked by the signal.
       vector_store: The vector store to lookup pre-computed embeddings.
 
     Returns
