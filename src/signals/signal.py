@@ -76,7 +76,7 @@ class Signal(abc.ABC, BaseModel):
     pass
 
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
-    """Compute the signal for an iterable of row-keyed documents or images.
+    """Compute the signal for an iterable of documents or images.
 
     Args:
       data: An iterable of rich data to compute the signal over.
@@ -101,7 +101,10 @@ class Signal(abc.ABC, BaseModel):
 
   def compute_topk(self, topk: int,
                    vector_store: VectorStore) -> list[tuple[str, Optional[SignalOut]]]:
-    """Compute the signal and return the results for only the top k documents or images.
+    """Return signal results only for the top k documents or images.
+
+    Signals decide how to rank each document/image in the dataset, usually via a similarity score
+    obtained via the vector store.
 
     Args:
       keys: An iterable of row-uuids. These are used to lookup pre-computed embeddings.
