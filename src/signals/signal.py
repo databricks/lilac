@@ -20,7 +20,7 @@ class Signal(abc.ABC, BaseModel):
   # ClassVars do not get serialized with pydantic.
   name: ClassVar[str]
   enrichment_type: ClassVar[EnrichmentType]
-  embedding_based: ClassVar[bool] = False
+  vector_based: ClassVar[bool] = False
 
   # The signal_name will get populated in init automatically from the class name so it gets
   # serialized and the signal author doesn't have to define both the static property and the field.
@@ -56,9 +56,8 @@ class Signal(abc.ABC, BaseModel):
   @validator('embedding', always=True)
   def validate_embedding(cls, embedding: Optional[EmbeddingId]) -> Optional[EmbeddingId]:
     """Return the static name when the signal name hasn't yet been set."""
-    if cls.embedding_based and not embedding:
-      raise ValueError(
-          'Signal attribute "embedding" must be defined for "embedding_based" signals.')
+    if cls.vector_based and not embedding:
+      raise ValueError('Signal attribute "embedding" must be defined for "vector_based" signals.')
 
     return embedding
 
@@ -82,12 +81,12 @@ class Signal(abc.ABC, BaseModel):
       data: An iterable of rich data to compute the signal over.
 
     Returns
-      An iterable of items. Sparse signals can return "None" for certain inputs.
+      An iterable of items. Sparse signals should return "None" for skipped inputs.
     """
     raise NotImplementedError
 
-  def compute_with_keys(self, keys: Iterable[str],
-                        vector_store: VectorStore) -> Iterable[Optional[SignalOut]]:
+  def vector_compute(self, keys: Iterable[str],
+                     vector_store: VectorStore) -> Iterable[Optional[SignalOut]]:
     """Compute the signal for an iterable of keys that point to documents or images.
 
     Args:
@@ -95,12 +94,15 @@ class Signal(abc.ABC, BaseModel):
       vector_store: The vector store to lookup pre-computed embeddings.
 
     Returns
-      An iterable of items. Sparse signals can return "None" for certain inputs.
+      An iterable of items. Sparse signals should return "None" for skipped inputs.
     """
     raise NotImplementedError
 
-  def compute_topk(self, topk: int,
-                   vector_store: VectorStore) -> list[tuple[str, Optional[SignalOut]]]:
+  def vector_compute_topk(
+      self,
+      topk: int,
+      vector_store: VectorStore,
+      keys: Optional[Iterable[str]] = None) -> list[tuple[str, Optional[SignalOut]]]:
     """Return signal results only for the top k documents or images.
 
     Signals decide how to rank each document/image in the dataset, usually by a similarity score
@@ -109,10 +111,11 @@ class Signal(abc.ABC, BaseModel):
     Args:
       topk: The number of items to return, ranked by the signal.
       vector_store: The vector store to lookup pre-computed embeddings.
+      keys: Optional: An iterable of row ids that include in the topk results.
 
     Returns
-      A list of (uuid, signal_output) tuples containing the "topk" items. Sparse signals can return
-      "None" for certain inputs.
+      A list of (uuid, signal_output) tuples containing the "topk" items. Sparse signals should
+      return "None" for skipped inputs.
     """
     raise NotImplementedError
 

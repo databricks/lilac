@@ -189,7 +189,7 @@ def test_concept_model_score_embeddings(concept_db_cls: Type[ConceptDB],
       '3': [0.1, 0.2, 0.3],
   })
 
-  scores = signal.compute_with_keys(['1', '2', '3'], vector_store)
+  scores = signal.vector_compute(['1', '2', '3'], vector_store)
 
   expected_scores = [0.465, 0.535, 0.801]
   for score, expected_score in zip(scores, expected_scores):

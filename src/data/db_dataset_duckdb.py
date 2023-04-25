@@ -329,7 +329,7 @@ class DatasetDuckDB(DatasetDB):
                                            enrich_path=source_path,
                                            enrich_field=signal_field)
 
-    if signal.embedding_based:
+    if signal.vector_based:
       # For embedding based signals, get the leaf keys and indices, creating a combined key for the
       # key + index to pass to the signal.
       with DebugTimer(f'"_select_leafs" over "{source_path}"'):
@@ -344,7 +344,7 @@ class DatasetDuckDB(DatasetDB):
       vector_store = self._get_vector_store(column.feature, signal.embedding)
 
       with DebugTimer(f'"compute" for embedding signal "{signal.name}" over "{source_path}"'):
-        signal_outputs = signal.compute_with_keys(keys, vector_store)
+        signal_outputs = signal.vector_compute(keys, vector_store)
     else:
       # For non-embedding bsaed signals, get the leaf values and indices.
       with DebugTimer(f'"_select_leafs" over "{source_path}"'):
@@ -757,7 +757,7 @@ class DatasetDuckDB(DatasetDB):
         input = df[signal_column]
 
         with DebugTimer(f'Computing signal "{signal}"'):
-          if signal.embedding_based:
+          if signal.vector_based:
             if signal.embedding is None:
               raise ValueError('`Signal.embedding` must be defined for embedding-based signals.')
 
@@ -765,7 +765,7 @@ class DatasetDuckDB(DatasetDB):
             # for the key + index to pass to the signal.
             flat_keys = flatten_keys(df[UUID_COLUMN], input)
             vector_store = self._get_vector_store(transform_col.feature, signal.embedding)
-            flat_output = signal.compute_with_keys(flat_keys, vector_store)
+            flat_output = signal.vector_compute(flat_keys, vector_store)
           else:
             flat_input = cast(Iterable[RichData], flatten(input))
             flat_output = signal.compute(flat_input)
@@ -817,7 +817,7 @@ class DatasetDuckDB(DatasetDB):
     for column in columns:
       alias_and_transform[column.alias] = bool(column.transform)
       empty = bool(column.transform and isinstance(column.transform, SignalTransform) and
-                   column.transform.signal.embedding_based)
+                   column.transform.signal.vector_based)
       col = make_select_column(column.feature, flatten=False, empty=empty)
       select_queries.append(f'{col} AS "{column.alias}"')
 

@@ -14,7 +14,7 @@ class ConceptScoreSignal(Signal):
   """Compute scores along a "concept" for documents."""
   name = 'concept_score'
   enrichment_type = EnrichmentType.TEXT
-  embedding_based = True
+  vector_based = True
 
   namespace: str
   concept_name: str
@@ -45,8 +45,8 @@ class ConceptScoreSignal(Signal):
     return concept_model.score(data)
 
   @override
-  def compute_with_keys(self, keys: Iterable[str],
-                        vector_store: VectorStore) -> Iterable[Optional[ItemValue]]:
+  def vector_compute(self, keys: Iterable[str],
+                     vector_store: VectorStore) -> Iterable[Optional[ItemValue]]:
     concept_model = self._get_concept_model()
     embeddings = vector_store.get(keys)
     return concept_model.score_embeddings(embeddings).tolist()

@@ -15,7 +15,7 @@ class SemanticSearchSignal(Signal):
 
   name = 'semantic_search'
   enrichment_type = EnrichmentType.TEXT
-  embedding_based = True
+  vector_based = True
 
   query: Union[str, bytes]
   embedding: EmbeddingId
@@ -46,8 +46,8 @@ class SemanticSearchSignal(Signal):
     return similarities.tolist()
 
   @override
-  def compute_with_keys(self, keys: Iterable[str],
-                        vector_store: VectorStore) -> Iterable[Optional[ItemValue]]:
+  def vector_compute(self, keys: Iterable[str],
+                     vector_store: VectorStore) -> Iterable[Optional[ItemValue]]:
     text_embeddings = vector_store.get(keys)
     similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
     return similarities.tolist()

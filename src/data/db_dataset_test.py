@@ -475,7 +475,7 @@ class SelectRowsSuite:
   class LengthSignal(Signal):
     name = 'length_signal'
     enrichment_type = EnrichmentType.TEXT
-    embedding_based = False
+    vector_based = False
 
     call_count: int = 0
 
@@ -1014,7 +1014,7 @@ class SelectRowsSuite:
 class TestSignal(Signal):
   name = 'test_signal'
   enrichment_type = EnrichmentType.TEXT
-  embedding_based = False
+  vector_based = False
 
   @override
   def fields(self, input_column: Path) -> Field:
@@ -1054,15 +1054,14 @@ class TestEmbeddingSumSignal(Signal):
   """Sums the embeddings to return a single floating point value."""
   name = 'test_embedding_sum'
   enrichment_type = EnrichmentType.TEXT
-  embedding_based = True
+  vector_based = True
 
   @override
   def fields(self, input_column: Path) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   @override
-  def compute_with_keys(self, keys: Iterable[str],
-                        vector_store: VectorStore) -> Iterable[ItemValue]:
+  def vector_compute(self, keys: Iterable[str], vector_store: VectorStore) -> Iterable[ItemValue]:
     if not self.embedding:
       raise ValueError('self.embedding is None.')
 

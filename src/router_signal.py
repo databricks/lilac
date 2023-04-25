@@ -15,7 +15,7 @@ class SignalInfo(BaseModel):
   """Information about a signal."""
   name: str
   enrichment_type: EnrichmentType
-  embedding_based: bool
+  vector_based: bool
   json_schema: dict[str, Any]
 
 
@@ -25,6 +25,6 @@ def get_signals() -> list[SignalInfo]:
   return [
       SignalInfo(name=s.name,
                  enrichment_type=s.enrichment_type,
-                 embedding_based=s.embedding_based,
+                 vector_based=s.vector_based,
                  json_schema=s.schema()) for s in SIGNAL_REGISTRY.values()
   ]

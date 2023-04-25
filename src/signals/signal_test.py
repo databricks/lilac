@@ -62,7 +62,7 @@ class TestSignal(Signal):
 class TestEmbeddingSignal(TestSignal):
   """A test embedding signal."""
   name = 'test_embedding_signal'
-  embedding_based = True
+  vector_based = True
 
 
 def test_embedding_signal_throws_no_embedding() -> None:

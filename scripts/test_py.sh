@@ -19,6 +19,13 @@ export DISABLE_LOGS=True
 
 # -vv enables verbose outputs.
 # --capture=tee-sys enables printing for passing tests.
-# Optional: Add `-v /path/to/test_file.py` to test a single file.
-# Optional: Add `-k test_default` to test a single test.
-pytest -vv --capture=tee-sys -m "$PYTEST_MARKS"
+# We propagate the first argument as a test path, which can be:
+# 1) `src/data/db_dataset_test.py` to run a single file.
+# 2) `src/data/db_dataset_test.py::SelectRowsSuite` to run a test suite.
+# 3) `src/data/db_dataset_test.py::SelectRowsSuite::test_columns` to run a single test.
+if [ "$1" ]; then
+  TEST_PATH="$1"
+else
+  TEST_PATH="src/"
+fi
+pytest -vv --capture=tee-sys -m "$PYTEST_MARKS" "$TEST_PATH"

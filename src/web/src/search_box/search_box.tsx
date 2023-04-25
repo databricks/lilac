@@ -324,7 +324,7 @@ export const SearchBox = () => {
               {activePage?.type == 'compute-signal-column' && (
                 <ColumnSelector
                   leafFilter={() => {
-                    // TODO(nsthorat): Use the embedding_based bit to determine the filter for
+                    // TODO(nsthorat): Use the vector_based bit to determine the filter for
                     // leafs. We should also determine whether to compute embeddings automatically
                     // at this stage.
                     return true;
