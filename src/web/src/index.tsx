@@ -40,7 +40,7 @@ const router = createBrowserRouter(
     <Route path="/" element={<AppContainer />}>
       <Route index element={<Home />} />
       <Route path="/datasets/:namespace/:datasetName" element={<DatasetViewer />} />
-      <Route path="dataset_loader" element={<DatasetLoader />} />
+      <Route path="/new" element={<DatasetLoader />} />
       <Route path="*" element={<PageNotFound />} />
     </Route>
   )

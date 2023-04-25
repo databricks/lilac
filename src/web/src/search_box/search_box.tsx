@@ -475,7 +475,7 @@ function HomeMenu({
         <Item
           onSelect={() => {
             closeMenu();
-            navigate(`/dataset_loader`);
+            navigate(`/new`);
           }}
         >
           <SlIcon className="text-xl" name="database-add" />
