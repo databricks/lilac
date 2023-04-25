@@ -82,7 +82,7 @@ class Signal(abc.ABC, BaseModel):
       data: An iterable of rich data to compute the signal over.
 
     Returns
-      An iterable of items. The signal can be sparse and return "None" for certain inputs.
+      An iterable of items. Sparse signals can return "None" for certain inputs.
     """
     raise NotImplementedError
 
@@ -95,7 +95,7 @@ class Signal(abc.ABC, BaseModel):
       vector_store: The vector store to lookup pre-computed embeddings.
 
     Returns
-      An iterable of items. The signal can be sparse and return "None" for certain inputs.
+      An iterable of items. Sparse signals can return "None" for certain inputs.
     """
     raise NotImplementedError
 
@@ -108,7 +108,8 @@ class Signal(abc.ABC, BaseModel):
       vector_store: The vector store to lookup pre-computed embeddings.
 
     Returns
-      A list with the "topk" items. The signal can be sparse and return "None" for certain inputs.
+      A list of (uuid, signal_output) tuples containing the "topk" items. Sparse signals can return
+      "None" for certain inputs.
     """
     raise NotImplementedError
 
