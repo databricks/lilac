@@ -24,8 +24,6 @@ export interface GalleryProps {
 
 /** Number of items to be fetched when fetching the next page. */
 const ITEMS_PAGE_SIZE = 40;
-/** The average item width in pixels. Multiple items can share the row if there is enough width. */
-const AVG_ITEM_WIDTH_PX = 500;
 /**
  * A hook that allows for infinite fetch with paging. The hook exports fetchNextPage which should
  * be called by users to fetch the next page.
@@ -92,27 +90,31 @@ export const GalleryMenu = React.memo(function GalleryMenu({
   });
   const leafs = [...schema.leafs];
   return (
-    <div className="flex h-16 gap-x-4">
-      {/* Media dropdown. */}
-      <FeatureDropdown
-        label="Media to preview"
-        selectedPaths={mediaPaths}
-        leafs={mediaLeafs}
-        onSelectedPathsChanged={(paths) =>
-          dispatch(setSelectedMediaPaths({namespace, datasetName, paths}))
-        }
-      />
-      {/* Metadata dropdown. */}
-      <FeatureDropdown
-        label="Metadata to preview"
-        selectedPaths={metadataPaths}
-        leafs={leafs}
-        onSelectedPathsChanged={(paths) =>
-          dispatch(setSelectedMetadataPaths({namespace, datasetName, paths}))
-        }
-      />
-      <ActiveConceptLegend namespace={namespace} datasetName={datasetName}></ActiveConceptLegend>
-      <SortMenu namespace={namespace} datasetName={datasetName}></SortMenu>
+    <div className="flex w-full flex-wrap gap-x-4 ">
+      <div className="flex max-w-full gap-x-4">
+        {/* Media dropdown. */}
+        <FeatureDropdown
+          label="Media to preview"
+          selectedPaths={mediaPaths}
+          leafs={mediaLeafs}
+          onSelectedPathsChanged={(paths) =>
+            dispatch(setSelectedMediaPaths({namespace, datasetName, paths}))
+          }
+        />
+        {/* Metadata dropdown. */}
+        <FeatureDropdown
+          label="Metadata to preview"
+          selectedPaths={metadataPaths}
+          leafs={leafs}
+          onSelectedPathsChanged={(paths) =>
+            dispatch(setSelectedMetadataPaths({namespace, datasetName, paths}))
+          }
+        />
+      </div>
+      <div className="flex max-w-full gap-x-4 ">
+        <ActiveConceptLegend namespace={namespace} datasetName={datasetName}></ActiveConceptLegend>
+        <SortMenu namespace={namespace} datasetName={datasetName}></SortMenu>
+      </div>
     </div>
   );
 });
@@ -153,8 +155,8 @@ function FeatureDropdown({
 
   return (
     <div className="flex w-96 flex-col">
-      <label className="text-sm font-light">{label}</label>
-      <div className="flex h-full items-center">
+      <label className="text-sm font-light text-gray-400">{label}</label>
+      <div className="flex items-center">
         <SlSelect
           className={`w-full ${styles.gallery_preview_dropdown}`}
           size="small"
@@ -191,9 +193,9 @@ function ActiveConceptLegend({
 
   const activeConcept = useDataset().activeConcept;
   return (
-    <div className={`relative m-auto w-48 p-2 text-xs`}>
+    <div className={`relative my-auto py-2 text-xs`}>
       {activeConcept == null ? (
-        <div className="text-sm font-light opacity-40">No active concept.</div>
+        <div className="text-sm font-light text-gray-400">No active concept.</div>
       ) : (
         <div className="font-light">
           <div className="mb-1">Active concept</div>
@@ -232,9 +234,9 @@ function SortMenu({namespace, datasetName}: {namespace: string; datasetName: str
   const sort = useDataset().browser.sort;
   const sortByDisplay = sort?.by.map((p) => renderPath(p)).join(' > ');
   return (
-    <div className="m-auto w-36 text-xs">
+    <div className="my-auto flex py-2">
       {sort == null ? (
-        <div className="text-sm font-light opacity-40">No active sort.</div>
+        <div className="text-sm font-light text-gray-400">No active sort.</div>
       ) : (
         <div className="flex flex-col font-light">
           <div className="mb-1">Sorted by</div>
@@ -260,40 +262,6 @@ function SortMenu({namespace, datasetName}: {namespace: string; datasetName: str
     </div>
   );
 }
-
-export interface GalleryRowProps {
-  /** List of run ids to render in a single row. */
-  namespace: string;
-  datasetName: string;
-  itemIds: string[];
-  mediaPaths: Path[];
-  metadataPaths?: Path[];
-}
-
-export const GalleryRow = React.memo(function GalleryRow({
-  namespace,
-  datasetName,
-  itemIds,
-  mediaPaths,
-  metadataPaths,
-}: GalleryRowProps): JSX.Element {
-  const hundredPerc = 100;
-  const widthPerc = (hundredPerc / itemIds.length).toFixed(2);
-  const galleryItems = itemIds.map((itemId) => {
-    return (
-      <div key={itemId} style={{width: `${widthPerc}%`}}>
-        <GalleryItem
-          namespace={namespace}
-          datasetName={datasetName}
-          itemId={itemId}
-          mediaPaths={mediaPaths}
-          metadataPaths={metadataPaths}
-        ></GalleryItem>
-      </div>
-    );
-  });
-  return <div className="flex h-full w-full shrink gap-x-4">{galleryItems}</div>;
-});
 
 export function useMediaPaths(
   namespace: string,
@@ -354,11 +322,10 @@ export const Gallery = React.memo(function Gallery({
   );
   // `useVirtualizer needs a reference to the scrolling element below.
   const parentRef = React.useRef<HTMLDivElement | null>(null);
-  const [itemsPerRow, setItemsPerRow] = React.useState(1);
-  const numRows = Math.ceil(allIds.length / itemsPerRow);
+  const numRows = allIds.length;
 
   const virtualizer = useVirtualizer({
-    count: hasNextPage ? numRows + 1 : numRows,
+    count: webManifest?.dataset_manifest.num_items ?? 0,
     getScrollElement: () => parentRef.current || null,
     // The estimated height of an individual item in pixels. This doesn't matter since we will
     // compute the actual height after the initial render.
@@ -377,22 +344,6 @@ export const Gallery = React.memo(function Gallery({
       }
     },
     [hasNextPage, fetchNextPage, numRows, isFetchingNextPage, virtualizer.getVirtualItems()]
-  );
-
-  React.useEffect(
-    function addResizeObserver() {
-      if (parentRef.current == null) {
-        return;
-      }
-      const observer = new ResizeObserver((entries) => {
-        const galleryWidthPx = entries[0].contentRect.width;
-        const itemsPerRow = Math.max(1, Math.round(galleryWidthPx / AVG_ITEM_WIDTH_PX));
-        setItemsPerRow(itemsPerRow);
-      });
-      observer.observe(parentRef.current);
-      return () => observer.disconnect();
-    },
-    [parentRef.current, webManifest]
   );
 
   if (error || manifestError) {
@@ -417,7 +368,7 @@ export const Gallery = React.memo(function Gallery({
           metadataPaths={metadataPaths}
         ></GalleryMenu>
       </div>
-      <div ref={parentRef} className="h-full w-full overflow-y-scroll p-4">
+      <div ref={parentRef} className="h-full w-full overflow-y-scroll">
         <div
           style={{
             height: `${virtualizer.getTotalSize()}px`,
@@ -436,33 +387,36 @@ export const Gallery = React.memo(function Gallery({
           >
             {virtualRows.map((virtualRow) => {
               const isLoaderRow = virtualRow.index >= numRows;
-              const startIndex = virtualRow.index * itemsPerRow;
-              const endIndex = (virtualRow.index + 1) * itemsPerRow;
-              const itemIds = allIds.slice(startIndex, endIndex);
+
+              const itemId = allIds[virtualRow.index];
 
               return (
                 <div
                   key={virtualRow.index}
                   data-index={virtualRow.index}
                   ref={virtualizer.measureElement}
-                  className="w-full"
+                  className="w-full border-b"
                 >
                   {isLoaderRow ? (
                     <div className={styles.loader_row}>Loading more...</div>
                   ) : (
-                    <GalleryRow
+                    <GalleryItem
+                      itemId={itemId}
                       namespace={namespace}
                       datasetName={datasetName}
-                      itemIds={itemIds}
                       mediaPaths={mediaPaths}
                       metadataPaths={metadataPaths}
-                    ></GalleryRow>
+                    ></GalleryItem>
                   )}
                 </div>
               );
             })}
           </div>
         </div>
+      </div>
+      <div className="border-t px-4 py-1 text-sm font-light text-gray-500">
+        Rows {virtualizer.range.startIndex.toLocaleString()} /{' '}
+        {webManifest.dataset_manifest.num_items.toLocaleString()}
       </div>
     </div>
   );
