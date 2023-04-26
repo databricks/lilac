@@ -25,40 +25,61 @@ export interface GalleryProps {
 /** Number of items to be fetched when fetching the next page. */
 const ITEMS_PAGE_SIZE = 40;
 /**
- * A hook that allows for infinite fetch with paging. The hook exports fetchNextPage which should
- * be called by users to fetch the next page.
+ * A hook that allows for infinite fetch with paging.
  */
-function useInfiniteItemsQuery(namespace: string, datasetName: string) {
+function useInfiniteItemsQuery(
+  namespace: string,
+  datasetName: string,
+  firstVisibleIndex: number,
+  lastVisibleIndex: number
+) {
   const sort = useDataset().browser.sort;
-  const [prevIds, setPrevIds] = React.useState<{[datasetId: string]: string[]}>({});
   const filters: Filter[] = [];
   const activeConcept = useDataset().activeConcept;
-  const cacheKey = JSON.stringify({namespace, datasetName, filters, activeConcept, sort});
-  const cachedIds = prevIds[cacheKey] || [];
-  const {error, isFetching, ids} = useGetIds(
+
+  const offsetPage1 = Math.floor(firstVisibleIndex / ITEMS_PAGE_SIZE) * ITEMS_PAGE_SIZE;
+  const offsetPage2 = Math.floor(lastVisibleIndex / ITEMS_PAGE_SIZE) * ITEMS_PAGE_SIZE;
+
+  // Fetch two pages at a time in the case that the view overlaps two pages.
+  // If page 2 is the same as page 1, it will automatically not be fetched again.
+  const page1 = useGetIds(
     namespace,
     datasetName,
     filters,
     activeConcept,
     ITEMS_PAGE_SIZE,
-    cachedIds.length,
+    offsetPage1,
     sort?.by,
     sort?.order
   );
-  const allIds = cachedIds.concat(ids || []);
-  const hasNextPage = ids == null || ids.length === ITEMS_PAGE_SIZE;
 
-  function fetchNextPage() {
-    // Remember the previous ids. Key by `datasetId` so that we invalidate when the dataset changes.
-    setPrevIds({[cacheKey]: allIds});
+  const page2 = useGetIds(
+    namespace,
+    datasetName,
+    filters,
+    activeConcept,
+    ITEMS_PAGE_SIZE,
+    offsetPage2,
+    sort?.by,
+    sort?.order
+  );
+
+  const allIds = new Map<number, string>();
+  if (!page1.isFetching && page1.ids) {
+    for (const [idx, id] of page1.ids.entries()) {
+      allIds.set(idx + offsetPage1, id);
+    }
+  }
+  if (offsetPage1 != offsetPage2 && !page2.isFetching && page2.ids) {
+    for (const [idx, id] of page2.ids.entries()) {
+      allIds.set(idx + offsetPage2, id);
+    }
   }
 
   return {
     allIds,
-    error,
-    isFetchingNextPage: isFetching,
-    hasNextPage,
-    fetchNextPage,
+    error: page1.error || page2.error,
+    isFetching: page1.isFetching || page2.isFetching,
   };
 }
 
@@ -316,14 +337,6 @@ export const Gallery = React.memo(function Gallery({
   const mediaPaths = useMediaPaths(namespace, datasetName, webManifest, schema);
   const metadataPaths = useDataset().browser.selectedMetadataPaths;
 
-  const {error, isFetchingNextPage, allIds, hasNextPage, fetchNextPage} = useInfiniteItemsQuery(
-    namespace,
-    datasetName
-  );
-  // `useVirtualizer needs a reference to the scrolling element below.
-  const parentRef = React.useRef<HTMLDivElement | null>(null);
-  const numRows = allIds.length;
-
   const virtualizer = useVirtualizer({
     count: webManifest?.dataset_manifest.num_items ?? 0,
     getScrollElement: () => parentRef.current || null,
@@ -333,18 +346,14 @@ export const Gallery = React.memo(function Gallery({
     overscan: 1,
   });
 
-  React.useEffect(
-    function maybeFetchNextPage() {
-      const lastVirtualRow = virtualizer.getVirtualItems().slice().reverse()[0];
-      if (lastVirtualRow == null) {
-        return;
-      }
-      if (lastVirtualRow.index >= numRows && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-      }
-    },
-    [hasNextPage, fetchNextPage, numRows, isFetchingNextPage, virtualizer.getVirtualItems()]
+  const {error, allIds} = useInfiniteItemsQuery(
+    namespace,
+    datasetName,
+    virtualizer.range.startIndex,
+    virtualizer.range.endIndex
   );
+  // `useVirtualizer needs a reference to the scrolling element below.
+  const parentRef = React.useRef<HTMLDivElement | null>(null);
 
   if (error || manifestError) {
     return <div>Error: {((error || manifestError) as Error).message}</div>;
@@ -386,9 +395,8 @@ export const Gallery = React.memo(function Gallery({
             }}
           >
             {virtualRows.map((virtualRow) => {
-              const isLoaderRow = virtualRow.index >= numRows;
-
-              const itemId = allIds[virtualRow.index];
+              const itemId = allIds.get(virtualRow.index);
+              const isLoaderRow = !itemId;
 
               return (
                 <div
