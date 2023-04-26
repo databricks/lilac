@@ -29,7 +29,9 @@ class NumpyVectorStore(VectorStore):
       )
 
     self._keys = np.array(keys)
-    self._embeddings = embeddings
+    # Cast to float32 since dot product with float32 is 40-50x faster than float16 and 2.5x faster
+    # than float64.
+    self._embeddings = embeddings.astype(np.float32)
     # np.split makes a shallow copy of each of the embeddings, so the data frame can be a shallow
     # view of the numpy array. This means the dataframe cannot be used to modify the embeddings.
     self._df = pd.DataFrame(
@@ -65,6 +67,7 @@ class NumpyVectorStore(VectorStore):
       embeddings = self._embeddings
       keys = self._keys
 
+    query = query.astype(embeddings.dtype)
     similarities: np.ndarray = np.dot(embeddings, query).flatten()
 
     k = min(k, len(similarities))

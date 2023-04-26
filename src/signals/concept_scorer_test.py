@@ -21,7 +21,7 @@ from ..embeddings.embedding_registry import (
     clear_embedding_registry,
     register_embedding,
 )
-from ..embeddings.vector_store import VectorStore
+from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import EnrichmentType, RichData
 from .concept_scorer import ConceptScoreSignal
 
@@ -58,22 +58,6 @@ class TestEmbedding(Embedding):
       if example not in EMBEDDING_MAP:
         raise ValueError(f'Example "{str(example)}" not in embedding map')
     return np.array([EMBEDDING_MAP[cast(str, example)] for example in examples])
-
-
-class TestVectorStore(VectorStore):
-  """A test vector store with fixed embeddings."""
-
-  def __init__(self, key_embedding_map: dict[str, list[float]]):
-    self._key_embedding_map = key_embedding_map
-
-  @override
-  def add(self, keys: list[str], embeddings: np.ndarray) -> None:
-    # We fix the vectors for the test vector store.
-    pass
-
-  @override
-  def get(self, keys: Iterable[str]) -> np.ndarray:
-    return np.array([self._key_embedding_map[x] for x in keys])
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -162,8 +146,8 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
 @pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
-def test_concept_model_score_embeddings(concept_db_cls: Type[ConceptDB],
-                                        model_db_cls: Type[ConceptModelDB]) -> None:
+def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
+                                    model_db_cls: Type[ConceptModelDB]) -> None:
   concept_db = concept_db_cls()
   model_db = model_db_cls(concept_db)
   namespace = 'test'
@@ -182,14 +166,57 @@ def test_concept_model_score_embeddings(concept_db_cls: Type[ConceptDB],
   model_db.sync(
       ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
-  vector_store = TestVectorStore({
-      '1': [1.0, 0.0, 0.0],
-      '2': [0.9, 0.1, 0.0],
-      '3': [0.1, 0.2, 0.3],
-  })
+  vector_store = NumpyVectorStore()
+  vector_store.add(['1', '2', '3'], np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
 
   scores = signal.vector_compute(['1', '2', '3'], vector_store)
 
   expected_scores = [0.465, 0.535, 0.801]
   for score, expected_score in zip(scores, expected_scores):
     assert pytest.approx(expected_score, 1e-3) == score
+
+
+@pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
+@pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
+def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
+                                  model_db_cls: Type[ConceptModelDB]) -> None:
+  concept_db = concept_db_cls()
+  model_db = model_db_cls(concept_db)
+  namespace = 'test'
+  concept_name = 'test_concept'
+  train_data = [
+      ExampleIn(label=False, text='not in concept'),
+      ExampleIn(label=True, text='in concept')
+  ]
+  concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
+
+  signal = ConceptScoreSignal(namespace='test',
+                              concept_name='test_concept',
+                              embedding_name='test_embedding')
+
+  # Explicitly sync the model with the concept.
+  model_db.sync(
+      ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+  vector_store = NumpyVectorStore()
+  vector_store.add(['1', '2', '3'], np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
+
+  # Compute topk without id restriction.
+  topk_result = signal.vector_compute_topk(3, vector_store)
+  expected_result = [('3', 0.801), ('2', 0.535), ('1', 0.465)]
+  for (id, score), (expected_id, expected_score) in zip(topk_result, expected_result):
+    assert id == expected_id
+    assert score == pytest.approx(expected_score, 1e-3)
+
+  # Compute top 1.
+  topk_result = signal.vector_compute_topk(1, vector_store)
+  expected_result = [('3', 0.801)]
+  for (id, score), (expected_id, expected_score) in zip(topk_result, expected_result):
+    assert id == expected_id
+    assert score == pytest.approx(expected_score, 1e-3)
+
+  # Compute topk with id restriction.
+  topk_result = signal.vector_compute_topk(3, vector_store, keys=['1', '2'])
+  expected_result = [('2', 0.535), ('1', 0.465)]
+  for (id, score), (expected_id, expected_score) in zip(topk_result, expected_result):
+    assert id == expected_id
+    assert score == pytest.approx(expected_score, 1e-3)

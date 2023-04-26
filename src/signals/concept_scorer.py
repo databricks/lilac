@@ -59,6 +59,6 @@ class ConceptScoreSignal(Signal):
       vector_store: VectorStore,
       keys: Optional[Iterable[str]] = None) -> list[tuple[str, Optional[ItemValue]]]:
     concept_model = self._get_concept_model()
-    query: np.ndarray = concept_model._model._coef.flatten()
+    query: np.ndarray = concept_model._model.coef_.flatten()
     topk_keys = [x[0] for x in vector_store.topk(query, topk, keys)]
     return list(zip(topk_keys, self.vector_compute(topk_keys, vector_store)))

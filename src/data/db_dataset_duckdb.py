@@ -31,6 +31,7 @@ from ..schema import (
     PathTuple,
     RichData,
     Schema,
+    SignalOut,
     SourceManifest,
     enrichment_supports_dtype,
     is_float,
@@ -676,6 +677,12 @@ class DatasetDuckDB(DatasetDB):
     """
     return DuckDBSelectGroupsResult(self._query_df(query))
 
+  def _sorting_by_topk_of_signal(self, limit: Optional[int], sort_order: Optional[SortOrder],
+                                 sort_cols_after_udf: list[str], signal_column: str) -> bool:
+    """Returns True if the query is sorting by the topk of a signal column."""
+    return bool(limit and sort_order == SortOrder.DESC and sort_cols_after_udf and
+                self._path_to_col(signal_column) == sort_cols_after_udf[0])
+
   @override
   def select_rows(self,
                   columns: Optional[Sequence[ColumnId]] = None,
@@ -760,17 +767,30 @@ class DatasetDuckDB(DatasetDB):
           if signal.vector_based:
             if signal.embedding is None:
               raise ValueError('`Signal.embedding` must be defined for embedding-based signals.')
-
-            # For embedding based signals, get the leaf keys and indices, creating a combined key
-            # for the key + index to pass to the signal.
-            flat_keys = flatten_keys(df[UUID_COLUMN], input)
             vector_store = self._get_vector_store(transform_col.feature, signal.embedding)
-            flat_output = signal.vector_compute(flat_keys, vector_store)
+
+            # If we are sorting by the topk of a signal column, we can utilize the vector store
+            # via `signal.vector_compute_topk` and then use the topk to filter the dataframe. This
+            # is much faster than computing the signal for all rows and then sorting.
+            if self._sorting_by_topk_of_signal(limit, sort_order, sort_cols_after_udf,
+                                               signal_column):
+              k = (limit or 0) + (offset or 0)
+              topk = signal.vector_compute_topk(k, vector_store)
+              uuids = [x[0] for x in topk]
+              flat_scores: Iterable[Optional[SignalOut]] = [x[1] for x in topk]
+              df.set_index(UUID_COLUMN, drop=False, inplace=True)
+              # Filter the dataframe only by the topk uuids.
+              df = df.loc[uuids]
+              input = df[signal_column]
+            else:
+              flat_keys = flatten_keys(df[UUID_COLUMN], input)
+              flat_scores = signal.vector_compute(flat_keys, vector_store)
           else:
             flat_input = cast(Iterable[RichData], flatten(input))
-            flat_output = signal.compute(flat_input)
+            flat_scores = signal.compute(flat_input)
 
-        df[signal_column] = unflatten(flat_output, input)
+          df[signal_column] = unflatten(flat_scores, input)
+
       else:
         raise ValueError(f'Unsupported transform: {transform}')
 
