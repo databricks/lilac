@@ -13,7 +13,7 @@ from pydantic import BaseModel, validator
 from typing_extensions import override
 
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
-from ..config import config, data_path
+from ..config import CONFIG, data_path
 from ..embeddings.embedding_index import EmbeddingIndexer
 from ..embeddings.embedding_index_disk import EmbeddingIndexerDisk
 from ..embeddings.embedding_registry import EmbeddingId, get_embedding_cls
@@ -73,7 +73,7 @@ from .db_dataset import (
     default_top_level_signal_col_name,
 )
 
-DEBUG = config['DEBUG'] == 'true' if 'DEBUG' in config else False
+DEBUG = CONFIG['DEBUG'] == 'true' if 'DEBUG' in CONFIG else False
 UUID_INDEX_FILENAME = 'uuids.npy'
 
 SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'

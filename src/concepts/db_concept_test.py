@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..config import config
+from ..config import CONFIG
 from ..embeddings.embedding_registry import Embedding, clear_embedding_registry, register_embedding
 from ..schema import EnrichmentType, RichData
 from .concept import ConceptModel, Example, ExampleIn
@@ -19,12 +19,12 @@ ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
 
 @pytest.fixture(autouse=True)
 def set_data_path(tmp_path: Path) -> Generator:
-  data_path = config['LILAC_DATA_PATH']
-  config['LILAC_DATA_PATH'] = str(tmp_path)
+  data_path = CONFIG['LILAC_DATA_PATH']
+  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
 
   yield
 
-  config['LILAC_DATA_PATH'] = data_path or ''
+  CONFIG['LILAC_DATA_PATH'] = data_path or ''
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {

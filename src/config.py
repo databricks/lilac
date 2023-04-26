@@ -3,7 +3,7 @@ import os
 
 from dotenv import dotenv_values
 
-config = {
+CONFIG = {
     **dotenv_values('.env'),  # load shared variables
     **dotenv_values('.env.local'),  # load locally set variables
     **os.environ,  # override loaded values with environment variables
@@ -12,6 +12,6 @@ config = {
 
 def data_path() -> str:
   """Return the base path for data."""
-  if config['LILAC_DATA_PATH']:
-    return config['LILAC_DATA_PATH']
+  if CONFIG['LILAC_DATA_PATH']:
+    return CONFIG['LILAC_DATA_PATH']
   return './gcs_cache'

@@ -10,7 +10,7 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..config import config
+from ..config import CONFIG
 from ..embeddings.embedding_index import EmbeddingIndexerManifest, EmbeddingIndexInfo
 from ..embeddings.embedding_registry import Embedding, clear_embedding_registry, register_embedding
 from ..embeddings.vector_store import VectorStore
@@ -118,12 +118,12 @@ def setup_teardown() -> Iterable[None]:
 
 @pytest.fixture(autouse=True)
 def set_data_path(tmp_path: pathlib.Path) -> Generator:
-  data_path = config['LILAC_DATA_PATH']
-  config['LILAC_DATA_PATH'] = str(tmp_path)
+  data_path = CONFIG['LILAC_DATA_PATH']
+  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
 
   yield
 
-  config['LILAC_DATA_PATH'] = data_path or ''
+  CONFIG['LILAC_DATA_PATH'] = data_path or ''
 
 
 @pytest.mark.parametrize('db_cls', ALL_DBS)

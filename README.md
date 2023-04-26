@@ -23,6 +23,10 @@ To run the web server in dev mode with fast edit-refresh:
 ./run_server_dev.sh
 ```
 
+### Configuration
+
+To use various API's, API keys need to be provided. Create a file named `.env.local` in the root, and add variables that are listed in `.env` with your own values.
+
 #### Testing
 
 Run all the checks before mailing:
