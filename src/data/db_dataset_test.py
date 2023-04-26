@@ -851,6 +851,78 @@ class SelectRowsSuite:
     }]
     assert list(result) == expected_result
 
+  def test_embedding_signal_manifest_caching(self, tmp_path: pathlib.Path,
+                                             db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls=db_cls,
+                 tmp_path=tmp_path,
+                 items=[{
+                     UUID_COLUMN: '1',
+                     'text': 'hello.',
+                 }, {
+                     UUID_COLUMN: '2',
+                     'text': 'hello2.',
+                 }],
+                 schema=Schema(fields={
+                     UUID_COLUMN: Field(dtype=DataType.STRING),
+                     'text': Field(dtype=DataType.STRING),
+                 }))
+
+    # No embedding in the manifest.
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }),
+        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+        num_items=2)
+
+    embedding = TestEmbedding()
+    db.compute_embedding_index(embedding=embedding, column='text')
+
+    # Embedding is in the manifest.
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }),
+        embedding_manifest=EmbeddingIndexerManifest(
+            indexes=[EmbeddingIndexInfo(column=('text',), embedding=embedding)]),
+        num_items=2)
+
+    db.compute_signal_column(signal=TestEmbeddingSumSignal(embedding=TestEmbedding()),
+                             column='text',
+                             signal_column_name='text_emb_sum')
+
+    # Both embedding and signal is in the manifest.
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'text': Field(dtype=DataType.STRING),
+                'text_emb_sum': Field(dtype=DataType.FLOAT32, enriched=True)
+            }),
+        embedding_manifest=EmbeddingIndexerManifest(
+            indexes=[EmbeddingIndexInfo(column=('text',), embedding=embedding)]),
+        num_items=2)
+
+    result = db.select_rows(columns=['text', 'text_emb_sum'])
+    expected_result = [{
+        UUID_COLUMN: '1',
+        'text': 'hello.',
+        'text_emb_sum': 1.0
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'hello2.',
+        'text_emb_sum': 2.0
+    }]
+    assert list(result) == expected_result
+
   def test_embedding_signal_splits(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls=db_cls,
                  tmp_path=tmp_path,

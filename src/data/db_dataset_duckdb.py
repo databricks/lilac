@@ -1,5 +1,6 @@
 """The DuckDB implementation of the dataset database."""
 import functools
+import glob
 import itertools
 import os
 import re
@@ -189,21 +190,24 @@ class DatasetDuckDB(DatasetDB):
 
   @functools.cache
   # NOTE: This is cached, but when the list of filepaths changed the results are invalidated.
-  def _recompute_joint_table(self, signal_manifest_filepaths: tuple[str]) -> DatasetManifest:
+  def _recompute_joint_table(self, latest_mtime: float) -> DatasetManifest:
     computed_columns: list[ComputedColumn] = []
 
     # Add the signal column groups.
-    for signal_manifest_filepath in signal_manifest_filepaths:
-      with open_file(signal_manifest_filepath) as f:
-        signal_manifest = SignalManifest.parse_raw(f.read())
-      value_field_name = cast(str, signal_manifest.enriched_path[0])
-      signal_column = ComputedColumn(
-          files=signal_manifest.files,
-          top_level_column_name=signal_manifest.top_level_column_name,
-          value_field_name=value_field_name,
-          value_field_schema=signal_manifest.data_schema.fields[value_field_name],
-          enriched_path=signal_manifest.enriched_path)
-      computed_columns.append(signal_column)
+    for root, _, files in os.walk(self.dataset_path):
+      for file in files:
+        if not file.endswith(SIGNAL_MANIFEST_SUFFIX):
+          continue
+        with open_file(os.path.join(root, file)) as f:
+          signal_manifest = SignalManifest.parse_raw(f.read())
+        value_field_name = cast(str, signal_manifest.enriched_path[0])
+        signal_column = ComputedColumn(
+            files=signal_manifest.files,
+            top_level_column_name=signal_manifest.top_level_column_name,
+            value_field_name=value_field_name,
+            value_field_schema=signal_manifest.data_schema.fields[value_field_name],
+            enriched_path=signal_manifest.enriched_path)
+        computed_columns.append(signal_column)
 
     # Make a joined view of all the column groups.
     self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
@@ -249,13 +253,9 @@ class DatasetDuckDB(DatasetDB):
 
   @override
   def manifest(self) -> DatasetManifest:
-    signal_manifest_filepaths: list[str] = []
-    for root, _, files in os.walk(self.dataset_path):
-      for file in files:
-        if file.endswith(SIGNAL_MANIFEST_SUFFIX):
-          signal_manifest_filepaths.append(os.path.join(root, file))
-
-    return self._recompute_joint_table(tuple(signal_manifest_filepaths))
+    all_dataset_files = glob.iglob(os.path.join(self.dataset_path, '**'), recursive=True)
+    latest_mtime = max(map(os.path.getmtime, all_dataset_files))
+    return self._recompute_joint_table(latest_mtime)
 
   def count(self, filters: Optional[list[FilterLike]] = None) -> int:
     """Count the number of rows."""
