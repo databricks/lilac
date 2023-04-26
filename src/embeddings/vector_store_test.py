@@ -35,8 +35,8 @@ class VectorStoreSuite:
     topk = 3
     store.add(['a', 'b', 'c'], embedding)
     result = store.topk(query, topk)
-    assert [x[0] for x in result] == ['c', 'b', 'a']
-    assert [x[1] for x in result] == pytest.approx([0.9161, 0.894, 0.801], 1e-3)
+    assert [key for key, _ in result] == ['c', 'b', 'a']
+    assert [score for _, score in result] == pytest.approx([0.9161, 0.894, 0.801], 1e-3)
 
   def test_topk_with_restricted_keys(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()
@@ -45,13 +45,13 @@ class VectorStoreSuite:
     topk = 3
     store.add(['a', 'b', 'c'], embedding)
     result = store.topk(query, topk, keys=['b', 'a'])
-    assert [x[0] for x in result] == ['b', 'a']
-    assert [x[1] for x in result] == pytest.approx([0.894, 0.801], 1e-3)
+    assert [key for key, _ in result] == ['b', 'a']
+    assert [score for _, score in result] == pytest.approx([0.894, 0.801], 1e-3)
 
     result = store.topk(query, topk, keys=['a', 'b'])
-    assert [x[0] for x in result] == ['b', 'a']
-    assert [x[1] for x in result] == pytest.approx([0.894, 0.801], 1e-3)
+    assert [key for key, _ in result] == ['b', 'a']
+    assert [score for _, score in result] == pytest.approx([0.894, 0.801], 1e-3)
 
     result = store.topk(query, topk, keys=['a', 'c'])
-    assert [x[0] for x in result] == ['c', 'a']
-    assert [x[1] for x in result] == pytest.approx([0.9161, 0.801], 1e-3)
+    assert [key for key, _ in result] == ['c', 'a']
+    assert [score for _, score in result] == pytest.approx([0.9161, 0.801], 1e-3)

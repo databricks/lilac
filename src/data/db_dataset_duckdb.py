@@ -770,8 +770,8 @@ class DatasetDuckDB(DatasetDB):
                                                signal_column):
               k = (limit or 0) + (offset or 0)
               topk = signal.vector_compute_topk(k, vector_store)
-              uuids = [x[0] for x in topk]
-              flat_scores: Iterable[Optional[SignalOut]] = [x[1] for x in topk]
+              uuids = [uuid for (uuid, _) in topk]
+              flat_scores: Iterable[Optional[SignalOut]] = [score for _, score in topk]
               df.set_index(UUID_COLUMN, drop=False, inplace=True)
               # Filter the dataframe only by the topk uuids.
               df = df.loc[uuids]
