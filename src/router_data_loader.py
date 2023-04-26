@@ -12,7 +12,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-from .constants import data_path
+from .config import data_path
 from .data.sources.default_sources import register_default_sources
 from .data.sources.source_registry import get_source_cls, registered_sources
 from .data_loader import process_source

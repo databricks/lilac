@@ -1,6 +1,5 @@
 """Cohere embeddings."""
 import functools
-import os
 from typing import Iterable
 
 import cohere
@@ -8,13 +7,14 @@ import numpy as np
 from sklearn.preprocessing import normalize
 from typing_extensions import override
 
+from ..config import CONFIG
 from ..schema import EnrichmentType, RichData
 from .embedding_registry import Embedding
 
 
 @functools.cache
 def _cohere() -> cohere.Client:
-  api_key = os.environ.get('COHERE_API_KEY', None)
+  api_key = CONFIG['COHERE_API_KEY']
   if not api_key:
     raise ValueError('`COHERE_API_KEY` environment variable not set.')
   return cohere.Client(api_key)

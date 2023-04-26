@@ -1,6 +1,5 @@
 """Tests for the the database concept."""
 
-import os
 from pathlib import Path
 from typing import Generator, Iterable, Type, cast
 
@@ -8,11 +7,8 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..embeddings.embedding_registry import (
-    Embedding,
-    clear_embedding_registry,
-    register_embedding,
-)
+from ..config import CONFIG
+from ..embeddings.embedding_registry import Embedding, clear_embedding_registry, register_embedding
 from ..schema import EnrichmentType, RichData
 from .concept import ConceptModel, Example, ExampleIn
 from .db_concept import ConceptDB, ConceptModelDB, ConceptUpdate, DiskConceptDB, DiskConceptModelDB
@@ -23,12 +19,12 @@ ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
 
 @pytest.fixture(autouse=True)
 def set_data_path(tmp_path: Path) -> Generator:
-  data_path = os.environ.get('LILAC_DATA_PATH', None)
-  os.environ['LILAC_DATA_PATH'] = str(tmp_path)
+  data_path = CONFIG['LILAC_DATA_PATH']
+  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
 
   yield
 
-  os.environ['LILAC_DATA_PATH'] = data_path or ''
+  CONFIG['LILAC_DATA_PATH'] = data_path or ''
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {

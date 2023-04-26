@@ -10,17 +10,10 @@ import requests
 from pydantic import Field
 from typing_extensions import override
 
-from ...constants import data_path
+from ...config import CONFIG, data_path
 from ...schema import PARQUET_FILENAME_PREFIX, arrow_schema_to_schema
 from ...tasks import TaskId
-from ...utils import (
-    UUID_COLUMN,
-    delete_file,
-    file_exists,
-    log,
-    makedirs,
-    open_file,
-)
+from ...utils import UUID_COLUMN, delete_file, file_exists, log, makedirs, open_file
 from .source import Source, SourceProcessResult
 
 
@@ -89,11 +82,11 @@ class JSONDataset(Source):
     out_dirname = os.path.dirname(out_filepath)
     makedirs(out_dirname)
     gcs_setup = ''
-    if 'GCS_REGION' in os.environ:
+    if 'GCS_REGION' in CONFIG:
       gcs_setup = f"""
-        SET s3_region='{os.environ['GCS_REGION']}';
-        SET s3_access_key_id='{os.environ['GCS_ACCESS_KEY']}';
-        SET s3_secret_access_key='{os.environ['GCS_SECRET_KEY']}';
+        SET s3_region='{CONFIG['GCS_REGION']}';
+        SET s3_access_key_id='{CONFIG['GCS_ACCESS_KEY']}';
+        SET s3_secret_access_key='{CONFIG['GCS_SECRET_KEY']}';
         SET s3_endpoint='storage.googleapis.com';
       """
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.

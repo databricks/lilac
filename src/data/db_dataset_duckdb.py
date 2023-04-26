@@ -13,7 +13,7 @@ from pydantic import BaseModel, validator
 from typing_extensions import override
 
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
-from ..constants import data_path
+from ..config import CONFIG, data_path
 from ..embeddings.embedding_index import EmbeddingIndexer
 from ..embeddings.embedding_index_disk import EmbeddingIndexerDisk
 from ..embeddings.embedding_registry import EmbeddingId, get_embedding_cls
@@ -44,13 +44,7 @@ from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import Signal
 from ..signals.signal_registry import resolve_signal
 from ..tasks import TaskId, progress
-from ..utils import (
-    DebugTimer,
-    get_dataset_output_dir,
-    log,
-    open_file,
-    write_items_to_parquet,
-)
+from ..utils import DebugTimer, get_dataset_output_dir, log, open_file, write_items_to_parquet
 from . import db_dataset
 from .dataset_utils import (
     create_enriched_schema,
@@ -80,7 +74,7 @@ from .db_dataset import (
     default_top_level_signal_col_name,
 )
 
-DEBUG = os.environ['DEBUG'] == 'true' if 'DEBUG' in os.environ else False
+DEBUG = CONFIG['DEBUG'] == 'true' if 'DEBUG' in CONFIG else False
 UUID_INDEX_FILENAME = 'uuids.npy'
 
 SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
