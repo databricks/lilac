@@ -253,6 +253,8 @@ class DatasetDuckDB(DatasetDB):
 
   @override
   def manifest(self) -> DatasetManifest:
+    # Use the latest modification time of all files under the dataset path as the cache key for
+    # re-computing the manifest and the joined view.
     all_dataset_files = glob.iglob(os.path.join(self.dataset_path, '**'), recursive=True)
     latest_mtime = max(map(os.path.getmtime, all_dataset_files))
     return self._recompute_joint_table(latest_mtime)
