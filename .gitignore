@@ -20,3 +20,6 @@ gcs_cache/datasets
 gcs_cache/local_cache
 # Ignore pickled concept models.
 gcs_cache/concept/**/*.pkl
+
+# Env
+.env.local

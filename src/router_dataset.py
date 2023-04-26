@@ -5,7 +5,7 @@ from typing import Any, Optional, Sequence, Union
 from fastapi import APIRouter, Response
 from pydantic import BaseModel, validator
 
-from .constants import data_path
+from .config import data_path
 from .data.db_dataset import (
     Bins,
     Column,
