@@ -8,7 +8,7 @@
     "sourceMap": true,
     "inlineSources": true,
     "jsx": "react",
-    "lib": ["dom", "es2018"],
+    "lib": ["dom", "es2022"],
     "outDir": "dist",
     "declaration": true,
     // Type roots are defined here to add CSS modules.
