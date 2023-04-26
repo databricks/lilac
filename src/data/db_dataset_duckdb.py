@@ -183,7 +183,7 @@ class DatasetDuckDB(DatasetDB):
       self._embedding_indexer = embedding_indexer
 
     # Maps a column path and embedding to the vector store. This is lazily generated as needed.
-    self._col_embedding_stores: dict[ColumnEmbedding, VectorStore] = {}
+    self._col_vector_stores: dict[ColumnEmbedding, VectorStore] = {}
     self.vector_store_cls = vector_store_cls
     self._concept_model_db = concept_model_db
 
@@ -274,16 +274,16 @@ class DatasetDuckDB(DatasetDB):
       embedding_key = embedding.__class__.__name__
 
     store_key: ColumnEmbedding = (path, embedding_key)
-    if store_key not in self._col_embedding_stores:
+    if store_key not in self._col_vector_stores:
       # Get the embedding index for the column and embedding.
       embedding_index = self._embedding_indexer.get_embedding_index(path, embedding)
       # Get all the embeddings and pass it to the vector store.
       vector_store = self.vector_store_cls()
       vector_store.add(embedding_index.keys, embedding_index.embeddings)
       # Cache the vector store.
-      self._col_embedding_stores[store_key] = vector_store
+      self._col_vector_stores[store_key] = vector_store
 
-    return self._col_embedding_stores[store_key]
+    return self._col_vector_stores[store_key]
 
   @override
   def compute_embedding_index(self,

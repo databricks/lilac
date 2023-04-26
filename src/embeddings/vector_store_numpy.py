@@ -69,7 +69,6 @@ class NumpyVectorStore(VectorStore):
 
     query = query.astype(embeddings.dtype)
     similarities: np.ndarray = np.dot(embeddings, query).flatten()
-
     k = min(k, len(similarities))
 
     # We do a partition + sort only top K to save time: O(n + klogk) instead of O(nlogn).
