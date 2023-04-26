@@ -2,7 +2,7 @@
 
 import os
 import pathlib
-from typing import Generator, Iterable, Optional, Type, cast
+from typing import Generator, Iterable, Type, cast
 
 import numpy as np
 import pytest
@@ -72,8 +72,7 @@ class TestVectorStore(VectorStore):
     pass
 
   @override
-  def get(self, keys: Optional[Iterable[str]]) -> np.ndarray:
-    keys = keys or []
+  def get(self, keys: Iterable[str]) -> np.ndarray:
     return np.array([self._key_embedding_map[x] for x in keys])
 
 

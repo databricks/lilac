@@ -1,6 +1,6 @@
 """Test the semantic search signal."""
 
-from typing import Iterable, Optional, cast
+from typing import Iterable, cast
 
 import numpy as np
 import pytest
@@ -40,7 +40,7 @@ class TestVectorStore(VectorStore):
     pass
 
   @override
-  def get(self, keys: Optional[Iterable[str]]) -> np.ndarray:
+  def get(self, keys: Iterable[str]) -> np.ndarray:
     keys = keys or []
     return np.array([EMBEDDINGS[row_id] for row_id in keys])
 

@@ -37,25 +37,43 @@ class NumpyVectorStore(VectorStore):
         index=self._keys)
 
   @override
-  def get(self, keys: Optional[Iterable[str]]) -> np.ndarray:
+  def get(self, keys: Iterable[str]) -> np.ndarray:
     """Return the embeddings for given keys.
 
     Args:
-      keys: The keys to return the embeddings for. If None, return all embeddings.
+      keys: The keys to return the embeddings for.
 
     Returns
       The embeddings for the given keys.
     """
-    np_keys: Optional[np.ndarray] = None
-    if keys is not None:
-      if isinstance(keys, pd.Series):
-        np_keys = keys.to_numpy()
-      else:
-        np_keys = np.array(keys)
+    if isinstance(keys, pd.Series):
+      np_keys = keys.to_numpy()
+    else:
+      np_keys = np.array(keys)
 
-    if np_keys is not None:
-      embeddings = np.stack(self._df.loc[np_keys][NP_EMBEDDINGS_KWD])
+    return np.stack(self._df.loc[np_keys][NP_EMBEDDINGS_KWD])
+
+  @override
+  def topk(self,
+           query: np.ndarray,
+           k: int,
+           keys: Optional[Iterable[str]] = None) -> list[tuple[str, float]]:
+    if keys:
+      embeddings = self.get(keys)
+      keys = np.array(keys)
     else:
       embeddings = self._embeddings
+      keys = self._keys
 
-    return embeddings
+    similarities: np.ndarray = np.dot(embeddings, query).flatten()
+
+    k = min(k, len(similarities))
+
+    # We do a partition + sort only top K to save time: O(n + klogk) instead of O(nlogn).
+    idx = np.argpartition(similarities, -k)[-k:]
+    # Indices sorted by value from largest to smallest.
+    idx = idx[np.argsort(similarities[idx])][::-1]
+
+    topk_similarities = similarities[idx]
+    topk_keys = keys[idx]
+    return list(zip(topk_keys, topk_similarities))

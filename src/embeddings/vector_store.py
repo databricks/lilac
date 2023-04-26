@@ -22,7 +22,7 @@ class VectorStore(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def get(self, keys: Optional[Iterable[str]]) -> np.ndarray:
+  def get(self, keys: Iterable[str]) -> np.ndarray:
     """Return the embeddings for given keys.
 
     Args:
@@ -33,12 +33,16 @@ class VectorStore(abc.ABC):
     """
     pass
 
-  def topk(self, query: np.ndarray, k: int) -> np.ndarray:
+  def topk(self,
+           query: np.ndarray,
+           k: int,
+           keys: Optional[Iterable[str]] = None) -> list[tuple[str, float]]:
     """Return the top k most similar vectors.
 
     Args:
       query: The query vector.
       k: The number of results to return.
+      keys: Optional keys to restrict the search to.
 
     Returns
       A list of (id, score) tuples.

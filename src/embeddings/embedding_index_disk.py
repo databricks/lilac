@@ -50,10 +50,7 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
     return index_infos
 
   @override
-  def get_embedding_index(self,
-                          column: Path,
-                          embedding: EmbeddingId,
-                          keys: Optional[Iterable[str]] = None) -> EmbeddingIndex:
+  def get_embedding_index(self, column: Path, embedding: EmbeddingId) -> EmbeddingIndex:
     if isinstance(embedding, str):
       embedding_name = embedding
     else:
@@ -68,28 +65,11 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
           F'Embedding index for column "{path}" and embedding "{embedding_name}" does not exist. '
           'Please run "db.compute_embedding_index" on the database first.')
 
-    np_keys: Optional[np.ndarray] = None
-    if keys is not None:
-      if isinstance(keys, pd.Series):
-        np_keys = keys.to_numpy()
-      else:
-        np_keys = np.array(keys)
-
     # Read the embedding index from disk.
     with open_file(index_path, 'rb') as f:
       np_index: dict[str, np.ndarray] = np.load(f, allow_pickle=True)
-      if np_keys is not None:
-        # NOTE: Calling tolist() here is necessary because we can't put the entire matrix into the
-        # dataframe. This will store each embedding a list. This could be sped up if we write our
-        # own implementation, or use something faster.
-        df = pd.DataFrame({NP_EMBEDDINGS_KWD: np_index[NP_EMBEDDINGS_KWD].tolist()},
-                          index=np_index[NP_INDEX_KEYS_KWD])
-        embeddings = np.stack(df.loc[np_keys][NP_EMBEDDINGS_KWD])
-      else:
-        embeddings = np_index[NP_EMBEDDINGS_KWD]
-
-      # Return the keys passed in if defined, otherwise return all keys.
-      index_keys = np_keys.tolist() if np_keys is not None else np_index[NP_INDEX_KEYS_KWD].tolist()
+      embeddings = np_index[NP_EMBEDDINGS_KWD]
+      index_keys = np_index[NP_INDEX_KEYS_KWD].tolist()
 
     return EmbeddingIndex(path=index_path, keys=index_keys, embeddings=embeddings)
 

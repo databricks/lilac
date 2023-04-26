@@ -48,17 +48,12 @@ class EmbeddingIndexer(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def get_embedding_index(self,
-                          column: Path,
-                          embedding: EmbeddingId,
-                          keys: Optional[Iterable[str]] = None) -> EmbeddingIndex:
+  def get_embedding_index(self, column: Path, embedding: EmbeddingId) -> EmbeddingIndex:
     """Get an embedding index for a column, throw if it doesn't exist.
 
     Args:
       column: The column to get the embedding index for.
       embedding_id: The embedding to use.
-      keys: The keys to get the embedding index for. If None, get the embedding index for all
-        keys.
 
     Returns
       The embedding index for the given column and embedding.

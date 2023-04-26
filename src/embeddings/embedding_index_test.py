@@ -88,36 +88,3 @@ class EmbeddingIndexerSuite:
 
     assert indexer.manifest() == EmbeddingIndexerManifest(
         indexes=[EmbeddingIndexInfo(column=('test_column',), embedding=embedding)])
-
-  @pytest.mark.parametrize('indexer_cls', ALL_INDEXERS)
-  def test_get_partial_index(self, tmp_path: pathlib.Path, mocker: MockerFixture,
-                             indexer_cls: Type[EmbeddingIndexer]) -> None:
-    embed_mock = mocker.spy(TestEmbedding, '__call__')
-
-    indexer = _make_indexer(indexer_cls, tmp_path)
-
-    embedding = TestEmbedding()
-    indexer.compute_embedding_index('test_column',
-                                    embedding,
-                                    keys=[key for key, _, _ in EMBEDDINGS],
-                                    data=[text for _, text, _ in EMBEDDINGS])
-
-    # Embed should only be called once.
-    assert embed_mock.call_count == 1
-
-    index = indexer.get_embedding_index(
-        'test_column',
-        TestEmbedding(),
-        # Keys are partial.
-        keys=['1', '2'])
-
-    np.testing.assert_array_equal(
-        index.embeddings,
-        # Results should be partial.
-        np.array([KEY_EMBEDDINGS['1'], KEY_EMBEDDINGS['2']]))
-
-    # Embed should not be called again.
-    assert embed_mock.call_count == 1
-
-    assert indexer.manifest() == EmbeddingIndexerManifest(
-        indexes=[EmbeddingIndexInfo(column=('test_column',), embedding=embedding)])

@@ -111,7 +111,7 @@ class Signal(abc.ABC, BaseModel):
     Args:
       topk: The number of items to return, ranked by the signal.
       vector_store: The vector store to lookup pre-computed embeddings.
-      keys: Optional: An iterable of row ids that include in the topk results.
+      keys: Optional iterable of row ids to restrict the search to.
 
     Returns
       A list of (uuid, signal_output) tuples containing the "topk" items. Sparse signals should
