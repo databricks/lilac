@@ -1,4 +1,11 @@
-import {SlIcon, SlSpinner, SlSplitPanel} from '@shoelace-style/shoelace/dist/react';
+import {
+  SlIcon,
+  SlSpinner,
+  SlSplitPanel,
+  SlTab,
+  SlTabGroup,
+  SlTabPanel,
+} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {useParams} from 'react-router-dom';
 import {useGetManifestQuery} from '../store/api_dataset';
@@ -25,8 +32,15 @@ export const DatasetViewer = React.memo(function DatasetViewer(): JSX.Element {
         <div slot="start" className={`h-full w-full overflow-scroll`}>
           {gallery}
         </div>
-        <div slot="end" className={`h-full w-full overflow-scroll px-4 py-2`}>
-          {stats}
+        <div slot="end" className={`h-full w-full overflow-scroll`}>
+          <SlTabGroup>
+            <SlTab slot="nav" panel="stats">
+              Stats
+            </SlTab>
+            <SlTabPanel name="stats">
+              <div className="px-4">{stats}</div>
+            </SlTabPanel>
+          </SlTabGroup>
         </div>
       </SlSplitPanel>
     </div>
