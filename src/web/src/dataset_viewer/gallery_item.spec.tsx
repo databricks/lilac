@@ -57,7 +57,7 @@ describe('GalleryItem', () => {
 
     expect(await screen.findByText('row content')).toBeInTheDocument();
     // Key's should not be visible when theres only one media path
-    expect(await screen.queryByText('content')).not.toBeInTheDocument();
+    expect(screen.queryByText('content')).not.toBeInTheDocument();
   });
 
   it('should render number values formatted', async () => {

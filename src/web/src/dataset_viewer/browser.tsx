@@ -216,14 +216,13 @@ export function usePreviewPaths(
   manifest: WebManifest | null | undefined,
   schema: Schema | null
 ): Path[] {
-  const stringLeafs: Path[] = [];
-  if (manifest != null && schema != null) {
-    for (const [path, field] of schema.leafs) {
-      if (field.dtype === 'string') {
-        stringLeafs.push(path);
-      }
+  const stringLeafs = React.useMemo(() => {
+    if (manifest != null && schema != null) {
+      return schema.leafs.filter(([, field]) => field.dtype === 'string').map(([path]) => path);
     }
-  }
+    return [];
+  }, [manifest, schema]);
+
   let previewPaths = useDataset().browser.selectedMediaPaths;
   const multipleStats = useGetMultipleStatsQuery({namespace, datasetName, leafPaths: stringLeafs});
   previewPaths = React.useMemo(() => {
@@ -254,7 +253,7 @@ export function usePreviewPaths(
       });
     const longestLeafIndex = stringLeafsByLength[0][0];
     return [stringLeafs[longestLeafIndex]];
-  }, [manifest, previewPaths, multipleStats.currentData]);
+  }, [previewPaths, manifest, multipleStats.currentData, stringLeafs]);
   return previewPaths;
 }
 
@@ -294,7 +293,7 @@ export const Browser = React.memo(function Browser({
     });
     observer.observe(parentRef.current);
     return () => observer.disconnect();
-  }, [parentRef.current, webManifest]);
+  }, [webManifest]);
 
   const numVirtualRows = Math.ceil(allIds.length / itemsPerRow);
   const rowVirtualizer = useVirtualizer({
@@ -320,13 +319,7 @@ export const Browser = React.memo(function Browser({
         fetchNextPage();
       }
     },
-    [
-      hasNextPage,
-      fetchNextPage,
-      numVirtualRows,
-      isFetchingNextPage,
-      rowVirtualizer.getVirtualItems(),
-    ]
+    [hasNextPage, fetchNextPage, numVirtualRows, isFetchingNextPage, rowVirtualizer]
   );
 
   if (error || manifestError) {

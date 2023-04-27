@@ -145,7 +145,7 @@
   transition-property: height;
 }
 
-[cmdk-shortcuts] {
+[data-cmdk-shortcuts] {
   display: flex;
   margin-left: auto;
   gap: 8px;

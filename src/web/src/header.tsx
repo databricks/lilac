@@ -84,6 +84,8 @@ export const Task = React.memo(({task}: {task: TaskInfo}): JSX.Element => {
   );
 });
 
+Task.displayName = 'Task';
+
 export const TaskViewer = (): JSX.Element => {
   const dispatch = useAppDispatch();
 
@@ -104,7 +106,7 @@ export const TaskViewer = (): JSX.Element => {
       tasksPanelOpen ? TASKS_POLL_OPEN_INTERVAL_MS : TASKS_POLL_CLOSED_INTERVAL_MS
     );
     return () => clearInterval(timer);
-  }, [tasksPanelOpen]);
+  }, [loadTaskManifest, tasksPanelOpen]);
 
   const tasksElement = renderQuery(taskManifest, (taskManager) => {
     let numPending = 0;

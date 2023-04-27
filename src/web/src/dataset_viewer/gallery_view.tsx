@@ -269,14 +269,13 @@ export function useMediaPaths(
   manifest: WebManifest | null | undefined,
   schema: Schema | null
 ): Path[] {
-  const stringLeafs: Path[] = [];
-  if (manifest != null && schema != null) {
-    for (const [path, field] of schema.leafs) {
-      if (field.dtype === 'string') {
-        stringLeafs.push(path);
-      }
+  const stringLeafs = React.useMemo(() => {
+    if (manifest != null && schema != null) {
+      return schema.leafs.filter(([, field]) => field.dtype === 'string').map(([path]) => path);
     }
-  }
+    return [];
+  }, [manifest, schema]);
+
   let mediaPaths = useDataset().browser.selectedMediaPaths;
   const multipleStats = useGetMultipleStatsQuery({namespace, datasetName, leafPaths: stringLeafs});
   mediaPaths = React.useMemo(() => {
@@ -299,7 +298,7 @@ export function useMediaPaths(
       });
     const longestLeafIndex = stringLeafsByLength[0][0];
     return [stringLeafs[longestLeafIndex]];
-  }, [manifest, mediaPaths, multipleStats.currentData]);
+  }, [manifest, mediaPaths, multipleStats.currentData, stringLeafs]);
   return mediaPaths;
 }
 
@@ -343,7 +342,7 @@ export const Gallery = React.memo(function Gallery({
         fetchNextPage();
       }
     },
-    [hasNextPage, fetchNextPage, numRows, isFetchingNextPage, virtualizer.getVirtualItems()]
+    [hasNextPage, fetchNextPage, numRows, isFetchingNextPage, virtualizer]
   );
 
   if (error || manifestError) {
