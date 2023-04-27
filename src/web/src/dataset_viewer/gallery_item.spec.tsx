@@ -1,11 +1,12 @@
 import {screen} from '@testing-library/react';
 import {SpyInstance, vi} from 'vitest';
-import {CancelablePromise, DatasetsService} from '../../fastapi_client';
+import {DatasetsService} from '../../fastapi_client';
 import {renderWithProviders} from '../../tests/utils';
 import {GalleryItem} from './gallery_item';
 
 describe('GalleryItem', () => {
   let spy: SpyInstance;
+
   beforeEach(() => {
     spy = vi.spyOn(DatasetsService, 'selectRows');
   });
@@ -15,12 +16,7 @@ describe('GalleryItem', () => {
   });
 
   it('should call the api with correct parameters', async () => {
-    spy.mockImplementation(
-      () =>
-        new CancelablePromise(async (resolve) => {
-          resolve([]);
-        })
-    );
+    spy.mockResolvedValue([]);
 
     renderWithProviders(
       <GalleryItem
@@ -44,39 +40,33 @@ describe('GalleryItem', () => {
   });
 
   it('should render simple row with one media path', async () => {
-    spy.mockImplementation(
-      () =>
-        new CancelablePromise(async (resolve) => {
-          resolve([
-            {
-              content: 'row content',
-            },
-          ]);
-        })
-    );
+    spy.mockResolvedValue([
+      {
+        content: 'row content',
+      },
+    ]);
 
     renderWithProviders(
-      <GalleryItem namespace="test" datasetName="test" itemId="test" mediaPaths={[['content']]} />
+      <GalleryItem
+        namespace="namespace"
+        datasetName="datasetname"
+        itemId="itemid"
+        mediaPaths={[['content']]}
+      />
     );
 
     expect(await screen.findByText('row content')).toBeInTheDocument();
   });
 
   it('should render error messages', async () => {
-    spy.mockImplementation(
-      () =>
-        new CancelablePromise(async (resolve, reject) => {
-          reject(['error message']);
-        })
-    );
+    spy.mockRejectedValue(['error message']);
 
     renderWithProviders(
       <GalleryItem
-        namespace="test"
-        datasetName="test"
-        itemId="test"
+        namespace="namespace"
+        datasetName="datasetname"
+        itemId="itemid"
         mediaPaths={[]}
-        metadataPaths={[]}
       />
     );
 
