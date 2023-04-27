@@ -62,7 +62,7 @@ class Signal(abc.ABC, BaseModel):
     return embedding
 
   @abc.abstractmethod
-  def field(self) -> Field:
+  def fields(self) -> Field:
     """Return the fields schema for this signal.
 
     Returns

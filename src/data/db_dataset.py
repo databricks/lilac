@@ -190,9 +190,7 @@ class DatasetManifest(BaseModel):
   dataset_name: str
   data_schema: Schema
   embedding_manifest: EmbeddingIndexerManifest
-  # Maps a path key to a list of indexes for that path key. This is not a dictionary so we can ship
-  # the paths as a key.
-  entity_indexes: list[tuple[PathTuple, list[EntityIndex]]]
+  entity_indexes: list[EntityIndex]
   # Number of items in the dataset.
   num_items: int
 

@@ -15,7 +15,7 @@ class TextStatisticsSignal(Signal):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def field(self) -> Field:
+  def fields(self) -> Field:
     return Field(fields={NUM_CHARS_FEATURE_NAME: Field(dtype=DataType.INT32)})
 
   @override

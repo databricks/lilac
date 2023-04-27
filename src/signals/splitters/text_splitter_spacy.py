@@ -33,7 +33,7 @@ class SentenceSplitterSpacy(Signal):
     self._tokenizer.add_pipe('sentencizer')
 
   @override
-  def field(self) -> Field:
+  def fields(self) -> Field:
     return Field(repeated_field=EntityField(entity_value=Field(dtype=DataType.STRING_SPAN)))
 
   @override

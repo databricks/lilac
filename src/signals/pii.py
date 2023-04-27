@@ -22,7 +22,7 @@ class PIISignal(Signal):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def field(self) -> Field:
+  def fields(self) -> Field:
     return Field(
         fields={EMAILS_FEATURE_NAME: Field(repeated_field=Field(dtype=DataType.STRING_SPAN))})
 

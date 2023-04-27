@@ -487,7 +487,7 @@ class SelectRowsSuite:
 
     call_count: int = 0
 
-    def field(self) -> Field:
+    def fields(self) -> Field:
       return Field(dtype=DataType.INT32)
 
     def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
@@ -860,13 +860,11 @@ class SelectRowsSuite:
                           derived_from=('text',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-        entity_indexes=list({
-            ('text',): [
-                EntityIndex(source_path=('text',),
-                            index_path=('text', 'test_entity_len(text)'),
-                            signal=signal)
-            ]
-        }.items()),
+        entity_indexes=[
+            EntityIndex(source_path=('text',),
+                        index_path=('text', 'test_entity_len(text)'),
+                        signal=signal)
+        ],
         num_items=2)
 
     # NOTE: The way this currently works is it just generates a new signal column, in the old
@@ -1108,7 +1106,7 @@ class TestSignal(Signal):
   vector_based = False
 
   @override
-  def field(self) -> Field:
+  def fields(self) -> Field:
     return Field(fields={'len': Field(dtype=DataType.INT32), 'flen': Field(dtype=DataType.FLOAT32)})
 
   @override
@@ -1122,7 +1120,7 @@ class TestSplitterWithLen(Signal):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def field(self) -> Field:
+  def fields(self) -> Field:
     return Field(repeated_field=Field(fields={
         'len': Field(dtype=DataType.INT32),
         'split': Field(dtype=DataType.STRING_SPAN)
@@ -1149,7 +1147,7 @@ class TestEntitySignal(Signal):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def field(self) -> Field:
+  def fields(self) -> Field:
     return Field(repeated_field=EntityField(entity_value=Field(dtype=DataType.STRING_SPAN),
                                             fields={'len': Field(dtype=DataType.INT32)}))
 
@@ -1173,7 +1171,7 @@ class TestEmbeddingSumSignal(Signal):
   vector_based = True
 
   @override
-  def field(self) -> Field:
+  def fields(self) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   @override
@@ -1192,7 +1190,7 @@ class TestInvalidSignal(Signal):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def field(self) -> Field:
+  def fields(self) -> Field:
     return Field(dtype=DataType.INT32)
 
   @override

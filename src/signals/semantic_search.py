@@ -30,7 +30,7 @@ class SemanticSearchSignal(Signal):
     super().__init__(query=query, embedding=embedding, **kwargs)
 
   @override
-  def field(self) -> Field:
+  def fields(self) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   def _get_search_embedding(self) -> np.ndarray:

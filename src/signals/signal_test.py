@@ -50,7 +50,7 @@ class TestSignal(Signal):
   query: str
 
   @override
-  def field(self) -> Field:
+  def fields(self) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   @override

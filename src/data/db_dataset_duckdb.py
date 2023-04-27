@@ -197,7 +197,7 @@ class DatasetDuckDB(DatasetDB):
     del latest_mtime  # This is used as the cache key.
 
     computed_columns: list[ComputedColumn] = []
-    entity_indexes: dict[PathTuple, list[EntityIndex]] = {}
+    entity_indexes: list[EntityIndex] = []
 
     # Add the signal column groups.
     for root, _, files in os.walk(self.dataset_path):
@@ -217,9 +217,7 @@ class DatasetDuckDB(DatasetDB):
           with open_file(os.path.join(root, file)) as f:
             entity_index_manifest = EntityIndexManifest.parse_raw(f.read())
 
-          source_path = entity_index_manifest.entity_index.source_path
-          entity_indexes.setdefault(source_path, [])
-          entity_indexes[source_path].append(entity_index_manifest.entity_index)
+          entity_indexes.append(entity_index_manifest.entity_index)
 
     # Make a joined view of all the column groups.
     self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
@@ -261,7 +259,7 @@ class DatasetDuckDB(DatasetDB):
                            dataset_name=self.dataset_name,
                            data_schema=merged_schema,
                            embedding_manifest=self._embedding_indexer.manifest(),
-                           entity_indexes=list(entity_indexes.items()),
+                           entity_indexes=entity_indexes,
                            num_items=num_items)
 
   @override
@@ -333,7 +331,7 @@ class DatasetDuckDB(DatasetDB):
       raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')
 
     source_path = normalize_path(column.feature)
-    signal_field = signal.field()
+    signal_field = signal.fields()
 
     signal_entity_paths = entity_paths(signal_field)
     # TODO(nsthorat): Raise if the signal does not produce entities and the input column is not an
