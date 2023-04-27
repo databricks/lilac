@@ -117,13 +117,13 @@ export const SearchBox = () => {
     inputRef.current?.blur();
     dispatch(setSearchBoxPages([]));
     dispatch(setSearchBoxOpen(false));
-  }, []);
+  }, [dispatch]);
 
   const handleFocus = React.useCallback(() => {
     if (!searchBoxOpen) {
       dispatch(setSearchBoxOpen(true));
     }
-  }, [searchBoxOpen]);
+  }, [dispatch, searchBoxOpen]);
 
   useClickOutside(ref, [], () => {
     dispatch(setSearchBoxOpen(false));
@@ -137,13 +137,16 @@ export const SearchBox = () => {
 
   const popPage = React.useCallback(() => {
     dispatch(popSearchBoxPage());
-  }, []);
+  }, [dispatch]);
 
-  const pushPage = React.useCallback((page: SearchBoxPage) => {
-    setInputValue('');
-    inputRef.current?.focus();
-    dispatch(pushSearchBoxPage(page));
-  }, []);
+  const pushPage = React.useCallback(
+    (page: SearchBoxPage) => {
+      setInputValue('');
+      inputRef.current?.focus();
+      dispatch(pushSearchBoxPage(page));
+    },
+    [dispatch]
+  );
 
   function bounce() {
     if (ref.current == null) {
