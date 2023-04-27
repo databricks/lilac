@@ -4,7 +4,7 @@ from typing import Iterable, Optional
 import pytest
 from typing_extensions import override
 
-from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
+from ..schema import DataType, EnrichmentType, Field, ItemValue, RichData
 from ..signals.signal_registry import (
     clear_signal_registry,
     get_signal_cls,
@@ -24,7 +24,7 @@ class TestSignal(Signal):
   query: str
 
   @override
-  def fields(self, input_column: Path) -> Field:
+  def field(self) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   @override

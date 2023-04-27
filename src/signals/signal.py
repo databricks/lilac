@@ -12,7 +12,7 @@ from ..embeddings.embedding_registry import (
     resolve_embedding,
 )
 from ..embeddings.vector_store import VectorStore
-from ..schema import EnrichmentType, Field, Path, RichData, SignalOut
+from ..schema import EnrichmentType, Field, RichData, SignalOut
 
 
 class Signal(abc.ABC, BaseModel):
@@ -21,7 +21,6 @@ class Signal(abc.ABC, BaseModel):
   name: ClassVar[str]
   enrichment_type: ClassVar[EnrichmentType]
   vector_based: ClassVar[bool] = False
-  emits_entities: ClassVar[bool] = False
 
   # The signal_name will get populated in init automatically from the class name so it gets
   # serialized and the signal author doesn't have to define both the static property and the field.
@@ -63,12 +62,8 @@ class Signal(abc.ABC, BaseModel):
     return embedding
 
   @abc.abstractmethod
-  def fields(self, input_column: Path) -> Field:
+  def field(self) -> Field:
     """Return the fields schema for this signal.
-
-    Args:
-      input_column: The input column path that the signal is being applied to. This is useful for
-        fields that are references (Field.refers_to) to other fields, like a STRING_SPAN.
 
     Returns
       A Field object that describes the schema of the signal.

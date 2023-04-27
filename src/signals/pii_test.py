@@ -7,11 +7,8 @@ from .splitters.text_splitter_test_utils import text_to_expected_spans
 
 def test_pii_fields() -> None:
   signal = PIISignal()
-  assert signal.fields(('fake', 'path')) == Field(
-      fields={
-          EMAILS_FEATURE_NAME:
-              Field(repeated_field=Field(dtype=DataType.STRING_SPAN, refers_to=('fake', 'path')))
-      })
+  assert signal.field() == Field(
+      fields={EMAILS_FEATURE_NAME: Field(repeated_field=Field(dtype=DataType.STRING_SPAN))})
 
 
 def test_pii_compute() -> None:

@@ -6,7 +6,7 @@ from typing_extensions import override
 
 from ..embeddings.embedding_registry import Embedding, EmbeddingId
 from ..embeddings.vector_store import VectorStore
-from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
+from ..schema import DataType, EnrichmentType, Field, ItemValue, RichData
 from .signal import Signal
 
 
@@ -30,7 +30,7 @@ class SemanticSearchSignal(Signal):
     super().__init__(query=query, embedding=embedding, **kwargs)
 
   @override
-  def fields(self, input_column: Path) -> Field:
+  def field(self) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   def _get_search_embedding(self) -> np.ndarray:

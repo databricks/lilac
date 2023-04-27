@@ -35,6 +35,7 @@ from ..schema import (
     SignalOut,
     SourceManifest,
     enrichment_supports_dtype,
+    entity_paths,
     is_float,
     is_integer,
     is_ordinal,
@@ -61,6 +62,7 @@ from .db_dataset import (
     Comparison,
     DatasetDB,
     DatasetManifest,
+    EntityIndex,
     Filter,
     FilterLike,
     GroupsSortBy,
@@ -320,7 +322,11 @@ class DatasetDuckDB(DatasetDB):
       raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')
 
     source_path = normalize_path(column.feature)
-    signal_field = signal.fields(input_column=source_path)
+    signal_field = signal.field()
+
+    signal_entity_paths = entity_paths(signal_field)
+    # TODO(nsthorat): Raise if the signal does not produce entities and the input column is not an
+    # entity index.
 
     signal_schema = create_enriched_schema(source_schema=self.manifest().data_schema,
                                            enrich_path=source_path,
@@ -343,7 +349,7 @@ class DatasetDuckDB(DatasetDB):
       with DebugTimer(f'"compute" for embedding signal "{signal.name}" over "{source_path}"'):
         signal_outputs = signal.vector_compute(keys, vector_store)
     else:
-      # For non-embedding bsaed signals, get the leaf values and indices.
+      # For non-embedding based signals, get the leaf values and indices.
       with DebugTimer(f'"_select_leafs" over "{source_path}"'):
         select_leafs_result = self._select_leafs(path=source_path)
         leafs_df = select_leafs_result.df
@@ -389,6 +395,25 @@ class DatasetDuckDB(DatasetDB):
       f.write(signal_manifest.json())
     log(f'Wrote signal manifest to {signal_manifest_filepath}')
 
+    if signal_entity_paths:
+      for signal_entity_path in signal_entity_paths:
+        entity_index_path = source_path + (signal_column_name,) + signal_entity_path
+        # Write an entity index for each entity the signal produces.
+        entity_index_manifest = EntityIndexManifest(
+            signal_top_level_column_name=signal_column_name,
+            entity_index=EntityIndex(
+                name='nikhil',  # TODO(nsthorat): Figure out the name.
+                source_path=source_path,
+                index_path=entity_index_path,
+                display_name='nikhil',  # Figurethis out too
+                signal=signal))
+        entity_index_manifest_filepath = os.path.join(
+            self.dataset_path,
+            entity_index_manifest_filename(column_name=column.alias, signal_name=signal.name))
+        with open_file(entity_index_manifest_filepath, 'w') as f:
+          f.write(entity_index_manifest.json())
+        log(f'Wrote entity index manifest to {signal_manifest_filepath}')
+
     return signal_column_name
 
   def _select_leafs(self,
@@ -427,17 +452,17 @@ class DatasetDuckDB(DatasetDB):
 
     data_col = 'leaf_data'
     if is_span:
-      if not leaf_field.refers_to:
-        raise ValueError(f'Leaf span field {leaf_field} does not have a "refers_to" attribute.')
+      if not leaf_field.derived_from:
+        raise ValueError(f'Leaf span field {leaf_field} does not have a "derived_from" attribute.')
 
       span_select = make_select_column(path)
-      refers_to_path_select = make_select_column(leaf_field.refers_to)
+      derived_from_path_select = make_select_column(leaf_field.derived_from)
 
       # In the sub-select, return both the original text and the span.
       span_name = 'span'
       data_select = f"""
             {span_select} as {span_name},
-            {refers_to_path_select} as {data_col},
+            {derived_from_path_select} as {data_col},
       """
       # In the outer select, return the sliced text. DuckDB 1-indexes array slices, and is inclusive
       # to the last index, so we only add one to the start.
@@ -1027,6 +1052,11 @@ def signal_manifest_filename(column_name: str, signal_name: str) -> str:
   return f'{column_name}.{signal_name}.{SIGNAL_MANIFEST_SUFFIX}'
 
 
+def entity_index_manifest_filename(column_name: str, signal_name: str) -> str:
+  """Get the filename for a signal output."""
+  return f'{column_name}.{signal_name}.{SIGNAL_MANIFEST_SUFFIX}'
+
+
 def split_column_name(column: str, split_name: str) -> str:
   """Get the name of a split column."""
   return f'{column}.{split_name}'
@@ -1067,3 +1097,10 @@ class SignalManifest(BaseModel):
   def parse_signal(cls, signal: dict) -> Signal:
     """Parse a signal to its specific subclass instance."""
     return resolve_signal(signal)
+
+
+class EntityIndexManifest(BaseModel):
+  """The manifest that describes an entity index computation."""
+  signal_top_level_column_name: str
+
+  entity_index: EntityIndex

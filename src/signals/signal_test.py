@@ -10,7 +10,7 @@ from ..embeddings.embedding_registry import (
     clear_embedding_registry,
     register_embedding,
 )
-from ..schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData
+from ..schema import DataType, EnrichmentType, Field, ItemValue, RichData
 from .signal import Signal
 
 TEST_EMBEDDING_NAME = 'test_embedding'
@@ -50,7 +50,7 @@ class TestSignal(Signal):
   query: str
 
   @override
-  def fields(self, input_column: Path) -> Field:
+  def field(self) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   @override

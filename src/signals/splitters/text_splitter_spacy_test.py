@@ -2,6 +2,7 @@
 
 from typing import cast
 
+from ...schema import Entity
 from .text_splitter_spacy import SentenceSplitterSpacy
 from .text_splitter_test_utils import text_to_expected_spans
 
@@ -14,8 +15,9 @@ def test_splitter_spacy() -> None:
   split_items = list(signal.compute([text]))
 
   expected_spans = text_to_expected_spans(text, ['Hello.', 'This is a test.', 'Final sentence.'])
+  expected_entities = [Entity(span) for span in expected_spans]
 
-  assert split_items == [expected_spans]
+  assert split_items == [expected_entities]
 
 
 def test_splitter_spacy_float() -> None:

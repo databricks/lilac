@@ -116,8 +116,11 @@ class Field(BaseModel):
   fields: Optional[dict[str, 'Field']]
   dtype: Optional[DataType]
   enriched: Optional[bool]
-  # When defined, this field points to another column.
-  refers_to: Optional[Path]
+  # Defined when the field represents an entity.
+  is_entity: Optional[bool]
+  # When defined, this field is derived from another column. This could be via a signal or via a
+  # text span.
+  derived_from: Optional[PathTuple]
 
   @validator('fields')
   def either_fields_or_repeated_field_is_defined(cls, fields: dict[str, 'Field'],
@@ -126,14 +129,6 @@ class Field(BaseModel):
     if fields and values.get('repeated_field'):
       raise ValueError('Both "fields" and "repeated_field" should not be defined')
     return fields
-
-  @validator('refers_to', always=True)
-  def refers_to_is_defined_for_string_spans(cls, refers_to: Optional[Path],
-                                            values: dict[str, Any]) -> Optional[Path]:
-    """Error if both `fields` and `repeated_fields` are defined."""
-    if values.get('dtype') == DataType.STRING_SPAN and refers_to is None:
-      raise ValueError('refers_to must be defined for DataType.STRING_SPAN')
-    return refers_to
 
   @validator('dtype', always=True)
   def infer_default_dtype(cls, dtype: Optional[DataType], values: dict[str, Any]) -> DataType:
@@ -150,6 +145,21 @@ class Field(BaseModel):
       return DataType.STRUCT
     else:
       raise ValueError('"dtype" is required when both "repeated_field" and "fields" are not set')
+
+  @validator('is_entity', always=True)
+  def is_entity_validator(cls, is_entity: Optional[bool], values: dict[str, Any]) -> Optional[bool]:
+    """Error if dtype is not struct or if there is no entity feature key."""
+    if is_entity:
+      if values.get('dtype') != DataType.STRUCT:
+        raise ValueError('dtype must be DataType.STRUCT for entity fields.')
+      if ENTITY_FEATURE_KEY not in values.get('fields', {}):
+        raise ValueError(f'"{ENTITY_FEATURE_KEY}" must be a defined key when is_entity=True.')
+    else:
+      if values.get('fields') and ENTITY_FEATURE_KEY in values.get('fields', {}):
+        raise ValueError(f'"{ENTITY_FEATURE_KEY}" feature key is reserved for entities. '
+                         'Please either rename the key, or use EntityField() to generate the '
+                         'entity field field with is_entity=True.')
+    return is_entity
 
   def __str__(self) -> str:
     return _str_field(self, indent=0)
@@ -208,6 +218,19 @@ class Schema(BaseModel):
 
   def __repr__(self) -> str:
     return self.json(exclude_none=True, indent=2)
+
+
+def entity_paths(field: Field) -> list[PathTuple]:
+  """Returns the subpaths that contain an entity."""
+  entities: list[PathTuple] = []
+  if field.is_entity:
+    entities.append(())
+  if field.fields:
+    for entity_path in field.fields.values():
+      entities.extend(entity_paths(entity_path))
+  if field.repeated_field:
+    entities.extend(entity_paths(field.repeated_field))
+  return entities
 
 
 def TextSpan(start: int, end: int) -> Item:

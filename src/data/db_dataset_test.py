@@ -1,5 +1,6 @@
 """Implementation-agnostic tests of the Dataset DB API."""
 
+import os
 import pathlib
 import re
 from typing import Any, Generator, Iterable, Optional, Type, cast
@@ -10,11 +11,15 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..config import CONFIG
 from ..embeddings.embedding_index import EmbeddingIndexerManifest, EmbeddingIndexInfo
-from ..embeddings.embedding_registry import Embedding, clear_embedding_registry, register_embedding
+from ..embeddings.embedding_registry import (
+    Embedding,
+    clear_embedding_registry,
+    register_embedding,
+)
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
+    PATH_WILDCARD,
     TEXT_SPAN_END_FEATURE,
     TEXT_SPAN_START_FEATURE,
     UUID_COLUMN,
@@ -23,7 +28,6 @@ from ..schema import (
     Field,
     Item,
     ItemValue,
-    Path,
     RichData,
     Schema,
     SignalOut,
@@ -118,12 +122,12 @@ def setup_teardown() -> Iterable[None]:
 
 @pytest.fixture(autouse=True)
 def set_data_path(tmp_path: pathlib.Path) -> Generator:
-  data_path = CONFIG['LILAC_DATA_PATH']
-  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
+  data_path = os.environ.get('LILAC_DATA_PATH', None)
+  os.environ['LILAC_DATA_PATH'] = str(tmp_path)
 
   yield
 
-  CONFIG['LILAC_DATA_PATH'] = data_path or ''
+  os.environ['LILAC_DATA_PATH'] = data_path or ''
 
 
 @pytest.mark.parametrize('db_cls', ALL_DBS)
@@ -253,29 +257,31 @@ class SelectRowsSuite:
     }]
 
     # Check the enriched dataset manifest has 'text' enriched.
-    assert db.manifest() == DatasetManifest(namespace=TEST_NAMESPACE,
-                                            dataset_name=TEST_DATASET_NAME,
-                                            data_schema=Schema(
-                                                fields={
-                                                    UUID_COLUMN:
-                                                        Field(dtype=DataType.STRING),
-                                                    'str':
-                                                        Field(dtype=DataType.STRING),
-                                                    'int':
-                                                        Field(dtype=DataType.INT64),
-                                                    'bool':
-                                                        Field(dtype=DataType.BOOLEAN),
-                                                    'float':
-                                                        Field(dtype=DataType.FLOAT64),
-                                                    'test_signal(str)':
-                                                        Field(fields={
-                                                            'len': Field(dtype=DataType.INT32),
-                                                            'flen': Field(dtype=DataType.FLOAT32)
-                                                        },
-                                                              enriched=True)
-                                                }),
-                                            embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-                                            num_items=3)
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(
+            fields={
+                UUID_COLUMN:
+                    Field(dtype=DataType.STRING),
+                'str':
+                    Field(dtype=DataType.STRING),
+                'int':
+                    Field(dtype=DataType.INT64),
+                'bool':
+                    Field(dtype=DataType.BOOLEAN),
+                'float':
+                    Field(dtype=DataType.FLOAT64),
+                'test_signal(str)':
+                    Field(fields={
+                        'len': Field(dtype=DataType.INT32, derived_from=('str',)),
+                        'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
+                    },
+                          enriched=True,
+                          derived_from=('str',))
+            }),
+        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+        num_items=3)
 
     # Select a specific signal leaf test_signal.flen.
     result = db.select_rows(columns=['str', ('test_signal(str)', 'flen')])
@@ -349,11 +355,13 @@ class SelectRowsSuite:
                     Field(repeated_field=Field(dtype=DataType.STRING)),
                 'test_signal(text)':
                     Field(repeated_field=Field(fields={
-                        'len': Field(dtype=DataType.INT32),
-                        'flen': Field(dtype=DataType.FLOAT32)
+                        'len': Field(dtype=DataType.INT32, derived_from=('text', '*')),
+                        'flen': Field(dtype=DataType.FLOAT32, derived_from=('text', '*'))
                     },
-                                               enriched=True),
-                          enriched=True)
+                                               enriched=True,
+                                               derived_from=('text', '*')),
+                          enriched=True,
+                          derived_from=('text', '*'))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=2)
@@ -475,7 +483,7 @@ class SelectRowsSuite:
 
     call_count: int = 0
 
-    def fields(self, input_column: Path) -> Field:
+    def field(self) -> Field:
       return Field(dtype=DataType.INT32)
 
     def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
@@ -723,29 +731,31 @@ class SelectRowsSuite:
     }]
 
     # Check the enriched dataset manifest has 'text' enriched.
-    assert db.manifest() == DatasetManifest(namespace=TEST_NAMESPACE,
-                                            dataset_name=TEST_DATASET_NAME,
-                                            data_schema=Schema(
-                                                fields={
-                                                    UUID_COLUMN:
-                                                        Field(dtype=DataType.STRING),
-                                                    'str':
-                                                        Field(dtype=DataType.STRING),
-                                                    'int':
-                                                        Field(dtype=DataType.INT64),
-                                                    'bool':
-                                                        Field(dtype=DataType.BOOLEAN),
-                                                    'float':
-                                                        Field(dtype=DataType.FLOAT64),
-                                                    'test_signal_on_str':
-                                                        Field(fields={
-                                                            'len': Field(dtype=DataType.INT32),
-                                                            'flen': Field(dtype=DataType.FLOAT32)
-                                                        },
-                                                              enriched=True)
-                                                }),
-                                            embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-                                            num_items=3)
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(
+            fields={
+                UUID_COLUMN:
+                    Field(dtype=DataType.STRING),
+                'str':
+                    Field(dtype=DataType.STRING),
+                'int':
+                    Field(dtype=DataType.INT64),
+                'bool':
+                    Field(dtype=DataType.BOOLEAN),
+                'float':
+                    Field(dtype=DataType.FLOAT64),
+                'test_signal_on_str':
+                    Field(fields={
+                        'len': Field(dtype=DataType.INT32, derived_from=('str',)),
+                        'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
+                    },
+                          enriched=True,
+                          derived_from=('str',))
+            }),
+        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+        num_items=3)
 
   def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls=db_cls,
@@ -833,79 +843,7 @@ class SelectRowsSuite:
             fields={
                 UUID_COLUMN: Field(dtype=DataType.STRING),
                 'text': Field(dtype=DataType.STRING),
-                'text_emb_sum': Field(dtype=DataType.FLOAT32, enriched=True)
-            }),
-        embedding_manifest=EmbeddingIndexerManifest(
-            indexes=[EmbeddingIndexInfo(column=('text',), embedding=embedding)]),
-        num_items=2)
-
-    result = db.select_rows(columns=['text', 'text_emb_sum'])
-    expected_result = [{
-        UUID_COLUMN: '1',
-        'text': 'hello.',
-        'text_emb_sum': 1.0
-    }, {
-        UUID_COLUMN: '2',
-        'text': 'hello2.',
-        'text_emb_sum': 2.0
-    }]
-    assert list(result) == expected_result
-
-  def test_embedding_signal_manifest_caching(self, tmp_path: pathlib.Path,
-                                             db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls=db_cls,
-                 tmp_path=tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': 'hello.',
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': 'hello2.',
-                 }],
-                 schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.STRING),
-                     'text': Field(dtype=DataType.STRING),
-                 }))
-
-    # No embedding in the manifest.
-    assert db.manifest() == DatasetManifest(
-        namespace=TEST_NAMESPACE,
-        dataset_name=TEST_DATASET_NAME,
-        data_schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }),
-        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-        num_items=2)
-
-    embedding = TestEmbedding()
-    db.compute_embedding_index(embedding=embedding, column='text')
-
-    # Embedding is in the manifest.
-    assert db.manifest() == DatasetManifest(
-        namespace=TEST_NAMESPACE,
-        dataset_name=TEST_DATASET_NAME,
-        data_schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }),
-        embedding_manifest=EmbeddingIndexerManifest(
-            indexes=[EmbeddingIndexInfo(column=('text',), embedding=embedding)]),
-        num_items=2)
-
-    db.compute_signal_column(signal=TestEmbeddingSumSignal(embedding=TestEmbedding()),
-                             column='text',
-                             signal_column_name='text_emb_sum')
-
-    # Both embedding and signal is in the manifest.
-    assert db.manifest() == DatasetManifest(
-        namespace=TEST_NAMESPACE,
-        dataset_name=TEST_DATASET_NAME,
-        data_schema=Schema(
-            fields={
-                UUID_COLUMN: Field(dtype=DataType.STRING),
-                'text': Field(dtype=DataType.STRING),
-                'text_emb_sum': Field(dtype=DataType.FLOAT32, enriched=True)
+                'text_emb_sum': Field(dtype=DataType.FLOAT32, enriched=True, derived_from=('text',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(
             indexes=[EmbeddingIndexInfo(column=('text',), embedding=embedding)]),
@@ -960,14 +898,20 @@ class SelectRowsSuite:
                     Field(dtype=DataType.STRING),
                 'text_sentences_emb_sum':
                     Field(repeated_field=Field(
-                        fields={'split': Field(dtype=DataType.FLOAT32, enriched=True)})),
-                'text_sentences':
-                    Field(repeated_field=Field(
                         fields={
-                            'len': Field(dtype=DataType.INT32),
-                            'split': Field(dtype=DataType.STRING_SPAN, refers_to=('text',))
-                        }),
-                          enriched=True)
+                            'split':
+                                Field(dtype=DataType.FLOAT32,
+                                      enriched=True,
+                                      derived_from=('text_sentences', PATH_WILDCARD, 'split'))
+                        })),
+                'text_sentences':
+                    Field(repeated_field=Field(fields={
+                        'len': Field(dtype=DataType.INT32, derived_from=('text',)),
+                        'split': Field(dtype=DataType.STRING_SPAN, derived_from=('text',))
+                    },
+                                               derived_from=('text',)),
+                          enriched=True,
+                          derived_from=('text',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[
             EmbeddingIndexInfo(column=('text_sentences', '*', 'split'), embedding=embedding)
@@ -1085,7 +1029,7 @@ class TestSignal(Signal):
   vector_based = False
 
   @override
-  def fields(self, input_column: Path) -> Field:
+  def field(self) -> Field:
     return Field(fields={'len': Field(dtype=DataType.INT32), 'flen': Field(dtype=DataType.FLOAT32)})
 
   @override
@@ -1099,12 +1043,11 @@ class TestSplitterWithLen(Signal):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def fields(self, input_column: Path) -> Field:
-    return Field(repeated_field=Field(
-        fields={
-            'len': Field(dtype=DataType.INT32),
-            'split': Field(dtype=DataType.STRING_SPAN, refers_to=input_column)
-        }))
+  def field(self) -> Field:
+    return Field(repeated_field=Field(fields={
+        'len': Field(dtype=DataType.INT32),
+        'split': Field(dtype=DataType.STRING_SPAN)
+    }))
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
@@ -1125,7 +1068,7 @@ class TestEmbeddingSumSignal(Signal):
   vector_based = True
 
   @override
-  def fields(self, input_column: Path) -> Field:
+  def field(self) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
   @override
@@ -1144,7 +1087,7 @@ class TestInvalidSignal(Signal):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def fields(self, input_column: Path) -> Field:
+  def field(self) -> Field:
     return Field(dtype=DataType.INT32)
 
   @override

@@ -199,11 +199,11 @@ def _add_enriched_fields_to_schema(source_schema: Schema, enriched_schema: Schem
     repeated_depth = len(leaf_path) - 1 - inner_struct_path_idx
 
     inner_field = enrich_field
-    inner_field.enriched = True
+    inner_field = apply_field_lineage(enrich_field, enrich_path)
 
     # Wrap in a list to mirror the input structure.
     for i in range(repeated_depth):
-      inner_field = Field(repeated_field=inner_field, enriched=True)
+      inner_field = Field(repeated_field=inner_field, derived_from=enrich_path)
 
     inner_enrich_path: Path = leaf_path[0:inner_struct_path_idx + 1]
 
@@ -222,6 +222,21 @@ def _add_enriched_fields_to_schema(source_schema: Schema, enriched_schema: Schem
           inner_field = Field(fields={path_component: inner_field})
 
   return enriched_schema
+
+
+def apply_field_lineage(field: Field, derived_from: PathTuple) -> Field:
+  """Returns a new field with the derived_from field set recursively on all children."""
+  if field.dtype == DataType.STRING_SPAN:
+    # String spans act as leafs.
+    pass
+  elif field.fields:
+    for name, child_field in field.fields.items():
+      field.fields[name] = apply_field_lineage(field.fields[name], derived_from)
+  elif field.repeated_field:
+    field.repeated_field = apply_field_lineage(field.repeated_field, derived_from)
+
+  field.derived_from = derived_from
+  return field
 
 
 def get_field_if_exists(schema: Schema, path: Path) -> Optional[Field]:

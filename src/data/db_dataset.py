@@ -178,6 +178,25 @@ class DatasetManifest(BaseModel):
   num_items: int
 
 
+class EntityIndex(BaseModel):
+  """Index entities in a document."""
+
+  # The unique name of the index (e.g. 'spacy_sentences')
+  name: str
+
+  # The source path of the entity index.
+  source_path: PathTuple
+
+  # The resulting index path where the index information lives.
+  index_path: PathTuple
+
+  # The display name of the index.
+  display_name: str
+
+  # The signal used to produce this entity index.
+  signal: Signal
+
+
 def column_from_identifier(column: ColumnId) -> Column:
   """Create a column from a column identifier."""
   if isinstance(column, Column):
@@ -254,32 +273,13 @@ class DatasetDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def compute_entity_index(self,
-                           signal: Signal,
-                           column: ColumnId,
-                           index_name: str,
-                           task_id: Optional[TaskId] = None) -> str:
-    """Compute an entity index for a column.
-
-    Args:
-      signal: The signal to compute the entity index.
-      column: The column to compute the signal on.
-      signal_column_name: The name of the result signal columns. This acts as a namespace for
-        the set of columns the signal produces.
-      task_id: The TaskManager `task_id` for this process run. This is used to update the progress
-        of the task.
-
-    Returns
-      The name of the result columns.
-    """
-    pass
-
-  @abc.abstractmethod
-  def compute_signal_column(self,
-                            signal: Signal,
-                            column: ColumnId,
-                            signal_column_name: Optional[str] = None,
-                            task_id: Optional[TaskId] = None) -> str:
+  def compute_signal_column(
+      self,
+      signal: Signal,
+      column: ColumnId,
+      signal_column_name: Optional[str] = None,
+      #entity_index: Optional[str] = None,
+      task_id: Optional[TaskId] = None) -> str:
     """Compute a signal for a column.
 
     Args:
