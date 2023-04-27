@@ -16,7 +16,7 @@ describe('GalleryItem', () => {
   });
 
   it('should call the api with correct parameters', async () => {
-    spy.mockResolvedValue([]);
+    spy.mockResolvedValueOnce([]);
 
     renderWithProviders(
       <GalleryItem
@@ -40,7 +40,7 @@ describe('GalleryItem', () => {
   });
 
   it('should render simple row with one media path', async () => {
-    spy.mockResolvedValue([
+    spy.mockResolvedValueOnce([
       {
         content: 'row content',
       },
@@ -56,10 +56,79 @@ describe('GalleryItem', () => {
     );
 
     expect(await screen.findByText('row content')).toBeInTheDocument();
+    // Key's should not be visible when theres only one media path
+    expect(await screen.queryByText('content')).not.toBeInTheDocument();
+  });
+
+  it('should render number values formatted', async () => {
+    spy.mockResolvedValueOnce([
+      {
+        content: 1234567.1234567,
+      },
+    ]);
+
+    renderWithProviders(
+      <GalleryItem
+        namespace="namespace"
+        datasetName="datasetname"
+        itemId="itemid"
+        mediaPaths={[['content']]}
+      />
+    );
+
+    expect(await screen.findByText('1,234,567.123')).toBeInTheDocument();
+  });
+
+  it('should render multiple medias', async () => {
+    spy.mockResolvedValueOnce([
+      {
+        key1: 'content 1',
+        key2: 'content 2',
+      },
+    ]);
+
+    renderWithProviders(
+      <GalleryItem
+        namespace="namespace"
+        datasetName="datasetname"
+        itemId="itemid"
+        mediaPaths={[['key1'], ['key2']]}
+      />
+    );
+
+    expect(await screen.findByText('key1')).toBeInTheDocument();
+    expect(await screen.findByText('content 1')).toBeInTheDocument();
+    expect(await screen.findByText('key2')).toBeInTheDocument();
+    expect(await screen.findByText('content 2')).toBeInTheDocument();
+  });
+
+  it('should render metadata', async () => {
+    spy.mockResolvedValueOnce([
+      {
+        contentKey: 'content 1',
+        metadataKey1: 'metadata 1',
+        metadataKey2: 'metadata 2',
+      },
+    ]);
+
+    renderWithProviders(
+      <GalleryItem
+        namespace="namespace"
+        datasetName="datasetname"
+        itemId="itemid"
+        mediaPaths={[['contentKey']]}
+        metadataPaths={[['metadataKey1'], ['metadataKey2']]}
+      />
+    );
+
+    expect(await screen.findByText('metadataKey1')).toBeInTheDocument();
+    expect(await screen.findByText('metadata 1')).toBeInTheDocument();
+    expect(await screen.findByText('metadataKey2')).toBeInTheDocument();
+    expect(await screen.findByText('metadata 2')).toBeInTheDocument();
   });
 
   it('should render error messages', async () => {
-    spy.mockRejectedValue(['error message']);
+    spy.mockRejectedValueOnce(['error message']);
 
     renderWithProviders(
       <GalleryItem
