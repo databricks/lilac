@@ -14,7 +14,8 @@
     "breadnaught.vscode-ignore",
     "MS-vsliveshare.vsliveshare",
     "charliermarsh.ruff",
-    "ms-toolsai.jupyter"
+    "ms-toolsai.jupyter",
+    "ZixuanChen.vitest-explorer"
   ],
   // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
   "unwantedRecommendations": []
