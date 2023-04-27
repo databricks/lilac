@@ -81,7 +81,7 @@ DEBUG = CONFIG['DEBUG'] == 'true' if 'DEBUG' in CONFIG else False
 UUID_INDEX_FILENAME = 'uuids.npy'
 
 SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
-SPLIT_MANIFEST_SUFFIX = 'split_manifest.json'
+ENTITY_INDEX_MANIFEST_SUFFIX = 'entity_manifest.json'
 SOURCE_VIEW_NAME = 'source'
 
 # Sample size for approximating the distinct count of a column.
@@ -191,25 +191,35 @@ class DatasetDuckDB(DatasetDB):
     """)
 
   @functools.cache
-  # NOTE: This is cached, but when the list of filepaths changed the results are invalidated.
+  # NOTE: This is cached, but when the latest mtime of any file in the dataset directory changes
+  # the results are invalidated.
   def _recompute_joint_table(self, latest_mtime: float) -> DatasetManifest:
+    del latest_mtime  # This is used as the cache key.
+
     computed_columns: list[ComputedColumn] = []
+    entity_indexes: dict[PathTuple, list[EntityIndex]] = {}
 
     # Add the signal column groups.
     for root, _, files in os.walk(self.dataset_path):
       for file in files:
-        if not file.endswith(SIGNAL_MANIFEST_SUFFIX):
-          continue
-        with open_file(os.path.join(root, file)) as f:
-          signal_manifest = SignalManifest.parse_raw(f.read())
-        value_field_name = cast(str, signal_manifest.enriched_path[0])
-        signal_column = ComputedColumn(
-            files=signal_manifest.files,
-            top_level_column_name=signal_manifest.top_level_column_name,
-            value_field_name=value_field_name,
-            value_field_schema=signal_manifest.data_schema.fields[value_field_name],
-            enriched_path=signal_manifest.enriched_path)
-        computed_columns.append(signal_column)
+        if file.endswith(SIGNAL_MANIFEST_SUFFIX):
+          with open_file(os.path.join(root, file)) as f:
+            signal_manifest = SignalManifest.parse_raw(f.read())
+          value_field_name = cast(str, signal_manifest.enriched_path[0])
+          signal_column = ComputedColumn(
+              files=signal_manifest.files,
+              top_level_column_name=signal_manifest.top_level_column_name,
+              value_field_name=value_field_name,
+              value_field_schema=signal_manifest.data_schema.fields[value_field_name],
+              enriched_path=signal_manifest.enriched_path)
+          computed_columns.append(signal_column)
+        elif file.endswith(ENTITY_INDEX_MANIFEST_SUFFIX):
+          with open_file(os.path.join(root, file)) as f:
+            entity_index_manifest = EntityIndexManifest.parse_raw(f.read())
+
+          source_path = entity_index_manifest.entity_index.source_path
+          entity_indexes.setdefault(source_path, [])
+          entity_indexes[source_path].append(entity_index_manifest.entity_index)
 
     # Make a joined view of all the column groups.
     self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
@@ -247,10 +257,13 @@ class DatasetDuckDB(DatasetDB):
             **{col.top_level_column_name: col.value_field_schema for col in computed_columns}
         })
 
+    print(entity_indexes)
+    print(list(entity_indexes.items()))
     return DatasetManifest(namespace=self.namespace,
                            dataset_name=self.dataset_name,
                            data_schema=merged_schema,
                            embedding_manifest=self._embedding_indexer.manifest(),
+                           entity_indexes=list(entity_indexes.items()),
                            num_items=num_items)
 
   @override
@@ -400,7 +413,7 @@ class DatasetDuckDB(DatasetDB):
         entity_index_path = source_path + (signal_column_name,) + signal_entity_path
         # Write an entity index for each entity the signal produces.
         entity_index_manifest = EntityIndexManifest(
-            signal_top_level_column_name=signal_column_name,
+            #signal_top_level_column_name=signal_column_name,
             entity_index=EntityIndex(
                 name='nikhil',  # TODO(nsthorat): Figure out the name.
                 source_path=source_path,
@@ -1054,7 +1067,7 @@ def signal_manifest_filename(column_name: str, signal_name: str) -> str:
 
 def entity_index_manifest_filename(column_name: str, signal_name: str) -> str:
   """Get the filename for a signal output."""
-  return f'{column_name}.{signal_name}.{SIGNAL_MANIFEST_SUFFIX}'
+  return f'{column_name}.{signal_name}.{ENTITY_INDEX_MANIFEST_SUFFIX}'
 
 
 def split_column_name(column: str, split_name: str) -> str:
@@ -1065,11 +1078,6 @@ def split_column_name(column: str, split_name: str) -> str:
 def split_parquet_prefix(column_name: str, splitter_name: str) -> str:
   """Get the filename prefix for a split parquet file."""
   return f'{column_name}.{splitter_name}'
-
-
-def split_manifest_filename(column_name: str, splitter_name: str) -> str:
-  """Get the filename for a split output."""
-  return f'{column_name}.{splitter_name}.{SPLIT_MANIFEST_SUFFIX}'
 
 
 def _bytes_to_blob_literal(bytes: bytes) -> str:
@@ -1101,6 +1109,4 @@ class SignalManifest(BaseModel):
 
 class EntityIndexManifest(BaseModel):
   """The manifest that describes an entity index computation."""
-  signal_top_level_column_name: str
-
   entity_index: EntityIndex

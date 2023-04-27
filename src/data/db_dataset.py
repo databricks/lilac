@@ -20,6 +20,7 @@ from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import Item, Path, PathTuple, Schema, path_to_alias
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import Signal
+from ..signals.signal_registry import resolve_signal
 from ..tasks import TaskId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -168,33 +169,32 @@ class NamedBins(BaseModel):
 Bins = Union[list[float], NamedBins]
 
 
+class EntityIndex(BaseModel):
+  """Index entities in a document."""
+  # The source path of the entity index.
+  source_path: PathTuple
+  # The resulting index path where the index information lives.
+  index_path: PathTuple
+  # The signal used to produce this entity index.
+  signal: Signal
+
+  @validator('signal', pre=True)
+  def parse_signal(cls, signal: dict) -> Signal:
+    """Parse a signal to its specific subclass instance."""
+    return resolve_signal(signal)
+
+
 class DatasetManifest(BaseModel):
   """The manifest for a dataset."""
   namespace: str
   dataset_name: str
   data_schema: Schema
   embedding_manifest: EmbeddingIndexerManifest
+  # Maps a path key to a list of indexes for that path key. This is not a dictionary so we can ship
+  # the paths as a key.
+  entity_indexes: list[tuple[PathTuple, list[EntityIndex]]]
   # Number of items in the dataset.
   num_items: int
-
-
-class EntityIndex(BaseModel):
-  """Index entities in a document."""
-
-  # The unique name of the index (e.g. 'spacy_sentences')
-  name: str
-
-  # The source path of the entity index.
-  source_path: PathTuple
-
-  # The resulting index path where the index information lives.
-  index_path: PathTuple
-
-  # The display name of the index.
-  display_name: str
-
-  # The signal used to produce this entity index.
-  signal: Signal
 
 
 def column_from_identifier(column: ColumnId) -> Column:

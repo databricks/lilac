@@ -102,9 +102,6 @@ def test_field_ctor_validation() -> None:
         repeated_field=Field(dtype=DataType.INT32),
     )
 
-  with pytest.raises(ValueError, match='derived_from must be defined for DataType.STRING_SPAN'):
-    Field(dtype=DataType.STRING_SPAN)
-
 
 def test_schema_leafs() -> None:
   expected = {

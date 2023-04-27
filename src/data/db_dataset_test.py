@@ -1,6 +1,5 @@
 """Implementation-agnostic tests of the Dataset DB API."""
 
-import os
 import pathlib
 import re
 from typing import Any, Generator, Iterable, Optional, Type, cast
@@ -11,6 +10,7 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
+from ..config import CONFIG
 from ..embeddings.embedding_index import EmbeddingIndexerManifest, EmbeddingIndexInfo
 from ..embeddings.embedding_registry import (
     Embedding,
@@ -25,6 +25,8 @@ from ..schema import (
     UUID_COLUMN,
     DataType,
     EnrichmentType,
+    Entity,
+    EntityField,
     Field,
     Item,
     ItemValue,
@@ -41,6 +43,7 @@ from .db_dataset import (
     Comparison,
     DatasetDB,
     DatasetManifest,
+    EntityIndex,
     FilterTuple,
     NamedBins,
     SignalUDF,
@@ -110,6 +113,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestSignal)
   register_signal(TestSplitterWithLen)
   register_signal(TestEmbeddingSumSignal)
+  register_signal(TestEntitySignal)
   register_embedding(TestEmbedding)
 
   # Unit test runs.
@@ -122,12 +126,12 @@ def setup_teardown() -> Iterable[None]:
 
 @pytest.fixture(autouse=True)
 def set_data_path(tmp_path: pathlib.Path) -> Generator:
-  data_path = os.environ.get('LILAC_DATA_PATH', None)
-  os.environ['LILAC_DATA_PATH'] = str(tmp_path)
+  data_path = CONFIG['LILAC_DATA_PATH']
+  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
 
   yield
 
-  os.environ['LILAC_DATA_PATH'] = data_path or ''
+  CONFIG['LILAC_DATA_PATH'] = data_path or ''
 
 
 @pytest.mark.parametrize('db_cls', ALL_DBS)
@@ -226,6 +230,7 @@ class SelectRowsSuite:
                                                     'float': Field(dtype=DataType.FLOAT64),
                                                 }),
                                             embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+                                            entity_indexes=[],
                                             num_items=3)
 
     test_signal = TestSignal()
@@ -277,10 +282,10 @@ class SelectRowsSuite:
                         'len': Field(dtype=DataType.INT32, derived_from=('str',)),
                         'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
                     },
-                          enriched=True,
                           derived_from=('str',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+        entity_indexes=[],
         num_items=3)
 
     # Select a specific signal leaf test_signal.flen.
@@ -358,12 +363,11 @@ class SelectRowsSuite:
                         'len': Field(dtype=DataType.INT32, derived_from=('text', '*')),
                         'flen': Field(dtype=DataType.FLOAT32, derived_from=('text', '*'))
                     },
-                                               enriched=True,
                                                derived_from=('text', '*')),
-                          enriched=True,
                           derived_from=('text', '*'))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+        entity_indexes=[],
         num_items=2)
 
     result = db.select_rows(columns=[('test_signal(text)')])
@@ -698,6 +702,7 @@ class SelectRowsSuite:
                                                     'float': Field(dtype=DataType.FLOAT64),
                                                 }),
                                             embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+                                            entity_indexes=[],
                                             num_items=3)
 
     test_signal = TestSignal()
@@ -751,10 +756,10 @@ class SelectRowsSuite:
                         'len': Field(dtype=DataType.INT32, derived_from=('str',)),
                         'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
                     },
-                          enriched=True,
                           derived_from=('str',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+        entity_indexes=[],
         num_items=3)
 
   def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -814,6 +819,81 @@ class SelectRowsSuite:
     }]
     assert list(result) == expected_result
 
+  def test_entity_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls=db_cls,
+                 tmp_path=tmp_path,
+                 items=[{
+                     UUID_COLUMN: '1',
+                     'text': '[1, 1] first sentence. [1, 1] second sentence.',
+                 }, {
+                     UUID_COLUMN: '2',
+                     'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
+                 }],
+                 schema=Schema(fields={
+                     UUID_COLUMN: Field(dtype=DataType.STRING),
+                     'text': Field(dtype=DataType.STRING),
+                 }))
+
+    signal = TestEntitySignal()
+    db.compute_signal_column(signal=signal, column='text')
+
+    print([(('text',), [
+        EntityIndex(name='nikhil',
+                    source_path=('text',),
+                    index_path=('text', 'test_entity_len(text)'),
+                    display_name='nikhil',
+                    signal=signal)
+    ])])
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(
+            fields={
+                UUID_COLUMN:
+                    Field(dtype=DataType.STRING),
+                'text':
+                    Field(dtype=DataType.STRING),
+                'test_entity_len(text)':
+                    Field(repeated_field=EntityField(
+                        entity_field=Field(dtype=DataType.STRING_SPAN, derived_from=(('text',))),
+                        fields={'len': Field(dtype=DataType.INT32, derived_from=('text',))}),
+                          derived_from=('text',))
+            }),
+        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+        entity_indexes=list({
+            ('text',): [
+                EntityIndex(
+                            source_path=('text',),
+                            index_path=('text', 'test_entity_len(text)'),
+                            signal=signal)
+            ]
+        }.items()),
+        num_items=2)
+
+    # NOTE: The way this currently works is it just generates a new signal column, in the old
+    # format. This will look different once entity indexes are merged.
+    result = db.select_rows(columns=['text', 'test_entity_len(text)'])
+    expected_result = [{
+        UUID_COLUMN:
+            '1',
+        'text':
+            '[1, 1] first sentence. [1, 1] second sentence.',
+        'test_entity_len(text)': [
+            Entity(entity=TextSpan(0, 22), metadata={'len': 22}),
+            Entity(entity=TextSpan(23, 46), metadata={'len': 23})
+        ]
+    }, {
+        UUID_COLUMN:
+            '2',
+        'text':
+            'b2 [2, 1] first sentence. [2, 1] second sentence.',
+        'test_entity_len(text)': [
+            Entity(entity=TextSpan(0, 25), metadata={'len': 25}),
+            Entity(entity=TextSpan(26, 49), metadata={'len': 23})
+        ]
+    }]
+    assert list(result) == expected_result
+
   def test_embedding_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls=db_cls,
                  tmp_path=tmp_path,
@@ -843,10 +923,11 @@ class SelectRowsSuite:
             fields={
                 UUID_COLUMN: Field(dtype=DataType.STRING),
                 'text': Field(dtype=DataType.STRING),
-                'text_emb_sum': Field(dtype=DataType.FLOAT32, enriched=True, derived_from=('text',))
+                'text_emb_sum': Field(dtype=DataType.FLOAT32, derived_from=('text',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(
             indexes=[EmbeddingIndexInfo(column=('text',), embedding=embedding)]),
+        entity_indexes=[],
         num_items=2)
 
     result = db.select_rows(columns=['text', 'text_emb_sum'])
@@ -901,7 +982,6 @@ class SelectRowsSuite:
                         fields={
                             'split':
                                 Field(dtype=DataType.FLOAT32,
-                                      enriched=True,
                                       derived_from=('text_sentences', PATH_WILDCARD, 'split'))
                         })),
                 'text_sentences':
@@ -910,12 +990,12 @@ class SelectRowsSuite:
                         'split': Field(dtype=DataType.STRING_SPAN, derived_from=('text',))
                     },
                                                derived_from=('text',)),
-                          enriched=True,
                           derived_from=('text',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[
             EmbeddingIndexInfo(column=('text_sentences', '*', 'split'), embedding=embedding)
         ]),
+        entity_indexes=[],
         num_items=2)
 
     result = db.select_rows(columns=['text', 'text_sentences', 'text_sentences_emb_sum'])
@@ -1059,6 +1139,32 @@ class TestSplitterWithLen(Signal):
           'len': len(sentence),
           'split': TextSpan(start=text.index(sentence), end=text.index(sentence) + len(sentence))
       } for sentence in sentences]
+
+
+class TestEntitySignal(Signal):
+  """Split documents into sentence by splitting on period, generating entities.
+
+  Also produces the length as a feature.
+  """
+  name = 'test_entity_len'
+  enrichment_type = EnrichmentType.TEXT
+
+  @override
+  def field(self) -> Field:
+    return Field(repeated_field=EntityField(entity_field=Field(dtype=DataType.STRING_SPAN),
+                                            fields={'len': Field(dtype=DataType.INT32)}))
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
+    for text in data:
+      if not isinstance(text, str):
+        raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
+      sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
+      yield [
+          Entity(entity=TextSpan(start=text.index(sentence),
+                                 end=text.index(sentence) + len(sentence)),
+                 metadata={'len': len(sentence)}) for sentence in sentences
+      ]
 
 
 class TestEmbeddingSumSignal(Signal):
