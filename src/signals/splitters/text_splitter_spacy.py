@@ -6,6 +6,7 @@ from spacy import Language
 from typing_extensions import override
 
 from ...schema import (
+    DataType,
     EnrichmentType,
     Entity,
     EntityField,
@@ -33,7 +34,7 @@ class SentenceSplitterSpacy(Signal):
 
   @override
   def field(self) -> Field:
-    return Field(repeated_field=EntityField())
+    return Field(repeated_field=EntityField(entity_value=Field(dtype=DataType.STRING_SPAN)))
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:

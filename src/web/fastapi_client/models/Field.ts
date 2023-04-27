@@ -12,6 +12,7 @@ export type Field = {
     fields?: Record<string, Field>;
     dtype?: DataType;
     enriched?: boolean;
-    refers_to?: string;
+    is_entity?: boolean;
+    derived_from?: Array<(string | number)>;
 };
 

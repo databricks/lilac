@@ -257,8 +257,6 @@ class DatasetDuckDB(DatasetDB):
             **{col.top_level_column_name: col.value_field_schema for col in computed_columns}
         })
 
-    print(entity_indexes)
-    print(list(entity_indexes.items()))
     return DatasetManifest(namespace=self.namespace,
                            dataset_name=self.dataset_name,
                            data_schema=merged_schema,
@@ -412,14 +410,8 @@ class DatasetDuckDB(DatasetDB):
       for signal_entity_path in signal_entity_paths:
         entity_index_path = source_path + (signal_column_name,) + signal_entity_path
         # Write an entity index for each entity the signal produces.
-        entity_index_manifest = EntityIndexManifest(
-            #signal_top_level_column_name=signal_column_name,
-            entity_index=EntityIndex(
-                name='nikhil',  # TODO(nsthorat): Figure out the name.
-                source_path=source_path,
-                index_path=entity_index_path,
-                display_name='nikhil',  # Figurethis out too
-                signal=signal))
+        entity_index_manifest = EntityIndexManifest(entity_index=EntityIndex(
+            source_path=source_path, index_path=entity_index_path, signal=signal))
         entity_index_manifest_filepath = os.path.join(
             self.dataset_path,
             entity_index_manifest_filename(column_name=column.alias, signal_name=signal.name))

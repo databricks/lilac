@@ -168,18 +168,14 @@ class Field(BaseModel):
     return f' {self.__class__.__name__}::{self.json(exclude_none=True, indent=2)}'
 
 
-def EntityField(entity_field: Field, fields: Optional[dict[str, Field]] = {}) -> Field:
-  """Returns a field that represents an entity.
-
-  NOTE: This only produces a string_span entity value. For different entity types in the future, we
-  will pass a dtype argument to this function.
-  """
+def EntityField(entity_value: Field, fields: Optional[dict[str, Field]] = {}) -> Field:
+  """Returns a field that represents an entity."""
   return Field(fields={
-      ENTITY_FEATURE_KEY: entity_field,
+      ENTITY_FEATURE_KEY: entity_value,
       **(fields or {})
   },
                is_entity=True,
-               derived_from=entity_field.derived_from)
+               derived_from=entity_value.derived_from)
 
 
 def Entity(entity: Item, metadata: Optional[Item] = {}) -> Item:

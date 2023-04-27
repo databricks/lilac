@@ -855,15 +855,14 @@ class SelectRowsSuite:
                     Field(dtype=DataType.STRING),
                 'test_entity_len(text)':
                     Field(repeated_field=EntityField(
-                        entity_field=Field(dtype=DataType.STRING_SPAN, derived_from=(('text',))),
+                        entity_value=Field(dtype=DataType.STRING_SPAN, derived_from=(('text',))),
                         fields={'len': Field(dtype=DataType.INT32, derived_from=('text',))}),
                           derived_from=('text',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         entity_indexes=list({
             ('text',): [
-                EntityIndex(
-                            source_path=('text',),
+                EntityIndex(source_path=('text',),
                             index_path=('text', 'test_entity_len(text)'),
                             signal=signal)
             ]
@@ -1151,7 +1150,7 @@ class TestEntitySignal(Signal):
 
   @override
   def field(self) -> Field:
-    return Field(repeated_field=EntityField(entity_field=Field(dtype=DataType.STRING_SPAN),
+    return Field(repeated_field=EntityField(entity_value=Field(dtype=DataType.STRING_SPAN),
                                             fields={'len': Field(dtype=DataType.INT32)}))
 
   @override

@@ -25,6 +25,7 @@ export type { EmbeddingIndexerManifest } from './models/EmbeddingIndexerManifest
 export type { EmbeddingIndexInfo } from './models/EmbeddingIndexInfo';
 export type { EmbeddingInfo } from './models/EmbeddingInfo';
 export type { EnrichmentType } from './models/EnrichmentType';
+export type { EntityIndex } from './models/EntityIndex';
 export type { Example } from './models/Example';
 export type { ExampleIn } from './models/ExampleIn';
 export type { ExampleOrigin } from './models/ExampleOrigin';
