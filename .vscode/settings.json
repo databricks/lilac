@@ -66,5 +66,6 @@
   "notebook.output.scrolling": true,
   "notebook.lineNumbers": "on",
   "notebook.formatOnSave.enabled": true,
-  "jupyter.notebookFileRoot": "${workspaceFolder}"
+  "jupyter.notebookFileRoot": "${workspaceFolder}",
+  "coverage-gutters.coverageBaseDir": "src/web/src/**"
 }
