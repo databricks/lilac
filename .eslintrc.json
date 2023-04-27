@@ -7,7 +7,7 @@
     "prettier"
   ],
   "parser": "@babel/eslint-parser",
-  "plugins": ["prettier"],
+  "plugins": ["prettier", "testing-library", "jest-dom"],
   "rules": {
     "prettier/prettier": ["error"],
     "max-len": ["error", {"code": 100}]

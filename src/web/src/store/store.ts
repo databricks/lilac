@@ -1,8 +1,15 @@
 /**
  * The global application redux state store.
  */
-import type {Middleware} from '@reduxjs/toolkit';
-import {configureStore, createSlice, isRejectedWithValue, PayloadAction} from '@reduxjs/toolkit';
+import {
+  combineReducers,
+  configureStore,
+  createSlice,
+  isRejectedWithValue,
+  Middleware,
+  PayloadAction,
+  PreloadedState,
+} from '@reduxjs/toolkit';
 import {createApi} from '@reduxjs/toolkit/query/react';
 import {createRoot} from 'react-dom/client';
 import {
@@ -101,7 +108,7 @@ const initialState: AppState = {
   datasetState: {},
 };
 
-const appSlice = createSlice({
+export const appSlice = createSlice({
   name: 'app',
   initialState,
   reducers: {
@@ -183,25 +190,32 @@ const rtkQueryErrorLogger: Middleware = () => (next) => (action) => {
   return next(action);
 };
 
-export const store = configureStore({
-  reducer: {
-    [appSlice.name]: appSlice.reducer,
-    [serverApi.reducerPath]: serverApi.reducer,
-    [datasetApi.reducerPath]: datasetApi.reducer,
-    [conceptApi.reducerPath]: conceptApi.reducer,
-    [signalApi.reducerPath]: signalApi.reducer,
-    [embeddingApi.reducerPath]: embeddingApi.reducer,
-  },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat([
-      datasetApi.middleware,
-      conceptApi.middleware,
-      signalApi.middleware,
-      serverApi.middleware,
-      embeddingApi.middleware,
-      rtkQueryErrorLogger,
-    ]),
+// Create the root reducer separately so we can extract the RootState type
+const rootReducer = combineReducers({
+  [appSlice.name]: appSlice.reducer,
+  [serverApi.reducerPath]: serverApi.reducer,
+  [datasetApi.reducerPath]: datasetApi.reducer,
+  [conceptApi.reducerPath]: conceptApi.reducer,
+  [signalApi.reducerPath]: signalApi.reducer,
+  [embeddingApi.reducerPath]: embeddingApi.reducer,
 });
+
+export const setupStore = (preloadedState?: PreloadedState<RootState>) => {
+  return configureStore({
+    reducer: rootReducer,
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat([
+        datasetApi.middleware,
+        conceptApi.middleware,
+        signalApi.middleware,
+        serverApi.middleware,
+        embeddingApi.middleware,
+        rtkQueryErrorLogger,
+      ]),
+    preloadedState,
+  });
+};
+export const store = setupStore();
 
 // Export the actions.
 export const {
@@ -389,5 +403,6 @@ export function useTopValues({
 }
 
 // See: https://react-redux.js.org/tutorials/typescript-quick-start
-export type RootState = ReturnType<typeof store.getState>;
+export type RootState = ReturnType<typeof rootReducer>;
+export type AppStore = ReturnType<typeof setupStore>;
 export type AppDispatch = typeof store.dispatch;
