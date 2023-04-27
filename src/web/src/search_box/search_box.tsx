@@ -10,7 +10,7 @@ import {Command} from 'cmdk';
 import * as React from 'react';
 import {Location, useLocation, useNavigate, useParams} from 'react-router-dom';
 import {ConceptInfo, EmbeddingInfo, Field, SignalInfo, SortOrder} from '../../fastapi_client';
-import {useAppDispatch} from '../hooks';
+import {useAppDispatch, useAppSelector} from '../hooks';
 import {Path} from '../schema';
 import {
   useComputeEmbeddingIndexMutation,
@@ -18,7 +18,16 @@ import {
   useGetDatasetsQuery,
   useGetStatsQuery,
 } from '../store/api_dataset';
-import {setActiveConcept, setSort, setTasksPanelOpen, useTopValues} from '../store/store';
+import {
+  popSearchBoxPage,
+  pushSearchBoxPage,
+  setActiveConcept,
+  setSearchBoxOpen,
+  setSearchBoxPages,
+  setSort,
+  setTasksPanelOpen,
+  useTopValues,
+} from '../store/store';
 import {renderPath, renderQuery, useClickOutside} from '../utils';
 import {ColumnSelector} from './column_selector';
 import {ConceptSelector} from './concept_selector';
@@ -30,8 +39,8 @@ import {SignalSelector} from './signal_selector';
 /** Time to debounce (ms). */
 const DEBOUNCE_TIME_MS = 100;
 
-type PageType = keyof PageMetadata;
-interface PageMetadata {
+type PageType = keyof SearchBoxPageMetadata;
+export interface SearchBoxPageMetadata {
   'open-dataset': Record<string, never>;
   'add-filter': Record<string, never>;
   'add-filter-value': {path: Path; field: Field};
@@ -74,10 +83,10 @@ const PAGE_SEARCH_TITLE: Record<PageType, string> = {
 // TODO(nsthorat): When selecting a column for embeddings, have 2 sections one for ones that
 // have been computed, ones that haven't.
 
-interface Page<T extends PageType = PageType> {
+export interface SearchBoxPage<T extends PageType = PageType> {
   type: T;
   name: string;
-  metadata?: PageMetadata[T];
+  metadata?: SearchBoxPageMetadata[T];
 }
 
 export const SearchBox = () => {
@@ -85,46 +94,55 @@ export const SearchBox = () => {
 
   const ref = React.useRef<HTMLDivElement | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const wasOpen = React.useRef(false);
   const [inputValue, setInputValue] = React.useState('');
-  const [isFocused, setIsFocused] = React.useState(false);
-  const [pages, setPages] = React.useState<Page[]>([]);
+  const searchBoxOpen = useAppSelector((state) => state.app.searchBoxOpen);
+  const pages = useAppSelector((state) => state.app.searchBoxPages);
   const location = useLocation();
   const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
+
+  // Check if search box is open, but lacks focus
+  React.useEffect(() => {
+    if (searchBoxOpen && !wasOpen.current) {
+      inputRef.current?.focus();
+      wasOpen.current = true;
+    } else if (!searchBoxOpen) {
+      wasOpen.current = false;
+    }
+  }, [searchBoxOpen, wasOpen]);
 
   /** Closes the menu. */
   const closeMenu = React.useCallback(() => {
     ref.current?.blur();
     inputRef.current?.blur();
-    setPages([]);
-    setIsFocused(false);
+    dispatch(setSearchBoxPages([]));
+    dispatch(setSearchBoxOpen(false));
   }, []);
 
   const handleFocus = React.useCallback(() => {
-    setIsFocused(true);
-  }, []);
+    if (!searchBoxOpen) {
+      dispatch(setSearchBoxOpen(true));
+    }
+  }, [searchBoxOpen]);
 
   useClickOutside(ref, [], () => {
-    setIsFocused(false);
+    dispatch(setSearchBoxOpen(false));
   });
 
-  let activePage: Page | null = null;
+  let activePage: SearchBoxPage | null = null;
   if (pages.length > 0) {
     activePage = pages[pages.length - 1];
   }
   const isHome = activePage == null;
 
   const popPage = React.useCallback(() => {
-    setPages((pages) => {
-      const x = [...pages];
-      x.splice(-1, 1);
-      return x;
-    });
+    dispatch(popSearchBoxPage());
   }, []);
 
-  const pushPage = React.useCallback((page: Page) => {
+  const pushPage = React.useCallback((page: SearchBoxPage) => {
     setInputValue('');
     inputRef.current?.focus();
-    setPages((pages) => [...pages, page]);
+    dispatch(pushSearchBoxPage(page));
   }, []);
 
   function bounce() {
@@ -201,7 +219,7 @@ export const SearchBox = () => {
           </div>
         </div>
         <Command.List>
-          {isFocused && (
+          {searchBoxOpen && (
             <>
               <div className="mt-2"></div>
               {activePage?.type == null && <Command.Empty>No results found.</Command.Empty>}
@@ -222,7 +240,7 @@ export const SearchBox = () => {
                 <AddFilterValue
                   inputValue={inputValue}
                   closeMenu={closeMenu}
-                  page={activePage as Page<'add-filter-value'>}
+                  page={activePage as SearchBoxPage<'add-filter-value'>}
                 />
               )}
               {/* Viewer controls */}
@@ -240,7 +258,7 @@ export const SearchBox = () => {
               {activePage?.type == 'sort-by-order' && (
                 <SortByOrder
                   onSelect={(order) => {
-                    const by = (activePage as Page<'sort-by-order'>).metadata!.path;
+                    const by = (activePage as SearchBoxPage<'sort-by-order'>).metadata!.path;
                     dispatch(
                       setSort({
                         namespace: namespace!,
@@ -274,7 +292,8 @@ export const SearchBox = () => {
                       type: 'edit-concept-column',
                       name: embedding.name,
                       metadata: {
-                        concept: (activePage as Page<'edit-concept-embedding'>)?.metadata?.concept,
+                        concept: (activePage as SearchBoxPage<'edit-concept-embedding'>)?.metadata
+                          ?.concept,
                         embedding,
                       },
                     });
@@ -288,7 +307,8 @@ export const SearchBox = () => {
                       embeddings == null
                         ? false
                         : embeddings.includes(
-                            (activePage as Page<'edit-concept-column'>).metadata!.embedding.name
+                            (activePage as SearchBoxPage<'edit-concept-column'>).metadata!.embedding
+                              .name
                           );
                     return hasEmbedding;
                   }}
@@ -299,8 +319,9 @@ export const SearchBox = () => {
                         namespace: namespace!,
                         datasetName: datasetName!,
                         activeConcept: {
-                          concept: (activePage as Page<'edit-concept-column'>).metadata!.concept,
-                          embedding: (activePage as Page<'edit-concept-column'>).metadata!
+                          concept: (activePage as SearchBoxPage<'edit-concept-column'>).metadata!
+                            .concept,
+                          embedding: (activePage as SearchBoxPage<'edit-concept-column'>).metadata!
                             .embedding,
                           column: path,
                         },
@@ -330,10 +351,12 @@ export const SearchBox = () => {
                     return true;
                   }}
                   enrichmentType={
-                    (activePage as Page<'compute-signal-column'>).metadata!.signal.enrichment_type
+                    (activePage as SearchBoxPage<'compute-signal-column'>).metadata!.signal
+                      .enrichment_type
                   }
                   onSelect={async (path) => {
-                    const signal = (activePage as Page<'compute-signal-column'>).metadata!.signal;
+                    const signal = (activePage as SearchBoxPage<'compute-signal-column'>).metadata!
+                      .signal;
                     await computeSignal({
                       namespace: namespace!,
                       datasetName: datasetName!,
@@ -364,8 +387,8 @@ export const SearchBox = () => {
                       type: 'compute-embedding-index-accept',
                       name: renderPath(path),
                       metadata: {
-                        embedding: (activePage as Page<'compute-embedding-index-column'>).metadata!
-                          .embedding,
+                        embedding: (activePage as SearchBoxPage<'compute-embedding-index-column'>)
+                          .metadata!.embedding,
                         column: path,
                         description: '',
                       },
@@ -376,7 +399,7 @@ export const SearchBox = () => {
               {activePage?.type == 'compute-embedding-index-accept' && (
                 <ComputeEmbeddingIndexAccept
                   closeMenu={closeMenu}
-                  page={activePage as Page<'compute-embedding-index-accept'>}
+                  page={activePage as SearchBoxPage<'compute-embedding-index-accept'>}
                 />
               )}
             </>
@@ -392,7 +415,7 @@ function HomeMenu({
   location,
   closeMenu,
 }: {
-  pushPage: (page: Page) => void;
+  pushPage: (page: SearchBoxPage) => void;
   location: Location;
   closeMenu: () => void;
 }) {
@@ -533,7 +556,7 @@ function AddFilterValue({
 }: {
   inputValue: string;
   closeMenu: () => void;
-  page: Page<'add-filter-value'>;
+  page: SearchBoxPage<'add-filter-value'>;
 }) {
   const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
   if (namespace == null || datasetName == null) {
@@ -596,7 +619,7 @@ function ComputeEmbeddingIndexAccept({
   page,
   closeMenu,
 }: {
-  page: Page<'compute-embedding-index-accept'>;
+  page: SearchBoxPage<'compute-embedding-index-accept'>;
   closeMenu: () => void;
 }) {
   const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();

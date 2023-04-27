@@ -31,6 +31,7 @@ import {isOrdinal, isTemporal, Item, LeafValue, Path, UUID_COLUMN} from '../sche
 
 import {useParams} from 'react-router-dom';
 import {useAppSelector} from '../hooks';
+import {SearchBoxPage} from '../search_box/search_box';
 import {getConceptAlias, renderError} from '../utils';
 import {conceptApi} from './api_concept';
 import {
@@ -80,6 +81,9 @@ interface AppState {
   datasetState: {[datasetId: string]: DatasetState};
   // Whether the tasks panel in the top right is open.
   tasksPanelOpen: boolean;
+  // Whether the search box is open.
+  searchBoxOpen: boolean;
+  searchBoxPages: SearchBoxPage[];
 }
 
 function getDatasetState(state: AppState, namespace: string, datasetName: string): DatasetState {
@@ -105,6 +109,8 @@ export function useDataset(): DatasetState {
 // Define the initial state using that type
 const initialState: AppState = {
   tasksPanelOpen: false,
+  searchBoxOpen: false,
+  searchBoxPages: [],
   datasetState: {},
 };
 
@@ -149,6 +155,18 @@ export const appSlice = createSlice({
     },
     setTasksPanelOpen(state, action: PayloadAction<boolean>) {
       state.tasksPanelOpen = action.payload;
+    },
+    setSearchBoxOpen(state, action: PayloadAction<boolean>) {
+      state.searchBoxOpen = action.payload;
+    },
+    pushSearchBoxPage(state, action: PayloadAction<SearchBoxPage>) {
+      state.searchBoxPages.push(action.payload);
+    },
+    popSearchBoxPage(state) {
+      state.searchBoxPages.pop();
+    },
+    setSearchBoxPages(state, action: PayloadAction<SearchBoxPage[]>) {
+      state.searchBoxPages = action.payload;
     },
     setActiveConcept(
       state,
@@ -221,6 +239,10 @@ export const store = setupStore();
 export const {
   setActiveConcept,
   setTasksPanelOpen,
+  setSearchBoxOpen,
+  setSearchBoxPages,
+  pushSearchBoxPage,
+  popSearchBoxPage,
   setSelectedMediaPaths,
   setSelectedMetadataPaths,
   setSort,

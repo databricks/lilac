@@ -67,5 +67,6 @@
   "notebook.lineNumbers": "on",
   "notebook.formatOnSave.enabled": true,
   "jupyter.notebookFileRoot": "${workspaceFolder}",
-  "coverage-gutters.coverageBaseDir": "src/web/src/**"
+  "coverage-gutters.coverageBaseDir": "src/web/src/**",
+  "vitest.commandLine": "npm run test --workspace web --"
 }
