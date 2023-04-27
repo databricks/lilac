@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {useParams} from 'react-router-dom';
 import {ConceptInfo} from '../../fastapi_client';
 import {useGetConceptsQuery} from '../store/api_concept';

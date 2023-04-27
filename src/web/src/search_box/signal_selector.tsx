@@ -1,5 +1,4 @@
 import {JSONSchema7} from 'json-schema';
-import * as React from 'react';
 import {useParams} from 'react-router-dom';
 import {SignalInfo} from '../../fastapi_client';
 import {useGetSignalsQuery} from '../store/api_signal';
