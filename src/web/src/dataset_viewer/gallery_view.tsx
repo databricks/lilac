@@ -325,7 +325,7 @@ export const Gallery = React.memo(function Gallery({
   const numRows = allIds.length;
 
   const virtualizer = useVirtualizer({
-    count: webManifest?.dataset_manifest.num_items ?? 0,
+    count: hasNextPage ? numRows + 1 : numRows,
     getScrollElement: () => parentRef.current || null,
     // The estimated height of an individual item in pixels. This doesn't matter since we will
     // compute the actual height after the initial render.
@@ -415,8 +415,8 @@ export const Gallery = React.memo(function Gallery({
         </div>
       </div>
       <div className="border-t px-4 py-1 text-sm font-light text-gray-500">
-        Rows {virtualizer.range.startIndex.toLocaleString()} /{' '}
-        {webManifest.dataset_manifest.num_items.toLocaleString()}
+        Showing rows {virtualizer.range.startIndex.toLocaleString()} -{' '}
+        {virtualizer.range.endIndex.toLocaleString()}
       </div>
     </div>
   );
