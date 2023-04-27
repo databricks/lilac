@@ -21,6 +21,7 @@ class Signal(abc.ABC, BaseModel):
   name: ClassVar[str]
   enrichment_type: ClassVar[EnrichmentType]
   vector_based: ClassVar[bool] = False
+  emits_entities: ClassVar[bool] = False
 
   # The signal_name will get populated in init automatically from the class name so it gets
   # serialized and the signal author doesn't have to define both the static property and the field.

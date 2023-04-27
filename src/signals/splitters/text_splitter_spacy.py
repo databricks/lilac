@@ -5,7 +5,16 @@ import spacy
 from spacy import Language
 from typing_extensions import override
 
-from ...schema import DataType, EnrichmentType, Field, ItemValue, Path, RichData, TextSpan
+from ...schema import (
+    DataType,
+    EnrichmentType,
+    EntityField,
+    Field,
+    ItemValue,
+    Path,
+    RichData,
+    TextSpan,
+)
 from ...signals.signal import Signal
 
 
@@ -25,6 +34,8 @@ class SentenceSplitterSpacy(Signal):
 
   @override
   def fields(self, input_column: Path) -> Field:
+    return Field(repeated_field=EntityField())
+
     return Field(repeated_field=Field(dtype=DataType.STRING_SPAN, refers_to=input_column))
 
   @override

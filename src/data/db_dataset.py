@@ -254,6 +254,27 @@ class DatasetDB(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def compute_entity_index(self,
+                           signal: Signal,
+                           column: ColumnId,
+                           index_name: str,
+                           task_id: Optional[TaskId] = None) -> str:
+    """Compute an entity index for a column.
+
+    Args:
+      signal: The signal to compute the entity index.
+      column: The column to compute the signal on.
+      signal_column_name: The name of the result signal columns. This acts as a namespace for
+        the set of columns the signal produces.
+      task_id: The TaskManager `task_id` for this process run. This is used to update the progress
+        of the task.
+
+    Returns
+      The name of the result columns.
+    """
+    pass
+
+  @abc.abstractmethod
   def compute_signal_column(self,
                             signal: Signal,
                             column: ColumnId,

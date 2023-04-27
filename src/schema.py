@@ -20,6 +20,7 @@ PARQUET_FILENAME_PREFIX = 'data'
 # https://docs.oracle.com/cd/B19306_01/server.102/b14200/pseudocolumns008.htm
 UUID_COLUMN = '__rowid__'
 PATH_WILDCARD = '*'
+ENTITY_FEATURE_KEY = '__entity__'
 
 TEXT_SPAN_START_FEATURE = 'start'
 TEXT_SPAN_END_FEATURE = 'end'
@@ -155,6 +156,20 @@ class Field(BaseModel):
 
   def __repr__(self) -> str:
     return f' {self.__class__.__name__}::{self.json(exclude_none=True, indent=2)}'
+
+
+def EntityField(fields: Optional[dict[str, Field]] = {}) -> Field:
+  """Returns a field that represents an entity.
+
+  NOTE: This only produces a string_span entity value. For different entity types in the future, we
+  will pass a dtype argument to this function.
+  """
+  return Field(fields={ENTITY_FEATURE_KEY: Field(dtype=DataType.STRING_SPAN), **(fields or {})})
+
+
+def Entity(entity: Item, metadata: Optional[Item] = {}) -> Item:
+  """Creates an entity item."""
+  return {ENTITY_FEATURE_KEY: entity, **(metadata or {})}
 
 
 class Schema(BaseModel):
