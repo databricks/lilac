@@ -404,6 +404,7 @@ class DatasetDuckDB(DatasetDB):
       f.write(signal_manifest.json())
     log(f'Wrote signal manifest to {signal_manifest_filepath}')
 
+    # If the signal emits entites, write an index for the entities.
     if signal_entity_paths:
       for signal_entity_path in signal_entity_paths:
         entity_index_path = source_path + (signal_column_name,) + signal_entity_path
@@ -1099,4 +1100,7 @@ class SignalManifest(BaseModel):
 
 class EntityIndexManifest(BaseModel):
   """The manifest that describes an entity index computation."""
+  # NOTE(nsthorat): The manifest contains a single value to separate the public API from internal
+  # implementation details of the duckdb implementation so we can add more metadata. This could be
+  # be removed if we don't need to add more metadata.
   entity_index: EntityIndex

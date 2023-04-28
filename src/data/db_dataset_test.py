@@ -837,13 +837,6 @@ class SelectRowsSuite:
     signal = TestEntitySignal()
     db.compute_signal_column(signal=signal, column='text')
 
-    print([(('text',), [
-        EntityIndex(name='nikhil',
-                    source_path=('text',),
-                    index_path=('text', 'test_entity_len(text)'),
-                    display_name='nikhil',
-                    signal=signal)
-    ])])
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
         dataset_name=TEST_DATASET_NAME,
@@ -1148,8 +1141,8 @@ class TestEntitySignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(repeated_field=EntityField(entity_value=Field(dtype=DataType.STRING_SPAN),
-                                            fields={'len': Field(dtype=DataType.INT32)}))
+    return Field(repeated_field=EntityField(Field(
+        dtype=DataType.STRING_SPAN), {'len': Field(dtype=DataType.INT32)}))
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:

@@ -34,7 +34,7 @@ class SentenceSplitterSpacy(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(repeated_field=EntityField(entity_value=Field(dtype=DataType.STRING_SPAN)))
+    return Field(repeated_field=EntityField(Field(dtype=DataType.STRING_SPAN)))
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:
