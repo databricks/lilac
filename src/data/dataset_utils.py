@@ -13,9 +13,9 @@ from ..schema import (
     PathTuple,
     Schema,
     SignalOut,
-    column_paths_match,
     normalize_path,
 )
+from ..signals.signal import Signal
 
 
 def replace_repeated_wildcards(path: Path, path_repeated_idxs: Optional[list[int]]) -> Path:
@@ -69,7 +69,7 @@ def unflatten(flat_input: Iterable, original_input: Union[Iterable, object]) -> 
   return _unflatten(iter(flat_input), original_input)
 
 
-def make_enriched_items(source_path: Path, row_ids: Sequence[str],
+def make_enriched_items(source_path: Path, row_ids: Sequence[str], signal: Signal,
                         leaf_items: Iterable[Optional[SignalOut]],
                         repeated_idxs: Iterable[Optional[list[int]]]) -> Iterable[Item]:
   """Make enriched items from leaf items and a path. This is used by both signals and splitters.
@@ -83,6 +83,7 @@ def make_enriched_items(source_path: Path, row_ids: Sequence[str],
 
   last_row_id: Optional[str] = None
   for row_id, leaf_item, path_repeated_idxs in zip(row_ids, leaf_items, repeated_idxs):
+    leaf_item = {signal.name: leaf_item}
     num_outputs += 1
 
     # Duckdb currently just returns a single int as that's all we support. The rest of the code
@@ -163,66 +164,52 @@ def enrich_item_from_leaf_item(enriched_item: Item, path: Path, leaf_item: Signa
   enriched_subitem[path[-1]] = leaf_item  # type: ignore
 
 
-def create_enriched_schema(source_schema: Schema, enrich_path: Path, enrich_field: Field) -> Schema:
+def merge_schema_into(schema: Field, destination: Field) -> None:
+  """Merges two schemas."""
+  if schema.fields:
+    if not destination.fields:
+      raise ValueError('should not happen')
+    for field_name, subfield in schema.fields.items():
+      # Do not merge UUID columns.
+      if field_name == UUID_COLUMN:
+        continue
+      if field_name not in destination.fields:
+        destination.fields[field_name] = subfield
+      else:
+        merge_schema_into(destination.fields[field_name], subfield)
+  elif schema.repeated_field:
+    if not destination.repeated_field:
+      raise ValueError('should not happen')
+    merge_schema_into(destination.repeated_field, schema.repeated_field)
+  else:
+    if destination.dtype != schema.dtype:
+      raise ValueError('should not happen')
+
+
+def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema) -> Schema:
   """Create a schema describing the enriched fields added an enrichment."""
-  enriched_schema = Schema(fields={UUID_COLUMN: Field(dtype=DataType.STRING)})
-  return _add_enriched_fields_to_schema(
-      source_schema=source_schema,
-      enriched_schema=enriched_schema,
-      enrich_field=enrich_field,
-      enrich_path=normalize_path(enrich_path))
-
-
-def _add_enriched_fields_to_schema(source_schema: Schema, enriched_schema: Schema,
-                                   enrich_field: Field, enrich_path: PathTuple) -> Schema:
-  source_leafs = source_schema.leafs
+  source_leafs = schema.leafs
   # Validate that the enrich fields are actually a valid leaf path.
-  if enrich_path not in source_leafs:
-    raise ValueError(f'Field for enrichment "{enrich_path}" is not a valid leaf path. '
+  if source_path not in source_leafs:
+    raise ValueError(f'"{source_path}" is not a valid leaf path. '
                      f'Leaf paths: {source_leafs.keys()}')
 
+  enriched_schema = Field(fields={signal.name: signal.fields()})
   # Apply the "derived_from" field lineage to the field we are enriching.
-  enrich_field = apply_field_lineage(enrich_field, enrich_path)
-  for leaf_path, _ in source_leafs.items():
-    field_is_enriched = False
-    if column_paths_match(enrich_path, leaf_path):
-      field_is_enriched = True
-    if not field_is_enriched:
-      continue
+  enriched_schema = apply_field_lineage(enriched_schema, source_path)
 
-    # Find the inner most repeated subpath as we will put the enriched schema next to its parent.
-    inner_struct_path_idx = len(leaf_path) - 1
-    for i, path_part in reversed(list(enumerate(leaf_path))):
-      if path_part == PATH_WILDCARD:
-        inner_struct_path_idx = i - 1
-      else:
-        break
+  for path_part in reversed(source_path):
+    if path_part == PATH_WILDCARD:
+      enriched_schema = Field(repeated_field=enriched_schema)
+    else:
+      enriched_schema = Field(fields={path_part: enriched_schema})
 
-    repeated_depth = len(leaf_path) - 1 - inner_struct_path_idx
+  if not enriched_schema.fields:
+    raise ValueError('This should not happen')
 
-    inner_field = enrich_field
-
-    # Wrap in a list to mirror the input structure.
-    for i in range(repeated_depth):
-      inner_field = Field(repeated_field=inner_field, derived_from=enrich_path)
-
-    inner_enrich_path: Path = leaf_path[0:inner_struct_path_idx + 1]
-
-    # Merge the source schema into the enriched schema up until inner struct parent.
-    for i in reversed(range(inner_struct_path_idx + 1)):
-      path_component = cast(str, inner_enrich_path[i])
-
-      if path_component == PATH_WILDCARD:
-        inner_field = Field(repeated_field=inner_field)
-      else:
-        field = get_field_if_exists(enriched_schema, inner_enrich_path[0:i])
-        if field and field.fields:
-          field.fields[path_component] = inner_field
-          break
-        else:
-          inner_field = Field(fields={path_component: inner_field})
-
-  return enriched_schema
+  # Add the UUID column to the schema.
+  enriched_schema.fields[UUID_COLUMN] = Field(dtype=DataType.STRING)
+  return Schema(fields=enriched_schema.fields)
 
 
 def apply_field_lineage(field: Field, derived_from: PathTuple) -> Field:

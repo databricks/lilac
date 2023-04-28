@@ -49,10 +49,11 @@ from ..tasks import TaskId, progress
 from ..utils import DebugTimer, get_dataset_output_dir, log, open_file, write_items_to_parquet
 from . import db_dataset
 from .dataset_utils import (
-    create_enriched_schema,
+    create_signal_schema,
     flatten,
     is_primitive,
     make_enriched_items,
+    merge_schema_into,
     unflatten,
 )
 from .db_dataset import (
@@ -199,12 +200,26 @@ class DatasetDuckDB(DatasetDB):
     computed_columns: list[ComputedColumn] = []
     entity_indexes: list[EntityIndex] = []
 
+    merged_schema = self._source_manifest.data_schema.copy(deep=True)
+    destination = cast(Field, merged_schema)
+
     # Add the signal column groups.
     for root, _, files in os.walk(self.dataset_path):
       for file in files:
         if file.endswith(SIGNAL_MANIFEST_SUFFIX):
           with open_file(os.path.join(root, file)) as f:
             signal_manifest = SignalManifest.parse_raw(f.read())
+          signal_schema = Field(
+              fields={
+                  '__lilac__': Field(
+                      fields={
+                          name: field
+                          for name, field in signal_manifest.data_schema.fields.items()
+                          if name != UUID_COLUMN  # Remove UUID to avoid `__lilac__.__rowid__`.
+                      })
+              })
+          merge_schema_into(signal_schema, destination)
+
           value_field_name = cast(str, signal_manifest.enriched_path[0])
           signal_column = ComputedColumn(
               files=signal_manifest.files,
@@ -218,6 +233,10 @@ class DatasetDuckDB(DatasetDB):
             entity_index_manifest = EntityIndexManifest.parse_raw(f.read())
 
           entity_indexes.append(entity_index_manifest.entity_index)
+
+    print('==================')
+    print(merged_schema)
+    print('==================')
 
     # Make a joined view of all the column groups.
     self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
@@ -335,10 +354,7 @@ class DatasetDuckDB(DatasetDB):
     # TODO(nsthorat): Raise if the signal does not produce entities and the input column is not an
     # entity index.
 
-    signal_schema = create_enriched_schema(
-        source_schema=self.manifest().data_schema,
-        enrich_path=source_path,
-        enrich_field=signal_field)
+    signal_schema = create_signal_schema(signal, source_path, schema=self.manifest().data_schema)
 
     if signal.vector_based:
       # For embedding based signals, get the leaf keys and indices, creating a combined key for the
@@ -381,6 +397,7 @@ class DatasetDuckDB(DatasetDB):
     enriched_signal_items = make_enriched_items(
         source_path=source_path,
         row_ids=leafs_df[UUID_COLUMN],
+        signal=signal,
         leaf_items=signal_outputs,
         repeated_idxs=repeated_idxs_iter)
 
