@@ -55,6 +55,7 @@ describe('EmbeddingsView', () => {
             },
           ],
         },
+        entity_indexes: [],
         num_items: 1,
       },
     });
