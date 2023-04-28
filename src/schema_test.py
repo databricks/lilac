@@ -17,35 +17,25 @@ from .schema import (
 
 NESTED_TEST_SCHEMA = Schema(
     fields={
-        'person':
-            Field(
-                fields={
-                    'name':
-                        Field(dtype=DataType.STRING),
-                    'last_name':
-                        Field(dtype=DataType.STRING_SPAN, derived_from=('person', 'name')),
-                    # Contains a double nested array of primitives.
-                    'data':
-                        Field(repeated_field=Field(repeated_field=Field(dtype=DataType.FLOAT32)))
-                }),
-        'addresses':
-            Field(repeated_field=Field(
-                fields={
-                    'city':
-                        Field(dtype=DataType.STRING),
-                    'zipcode':
-                        Field(dtype=DataType.INT16),
-                    'current':
-                        Field(dtype=DataType.BOOLEAN),
-                    'locations':
-                        Field(repeated_field=Field(
-                            fields={
-                                'latitude': Field(dtype=DataType.FLOAT16),
-                                'longitude': Field(dtype=DataType.FLOAT64)
-                            }))
-                })),
-        'blob':
-            Field(dtype=DataType.BINARY)
+        'person': Field(
+            fields={
+                'name': Field(dtype=DataType.STRING),
+                'last_name': Field(dtype=DataType.STRING_SPAN, derived_from=('person', 'name')),
+                # Contains a double nested array of primitives.
+                'data': Field(repeated_field=Field(repeated_field=Field(dtype=DataType.FLOAT32)))
+            }),
+        'addresses': Field(repeated_field=Field(
+            fields={
+                'city': Field(dtype=DataType.STRING),
+                'zipcode': Field(dtype=DataType.INT16),
+                'current': Field(dtype=DataType.BOOLEAN),
+                'locations': Field(repeated_field=Field(
+                    fields={
+                        'latitude': Field(dtype=DataType.FLOAT16),
+                        'longitude': Field(dtype=DataType.FLOAT64)
+                    }))
+            })),
+        'blob': Field(dtype=DataType.BINARY)
     })
 NESTED_TEST_ITEM: Item = {
     'person': {
@@ -105,57 +95,43 @@ def test_field_ctor_validation() -> None:
 
 def test_schema_leafs() -> None:
   expected = {
-      ('addresses', PATH_WILDCARD, 'city'):
-          Field(dtype=DataType.STRING),
-      ('addresses', PATH_WILDCARD, 'current'):
-          Field(dtype=DataType.BOOLEAN),
+      ('addresses', PATH_WILDCARD, 'city'): Field(dtype=DataType.STRING),
+      ('addresses', PATH_WILDCARD, 'current'): Field(dtype=DataType.BOOLEAN),
       ('addresses', PATH_WILDCARD, 'locations', PATH_WILDCARD, 'latitude'):
           Field(dtype=DataType.FLOAT16),
       ('addresses', PATH_WILDCARD, 'locations', PATH_WILDCARD, 'longitude'):
           Field(dtype=DataType.FLOAT64),
-      ('addresses', PATH_WILDCARD, 'zipcode'):
-          Field(dtype=DataType.INT16),
-      ('blob',):
-          Field(dtype=DataType.BINARY),
-      ('person', 'name'):
-          Field(dtype=DataType.STRING),
-      ('person', 'last_name'):
-          Field(dtype=DataType.STRING_SPAN, derived_from=('person', 'name')),
-      ('person', 'data', PATH_WILDCARD, PATH_WILDCARD):
-          Field(dtype=DataType.FLOAT32)
+      ('addresses', PATH_WILDCARD, 'zipcode'): Field(dtype=DataType.INT16),
+      ('blob',): Field(dtype=DataType.BINARY),
+      ('person', 'name'): Field(dtype=DataType.STRING),
+      ('person', 'last_name'): Field(dtype=DataType.STRING_SPAN, derived_from=('person', 'name')),
+      ('person', 'data', PATH_WILDCARD, PATH_WILDCARD): Field(dtype=DataType.FLOAT32)
   }
   assert NESTED_TEST_SCHEMA.leafs == expected
 
 
 def test_schema_to_arrow_schema() -> None:
   expected = pa.schema({
-      'person':
-          pa.struct({
-              'name': pa.string(),
-              # The dtype for STRING_SPAN is implmemented as a struct with a {start, end}.
-              'last_name': pa.struct({
-                  'start': pa.int32(),
-                  'end': pa.int32(),
-              }),
-              'data': pa.list_(pa.list_(pa.float32()))
+      'person': pa.struct({
+          'name': pa.string(),
+          # The dtype for STRING_SPAN is implmemented as a struct with a {start, end}.
+          'last_name': pa.struct({
+              'start': pa.int32(),
+              'end': pa.int32(),
           }),
-      'addresses':
-          pa.list_(
-              pa.struct({
-                  'city':
-                      pa.string(),
-                  'zipcode':
-                      pa.int16(),
-                  'current':
-                      pa.bool_(),
-                  'locations':
-                      pa.list_(pa.struct({
-                          'latitude': pa.float16(),
-                          'longitude': pa.float64()
-                      })),
+          'data': pa.list_(pa.list_(pa.float32()))
+      }),
+      'addresses': pa.list_(
+          pa.struct({
+              'city': pa.string(),
+              'zipcode': pa.int16(),
+              'current': pa.bool_(),
+              'locations': pa.list_(pa.struct({
+                  'latitude': pa.float16(),
+                  'longitude': pa.float64()
               })),
-      'blob':
-          pa.binary(),
+          })),
+      'blob': pa.binary(),
   })
   arrow_schema = schema_to_arrow_schema(NESTED_TEST_SCHEMA)
   assert arrow_schema == expected
@@ -163,57 +139,41 @@ def test_schema_to_arrow_schema() -> None:
 
 def test_arrow_schema_to_schema() -> None:
   arrow_schema = pa.schema({
-      'person':
+      'person': pa.struct({
+          'name': pa.string(),
+          'data': pa.list_(pa.list_(pa.float32()))
+      }),
+      'addresses': pa.list_(
           pa.struct({
-              'name': pa.string(),
-              'data': pa.list_(pa.list_(pa.float32()))
-          }),
-      'addresses':
-          pa.list_(
-              pa.struct({
-                  'city':
-                      pa.string(),
-                  'zipcode':
-                      pa.int16(),
-                  'current':
-                      pa.bool_(),
-                  'locations':
-                      pa.list_(pa.struct({
-                          'latitude': pa.float16(),
-                          'longitude': pa.float64()
-                      })),
+              'city': pa.string(),
+              'zipcode': pa.int16(),
+              'current': pa.bool_(),
+              'locations': pa.list_(pa.struct({
+                  'latitude': pa.float16(),
+                  'longitude': pa.float64()
               })),
-      'blob':
-          pa.binary(),
+          })),
+      'blob': pa.binary(),
   })
   expected = Schema(
       fields={
-          'person':
-              Field(
-                  fields={
-                      'name':
-                          Field(dtype=DataType.STRING),
-                      'data':
-                          Field(repeated_field=Field(repeated_field=Field(dtype=DataType.FLOAT32)))
-                  }),
-          'addresses':
-              Field(repeated_field=Field(
-                  fields={
-                      'city':
-                          Field(dtype=DataType.STRING),
-                      'zipcode':
-                          Field(dtype=DataType.INT16),
-                      'current':
-                          Field(dtype=DataType.BOOLEAN),
-                      'locations':
-                          Field(repeated_field=Field(
-                              fields={
-                                  'latitude': Field(dtype=DataType.FLOAT16),
-                                  'longitude': Field(dtype=DataType.FLOAT64),
-                              }))
-                  })),
-          'blob':
-              Field(dtype=DataType.BINARY),
+          'person': Field(
+              fields={
+                  'name': Field(dtype=DataType.STRING),
+                  'data': Field(repeated_field=Field(repeated_field=Field(dtype=DataType.FLOAT32)))
+              }),
+          'addresses': Field(repeated_field=Field(
+              fields={
+                  'city': Field(dtype=DataType.STRING),
+                  'zipcode': Field(dtype=DataType.INT16),
+                  'current': Field(dtype=DataType.BOOLEAN),
+                  'locations': Field(repeated_field=Field(
+                      fields={
+                          'latitude': Field(dtype=DataType.FLOAT16),
+                          'longitude': Field(dtype=DataType.FLOAT64),
+                      }))
+              })),
+          'blob': Field(dtype=DataType.BINARY),
       })
   schema = arrow_schema_to_schema(arrow_schema)
   assert schema == expected

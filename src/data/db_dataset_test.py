@@ -267,22 +267,16 @@ class SelectRowsSuite:
         dataset_name=TEST_DATASET_NAME,
         data_schema=Schema(
             fields={
-                UUID_COLUMN:
-                    Field(dtype=DataType.STRING),
-                'str':
-                    Field(dtype=DataType.STRING),
-                'int':
-                    Field(dtype=DataType.INT64),
-                'bool':
-                    Field(dtype=DataType.BOOLEAN),
-                'float':
-                    Field(dtype=DataType.FLOAT64),
-                'test_signal(str)':
-                    Field(fields={
-                        'len': Field(dtype=DataType.INT32, derived_from=('str',)),
-                        'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
-                    },
-                          derived_from=('str',))
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'str': Field(dtype=DataType.STRING),
+                'int': Field(dtype=DataType.INT64),
+                'bool': Field(dtype=DataType.BOOLEAN),
+                'float': Field(dtype=DataType.FLOAT64),
+                'test_signal(str)': Field(fields={
+                    'len': Field(dtype=DataType.INT32, derived_from=('str',)),
+                    'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
+                },
+                                          derived_from=('str',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         entity_indexes=[],
@@ -354,17 +348,14 @@ class SelectRowsSuite:
         dataset_name=TEST_DATASET_NAME,
         data_schema=Schema(
             fields={
-                UUID_COLUMN:
-                    Field(dtype=DataType.STRING),
-                'text':
-                    Field(repeated_field=Field(dtype=DataType.STRING)),
-                'test_signal(text)':
-                    Field(repeated_field=Field(fields={
-                        'len': Field(dtype=DataType.INT32, derived_from=('text', '*')),
-                        'flen': Field(dtype=DataType.FLOAT32, derived_from=('text', '*'))
-                    },
-                                               derived_from=('text', '*')),
-                          derived_from=('text', '*'))
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'text': Field(repeated_field=Field(dtype=DataType.STRING)),
+                'test_signal(text)': Field(repeated_field=Field(fields={
+                    'len': Field(dtype=DataType.INT32, derived_from=('text', '*')),
+                    'flen': Field(dtype=DataType.FLOAT32, derived_from=('text', '*'))
+                },
+                                                                derived_from=('text', '*')),
+                                           derived_from=('text', '*'))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         entity_indexes=[],
@@ -741,22 +732,16 @@ class SelectRowsSuite:
         dataset_name=TEST_DATASET_NAME,
         data_schema=Schema(
             fields={
-                UUID_COLUMN:
-                    Field(dtype=DataType.STRING),
-                'str':
-                    Field(dtype=DataType.STRING),
-                'int':
-                    Field(dtype=DataType.INT64),
-                'bool':
-                    Field(dtype=DataType.BOOLEAN),
-                'float':
-                    Field(dtype=DataType.FLOAT64),
-                'test_signal_on_str':
-                    Field(fields={
-                        'len': Field(dtype=DataType.INT32, derived_from=('str',)),
-                        'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
-                    },
-                          derived_from=('str',))
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'str': Field(dtype=DataType.STRING),
+                'int': Field(dtype=DataType.INT64),
+                'bool': Field(dtype=DataType.BOOLEAN),
+                'float': Field(dtype=DataType.FLOAT64),
+                'test_signal_on_str': Field(fields={
+                    'len': Field(dtype=DataType.INT32, derived_from=('str',)),
+                    'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
+                },
+                                            derived_from=('str',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         entity_indexes=[],
@@ -781,10 +766,8 @@ class SelectRowsSuite:
 
     result = db.select_rows(columns=['text', 'test_splitter_len(text)'])
     expected_result = [{
-        UUID_COLUMN:
-            '1',
-        'text':
-            '[1, 1] first sentence. [1, 1] second sentence.',
+        UUID_COLUMN: '1',
+        'text': '[1, 1] first sentence. [1, 1] second sentence.',
         'test_splitter_len(text)': [{
             'len': 22,
             'split': {
@@ -799,10 +782,8 @@ class SelectRowsSuite:
             }
         }]
     }, {
-        UUID_COLUMN:
-            '2',
-        'text':
-            'b2 [2, 1] first sentence. [2, 1] second sentence.',
+        UUID_COLUMN: '2',
+        'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
         'test_splitter_len(text)': [{
             'len': 25,
             'split': {
@@ -842,15 +823,12 @@ class SelectRowsSuite:
         dataset_name=TEST_DATASET_NAME,
         data_schema=Schema(
             fields={
-                UUID_COLUMN:
-                    Field(dtype=DataType.STRING),
-                'text':
-                    Field(dtype=DataType.STRING),
-                'test_entity_len(text)':
-                    Field(repeated_field=EntityField(
-                        entity_value=Field(dtype=DataType.STRING_SPAN, derived_from=(('text',))),
-                        fields={'len': Field(dtype=DataType.INT32, derived_from=('text',))}),
-                          derived_from=('text',))
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'text': Field(dtype=DataType.STRING),
+                'test_entity_len(text)': Field(repeated_field=EntityField(
+                    entity_value=Field(dtype=DataType.STRING_SPAN, derived_from=(('text',))),
+                    fields={'len': Field(dtype=DataType.INT32, derived_from=('text',))}),
+                                               derived_from=('text',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         entity_indexes=[
@@ -864,19 +842,15 @@ class SelectRowsSuite:
     # format. This will look different once entity indexes are merged.
     result = db.select_rows(columns=['text', 'test_entity_len(text)'])
     expected_result = [{
-        UUID_COLUMN:
-            '1',
-        'text':
-            '[1, 1] first sentence. [1, 1] second sentence.',
+        UUID_COLUMN: '1',
+        'text': '[1, 1] first sentence. [1, 1] second sentence.',
         'test_entity_len(text)': [
             Entity(entity=TextSpan(0, 22), metadata={'len': 22}),
             Entity(entity=TextSpan(23, 46), metadata={'len': 23})
         ]
     }, {
-        UUID_COLUMN:
-            '2',
-        'text':
-            'b2 [2, 1] first sentence. [2, 1] second sentence.',
+        UUID_COLUMN: '2',
+        'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
         'test_entity_len(text)': [
             Entity(entity=TextSpan(0, 25), metadata={'len': 25}),
             Entity(entity=TextSpan(26, 49), metadata={'len': 23})
@@ -963,24 +937,19 @@ class SelectRowsSuite:
         dataset_name=TEST_DATASET_NAME,
         data_schema=Schema(
             fields={
-                UUID_COLUMN:
-                    Field(dtype=DataType.STRING),
-                'text':
-                    Field(dtype=DataType.STRING),
-                'text_sentences_emb_sum':
-                    Field(repeated_field=Field(
-                        fields={
-                            'split':
-                                Field(dtype=DataType.FLOAT32,
-                                      derived_from=('text_sentences', PATH_WILDCARD, 'split'))
-                        })),
-                'text_sentences':
-                    Field(repeated_field=Field(fields={
-                        'len': Field(dtype=DataType.INT32, derived_from=('text',)),
-                        'split': Field(dtype=DataType.STRING_SPAN, derived_from=('text',))
-                    },
-                                               derived_from=('text',)),
-                          derived_from=('text',))
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'text': Field(dtype=DataType.STRING),
+                'text_sentences_emb_sum': Field(repeated_field=Field(
+                    fields={
+                        'split': Field(dtype=DataType.FLOAT32,
+                                       derived_from=('text_sentences', PATH_WILDCARD, 'split'))
+                    })),
+                'text_sentences': Field(repeated_field=Field(fields={
+                    'len': Field(dtype=DataType.INT32, derived_from=('text',)),
+                    'split': Field(dtype=DataType.STRING_SPAN, derived_from=('text',))
+                },
+                                                             derived_from=('text',)),
+                                        derived_from=('text',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[
             EmbeddingIndexInfo(column=('text_sentences', '*', 'split'), embedding=embedding)
@@ -1266,13 +1235,10 @@ class StatsSuite:
     ]
     nested_schema = Schema(
         fields={
-            UUID_COLUMN:
-                Field(dtype=DataType.STRING),
-            'name':
-                Field(dtype=DataType.STRING),
-            'addresses':
-                Field(repeated_field=Field(
-                    fields={'zips': Field(repeated_field=Field(dtype=DataType.INT32))}))
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'name': Field(dtype=DataType.STRING),
+            'addresses': Field(repeated_field=Field(
+                fields={'zips': Field(repeated_field=Field(dtype=DataType.INT32))}))
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
 
@@ -1449,10 +1415,9 @@ class SelectGroupsSuite:
     }]
     schema = Schema(
         fields={
-            UUID_COLUMN:
-                Field(dtype=DataType.STRING),
-            'list_of_structs':
-                Field(repeated_field=Field(fields={'name': Field(dtype=DataType.STRING)})),
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'list_of_structs': Field(repeated_field=Field(
+                fields={'name': Field(dtype=DataType.STRING)})),
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
@@ -1494,11 +1459,9 @@ class SelectGroupsSuite:
     }]
     schema = Schema(
         fields={
-            UUID_COLUMN:
-                Field(dtype=DataType.STRING),
-            'nested_list':
-                Field(repeated_field=Field(repeated_field=Field(
-                    fields={'name': Field(dtype=DataType.STRING)}))),
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'nested_list': Field(repeated_field=Field(repeated_field=Field(
+                fields={'name': Field(dtype=DataType.STRING)}))),
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
@@ -1544,10 +1507,9 @@ class SelectGroupsSuite:
     ]
     schema = Schema(
         fields={
-            UUID_COLUMN:
-                Field(dtype=DataType.STRING),
-            'nested_struct':
-                Field(fields={'struct': Field(fields={'name': Field(dtype=DataType.STRING)})}),
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'nested_struct': Field(
+                fields={'struct': Field(fields={'name': Field(dtype=DataType.STRING)})}),
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
@@ -1632,10 +1594,9 @@ class SelectGroupsSuite:
     ]
     schema = Schema(
         fields={
-            UUID_COLUMN:
-                Field(dtype=DataType.STRING),
-            'nested_struct':
-                Field(fields={'struct': Field(fields={'name': Field(dtype=DataType.STRING)})}),
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'nested_struct': Field(
+                fields={'struct': Field(fields={'name': Field(dtype=DataType.STRING)})}),
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 

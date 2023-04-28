@@ -46,30 +46,29 @@ def test_hf(tmp_path: pathlib.Path) -> None:
 
 
 def test_hf_sequence(tmp_path: pathlib.Path) -> None:
-  dataset = Dataset.from_list(
-      [{
-          'scalar': 1,
-          'seq': [1, 0],
-          'seq_dict': {
-              'x': [1, 2, 3],
-              'y': ['four', 'five', 'six']
-          }
-      }, {
-          'scalar': 2,
-          'seq': [2, 0],
-          'seq_dict': {
-              'x': [10, 20, 30],
-              'y': ['forty', 'fifty', 'sixty']
-          }
-      }],
-      features=Features({
-          'scalar': Value(dtype='int64'),
-          'seq': Sequence(feature=Value(dtype='int64')),
-          'seq_dict': Sequence(feature={
-              'x': Value(dtype='int64'),
-              'y': Value(dtype='string')
-          })
-      }))
+  dataset = Dataset.from_list([{
+      'scalar': 1,
+      'seq': [1, 0],
+      'seq_dict': {
+          'x': [1, 2, 3],
+          'y': ['four', 'five', 'six']
+      }
+  }, {
+      'scalar': 2,
+      'seq': [2, 0],
+      'seq_dict': {
+          'x': [10, 20, 30],
+          'y': ['forty', 'fifty', 'sixty']
+      }
+  }],
+                              features=Features({
+                                  'scalar': Value(dtype='int64'),
+                                  'seq': Sequence(feature=Value(dtype='int64')),
+                                  'seq_dict': Sequence(feature={
+                                      'x': Value(dtype='int64'),
+                                      'y': Value(dtype='string')
+                                  })
+                              }))
 
   dataset_name = os.path.join(tmp_path, 'hf-test-dataset')
   dataset.save_to_disk(dataset_name)
@@ -80,20 +79,15 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
 
   expected_result = SourceProcessResult(data_schema=Schema(
       fields={
-          UUID_COLUMN:
-              Field(dtype=DataType.STRING),
-          HF_SPLIT_COLUMN:
-              Field(dtype=DataType.STRING),
-          'scalar':
-              Field(dtype=DataType.INT64),
-          'seq':
-              Field(repeated_field=Field(dtype=DataType.INT64)),
-          'seq_dict':
-              Field(
-                  fields={
-                      'x': Field(repeated_field=Field(dtype=DataType.INT64)),
-                      'y': Field(repeated_field=Field(dtype=DataType.STRING)),
-                  }),
+          UUID_COLUMN: Field(dtype=DataType.STRING),
+          HF_SPLIT_COLUMN: Field(dtype=DataType.STRING),
+          'scalar': Field(dtype=DataType.INT64),
+          'seq': Field(repeated_field=Field(dtype=DataType.INT64)),
+          'seq_dict': Field(
+              fields={
+                  'x': Field(repeated_field=Field(dtype=DataType.INT64)),
+                  'y': Field(repeated_field=Field(dtype=DataType.STRING)),
+              }),
       }),
                                         num_items=2,
                                         filepaths=[])

@@ -29,15 +29,14 @@ async def test_task_manager(test_client: Client) -> None:
   manifest = await task_manager.manifest()
   assert manifest == TaskManifest(
       tasks={
-          task_id:
-              TaskInfo(
-                  name='test_task',
-                  status=TaskStatus.PENDING,
-                  progress=None,
-                  description='test_description',
-                  start_timestamp=manifest.tasks[task_id].start_timestamp,
-                  end_timestamp=None,
-              )
+          task_id: TaskInfo(
+              name='test_task',
+              status=TaskStatus.PENDING,
+              progress=None,
+              description='test_description',
+              start_timestamp=manifest.tasks[task_id].start_timestamp,
+              end_timestamp=None,
+          )
       })
 
   test_progresses = [0.0, 0.4, 1.0]
@@ -76,15 +75,14 @@ async def test_task_manager(test_client: Client) -> None:
     manifest = await task_manager.manifest()
     assert manifest == TaskManifest(
         tasks={
-            task_id:
-                TaskInfo(
-                    name='test_task',
-                    status=TaskStatus.PENDING,
-                    progress=test_progresses[i],
-                    description='test_description',
-                    start_timestamp=manifest.tasks[task_id].start_timestamp,
-                    end_timestamp=None,
-                )
+            task_id: TaskInfo(
+                name='test_task',
+                status=TaskStatus.PENDING,
+                progress=test_progresses[i],
+                description='test_description',
+                start_timestamp=manifest.tasks[task_id].start_timestamp,
+                end_timestamp=None,
+            )
         })
   Event('end').set()
   Event('ended').wait()
@@ -94,15 +92,14 @@ async def test_task_manager(test_client: Client) -> None:
   manifest = await task_manager.manifest()
   assert manifest == TaskManifest(
       tasks={
-          task_id:
-              TaskInfo(
-                  name='test_task',
-                  status=TaskStatus.COMPLETED,
-                  progress=1.0,
-                  description='test_description',
-                  start_timestamp=manifest.tasks[task_id].start_timestamp,
-                  end_timestamp=manifest.tasks[task_id].end_timestamp,
-              )
+          task_id: TaskInfo(
+              name='test_task',
+              status=TaskStatus.COMPLETED,
+              progress=1.0,
+              description='test_description',
+              start_timestamp=manifest.tasks[task_id].start_timestamp,
+              end_timestamp=manifest.tasks[task_id].end_timestamp,
+          )
       })
 
   test_client.close()

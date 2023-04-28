@@ -139,3 +139,14 @@ combine-as-imports = true
 [tool.ruff.pep8-naming]
 # Allow Pydantic's `@validator` decorator to trigger class method treatment.
 classmethod-decorators = ["classmethod", "pydantic.validator"]
+
+[tool.yapf]
+based_on_style = "google"
+column_limit = 100
+indent_width = 2
+allow_split_before_dict_value = false
+coalesce_brackets = true
+
+# Consider enabling these options for more compact code.
+# split_before_named_assigns = false
+# split_before_expression_after_opening_paren = true
