@@ -21,15 +21,16 @@ def test_hf(tmp_path: pathlib.Path) -> None:
 
   result = source.process(str(tmp_path))
 
-  expected_result = SourceProcessResult(data_schema=Schema(
-      fields={
-          UUID_COLUMN: Field(dtype=DataType.STRING),
-          HF_SPLIT_COLUMN: Field(dtype=DataType.STRING),
-          'x': Field(dtype=DataType.INT64),
-          'y': Field(dtype=DataType.STRING),
-      }),
-                                        num_items=2,
-                                        filepaths=[])
+  expected_result = SourceProcessResult(
+      data_schema=Schema(
+          fields={
+              UUID_COLUMN: Field(dtype=DataType.STRING),
+              HF_SPLIT_COLUMN: Field(dtype=DataType.STRING),
+              'x': Field(dtype=DataType.INT64),
+              'y': Field(dtype=DataType.STRING),
+          }),
+      num_items=2,
+      filepaths=[])
 
   items = read_items(tmp_path, result.filepaths, expected_result.data_schema)
   assert items == [{
@@ -77,20 +78,21 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
 
   result = source.process(str(tmp_path))
 
-  expected_result = SourceProcessResult(data_schema=Schema(
-      fields={
-          UUID_COLUMN: Field(dtype=DataType.STRING),
-          HF_SPLIT_COLUMN: Field(dtype=DataType.STRING),
-          'scalar': Field(dtype=DataType.INT64),
-          'seq': Field(repeated_field=Field(dtype=DataType.INT64)),
-          'seq_dict': Field(
-              fields={
-                  'x': Field(repeated_field=Field(dtype=DataType.INT64)),
-                  'y': Field(repeated_field=Field(dtype=DataType.STRING)),
-              }),
-      }),
-                                        num_items=2,
-                                        filepaths=[])
+  expected_result = SourceProcessResult(
+      data_schema=Schema(
+          fields={
+              UUID_COLUMN: Field(dtype=DataType.STRING),
+              HF_SPLIT_COLUMN: Field(dtype=DataType.STRING),
+              'scalar': Field(dtype=DataType.INT64),
+              'seq': Field(repeated_field=Field(dtype=DataType.INT64)),
+              'seq_dict': Field(
+                  fields={
+                      'x': Field(repeated_field=Field(dtype=DataType.INT64)),
+                      'y': Field(repeated_field=Field(dtype=DataType.STRING)),
+                  }),
+          }),
+      num_items=2,
+      filepaths=[])
 
   items = read_items(tmp_path, result.filepaths, expected_result.data_schema)
   assert items == [{

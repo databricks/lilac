@@ -110,13 +110,12 @@ def make_enriched_items(source_path: Path, row_ids: Sequence[str],
     outputs_per_key += 1
 
     # Apply the list of path indices to the path to replace wildcards.
-    resolved_path = replace_repeated_wildcards(path=source_path,
-                                               path_repeated_idxs=path_repeated_idxs)
+    resolved_path = replace_repeated_wildcards(
+        path=source_path, path_repeated_idxs=path_repeated_idxs)
 
     # Now that we have resolves indices, we can modify the enriched item.
-    enrich_item_from_leaf_item(enriched_item=working_enriched_item,
-                               path=resolved_path,
-                               leaf_item=leaf_item)
+    enrich_item_from_leaf_item(
+        enriched_item=working_enriched_item, path=resolved_path, leaf_item=leaf_item)
 
   if num_outputs != len(row_ids):
     raise ValueError(
@@ -167,10 +166,11 @@ def enrich_item_from_leaf_item(enriched_item: Item, path: Path, leaf_item: Signa
 def create_enriched_schema(source_schema: Schema, enrich_path: Path, enrich_field: Field) -> Schema:
   """Create a schema describing the enriched fields added an enrichment."""
   enriched_schema = Schema(fields={UUID_COLUMN: Field(dtype=DataType.STRING)})
-  return _add_enriched_fields_to_schema(source_schema=source_schema,
-                                        enriched_schema=enriched_schema,
-                                        enrich_field=enrich_field,
-                                        enrich_path=normalize_path(enrich_path))
+  return _add_enriched_fields_to_schema(
+      source_schema=source_schema,
+      enriched_schema=enriched_schema,
+      enrich_field=enrich_field,
+      enrich_path=normalize_path(enrich_path))
 
 
 def _add_enriched_fields_to_schema(source_schema: Schema, enriched_schema: Schema,

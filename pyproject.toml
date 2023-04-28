@@ -146,7 +146,7 @@ column_limit = 100
 indent_width = 2
 allow_split_before_dict_value = false
 coalesce_brackets = true
+split_before_expression_after_opening_paren = true
 
 # Consider enabling these options for more compact code.
 # split_before_named_assigns = false
-# split_before_expression_after_opening_paren = true

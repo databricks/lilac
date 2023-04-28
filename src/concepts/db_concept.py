@@ -122,11 +122,12 @@ class DiskConceptModelDB(ConceptModelDB):
 
     concept_model_path = _concept_model_path(namespace, concept_name, embedding_name)
     if not file_exists(concept_model_path):
-      return ConceptModel(namespace=namespace,
-                          concept_name=concept_name,
-                          embedding_name=embedding_name,
-                          embeddings={},
-                          version=-1)
+      return ConceptModel(
+          namespace=namespace,
+          concept_name=concept_name,
+          embedding_name=embedding_name,
+          embeddings={},
+          version=-1)
 
     with open_file(concept_model_path, 'rb') as f:
       return pickle.load(f)

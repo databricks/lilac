@@ -219,19 +219,20 @@ class SelectRowsSuite:
   def test_source_joined_with_signal_column(self, tmp_path: pathlib.Path,
                                             db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
-    assert db.manifest() == DatasetManifest(namespace=TEST_NAMESPACE,
-                                            dataset_name=TEST_DATASET_NAME,
-                                            data_schema=Schema(
-                                                fields={
-                                                    UUID_COLUMN: Field(dtype=DataType.STRING),
-                                                    'str': Field(dtype=DataType.STRING),
-                                                    'int': Field(dtype=DataType.INT64),
-                                                    'bool': Field(dtype=DataType.BOOLEAN),
-                                                    'float': Field(dtype=DataType.FLOAT64),
-                                                }),
-                                            embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-                                            entity_indexes=[],
-                                            num_items=3)
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'str': Field(dtype=DataType.STRING),
+                'int': Field(dtype=DataType.INT64),
+                'bool': Field(dtype=DataType.BOOLEAN),
+                'float': Field(dtype=DataType.FLOAT64),
+            }),
+        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+        entity_indexes=[],
+        num_items=3)
 
     test_signal = TestSignal()
     db.compute_signal_column(signal=test_signal, column='str')
@@ -272,11 +273,12 @@ class SelectRowsSuite:
                 'int': Field(dtype=DataType.INT64),
                 'bool': Field(dtype=DataType.BOOLEAN),
                 'float': Field(dtype=DataType.FLOAT64),
-                'test_signal(str)': Field(fields={
-                    'len': Field(dtype=DataType.INT32, derived_from=('str',)),
-                    'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
-                },
-                                          derived_from=('str',))
+                'test_signal(str)': Field(
+                    fields={
+                        'len': Field(dtype=DataType.INT32, derived_from=('str',)),
+                        'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
+                    },
+                    derived_from=('str',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         entity_indexes=[],
@@ -324,20 +326,21 @@ class SelectRowsSuite:
     }]
 
   def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls,
-                 tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': ['hello', 'everybody'],
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': ['hello2', 'everybody2'],
-                 }],
-                 schema=Schema(
-                     fields={
-                         UUID_COLUMN: Field(dtype=DataType.STRING),
-                         'text': Field(repeated_field=Field(dtype=DataType.STRING)),
-                     }))
+    db = make_db(
+        db_cls,
+        tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': ['hello', 'everybody'],
+        }, {
+            UUID_COLUMN: '2',
+            'text': ['hello2', 'everybody2'],
+        }],
+        schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'text': Field(repeated_field=Field(dtype=DataType.STRING)),
+            }))
     test_signal = TestSignal()
     # Run the signal on the repeated field.
     db.compute_signal_column(signal=test_signal, column=('text', '*'))
@@ -350,12 +353,14 @@ class SelectRowsSuite:
             fields={
                 UUID_COLUMN: Field(dtype=DataType.STRING),
                 'text': Field(repeated_field=Field(dtype=DataType.STRING)),
-                'test_signal(text)': Field(repeated_field=Field(fields={
-                    'len': Field(dtype=DataType.INT32, derived_from=('text', '*')),
-                    'flen': Field(dtype=DataType.FLOAT32, derived_from=('text', '*'))
-                },
-                                                                derived_from=('text', '*')),
-                                           derived_from=('text', '*'))
+                'test_signal(text)': Field(
+                    repeated_field=Field(
+                        fields={
+                            'len': Field(dtype=DataType.INT32, derived_from=('text', '*')),
+                            'flen': Field(dtype=DataType.FLOAT32, derived_from=('text', '*'))
+                        },
+                        derived_from=('text', '*')),
+                    derived_from=('text', '*'))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         entity_indexes=[],
@@ -384,19 +389,20 @@ class SelectRowsSuite:
     }]
 
   def test_signal_transform(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls,
-                 tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': 'hello'
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': 'everybody'
-                 }],
-                 schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.STRING),
-                     'text': Field(dtype=DataType.STRING),
-                 }))
+    db = make_db(
+        db_cls,
+        tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello'
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'everybody'
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
 
     signal_col = SignalUDF(TestSignal(), 'text')
     result = db.select_rows(columns=['text', signal_col])
@@ -419,19 +425,20 @@ class SelectRowsSuite:
 
   def test_signal_transform_with_filters(self, tmp_path: pathlib.Path,
                                          db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls,
-                 tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': 'hello'
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': 'everybody'
-                 }],
-                 schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.STRING),
-                     'text': Field(dtype=DataType.STRING),
-                 }))
+    db = make_db(
+        db_cls,
+        tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello'
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'everybody'
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
 
     signal_col = SignalUDF(TestSignal(), 'text')
     # Filter by source feature.
@@ -489,19 +496,20 @@ class SelectRowsSuite:
   def test_signal_transform_with_uuid_filter(self, tmp_path: pathlib.Path,
                                              db_cls: Type[DatasetDB]) -> None:
 
-    db = make_db(db_cls,
-                 tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': 'hello'
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': 'everybody'
-                 }],
-                 schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.STRING),
-                     'text': Field(dtype=DataType.STRING),
-                 }))
+    db = make_db(
+        db_cls,
+        tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello'
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'everybody'
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
 
     signal = SelectRowsSuite.LengthSignal()
     # Filter by a specific UUID.
@@ -531,20 +539,21 @@ class SelectRowsSuite:
   def test_signal_transform_with_uuid_filter_repeated(self, tmp_path: pathlib.Path,
                                                       db_cls: Type[DatasetDB]) -> None:
 
-    db = make_db(db_cls,
-                 tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': ['hello', 'hi']
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': ['everybody', 'bye', 'test']
-                 }],
-                 schema=Schema(
-                     fields={
-                         UUID_COLUMN: Field(dtype=DataType.STRING),
-                         'text': Field(repeated_field=Field(dtype=DataType.STRING)),
-                     }))
+    db = make_db(
+        db_cls,
+        tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': ['hello', 'hi']
+        }, {
+            UUID_COLUMN: '2',
+            'text': ['everybody', 'bye', 'test']
+        }],
+        schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'text': Field(repeated_field=Field(dtype=DataType.STRING)),
+            }))
 
     signal = SelectRowsSuite.LengthSignal()
 
@@ -601,19 +610,20 @@ class SelectRowsSuite:
 
   def test_signal_transform_with_embedding(self, tmp_path: pathlib.Path,
                                            db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls=db_cls,
-                 tmp_path=tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': 'hello.',
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': 'hello2.',
-                 }],
-                 schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.STRING),
-                     'text': Field(dtype=DataType.STRING),
-                 }))
+    db = make_db(
+        db_cls=db_cls,
+        tmp_path=tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello.',
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'hello2.',
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
 
     db.compute_embedding_index(embedding=TEST_EMBEDDING_NAME, column='text')
 
@@ -631,9 +641,8 @@ class SelectRowsSuite:
     assert list(result) == expected_result
 
     # Select rows with alias.
-    signal_col = SignalUDF(TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
-                           Column('text'),
-                           alias='emb_sum')
+    signal_col = SignalUDF(
+        TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), Column('text'), alias='emb_sum')
     result = db.select_rows(columns=['text', signal_col])
     expected_result = [{
         UUID_COLUMN: '1',
@@ -648,25 +657,26 @@ class SelectRowsSuite:
 
   def test_signal_transform_with_nested_embedding(self, tmp_path: pathlib.Path,
                                                   db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls=db_cls,
-                 tmp_path=tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': ['hello.', 'hello world.'],
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': ['hello world2.', 'hello2.'],
-                 }],
-                 schema=Schema(
-                     fields={
-                         UUID_COLUMN: Field(dtype=DataType.STRING),
-                         'text': Field(repeated_field=Field(dtype=DataType.STRING)),
-                     }))
+    db = make_db(
+        db_cls=db_cls,
+        tmp_path=tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': ['hello.', 'hello world.'],
+        }, {
+            UUID_COLUMN: '2',
+            'text': ['hello world2.', 'hello2.'],
+        }],
+        schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'text': Field(repeated_field=Field(dtype=DataType.STRING)),
+            }))
 
     db.compute_embedding_index(embedding=TEST_EMBEDDING_NAME, column=('text', '*'))
 
-    signal_col = SignalUDF(TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
-                           column=('text', '*'))
+    signal_col = SignalUDF(
+        TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), column=('text', '*'))
     result = db.select_rows(columns=['text', signal_col])
     expected_result = [{
         UUID_COLUMN: '1',
@@ -682,24 +692,24 @@ class SelectRowsSuite:
   def test_source_joined_with_named_signal_column(self, tmp_path: pathlib.Path,
                                                   db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
-    assert db.manifest() == DatasetManifest(namespace=TEST_NAMESPACE,
-                                            dataset_name=TEST_DATASET_NAME,
-                                            data_schema=Schema(
-                                                fields={
-                                                    UUID_COLUMN: Field(dtype=DataType.STRING),
-                                                    'str': Field(dtype=DataType.STRING),
-                                                    'int': Field(dtype=DataType.INT64),
-                                                    'bool': Field(dtype=DataType.BOOLEAN),
-                                                    'float': Field(dtype=DataType.FLOAT64),
-                                                }),
-                                            embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-                                            entity_indexes=[],
-                                            num_items=3)
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'str': Field(dtype=DataType.STRING),
+                'int': Field(dtype=DataType.INT64),
+                'bool': Field(dtype=DataType.BOOLEAN),
+                'float': Field(dtype=DataType.FLOAT64),
+            }),
+        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+        entity_indexes=[],
+        num_items=3)
 
     test_signal = TestSignal()
-    db.compute_signal_column(signal=test_signal,
-                             column='str',
-                             signal_column_name='test_signal_on_str')
+    db.compute_signal_column(
+        signal=test_signal, column='str', signal_column_name='test_signal_on_str')
 
     result = db.select_rows(columns=['str', 'test_signal_on_str'])
 
@@ -737,30 +747,32 @@ class SelectRowsSuite:
                 'int': Field(dtype=DataType.INT64),
                 'bool': Field(dtype=DataType.BOOLEAN),
                 'float': Field(dtype=DataType.FLOAT64),
-                'test_signal_on_str': Field(fields={
-                    'len': Field(dtype=DataType.INT32, derived_from=('str',)),
-                    'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
-                },
-                                            derived_from=('str',))
+                'test_signal_on_str': Field(
+                    fields={
+                        'len': Field(dtype=DataType.INT32, derived_from=('str',)),
+                        'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
+                    },
+                    derived_from=('str',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         entity_indexes=[],
         num_items=3)
 
   def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls=db_cls,
-                 tmp_path=tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': '[1, 1] first sentence. [1, 1] second sentence.',
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-                 }],
-                 schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.STRING),
-                     'text': Field(dtype=DataType.STRING),
-                 }))
+    db = make_db(
+        db_cls=db_cls,
+        tmp_path=tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': '[1, 1] first sentence. [1, 1] second sentence.',
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
 
     db.compute_signal_column(signal=TestSplitterWithLen(), column='text')
 
@@ -801,19 +813,20 @@ class SelectRowsSuite:
     assert list(result) == expected_result
 
   def test_entity_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls=db_cls,
-                 tmp_path=tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': '[1, 1] first sentence. [1, 1] second sentence.',
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-                 }],
-                 schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.STRING),
-                     'text': Field(dtype=DataType.STRING),
-                 }))
+    db = make_db(
+        db_cls=db_cls,
+        tmp_path=tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': '[1, 1] first sentence. [1, 1] second sentence.',
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
 
     signal = TestEntitySignal()
     db.compute_signal_column(signal=signal, column='text')
@@ -825,16 +838,16 @@ class SelectRowsSuite:
             fields={
                 UUID_COLUMN: Field(dtype=DataType.STRING),
                 'text': Field(dtype=DataType.STRING),
-                'test_entity_len(text)': Field(repeated_field=EntityField(
-                    entity_value=Field(dtype=DataType.STRING_SPAN, derived_from=(('text',))),
-                    fields={'len': Field(dtype=DataType.INT32, derived_from=('text',))}),
-                                               derived_from=('text',))
+                'test_entity_len(text)': Field(
+                    repeated_field=EntityField(
+                        entity_value=Field(dtype=DataType.STRING_SPAN, derived_from=(('text',))),
+                        fields={'len': Field(dtype=DataType.INT32, derived_from=('text',))}),
+                    derived_from=('text',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         entity_indexes=[
-            EntityIndex(source_path=('text',),
-                        index_path=('text', 'test_entity_len(text)'),
-                        signal=signal)
+            EntityIndex(
+                source_path=('text',), index_path=('text', 'test_entity_len(text)'), signal=signal)
         ],
         num_items=2)
 
@@ -859,26 +872,28 @@ class SelectRowsSuite:
     assert list(result) == expected_result
 
   def test_embedding_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls=db_cls,
-                 tmp_path=tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': 'hello.',
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': 'hello2.',
-                 }],
-                 schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.STRING),
-                     'text': Field(dtype=DataType.STRING),
-                 }))
+    db = make_db(
+        db_cls=db_cls,
+        tmp_path=tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello.',
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'hello2.',
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
 
     embedding = TestEmbedding()
     db.compute_embedding_index(embedding=embedding, column='text')
 
-    db.compute_signal_column(signal=TestEmbeddingSumSignal(embedding=TestEmbedding()),
-                             column='text',
-                             signal_column_name='text_emb_sum')
+    db.compute_signal_column(
+        signal=TestEmbeddingSumSignal(embedding=TestEmbedding()),
+        column='text',
+        signal_column_name='text_emb_sum')
 
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
@@ -907,30 +922,31 @@ class SelectRowsSuite:
     assert list(result) == expected_result
 
   def test_embedding_signal_splits(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls=db_cls,
-                 tmp_path=tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': 'hello. hello2.',
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': 'hello world. hello world2.',
-                 }],
-                 schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.STRING),
-                     'text': Field(dtype=DataType.STRING),
-                 }))
+    db = make_db(
+        db_cls=db_cls,
+        tmp_path=tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello. hello2.',
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'hello world. hello world2.',
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
 
-    db.compute_signal_column(signal=TestSplitterWithLen(),
-                             column='text',
-                             signal_column_name='text_sentences')
+    db.compute_signal_column(
+        signal=TestSplitterWithLen(), column='text', signal_column_name='text_sentences')
 
     embedding = TestEmbedding()
     db.compute_embedding_index(embedding=embedding, column=('text_sentences', '*', 'split'))
 
-    db.compute_signal_column(signal=TestEmbeddingSumSignal(embedding=TestEmbedding()),
-                             column=('text_sentences', '*', 'split'),
-                             signal_column_name='text_sentences_emb_sum')
+    db.compute_signal_column(
+        signal=TestEmbeddingSumSignal(embedding=TestEmbedding()),
+        column=('text_sentences', '*', 'split'),
+        signal_column_name='text_sentences_emb_sum')
 
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
@@ -939,17 +955,21 @@ class SelectRowsSuite:
             fields={
                 UUID_COLUMN: Field(dtype=DataType.STRING),
                 'text': Field(dtype=DataType.STRING),
-                'text_sentences_emb_sum': Field(repeated_field=Field(
-                    fields={
-                        'split': Field(dtype=DataType.FLOAT32,
-                                       derived_from=('text_sentences', PATH_WILDCARD, 'split'))
-                    })),
-                'text_sentences': Field(repeated_field=Field(fields={
-                    'len': Field(dtype=DataType.INT32, derived_from=('text',)),
-                    'split': Field(dtype=DataType.STRING_SPAN, derived_from=('text',))
-                },
-                                                             derived_from=('text',)),
-                                        derived_from=('text',))
+                'text_sentences_emb_sum': Field(
+                    repeated_field=Field(
+                        fields={
+                            'split': Field(
+                                dtype=DataType.FLOAT32,
+                                derived_from=('text_sentences', PATH_WILDCARD, 'split'))
+                        })),
+                'text_sentences': Field(
+                    repeated_field=Field(
+                        fields={
+                            'len': Field(dtype=DataType.INT32, derived_from=('text',)),
+                            'split': Field(dtype=DataType.STRING_SPAN, derived_from=('text',))
+                        },
+                        derived_from=('text',)),
+                    derived_from=('text',))
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[
             EmbeddingIndexInfo(column=('text_sentences', '*', 'split'), embedding=embedding)
@@ -992,23 +1012,24 @@ class SelectRowsSuite:
     assert list(result) == expected_result
 
   def test_invalid_column_paths(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls,
-                 tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': 'hello',
-                     'text2': ['hello', 'world'],
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': 'hello world',
-                     'text2': ['hello2', 'world2'],
-                 }],
-                 schema=Schema(
-                     fields={
-                         UUID_COLUMN: Field(dtype=DataType.STRING),
-                         'text': Field(dtype=DataType.STRING),
-                         'text2': Field(repeated_field=Field(dtype=DataType.STRING)),
-                     }))
+    db = make_db(
+        db_cls,
+        tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello',
+            'text2': ['hello', 'world'],
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'hello world',
+            'text2': ['hello2', 'world2'],
+        }],
+        schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'text': Field(dtype=DataType.STRING),
+                'text2': Field(repeated_field=Field(dtype=DataType.STRING)),
+            }))
     test_signal = TestSignal()
     db.compute_signal_column(signal=test_signal, column='text')
     db.compute_signal_column(signal=test_signal, column=('text2', '*'))
@@ -1022,9 +1043,8 @@ class SelectRowsSuite:
   def test_sort(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
 
-    result = db.select_rows(columns=[UUID_COLUMN, 'float'],
-                            sort_by=['float'],
-                            sort_order=SortOrder.ASC)
+    result = db.select_rows(
+        columns=[UUID_COLUMN, 'float'], sort_by=['float'], sort_order=SortOrder.ASC)
 
     assert list(result) == [{
         UUID_COLUMN: '2',
@@ -1037,9 +1057,8 @@ class SelectRowsSuite:
         'float': 3.0
     }]
 
-    result = db.select_rows(columns=[UUID_COLUMN, 'float'],
-                            sort_by=['float'],
-                            sort_order=SortOrder.DESC)
+    result = db.select_rows(
+        columns=[UUID_COLUMN, 'float'], sort_by=['float'], sort_order=SortOrder.DESC)
 
     assert list(result) == [{
         UUID_COLUMN: '1',
@@ -1055,10 +1074,8 @@ class SelectRowsSuite:
   def test_limit(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
 
-    result = db.select_rows(columns=[UUID_COLUMN, 'float'],
-                            sort_by=['float'],
-                            sort_order=SortOrder.ASC,
-                            limit=2)
+    result = db.select_rows(
+        columns=[UUID_COLUMN, 'float'], sort_by=['float'], sort_order=SortOrder.ASC, limit=2)
     assert list(result) == [{UUID_COLUMN: '2', 'float': 1.0}, {UUID_COLUMN: '2', 'float': 2.0}]
 
 
@@ -1083,10 +1100,11 @@ class TestSplitterWithLen(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(repeated_field=Field(fields={
-        'len': Field(dtype=DataType.INT32),
-        'split': Field(dtype=DataType.STRING_SPAN)
-    }))
+    return Field(
+        repeated_field=Field(fields={
+            'len': Field(dtype=DataType.INT32),
+            'split': Field(dtype=DataType.STRING_SPAN)
+        }))
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
@@ -1110,8 +1128,9 @@ class TestEntitySignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(repeated_field=EntityField(Field(
-        dtype=DataType.STRING_SPAN), {'len': Field(dtype=DataType.INT32)}))
+    return Field(
+        repeated_field=EntityField(
+            Field(dtype=DataType.STRING_SPAN), {'len': Field(dtype=DataType.INT32)}))
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
@@ -1120,9 +1139,9 @@ class TestEntitySignal(Signal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-          Entity(entity=TextSpan(start=text.index(sentence),
-                                 end=text.index(sentence) + len(sentence)),
-                 metadata={'len': len(sentence)}) for sentence in sentences
+          Entity(
+              entity=TextSpan(start=text.index(sentence), end=text.index(sentence) + len(sentence)),
+              metadata={'len': len(sentence)}) for sentence in sentences
       ]
 
 
@@ -1167,19 +1186,20 @@ class ComputeSignalItemsSuite:
   def test_signal_output_validation(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     signal = TestInvalidSignal()
 
-    db = make_db(db_cls=db_cls,
-                 tmp_path=tmp_path,
-                 items=[{
-                     UUID_COLUMN: '1',
-                     'text': 'hello',
-                 }, {
-                     UUID_COLUMN: '2',
-                     'text': 'hello world',
-                 }],
-                 schema=Schema(fields={
-                     UUID_COLUMN: Field(dtype=DataType.STRING),
-                     'text': Field(dtype=DataType.STRING),
-                 }))
+    db = make_db(
+        db_cls=db_cls,
+        tmp_path=tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello',
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'hello world',
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
 
     with pytest.raises(
         ValueError,
@@ -1237,8 +1257,9 @@ class StatsSuite:
         fields={
             UUID_COLUMN: Field(dtype=DataType.STRING),
             'name': Field(dtype=DataType.STRING),
-            'addresses': Field(repeated_field=Field(
-                fields={'zips': Field(repeated_field=Field(dtype=DataType.INT32))}))
+            'addresses': Field(
+                repeated_field=Field(
+                    fields={'zips': Field(repeated_field=Field(dtype=DataType.INT32))}))
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
 
@@ -1416,8 +1437,8 @@ class SelectGroupsSuite:
     schema = Schema(
         fields={
             UUID_COLUMN: Field(dtype=DataType.STRING),
-            'list_of_structs': Field(repeated_field=Field(
-                fields={'name': Field(dtype=DataType.STRING)})),
+            'list_of_structs': Field(
+                repeated_field=Field(fields={'name': Field(dtype=DataType.STRING)})),
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
@@ -1460,8 +1481,9 @@ class SelectGroupsSuite:
     schema = Schema(
         fields={
             UUID_COLUMN: Field(dtype=DataType.STRING),
-            'nested_list': Field(repeated_field=Field(repeated_field=Field(
-                fields={'name': Field(dtype=DataType.STRING)}))),
+            'nested_list': Field(
+                repeated_field=Field(
+                    repeated_field=Field(fields={'name': Field(dtype=DataType.STRING)}))),
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
@@ -1544,10 +1566,9 @@ class SelectGroupsSuite:
     })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
-    result = db.select_groups(leaf_path='age',
-                              bins=NamedBins(bins=[20, 50, 65],
-                                             labels=['young', 'adult', 'middle-aged',
-                                                     'senior'])).df()
+    result = db.select_groups(
+        leaf_path='age',
+        bins=NamedBins(bins=[20, 50, 65], labels=['young', 'adult', 'middle-aged', 'senior'])).df()
     expected = pd.DataFrame.from_records([
         {
             'value': 'adult',  # age 20-50.
@@ -1600,8 +1621,8 @@ class SelectGroupsSuite:
         })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
-    with pytest.raises(ValueError,
-                       match=re.escape("Leaf \"('nested_struct',)\" not found in dataset")):
+    with pytest.raises(
+        ValueError, match=re.escape("Leaf \"('nested_struct',)\" not found in dataset")):
       db.select_groups(leaf_path='nested_struct')
 
     with pytest.raises(
@@ -1625,8 +1646,8 @@ class SelectGroupsSuite:
     })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
 
-    with pytest.raises(ValueError,
-                       match=re.escape('Leaf "(\'feature\',)" has too many unique values: 15')):
+    with pytest.raises(
+        ValueError, match=re.escape('Leaf "(\'feature\',)" has too many unique values: 15')):
       db.select_groups('feature')
 
   def test_bins_are_required_for_float(self, tmp_path: pathlib.Path,

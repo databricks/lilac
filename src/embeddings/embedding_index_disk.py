@@ -111,9 +111,10 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
       for batch in batches:
         yield embed_fn(batch)
 
-    batched_embeddings = progress(_compute_embeddings(batches),
-                                  task_id=task_id,
-                                  estimated_len=math.ceil(len(np_keys) / embed_fn.batch_size))
+    batched_embeddings = progress(
+        _compute_embeddings(batches),
+        task_id=task_id,
+        estimated_len=math.ceil(len(np_keys) / embed_fn.batch_size))
     embeddings = np.concatenate(list(batched_embeddings))
 
     with open_file(index_path, 'wb') as f:

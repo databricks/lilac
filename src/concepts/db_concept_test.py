@@ -188,9 +188,8 @@ def _make_test_concept_model(concept_db: ConceptDB, model_db: ConceptModelDB) ->
       ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
-  return ConceptModel(namespace='test',
-                      concept_name='test_concept',
-                      embedding_name='test_embedding')
+  return ConceptModel(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
@@ -204,9 +203,8 @@ class ConceptModelDBSuite:
     model = _make_test_concept_model(concept_db, model_db)
 
     model_db.sync(model)
-    retrieved_model = model_db.get(namespace='test',
-                                   concept_name='test_concept',
-                                   embedding_name='test_embedding')
+    retrieved_model = model_db.get(
+        namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
     assert retrieved_model == model
 

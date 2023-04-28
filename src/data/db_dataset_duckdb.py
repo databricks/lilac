@@ -255,12 +255,13 @@ class DatasetDuckDB(DatasetDB):
             **{col.top_level_column_name: col.value_field_schema for col in computed_columns}
         })
 
-    return DatasetManifest(namespace=self.namespace,
-                           dataset_name=self.dataset_name,
-                           data_schema=merged_schema,
-                           embedding_manifest=self._embedding_indexer.manifest(),
-                           entity_indexes=entity_indexes,
-                           num_items=num_items)
+    return DatasetManifest(
+        namespace=self.namespace,
+        dataset_name=self.dataset_name,
+        data_schema=merged_schema,
+        embedding_manifest=self._embedding_indexer.manifest(),
+        entity_indexes=entity_indexes,
+        num_items=num_items)
 
   @override
   def manifest(self) -> DatasetManifest:
@@ -311,11 +312,8 @@ class DatasetDuckDB(DatasetDB):
     keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
     leaf_values = leafs_df[select_leafs_result.value_column]
 
-    self._embedding_indexer.compute_embedding_index(column=col.feature,
-                                                    embedding=embedding,
-                                                    keys=keys,
-                                                    data=leaf_values,
-                                                    task_id=task_id)
+    self._embedding_indexer.compute_embedding_index(
+        column=col.feature, embedding=embedding, keys=keys, data=leaf_values, task_id=task_id)
 
   @override
   def compute_signal_column(self,
@@ -337,9 +335,10 @@ class DatasetDuckDB(DatasetDB):
     # TODO(nsthorat): Raise if the signal does not produce entities and the input column is not an
     # entity index.
 
-    signal_schema = create_enriched_schema(source_schema=self.manifest().data_schema,
-                                           enrich_path=source_path,
-                                           enrich_field=signal_field)
+    signal_schema = create_enriched_schema(
+        source_schema=self.manifest().data_schema,
+        enrich_path=source_path,
+        enrich_field=signal_field)
 
     if signal.vector_based:
       # For embedding based signals, get the leaf keys and indices, creating a combined key for the
@@ -379,24 +378,27 @@ class DatasetDuckDB(DatasetDB):
     repeated_idxs_iter: Iterable[Optional[list[int]]] = (
         itertools.repeat(None) if not select_leafs_result.repeated_idxs_col else repeated_idxs)
 
-    enriched_signal_items = make_enriched_items(source_path=source_path,
-                                                row_ids=leafs_df[UUID_COLUMN],
-                                                leaf_items=signal_outputs,
-                                                repeated_idxs=repeated_idxs_iter)
+    enriched_signal_items = make_enriched_items(
+        source_path=source_path,
+        row_ids=leafs_df[UUID_COLUMN],
+        leaf_items=signal_outputs,
+        repeated_idxs=repeated_idxs_iter)
 
     signal_out_prefix = signal_parquet_prefix(column_name=column.alias, signal_name=signal.name)
-    parquet_filename, _ = write_items_to_parquet(items=enriched_signal_items,
-                                                 output_dir=self.dataset_path,
-                                                 schema=signal_schema,
-                                                 filename_prefix=signal_out_prefix,
-                                                 shard_index=0,
-                                                 num_shards=1)
+    parquet_filename, _ = write_items_to_parquet(
+        items=enriched_signal_items,
+        output_dir=self.dataset_path,
+        schema=signal_schema,
+        filename_prefix=signal_out_prefix,
+        shard_index=0,
+        num_shards=1)
 
-    signal_manifest = SignalManifest(files=[parquet_filename],
-                                     data_schema=signal_schema,
-                                     signal=signal,
-                                     enriched_path=source_path,
-                                     top_level_column_name=signal_column_name)
+    signal_manifest = SignalManifest(
+        files=[parquet_filename],
+        data_schema=signal_schema,
+        signal=signal,
+        enriched_path=source_path,
+        top_level_column_name=signal_column_name)
     signal_manifest_filepath = os.path.join(
         self.dataset_path,
         signal_manifest_filename(column_name=column.alias, signal_name=signal.name))
@@ -409,8 +411,9 @@ class DatasetDuckDB(DatasetDB):
       for signal_entity_path in signal_entity_paths:
         entity_index_path = source_path + (signal_column_name,) + signal_entity_path
         # Write an entity index for each entity the signal produces.
-        entity_index_manifest = EntityIndexManifest(entity_index=EntityIndex(
-            source_path=source_path, index_path=entity_index_path, signal=signal))
+        entity_index_manifest = EntityIndexManifest(
+            entity_index=EntityIndex(
+                source_path=source_path, index_path=entity_index_path, signal=signal))
         entity_index_manifest_filepath = os.path.join(
             self.dataset_path,
             entity_index_manifest_filename(column_name=column.alias, signal_name=signal.name))
@@ -451,8 +454,8 @@ class DatasetDuckDB(DatasetDB):
     repeated_indices_col: Optional[str] = None
     is_repeated = any([is_repeated_path_part(path_part) for path_part in path])
     if is_repeated:
-      inner_repeated_col = self._path_to_col(path[0:path.index(PATH_WILDCARD)],
-                                             quote_each_part=True)
+      inner_repeated_col = self._path_to_col(
+          path[0:path.index(PATH_WILDCARD)], quote_each_part=True)
 
     data_col = 'leaf_data'
     if is_span:
@@ -523,9 +526,8 @@ class DatasetDuckDB(DatasetDB):
     for col in df.columns:
       if is_object_dtype(df[col]):
         df[col].replace(np.nan, None, inplace=True)
-    return SelectLeafsResult(df=df,
-                             value_column=value_column_alias,
-                             repeated_idxs_col=repeated_indices_col)
+    return SelectLeafsResult(
+        df=df, value_column=value_column_alias, repeated_idxs_col=repeated_indices_col)
 
   def _validate_filters(self, filters: Sequence[Filter], col_aliases: dict[str, bool]) -> None:
     manifest = self.manifest()
@@ -861,8 +863,9 @@ class DatasetDuckDB(DatasetDB):
 
     for column in columns:
       alias_and_transform[column.alias] = bool(column.transform)
-      empty = bool(column.transform and isinstance(column.transform, SignalTransform) and
-                   column.transform.signal.vector_based)
+      empty = bool(
+          column.transform and isinstance(column.transform, SignalTransform) and
+          column.transform.signal.vector_based)
       col = make_select_column(column.feature, flatten=False, empty=empty)
       select_queries.append(f'{col} AS "{column.alias}"')
 
@@ -1034,9 +1037,10 @@ def _get_keys_from_leafs(leafs_df: pd.DataFrame,
   if select_leafs_result.repeated_idxs_col:
     # Add the repeated indices to the create a repeated key so we can store different values for the
     # same row uuid.
-    return leafs_df.apply(lambda row: _get_repeated_key(row[
-        UUID_COLUMN], [row[select_leafs_result.repeated_idxs_col]]),
-                          axis=1)
+    return leafs_df.apply(
+        lambda row: _get_repeated_key(row[UUID_COLUMN],
+                                      [row[select_leafs_result.repeated_idxs_col]]),
+        axis=1)
   return leafs_df[UUID_COLUMN]
 
 

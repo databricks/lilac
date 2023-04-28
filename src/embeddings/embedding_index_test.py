@@ -70,10 +70,11 @@ class EmbeddingIndexerSuite:
     indexer = _make_indexer(indexer_cls, tmp_path)
 
     embedding = TestEmbedding()
-    indexer.compute_embedding_index('test_column',
-                                    embedding,
-                                    keys=[key for key, _, _ in EMBEDDINGS],
-                                    data=[text for _, text, _ in EMBEDDINGS])
+    indexer.compute_embedding_index(
+        'test_column',
+        embedding,
+        keys=[key for key, _, _ in EMBEDDINGS],
+        data=[text for _, text, _ in EMBEDDINGS])
 
     # Embed should only be called once.
     assert embed_mock.call_count == 1

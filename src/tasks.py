@@ -78,11 +78,12 @@ class TaskManager():
   def task_id(self, name: str, description: Optional[str] = None) -> TaskId:
     """Create a unique ID for a task."""
     task_id = uuid.uuid4().bytes.hex()
-    self._tasks[task_id] = TaskInfo(name=name,
-                                    status=TaskStatus.PENDING,
-                                    progress=None,
-                                    description=description,
-                                    start_timestamp=datetime.now().isoformat())
+    self._tasks[task_id] = TaskInfo(
+        name=name,
+        status=TaskStatus.PENDING,
+        progress=None,
+        description=description,
+        start_timestamp=datetime.now().isoformat())
     return task_id
 
   def _set_task_completed(self, task_id: TaskId, task_future: Future) -> None:

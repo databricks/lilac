@@ -80,15 +80,13 @@ def test_embedding_does_not_exist(db_cls: Type[ConceptDB]) -> None:
   db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   with pytest.raises(ValueError, match='Embedding "unknown_embedding" not found in the registry'):
-    ConceptScoreSignal(namespace='test',
-                       concept_name='test_concept',
-                       embedding_name='unknown_embedding')
+    ConceptScoreSignal(
+        namespace='test', concept_name='test_concept', embedding_name='unknown_embedding')
 
 
 def test_concept_does_not_exist() -> None:
-  signal = ConceptScoreSignal(namespace='test',
-                              concept_name='test_concept',
-                              embedding_name='test_embedding')
+  signal = ConceptScoreSignal(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   with pytest.raises(ValueError, match='Concept "test/test_concept" does not exist'):
     signal.compute(['a new data point', 'not in concept'])
 
@@ -104,11 +102,10 @@ def test_concept_model_out_of_sync(db_cls: Type[ConceptDB]) -> None:
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-  signal = ConceptScoreSignal(namespace='test',
-                              concept_name='test_concept',
-                              embedding_name='test_embedding')
-  with pytest.raises(ValueError,
-                     match='Concept model "test/test_concept/test_embedding" is out of sync'):
+  signal = ConceptScoreSignal(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+  with pytest.raises(
+      ValueError, match='Concept model "test/test_concept/test_embedding" is out of sync'):
     signal.compute(['a new data point', 'not in concept'])
 
 
@@ -126,9 +123,8 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-  signal = ConceptScoreSignal(namespace='test',
-                              concept_name='test_concept',
-                              embedding_name='test_embedding')
+  signal = ConceptScoreSignal(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
   # Explicitly sync the model with the concept.
   model_db.sync(
@@ -154,9 +150,8 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-  signal = ConceptScoreSignal(namespace='test',
-                              concept_name='test_concept',
-                              embedding_name='test_embedding')
+  signal = ConceptScoreSignal(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
   # Explicitly sync the model with the concept.
   model_db.sync(
@@ -186,9 +181,8 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-  signal = ConceptScoreSignal(namespace='test',
-                              concept_name='test_concept',
-                              embedding_name='test_embedding')
+  signal = ConceptScoreSignal(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
   # Explicitly sync the model with the concept.
   model_db.sync(

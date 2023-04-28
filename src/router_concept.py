@@ -28,8 +28,8 @@ def get_concept(namespace: str, concept_name: str) -> Concept:
   """Get a concept from a database."""
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
   if not concept:
-    raise HTTPException(status_code=404,
-                        detail=f'Concept "{namespace}/{concept_name}" was not found')
+    raise HTTPException(
+        status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
   return concept
 
 
@@ -67,8 +67,8 @@ def get_concept_model(namespace: str, concept_name: str, embedding_name: str) ->
   """Get a concept model from a database."""
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
   if not concept:
-    raise HTTPException(status_code=404,
-                        detail=f'Concept "{namespace}/{concept_name}" was not found')
+    raise HTTPException(
+        status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
 
   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
   if not model:
@@ -85,8 +85,8 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
   """Score examples along the specified concept."""
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
   if not concept:
-    raise HTTPException(status_code=404,
-                        detail=f'Concept "{namespace}/{concept_name}" was not found')
+    raise HTTPException(
+        status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
   if not model:
     raise HTTPException(

@@ -23,8 +23,9 @@ class SignalInfo(BaseModel):
 def get_signals() -> list[SignalInfo]:
   """List the datasets."""
   return [
-      SignalInfo(name=s.name,
-                 enrichment_type=s.enrichment_type,
-                 vector_based=s.vector_based,
-                 json_schema=s.schema()) for s in SIGNAL_REGISTRY.values()
+      SignalInfo(
+          name=s.name,
+          enrichment_type=s.enrichment_type,
+          vector_based=s.vector_based,
+          json_schema=s.schema()) for s in SIGNAL_REGISTRY.values()
   ]

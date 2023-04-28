@@ -216,8 +216,8 @@ def Bucketize(column: ColumnId, bins: list[float]) -> Column:
 
 def SignalUDF(signal: Signal, column: ColumnId, alias: Optional[str] = None) -> Column:
   """Execute the signal as a user-defined function on the selected rows."""
-  result_column = Column(feature=column_from_identifier(column).feature,
-                         transform=SignalTransform(signal=signal))
+  result_column = Column(
+      feature=column_from_identifier(column).feature, transform=SignalTransform(signal=signal))
   if alias:
     result_column.alias = alias
   return result_column

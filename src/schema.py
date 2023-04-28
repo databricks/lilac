@@ -170,12 +170,13 @@ class Field(BaseModel):
 
 def EntityField(entity_value: Field, fields: Optional[dict[str, Field]] = {}) -> Field:
   """Returns a field that represents an entity."""
-  return Field(fields={
-      ENTITY_FEATURE_KEY: entity_value,
-      **(fields or {})
-  },
-               is_entity=True,
-               derived_from=entity_value.derived_from)
+  return Field(
+      fields={
+          ENTITY_FEATURE_KEY: entity_value,
+          **(fields or {})
+      },
+      is_entity=True,
+      derived_from=entity_value.derived_from)
 
 
 def Entity(entity: Item, metadata: Optional[Item] = {}) -> Item:

@@ -65,8 +65,9 @@ def _convert_to_items(hf_dataset_dict: DatasetDict, class_labels: dict[str, list
 def _infer_field(feature_value: Union[Value, dict]) -> Field:
   """Infer the field type from the feature value."""
   if isinstance(feature_value, dict):
-    return Field(dtype=DataType.STRUCT,
-                 fields={name: _infer_field(value) for name, value in feature_value.items()})
+    return Field(
+        dtype=DataType.STRUCT,
+        fields={name: _infer_field(value) for name, value in feature_value.items()})
   elif isinstance(feature_value, Value):
     return Field(dtype=arrow_dtype_to_dtype(feature_value.pa_type))
   elif isinstance(feature_value, Sequence):
@@ -74,11 +75,12 @@ def _infer_field(feature_value: Union[Value, dict]) -> Field:
     #   Sequence(feature={'x': Value(dtype='int32'), 'y': Value(dtype='float32')}}
     # These are converted to {'x': [...]} and {'y': [...]}
     if isinstance(feature_value.feature, dict):
-      return Field(dtype=DataType.STRUCT,
-                   fields={
-                       name: Field(repeated_field=_infer_field(value))
-                       for name, value in feature_value.feature.items()
-                   })
+      return Field(
+          dtype=DataType.STRUCT,
+          fields={
+              name: Field(repeated_field=_infer_field(value))
+              for name, value in feature_value.feature.items()
+          })
     else:
       return Field(dtype=DataType.LIST, repeated_field=_infer_field(feature_value.feature))
 
@@ -119,9 +121,8 @@ def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> 
   # Add UUID to the Schema.
   fields[UUID_COLUMN] = Field(dtype=DataType.STRING)
 
-  return SchemaInfo(data_schema=Schema(fields=fields),
-                    class_labels=class_labels,
-                    num_items=num_items)
+  return SchemaInfo(
+      data_schema=Schema(fields=fields), class_labels=class_labels, num_items=num_items)
 
 
 class HuggingFaceDataset(Source):
@@ -154,24 +155,23 @@ class HuggingFaceDataset(Source):
       # Load from disk.
       hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.dataset_name)}
     else:
-      hf_dataset_dict = load_dataset(self.dataset_name,
-                                     self.config_name,
-                                     num_proc=multiprocessing.cpu_count())
+      hf_dataset_dict = load_dataset(
+          self.dataset_name, self.config_name, num_proc=multiprocessing.cpu_count())
 
     schema_info = _hf_schema_to_schema(hf_dataset_dict, self.split)
 
-    items = progress(_convert_to_items(hf_dataset_dict, schema_info.class_labels, self.split),
-                     task_id=task_id,
-                     estimated_len=schema_info.num_items)
+    items = progress(
+        _convert_to_items(hf_dataset_dict, schema_info.class_labels, self.split),
+        task_id=task_id,
+        estimated_len=schema_info.num_items)
 
-    filepath, num_items = write_items_to_parquet(items=items,
-                                                 output_dir=output_dir,
-                                                 schema=schema_info.data_schema,
-                                                 filename_prefix=PARQUET_FILENAME_PREFIX,
-                                                 shard_index=0,
-                                                 num_shards=1)
+    filepath, num_items = write_items_to_parquet(
+        items=items,
+        output_dir=output_dir,
+        schema=schema_info.data_schema,
+        filename_prefix=PARQUET_FILENAME_PREFIX,
+        shard_index=0,
+        num_shards=1)
 
-    return SourceProcessResult(filepaths=[filepath],
-                               data_schema=schema_info.data_schema,
-                               images=None,
-                               num_items=num_items)
+    return SourceProcessResult(
+        filepaths=[filepath], data_schema=schema_info.data_schema, images=None, num_items=num_items)

@@ -24,17 +24,19 @@ NESTED_TEST_SCHEMA = Schema(
                 # Contains a double nested array of primitives.
                 'data': Field(repeated_field=Field(repeated_field=Field(dtype=DataType.FLOAT32)))
             }),
-        'addresses': Field(repeated_field=Field(
-            fields={
-                'city': Field(dtype=DataType.STRING),
-                'zipcode': Field(dtype=DataType.INT16),
-                'current': Field(dtype=DataType.BOOLEAN),
-                'locations': Field(repeated_field=Field(
-                    fields={
-                        'latitude': Field(dtype=DataType.FLOAT16),
-                        'longitude': Field(dtype=DataType.FLOAT64)
-                    }))
-            })),
+        'addresses': Field(
+            repeated_field=Field(
+                fields={
+                    'city': Field(dtype=DataType.STRING),
+                    'zipcode': Field(dtype=DataType.INT16),
+                    'current': Field(dtype=DataType.BOOLEAN),
+                    'locations': Field(
+                        repeated_field=Field(
+                            fields={
+                                'latitude': Field(dtype=DataType.FLOAT16),
+                                'longitude': Field(dtype=DataType.FLOAT64)
+                            }))
+                })),
         'blob': Field(dtype=DataType.BINARY)
     })
 NESTED_TEST_ITEM: Item = {
@@ -126,10 +128,11 @@ def test_schema_to_arrow_schema() -> None:
               'city': pa.string(),
               'zipcode': pa.int16(),
               'current': pa.bool_(),
-              'locations': pa.list_(pa.struct({
-                  'latitude': pa.float16(),
-                  'longitude': pa.float64()
-              })),
+              'locations': pa.list_(
+                  pa.struct({
+                      'latitude': pa.float16(),
+                      'longitude': pa.float64()
+                  })),
           })),
       'blob': pa.binary(),
   })
@@ -148,10 +151,11 @@ def test_arrow_schema_to_schema() -> None:
               'city': pa.string(),
               'zipcode': pa.int16(),
               'current': pa.bool_(),
-              'locations': pa.list_(pa.struct({
-                  'latitude': pa.float16(),
-                  'longitude': pa.float64()
-              })),
+              'locations': pa.list_(
+                  pa.struct({
+                      'latitude': pa.float16(),
+                      'longitude': pa.float64()
+                  })),
           })),
       'blob': pa.binary(),
   })
@@ -162,17 +166,19 @@ def test_arrow_schema_to_schema() -> None:
                   'name': Field(dtype=DataType.STRING),
                   'data': Field(repeated_field=Field(repeated_field=Field(dtype=DataType.FLOAT32)))
               }),
-          'addresses': Field(repeated_field=Field(
-              fields={
-                  'city': Field(dtype=DataType.STRING),
-                  'zipcode': Field(dtype=DataType.INT16),
-                  'current': Field(dtype=DataType.BOOLEAN),
-                  'locations': Field(repeated_field=Field(
-                      fields={
-                          'latitude': Field(dtype=DataType.FLOAT16),
-                          'longitude': Field(dtype=DataType.FLOAT64),
-                      }))
-              })),
+          'addresses': Field(
+              repeated_field=Field(
+                  fields={
+                      'city': Field(dtype=DataType.STRING),
+                      'zipcode': Field(dtype=DataType.INT16),
+                      'current': Field(dtype=DataType.BOOLEAN),
+                      'locations': Field(
+                          repeated_field=Field(
+                              fields={
+                                  'latitude': Field(dtype=DataType.FLOAT16),
+                                  'longitude': Field(dtype=DataType.FLOAT64),
+                              }))
+                  })),
           'blob': Field(dtype=DataType.BINARY),
       })
   schema = arrow_schema_to_schema(arrow_schema)
@@ -191,35 +197,36 @@ def test_child_item_from_column_path() -> None:
 
 
 def test_child_item_from_column_path_raises_wildcard() -> None:
-  with pytest.raises(ValueError,
-                     match='cannot be called with a path that contains a repeated wildcard'):
+  with pytest.raises(
+      ValueError, match='cannot be called with a path that contains a repeated wildcard'):
     child_item_from_column_path(NESTED_TEST_ITEM, ('addresses', PATH_WILDCARD, 'city'))
 
 
 def test_column_paths_match() -> None:
   assert column_paths_match(path_match=('person', 'name'), specific_path=('person', 'name')) is True
-  assert column_paths_match(path_match=('person', 'name'),
-                            specific_path=('person', 'not_name')) is False
+  assert column_paths_match(
+      path_match=('person', 'name'), specific_path=('person', 'not_name')) is False
 
   # Wildcards work for structs.
-  assert column_paths_match(path_match=(PATH_WILDCARD, 'name'),
-                            specific_path=('person', 'name')) is True
-  assert column_paths_match(path_match=(PATH_WILDCARD, 'name'),
-                            specific_path=('person', 'not_name')) is False
+  assert column_paths_match(
+      path_match=(PATH_WILDCARD, 'name'), specific_path=('person', 'name')) is True
+  assert column_paths_match(
+      path_match=(PATH_WILDCARD, 'name'), specific_path=('person', 'not_name')) is False
 
   # Wildcards work for repeateds.
-  assert column_paths_match(path_match=('person', PATH_WILDCARD, 'name'),
-                            specific_path=('person', 0, 'name')) is True
-  assert column_paths_match(path_match=('person', PATH_WILDCARD, 'name'),
-                            specific_path=('person', 0, 'not_name')) is False
+  assert column_paths_match(
+      path_match=('person', PATH_WILDCARD, 'name'), specific_path=('person', 0, 'name')) is True
+  assert column_paths_match(
+      path_match=('person', PATH_WILDCARD, 'name'),
+      specific_path=('person', 0, 'not_name')) is False
 
   # Sub-path matches always return False.
   assert column_paths_match(path_match=(PATH_WILDCARD,), specific_path=('person', 'name')) is False
-  assert column_paths_match(path_match=(
-      'person',
-      PATH_WILDCARD,
-  ),
-                            specific_path=('person', 0, 'name')) is False
+  assert column_paths_match(
+      path_match=(
+          'person',
+          PATH_WILDCARD,
+      ), specific_path=('person', 0, 'name')) is False
 
 
 def test_nested_schema_str() -> None:
