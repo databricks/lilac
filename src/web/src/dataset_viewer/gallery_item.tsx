@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import {getLeafVals, Item, LeafValue, Path, serializePath} from '../schema';
 import {useGetItem} from '../store/store';
-import {renderError, renderPath, roundNumber} from '../utils';
+import {renderError, renderPath} from '../utils';
 import './dataset_viewer.module.css';
 
 export interface GalleryItemProps {
@@ -19,7 +19,7 @@ function renderValue(val: LeafValue): string {
     return 'N/A';
   }
   if (typeof val === 'number') {
-    return roundNumber(val, 3).toString();
+    return val.toLocaleString(undefined, {maximumFractionDigits: 3});
   }
   return val.toString();
 }

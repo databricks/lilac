@@ -102,7 +102,7 @@ export const DatasetLoader = (): JSX.Element => {
     }
     const timer = setInterval(() => loadTaskManifest(), DATASET_TASK_POLL_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [taskId]);
+  }, [loadTaskManifest, taskId]);
 
   let loadDatasetTaskError: string | null = null;
   if (

@@ -1,8 +1,15 @@
 /**
  * The global application redux state store.
  */
-import type {Middleware} from '@reduxjs/toolkit';
-import {configureStore, createSlice, isRejectedWithValue, PayloadAction} from '@reduxjs/toolkit';
+import {
+  combineReducers,
+  configureStore,
+  createSlice,
+  isRejectedWithValue,
+  Middleware,
+  PayloadAction,
+  PreloadedState,
+} from '@reduxjs/toolkit';
 import {createApi} from '@reduxjs/toolkit/query/react';
 import {createRoot} from 'react-dom/client';
 import {
@@ -24,6 +31,7 @@ import {isOrdinal, isTemporal, Item, LeafValue, Path, UUID_COLUMN} from '../sche
 
 import {useParams} from 'react-router-dom';
 import {useAppSelector} from '../hooks';
+import {SearchBoxPage} from '../search_box/search_box';
 import {getConceptAlias, renderError} from '../utils';
 import {conceptApi} from './api_concept';
 import {
@@ -73,6 +81,9 @@ interface AppState {
   datasetState: {[datasetId: string]: DatasetState};
   // Whether the tasks panel in the top right is open.
   tasksPanelOpen: boolean;
+  // Whether the search box is open.
+  searchBoxOpen: boolean;
+  searchBoxPages: SearchBoxPage[];
 }
 
 function getDatasetState(state: AppState, namespace: string, datasetName: string): DatasetState {
@@ -98,10 +109,12 @@ export function useDataset(): DatasetState {
 // Define the initial state using that type
 const initialState: AppState = {
   tasksPanelOpen: false,
+  searchBoxOpen: false,
+  searchBoxPages: [],
   datasetState: {},
 };
 
-const appSlice = createSlice({
+export const appSlice = createSlice({
   name: 'app',
   initialState,
   reducers: {
@@ -143,6 +156,18 @@ const appSlice = createSlice({
     setTasksPanelOpen(state, action: PayloadAction<boolean>) {
       state.tasksPanelOpen = action.payload;
     },
+    setSearchBoxOpen(state, action: PayloadAction<boolean>) {
+      state.searchBoxOpen = action.payload;
+    },
+    pushSearchBoxPage(state, action: PayloadAction<SearchBoxPage>) {
+      state.searchBoxPages.push(action.payload);
+    },
+    popSearchBoxPage(state) {
+      state.searchBoxPages.pop();
+    },
+    setSearchBoxPages(state, action: PayloadAction<SearchBoxPage[]>) {
+      state.searchBoxPages = action.payload;
+    },
     setActiveConcept(
       state,
       action: PayloadAction<{
@@ -183,30 +208,41 @@ const rtkQueryErrorLogger: Middleware = () => (next) => (action) => {
   return next(action);
 };
 
-export const store = configureStore({
-  reducer: {
-    [appSlice.name]: appSlice.reducer,
-    [serverApi.reducerPath]: serverApi.reducer,
-    [datasetApi.reducerPath]: datasetApi.reducer,
-    [conceptApi.reducerPath]: conceptApi.reducer,
-    [signalApi.reducerPath]: signalApi.reducer,
-    [embeddingApi.reducerPath]: embeddingApi.reducer,
-  },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat([
-      datasetApi.middleware,
-      conceptApi.middleware,
-      signalApi.middleware,
-      serverApi.middleware,
-      embeddingApi.middleware,
-      rtkQueryErrorLogger,
-    ]),
+// Create the root reducer separately so we can extract the RootState type
+const rootReducer = combineReducers({
+  [appSlice.name]: appSlice.reducer,
+  [serverApi.reducerPath]: serverApi.reducer,
+  [datasetApi.reducerPath]: datasetApi.reducer,
+  [conceptApi.reducerPath]: conceptApi.reducer,
+  [signalApi.reducerPath]: signalApi.reducer,
+  [embeddingApi.reducerPath]: embeddingApi.reducer,
 });
+
+export const setupStore = (preloadedState?: PreloadedState<RootState>) => {
+  return configureStore({
+    reducer: rootReducer,
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat([
+        datasetApi.middleware,
+        conceptApi.middleware,
+        signalApi.middleware,
+        serverApi.middleware,
+        embeddingApi.middleware,
+        rtkQueryErrorLogger,
+      ]),
+    preloadedState,
+  });
+};
+export const store = setupStore();
 
 // Export the actions.
 export const {
   setActiveConcept,
   setTasksPanelOpen,
+  setSearchBoxOpen,
+  setSearchBoxPages,
+  pushSearchBoxPage,
+  popSearchBoxPage,
   setSelectedMediaPaths,
   setSelectedMetadataPaths,
   setSort,
@@ -389,5 +425,6 @@ export function useTopValues({
 }
 
 // See: https://react-redux.js.org/tutorials/typescript-quick-start
-export type RootState = ReturnType<typeof store.getState>;
+export type RootState = ReturnType<typeof rootReducer>;
+export type AppStore = ReturnType<typeof setupStore>;
 export type AppDispatch = typeof store.dispatch;

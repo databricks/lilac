@@ -22,7 +22,7 @@ export function Item({
     >
       {children}
       {shortcut && (
-        <div cmdk-shortcuts="">
+        <div data-cmdk-shortcuts>
           {shortcut.split(' ').map((key) => {
             return <kbd key={key}>{key}</kbd>;
           })}

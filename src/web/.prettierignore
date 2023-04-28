@@ -1,2 +1,3 @@
 dist
 fastapi_client
+src/coverage

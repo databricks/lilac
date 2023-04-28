@@ -56,11 +56,7 @@ export function renderError(error: unknown): JSX.Element {
     return <></>;
   }
   if (typeof error === 'string') {
-    return (
-      <p className="text-red-500">
-        <pre>{error}</pre>
-      </p>
-    );
+    return <p className="whitespace-pre font-mono text-red-500">{error}</p>;
   }
 
   return (
@@ -140,5 +136,5 @@ export function useClickOutside(
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [ref]);
+  }, [callback, ignoreRefs, ref]);
 }

@@ -99,7 +99,7 @@ export const JSONSchemaForm = ({
   const descriptionMarkdown = `### ${schema.description}`;
 
   // Call the parent when the form data changes.
-  React.useEffect(() => onFormData(formData), [formData]);
+  React.useEffect(() => onFormData(formData), [formData, onFormData]);
 
   return (
     <div className="font-light">
