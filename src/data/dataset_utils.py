@@ -181,6 +181,8 @@ def _add_enriched_fields_to_schema(source_schema: Schema, enriched_schema: Schem
     raise ValueError(f'Field for enrichment "{enrich_path}" is not a valid leaf path. '
                      f'Leaf paths: {source_leafs.keys()}')
 
+  # Apply the "derived_from" field lineage to the field we are enriching.
+  enrich_field = apply_field_lineage(enrich_field, enrich_path)
   for leaf_path, _ in source_leafs.items():
     field_is_enriched = False
     if column_paths_match(enrich_path, leaf_path):
@@ -199,7 +201,6 @@ def _add_enriched_fields_to_schema(source_schema: Schema, enriched_schema: Schem
     repeated_depth = len(leaf_path) - 1 - inner_struct_path_idx
 
     inner_field = enrich_field
-    inner_field = apply_field_lineage(enrich_field, enrich_path)
 
     # Wrap in a list to mirror the input structure.
     for i in range(repeated_depth):
