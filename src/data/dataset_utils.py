@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from typing import Generator, Iterator, Optional, Sequence, Union, cast
 
 from ..schema import (
+    LILAC_COLUMN,
     PATH_WILDCARD,
     UUID_COLUMN,
     DataType,
@@ -80,6 +81,7 @@ def make_enriched_items(source_path: Path, row_ids: Sequence[str], signal: Signa
   working_enriched_item: Item = {}
   num_outputs = 0
   outputs_per_key = 0
+  source_path = (LILAC_COLUMN, *source_path)
 
   last_row_id: Optional[str] = None
   for row_id, leaf_item, path_repeated_idxs in zip(row_ids, leaf_items, repeated_idxs):
@@ -164,26 +166,50 @@ def enrich_item_from_leaf_item(enriched_item: Item, path: Path, leaf_item: Signa
   enriched_subitem[path[-1]] = leaf_item  # type: ignore
 
 
-def merge_schema_into(schema: Field, destination: Field) -> None:
-  """Merges two schemas."""
+def _merge_field_into(schema: Field, destination: Field) -> None:
   if schema.fields:
-    if not destination.fields:
+    if destination.fields is None:
       raise ValueError('should not happen')
     for field_name, subfield in schema.fields.items():
-      # Do not merge UUID columns.
-      if field_name == UUID_COLUMN:
-        continue
       if field_name not in destination.fields:
-        destination.fields[field_name] = subfield
+        destination.fields[field_name] = subfield.copy(deep=True)
       else:
-        merge_schema_into(destination.fields[field_name], subfield)
+        _merge_field_into(subfield, destination.fields[field_name])
   elif schema.repeated_field:
     if not destination.repeated_field:
       raise ValueError('should not happen')
-    merge_schema_into(destination.repeated_field, schema.repeated_field)
+    _merge_field_into(schema.repeated_field, destination.repeated_field)
   else:
     if destination.dtype != schema.dtype:
       raise ValueError('should not happen')
+
+
+def merge_schemas(schemas: list[Schema]) -> Schema:
+  """Merge a list of schemas."""
+  merged_schema = Schema(fields={})
+  for schema in schemas:
+    _merge_field_into(cast(Field, schema), cast(Field, merged_schema))
+  return merged_schema
+
+
+def schema_contains_path(schema: Schema, path: PathTuple) -> bool:
+  """Check if a schema contains a path."""
+  current_field = cast(Field, schema)
+  for path_part in path:
+    if path_part == PATH_WILDCARD:
+      if current_field.repeated_field is None:
+        return False
+      current_field = current_field.repeated_field
+    else:
+      if current_field.fields is None or path_part not in current_field.fields:
+        return False
+      current_field = current_field.fields[str(path_part)]
+  return True
+
+
+def path_is_from_lilac(path: PathTuple) -> bool:
+  """Check if a path is from lilac."""
+  return path[0] == LILAC_COLUMN
 
 
 def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema) -> Schema:
@@ -207,9 +233,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
   if not enriched_schema.fields:
     raise ValueError('This should not happen')
 
-  # Add the UUID column to the schema.
-  enriched_schema.fields[UUID_COLUMN] = Field(dtype=DataType.STRING)
-  return Schema(fields=enriched_schema.fields)
+  return Schema(fields={UUID_COLUMN: Field(dtype=DataType.STRING), LILAC_COLUMN: enriched_schema})
 
 
 def apply_field_lineage(field: Field, derived_from: PathTuple) -> Field:

@@ -19,6 +19,7 @@ from ..embeddings.embedding_registry import (
 )
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
+    LILAC_COLUMN,
     PATH_WILDCARD,
     TEXT_SPAN_END_FEATURE,
     TEXT_SPAN_START_FEATURE,
@@ -107,10 +108,27 @@ class TestEmbedding(Embedding):
     return np.array([STR_EMBEDDINGS[cast(str, example)] for example in data])
 
 
+class LengthSignal(Signal):
+  name = 'length_signal'
+  enrichment_type = EnrichmentType.TEXT
+  vector_based = False
+
+  call_count: int = 0
+
+  def fields(self) -> Field:
+    return Field(dtype=DataType.INT32)
+
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+    for text_content in data:
+      self.call_count += 1
+      yield len(text_content)
+
+
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(TestSignal)
+  register_signal(LengthSignal)
   register_signal(TestSplitterWithLen)
   register_signal(TestEmbeddingSumSignal)
   register_signal(TestEntitySignal)
@@ -237,12 +255,11 @@ class SelectRowsSuite:
     test_signal = TestSignal()
     db.compute_signal_column(signal=test_signal, column='str')
 
-    result = db.select_rows(columns=['str', 'test_signal(str)'])
-
+    result = db.select_rows(columns=['str', (LILAC_COLUMN, 'str')])
     assert list(result) == [{
         UUID_COLUMN: '1',
         'str': 'a',
-        'test_signal(str)': {
+        f'{LILAC_COLUMN}.str': {
             'test_signal': {
                 'len': 1,
                 'flen': 1.0
@@ -251,7 +268,7 @@ class SelectRowsSuite:
     }, {
         UUID_COLUMN: '2',
         'str': 'b',
-        'test_signal(str)': {
+        f'{LILAC_COLUMN}.str': {
             'test_signal': {
                 'len': 1,
                 'flen': 1.0
@@ -260,7 +277,7 @@ class SelectRowsSuite:
     }, {
         UUID_COLUMN: '2',
         'str': 'b',
-        'test_signal(str)': {
+        f'{LILAC_COLUMN}.str': {
             'test_signal': {
                 'len': 1,
                 'flen': 1.0
@@ -330,6 +347,243 @@ class SelectRowsSuite:
   #       'flen': 1.0,
   #       'len': 1
   #   }]
+
+  def test_merge_values(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(
+        db_cls,
+        tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello'
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'everybody'
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
+    test_signal = TestSignal()
+    db.compute_signal_column(signal=test_signal, column='text')
+    length_signal = LengthSignal()
+    db.compute_signal_column(signal=length_signal, column='text')
+
+    result = db.select_rows(columns=['text', LILAC_COLUMN])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        LILAC_COLUMN: {
+            'text': {
+                'length_signal': 5,
+                'test_signal': {
+                    'len': 5,
+                    'flen': 5.0
+                }
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        LILAC_COLUMN: {
+            'text': {
+                'length_signal': 9,
+                'test_signal': {
+                    'len': 9,
+                    'flen': 9.0
+                }
+            }
+        }
+    }]
+
+    # Test subselection.
+    result = db.select_rows(columns=['text', (LILAC_COLUMN, 'text')])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        f'{LILAC_COLUMN}.text': {
+            'length_signal': 5,
+            'test_signal': {
+                'len': 5,
+                'flen': 5.0
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        f'{LILAC_COLUMN}.text': {
+            'length_signal': 9,
+            'test_signal': {
+                'len': 9,
+                'flen': 9.0
+            }
+        }
+    }]
+
+    result = db.select_rows(columns=[
+        'text', (LILAC_COLUMN, 'text', 'test_signal',
+                 'flen'), (LILAC_COLUMN, 'text', 'test_signal', 'len')
+    ])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        f'{LILAC_COLUMN}.text.test_signal.flen': 5.0,
+        f'{LILAC_COLUMN}.text.test_signal.len': 5
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        f'{LILAC_COLUMN}.text.test_signal.flen': 9.0,
+        f'{LILAC_COLUMN}.text.test_signal.len': 9
+    }]
+
+    # Test subselection with aliasing.
+    result = db.select_rows(
+        columns=['text',
+                 Column((LILAC_COLUMN, 'text', 'test_signal', 'len'), alias='metadata')])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        'metadata': 5
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        'metadata': 9
+    }]
+
+    result = db.select_rows(
+        columns=['text', Column((LILAC_COLUMN, 'text'), alias='text_enrichment')])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        'text_enrichment': {
+            'length_signal': 5,
+            'test_signal': {
+                'len': 5,
+                'flen': 5.0
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        'text_enrichment': {
+            'length_signal': 9,
+            'test_signal': {
+                'len': 9,
+                'flen': 9.0
+            }
+        }
+    }]
+
+  def test_merge_array_values(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(
+        db_cls,
+        tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'texts': ['hello', 'everybody']
+        }, {
+            UUID_COLUMN: '2',
+            'texts': ['a', 'bc', 'def']
+        }],
+        schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'texts': Field(repeated_field=Field(dtype=DataType.STRING)),
+            }))
+
+    db.compute_signal_column(TestSignal(), ('texts', '*'))
+    db.compute_signal_column(LengthSignal(), ('texts', '*'))
+
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'texts': Field(repeated_field=Field(dtype=DataType.STRING)),
+                LILAC_COLUMN: Field(
+                    fields={
+                        'texts': Field(
+                            repeated_field=Field(
+                                fields={
+                                    'length_signal': Field(
+                                        dtype=DataType.INT32, derived_from=('texts', '*')),
+                                    'test_signal': Field(
+                                        fields={
+                                            'len': Field(
+                                                dtype=DataType.INT32, derived_from=('texts', '*')),
+                                            'flen': Field(
+                                                dtype=DataType.FLOAT32, derived_from=('texts', '*'))
+                                        },
+                                        derived_from=('texts', '*'))
+                                },
+                                derived_from=('texts', '*')))
+                    })
+            }),
+        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+        entity_indexes=[],
+        num_items=2)
+
+    result = db.select_rows(columns=['texts', LILAC_COLUMN])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'texts': ['hello', 'everybody'],
+        LILAC_COLUMN: {
+            'texts': [{
+                'length_signal': 5,
+                'test_signal': {
+                    'len': 5,
+                    'flen': 5.0
+                }
+            }, {
+                'length_signal': 9,
+                'test_signal': {
+                    'len': 9,
+                    'flen': 9.0
+                }
+            }]
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'texts': ['a', 'bc', 'def'],
+        LILAC_COLUMN: {
+            'texts': [{
+                'length_signal': 1,
+                'test_signal': {
+                    'len': 1,
+                    'flen': 1.0
+                }
+            }, {
+                'length_signal': 2,
+                'test_signal': {
+                    'len': 2,
+                    'flen': 2.0
+                }
+            }, {
+                'length_signal': 3,
+                'test_signal': {
+                    'len': 3,
+                    'flen': 3.0
+                }
+            }]
+        }
+    }]
+
+    # Test subselection.
+    result = db.select_rows(columns=[
+        'texts', (LILAC_COLUMN, 'texts', '*',
+                  'length_signal'), (LILAC_COLUMN, 'texts', '*', 'test_signal', 'flen')
+    ])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'texts': ['hello', 'everybody'],
+        f'{LILAC_COLUMN}.texts.*.test_signal.flen': [5.0, 9.0],
+        f'{LILAC_COLUMN}.texts.*.length_signal': [5, 9]
+    }, {
+        UUID_COLUMN: '2',
+        'texts': ['a', 'bc', 'def'],
+        f'{LILAC_COLUMN}.texts.*.test_signal.flen': [1.0, 2.0, 3.0],
+        f'{LILAC_COLUMN}.texts.*.length_signal': [1, 2, 3]
+    }]
 
   def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
@@ -484,21 +738,6 @@ class SelectRowsSuite:
         }
     }]
 
-  class LengthSignal(Signal):
-    name = 'length_signal'
-    enrichment_type = EnrichmentType.TEXT
-    vector_based = False
-
-    call_count: int = 0
-
-    def fields(self) -> Field:
-      return Field(dtype=DataType.INT32)
-
-    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
-      for text_content in data:
-        self.call_count += 1
-        yield len(text_content)
-
   def test_signal_transform_with_uuid_filter(self, tmp_path: pathlib.Path,
                                              db_cls: Type[DatasetDB]) -> None:
 
@@ -517,7 +756,7 @@ class SelectRowsSuite:
             'text': Field(dtype=DataType.STRING),
         }))
 
-    signal = SelectRowsSuite.LengthSignal()
+    signal = LengthSignal()
     # Filter by a specific UUID.
     filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '1')]
     result = db.select_rows(columns=['text', SignalUDF(signal, 'text')], filters=filters)
@@ -561,7 +800,7 @@ class SelectRowsSuite:
                 'text': Field(repeated_field=Field(dtype=DataType.STRING)),
             }))
 
-    signal = SelectRowsSuite.LengthSignal()
+    signal = LengthSignal()
 
     # Filter by a specific UUID.
     filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '1')]
@@ -602,7 +841,7 @@ class SelectRowsSuite:
                 'text': Field(repeated_field=Field(repeated_field=Field(dtype=DataType.STRING))),
             }))
 
-    signal = SelectRowsSuite.LengthSignal()
+    signal = LengthSignal()
 
     result = db.select_rows(columns=[SignalUDF(signal, ('text', '*', '*'))])
     assert list(result) == [{
@@ -714,10 +953,8 @@ class SelectRowsSuite:
         num_items=3)
 
     test_signal = TestSignal()
-    db.compute_signal_column(
-        signal=test_signal, column='str', signal_column_name='test_signal_on_str')
-
-    result = db.select_rows(columns=['str', 'test_signal_on_str'])
+    db.compute_signal_column(signal=test_signal, column='str')
+    result = db.select_rows(columns=['str', LILAC_COLUMN])
 
     assert list(result) == [{
         UUID_COLUMN: '1',

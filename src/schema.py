@@ -9,7 +9,6 @@ import numpy as np
 import pyarrow as pa
 from pydantic import (
     BaseModel,
-    Field as pydantic_Field,
     validator,
 )
 
@@ -19,6 +18,7 @@ PARQUET_FILENAME_PREFIX = 'data'
 # We choose `__rowid__` inspired by the standard `rowid` pseudocolumn in DBs:
 # https://docs.oracle.com/cd/B19306_01/server.102/b14200/pseudocolumns008.htm
 UUID_COLUMN = '__rowid__'
+LILAC_COLUMN = '__lilac__'
 PATH_WILDCARD = '*'
 ENTITY_FEATURE_KEY = '__entity__'
 
@@ -187,18 +187,20 @@ def Entity(entity: Item, metadata: Optional[Item] = {}) -> Item:
 class Schema(BaseModel):
   """Database schema."""
   fields: dict[str, Field]
-  # We exclude the computed property `leafs` from the dict() and json() serialization.
-  leafs: dict[PathTuple, Field] = pydantic_Field(exclude=True, default={})
+  # Cached leafs.
+  _leafs: Optional[dict[PathTuple, Field]] = None
 
-  @validator('leafs', pre=True, always=True)
-  def compute_leafs(cls, leafs: dict[PathTuple, Field],
-                    values: dict[str, Any]) -> dict[PathTuple, Field]:
+  class Config:
+    arbitrary_types_allowed = True
+    underscore_attrs_are_private = True
+
+  @property
+  def leafs(self) -> dict[PathTuple, Field]:
     """Return all the leaf fields in the schema (a leaf holds a primitive value)."""
-    if leafs:
-      return leafs
-    fields = cast(dict[str, Field], values.get('fields'))
+    if self._leafs:
+      return self._leafs
     result: dict[PathTuple, Field] = {}
-    q: deque[tuple[PathTuple, Field]] = deque([((), Field(fields=fields))])
+    q: deque[tuple[PathTuple, Field]] = deque([((), Field(fields=self.fields))])
     while q:
       path, field = q.popleft()
       if field.dtype == DataType.STRING_SPAN:
@@ -213,6 +215,7 @@ class Schema(BaseModel):
         q.append((child_path, field.repeated_field))
       else:
         result[path] = field
+    self._leafs = result
     return result
 
   def __str__(self) -> str:

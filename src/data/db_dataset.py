@@ -137,7 +137,7 @@ class Column(BaseModel):
 
     if not alias:
       if transform and isinstance(transform, SignalTransform):
-        alias = default_top_level_signal_col_name(transform.signal, Column(feature))
+        alias = make_parquet_id(transform.signal, Column(feature))
       else:
         alias = path_to_alias(feature)
 
@@ -275,7 +275,7 @@ class DatasetDB(abc.ABC):
                             signal: Signal,
                             column: ColumnId,
                             signal_column_name: Optional[str] = None,
-                            task_id: Optional[TaskId] = None) -> str:
+                            task_id: Optional[TaskId] = None) -> None:
     """Compute a signal for a column.
 
     Args:
@@ -285,9 +285,6 @@ class DatasetDB(abc.ABC):
         the set of columns the signal produces.
       task_id: The TaskManager `task_id` for this process run. This is used to update the progress
         of the task.
-
-    Returns
-      The name of the result columns.
     """
     pass
 
@@ -370,8 +367,8 @@ class DatasetDB(abc.ABC):
     pass
 
 
-def default_top_level_signal_col_name(signal: Signal, column: Column) -> str:
-  """Return the default name for a result column."""
+def make_parquet_id(signal: Signal, column: Column) -> str:
+  """Return a unique identifier for this parquet table."""
   if isinstance(column.feature, Column):
     raise ValueError('Transforms are not yet supported.')
 

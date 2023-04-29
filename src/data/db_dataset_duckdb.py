@@ -21,6 +21,7 @@ from ..embeddings.embedding_registry import EmbeddingId, get_embedding_cls
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import (
+    LILAC_COLUMN,
     MANIFEST_FILENAME,
     PATH_WILDCARD,
     TEXT_SPAN_END_FEATURE,
@@ -28,6 +29,7 @@ from ..schema import (
     UUID_COLUMN,
     DataType,
     Field,
+    ItemValue,
     Path,
     PathTuple,
     RichData,
@@ -53,7 +55,9 @@ from .dataset_utils import (
     flatten,
     is_primitive,
     make_enriched_items,
-    merge_schema_into,
+    merge_schemas,
+    path_is_from_lilac,
+    schema_contains_path,
     unflatten,
 )
 from .db_dataset import (
@@ -75,7 +79,7 @@ from .db_dataset import (
     SortOrder,
     StatsResult,
     column_from_identifier,
-    default_top_level_signal_col_name,
+    make_parquet_id,
 )
 
 DEBUG = CONFIG['DEBUG'] == 'true' if 'DEBUG' in CONFIG else False
@@ -121,25 +125,6 @@ class DuckDBSelectGroupsResult(SelectGroupsResult):
     return self._df
 
 
-class ComputedColumn(BaseModel):
-  """A column that is computed/derived from another column."""
-
-  # The parquet files that contain the column values.
-  files: list[str]
-
-  # The name of the column when merged into a larger table.
-  top_level_column_name: str
-
-  # The name of the field that contains the values.
-  value_field_name: str
-
-  # The field schema of column value.
-  value_field_schema: Field
-
-  # The path to the column this column is derived from.
-  enriched_path: Path
-
-
 class SelectLeafsResult(BaseModel):
   """The result of a select leafs query."""
 
@@ -171,7 +156,7 @@ class DatasetDuckDB(DatasetDB):
 
     # TODO: Infer the manifest from the parquet files so this is lighter weight.
     self._source_manifest = read_source_manifest(self.dataset_path)
-
+    self._signal_manifests: list[SignalManifest] = []
     self.con = duckdb.connect(database=':memory:')
     self._create_view('t', self._source_manifest.files)
 
@@ -197,11 +182,12 @@ class DatasetDuckDB(DatasetDB):
   def _recompute_joint_table(self, latest_mtime: float) -> DatasetManifest:
     del latest_mtime  # This is used as the cache key.
 
-    computed_columns: list[ComputedColumn] = []
     entity_indexes: list[EntityIndex] = []
 
     merged_schema = self._source_manifest.data_schema.copy(deep=True)
-    destination = cast(Field, merged_schema)
+    self._signal_manifests = []
+    # Make a joined view of all the column groups.
+    self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
 
     # Add the signal column groups.
     for root, _, files in os.walk(self.dataset_path):
@@ -209,55 +195,33 @@ class DatasetDuckDB(DatasetDB):
         if file.endswith(SIGNAL_MANIFEST_SUFFIX):
           with open_file(os.path.join(root, file)) as f:
             signal_manifest = SignalManifest.parse_raw(f.read())
-          signal_schema = Field(
-              fields={
-                  '__lilac__': Field(
-                      fields={
-                          name: field
-                          for name, field in signal_manifest.data_schema.fields.items()
-                          if name != UUID_COLUMN  # Remove UUID to avoid `__lilac__.__rowid__`.
-                      })
-              })
-          merge_schema_into(signal_schema, destination)
+          self._create_view(signal_manifest.parquet_id, signal_manifest.files)
+          self._signal_manifests.append(signal_manifest)
 
-          value_field_name = cast(str, signal_manifest.enriched_path[0])
-          signal_column = ComputedColumn(
-              files=signal_manifest.files,
-              top_level_column_name=signal_manifest.top_level_column_name,
-              value_field_name=value_field_name,
-              value_field_schema=signal_manifest.data_schema.fields[value_field_name],
-              enriched_path=signal_manifest.enriched_path)
-          computed_columns.append(signal_column)
         elif file.endswith(ENTITY_INDEX_MANIFEST_SUFFIX):
           with open_file(os.path.join(root, file)) as f:
             entity_index_manifest = EntityIndexManifest.parse_raw(f.read())
 
           entity_indexes.append(entity_index_manifest.entity_index)
 
-    print('==================')
-    print(merged_schema)
-    print('==================')
-
-    # Make a joined view of all the column groups.
-    self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
-    for column in computed_columns:
-      self._create_view(column.top_level_column_name, column.files)
-
+    merged_schema = merge_schemas([self._source_manifest.data_schema] +
+                                  [m.data_schema for m in self._signal_manifests])
     # The logic below generates the following example query:
     # CREATE OR REPLACE VIEW t AS (
     #   SELECT
     #     source.*,
-    #     "enriched.signal1"."enriched" AS "enriched.signal1",
-    #     "enriched.signal2"."enriched" AS "enriched.signal2"
-    #   FROM source JOIN "enriched.signal1" USING (uuid,) JOIN "enriched.signal2" USING (uuid,)
+    #     "parquet_id1"."__LILAC__" AS "parquet_id1",
+    #     "parquet_id2"."__LILAC__" AS "parquet_id2"
+    #   FROM source JOIN "parquet_id1" USING (uuid,) JOIN "parquet_id2" USING (uuid,)
     # );
     select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [
-        f'"{col.top_level_column_name}"."{col.value_field_name}" AS "{col.top_level_column_name}"'
-        for col in computed_columns
+        f'"{manifest.parquet_id}"."{LILAC_COLUMN}" AS "{manifest.parquet_id}"'
+        for manifest in self._signal_manifests
     ])
-    join_sql = ' '.join(
-        [SOURCE_VIEW_NAME] +
-        [f'join "{col.top_level_column_name}" using ({UUID_COLUMN},)' for col in computed_columns])
+    join_sql = ' '.join([SOURCE_VIEW_NAME] + [
+        f'join "{manifest.parquet_id}" using ({UUID_COLUMN},)'
+        for manifest in self._signal_manifests
+    ])
 
     sql_cmd = f"""CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})"""
     self.con.execute(sql_cmd)
@@ -266,13 +230,6 @@ class DatasetDuckDB(DatasetDB):
     size_query = 'SELECT COUNT() as count FROM t'
     size_query_result = cast(Any, self._query(size_query)[0])
     num_items = cast(int, size_query_result[0])
-
-    # Merge the source manifest with the computed columns.
-    merged_schema = Schema(
-        fields={
-            **self._source_manifest.data_schema.fields,
-            **{col.top_level_column_name: col.value_field_schema for col in computed_columns}
-        })
 
     return DatasetManifest(
         namespace=self.namespace,
@@ -339,11 +296,8 @@ class DatasetDuckDB(DatasetDB):
                             signal: Signal,
                             column: ColumnId,
                             signal_column_name: Optional[str] = None,
-                            task_id: Optional[TaskId] = None) -> str:
+                            task_id: Optional[TaskId] = None) -> None:
     column = column_from_identifier(column)
-    if not signal_column_name:
-      signal_column_name = default_top_level_signal_col_name(signal, column)
-
     if isinstance(column.feature, Column):
       raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')
 
@@ -415,7 +369,7 @@ class DatasetDuckDB(DatasetDB):
         data_schema=signal_schema,
         signal=signal,
         enriched_path=source_path,
-        top_level_column_name=signal_column_name)
+        parquet_id=make_parquet_id(signal, column))
     signal_manifest_filepath = os.path.join(
         self.dataset_path,
         signal_manifest_filename(column_name=column.alias, signal_name=signal.name))
@@ -437,8 +391,6 @@ class DatasetDuckDB(DatasetDB):
         with open_file(entity_index_manifest_filepath, 'w') as f:
           f.write(entity_index_manifest.json())
         log(f'Wrote entity index manifest to {signal_manifest_filepath}')
-
-    return signal_column_name
 
   def _select_leafs(self,
                     path: PathTuple,
@@ -746,7 +698,7 @@ class DatasetDuckDB(DatasetDB):
       cols.append(column_from_identifier(UUID_COLUMN))
 
     self._validate_columns(cols)
-    select_query, col_aliases = self._create_select(cols)
+    select_query, col_aliases, columns_to_merge = self._create_select(cols)
     con = self.con.cursor()
     query = con.sql(f'SELECT {select_query} FROM t')
 
@@ -858,6 +810,14 @@ class DatasetDuckDB(DatasetDB):
 
       df = query.df()
 
+    for alias, columns in columns_to_merge.items():
+      for col in columns:
+        if alias not in df:
+          df[alias] = df[col]
+        else:
+          df[alias] = merge_values(df[alias], df[col])
+        del df[col]
+
     query.close()
     con.close()
 
@@ -873,20 +833,40 @@ class DatasetDuckDB(DatasetDB):
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
-  def _create_select(self, columns: list[Column]) -> tuple[str, dict[str, bool]]:
+  def _create_select(self,
+                     columns: list[Column]) -> tuple[str, dict[str, bool], dict[str, list[str]]]:
     """Create the select statement."""
     select_queries: list[str] = []
     alias_and_transform: dict[str, bool] = {}
 
-    for column in columns:
-      alias_and_transform[column.alias] = bool(column.transform)
-      empty = bool(
-          column.transform and isinstance(column.transform, SignalTransform) and
-          column.transform.signal.vector_based)
-      col = make_select_column(column.feature, flatten=False, empty=empty)
-      select_queries.append(f'{col} AS "{column.alias}"')
+    # Map a final column name to a list of temporary namespaced column names that need to be merged.
+    columns_to_merge: dict[str, list[str]] = {}
 
-    return ', '.join(select_queries), alias_and_transform
+    for column in columns:
+      path = column.feature
+      if path_is_from_lilac(path):
+        # Figure out which signals have this path. If multiple signals have this path, we need to
+        # fetch them into seperate columns that later get merged.
+        for m in self._signal_manifests:
+          if schema_contains_path(m.data_schema, path):
+            signal_path = (m.parquet_id, *path[1:])
+            col = make_select_column(signal_path, flatten=False, empty=False)
+            # Fetch the signal data into a temporary unique namespaced column name. This will later
+            # be merged into the final column name {column.alias}.
+            unmerged_col_name = f'{column.alias}/{m.parquet_id}'
+            select_queries.append(f'{col} AS "{unmerged_col_name}"')
+            if column.alias not in columns_to_merge:
+              columns_to_merge[column.alias] = []
+            columns_to_merge[column.alias].append(unmerged_col_name)
+      else:
+        alias_and_transform[column.alias] = bool(column.transform)
+        empty = bool(
+            column.transform and isinstance(column.transform, SignalTransform) and
+            column.transform.signal.vector_based)
+        col = make_select_column(column.feature, flatten=False, empty=empty)
+        select_queries.append(f'{col} AS "{column.alias}"')
+
+    return ', '.join(select_queries), alias_and_transform, columns_to_merge
 
   def _normalize_filters(self,
                          filter_likes: Optional[Sequence[FilterLike]] = None,
@@ -1103,9 +1083,8 @@ class SignalManifest(BaseModel):
   # List of a parquet filepaths storing the data. The paths are relative to the manifest.
   files: list[str]
 
-  # The column name that this signal is stored in. This provides the top-level path to the computed
-  # signal values.
-  top_level_column_name: str
+  # An identifier for this parquet table. Will be used as the view name in SQL.
+  parquet_id: str
 
   data_schema: Schema
   signal: Signal
@@ -1125,3 +1104,28 @@ class EntityIndexManifest(BaseModel):
   # implementation details of the duckdb implementation so we can add more metadata. This could be
   # be removed if we don't need to add more metadata.
   entity_index: EntityIndex
+
+
+def _merge_cells(dest_cell: ItemValue, source_cell: ItemValue) -> None:
+  if isinstance(dest_cell, dict):
+    if not isinstance(source_cell, dict):
+      raise ValueError('should not happen')
+    for key, value in source_cell.items():
+      if key not in dest_cell:
+        dest_cell[key] = value
+      else:
+        _merge_cells(dest_cell[key], value)
+  elif isinstance(dest_cell, list):
+    if not isinstance(source_cell, list):
+      raise ValueError('should not happen')
+    for dest_subcell, source_subcell in zip(dest_cell, source_cell):
+      _merge_cells(dest_subcell, source_subcell)
+  else:
+    raise ValueError(f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
+
+
+def merge_values(destination: pd.Series, source: pd.Series) -> pd.Series:
+  """Merge two series of values recursively."""
+  for dest_cell, source_cell in zip(destination, source):
+    _merge_cells(dest_cell, source_cell)
+  return destination
