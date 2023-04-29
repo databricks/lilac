@@ -2,7 +2,7 @@
 import abc
 import datetime
 import enum
-from typing import Any, Iterable, Iterator, Optional, Sequence, Union
+from typing import Any, Iterator, Optional, Sequence, Union
 
 import pandas as pd
 from pydantic import (
@@ -17,7 +17,7 @@ from pydantic import (
 
 from ..embeddings.embedding_index import EmbeddingIndexerManifest
 from ..embeddings.embedding_registry import EmbeddingId
-from ..schema import Item, Path, PathTuple, Schema, path_to_alias
+from ..schema import Path, PathTuple, Schema, path_to_alias
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import Signal
 from ..signals.signal_registry import resolve_signal
@@ -30,12 +30,16 @@ TOO_MANY_DISTINCT = 10_000
 class SelectRowsResult():
   """The result of a select rows query."""
 
-  def __init__(self, rows: Iterable[Item]) -> None:
+  def __init__(self, df: pd.DataFrame) -> None:
     """Initialize the result."""
-    self.rows = rows
+    self._df = df
 
   def __iter__(self) -> Iterator:
-    return iter(self.rows)
+    return (row.to_dict() for _, row in self._df.iterrows())
+
+  def df(self) -> pd.DataFrame:
+    """Convert the result to a pandas DataFrame."""
+    return self._df
 
 
 class SelectGroupsResult():

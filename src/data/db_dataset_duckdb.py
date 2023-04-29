@@ -825,8 +825,7 @@ class DatasetDuckDB(DatasetDB):
       if is_object_dtype(df[col]):
         df[col].replace(np.nan, None, inplace=True)
 
-    item_rows = (row.to_dict() for _, row in df.iterrows())
-    return SelectRowsResult(item_rows)
+    return SelectRowsResult(df)
 
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
