@@ -295,7 +295,6 @@ class DatasetDuckDB(DatasetDB):
   def compute_signal_column(self,
                             signal: Signal,
                             column: ColumnId,
-                            signal_column_name: Optional[str] = None,
                             task_id: Optional[TaskId] = None) -> None:
     column = column_from_identifier(column)
     if isinstance(column.feature, Column):
@@ -380,7 +379,7 @@ class DatasetDuckDB(DatasetDB):
     # If the signal emits entites, write an index for the entities.
     if signal_entity_paths:
       for signal_entity_path in signal_entity_paths:
-        entity_index_path = source_path + (signal_column_name,) + signal_entity_path
+        entity_index_path = source_path + signal_entity_path
         # Write an entity index for each entity the signal produces.
         entity_index_manifest = EntityIndexManifest(
             entity_index=EntityIndex(

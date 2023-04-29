@@ -274,15 +274,12 @@ class DatasetDB(abc.ABC):
   def compute_signal_column(self,
                             signal: Signal,
                             column: ColumnId,
-                            signal_column_name: Optional[str] = None,
                             task_id: Optional[TaskId] = None) -> None:
     """Compute a signal for a column.
 
     Args:
       signal: The signal to compute over the given columns.
       column: The column to compute the signal on.
-      signal_column_name: The name of the result signal columns. This acts as a namespace for
-        the set of columns the signal produces.
       task_id: The TaskManager `task_id` for this process run. This is used to update the progress
         of the task.
     """
