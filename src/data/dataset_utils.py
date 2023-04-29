@@ -39,7 +39,7 @@ def replace_repeated_wildcards(path: Path, path_repeated_idxs: Optional[list[int
 
 
 def is_primitive(obj: object) -> bool:
-  """Returns True if the object is an iterable but not a string or bytes."""
+  """Returns True if the object is a primitive."""
   return not isinstance(obj, Iterable) or isinstance(obj, (str, bytes))
 
 
@@ -57,17 +57,32 @@ def flatten(input: Union[Iterable, object]) -> list[object]:
   return list(_flatten(input))
 
 
-def _unflatten(flat_input: Iterator[list[object]], original_input: Union[Iterable, object]) -> list:
+def _wrap_in_dict(input: Union[object, dict], props: list[str]) -> Union[object, dict]:
+  for prop in reversed(props):
+    input = {prop: input}
+  return input
+
+
+def _unflatten(flat_input: Iterator[list[object]],
+               original_input: Union[Iterable, object],
+               spec: list[list[str]] = []) -> Union[list, dict]:
   """Unflattens a flattened iterable according to the original iterable's structure."""
   if is_primitive(original_input):
-    return next(flat_input)
+    props = spec[0] if spec else []
+    return cast(dict, _wrap_in_dict(next(flat_input), props))
   else:
-    return [_unflatten(flat_input, orig_elem) for orig_elem in cast(Iterable, original_input)]
+    props = spec[0] if spec else []
+    return [
+        _wrap_in_dict(_unflatten(flat_input, orig_elem, spec[1:]), props)
+        for orig_elem in cast(Iterable, original_input)
+    ]
 
 
-def unflatten(flat_input: Iterable, original_input: Union[Iterable, object]) -> list:
+def unflatten(flat_input: Iterable,
+              original_input: Union[Iterable, object],
+              spec: list[list[str]] = []) -> list:
   """Unflattens a flattened iterable according to the original iterable's structure."""
-  return _unflatten(iter(flat_input), original_input)
+  return cast(list, _unflatten(iter(flat_input), original_input, spec))
 
 
 def make_enriched_items(source_path: Path, row_ids: Sequence[str], signal: Signal,
