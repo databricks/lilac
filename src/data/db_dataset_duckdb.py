@@ -342,7 +342,7 @@ class DatasetDuckDB(DatasetDB):
           f.write(entity_index_manifest.json(exclude_none=True, indent=2))
         log(f'Wrote entity index manifest to {signal_manifest_filepath}')
 
-  def _validate_filters(self, filters: Sequence[Filter], col_aliases: dict[str, bool]) -> None:
+  def _validate_filters(self, filters: Sequence[Filter], col_aliases: set[str]) -> None:
     manifest = self.manifest()
     for filter in filters:
       if filter.path[0] in col_aliases:
@@ -422,9 +422,9 @@ class DatasetDuckDB(DatasetDB):
     if not leaf or not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
-    inner_select, _, _ = self._create_select([Column(path, alias='val')],
-                                             flatten=True,
-                                             resolve_span=True)
+    inner_select, _ = self._create_select([Column(path, alias='val')],
+                                          flatten=True,
+                                          resolve_span=True)
     # Compute approximate count by sampling the data to avoid OOM.
     sample_size = SAMPLE_SIZE_DISTINCT_COUNT
     avg_length_query = ''
@@ -546,17 +546,18 @@ class DatasetDuckDB(DatasetDB):
       cols.append(column_from_identifier(UUID_COLUMN))
 
     self._validate_columns(cols)
-    select_query, col_aliases, columns_to_merge = self._create_select(
+    select_query, columns_to_merge = self._create_select(
         cols, flatten=False, resolve_span=resolve_span)
     con = self.con.cursor()
     query = con.sql(f'SELECT {select_query} FROM t')
 
-    filters, transform_filters = self._normalize_filters(filters, col_aliases)
+    col_aliases = set(columns_to_merge.keys())
+    udf_aliases = set(col.alias for col in cols if col.transform)
+    filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases)
     filter_queries = self._create_where(filters)
     if filter_queries:
       query = query.filter(' AND '.join(filter_queries))
 
-    sort_by_transform = False
     sort_by_paths = [normalize_path(path) for path in (sort_by or [])]
     sort_cols_after_udf: list[str] = []
     if sort_by_paths:
@@ -577,8 +578,7 @@ class DatasetDuckDB(DatasetDB):
       for sort_by_path in sort_by_paths:
         sort_col = self._path_to_col(sort_by_path)
         # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
-        if sort_by_transform or col_aliases.get(str(sort_by_path[0])):
-          sort_by_transform = True
+        if str(sort_by_path[0]) in udf_aliases:
           sort_cols_after_udf.append(sort_col)
         else:
           sort_cols_before_udf.append(sort_col)
@@ -593,9 +593,9 @@ class DatasetDuckDB(DatasetDB):
     df = query.df()
 
     # Run UDFs on the transformed columns.
-    transform_columns = [col for col in cols if col.transform]
-    for transform_col in transform_columns:
-      transform = transform_col.transform
+    udf_columns = [col for col in cols if col.transform]
+    for udf_col in udf_columns:
+      transform = udf_col.transform
 
       if isinstance(transform, SignalTransform):
         signal = transform.signal
@@ -605,14 +605,14 @@ class DatasetDuckDB(DatasetDB):
                                                      signal.embedding_name)
           self._concept_model_db.sync(concept_model)
 
-        signal_column = transform_col.alias
+        signal_column = udf_col.alias
         input = df[signal_column]
 
         with DebugTimer(f'Computing signal "{signal}"'):
           if signal.vector_based:
             if signal.embedding is None:
               raise ValueError('`Signal.embedding` must be defined for embedding-based signals.')
-            vector_store = self._get_vector_store(transform_col.feature, signal.embedding)
+            vector_store = self._get_vector_store(udf_col.feature, signal.embedding)
 
             # If we are sorting by the topk of a signal column, we can utilize the vector store
             # via `signal.vector_compute_topk` and then use the topk to filter the dataframe. This
@@ -649,14 +649,14 @@ class DatasetDuckDB(DatasetDB):
       else:
         raise ValueError(f'Unsupported transform: {transform}')
 
-    if transform_filters or sort_cols_after_udf:
+    if udf_filters or sort_cols_after_udf:
       # Re-upload the udf outputs to duckdb so we can filter/sort on them.
       query = con.from_df(df)
 
-      if transform_filters:
-        transform_filter_queries = self._create_where(transform_filters)
-        if transform_filter_queries:
-          query = query.filter(' AND '.join(transform_filter_queries))
+      if udf_filters:
+        udf_filter_queries = self._create_where(udf_filters)
+        if udf_filter_queries:
+          query = query.filter(' AND '.join(udf_filter_queries))
 
       if sort_cols_after_udf:
         if not sort_order:
@@ -724,7 +724,11 @@ class DatasetDuckDB(DatasetDB):
       if path_is_from_lilac(path):
         m = cast(SignalManifest, m)
         select_path = (m.parquet_id, *path[1:])
-        temp_column_name = f'{column.alias}/{m.parquet_id}'
+        if path in leafs:
+          # Leafs only live in a single manifest so we don't need to namespace.
+          temp_column_name = column.alias
+        else:
+          temp_column_name = f'{column.alias}/{m.parquet_id}'
       else:
         select_path = column.feature
         temp_column_name = column.alias
@@ -735,29 +739,26 @@ class DatasetDuckDB(DatasetDB):
     return ', '.join(select_queries), temp_column_names
 
   def _create_select(self, columns: list[Column], flatten: bool,
-                     resolve_span: bool) -> tuple[str, dict[str, bool], dict[str, list[str]]]:
+                     resolve_span: bool) -> tuple[str, dict[str, list[str]]]:
     """Create the select statement."""
     manifest = self.manifest()
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
-    columns_to_merge: dict[str, list[str]] = {}
+    alias_to_temp_col_names: dict[str, list[str]] = {}
     select_queries: list[str] = []
-    alias_and_transform: dict[str, bool] = {}
 
     for column in columns:
-      alias_and_transform[column.alias] = bool(column.transform)
       select_str, temp_column_names = self._create_select_column(column, manifest, flatten,
                                                                  resolve_span)
-      columns_to_merge[column.alias] = temp_column_names
+      alias_to_temp_col_names[column.alias] = temp_column_names
       select_queries.append(select_str)
-    return ', '.join(select_queries), alias_and_transform, columns_to_merge
+    return ', '.join(select_queries), alias_to_temp_col_names
 
-  def _normalize_filters(self,
-                         filter_likes: Optional[Sequence[FilterLike]] = None,
-                         col_aliases: dict[str, bool] = {}) -> tuple[list[Filter], list[Filter]]:
+  def _normalize_filters(self, filter_likes: Optional[Sequence[FilterLike]], col_aliases: set[str],
+                         udf_aliases: set[str]) -> tuple[list[Filter], list[Filter]]:
     """Normalize `FilterLike` to `Filter` and split into filters on source and filters on UDFs."""
     filter_likes = filter_likes or []
     filters: list[Filter] = []
-    transform_filters: list[Filter] = []
+    udf_filters: list[Filter] = []
 
     for filter in filter_likes:
       # Normalize `FilterLike` to `Filter`.
@@ -768,14 +769,13 @@ class DatasetDuckDB(DatasetDB):
         elif isinstance(path_tuple, Column):
           path_tuple = path_tuple.feature
         filter = Filter(path=path_tuple, comparison=filter[1], value=filter[2])
-      is_transform_filter = col_aliases.get(str(filter.path[0]), False)
-      if is_transform_filter:
-        transform_filters.append(filter)
+      if str(filter.path[0]) in udf_aliases:
+        udf_filters.append(filter)
       else:
         filters.append(filter)
 
     self._validate_filters(filters, col_aliases)
-    return filters, transform_filters
+    return filters, udf_filters
 
   def _create_where(self, filters: list[Filter]) -> list[str]:
     if not filters:
