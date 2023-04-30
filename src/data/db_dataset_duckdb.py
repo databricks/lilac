@@ -422,7 +422,9 @@ class DatasetDuckDB(DatasetDB):
     if not leaf or not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
-    inner_select = make_select_column(path)
+    inner_select, _, _ = self._create_select([Column(path, alias='val')],
+                                             flatten=True,
+                                             resolve_span=True)
     # Compute approximate count by sampling the data to avoid OOM.
     sample_size = SAMPLE_SIZE_DISTINCT_COUNT
     avg_length_query = ''
@@ -431,12 +433,12 @@ class DatasetDuckDB(DatasetDB):
 
     approx_count_query = f"""
       SELECT approx_count_distinct(val) as approxCountDistinct {avg_length_query}
-      FROM (SELECT {inner_select} AS val FROM t LIMIT {sample_size});
+      FROM (SELECT {inner_select} FROM t LIMIT {sample_size});
     """
     row = self._query(approx_count_query)[0]
     approx_count_distinct = row[0]
 
-    total_count_query = f'SELECT count(val) FROM (SELECT {inner_select} AS val FROM t)'
+    total_count_query = f'SELECT count(val) FROM (SELECT {inner_select} FROM t)'
     total_count = self._query(total_count_query)[0][0]
 
     # Adjust the counts for the sample size.
@@ -452,7 +454,7 @@ class DatasetDuckDB(DatasetDB):
     if is_ordinal(leaf.dtype):
       min_max_query = f"""
         SELECT MIN(val) AS minVal, MAX(val) AS maxVal
-        FROM (SELECT {inner_select} AS val FROM t);
+        FROM (SELECT {inner_select} FROM t);
       """
       row = self._query(min_max_query)[0]
       result.min_val, result.max_val = row
@@ -544,7 +546,8 @@ class DatasetDuckDB(DatasetDB):
       cols.append(column_from_identifier(UUID_COLUMN))
 
     self._validate_columns(cols)
-    select_query, col_aliases, columns_to_merge = self._create_select(cols, resolve_span)
+    select_query, col_aliases, columns_to_merge = self._create_select(
+        cols, flatten=False, resolve_span=resolve_span)
     con = self.con.cursor()
     query = con.sql(f'SELECT {select_query} FROM t')
 
@@ -688,7 +691,7 @@ class DatasetDuckDB(DatasetDB):
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
-  def _create_select(self, columns: list[Column],
+  def _create_select(self, columns: list[Column], flatten: bool,
                      resolve_span: bool) -> tuple[str, dict[str, bool], dict[str, list[str]]]:
     """Create the select statement."""
     select_queries: list[str] = []
@@ -713,7 +716,8 @@ class DatasetDuckDB(DatasetDB):
         for m in self._signal_manifests:
           if schema_contains_path(m.data_schema, path):
             signal_path = (m.parquet_id, *path[1:])
-            col = make_select_column(signal_path, flatten=False, empty=empty, span_field=span_field)
+            col = make_select_column(
+                signal_path, flatten=flatten, empty=empty, span_field=span_field)
             # Fetch the signal data into a temporary unique namespaced column name. This will later
             # be merged into the final column name {column.alias}.
             unmerged_col_name = column.alias if path in leafs else f'{column.alias}/{m.parquet_id}'
@@ -723,7 +727,8 @@ class DatasetDuckDB(DatasetDB):
                 columns_to_merge[column.alias] = []
               columns_to_merge[column.alias].append(unmerged_col_name)
       else:
-        col = make_select_column(column.feature, flatten=False, empty=empty, span_field=span_field)
+        col = make_select_column(
+            column.feature, flatten=flatten, empty=empty, span_field=span_field)
         select_queries.append(f'{col} AS "{column.alias}"')
 
     return ', '.join(select_queries), alias_and_transform, columns_to_merge
