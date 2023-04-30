@@ -3,7 +3,7 @@ import functools
 import glob
 import os
 import re
-from typing import Any, Iterable, Iterator, Optional, Sequence, Type, cast
+from typing import Any, Iterable, Iterator, Optional, Sequence, Type, Union, cast
 
 import duckdb
 import numpy as np
@@ -509,7 +509,7 @@ class DatasetDuckDB(DatasetDB):
     value_column = 'value'
 
     limit_query = f'LIMIT {limit}' if limit else ''
-    inner_select = make_select_column(path)
+    inner_select = _make_select_column(path)
     query = f"""
       SELECT {outer_select} AS {value_column}, COUNT() AS {count_column}
       FROM (SELECT {inner_select} AS {inner_val} FROM t)
@@ -669,13 +669,18 @@ class DatasetDuckDB(DatasetDB):
 
       df = query.df()
 
-    for alias, columns in columns_to_merge.items():
-      for col in columns:
-        if alias not in df:
-          df[alias] = df[col]
+    for final_col_name, temp_columns in columns_to_merge.items():
+      for temp_col_name in temp_columns:
+        # If the temp col name is the same as the final name, we can skip merging. This happens when
+        # we select a source leaf column.
+        if temp_col_name == final_col_name:
+          continue
+
+        if final_col_name not in df:
+          df[final_col_name] = df[temp_col_name]
         else:
-          df[alias] = merge_values(df[alias], df[col])
-        del df[col]
+          df[final_col_name] = merge_values(df[final_col_name], df[temp_col_name])
+        del df[temp_col_name]
 
     query.close()
     con.close()
@@ -691,46 +696,59 @@ class DatasetDuckDB(DatasetDB):
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
+  def _create_select_column(self, column: Column, manifest: DatasetManifest, flatten: bool,
+                            resolve_span: bool) -> tuple[str, list[str]]:
+    leafs = manifest.data_schema.leafs
+    path = column.feature
+    is_span = (path in leafs and leafs[path].dtype == DataType.STRING_SPAN)
+    span_field = leafs[path] if resolve_span and is_span else None
+    empty = bool(
+        column.transform and isinstance(column.transform, SignalTransform) and
+        column.transform.signal.vector_based)
+    select_queries: list[str] = []
+    temp_column_names: list[str] = []
+
+    parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
+        self._source_manifest, *self._signal_manifests
+    ]
+
+    for m in parquet_manifests:
+      if not schema_contains_path(m.data_schema, path):
+        # Skip this parquet file if it doesn't contain the path.
+        continue
+
+      if isinstance(m, SignalManifest) and column.feature == (UUID_COLUMN,):
+        # Do not select UUID from the signal because it's already in the source.
+        continue
+
+      if path_is_from_lilac(path):
+        m = cast(SignalManifest, m)
+        select_path = (m.parquet_id, *path[1:])
+        temp_column_name = f'{column.alias}/{m.parquet_id}'
+      else:
+        select_path = column.feature
+        temp_column_name = column.alias
+      temp_column_names.append(temp_column_name)
+      col = _make_select_column(select_path, flatten=flatten, empty=empty, span_field=span_field)
+      select_queries.append(f'{col} AS "{temp_column_name}"')
+
+    return ', '.join(select_queries), temp_column_names
+
   def _create_select(self, columns: list[Column], flatten: bool,
                      resolve_span: bool) -> tuple[str, dict[str, bool], dict[str, list[str]]]:
     """Create the select statement."""
+    manifest = self.manifest()
+    # Map a final column name to a list of temporary namespaced column names that need to be merged.
+    columns_to_merge: dict[str, list[str]] = {}
     select_queries: list[str] = []
     alias_and_transform: dict[str, bool] = {}
 
-    # Map a final column name to a list of temporary namespaced column names that need to be merged.
-    columns_to_merge: dict[str, list[str]] = {}
-
-    leafs = self.manifest().data_schema.leafs
-
     for column in columns:
-      path = column.feature
-      is_span = (path in leafs and leafs[path].dtype == DataType.STRING_SPAN)
-      span_field = leafs[path] if resolve_span and is_span else None
       alias_and_transform[column.alias] = bool(column.transform)
-      empty = bool(
-          column.transform and isinstance(column.transform, SignalTransform) and
-          column.transform.signal.vector_based)
-      if path_is_from_lilac(path):
-        # Figure out which signals have this path. If multiple signals have this path, we need to
-        # fetch them into seperate columns that later get merged.
-        for m in self._signal_manifests:
-          if schema_contains_path(m.data_schema, path):
-            signal_path = (m.parquet_id, *path[1:])
-            col = make_select_column(
-                signal_path, flatten=flatten, empty=empty, span_field=span_field)
-            # Fetch the signal data into a temporary unique namespaced column name. This will later
-            # be merged into the final column name {column.alias}.
-            unmerged_col_name = column.alias if path in leafs else f'{column.alias}/{m.parquet_id}'
-            select_queries.append(f'{col} AS "{unmerged_col_name}"')
-            if path not in leafs:
-              if column.alias not in columns_to_merge:
-                columns_to_merge[column.alias] = []
-              columns_to_merge[column.alias].append(unmerged_col_name)
-      else:
-        col = make_select_column(
-            column.feature, flatten=flatten, empty=empty, span_field=span_field)
-        select_queries.append(f'{col} AS "{column.alias}"')
-
+      select_str, temp_column_names = self._create_select_column(column, manifest, flatten,
+                                                                 resolve_span)
+      columns_to_merge[column.alias] = temp_column_names
+      select_queries.append(select_str)
     return ', '.join(select_queries), alias_and_transform, columns_to_merge
 
   def _normalize_filters(self,
@@ -828,7 +846,7 @@ def _inner_select(sub_paths: list[PathTuple],
     if span_field:
       if not span_field.derived_from:
         raise ValueError('derived_from from must be specified for span.')
-      derived_col = make_select_column(span_field.derived_from)
+      derived_col = _make_select_column(span_field.derived_from)
       path_key = (f'{derived_col}[{path_key}.{TEXT_SPAN_START_FEATURE}+1:'
                   f'{path_key}.{TEXT_SPAN_END_FEATURE}]')
     return 'NULL' if empty else path_key
@@ -852,10 +870,10 @@ def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
   return sub_paths
 
 
-def make_select_column(leaf_path: Path,
-                       flatten: bool = True,
-                       empty: bool = False,
-                       span_field: Optional[Field] = None) -> str:
+def _make_select_column(leaf_path: Path,
+                        flatten: bool = True,
+                        empty: bool = False,
+                        span_field: Optional[Field] = None) -> str:
   """Create a select column for a leaf path.
 
   Args:
