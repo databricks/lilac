@@ -324,7 +324,7 @@ class DatasetDuckDB(DatasetDB):
         self.dataset_path,
         signal_manifest_filename(column_name=column.alias, signal_name=signal.name))
     with open_file(signal_manifest_filepath, 'w') as f:
-      f.write(signal_manifest.json())
+      f.write(signal_manifest.json(exclude_none=True, indent=2))
     log(f'Wrote signal manifest to {signal_manifest_filepath}')
 
     # If the signal emits entites, write an index for the entities.
@@ -339,7 +339,7 @@ class DatasetDuckDB(DatasetDB):
             self.dataset_path,
             entity_index_manifest_filename(column_name=column.alias, signal_name=signal.name))
         with open_file(entity_index_manifest_filepath, 'w') as f:
-          f.write(entity_index_manifest.json())
+          f.write(entity_index_manifest.json(exclude_none=True, indent=2))
         log(f'Wrote entity index manifest to {signal_manifest_filepath}')
 
   def _validate_filters(self, filters: Sequence[Filter], col_aliases: dict[str, bool]) -> None:

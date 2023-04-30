@@ -123,7 +123,7 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
     # Write the index info.
     index_info = EmbeddingIndexInfo(column=path, embedding=embed_fn)
     with open_file(index_info_path, 'w') as f:
-      f.write(index_info.json())
+      f.write(index_info.json(exclude_none=True, indent=2))
 
 
 def embedding_index_filename(column: PathTuple, embedding_name: str) -> str:

@@ -19,7 +19,7 @@ class SignalInfo(BaseModel):
   json_schema: dict[str, Any]
 
 
-@router.get('/', response_model_exclude_unset=True)
+@router.get('/', response_model_exclude_none=True)
 def get_signals() -> list[SignalInfo]:
   """List the datasets."""
   return [

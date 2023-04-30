@@ -1,8 +1,9 @@
 """Router for the dataset database."""
 import os
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Optional, Sequence, Union, cast
 
 from fastapi import APIRouter, Response
+from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, validator
 
 from .config import data_path
@@ -39,7 +40,7 @@ class DatasetInfo(BaseModel):
   description: Optional[str]
 
 
-@router.get('/', response_model_exclude_unset=True)
+@router.get('/', response_model_exclude_none=True)
 def get_datasets() -> list[DatasetInfo]:
   """List the datasets."""
   datasets_path = os.path.join(data_path(), DATASETS_DIR_NAME)
@@ -78,7 +79,9 @@ class WebManifest(BaseModel):
 def get_manifest(namespace: str, dataset_name: str) -> WebManifest:
   """Get the web manifest for the dataset."""
   dataset_db = get_dataset_db(namespace, dataset_name)
-  return WebManifest(dataset_manifest=dataset_db.manifest())
+  res = WebManifest(dataset_manifest=dataset_db.manifest())
+  # Avoids the error that Signal abstract class is not serializable.
+  return cast(WebManifest, ORJSONResponse(res.dict(exclude_none=True)))
 
 
 class ComputeEmbeddingIndexOptions(BaseModel):
