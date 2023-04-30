@@ -9,6 +9,5 @@ import type { Field } from './Field';
  */
 export type Schema = {
     fields: Record<string, Field>;
-    leafs?: Record<string, Field>;
 };
 
