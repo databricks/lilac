@@ -1,5 +1,6 @@
 """Tests for dataset utils."""
-from .dataset_utils import flatten, unflatten
+from ..schema import PathTuple
+from .dataset_utils import flatten, unflatten, wrap_in_dicts
 
 
 def test_flatten() -> None:
@@ -22,9 +23,8 @@ def test_unflatten() -> None:
 
 def test_unflatten_with_spec_of_one_repeated() -> None:
   a = [[1, 2], [3], [4, 5, 5]]
-  flat_a = flatten(a)
-  spec = [['a', 'b', 'c'], ['d']]  # Corresponds to a.b.c.*.d.
-  result = unflatten(flat_a, a, spec)
+  spec: list[PathTuple] = [('a', 'b', 'c'), ('d',)]  # Corresponds to a.b.c.*.d.
+  result = wrap_in_dicts(a, spec)
   assert result == [{
       'a': {
           'b': {
@@ -60,9 +60,8 @@ def test_unflatten_with_spec_of_one_repeated() -> None:
 
 def test_unflatten_with_spec_of_double_repeated() -> None:
   a = [[[1, 2], [3, 4, 5]], [[6]], [[7], [8], [9, 10]]]
-  flat_a = flatten(a)
-  spec: list[list[str]] = [['a', 'b'], [], [], ['c']]  # Corresponds to a.b.*.*.c.
-  result = unflatten(flat_a, a, spec=spec)
+  spec: list[PathTuple] = [('a', 'b'), tuple(), tuple(), ('c',)]  # Corresponds to a.b.*.*.c.
+  result = wrap_in_dicts(a, spec)
   assert result == [{
       'a': {
           'b': [[{

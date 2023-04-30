@@ -218,6 +218,20 @@ class Schema(BaseModel):
     self._leafs = result
     return result
 
+  def get_field(self, path: PathTuple) -> Field:
+    """Returns the field at the given path."""
+    field = cast(Field, self)
+    for name in path:
+      if field.fields:
+        field = field.fields[str(name)]
+      elif field.repeated_field:
+        if name != PATH_WILDCARD:
+          raise ValueError(f'Invalid path {path}')
+        field = field.repeated_field
+      else:
+        raise ValueError(f'Invalid path {path}')
+    return field
+
   def __str__(self) -> str:
     return _str_fields(self.fields, indent=0)
 
@@ -330,11 +344,6 @@ def normalize_path(path: Path) -> PathTuple:
   if isinstance(path, str):
     return tuple(path.split('.'))
   return path
-
-
-def is_repeated_path_part(path_component: Union[str, int]) -> bool:
-  """Return True if the path component is a repeated path part."""
-  return isinstance(path_component, int) or path_component == PATH_WILDCARD
 
 
 class ImageInfo(BaseModel):

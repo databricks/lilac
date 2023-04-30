@@ -1,7 +1,6 @@
 """The DuckDB implementation of the dataset database."""
 import functools
 import glob
-import itertools
 import os
 import re
 from typing import Any, Iterable, Iterator, Optional, Sequence, Type, cast
@@ -29,6 +28,7 @@ from ..schema import (
     UUID_COLUMN,
     DataType,
     Field,
+    Item,
     ItemValue,
     Path,
     PathTuple,
@@ -41,7 +41,6 @@ from ..schema import (
     is_float,
     is_integer,
     is_ordinal,
-    is_repeated_path_part,
     normalize_path,
 )
 from ..signals.concept_scorer import ConceptScoreSignal
@@ -54,11 +53,11 @@ from .dataset_utils import (
     create_signal_schema,
     flatten,
     is_primitive,
-    make_enriched_items,
     merge_schemas,
     path_is_from_lilac,
     schema_contains_path,
     unflatten,
+    wrap_in_dicts,
 )
 from .db_dataset import (
     Bins,
@@ -76,6 +75,7 @@ from .db_dataset import (
     SelectGroupsResult,
     SelectRowsResult,
     SignalTransform,
+    SignalUDF,
     SortOrder,
     StatsResult,
     column_from_identifier,
@@ -123,17 +123,6 @@ class DuckDBSelectGroupsResult(SelectGroupsResult):
   def df(self) -> pd.DataFrame:
     """Convert the result to a pandas DataFrame."""
     return self._df
-
-
-class SelectLeafsResult(BaseModel):
-  """The result of a select leafs query."""
-
-  class Config:
-    arbitrary_types_allowed = True
-
-  df: pd.DataFrame
-  repeated_idxs_col: Optional[str]
-  value_column: Optional[str]
 
 
 ColumnEmbedding = tuple[PathTuple, str]
@@ -281,15 +270,14 @@ class DatasetDuckDB(DatasetDB):
     if isinstance(col.feature, Column):
       raise ValueError(f'Cannot compute a signal for {col} as it is not a leaf feature.')
 
-    with DebugTimer(f'"_select_leafs" over "{col.feature}"'):
-      select_leafs_result = self._select_leafs(path=normalize_path(col.feature))
-      leafs_df = select_leafs_result.df
+    with DebugTimer(f'"selecting values" over "{col.feature}"'):
+      df = self.select_rows([Column(col.feature, alias='value')], resolve_span=True).df()
 
-    keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
-    leaf_values = leafs_df[select_leafs_result.value_column]
-
+    nested_input = df['value']
+    flat_keys = flatten_keys(df[UUID_COLUMN], nested_input)
+    flat_input = cast(Iterable[RichData], flatten(nested_input))
     self._embedding_indexer.compute_embedding_index(
-        column=col.feature, embedding=embedding, keys=keys, data=leaf_values, task_id=task_id)
+        column=col.feature, embedding=embedding, keys=flat_keys, data=flat_input, task_id=task_id)
 
   @override
   def compute_signal_column(self,
@@ -303,57 +291,20 @@ class DatasetDuckDB(DatasetDB):
     source_path = normalize_path(column.feature)
     signal_field = signal.fields()
 
+    select_rows_result = self.select_rows([SignalUDF(signal, column, alias='value')],
+                                          task_id=task_id,
+                                          resolve_span=True)
+    df = select_rows_result.df()
+    spec = _split_path_into_subpaths_of_lists((LILAC_COLUMN, *source_path, signal.name))
+    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(df['value'], spec))
+    for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
+      item[UUID_COLUMN] = uuid
+
     signal_entity_paths = entity_paths(signal_field)
     # TODO(nsthorat): Raise if the signal does not produce entities and the input column is not an
     # entity index.
 
     signal_schema = create_signal_schema(signal, source_path, schema=self.manifest().data_schema)
-
-    if signal.vector_based:
-      # For embedding based signals, get the leaf keys and indices, creating a combined key for the
-      # key + index to pass to the signal.
-      with DebugTimer(f'"_select_leafs" over "{source_path}"'):
-        select_leafs_result = self._select_leafs(path=source_path, only_keys=True)
-        leafs_df = select_leafs_result.df
-
-      keys = _get_keys_from_leafs(leafs_df=leafs_df, select_leafs_result=select_leafs_result)
-
-      if signal.embedding is None:
-        raise ValueError('`Signal.embedding` must be defined for embedding-based signals.')
-
-      vector_store = self._get_vector_store(column.feature, signal.embedding)
-
-      with DebugTimer(f'"compute" for embedding signal "{signal.name}" over "{source_path}"'):
-        signal_outputs = signal.vector_compute(keys, vector_store)
-    else:
-      # For non-embedding based signals, get the leaf values and indices.
-      with DebugTimer(f'"_select_leafs" over "{source_path}"'):
-        select_leafs_result = self._select_leafs(path=source_path)
-        leafs_df = select_leafs_result.df
-
-      with DebugTimer(f'"compute" for signal "{signal.name}" over "{source_path}"'):
-        signal_outputs = signal.compute(leafs_df[select_leafs_result.value_column])
-
-    # Add progress.
-    if task_id is not None:
-      signal_outputs = progress(signal_outputs, task_id=task_id, estimated_len=len(leafs_df))
-
-    # Use the repeated indices to generate the correct signal output structure.
-    if select_leafs_result.repeated_idxs_col:
-      repeated_idxs = leafs_df[select_leafs_result.repeated_idxs_col]
-
-    # Repeat "None" if there are no repeated indices without allocating an array. This happens
-    # when the object is a simple structure.
-    repeated_idxs_iter: Iterable[Optional[list[int]]] = (
-        itertools.repeat(None) if not select_leafs_result.repeated_idxs_col else repeated_idxs)
-
-    enriched_signal_items = make_enriched_items(
-        source_path=source_path,
-        row_ids=leafs_df[UUID_COLUMN],
-        signal=signal,
-        leaf_items=signal_outputs,
-        repeated_idxs=repeated_idxs_iter)
-
     signal_out_prefix = signal_parquet_prefix(column_name=column.alias, signal_name=signal.name)
     parquet_filename, _ = write_items_to_parquet(
         items=enriched_signal_items,
@@ -390,112 +341,6 @@ class DatasetDuckDB(DatasetDB):
         with open_file(entity_index_manifest_filepath, 'w') as f:
           f.write(entity_index_manifest.json())
         log(f'Wrote entity index manifest to {signal_manifest_filepath}')
-
-  def _select_leafs(self,
-                    path: PathTuple,
-                    only_keys: Optional[bool] = False,
-                    row_uuid: Optional[str] = None) -> SelectLeafsResult:
-    schema_leafs = self.manifest().data_schema.leafs
-    if path not in schema_leafs:
-      raise ValueError(f'Path "{path}" not found in schema leafs: {schema_leafs}')
-
-    leaf_field = schema_leafs[path]
-    is_span = leaf_field.dtype == DataType.STRING_SPAN
-
-    if not is_span:
-      for path_component in path[0:-1]:
-        if is_repeated_path_part(path_component):
-          raise ValueError(
-              f'Outer repeated leafs are not yet supported in _select_leafs. Requested Path: {path}'
-          )
-    else:
-      # When we have spans, make sure there are not two repeated parts anywhere.
-      num_repeated_parts = 0
-      for path_component in path:
-        if is_repeated_path_part(path_component):
-          num_repeated_parts += 1
-      if num_repeated_parts > 1:
-        raise ValueError(
-            'Multiple repeated leafs for spans are not yet supported in _select_leafs. '
-            f'Requested Path: {path}')
-
-    repeated_indices_col: Optional[str] = None
-    is_repeated = any([is_repeated_path_part(path_part) for path_part in path])
-    if is_repeated:
-      inner_repeated_col = self._path_to_col(
-          path[0:path.index(PATH_WILDCARD)], quote_each_part=True)
-
-    data_col = 'leaf_data'
-    if is_span:
-      if not leaf_field.derived_from:
-        raise ValueError(f'Leaf span field {leaf_field} does not have a "derived_from" attribute.')
-
-      span_select = make_select_column(path)
-      derived_from_path_select = make_select_column(leaf_field.derived_from)
-
-      # In the sub-select, return both the original text and the span.
-      span_name = 'span'
-      data_select = f"""
-            {span_select} as {span_name},
-            {derived_from_path_select} as {data_col},
-      """
-      # In the outer select, return the sliced text. DuckDB 1-indexes array slices, and is inclusive
-      # to the last index, so we only add one to the start.
-      value_column = f"""{data_col}[
-        {span_name}.{TEXT_SPAN_START_FEATURE} + 1:{span_name}.{TEXT_SPAN_END_FEATURE}
-      ]
-      """
-    else:
-      data_select_column = make_select_column(path)
-      data_select = f"""
-          {data_select_column} as {data_col},
-      """
-      value_column = data_col
-
-    value_column_alias = 'value'
-    repeated_indices_col = None
-
-    where_query = ''
-    if row_uuid:
-      where_query = f"WHERE {UUID_COLUMN} = '{row_uuid}'"
-
-    if is_repeated:
-      # Currently we only allow inner repeated leafs, so we can use a simple UNNEST(RANGE(...)) to
-      # get the indices. When this is generalized, the RANGE has to be updated to return the list of
-      # indices.
-      repeated_indices_col = 'repeated_indices'
-      from_table = f"""
-        (
-          SELECT
-            {data_select if not only_keys else ''}
-            UNNEST(RANGE(ARRAY_LENGTH({inner_repeated_col}))) as {repeated_indices_col},
-            {UUID_COLUMN}
-          FROM t
-          {where_query}
-        )
-      """
-      leaf_select = f'{value_column} as {value_column_alias}'
-    else:
-      value_column = self._path_to_col(path, quote_each_part=True)
-      leaf_select = f'{value_column} as {value_column_alias}'
-      from_table = 't'
-
-    query = f"""
-    SELECT
-      {UUID_COLUMN},
-      {f'{repeated_indices_col},' if repeated_indices_col else ''}
-      {leaf_select if not only_keys else ''}
-    FROM {from_table}
-    {where_query}
-    """
-    df = self._query_df(query)
-    # DuckDB returns np.nan for missing field in string column, replace with None for correctness.
-    # TODO(https://github.com/duckdb/duckdb/issues/4066): Remove this once DuckDB/Pandas is fixed.
-    for col in df.columns:
-      if is_object_dtype(df[col]):
-        df[col].replace(np.nan, None, inplace=True)
-    return SelectLeafsResult(
-        df=df, value_column=value_column_alias, repeated_idxs_col=repeated_indices_col)
 
   def _validate_filters(self, filters: Sequence[Filter], col_aliases: dict[str, bool]) -> None:
     manifest = self.manifest()
@@ -685,7 +530,9 @@ class DatasetDuckDB(DatasetDB):
                   sort_by: Optional[Sequence[Path]] = None,
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
                   limit: Optional[int] = None,
-                  offset: Optional[int] = 0) -> SelectRowsResult:
+                  offset: Optional[int] = 0,
+                  task_id: Optional[TaskId] = None,
+                  resolve_span: bool = False) -> SelectRowsResult:
     if not columns:
       # Select all columns.
       columns = list(self.manifest().data_schema.fields.keys())
@@ -697,7 +544,7 @@ class DatasetDuckDB(DatasetDB):
       cols.append(column_from_identifier(UUID_COLUMN))
 
     self._validate_columns(cols)
-    select_query, col_aliases, columns_to_merge = self._create_select(cols)
+    select_query, col_aliases, columns_to_merge = self._create_select(cols, resolve_span)
     con = self.con.cursor()
     query = con.sql(f'SELECT {select_query} FROM t')
 
@@ -781,8 +628,18 @@ class DatasetDuckDB(DatasetDB):
               flat_keys = flatten_keys(df[UUID_COLUMN], input)
               flat_scores = signal.vector_compute(flat_keys, vector_store)
           else:
-            flat_input = cast(Iterable[RichData], flatten(input))
-            flat_scores = signal.compute(flat_input)
+            flat_input = cast(list[RichData], flatten(input))
+            # Add progress.
+            signal_out = signal.compute(flat_input)
+            if task_id is not None:
+              signal_out = progress(signal_out, task_id=task_id, estimated_len=len(flat_input))
+            flat_scores = list(signal_out)
+
+            if len(flat_scores) != len(flat_input):
+              raise ValueError(
+                  f'The signal generated {len(flat_scores)} values but the input data had '
+                  f"{len(flat_input)} values. This means the signal either didn't generate a "
+                  '"None" for a sparse output, or generated too many items.')
 
           df[signal_column] = unflatten(flat_scores, input)
 
@@ -831,8 +688,8 @@ class DatasetDuckDB(DatasetDB):
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
-  def _create_select(self,
-                     columns: list[Column]) -> tuple[str, dict[str, bool], dict[str, list[str]]]:
+  def _create_select(self, columns: list[Column],
+                     resolve_span: bool) -> tuple[str, dict[str, bool], dict[str, list[str]]]:
     """Create the select statement."""
     select_queries: list[str] = []
     alias_and_transform: dict[str, bool] = {}
@@ -840,28 +697,33 @@ class DatasetDuckDB(DatasetDB):
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
     columns_to_merge: dict[str, list[str]] = {}
 
+    leafs = self.manifest().data_schema.leafs
+
     for column in columns:
       path = column.feature
+      is_span = (path in leafs and leafs[path].dtype == DataType.STRING_SPAN)
+      span_field = leafs[path] if resolve_span and is_span else None
+      alias_and_transform[column.alias] = bool(column.transform)
+      empty = bool(
+          column.transform and isinstance(column.transform, SignalTransform) and
+          column.transform.signal.vector_based)
       if path_is_from_lilac(path):
         # Figure out which signals have this path. If multiple signals have this path, we need to
         # fetch them into seperate columns that later get merged.
         for m in self._signal_manifests:
           if schema_contains_path(m.data_schema, path):
             signal_path = (m.parquet_id, *path[1:])
-            col = make_select_column(signal_path, flatten=False, empty=False)
+            col = make_select_column(signal_path, flatten=False, empty=empty, span_field=span_field)
             # Fetch the signal data into a temporary unique namespaced column name. This will later
             # be merged into the final column name {column.alias}.
-            unmerged_col_name = f'{column.alias}/{m.parquet_id}'
+            unmerged_col_name = column.alias if path in leafs else f'{column.alias}/{m.parquet_id}'
             select_queries.append(f'{col} AS "{unmerged_col_name}"')
-            if column.alias not in columns_to_merge:
-              columns_to_merge[column.alias] = []
-            columns_to_merge[column.alias].append(unmerged_col_name)
+            if path not in leafs:
+              if column.alias not in columns_to_merge:
+                columns_to_merge[column.alias] = []
+              columns_to_merge[column.alias].append(unmerged_col_name)
       else:
-        alias_and_transform[column.alias] = bool(column.transform)
-        empty = bool(
-            column.transform and isinstance(column.transform, SignalTransform) and
-            column.transform.signal.vector_based)
-        col = make_select_column(column.feature, flatten=False, empty=empty)
+        col = make_select_column(column.feature, flatten=False, empty=empty, span_field=span_field)
         select_queries.append(f'{col} AS "{column.alias}"')
 
     return ', '.join(select_queries), alias_and_transform, columns_to_merge
@@ -946,7 +808,8 @@ class DatasetDuckDB(DatasetDB):
 
 def _inner_select(sub_paths: list[PathTuple],
                   inner_var: Optional[str] = None,
-                  empty: bool = False) -> str:
+                  empty: bool = False,
+                  span_field: Optional[Field] = None) -> str:
   """Recursively generate the inner select statement for a list of sub paths."""
   current_sub_path = sub_paths[0]
   lambda_var = inner_var + 'x' if inner_var else 'x'
@@ -957,9 +820,15 @@ def _inner_select(sub_paths: list[PathTuple],
   # Select the path inside structs. E.g. x['a']['b']['c'] given current_sub_path = [a, b, c].
   path_key = inner_var + ''.join([f"['{p}']" for p in current_sub_path])
   if len(sub_paths) == 1:
+    if span_field:
+      if not span_field.derived_from:
+        raise ValueError('derived_from from must be specified for span.')
+      derived_col = make_select_column(span_field.derived_from)
+      path_key = (f'{derived_col}[{path_key}.{TEXT_SPAN_START_FEATURE}+1:'
+                  f'{path_key}.{TEXT_SPAN_END_FEATURE}]')
     return 'NULL' if empty else path_key
   return (f'list_transform({path_key}, {lambda_var} -> '
-          f'{_inner_select(sub_paths[1:], lambda_var, empty)})')
+          f'{_inner_select(sub_paths[1:], lambda_var, empty, span_field)})')
 
 
 def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
@@ -978,17 +847,22 @@ def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
   return sub_paths
 
 
-def make_select_column(leaf_path: Path, flatten: bool = True, empty: bool = False) -> str:
+def make_select_column(leaf_path: Path,
+                       flatten: bool = True,
+                       empty: bool = False,
+                       span_field: Optional[Field] = None) -> str:
   """Create a select column for a leaf path.
 
   Args:
     leaf_path: A path to a leaf feature. E.g. ['a', 'b', 'c'].
     flatten: Whether to flatten the result.
     empty: Whether to return an empty list (used for embedding signals that don't need the data).
+    span_field: The field that the span is derived from. If specified, the span will be resolved
+      to a substring of the original string.
   """
   path = normalize_path(leaf_path)
   sub_paths = _split_path_into_subpaths_of_lists(path)
-  selection = _inner_select(sub_paths, None, empty)
+  selection = _inner_select(sub_paths, None, empty, span_field)
   # We only flatten when the result of a nested list to avoid segfault.
   is_result_nested_list = len(sub_paths) >= 3  # E.g. subPaths = [[a, b, c], *, *].
   if flatten and is_result_nested_list:
@@ -1000,19 +874,19 @@ def make_select_column(leaf_path: Path, flatten: bool = True, empty: bool = Fals
   return selection
 
 
-def _get_repeated_key(row_id: str, repeated_idxs: list[int]) -> str:
-  if not repeated_idxs:
+def _get_repeated_key(row_id: str, location: list[int]) -> str:
+  if not location:
     return row_id
-  return row_id + '_' + ','.join(map(str, repeated_idxs))
+  return row_id + '_' + ','.join(map(str, location))
 
 
-def _flatten_keys(uuid: str, nested_input: Iterable, repeated_idxs: list[int]) -> list[str]:
+def _flatten_keys(uuid: str, nested_input: Iterable, location: list[int]) -> list[str]:
   if is_primitive(nested_input):
-    return [_get_repeated_key(uuid, repeated_idxs)]
+    return [_get_repeated_key(uuid, location)]
   else:
     result: list[str] = []
     for i, input in enumerate(nested_input):
-      result.extend(_flatten_keys(uuid, input, [*repeated_idxs, i]))
+      result.extend(_flatten_keys(uuid, input, [*location, i]))
     return result
 
 
@@ -1022,21 +896,6 @@ def flatten_keys(uuids: Iterable[str], nested_input: Iterable) -> list[str]:
   for uuid, input in zip(uuids, nested_input):
     result.extend(_flatten_keys(uuid, input, []))
   return result
-
-
-def _get_keys_from_leafs(leafs_df: pd.DataFrame,
-                         select_leafs_result: SelectLeafsResult) -> Iterable[str]:
-  """Compute the keys from the dataframe and select leafs result, adding indices to keys."""
-  # Add the repeated indices to the create a repeated key so we can store different values for the
-  # same row uuid.
-  if select_leafs_result.repeated_idxs_col:
-    # Add the repeated indices to the create a repeated key so we can store different values for the
-    # same row uuid.
-    return leafs_df.apply(
-        lambda row: _get_repeated_key(row[UUID_COLUMN],
-                                      [row[select_leafs_result.repeated_idxs_col]]),
-        axis=1)
-  return leafs_df[UUID_COLUMN]
 
 
 def read_source_manifest(dataset_path: str) -> SourceManifest:
