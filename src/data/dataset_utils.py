@@ -124,9 +124,11 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
     raise ValueError(f'"{source_path}" is not a valid leaf path. '
                      f'Leaf paths: {leafs.keys()}')
 
-  enriched_schema = Field(fields={signal.name: signal.fields()})
+  signal_schema = signal.fields()
   # Apply the "derived_from" field lineage to the field we are enriching.
-  _apply_field_lineage(enriched_schema, source_path)
+  _apply_field_lineage(signal_schema, source_path)
+  enriched_schema = Field(fields={signal.name: signal_schema})
+
   # If we are enriching an entity we should store the signal data in the entity field's parent.
   if source_path[-1] == ENTITY_FEATURE_KEY:
     source_path = source_path[:-1]

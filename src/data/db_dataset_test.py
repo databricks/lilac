@@ -295,8 +295,7 @@ class SelectRowsSuite:
                                             dtype=DataType.FLOAT32, derived_from=('str',))
                                     },
                                     derived_from=('str',))
-                            },
-                            derived_from=('str',))
+                            })
                     })
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
@@ -511,8 +510,7 @@ class SelectRowsSuite:
                                                 dtype=DataType.FLOAT32, derived_from=('texts', '*'))
                                         },
                                         derived_from=('texts', '*'))
-                                },
-                                derived_from=('texts', '*')))
+                                }))
                     })
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
@@ -622,8 +620,7 @@ class SelectRowsSuite:
                                                 dtype=DataType.FLOAT32, derived_from=('text', '*'))
                                         },
                                         derived_from=('text', '*'))
-                                },
-                                derived_from=('text', '*')))
+                                }))
                     })
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
@@ -1013,8 +1010,7 @@ class SelectRowsSuite:
                                             dtype=DataType.FLOAT32, derived_from=('str',))
                                     },
                                     derived_from=('str',))
-                            },
-                            derived_from=('str',))
+                            })
                     })
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
@@ -1114,8 +1110,7 @@ class SelectRowsSuite:
                                                 dtype=DataType.INT32, derived_from=('text',))
                                         }),
                                     derived_from=('text',))
-                            },
-                            derived_from=('text',))
+                            })
                     })
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
@@ -1176,8 +1171,7 @@ class SelectRowsSuite:
                             fields={
                                 'test_embedding_sum': Field(
                                     dtype=DataType.FLOAT32, derived_from=('text',))
-                            },
-                            derived_from=('text',))
+                            })
                     })
             }),
         embedding_manifest=EmbeddingIndexerManifest(
@@ -1251,8 +1245,7 @@ class SelectRowsSuite:
                                                 dtype=DataType.INT32, derived_from=('text',))
                                         }),
                                     derived_from=('text',))
-                            },
-                            derived_from=('text',))
+                            })
                     })
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[

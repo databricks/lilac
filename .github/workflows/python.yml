@@ -19,9 +19,11 @@ jobs:
         run: |
           ./scripts/setup_py.sh
 
-      - name: Lint python
-        run: |
-          poetry run ./scripts/lint_py.sh
+      # We run testing before linting since testing, surprisingly, is much faster.
       - name: Test python
         run: |
           poetry run ./scripts/test_py.sh
+
+      - name: Lint python
+        run: |
+          poetry run ./scripts/lint_py.sh
