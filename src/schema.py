@@ -20,10 +20,12 @@ PARQUET_FILENAME_PREFIX = 'data'
 # We choose `__rowid__` inspired by the standard `rowid` pseudocolumn in DBs:
 # https://docs.oracle.com/cd/B19306_01/server.102/b14200/pseudocolumns008.htm
 UUID_COLUMN = '__rowid__'
+# Top-level column name to namespace all the data produced by lilac. This avoids polluting the
+# source data with enriched results.
 LILAC_COLUMN = '__lilac__'
 PATH_WILDCARD = '*'
 ENTITY_FEATURE_KEY = '__entity__'
-
+ENTITY_METADATA_KEY = '__metadata__'
 TEXT_SPAN_START_FEATURE = 'start'
 TEXT_SPAN_END_FEATURE = 'end'
 
@@ -170,20 +172,24 @@ class Field(BaseModel):
     return f' {self.__class__.__name__}::{self.json(exclude_none=True, indent=2)}'
 
 
-def EntityField(entity_value: Field, fields: Optional[dict[str, Field]] = {}) -> Field:
+def EntityField(entity_value: Field,
+                metadata: Optional[dict[str, Field]] = {},
+                extra_data: Optional[dict[str, Field]] = {}) -> Field:
   """Returns a field that represents an entity."""
-  return Field(
-      fields={
-          ENTITY_FEATURE_KEY: entity_value,
-          **(fields or {})
-      },
+  res = Field(
+      fields={ENTITY_FEATURE_KEY: entity_value},
       is_entity=True,
       derived_from=entity_value.derived_from)
+  if metadata and res.fields:
+    res.fields[ENTITY_METADATA_KEY] = Field(fields=metadata, derived_from=entity_value.derived_from)
+  if extra_data and res.fields:
+    res.fields = {**res.fields, **extra_data}
+  return res
 
 
-def Entity(entity: Item, metadata: Optional[Item] = {}) -> Item:
+def Entity(entity: Item, metadata: Optional[Item] = {}, extra_data: Optional[Item] = {}) -> Item:
   """Creates an entity item."""
-  return {ENTITY_FEATURE_KEY: entity, **(metadata or {})}
+  return {ENTITY_FEATURE_KEY: entity, ENTITY_METADATA_KEY: metadata or {}, **(extra_data or {})}
 
 
 class Schema(BaseModel):
@@ -254,22 +260,21 @@ def entity_paths(field: Field) -> list[PathTuple]:
   return entities
 
 
-def TextEntity(start: int, end: int, metadata: Optional[Item] = {}) -> Item:
+def TextEntity(start: int,
+               end: int,
+               metadata: Optional[Item] = {},
+               extra_data: Optional[Item] = {}) -> Item:
   """Return the span item from start and end character offets."""
   span: Item = {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
-  return Entity(span, metadata)
+  return Entity(span, metadata, extra_data)
 
 
 def TextEntityField(metadata: Optional[dict[str, Field]] = {},
+                    extra_data: Optional[dict[str, Field]] = {},
                     derived_from: Optional[PathTuple] = None) -> Field:
   """Returns a field that represents an entity."""
-  return Field(
-      fields={
-          ENTITY_FEATURE_KEY: Field(dtype=DataType.STRING_SPAN, derived_from=derived_from),
-          **(metadata or {})
-      },
-      is_entity=True,
-      derived_from=derived_from)
+  return EntityField(
+      Field(dtype=DataType.STRING_SPAN, derived_from=derived_from), metadata, extra_data)
 
 
 def child_item_from_column_path(item: Item, path: Path) -> Item:

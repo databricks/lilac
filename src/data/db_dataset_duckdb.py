@@ -647,22 +647,25 @@ class DatasetDuckDB(DatasetDB):
                 deep_array[key[-1]] = score
             else:
               flat_keys = flatten_keys(df[UUID_COLUMN], input)
-              flat_scores = signal.vector_compute(flat_keys, vector_store)
-              df[signal_column] = unflatten(flat_scores, input)
+              signal_out = signal.vector_compute(flat_keys, vector_store)
+              # Add progress.
+              if task_id is not None:
+                signal_out = progress(signal_out, task_id=task_id, estimated_len=len(flat_keys))
+              df[signal_column] = unflatten(signal_out, input)
           else:
             flat_input = cast(list[RichData], flatten(input))
-            # Add progress.
             signal_out = signal.compute(flat_input)
+            # Add progress.
             if task_id is not None:
               signal_out = progress(signal_out, task_id=task_id, estimated_len=len(flat_input))
-            flat_scores = list(signal_out)
+            signal_out = list(signal_out)
 
-            if len(flat_scores) != len(flat_input):
+            if len(signal_out) != len(flat_input):
               raise ValueError(
-                  f'The signal generated {len(flat_scores)} values but the input data had '
+                  f'The signal generated {len(signal_out)} values but the input data had '
                   f"{len(flat_input)} values. This means the signal either didn't generate a "
                   '"None" for a sparse output, or generated too many items.')
-            df[signal_column] = unflatten(flat_scores, input)
+            df[signal_column] = unflatten(signal_out, input)
       else:
         raise ValueError(f'Unsupported transform: {transform}')
 
@@ -719,6 +722,8 @@ class DatasetDuckDB(DatasetDB):
     path = column.feature
     is_span = (path in leafs and leafs[path].dtype == DataType.STRING_SPAN)
     span_field = leafs[path] if resolve_span and is_span else None
+    # We doing a vector-based computation, we do not need to select the actual data, just the uuids
+    # plus an arbitrarily nested array of `None`s`.
     empty = bool(
         column.transform and isinstance(column.transform, SignalTransform) and
         column.transform.signal.vector_based)
@@ -1000,7 +1005,7 @@ class EntityIndexManifest(BaseModel):
 def _merge_cells(dest_cell: ItemValue, source_cell: ItemValue) -> None:
   if isinstance(dest_cell, dict):
     if not isinstance(source_cell, dict):
-      raise ValueError('should not happen')
+      raise ValueError('Failed to merge cells. Destination is a dict, but source is not.')
     for key, value in source_cell.items():
       if key not in dest_cell:
         dest_cell[key] = value
@@ -1008,7 +1013,7 @@ def _merge_cells(dest_cell: ItemValue, source_cell: ItemValue) -> None:
         _merge_cells(dest_cell[key], value)
   elif isinstance(dest_cell, list):
     if not isinstance(source_cell, list):
-      raise ValueError('should not happen')
+      raise ValueError('Failed to merge cells. Destination is a list, but source is not.')
     for dest_subcell, source_subcell in zip(dest_cell, source_cell):
       _merge_cells(dest_subcell, source_subcell)
   else:

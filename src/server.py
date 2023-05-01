@@ -16,6 +16,7 @@ from . import (
     router_signal,
     router_tasks,
 )
+from .router_utils import RouteErrorHandler
 from .tasks import task_manager
 
 DIST_PATH = os.path.abspath(os.path.join('dist'))
@@ -48,7 +49,7 @@ app = FastAPI(
     generate_unique_id_function=custom_generate_unique_id,
     openapi_tags=tags_metadata)
 
-v1_router = APIRouter()
+v1_router = APIRouter(route_class=RouteErrorHandler)
 v1_router.include_router(router_dataset.router, prefix='/datasets', tags=['datasets'])
 v1_router.include_router(router_concept.router, prefix='/concepts', tags=['concepts'])
 v1_router.include_router(router_data_loader.router, prefix='/data_loaders', tags=['data_loaders'])

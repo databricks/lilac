@@ -73,7 +73,7 @@ def _merge_field_into(schema: Field, destination: Field) -> None:
     destination.derived_from = destination.derived_from or schema.derived_from
   if schema.fields:
     if destination.fields is None:
-      raise ValueError('should not happen')
+      raise ValueError('Failed to merge schemas. Origin schema has fields but destination does not')
     for field_name, subfield in schema.fields.items():
       if field_name not in destination.fields:
         destination.fields[field_name] = subfield.copy(deep=True)
@@ -81,11 +81,12 @@ def _merge_field_into(schema: Field, destination: Field) -> None:
         _merge_field_into(subfield, destination.fields[field_name])
   elif schema.repeated_field:
     if not destination.repeated_field:
-      raise ValueError('should not happen')
+      raise ValueError('Failed to merge schemas. Origin schema is repeated, but destination is not')
     _merge_field_into(schema.repeated_field, destination.repeated_field)
   else:
     if destination.dtype != schema.dtype:
-      raise ValueError('should not happen')
+      raise ValueError(f'Failed to merge schemas. Origin schema has dtype {schema.dtype}, '
+                       f'but destination has dtype {destination.dtype}')
 
 
 def merge_schemas(schemas: list[Schema]) -> Schema:
@@ -141,7 +142,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
       enriched_schema = Field(fields={path_part: enriched_schema})
 
   if not enriched_schema.fields:
-    raise ValueError('This should not happen')
+    raise ValueError('This should not happen since enriched_schema always has fields (see above)')
 
   # If a signal is enriching output of a signal, skip the lilac prefix to avoid double prefixing.
   if path_is_from_lilac(source_path):

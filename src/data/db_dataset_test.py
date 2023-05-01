@@ -1213,13 +1213,15 @@ class SelectRowsSuite:
                                 'test_entity_len': Field(
                                     repeated_field=TextEntityField(
                                         metadata={
+                                            'len': Field(
+                                                dtype=DataType.INT32, derived_from=('text',))
+                                        },
+                                        extra_data={
                                             'test_embedding_sum': Field(
                                                 dtype=DataType.FLOAT32,
                                                 derived_from=(LILAC_COLUMN, 'text',
                                                               'test_entity_len', '*',
-                                                              ENTITY_FEATURE_KEY)),
-                                            'len': Field(
-                                                dtype=DataType.INT32, derived_from=('text',))
+                                                              ENTITY_FEATURE_KEY))
                                         },
                                         derived_from=('text',)),
                                     derived_from=('text',))
@@ -1242,27 +1244,15 @@ class SelectRowsSuite:
         UUID_COLUMN: '1',
         'text': 'hello. hello2.',
         'sentences': [
-            TextEntity(0, 6, metadata={
-                'len': 6,
-                'test_embedding_sum': 1.0
-            }),
-            TextEntity(7, 14, metadata={
-                'len': 7,
-                'test_embedding_sum': 2.0
-            })
+            TextEntity(0, 6, metadata={'len': 6}, extra_data={'test_embedding_sum': 1.0}),
+            TextEntity(7, 14, metadata={'len': 7}, extra_data={'test_embedding_sum': 2.0})
         ]
     }, {
         UUID_COLUMN: '2',
         'text': 'hello world. hello world2.',
         'sentences': [
-            TextEntity(0, 12, metadata={
-                'len': 12,
-                'test_embedding_sum': 3.0
-            }),
-            TextEntity(13, 26, metadata={
-                'len': 13,
-                'test_embedding_sum': 4.0
-            })
+            TextEntity(0, 12, metadata={'len': 12}, extra_data={'test_embedding_sum': 3.0}),
+            TextEntity(13, 26, metadata={'len': 13}, extra_data={'test_embedding_sum': 4.0})
         ]
     }]
 

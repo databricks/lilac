@@ -72,10 +72,10 @@ class NumpyVectorStore(VectorStore):
     k = min(k, len(similarities))
 
     # We do a partition + sort only top K to save time: O(n + klogk) instead of O(nlogn).
-    indicies = np.argpartition(similarities, -k)[-k:]
+    indices = np.argpartition(similarities, -k)[-k:]
     # Indices sorted by value from largest to smallest.
-    indicies = indicies[np.argsort(similarities[indicies])][::-1]
+    indices = indices[np.argsort(similarities[indices])][::-1]
 
-    topk_similarities = similarities[indicies]
-    topk_keys: list[PathTuple] = [keys[idx] for idx in indicies]
+    topk_similarities = similarities[indices]
+    topk_keys: list[PathTuple] = [keys[idx] for idx in indices]
     return list(zip(topk_keys, topk_similarities))
