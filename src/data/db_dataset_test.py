@@ -1249,8 +1249,10 @@ class SelectRowsSuite:
                                                               ENTITY_FEATURE_KEY)),
                                             'len': Field(
                                                 dtype=DataType.INT32, derived_from=('text',))
-                                        }))
-                            })
+                                        }),
+                                    derived_from=('text',))
+                            },
+                            derived_from=('text',))
                     })
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[

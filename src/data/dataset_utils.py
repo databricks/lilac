@@ -68,8 +68,9 @@ def wrap_in_dicts(input: Union[object, Iterable[object]],
 
 
 def _merge_field_into(schema: Field, destination: Field) -> None:
-  if isinstance(schema, Field) and schema.is_entity:
-    destination.is_entity = True
+  if isinstance(schema, Field):
+    destination.is_entity = destination.is_entity or schema.is_entity
+    destination.derived_from = destination.derived_from or schema.derived_from
   if schema.fields:
     if destination.fields is None:
       raise ValueError('should not happen')
@@ -125,8 +126,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
 
   enriched_schema = Field(fields={signal.name: signal.fields()})
   # Apply the "derived_from" field lineage to the field we are enriching.
-  enriched_schema = _apply_field_lineage(enriched_schema, source_path)
-
+  _apply_field_lineage(enriched_schema, source_path)
   # If we are enriching an entity we should store the signal data in the entity field's parent.
   if source_path[-1] == ENTITY_FEATURE_KEY:
     source_path = source_path[:-1]
@@ -148,16 +148,15 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
   return Schema(fields={UUID_COLUMN: Field(dtype=DataType.STRING), LILAC_COLUMN: enriched_schema})
 
 
-def _apply_field_lineage(field: Field, derived_from: PathTuple) -> Field:
+def _apply_field_lineage(field: Field, derived_from: PathTuple) -> None:
   """Returns a new field with the derived_from field set recursively on all children."""
   if field.dtype == DataType.STRING_SPAN:
     # String spans act as leafs.
     pass
   elif field.fields:
-    for name, child_field in field.fields.items():
-      field.fields[name] = _apply_field_lineage(child_field, derived_from)
+    for child_field in field.fields.values():
+      _apply_field_lineage(child_field, derived_from)
   elif field.repeated_field:
-    field.repeated_field = _apply_field_lineage(field.repeated_field, derived_from)
+    _apply_field_lineage(field.repeated_field, derived_from)
 
   field.derived_from = derived_from
-  return field
