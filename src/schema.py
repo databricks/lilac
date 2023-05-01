@@ -9,6 +9,8 @@ import numpy as np
 import pyarrow as pa
 from pydantic import (
     BaseModel,
+    StrictInt,
+    StrictStr,
     validator,
 )
 
@@ -38,8 +40,8 @@ SignalOut = Union[ItemValue, Item]
 #  ['article', 'field'] represents {'article': {'field': VALUES}}
 #  ['article', '*', 'field'] represents {'article': [{'field': VALUES}, {'field': VALUES}]}
 #  ['article', 0, 'field'] represents {'article': [{'field': VALUES}, {'field': UNRELATED}]}
-PathTuple = tuple[Union[str, int], ...]
-Path = Union[str, PathTuple]
+PathTuple = tuple[Union[StrictInt, StrictStr], ...]
+Path = Union[StrictStr, PathTuple]
 
 PathKeyedItem = tuple[Path, Item]
 

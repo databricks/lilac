@@ -9,6 +9,6 @@ import type { Embedding } from './Embedding';
  */
 export type ComputeEmbeddingIndexOptions = {
     embedding: Embedding;
-    leaf_path: Array<(string | number)>;
+    leaf_path: Array<(number | string)>;
 };
 

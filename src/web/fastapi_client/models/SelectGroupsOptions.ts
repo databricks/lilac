@@ -11,7 +11,7 @@ import type { SortOrder } from './SortOrder';
  * The request for the select groups endpoint.
  */
 export type SelectGroupsOptions = {
-    leaf_path: Array<(string | number)>;
+    leaf_path: Array<(number | string)>;
     filters?: Array<Filter>;
     sort_by?: GroupsSortBy;
     sort_order?: SortOrder;

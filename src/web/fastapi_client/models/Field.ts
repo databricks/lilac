@@ -13,6 +13,6 @@ export type Field = {
     dtype?: DataType;
     enriched?: boolean;
     is_entity?: boolean;
-    derived_from?: Array<(string | number)>;
+    derived_from?: Array<(number | string)>;
 };
 

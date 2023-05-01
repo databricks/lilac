@@ -1,6 +1,6 @@
 """Utils for writing the embedding index for a column."""
 import abc
-from typing import Callable, Iterable, Optional
+from typing import Iterable, Optional
 
 import numpy as np
 from pydantic import BaseModel, validator
@@ -16,7 +16,7 @@ class EmbeddingIndex(BaseModel):
   class Config:
     arbitrary_types_allowed = True
 
-  keys: list[str]
+  keys: list[PathTuple]
   embeddings: np.ndarray
 
 
@@ -34,9 +34,6 @@ class EmbeddingIndexInfo(BaseModel):
 class EmbeddingIndexerManifest(BaseModel):
   """The manifest of an embedding indexer."""
   indexes: list[EmbeddingIndexInfo]
-
-
-GetEmbeddingIndexFn = Callable[[EmbeddingId, Iterable[str]], EmbeddingIndex]
 
 
 class EmbeddingIndexer(abc.ABC):
@@ -64,7 +61,7 @@ class EmbeddingIndexer(abc.ABC):
   def compute_embedding_index(self,
                               column: Path,
                               embedding: Embedding,
-                              keys: Iterable[str],
+                              keys: Iterable[PathTuple],
                               data: Iterable[RichData],
                               task_id: Optional[TaskId] = None) -> None:
     """Get an embedding index for a column, throw if it doesn't exist.

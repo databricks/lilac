@@ -8,7 +8,7 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..schema import EnrichmentType, RichData
+from ..schema import EnrichmentType, PathTuple, RichData
 from .embedding_index import EmbeddingIndexer, EmbeddingIndexerManifest, EmbeddingIndexInfo
 from .embedding_index_disk import EmbeddingIndexerDisk
 from .embedding_registry import Embedding, clear_embedding_registry, register_embedding
@@ -17,12 +17,11 @@ ALL_INDEXERS: list[Type[EmbeddingIndexer]] = [EmbeddingIndexerDisk]
 
 TEST_EMBEDDING_NAME = 'test_embedding'
 
-EMBEDDINGS: list[tuple[str, str, list[float]]] = [('1', 'hello', [1.0, 0.0, 0.0]),
-                                                  ('2', 'hello world', [0.9, 0.1, 0.0]),
-                                                  ('3', 'far', [0.0, 0.0, 1.0])]
+EMBEDDINGS: list[tuple[PathTuple, str, list[float]]] = [(('1',), 'hello', [1.0, 0.0, 0.0]),
+                                                        (('2',), 'hello world', [0.9, 0.1, 0.0]),
+                                                        (('3',), 'far', [0.0, 0.0, 1.0])]
 
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for _, text, embedding in EMBEDDINGS}
-KEY_EMBEDDINGS: dict[str, list[float]] = {key: embedding for key, _, embedding in EMBEDDINGS}
 
 
 class TestEmbedding(Embedding):

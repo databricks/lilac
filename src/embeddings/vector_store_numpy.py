@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from typing_extensions import override
 
+from ..schema import PathTuple
 from .vector_store import VectorStore
 
 NP_INDEX_KEYS_KWD = 'keys'
@@ -15,11 +16,11 @@ NP_EMBEDDINGS_KWD = 'embeddings'
 class NumpyVectorStore(VectorStore):
   """Stores vectors as in-memory np arrays."""
   _embeddings: np.ndarray
-  _keys: np.ndarray
+  _keys: list[PathTuple]
   _df: pd.DataFrame
 
   @override
-  def add(self, keys: list[str], embeddings: np.ndarray) -> None:
+  def add(self, keys: list[PathTuple], embeddings: np.ndarray) -> None:
     if hasattr(self, '_embeddings') or hasattr(self, '_keys'):
       raise ValueError('Embeddings already exist in this store. Upsert is not yet supported.')
 
@@ -28,18 +29,21 @@ class NumpyVectorStore(VectorStore):
           f'Length of keys ({len(keys)}) does not match number of embeddings {embeddings.shape[0]}.'
       )
 
-    self._keys = np.array(keys)
+    self._keys = keys
     # Cast to float32 since dot product with float32 is 40-50x faster than float16 and 2.5x faster
     # than float64.
     self._embeddings = embeddings.astype(np.float32)
+
+    # Make str keys to index into the pandas dataframe.
+    str_keys = list(map(str, keys))
     # np.split makes a shallow copy of each of the embeddings, so the data frame can be a shallow
     # view of the numpy array. This means the dataframe cannot be used to modify the embeddings.
     self._df = pd.DataFrame(
         {NP_EMBEDDINGS_KWD: np.split(self._embeddings.flatten(), embeddings.shape[0])},
-        index=self._keys)
+        index=str_keys)
 
   @override
-  def get(self, keys: Iterable[str]) -> np.ndarray:
+  def get(self, keys: Iterable[PathTuple]) -> np.ndarray:
     """Return the embeddings for given keys.
 
     Args:
@@ -48,21 +52,17 @@ class NumpyVectorStore(VectorStore):
     Returns
       The embeddings for the given keys.
     """
-    if isinstance(keys, pd.Series):
-      np_keys = keys.to_numpy()
-    else:
-      np_keys = np.array(keys)
-
-    return np.stack(self._df.loc[np_keys][NP_EMBEDDINGS_KWD])
+    str_keys = list(map(str, keys))
+    return np.stack(self._df.loc[str_keys][NP_EMBEDDINGS_KWD])
 
   @override
   def topk(self,
            query: np.ndarray,
            k: int,
-           keys: Optional[Iterable[str]] = None) -> list[tuple[str, float]]:
+           keys: Optional[Iterable[PathTuple]] = None) -> list[tuple[PathTuple, float]]:
     if keys:
       embeddings = self.get(keys)
-      keys = np.array(keys)
+      keys = list(keys)
     else:
       embeddings = self._embeddings
       keys = self._keys
@@ -72,10 +72,10 @@ class NumpyVectorStore(VectorStore):
     k = min(k, len(similarities))
 
     # We do a partition + sort only top K to save time: O(n + klogk) instead of O(nlogn).
-    idx = np.argpartition(similarities, -k)[-k:]
+    indicies = np.argpartition(similarities, -k)[-k:]
     # Indices sorted by value from largest to smallest.
-    idx = idx[np.argsort(similarities[idx])][::-1]
+    indicies = indicies[np.argsort(similarities[indicies])][::-1]
 
-    topk_similarities = similarities[idx]
-    topk_keys = keys[idx]
+    topk_similarities = similarities[indicies]
+    topk_keys: list[PathTuple] = [keys[idx] for idx in indicies]
     return list(zip(topk_keys, topk_similarities))

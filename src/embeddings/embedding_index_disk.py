@@ -6,7 +6,6 @@ import pathlib
 from typing import Iterable, Optional, Union
 
 import numpy as np
-import pandas as pd
 from typing_extensions import override
 
 from ..schema import Path, PathTuple, RichData, normalize_path, path_to_alias
@@ -70,14 +69,13 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
       np_index: dict[str, np.ndarray] = np.load(f, allow_pickle=True)
       embeddings = np_index[NP_EMBEDDINGS_KWD]
       index_keys = np_index[NP_INDEX_KEYS_KWD].tolist()
-
     return EmbeddingIndex(path=index_path, keys=index_keys, embeddings=embeddings)
 
   @override
   def compute_embedding_index(self,
                               column: Path,
                               embedding: EmbeddingId,
-                              keys: Iterable[str],
+                              keys: Iterable[PathTuple],
                               data: Iterable[RichData],
                               task_id: Optional[TaskId] = None) -> None:
     if isinstance(embedding, str):
@@ -100,10 +98,9 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
       return
 
     # Write the embedding index and the ordered UUID column to disk so they can be joined later.
-    if isinstance(keys, pd.Series):
-      np_keys = keys.to_numpy()
-    else:
-      np_keys = np.array(keys)
+    keys = list(keys)
+    np_keys = np.empty(len(keys), dtype=object)
+    np_keys[:] = keys
 
     batches = chunks(data, size=embed_fn.batch_size)
 

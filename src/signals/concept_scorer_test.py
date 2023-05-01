@@ -158,9 +158,10 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
       ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   vector_store = NumpyVectorStore()
-  vector_store.add(['1', '2', '3'], np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
+  vector_store.add([('1',), ('2',), ('3',)],
+                   np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
 
-  scores = signal.vector_compute(['1', '2', '3'], vector_store)
+  scores = signal.vector_compute([('1',), ('2',), ('3',)], vector_store)
 
   expected_scores = [0.465, 0.535, 0.801]
   for score, expected_score in zip(scores, expected_scores):
@@ -188,25 +189,26 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
   model_db.sync(
       ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
   vector_store = NumpyVectorStore()
-  vector_store.add(['1', '2', '3'], np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
+  vector_store.add([('1',), ('2',), ('3',)],
+                   np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
 
   # Compute topk without id restriction.
   topk_result = signal.vector_compute_topk(3, vector_store)
-  expected_result = [('3', 0.801), ('2', 0.535), ('1', 0.465)]
+  expected_result = [(('3',), 0.801), (('2',), 0.535), (('1',), 0.465)]
   for (id, score), (expected_id, expected_score) in zip(topk_result, expected_result):
     assert id == expected_id
     assert score == pytest.approx(expected_score, 1e-3)
 
   # Compute top 1.
   topk_result = signal.vector_compute_topk(1, vector_store)
-  expected_result = [('3', 0.801)]
+  expected_result = [(('3',), 0.801)]
   for (id, score), (expected_id, expected_score) in zip(topk_result, expected_result):
     assert id == expected_id
     assert score == pytest.approx(expected_score, 1e-3)
 
   # Compute topk with id restriction.
-  topk_result = signal.vector_compute_topk(3, vector_store, keys=['1', '2'])
-  expected_result = [('2', 0.535), ('1', 0.465)]
+  topk_result = signal.vector_compute_topk(3, vector_store, keys=[('1',), ('2',)])
+  expected_result = [(('2',), 0.535), (('1',), 0.465)]
   for (id, score), (expected_id, expected_score) in zip(topk_result, expected_result):
     assert id == expected_id
     assert score == pytest.approx(expected_score, 1e-3)

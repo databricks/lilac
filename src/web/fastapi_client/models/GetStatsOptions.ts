@@ -6,6 +6,6 @@
  * The request for the get stats endpoint.
  */
 export type GetStatsOptions = {
-    leaf_path: Array<(string | number)>;
+    leaf_path: Array<(number | string)>;
 };
 

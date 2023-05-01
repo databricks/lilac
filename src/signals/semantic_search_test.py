@@ -13,15 +13,15 @@ from ..embeddings.embedding_registry import (
     register_embedding,
 )
 from ..embeddings.vector_store import VectorStore
-from ..schema import EnrichmentType, RichData
+from ..schema import EnrichmentType, PathTuple, RichData
 from .semantic_search import SemanticSearchSignal
 
 TEST_EMBEDDING_NAME = 'test_embedding'
 
-EMBEDDINGS: dict[str, list[float]] = {
-    '1': [1.0, 0.0, 0.0],
-    '2': [0.9, 0.1, 0.0],
-    '3': [0.0, 0.0, 1.0]
+EMBEDDINGS: dict[PathTuple, list[float]] = {
+    ('1',): [1.0, 0.0, 0.0],
+    ('2',): [0.9, 0.1, 0.0],
+    ('3',): [0.0, 0.0, 1.0]
 }
 
 STR_EMBEDDINGS: dict[str, list[float]] = {
@@ -35,12 +35,12 @@ class TestVectorStore(VectorStore):
   """A test vector store with fixed embeddings."""
 
   @override
-  def add(self, keys: list[str], embeddings: np.ndarray) -> None:
+  def add(self, keys: list[PathTuple], embeddings: np.ndarray) -> None:
     # We fix the vectors for the test vector store.
     pass
 
   @override
-  def get(self, keys: Iterable[str]) -> np.ndarray:
+  def get(self, keys: Iterable[PathTuple]) -> np.ndarray:
     keys = keys or []
     return np.array([EMBEDDINGS[row_id] for row_id in keys])
 
@@ -73,7 +73,7 @@ def test_semantic_search_compute_keys(mocker: MockerFixture) -> None:
   embed_mock = mocker.spy(TestEmbedding, '__call__')
 
   signal = SemanticSearchSignal(query='hello', embedding=TEST_EMBEDDING_NAME)
-  scores = list(signal.vector_compute(['1', '2', '3'], vector_store))
+  scores = list(signal.vector_compute([('1',), ('2',), ('3',)], vector_store))
 
   # Embeddings should be called only 1 time for the search.
   assert embed_mock.call_count == 1

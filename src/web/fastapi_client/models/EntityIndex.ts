@@ -8,8 +8,8 @@ import type { Signal } from './Signal';
  * Index entities in a document.
  */
 export type EntityIndex = {
-    source_path: Array<(string | number)>;
-    index_path: Array<(string | number)>;
+    source_path: Array<(number | string)>;
+    index_path: Array<(number | string)>;
     signal: Signal;
 };
 

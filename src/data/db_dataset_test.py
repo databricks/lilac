@@ -31,6 +31,7 @@ from ..schema import (
     Field,
     Item,
     ItemValue,
+    PathTuple,
     RichData,
     Schema,
     SignalOut,
@@ -1431,7 +1432,8 @@ class TestEmbeddingSumSignal(Signal):
     return Field(dtype=DataType.FLOAT32)
 
   @override
-  def vector_compute(self, keys: Iterable[str], vector_store: VectorStore) -> Iterable[ItemValue]:
+  def vector_compute(self, keys: Iterable[PathTuple],
+                     vector_store: VectorStore) -> Iterable[ItemValue]:
     if not self.embedding:
       raise ValueError('self.embedding is None.')
 

@@ -12,7 +12,7 @@ from ..embeddings.embedding_registry import (
     resolve_embedding,
 )
 from ..embeddings.vector_store import VectorStore
-from ..schema import EnrichmentType, Field, RichData, SignalOut
+from ..schema import EnrichmentType, Field, PathTuple, RichData, SignalOut
 
 
 class Signal(abc.ABC, BaseModel):
@@ -81,12 +81,12 @@ class Signal(abc.ABC, BaseModel):
     """
     raise NotImplementedError
 
-  def vector_compute(self, keys: Iterable[str],
+  def vector_compute(self, keys: Iterable[PathTuple],
                      vector_store: VectorStore) -> Iterable[Optional[SignalOut]]:
     """Compute the signal for an iterable of keys that point to documents or images.
 
     Args:
-      keys: An iterable of row ids. These are used to lookup pre-computed embeddings.
+      keys: An iterable of entity ids (at row-level or lower) to lookup precomputed embeddings.
       vector_store: The vector store to lookup pre-computed embeddings.
 
     Returns
@@ -98,7 +98,7 @@ class Signal(abc.ABC, BaseModel):
       self,
       topk: int,
       vector_store: VectorStore,
-      keys: Optional[Iterable[str]] = None) -> list[tuple[str, Optional[SignalOut]]]:
+      keys: Optional[Iterable[PathTuple]] = None) -> list[tuple[PathTuple, Optional[SignalOut]]]:
     """Return signal results only for the top k documents or images.
 
     Signals decide how to rank each document/image in the dataset, usually by a similarity score
@@ -110,7 +110,7 @@ class Signal(abc.ABC, BaseModel):
       keys: Optional iterable of row ids to restrict the search to.
 
     Returns
-      A list of (uuid, signal_output) tuples containing the "topk" items. Sparse signals should
+      A list of (key, signal_output) tuples containing the "topk" items. Sparse signals should
       return "None" for skipped inputs.
     """
     raise NotImplementedError

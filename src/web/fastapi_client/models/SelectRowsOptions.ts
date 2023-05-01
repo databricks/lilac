@@ -12,7 +12,7 @@ import type { SortOrder } from './SortOrder';
 export type SelectRowsOptions = {
     columns?: Array<(Array<string> | Column)>;
     filters?: Array<Filter>;
-    sort_by?: Array<Array<(string | number)>>;
+    sort_by?: Array<Array<(number | string)>>;
     sort_order?: SortOrder;
     limit?: number;
     offset?: number;

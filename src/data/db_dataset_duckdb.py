@@ -35,7 +35,6 @@ from ..schema import (
     PathTuple,
     RichData,
     Schema,
-    SignalOut,
     SourceManifest,
     enrichment_supports_dtype,
     entity_paths,
@@ -604,6 +603,8 @@ class DatasetDuckDB(DatasetDB):
     # Download the data so we can run UDFs on it in Python.
     df = query.df()
 
+    already_sorted = False
+
     # Run UDFs on the transformed columns.
     udf_columns = [col for col in cols if col.transform]
     for udf_col in udf_columns:
@@ -631,17 +632,23 @@ class DatasetDuckDB(DatasetDB):
             # is much faster than computing the signal for all rows and then sorting.
             if self._sorting_by_topk_of_signal(limit, sort_order, sort_cols_after_udf,
                                                signal_column):
+              already_sorted = True
               k = (limit or 0) + (offset or 0)
               topk = signal.vector_compute_topk(k, vector_store)
-              uuids = [uuid for (uuid, _) in topk]
-              flat_scores: Iterable[Optional[SignalOut]] = [score for _, score in topk]
+              unique_uuids = list(dict.fromkeys([key[0] for key, _ in topk]))
               df.set_index(UUID_COLUMN, drop=False, inplace=True)
-              # Filter the dataframe only by the topk uuids.
-              df = df.loc[uuids]
-              input = df[signal_column]
+              # Filter the dataframe by uuids that have at least one entity in top k.
+              df = df.loc[unique_uuids]
+              for key, score in topk:
+                # Walk a deep nested array and put the score at the right location.
+                deep_array = df[signal_column]
+                for key_part in key[:-1]:
+                  deep_array = deep_array[key_part]
+                deep_array[key[-1]] = score
             else:
               flat_keys = flatten_keys(df[UUID_COLUMN], input)
               flat_scores = signal.vector_compute(flat_keys, vector_store)
+              df[signal_column] = unflatten(flat_scores, input)
           else:
             flat_input = cast(list[RichData], flatten(input))
             # Add progress.
@@ -655,9 +662,7 @@ class DatasetDuckDB(DatasetDB):
                   f'The signal generated {len(flat_scores)} values but the input data had '
                   f"{len(flat_input)} values. This means the signal either didn't generate a "
                   '"None" for a sparse output, or generated too many items.')
-
-          df[signal_column] = unflatten(flat_scores, input)
-
+            df[signal_column] = unflatten(flat_scores, input)
       else:
         raise ValueError(f'Unsupported transform: {transform}')
 
@@ -670,7 +675,7 @@ class DatasetDuckDB(DatasetDB):
         if udf_filter_queries:
           query = query.filter(' AND '.join(udf_filter_queries))
 
-      if sort_cols_after_udf:
+      if not already_sorted and sort_cols_after_udf:
         if not sort_order:
           raise ValueError(
               'Sort order is undefined but sort by is defined. Please define a sort_order')
@@ -909,25 +914,19 @@ def _make_select_column(leaf_path: Path,
   return selection
 
 
-def _get_repeated_key(row_id: str, location: list[int]) -> str:
-  if not location:
-    return row_id
-  return row_id + '_' + ','.join(map(str, location))
-
-
-def _flatten_keys(uuid: str, nested_input: Iterable, location: list[int]) -> list[str]:
+def _flatten_keys(uuid: str, nested_input: Iterable, location: list[int]) -> list[PathTuple]:
   if is_primitive(nested_input):
-    return [_get_repeated_key(uuid, location)]
+    return [(uuid, *location)]
   else:
-    result: list[str] = []
+    result: list[PathTuple] = []
     for i, input in enumerate(nested_input):
       result.extend(_flatten_keys(uuid, input, [*location, i]))
     return result
 
 
-def flatten_keys(uuids: Iterable[str], nested_input: Iterable) -> list[str]:
+def flatten_keys(uuids: Iterable[str], nested_input: Iterable) -> list[PathTuple]:
   """Flatten the uuid keys of a nested input."""
-  result: list[str] = []
+  result: list[PathTuple] = []
   for uuid, input in zip(uuids, nested_input):
     result.extend(_flatten_keys(uuid, input, []))
   return result
