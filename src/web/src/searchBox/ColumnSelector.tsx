@@ -2,10 +2,10 @@ import {SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import {useParams} from 'react-router-dom';
 import {EnrichmentType, Field} from '../../fastapi_client';
 import {Path, Schema} from '../schema';
-import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/api_dataset';
+import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/apiDataset';
 import {renderPath, renderQuery} from '../utils';
-import {Item} from './item_selector';
-import {getLeafsByEnrichmentType} from './search_box_utils';
+import {SearchBoxItem} from './SearchBoxItem';
+import {getLeafsByEnrichmentType} from './searchBoxUtils';
 
 export function ColumnSelector({
   onSelect,
@@ -84,7 +84,7 @@ export function ColumnSelector({
             avgTextLength != null ? Math.round(avgTextLength).toLocaleString() : null;
           const renderedPath = renderPath(path);
           return (
-            <Item key={i} onSelect={() => onSelect(path, field)}>
+            <SearchBoxItem key={i} onSelect={() => onSelect(path, field)}>
               <div className="flex w-full justify-between">
                 <div className="truncate">{renderedPath}</div>
                 <div className="flex flex-row items-end justify-items-end text-end">
@@ -101,7 +101,7 @@ export function ColumnSelector({
                   <div className="w-24 truncate">{field.dtype}</div>
                 </div>
               </div>
-            </Item>
+            </SearchBoxItem>
           );
         })}
         {outFilterLeafs!.map(([path, field], i) => {
@@ -111,7 +111,7 @@ export function ColumnSelector({
             avgTextLength != null ? Math.round(avgTextLength).toLocaleString() : null;
           const renderedPath = renderPath(path);
           return (
-            <Item key={i} onSelect={() => onSelect(path, field)} disabled={true}>
+            <SearchBoxItem key={i} onSelect={() => onSelect(path, field)} disabled={true}>
               <div className="flex w-full justify-between opacity-50">
                 <div className="truncate">{renderedPath}</div>
                 <div className="flex flex-row items-end justify-items-end text-end">
@@ -124,7 +124,7 @@ export function ColumnSelector({
                   <div className="w-24 truncate">{field.dtype}</div>
                 </div>
               </div>
-            </Item>
+            </SearchBoxItem>
           );
         })}
       </>

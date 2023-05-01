@@ -3,7 +3,7 @@
  */
 import {createApi} from '@reduxjs/toolkit/dist/query/react';
 import {SignalInfo, SignalsService} from '../../fastapi_client';
-import {fastAPIBaseQuery} from './api_utils';
+import {fastAPIBaseQuery} from './apiUtils';
 
 const SIGNALS_TAG = 'signals';
 export const signalApi = createApi({

@@ -1,9 +1,9 @@
 import {SlAlert, SlIcon, SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {Schema, UUID_COLUMN} from '../schema';
-import {useGetManifestQuery} from '../store/api_dataset';
+import {useGetManifestQuery} from '../store/apiDataset';
 import {renderPath} from '../utils';
-import {LeafStats} from './leaf_stats';
+import {LeafStats} from './LeafStats';
 
 export interface StatsProps {
   namespace: string;

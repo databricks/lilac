@@ -1,6 +1,6 @@
 import {Column, ConceptScoreSignal, Filter, SignalTransform, SortOrder} from '../../fastapi_client';
 import {Path, UUID_COLUMN} from '../schema';
-import {useSelectRowsQuery} from '../store/api_dataset';
+import {useSelectRowsQuery} from '../store/apiDataset';
 import {ActiveConceptState} from '../store/store';
 import {getConceptAlias} from '../utils';
 

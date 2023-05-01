@@ -46,6 +46,7 @@ type DeepPartial<T> = T extends object
     }
   : T;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type OpenAPISpy<Fn extends (...args: any[]) => void> = SpyInstance<
   Parameters<Fn>,
   CancelablePromise<DeepPartial<Awaited<ReturnType<Fn>>>>

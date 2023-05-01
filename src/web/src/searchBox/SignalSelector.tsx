@@ -1,9 +1,9 @@
 import {JSONSchema7} from 'json-schema';
 import {useParams} from 'react-router-dom';
 import {SignalInfo} from '../../fastapi_client';
-import {useGetSignalsQuery} from '../store/api_signal';
+import {useGetSignalsQuery} from '../store/apiSignal';
 import {renderQuery} from '../utils';
-import {Item} from './item_selector';
+import {SearchBoxItem} from './SearchBoxItem';
 
 export function SignalSelector({onSelect}: {onSelect: (signal: SignalInfo) => void}) {
   const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
@@ -17,12 +17,12 @@ export function SignalSelector({onSelect}: {onSelect: (signal: SignalInfo) => vo
         {signals.map((signal) => {
           const jsonSchema = signal.json_schema as JSONSchema7;
           return (
-            <Item key={signal.name} onSelect={() => onSelect(signal)}>
+            <SearchBoxItem key={signal.name} onSelect={() => onSelect(signal)}>
               <div className="flex w-full justify-between">
                 <div className="truncate">{signal.name}</div>
                 <div className="truncate">{jsonSchema.description}</div>
               </div>
-            </Item>
+            </SearchBoxItem>
           );
         })}
       </>

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import {vi} from 'vitest';
 import {DatasetsService} from '../../fastapi_client';
 import {OpenAPISpy, renderWithProviders} from '../../tests/utils';
-import {EmbedingsView} from './embeddings_view';
+import {EmbedingsView} from './EmbedingsView';
 
 describe('EmbeddingsView', () => {
   let spy: OpenAPISpy<typeof DatasetsService.getManifest>;

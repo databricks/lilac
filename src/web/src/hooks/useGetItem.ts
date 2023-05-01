@@ -1,6 +1,6 @@
 import {Filter} from '../../fastapi_client';
 import {Item, UUID_COLUMN} from '../schema';
-import {useSelectRowsQuery} from '../store/api_dataset';
+import {useSelectRowsQuery} from '../store/apiDataset';
 
 /** Fetches the data associated with an item from the dataset. */
 export function useGetItem(args: {namespace: string; datasetName: string; itemId: string}): {

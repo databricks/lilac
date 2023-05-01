@@ -2,7 +2,7 @@ import {screen} from '@testing-library/react';
 import {vi} from 'vitest';
 import {DatasetsService} from '../../fastapi_client';
 import {OpenAPISpy, renderWithProviders} from '../../tests/utils';
-import {GalleryItem} from './gallery_item';
+import {GalleryItem} from './GalleryItem';
 
 describe('GalleryItem', () => {
   let spy: OpenAPISpy<typeof DatasetsService.selectRows>;

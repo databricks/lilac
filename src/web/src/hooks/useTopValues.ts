@@ -5,7 +5,7 @@ import {
   SELECT_GROUPS_SUPPORTED_DTYPES,
   useGetStatsQuery,
   useSelectGroupsQuery,
-} from '../store/api_dataset';
+} from '../store/apiDataset';
 
 export interface TopKValuesResult {
   isFetching: boolean;

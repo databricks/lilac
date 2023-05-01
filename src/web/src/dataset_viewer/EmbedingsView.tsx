@@ -1,7 +1,7 @@
 import {SlButton, SlIcon} from '@shoelace-style/shoelace/dist/react';
 import React from 'react';
 import {useAppDispatch} from '../hooks';
-import {useGetManifestQuery} from '../store/api_dataset';
+import {useGetManifestQuery} from '../store/apiDataset';
 import {setSearchBoxOpen, setSearchBoxPages} from '../store/store';
 
 export interface EmbeddingsViewProps {

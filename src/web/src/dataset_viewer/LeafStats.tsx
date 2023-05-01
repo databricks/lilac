@@ -3,7 +3,7 @@ import * as React from 'react';
 import {DatasetManifest} from '../../fastapi_client';
 import {useTopValues} from '../hooks/useTopValues';
 import {Path, Schema} from '../schema';
-import {Histogram} from './histogram';
+import {Histogram} from './Histogram';
 
 const MAX_NUM_GROUPS_TO_RENDER = 20;
 

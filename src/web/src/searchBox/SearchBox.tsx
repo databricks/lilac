@@ -18,7 +18,7 @@ import {
   useComputeSignalColumnMutation,
   useGetDatasetsQuery,
   useGetStatsQuery,
-} from '../store/api_dataset';
+} from '../store/apiDataset';
 import {
   popSearchBoxPage,
   pushSearchBoxPage,
@@ -29,12 +29,12 @@ import {
   setTasksPanelOpen,
 } from '../store/store';
 import {renderPath, renderQuery, useClickOutside} from '../utils';
-import {ColumnSelector} from './column_selector';
-import {ConceptSelector} from './concept_selector';
-import {EmbeddingSelector} from './embedding_selector';
-import {Item} from './item_selector';
+import {ColumnSelector} from './ColumnSelector';
+import {ConceptSelector} from './ConceptSelector';
+import {EmbeddingSelector} from './EmbeddingSelector';
+import {SearchBoxItem} from './SearchBoxItem';
 import './search_box.css';
-import {SignalSelector} from './signal_selector';
+import {SignalSelector} from './SignalSelector';
 
 /** Time to debounce (ms). */
 const DEBOUNCE_TIME_MS = 100;
@@ -429,76 +429,76 @@ function HomeMenu({
       {/* Filtering */}
       {datasetSelected && (
         <Command.Group heading="Filters">
-          <Item onSelect={() => pushPage({type: 'add-filter', name: 'Add filter'})}>
+          <SearchBoxItem onSelect={() => pushPage({type: 'add-filter', name: 'Add filter'})}>
             <SlIcon className="text-xl" name="database" />
             Add filter
-          </Item>
-          <Item>
+          </SearchBoxItem>
+          <SearchBoxItem>
             <SlIcon className="text-xl" name="database" />
             Remove filter
-          </Item>
+          </SearchBoxItem>
         </Command.Group>
       )}
 
       {/* Viewer controls */}
       {datasetSelected && (
         <Command.Group heading="Viewer">
-          <Item onSelect={() => pushPage({type: 'sort-by', name: 'Sort by'})}>
+          <SearchBoxItem onSelect={() => pushPage({type: 'sort-by', name: 'Sort by'})}>
             <SlIcon className="text-xl" name="sort-down" />
             Sort by
-          </Item>
+          </SearchBoxItem>
         </Command.Group>
       )}
 
       {/* Signals */}
       {datasetSelected && (
         <Command.Group heading="Signals">
-          <Item
+          <SearchBoxItem
             onSelect={() => {
               pushPage({type: 'compute-signal', name: 'Compute signal'});
             }}
           >
             <SlIcon className="text-xl" name="magic" />
             Compute signal
-          </Item>
-          <Item
+          </SearchBoxItem>
+          <SearchBoxItem
             onSelect={() => {
               pushPage({type: 'compute-embedding-index', name: 'compute embeddings'});
             }}
           >
             <SlIcon className="text-xl" name="cpu" />
             Compute embeddings
-          </Item>
+          </SearchBoxItem>
         </Command.Group>
       )}
 
       {/* Concepts */}
       <Command.Group heading="Concepts">
-        <Item
+        <SearchBoxItem
           onSelect={() => {
             pushPage({type: 'edit-concept', name: 'Edit concept'});
           }}
         >
           <SlIcon className="text-xl" name="stars" />
           Edit concept
-        </Item>
-        <Item>
+        </SearchBoxItem>
+        <SearchBoxItem>
           <SlIcon className="text-xl" name="plus-lg" />
           Create new concept
-        </Item>
+        </SearchBoxItem>
       </Command.Group>
 
       {/* Datasets */}
       <Command.Group heading="Datasets">
-        <Item
+        <SearchBoxItem
           onSelect={() => {
             pushPage({type: 'open-dataset', name: 'Open dataset'});
           }}
         >
           <SlIcon className="text-xl" name="database" />
           Open dataset
-        </Item>
-        <Item
+        </SearchBoxItem>
+        <SearchBoxItem
           onSelect={() => {
             closeMenu();
             navigate(`/new`);
@@ -506,23 +506,23 @@ function HomeMenu({
         >
           <SlIcon className="text-xl" name="database-add" />
           Create new dataset
-        </Item>
+        </SearchBoxItem>
       </Command.Group>
 
       {/* Help */}
       <Command.Group heading="Help">
-        <Item>
+        <SearchBoxItem>
           <SlIcon className="text-xl" name="file-earmark-text" />
           Search Docs...
-        </Item>
-        <Item>
+        </SearchBoxItem>
+        <SearchBoxItem>
           <SlIcon className="text-xl" name="github" />
           Create a GitHub issue
-        </Item>
-        <Item>
+        </SearchBoxItem>
+        <SearchBoxItem>
           <SlIcon className="text-xl" name="envelope" />
           Contact us
-        </Item>
+        </SearchBoxItem>
       </Command.Group>
     </>
   );
@@ -537,7 +537,7 @@ function Datasets({closeMenu}: {closeMenu: () => void}) {
       {datasets.map((d) => {
         const key = `${d.namespace}/${d.dataset_name}`;
         return (
-          <Item
+          <SearchBoxItem
             key={key}
             onSelect={() => {
               closeMenu();
@@ -545,7 +545,7 @@ function Datasets({closeMenu}: {closeMenu: () => void}) {
             }}
           >
             {d.namespace} / {d.dataset_name}
-          </Item>
+          </SearchBoxItem>
         );
       })}
     </>
@@ -583,7 +583,7 @@ function AddFilterValue({
 
   const items = vocab.map((value, i) => {
     return (
-      <Item
+      <SearchBoxItem
         key={i}
         onSelect={() => {
           closeMenu();
@@ -591,20 +591,22 @@ function AddFilterValue({
         }}
       >
         {value ? value.toString() : 'N/A'}
-      </Item>
+      </SearchBoxItem>
     );
   });
   return (
     <>
-      {onlyTopK && <Item disabled>Showing only the top {topK} values...</Item>}
+      {onlyTopK && <SearchBoxItem disabled>Showing only the top {topK} values...</SearchBoxItem>}
       {items}
       {tooManyDistinct && (
-        <Item disabled>
+        <SearchBoxItem disabled>
           Too many distinct values ({statsResult?.approx_count_distinct.toLocaleString()}) to
           list...
-        </Item>
+        </SearchBoxItem>
       )}
-      {dtypeNotSupported && <Item disabled>Dtype {field.dtype} is not supported...</Item>}
+      {dtypeNotSupported && (
+        <SearchBoxItem disabled>Dtype {field.dtype} is not supported...</SearchBoxItem>
+      )}
     </>
   );
 }
@@ -612,8 +614,8 @@ function AddFilterValue({
 function SortByOrder({onSelect}: {onSelect: (sortOrder: SortOrder) => void}) {
   return (
     <>
-      <Item onSelect={() => onSelect('ASC')}>ascending</Item>
-      <Item onSelect={() => onSelect('DESC')}>descending</Item>
+      <SearchBoxItem onSelect={() => onSelect('ASC')}>ascending</SearchBoxItem>
+      <SearchBoxItem onSelect={() => onSelect('DESC')}>descending</SearchBoxItem>
     </>
   );
 }

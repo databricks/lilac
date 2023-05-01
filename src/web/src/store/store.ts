@@ -23,13 +23,13 @@ import {Path} from '../schema';
 
 import {useParams} from 'react-router-dom';
 import {useAppSelector} from '../hooks';
-import {SearchBoxPage} from '../search_box/search_box';
+import {SearchBoxPage} from '../searchBox/SearchBox';
 import {renderError} from '../utils';
-import {conceptApi} from './api_concept';
-import {datasetApi} from './api_dataset';
-import {embeddingApi} from './api_embeddings';
-import {signalApi} from './api_signal';
-import {fastAPIBaseQuery} from './api_utils';
+import {conceptApi} from './apiConcept';
+import {datasetApi} from './apiDataset';
+import {embeddingApi} from './apiEmbeddings';
+import {signalApi} from './apiSignal';
+import {fastAPIBaseQuery} from './apiUtils';
 
 export interface ActiveConceptState {
   concept: ConceptInfo;

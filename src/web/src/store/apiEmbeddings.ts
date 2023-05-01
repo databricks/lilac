@@ -3,7 +3,7 @@
  */
 import {createApi} from '@reduxjs/toolkit/dist/query/react';
 import {EmbeddingInfo, EmbeddingsService} from '../../fastapi_client';
-import {fastAPIBaseQuery} from './api_utils';
+import {fastAPIBaseQuery} from './apiUtils';
 
 const EMBEDDINGS_TAG = 'embeddings';
 export const embeddingApi = createApi({

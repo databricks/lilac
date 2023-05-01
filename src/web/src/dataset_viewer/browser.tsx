@@ -5,11 +5,11 @@ import {DataType, Field, Filter, StatsResult, WebManifest} from '../../fastapi_c
 import {useAppDispatch} from '../hooks';
 import {useGetIds} from '../hooks/useGetIds';
 import {Path, Schema, serializePath} from '../schema';
-import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/api_dataset';
+import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/apiDataset';
 import {setRowHeightListPx, setSelectedMediaPaths, useDataset} from '../store/store';
 import {renderPath} from '../utils';
 import styles from './browser.module.css';
-import {ItemPreview} from './item_preview';
+import {ItemPreview} from './ItemPreview';
 
 export interface BrowserProps {
   namespace: string;
@@ -57,7 +57,7 @@ function useInfiniteItemsQuery(namespace: string, datasetName: string) {
   };
 }
 
-export interface BrowserMenuProps {
+interface BrowserMenuProps {
   namespace: string;
   datasetName: string;
   schema: Schema;
@@ -72,7 +72,7 @@ interface VisualLeaf {
 // TODO(smilkov): Remove this once we make a logical image dtype.
 export const IMAGE_PATH_PREFIX = '__image__';
 
-export const BrowserMenu = React.memo(function BrowserMenu({
+const BrowserMenu = React.memo(function BrowserMenu({
   namespace,
   datasetName,
   schema,
@@ -183,7 +183,7 @@ export const BrowserMenu = React.memo(function BrowserMenu({
   );
 });
 
-export interface BrowserRowProps {
+interface BrowserRowProps {
   /** List of run ids to render in a single row. */
   namespace: string;
   datasetName: string;
@@ -191,7 +191,7 @@ export interface BrowserRowProps {
   previewPaths: Path[];
 }
 
-export const BrowserRow = React.memo(function BrowserRow({
+const BrowserRow = React.memo(function BrowserRow({
   namespace,
   datasetName,
   itemIds,

@@ -5,7 +5,7 @@ import {Field, Filter, StatsResult, WebManifest} from '../../fastapi_client';
 import {useAppDispatch} from '../hooks';
 import {useGetIds} from '../hooks/useGetIds';
 import {Path, Schema, serializePath} from '../schema';
-import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/api_dataset';
+import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/apiDataset';
 import {
   setActiveConcept,
   setSelectedMediaPaths,
@@ -14,7 +14,7 @@ import {
   useDataset,
 } from '../store/store';
 import {renderPath} from '../utils';
-import {GalleryItem} from './gallery_item';
+import {GalleryItem} from './GalleryItem';
 import styles from './gallery_view.module.css';
 
 export interface GalleryProps {
@@ -62,7 +62,7 @@ function useInfiniteItemsQuery(namespace: string, datasetName: string) {
   };
 }
 
-export interface GalleryMenuProps {
+interface GalleryMenuProps {
   namespace: string;
   datasetName: string;
   schema: Schema;
@@ -73,7 +73,7 @@ export interface GalleryMenuProps {
 // TODO(smilkov): Remove this once we make a logical image dtype.
 export const IMAGE_PATH_PREFIX = '__image__';
 
-export const GalleryMenu = React.memo(function GalleryMenu({
+const GalleryMenu = React.memo(function GalleryMenu({
   namespace,
   datasetName,
   schema,
@@ -302,7 +302,7 @@ export function useMediaPaths(
   return mediaPaths;
 }
 
-export const Gallery = React.memo(function Gallery({
+export const GalleryView = React.memo(function Gallery({
   namespace,
   datasetName,
 }: GalleryProps): JSX.Element {
