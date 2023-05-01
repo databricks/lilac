@@ -11,7 +11,7 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import {DatasetLoader} from './DatasetLoader';
-import {DatasetViewer} from './dataset_viewer/DatasetViewer';
+import {DatasetViewer} from './datasetViewer/DatasetViewer';
 import {Header} from './Header';
 import {Home} from './Home';
 import './index.css';
