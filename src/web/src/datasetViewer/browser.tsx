@@ -8,7 +8,7 @@ import {Path, Schema, serializePath} from '../schema';
 import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/apiDataset';
 import {setRowHeightListPx, setSelectedMediaPaths, useDataset} from '../store/store';
 import {renderPath} from '../utils';
-import styles from './browser.module.css';
+import styles from './Browser.module.css';
 import {ItemPreview} from './ItemPreview';
 
 export interface BrowserProps {

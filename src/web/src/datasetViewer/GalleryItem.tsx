@@ -3,7 +3,7 @@ import * as React from 'react';
 import {useGetItem} from '../hooks/useGetItem';
 import {getLeafVals, Item, LeafValue, Path, serializePath} from '../schema';
 import {renderError, renderPath} from '../utils';
-import './dataset_viewer.module.css';
+import './DatasetViewer.module.css';
 
 export interface GalleryItemProps {
   namespace: string;

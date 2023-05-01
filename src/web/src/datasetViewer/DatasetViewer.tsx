@@ -9,7 +9,7 @@ import {
 import * as React from 'react';
 import {useParams} from 'react-router-dom';
 import {useGetManifestQuery} from '../store/apiDataset';
-import styles from './dataset_viewer.module.css';
+import styles from './DatasetViewer.module.css';
 import {EmbedingsView} from './EmbedingsView';
 import {GalleryView} from './GalleryView';
 import {Stats} from './Stats';

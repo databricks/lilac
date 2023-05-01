@@ -15,7 +15,7 @@ import {
 } from '../store/store';
 import {renderPath} from '../utils';
 import {GalleryItem} from './GalleryItem';
-import styles from './gallery_view.module.css';
+import styles from './GalleryView.module.css';
 
 export interface GalleryProps {
   namespace: string;

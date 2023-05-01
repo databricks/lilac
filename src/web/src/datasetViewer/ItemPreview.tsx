@@ -4,8 +4,7 @@ import {getLeafVals, Item, LeafValue, Path, serializePath} from '../schema';
 import {useGetMediaURLQuery} from '../store/apiDataset';
 import {renderError, roundNumber} from '../utils';
 import {IMAGE_PATH_PREFIX} from './Browser';
-import './dataset_viewer.module.css';
-import styles from './item_preview.module.css';
+import styles from './ItemPreview.module.css';
 
 export interface ItemPreviewProps {
   namespace: string;

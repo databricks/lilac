@@ -8,7 +8,7 @@ import {
 import {JSONSchema7, JSONSchema7Type, JSONSchema7TypeName} from 'json-schema';
 import * as React from 'react';
 import {ReactMarkdown} from 'react-markdown/lib/react-markdown';
-import styles from './json_schema_form.module.css';
+import styles from './JSONSchemaForm.module.css';
 
 export const MultiInput = ({
   name,
