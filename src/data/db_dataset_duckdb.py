@@ -20,6 +20,7 @@ from ..embeddings.embedding_registry import EmbeddingId, get_embedding_cls
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import (
+    ENTITY_FEATURE_KEY,
     LILAC_COLUMN,
     MANIFEST_FILENAME,
     PATH_WILDCARD,
@@ -295,7 +296,18 @@ class DatasetDuckDB(DatasetDB):
                                           task_id=task_id,
                                           resolve_span=True)
     df = select_rows_result.df()
-    spec = _split_path_into_subpaths_of_lists((LILAC_COLUMN, *source_path, signal.name))
+
+    # If we are enriching an entity we should store the signal data in the entity field's parent.
+    if source_path[-1] == ENTITY_FEATURE_KEY:
+      enriched_path = (LILAC_COLUMN, *source_path[:-1], signal.name)
+    else:
+      enriched_path = (LILAC_COLUMN, *source_path, signal.name)
+
+    # If a signal is enriching output of a signal, skip the lilac prefix to avoid double prefixing.
+    if path_is_from_lilac(source_path):
+      enriched_path = enriched_path[1:]
+
+    spec = _split_path_into_subpaths_of_lists(enriched_path)
     enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(df['value'], spec))
     for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
       item[UUID_COLUMN] = uuid

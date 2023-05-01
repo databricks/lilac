@@ -68,6 +68,8 @@ def wrap_in_dicts(input: Union[object, Iterable[object]],
 
 
 def _merge_field_into(schema: Field, destination: Field) -> None:
+  if isinstance(schema, Field) and schema.is_entity:
+    destination.is_entity = True
   if schema.fields:
     if destination.fields is None:
       raise ValueError('should not happen')
@@ -128,13 +130,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
   # If we are enriching an entity we should store the signal data in the entity field's parent.
   if source_path[-1] == ENTITY_FEATURE_KEY:
     source_path = source_path[:-1]
-    entity_field = schema.get_field(source_path).copy(deep=True)
-    if not entity_field.fields:
-      raise ValueError('The entity field should always have sub-fields')
-    if not enriched_schema.fields:
-      raise ValueError('The enriched schema should always have sub-fields (see above)')
-    entity_field.fields[signal.name] = enriched_schema.fields[signal.name]
-    enriched_schema = entity_field
+    enriched_schema.derived_from = schema.get_field(source_path).derived_from
 
   for path_part in reversed(source_path):
     if path_part == PATH_WILDCARD:
@@ -145,8 +141,10 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
   if not enriched_schema.fields:
     raise ValueError('This should not happen')
 
+  # If a signal is enriching output of a signal, skip the lilac prefix to avoid double prefixing.
   if path_is_from_lilac(source_path):
     enriched_schema = enriched_schema.fields[LILAC_COLUMN]
+
   return Schema(fields={UUID_COLUMN: Field(dtype=DataType.STRING), LILAC_COLUMN: enriched_schema})
 
 

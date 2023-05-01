@@ -1201,7 +1201,6 @@ class SelectRowsSuite:
     }]
     assert list(result) == expected_result
 
-  @pytest.mark.skip(reason='Enrichment of an entity (produced by a signal) is not yet supported.')
   def test_embedding_signal_splits(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
         db_cls=db_cls,
@@ -1222,10 +1221,10 @@ class SelectRowsSuite:
     db.compute_signal_column(entity_signal, 'text')
     embedding = TestEmbedding()
     db.compute_embedding_index(embedding,
-                               (LILAC_COLUMN, 'text', 'test_entity_len', '*', '__entity__'))
+                               (LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY))
     db.compute_signal_column(
         TestEmbeddingSumSignal(embedding=embedding),
-        (LILAC_COLUMN, 'text', 'test_entity_len', '*', '__entity__'))
+        (LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY))
 
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
@@ -1247,7 +1246,7 @@ class SelectRowsSuite:
                                                 dtype=DataType.FLOAT32,
                                                 derived_from=(LILAC_COLUMN, 'text',
                                                               'test_entity_len', '*',
-                                                              '__entity__')),
+                                                              ENTITY_FEATURE_KEY)),
                                             'len': Field(
                                                 dtype=DataType.INT32, derived_from=('text',))
                                         }))
@@ -1264,36 +1263,31 @@ class SelectRowsSuite:
         ],
         num_items=2)
 
-    result = db.select_rows(['text', (LILAC_COLUMN, 'text', 'test_entity_len', '*')])
+    result = db.select_rows(
+        ['text', Column((LILAC_COLUMN, 'text', 'test_entity_len'), alias='sentences')])
     assert list(result) == [{
         UUID_COLUMN: '1',
         'text': 'hello. hello2.',
-        'text_sentences': [{
-            'split': TextSpan(start=0, end=6),
-            'len': 6
+        'sentences': [{
+            '__entity__': TextSpan(start=0, end=6),
+            'len': 6,
+            'test_embedding_sum': 1.0
         }, {
-            'split': TextSpan(start=7, end=14),
-            'len': 7
-        }],
-        'text_sentences_emb_sum': [{
-            'split': 1.0
-        }, {
-            'split': 2.0
+            '__entity__': TextSpan(start=7, end=14),
+            'len': 7,
+            'test_embedding_sum': 2.0
         }]
     }, {
         UUID_COLUMN: '2',
         'text': 'hello world. hello world2.',
-        'text_sentences': [{
-            'split': TextSpan(start=0, end=12),
-            'len': 12
+        'sentences': [{
+            '__entity__': TextSpan(start=0, end=12),
+            'len': 12,
+            'test_embedding_sum': 3.0
         }, {
-            'split': TextSpan(start=13, end=26),
-            'len': 13
-        }],
-        'text_sentences_emb_sum': [{
-            'split': 3.0
-        }, {
-            'split': 4.0
+            '__entity__': TextSpan(start=13, end=26),
+            'len': 13,
+            'test_embedding_sum': 4.0
         }]
     }]
 
