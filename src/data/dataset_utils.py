@@ -125,7 +125,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
 
   enriched_schema = Field(fields={signal.name: signal.fields()})
   # Apply the "derived_from" field lineage to the field we are enriching.
-  enriched_schema = apply_field_lineage(enriched_schema, source_path)
+  enriched_schema = _apply_field_lineage(enriched_schema, source_path)
 
   # If we are enriching an entity we should store the signal data in the entity field's parent.
   if source_path[-1] == ENTITY_FEATURE_KEY:
@@ -148,16 +148,16 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
   return Schema(fields={UUID_COLUMN: Field(dtype=DataType.STRING), LILAC_COLUMN: enriched_schema})
 
 
-def apply_field_lineage(field: Field, derived_from: PathTuple) -> Field:
+def _apply_field_lineage(field: Field, derived_from: PathTuple) -> Field:
   """Returns a new field with the derived_from field set recursively on all children."""
   if field.dtype == DataType.STRING_SPAN:
     # String spans act as leafs.
     pass
   elif field.fields:
     for name, child_field in field.fields.items():
-      field.fields[name] = apply_field_lineage(field.fields[name], derived_from)
+      field.fields[name] = _apply_field_lineage(child_field, derived_from)
   elif field.repeated_field:
-    field.repeated_field = apply_field_lineage(field.repeated_field, derived_from)
+    field.repeated_field = _apply_field_lineage(field.repeated_field, derived_from)
 
   field.derived_from = derived_from
   return field

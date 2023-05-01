@@ -29,12 +29,9 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
   """Write the items JSON to the dataset format: manifest.json and parquet files."""
   source_dir = get_dataset_output_dir(str(tmpdir), TEST_NAMESPACE, dataset_name)
   os.makedirs(source_dir)
-  parquet_items: list[Item] = []
-  for item in items:
-    parquet_items.append(item.copy())
 
   simple_parquet_files, _ = write_items_to_parquet(
-      parquet_items,
+      items,
       source_dir,
       schema,
       filename_prefix=PARQUET_FILENAME_PREFIX,
