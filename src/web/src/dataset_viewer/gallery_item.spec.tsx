@@ -1,11 +1,11 @@
 import {screen} from '@testing-library/react';
-import {SpyInstance, vi} from 'vitest';
+import {vi} from 'vitest';
 import {DatasetsService} from '../../fastapi_client';
-import {renderWithProviders} from '../../tests/utils';
+import {OpenAPISpy, renderWithProviders} from '../../tests/utils';
 import {GalleryItem} from './gallery_item';
 
 describe('GalleryItem', () => {
-  let spy: SpyInstance;
+  let spy: OpenAPISpy<typeof DatasetsService.selectRows>;
 
   beforeEach(() => {
     spy = vi.spyOn(DatasetsService, 'selectRows');

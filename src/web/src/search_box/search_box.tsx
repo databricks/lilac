@@ -11,6 +11,7 @@ import * as React from 'react';
 import {Location, useLocation, useNavigate, useParams} from 'react-router-dom';
 import {ConceptInfo, EmbeddingInfo, Field, SignalInfo, SortOrder} from '../../fastapi_client';
 import {useAppDispatch, useAppSelector} from '../hooks';
+import {useTopValues} from '../hooks/useTopValues';
 import {Path} from '../schema';
 import {
   useComputeEmbeddingIndexMutation,
@@ -26,7 +27,6 @@ import {
   setSearchBoxPages,
   setSort,
   setTasksPanelOpen,
-  useTopValues,
 } from '../store/store';
 import {renderPath, renderQuery, useClickOutside} from '../utils';
 import {ColumnSelector} from './column_selector';

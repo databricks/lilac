@@ -1,15 +1,12 @@
 import {screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {SpyInstance, vi} from 'vitest';
-import {CancelablePromise, DatasetsService, WebManifest} from '../../fastapi_client';
-import {renderWithProviders} from '../../tests/utils';
+import {vi} from 'vitest';
+import {DatasetsService} from '../../fastapi_client';
+import {OpenAPISpy, renderWithProviders} from '../../tests/utils';
 import {EmbedingsView} from './embeddings_view';
 
 describe('EmbeddingsView', () => {
-  let spy: SpyInstance<
-    [namespace: string, datasetName: string],
-    CancelablePromise<Partial<WebManifest>>
-  >;
+  let spy: OpenAPISpy<typeof DatasetsService.getManifest>;
 
   const embeddingsView = <EmbedingsView namespace="test-namespace" datasetName="test-dataset" />;
 

@@ -3,6 +3,7 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 import * as React from 'react';
 import {Field, Filter, StatsResult, WebManifest} from '../../fastapi_client';
 import {useAppDispatch} from '../hooks';
+import {useGetIds} from '../hooks/useGetIds';
 import {Path, Schema, serializePath} from '../schema';
 import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/api_dataset';
 import {
@@ -11,7 +12,6 @@ import {
   setSelectedMetadataPaths,
   setSort,
   useDataset,
-  useGetIds,
 } from '../store/store';
 import {renderPath} from '../utils';
 import {GalleryItem} from './gallery_item';
@@ -35,16 +35,16 @@ function useInfiniteItemsQuery(namespace: string, datasetName: string) {
   const activeConcept = useDataset().activeConcept;
   const cacheKey = JSON.stringify({namespace, datasetName, filters, activeConcept, sort});
   const cachedIds = prevIds[cacheKey] || [];
-  const {error, isFetching, ids} = useGetIds(
+  const {error, isFetching, ids} = useGetIds({
     namespace,
     datasetName,
     filters,
     activeConcept,
-    ITEMS_PAGE_SIZE,
-    cachedIds.length,
-    sort?.by,
-    sort?.order
-  );
+    limit: ITEMS_PAGE_SIZE,
+    offset: cachedIds.length,
+    sortBy: sort?.by,
+    sortOrder: sort?.order,
+  });
   const allIds = cachedIds.concat(ids || []);
   const hasNextPage = ids == null || ids.length === ITEMS_PAGE_SIZE;
 

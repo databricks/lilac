@@ -13,39 +13,25 @@ import {
 import {createApi} from '@reduxjs/toolkit/query/react';
 import {createRoot} from 'react-dom/client';
 import {
-  Column,
   ConceptInfo,
-  ConceptScoreSignal,
   EmbeddingInfo,
-  Field,
-  Filter,
-  NamedBins,
-  SignalTransform,
   SortOrder,
-  StatsResult,
   TaskManifest,
   TasksService,
 } from '../../fastapi_client';
-import {getEqualBins, getNamedBins, NUM_AUTO_BINS, TOO_MANY_DISTINCT} from '../db';
-import {isOrdinal, isTemporal, Item, LeafValue, Path, UUID_COLUMN} from '../schema';
+import {Path} from '../schema';
 
 import {useParams} from 'react-router-dom';
 import {useAppSelector} from '../hooks';
 import {SearchBoxPage} from '../search_box/search_box';
-import {getConceptAlias, renderError} from '../utils';
+import {renderError} from '../utils';
 import {conceptApi} from './api_concept';
-import {
-  datasetApi,
-  SELECT_GROUPS_SUPPORTED_DTYPES,
-  useGetStatsQuery,
-  useSelectGroupsQuery,
-  useSelectRowsQuery,
-} from './api_dataset';
+import {datasetApi} from './api_dataset';
 import {embeddingApi} from './api_embeddings';
 import {signalApi} from './api_signal';
 import {fastAPIBaseQuery} from './api_utils';
 
-interface ActiveConceptState {
+export interface ActiveConceptState {
   concept: ConceptInfo;
   column: Path;
   embedding: EmbeddingInfo;
@@ -250,179 +236,6 @@ export const {
 } = appSlice.actions;
 
 export const {useGetTaskManifestQuery, useLazyGetTaskManifestQuery} = serverApi;
-
-/** Fetches the data associated with an item from the dataset. */
-export function useGetItem(
-  namespace: string,
-  datasetName: string,
-  itemId: string
-): {isFetching: boolean; item: Item | null; error?: unknown} {
-  const filters: Filter[] = [{path: [UUID_COLUMN], comparison: 'equals', value: itemId}];
-  const {
-    isFetching,
-    currentData: items,
-    error,
-  } = useSelectRowsQuery({namespace, datasetName, options: {filters, limit: 1}});
-  const item = items != null ? items[0] : null;
-  return {isFetching, item, error};
-}
-
-/** Fetches a set of ids from the dataset that satisfy the specified filters. */
-export function useGetIds(
-  namespace: string,
-  datasetName: string,
-  filters: Filter[],
-  activeConcept: ActiveConceptState | null | undefined,
-  limit: number,
-  offset: number,
-  sortBy?: Path[],
-  sortOrder?: SortOrder
-): {isFetching: boolean; ids: string[] | null; error?: unknown} {
-  /** Always select the UUID column and sort by column. */
-  let columns: (Column | string[])[] = [[UUID_COLUMN]];
-  if (sortBy != null) {
-    columns = [...columns, ...sortBy];
-  }
-  // If there is an active concept, add it to the selected columns.
-  if (activeConcept != null) {
-    const signal: ConceptScoreSignal = {
-      signal_name: 'concept_score',
-      namespace: activeConcept.concept.namespace,
-      concept_name: activeConcept.concept.name,
-      embedding_name: activeConcept.embedding.name,
-    };
-    const alias = getConceptAlias(
-      activeConcept.concept,
-      activeConcept.column,
-      activeConcept.embedding
-    );
-    const transform: SignalTransform = {signal};
-    const conceptColumn: Column = {feature: activeConcept.column, transform, alias};
-    columns = [...columns, conceptColumn];
-    // If no sort is specified, sort by the active concept.
-    if (sortBy == null) {
-      sortBy = [[alias]];
-    }
-  }
-  const {
-    isFetching,
-    currentData: items,
-    error,
-  } = useSelectRowsQuery({
-    namespace,
-    datasetName,
-    options: {
-      filters,
-      columns,
-      limit,
-      offset,
-      sort_by: sortBy,
-      sort_order: sortOrder,
-    },
-  });
-  let ids: string[] | null = null;
-  if (items) {
-    ids = items.map((item) => item[UUID_COLUMN] as string);
-  }
-  return {isFetching, ids, error};
-}
-
-export interface TopKValuesResult {
-  isFetching: boolean;
-  values: [LeafValue, number][];
-  tooManyDistinct: boolean;
-  onlyTopK: boolean;
-  dtypeNotSupported: boolean;
-  statsResult?: StatsResult;
-}
-
-export interface TopKValuesOptions {
-  namespace: string;
-  datasetName: string;
-  leafPath: Path;
-  field: Field;
-  topK: number;
-  vocabOnly?: boolean;
-}
-
-/** Returns the top K values along with their counts for a given leaf.
- *
- * If the vocab is too large to compute top K, it returns null with `tooManyDistinct` set to true.
- * If the vocab is larger than top K, it returns the top K values with `onlyTopK` set to true.
- * If `vocabOnly` is true, it returns the top K values without the counts.
- */
-export function useTopValues({
-  namespace,
-  datasetName,
-  leafPath,
-  field,
-  topK,
-  vocabOnly,
-}: TopKValuesOptions): TopKValuesResult {
-  const {isFetching: statsIsFetching, currentData: statsResult} = useGetStatsQuery({
-    namespace,
-    datasetName,
-    options: {leaf_path: leafPath},
-  });
-  let values: [LeafValue, number][] = [];
-  let skipSelectGroups = false;
-  let tooManyDistinct = false;
-  let dtypeNotSupported = false;
-  let onlyTopK = false;
-  let namedBins: NamedBins | undefined = undefined;
-
-  // Dtype exists since the field is a leaf.
-  const dtype = field.dtype!;
-
-  if (!SELECT_GROUPS_SUPPORTED_DTYPES.includes(dtype)) {
-    skipSelectGroups = true;
-    dtypeNotSupported = true;
-  }
-
-  if (statsResult == null) {
-    skipSelectGroups = true;
-  } else if (statsResult.approx_count_distinct > TOO_MANY_DISTINCT) {
-    skipSelectGroups = true;
-    tooManyDistinct = true;
-    onlyTopK = false;
-  } else if (statsResult.approx_count_distinct > topK) {
-    onlyTopK = true;
-  }
-
-  if (isOrdinal(dtype) && !isTemporal(dtype) && statsResult != null) {
-    // When fetching only the vocab of a binned leaf, we can skip calling `db.select_groups()`.
-    skipSelectGroups = vocabOnly ? true : false;
-    tooManyDistinct = false;
-    onlyTopK = false;
-    const bins = getEqualBins(statsResult, leafPath, NUM_AUTO_BINS);
-    namedBins = getNamedBins(bins);
-  }
-  const {isFetching: groupsIsFetching, currentData: groupsResult} = useSelectGroupsQuery(
-    {
-      namespace,
-      datasetName,
-      options: {leaf_path: leafPath, bins: namedBins, limit: onlyTopK ? topK : 0},
-    },
-    {skip: skipSelectGroups}
-  );
-
-  if (groupsResult != null) {
-    values = groupsResult;
-  }
-
-  if (vocabOnly && namedBins != null) {
-    values = namedBins.labels!.map((label) => [label, 0]);
-  }
-
-  return {
-    isFetching: statsIsFetching || groupsIsFetching,
-    values,
-    tooManyDistinct,
-    onlyTopK,
-    dtypeNotSupported,
-    statsResult,
-  };
-}
 
 // See: https://react-redux.js.org/tutorials/typescript-quick-start
 export type RootState = ReturnType<typeof rootReducer>;

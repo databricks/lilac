@@ -4,6 +4,8 @@ import {BrowserRouter} from 'react-router-dom';
 
 import {PreloadedState} from '@reduxjs/toolkit';
 import React, {PropsWithChildren} from 'react';
+import {SpyInstance} from 'vitest';
+import {CancelablePromise} from '../fastapi_client';
 import {AppStore, RootState, setupStore} from '../src/store/store';
 
 interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
@@ -37,3 +39,14 @@ export function renderWithProviders(
   }
   return {store, ...render(ui, {wrapper: Wrapper, ...renderOptions})};
 }
+
+type DeepPartial<T> = T extends object
+  ? {
+      [P in keyof T]?: DeepPartial<T[P]>;
+    }
+  : T;
+
+export type OpenAPISpy<Fn extends (...args: any[]) => void> = SpyInstance<
+  Parameters<Fn>,
+  CancelablePromise<DeepPartial<Awaited<ReturnType<Fn>>>>
+>;

@@ -1,7 +1,7 @@
 import * as React from 'react';
+import {useGetItem} from '../hooks/useGetItem';
 import {getLeafVals, Item, LeafValue, Path, serializePath} from '../schema';
 import {useGetMediaURLQuery} from '../store/api_dataset';
-import {useGetItem} from '../store/store';
 import {renderError, roundNumber} from '../utils';
 import {IMAGE_PATH_PREFIX} from './browser';
 import './dataset_viewer.module.css';
@@ -82,7 +82,7 @@ export const ItemPreview = React.memo(function ItemPreview({
   itemId,
   previewPaths,
 }: ItemPreviewProps): JSX.Element {
-  const {isFetching, item, error} = useGetItem(namespace, datasetName, itemId);
+  const {isFetching, item, error} = useGetItem({namespace, datasetName, itemId});
   if (error) {
     return <div>{renderError(error)}</div>;
   }

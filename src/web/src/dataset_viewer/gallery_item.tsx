@@ -1,7 +1,7 @@
 import * as React from 'react';
 
+import {useGetItem} from '../hooks/useGetItem';
 import {getLeafVals, Item, LeafValue, Path, serializePath} from '../schema';
-import {useGetItem} from '../store/store';
 import {renderError, renderPath} from '../utils';
 import './dataset_viewer.module.css';
 
@@ -84,7 +84,7 @@ export const GalleryItem = React.memo(function GalleryItem({
   mediaPaths,
   metadataPaths,
 }: GalleryItemProps): JSX.Element {
-  const {item, error} = useGetItem(namespace, datasetName, itemId);
+  const {item, error} = useGetItem({namespace, datasetName, itemId});
   if (error) {
     return <div>{renderError(error)}</div>;
   }
