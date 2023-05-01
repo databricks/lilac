@@ -21,13 +21,9 @@ from ..embeddings.vector_store import VectorStore
 from ..schema import (
     ENTITY_FEATURE_KEY,
     LILAC_COLUMN,
-    TEXT_SPAN_END_FEATURE,
-    TEXT_SPAN_START_FEATURE,
     UUID_COLUMN,
     DataType,
     EnrichmentType,
-    Entity,
-    EntityField,
     Field,
     Item,
     ItemValue,
@@ -35,7 +31,8 @@ from ..schema import (
     RichData,
     Schema,
     SignalOut,
-    TextSpan,
+    TextEntity,
+    TextEntityField,
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
@@ -1040,35 +1037,17 @@ class SelectRowsSuite:
     expected_result = [{
         UUID_COLUMN: '1',
         'text': '[1, 1] first sentence. [1, 1] second sentence.',
-        f'{LILAC_COLUMN}.text.test_splitter_len': [{
-            'len': 22,
-            'split': {
-                TEXT_SPAN_START_FEATURE: 0,
-                TEXT_SPAN_END_FEATURE: 22
-            }
-        }, {
-            'len': 23,
-            'split': {
-                TEXT_SPAN_START_FEATURE: 23,
-                TEXT_SPAN_END_FEATURE: 46
-            }
-        }]
+        f'{LILAC_COLUMN}.text.test_splitter_len': [
+            TextEntity(0, 22, metadata={'len': 22}),
+            TextEntity(23, 46, metadata={'len': 23})
+        ]
     }, {
         UUID_COLUMN: '2',
         'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-        f'{LILAC_COLUMN}.text.test_splitter_len': [{
-            'len': 25,
-            'split': {
-                TEXT_SPAN_START_FEATURE: 0,
-                TEXT_SPAN_END_FEATURE: 25
-            }
-        }, {
-            'len': 23,
-            'split': {
-                TEXT_SPAN_START_FEATURE: 26,
-                TEXT_SPAN_END_FEATURE: 49
-            }
-        }]
+        f'{LILAC_COLUMN}.text.test_splitter_len': [
+            TextEntity(0, 25, metadata={'len': 25}),
+            TextEntity(26, 49, metadata={'len': 23})
+        ]
     }]
     assert list(result) == expected_result
 
@@ -1103,16 +1082,15 @@ class SelectRowsSuite:
                         'text': Field(
                             fields={
                                 'test_entity_len': Field(
-                                    repeated_field=EntityField(
-                                        entity_value=Field(
-                                            dtype=DataType.STRING_SPAN, derived_from=(('text',))),
-                                        fields={
+                                    repeated_field=TextEntityField(
+                                        metadata={
                                             'len': Field(
                                                 dtype=DataType.INT32, derived_from=('text',))
-                                        }),
+                                        },
+                                        derived_from=('text',)),
                                     derived_from=('text',))
                             })
-                    })
+                    }),
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         entity_indexes=[EntityIndex(source_path=('text',), index_path=('text',), signal=signal)],
@@ -1125,15 +1103,15 @@ class SelectRowsSuite:
         UUID_COLUMN: '1',
         'text': '[1, 1] first sentence. [1, 1] second sentence.',
         f'{LILAC_COLUMN}.text.test_entity_len': [
-            Entity(entity=TextSpan(0, 22), metadata={'len': 22}),
-            Entity(entity=TextSpan(23, 46), metadata={'len': 23})
+            TextEntity(0, 22, metadata={'len': 22}),
+            TextEntity(23, 46, metadata={'len': 23})
         ]
     }, {
         UUID_COLUMN: '2',
         'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
         f'{LILAC_COLUMN}.text.test_entity_len': [
-            Entity(entity=TextSpan(0, 25), metadata={'len': 25}),
-            Entity(entity=TextSpan(26, 49), metadata={'len': 23})
+            TextEntity(0, 25, metadata={'len': 25}),
+            TextEntity(26, 49, metadata={'len': 23})
         ]
     }]
     assert list(result) == expected_result
@@ -1233,10 +1211,8 @@ class SelectRowsSuite:
                         'text': Field(
                             fields={
                                 'test_entity_len': Field(
-                                    repeated_field=EntityField(
-                                        entity_value=Field(
-                                            dtype=DataType.STRING_SPAN, derived_from=('text',)),
-                                        fields={
+                                    repeated_field=TextEntityField(
+                                        metadata={
                                             'test_embedding_sum': Field(
                                                 dtype=DataType.FLOAT32,
                                                 derived_from=(LILAC_COLUMN, 'text',
@@ -1244,7 +1220,8 @@ class SelectRowsSuite:
                                                               ENTITY_FEATURE_KEY)),
                                             'len': Field(
                                                 dtype=DataType.INT32, derived_from=('text',))
-                                        }),
+                                        },
+                                        derived_from=('text',)),
                                     derived_from=('text',))
                             })
                     })
@@ -1264,27 +1241,29 @@ class SelectRowsSuite:
     assert list(result) == [{
         UUID_COLUMN: '1',
         'text': 'hello. hello2.',
-        'sentences': [{
-            '__entity__': TextSpan(start=0, end=6),
-            'len': 6,
-            'test_embedding_sum': 1.0
-        }, {
-            '__entity__': TextSpan(start=7, end=14),
-            'len': 7,
-            'test_embedding_sum': 2.0
-        }]
+        'sentences': [
+            TextEntity(0, 6, metadata={
+                'len': 6,
+                'test_embedding_sum': 1.0
+            }),
+            TextEntity(7, 14, metadata={
+                'len': 7,
+                'test_embedding_sum': 2.0
+            })
+        ]
     }, {
         UUID_COLUMN: '2',
         'text': 'hello world. hello world2.',
-        'sentences': [{
-            '__entity__': TextSpan(start=0, end=12),
-            'len': 12,
-            'test_embedding_sum': 3.0
-        }, {
-            '__entity__': TextSpan(start=13, end=26),
-            'len': 13,
-            'test_embedding_sum': 4.0
-        }]
+        'sentences': [
+            TextEntity(0, 12, metadata={
+                'len': 12,
+                'test_embedding_sum': 3.0
+            }),
+            TextEntity(13, 26, metadata={
+                'len': 13,
+                'test_embedding_sum': 4.0
+            })
+        ]
     }]
 
   def test_invalid_column_paths(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -1376,11 +1355,7 @@ class TestSplitterWithLen(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(
-        repeated_field=Field(fields={
-            'len': Field(dtype=DataType.INT32),
-            'split': Field(dtype=DataType.STRING_SPAN)
-        }))
+    return Field(repeated_field=TextEntityField(metadata={'len': Field(dtype=DataType.INT32)}))
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
@@ -1388,10 +1363,12 @@ class TestSplitterWithLen(Signal):
       if not isinstance(text, str):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
-      yield [{
-          'len': len(sentence),
-          'split': TextSpan(start=text.index(sentence), end=text.index(sentence) + len(sentence))
-      } for sentence in sentences]
+      yield [
+          TextEntity(
+              start=text.index(sentence),
+              end=text.index(sentence) + len(sentence),
+              metadata={'len': len(sentence)}) for sentence in sentences
+      ]
 
 
 class TestEntitySignal(Signal):
@@ -1404,9 +1381,7 @@ class TestEntitySignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(
-        repeated_field=EntityField(
-            Field(dtype=DataType.STRING_SPAN), {'len': Field(dtype=DataType.INT32)}))
+    return Field(repeated_field=TextEntityField(metadata={'len': Field(dtype=DataType.INT32)}))
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
@@ -1415,8 +1390,9 @@ class TestEntitySignal(Signal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-          Entity(
-              entity=TextSpan(start=text.index(sentence), end=text.index(sentence) + len(sentence)),
+          TextEntity(
+              start=text.index(sentence),
+              end=text.index(sentence) + len(sentence),
               metadata={'len': len(sentence)}) for sentence in sentences
       ]
 

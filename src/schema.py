@@ -254,9 +254,22 @@ def entity_paths(field: Field) -> list[PathTuple]:
   return entities
 
 
-def TextSpan(start: int, end: int) -> Item:
+def TextEntity(start: int, end: int, metadata: Optional[Item] = {}) -> Item:
   """Return the span item from start and end character offets."""
-  return {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
+  span: Item = {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
+  return Entity(span, metadata)
+
+
+def TextEntityField(metadata: Optional[dict[str, Field]] = {},
+                    derived_from: Optional[PathTuple] = None) -> Field:
+  """Returns a field that represents an entity."""
+  return Field(
+      fields={
+          ENTITY_FEATURE_KEY: Field(dtype=DataType.STRING_SPAN, derived_from=derived_from),
+          **(metadata or {})
+      },
+      is_entity=True,
+      derived_from=derived_from)
 
 
 def child_item_from_column_path(item: Item, path: Path) -> Item:

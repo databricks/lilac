@@ -6,14 +6,12 @@ from spacy import Language
 from typing_extensions import override
 
 from ...schema import (
-    DataType,
     EnrichmentType,
-    Entity,
-    EntityField,
     Field,
     ItemValue,
     RichData,
-    TextSpan,
+    TextEntity,
+    TextEntityField,
 )
 from ...signals.signal import Signal
 
@@ -34,14 +32,14 @@ class SentenceSplitterSpacy(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(repeated_field=EntityField(Field(dtype=DataType.STRING_SPAN)))
+    return Field(repeated_field=TextEntityField())
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:
     text_data = (row if isinstance(row, str) else '' for row in data)
     for doc in self._tokenizer.pipe(text_data):
       sentences = doc.sents
-      result = [Entity(TextSpan(start=token.start_char, end=token.end_char)) for token in sentences]
+      result = [TextEntity(start=token.start_char, end=token.end_char) for token in sentences]
       if result:
         yield result
       else:
