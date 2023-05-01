@@ -32,8 +32,8 @@ import {renderPath, renderQuery, useClickOutside} from '../utils';
 import {ColumnSelector} from './ColumnSelector';
 import {ConceptSelector} from './ConceptSelector';
 import {EmbeddingSelector} from './EmbeddingSelector';
+import './SearchBox.css';
 import {SearchBoxItem} from './SearchBoxItem';
-import './search_box.css';
 import {SignalSelector} from './SignalSelector';
 
 /** Time to debounce (ms). */
