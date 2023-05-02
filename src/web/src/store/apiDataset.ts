@@ -92,6 +92,9 @@ export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
 
 const DATASETS_TAG = 'datasets';
 
+/** Number of ms batched requests are delayed to allow other requests to be added */
+const BATCHED_REQUESTS_DELAY = 50;
+
 const selectBatchedRowsByUUIDQueuedRequest = new Set<
   Omit<SelectRowsByUUUIDQueryArg, 'uuid'> & {
     uuids: string[];
@@ -190,6 +193,7 @@ export const datasetApi = createApi({
             }).then((res) => res[0]);
           }
 
+          // Batch requests that share same query arguments
           return new Promise<Item>((resolve, reject) => {
             // Find existing queued request with same options
             const queuedRequest = Array.from(selectBatchedRowsByUUIDQueuedRequest).find(
@@ -214,6 +218,7 @@ export const datasetApi = createApi({
 
               // Schedule request to be sent
               setTimeout(() => {
+                // Produce the final options to be sent
                 const finalOptions: SelectRowsOptions = {
                   ...queuedRequest.options,
                   limit: queuedRequest.uuids.length,
@@ -224,18 +229,20 @@ export const datasetApi = createApi({
                 };
                 DatasetsService.selectRows(namespace, datasetName, finalOptions)
                   .then((res) => {
+                    // Resolve all promises with individual rows
                     for (const [i, promise] of queuedRequest.promises.entries()) {
                       promise.resolve(res[i]);
                     }
                   })
                   .catch((e) => {
+                    // Reject all promises
                     for (const promise of queuedRequest.promises) {
                       promise.reject(e);
                     }
                   });
 
                 selectBatchedRowsByUUIDQueuedRequest.delete(queuedRequest);
-              }, 50);
+              }, BATCHED_REQUESTS_DELAY);
             }
           });
         },
