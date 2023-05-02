@@ -42,6 +42,7 @@ from .db_dataset import (
     Comparison,
     DatasetDB,
     DatasetManifest,
+    FilterTuple,
     NamedBins,
     SignalUDF,
     SortOrder,
