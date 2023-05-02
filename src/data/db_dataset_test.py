@@ -201,6 +201,26 @@ class SelectRowsSuite:
 
     assert list(result) == []
 
+  def test_filter_by_list_of_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+
+    id_filter: FilterTuple = (UUID_COLUMN, Comparison.IN, ['1', '2'])
+    result = db.select_rows(filters=[id_filter])
+
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'str': 'a',
+        'int': 1,
+        'bool': False,
+        'float': 3.0
+    }, {
+        UUID_COLUMN: '2',
+        'str': 'b',
+        'int': 2,
+        'bool': True,
+        'float': 2.0
+    }]
+
   def test_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
 

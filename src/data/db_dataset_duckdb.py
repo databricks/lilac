@@ -99,6 +99,7 @@ COMPARISON_TO_OP: dict[Comparison, str] = {
     Comparison.GREATER_EQUAL: '>=',
     Comparison.LESS: '<',
     Comparison.LESS_EQUAL: '<=',
+    Comparison.IN: 'in',
 }
 
 
@@ -807,7 +808,12 @@ class DatasetDuckDB(DatasetDB):
       col_name = self._path_to_col(filter.path)
       op = COMPARISON_TO_OP[filter.comparison]
       filter_val = filter.value
-      if isinstance(filter_val, str):
+      if isinstance(filter_val, list):
+        if op != 'in':
+          raise ValueError('filter with array value can only use the IN comparison')
+        wrapped_filter_val = [f"'{part}'" for part in filter_val]
+        filter_val = f'({", ".join(wrapped_filter_val)})'
+      elif isinstance(filter_val, str):
         filter_val = f"'{filter_val}'"
       elif isinstance(filter_val, bytes):
         filter_val = _bytes_to_blob_literal(filter_val)

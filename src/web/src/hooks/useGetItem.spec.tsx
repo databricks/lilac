@@ -33,17 +33,6 @@ describe('useGetItem', () => {
       {wrapper}
     );
 
-    expect(spy).toBeCalledWith('namespace', 'datasetName', {
-      filters: [
-        {
-          comparison: 'equals',
-          path: ['__rowid__'],
-          value: 'id1',
-        },
-      ],
-      limit: 1,
-    });
-
     await waitFor(() => {
       expect(result.current).toEqual({
         error: undefined,
@@ -53,6 +42,17 @@ describe('useGetItem', () => {
         },
         isFetching: false,
       });
+    });
+
+    expect(spy).toBeCalledWith('namespace', 'datasetName', {
+      filters: [
+        {
+          comparison: 'in',
+          path: ['__rowid__'],
+          value: ['id1'],
+        },
+      ],
+      limit: 1,
     });
   });
 });

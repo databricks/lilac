@@ -83,6 +83,7 @@ class Comparison(str, enum.Enum):
   GREATER_EQUAL = 'greater_equal'
   LESS = 'less'
   LESS_EQUAL = 'less_equal'
+  IN = 'in'
 
 
 class SortOrder(str, enum.Enum):
@@ -227,7 +228,7 @@ def SignalUDF(signal: Signal, column: ColumnId, alias: Optional[str] = None) -> 
   return result_column
 
 
-FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes]
+FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes, list[StrictStr]]
 FilterTuple = tuple[Union[Path, Column], Comparison, FeatureValue]
 
 
