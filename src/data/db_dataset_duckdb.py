@@ -37,7 +37,6 @@ from ..schema import (
     Schema,
     SourceManifest,
     enrichment_supports_dtype,
-    entity_paths,
     is_float,
     is_integer,
     is_ordinal,
@@ -66,7 +65,6 @@ from .db_dataset import (
     Comparison,
     DatasetDB,
     DatasetManifest,
-    EntityIndex,
     Filter,
     FilterLike,
     GroupsSortBy,
@@ -170,9 +168,6 @@ class DatasetDuckDB(DatasetDB):
   # the results are invalidated.
   def _recompute_joint_table(self, latest_mtime: float) -> DatasetManifest:
     del latest_mtime  # This is used as the cache key.
-
-    entity_indexes: list[EntityIndex] = []
-
     merged_schema = self._source_manifest.data_schema.copy(deep=True)
     self._signal_manifests = []
     # Make a joined view of all the column groups.
@@ -181,18 +176,13 @@ class DatasetDuckDB(DatasetDB):
     # Add the signal column groups.
     for root, _, files in os.walk(self.dataset_path):
       for file in files:
-        if file.endswith(SIGNAL_MANIFEST_SUFFIX):
-          with open_file(os.path.join(root, file)) as f:
-            signal_manifest = SignalManifest.parse_raw(f.read())
-          self._create_view(signal_manifest.parquet_id, signal_manifest.files)
-          self._signal_manifests.append(signal_manifest)
+        if not file.endswith(SIGNAL_MANIFEST_SUFFIX):
+          continue
 
-        elif file.endswith(ENTITY_INDEX_MANIFEST_SUFFIX):
-          with open_file(os.path.join(root, file)) as f:
-            entity_index_manifest = EntityIndexManifest.parse_raw(f.read())
-
-          entity_indexes.append(entity_index_manifest.entity_index)
-
+        with open_file(os.path.join(root, file)) as f:
+          signal_manifest = SignalManifest.parse_raw(f.read())
+        self._create_view(signal_manifest.parquet_id, signal_manifest.files)
+        self._signal_manifests.append(signal_manifest)
     merged_schema = merge_schemas([self._source_manifest.data_schema] +
                                   [m.data_schema for m in self._signal_manifests])
     # The logic below generates the following example query:
@@ -225,7 +215,6 @@ class DatasetDuckDB(DatasetDB):
         dataset_name=self.dataset_name,
         data_schema=merged_schema,
         embedding_manifest=self._embedding_indexer.manifest(),
-        entity_indexes=entity_indexes,
         num_items=num_items)
 
   @override
@@ -311,10 +300,6 @@ class DatasetDuckDB(DatasetDB):
     for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
       item[UUID_COLUMN] = uuid
 
-    signal_entity_paths = entity_paths(signal_field)
-    # TODO(nsthorat): Raise if the signal does not produce entities and the input column is not an
-    # entity index.
-
     signal_schema = create_signal_schema(signal, source_path, schema=self.manifest().data_schema)
     signal_out_prefix = signal_parquet_prefix(column_name=column.alias, signal_name=signal.name)
     parquet_filename, _ = write_items_to_parquet(
@@ -337,21 +322,6 @@ class DatasetDuckDB(DatasetDB):
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.json(exclude_none=True, indent=2))
     log(f'Wrote signal manifest to {signal_manifest_filepath}')
-
-    # If the signal emits entites, write an index for the entities.
-    if signal_entity_paths:
-      for signal_entity_path in signal_entity_paths:
-        entity_index_path = source_path + signal_entity_path
-        # Write an entity index for each entity the signal produces.
-        entity_index_manifest = EntityIndexManifest(
-            entity_index=EntityIndex(
-                source_path=source_path, index_path=entity_index_path, signal=signal))
-        entity_index_manifest_filepath = os.path.join(
-            self.dataset_path,
-            entity_index_manifest_filename(column_name=column.alias, signal_name=signal.name))
-        with open_file(entity_index_manifest_filepath, 'w') as f:
-          f.write(entity_index_manifest.json(exclude_none=True, indent=2))
-        log(f'Wrote entity index manifest to {signal_manifest_filepath}')
 
   def _validate_filters(self, filters: Sequence[Filter], col_aliases: set[str]) -> None:
     manifest = self.manifest()
@@ -953,11 +923,6 @@ def signal_manifest_filename(column_name: str, signal_name: str) -> str:
   return f'{column_name}.{signal_name}.{SIGNAL_MANIFEST_SUFFIX}'
 
 
-def entity_index_manifest_filename(column_name: str, signal_name: str) -> str:
-  """Get the filename for a signal output."""
-  return f'{column_name}.{signal_name}.{ENTITY_INDEX_MANIFEST_SUFFIX}'
-
-
 def split_column_name(column: str, split_name: str) -> str:
   """Get the name of a split column."""
   return f'{column}.{split_name}'
@@ -992,14 +957,6 @@ class SignalManifest(BaseModel):
   def parse_signal(cls, signal: dict) -> Signal:
     """Parse a signal to its specific subclass instance."""
     return resolve_signal(signal)
-
-
-class EntityIndexManifest(BaseModel):
-  """The manifest that describes an entity index computation."""
-  # NOTE(nsthorat): The manifest contains a single value to separate the public API from internal
-  # implementation details of the duckdb implementation so we can add more metadata. This could be
-  # be removed if we don't need to add more metadata.
-  entity_index: EntityIndex
 
 
 def _merge_cells(dest_cell: ItemValue, source_cell: ItemValue) -> None:
