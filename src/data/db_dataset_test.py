@@ -110,14 +110,14 @@ class LengthSignal(Signal):
   enrichment_type = EnrichmentType.TEXT
   vector_based = False
 
-  call_count: int = 0
+  _call_count: int = 0
 
   def fields(self) -> Field:
     return Field(dtype=DataType.INT32)
 
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
     for text_content in data:
-      self.call_count += 1
+      self._call_count += 1
       yield len(text_content)
 
 
@@ -290,7 +290,8 @@ class SelectRowsSuite:
                                         'flen': Field(
                                             dtype=DataType.FLOAT32, derived_from=('str',))
                                     },
-                                    derived_from=('str',))
+                                    derived_from=('str',),
+                                    signal_result=True)
                             })
                     })
             }),
@@ -496,7 +497,9 @@ class SelectRowsSuite:
                             repeated_field=Field(
                                 fields={
                                     'length_signal': Field(
-                                        dtype=DataType.INT32, derived_from=('texts', '*')),
+                                        dtype=DataType.INT32,
+                                        derived_from=('texts', '*'),
+                                        signal_result=True),
                                     'test_signal': Field(
                                         fields={
                                             'len': Field(
@@ -504,7 +507,8 @@ class SelectRowsSuite:
                                             'flen': Field(
                                                 dtype=DataType.FLOAT32, derived_from=('texts', '*'))
                                         },
-                                        derived_from=('texts', '*'))
+                                        derived_from=('texts', '*'),
+                                        signal_result=True)
                                 }))
                     })
             }),
@@ -613,7 +617,8 @@ class SelectRowsSuite:
                                             'flen': Field(
                                                 dtype=DataType.FLOAT32, derived_from=('text', '*'))
                                         },
-                                        derived_from=('text', '*'))
+                                        derived_from=('text', '*'),
+                                        signal_result=True)
                                 }))
                     })
             }),
@@ -763,12 +768,12 @@ class SelectRowsSuite:
     filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '1')]
     result = db.select_rows(['text', SignalUDF(signal, 'text')], filters=filters)
     assert list(result) == [{UUID_COLUMN: '1', 'text': 'hello', 'length_signal(text)': 5}]
-    assert signal.call_count == 1
+    assert signal._call_count == 1
 
     filters = [(UUID_COLUMN, Comparison.EQUALS, '2')]
     result = db.select_rows(['text', SignalUDF(signal, 'text')], filters=filters)
     assert list(result) == [{UUID_COLUMN: '2', 'text': 'everybody', 'length_signal(text)': 9}]
-    assert signal.call_count == 1 + 1
+    assert signal._call_count == 1 + 1
 
     # No filters.
     result = db.select_rows(['text', SignalUDF(signal, 'text')])
@@ -781,7 +786,7 @@ class SelectRowsSuite:
         'text': 'everybody',
         'length_signal(text)': 9
     }]
-    assert signal.call_count == 2 + 2
+    assert signal._call_count == 2 + 2
 
   def test_signal_transform_with_uuid_filter_repeated(self, tmp_path: pathlib.Path,
                                                       db_cls: Type[DatasetDB]) -> None:
@@ -812,7 +817,7 @@ class SelectRowsSuite:
         'text': ['hello', 'hi'],
         'length_signal(text)': [5, 2]
     }]
-    assert signal.call_count == 2
+    assert signal._call_count == 2
 
     # Filter by a specific UUID.
     filters = [(UUID_COLUMN, Comparison.EQUALS, '2')]
@@ -822,7 +827,7 @@ class SelectRowsSuite:
         'text': ['everybody', 'bye', 'test'],
         'length_signal(text)': [9, 3, 4]
     }]
-    assert signal.call_count == 2 + 3
+    assert signal._call_count == 2 + 3
 
   def test_signal_transform_deeply_nested(self, tmp_path: pathlib.Path,
                                           db_cls: Type[DatasetDB]) -> None:
@@ -853,7 +858,7 @@ class SelectRowsSuite:
         UUID_COLUMN: '2',
         'length_signal(text_*)': [[9, 3], [4]]
     }]
-    assert signal.call_count == 6
+    assert signal._call_count == 6
 
   def test_signal_transform_with_embedding(self, tmp_path: pathlib.Path,
                                            db_cls: Type[DatasetDB]) -> None:
@@ -1001,7 +1006,8 @@ class SelectRowsSuite:
                                         'flen': Field(
                                             dtype=DataType.FLOAT32, derived_from=('str',))
                                     },
-                                    derived_from=('str',))
+                                    derived_from=('str',),
+                                    signal_result=True)
                             })
                     })
             }),
@@ -1081,7 +1087,8 @@ class SelectRowsSuite:
                                                 dtype=DataType.INT32, derived_from=('text',))
                                         },
                                         derived_from=('text',)),
-                                    derived_from=('text',))
+                                    derived_from=('text',),
+                                    signal_result=True)
                             })
                     }),
             }),
@@ -1141,7 +1148,9 @@ class SelectRowsSuite:
                         'text': Field(
                             fields={
                                 'test_embedding_sum': Field(
-                                    dtype=DataType.FLOAT32, derived_from=('text',))
+                                    dtype=DataType.FLOAT32,
+                                    derived_from=('text',),
+                                    signal_result=True)
                             })
                     })
             }),
@@ -1212,10 +1221,12 @@ class SelectRowsSuite:
                                                 dtype=DataType.FLOAT32,
                                                 derived_from=(LILAC_COLUMN, 'text',
                                                               'test_entity_len', '*',
-                                                              ENTITY_FEATURE_KEY))
+                                                              ENTITY_FEATURE_KEY),
+                                                signal_result=True)
                                         },
                                         derived_from=('text',)),
-                                    derived_from=('text',))
+                                    derived_from=('text',),
+                                    signal_result=True)
                             })
                     })
             }),
