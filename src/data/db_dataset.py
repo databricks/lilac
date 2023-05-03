@@ -361,4 +361,4 @@ def make_parquet_id(signal: Signal, column: Column) -> str:
     # Remove the trailing .* from the column name.
     column_alias = column_alias[:-2]
 
-  return f'{signal.name}({column_alias})'
+  return f'{signal.key()}({column_alias})'

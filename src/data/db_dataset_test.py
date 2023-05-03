@@ -121,6 +121,19 @@ class LengthSignal(Signal):
       yield len(text_content)
 
 
+class TestParamSignal(Signal):
+  name = 'param_signal'
+  enrichment_type = EnrichmentType.TEXT
+  param: str
+
+  def fields(self) -> Field:
+    return Field(dtype=DataType.STRING)
+
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+    for text_content in data:
+      yield f'{str(text_content)}_{self.param}'
+
+
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
@@ -129,6 +142,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestSplitterWithLen)
   register_signal(TestEmbeddingSumSignal)
   register_signal(TestEntitySignal)
+  register_signal(TestParamSignal)
   register_embedding(TestEmbedding)
 
   # Unit test runs.
@@ -337,6 +351,70 @@ class SelectRowsSuite:
         'str': 'b',
         'flen': 1.0,
         'len': 1
+    }]
+
+  def test_parameterized_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(
+        db_cls,
+        tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello'
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'everybody'
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
+    test_signal_a = TestParamSignal(param='a')
+    test_signal_b = TestParamSignal(param='b')
+    db.compute_signal_column(test_signal_a, 'text')
+    db.compute_signal_column(test_signal_b, 'text')
+
+    assert db.manifest() == DatasetManifest(
+        namespace=TEST_NAMESPACE,
+        dataset_name=TEST_DATASET_NAME,
+        data_schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'text': Field(dtype=DataType.STRING),
+                LILAC_COLUMN: Field(
+                    fields={
+                        'text': Field(
+                            fields={
+                                'param_signal(param=a)': Field(
+                                    dtype=DataType.STRING, signal_root=True, derived_from=(
+                                        'text',)),
+                                'param_signal(param=b)': Field(
+                                    dtype=DataType.STRING, signal_root=True, derived_from=(
+                                        'text',)),
+                            })
+                    },)
+            }),
+        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
+        num_items=2)
+
+    result = db.select_rows(['text', LILAC_COLUMN])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        LILAC_COLUMN: {
+            'text': {
+                'param_signal(param=a)': 'hello_a',
+                'param_signal(param=b)': 'hello_b',
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        LILAC_COLUMN: {
+            'text': {
+                'param_signal(param=a)': 'everybody_a',
+                'param_signal(param=b)': 'everybody_b',
+            }
+        }
     }]
 
   def test_merge_values(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -884,11 +962,11 @@ class SelectRowsSuite:
     expected_result = [{
         UUID_COLUMN: '1',
         'text': 'hello.',
-        'test_embedding_sum(text)': 1.0
+        'test_embedding_sum(embedding=test_embedding)(text)': 1.0
     }, {
         UUID_COLUMN: '2',
         'text': 'hello2.',
-        'test_embedding_sum(text)': 2.0
+        'test_embedding_sum(embedding=test_embedding)(text)': 2.0
     }]
     assert list(result) == expected_result
 
@@ -932,11 +1010,11 @@ class SelectRowsSuite:
     expected_result = [{
         UUID_COLUMN: '1',
         'text': ['hello.', 'hello world.'],
-        'test_embedding_sum(text)': [1.0, 3.0]
+        'test_embedding_sum(embedding=test_embedding)(text)': [1.0, 3.0]
     }, {
         UUID_COLUMN: '2',
         'text': ['hello world2.', 'hello2.'],
-        'test_embedding_sum(text)': [4.0, 2.0]
+        'test_embedding_sum(embedding=test_embedding)(text)': [4.0, 2.0]
     }]
     assert list(result) == expected_result
 

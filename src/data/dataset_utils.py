@@ -131,7 +131,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
 
   # Apply the "derived_from" field lineage to the field we are enriching.
   _apply_field_lineage(signal_schema, source_path)
-  enriched_schema = Field(fields={signal.name: signal_schema})
+  enriched_schema = Field(fields={signal.key(): signal_schema})
 
   # If we are enriching an entity we should store the signal data in the entity field's parent.
   if source_path[-1] == ENTITY_FEATURE_KEY:
