@@ -137,12 +137,11 @@ class Signal(abc.ABC, BaseModel):
     if 'signal_name' in args_dict:
       del args_dict['signal_name']
     args = None
-    if args_dict:
-      args_list: list[str] = []
-      for k, v in args_dict.items():
-        if v:
-          args_list.append(f'{k}={v}')
+    args_list: list[str] = []
+    for k, v in args_dict.items():
+      if v:
+        args_list.append(f'{k}={v}')
 
-      args = ','.join(args_list)
-    display_args = '' if not args else f'({args})'
+    args = ','.join(args_list)
+    display_args = '' if not args_list else f'({args})'
     return self.name + display_args
