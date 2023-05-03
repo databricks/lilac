@@ -173,11 +173,6 @@ class DatasetDuckDB(DatasetDB):
     # Make a joined view of all the column groups.
     self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
 
-    merged_schema = self._source_manifest.data_schema.copy(deep=True)
-    self._signal_manifests = []
-    # Make a joined view of all the column groups.
-    self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
-
     # Add the signal column groups.
     for root, _, files in os.walk(self.dataset_path):
       for file in files:
