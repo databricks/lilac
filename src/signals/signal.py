@@ -133,6 +133,9 @@ class Signal(abc.ABC, BaseModel):
     unique. It will be used as the dictionary key for enriched values.
     """
     args_dict = self.dict(exclude_unset=True)
+    # If a user explicitly defines a signal name for whatever reason, remove it as it's redundant.
+    if 'signal_name' in args_dict:
+      del args_dict['signal_name']
     args = None
     if args_dict:
       args_list: list[str] = []
