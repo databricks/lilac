@@ -291,7 +291,7 @@ class SelectRowsSuite:
                                             dtype=DataType.FLOAT32, derived_from=('str',))
                                     },
                                     derived_from=('str',),
-                                    signal_result=True)
+                                    signal_root=True)
                             })
                     })
             }),
@@ -499,7 +499,7 @@ class SelectRowsSuite:
                                     'length_signal': Field(
                                         dtype=DataType.INT32,
                                         derived_from=('texts', '*'),
-                                        signal_result=True),
+                                        signal_root=True),
                                     'test_signal': Field(
                                         fields={
                                             'len': Field(
@@ -508,7 +508,7 @@ class SelectRowsSuite:
                                                 dtype=DataType.FLOAT32, derived_from=('texts', '*'))
                                         },
                                         derived_from=('texts', '*'),
-                                        signal_result=True)
+                                        signal_root=True)
                                 }))
                     })
             }),
@@ -618,7 +618,7 @@ class SelectRowsSuite:
                                                 dtype=DataType.FLOAT32, derived_from=('text', '*'))
                                         },
                                         derived_from=('text', '*'),
-                                        signal_result=True)
+                                        signal_root=True)
                                 }))
                     })
             }),
@@ -1007,7 +1007,7 @@ class SelectRowsSuite:
                                             dtype=DataType.FLOAT32, derived_from=('str',))
                                     },
                                     derived_from=('str',),
-                                    signal_result=True)
+                                    signal_root=True)
                             })
                     })
             }),
@@ -1088,7 +1088,7 @@ class SelectRowsSuite:
                                         },
                                         derived_from=('text',)),
                                     derived_from=('text',),
-                                    signal_result=True)
+                                    signal_root=True)
                             })
                     }),
             }),
@@ -1150,7 +1150,7 @@ class SelectRowsSuite:
                                 'test_embedding_sum': Field(
                                     dtype=DataType.FLOAT32,
                                     derived_from=('text',),
-                                    signal_result=True)
+                                    signal_root=True)
                             })
                     })
             }),
@@ -1222,11 +1222,11 @@ class SelectRowsSuite:
                                                 derived_from=(LILAC_COLUMN, 'text',
                                                               'test_entity_len', '*',
                                                               ENTITY_FEATURE_KEY),
-                                                signal_result=True)
+                                                signal_root=True)
                                         },
                                         derived_from=('text',)),
                                     derived_from=('text',),
-                                    signal_result=True)
+                                    signal_root=True)
                             })
                     })
             }),

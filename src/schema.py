@@ -120,7 +120,7 @@ class Field(BaseModel):
   fields: Optional[dict[str, 'Field']]
   dtype: Optional[DataType]
   # Whether this field is the root result of a signal.
-  signal_result: Optional[bool]
+  signal_root: Optional[bool]
   # Defined when the field represents an entity.
   is_entity: Optional[bool]
   # When defined, this field is derived from another column. This could be via a signal or via a
