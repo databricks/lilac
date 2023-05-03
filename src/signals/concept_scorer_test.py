@@ -212,3 +212,9 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
   for (id, score), (expected_id, expected_score) in zip(topk_result, expected_result):
     assert id == expected_id
     assert score == pytest.approx(expected_score, 1e-3)
+
+
+def test_concept_score_key() -> None:
+  signal = ConceptScoreSignal(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+  assert signal.key() == 'test/test_concept'

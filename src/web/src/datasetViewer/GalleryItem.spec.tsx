@@ -1,4 +1,4 @@
-import {screen} from '@testing-library/react';
+import {screen, waitFor} from '@testing-library/react';
 import {vi} from 'vitest';
 import {DatasetsService} from '../../fastapi_client';
 import {OpenAPISpy, renderWithProviders} from '../../tests/utils';
@@ -27,15 +27,17 @@ describe('GalleryItem', () => {
       />
     );
 
-    expect(spy).toBeCalledWith('test-namespace', 'test-dataset', {
-      filters: [
-        {
-          comparison: 'equals',
-          path: ['__rowid__'],
-          value: 'test-item-id',
-        },
-      ],
-      limit: 1,
+    await waitFor(() => {
+      expect(spy).toBeCalledWith('test-namespace', 'test-dataset', {
+        filters: [
+          {
+            comparison: 'in',
+            path: ['__rowid__'],
+            value: ['test-item-id'],
+          },
+        ],
+        limit: 1,
+      });
     });
   });
 

@@ -2,6 +2,7 @@
  * RTK Query APIs for the dataset service: 'dataset' tag in FastAPI.
  */
 import {createApi} from '@reduxjs/toolkit/dist/query/react';
+import deepEqual from 'deep-equal';
 import {JSONSchema7} from 'json-schema';
 import {
   ComputeEmbeddingIndexOptions,
@@ -19,13 +20,21 @@ import {
   StatsResult,
   WebManifest,
 } from '../../fastapi_client';
-import {Item, LeafValue, Path} from '../schema';
+import {Item, LeafValue, Path, UUID_COLUMN} from '../schema';
 import {fastAPIBaseQuery} from './apiUtils';
 
 export interface SelectRowsQueryArg {
   namespace: string;
   datasetName: string;
   options: SelectRowsOptions;
+}
+
+export interface SelectRowsByUUUIDQueryArg {
+  namespace: string;
+  datasetName: string;
+  uuid: string;
+  options: Omit<SelectRowsOptions, 'limit' | 'offset'>;
+  batched?: boolean;
 }
 
 export interface SelectGroupsQueryArg {
@@ -82,6 +91,16 @@ export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
 ];
 
 const DATASETS_TAG = 'datasets';
+
+/** Number of ms batched requests are delayed to allow other requests to be added */
+const BATCHED_REQUESTS_DELAY = 50;
+
+const selectBatchedRowsByUUIDQueuedRequest = new Set<
+  Omit<SelectRowsByUUUIDQueryArg, 'uuid'> & {
+    uuids: string[];
+    promises: Array<{resolve: (item: Item) => void; reject: (error: unknown) => void}>;
+  }
+>();
 export const datasetApi = createApi({
   reducerPath: 'datasetApi',
   baseQuery: fastAPIBaseQuery(),
@@ -158,6 +177,76 @@ export const datasetApi = createApi({
           return url.toString();
         },
     }),
+    selectRowsByUUID: builder.query<Item, SelectRowsByUUUIDQueryArg>({
+      query:
+        ({namespace, datasetName, options, uuid, batched}) =>
+        () => {
+          // Allow requests to not be batched
+          if (batched === false) {
+            return DatasetsService.selectRows(namespace, datasetName, {
+              ...options,
+              limit: 1,
+              filters: [
+                ...(options.filters || []),
+                {path: [UUID_COLUMN], comparison: 'equals', value: uuid},
+              ],
+            }).then((res) => res[0]);
+          }
+
+          // Batch requests that share same query arguments
+          return new Promise<Item>((resolve, reject) => {
+            // Find existing queued request with same options
+            const queuedRequest = Array.from(selectBatchedRowsByUUIDQueuedRequest).find(
+              (request) =>
+                request.namespace === namespace &&
+                request.datasetName === datasetName &&
+                deepEqual(request.options, options)
+            );
+            if (queuedRequest) {
+              queuedRequest.uuids.push(uuid);
+              queuedRequest.promises.push({resolve, reject});
+            } else {
+              // Create a new queued request
+              const queuedRequest = {
+                namespace,
+                datasetName,
+                options,
+                uuids: [uuid],
+                promises: [{resolve, reject}],
+              };
+              selectBatchedRowsByUUIDQueuedRequest.add(queuedRequest);
+
+              // Schedule request to be sent
+              setTimeout(() => {
+                // Produce the final options to be sent
+                const finalOptions: SelectRowsOptions = {
+                  ...queuedRequest.options,
+                  limit: queuedRequest.uuids.length,
+                  filters: [
+                    ...(queuedRequest.options.filters || []),
+                    {path: [UUID_COLUMN], comparison: 'in', value: queuedRequest.uuids},
+                  ],
+                };
+                DatasetsService.selectRows(namespace, datasetName, finalOptions)
+                  .then((res) => {
+                    // Resolve all promises with individual rows
+                    for (const [i, promise] of queuedRequest.promises.entries()) {
+                      promise.resolve(res[i]);
+                    }
+                  })
+                  .catch((e) => {
+                    // Reject all promises
+                    for (const promise of queuedRequest.promises) {
+                      promise.reject(e);
+                    }
+                  });
+
+                selectBatchedRowsByUUIDQueuedRequest.delete(queuedRequest);
+              }, BATCHED_REQUESTS_DELAY);
+            }
+          });
+        },
+    }),
     getMultipleStats: builder.query<StatsResult[], MultipleStatsQueryArg>({
       query:
         ({namespace, datasetName, leafPaths}) =>
@@ -179,6 +268,7 @@ export const {
   useComputeSignalColumnMutation,
   useGetManifestQuery,
   useSelectRowsQuery,
+  useSelectRowsByUUIDQuery,
   useSelectGroupsQuery,
   useGetStatsQuery,
   useGetMediaURLQuery,

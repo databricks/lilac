@@ -1,6 +1,8 @@
 """Embedding registry."""
 from typing import ClassVar, Type, Union
 
+from pydantic import StrictStr
+
 from ..signals.signal import Signal
 
 DEFAULT_BATCH_SIZE = 96
@@ -12,7 +14,7 @@ class Embedding(Signal):
   batch_size: ClassVar[int] = DEFAULT_BATCH_SIZE
 
 
-EmbeddingId = Union[str, Embedding]
+EmbeddingId = Union[StrictStr, Embedding]
 
 EMBEDDING_REGISTRY: dict[str, Type[Embedding]] = {}
 
