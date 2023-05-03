@@ -54,7 +54,7 @@ Datasets can be ingested entirely from the UI, however if you prefer to use the 
 ```sh
 poetry run python -m src.data_loader \
   --dataset_name=$DATASET \
-  --output_dir=./gcs_cache/ \
+  --output_dir=./data/ \
   --config_path=./datasets/the_movies_dataset.json
 ```
 
