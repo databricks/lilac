@@ -8,11 +8,11 @@ import {
 } from '@shoelace-style/shoelace/dist/react';
 import * as React from 'react';
 import {useParams} from 'react-router-dom';
-import {useGetManifestQuery} from '../store/api_dataset';
-import styles from './dataset_viewer.module.css';
-import {EmbedingsView} from './embeddings_view';
-import {Gallery} from './gallery_view';
-import {Stats} from './stats';
+import {useGetManifestQuery} from '../store/apiDataset';
+import styles from './DatasetViewer.module.css';
+import {EmbedingsView} from './EmbedingsView';
+import {GalleryView} from './GalleryView';
+import {Stats} from './Stats';
 
 export const DatasetViewer = React.memo(function DatasetViewer(): JSX.Element {
   const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
@@ -27,7 +27,7 @@ export const DatasetViewer = React.memo(function DatasetViewer(): JSX.Element {
   const embeddingsView = (
     <EmbedingsView namespace={namespace} datasetName={datasetName}></EmbedingsView>
   );
-  const gallery = <Gallery namespace={namespace} datasetName={datasetName}></Gallery>;
+  const gallery = <GalleryView namespace={namespace} datasetName={datasetName}></GalleryView>;
 
   return (
     <div className={`${styles.body} flex h-full w-full overflow-hidden`}>

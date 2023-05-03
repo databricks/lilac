@@ -42,7 +42,6 @@ from .db_dataset import (
     Comparison,
     DatasetDB,
     DatasetManifest,
-    EntityIndex,
     FilterTuple,
     NamedBins,
     SignalUDF,
@@ -235,7 +234,6 @@ class SelectRowsSuite:
                 'float': Field(dtype=DataType.FLOAT64),
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-        entity_indexes=[],
         num_items=3)
 
     test_signal = TestSignal()
@@ -297,7 +295,6 @@ class SelectRowsSuite:
                     })
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-        entity_indexes=[],
         num_items=3)
 
     # Select a specific signal leaf test_signal.flen.
@@ -512,7 +509,6 @@ class SelectRowsSuite:
                     })
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-        entity_indexes=[],
         num_items=2)
 
     result = db.select_rows(['texts', LILAC_COLUMN])
@@ -622,7 +618,6 @@ class SelectRowsSuite:
                     })
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-        entity_indexes=[],
         num_items=2)
 
     result = db.select_rows([(LILAC_COLUMN, 'text', '*')])
@@ -955,7 +950,6 @@ class SelectRowsSuite:
                 'float': Field(dtype=DataType.FLOAT64),
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-        entity_indexes=[],
         num_items=3)
 
     test_signal = TestSignal()
@@ -1012,7 +1006,6 @@ class SelectRowsSuite:
                     })
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-        entity_indexes=[],
         num_items=3)
 
   def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -1093,7 +1086,6 @@ class SelectRowsSuite:
                     }),
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
-        entity_indexes=[EntityIndex(source_path=('text',), index_path=('text',), signal=signal)],
         num_items=2)
 
     # NOTE: The way this currently works is it just generates a new signal column, in the old
@@ -1155,7 +1147,6 @@ class SelectRowsSuite:
             }),
         embedding_manifest=EmbeddingIndexerManifest(
             indexes=[EmbeddingIndexInfo(column=('text',), embedding=embedding)]),
-        entity_indexes=[],
         num_items=2)
 
     result = db.select_rows(['text', (LILAC_COLUMN, 'text')])
@@ -1233,9 +1224,6 @@ class SelectRowsSuite:
                 column=(LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY),
                 embedding=embedding)
         ]),
-        entity_indexes=[
-            EntityIndex(source_path=('text',), index_path=('text',), signal=entity_signal)
-        ],
         num_items=2)
 
     result = db.select_rows(

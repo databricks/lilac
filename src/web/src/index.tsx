@@ -10,10 +10,10 @@ import {
   Route,
   RouterProvider,
 } from 'react-router-dom';
-import {DatasetLoader} from './dataset_loader';
-import {DatasetViewer} from './dataset_viewer/dataset_viewer';
-import {Header} from './header';
-import {Home} from './home';
+import {DatasetLoader} from './DatasetLoader';
+import {DatasetViewer} from './datasetViewer/DatasetViewer';
+import {Header} from './Header';
+import {Home} from './Home';
 import './index.css';
 import {store} from './store/store';
 setBasePath('/static/shoelace');

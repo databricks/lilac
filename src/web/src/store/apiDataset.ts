@@ -20,7 +20,7 @@ import {
   WebManifest,
 } from '../../fastapi_client';
 import {Item, LeafValue, Path} from '../schema';
-import {fastAPIBaseQuery} from './api_utils';
+import {fastAPIBaseQuery} from './apiUtils';
 
 export interface SelectRowsQueryArg {
   namespace: string;

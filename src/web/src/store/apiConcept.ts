@@ -3,7 +3,7 @@
  */
 import {createApi} from '@reduxjs/toolkit/dist/query/react';
 import {ConceptInfo, ConceptsService} from '../../fastapi_client';
-import {fastAPIBaseQuery} from './api_utils';
+import {fastAPIBaseQuery} from './apiUtils';
 
 const CONCEPTS_TAG = 'concepts';
 export const conceptApi = createApi({

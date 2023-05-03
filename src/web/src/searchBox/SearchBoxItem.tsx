@@ -1,7 +1,7 @@
 import {Command} from 'cmdk';
 import * as React from 'react';
 
-export function Item({
+export function SearchBoxItem({
   children,
   shortcut,
   onSelect = () => {

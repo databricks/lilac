@@ -7,13 +7,13 @@ import {
 } from '@shoelace-style/shoelace/dist/react';
 import {JSONSchema7Type} from 'json-schema';
 import * as React from 'react';
-import styles from './dataset_loader.module.css';
-import {JSONSchemaForm} from './json_schema_form';
+import styles from './DatasetLoader.module.css';
+import {JSONSchemaForm} from './JSONSchemaForm';
 import {
   useGetSourceSchemaQuery,
   useGetSourcesQuery,
   useLoadDatasetMutation,
-} from './store/api_dataset';
+} from './store/apiDataset';
 import {useLazyGetTaskManifestQuery} from './store/store';
 import {getDatasetLink, renderError, renderQuery} from './utils';
 
