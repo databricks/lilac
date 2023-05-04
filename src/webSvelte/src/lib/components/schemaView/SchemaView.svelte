@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { LILAC_COLUMN, Schema } from '$lib/schema';
   import { useGetManifestQuery } from '$lib/store/apiDataset';
+  import { LILAC_COLUMN, LilacSchema } from '$lilac';
   import SchemaField from './SchemaField.svelte';
 
   export let namespace: string;
   export let datasetName: string;
 
   $: schema = $manifest.isSuccess
-    ? new Schema($manifest.data?.dataset_manifest.data_schema)
+    ? new LilacSchema($manifest.data?.dataset_manifest.data_schema)
     : undefined;
   $: fields = schema?.fields;
 

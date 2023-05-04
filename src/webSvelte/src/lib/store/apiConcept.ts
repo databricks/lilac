@@ -1,4 +1,4 @@
-import { ConceptsService } from '../fastapi_client';
+import { ConceptsService } from '$lilac';
 import { createApiQuery } from './apiUtils';
 
 const CONCEPTS_TAG = 'concepts';

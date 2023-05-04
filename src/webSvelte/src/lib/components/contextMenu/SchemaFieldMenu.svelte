@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { LILAC_COLUMN, type Path } from '$lib/schema';
+  import { LILAC_COLUMN, type Path } from '$lilac/schema';
   import ContextMenuItem from './ContextMenuItem.svelte';
 
   // export let field: Field;

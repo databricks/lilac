@@ -1,4 +1,4 @@
-import { EmbeddingsService } from '../fastapi_client';
+import { EmbeddingsService } from '$lilac';
 import { createApiQuery } from './apiUtils';
 
 const EMBEDDINGS_TAG = 'embeddings';

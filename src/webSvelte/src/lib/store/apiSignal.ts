@@ -1,4 +1,4 @@
-import { SignalsService } from '../fastapi_client';
+import { SignalsService } from '$lilac';
 import { createApiQuery } from './apiUtils';
 
 const SIGNALS_TAG = 'signals';

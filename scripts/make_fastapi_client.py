@@ -14,7 +14,7 @@ import click
     type=bool)
 def main(api_json_from_server: bool) -> None:
   """Generate a web client from the OpenAPI spec."""
-  output = f'{os.getcwd()}/src/webSvelte/src/lib/fastapi_client'
+  output = f'{os.getcwd()}/src/webClientLib/fastapi_client'
 
   # The API JSON from server is much faster than running the make_openapi script as the make_openapi script
   # needs to import all dependencies and run the FastAPI server.
@@ -27,7 +27,7 @@ def main(api_json_from_server: bool) -> None:
 
   # Generate the web client.
   run(f"""
-    pushd src/webSvelte/ > /dev/null && \
+    pushd src/webClientLib/ > /dev/null && \
     npx openapi --input {openapi_input} --output {output} --useUnionTypes && \
     popd > /dev/null
   """)

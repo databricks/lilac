@@ -1,4 +1,4 @@
-import type { Path } from '$lib/schema';
+import type { Path } from '$lilac';
 import { writable } from 'svelte/store';
 
 const createDatasetViewStore = () => {

@@ -1,4 +1,4 @@
-import { TasksService } from '../fastapi_client';
+import { TasksService } from '$lilac';
 import { createApiQuery } from './apiUtils';
 
 const TASKS_TAG = 'tasks';

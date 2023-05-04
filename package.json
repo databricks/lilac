@@ -18,6 +18,7 @@
   },
   "workspaces": [
     "src/web",
-    "src/webSvelte"
+    "src/webSvelte",
+    "src/webClientLib"
   ]
 }

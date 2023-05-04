@@ -1,12 +1,18 @@
 <script lang="ts">
-  import type { DataType, Field } from '$lib/fastapi_client';
-  import type { Schema } from '$lib/schema';
-  import { LILAC_COLUMN, type FieldValue, type Item, type LeafValue, type Path } from '$lib/schema';
   import { datasetViewStore } from '$lib/store/datasetViewStore';
+  import type { DataType, Field } from '$lilac/fastapi_client';
+  import type { LilacSchema } from '$lilac/schema';
+  import {
+    LILAC_COLUMN,
+    type FieldValue,
+    type Item,
+    type LeafValue,
+    type Path
+  } from '$lilac/schema';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 
   export let item: Item;
-  export let schema: Schema;
+  export let schema: LilacSchema;
 
   // console.log(schema);
   function getFieldValueForPath(path: Path, item: Item): LeafValue {
@@ -19,14 +25,14 @@
     return value as LeafValue;
   }
 
-  function getFieldForPath(path: Path, schema: Schema): Field | undefined {
+  function getFieldForPath(path: Path, schema: LilacSchema): Field | undefined {
     return schema.getLeaf(path);
   }
 
   /**
    * Get all columns that are derived from the given path.
    */
-  function getDerivedColumns(path: Path, columns: Path[], schema: Schema): Path[] {
+  function getDerivedColumns(path: Path, columns: Path[], schema: LilacSchema): Path[] {
     const derivedColumns: Path[] = [];
     for (const column of columns) {
       const field = getFieldForPath(column, schema);

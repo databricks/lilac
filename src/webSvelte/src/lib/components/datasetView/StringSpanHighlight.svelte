@@ -3,7 +3,7 @@
    * Component that renders string spans as an absolute positioned
    * layer, meant to be rendered on top of the source text.
    */
-  import type { FieldValue } from '$lib/schema';
+  import type { FieldValue } from '$lilac/schema';
 
   export let stringSpans: FieldValue;
   export let text: string;

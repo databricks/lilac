@@ -1,14 +1,13 @@
 <script lang="ts">
-  import type { Field } from '$lib/fastapi_client';
-  import type { Schema } from '$lib/schema';
-  import { LILAC_COLUMN, type Path } from '$lib/schema';
   import { datasetViewStore } from '$lib/store/datasetViewStore';
+  import { LILAC_COLUMN, type LilacSchema, type Path } from '$lilac';
+  import type { Field } from '$lilac/fastapi_client';
   import { CaretDown, EyeFill, EyeSlashFill } from 'svelte-bootstrap-icons';
   import { slide } from 'svelte/transition';
   import ContextMenu from '../contextMenu/ContextMenu.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
 
-  export let schema: Schema;
+  export let schema: LilacSchema;
   export let path: Path;
   export let annotations: Field | undefined;
 

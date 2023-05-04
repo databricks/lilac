@@ -68,7 +68,7 @@ export function getLeafVals(item: Item): { [pathStr: string]: LeafValue[] } {
   return result;
 }
 
-export class Schema {
+export class LilacSchema {
   readonly fields: { [fieldName: string]: Field };
   readonly leafs: [Path, Field][] = [];
 

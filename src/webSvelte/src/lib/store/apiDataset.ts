@@ -1,12 +1,12 @@
-import { createInfiniteQuery } from '@tanstack/svelte-query';
 import {
   DataLoadersService,
   DatasetsService,
+  UUID_COLUMN,
   type DataType,
   type Filter,
   type SelectRowsOptions
-} from '../fastapi_client';
-import { UUID_COLUMN } from '../schema';
+} from '$lilac';
+import { createInfiniteQuery } from '@tanstack/svelte-query';
 import { createApiMutation, createApiQuery } from './apiUtils';
 
 export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
