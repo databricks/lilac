@@ -29,8 +29,9 @@
   }
 </script>
 
-<div class="absolute top-0">
-  {#each filledSpans as span}<span class="bg-yellow-200" class:opacity-0={!span.show}
-      >{text.slice(span.start, span.end)}</span
+<div class="pointer-events-none absolute top-0">
+  {#each filledSpans as span}<span
+      class="bg-yellow-500 text-transparent opacity-0 bg-blend-lighten"
+      class:opacity-20={span.show}>{text.slice(span.start, span.end)}</span
     >{/each}
 </div>
