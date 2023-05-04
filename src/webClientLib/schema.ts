@@ -1,5 +1,11 @@
-import type { DataType, Field, Schema as SchemaJSON } from './fastapi_client';
+import { DataType, EnrichmentType, Field, Schema, Schema as SchemaJSON } from './fastapi_client';
 export type LeafValue = number | boolean | string | null;
+// export type LeafValue<T extends DataType = DataType> = T extends 'string'
+//   ? string
+//   : T extends 'boolean'
+//   ? boolean
+//   : never;
+
 export type FieldValue = FieldValue[] | { [fieldName: string]: FieldValue } | LeafValue;
 
 export interface Item {
@@ -68,6 +74,26 @@ export function getLeafVals(item: Item): { [pathStr: string]: LeafValue[] } {
   return result;
 }
 
+export function getLeafsByEnrichmentType(leafs: [Path, Field][], enrichmentType?: EnrichmentType) {
+  if (enrichmentType == null) {
+    return leafs;
+  }
+  if (enrichmentType !== 'text') {
+    throw new Error(`Unsupported enrichment type: ${enrichmentType}`);
+  }
+  return leafs.filter(([path, field]) => leafMatchesEnrichmentType([path, field], enrichmentType));
+}
+
+export function leafMatchesEnrichmentType(
+  [, field]: [Path, Field],
+  enrichmentType: EnrichmentType
+): boolean {
+  if (enrichmentType === 'text' && ['string', 'string_span'].includes(field.dtype!)) {
+    return true;
+  }
+  return false;
+}
+
 export class LilacSchema {
   readonly fields: { [fieldName: string]: Field };
   readonly leafs: [Path, Field][] = [];
@@ -114,4 +140,34 @@ export class LilacSchema {
     }
     return field;
   }
+}
+
+export function getFieldByPath(schema: Schema, path: Path): Field {
+  let field: Field = { fields: schema.fields };
+  for (const p of path) {
+    if (field.repeated_field && p === PATH_WILDCARD) {
+      field = field.repeated_field;
+    } else {
+      if (!field.fields?.[p]) {
+        throw new Error(`Leaf with path ${JSON.stringify(path)} was not found.`);
+      }
+      field = field.fields[p];
+    }
+  }
+  return field;
+}
+
+export function getValueByPath(values: any, path: Path): FieldValue {
+  let value: FieldValue = values;
+  for (const p of path) {
+    if (value == null) {
+      return null;
+    }
+    if (Array.isArray(value)) {
+      console.log('AARGH');
+    } else if (typeof value === 'object') {
+      value = value[p];
+    }
+  }
+  return value;
 }
