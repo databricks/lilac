@@ -63,7 +63,9 @@ def wrap_in_dicts(input: Union[object, Iterable[object]],
     return cast(Iterable, _wrap_value_in_dict(input, props))
   else:
     return [
-        _wrap_value_in_dict(wrap_in_dicts(elem, spec[1:]), props) for elem in cast(Iterable, input)
+        _wrap_value_in_dict(wrap_in_dicts(elem, spec[1:]), props)
+        for elem in cast(Iterable, input)
+        if elem is not None
     ]
 
 

@@ -11,7 +11,7 @@ export type Field = {
     repeated_field?: Field;
     fields?: Record<string, Field>;
     dtype?: DataType;
-    enriched?: boolean;
+    signal_root?: boolean;
     is_entity?: boolean;
     derived_from?: Array<(number | string)>;
 };
