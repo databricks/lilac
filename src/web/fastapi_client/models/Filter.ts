@@ -10,6 +10,6 @@ import type { Comparison } from './Comparison';
 export type Filter = {
     path: Array<(number | string)>;
     comparison: Comparison;
-    value: (number | boolean | string | Blob);
+    value: (number | boolean | string | Blob | Array<string>);
 };
 

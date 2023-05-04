@@ -2,7 +2,7 @@
 from typing import ClassVar, Iterable, Optional, Type, Union
 
 import numpy as np
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, StrictStr, validator
 
 from ..schema import EnrichmentType, RichData
 
@@ -42,7 +42,7 @@ class Embedding(BaseModel):
     raise NotImplementedError
 
 
-EmbeddingId = Union[str, Embedding]
+EmbeddingId = Union[StrictStr, Embedding]
 
 EMBEDDING_REGISTRY: dict[str, Type[Embedding]] = {}
 

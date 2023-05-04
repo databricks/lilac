@@ -97,6 +97,7 @@ COMPARISON_TO_OP: dict[Comparison, str] = {
     Comparison.GREATER_EQUAL: '>=',
     Comparison.LESS: '<',
     Comparison.LESS_EQUAL: '<=',
+    Comparison.IN: 'in',
 }
 
 
@@ -285,11 +286,12 @@ class DatasetDuckDB(DatasetDB):
                                           resolve_span=True)
     df = select_rows_result.df()
 
+    signal_key = signal.key()
     # If we are enriching an entity we should store the signal data in the entity field's parent.
     if source_path[-1] == ENTITY_FEATURE_KEY:
-      enriched_path = (LILAC_COLUMN, *source_path[:-1], signal.name)
+      enriched_path = (LILAC_COLUMN, *source_path[:-1], signal_key)
     else:
-      enriched_path = (LILAC_COLUMN, *source_path, signal.name)
+      enriched_path = (LILAC_COLUMN, *source_path, signal_key)
 
     # If a signal is enriching output of a signal, skip the lilac prefix to avoid double prefixing.
     if path_is_from_lilac(source_path):
@@ -301,7 +303,7 @@ class DatasetDuckDB(DatasetDB):
       item[UUID_COLUMN] = uuid
 
     signal_schema = create_signal_schema(signal, source_path, schema=self.manifest().data_schema)
-    signal_out_prefix = signal_parquet_prefix(column_name=column.alias, signal_name=signal.name)
+    signal_out_prefix = signal_parquet_prefix(column_name=column.alias, signal_key=signal_key)
     parquet_filename, _ = write_items_to_parquet(
         items=enriched_signal_items,
         output_dir=self.dataset_path,
@@ -318,7 +320,7 @@ class DatasetDuckDB(DatasetDB):
         parquet_id=make_parquet_id(signal, column))
     signal_manifest_filepath = os.path.join(
         self.dataset_path,
-        signal_manifest_filename(column_name=column.alias, signal_name=signal.name))
+        signal_manifest_filename(column_name=column.alias, signal_key=signal_key))
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.json(exclude_none=True, indent=2))
     log(f'Wrote signal manifest to {signal_manifest_filepath}')
@@ -370,7 +372,7 @@ class DatasetDuckDB(DatasetDB):
 
           if not enrichment_supports_dtype(enrich_type, leaf.dtype):
             raise ValueError(f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
-                             f'by "{signal.name}" with enrichment type "{enrich_type}".')
+                             f'by "{signal.key()}" with enrichment type "{enrich_type}".')
 
       current_field = Field(fields=manifest.data_schema.fields)
       path = column.feature
@@ -777,7 +779,12 @@ class DatasetDuckDB(DatasetDB):
       col_name = self._path_to_col(filter.path)
       op = COMPARISON_TO_OP[filter.comparison]
       filter_val = filter.value
-      if isinstance(filter_val, str):
+      if isinstance(filter_val, list):
+        if op != 'in':
+          raise ValueError('filter with array value can only use the IN comparison')
+        wrapped_filter_val = [f"'{part}'" for part in filter_val]
+        filter_val = f'({", ".join(wrapped_filter_val)})'
+      elif isinstance(filter_val, str):
         filter_val = f"'{filter_val}'"
       elif isinstance(filter_val, bytes):
         filter_val = _bytes_to_blob_literal(filter_val)
@@ -913,14 +920,14 @@ def read_source_manifest(dataset_path: str) -> SourceManifest:
     return SourceManifest.parse_raw(f.read())
 
 
-def signal_parquet_prefix(column_name: str, signal_name: str) -> str:
+def signal_parquet_prefix(column_name: str, signal_key: str) -> str:
   """Get the filename prefix for a signal parquet file."""
-  return f'{column_name}.{signal_name}'
+  return f'{column_name}.{signal_key}'
 
 
-def signal_manifest_filename(column_name: str, signal_name: str) -> str:
+def signal_manifest_filename(column_name: str, signal_key: str) -> str:
   """Get the filename for a signal output."""
-  return f'{column_name}.{signal_name}.{SIGNAL_MANIFEST_SUFFIX}'
+  return f'{column_name}.{signal_key}.{SIGNAL_MANIFEST_SUFFIX}'
 
 
 def split_column_name(column: str, split_name: str) -> str:

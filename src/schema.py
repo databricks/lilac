@@ -119,7 +119,8 @@ class Field(BaseModel):
   repeated_field: Optional['Field']
   fields: Optional[dict[str, 'Field']]
   dtype: Optional[DataType]
-  enriched: Optional[bool]
+  # Whether this field is the root result of a signal.
+  signal_root: Optional[bool]
   # Defined when the field represents an entity.
   is_entity: Optional[bool]
   # When defined, this field is derived from another column. This could be via a signal or via a
