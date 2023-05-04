@@ -44,6 +44,9 @@
       "source.fixAll": true
     }
   },
+  "[svelte]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "eslint.workingDirectories": ["auto"],
   "eslint.validate": ["typescript"],
   "python.envFile": "${workspaceFolder}/.venv",
