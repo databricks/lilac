@@ -11,7 +11,7 @@
 
   $: manifest = useGetManifestQuery(namespace, datasetName);
 
-  setDatasetViewContext(createDatasetViewStore(namespace, datasetName));
+  $: setDatasetViewContext(createDatasetViewStore(namespace, datasetName));
 </script>
 
 <div class="flex h-full w-full">
