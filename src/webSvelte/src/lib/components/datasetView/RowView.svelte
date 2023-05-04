@@ -1,19 +1,19 @@
 <script lang="ts">
   import { useGetManifestQuery, useSelectRowsInfiniteQuery } from '$lib/store/apiDataset';
+  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
   import { LilacSchema } from '$lilac/schema';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import Spinner from '../Spinner.svelte';
   import RowItem from './RowItem.svelte';
 
-  export let namespace: string;
-  export let datasetName: string;
+  let datasetViewStore = getDatasetViewContext();
 
-  $: manifest = useGetManifestQuery(namespace, datasetName);
+  $: manifest = useGetManifestQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
   $: schema = $manifest.data
     ? new LilacSchema($manifest.data.dataset_manifest.data_schema)
     : undefined;
 
-  $: rows = useSelectRowsInfiniteQuery(namespace, datasetName, {
+  $: rows = useSelectRowsInfiniteQuery($datasetViewStore.namespace, $datasetViewStore.datasetName, {
     limit: 40
   });
 </script>

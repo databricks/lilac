@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { datasetViewStore } from '$lib/store/datasetViewStore';
+  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
   import { LILAC_COLUMN, type LilacSchema, type Path } from '$lilac';
   import type { Field } from '$lilac/fastapi_client';
   import { CaretDown, EyeFill, EyeSlashFill } from 'svelte-bootstrap-icons';
@@ -10,11 +10,13 @@
   export let schema: LilacSchema;
   export let path: Path;
   export let annotations: Field | undefined;
+  export let indent = 0;
+
+  let datasetViewStore = getDatasetViewContext();
 
   let field = schema.getLeaf(path);
 
   let isAnnotation = path[0] === LILAC_COLUMN;
-  export let indent = 0;
 
   let expanded = true;
 

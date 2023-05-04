@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { datasetViewStore } from '$lib/store/datasetViewStore';
+  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
   import type { DataType, Field } from '$lilac/fastapi_client';
   import type { LilacSchema } from '$lilac/schema';
   import {
@@ -13,6 +13,8 @@
 
   export let item: Item;
   export let schema: LilacSchema;
+
+  let datasetViewStore = getDatasetViewContext();
 
   // console.log(schema);
   function getFieldValueForPath(path: Path, item: Item): LeafValue {
