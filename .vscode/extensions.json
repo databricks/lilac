@@ -17,7 +17,8 @@
     "ms-toolsai.jupyter",
     "ZixuanChen.vitest-explorer",
     "ryanluker.vscode-coverage-gutters",
-    "bradlc.vscode-tailwindcss"
+    "bradlc.vscode-tailwindcss",
+    "svelte.svelte-vscode"
   ],
   // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
   "unwantedRecommendations": []

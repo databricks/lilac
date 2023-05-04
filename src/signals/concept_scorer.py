@@ -62,3 +62,9 @@ class ConceptScoreSignal(Signal):
     query: np.ndarray = concept_model._model.coef_.flatten()
     topk_keys = [key for key, _ in vector_store.topk(query, topk, keys)]
     return list(zip(topk_keys, self.vector_compute(topk_keys, vector_store)))
+
+  @override
+  def key(self) -> str:
+    # NOTE: The embedding is an entity so already exists in the path structure. This means we do not
+    # need to provide the name as part of the key, which still guarantees uniqueness.
+    return f'{self.namespace}/{self.concept_name}'

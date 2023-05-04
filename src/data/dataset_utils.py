@@ -71,6 +71,7 @@ def _merge_field_into(schema: Field, destination: Field) -> None:
   if isinstance(schema, Field):
     destination.is_entity = destination.is_entity or schema.is_entity
     destination.derived_from = destination.derived_from or schema.derived_from
+    destination.signal_root = destination.signal_root or schema.signal_root
   if schema.fields:
     if destination.fields is None:
       raise ValueError('Failed to merge schemas. Origin schema has fields but destination does not')
@@ -126,9 +127,11 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
                      f'Leaf paths: {leafs.keys()}')
 
   signal_schema = signal.fields()
+  signal_schema.signal_root = True
+
   # Apply the "derived_from" field lineage to the field we are enriching.
   _apply_field_lineage(signal_schema, source_path)
-  enriched_schema = Field(fields={signal.name: signal_schema})
+  enriched_schema = Field(fields={signal.key(): signal_schema})
 
   # If we are enriching an entity we should store the signal data in the entity field's parent.
   if source_path[-1] == ENTITY_FEATURE_KEY:

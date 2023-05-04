@@ -15,7 +15,7 @@
   "plugins": ["prettier"],
   "rules": {
     "prettier/prettier": ["error"],
-    "max-len": ["error", {"code": 100}]
+    "max-len": ["error", { "code": 100 }]
   },
   "ignorePatterns": ["**/node_modules/**/*", "**/dist/**/*"],
   "parserOptions": {

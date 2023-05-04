@@ -123,3 +123,25 @@ class Signal(abc.ABC, BaseModel):
     if isinstance(embedding, str):
       return embedding
     return resolve_embedding(embedding)
+
+  def key(self) -> str:
+    """Get the key for a signal.
+
+    This is used to make sure signals with multiple arguments do not collide.
+
+    NOTE: Overriding this method is sensitive. If you override it, make sure that it is globally
+    unique. It will be used as the dictionary key for enriched values.
+    """
+    args_dict = self.dict(exclude_unset=True)
+    # If a user explicitly defines a signal name for whatever reason, remove it as it's redundant.
+    if 'signal_name' in args_dict:
+      del args_dict['signal_name']
+    args = None
+    args_list: list[str] = []
+    for k, v in args_dict.items():
+      if v:
+        args_list.append(f'{k}={v}')
+
+    args = ','.join(args_list)
+    display_args = '' if not args_list else f'({args})'
+    return self.name + display_args
