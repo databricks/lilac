@@ -1,5 +1,6 @@
 """Utilities for working with datasets."""
 
+import math
 from collections.abc import Iterable
 from typing import Generator, Iterator, Union, cast
 
@@ -36,6 +37,9 @@ def flatten(input: Union[Iterable, object]) -> list[object]:
 
 
 def _wrap_value_in_dict(input: Union[object, dict], props: PathTuple) -> Union[object, dict]:
+  # If the signal produced no value, or nan, we should return None so the parquet value is sparse.
+  if input and math.isnan(cast(float, input)):
+    input = None
   for prop in reversed(props):
     input = {prop: input}
   return input

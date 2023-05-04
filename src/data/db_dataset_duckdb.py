@@ -279,8 +279,6 @@ class DatasetDuckDB(DatasetDB):
       raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')
 
     source_path = normalize_path(column.feature)
-    signal_field = signal.fields()
-
     select_rows_result = self.select_rows([SignalUDF(signal, column, alias='value')],
                                           task_id=task_id,
                                           resolve_span=True)
