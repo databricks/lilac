@@ -14,7 +14,7 @@
 <QueryClientProvider client={queryClient}>
   <main class="flex h-screen flex-col">
     <div class="navbar bg-base-100">
-      <a class="btn-ghost btn text-xl normal-case">Lilac Inspector</a>
+      <a class="btn-ghost btn text-xl normal-case" href="/">Lilac Inspector</a>
     </div>
 
     <div class="overflow-y-scroll">

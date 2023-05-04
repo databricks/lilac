@@ -69,21 +69,20 @@
       <div class="font-mono text-sm text-gray-600">
         {column.filter(removeLilacPath).join('.')}
       </div>
-      {#if field?.dtype == 'string_span'}{:else}
-        <div class="relative">
-          {formatValue(value, field?.dtype)}
-          {#if derivedColumns}
-            {#each derivedColumns as derivedColumn}
-              {@const derivedColumnValue = getFieldValueForPath(derivedColumn, item)}
 
-              <StringSpanHighlight
-                text={formatValue(value, field?.dtype)}
-                stringSpans={derivedColumnValue}
-              />
-            {/each}
-          {/if}
-        </div>
-      {/if}
+      <div class="relative">
+        {formatValue(value, field?.dtype)}
+        {#if derivedColumns}
+          {#each derivedColumns as derivedColumn}
+            {@const derivedColumnValue = getFieldValueForPath(derivedColumn, item)}
+
+            <StringSpanHighlight
+              text={formatValue(value, field?.dtype)}
+              stringSpans={derivedColumnValue}
+            />
+          {/each}
+        {/if}
+      </div>
     </div>
   {/each}
 </div>

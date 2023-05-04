@@ -85,7 +85,7 @@
   <div class="w-12">{field.dtype}</div>
   <div>
     <ContextMenu>
-      <SchemaFieldMenu {field} {path} />
+      <SchemaFieldMenu {path} />
     </ContextMenu>
   </div>
 </div>
