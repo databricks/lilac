@@ -44,6 +44,12 @@
       "source.fixAll": true
     }
   },
+  "[svelte]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
+  },
   "eslint.workingDirectories": ["auto"],
   "eslint.validate": ["typescript"],
   "python.envFile": "${workspaceFolder}/.venv",

@@ -6,14 +6,15 @@ import click
 
 
 @click.command()
-@click.option('--api_json_from_server',
-              is_flag=True,
-              help='If true, uses localhost:5432/openapi.json',
-              default=False,
-              type=bool)
+@click.option(
+    '--api_json_from_server',
+    is_flag=True,
+    help='If true, uses localhost:5432/openapi.json',
+    default=False,
+    type=bool)
 def main(api_json_from_server: bool) -> None:
   """Generate a web client from the OpenAPI spec."""
-  output = f'{os.getcwd()}/src/web/fastapi_client'
+  output = f'{os.getcwd()}/src/webClientLib/fastapi_client'
 
   # The API JSON from server is much faster than running the make_openapi script as the make_openapi script
   # needs to import all dependencies and run the FastAPI server.
@@ -26,7 +27,7 @@ def main(api_json_from_server: bool) -> None:
 
   # Generate the web client.
   run(f"""
-    pushd src/web > /dev/null && \
+    pushd src/webClientLib/ > /dev/null && \
     npx openapi --input {openapi_input} --output {output} --useUnionTypes && \
     popd > /dev/null
   """)
