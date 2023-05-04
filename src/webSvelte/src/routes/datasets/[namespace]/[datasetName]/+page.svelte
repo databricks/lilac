@@ -8,7 +8,7 @@
   $: namespace = $page.params.namespace;
   $: datasetName = $page.params.datasetName;
 
-  $: manifset = useGetManifestQuery(namespace, datasetName);
+  $: manifest = useGetManifestQuery(namespace, datasetName);
 </script>
 
 <div class="flex h-full w-full">
@@ -16,7 +16,7 @@
     <SchemaView {namespace} {datasetName} />
   </div>
   <div class="h-full w-1/2 p-4">
-    {#if $manifset.isLoading}
+    {#if $manifest.isLoading}
       <Spinner />
     {:else}
       <RowView {namespace} {datasetName} />
