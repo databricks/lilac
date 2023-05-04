@@ -6,5 +6,5 @@ npm run lint --workspace src/webSvelte
 npm run lint --workspace src/webClientLib
 
 echo "Building typescript..."
-cd src/web && npx tsc --noEmit && cd ../..
+npm run check --workspace src/webSvelte
 npm run build --workspace src/webSvelte

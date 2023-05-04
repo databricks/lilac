@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/extend-expect';
 import matchers from '@testing-library/jest-dom/matchers';
 import {cleanup} from '@testing-library/react';
 import {afterEach, expect, SpyInstance, vi} from 'vitest';
-import * as request from '../fastapi_client/core/request';
+import * as request from '../../webClientLib/fastapi_client/core/request';
 
 const ResizeObserverMock = vi.fn(() => ({
   observe: vi.fn(),
