@@ -4,9 +4,9 @@
   import { LILAC_COLUMN, type Path } from '$lib/schema';
   import { datasetViewStore } from '$lib/store/datasetViewStore';
   import { CaretDown, EyeFill, EyeSlashFill } from 'svelte-bootstrap-icons';
+  import { slide } from 'svelte/transition';
   import ContextMenu from '../contextMenu/ContextMenu.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
-  import { slide } from 'svelte/types/runtime/transition';
 
   export let schema: Schema;
   export let path: Path;

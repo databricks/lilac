@@ -1,9 +1,10 @@
 <script lang="ts">
   import type { DataType, Field } from '$lib/fastapi_client';
   import type { Schema } from '$lib/schema';
-  import { LILAC_COLUMN, type FieldValue, type Item, type Path, type LeafValue } from '$lib/schema';
+  import { LILAC_COLUMN, type FieldValue, type Item, type LeafValue, type Path } from '$lib/schema';
   import { datasetViewStore } from '$lib/store/datasetViewStore';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
+
   export let item: Item;
   export let schema: Schema;
 

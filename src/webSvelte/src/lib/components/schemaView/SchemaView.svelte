@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Schema } from '$lib/schema';
-
+  import { LILAC_COLUMN, Schema } from '$lib/schema';
   import { useGetManifestQuery } from '$lib/store/apiDataset';
+  import SchemaField from './SchemaField.svelte';
 
   export let namespace: string;
   export let datasetName: string;

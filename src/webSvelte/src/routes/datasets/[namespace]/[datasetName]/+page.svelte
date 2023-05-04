@@ -1,4 +1,8 @@
 <script lang="ts">
+  import { page } from '$app/stores';
+  import Spinner from '$lib/components/Spinner.svelte';
+  import RowView from '$lib/components/datasetView/RowView.svelte';
+  import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
   import { useGetManifestQuery } from '$lib/store/apiDataset';
 
   $: namespace = $page.params.namespace;
