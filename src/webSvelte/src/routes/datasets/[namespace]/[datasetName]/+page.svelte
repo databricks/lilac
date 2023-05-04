@@ -22,7 +22,7 @@
     {#if $manifest.isLoading}
       <Spinner />
     {:else}
-      <RowView {namespace} {datasetName} />
+      <RowView />
     {/if}
   </div>
 </div>
