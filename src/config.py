@@ -14,4 +14,4 @@ def data_path() -> str:
   """Return the base path for data."""
   if CONFIG['LILAC_DATA_PATH']:
     return CONFIG['LILAC_DATA_PATH']
-  return './gcs_cache'
+  return './data'
