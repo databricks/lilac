@@ -1380,9 +1380,10 @@ class SelectRowsSuite:
             'text': Field(dtype=DataType.STRING),
         }))
 
+    db.compute_signal_column(TestEntitySignal(), 'text')
     db.compute_signal_column(TestEmbedding(), 'text')
-    db.compute_signal_column(TestEmbeddingSumSignal(),
-                             (LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY))
+    # db.compute_signal_column(TestEmbeddingSumSignal(),
+    #                          (LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY))
 
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,

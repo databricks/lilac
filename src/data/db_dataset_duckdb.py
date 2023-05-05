@@ -273,6 +273,7 @@ class DatasetDuckDB(DatasetDB):
     select_rows_result = self.select_rows([signal_col], task_id=task_id, resolve_span=True)
     df = select_rows_result.df()
     values = df['value']
+    print('SELECT ROWS OUTPUT', df['value'])
 
     source_path = normalize_path(column.feature)
     signal_key = signal.key()
@@ -290,11 +291,13 @@ class DatasetDuckDB(DatasetDB):
           shard_index=0,
           num_shards=1)
 
+      print('pre-values', values)
+      print('flat values', flatten(values))
+      print('spec=', spec)
       # Replace the embeddings with None to keep the structure of the embedding without storing
       # any data. Parquet will not write the value many times as it is constant.
       values = unflatten(map(lambda _: None, flatten(values)), values)
 
-    print('wrapped', enriched_path, spec, wrap_in_dicts(values, spec))
     enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
 
     for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):

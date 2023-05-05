@@ -46,7 +46,10 @@ def _flatten(input: Union[Iterable, object]) -> Generator:
     yield input
   else:
     for elem in cast(Iterable, input):
-      yield from _flatten(elem)
+      if isinstance(elem, dict):
+        yield from _flatten(elem.values())
+      else:
+        yield from _flatten(elem)
 
 
 Tflatten = TypeVar('Tflatten', object, np.ndarray)
@@ -72,7 +75,12 @@ def _unflatten(flat_input: Iterator[list[object]],
   if is_primitive(original_input):
     return next(flat_input)
   else:
-    return [_unflatten(flat_input, orig_elem) for orig_elem in cast(Iterable, original_input)]
+    values: Iterable
+    if isinstance(original_input, dict):
+      values = original_input.values()
+    else:
+      values = cast(Iterable, original_input)
+    return [_unflatten(flat_input, orig_elem) for orig_elem in values]
 
 
 def unflatten(flat_input: Iterable, original_input: Union[Iterable, object]) -> list:
