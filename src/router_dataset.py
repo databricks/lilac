@@ -20,7 +20,7 @@ from .db_manager import get_dataset_db
 from .embeddings.default_embeddings import register_default_embeddings
 from .embeddings.embedding_registry import Embedding, resolve_embedding
 from .router_utils import RouteErrorHandler
-from .schema import PathTuple, path_to_alias
+from .schema import PathTuple
 from .signals.default_signals import register_default_signals
 from .signals.signal import Signal
 from .signals.signal_registry import resolve_signal
@@ -115,9 +115,9 @@ def compute_embedding_index(namespace: str, dataset_name: str,
     dataset_db = get_dataset_db(namespace, dataset_name)
     dataset_db.compute_embedding_index(options.embedding, options.leaf_path, task_id=task_id)
 
-  alias = path_to_alias(options.leaf_path)
+  path_str = '.'.join(map(str, options.leaf_path))
   task_id = task_manager().task_id(
-      name=f'Compute embedding index "{options.embedding.name}" on "{alias}" '
+      name=f'Compute embedding index "{options.embedding.name}" on "{path_str}" '
       f'in dataset "{namespace}/{dataset_name}"',
       description=f'Config: {options.embedding}')
   task_manager().execute(task_id, _task_compute_embedding_index, namespace, dataset_name,
@@ -157,9 +157,9 @@ def compute_signal_column(namespace: str, dataset_name: str,
     dataset_db = get_dataset_db(namespace, dataset_name)
     dataset_db.compute_signal_column(options.signal, options.leaf_path, task_id=task_id)
 
-  alias = path_to_alias(options.leaf_path)
+  path_str = '.'.join(map(str, options.leaf_path))
   task_id = task_manager().task_id(
-      name=f'Compute signal "{options.signal.name}" on "{alias}" '
+      name=f'Compute signal "{options.signal.name}" on "{path_str}" '
       f'in dataset "{namespace}/{dataset_name}"',
       description=f'Config: {options.signal}')
   task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name, options.dict(),

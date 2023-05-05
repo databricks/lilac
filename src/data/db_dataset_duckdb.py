@@ -278,30 +278,21 @@ class DatasetDuckDB(DatasetDB):
     if isinstance(column.feature, Column):
       raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')
 
-    source_path = normalize_path(column.feature)
-    select_rows_result = self.select_rows([SignalUDF(signal, column, alias='value')],
-                                          task_id=task_id,
-                                          resolve_span=True)
+    signal_col = SignalUDF(signal, column, alias='value')
+    enriched_path = _col_destination_path(signal_col)
+    spec = _split_path_into_subpaths_of_lists(enriched_path)
+
+    select_rows_result = self.select_rows([signal_col], task_id=task_id, resolve_span=True)
     df = select_rows_result.df()
 
-    signal_key = signal.key()
-    # If we are enriching an entity we should store the signal data in the entity field's parent.
-    if source_path[-1] == ENTITY_FEATURE_KEY:
-      enriched_path = (LILAC_COLUMN, *source_path[:-1], signal_key)
-    else:
-      enriched_path = (LILAC_COLUMN, *source_path, signal_key)
-
-    # If a signal is enriching output of a signal, skip the lilac prefix to avoid double prefixing.
-    if path_is_from_lilac(source_path):
-      enriched_path = enriched_path[1:]
-
-    spec = _split_path_into_subpaths_of_lists(enriched_path)
     enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(df['value'], spec))
     for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
       item[UUID_COLUMN] = uuid
 
+    source_path = normalize_path(column.feature)
+    signal_key = signal.key()
     signal_schema = create_signal_schema(signal, source_path, schema=self.manifest().data_schema)
-    signal_out_prefix = signal_parquet_prefix(column_name=column.alias, signal_key=signal_key)
+    signal_out_prefix = signal_parquet_prefix(source_path, signal_key)
     parquet_filename, _ = write_items_to_parquet(
         items=enriched_signal_items,
         output_dir=self.dataset_path,
@@ -315,10 +306,9 @@ class DatasetDuckDB(DatasetDB):
         data_schema=signal_schema,
         signal=signal,
         enriched_path=source_path,
-        parquet_id=make_parquet_id(signal, column))
-    signal_manifest_filepath = os.path.join(
-        self.dataset_path,
-        signal_manifest_filename(column_name=column.alias, signal_key=signal_key))
+        parquet_id=make_parquet_id(signal, column.feature))
+    signal_manifest_filepath = os.path.join(self.dataset_path,
+                                            signal_manifest_filename(source_path, signal_key))
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.json(exclude_none=True, indent=2))
     log(f'Wrote signal manifest to {signal_manifest_filepath}')
@@ -515,7 +505,8 @@ class DatasetDuckDB(DatasetDB):
                   limit: Optional[int] = None,
                   offset: Optional[int] = 0,
                   task_id: Optional[TaskId] = None,
-                  resolve_span: bool = False) -> SelectRowsResult:
+                  resolve_span: bool = False,
+                  combine_columns: bool = False) -> SelectRowsResult:
     if not columns:
       # Select all columns.
       columns = list(self.manifest().data_schema.fields.keys())
@@ -528,12 +519,12 @@ class DatasetDuckDB(DatasetDB):
 
     self._validate_columns(cols)
     select_query, columns_to_merge = self._create_select(
-        cols, flatten=False, resolve_span=resolve_span)
+        cols, flatten=False, resolve_span=resolve_span, combine_columns=combine_columns)
     con = self.con.cursor()
     query = con.sql(f'SELECT {select_query} FROM t')
 
     col_aliases = set(columns_to_merge.keys())
-    udf_aliases = set(col.alias for col in cols if col.transform)
+    udf_aliases = set(col.alias or _unique_alias(col) for col in cols if col.transform)
     filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases)
     filter_queries = self._create_where(filters)
     if filter_queries:
@@ -588,7 +579,7 @@ class DatasetDuckDB(DatasetDB):
                                                      signal.embedding_name)
           self._concept_model_db.sync(concept_model)
 
-        signal_column = udf_col.alias
+        signal_column = udf_col.alias or _unique_alias(udf_col)
         input = df[signal_column]
 
         with DebugTimer(f'Computing signal "{signal}"'):
@@ -660,7 +651,12 @@ class DatasetDuckDB(DatasetDB):
       df = query.df()
 
     for final_col_name, temp_columns in columns_to_merge.items():
-      for temp_col_name in temp_columns:
+      for temp_col_name, column in temp_columns:
+        if combine_columns:
+          dest_path = _col_destination_path(column)
+          spec = _split_path_into_subpaths_of_lists(dest_path)
+          df[temp_col_name] = wrap_in_dicts(df[temp_col_name], spec)
+
         # If the temp col name is the same as the final name, we can skip merging. This happens when
         # we select a source leaf column.
         if temp_col_name == final_col_name:
@@ -674,6 +670,9 @@ class DatasetDuckDB(DatasetDB):
 
     query.close()
     con.close()
+
+    if combine_columns:
+      df = pd.DataFrame.from_records(df['*'])
 
     # DuckDB returns np.nan for missing field in string column, replace with None for correctness.
     for col in df.columns:
@@ -709,39 +708,45 @@ class DatasetDuckDB(DatasetDB):
         # Skip this parquet file if it doesn't contain the path.
         continue
 
-      if isinstance(m, SignalManifest) and column.feature == (UUID_COLUMN,):
+      if isinstance(m, SignalManifest) and path == (UUID_COLUMN,):
         # Do not select UUID from the signal because it's already in the source.
         continue
 
+      temp_column_name = column.alias or _unique_alias(column)
       if path_is_from_lilac(path):
         m = cast(SignalManifest, m)
         select_path = (m.parquet_id, *path[1:])
-        if path in leafs:
-          # Leafs only live in a single manifest so we don't need to namespace.
-          temp_column_name = column.alias
-        else:
-          temp_column_name = f'{column.alias}/{m.parquet_id}'
+        if path not in leafs:
+          # Non-leafs can have data in multiple manifests so we need to namespace.
+          temp_column_name = f'{temp_column_name}/{m.parquet_id}'
       else:
-        select_path = column.feature
-        temp_column_name = column.alias
+        select_path = path
       temp_column_names.append(temp_column_name)
       col = _make_select_column(select_path, flatten=flatten, empty=empty, span_field=span_field)
       select_queries.append(f'{col} AS "{temp_column_name}"')
 
     return ', '.join(select_queries), temp_column_names
 
-  def _create_select(self, columns: list[Column], flatten: bool,
-                     resolve_span: bool) -> tuple[str, dict[str, list[str]]]:
+  def _create_select(self,
+                     columns: list[Column],
+                     flatten: bool,
+                     resolve_span: bool,
+                     combine_columns: bool = False
+                    ) -> tuple[str, dict[str, list[tuple[str, Column]]]]:
     """Create the select statement."""
     manifest = self.manifest()
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
-    alias_to_temp_col_names: dict[str, list[str]] = {}
+    alias_to_temp_col_names: dict[str, list[tuple[str, Column]]] = {}
     select_queries: list[str] = []
 
     for column in columns:
       select_str, temp_column_names = self._create_select_column(column, manifest, flatten,
                                                                  resolve_span)
-      alias_to_temp_col_names[column.alias] = temp_column_names
+      alias = '*' if combine_columns else (column.alias or _unique_alias(column))
+      if alias not in alias_to_temp_col_names:
+        alias_to_temp_col_names[alias] = []
+      alias_to_temp_col_names[alias].extend([(x, column) for x in temp_column_names])
+
       select_queries.append(select_str)
     return ', '.join(select_queries), alias_to_temp_col_names
 
@@ -918,14 +923,14 @@ def read_source_manifest(dataset_path: str) -> SourceManifest:
     return SourceManifest.parse_raw(f.read())
 
 
-def signal_parquet_prefix(column_name: str, signal_key: str) -> str:
+def signal_parquet_prefix(source_path: PathTuple, signal_key: str) -> str:
   """Get the filename prefix for a signal parquet file."""
-  return f'{column_name}.{signal_key}'
+  return f"{'.'.join(map(str, source_path))}.{signal_key}"
 
 
-def signal_manifest_filename(column_name: str, signal_key: str) -> str:
+def signal_manifest_filename(source_path: PathTuple, signal_key: str) -> str:
   """Get the filename for a signal output."""
-  return f'{column_name}.{signal_key}.{SIGNAL_MANIFEST_SUFFIX}'
+  return f'{signal_parquet_prefix(source_path, signal_key)}.{SIGNAL_MANIFEST_SUFFIX}'
 
 
 def split_column_name(column: str, split_name: str) -> str:
@@ -987,3 +992,34 @@ def merge_values(destination: pd.Series, source: pd.Series) -> pd.Series:
   for dest_cell, source_cell in zip(destination, source):
     _merge_cells(dest_cell, source_cell)
   return destination
+
+
+def _unique_alias(column: Column) -> str:
+  """Get a unique alias for a selection column."""
+  if column.transform and isinstance(column.transform, SignalTransform):
+    return make_parquet_id(column.transform.signal, column.feature)
+  return '.'.join(map(str, column.feature))
+
+
+def _col_destination_path(column: Column) -> PathTuple:
+  """Get the destination path where the output of this selection column will be stored."""
+  source_path = column.feature
+
+  if not column.transform:
+    return source_path
+
+  if not isinstance(column.transform, SignalTransform):
+    raise ValueError(f'Cannot get destination path for transform {column.transform!r}')
+
+  signal_key = column.transform.signal.key()
+  # If we are enriching an entity we should store the signal data in the entity field's parent.
+  if source_path[-1] == ENTITY_FEATURE_KEY:
+    dest_path = (LILAC_COLUMN, *source_path[:-1], signal_key)
+  else:
+    dest_path = (LILAC_COLUMN, *source_path, signal_key)
+
+  # If a signal is enriching output of a signal, skip the lilac prefix to avoid double prefixing.
+  if path_is_from_lilac(source_path):
+    dest_path = dest_path[1:]
+
+  return dest_path

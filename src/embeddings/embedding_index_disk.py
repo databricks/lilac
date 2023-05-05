@@ -8,7 +8,7 @@ from typing import Iterable, Optional, Union
 import numpy as np
 from typing_extensions import override
 
-from ..schema import Path, PathTuple, RichData, normalize_path, path_to_alias
+from ..schema import Path, PathTuple, RichData, normalize_path
 from ..tasks import TaskId, progress
 from ..utils import chunks, file_exists, open_file
 from .embedding_index import (
@@ -123,14 +123,20 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
       f.write(index_info.json(exclude_none=True, indent=2))
 
 
-def embedding_index_filename(column: PathTuple, embedding_name: str) -> str:
-  """Return the filename for the embedding index."""
-  return f'{path_to_alias(column)}.{embedding_name}.embedding_index.npy'
+def _embedding_index_prefix(source_path: PathTuple, embedding_name: str) -> str:
+  """Return the prefix for the embedding index."""
+  return f"{'.'.join(map(str, source_path))}.{embedding_name}"
 
 
 EMBEDDING_INDEX_INFO_SUFFIX = 'embedding_index_info.json'
+EMBEDDING_INDEX_NP_SUFFIX = 'embedding_index.npy'
 
 
-def embedding_index_info_filename(column: PathTuple, embedding_name: str) -> str:
+def embedding_index_filename(source_path: PathTuple, embedding_name: str) -> str:
+  """Return the filename for the embedding index."""
+  return f'{_embedding_index_prefix(source_path, embedding_name)}.{EMBEDDING_INDEX_NP_SUFFIX}'
+
+
+def embedding_index_info_filename(source_path: PathTuple, embedding_name: str) -> str:
   """Return the filename for the embedding index info."""
-  return f'{path_to_alias(column)}.{embedding_name}.{EMBEDDING_INDEX_INFO_SUFFIX}'
+  return f'{_embedding_index_prefix(source_path, embedding_name)}.{EMBEDDING_INDEX_INFO_SUFFIX}'

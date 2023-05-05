@@ -677,6 +677,136 @@ class SelectRowsSuite:
         f'{LILAC_COLUMN}.texts.*.length_signal': [1, 2, 3]
     }]
 
+  def test_combining_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(
+        db_cls,
+        tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello',
+            'extra': {
+                'text': {
+                    'length_signal': 5,
+                    'test_signal': {
+                        'len': 5,
+                        'flen': 5.0
+                    }
+                }
+            }
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'everybody',
+            'extra': {
+                'text': {
+                    'length_signal': 9,
+                    'test_signal': {
+                        'len': 9,
+                        'flen': 9.0
+                    }
+                }
+            }
+        }],
+        schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'text': Field(dtype=DataType.STRING),
+                'extra': Field(
+                    fields={
+                        'text': Field(
+                            fields={
+                                'length_signal': Field(dtype=DataType.INT32),
+                                'test_signal': Field(
+                                    fields={
+                                        'len': Field(dtype=DataType.INT32),
+                                        'flen': Field(dtype=DataType.FLOAT32)
+                                    })
+                            })
+                    })
+            }))
+
+    # Sub-select text and test_signal.
+    result = db.select_rows(['text', ('extra', 'text', 'test_signal')], combine_columns=True)
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        'extra': {
+            'text': {
+                'test_signal': {
+                    'len': 5,
+                    'flen': 5.0
+                }
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        'extra': {
+            'text': {
+                'test_signal': {
+                    'len': 9,
+                    'flen': 9.0
+                }
+            }
+        }
+    }]
+
+    # Sub-select text and length_signal.
+    result = db.select_rows(['text', ('extra', 'text', 'length_signal')], combine_columns=True)
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        'extra': {
+            'text': {
+                'length_signal': 5
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        'extra': {
+            'text': {
+                'length_signal': 9
+            }
+        }
+    }]
+
+    # Sub-select length_signal only.
+    result = db.select_rows([('extra', 'text', 'length_signal')], combine_columns=True)
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'extra': {
+            'text': {
+                'length_signal': 5
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'extra': {
+            'text': {
+                'length_signal': 9
+            }
+        }
+    }]
+
+    # Aliases are ignored when combing columns.
+    len_col = Column(('extra', 'text', 'length_signal'), alias='hello')
+    result = db.select_rows([len_col], combine_columns=True)
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'extra': {
+            'text': {
+                'length_signal': 5
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'extra': {
+            'text': {
+                'length_signal': 9
+            }
+        }
+    }]
+
   def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
         db_cls,
