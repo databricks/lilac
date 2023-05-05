@@ -169,4 +169,21 @@ describe('LilacRow', () => {
       }
     ]);
   });
+
+  it('can query for fields', () => {
+    expect(response.queryPath(['title'])?.value).toBe('title text');
+    expect(response.queryPath(['complex_field', 'propertyB'])?.value).toBe('valueB');
+    expect(response.children?.complex_field.queryPath(['propertyB'], true)?.value).toBe('valueB');
+    expect(response.children?.complex_field.queryPath(['title'], false)?.value).toBe('title text');
+  });
+
+  it('can find derived fields', () => {
+    expect(
+      response.children?.comment_text.children?.pii.children?.emails?.getDerivedField()?.path
+    ).toEqual(['comment_text']);
+
+    expect(
+      response.children?.comment_text.children?.pii.children?.emails?.getDerivedField()?.value
+    ).toEqual('text content');
+  });
 });
