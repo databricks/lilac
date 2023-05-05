@@ -40,10 +40,14 @@ export const EmbedingsView = React.memo(function EmbeddingsView({
         </tr>
       </thead>
       <tbody>
-        {embeddingLeafs.map(([path, field]) => (
+        {embeddingLeafs.map(([path, _]) => (
           <tr className="border-t" key={`${path}`}>
-            <td className="py-2">{renderPath(path)}</td>
-            <td className="py-2">name</td>
+            {/*
+              Note: We do some path slicing here to render nice paths.
+              This will change in the svelte version.
+              */}
+            <td className="py-2">{renderPath(path.slice(1, -2))}</td>
+            <td className="py-2">{path.slice(-2, -1)}</td>
           </tr>
         ))}
       </tbody>
