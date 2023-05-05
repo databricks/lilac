@@ -165,7 +165,6 @@ class DatasetDuckDB(DatasetDB):
     del latest_mtime  # This is used as the cache key.
     merged_schema = self._source_manifest.data_schema.copy(deep=True)
     self._signal_manifests = []
-    view_manifests: list[SignalManifest] = []
     # Make a joined view of all the column groups.
     self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
 
@@ -177,7 +176,6 @@ class DatasetDuckDB(DatasetDB):
 
         with open_file(os.path.join(root, file)) as f:
           signal_manifest = SignalManifest.parse_raw(f.read())
-
         self._signal_manifests.append(signal_manifest)
         self._create_view(signal_manifest.parquet_id, signal_manifest.files)
 
@@ -191,8 +189,6 @@ class DatasetDuckDB(DatasetDB):
     #     "parquet_id2"."__LILAC__" AS "parquet_id2"
     #   FROM source JOIN "parquet_id1" USING (uuid,) JOIN "parquet_id2" USING (uuid,)
     # );
-    # Note: Embeddings do not have a __LILAC__ column as embeddings are stored in a separate npy
-    # file. They do however have a uuid column, so we still join on that.
     select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [
         f'"{manifest.parquet_id}"."{LILAC_COLUMN}" AS "{manifest.parquet_id}"'
         for manifest in self._signal_manifests
@@ -504,8 +500,8 @@ class DatasetDuckDB(DatasetDB):
                   resolve_span: bool = False,
                   combine_columns: bool = False) -> SelectRowsResult:
     if not columns:
-      # Select all columns, except embedding columns which should not be returned by default.
-      columns = [path for (path, field) in self.manifest().data_schema.fields.items()]
+      # Select all columns.
+      columns = list(self.manifest().data_schema.fields.keys())
 
     cols = [column_from_identifier(column) for column in columns or []]
     # Always return the UUID column.
