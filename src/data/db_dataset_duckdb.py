@@ -672,6 +672,8 @@ class DatasetDuckDB(DatasetDB):
     con.close()
 
     if combine_columns:
+      # Since we aliased every column to `*`, the object with have only '*' as the key. We need to
+      # elevate the all the columns under '*'.
       df = pd.DataFrame.from_records(df['*'])
 
     # DuckDB returns np.nan for missing field in string column, replace with None for correctness.
@@ -742,6 +744,7 @@ class DatasetDuckDB(DatasetDB):
     for column in columns:
       select_str, temp_column_names = self._create_select_column(column, manifest, flatten,
                                                                  resolve_span)
+      # If `combine_columns` is True, we alias every column to `*` so that we can merge them all.
       alias = '*' if combine_columns else (column.alias or _unique_alias(column))
       if alias not in alias_to_temp_col_names:
         alias_to_temp_col_names[alias] = []

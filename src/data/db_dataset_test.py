@@ -807,6 +807,27 @@ class SelectRowsSuite:
         }
     }]
 
+    # Works with UDFs and aliases are ignored.
+    udf_col = SignalUDF(LengthSignal(), 'text', alias='ignored')
+    result = db.select_rows(['text', udf_col], combine_columns=True)
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        LILAC_COLUMN: {
+            'text': {
+                'length_signal': 5
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        LILAC_COLUMN: {
+            'text': {
+                'length_signal': 9
+            }
+        }
+    }]
+
   def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
         db_cls,
