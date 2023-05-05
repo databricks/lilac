@@ -1,11 +1,29 @@
 import { DataType, EnrichmentType, Field, Schema, Schema as SchemaJSON } from './fastapi_client';
-export type LeafValue = number | boolean | string | null;
-// export type LeafValue<T extends DataType = DataType> = T extends 'string'
-//   ? string
-//   : T extends 'boolean'
-//   ? boolean
-//   : never;
 
+export type LilacDataType = Exclude<DataType, 'list'> | `${Exclude<DataType, 'list'>}[]`;
+
+export type LeafValue<T extends LilacDataType = LilacDataType> =
+  | (T extends 'string'
+      ? string
+      : T extends 'boolean'
+      ? boolean
+      : T extends DataTypeNumber
+      ? number
+      : T extends 'string_span'
+      ? { start: number; end: number }
+      : T extends 'time' | 'date' | 'timestamp' | 'interval' | 'binary'
+      ? Date
+      : T extends 'struct'
+      ? LeafStruct
+      : T extends 'list'
+      ? LeafList
+      : T extends `${infer U extends Exclude<DataType, 'list'>}[]`
+      ? LeafValue<U>[]
+      : never)
+  | null;
+
+type LeafStruct = object;
+type LeafList = LeafValue[];
 export type FieldValue = FieldValue[] | { [fieldName: string]: FieldValue } | LeafValue;
 
 export interface Item {
@@ -21,6 +39,19 @@ export type Path = Array<string>;
 export const PATH_WILDCARD = '*';
 export const UUID_COLUMN = '__rowid__';
 export const LILAC_COLUMN = '__lilac__';
+
+export type DataTypeNumber =
+  | 'int8'
+  | 'int16'
+  | 'int32'
+  | 'int64'
+  | 'uint8'
+  | 'uint16'
+  | 'uint32'
+  | 'uint64'
+  | 'float16'
+  | 'float32'
+  | 'float64';
 
 export function isFloat(dtype: DataType) {
   return ['float16', 'float32', 'float64'].indexOf(dtype) >= 0;
@@ -41,7 +72,7 @@ export function isOrdinal(dtype: DataType) {
 }
 
 export function serializePath(path: Path): string {
-  return path.map((p) => `"${p}"`).join('.');
+  return path.map((p) => `${p}`).join('.');
 }
 
 /**
@@ -142,14 +173,14 @@ export class LilacSchema {
   }
 }
 
-export function getFieldByPath(schema: Schema, path: Path): Field {
+export function getFieldByPath(schema: Schema, path: Path): Field | undefined {
   let field: Field = { fields: schema.fields };
   for (const p of path) {
     if (field.repeated_field && p === PATH_WILDCARD) {
       field = field.repeated_field;
     } else {
       if (!field.fields?.[p]) {
-        throw new Error(`Leaf with path ${JSON.stringify(path)} was not found.`);
+        return;
       }
       field = field.fields[p];
     }
@@ -159,15 +190,24 @@ export function getFieldByPath(schema: Schema, path: Path): Field {
 
 export function getValueByPath(values: any, path: Path): FieldValue {
   let value: FieldValue = values;
+  let prevP: string | undefined;
   for (const p of path) {
     if (value == null) {
       return null;
     }
-    if (Array.isArray(value)) {
-      console.log('AARGH');
+    if (p === PATH_WILDCARD) {
+      prevP = p;
+      continue;
+    } else if (prevP === PATH_WILDCARD) {
+      if (!Array.isArray(value)) {
+        return null;
+      }
+      value = value.map((v: any) => v[p]);
     } else if (typeof value === 'object') {
       value = value[p];
     }
+
+    prevP = p;
   }
   return value;
 }
