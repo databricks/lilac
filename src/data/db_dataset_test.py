@@ -1104,10 +1104,10 @@ class SelectRowsSuite:
     result = db.select_rows([SignalUDF(signal, ('text', '*', '*'))])
     assert list(result) == [{
         UUID_COLUMN: '1',
-        'length_signal(text_*)': [[5], [2, 3]]
+        'length_signal(text.*)': [[5], [2, 3]]
     }, {
         UUID_COLUMN: '2',
-        'length_signal(text_*)': [[9, 3], [4]]
+        'length_signal(text.*)': [[9, 3], [4]]
     }]
     assert signal._call_count == 6
 

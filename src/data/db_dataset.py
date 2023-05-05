@@ -319,7 +319,8 @@ class DatasetDB(abc.ABC):
       offset: The offset to start returning rows from.
       task_id: The TaskManager `task_id` for this process run. This is used to update the progress.
       resolve_span: Whether to resolve the span of the row.
-      combine_columns: Whether to combine columns into a single object.
+      combine_columns: Whether to combine columns into a single object. The object will be pruned
+        to only include sub-fields that correspond to the requested columns.
 
     Returns
       A SelectRowsResult iterator with rows of `Item`s.
@@ -354,8 +355,8 @@ class DatasetDB(abc.ABC):
 
 def make_parquet_id(signal: Signal, source_path: PathTuple) -> str:
   """Return a unique identifier for this parquet table."""
-  column_alias = '_'.join([str(path_part).replace('.', '_') for path_part in source_path])
-  if column_alias.endswith('_*'):
+  column_alias = '.'.join(map(str, source_path))
+  if column_alias.endswith('.*'):
     # Remove the trailing .* from the column name.
     column_alias = column_alias[:-2]
 

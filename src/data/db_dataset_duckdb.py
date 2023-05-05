@@ -964,7 +964,7 @@ class SignalManifest(BaseModel):
   signal: Signal
 
   # The column path that this signal is derived from.
-  enriched_path: Path
+  enriched_path: PathTuple
 
   @validator('signal', pre=True)
   def parse_signal(cls, signal: dict) -> Signal:
