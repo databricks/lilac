@@ -19,7 +19,11 @@ from ..signals.signal import Signal
 
 def is_primitive(obj: object) -> bool:
   """Returns True if the object is a primitive."""
-  return not isinstance(obj, Iterable) or isinstance(obj, (str, bytes))
+  if isinstance(obj, (str, bytes)):
+    return True
+  if isinstance(obj, Iterable):
+    return False
+  return True
 
 
 def _flatten(input: Union[Iterable, object]) -> Generator:
@@ -38,7 +42,7 @@ def flatten(input: Union[Iterable, object]) -> list[object]:
 
 def _wrap_value_in_dict(input: Union[object, dict], props: PathTuple) -> Union[object, dict]:
   # If the signal produced no value, or nan, we should return None so the parquet value is sparse.
-  if input and math.isnan(cast(float, input)):
+  if isinstance(input, float) and math.isnan(input):
     input = None
   for prop in reversed(props):
     input = {prop: input}
@@ -59,18 +63,21 @@ def unflatten(flat_input: Iterable, original_input: Union[Iterable, object]) -> 
   return cast(list, _unflatten(iter(flat_input), original_input))
 
 
-def wrap_in_dicts(input: Union[object, Iterable[object]],
-                  spec: list[PathTuple]) -> Iterable[object]:
+def _wrap_in_dicts(input: Union[object, Iterable[object]],
+                   spec: list[PathTuple]) -> Union[object, Iterable[object]]:
   """Wraps an object or iterable in a dict according to the spec."""
   props = spec[0] if spec else tuple()
-  if is_primitive(input) or isinstance(input, dict):
-    return cast(Iterable, _wrap_value_in_dict(input, props))
-  else:
-    return [
-        _wrap_value_in_dict(wrap_in_dicts(elem, spec[1:]), props)
-        for elem in cast(Iterable, input)
-        if elem is not None
-    ]
+  if len(spec) == 1:
+    return _wrap_value_in_dict(input, props)
+  if input is None:
+    return {}
+  res = [_wrap_in_dicts(elem, spec[1:]) for elem in cast(Iterable, input)]
+  return _wrap_value_in_dict(res, props)
+
+
+def wrap_in_dicts(input: Iterable[object], spec: list[PathTuple]) -> Iterable[object]:
+  """Wraps an object or iterable in a dict according to the spec."""
+  return [_wrap_in_dicts(elem, spec) for elem in input]
 
 
 def _merge_field_into(schema: Field, destination: Field) -> None:

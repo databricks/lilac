@@ -144,6 +144,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestEntitySignal)
   register_signal(TestParamSignal)
   register_signal(TestSparseSignal)
+  register_signal(TestSparseRichSignal)
   register_embedding(TestEmbedding)
 
   # Unit test runs.
@@ -1539,6 +1540,25 @@ class TestSparseSignal(Signal):
         yield len(text)
 
 
+class TestSparseRichSignal(Signal):
+  """Find personally identifiable information (emails, phone numbers, etc)."""
+  name = 'test_sparse_rich_signal'
+  enrichment_type = EnrichmentType.TEXT
+
+  @override
+  def fields(self) -> Field:
+    return Field(fields={'emails': Field(repeated_field=Field(dtype=DataType.STRING))})
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    for text in data:
+      if text == 'hello':
+        # Skip this input.
+        yield None
+      else:
+        yield {'emails': ['test1@hello.com', 'test2@hello.com']}
+
+
 @pytest.mark.parametrize('db_cls', ALL_DBS)
 class ComputeSignalItemsSuite:
 
@@ -1597,6 +1617,45 @@ class ComputeSignalItemsSuite:
         LILAC_COLUMN: {
             'text': {
                 'test_sparse_signal': 11
+            }
+        }
+    }]
+
+  def test_sparse_rich_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(
+        db_cls=db_cls,
+        tmp_path=tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello',
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'hello world',
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
+
+    db.compute_signal_column(TestSparseRichSignal(), 'text')
+
+    result = db.select_rows(['text', LILAC_COLUMN])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        LILAC_COLUMN: {
+            'text': {
+                'test_sparse_rich_signal': None
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'hello world',
+        LILAC_COLUMN: {
+            'text': {
+                'test_sparse_rich_signal': {
+                    'emails': ['test1@hello.com', 'test2@hello.com']
+                }
             }
         }
     }]
