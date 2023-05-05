@@ -288,7 +288,7 @@ def TextEntityField(metadata: Optional[dict[str, Field]] = {},
       Field(dtype=DataType.STRING_SPAN, derived_from=derived_from), metadata, extra_data)
 
 
-def EmbeddingEntity(embedding: np.ndarray,
+def EmbeddingEntity(embedding: Optional[np.ndarray],
                     metadata: Optional[Item] = {},
                     extra_data: Optional[Item] = {}) -> Item:
   """Return the span item from start and end character offets."""

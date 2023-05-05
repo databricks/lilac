@@ -14,9 +14,7 @@ from typing_extensions import override
 
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..config import CONFIG, data_path
-from ..embeddings.embedding_index import EmbeddingIndexer
-from ..embeddings.embedding_index_disk import EmbeddingIndexerDisk
-from ..embeddings.embedding_registry import Embedding
+from ..embeddings.embedding import Embedding
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import (
@@ -136,7 +134,6 @@ class DatasetDuckDB(DatasetDB):
       self,
       namespace: str,
       dataset_name: str,
-      embedding_indexer: Optional[EmbeddingIndexer] = None,
       vector_store_cls: Type[VectorStore] = NumpyVectorStore,
       concept_model_db: ConceptModelDB = DISK_CONCEPT_MODEL_DB,
   ):
@@ -149,11 +146,6 @@ class DatasetDuckDB(DatasetDB):
     self._signal_manifests: list[SignalManifest] = []
     self.con = duckdb.connect(database=':memory:')
     self._create_view('t', self._source_manifest.files)
-
-    if not embedding_indexer:
-      self._embedding_indexer: EmbeddingIndexer = EmbeddingIndexerDisk(self.dataset_path)
-    else:
-      self._embedding_indexer = embedding_indexer
 
     # Maps a column path and embedding to the vector store. This is lazily generated as needed.
     self._col_vector_stores: dict[PathTuple, VectorStore] = {}
@@ -295,6 +287,7 @@ class DatasetDuckDB(DatasetDB):
       # Replace the embeddings with None so they are not serialized in the parquet file.
       enriched_signal_items = (replace_embeddings_with_none(item) for item in enriched_signal_items)
 
+    enriched_signal_items = list(enriched_signal_items)
     parquet_filename, _ = write_items_to_parquet(
         items=enriched_signal_items,
         output_dir=self.dataset_path,

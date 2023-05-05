@@ -10,7 +10,7 @@ import type { SignalTransform } from './SignalTransform';
  */
 export type Column = {
     feature: Array<(number | string)>;
-    alias: string;
+    alias?: string;
     transform?: (BucketizeTransform | SignalTransform);
 };
 

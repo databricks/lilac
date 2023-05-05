@@ -9,13 +9,13 @@ from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, EnrichmentType, Field, ItemValue, PathTuple, RichData
 from .signal import Signal
+from .signal_registry import get_signal_cls
 
 
 class ConceptScoreSignal(Signal):
   """Compute scores along a "concept" for documents."""
   name = 'concept_score'
-  enrichment_type = EnrichmentType.TEXT
-  vector_based = True
+  enrichment_type = EnrichmentType.TEXT_EMBEDDING
 
   namespace: str
   concept_name: str
@@ -24,8 +24,16 @@ class ConceptScoreSignal(Signal):
   _concept_model_db: ConceptModelDB
 
   def __init__(self, **data: Any):
-    super().__init__(embedding=data.get('embedding_name'), **data)
+    super().__init__(**data)
+
     self._concept_model_db = DISK_CONCEPT_MODEL_DB
+
+    # Make sure that the embedding signal exists.
+    try:
+      get_signal_cls(self.embedding_name)
+    except Exception as e:
+      raise ValueError(
+          f'Embedding signal "{self.embedding_name}" not found in the registry.') from e
 
   @override
   def fields(self) -> Field:

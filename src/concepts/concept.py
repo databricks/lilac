@@ -5,7 +5,9 @@ import numpy as np
 from pydantic import BaseModel
 from sklearn.linear_model import LogisticRegression
 
+from ..embeddings.embedding import Embedding, get_embed_fn
 from ..schema import RichData
+from ..signals.signal_registry import get_signal_cls
 from ..utils import DebugTimer
 
 LOCAL_CONCEPT_NAMESPACE = 'local'
@@ -75,8 +77,13 @@ class ConceptModel(BaseModel):
 
   def score(self, examples: Iterable[RichData]) -> list[float]:
     """Get the scores for the provided examples."""
-    embed_fn = get_embedding_cls(self.embedding_name)()
-    embeddings = embed_fn(examples)
+    embedding_signal = get_signal_cls(self.embedding_name)()
+    if not isinstance(embedding_signal, Embedding):
+      raise ValueError(f'Signal {self.embedding_name} is not an embedding signal.')
+
+    embed_fn = get_embed_fn(embedding_signal)
+
+    embeddings = np.array(embed_fn(examples))
     return self.score_embeddings(embeddings).tolist()
 
   def sync(self, concept: Concept) -> bool:
@@ -85,7 +92,11 @@ class ConceptModel(BaseModel):
       # The model is up to date.
       return False
 
-    embed_fn = get_embedding_cls(self.embedding_name)()
+    embedding_signal = get_signal_cls(self.embedding_name)()
+    if not isinstance(embedding_signal, Embedding):
+      raise ValueError(f'Signal {self.embedding_name} is not an embedding signal.')
+
+    embed_fn = get_embed_fn(embedding_signal)
     concept_embeddings: dict[str, np.ndarray] = {}
 
     # Compute the embeddings for the examples with cache miss.

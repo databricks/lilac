@@ -36,10 +36,6 @@ export const useGetSourceSchemaQuery = createApiQuery(
   DATASETS_TAG
 );
 export const useLoadDatasetMutation = createApiMutation(DataLoadersService.load, DATASETS_TAG);
-export const useComputeEmbeddingIndexMutation = createApiMutation(
-  DatasetsService.computeEmbeddingIndex,
-  DATASETS_TAG
-);
 export const useComputeSignalColumnMutation = createApiMutation(
   DatasetsService.computeSignalColumn,
   DATASETS_TAG

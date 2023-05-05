@@ -5,12 +5,12 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Callable, Generator, Iterator, TypeVar, Union, cast
+from typing import Any, Callable, Generator, Iterator, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
+from pydantic import BaseModel
 
-from ..embeddings.embedding_index import EmbeddingIndex
 from ..parquet_writer import ParquetWriter
 from ..schema import (
     ENTITY_FEATURE_KEY,
@@ -41,26 +41,16 @@ def is_primitive(obj: object) -> bool:
   return True
 
 
-def _flatten(input: Union[Iterable, object]) -> Generator:
-  """Flattens a nested iterable."""
-  if is_primitive(input):
-    yield input
-  else:
-    for elem in cast(Iterable, input):
-      if isinstance(elem, dict):
-        yield from _flatten(elem.values())
-      else:
-        yield from _flatten(elem)
-
-
 def _replace_embeddings_with_none(input: Union[Item, ItemValue]) -> Union[Item, ItemValue]:
   """Replaces all embeddings with None."""
+  if isinstance(input, np.ndarray):
+    return None
   if isinstance(input, dict):
     return {k: replace_embeddings_with_none(v) for k, v in input.items()}
-  elif isinstance(input, np.ndarray):
-    return None
-  else:
-    return input
+  if isinstance(input, list):
+    return [replace_embeddings_with_none(v) for v in input]
+
+  return input
 
 
 def replace_embeddings_with_none(input: Union[Item, ItemValue]) -> Item:
@@ -71,9 +61,25 @@ def replace_embeddings_with_none(input: Union[Item, ItemValue]) -> Item:
 Tflatten = TypeVar('Tflatten', object, np.ndarray)
 
 
-def flatten(input: Union[Iterable, Tflatten]) -> list[Tflatten]:
+def _flatten(input: Union[Iterable, object], is_primitive_predicate: Callable[[object],
+                                                                              bool]) -> Generator:
   """Flattens a nested iterable."""
-  return list(_flatten(input))
+  if is_primitive_predicate(input):
+    yield input
+  elif is_primitive(input):
+    pass
+  else:
+    for elem in cast(Iterable, input):
+      if isinstance(elem, dict):
+        yield from _flatten(elem.values(), is_primitive_predicate)
+      else:
+        yield from _flatten(elem, is_primitive_predicate)
+
+
+def flatten(input: Union[Iterable, Tflatten],
+            is_primitive_predicate: Callable[[object], bool] = is_primitive) -> list[Tflatten]:
+  """Flattens a nested iterable."""
+  return list(_flatten(input, is_primitive_predicate))
 
 
 def _wrap_value_in_dict(input: Union[object, dict], props: PathTuple) -> Union[object, dict]:
@@ -227,11 +233,13 @@ def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], 
   """Write a set of embeddings to disk."""
   out_filename = embedding_index_filename(filename_prefix, shard_index, num_shards)
   index_path = os.path.join(output_dir, out_filename)
+
   # Restrict the keys to only those that are embeddings.
-  flat_keys = flatten_keys(
-      keys, embeddings, is_primitive_predicate=lambda input: isinstance(input, np.ndarray))
-  print('WRITING FLAT KEYS', flat_keys)
-  flat_embeddings = np.array(flatten(embeddings))
+  def embedding_predicate(input: Any) -> bool:
+    return isinstance(input, np.ndarray)
+
+  flat_keys = flatten_keys(keys, embeddings, is_primitive_predicate=embedding_predicate)
+  flat_embeddings = np.array(flatten(embeddings, is_primitive_predicate=embedding_predicate))
 
   # Write the embedding index and the ordered UUID column to disk so they can be joined later.
   np_keys = np.empty(len(flat_keys), dtype=object)
@@ -241,6 +249,16 @@ def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], 
     np.savez(f, **{NP_INDEX_KEYS_KWD: np_keys, NP_EMBEDDINGS_KWD: flat_embeddings})
 
   return out_filename
+
+
+class EmbeddingIndex(BaseModel):
+  """The result of an embedding index query."""
+
+  class Config:
+    arbitrary_types_allowed = True
+
+  keys: list[PathTuple]
+  embeddings: np.ndarray
 
 
 def read_embedding_index(output_dir: str, filename: str) -> EmbeddingIndex:
@@ -256,7 +274,6 @@ def read_embedding_index(output_dir: str, filename: str) -> EmbeddingIndex:
     np_index: dict[str, np.ndarray] = np.load(f, allow_pickle=True)
     embeddings = np_index[NP_EMBEDDINGS_KWD]
     index_keys = np_index[NP_INDEX_KEYS_KWD].tolist()
-    print('INDEX KEYS', np_index[NP_INDEX_KEYS_KWD].tolist())
   return EmbeddingIndex(path=index_path, keys=index_keys, embeddings=embeddings)
 
 
@@ -304,20 +321,18 @@ def parquet_filename(prefix: str, shard_index: int, num_shards: int) -> str:
 
 def _flatten_keys(uuid: str, nested_input: Iterable, location: list[int],
                   is_primitive_predicate: Callable[[object], bool]) -> list[PathTuple]:
-  print('==>', nested_input, is_primitive_predicate(nested_input))
   if is_primitive_predicate(nested_input):
     return [(uuid, *location)]
   elif is_primitive(nested_input):
     return []
   else:
     result: list[PathTuple] = []
-    values: Iterable
     if isinstance(nested_input, dict):
-      values = nested_input.values()
+      for value in nested_input.values():
+        result.extend(_flatten_keys(uuid, value, location, is_primitive_predicate))
     else:
-      values = nested_input
-    for i, input in enumerate(values):
-      result.extend(_flatten_keys(uuid, input, [*location, i], is_primitive_predicate))
+      for i, input in enumerate(nested_input):
+        result.extend(_flatten_keys(uuid, input, [*location, i], is_primitive_predicate))
     return result
 
 

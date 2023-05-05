@@ -29,17 +29,12 @@ export function ColumnSelector({
   const dataSchema = query.currentData?.dataset_manifest.data_schema;
   const schema = dataSchema != null ? new Schema(dataSchema) : null;
   const pathToEmbeddings: {[path: string]: string[]} = {};
-  for (const {column, embedding} of query.currentData?.dataset_manifest.embedding_manifest
-    .indexes || []) {
-    if (embedding.embedding_name == null) {
-      continue;
-    }
-    const col = renderPath(column as Path);
-    if (pathToEmbeddings[col] == null) {
-      pathToEmbeddings[col] = [];
-    }
-    pathToEmbeddings[col].push(embedding.embedding_name);
+  const embeddingLeafs = (schema?.leafs || []).filter(([_, field]) => field.dtype === 'embedding');
+
+  for (const [path, _] of embeddingLeafs || []) {
+    pathToEmbeddings[renderPath(path)].push('name');
   }
+
   const leafs = schema != null ? getLeafsByEnrichmentType(schema.leafs, enrichmentType) : null;
 
   const inFilterLeafs: [Path, Field][] = [];

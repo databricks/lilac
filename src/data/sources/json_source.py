@@ -11,9 +11,9 @@ from pydantic import Field
 from typing_extensions import override
 
 from ...config import CONFIG, data_path
-from ...schema import PARQUET_FILENAME_PREFIX, arrow_schema_to_schema
+from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, arrow_schema_to_schema
 from ...tasks import TaskId
-from ...utils import UUID_COLUMN, delete_file, file_exists, log, makedirs, open_file
+from ...utils import delete_file, file_exists, log, makedirs, open_file
 from .source import Source, SourceProcessResult
 
 
