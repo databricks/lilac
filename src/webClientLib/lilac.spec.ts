@@ -123,7 +123,7 @@ describe('LilacSchema', () => {
     expect(schema.children?.comment_text.children?.pii.children?.emails).toBeDefined();
   });
 
-  it('populates isAnnotation', () => {
+  it('populates isSignalField', () => {
     expect(schema.children?.comment_text.children?.pii.isSignalField).toBeTruthy();
     expect(schema.children?.comment_text.isSignalField).toBeFalsy();
   });
@@ -152,10 +152,6 @@ describe('LilacRow', () => {
 
   it('handles repeated field value types', () => {
     expect(response.children?.tags.value).toEqual(['tag1', 'tag2']);
-    const t = response.children?.tags;
-    if (t?.dataType === 'string[]') {
-      t.value;
-    }
   });
 
   it('has annotations values', () => {
@@ -172,8 +168,5 @@ describe('LilacRow', () => {
         end: 100
       }
     ]);
-    if (col?.dataType === 'string_span') {
-      col.value;
-    }
   });
 });

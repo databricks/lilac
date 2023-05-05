@@ -24,7 +24,7 @@ export class Lilac {
  * Represents a field in a dataset
  */
 
-interface ILilacField {
+type ILilacField = {
   readonly children?: Record<string, ILilacField>;
   readonly dataType: LilacDataType;
   readonly path: Path;
@@ -37,19 +37,62 @@ interface ILilacField {
   readonly isSourceField: boolean;
 
   readonly hasChildren: () => boolean;
-}
+};
 
-export function LilacField(schema: Schema, path: Path, skipChildren = false): ILilacField {
+type ILilacFieldWithValue = Omit<ILilacField, 'children'> & {
+  readonly children?: Record<string, ILilacFieldWithValue>;
+} & (
+    | {
+        readonly dataType: 'string';
+        readonly value: LeafValue<'string'>;
+      }
+    | {
+        readonly dataType: DataTypeNumber;
+        readonly value: LeafValue<DataTypeNumber>;
+      }
+    | {
+        readonly dataType: 'string_span';
+        readonly value: LeafValue<'string_span'>;
+      }
+    | {
+        readonly dataType: 'boolean';
+        readonly value: LeafValue<'boolean'>;
+      }
+    | {
+        readonly dataType: 'time' | 'date' | 'timestamp' | 'interval' | 'binary';
+        readonly value: LeafValue<'time' | 'date' | 'timestamp' | 'interval' | 'binary'>;
+      }
+    | {
+        readonly dataType: 'struct';
+        readonly value: LeafValue<'struct'>;
+      }
+    | {
+        readonly dataType: `${Exclude<DataType, 'list'>}[]`;
+        readonly value: LeafValue<`${Exclude<DataType, 'list'>}[]`>;
+      }
+  );
+
+export function LilacField(schema: Schema, path: Path): ILilacField;
+export function LilacField(
+  schema: Schema,
+  path: Path,
+  rowFieldValue?: FieldValue
+): ILilacFieldWithValue;
+export function LilacField<T extends FieldValue>(
+  schema: Schema,
+  path: Path,
+  rowFieldValue?: T
+): ILilacField | ILilacFieldWithValue {
   const schemaField = getFieldByPath(schema, path);
 
   if (!schemaField) throw new Error('Field not found for path ' + serializePath(path));
 
   if (schemaField.dtype === 'list') {
-    return LilacField(schema, [...path, PATH_WILDCARD], skipChildren);
+    return LilacField(schema, [...path, PATH_WILDCARD], rowFieldValue);
   }
 
   if (schemaField.is_entity) {
-    return LilacField(schema, [...path, '__entity__'], skipChildren);
+    return LilacField(schema, [...path, '__entity__'], rowFieldValue);
   }
 
   let dataType: LilacDataType = schemaField.dtype || 'struct';
@@ -57,14 +100,7 @@ export function LilacField(schema: Schema, path: Path, skipChildren = false): IL
     dataType = `${dataType}[]`;
   }
 
-  //   schemaField = schemaField.fields?.__entity__;
-  //   if(!schemaField)
-  //     throw new Error('Entity field not present for path ' + serializePath(path));
-  //   dataType = schemaField.dtype || 'struct';
-  // }
-
-  return {
-    children: !skipChildren ? constructChildren(schema, path, LilacField) : undefined,
+  const ret: ILilacField = {
     dataType,
     isSignalField: path.at(0) === LILAC_COLUMN,
     isSourceField: path.at(0) !== LILAC_COLUMN,
@@ -75,61 +111,20 @@ export function LilacField(schema: Schema, path: Path, skipChildren = false): IL
       return !!this.children;
     }
   };
-}
 
-type ILilacFieldValue = {
-  readonly children?: Record<string, ILilacFieldWithValue>;
-} & (
-  | {
-      readonly dataType: 'string';
-      readonly value: LeafValue<'string'>;
-    }
-  | {
-      readonly dataType: DataTypeNumber;
-      readonly value: LeafValue<DataTypeNumber>;
-    }
-  | {
-      readonly dataType: 'string_span';
-      readonly value: LeafValue<'string_span'>;
-    }
-  | {
-      readonly dataType: 'boolean';
-      readonly value: LeafValue<'boolean'>;
-    }
-  | {
-      readonly dataType: 'time' | 'date' | 'timestamp' | 'interval' | 'binary';
-      readonly value: LeafValue<'time' | 'date' | 'timestamp' | 'interval' | 'binary'>;
-    }
-  | {
-      readonly dataType: 'struct';
-      readonly value: LeafValue<'struct'>;
-    }
-  | {
-      readonly dataType: `${Exclude<DataType, 'list'>}[]`;
-      readonly value: LeafValue<`${Exclude<DataType, 'list'>}[]`>;
-    }
-);
 
-type ILilacFieldWithValue = Omit<ILilacField, 'dataType' | 'children'> & ILilacFieldValue;
+  if (rowFieldValue === undefined) {
+    return {...ret, children: constructChildren(schema, path, undefined)};
+  } else {
+    const valueField = getValueByPath(rowFieldValue, path);
+    return {
+      ...ret,
+      children: constructChildren(schema, path, rowFieldValue),
+      value: valueField
+    } satisfies ILilacFieldWithValue;
+  }
 
-function LilacFieldWithValue(schema: Schema, path: Path, row: FieldValue): ILilacFieldWithValue {
-  const schemaRes = LilacField(schema, path, true);
-
-  const valueField = getValueByPath(row, schemaRes.path);
-  const dataType = schemaRes.dataType;
-
-  if (!dataType) throw new Error('dataType is undefined' + serializePath(path));
-
-  const value = valueField as LeafValue<typeof dataType>;
-
-  return {
-    ...schemaRes,
-    dataType,
-    value,
-    children: constructChildren(schema, path, (s, p) => LilacFieldWithValue(s, p, row))
-
-    // TODO remove as
-  } as ILilacFieldWithValue;
+  // if (!dataType) throw new Error('dataType is undefined' + serializePath(path));
 }
 
 /**
@@ -163,7 +158,7 @@ export function LilacRow(
   row: Awaited<ReturnType<typeof DatasetsService.selectRows>>[number]
 ): ILilacRow {
   // function idColumn
-  const res = LilacFieldWithValue(schema, [], row);
+  const res = LilacField(schema, [], row);
 
   const uuidColumn = res.children?.[UUID_COLUMN];
 
@@ -173,15 +168,24 @@ export function LilacRow(
   };
 }
 
-function constructChildren<T>(
+/**
+ * Initiates Fields for children of a given path using the initiator function
+ */
+
+type LilacFieldFromFieldValue<T extends FieldValue | undefined> = T extends FieldValue
+  ? ILilacFieldWithValue
+  : ILilacField;
+
+
+function constructChildren<F extends FieldValue | undefined>(
   schema: Schema,
   path: Path,
-  initiator: (schema: Schema, path: Path) => T
-) {
+  rowFieldValue: F
+): (Record<string, LilacFieldFromFieldValue<F>> ) |  undefined {
   const field = getFieldByPath(schema, path);
   const annotationField = getFieldByPath(schema, [LILAC_COLUMN, ...path]);
 
-  const children: Record<string, T> = {};
+  const children: Record<string, LilacFieldFromFieldValue<F>> = {};
 
   if (field?.fields) {
     for (const fieldName of Object.keys(field.fields)) {
@@ -189,14 +193,14 @@ function constructChildren<T>(
       if (!path.length && fieldName === LILAC_COLUMN) {
         continue;
       }
-      children[fieldName] = initiator(schema, [...path, fieldName]);
+      children[fieldName] = LilacField(schema, [...path, fieldName], rowFieldValue);
     }
   }
 
   // Add annotation fields
   for (const fieldName of Object.keys(annotationField?.fields || {})) {
     if (!children[fieldName]) {
-      children[fieldName] = initiator(schema, [LILAC_COLUMN, ...path, fieldName]);
+      children[fieldName] = LilacField(schema, [LILAC_COLUMN, ...path, fieldName], rowFieldValue);
     }
   }
 
