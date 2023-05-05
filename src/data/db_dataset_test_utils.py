@@ -1,25 +1,73 @@
 """Tests utils of for db_dataset_test."""
 import os
 import pathlib
-from typing import Type
+from typing import Optional, Type, cast
 
 from ..schema import (
     MANIFEST_FILENAME,
     PARQUET_FILENAME_PREFIX,
+    DataType,
+    Field,
     Item,
+    ItemValue,
     Schema,
     SourceManifest,
 )
 from ..utils import get_dataset_output_dir, open_file, write_items_to_parquet
+from .dataset_utils import is_primitive
 from .db_dataset import DatasetDB
 
 TEST_NAMESPACE = 'test_namespace'
 TEST_DATASET_NAME = 'test_dataset'
 
 
-def make_db(db_cls: Type[DatasetDB], tmp_path: pathlib.Path, items: list[Item],
-            schema: Schema) -> DatasetDB:
+def _infer_dtype(value: ItemValue) -> DataType:
+  if isinstance(value, str):
+    return DataType.STRING
+  elif isinstance(value, bool):
+    return DataType.BOOLEAN
+  elif isinstance(value, bytes):
+    return DataType.BINARY
+  elif isinstance(value, float):
+    return DataType.FLOAT32
+  elif isinstance(value, int):
+    return DataType.INT32
+  else:
+    raise ValueError(f'Cannot infer dtype of primitive value: {value}')
+
+
+def _infer_field(item: Item) -> Field:
+  """Infer the schema from the items."""
+  if isinstance(item, dict):
+    fields: dict[str, Field] = {}
+    for k, v in item.items():
+      fields[k] = _infer_field(cast(Item, v))
+    return Field(fields=fields)
+  elif is_primitive(item):
+    return Field(dtype=_infer_dtype(item))
+  elif isinstance(item, list):
+    return Field(repeated_field=_infer_field(item[0]))
+  else:
+    raise ValueError(f'Cannot infer schema of item: {item}')
+
+
+def _infer_schema(items: list[Item]) -> Schema:
+  """Infer the schema from the items."""
+  schema = Schema(fields={})
+  for item in items:
+    field = _infer_field(item)
+    if not field.fields:
+      raise ValueError(f'Invalid schema of item. Expected an object, but got: {item}')
+    schema.fields = {**schema.fields, **field.fields}
+  return schema
+
+
+def make_db(db_cls: Type[DatasetDB],
+            tmp_path: pathlib.Path,
+            items: list[Item],
+            schema: Optional[Schema] = None) -> DatasetDB:
   """Create a test database."""
+  schema = schema or _infer_schema(items)
   _write_items(tmp_path, TEST_DATASET_NAME, items, schema)
   return db_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
 

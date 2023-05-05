@@ -75,15 +75,6 @@ SIMPLE_ITEMS: list[Item] = [{
     'float': 1.0
 }]
 
-SIMPLE_SCHEMA = Schema(
-    fields={
-        UUID_COLUMN: Field(dtype=DataType.STRING),
-        'str': Field(dtype=DataType.STRING),
-        'int': Field(dtype=DataType.INT64),
-        'bool': Field(dtype=DataType.BOOLEAN),
-        'float': Field(dtype=DataType.FLOAT64),
-    })
-
 TEST_EMBEDDING_NAME = 'test_embedding'
 
 EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
@@ -169,13 +160,13 @@ def set_data_path(tmp_path: pathlib.Path) -> Generator:
 class SelectRowsSuite:
 
   def test_default(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
     result = db.select_rows()
     assert list(result) == SIMPLE_ITEMS
 
   def test_select_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
     result = db.select_rows([UUID_COLUMN])
 
@@ -184,7 +175,7 @@ class SelectRowsSuite:
   def test_select_ids_with_limit_and_offset(self, tmp_path: pathlib.Path,
                                             db_cls: Type[DatasetDB]) -> None:
     items: list[Item] = [{UUID_COLUMN: str(i)} for i in range(10, 20)]
-    db = make_db(db_cls, tmp_path, items, SIMPLE_SCHEMA)
+    db = make_db(db_cls, tmp_path, items)
 
     result = db.select_rows([UUID_COLUMN], offset=1, limit=3)
     assert list(result) == [{UUID_COLUMN: '11'}, {UUID_COLUMN: '12'}, {UUID_COLUMN: '13'}]
@@ -199,7 +190,7 @@ class SelectRowsSuite:
     assert list(result) == []
 
   def test_filter_by_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
     id_filter: FilterTuple = (UUID_COLUMN, Comparison.EQUALS, '1')
     result = db.select_rows(filters=[id_filter])
@@ -217,7 +208,7 @@ class SelectRowsSuite:
     assert list(result) == []
 
   def test_filter_by_list_of_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
     id_filter: FilterTuple = (UUID_COLUMN, Comparison.IN, ['1', '2'])
     result = db.select_rows(filters=[id_filter])
@@ -237,7 +228,7 @@ class SelectRowsSuite:
     }]
 
   def test_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
     result = db.select_rows(['str', 'float'])
 
@@ -257,7 +248,7 @@ class SelectRowsSuite:
 
   def test_source_joined_with_signal_column(self, tmp_path: pathlib.Path,
                                             db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
         dataset_name=TEST_DATASET_NAME,
@@ -265,9 +256,9 @@ class SelectRowsSuite:
             fields={
                 UUID_COLUMN: Field(dtype=DataType.STRING),
                 'str': Field(dtype=DataType.STRING),
-                'int': Field(dtype=DataType.INT64),
+                'int': Field(dtype=DataType.INT32),
                 'bool': Field(dtype=DataType.BOOLEAN),
-                'float': Field(dtype=DataType.FLOAT64),
+                'float': Field(dtype=DataType.FLOAT32),
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=3)
@@ -313,9 +304,9 @@ class SelectRowsSuite:
             fields={
                 UUID_COLUMN: Field(dtype=DataType.STRING),
                 'str': Field(dtype=DataType.STRING),
-                'int': Field(dtype=DataType.INT64),
+                'int': Field(dtype=DataType.INT32),
                 'bool': Field(dtype=DataType.BOOLEAN),
-                'float': Field(dtype=DataType.FLOAT64),
+                'float': Field(dtype=DataType.FLOAT32),
                 LILAC_COLUMN: Field(
                     fields={
                         'str': Field(
@@ -385,11 +376,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'everybody'
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
     test_signal_a = TestParamSignal(param='a')
     test_signal_b = TestParamSignal(param='b')
     db.compute_signal_column(test_signal_a, 'text')
@@ -449,11 +436,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'everybody'
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
     test_signal = TestSignal()
     db.compute_signal_column(test_signal, 'text')
     length_signal = LengthSignal()
@@ -574,12 +557,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'texts': ['a', 'bc', 'def']
-        }],
-        schema=Schema(
-            fields={
-                UUID_COLUMN: Field(dtype=DataType.STRING),
-                'texts': Field(repeated_field=Field(dtype=DataType.STRING)),
-            }))
+        }])
 
     db.compute_signal_column(TestSignal(), ('texts', '*'))
     db.compute_signal_column(LengthSignal(), ('texts', '*'))
@@ -705,24 +683,7 @@ class SelectRowsSuite:
                     }
                 }
             }
-        }],
-        schema=Schema(
-            fields={
-                UUID_COLUMN: Field(dtype=DataType.STRING),
-                'text': Field(dtype=DataType.STRING),
-                'extra': Field(
-                    fields={
-                        'text': Field(
-                            fields={
-                                'length_signal': Field(dtype=DataType.INT32),
-                                'test_signal': Field(
-                                    fields={
-                                        'len': Field(dtype=DataType.INT32),
-                                        'flen': Field(dtype=DataType.FLOAT32)
-                                    })
-                            })
-                    })
-            }))
+        }])
 
     # Sub-select text and test_signal.
     result = db.select_rows(['text', ('extra', 'text', 'test_signal')], combine_columns=True)
@@ -838,12 +799,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': ['hello2', 'everybody2'],
-        }],
-        schema=Schema(
-            fields={
-                UUID_COLUMN: Field(dtype=DataType.STRING),
-                'text': Field(repeated_field=Field(dtype=DataType.STRING)),
-            }))
+        }])
     test_signal = TestSignal()
     # Run the signal on the repeated field.
     db.compute_signal_column(test_signal, ('text', '*'))
@@ -916,11 +872,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'everybody'
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
 
     signal_col = SignalUDF(TestSignal(), 'text')
     result = db.select_rows(['text', signal_col])
@@ -952,11 +904,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'everybody'
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
 
     signal_col = SignalUDF(TestSignal(), 'text')
     # Filter by source feature.
@@ -1008,11 +956,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'everybody'
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
 
     signal = LengthSignal()
     # Filter by a specific UUID.
@@ -1051,12 +995,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': ['everybody', 'bye', 'test']
-        }],
-        schema=Schema(
-            fields={
-                UUID_COLUMN: Field(dtype=DataType.STRING),
-                'text': Field(repeated_field=Field(dtype=DataType.STRING)),
-            }))
+        }])
 
     signal = LengthSignal()
 
@@ -1092,12 +1031,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': [['everybody', 'bye'], ['test']]
-        }],
-        schema=Schema(
-            fields={
-                UUID_COLUMN: Field(dtype=DataType.STRING),
-                'text': Field(repeated_field=Field(repeated_field=Field(dtype=DataType.STRING))),
-            }))
+        }])
 
     signal = LengthSignal()
 
@@ -1122,11 +1056,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'hello2.',
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
 
     db.compute_embedding_index(TEST_EMBEDDING_NAME, 'text')
 
@@ -1169,12 +1099,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': ['hello world2.', 'hello2.'],
-        }],
-        schema=Schema(
-            fields={
-                UUID_COLUMN: Field(dtype=DataType.STRING),
-                'text': Field(repeated_field=Field(dtype=DataType.STRING)),
-            }))
+        }])
 
     db.compute_embedding_index(TEST_EMBEDDING_NAME, ('text', '*'))
 
@@ -1193,7 +1118,7 @@ class SelectRowsSuite:
 
   def test_source_joined_with_named_signal_column(self, tmp_path: pathlib.Path,
                                                   db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
         dataset_name=TEST_DATASET_NAME,
@@ -1201,9 +1126,9 @@ class SelectRowsSuite:
             fields={
                 UUID_COLUMN: Field(dtype=DataType.STRING),
                 'str': Field(dtype=DataType.STRING),
-                'int': Field(dtype=DataType.INT64),
+                'int': Field(dtype=DataType.INT32),
                 'bool': Field(dtype=DataType.BOOLEAN),
-                'float': Field(dtype=DataType.FLOAT64),
+                'float': Field(dtype=DataType.FLOAT32),
             }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=3)
@@ -1244,9 +1169,9 @@ class SelectRowsSuite:
             fields={
                 UUID_COLUMN: Field(dtype=DataType.STRING),
                 'str': Field(dtype=DataType.STRING),
-                'int': Field(dtype=DataType.INT64),
+                'int': Field(dtype=DataType.INT32),
                 'bool': Field(dtype=DataType.BOOLEAN),
-                'float': Field(dtype=DataType.FLOAT64),
+                'float': Field(dtype=DataType.FLOAT32),
                 LILAC_COLUMN: Field(
                     fields={
                         'str': Field(
@@ -1275,11 +1200,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
 
     db.compute_signal_column(TestSplitterWithLen(), 'text')
 
@@ -1311,11 +1232,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
 
     signal = TestEntitySignal()
     db.compute_signal_column(signal, 'text')
@@ -1376,11 +1293,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'hello2.',
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
 
     embedding = TestEmbedding()
     db.compute_embedding_index(embedding, 'text')
@@ -1435,11 +1348,7 @@ class SelectRowsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'hello world. hello world2.',
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
 
     entity_signal = TestEntitySignal()
     db.compute_signal_column(entity_signal, 'text')
@@ -1518,13 +1427,7 @@ class SelectRowsSuite:
             UUID_COLUMN: '2',
             'text': 'hello world',
             'text2': ['hello2', 'world2'],
-        }],
-        schema=Schema(
-            fields={
-                UUID_COLUMN: Field(dtype=DataType.STRING),
-                'text': Field(dtype=DataType.STRING),
-                'text2': Field(repeated_field=Field(dtype=DataType.STRING)),
-            }))
+        }])
     test_signal = TestSignal()
     db.compute_signal_column(test_signal, 'text')
     db.compute_signal_column(test_signal, ('text2', '*'))
@@ -1536,7 +1439,7 @@ class SelectRowsSuite:
       db.select_rows([(LILAC_COLUMN, 'text2', 4, 'test_signal')])
 
   def test_sort(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
     result = db.select_rows(
         columns=[UUID_COLUMN, 'float'], sort_by=['float'], sort_order=SortOrder.ASC)
@@ -1567,7 +1470,7 @@ class SelectRowsSuite:
     }]
 
   def test_limit(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
     result = db.select_rows(
         columns=[UUID_COLUMN, 'float'], sort_by=['float'], sort_order=SortOrder.ASC, limit=2)
@@ -1725,11 +1628,7 @@ class ComputeSignalItemsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'hello world',
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
 
     with pytest.raises(
         ValueError, match='The signal generated 0 values but the input data had 2 values.'):
@@ -1745,11 +1644,7 @@ class ComputeSignalItemsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'hello world',
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
 
     db.compute_signal_column(TestSparseSignal(), 'text')
 
@@ -1782,11 +1677,7 @@ class ComputeSignalItemsSuite:
         }, {
             UUID_COLUMN: '2',
             'text': 'hello world',
-        }],
-        schema=Schema(fields={
-            UUID_COLUMN: Field(dtype=DataType.STRING),
-            'text': Field(dtype=DataType.STRING),
-        }))
+        }])
 
     db.compute_signal_column(TestSparseRichSignal(), 'text')
 
@@ -1816,7 +1707,7 @@ class ComputeSignalItemsSuite:
 class StatsSuite:
 
   def test_simple_stats(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS, SIMPLE_SCHEMA)
+    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
     result = db.stats(leaf_path='str')
     assert result == StatsResult(total_count=3, approx_count_distinct=2, avg_text_length=1)
@@ -1889,7 +1780,7 @@ class StatsSuite:
     assert result == StatsResult(total_count=50, approx_count_distinct=50, avg_text_length=1)
 
   def test_error_handling(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=SIMPLE_ITEMS, schema=SIMPLE_SCHEMA)
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=SIMPLE_ITEMS)
 
     with pytest.raises(ValueError, match='leaf_path must be provided'):
       db.stats(cast(Any, None))
