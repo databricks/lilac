@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { Schema } from './fastapi_client';
-import { deserializeRow, deserializeSchema, getField, listFields, listValues } from './lilac';
+import {
+  deserializeRow,
+  deserializeSchema,
+  getField,
+  getValue,
+  listFields,
+  listValues
+} from './lilac';
 import { ENTITY_FEATURE_KEY } from './schema';
 
 const MANIFEST_SCHEMA_FIXTURE: Schema = {
@@ -237,6 +244,19 @@ describe('lilac', () => {
     it('should return a field by path with repeated fields', () => {
       const field = getField(schema, ['complex_list_of_struct', '*', 'propertyA']);
       expect(field?.path).toEqual(['complex_list_of_struct', '*', 'propertyA']);
+    });
+  });
+
+  describe('getValue', () => {
+    it('should return simple paths', () => {
+      const value = getValue(row, ['title']);
+      expect(value?.path).toEqual(['title']);
+      expect(value?.value).toEqual('title text');
+    });
+
+    it('should return a value by path with repeated fields', () => {
+      const value = getValue(row, ['complex_list_of_struct', '*']);
+      expect(value?.path).toEqual(['complex_list_of_struct', '*']);
     });
   });
 });

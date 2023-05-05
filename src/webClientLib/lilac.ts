@@ -90,6 +90,11 @@ export function getField(schema: LilacSchema, path: Path): LilacSchemaField | un
   return list.find((field) => field.path.join('.') === path.join('.'));
 }
 
+export function getValue(row: LilacItemNode, path: Path): LilacItemNode | undefined {
+  const list = listValues(row);
+  return list.find((value) => value.path.join('.') === path.join('.'));
+}
+
 /**
  * Convert raw schema field to LilacSchemaField.
  * Adds path attribute to each field
