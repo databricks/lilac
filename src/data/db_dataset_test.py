@@ -139,6 +139,8 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestEmbeddingSumSignal)
   register_signal(TestEntitySignal)
   register_signal(TestParamSignal)
+  register_signal(TestSparseSignal)
+  register_signal(TestSparseRichSignal)
   register_signal(TestEmbedding)
 
   # Unit test runs.
@@ -670,6 +672,157 @@ class SelectRowsSuite:
         f'{LILAC_COLUMN}.texts.*.length_signal': [1, 2, 3]
     }]
 
+  def test_combining_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(
+        db_cls,
+        tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello',
+            'extra': {
+                'text': {
+                    'length_signal': 5,
+                    'test_signal': {
+                        'len': 5,
+                        'flen': 5.0
+                    }
+                }
+            }
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'everybody',
+            'extra': {
+                'text': {
+                    'length_signal': 9,
+                    'test_signal': {
+                        'len': 9,
+                        'flen': 9.0
+                    }
+                }
+            }
+        }],
+        schema=Schema(
+            fields={
+                UUID_COLUMN: Field(dtype=DataType.STRING),
+                'text': Field(dtype=DataType.STRING),
+                'extra': Field(
+                    fields={
+                        'text': Field(
+                            fields={
+                                'length_signal': Field(dtype=DataType.INT32),
+                                'test_signal': Field(
+                                    fields={
+                                        'len': Field(dtype=DataType.INT32),
+                                        'flen': Field(dtype=DataType.FLOAT32)
+                                    })
+                            })
+                    })
+            }))
+
+    # Sub-select text and test_signal.
+    result = db.select_rows(['text', ('extra', 'text', 'test_signal')], combine_columns=True)
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        'extra': {
+            'text': {
+                'test_signal': {
+                    'len': 5,
+                    'flen': 5.0
+                }
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        'extra': {
+            'text': {
+                'test_signal': {
+                    'len': 9,
+                    'flen': 9.0
+                }
+            }
+        }
+    }]
+
+    # Sub-select text and length_signal.
+    result = db.select_rows(['text', ('extra', 'text', 'length_signal')], combine_columns=True)
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        'extra': {
+            'text': {
+                'length_signal': 5
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        'extra': {
+            'text': {
+                'length_signal': 9
+            }
+        }
+    }]
+
+    # Sub-select length_signal only.
+    result = db.select_rows([('extra', 'text', 'length_signal')], combine_columns=True)
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'extra': {
+            'text': {
+                'length_signal': 5
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'extra': {
+            'text': {
+                'length_signal': 9
+            }
+        }
+    }]
+
+    # Aliases are ignored when combing columns.
+    len_col = Column(('extra', 'text', 'length_signal'), alias='hello')
+    result = db.select_rows([len_col], combine_columns=True)
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'extra': {
+            'text': {
+                'length_signal': 5
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'extra': {
+            'text': {
+                'length_signal': 9
+            }
+        }
+    }]
+
+    # Works with UDFs and aliases are ignored.
+    udf_col = SignalUDF(LengthSignal(), 'text', alias='ignored')
+    result = db.select_rows(['text', udf_col], combine_columns=True)
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        LILAC_COLUMN: {
+            'text': {
+                'length_signal': 5
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'everybody',
+        LILAC_COLUMN: {
+            'text': {
+                'length_signal': 9
+            }
+        }
+    }]
+
   def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
         db_cls,
@@ -946,10 +1099,10 @@ class SelectRowsSuite:
     result = db.select_rows([SignalUDF(signal, ('text', '*', '*'))])
     assert list(result) == [{
         UUID_COLUMN: '1',
-        'length_signal(text_*)': [[5], [2, 3]]
+        'length_signal(text.*)': [[5], [2, 3]]
     }, {
         UUID_COLUMN: '2',
-        'length_signal(text_*)': [[9, 3], [4]]
+        'length_signal(text.*)': [[9, 3], [4]]
     }]
     assert signal._call_count == 6
 
@@ -1522,6 +1675,43 @@ class TestInvalidSignal(Signal):
     return []
 
 
+class TestSparseSignal(Signal):
+  name = 'test_sparse_signal'
+  enrichment_type = EnrichmentType.TEXT
+
+  @override
+  def fields(self) -> Field:
+    return Field(dtype=DataType.INT32)
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:
+    for text in data:
+      if text == 'hello':
+        # Skip this input.
+        yield None
+      else:
+        yield len(text)
+
+
+class TestSparseRichSignal(Signal):
+  """Find personally identifiable information (emails, phone numbers, etc)."""
+  name = 'test_sparse_rich_signal'
+  enrichment_type = EnrichmentType.TEXT
+
+  @override
+  def fields(self) -> Field:
+    return Field(fields={'emails': Field(repeated_field=Field(dtype=DataType.STRING))})
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    for text in data:
+      if text == 'hello':
+        # Skip this input.
+        yield None
+      else:
+        yield {'emails': ['test1@hello.com', 'test2@hello.com']}
+
+
 @pytest.mark.parametrize('db_cls', ALL_DBS)
 class ComputeSignalItemsSuite:
 
@@ -1546,6 +1736,82 @@ class ComputeSignalItemsSuite:
     with pytest.raises(
         ValueError, match='The signal generated 0 values but the input data had 2 values.'):
       db.compute_signal_column(signal, 'text')
+
+  def test_sparse_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(
+        db_cls=db_cls,
+        tmp_path=tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello',
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'hello world',
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
+
+    db.compute_signal_column(TestSparseSignal(), 'text')
+
+    result = db.select_rows(['text', LILAC_COLUMN])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        LILAC_COLUMN: {
+            'text': {
+                'test_sparse_signal': None
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'hello world',
+        LILAC_COLUMN: {
+            'text': {
+                'test_sparse_signal': 11
+            }
+        }
+    }]
+
+  def test_sparse_rich_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    db = make_db(
+        db_cls=db_cls,
+        tmp_path=tmp_path,
+        items=[{
+            UUID_COLUMN: '1',
+            'text': 'hello',
+        }, {
+            UUID_COLUMN: '2',
+            'text': 'hello world',
+        }],
+        schema=Schema(fields={
+            UUID_COLUMN: Field(dtype=DataType.STRING),
+            'text': Field(dtype=DataType.STRING),
+        }))
+
+    db.compute_signal_column(TestSparseRichSignal(), 'text')
+
+    result = db.select_rows(['text', LILAC_COLUMN])
+    assert list(result) == [{
+        UUID_COLUMN: '1',
+        'text': 'hello',
+        LILAC_COLUMN: {
+            'text': {
+                'test_sparse_rich_signal': None
+            }
+        }
+    }, {
+        UUID_COLUMN: '2',
+        'text': 'hello world',
+        LILAC_COLUMN: {
+            'text': {
+                'test_sparse_rich_signal': {
+                    'emails': ['test1@hello.com', 'test2@hello.com']
+                }
+            }
+        }
+    }]
 
 
 @pytest.mark.parametrize('db_cls', ALL_DBS)

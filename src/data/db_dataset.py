@@ -15,7 +15,7 @@ from pydantic import (
     validator,
 )
 
-from ..schema import Path, PathTuple, Schema, path_to_alias
+from ..schema import Path, PathTuple, Schema
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import Signal
 from ..tasks import TaskId
@@ -120,7 +120,7 @@ class SignalTransform(Transform):
 class Column(BaseModel):
   """A column in the dataset DB."""
   feature: PathTuple
-  alias: str  # This is the renamed column during querying and response.
+  alias: Optional[str]  # This is the renamed column during querying and response.
 
   # Defined when the feature is another column.
   transform: Optional[Union[BucketizeTransform, SignalTransform]] = None
@@ -136,12 +136,6 @@ class Column(BaseModel):
     """Initialize a column. We override __init__ to allow positional arguments for brevity."""
     if isinstance(feature, str):
       feature = (feature,)
-
-    if not alias:
-      if transform and isinstance(transform, SignalTransform):
-        alias = make_parquet_id(transform.signal, Column(feature))
-      else:
-        alias = path_to_alias(feature)
 
     super().__init__(feature=feature, alias=alias, transform=transform, **kwargs)
 
@@ -286,7 +280,10 @@ class DatasetDB(abc.ABC):
                   sort_by: Optional[Sequence[Path]] = None,
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
                   limit: Optional[int] = 100,
-                  offset: Optional[int] = 0) -> SelectRowsResult:
+                  offset: Optional[int] = 0,
+                  task_id: Optional[TaskId] = None,
+                  resolve_span: bool = False,
+                  combine_columns: bool = False) -> SelectRowsResult:
     """Select grouped columns to power a histogram.
 
     Args:
@@ -302,6 +299,10 @@ class DatasetDB(abc.ABC):
       sort_order: The sort order.
       limit: The maximum number of rows to return.
       offset: The offset to start returning rows from.
+      task_id: The TaskManager `task_id` for this process run. This is used to update the progress.
+      resolve_span: Whether to resolve the span of the row.
+      combine_columns: Whether to combine columns into a single object. The object will be pruned
+        to only include sub-fields that correspond to the requested columns.
 
     Returns
       A SelectRowsResult iterator with rows of `Item`s.
@@ -334,13 +335,10 @@ class DatasetDB(abc.ABC):
     pass
 
 
-def make_parquet_id(signal: Signal, column: Column) -> str:
+def make_parquet_id(signal: Signal, source_path: PathTuple) -> str:
   """Return a unique identifier for this parquet table."""
-  if isinstance(column.feature, Column):
-    raise ValueError('Transforms are not yet supported.')
-
-  column_alias = '_'.join([str(path_part).replace('.', '_') for path_part in column.feature])
-  if column_alias.endswith('_*'):
+  column_alias = '.'.join(map(str, source_path))
+  if column_alias.endswith('.*'):
     # Remove the trailing .* from the column name.
     column_alias = column_alias[:-2]
 
