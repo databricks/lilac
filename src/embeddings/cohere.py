@@ -8,7 +8,7 @@ from sklearn.preprocessing import normalize
 from typing_extensions import override
 
 from ..config import CONFIG
-from ..schema import EnrichmentType, RichData
+from ..schema import EmbeddingEntity, EnrichmentType, Item, RichData
 from ..utils import chunks
 from .embedding_registry import Embedding
 
@@ -29,11 +29,11 @@ class Cohere(Embedding):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[np.ndarray]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     batches = chunks(data, COHERE_BATCH_SIZE)
     for batch in batches:
       embedding_batch = normalize(np.array(_cohere().embed(
           batch, truncate='END').embeddings)).astype(np.float16)
       # np.split returns a shallow copy of each embedding so we don't increase the memory footprint.
-      yield from np.split(embedding_batch, COHERE_BATCH_SIZE)
+      yield from (EmbeddingEntity(e) for e in np.split(embedding_batch, COHERE_BATCH_SIZE))

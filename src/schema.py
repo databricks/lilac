@@ -181,12 +181,14 @@ class Field(BaseModel):
 
 def EntityField(entity_value: Field,
                 metadata: Optional[dict[str, Field]] = {},
-                extra_data: Optional[dict[str, Field]] = {}) -> Field:
+                extra_data: Optional[dict[str, Field]] = {},
+                signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
   res = Field(
       fields={ENTITY_FEATURE_KEY: entity_value},
       is_entity=True,
-      derived_from=entity_value.derived_from)
+      derived_from=entity_value.derived_from,
+      signal_root=signal_root)
   if metadata and res.fields:
     res.fields[ENTITY_METADATA_KEY] = Field(fields=metadata, derived_from=entity_value.derived_from)
   if extra_data and res.fields:
@@ -194,7 +196,9 @@ def EntityField(entity_value: Field,
   return res
 
 
-def Entity(entity: Item, metadata: Optional[Item] = {}, extra_data: Optional[Item] = {}) -> Item:
+def Entity(entity: ItemValue,
+           metadata: Optional[Item] = {},
+           extra_data: Optional[Item] = {}) -> Item:
   """Creates an entity item."""
   return {ENTITY_FEATURE_KEY: entity, ENTITY_METADATA_KEY: metadata or {}, **(extra_data or {})}
 
@@ -284,13 +288,23 @@ def TextEntityField(metadata: Optional[dict[str, Field]] = {},
       Field(dtype=DataType.STRING_SPAN, derived_from=derived_from), metadata, extra_data)
 
 
-def EmbeddingEntity(start: int,
-                    end: int,
+def EmbeddingEntity(embedding: np.ndarray,
                     metadata: Optional[Item] = {},
                     extra_data: Optional[Item] = {}) -> Item:
   """Return the span item from start and end character offets."""
-  span: Item = {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
-  return Entity(span, metadata, extra_data)
+  return Entity(embedding, metadata, extra_data)
+
+
+def EmbeddingEntityField(metadata: Optional[dict[str, Field]] = {},
+                         extra_data: Optional[dict[str, Field]] = {},
+                         derived_from: Optional[PathTuple] = None,
+                         signal_root: Optional[bool] = False) -> Field:
+  """Returns a field that represents an entity."""
+  return EntityField(
+      Field(dtype=DataType.EMBEDDING, derived_from=derived_from),
+      metadata,
+      extra_data,
+      signal_root=signal_root)
 
 
 def child_item_from_column_path(item: Item, path: Path) -> Item:
@@ -448,6 +462,11 @@ def dtype_to_arrow_dtype(dtype: DataType) -> pa.DataType:
     return pa.timestamp('us')
   elif dtype == DataType.INTERVAL:
     return pa.duration('us')
+  elif dtype == DataType.EMBEDDING:
+    # We reserve an empty column for embeddings in parquet files so they can live under __lilac__.
+    # The values are *not* filled out. If parquet and duckdb support embeddings in the future, we
+    # can set this dtype to the relevant pyarrow type.
+    return pa.null()
   else:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
 

@@ -186,12 +186,6 @@ class DatasetDuckDB(DatasetDB):
           signal_manifest = SignalManifest.parse_raw(f.read())
 
         self._signal_manifests.append(signal_manifest)
-
-        if signal_manifest.is_embedding:
-          # Embeddings do not have parquet files so there is no view to create.
-          continue
-
-        view_manifests.append(signal_manifest)
         self._create_view(signal_manifest.parquet_id, signal_manifest.files)
 
     merged_schema = merge_schemas([self._source_manifest.data_schema] +
@@ -204,13 +198,16 @@ class DatasetDuckDB(DatasetDB):
     #     "parquet_id2"."__LILAC__" AS "parquet_id2"
     #   FROM source JOIN "parquet_id1" USING (uuid,) JOIN "parquet_id2" USING (uuid,)
     # );
+    # Note: Embeddings do not have a __LILAC__ column as embeddings are stored in a separate npy
+    # file. They do however have a uuid column, so we still join on that.
     select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [
         f'"{manifest.parquet_id}"."{LILAC_COLUMN}" AS "{manifest.parquet_id}"'
-        for manifest in view_manifests
+        for manifest in self._signal_manifests
     ])
-    join_sql = ' '.join(
-        [SOURCE_VIEW_NAME] +
-        [f'join "{manifest.parquet_id}" using ({UUID_COLUMN},)' for manifest in view_manifests])
+    join_sql = ' '.join([SOURCE_VIEW_NAME] + [
+        f'join "{manifest.parquet_id}" using ({UUID_COLUMN},)'
+        for manifest in self._signal_manifests
+    ])
 
     sql_cmd = f"""CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})"""
     self.con.execute(sql_cmd)
@@ -244,11 +241,12 @@ class DatasetDuckDB(DatasetDB):
           m for m in self._signal_manifests if schema_contains_path(m.data_schema, path))
       if not embedding_signal_manifest:
         raise ValueError(f'No embedding found for path {path}.')
-      if not embedding_signal_manifest.is_embedding:
+      if not embedding_signal_manifest.embedding_filename:
         raise ValueError(f'Signal manifest for path {path} is not an embedding. '
                          f'Got signal manifest: {embedding_signal_manifest}')
 
-      embedding_index = read_embedding_index(self.dataset_path, embedding_signal_manifest.files[0])
+      embedding_index = read_embedding_index(self.dataset_path,
+                                             embedding_signal_manifest.embedding_filename)
       # Get all the embeddings and pass it to the vector store.
       vector_store = self.vector_store_cls()
       vector_store.add(embedding_index.keys, embedding_index.embeddings)
@@ -267,46 +265,57 @@ class DatasetDuckDB(DatasetDB):
       raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')
 
     signal_col = SignalUDF(signal, column, alias='value')
+    print('siggy col', signal_col)
     enriched_path = _col_destination_path(signal_col)
+    print('ENRICHED PATH', enriched_path)
     spec = _split_path_into_subpaths_of_lists(enriched_path)
 
     select_rows_result = self.select_rows([signal_col], task_id=task_id, resolve_span=True)
     df = select_rows_result.df()
-
-    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(df['value'], spec))
-    for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
-      item[UUID_COLUMN] = uuid
+    values = df['value']
 
     source_path = normalize_path(column.feature)
     signal_key = signal.key()
-    signal_schema = create_signal_schema(signal, source_path, schema=self.manifest().data_schema)
     signal_out_prefix = signal_filename_prefix(source_path=source_path, signal_key=signal_key)
+    signal_schema = create_signal_schema(signal, source_path, schema=self.manifest().data_schema)
 
     is_embedding = isinstance(signal, Embedding)
+    embedding_filename = None
     if is_embedding:
-      result_filename = write_embeddings_to_disk(
+      embedding_filename = write_embeddings_to_disk(
           keys=df[UUID_COLUMN],
           embeddings=df['value'],
           output_dir=self.dataset_path,
           filename_prefix=signal_out_prefix,
           shard_index=0,
           num_shards=1)
-    else:
-      result_filename, _ = write_items_to_parquet(
-          items=enriched_signal_items,
-          output_dir=self.dataset_path,
-          schema=signal_schema,
-          filename_prefix=signal_out_prefix,
-          shard_index=0,
-          num_shards=1)
 
+      # Replace the embeddings with None to keep the structure of the embedding without storing
+      # any data. Parquet will not write the value many times as it is constant.
+      values = unflatten(map(lambda _: None, flatten(values)), values)
+
+    print('wrapped', enriched_path, spec, wrap_in_dicts(values, spec))
+    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
+
+    for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
+      item[UUID_COLUMN] = uuid
+
+    parquet_filename, _ = write_items_to_parquet(
+        items=enriched_signal_items,
+        output_dir=self.dataset_path,
+        schema=signal_schema,
+        filename_prefix=signal_out_prefix,
+        shard_index=0,
+        num_shards=1)
+
+    print('------------------writing signal schema', signal_schema)
     signal_manifest = SignalManifest(
-        files=[result_filename],
+        files=[parquet_filename],
         data_schema=signal_schema,
         signal=signal,
         enriched_path=source_path,
         parquet_id=make_parquet_id(signal, column.feature),
-        is_embedding=is_embedding)
+        embedding_filename=embedding_filename)
     signal_manifest_filepath = os.path.join(self.dataset_path,
                                             signal_manifest_filename(source_path, signal_key))
     with open_file(signal_manifest_filepath, 'w') as f:
@@ -507,9 +516,10 @@ class DatasetDuckDB(DatasetDB):
                   task_id: Optional[TaskId] = None,
                   resolve_span: bool = False,
                   combine_columns: bool = False) -> SelectRowsResult:
+    print('not columns-----', columns)
     if not columns:
-      # Select all columns.
-      columns = list(self.manifest().data_schema.fields.keys())
+      # Select all columns, except embedding columns which should not be returned by default.
+      columns = [path for (path, field) in self.manifest().data_schema.fields.items()]
 
     cols = [column_from_identifier(column) for column in columns or []]
     # Always return the UUID column.
@@ -518,9 +528,11 @@ class DatasetDuckDB(DatasetDB):
       cols.append(column_from_identifier(UUID_COLUMN))
 
     self._validate_columns(cols)
+    print('cols=', cols)
     select_query, columns_to_merge = self._create_select(
         cols, flatten=False, resolve_span=resolve_span, combine_columns=combine_columns)
     con = self.con.cursor()
+    print(select_query)
     query = con.sql(f'SELECT {select_query} FROM t')
 
     col_aliases = set(columns_to_merge.keys())
@@ -698,6 +710,7 @@ class DatasetDuckDB(DatasetDB):
     empty = bool(
         column.transform and isinstance(column.transform, SignalTransform) and
         manifest.data_schema.get_field(path).dtype == DataType.EMBEDDING)
+    print('~~~~CREATING SELECT FOR', column)
     print('is empty = ', path, empty, manifest.data_schema.get_field(path).dtype)
     select_queries: list[str] = []
     temp_column_names: list[str] = []
@@ -743,6 +756,7 @@ class DatasetDuckDB(DatasetDB):
     select_queries: list[str] = []
 
     for column in columns:
+      print('creating select for ', column)
       select_str, temp_column_names = self._create_select_column(column, manifest, flatten,
                                                                  resolve_span)
       # If `combine_columns` is True, we alias every column to `*` so that we can merge them all.
@@ -949,9 +963,8 @@ class SignalManifest(BaseModel):
   # The column path that this signal is derived from.
   enriched_path: PathTuple
 
-  # Whether this signal is an embedding. When it's an embedding, it's not stored as a parquet file
-  # so we can quickly skip it when creating views.
-  is_embedding: bool
+  # The filename of the embedding when the signal is an embedding.
+  embedding_filename: Optional[str]
 
   @validator('signal', pre=True)
   def parse_signal(cls, signal: dict) -> Signal:
@@ -979,6 +992,7 @@ def _merge_cells(dest_cell: ItemValue, source_cell: ItemValue) -> None:
 
 def merge_values(destination: pd.Series, source: pd.Series) -> pd.Series:
   """Merge two series of values recursively."""
+  print('merging', destination, source)
   for dest_cell, source_cell in zip(destination, source):
     _merge_cells(dest_cell, source_cell)
   return destination

@@ -18,6 +18,8 @@ from ..schema import (
     LILAC_COLUMN,
     UUID_COLUMN,
     DataType,
+    EmbeddingEntity,
+    EmbeddingEntityField,
     EnrichmentType,
     Field,
     Item,
@@ -95,10 +97,11 @@ class TestEmbedding(Embedding):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[np.ndarray]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
-    yield from embeddings
+    print('eeeeee', EmbeddingEntity(embeddings[0]))
+    yield from (EmbeddingEntity(e) for e in embeddings)
 
 
 class LengthSignal(Signal):
@@ -1378,8 +1381,8 @@ class SelectRowsSuite:
         }))
 
     db.compute_signal_column(TestEmbedding(), 'text')
-    print(db.manifest().data_schema)
-    db.compute_signal_column(TestEmbeddingSumSignal(), (LILAC_COLUMN, 'text', TestEmbedding.name))
+    db.compute_signal_column(TestEmbeddingSumSignal(),
+                             (LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY))
 
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
@@ -1392,22 +1395,26 @@ class SelectRowsSuite:
                     fields={
                         'text': Field(
                             fields={
-                                'test_embedding_sum': Field(
-                                    dtype=DataType.FLOAT32,
+                                'test_embedding': EmbeddingEntityField(
+                                    extra_data={
+                                        'test_embedding_sum': Field(
+                                            dtype=DataType.FLOAT32,
+                                            derived_from=(LILAC_COLUMN, 'text', 'test_embedding',
+                                                          ENTITY_FEATURE_KEY),
+                                            signal_root=True)
+                                    },
                                     derived_from=('text',),
                                     signal_root=True)
-                            })
+                            }),
                     })
             }),
         num_items=2)
 
-    result = db.select_rows(['text', (LILAC_COLUMN, 'text')])
+    result = db.select_rows()
     expected_result = [{
         UUID_COLUMN: '1',
         'text': 'hello.',
-        f'{LILAC_COLUMN}.text': {
-            'test_embedding_sum': 1.0
-        }
+        f'{LILAC_COLUMN}.text.test_embedding.test_embeding_sum': 1.0
     }, {
         UUID_COLUMN: '2',
         'text': 'hello2.',

@@ -3,7 +3,7 @@ from typing import Union
 
 from pydantic import StrictStr
 
-from ..schema import DataType, Field
+from ..schema import EmbeddingEntityField, Field
 from ..signals.signal import Signal
 
 DEFAULT_BATCH_SIZE = 96
@@ -14,7 +14,7 @@ class Embedding(Signal):
 
   def fields(self) -> Field:
     """Return the fields for the embedding."""
-    return Field(dtype=DataType.EMBEDDING)
+    return EmbeddingEntityField()
 
 
 EmbeddingId = Union[StrictStr, Embedding]
