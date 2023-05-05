@@ -31,7 +31,7 @@ TEXT_SPAN_END_FEATURE = 'end'
 
 # Python doesn't work with recursive types. These types provide some notion of type-safety.
 Scalar = Union[bool, datetime, int, float, str, bytes]
-ItemValue = Union[dict, list, np.ndarray, Scalar]
+ItemValue = Union[dict, list, np.ndarray, Scalar, None]
 Item = dict[str, ItemValue]
 RowKeyedItem = tuple[bytes, Item]
 SignalOut = Union[ItemValue, Item]

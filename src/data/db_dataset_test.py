@@ -100,7 +100,6 @@ class TestEmbedding(Embedding):
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
-    print('eeeeee', EmbeddingEntity(embeddings[0]))
     yield from (EmbeddingEntity(e) for e in embeddings)
 
 
@@ -1380,10 +1379,9 @@ class SelectRowsSuite:
             'text': Field(dtype=DataType.STRING),
         }))
 
-    db.compute_signal_column(TestEntitySignal(), 'text')
     db.compute_signal_column(TestEmbedding(), 'text')
-    # db.compute_signal_column(TestEmbeddingSumSignal(),
-    #                          (LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY))
+    db.compute_signal_column(TestEmbeddingSumSignal(),
+                             (LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY))
 
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,

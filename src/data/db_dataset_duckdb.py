@@ -56,6 +56,7 @@ from .dataset_utils import (
     merge_schemas,
     path_is_from_lilac,
     read_embedding_index,
+    replace_embeddings_with_none,
     schema_contains_path,
     unflatten,
     wrap_in_dicts,
@@ -265,43 +266,34 @@ class DatasetDuckDB(DatasetDB):
       raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')
 
     signal_col = SignalUDF(signal, column, alias='value')
-    print('siggy col', signal_col)
     enriched_path = _col_destination_path(signal_col)
-    print('ENRICHED PATH', enriched_path)
     spec = _split_path_into_subpaths_of_lists(enriched_path)
 
     select_rows_result = self.select_rows([signal_col], task_id=task_id, resolve_span=True)
     df = select_rows_result.df()
     values = df['value']
-    print('SELECT ROWS OUTPUT', df['value'])
 
     source_path = normalize_path(column.feature)
     signal_key = signal.key()
     signal_out_prefix = signal_filename_prefix(source_path=source_path, signal_key=signal_key)
     signal_schema = create_signal_schema(signal, source_path, schema=self.manifest().data_schema)
+    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
+    for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
+      item[UUID_COLUMN] = uuid
 
     is_embedding = isinstance(signal, Embedding)
     embedding_filename = None
     if is_embedding:
       embedding_filename = write_embeddings_to_disk(
           keys=df[UUID_COLUMN],
-          embeddings=df['value'],
+          embeddings=values,
           output_dir=self.dataset_path,
           filename_prefix=signal_out_prefix,
           shard_index=0,
           num_shards=1)
 
-      print('pre-values', values)
-      print('flat values', flatten(values))
-      print('spec=', spec)
-      # Replace the embeddings with None to keep the structure of the embedding without storing
-      # any data. Parquet will not write the value many times as it is constant.
-      values = unflatten(map(lambda _: None, flatten(values)), values)
-
-    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
-
-    for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
-      item[UUID_COLUMN] = uuid
+      # Replace the embeddings with None so they are not serialized in the parquet file.
+      enriched_signal_items = (replace_embeddings_with_none(item) for item in enriched_signal_items)
 
     parquet_filename, _ = write_items_to_parquet(
         items=enriched_signal_items,
@@ -311,7 +303,6 @@ class DatasetDuckDB(DatasetDB):
         shard_index=0,
         num_shards=1)
 
-    print('------------------writing signal schema', signal_schema)
     signal_manifest = SignalManifest(
         files=[parquet_filename],
         data_schema=signal_schema,
@@ -519,7 +510,6 @@ class DatasetDuckDB(DatasetDB):
                   task_id: Optional[TaskId] = None,
                   resolve_span: bool = False,
                   combine_columns: bool = False) -> SelectRowsResult:
-    print('not columns-----', columns)
     if not columns:
       # Select all columns, except embedding columns which should not be returned by default.
       columns = [path for (path, field) in self.manifest().data_schema.fields.items()]
@@ -531,11 +521,9 @@ class DatasetDuckDB(DatasetDB):
       cols.append(column_from_identifier(UUID_COLUMN))
 
     self._validate_columns(cols)
-    print('cols=', cols)
     select_query, columns_to_merge = self._create_select(
         cols, flatten=False, resolve_span=resolve_span, combine_columns=combine_columns)
     con = self.con.cursor()
-    print(select_query)
     query = con.sql(f'SELECT {select_query} FROM t')
 
     col_aliases = set(columns_to_merge.keys())
@@ -713,8 +701,6 @@ class DatasetDuckDB(DatasetDB):
     empty = bool(
         column.transform and isinstance(column.transform, SignalTransform) and
         manifest.data_schema.get_field(path).dtype == DataType.EMBEDDING)
-    print('~~~~CREATING SELECT FOR', column)
-    print('is empty = ', path, empty, manifest.data_schema.get_field(path).dtype)
     select_queries: list[str] = []
     temp_column_names: list[str] = []
 
@@ -759,7 +745,6 @@ class DatasetDuckDB(DatasetDB):
     select_queries: list[str] = []
 
     for column in columns:
-      print('creating select for ', column)
       select_str, temp_column_names = self._create_select_column(column, manifest, flatten,
                                                                  resolve_span)
       # If `combine_columns` is True, we alias every column to `*` so that we can merge them all.
@@ -995,7 +980,6 @@ def _merge_cells(dest_cell: ItemValue, source_cell: ItemValue) -> None:
 
 def merge_values(destination: pd.Series, source: pd.Series) -> pd.Series:
   """Merge two series of values recursively."""
-  print('merging', destination, source)
   for dest_cell, source_cell in zip(destination, source):
     _merge_cells(dest_cell, source_cell)
   return destination
