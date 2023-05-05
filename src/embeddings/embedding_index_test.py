@@ -9,7 +9,7 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..schema import EnrichmentType, PathTuple, RichData
-from .embedding_index import EmbeddingIndexer, EmbeddingIndexerManifest, EmbeddingIndexInfo
+from .embedding_index import EmbeddingIndexer
 from .embedding_index_disk import EmbeddingIndexerDisk
 from .embedding_registry import Embedding, clear_embedding_registry, register_embedding
 
@@ -30,9 +30,10 @@ class TestEmbedding(Embedding):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def __call__(self, data: Iterable[RichData]) -> np.ndarray:
+  def compute(self, data: Iterable[RichData]) -> Iterable[np.ndarray]:
     """Call the embedding function."""
-    return np.array([STR_EMBEDDINGS[cast(str, example)] for example in data])
+    embeddings = [STR_EMBEDDINGS[cast(str, example)] for example in data]
+    yield from np.split(embeddings, len(embeddings))
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -45,11 +46,6 @@ def setup_teardown() -> Iterable[None]:
 
   # Teardown.
   clear_embedding_registry()
-
-
-def embed(examples: Iterable[RichData]) -> np.ndarray:
-  """Embed the examples, use a hashmap to the vector for simplicity."""
-  return np.array([STR_EMBEDDINGS[cast(str, example)] for example in examples])
 
 
 def _make_indexer(embedding_indexer_cls: Type[EmbeddingIndexer],
@@ -69,7 +65,7 @@ class EmbeddingIndexerSuite:
     indexer = _make_indexer(indexer_cls, tmp_path)
 
     embedding = TestEmbedding()
-    indexer.compute_embedding_index(
+    indexer.write_embedding_index(
         'test_column',
         embedding,
         keys=[key for key, _, _ in EMBEDDINGS],
@@ -85,6 +81,3 @@ class EmbeddingIndexerSuite:
 
     # Embed should not be called again.
     assert embed_mock.call_count == 1
-
-    assert indexer.manifest() == EmbeddingIndexerManifest(
-        indexes=[EmbeddingIndexInfo(column=('test_column',), embedding=embedding)])

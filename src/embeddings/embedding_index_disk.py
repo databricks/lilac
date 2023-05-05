@@ -1,5 +1,4 @@
 """An embedding indexer that stores the embedding index on disk."""
-import functools
 import math
 import os
 import pathlib
@@ -11,13 +10,8 @@ from typing_extensions import override
 from ..schema import Path, PathTuple, RichData, normalize_path, path_to_alias
 from ..tasks import TaskId, progress
 from ..utils import chunks, file_exists, open_file
-from .embedding_index import (
-    EmbeddingIndex,
-    EmbeddingIndexer,
-    EmbeddingIndexerManifest,
-    EmbeddingIndexInfo,
-)
-from .embedding_registry import EmbeddingId, get_embedding_cls
+from .embedding_index import EmbeddingIndex, EmbeddingIndexer
+from .embedding_registry import EmbeddingId
 
 NP_INDEX_KEYS_KWD = 'keys'
 NP_EMBEDDINGS_KWD = 'embeddings'
@@ -29,24 +23,24 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
   def __init__(self, dataset_path: Union[str, pathlib.Path]) -> None:
     self.dataset_path = dataset_path
 
-  @override
-  def manifest(self) -> EmbeddingIndexerManifest:
-    index_filenames: list[str] = []
-    for root, _, files in os.walk(self.dataset_path):
-      for file in files:
-        if file.endswith(EMBEDDING_INDEX_INFO_SUFFIX):
-          index_filenames.append(file)
+  # @override
+  # def manifest(self) -> EmbeddingIndexerManifest:
+  #   index_filenames: list[str] = []
+  #   for root, _, files in os.walk(self.dataset_path):
+  #     for file in files:
+  #       if file.endswith(EMBEDDING_INDEX_INFO_SUFFIX):
+  #         index_filenames.append(file)
 
-    return EmbeddingIndexerManifest(indexes=self._read_index_infos(tuple(index_filenames)))
+  #   return EmbeddingIndexerManifest(indexes=self._read_index_infos(tuple(index_filenames)))
 
-  @functools.cache
-  def _read_index_infos(self, index_filenames: tuple[str]) -> list[EmbeddingIndexInfo]:
-    index_infos: list[EmbeddingIndexInfo] = []
-    for index_filename in index_filenames:
-      with open_file(os.path.join(self.dataset_path, index_filename), 'r') as f:
-        index_info = EmbeddingIndexInfo.parse_raw(f.read())
-        index_infos.append(index_info)
-    return index_infos
+  # @functools.cache
+  # def _read_index_infos(self, index_filenames: tuple[str]) -> list[EmbeddingIndexInfo]:
+  #   index_infos: list[EmbeddingIndexInfo] = []
+  #   for index_filename in index_filenames:
+  #     with open_file(os.path.join(self.dataset_path, index_filename), 'r') as f:
+  #       index_info = EmbeddingIndexInfo.parse_raw(f.read())
+  #       index_infos.append(index_info)
+  #   return index_infos
 
   @override
   def get_embedding_index(self, column: Path, embedding: EmbeddingId) -> EmbeddingIndex:
@@ -72,12 +66,12 @@ class EmbeddingIndexerDisk(EmbeddingIndexer):
     return EmbeddingIndex(path=index_path, keys=index_keys, embeddings=embeddings)
 
   @override
-  def compute_embedding_index(self,
-                              column: Path,
-                              embedding: EmbeddingId,
-                              keys: Iterable[PathTuple],
-                              data: Iterable[RichData],
-                              task_id: Optional[TaskId] = None) -> None:
+  def write_embedding_index(self,
+                            column: Path,
+                            embedding: EmbeddingId,
+                            keys: Iterable[PathTuple],
+                            data: Iterable[RichData],
+                            task_id: Optional[TaskId] = None) -> None:
     if isinstance(embedding, str):
       embed_fn = get_embedding_cls(embedding)()
     else:

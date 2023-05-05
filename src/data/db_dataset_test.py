@@ -11,12 +11,7 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..config import CONFIG
-from ..embeddings.embedding_index import EmbeddingIndexerManifest, EmbeddingIndexInfo
-from ..embeddings.embedding_registry import (
-    Embedding,
-    clear_embedding_registry,
-    register_embedding,
-)
+from ..embeddings.embedding_registry import Embedding
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
     ENTITY_FEATURE_KEY,
@@ -100,9 +95,10 @@ class TestEmbedding(Embedding):
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def __call__(self, data: Iterable[RichData]) -> np.ndarray:
-    """Embed the examples, use a hashmap to the vector for simplicity."""
-    return np.array([STR_EMBEDDINGS[cast(str, example)] for example in data])
+  def compute(self, data: Iterable[RichData]) -> Iterable[np.ndarray]:
+    """Call the embedding function."""
+    embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
+    yield from embeddings
 
 
 class LengthSignal(Signal):
@@ -143,14 +139,13 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestEmbeddingSumSignal)
   register_signal(TestEntitySignal)
   register_signal(TestParamSignal)
-  register_embedding(TestEmbedding)
+  register_signal(TestEmbedding)
 
   # Unit test runs.
   yield
 
   # Teardown.
   clear_signal_registry()
-  clear_embedding_registry()
 
 
 @pytest.fixture(autouse=True)
@@ -1229,10 +1224,9 @@ class SelectRowsSuite:
             'text': Field(dtype=DataType.STRING),
         }))
 
-    embedding = TestEmbedding()
-    db.compute_embedding_index(embedding, 'text')
-
-    db.compute_signal_column(TestEmbeddingSumSignal(embedding=TestEmbedding()), 'text')
+    db.compute_signal_column(TestEmbedding(), 'text')
+    print(db.manifest().data_schema)
+    db.compute_signal_column(TestEmbeddingSumSignal(), (LILAC_COLUMN, 'text', TestEmbedding.name))
 
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
@@ -1252,8 +1246,6 @@ class SelectRowsSuite:
                             })
                     })
             }),
-        embedding_manifest=EmbeddingIndexerManifest(
-            indexes=[EmbeddingIndexInfo(column=('text',), embedding=embedding)]),
         num_items=2)
 
     result = db.select_rows(['text', (LILAC_COLUMN, 'text')])
@@ -1340,17 +1332,31 @@ class SelectRowsSuite:
     assert list(result) == [{
         UUID_COLUMN: '1',
         'text': 'hello. hello2.',
-        'sentences': [
-            {**TextEntity(0, 6, metadata={'len': 6}), **{'test_embedding_sum': 1.0}},
-            {**TextEntity(7, 14, metadata={'len': 7}), **{'test_embedding_sum': 2.0}}
-        ]
+        'sentences': [{
+            **TextEntity(0, 6, metadata={'len': 6}),
+            **{
+                'test_embedding_sum': 1.0
+            }
+        }, {
+            **TextEntity(7, 14, metadata={'len': 7}),
+            **{
+                'test_embedding_sum': 2.0
+            }
+        }]
     }, {
         UUID_COLUMN: '2',
         'text': 'hello world. hello world2.',
-        'sentences': [
-            {**TextEntity(0, 12, metadata={'len': 12}), **{'test_embedding_sum': 3.0}},
-            {**TextEntity(13, 26, metadata={'len': 13}), **{'test_embedding_sum': 4.0}}
-        ]
+        'sentences': [{
+            **TextEntity(0, 12, metadata={'len': 12}),
+            **{
+                'test_embedding_sum': 3.0
+            }
+        }, {
+            **TextEntity(13, 26, metadata={'len': 13}),
+            **{
+                'test_embedding_sum': 4.0
+            }
+        }]
     }]
 
   def test_invalid_column_paths(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -1487,8 +1493,7 @@ class TestEntitySignal(Signal):
 class TestEmbeddingSumSignal(Signal):
   """Sums the embeddings to return a single floating point value."""
   name = 'test_embedding_sum'
-  enrichment_type = EnrichmentType.TEXT
-  vector_based = True
+  enrichment_type = EnrichmentType.TEXT_EMBEDDING
 
   @override
   def fields(self) -> Field:
@@ -1497,9 +1502,6 @@ class TestEmbeddingSumSignal(Signal):
   @override
   def vector_compute(self, keys: Iterable[PathTuple],
                      vector_store: VectorStore) -> Iterable[ItemValue]:
-    if not self.embedding:
-      raise ValueError('self.embedding is None.')
-
     # The signal just sums the values of the embedding.
     embedding_sums = vector_store.get(keys).sum(axis=1)
     for embedding_sum in embedding_sums.tolist():

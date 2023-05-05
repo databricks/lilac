@@ -92,6 +92,8 @@ class DataType(str, Enum):
   LIST = 'list'
   BINARY = 'binary'
 
+  EMBEDDING = 'embedding'
+
   def __repr__(self) -> str:
     return self.value
 
@@ -106,13 +108,16 @@ class EnrichmentType(str, Enum):
     return self.value
 
 
+ENRICHMENT_TYPE_TO_DTYPES: dict[EnrichmentType, list[DataType]] = {
+    EnrichmentType.TEXT: [DataType.STRING, DataType.STRING_SPAN],
+    EnrichmentType.TEXT_EMBEDDING: [DataType.EMBEDDING],
+    EnrichmentType.IMAGE: [DataType.BINARY],
+}
+
+
 def enrichment_supports_dtype(enrichment_type: EnrichmentType, dtype: DataType) -> bool:
   """Returns True if the enrichment type supports the dtype."""
-  if enrichment_type == EnrichmentType.TEXT:
-    return dtype in (DataType.STRING, DataType.STRING_SPAN)
-  elif enrichment_type == EnrichmentType.IMAGE:
-    return dtype == DataType.BINARY
-  return False
+  return dtype in ENRICHMENT_TYPE_TO_DTYPES[enrichment_type]
 
 
 class Field(BaseModel):
@@ -286,14 +291,6 @@ def EmbeddingEntity(start: int,
   """Return the span item from start and end character offets."""
   span: Item = {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
   return Entity(span, metadata, extra_data)
-
-
-def TextEntityField(metadata: Optional[dict[str, Field]] = {},
-                    extra_data: Optional[dict[str, Field]] = {},
-                    derived_from: Optional[PathTuple] = None) -> Field:
-  """Returns a field that represents an entity."""
-  return EntityField(
-      Field(dtype=DataType.STRING_SPAN, derived_from=derived_from), metadata, extra_data)
 
 
 def child_item_from_column_path(item: Item, path: Path) -> Item:

@@ -5,7 +5,6 @@ import numpy as np
 from pydantic import BaseModel
 from sklearn.linear_model import LogisticRegression
 
-from ..embeddings.embedding_registry import get_embedding_cls
 from ..schema import RichData
 from ..utils import DebugTimer
 

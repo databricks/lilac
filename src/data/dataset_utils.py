@@ -1,8 +1,16 @@
 """Utilities for working with datasets."""
 
+import os
+import pprint
+import secrets
 from collections.abc import Iterable
-from typing import Generator, Iterator, Union, cast
+from typing import Generator, Iterator, TypeVar, Union, cast
 
+import numpy as np
+import pyarrow as pa
+
+from ..embeddings.embedding_index import EmbeddingIndex
+from ..parquet_writer import ParquetWriter
 from ..schema import (
     ENTITY_FEATURE_KEY,
     LILAC_COLUMN,
@@ -10,15 +18,21 @@ from ..schema import (
     UUID_COLUMN,
     DataType,
     Field,
+    Item,
     PathTuple,
     Schema,
+    schema_to_arrow_schema,
 )
 from ..signals.signal import Signal
+from ..utils import file_exists, log, open_file
+
+NP_INDEX_KEYS_KWD = 'keys'
+NP_EMBEDDINGS_KWD = 'embeddings'
 
 
 def is_primitive(obj: object) -> bool:
   """Returns True if the object is a primitive."""
-  return not isinstance(obj, Iterable) or isinstance(obj, (str, bytes))
+  return not isinstance(obj, Iterable) or isinstance(obj, (str, bytes, np.ndarray))
 
 
 def _flatten(input: Union[Iterable, object]) -> Generator:
@@ -30,7 +44,10 @@ def _flatten(input: Union[Iterable, object]) -> Generator:
       yield from _flatten(elem)
 
 
-def flatten(input: Union[Iterable, object]) -> list[object]:
+Tflatten = TypeVar('Tflatten', object, np.ndarray)
+
+
+def flatten(input: Union[Iterable, Tflatten]) -> list[Tflatten]:
   """Flattens a nested iterable."""
   return list(_flatten(input))
 
@@ -166,3 +183,102 @@ def _apply_field_lineage(field: Field, derived_from: PathTuple) -> None:
     _apply_field_lineage(field.repeated_field, derived_from)
 
   field.derived_from = derived_from
+
+
+def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], output_dir: str,
+                             filename_prefix: str, shard_index: int, num_shards: int) -> str:
+  """Write a set of embeddings to disk."""
+  out_filename = embedding_index_filename(filename_prefix, shard_index, num_shards)
+  index_path = os.path.join(output_dir, out_filename)
+  flat_keys = flatten_keys(keys, embeddings)
+  flat_embeddings = np.array(flatten(embeddings))
+
+  # Write the embedding index and the ordered UUID column to disk so they can be joined later.
+  np_keys = np.empty(len(flat_keys), dtype=object)
+  np_keys[:] = flat_keys
+
+  with open_file(index_path, 'wb') as f:
+    np.savez(f, **{NP_INDEX_KEYS_KWD: np_keys, NP_EMBEDDINGS_KWD: flat_embeddings})
+
+  return out_filename
+
+
+def read_embedding_index(output_dir: str, filename: str) -> EmbeddingIndex:
+  """Reads the embedding index for a column from disk."""
+  index_path = os.path.join(output_dir, filename)
+
+  if not file_exists(index_path):
+    raise ValueError(F'Embedding index does not exist at path {index_path}. '
+                     'Please run db.compute_signal() on the embedding signal first.')
+
+  # Read the embedding index from disk.
+  with open_file(index_path, 'rb') as f:
+    np_index: dict[str, np.ndarray] = np.load(f, allow_pickle=True)
+    embeddings = np_index[NP_EMBEDDINGS_KWD]
+    index_keys = np_index[NP_INDEX_KEYS_KWD].tolist()
+  return EmbeddingIndex(path=index_path, keys=index_keys, embeddings=embeddings)
+
+
+def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schema,
+                           filename_prefix: str, shard_index: int,
+                           num_shards: int) -> tuple[str, int]:
+  """Write a set of items to a parquet file, in columnar format."""
+  arrow_schema = schema_to_arrow_schema(schema)
+  out_filename = parquet_filename(filename_prefix, shard_index, num_shards)
+  filepath = os.path.join(output_dir, out_filename)
+  f = open_file(filepath, mode='wb')
+  writer = ParquetWriter(schema)
+  writer.open(f)
+  num_items = 0
+  for item in items:
+    # Add a UUID column.
+    if UUID_COLUMN not in item:
+      item[UUID_COLUMN] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
+    if os.getenv('DEBUG'):
+      _validate(item, arrow_schema)
+    writer.write(item)
+    num_items += 1
+  writer.close()
+  f.close()
+  return out_filename, num_items
+
+
+def _validate(item: Item, schema: pa.Schema) -> None:
+  # Try to parse the item using the inferred schema.
+  try:
+    pa.RecordBatch.from_pylist([item], schema=schema)
+  except pa.ArrowTypeError:
+    log('Failed to parse arrow item using the arrow schema.')
+    log('Item:')
+    log(pprint.pformat(item, indent=2))
+    log('Arrow schema:')
+    log(schema)
+    raise  # Re-raise the same exception, same stacktrace.
+
+
+def parquet_filename(prefix: str, shard_index: int, num_shards: int) -> str:
+  """Return the filename for a parquet file."""
+  return f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.parquet'
+
+
+def _flatten_keys(uuid: str, nested_input: Iterable, location: list[int]) -> list[PathTuple]:
+  if is_primitive(nested_input):
+    return [(uuid, *location)]
+  else:
+    result: list[PathTuple] = []
+    for i, input in enumerate(nested_input):
+      result.extend(_flatten_keys(uuid, input, [*location, i]))
+    return result
+
+
+def flatten_keys(uuids: Iterable[str], nested_input: Iterable) -> list[PathTuple]:
+  """Flatten the uuid keys of a nested input."""
+  result: list[PathTuple] = []
+  for uuid, input in zip(uuids, nested_input):
+    result.extend(_flatten_keys(uuid, input, []))
+  return result
+
+
+def embedding_index_filename(prefix: str, shard_index: int, num_shards: int) -> str:
+  """Return the filename for the embedding index."""
+  return f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.npy'

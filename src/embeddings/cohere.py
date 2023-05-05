@@ -9,7 +9,10 @@ from typing_extensions import override
 
 from ..config import CONFIG
 from ..schema import EnrichmentType, RichData
+from ..utils import chunks
 from .embedding_registry import Embedding
+
+COHERE_BATCH_SIZE = 96
 
 
 @functools.cache
@@ -24,12 +27,13 @@ class Cohere(Embedding):
   """Cohere embedding."""
   name = 'cohere'
   enrichment_type = EnrichmentType.TEXT
-  # Cohere only accepts 96 inputs at a time.
-  batch_size = 96
 
   @override
-  def __call__(self, data: Iterable[RichData]) -> np.ndarray:
+  def compute(self, data: Iterable[RichData]) -> Iterable[np.ndarray]:
     """Call the embedding function."""
-    # If the input is too long, truncate it to the first 512 tokens to fit cohere's input limit.
-    return normalize(np.array(_cohere().embed(list(data),
-                                              truncate='END').embeddings)).astype(np.float16)
+    batches = chunks(data, COHERE_BATCH_SIZE)
+    for batch in batches:
+      embedding_batch = normalize(np.array(_cohere().embed(
+          batch, truncate='END').embeddings)).astype(np.float16)
+      # np.split returns a shallow copy of each embedding so we don't increase the memory footprint.
+      yield from np.split(embedding_batch, COHERE_BATCH_SIZE)

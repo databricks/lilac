@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from typing_extensions import override
 
 from ..config import data_path
-from ..embeddings.embedding_registry import get_embedding_cls
 from ..schema import EnrichmentType
 from ..utils import DebugTimer, delete_file, file_exists, open_file
 from .concept import Concept, ConceptModel, Example, ExampleIn
