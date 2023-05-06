@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, expect, it } from 'vitest';
 import { Schema } from './fastapi_client';
 import {
@@ -279,6 +280,7 @@ describe('lilac', () => {
   describe('getters', () => {
     it('can get path', () => {
       expect(L.path(row.title)).toEqual(['title']);
+      expect(L.path(row.non_existing_field)).not.toBeDefined();
     });
     it('can get value', () => {
       expect(L.value(row.title)).toEqual('title text');

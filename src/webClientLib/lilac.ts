@@ -97,6 +97,7 @@ export function listFields(schema: LilacSchemaField | LilacSchema): LilacSchemaF
 export function listValues(row: LilacItemNode): LilacItemNode[] {
   if (Array.isArray(row)) return [...row, ...row.flatMap(listValues)];
   else {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { [VALUE_KEY]: value, [PATH_KEY]: path, [SCHEMA_FIELD_KEY]: field, ...rest } = row;
 
     const childProperties = Object.values(rest || {});
@@ -118,16 +119,16 @@ export function getValue(row: LilacItemNode, _path: Path): LilacItemNode | undef
 }
 
 export const L = {
-  path: (value: LilacItemNode): Path => {
-    if (!value) throw new Error('Value is undefined');
+  path: (value: LilacItemNode): Path | undefined => {
+    if (!value) return undefined;
     return castLilacItemNode(value)[PATH_KEY];
   },
-  value: <D extends DataType = DataType>(value: LilacItemNode): castDataType<D> => {
-    if (!value) throw new Error('Value is undefined');
+  value: <D extends DataType = DataType>(value: LilacItemNode): castDataType<D> | undefined => {
+    if (!value) return undefined;
     return castLilacItemNode(value)[VALUE_KEY] as castDataType<D>;
   },
   field: (value: LilacItemNode): LilacSchemaField | undefined => {
-    if (!value) throw new Error('Value is undefined');
+    if (!value) return undefined;
     return castLilacItemNode(value)[SCHEMA_FIELD_KEY];
   },
   dtype: (value: LilacItemNode): DataType | undefined => {
@@ -159,6 +160,7 @@ function lilacSchemaFieldFromField(field: Field, path: Path): LilacSchemaField {
 }
 
 function lilacItemNodeFromRawValues(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rawValue: any,
   fields: LilacSchemaField[],
   path: Path
