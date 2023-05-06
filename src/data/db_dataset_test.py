@@ -49,7 +49,7 @@ from .db_dataset import (
     StatsResult,
 )
 from .db_dataset_duckdb import DatasetDuckDB
-from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
+from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db, schema_like
 
 ALL_DBS = [DatasetDuckDB]
 
@@ -252,14 +252,13 @@ class SelectRowsSuite:
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
         dataset_name=TEST_DATASET_NAME,
-        data_schema=Schema(
-            fields={
-                UUID_COLUMN: Field(dtype=DataType.STRING),
-                'str': Field(dtype=DataType.STRING),
-                'int': Field(dtype=DataType.INT32),
-                'bool': Field(dtype=DataType.BOOLEAN),
-                'float': Field(dtype=DataType.FLOAT32),
-            }),
+        data_schema=schema_like({
+            UUID_COLUMN: 'string',
+            'str': 'string',
+            'int': 'int32',
+            'bool': 'boolean',
+            'float': 'float32',
+        }),
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=3)
 
@@ -297,31 +296,32 @@ class SelectRowsSuite:
     }]
 
     # Check the enriched dataset manifest has 'text' enriched.
+    expect_schema = schema_like({
+        UUID_COLUMN: 'string',
+        'str': 'string',
+        'int': 'int32',
+        'bool': 'boolean',
+        'float': 'float32',
+        LILAC_COLUMN: {
+            'str': {
+                'test_signal': {
+                    'len': 'int32',
+                    'flen': 'float32'
+                },
+            }
+        }
+    })
+    signal_field = expect_schema.fields[LILAC_COLUMN].fields['str'].fields[
+        'test_signal']  # type: ignore
+    signal_field.derived_from = ('str',)
+    signal_field.signal_root = True
+    signal_field.fields['len'].derived_from = ('str',)  # type: ignore
+    signal_field.fields['flen'].derived_from = ('str',)  # type: ignore
+
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
         dataset_name=TEST_DATASET_NAME,
-        data_schema=Schema(
-            fields={
-                UUID_COLUMN: Field(dtype=DataType.STRING),
-                'str': Field(dtype=DataType.STRING),
-                'int': Field(dtype=DataType.INT32),
-                'bool': Field(dtype=DataType.BOOLEAN),
-                'float': Field(dtype=DataType.FLOAT32),
-                LILAC_COLUMN: Field(
-                    fields={
-                        'str': Field(
-                            fields={
-                                'test_signal': Field(
-                                    fields={
-                                        'len': Field(dtype=DataType.INT32, derived_from=('str',)),
-                                        'flen': Field(
-                                            dtype=DataType.FLOAT32, derived_from=('str',))
-                                    },
-                                    derived_from=('str',),
-                                    signal_root=True)
-                            })
-                    })
-            }),
+        data_schema=expect_schema,
         embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=3)
 

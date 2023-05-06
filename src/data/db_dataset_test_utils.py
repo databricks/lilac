@@ -91,7 +91,7 @@ def _parse_field_like(field_like: object) -> Field:
     raise ValueError(f'Cannot parse field like: {field_like}')
 
 
-def parse_schema_like(schema_like: object) -> Schema:
+def schema_like(schema_like: object) -> Schema:
   """Parse a schema-like object to a Schema object."""
   field = _parse_field_like(schema_like)
   return Schema(fields=field.fields)

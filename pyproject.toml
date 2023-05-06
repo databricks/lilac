@@ -131,6 +131,7 @@ inline-quotes = "single"
 [tool.ruff.isort]
 force-wrap-aliases = true
 combine-as-imports = true
+indent = "    "
 
 [tool.ruff.per-file-ignores]
 "*_test.py" = ["D101", "D102", "D103", "D104"]
@@ -147,6 +148,7 @@ indent_width = 2
 allow_split_before_dict_value = false
 coalesce_brackets = true
 split_before_expression_after_opening_paren = true
+continuation_indent_width = 4
 
 # Consider enabling these options for more compact code.
 # split_before_named_assigns = false
