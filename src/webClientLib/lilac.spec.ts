@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { describe, expect, it } from 'vitest';
+import { assertType, describe, expect, it } from 'vitest';
 import { Schema } from './fastapi_client';
 import {
   deserializeRow,
@@ -290,6 +290,28 @@ describe('lilac', () => {
     });
     it('can get dtype', () => {
       expect(L.dtype(row.title)).toEqual('string');
+    });
+
+    it('cam get typed values as strings', () => {
+      const t = L.dtype(row.title);
+      if (t === 'string') {
+        const val = L.value(row.title, t);
+        assertType<string>(val!);
+      } else {
+        // Woops, this should never happen
+        expect(0).toEqual(1);
+      }
+    });
+
+    it('cam get typed values as string_span', () => {
+      const t = L.dtype(row.comment_text.pii.emails[0]);
+      if (t === 'string_span') {
+        const val = L.value(row.title, t);
+        assertType<{ start: number; end: number }>(val!);
+      } else {
+        // Woops, this should never happen
+        expect(0).toEqual(1);
+      }
     });
   });
 

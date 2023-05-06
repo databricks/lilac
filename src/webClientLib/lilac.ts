@@ -13,9 +13,6 @@ export type LilacSchemaField = Field & {
   fields?: Record<string, LilacSchemaField>;
 };
 export type LilacSchema = LilacSchemaField;
-// {
-//   fields: Record<string, LilacSchemaField>;
-// };
 
 export type LilacItemNode = {
   [key: string | number]: LilacItemNode;
@@ -32,11 +29,6 @@ function castLilacItemNode<D extends DataType = DataType>(
 ): LilacItemNodeCasted<D> {
   return node as unknown as LilacItemNodeCasted;
 }
-// export type LilacItemNode<D extends DataType = DataType> = {
-//   value: castDataType<D>;
-//   children?: LilacItemNode[] | Record<string, LilacItemNode>;
-//   path: Path;
-// };
 
 /**
  * Deserialize a raw schema response to a LilacSchema.
@@ -85,10 +77,7 @@ export function deserializeRow(rawRow: object, schema: LilacSchema): LilacItemNo
 export function listFields(schema: LilacSchemaField | LilacSchema): LilacSchemaField[] {
   return [
     schema,
-
-    // ...Object.values(schema.fields || {}),
     ...Object.values(schema.fields || {}).flatMap(listFields),
-    // ...(schema.repeated_field ? [schema.repeated_field] : []),
     ...(schema.repeated_field ? listFields(schema.repeated_field) : [])
   ];
 }
@@ -123,7 +112,8 @@ export const L = {
     if (!value) return undefined;
     return castLilacItemNode(value)[PATH_KEY];
   },
-  value: <D extends DataType = DataType>(value: LilacItemNode): castDataType<D> | undefined => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  value: <D extends DataType>(value: LilacItemNode, dtype?: D): castDataType<D> | undefined => {
     if (!value) return undefined;
     return castLilacItemNode(value)[VALUE_KEY] as castDataType<D>;
   },
@@ -166,7 +156,6 @@ function lilacItemNodeFromRawValues(
   path: Path
 ): LilacItemNode {
   const field = fields.find((field) => field.path.join('.') === path.join('.'));
-  // if (!field) throw new Error(`Field not found for path ${path.join('.')}`);
 
   let ret: LilacItemNode = {};
   if (Array.isArray(rawValue)) {

@@ -40,7 +40,7 @@ export type castDataType<D extends DataType> =
       : D extends 'string_span'
       ? { start: number; end: number }
       : D extends 'time' | 'date' | 'timestamp' | 'interval' | 'binary'
-      ? Date
+      ? string
       : D extends 'struct'
       ? object
       : D extends 'list'
