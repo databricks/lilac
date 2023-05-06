@@ -48,7 +48,8 @@ export function deserializeSchema(rawSchema: Schema): LilacSchema {
     return { fields: {}, path: [] };
   }
 
-  let { [LILAC_COLUMN]: signalsFields, ...fields } = lilacFields.fields;
+  const { [LILAC_COLUMN]: signalsFields, ...rest } = lilacFields.fields;
+  let fields = rest;
 
   // Merge the signal fields into the source fields
   if (signalsFields?.fields) {
