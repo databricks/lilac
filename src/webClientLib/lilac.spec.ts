@@ -3,14 +3,11 @@ import { Schema } from './fastapi_client';
 import {
   deserializeRow,
   deserializeSchema,
-  dtype,
-  field,
   getField,
   getValue,
+  L,
   listFields,
-  listValues,
-  path,
-  value
+  listValues
 } from './lilac';
 import { ENTITY_FEATURE_KEY } from './schema';
 
@@ -196,16 +193,16 @@ describe('lilac', () => {
     it('should deserialize a row', () => {
       expect(row).toBeDefined();
 
-      expect(value(row.title)).toBeDefined();
+      expect(L.value(row.title)).toBeDefined();
       expect(row.__lilac__).toBeUndefined();
-      expect(value(row.title)).toEqual('title text');
-      expect(value(row.complex_field.propertyA)).toEqual('valueA');
-      expect(path(row.complex_field.propertyA)).toEqual(['complex_field', 'propertyA']);
-      expect(value(row.complex_list_of_struct[0].propertyA)).toEqual('valueA');
+      expect(L.value(row.title)).toEqual('title text');
+      expect(L.value(row.complex_field.propertyA)).toEqual('valueA');
+      expect(L.path(row.complex_field.propertyA)).toEqual(['complex_field', 'propertyA']);
+      expect(L.value(row.complex_list_of_struct[0].propertyA)).toEqual('valueA');
     });
 
     it('merges signals into the source fields', () => {
-      expect(value(row.comment_text.pii.emails[0])).toEqual({
+      expect(L.value(row.comment_text.pii.emails[0])).toEqual({
         end: 19,
         start: 1
       });
@@ -216,7 +213,7 @@ describe('lilac', () => {
     it('should return a list of fields', () => {
       const fields = listFields(schema);
       expect(fields).toBeDefined();
-      expect(fields[0].dtype).toEqual('string');
+      expect(fields[1].dtype).toEqual('string');
       const paths = fields.map((f) => f.path);
       expect(paths).toContainEqual(['title']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*']);
@@ -224,18 +221,18 @@ describe('lilac', () => {
     });
   });
 
-  describe.only('listValues', () => {
+  describe('listValues', () => {
     it('should return a list of values', () => {
       const values = listValues(row);
 
       expect(values).toBeDefined();
-      expect(path(values[0])).toEqual(['title']);
-      expect(value(values[0])).toEqual('title text');
+      expect(L.path(values[0])).toEqual(['title']);
+      expect(L.value(values[0])).toEqual('title text');
 
       expect(values).not.toContainEqual([]);
       expect(values).not.toContainEqual(null);
 
-      const paths = values.map((f) => path(f));
+      const paths = values.map((f) => L.path(f));
       expect(paths).toContainEqual(['title']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*', 'propertyA']);
@@ -256,28 +253,28 @@ describe('lilac', () => {
   describe('getValue', () => {
     it('should return simple paths', () => {
       const value = getValue(row, ['title']);
-      expect(value?.path).toEqual(['title']);
-      expect(value?.value).toEqual('title text');
+      expect(L.path(value!)).toEqual(['title']);
+      expect(L.value(value!)).toEqual('title text');
     });
 
     it('should return a value by path with repeated fields', () => {
       const value = getValue(row, ['complex_list_of_struct', '*']);
-      expect(value?.path).toEqual(['complex_list_of_struct', '*']);
+      expect(L.path(value!)).toEqual(['complex_list_of_struct', '*']);
     });
   });
 
   describe('getters', () => {
     it('can get path', () => {
-      expect(path(row.title)).toEqual(['title']);
+      expect(L.path(row.title)).toEqual(['title']);
     });
     it('can get value', () => {
-      expect(value(row.title)).toEqual('title text');
+      expect(L.value(row.title)).toEqual('title text');
     });
     it('can get field', () => {
-      expect(field(row.title, schema)?.path).toEqual(['title']);
+      expect(L.field(row.title)?.path).toEqual(['title']);
     });
     it('can get dtype', () => {
-      expect(dtype(row.title, schema)).toEqual('string');
+      expect(L.dtype(row.title)).toEqual('string');
     });
   });
 });

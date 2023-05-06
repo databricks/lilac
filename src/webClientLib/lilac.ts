@@ -4,6 +4,7 @@ import { mergeDeep } from './utils';
 
 const VALUE_KEY = '__value';
 const PATH_KEY = '__path';
+const SCHEMA_FIELD_KEY = '__field';
 
 export type LilacSchemaField = Field & {
   path: Path;
@@ -11,7 +12,7 @@ export type LilacSchemaField = Field & {
   repeated_field?: LilacSchemaField;
   fields?: Record<string, LilacSchemaField>;
 };
-export type LilacSchema = Omit<LilacSchemaField, 'path'>;
+export type LilacSchema = LilacSchemaField;
 // {
 //   fields: Record<string, LilacSchemaField>;
 // };
@@ -23,6 +24,7 @@ export type LilacItemNode = {
 type LilacItemNodeCasted<D extends DataType = DataType> = {
   [VALUE_KEY]: castDataType<D>;
   [PATH_KEY]: Path;
+  [SCHEMA_FIELD_KEY]: LilacSchemaField | undefined;
 };
 
 function castLilacItemNode<D extends DataType = DataType>(
@@ -43,7 +45,7 @@ export function deserializeSchema(rawSchema: Schema): LilacSchema {
   const lilacFields = lilacSchemaFieldFromField(rawSchema, []);
 
   if (!lilacFields.fields) {
-    return { fields: {} };
+    return { fields: {}, path: [] };
   }
 
   let { [LILAC_COLUMN]: signalsFields, ...fields } = lilacFields.fields;
@@ -54,13 +56,12 @@ export function deserializeSchema(rawSchema: Schema): LilacSchema {
   }
 
   // Convert the fields to LilacSchemaField
-  return { fields };
+  return { fields, path: [] };
 }
 
 export function deserializeRow(rawRow: object, schema: LilacSchema): LilacItemNode {
-  // const fields = listFields(schema);
-
-  const children = lilacItemNodeFromRawValues(rawRow, []);
+  const fields = listFields(schema);
+  const children = lilacItemNodeFromRawValues(rawRow, fields, []);
 
   if (Array.isArray(children)) {
     throw new Error('Expected row to have a single root node');
@@ -75,15 +76,18 @@ export function deserializeRow(rawRow: object, schema: LilacSchema): LilacItemNo
   if (signalValues) mergedChildren = mergeDeep(values, signalValues);
   castLilacItemNode(mergedChildren)[VALUE_KEY] = null;
   castLilacItemNode(mergedChildren)[PATH_KEY] = [];
+  castLilacItemNode(mergedChildren)[SCHEMA_FIELD_KEY] = schema;
   return mergedChildren;
 }
 
 /** List all fields as a flattend array */
 export function listFields(schema: LilacSchemaField | LilacSchema): LilacSchemaField[] {
   return [
-    ...Object.values(schema.fields || {}),
+    schema,
+
+    // ...Object.values(schema.fields || {}),
     ...Object.values(schema.fields || {}).flatMap(listFields),
-    ...(schema.repeated_field ? [schema.repeated_field] : []),
+    // ...(schema.repeated_field ? [schema.repeated_field] : []),
     ...(schema.repeated_field ? listFields(schema.repeated_field) : [])
   ];
 }
@@ -92,7 +96,7 @@ export function listFields(schema: LilacSchemaField | LilacSchema): LilacSchemaF
 export function listValues(row: LilacItemNode): LilacItemNode[] {
   if (Array.isArray(row)) return [...row, ...row.flatMap(listValues)];
   else {
-    const { [VALUE_KEY]: value, [PATH_KEY]: path, ...rest } = row;
+    const { [VALUE_KEY]: value, [PATH_KEY]: path, [SCHEMA_FIELD_KEY]: field, ...rest } = row;
 
     const childProperties = Object.values(rest || {});
     return [...childProperties, ...childProperties.flatMap((v) => listValues(v))];
@@ -109,27 +113,27 @@ export function getField(schema: LilacSchema, path: Path): LilacSchemaField | un
 
 export function getValue(row: LilacItemNode, _path: Path): LilacItemNode | undefined {
   const list = listValues(row);
-  return list.find((value) => path(value).join('.') === _path.join('.'));
+  return list.find((value) => L.path(value)?.join('.') === _path.join('.'));
 }
 
-export function path(value: LilacItemNode): Path {
-  if (!value) throw new Error('Value is undefined');
-  return castLilacItemNode(value)[PATH_KEY];
-}
-
-export function value<D extends DataType = DataType>(value: LilacItemNode): castDataType<D> {
-  if (!value) throw new Error('Value is undefined');
-  return castLilacItemNode(value)[VALUE_KEY] as castDataType<D>;
-}
-
-export function field(value: LilacItemNode, schema: LilacSchema): LilacSchemaField | undefined {
-  const _path = path(value);
-  return getField(schema, _path);
-}
-export function dtype(value: LilacItemNode, schema: LilacSchema): DataType | undefined {
-  const _field = field(value, schema);
-  return _field?.dtype;
-}
+export const L = {
+  path: (value: LilacItemNode): Path => {
+    if (!value) throw new Error('Value is undefined');
+    return castLilacItemNode(value)[PATH_KEY];
+  },
+  value: <D extends DataType = DataType>(value: LilacItemNode): castDataType<D> => {
+    if (!value) throw new Error('Value is undefined');
+    return castLilacItemNode(value)[VALUE_KEY] as castDataType<D>;
+  },
+  field: (value: LilacItemNode): LilacSchemaField | undefined => {
+    if (!value) throw new Error('Value is undefined');
+    return castLilacItemNode(value)[SCHEMA_FIELD_KEY];
+  },
+  dtype: (value: LilacItemNode): DataType | undefined => {
+    const _field = L.field(value);
+    return _field?.dtype;
+  }
+};
 /**
  * Convert raw schema field to LilacSchemaField.
  * Adds path attribute to each field
@@ -155,33 +159,31 @@ function lilacSchemaFieldFromField(field: Field, path: Path): LilacSchemaField {
 
 function lilacItemNodeFromRawValues(
   rawValue: any,
-  // fields: LilacSchemaField[],
+  fields: LilacSchemaField[],
   path: Path
 ): LilacItemNode {
+  const field = fields.find((field) => field.path.join('.') === path.join('.'));
+  // if (!field) throw new Error(`Field not found for path ${path.join('.')}`);
+
+  let ret: LilacItemNode = {};
   if (Array.isArray(rawValue)) {
-    const ret: LilacItemNode = rawValue.map((value) =>
-      lilacItemNodeFromRawValues(value, [...path, PATH_WILDCARD])
+    ret = rawValue.map((value) =>
+      lilacItemNodeFromRawValues(value, fields, [...path, PATH_WILDCARD])
     ) as Record<number, LilacItemNode>;
-    castLilacItemNode(ret)[PATH_KEY] = path;
     castLilacItemNode(ret)[VALUE_KEY] = null;
     return ret;
   } else if (typeof rawValue === 'object') {
     const { [ENTITY_FEATURE_KEY]: entityValue, ...rest } = rawValue;
 
-    const ret: LilacItemNode = Object.entries(rest).reduce<Record<string, LilacItemNode>>(
-      (acc, [key, value]) => {
-        acc[key] = lilacItemNodeFromRawValues(value, [...path, key]);
-        return acc;
-      },
-      {}
-    );
-    castLilacItemNode(ret)[PATH_KEY] = path;
+    ret = Object.entries(rest).reduce<Record<string, LilacItemNode>>((acc, [key, value]) => {
+      acc[key] = lilacItemNodeFromRawValues(value, fields, [...path, key]);
+      return acc;
+    }, {});
     castLilacItemNode(ret)[VALUE_KEY] = entityValue || null;
-    return ret;
   } else {
-    const ret: LilacItemNode = {};
-    castLilacItemNode(ret)[PATH_KEY] = path;
     castLilacItemNode(ret)[VALUE_KEY] = rawValue;
-    return ret;
   }
+  castLilacItemNode(ret)[PATH_KEY] = path;
+  castLilacItemNode(ret)[SCHEMA_FIELD_KEY] = field;
+  return ret;
 }
