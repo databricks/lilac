@@ -50,6 +50,15 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
         }
       }
     },
+    nested_list_of_list: {
+      dtype: 'list',
+      repeated_field: {
+        dtype: 'list',
+        repeated_field: {
+          dtype: 'string'
+        }
+      }
+    },
     __rowid__: {
       dtype: 'string'
     },
@@ -121,6 +130,10 @@ const SELECT_ROWS_RESPONSE_FIXTURE = {
       propertyA: 'valueC',
       propertyB: 'valueD'
     }
+  ],
+  nested_list_of_list: [
+    ['a', 'b'],
+    ['c', 'd']
   ],
   __rowid__: 'hNRA5Z_GKkHNiqn0',
   __lilac__: {
@@ -275,6 +288,13 @@ describe('lilac', () => {
     });
     it('can get dtype', () => {
       expect(L.dtype(row.title)).toEqual('string');
+    });
+  });
+
+  describe('nested lists', () => {
+    it('can get values', () => {
+      expect(L.path(row.nested_list_of_list[0][0])).toEqual(['nested_list_of_list', '*', '*']);
+      expect(L.dtype(row.nested_list_of_list[0][0])).toEqual('string');
     });
   });
 });
