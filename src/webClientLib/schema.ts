@@ -15,12 +15,46 @@ export type Path = Array<string>;
 export const PATH_WILDCARD = '*';
 export const UUID_COLUMN = '__rowid__';
 export const LILAC_COLUMN = '__lilac__';
+export const ENTITY_FEATURE_KEY = '__entity__';
 
-export function isFloat(dtype: DataType) {
+export type DataTypeNumber =
+  | 'int8'
+  | 'int16'
+  | 'int32'
+  | 'int64'
+  | 'uint8'
+  | 'uint16'
+  | 'uint32'
+  | 'uint64'
+  | 'float16'
+  | 'float32'
+  | 'float64';
+
+export type castDataType<D extends DataType> =
+  | (D extends 'string'
+      ? string
+      : D extends 'boolean'
+      ? boolean
+      : D extends DataTypeNumber
+      ? number
+      : D extends 'string_span'
+      ? { start: number; end: number }
+      : D extends 'time' | 'date' | 'timestamp' | 'interval' | 'binary'
+      ? string
+      : D extends 'struct'
+      ? object
+      : D extends 'list'
+      ? unknown[]
+      : never)
+  | null;
+
+export function isFloat(dtype: DataType): dtype is 'float16' | 'float32' | 'float64' {
   return ['float16', 'float32', 'float64'].indexOf(dtype) >= 0;
 }
 
-export function isInteger(dtype: DataType) {
+export function isInteger(
+  dtype: DataType
+): dtype is 'int8' | 'int16' | 'int32' | 'int64' | 'uint8' | 'uint16' | 'uint32' | 'uint64' {
   return (
     ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'].indexOf(dtype) >= 0
   );
@@ -36,6 +70,12 @@ export function isOrdinal(dtype: DataType) {
 
 export function serializePath(path: Path): string {
   return path.map((p) => `"${p}"`).join('.');
+}
+
+export function pathIsEqual(path1?: Path, path2?: Path): boolean {
+  if (!path1 || !path2) return false;
+  if (path1.length !== path2.length) return false;
+  return serializePath(path1) === serializePath(path2);
 }
 
 /**
