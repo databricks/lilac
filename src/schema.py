@@ -126,7 +126,7 @@ class Field(BaseModel):
   fields: Optional[dict[str, 'Field']]
   dtype: Optional[DataType]
   # Whether this field is the root result of a signal.
-  signal_root: Optional[bool] = False
+  signal_root: Optional[bool]
   # Defined when the field represents an entity.
   is_entity: Optional[bool]
   # When defined, this field is derived from another column. This could be via a signal or via a
@@ -187,8 +187,9 @@ def EntityField(entity_value: Field,
   res = Field(
       fields={ENTITY_FEATURE_KEY: entity_value},
       is_entity=True,
-      derived_from=entity_value.derived_from,
-      signal_root=signal_root)
+      derived_from=entity_value.derived_from)
+  if signal_root:
+    res.signal_root = signal_root
   if metadata and res.fields:
     res.fields[ENTITY_METADATA_KEY] = Field(fields=metadata, derived_from=entity_value.derived_from)
   if extra_data and res.fields:
