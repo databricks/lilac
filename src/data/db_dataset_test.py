@@ -11,7 +11,7 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..config import CONFIG
-from ..embeddings.embedding import Embedding
+from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
     ENTITY_FEATURE_KEY,
@@ -19,7 +19,7 @@ from ..schema import (
     UUID_COLUMN,
     DataType,
     EmbeddingEntity,
-    EmbeddingEntityField,
+    EmbeddingField,
     EnrichmentType,
     Field,
     Item,
@@ -82,7 +82,7 @@ EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
 
-class TestEmbedding(Embedding):
+class TestEmbedding(EmbeddingSignal):
   """A test embed function."""
   name = TEST_EMBEDDING_NAME
   enrichment_type = EnrichmentType.TEXT
@@ -91,7 +91,7 @@ class TestEmbedding(Embedding):
   def fields(self) -> Field:
     """Return the fields for the embedding."""
     # Override in the test so we can attach extra metadata.
-    return EmbeddingEntityField(metadata={'neg_sum': Field(dtype=DataType.FLOAT32)})
+    return EmbeddingField(metadata={'neg_sum': Field(dtype=DataType.FLOAT32)})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -1309,7 +1309,7 @@ class SelectRowsSuite:
                     fields={
                         'text': Field(
                             fields={
-                                'test_embedding': EmbeddingEntityField(
+                                'test_embedding': EmbeddingField(
                                     metadata={
                                         'neg_sum': Field(
                                             dtype=DataType.FLOAT32, derived_from=('text',))
@@ -1392,7 +1392,7 @@ class SelectRowsSuite:
                                                 dtype=DataType.INT32, derived_from=('text',))
                                         },
                                         extra_data={
-                                            'test_embedding': EmbeddingEntityField(
+                                            'test_embedding': EmbeddingField(
                                                 metadata={
                                                     'neg_sum': Field(
                                                         dtype=DataType.FLOAT32,

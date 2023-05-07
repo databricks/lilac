@@ -14,7 +14,7 @@ from typing_extensions import override
 
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..config import CONFIG, data_path
-from ..embeddings.embedding import Embedding
+from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import (
@@ -269,7 +269,7 @@ class DatasetDuckDB(DatasetDB):
     for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
       item[UUID_COLUMN] = uuid
 
-    is_embedding = isinstance(signal, Embedding)
+    is_embedding = isinstance(signal, EmbeddingSignal)
     embedding_filename = None
     if is_embedding:
       embedding_filename = write_embeddings_to_disk(

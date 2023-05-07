@@ -10,7 +10,7 @@ from typing_extensions import override
 from ..config import CONFIG
 from ..schema import EmbeddingEntity, EnrichmentType, Item, RichData
 from ..utils import chunks
-from .embedding import Embedding
+from .embedding import EmbeddingSignal
 
 COHERE_BATCH_SIZE = 96
 
@@ -23,7 +23,7 @@ def _cohere() -> cohere.Client:
   return cohere.Client(api_key)
 
 
-class Cohere(Embedding):
+class Cohere(EmbeddingSignal):
   """Cohere embedding."""
   name = 'cohere'
   enrichment_type = EnrichmentType.TEXT

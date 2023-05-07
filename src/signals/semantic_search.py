@@ -4,7 +4,7 @@ from typing import Any, Callable, Iterable, Optional, Union
 import numpy as np
 from typing_extensions import override
 
-from ..embeddings.embedding import Embedding, get_embed_fn
+from ..embeddings.embedding import EmbeddingSignal, get_embed_fn
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
     DataType,
@@ -24,12 +24,13 @@ class SemanticSearchSignal(Signal):
   enrichment_type = EnrichmentType.TEXT
 
   query: Union[str, bytes]
-  embedding: Embedding
+  embedding: EmbeddingSignal
 
   _embed_fn: Callable[[Iterable[RichData]], np.ndarray]
   _search_text_embedding: Optional[np.ndarray] = None
 
-  def __init__(self, query: Union[str, bytes], embedding: Embedding, **kwargs: dict[Any, Any]):
+  def __init__(self, query: Union[str, bytes], embedding: EmbeddingSignal, **kwargs: dict[Any,
+                                                                                          Any]):
     if isinstance(query, bytes):
       raise ValueError('Image queries are not yet supported for SemanticSearch.')
 

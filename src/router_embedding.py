@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from pyparsing import Any
 
-from .embeddings.embedding import Embedding
+from .embeddings.embedding import EmbeddingSignal
 from .router_utils import RouteErrorHandler
 from .schema import EnrichmentType
 from .signals.signal_registry import SIGNAL_REGISTRY
@@ -25,5 +25,5 @@ def get_embeddings() -> list[EmbeddingInfo]:
   return [
       EmbeddingInfo(name=s.name, enrichment_type=s.enrichment_type, json_schema=s.schema())
       for s in SIGNAL_REGISTRY.values()
-      if issubclass(s, Embedding)
+      if issubclass(s, EmbeddingSignal)
   ]

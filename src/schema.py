@@ -108,7 +108,7 @@ class EnrichmentType(str, Enum):
     return self.value
 
 
-ENRICHMENT_TYPE_TO_DTYPES: dict[EnrichmentType, list[DataType]] = {
+ENRICHMENT_TYPE_TO_VALID_DTYPES: dict[EnrichmentType, list[DataType]] = {
     EnrichmentType.TEXT: [DataType.STRING, DataType.STRING_SPAN],
     EnrichmentType.TEXT_EMBEDDING: [DataType.EMBEDDING],
     EnrichmentType.IMAGE: [DataType.BINARY],
@@ -117,7 +117,7 @@ ENRICHMENT_TYPE_TO_DTYPES: dict[EnrichmentType, list[DataType]] = {
 
 def enrichment_supports_dtype(enrichment_type: EnrichmentType, dtype: DataType) -> bool:
   """Returns True if the enrichment type supports the dtype."""
-  return dtype in ENRICHMENT_TYPE_TO_DTYPES[enrichment_type]
+  return dtype in ENRICHMENT_TYPE_TO_VALID_DTYPES[enrichment_type]
 
 
 class Field(BaseModel):
@@ -295,10 +295,10 @@ def EmbeddingEntity(embedding: Optional[np.ndarray],
   return Entity(embedding, metadata, extra_data)
 
 
-def EmbeddingEntityField(metadata: Optional[dict[str, Field]] = {},
-                         extra_data: Optional[dict[str, Field]] = {},
-                         derived_from: Optional[PathTuple] = None,
-                         signal_root: Optional[bool] = False) -> Field:
+def EmbeddingField(metadata: Optional[dict[str, Field]] = {},
+                   extra_data: Optional[dict[str, Field]] = {},
+                   derived_from: Optional[PathTuple] = None,
+                   signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
   return EntityField(
       Field(dtype=DataType.EMBEDDING, derived_from=derived_from),

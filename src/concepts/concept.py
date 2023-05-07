@@ -5,7 +5,7 @@ import numpy as np
 from pydantic import BaseModel
 from sklearn.linear_model import LogisticRegression
 
-from ..embeddings.embedding import Embedding, get_embed_fn
+from ..embeddings.embedding import EmbeddingSignal, get_embed_fn
 from ..schema import RichData
 from ..signals.signal_registry import get_signal_cls
 from ..utils import DebugTimer
@@ -78,7 +78,7 @@ class ConceptModel(BaseModel):
   def score(self, examples: Iterable[RichData]) -> list[float]:
     """Get the scores for the provided examples."""
     embedding_signal = get_signal_cls(self.embedding_name)()
-    if not isinstance(embedding_signal, Embedding):
+    if not isinstance(embedding_signal, EmbeddingSignal):
       raise ValueError(f'Signal {self.embedding_name} is not an embedding signal.')
 
     embed_fn = get_embed_fn(embedding_signal)
@@ -93,7 +93,7 @@ class ConceptModel(BaseModel):
       return False
 
     embedding_signal = get_signal_cls(self.embedding_name)()
-    if not isinstance(embedding_signal, Embedding):
+    if not isinstance(embedding_signal, EmbeddingSignal):
       raise ValueError(f'Signal {self.embedding_name} is not an embedding signal.')
 
     embed_fn = get_embed_fn(embedding_signal)

@@ -16,7 +16,7 @@ from ..concepts.db_concept import (
     DiskConceptModelDB,
 )
 from ..config import CONFIG
-from ..embeddings.embedding import Embedding
+from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import EmbeddingEntity, EnrichmentType, Item, RichData
 from .concept_scorer import ConceptScoreSignal
@@ -43,7 +43,7 @@ EMBEDDING_MAP: dict[str, list[float]] = {
 }
 
 
-class TestEmbedding(Embedding):
+class TestEmbedding(EmbeddingSignal):
   """A test embed function."""
   name = 'test_embedding'
   enrichment_type = EnrichmentType.TEXT

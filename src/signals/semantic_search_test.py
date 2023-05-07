@@ -6,7 +6,7 @@ import numpy as np
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..embeddings.embedding import Embedding
+from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..schema import EmbeddingEntity, EnrichmentType, Item, PathTuple, RichData
 from .semantic_search import SemanticSearchSignal
@@ -40,7 +40,7 @@ class TestVectorStore(VectorStore):
     return np.array([EMBEDDINGS[row_id] for row_id in keys])
 
 
-class TestEmbedding(Embedding):
+class TestEmbedding(EmbeddingSignal):
   """A test embed function."""
   name = TEST_EMBEDDING_NAME
   enrichment_type = EnrichmentType.TEXT

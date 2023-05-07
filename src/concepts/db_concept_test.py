@@ -8,7 +8,7 @@ import pytest
 from typing_extensions import override
 
 from ..config import CONFIG
-from ..embeddings.embedding import Embedding
+from ..embeddings.embedding import EmbeddingSignal
 from ..schema import EmbeddingEntity, EnrichmentType, Item, RichData
 from ..signals.signal_registry import clear_signal_registry, register_signal
 from .concept import ConceptModel, Example, ExampleIn
@@ -35,7 +35,7 @@ EMBEDDING_MAP: dict[str, list[float]] = {
 }
 
 
-class TestEmbedding(Embedding):
+class TestEmbedding(EmbeddingSignal):
   """A test embed function."""
   name = 'test_embedding'
   enrichment_type = EnrichmentType.TEXT
