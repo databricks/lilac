@@ -49,8 +49,9 @@ from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
+  field,
   make_db,
-  schema_like,
+  schema,
 )
 
 ALL_DBS = [DatasetDuckDB]
@@ -259,7 +260,7 @@ class SelectRowsSuite:
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
-      data_schema=schema_like({
+      data_schema=schema({
         UUID_COLUMN: 'string',
         'str': 'string',
         'int': 'int32',
@@ -302,32 +303,27 @@ class SelectRowsSuite:
     }]
 
     # Check the enriched dataset manifest has 'text' enriched.
-    expect_schema = schema_like({
-      UUID_COLUMN: 'string',
-      'str': 'string',
-      'int': 'int32',
-      'bool': 'boolean',
-      'float': 'float32',
-      LILAC_COLUMN: {
-        'str': {
-          'test_signal': {
-            'len': 'int32',
-            'flen': 'float32'
-          },
-        }
-      }
-    })
-    str_field = expect_schema.fields[LILAC_COLUMN].fields['str']  # type: ignore
-    signal_field = str_field.fields['test_signal']  # type: ignore
-    signal_field.derived_from = ('str',)
-    signal_field.signal_root = True
-    signal_field.fields['len'].derived_from = ('str',)  # type: ignore
-    signal_field.fields['flen'].derived_from = ('str',)  # type: ignore
-
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
-      data_schema=expect_schema,
+      data_schema=schema({
+        UUID_COLUMN: 'string',
+        'str': 'string',
+        'int': 'int32',
+        'bool': 'boolean',
+        'float': 'float32',
+        LILAC_COLUMN: {
+          'str': {
+            'test_signal': field(
+              {
+                'len': field('int32', derived_from=('str',)),
+                'flen': field('float32', derived_from=('str',))
+              },
+              derived_from=('str',),
+              signal_root=True),
+          }
+        }
+      }),
       num_items=3)
 
     # Select a specific signal leaf test_signal.flen.
@@ -390,21 +386,16 @@ class SelectRowsSuite:
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
-      data_schema=Schema(
-        fields={
-          UUID_COLUMN: Field(dtype=DataType.STRING),
-          'text': Field(dtype=DataType.STRING),
-          LILAC_COLUMN: Field(
-            fields={
-              'text': Field(
-                fields={
-                  'param_signal(param=a)': Field(
-                    dtype=DataType.STRING, signal_root=True, derived_from=('text',)),
-                  'param_signal(param=b)': Field(
-                    dtype=DataType.STRING, signal_root=True, derived_from=('text',)),
-                })
-            },)
-        }),
+      data_schema=schema({
+        UUID_COLUMN: 'string',
+        'text': 'string',
+        LILAC_COLUMN: {
+          'text': {
+            'param_signal(param=a)': field('string', derived_from=('text',), signal_root=True),
+            'param_signal(param=b)': field('string', derived_from=('text',), signal_root=True),
+          }
+        }
+      }),
       num_items=2)
 
     result = db.select_rows(['text', LILAC_COLUMN])
@@ -567,27 +558,22 @@ class SelectRowsSuite:
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
-      data_schema=Schema(
-        fields={
-          UUID_COLUMN: Field(dtype=DataType.STRING),
-          'texts': Field(repeated_field=Field(dtype=DataType.STRING)),
-          LILAC_COLUMN: Field(
-            fields={
-              'texts': Field(
-                repeated_field=Field(
-                  fields={
-                    'length_signal': Field(
-                      dtype=DataType.INT32, derived_from=('texts', '*'), signal_root=True),
-                    'test_signal': Field(
-                      fields={
-                        'len': Field(dtype=DataType.INT32, derived_from=('texts', '*')),
-                        'flen': Field(dtype=DataType.FLOAT32, derived_from=('texts', '*'))
-                      },
-                      derived_from=('texts', '*'),
-                      signal_root=True)
-                  }))
-            })
-        }),
+      data_schema=schema({
+        UUID_COLUMN: 'string',
+        'texts': ['string'],
+        LILAC_COLUMN: {
+          'texts': [{
+            'length_signal': field('int32', derived_from=('texts', '*'), signal_root=True),
+            'test_signal': field(
+              {
+                'len': field('int32', derived_from=('texts', '*')),
+                'flen': field('float32', derived_from=('texts', '*'))
+              },
+              derived_from=('texts', '*'),
+              signal_root=True)
+          }]
+        }
+      }),
       num_items=2)
 
     result = db.select_rows(['texts', LILAC_COLUMN])
@@ -805,25 +791,21 @@ class SelectRowsSuite:
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
-      data_schema=Schema(
-        fields={
-          UUID_COLUMN: Field(dtype=DataType.STRING),
-          'text': Field(repeated_field=Field(dtype=DataType.STRING)),
-          LILAC_COLUMN: Field(
-            fields={
-              'text': Field(
-                repeated_field=Field(
-                  fields={
-                    'test_signal': Field(
-                      fields={
-                        'len': Field(dtype=DataType.INT32, derived_from=('text', '*')),
-                        'flen': Field(dtype=DataType.FLOAT32, derived_from=('text', '*'))
-                      },
-                      derived_from=('text', '*'),
-                      signal_root=True)
-                  }))
-            })
-        }),
+      data_schema=schema({
+        UUID_COLUMN: 'string',
+        'text': ['string'],
+        LILAC_COLUMN: {
+          'text': [{
+            'test_signal': field(
+              {
+                'len': field('int32', derived_from=('text', '*')),
+                'flen': field('float32', derived_from=('text', '*'))
+              },
+              derived_from=('text', '*'),
+              signal_root=True)
+          }]
+        }
+      }),
       num_items=2)
 
     result = db.select_rows([(LILAC_COLUMN, 'text', '*')])
@@ -1121,14 +1103,13 @@ class SelectRowsSuite:
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
-      data_schema=Schema(
-        fields={
-          UUID_COLUMN: Field(dtype=DataType.STRING),
-          'str': Field(dtype=DataType.STRING),
-          'int': Field(dtype=DataType.INT32),
-          'bool': Field(dtype=DataType.BOOLEAN),
-          'float': Field(dtype=DataType.FLOAT32),
-        }),
+      data_schema=schema({
+        UUID_COLUMN: 'string',
+        'str': 'string',
+        'int': 'int32',
+        'bool': 'boolean',
+        'float': 'float32',
+      }),
       num_items=3)
 
     test_signal = TestSignal()
@@ -1163,27 +1144,24 @@ class SelectRowsSuite:
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
-      data_schema=Schema(
-        fields={
-          UUID_COLUMN: Field(dtype=DataType.STRING),
-          'str': Field(dtype=DataType.STRING),
-          'int': Field(dtype=DataType.INT32),
-          'bool': Field(dtype=DataType.BOOLEAN),
-          'float': Field(dtype=DataType.FLOAT32),
-          LILAC_COLUMN: Field(
-            fields={
-              'str': Field(
-                fields={
-                  'test_signal': Field(
-                    fields={
-                      'len': Field(dtype=DataType.INT32, derived_from=('str',)),
-                      'flen': Field(dtype=DataType.FLOAT32, derived_from=('str',))
-                    },
-                    derived_from=('str',),
-                    signal_root=True)
-                })
-            })
-        }),
+      data_schema=schema({
+        UUID_COLUMN: 'string',
+        'str': 'string',
+        'int': 'int32',
+        'bool': 'boolean',
+        'float': 'float32',
+        LILAC_COLUMN: {
+          'str': {
+            'test_signal': field(
+              {
+                'len': field('int32', derived_from=('str',)),
+                'flen': field('float32', derived_from=('str',))
+              },
+              derived_from=('str',),
+              signal_root=True)
+          }
+        }
+      }),
       num_items=3)
 
   def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -1236,23 +1214,20 @@ class SelectRowsSuite:
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
-      data_schema=Schema(
-        fields={
-          UUID_COLUMN: Field(dtype=DataType.STRING),
-          'text': Field(dtype=DataType.STRING),
-          LILAC_COLUMN: Field(
-            fields={
-              'text': Field(
-                fields={
-                  'test_entity_len': Field(
-                    repeated_field=TextEntityField(
-                      metadata={'len': Field(dtype=DataType.INT32, derived_from=('text',))},
-                      derived_from=('text',)),
-                    derived_from=('text',),
-                    signal_root=True)
-                })
-            }),
-        }),
+      data_schema=schema({
+        UUID_COLUMN: 'string',
+        'text': 'string',
+        LILAC_COLUMN: {
+          'text': {
+            'test_entity_len': field([
+              TextEntityField(
+                metadata={'len': field('int32', derived_from=('text',))}, derived_from=('text',))
+            ],
+                                     derived_from=('text',),
+                                     signal_root=True)
+          }
+        },
+      }),
       num_items=2)
 
     # NOTE: The way this currently works is it just generates a new signal column, in the old
@@ -1294,27 +1269,24 @@ class SelectRowsSuite:
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
-      data_schema=Schema(
-        fields={
-          UUID_COLUMN: Field(dtype=DataType.STRING),
-          'text': Field(dtype=DataType.STRING),
-          LILAC_COLUMN: Field(
-            fields={
-              'text': Field(
-                fields={
-                  'test_embedding': EmbeddingField(
-                    metadata={'neg_sum': Field(dtype=DataType.FLOAT32, derived_from=('text',))},
-                    extra_data={
-                      'test_embedding_sum': Field(
-                        dtype=DataType.FLOAT32,
-                        derived_from=(LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY),
-                        signal_root=True)
-                    },
-                    derived_from=('text',),
-                    signal_root=True)
-                }),
-            })
-        }),
+      data_schema=schema({
+        UUID_COLUMN: 'string',
+        'text': 'string',
+        LILAC_COLUMN: {
+          'text': {
+            'test_embedding': EmbeddingField(
+              metadata={'neg_sum': field('float32', derived_from=('text',))},
+              extra_data={
+                'test_embedding_sum': field(
+                  'float32',
+                  derived_from=(LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY),
+                  signal_root=True)
+              },
+              derived_from=('text',),
+              signal_root=True)
+          },
+        }
+      }),
       num_items=2)
 
     result = db.select_rows()
@@ -1362,42 +1334,39 @@ class SelectRowsSuite:
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
-      data_schema=Schema(
-        fields={
-          UUID_COLUMN: Field(dtype=DataType.STRING),
-          'text': Field(dtype=DataType.STRING),
-          LILAC_COLUMN: Field(
-            fields={
-              'text': Field(
-                fields={
-                  'test_entity_len': Field(
-                    repeated_field=TextEntityField(
-                      metadata={'len': Field(dtype=DataType.INT32, derived_from=('text',))},
-                      extra_data={
-                        'test_embedding': EmbeddingField(
-                          metadata={
-                            'neg_sum': Field(
-                              dtype=DataType.FLOAT32,
-                              derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*',
-                                            ENTITY_FEATURE_KEY))
-                          },
-                          extra_data={
-                            'test_embedding_sum': Field(
-                              dtype=DataType.FLOAT32,
-                              derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*',
-                                            'test_embedding', ENTITY_FEATURE_KEY),
-                              signal_root=True)
-                          },
-                          signal_root=True,
-                          derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*',
-                                        ENTITY_FEATURE_KEY))
-                      },
-                      derived_from=('text',)),
-                    derived_from=('text',),
-                    signal_root=True)
-                })
-            })
-        }),
+      data_schema=schema({
+        UUID_COLUMN: 'string',
+        'text': 'string',
+        LILAC_COLUMN: {
+          'text': {
+            'test_entity_len': field([
+              TextEntityField(
+                metadata={'len': field('int32', derived_from=('text',))},
+                extra_data={
+                  'test_embedding': EmbeddingField(
+                    metadata={
+                      'neg_sum': field(
+                        'float32',
+                        derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*',
+                                      ENTITY_FEATURE_KEY))
+                    },
+                    extra_data={
+                      'test_embedding_sum': field(
+                        'float32',
+                        derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*',
+                                      'test_embedding', ENTITY_FEATURE_KEY),
+                        signal_root=True)
+                    },
+                    signal_root=True,
+                    derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY))
+                },
+                derived_from=('text',))
+            ],
+                                     derived_from=('text',),
+                                     signal_root=True)
+          }
+        }
+      }),
       num_items=2)
 
     result = db.select_rows(
@@ -1780,13 +1749,13 @@ class StatsSuite:
         }]
       }  # No zips in the first address.
     ]
-    nested_schema = Schema(
-      fields={
-        UUID_COLUMN: Field(dtype=DataType.STRING),
-        'name': Field(dtype=DataType.STRING),
-        'addresses': Field(
-          repeated_field=Field(fields={'zips': Field(repeated_field=Field(dtype=DataType.INT32))}))
-      })
+    nested_schema = schema({
+      UUID_COLUMN: 'string',
+      'name': 'string',
+      'addresses': [{
+        'zips': ['int32']
+      }]
+    })
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
 
     result = db.stats(leaf_path='name')
@@ -1801,10 +1770,7 @@ class StatsSuite:
     mocker.patch(f'{db_dataset_duckdb.__name__}.SAMPLE_SIZE_DISTINCT_COUNT', sample_size)
 
     nested_items: list[Item] = [{'feature': str(i)} for i in range(sample_size * 10)]
-    nested_schema = Schema(fields={
-      UUID_COLUMN: Field(dtype=DataType.STRING),
-      'feature': Field(dtype=DataType.STRING)
-    })
+    nested_schema = schema({UUID_COLUMN: 'string', 'feature': 'string'})
     db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
 
     result = db.stats(leaf_path='feature')

@@ -10,6 +10,7 @@ from ..schema import (
   Field,
   Item,
   ItemValue,
+  PathTuple,
   Schema,
   SourceManifest,
 )
@@ -78,7 +79,9 @@ def _parse_dtype_like(dtype_like: str) -> DataType:
 
 
 def _parse_field_like(field_like: object) -> Field:
-  if isinstance(field_like, dict):
+  if isinstance(field_like, Field):
+    return field_like
+  elif isinstance(field_like, dict):
     fields: dict[str, Field] = {}
     for k, v in field_like.items():
       fields[k] = _parse_field_like(v)
@@ -91,10 +94,18 @@ def _parse_field_like(field_like: object) -> Field:
     raise ValueError(f'Cannot parse field like: {field_like}')
 
 
-def schema_like(schema_like: object) -> Schema:
+def schema(schema_like: object) -> Schema:
   """Parse a schema-like object to a Schema object."""
   field = _parse_field_like(schema_like)
   return Schema(fields=field.fields)
+
+
+def field(field_like: object, derived_from: PathTuple, signal_root: Optional[bool] = None) -> Field:
+  """Parse a field-like object to a Field object."""
+  field = _parse_field_like(field_like)
+  field.derived_from = derived_from
+  field.signal_root = signal_root
+  return field
 
 
 def make_db(db_cls: Type[DatasetDB],
