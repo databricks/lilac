@@ -38,8 +38,8 @@ class JSONDataset(Source):
   filepaths: list[str] = Field(description='A list of filepaths to JSON files.')
   json_format: JSONFormat = Field(
     default=JSONFormat.AUTO,
-    description="Can be one of ['auto', 'records', 'array_of_records', 'values', 'array_of_values']."
-  )
+    description=("Can be one of ['auto', 'records', 'array_of_records', "
+                 "'values', 'array_of_values']."))
 
   @override
   def process(self, output_dir: str, task_id: Optional[TaskId] = None) -> SourceProcessResult:
