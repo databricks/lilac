@@ -1259,6 +1259,14 @@ class SelectRowsSuite:
     db.compute_signal_column(TestEmbeddingSumSignal(),
                              (LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY))
 
+    emb_field = EmbeddingField(
+      metadata={'neg_sum': field('float32', derived_from=('text',))},
+      derived_from=('text',),
+      signal_root=True)
+    emb_field.fields['test_embedding_sum'] = field(  # type: ignore
+      'float32',
+      derived_from=(LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY),
+      signal_root=True)
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
@@ -1267,41 +1275,39 @@ class SelectRowsSuite:
         'text': 'string',
         LILAC_COLUMN: {
           'text': {
-            'test_embedding': EmbeddingField(
-              metadata={'neg_sum': field('float32', derived_from=('text',))},
-              extra_data={
-                'test_embedding_sum': field(
-                  'float32',
-                  derived_from=(LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY),
-                  signal_root=True)
-              },
-              derived_from=('text',),
-              signal_root=True)
+            'test_embedding': emb_field
           },
         }
       }),
       num_items=2)
 
     result = db.select_rows()
-    expected_result = [{
-      UUID_COLUMN: '1',
-      'text': 'hello.',
-      LILAC_COLUMN: {
-        'text': {
-          'test_embedding': EmbeddingEntity(
-            embedding=None, metadata={'neg_sum': -1.0}, extra_data={'test_embedding_sum': 1.0})
+    expected_result = [
+      {
+        UUID_COLUMN: '1',
+        'text': 'hello.',
+        LILAC_COLUMN: {
+          'text': {
+            'test_embedding': {
+              **EmbeddingEntity(embedding=None, metadata={'neg_sum': -1.0}),  # type: ignore
+              'test_embedding_sum': 1.0,
+            }
+          }
+        }
+      },
+      {
+        UUID_COLUMN: '2',
+        'text': 'hello2.',
+        LILAC_COLUMN: {
+          'text': {
+            'test_embedding': {
+              **EmbeddingEntity(embedding=None, metadata={'neg_sum': -2.0}),  # type: ignore
+              'test_embedding_sum': 2.0,
+            }
+          }
         }
       }
-    }, {
-      UUID_COLUMN: '2',
-      'text': 'hello2.',
-      LILAC_COLUMN: {
-        'text': {
-          'test_embedding': EmbeddingEntity(
-            embedding=None, metadata={'neg_sum': -2.0}, extra_data={'test_embedding_sum': 2.0})
-        }
-      }
-    }]
+    ]
     assert list(result) == expected_result
 
   def test_embedding_signal_splits(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -1324,6 +1330,25 @@ class SelectRowsSuite:
       TestEmbeddingSumSignal(),
       (LILAC_COLUMN, 'text', 'test_entity_len', '*', 'test_embedding', ENTITY_FEATURE_KEY))
 
+    emb_field = EmbeddingField(
+      metadata={
+        'neg_sum': field(
+          'float32',
+          derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY))
+      },
+      derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY),
+      signal_root=True)
+    emb_field.fields['test_embedding_sum'] = field(  # type: ignore
+      'float32',
+      derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*', 'test_embedding',
+                    ENTITY_FEATURE_KEY),
+      signal_root=True)
+
+    text_field = TextEntityField(
+      metadata={'len': field('int32', derived_from=('text',))},
+      derived_from=('text',))
+    text_field.fields['test_embedding'] = emb_field  # type: ignore
+
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
@@ -1332,31 +1357,7 @@ class SelectRowsSuite:
         'text': 'string',
         LILAC_COLUMN: {
           'text': {
-            'test_entity_len': field([
-              TextEntityField(
-                metadata={'len': field('int32', derived_from=('text',))},
-                extra_data={
-                  'test_embedding': EmbeddingField(
-                    metadata={
-                      'neg_sum': field(
-                        'float32',
-                        derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*',
-                                      ENTITY_FEATURE_KEY))
-                    },
-                    extra_data={
-                      'test_embedding_sum': field(
-                        'float32',
-                        derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*',
-                                      'test_embedding', ENTITY_FEATURE_KEY),
-                        signal_root=True)
-                    },
-                    signal_root=True,
-                    derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY))
-                },
-                derived_from=('text',))
-            ],
-                                     derived_from=('text',),
-                                     signal_root=True)
+            'test_entity_len': field([text_field], derived_from=('text',), signal_root=True)
           }
         }
       }),

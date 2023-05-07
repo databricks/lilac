@@ -7,12 +7,7 @@ from typing import Any, Optional, Union, cast
 
 import numpy as np
 import pyarrow as pa
-from pydantic import (
-  BaseModel,
-  StrictInt,
-  StrictStr,
-  validator,
-)
+from pydantic import BaseModel, StrictInt, StrictStr, validator
 
 MANIFEST_FILENAME = 'manifest.json'
 PARQUET_FILENAME_PREFIX = 'data'
@@ -181,7 +176,6 @@ class Field(BaseModel):
 
 def EntityField(entity_value: Field,
                 metadata: Optional[dict[str, Field]] = {},
-                extra_data: Optional[dict[str, Field]] = {},
                 signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
   res = Field(
@@ -192,16 +186,12 @@ def EntityField(entity_value: Field,
     res.signal_root = signal_root
   if metadata and res.fields:
     res.fields[ENTITY_METADATA_KEY] = Field(fields=metadata, derived_from=entity_value.derived_from)
-  if extra_data and res.fields:
-    res.fields = {**res.fields, **extra_data}
   return res
 
 
-def Entity(entity: ItemValue,
-           metadata: Optional[Item] = {},
-           extra_data: Optional[Item] = {}) -> Item:
+def Entity(entity: ItemValue, metadata: Optional[Item] = {}) -> Item:
   """Creates an entity item."""
-  return {ENTITY_FEATURE_KEY: entity, ENTITY_METADATA_KEY: metadata or {}, **(extra_data or {})}
+  return {ENTITY_FEATURE_KEY: entity, ENTITY_METADATA_KEY: metadata or {}}
 
 
 class Schema(BaseModel):
@@ -272,44 +262,31 @@ def entity_paths(field: Field) -> list[PathTuple]:
   return entities
 
 
-def TextEntity(start: int,
-               end: int,
-               metadata: Optional[Item] = {},
-               extra_data: Optional[Item] = {}) -> Item:
+def TextEntity(start: int, end: int, metadata: Optional[Item] = {}) -> Item:
   """Return the span item from start and end character offets."""
   span: Item = {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
-  return Entity(span, metadata, extra_data)
+  return Entity(span, metadata)
 
 
 def TextEntityField(metadata: Optional[dict[str, Field]] = {},
-                    extra_data: Optional[dict[str, Field]] = {},
                     derived_from: Optional[PathTuple] = None,
                     signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
   return EntityField(
-    Field(dtype=DataType.STRING_SPAN, derived_from=derived_from),
-    metadata,
-    extra_data,
-    signal_root=signal_root)
+    Field(dtype=DataType.STRING_SPAN, derived_from=derived_from), metadata, signal_root=signal_root)
 
 
-def EmbeddingEntity(embedding: Optional[np.ndarray],
-                    metadata: Optional[Item] = {},
-                    extra_data: Optional[Item] = {}) -> Item:
+def EmbeddingEntity(embedding: Optional[np.ndarray], metadata: Optional[Item] = {}) -> Item:
   """Return the span item from start and end character offets."""
-  return Entity(embedding, metadata, extra_data)
+  return Entity(embedding, metadata)
 
 
 def EmbeddingField(metadata: Optional[dict[str, Field]] = {},
-                   extra_data: Optional[dict[str, Field]] = {},
                    derived_from: Optional[PathTuple] = None,
                    signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
   return EntityField(
-    Field(dtype=DataType.EMBEDDING, derived_from=derived_from),
-    metadata,
-    extra_data,
-    signal_root=signal_root)
+    Field(dtype=DataType.EMBEDDING, derived_from=derived_from), metadata, signal_root=signal_root)
 
 
 def child_item_from_column_path(item: Item, path: Path) -> Item:

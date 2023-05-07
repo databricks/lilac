@@ -399,7 +399,8 @@ def _parse_field_like(field_like: object) -> Field:
     fields: dict[str, Field] = {}
     for k, v in field_like.items():
       fields[k] = _parse_field_like(v)
-    return Field(fields=fields)
+    return Field(fields=fields, is_entity=True if ENTITY_FEATURE_KEY in fields else None)
+
   elif isinstance(field_like, str):
     return Field(dtype=DTYPE_LIKE_TO_DTYPE[field_like])
   elif isinstance(field_like, list):
