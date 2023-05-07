@@ -303,6 +303,28 @@ class SelectRowsSuite:
     }]
 
     # Check the enriched dataset manifest has 'text' enriched.
+    expect_schema = schema_like({
+      UUID_COLUMN: 'string',
+      'str': 'string',
+      'int': 'int32',
+      'bool': 'boolean',
+      'float': 'float32',
+      LILAC_COLUMN: {
+        'str': {
+          'test_signal': {
+            'len': 'int32',
+            'flen': 'float32'
+          },
+        }
+      }
+    })
+    str_field = expect_schema.fields[LILAC_COLUMN].fields['str']  # type: ignore
+    signal_field = str_field.fields['test_signal']  # type: ignore
+    signal_field.derived_from = ('str',)
+    signal_field.signal_root = True
+    signal_field.fields['len'].derived_from = ('str',)  # type: ignore
+    signal_field.fields['flen'].derived_from = ('str',)  # type: ignore
+
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
