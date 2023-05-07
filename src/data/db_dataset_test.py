@@ -17,7 +17,6 @@ from ..schema import (
   ENTITY_FEATURE_KEY,
   LILAC_COLUMN,
   UUID_COLUMN,
-  DataType,
   EmbeddingEntity,
   EmbeddingField,
   EnrichmentType,
@@ -26,7 +25,6 @@ from ..schema import (
   ItemValue,
   PathTuple,
   RichData,
-  Schema,
   SignalOut,
   TextEntity,
   TextEntityField,
@@ -34,6 +32,7 @@ from ..schema import (
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
 from . import db_dataset, db_dataset_duckdb
+from .dataset_utils import field, schema
 from .db_dataset import (
   Column,
   Comparison,
@@ -46,13 +45,7 @@ from .db_dataset import (
   StatsResult,
 )
 from .db_dataset_duckdb import DatasetDuckDB
-from .db_dataset_test_utils import (
-  TEST_DATASET_NAME,
-  TEST_NAMESPACE,
-  field,
-  make_db,
-  schema,
-)
+from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
 
 ALL_DBS = [DatasetDuckDB]
 
@@ -97,7 +90,7 @@ class TestEmbedding(EmbeddingSignal):
   def fields(self) -> Field:
     """Return the fields for the embedding."""
     # Override in the test so we can attach extra metadata.
-    return EmbeddingField(metadata={'neg_sum': Field(dtype=DataType.FLOAT32)})
+    return EmbeddingField(metadata={'neg_sum': field('float32')})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -113,7 +106,7 @@ class LengthSignal(Signal):
   _call_count: int = 0
 
   def fields(self) -> Field:
-    return Field(dtype=DataType.INT32)
+    return field('int32')
 
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
     for text_content in data:
@@ -127,7 +120,7 @@ class TestParamSignal(Signal):
   param: str
 
   def fields(self) -> Field:
-    return Field(dtype=DataType.STRING)
+    return field('string')
 
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
     for text_content in data:
@@ -1489,7 +1482,7 @@ class TestSignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(fields={'len': Field(dtype=DataType.INT32), 'flen': Field(dtype=DataType.FLOAT32)})
+    return field({'len': 'int32', 'flen': 'float32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -1503,7 +1496,7 @@ class TestSplitterWithLen(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(repeated_field=TextEntityField(metadata={'len': Field(dtype=DataType.INT32)}))
+    return field([TextEntityField(metadata={'len': field('int32')})])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
@@ -1529,7 +1522,7 @@ class TestEntitySignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(repeated_field=TextEntityField(metadata={'len': Field(dtype=DataType.INT32)}))
+    return field([TextEntityField(metadata={'len': field('int32')})])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
@@ -1552,7 +1545,7 @@ class TestEmbeddingSumSignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(dtype=DataType.FLOAT32)
+    return field('float32')
 
   @override
   def vector_compute(self, keys: Iterable[PathTuple],
@@ -1569,7 +1562,7 @@ class TestInvalidSignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(dtype=DataType.INT32)
+    return field('int32')
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -1583,7 +1576,7 @@ class TestSparseSignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(dtype=DataType.INT32)
+    return field('int32')
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:
@@ -1602,7 +1595,7 @@ class TestSparseRichSignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(fields={'emails': Field(repeated_field=Field(dtype=DataType.STRING))})
+    return field({'emails': ['string']})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -1814,14 +1807,16 @@ class SelectGroupsSuite:
         'age': 55
       }  # Missing "active".
     ]
-    schema = Schema(
-      fields={
-        UUID_COLUMN: Field(dtype=DataType.STRING),
-        'name': Field(dtype=DataType.STRING),
-        'age': Field(dtype=DataType.INT32),
-        'active': Field(dtype=DataType.BOOLEAN)
-      })
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+    db = make_db(
+      db_cls=db_cls,
+      tmp_path=tmp_path,
+      items=items,
+      schema=schema({
+        UUID_COLUMN: 'string',
+        'name': 'string',
+        'age': 'int32',
+        'active': 'boolean'
+      }))
 
     result = db.select_groups(leaf_path='name').df()
     expected = pd.DataFrame.from_records([{
@@ -1896,11 +1891,14 @@ class SelectGroupsSuite:
       },
       {}  # Missing "active".
     ]
-    schema = Schema(fields={
-      UUID_COLUMN: Field(dtype=DataType.STRING),
-      'active': Field(dtype=DataType.BOOLEAN)
-    })
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+    db = make_db(
+      db_cls=db_cls,
+      tmp_path=tmp_path,
+      items=items,
+      schema=schema({
+        UUID_COLUMN: 'string',
+        'active': 'boolean'
+      }))
 
     result = db.select_groups(leaf_path='active')
     groups = list(result)
@@ -1926,13 +1924,16 @@ class SelectGroupsSuite:
         'name': 'd'
       }]
     }]
-    schema = Schema(
-      fields={
-        UUID_COLUMN: Field(dtype=DataType.STRING),
-        'list_of_structs': Field(
-          repeated_field=Field(fields={'name': Field(dtype=DataType.STRING)})),
-      })
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+    db = make_db(
+      db_cls=db_cls,
+      tmp_path=tmp_path,
+      items=items,
+      schema=schema({
+        UUID_COLUMN: 'string',
+        'list_of_structs': [{
+          'name': 'string'
+        }],
+      }))
 
     result = db.select_groups(leaf_path='list_of_structs.*.name').df()
     expected = pd.DataFrame.from_records([{
@@ -1970,14 +1971,16 @@ class SelectGroupsSuite:
         'name': 'd'
       }]]
     }]
-    schema = Schema(
-      fields={
-        UUID_COLUMN: Field(dtype=DataType.STRING),
-        'nested_list': Field(
-          repeated_field=Field(repeated_field=Field(fields={'name': Field(
-            dtype=DataType.STRING)}))),
-      })
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+    db = make_db(
+      db_cls=db_cls,
+      tmp_path=tmp_path,
+      items=items,
+      schema=schema({
+        UUID_COLUMN: 'string',
+        'nested_list': [[{
+          'name': 'string'
+        }]]
+      }))
 
     result = db.select_groups(leaf_path='nested_list.*.*.name').df()
     expected = pd.DataFrame.from_records([{
@@ -2019,13 +2022,18 @@ class SelectGroupsSuite:
         }
       },
     ]
-    schema = Schema(
-      fields={
-        UUID_COLUMN: Field(dtype=DataType.STRING),
-        'nested_struct': Field(
-          fields={'struct': Field(fields={'name': Field(dtype=DataType.STRING)})}),
-      })
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+    db = make_db(
+      db_cls=db_cls,
+      tmp_path=tmp_path,
+      items=items,
+      schema=schema({
+        UUID_COLUMN: 'string',
+        'nested_struct': {
+          'struct': {
+            'name': 'string'
+          }
+        },
+      }))
 
     result = db.select_groups(leaf_path='nested_struct.struct.name').df()
     expected = pd.DataFrame.from_records([{
@@ -2052,11 +2060,14 @@ class SelectGroupsSuite:
     }, {
       'age': 55
     }]
-    schema = Schema(fields={
-      UUID_COLUMN: Field(dtype=DataType.STRING),
-      'age': Field(dtype=DataType.INT32),
-    })
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+    db = make_db(
+      db_cls=db_cls,
+      tmp_path=tmp_path,
+      items=items,
+      schema=schema({
+        UUID_COLUMN: 'string',
+        'age': 'int32',
+      }))
 
     result = db.select_groups(
       leaf_path='age',
@@ -2105,13 +2116,18 @@ class SelectGroupsSuite:
         }
       },
     ]
-    schema = Schema(
-      fields={
-        UUID_COLUMN: Field(dtype=DataType.STRING),
-        'nested_struct': Field(
-          fields={'struct': Field(fields={'name': Field(dtype=DataType.STRING)})}),
-      })
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+    db = make_db(
+      db_cls=db_cls,
+      tmp_path=tmp_path,
+      items=items,
+      schema=schema({
+        UUID_COLUMN: 'string',
+        'nested_struct': {
+          'struct': {
+            'name': 'string'
+          }
+        },
+      }))
 
     with pytest.raises(
         ValueError, match=re.escape("Leaf \"('nested_struct',)\" not found in dataset")):
@@ -2132,11 +2148,14 @@ class SelectGroupsSuite:
     mocker.patch(f'{db_dataset.__name__}.TOO_MANY_DISTINCT', too_many_distinct)
 
     items: list[Item] = [{'feature': str(i)} for i in range(too_many_distinct + 10)]
-    schema = Schema(fields={
-      UUID_COLUMN: Field(dtype=DataType.STRING),
-      'feature': Field(dtype=DataType.STRING)
-    })
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+    db = make_db(
+      db_cls=db_cls,
+      tmp_path=tmp_path,
+      items=items,
+      schema=schema({
+        UUID_COLUMN: 'string',
+        'feature': 'string'
+      }))
 
     with pytest.raises(
         ValueError, match=re.escape('Leaf "(\'feature\',)" has too many unique values: 15')):
@@ -2145,11 +2164,14 @@ class SelectGroupsSuite:
   def test_bins_are_required_for_float(self, tmp_path: pathlib.Path,
                                        db_cls: Type[DatasetDB]) -> None:
     items: list[Item] = [{'feature': float(i)} for i in range(5)]
-    schema = Schema(fields={
-      UUID_COLUMN: Field(dtype=DataType.STRING),
-      'feature': Field(dtype=DataType.FLOAT32)
-    })
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=items, schema=schema)
+    db = make_db(
+      db_cls=db_cls,
+      tmp_path=tmp_path,
+      items=items,
+      schema=schema({
+        UUID_COLUMN: 'string',
+        'feature': 'float32'
+      }))
 
     with pytest.raises(
         ValueError,

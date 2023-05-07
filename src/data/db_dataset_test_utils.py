@@ -10,7 +10,6 @@ from ..schema import (
   Field,
   Item,
   ItemValue,
-  PathTuple,
   Schema,
   SourceManifest,
 )
@@ -61,51 +60,6 @@ def _infer_schema(items: list[Item]) -> Schema:
       raise ValueError(f'Invalid schema of item. Expected an object, but got: {item}')
     schema.fields = {**schema.fields, **field.fields}
   return schema
-
-
-def _parse_dtype_like(dtype_like: str) -> DataType:
-  if dtype_like == 'int32':
-    return DataType.INT32
-  elif dtype_like == 'float32':
-    return DataType.FLOAT32
-  elif dtype_like == 'string':
-    return DataType.STRING
-  elif dtype_like == 'boolean':
-    return DataType.BOOLEAN
-  elif dtype_like == 'binary':
-    return DataType.BINARY
-  else:
-    raise ValueError(f'Cannot parse dtype like: {dtype_like}')
-
-
-def _parse_field_like(field_like: object) -> Field:
-  if isinstance(field_like, Field):
-    return field_like
-  elif isinstance(field_like, dict):
-    fields: dict[str, Field] = {}
-    for k, v in field_like.items():
-      fields[k] = _parse_field_like(v)
-    return Field(fields=fields)
-  elif isinstance(field_like, str):
-    return Field(dtype=_parse_dtype_like(field_like))
-  elif isinstance(field_like, list):
-    return Field(repeated_field=_parse_field_like(field_like[0]))
-  else:
-    raise ValueError(f'Cannot parse field like: {field_like}')
-
-
-def schema(schema_like: object) -> Schema:
-  """Parse a schema-like object to a Schema object."""
-  field = _parse_field_like(schema_like)
-  return Schema(fields=field.fields)
-
-
-def field(field_like: object, derived_from: PathTuple, signal_root: Optional[bool] = None) -> Field:
-  """Parse a field-like object to a Field object."""
-  field = _parse_field_like(field_like)
-  field.derived_from = derived_from
-  field.signal_root = signal_root
-  return field
 
 
 def make_db(db_cls: Type[DatasetDB],

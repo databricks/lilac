@@ -3,41 +3,36 @@
 import pyarrow as pa
 import pytest
 
+from .data.dataset_utils import field, schema
 from .schema import (
   PATH_WILDCARD,
   DataType,
   Field,
   Item,
-  Schema,
   arrow_schema_to_schema,
   child_item_from_column_path,
   column_paths_match,
   schema_to_arrow_schema,
 )
 
-NESTED_TEST_SCHEMA = Schema(
-  fields={
-    'person': Field(
-      fields={
-        'name': Field(dtype=DataType.STRING),
-        'last_name': Field(dtype=DataType.STRING_SPAN, derived_from=('person', 'name')),
-        # Contains a double nested array of primitives.
-        'data': Field(repeated_field=Field(repeated_field=Field(dtype=DataType.FLOAT32)))
-      }),
-    'addresses': Field(
-      repeated_field=Field(
-        fields={
-          'city': Field(dtype=DataType.STRING),
-          'zipcode': Field(dtype=DataType.INT16),
-          'current': Field(dtype=DataType.BOOLEAN),
-          'locations': Field(
-            repeated_field=Field(fields={
-              'latitude': Field(dtype=DataType.FLOAT16),
-              'longitude': Field(dtype=DataType.FLOAT64)
-            }))
-        })),
-    'blob': Field(dtype=DataType.BINARY)
-  })
+NESTED_TEST_SCHEMA = schema({
+  'person': {
+    'name': 'string',
+    'last_name': field('string_span', derived_from=('person', 'name')),
+    # Contains a double nested array of primitives.
+    'data': [['float32']]
+  },
+  'addresses': [{
+    'city': 'string',
+    'zipcode': 'int16',
+    'current': 'boolean',
+    'locations': [{
+      'latitude': 'float16',
+      'longitude': 'float64'
+    }]
+  }],
+  'blob': 'binary'
+})
 NESTED_TEST_ITEM: Item = {
   'person': {
     'name': 'Test Name',
@@ -156,35 +151,27 @@ def test_arrow_schema_to_schema() -> None:
       })),
     'blob': pa.binary(),
   })
-  expected = Schema(
-    fields={
-      'person': Field(
-        fields={
-          'name': Field(dtype=DataType.STRING),
-          'data': Field(repeated_field=Field(repeated_field=Field(dtype=DataType.FLOAT32)))
-        }),
-      'addresses': Field(
-        repeated_field=Field(
-          fields={
-            'city': Field(dtype=DataType.STRING),
-            'zipcode': Field(dtype=DataType.INT16),
-            'current': Field(dtype=DataType.BOOLEAN),
-            'locations': Field(
-              repeated_field=Field(
-                fields={
-                  'latitude': Field(dtype=DataType.FLOAT16),
-                  'longitude': Field(dtype=DataType.FLOAT64),
-                }))
-          })),
-      'blob': Field(dtype=DataType.BINARY),
-    })
-  schema = arrow_schema_to_schema(arrow_schema)
-  assert schema == expected
+  expected_schema = schema({
+    'person': {
+      'name': 'string',
+      'data': [['float32']]
+    },
+    'addresses': [{
+      'city': 'string',
+      'zipcode': 'int16',
+      'current': 'boolean',
+      'locations': [{
+        'latitude': 'float16',
+        'longitude': 'float64',
+      }]
+    }],
+    'blob': 'binary',
+  })
+  assert arrow_schema_to_schema(arrow_schema) == expected_schema
 
 
 def test_simple_schema_str() -> None:
-  schema = Schema(fields={'person': Field(dtype=DataType.STRING)})
-  assert str(schema) == 'person: string'
+  assert str(schema({'person': 'string'})) == 'person: string'
 
 
 def test_child_item_from_column_path() -> None:

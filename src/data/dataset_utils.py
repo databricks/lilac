@@ -5,7 +5,7 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Any, Callable, Generator, Iterator, TypeVar, Union, cast
+from typing import Any, Callable, Generator, Iterator, Optional, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -178,9 +178,9 @@ def path_is_from_lilac(path: PathTuple) -> bool:
   return path[0] == LILAC_COLUMN
 
 
-def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema) -> Schema:
+def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema: Schema) -> Schema:
   """Create a schema describing the enriched fields added an enrichment."""
-  leafs = schema.leafs
+  leafs = current_schema.leafs
   # Validate that the enrich fields are actually a valid leaf path.
   if source_path not in leafs:
     raise ValueError(f'"{source_path}" is not a valid leaf path. '
@@ -191,12 +191,12 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
 
   # Apply the "derived_from" field lineage to the field we are enriching.
   _apply_field_lineage(signal_schema, source_path)
-  enriched_schema = Field(fields={signal.key(): signal_schema})
+  enriched_schema = field({signal.key(): signal_schema})
 
   # If we are enriching an entity we should store the signal data in the entity field's parent.
   if source_path[-1] == ENTITY_FEATURE_KEY:
     source_path = source_path[:-1]
-    enriched_schema.derived_from = schema.get_field(source_path).derived_from
+    enriched_schema.derived_from = current_schema.get_field(source_path).derived_from
 
   for path_part in reversed(source_path):
     if path_part == PATH_WILDCARD:
@@ -211,7 +211,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, schema: Schema)
   if path_is_from_lilac(source_path):
     enriched_schema = enriched_schema.fields[LILAC_COLUMN]
 
-  return Schema(fields={UUID_COLUMN: Field(dtype=DataType.STRING), LILAC_COLUMN: enriched_schema})
+  return schema({UUID_COLUMN: 'string', LILAC_COLUMN: enriched_schema})
 
 
 def _apply_field_lineage(field: Field, derived_from: PathTuple) -> None:
@@ -350,3 +350,59 @@ def flatten_keys(
 def embedding_index_filename(prefix: str, shard_index: int, num_shards: int) -> str:
   """Return the filename for the embedding index."""
   return f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.npy'
+
+
+def schema(schema_like: object) -> Schema:
+  """Parse a schema-like object to a Schema object."""
+  field = _parse_field_like(schema_like)
+  return Schema(fields=field.fields)
+
+
+def field(field_like: object,
+          derived_from: Optional[PathTuple] = None,
+          signal_root: Optional[bool] = None) -> Field:
+  """Parse a field-like object to a Field object."""
+  field = _parse_field_like(field_like)
+  field.derived_from = derived_from
+  field.signal_root = signal_root
+  return field
+
+
+DTYPE_LIKE_TO_DTYPE: dict[str, DataType] = {
+  'uint8': DataType.UINT8,
+  'uint16': DataType.UINT16,
+  'uint32': DataType.UINT32,
+  'uint64': DataType.UINT64,
+  'int8': DataType.INT8,
+  'int16': DataType.INT16,
+  'int32': DataType.INT32,
+  'int64': DataType.INT64,
+  'float16': DataType.FLOAT16,
+  'float32': DataType.FLOAT32,
+  'float64': DataType.FLOAT64,
+  'string': DataType.STRING,
+  'string_span': DataType.STRING_SPAN,
+  'boolean': DataType.BOOLEAN,
+  'binary': DataType.BINARY,
+  'time': DataType.TIME,
+  'date': DataType.DATE,
+  'timestamp': DataType.TIMESTAMP,
+  'interval': DataType.INTERVAL,
+  'embedding': DataType.EMBEDDING,
+}
+
+
+def _parse_field_like(field_like: object) -> Field:
+  if isinstance(field_like, Field):
+    return field_like
+  elif isinstance(field_like, dict):
+    fields: dict[str, Field] = {}
+    for k, v in field_like.items():
+      fields[k] = _parse_field_like(v)
+    return Field(fields=fields)
+  elif isinstance(field_like, str):
+    return Field(dtype=DTYPE_LIKE_TO_DTYPE[field_like])
+  elif isinstance(field_like, list):
+    return Field(repeated_field=_parse_field_like(field_like[0]))
+  else:
+    raise ValueError(f'Cannot parse field like: {field_like}')

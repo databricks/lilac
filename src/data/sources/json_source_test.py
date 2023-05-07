@@ -3,7 +3,8 @@ import json
 import os
 import pathlib
 
-from ...schema import UUID_COLUMN, DataType, Field, Schema
+from ...schema import UUID_COLUMN
+from ..dataset_utils import schema
 from .json_source import JSONDataset
 from .source import SourceProcessResult
 
@@ -21,12 +22,11 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
   result = source.process(str(os.path.join(tmp_path, 'data')))
 
   expected_result = SourceProcessResult(
-    data_schema=Schema(
-      fields={
-        UUID_COLUMN: Field(dtype=DataType.STRING),
-        'x': Field(dtype=DataType.UINT64),
-        'y': Field(dtype=DataType.STRING),
-      }),
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'x': 'uint64',
+      'y': 'string'
+    }),
     num_items=2,
     filepaths=[])
 
@@ -50,12 +50,11 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
   result = source.process(str(os.path.join(tmp_path, 'data')))
 
   expected_result = SourceProcessResult(
-    data_schema=Schema(
-      fields={
-        UUID_COLUMN: Field(dtype=DataType.STRING),
-        'x': Field(dtype=DataType.UINT64),
-        'y': Field(dtype=DataType.STRING),
-      }),
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'x': 'uint64',
+      'y': 'string'
+    }),
     num_items=2,
     filepaths=[])
 

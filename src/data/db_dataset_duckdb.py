@@ -263,7 +263,7 @@ class DatasetDuckDB(DatasetDB):
     source_path = normalize_path(column.feature)
     signal_key = signal.key()
     signal_out_prefix = signal_filename_prefix(source_path=source_path, signal_key=signal_key)
-    signal_schema = create_signal_schema(signal, source_path, schema=self.manifest().data_schema)
+    signal_schema = create_signal_schema(signal, source_path, self.manifest().data_schema)
     enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
     for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
       item[UUID_COLUMN] = uuid
