@@ -11,18 +11,15 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..config import CONFIG
-from ..embeddings.embedding_index import EmbeddingIndexerManifest, EmbeddingIndexInfo
-from ..embeddings.embedding_registry import (
-    Embedding,
-    clear_embedding_registry,
-    register_embedding,
-)
+from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
     ENTITY_FEATURE_KEY,
     LILAC_COLUMN,
     UUID_COLUMN,
     DataType,
+    EmbeddingEntity,
+    EmbeddingField,
     EnrichmentType,
     Field,
     Item,
@@ -85,21 +82,27 @@ EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
 
-class TestEmbedding(Embedding):
+class TestEmbedding(EmbeddingSignal):
   """A test embed function."""
   name = TEST_EMBEDDING_NAME
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def __call__(self, data: Iterable[RichData]) -> np.ndarray:
-    """Embed the examples, use a hashmap to the vector for simplicity."""
-    return np.array([STR_EMBEDDINGS[cast(str, example)] for example in data])
+  def fields(self) -> Field:
+    """Return the fields for the embedding."""
+    # Override in the test so we can attach extra metadata.
+    return EmbeddingField(metadata={'neg_sum': Field(dtype=DataType.FLOAT32)})
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+    """Call the embedding function."""
+    embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
+    yield from (EmbeddingEntity(e, metadata={'neg_sum': -1 * e.sum()}) for e in embeddings)
 
 
 class LengthSignal(Signal):
   name = 'length_signal'
   enrichment_type = EnrichmentType.TEXT
-  vector_based = False
 
   _call_count: int = 0
 
@@ -136,14 +139,13 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestParamSignal)
   register_signal(TestSparseSignal)
   register_signal(TestSparseRichSignal)
-  register_embedding(TestEmbedding)
+  register_signal(TestEmbedding)
 
   # Unit test runs.
   yield
 
   # Teardown.
   clear_signal_registry()
-  clear_embedding_registry()
 
 
 @pytest.fixture(autouse=True)
@@ -259,7 +261,6 @@ class SelectRowsSuite:
             'bool': 'boolean',
             'float': 'float32',
         }),
-        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=3)
 
     test_signal = TestSignal()
@@ -322,7 +323,6 @@ class SelectRowsSuite:
         namespace=TEST_NAMESPACE,
         dataset_name=TEST_DATASET_NAME,
         data_schema=expect_schema,
-        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=3)
 
     # Select a specific signal leaf test_signal.flen.
@@ -402,7 +402,6 @@ class SelectRowsSuite:
                             })
                     },)
             }),
-        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=2)
 
     result = db.select_rows(['text', LILAC_COLUMN])
@@ -590,7 +589,6 @@ class SelectRowsSuite:
                                 }))
                     })
             }),
-        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=2)
 
     result = db.select_rows(['texts', LILAC_COLUMN])
@@ -829,7 +827,6 @@ class SelectRowsSuite:
                                 }))
                     })
             }),
-        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=2)
 
     result = db.select_rows([(LILAC_COLUMN, 'text', '*')])
@@ -1058,24 +1055,28 @@ class SelectRowsSuite:
             'text': 'hello2.',
         }])
 
-    db.compute_embedding_index(TEST_EMBEDDING_NAME, 'text')
+    db.compute_signal_column(TestEmbedding(), 'text')
 
-    signal_col = SignalUDF(TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), column='text')
+    signal_col = SignalUDF(
+        TestEmbeddingSumSignal(),
+        column=(LILAC_COLUMN, 'text', TEST_EMBEDDING_NAME, ENTITY_FEATURE_KEY))
     result = db.select_rows(['text', signal_col])
     expected_result = [{
         UUID_COLUMN: '1',
         'text': 'hello.',
-        'test_embedding_sum(embedding=test_embedding)(text)': 1.0
+        'test_embedding_sum(__lilac__.text.test_embedding.__entity__)': 1.0
     }, {
         UUID_COLUMN: '2',
         'text': 'hello2.',
-        'test_embedding_sum(embedding=test_embedding)(text)': 2.0
+        'test_embedding_sum(__lilac__.text.test_embedding.__entity__)': 2.0
     }]
     assert list(result) == expected_result
 
     # Select rows with alias.
     signal_col = SignalUDF(
-        TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), Column('text'), alias='emb_sum')
+        TestEmbeddingSumSignal(),
+        Column((LILAC_COLUMN, 'text', TEST_EMBEDDING_NAME, ENTITY_FEATURE_KEY)),
+        alias='emb_sum')
     result = db.select_rows(['text', signal_col])
     expected_result = [{
         UUID_COLUMN: '1',
@@ -1101,18 +1102,19 @@ class SelectRowsSuite:
             'text': ['hello world2.', 'hello2.'],
         }])
 
-    db.compute_embedding_index(TEST_EMBEDDING_NAME, ('text', '*'))
+    db.compute_signal_column(TestEmbedding(), ('text', '*'))
 
-    signal_col = SignalUDF(TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), ('text', '*'))
+    signal_col = SignalUDF(TestEmbeddingSumSignal(),
+                           (LILAC_COLUMN, 'text', '*', TEST_EMBEDDING_NAME, ENTITY_FEATURE_KEY))
     result = db.select_rows(['text', signal_col])
     expected_result = [{
         UUID_COLUMN: '1',
         'text': ['hello.', 'hello world.'],
-        'test_embedding_sum(embedding=test_embedding)(text)': [1.0, 3.0]
+        'test_embedding_sum(__lilac__.text.*.test_embedding.__entity__)': [1.0, 3.0]
     }, {
         UUID_COLUMN: '2',
         'text': ['hello world2.', 'hello2.'],
-        'test_embedding_sum(embedding=test_embedding)(text)': [4.0, 2.0]
+        'test_embedding_sum(__lilac__.text.*.test_embedding.__entity__)': [4.0, 2.0]
     }]
     assert list(result) == expected_result
 
@@ -1130,7 +1132,6 @@ class SelectRowsSuite:
                 'bool': Field(dtype=DataType.BOOLEAN),
                 'float': Field(dtype=DataType.FLOAT32),
             }),
-        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=3)
 
     test_signal = TestSignal()
@@ -1187,7 +1188,6 @@ class SelectRowsSuite:
                             })
                     })
             }),
-        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=3)
 
   def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -1260,7 +1260,6 @@ class SelectRowsSuite:
                             })
                     }),
             }),
-        embedding_manifest=EmbeddingIndexerManifest(indexes=[]),
         num_items=2)
 
     # NOTE: The way this currently works is it just generates a new signal column, in the old
@@ -1295,10 +1294,9 @@ class SelectRowsSuite:
             'text': 'hello2.',
         }])
 
-    embedding = TestEmbedding()
-    db.compute_embedding_index(embedding, 'text')
-
-    db.compute_signal_column(TestEmbeddingSumSignal(embedding=TestEmbedding()), 'text')
+    db.compute_signal_column(TestEmbedding(), 'text')
+    db.compute_signal_column(TestEmbeddingSumSignal(),
+                             (LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY))
 
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
@@ -1311,29 +1309,47 @@ class SelectRowsSuite:
                     fields={
                         'text': Field(
                             fields={
-                                'test_embedding_sum': Field(
-                                    dtype=DataType.FLOAT32,
+                                'test_embedding': EmbeddingField(
+                                    metadata={
+                                        'neg_sum': Field(
+                                            dtype=DataType.FLOAT32, derived_from=('text',))
+                                    },
+                                    extra_data={
+                                        'test_embedding_sum': Field(
+                                            dtype=DataType.FLOAT32,
+                                            derived_from=(LILAC_COLUMN, 'text', 'test_embedding',
+                                                          ENTITY_FEATURE_KEY),
+                                            signal_root=True)
+                                    },
                                     derived_from=('text',),
                                     signal_root=True)
-                            })
+                            }),
                     })
             }),
-        embedding_manifest=EmbeddingIndexerManifest(
-            indexes=[EmbeddingIndexInfo(column=('text',), embedding=embedding)]),
         num_items=2)
 
-    result = db.select_rows(['text', (LILAC_COLUMN, 'text')])
+    result = db.select_rows()
     expected_result = [{
         UUID_COLUMN: '1',
         'text': 'hello.',
-        f'{LILAC_COLUMN}.text': {
-            'test_embedding_sum': 1.0
+        LILAC_COLUMN: {
+            'text': {
+                'test_embedding': EmbeddingEntity(
+                    embedding=None,
+                    metadata={'neg_sum': -1.0},
+                    extra_data={'test_embedding_sum': 1.0})
+            }
         }
     }, {
         UUID_COLUMN: '2',
         'text': 'hello2.',
-        f'{LILAC_COLUMN}.text': {
-            'test_embedding_sum': 2.0
+        LILAC_COLUMN: {
+            'text': {
+                'test_embedding': EmbeddingEntity(
+                    embedding=None,
+                    metadata={'neg_sum': -2.0},
+                    extra_data={'test_embedding_sum': 2.0})
+            }
         }
     }]
     assert list(result) == expected_result
@@ -1352,12 +1368,11 @@ class SelectRowsSuite:
 
     entity_signal = TestEntitySignal()
     db.compute_signal_column(entity_signal, 'text')
-    embedding = TestEmbedding()
-    db.compute_embedding_index(embedding,
-                               (LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY))
+    db.compute_signal_column(TestEmbedding(),
+                             (LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY))
     db.compute_signal_column(
-        TestEmbeddingSumSignal(embedding=embedding),
-        (LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY))
+        TestEmbeddingSumSignal(),
+        (LILAC_COLUMN, 'text', 'test_entity_len', '*', 'test_embedding', ENTITY_FEATURE_KEY))
 
     assert db.manifest() == DatasetManifest(
         namespace=TEST_NAMESPACE,
@@ -1377,12 +1392,27 @@ class SelectRowsSuite:
                                                 dtype=DataType.INT32, derived_from=('text',))
                                         },
                                         extra_data={
-                                            'test_embedding_sum': Field(
-                                                dtype=DataType.FLOAT32,
+                                            'test_embedding': EmbeddingField(
+                                                metadata={
+                                                    'neg_sum': Field(
+                                                        dtype=DataType.FLOAT32,
+                                                        derived_from=(LILAC_COLUMN, 'text',
+                                                                      'test_entity_len', '*',
+                                                                      ENTITY_FEATURE_KEY))
+                                                },
+                                                extra_data={
+                                                    'test_embedding_sum': Field(
+                                                        dtype=DataType.FLOAT32,
+                                                        derived_from=(LILAC_COLUMN, 'text',
+                                                                      'test_entity_len', '*',
+                                                                      'test_embedding',
+                                                                      ENTITY_FEATURE_KEY),
+                                                        signal_root=True)
+                                                },
+                                                signal_root=True,
                                                 derived_from=(LILAC_COLUMN, 'text',
                                                               'test_entity_len', '*',
-                                                              ENTITY_FEATURE_KEY),
-                                                signal_root=True)
+                                                              ENTITY_FEATURE_KEY))
                                         },
                                         derived_from=('text',)),
                                     derived_from=('text',),
@@ -1390,11 +1420,6 @@ class SelectRowsSuite:
                             })
                     })
             }),
-        embedding_manifest=EmbeddingIndexerManifest(indexes=[
-            EmbeddingIndexInfo(
-                column=(LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY),
-                embedding=embedding)
-        ]),
         num_items=2)
 
     result = db.select_rows(
@@ -1402,17 +1427,51 @@ class SelectRowsSuite:
     assert list(result) == [{
         UUID_COLUMN: '1',
         'text': 'hello. hello2.',
-        'sentences': [
-            TextEntity(0, 6, metadata={'len': 6}, extra_data={'test_embedding_sum': 1.0}),
-            TextEntity(7, 14, metadata={'len': 7}, extra_data={'test_embedding_sum': 2.0})
-        ]
+        'sentences': [{
+            **TextEntity(0, 6, metadata={'len': 6}),
+            **{
+                'test_embedding': {
+                    **EmbeddingEntity(None, metadata={'neg_sum': -1.0}),
+                    **{
+                        'test_embedding_sum': 1.0
+                    }
+                }
+            }
+        }, {
+            **TextEntity(7, 14, metadata={'len': 7}),
+            **{
+                'test_embedding': {
+                    **EmbeddingEntity(None, metadata={'neg_sum': -2.0}),
+                    **{
+                        'test_embedding_sum': 2.0
+                    }
+                }
+            }
+        }]
     }, {
         UUID_COLUMN: '2',
         'text': 'hello world. hello world2.',
-        'sentences': [
-            TextEntity(0, 12, metadata={'len': 12}, extra_data={'test_embedding_sum': 3.0}),
-            TextEntity(13, 26, metadata={'len': 13}, extra_data={'test_embedding_sum': 4.0})
-        ]
+        'sentences': [{
+            **TextEntity(0, 12, metadata={'len': 12}),
+            **{
+                'test_embedding': {
+                    **EmbeddingEntity(None, metadata={'neg_sum': -3.0}),
+                    **{
+                        'test_embedding_sum': 3.0
+                    }
+                }
+            }
+        }, {
+            **TextEntity(13, 26, metadata={'len': 13}),
+            **{
+                'test_embedding': {
+                    **EmbeddingEntity(None, metadata={'neg_sum': -4.0}),
+                    **{
+                        'test_embedding_sum': 4.0
+                    }
+                }
+            }
+        }]
     }]
 
   def test_invalid_column_paths(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -1480,7 +1539,6 @@ class SelectRowsSuite:
 class TestSignal(Signal):
   name = 'test_signal'
   enrichment_type = EnrichmentType.TEXT
-  vector_based = False
 
   @override
   def fields(self) -> Field:
@@ -1543,8 +1601,7 @@ class TestEntitySignal(Signal):
 class TestEmbeddingSumSignal(Signal):
   """Sums the embeddings to return a single floating point value."""
   name = 'test_embedding_sum'
-  enrichment_type = EnrichmentType.TEXT
-  vector_based = True
+  enrichment_type = EnrichmentType.TEXT_EMBEDDING
 
   @override
   def fields(self) -> Field:
@@ -1553,9 +1610,6 @@ class TestEmbeddingSumSignal(Signal):
   @override
   def vector_compute(self, keys: Iterable[PathTuple],
                      vector_store: VectorStore) -> Iterable[ItemValue]:
-    if not self.embedding:
-      raise ValueError('self.embedding is None.')
-
     # The signal just sums the values of the embedding.
     embedding_sums = vector_store.get(keys).sum(axis=1)
     for embedding_sum in embedding_sums.tolist():

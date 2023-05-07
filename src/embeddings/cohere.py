@@ -8,8 +8,11 @@ from sklearn.preprocessing import normalize
 from typing_extensions import override
 
 from ..config import CONFIG
-from ..schema import EnrichmentType, RichData
-from .embedding_registry import Embedding
+from ..schema import EmbeddingEntity, EnrichmentType, Item, RichData
+from ..utils import chunks
+from .embedding import EmbeddingSignal
+
+COHERE_BATCH_SIZE = 96
 
 
 @functools.cache
@@ -20,16 +23,17 @@ def _cohere() -> cohere.Client:
   return cohere.Client(api_key)
 
 
-class Cohere(Embedding):
+class Cohere(EmbeddingSignal):
   """Cohere embedding."""
   name = 'cohere'
   enrichment_type = EnrichmentType.TEXT
-  # Cohere only accepts 96 inputs at a time.
-  batch_size = 96
 
   @override
-  def __call__(self, data: Iterable[RichData]) -> np.ndarray:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
-    # If the input is too long, truncate it to the first 512 tokens to fit cohere's input limit.
-    return normalize(np.array(_cohere().embed(list(data),
-                                              truncate='END').embeddings)).astype(np.float16)
+    batches = chunks(data, COHERE_BATCH_SIZE)
+    for batch in batches:
+      embedding_batch = normalize(np.array(_cohere().embed(
+          batch, truncate='END').embeddings)).astype(np.float16)
+      # np.split returns a shallow copy of each embedding so we don't increase the memory footprint.
+      yield from (EmbeddingEntity(e) for e in np.split(embedding_batch, embedding_batch.shape[0]))

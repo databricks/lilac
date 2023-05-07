@@ -8,8 +8,9 @@ import pytest
 from typing_extensions import override
 
 from ..config import CONFIG
-from ..embeddings.embedding_registry import Embedding, clear_embedding_registry, register_embedding
-from ..schema import EnrichmentType, RichData
+from ..embeddings.embedding import EmbeddingSignal
+from ..schema import EmbeddingEntity, EnrichmentType, Item, RichData
+from ..signals.signal_registry import clear_signal_registry, register_signal
 from .concept import ConceptModel, Example, ExampleIn
 from .db_concept import ConceptDB, ConceptModelDB, ConceptUpdate, DiskConceptDB, DiskConceptModelDB
 
@@ -34,29 +35,31 @@ EMBEDDING_MAP: dict[str, list[float]] = {
 }
 
 
-class TestEmbedding(Embedding):
+class TestEmbedding(EmbeddingSignal):
   """A test embed function."""
   name = 'test_embedding'
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def __call__(self, data: Iterable[RichData]) -> np.ndarray:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Embed the examples, use a hashmap to the vector for simplicity."""
     for example in data:
       if example not in EMBEDDING_MAP:
         raise ValueError(f'Example "{str(example)}" not in embedding map')
-    return np.array([EMBEDDING_MAP[cast(str, example)] for example in data])
+    embeddings = np.array([EMBEDDING_MAP[cast(str, example)] for example in data])
+
+    yield from (EmbeddingEntity(e) for e in embeddings)
 
 
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Generator:
-  register_embedding(TestEmbedding)
+  register_signal(TestEmbedding)
 
   # Unit test runs.
   yield
 
   # Teardown.
-  clear_embedding_registry()
+  clear_signal_registry()
 
 
 @pytest.mark.parametrize('db_cls', ALL_CONCEPT_DBS)

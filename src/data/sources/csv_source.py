@@ -10,11 +10,10 @@ from pydantic import BaseModel, Field
 from typing_extensions import override
 
 from ...config import CONFIG, data_path
-from ...schema import PARQUET_FILENAME_PREFIX, ImageInfo, Path, arrow_schema_to_schema
+from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, ImageInfo, Path, arrow_schema_to_schema
 from ...tasks import TaskId
 from ...utils import (
     GCS_REGEX,
-    UUID_COLUMN,
     CopyRequest,
     copy_files,
     delete_file,

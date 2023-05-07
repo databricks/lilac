@@ -10,7 +10,6 @@ import type { EnrichmentType } from './EnrichmentType';
 export type SignalInfo = {
     name: string;
     enrichment_type: EnrichmentType;
-    vector_based: boolean;
     json_schema: any;
 };
 

@@ -10,8 +10,8 @@ from pydantic import BaseModel
 from typing_extensions import override
 
 from ..config import data_path
-from ..embeddings.embedding_registry import get_embedding_cls
 from ..schema import EnrichmentType
+from ..signals.signal_registry import get_signal_cls
 from ..utils import DebugTimer, delete_file, file_exists, open_file
 from .concept import Concept, ConceptModel, Example, ExampleIn
 
@@ -116,9 +116,9 @@ class DiskConceptModelDB(ConceptModelDB):
     if not concept:
       raise ValueError(f'Concept "{namespace}/{concept_name}" does not exist.')
 
-    # Make sure that the embedding exists.
-    if not get_embedding_cls(embedding_name):
-      raise ValueError(f'Embedding "{embedding_name}" is not registered in the registry.')
+    # Make sure that the embedding signal exists.
+    if not get_signal_cls(embedding_name):
+      raise ValueError(f'Embedding signal "{embedding_name}" not found in the registry.')
 
     concept_model_path = _concept_model_path(namespace, concept_name, embedding_name)
     if not file_exists(concept_model_path):

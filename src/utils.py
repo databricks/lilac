@@ -5,9 +5,7 @@ import itertools
 import logging
 import os
 import pathlib
-import pprint
 import re
-import secrets
 import shutil
 import threading
 import time
@@ -16,12 +14,10 @@ from concurrent.futures import Executor, ThreadPoolExecutor
 from functools import partial, wraps
 from typing import IO, Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
 
-import pyarrow as pa
 from google.cloud.storage import Blob, Client
 from pydantic import BaseModel
 
-from .parquet_writer import ParquetWriter
-from .schema import UUID_COLUMN, Item, Path, Schema, schema_to_arrow_schema
+from .schema import Path
 
 GCS_PROTOCOL = 'gs://'
 GCS_REGEX = re.compile(f'{GCS_PROTOCOL}(.*?)/(.*)')
@@ -172,48 +168,6 @@ def get_image_path(output_dir: str, path: Path, row_id: bytes) -> str:
   path_subdir = '_'.join([str(p) for p in path])
   filename = row_id.hex()
   return os.path.join(output_dir, IMAGES_DIR_NAME, path_subdir, filename)
-
-
-def _validate(item: Item, schema: pa.Schema) -> None:
-  # Try to parse the item using the inferred schema.
-  try:
-    pa.RecordBatch.from_pylist([item], schema=schema)
-  except pa.ArrowTypeError:
-    log('Failed to parse arrow item using the arrow schema.')
-    log('Item:')
-    log(pprint.pformat(item, indent=2))
-    log('Arrow schema:')
-    log(schema)
-    raise  # Re-raise the same exception, same stacktrace.
-
-
-def parquet_filename(prefix: str, shard_index: int, num_shards: int) -> str:
-  """Return the filename for a parquet file."""
-  return f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.parquet'
-
-
-def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schema,
-                           filename_prefix: str, shard_index: int,
-                           num_shards: int) -> tuple[str, int]:
-  """Write a set of items to a parquet file, in columnar format."""
-  arrow_schema = schema_to_arrow_schema(schema)
-  out_filename = parquet_filename(filename_prefix, shard_index, num_shards)
-  filepath = os.path.join(output_dir, out_filename)
-  f = open_file(filepath, mode='wb')
-  writer = ParquetWriter(schema)
-  writer.open(f)
-  num_items = 0
-  for item in items:
-    # Add a UUID column.
-    if UUID_COLUMN not in item:
-      item[UUID_COLUMN] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
-    if os.getenv('DEBUG'):
-      _validate(item, arrow_schema)
-    writer.write(item)
-    num_items += 1
-  writer.close()
-  f.close()
-  return out_filename, num_items
 
 
 Tout = TypeVar('Tout')

@@ -264,7 +264,6 @@ export const datasetApi = createApi({
 
 export const {
   useGetSourcesQuery,
-  useComputeEmbeddingIndexMutation,
   useComputeSignalColumnMutation,
   useGetManifestQuery,
   useSelectRowsQuery,

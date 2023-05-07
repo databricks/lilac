@@ -5,4 +5,4 @@
 /**
  * Enum holding the enrichment type for a signal.
  */
-export type EnrichmentType = 'text' | 'image';
+export type EnrichmentType = 'text' | 'text_embedding' | 'image';

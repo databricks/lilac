@@ -1,9 +1,17 @@
 """Utilities for working with datasets."""
 
 import math
+import os
+import pprint
+import secrets
 from collections.abc import Iterable
-from typing import Generator, Iterator, Union, cast
+from typing import Any, Callable, Generator, Iterator, TypeVar, Union, cast
 
+import numpy as np
+import pyarrow as pa
+from pydantic import BaseModel
+
+from ..parquet_writer import ParquetWriter
 from ..schema import (
     ENTITY_FEATURE_KEY,
     LILAC_COLUMN,
@@ -11,33 +19,67 @@ from ..schema import (
     UUID_COLUMN,
     DataType,
     Field,
+    Item,
+    ItemValue,
     PathTuple,
     Schema,
+    schema_to_arrow_schema,
 )
 from ..signals.signal import Signal
+from ..utils import file_exists, log, open_file
+
+NP_INDEX_KEYS_KWD = 'keys'
+NP_EMBEDDINGS_KWD = 'embeddings'
 
 
 def is_primitive(obj: object) -> bool:
   """Returns True if the object is a primitive."""
-  if isinstance(obj, (str, bytes)):
+  if isinstance(obj, (str, bytes, np.ndarray)):
     return True
   if isinstance(obj, Iterable):
     return False
   return True
 
 
-def _flatten(input: Union[Iterable, object]) -> Generator:
+def _replace_embeddings_with_none(input: Union[Item, ItemValue]) -> Union[Item, ItemValue]:
+  """Replaces all embeddings with None."""
+  if isinstance(input, np.ndarray):
+    return None
+  if isinstance(input, dict):
+    return {k: replace_embeddings_with_none(v) for k, v in input.items()}
+  if isinstance(input, list):
+    return [replace_embeddings_with_none(v) for v in input]
+
+  return input
+
+
+def replace_embeddings_with_none(input: Union[Item, ItemValue]) -> Item:
+  """Replaces all embeddings with None."""
+  return cast(Item, _replace_embeddings_with_none(input))
+
+
+Tflatten = TypeVar('Tflatten', object, np.ndarray)
+
+
+def _flatten(input: Union[Iterable, object], is_primitive_predicate: Callable[[object],
+                                                                              bool]) -> Generator:
   """Flattens a nested iterable."""
-  if is_primitive(input):
+  if is_primitive_predicate(input):
     yield input
+  elif is_primitive(input):
+    pass
   else:
     for elem in cast(Iterable, input):
-      yield from _flatten(elem)
+      if isinstance(elem, dict):
+        yield from _flatten(elem.values(), is_primitive_predicate)
+      else:
+        yield from _flatten(elem, is_primitive_predicate)
 
 
-def flatten(input: Union[Iterable, object]) -> list[object]:
+def flatten(input: Union[Iterable, Tflatten],
+            is_primitive_predicate: Callable[[object], bool] = is_primitive) -> list[Tflatten]:
   """Flattens a nested iterable."""
-  return list(_flatten(input))
+  return list(_flatten(input, is_primitive_predicate))
 
 
 def _wrap_value_in_dict(input: Union[object, dict], props: PathTuple) -> Union[object, dict]:
@@ -55,7 +97,12 @@ def _unflatten(flat_input: Iterator[list[object]],
   if is_primitive(original_input):
     return next(flat_input)
   else:
-    return [_unflatten(flat_input, orig_elem) for orig_elem in cast(Iterable, original_input)]
+    values: Iterable
+    if isinstance(original_input, dict):
+      values = original_input.values()
+    else:
+      values = cast(Iterable, original_input)
+    return [_unflatten(flat_input, orig_elem) for orig_elem in values]
 
 
 def unflatten(flat_input: Iterable, original_input: Union[Iterable, object]) -> list:
@@ -179,3 +226,127 @@ def _apply_field_lineage(field: Field, derived_from: PathTuple) -> None:
     _apply_field_lineage(field.repeated_field, derived_from)
 
   field.derived_from = derived_from
+
+
+def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], output_dir: str,
+                             filename_prefix: str, shard_index: int, num_shards: int) -> str:
+  """Write a set of embeddings to disk."""
+  out_filename = embedding_index_filename(filename_prefix, shard_index, num_shards)
+  index_path = os.path.join(output_dir, out_filename)
+
+  # Restrict the keys to only those that are embeddings.
+  def embedding_predicate(input: Any) -> bool:
+    return isinstance(input, np.ndarray)
+
+  flat_keys = flatten_keys(keys, embeddings, is_primitive_predicate=embedding_predicate)
+  flat_embeddings = np.array(flatten(embeddings, is_primitive_predicate=embedding_predicate))
+
+  # Write the embedding index and the ordered UUID column to disk so they can be joined later.
+  np_keys = np.empty(len(flat_keys), dtype=object)
+  np_keys[:] = flat_keys
+
+  with open_file(index_path, 'wb') as f:
+    np.savez(f, **{NP_INDEX_KEYS_KWD: np_keys, NP_EMBEDDINGS_KWD: flat_embeddings})
+
+  return out_filename
+
+
+class EmbeddingIndex(BaseModel):
+  """The result of an embedding index query."""
+
+  class Config:
+    arbitrary_types_allowed = True
+
+  keys: list[PathTuple]
+  embeddings: np.ndarray
+
+
+def read_embedding_index(output_dir: str, filename: str) -> EmbeddingIndex:
+  """Reads the embedding index for a column from disk."""
+  index_path = os.path.join(output_dir, filename)
+
+  if not file_exists(index_path):
+    raise ValueError(F'Embedding index does not exist at path {index_path}. '
+                     'Please run db.compute_signal() on the embedding signal first.')
+
+  # Read the embedding index from disk.
+  with open_file(index_path, 'rb') as f:
+    np_index: dict[str, np.ndarray] = np.load(f, allow_pickle=True)
+    embeddings = np_index[NP_EMBEDDINGS_KWD]
+    index_keys = np_index[NP_INDEX_KEYS_KWD].tolist()
+  return EmbeddingIndex(path=index_path, keys=index_keys, embeddings=embeddings)
+
+
+def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schema,
+                           filename_prefix: str, shard_index: int,
+                           num_shards: int) -> tuple[str, int]:
+  """Write a set of items to a parquet file, in columnar format."""
+  arrow_schema = schema_to_arrow_schema(schema)
+  out_filename = parquet_filename(filename_prefix, shard_index, num_shards)
+  filepath = os.path.join(output_dir, out_filename)
+  f = open_file(filepath, mode='wb')
+  writer = ParquetWriter(schema)
+  writer.open(f)
+  num_items = 0
+  for item in items:
+    # Add a UUID column.
+    if UUID_COLUMN not in item:
+      item[UUID_COLUMN] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
+    if os.getenv('DEBUG'):
+      _validate(item, arrow_schema)
+    writer.write(item)
+    num_items += 1
+  writer.close()
+  f.close()
+  return out_filename, num_items
+
+
+def _validate(item: Item, schema: pa.Schema) -> None:
+  # Try to parse the item using the inferred schema.
+  try:
+    pa.RecordBatch.from_pylist([item], schema=schema)
+  except pa.ArrowTypeError:
+    log('Failed to parse arrow item using the arrow schema.')
+    log('Item:')
+    log(pprint.pformat(item, indent=2))
+    log('Arrow schema:')
+    log(schema)
+    raise  # Re-raise the same exception, same stacktrace.
+
+
+def parquet_filename(prefix: str, shard_index: int, num_shards: int) -> str:
+  """Return the filename for a parquet file."""
+  return f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.parquet'
+
+
+def _flatten_keys(uuid: str, nested_input: Iterable, location: list[int],
+                  is_primitive_predicate: Callable[[object], bool]) -> list[PathTuple]:
+  if is_primitive_predicate(nested_input):
+    return [(uuid, *location)]
+  elif is_primitive(nested_input):
+    return []
+  else:
+    result: list[PathTuple] = []
+    if isinstance(nested_input, dict):
+      for value in nested_input.values():
+        result.extend(_flatten_keys(uuid, value, location, is_primitive_predicate))
+    else:
+      for i, input in enumerate(nested_input):
+        result.extend(_flatten_keys(uuid, input, [*location, i], is_primitive_predicate))
+    return result
+
+
+def flatten_keys(
+    uuids: Iterable[str],
+    nested_input: Iterable,
+    is_primitive_predicate: Callable[[object], bool] = is_primitive) -> list[PathTuple]:
+  """Flatten the uuid keys of a nested input."""
+  result: list[PathTuple] = []
+  for uuid, input in zip(uuids, nested_input):
+    result.extend(_flatten_keys(uuid, input, [], is_primitive_predicate))
+  return result
+
+
+def embedding_index_filename(prefix: str, shard_index: int, num_shards: int) -> str:
+  """Return the filename for the embedding index."""
+  return f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.npy'

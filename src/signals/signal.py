@@ -1,16 +1,10 @@
 """Interface for implementing a signal."""
 
 import abc
-from typing import Any, ClassVar, Iterable, Optional, Union
+from typing import ClassVar, Iterable, Optional
 
 from pydantic import BaseModel, validator
 
-from ..embeddings.embedding_registry import (
-    Embedding,
-    EmbeddingId,
-    get_embedding_cls,
-    resolve_embedding,
-)
 from ..embeddings.vector_store import VectorStore
 from ..schema import EnrichmentType, Field, PathTuple, RichData, SignalOut
 
@@ -20,26 +14,13 @@ class Signal(abc.ABC, BaseModel):
   # ClassVars do not get serialized with pydantic.
   name: ClassVar[str]
   enrichment_type: ClassVar[EnrichmentType]
-  vector_based: ClassVar[bool] = False
 
   # The signal_name will get populated in init automatically from the class name so it gets
   # serialized and the signal author doesn't have to define both the static property and the field.
   signal_name: Optional[str]
-  embedding: Optional[EmbeddingId] = None
 
   class Config:
     underscore_attrs_are_private = True
-
-  _embed_fn: Optional[Embedding] = None
-
-  def __init__(self, *args: Any, **kwargs: Any) -> None:
-    super().__init__(*args, **kwargs)
-
-    if self.embedding:
-      if isinstance(self.embedding, str):
-        self._embed_fn = get_embedding_cls(self.embedding)()
-      else:
-        self._embed_fn = self.embedding
 
   @validator('signal_name', pre=True, always=True)
   def validate_signal_name(cls, signal_name: str) -> str:
@@ -52,14 +33,6 @@ class Signal(abc.ABC, BaseModel):
       raise ValueError('Signal attribute "name" must be defined.')
 
     return cls.name
-
-  @validator('embedding', always=True)
-  def validate_embedding(cls, embedding: Optional[EmbeddingId]) -> Optional[EmbeddingId]:
-    """Return the static name when the signal name hasn't yet been set."""
-    if cls.vector_based and not embedding:
-      raise ValueError('Signal attribute "embedding" must be defined for "vector_based" signals.')
-
-    return embedding
 
   @abc.abstractmethod
   def fields(self) -> Field:
@@ -114,15 +87,6 @@ class Signal(abc.ABC, BaseModel):
       return "None" for skipped inputs.
     """
     raise NotImplementedError
-
-  @validator('embedding', pre=True)
-  def parse_embedding(cls, embedding: Union[dict, str]) -> EmbeddingId:
-    """Parse an embedding to its specific subclass instance."""
-    if embedding is None:
-      return embedding
-    if isinstance(embedding, str):
-      return embedding
-    return resolve_embedding(embedding)
 
   def key(self) -> str:
     """Get the key for a signal.

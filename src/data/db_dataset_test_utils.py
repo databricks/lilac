@@ -13,8 +13,8 @@ from ..schema import (
     Schema,
     SourceManifest,
 )
-from ..utils import get_dataset_output_dir, open_file, write_items_to_parquet
-from .dataset_utils import is_primitive
+from ..utils import get_dataset_output_dir, open_file
+from .dataset_utils import is_primitive, write_items_to_parquet
 from .db_dataset import DatasetDB
 
 TEST_NAMESPACE = 'test_namespace'

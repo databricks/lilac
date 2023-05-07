@@ -14,7 +14,6 @@ import {useAppDispatch, useAppSelector} from '../hooks';
 import {useTopValues} from '../hooks/useTopValues';
 import {Path} from '../schema';
 import {
-  useComputeEmbeddingIndexMutation,
   useComputeSignalColumnMutation,
   useGetDatasetsQuery,
   useGetStatsQuery,
@@ -634,7 +633,7 @@ function ComputeEmbeddingIndexAccept({
   const dispatch = useAppDispatch();
 
   const [computeEmbedding, {isLoading: isComputeEmbeddingLoading}] =
-    useComputeEmbeddingIndexMutation();
+    useComputeSignalColumnMutation();
 
   const query = useGetStatsQuery({
     namespace,
@@ -675,7 +674,7 @@ function ComputeEmbeddingIndexAccept({
                 datasetName,
                 options: {
                   leaf_path: page.metadata!.column!,
-                  embedding: {embedding_name: page.metadata?.embedding.name},
+                  signal: {signal_name: page.metadata?.embedding.name},
                 },
               }).unwrap();
               dispatch(setTasksPanelOpen(true));

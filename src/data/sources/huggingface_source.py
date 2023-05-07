@@ -22,7 +22,7 @@ from ...schema import (
     arrow_dtype_to_dtype,
 )
 from ...tasks import TaskId, progress
-from ...utils import write_items_to_parquet
+from ..dataset_utils import write_items_to_parquet
 from .source import Source, SourceProcessResult
 
 TFDSElement = Union[dict, tf.RaggedTensor, tf.Tensor]

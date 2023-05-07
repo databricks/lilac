@@ -31,7 +31,7 @@ TEXT_SPAN_END_FEATURE = 'end'
 
 # Python doesn't work with recursive types. These types provide some notion of type-safety.
 Scalar = Union[bool, datetime, int, float, str, bytes]
-ItemValue = Union[dict, list, np.ndarray, Scalar]
+ItemValue = Union[dict, list, np.ndarray, Scalar, None]
 Item = dict[str, ItemValue]
 RowKeyedItem = tuple[bytes, Item]
 SignalOut = Union[ItemValue, Item]
@@ -92,6 +92,8 @@ class DataType(str, Enum):
   LIST = 'list'
   BINARY = 'binary'
 
+  EMBEDDING = 'embedding'
+
   def __repr__(self) -> str:
     return self.value
 
@@ -99,19 +101,23 @@ class DataType(str, Enum):
 class EnrichmentType(str, Enum):
   """Enum holding the enrichment type for a signal."""
   TEXT = 'text'
+  TEXT_EMBEDDING = 'text_embedding'
   IMAGE = 'image'
 
   def __repr__(self) -> str:
     return self.value
 
 
+ENRICHMENT_TYPE_TO_VALID_DTYPES: dict[EnrichmentType, list[DataType]] = {
+    EnrichmentType.TEXT: [DataType.STRING, DataType.STRING_SPAN],
+    EnrichmentType.TEXT_EMBEDDING: [DataType.EMBEDDING],
+    EnrichmentType.IMAGE: [DataType.BINARY],
+}
+
+
 def enrichment_supports_dtype(enrichment_type: EnrichmentType, dtype: DataType) -> bool:
   """Returns True if the enrichment type supports the dtype."""
-  if enrichment_type == EnrichmentType.TEXT:
-    return dtype in (DataType.STRING, DataType.STRING_SPAN)
-  elif enrichment_type == EnrichmentType.IMAGE:
-    return dtype == DataType.BINARY
-  return False
+  return dtype in ENRICHMENT_TYPE_TO_VALID_DTYPES[enrichment_type]
 
 
 class Field(BaseModel):
@@ -175,12 +181,15 @@ class Field(BaseModel):
 
 def EntityField(entity_value: Field,
                 metadata: Optional[dict[str, Field]] = {},
-                extra_data: Optional[dict[str, Field]] = {}) -> Field:
+                extra_data: Optional[dict[str, Field]] = {},
+                signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
   res = Field(
       fields={ENTITY_FEATURE_KEY: entity_value},
       is_entity=True,
       derived_from=entity_value.derived_from)
+  if signal_root:
+    res.signal_root = signal_root
   if metadata and res.fields:
     res.fields[ENTITY_METADATA_KEY] = Field(fields=metadata, derived_from=entity_value.derived_from)
   if extra_data and res.fields:
@@ -188,7 +197,9 @@ def EntityField(entity_value: Field,
   return res
 
 
-def Entity(entity: Item, metadata: Optional[Item] = {}, extra_data: Optional[Item] = {}) -> Item:
+def Entity(entity: ItemValue,
+           metadata: Optional[Item] = {},
+           extra_data: Optional[Item] = {}) -> Item:
   """Creates an entity item."""
   return {ENTITY_FEATURE_KEY: entity, ENTITY_METADATA_KEY: metadata or {}, **(extra_data or {})}
 
@@ -272,10 +283,33 @@ def TextEntity(start: int,
 
 def TextEntityField(metadata: Optional[dict[str, Field]] = {},
                     extra_data: Optional[dict[str, Field]] = {},
-                    derived_from: Optional[PathTuple] = None) -> Field:
+                    derived_from: Optional[PathTuple] = None,
+                    signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
   return EntityField(
-      Field(dtype=DataType.STRING_SPAN, derived_from=derived_from), metadata, extra_data)
+      Field(dtype=DataType.STRING_SPAN, derived_from=derived_from),
+      metadata,
+      extra_data,
+      signal_root=signal_root)
+
+
+def EmbeddingEntity(embedding: Optional[np.ndarray],
+                    metadata: Optional[Item] = {},
+                    extra_data: Optional[Item] = {}) -> Item:
+  """Return the span item from start and end character offets."""
+  return Entity(embedding, metadata, extra_data)
+
+
+def EmbeddingField(metadata: Optional[dict[str, Field]] = {},
+                   extra_data: Optional[dict[str, Field]] = {},
+                   derived_from: Optional[PathTuple] = None,
+                   signal_root: Optional[bool] = False) -> Field:
+  """Returns a field that represents an entity."""
+  return EntityField(
+      Field(dtype=DataType.EMBEDDING, derived_from=derived_from),
+      metadata,
+      extra_data,
+      signal_root=signal_root)
 
 
 def child_item_from_column_path(item: Item, path: Path) -> Item:
@@ -433,6 +467,11 @@ def dtype_to_arrow_dtype(dtype: DataType) -> pa.DataType:
     return pa.timestamp('us')
   elif dtype == DataType.INTERVAL:
     return pa.duration('us')
+  elif dtype == DataType.EMBEDDING:
+    # We reserve an empty column for embeddings in parquet files so they can live under __lilac__.
+    # The values are *not* filled out. If parquet and duckdb support embeddings in the future, we
+    # can set this dtype to the relevant pyarrow type.
+    return pa.null()
   else:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
 
