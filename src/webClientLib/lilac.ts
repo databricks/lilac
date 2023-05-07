@@ -14,6 +14,10 @@ const VALUE_KEY = '__value';
 const PATH_KEY = '__path';
 const SCHEMA_FIELD_KEY = '__field';
 
+// Cache containing the list of fields and value nodes
+let listFieldsCache = new WeakMap<LilacSchemaField, LilacSchemaField[]>();
+let listValueNodesCache = new WeakMap<LilacValueNode, LilacValueNode[]>();
+
 export type LilacSchemaField = Field & {
   path: Path;
   // Overwrite the fields and repeated_field properties to be LilacSchemaField
@@ -30,8 +34,11 @@ export type LilacValueNode = {
  * Internal type for a LilacValueNode casted with internal properties.
  */
 type LilacValueNodeCasted<D extends DataType = DataType> = {
+  /** Holds the actual value of the node */
   [VALUE_KEY]: castDataType<D>;
+  /** Holds the path property of the node */
   [PATH_KEY]: Path;
+  /** Holds a reference to the schema field */
   [SCHEMA_FIELD_KEY]: LilacSchemaField | undefined;
 };
 
@@ -79,33 +86,53 @@ export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacVa
 
   const { [LILAC_COLUMN]: signalValues, ...values } = children;
 
-  let mergedChildren: LilacValueNode = values;
-  if (signalValues) mergedChildren = mergeDeep(values, signalValues);
-  castLilacValueNode(mergedChildren)[VALUE_KEY] = null;
-  castLilacValueNode(mergedChildren)[PATH_KEY] = [];
-  castLilacValueNode(mergedChildren)[SCHEMA_FIELD_KEY] = schema;
-  return mergedChildren;
+  // Merge signal values into the source values
+  let mergedNode: LilacValueNode = values;
+  if (signalValues) mergedNode = mergeDeep(values, signalValues);
+
+  castLilacValueNode(mergedNode)[VALUE_KEY] = null;
+  castLilacValueNode(mergedNode)[PATH_KEY] = [];
+  castLilacValueNode(mergedNode)[SCHEMA_FIELD_KEY] = schema;
+  return mergedNode;
 }
 
 /** List all fields as a flattend array */
 export function listFields(field: LilacSchemaField | LilacSchema): LilacSchemaField[] {
-  return [
+  // Return the cached value if it exists
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  if (listFieldsCache.has(field)) return listFieldsCache.get(field)!;
+
+  const result = [
     field,
     ...Object.values(field.fields || {}).flatMap(listFields),
     ...(field.repeated_field ? listFields(field.repeated_field) : [])
   ];
+
+  // Cache the result
+  listFieldsCache.set(field, result);
+  return result;
 }
 
 /** List all values as a flattend array */
 export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
-  if (Array.isArray(row)) return [...row, ...row.flatMap(listValueNodes)];
+  // Return the cached value if it exists
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  if (listValueNodesCache.has(row)) return listValueNodesCache.get(row)!;
+
+  let result: LilacValueNode[];
+  if (Array.isArray(row)) result = [...row, ...row.flatMap(listValueNodes)];
   else {
+    // Strip the internal properties
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { [VALUE_KEY]: value, [PATH_KEY]: path, [SCHEMA_FIELD_KEY]: field, ...rest } = row;
 
     const childProperties = Object.values(rest || {});
-    return [...childProperties, ...childProperties.flatMap((v) => listValueNodes(v))];
+    result = [...childProperties, ...childProperties.flatMap((v) => listValueNodes(v))];
   }
+
+  // Cache the result
+  listValueNodesCache.set(row, result);
+  return result;
 }
 
 /**
@@ -191,4 +218,9 @@ function lilacValueNodeFromRawValue(
   castLilacValueNode(ret)[PATH_KEY] = path;
   castLilacValueNode(ret)[SCHEMA_FIELD_KEY] = field;
   return ret;
+}
+
+export function clearCache() {
+  listFieldsCache = new WeakMap();
+  listValueNodesCache = new WeakMap();
 }

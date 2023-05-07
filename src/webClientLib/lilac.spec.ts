@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { assertType, describe, expect, it } from 'vitest';
+import { afterEach, assertType, describe, expect, it } from 'vitest';
 import { Schema } from './fastapi_client';
 import {
+  clearCache,
   deserializeRow,
   deserializeSchema,
   getField,
@@ -170,6 +171,10 @@ describe('lilac', () => {
   const schema = deserializeSchema(MANIFEST_SCHEMA_FIXTURE);
   const row = deserializeRow(SELECT_ROWS_RESPONSE_FIXTURE, schema);
 
+  afterEach(() => {
+    clearCache();
+  });
+
   describe('deserializeSchema', () => {
     it('should deserialize a schema', () => {
       expect(schema).toBeDefined();
@@ -233,6 +238,15 @@ describe('lilac', () => {
       expect(paths).toContainEqual(['complex_list_of_struct', '*']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*', 'propertyA']);
     });
+    it('returns cached results', () => {
+      const fields = listFields(schema);
+      const fields2 = listFields(schema);
+      expect(fields).toBe(fields2);
+
+      clearCache();
+      const fields3 = listFields(schema);
+      expect(fields).not.toBe(fields3);
+    });
   });
 
   describe('listValues', () => {
@@ -250,6 +264,15 @@ describe('lilac', () => {
       expect(paths).toContainEqual(['title']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*', 'propertyA']);
+    });
+    it('returns cached results', () => {
+      const values = listValueNodes(row);
+      const values2 = listValueNodes(row);
+      expect(values).toBe(values2);
+
+      clearCache();
+      const values3 = listValueNodes(row);
+      expect(values).not.toBe(values3);
     });
   });
 
