@@ -79,11 +79,11 @@ class TaskManager():
     """Create a unique ID for a task."""
     task_id = uuid.uuid4().bytes.hex()
     self._tasks[task_id] = TaskInfo(
-        name=name,
-        status=TaskStatus.PENDING,
-        progress=None,
-        description=description,
-        start_timestamp=datetime.now().isoformat())
+      name=name,
+      status=TaskStatus.PENDING,
+      progress=None,
+      description=description,
+      start_timestamp=datetime.now().isoformat())
     return task_id
 
   def _set_task_completed(self, task_id: TaskId, task_future: Future) -> None:
@@ -101,7 +101,7 @@ class TaskManager():
     self._tasks[task_id].end_timestamp = end_timestamp
 
     elapsed = datetime.fromisoformat(end_timestamp) - datetime.fromisoformat(
-        self._tasks[task_id].start_timestamp)
+      self._tasks[task_id].start_timestamp)
     log(f'Task completed "{task_id}": "{self._tasks[task_id].name}" in '
         f'{_pretty_timedelta(elapsed)}.')
 
@@ -111,7 +111,7 @@ class TaskManager():
 
     task_future = self._dask_client.submit(task, *args, key=task_id)
     task_future.add_done_callback(
-        lambda task_future: self._set_task_completed(task_id, task_future))
+      lambda task_future: self._set_task_completed(task_id, task_future))
 
   async def stop(self) -> None:
     """Stop the task manager and close the dask client."""

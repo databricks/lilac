@@ -13,15 +13,15 @@ from ...config import CONFIG, data_path
 from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, ImageInfo, Path, arrow_schema_to_schema
 from ...tasks import TaskId
 from ...utils import (
-    GCS_REGEX,
-    CopyRequest,
-    copy_files,
-    delete_file,
-    file_exists,
-    get_image_path,
-    log,
-    makedirs,
-    open_file,
+  GCS_REGEX,
+  CopyRequest,
+  copy_files,
+  delete_file,
+  file_exists,
+  get_image_path,
+  log,
+  makedirs,
+  open_file,
 )
 from .source import Source, SourceProcessResult
 
@@ -43,8 +43,8 @@ class CSVDataset(Source):
   filepaths: list[str] = Field(description='A list of filepaths to CSV files.')
   delim: Optional[str] = Field(default=',', description='The CSV file delimiter to use.')
   image_columns: Optional[list[ImageColumn]] = Field(
-      description=
-      'A list of image columns specifying which columns associate with image information.')
+    description='A list of image columns specifying which columns associate with image information.'
+  )
 
   @override
   def process(self, output_dir: str, task_id: Optional[TaskId] = None) -> SourceProcessResult:
@@ -121,21 +121,19 @@ class CSVDataset(Source):
         row_id = row[-1]
         for i, image_column in enumerate(self.image_columns):
           input_image_path = os.path.join(
-              os.path.dirname(gcs_filepaths[0]), image_column.subdir,
-              f'{row[i]}{image_column.path_suffix}')
+            os.path.dirname(gcs_filepaths[0]), image_column.subdir,
+            f'{row[i]}{image_column.path_suffix}')
           copy_image_infos.append(
-              CopyRequest(
-                  from_path=input_image_path,
-                  to_path=get_image_path(
-                      output_dir=output_dir,
-                      path=_csv_column_to_path(image_column.name),
-                      row_id=row_id)))
+            CopyRequest(
+              from_path=input_image_path,
+              to_path=get_image_path(
+                output_dir=output_dir, path=_csv_column_to_path(image_column.name), row_id=row_id)))
 
       log(f'[CSV Source] Copying {len(copy_image_infos)} images...')
       copy_files(
-          copy_image_infos,
-          input_gcs=GCS_REGEX.match(gcs_filepaths[0]) is not None,
-          output_gcs=GCS_REGEX.match(out_filepath) is not None)
+        copy_image_infos,
+        input_gcs=GCS_REGEX.match(gcs_filepaths[0]) is not None,
+        output_gcs=GCS_REGEX.match(out_filepath) is not None)
     con.close()
 
     filepaths = [s3_out_filepath]
@@ -145,15 +143,15 @@ class CSVDataset(Source):
     images: Optional[list[ImageInfo]] = None
     if self.image_columns:
       images = [
-          ImageInfo(path=_csv_column_to_path(image_column.name))
-          for image_column in self.image_columns
+        ImageInfo(path=_csv_column_to_path(image_column.name))
+        for image_column in self.image_columns
       ]
 
     # Clean up the temporary files that we created for http CSV requests.
     for temp_filename in temp_files_to_delete:
       delete_file(temp_filename)
     return SourceProcessResult(
-        filepaths=filepaths, data_schema=schema, images=images, num_items=num_items)
+      filepaths=filepaths, data_schema=schema, images=images, num_items=num_items)
 
 
 def _csv_column_to_path(column_name: str) -> Path:

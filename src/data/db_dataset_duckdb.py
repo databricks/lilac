@@ -18,28 +18,28 @@ from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import (
-    ENTITY_FEATURE_KEY,
-    LILAC_COLUMN,
-    MANIFEST_FILENAME,
-    PATH_WILDCARD,
-    TEXT_SPAN_END_FEATURE,
-    TEXT_SPAN_START_FEATURE,
-    UUID_COLUMN,
-    DataType,
-    EnrichmentType,
-    Field,
-    Item,
-    ItemValue,
-    Path,
-    PathTuple,
-    RichData,
-    Schema,
-    SourceManifest,
-    enrichment_supports_dtype,
-    is_float,
-    is_integer,
-    is_ordinal,
-    normalize_path,
+  ENTITY_FEATURE_KEY,
+  LILAC_COLUMN,
+  MANIFEST_FILENAME,
+  PATH_WILDCARD,
+  TEXT_SPAN_END_FEATURE,
+  TEXT_SPAN_START_FEATURE,
+  UUID_COLUMN,
+  DataType,
+  EnrichmentType,
+  Field,
+  Item,
+  ItemValue,
+  Path,
+  PathTuple,
+  RichData,
+  Schema,
+  SourceManifest,
+  enrichment_supports_dtype,
+  is_float,
+  is_integer,
+  is_ordinal,
+  normalize_path,
 )
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import Signal
@@ -48,39 +48,39 @@ from ..tasks import TaskId, progress
 from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
 from . import db_dataset
 from .dataset_utils import (
-    create_signal_schema,
-    flatten,
-    flatten_keys,
-    merge_schemas,
-    path_is_from_lilac,
-    read_embedding_index,
-    replace_embeddings_with_none,
-    schema_contains_path,
-    unflatten,
-    wrap_in_dicts,
-    write_embeddings_to_disk,
-    write_items_to_parquet,
+  create_signal_schema,
+  flatten,
+  flatten_keys,
+  merge_schemas,
+  path_is_from_lilac,
+  read_embedding_index,
+  replace_embeddings_with_none,
+  schema_contains_path,
+  unflatten,
+  wrap_in_dicts,
+  write_embeddings_to_disk,
+  write_items_to_parquet,
 )
 from .db_dataset import (
-    Bins,
-    Column,
-    ColumnId,
-    Comparison,
-    DatasetDB,
-    DatasetManifest,
-    Filter,
-    FilterLike,
-    GroupsSortBy,
-    MediaResult,
-    NamedBins,
-    SelectGroupsResult,
-    SelectRowsResult,
-    SignalTransform,
-    SignalUDF,
-    SortOrder,
-    StatsResult,
-    column_from_identifier,
-    make_parquet_id,
+  Bins,
+  Column,
+  ColumnId,
+  Comparison,
+  DatasetDB,
+  DatasetManifest,
+  Filter,
+  FilterLike,
+  GroupsSortBy,
+  MediaResult,
+  NamedBins,
+  SelectGroupsResult,
+  SelectRowsResult,
+  SignalTransform,
+  SignalUDF,
+  SortOrder,
+  StatsResult,
+  column_from_identifier,
+  make_parquet_id,
 )
 
 DEBUG = CONFIG['DEBUG'] == 'true' if 'DEBUG' in CONFIG else False
@@ -94,13 +94,13 @@ SOURCE_VIEW_NAME = 'source'
 SAMPLE_SIZE_DISTINCT_COUNT = 100_000
 
 COMPARISON_TO_OP: dict[Comparison, str] = {
-    Comparison.EQUALS: '=',
-    Comparison.NOT_EQUAL: '!=',
-    Comparison.GREATER: '>',
-    Comparison.GREATER_EQUAL: '>=',
-    Comparison.LESS: '<',
-    Comparison.LESS_EQUAL: '<=',
-    Comparison.IN: 'in',
+  Comparison.EQUALS: '=',
+  Comparison.NOT_EQUAL: '!=',
+  Comparison.GREATER: '>',
+  Comparison.GREATER_EQUAL: '>=',
+  Comparison.LESS: '<',
+  Comparison.LESS_EQUAL: '<=',
+  Comparison.IN: 'in',
 }
 
 
@@ -131,11 +131,11 @@ class DatasetDuckDB(DatasetDB):
   """The DuckDB implementation of the dataset database."""
 
   def __init__(
-      self,
-      namespace: str,
-      dataset_name: str,
-      vector_store_cls: Type[VectorStore] = NumpyVectorStore,
-      concept_model_db: ConceptModelDB = DISK_CONCEPT_MODEL_DB,
+    self,
+    namespace: str,
+    dataset_name: str,
+    vector_store_cls: Type[VectorStore] = NumpyVectorStore,
+    concept_model_db: ConceptModelDB = DISK_CONCEPT_MODEL_DB,
   ):
     super().__init__(namespace, dataset_name)
 
@@ -190,12 +190,11 @@ class DatasetDuckDB(DatasetDB):
     #   FROM source JOIN "parquet_id1" USING (uuid,) JOIN "parquet_id2" USING (uuid,)
     # );
     select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [
-        f'"{manifest.parquet_id}"."{LILAC_COLUMN}" AS "{manifest.parquet_id}"'
-        for manifest in self._signal_manifests
+      f'"{manifest.parquet_id}"."{LILAC_COLUMN}" AS "{manifest.parquet_id}"'
+      for manifest in self._signal_manifests
     ])
     join_sql = ' '.join([SOURCE_VIEW_NAME] + [
-        f'join "{manifest.parquet_id}" using ({UUID_COLUMN},)'
-        for manifest in self._signal_manifests
+      f'join "{manifest.parquet_id}" using ({UUID_COLUMN},)' for manifest in self._signal_manifests
     ])
 
     sql_cmd = f"""CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})"""
@@ -207,10 +206,10 @@ class DatasetDuckDB(DatasetDB):
     num_items = cast(int, size_query_result[0])
 
     return DatasetManifest(
-        namespace=self.namespace,
-        dataset_name=self.dataset_name,
-        data_schema=merged_schema,
-        num_items=num_items)
+      namespace=self.namespace,
+      dataset_name=self.dataset_name,
+      data_schema=merged_schema,
+      num_items=num_items)
 
   @override
   def manifest(self) -> DatasetManifest:
@@ -227,7 +226,7 @@ class DatasetDuckDB(DatasetDB):
   def _get_vector_store(self, path: PathTuple) -> VectorStore:
     if path not in self._col_vector_stores:
       embedding_signal_manifest = next(
-          m for m in self._signal_manifests if schema_contains_path(m.data_schema, path))
+        m for m in self._signal_manifests if schema_contains_path(m.data_schema, path))
       if not embedding_signal_manifest:
         raise ValueError(f'No embedding found for path {path}.')
       if not embedding_signal_manifest.embedding_filename:
@@ -273,32 +272,32 @@ class DatasetDuckDB(DatasetDB):
     embedding_filename = None
     if is_embedding:
       embedding_filename = write_embeddings_to_disk(
-          keys=df[UUID_COLUMN],
-          embeddings=values,
-          output_dir=self.dataset_path,
-          filename_prefix=signal_out_prefix,
-          shard_index=0,
-          num_shards=1)
+        keys=df[UUID_COLUMN],
+        embeddings=values,
+        output_dir=self.dataset_path,
+        filename_prefix=signal_out_prefix,
+        shard_index=0,
+        num_shards=1)
 
       # Replace the embeddings with None so they are not serialized in the parquet file.
       enriched_signal_items = (replace_embeddings_with_none(item) for item in enriched_signal_items)
 
     enriched_signal_items = list(enriched_signal_items)
     parquet_filename, _ = write_items_to_parquet(
-        items=enriched_signal_items,
-        output_dir=self.dataset_path,
-        schema=signal_schema,
-        filename_prefix=signal_out_prefix,
-        shard_index=0,
-        num_shards=1)
+      items=enriched_signal_items,
+      output_dir=self.dataset_path,
+      schema=signal_schema,
+      filename_prefix=signal_out_prefix,
+      shard_index=0,
+      num_shards=1)
 
     signal_manifest = SignalManifest(
-        files=[parquet_filename],
-        data_schema=signal_schema,
-        signal=signal,
-        enriched_path=source_path,
-        parquet_id=make_parquet_id(signal, column.feature),
-        embedding_filename=embedding_filename)
+      files=[parquet_filename],
+      data_schema=signal_schema,
+      signal=signal,
+      enriched_path=source_path,
+      parquet_id=make_parquet_id(signal, column.feature),
+      embedding_filename=embedding_filename)
     signal_manifest_filepath = os.path.join(self.dataset_path,
                                             signal_manifest_filename(source_path, signal_key))
     with open_file(signal_manifest_filepath, 'w') as f:
@@ -511,7 +510,7 @@ class DatasetDuckDB(DatasetDB):
 
     self._validate_columns(cols)
     select_query, columns_to_merge = self._create_select(
-        cols, flatten=False, resolve_span=resolve_span, combine_columns=combine_columns)
+      cols, flatten=False, resolve_span=resolve_span, combine_columns=combine_columns)
     con = self.con.cursor()
     query = con.sql(f'SELECT {select_query} FROM t')
 
@@ -528,15 +527,15 @@ class DatasetDuckDB(DatasetDB):
       for sort_by_path in sort_by_paths:
         if sort_by_path[0] not in col_aliases and sort_by_path not in col_paths:
           raise ValueError(
-              f'Column {sort_by_path} is not defined as an alias in the given columns and is not '
-              'defined in the select. The sort by path must be defined in either the columns or as '
-              'a column alias.'
-              f'Available sort by aliases: {col_aliases}.\n'
-              f'Available columns: {columns}.\n')
+            f'Column {sort_by_path} is not defined as an alias in the given columns and is not '
+            'defined in the select. The sort by path must be defined in either the columns or as '
+            'a column alias.'
+            f'Available sort by aliases: {col_aliases}.\n'
+            f'Available columns: {columns}.\n')
 
       if not sort_order:
         raise ValueError(
-            'Sort order is undefined but sort by is defined. Please define a sort_order')
+          'Sort order is undefined but sort by is defined. Please define a sort_order')
 
       sort_cols_before_udf: list[str] = []
       for sort_by_path in sort_by_paths:
@@ -615,9 +614,9 @@ class DatasetDuckDB(DatasetDB):
 
             if len(signal_out) != len(flat_input):
               raise ValueError(
-                  f'The signal generated {len(signal_out)} values but the input data had '
-                  f"{len(flat_input)} values. This means the signal either didn't generate a "
-                  '"None" for a sparse output, or generated too many items.')
+                f'The signal generated {len(signal_out)} values but the input data had '
+                f"{len(flat_input)} values. This means the signal either didn't generate a "
+                '"None" for a sparse output, or generated too many items.')
             df[signal_column] = unflatten(signal_out, input)
       else:
         raise ValueError(f'Unsupported transform: {transform}')
@@ -634,7 +633,7 @@ class DatasetDuckDB(DatasetDB):
       if not already_sorted and sort_cols_after_udf:
         if not sort_order:
           raise ValueError(
-              'Sort order is undefined but sort by is defined. Please define a sort_order')
+            'Sort order is undefined but sort by is defined. Please define a sort_order')
         query = query.order(f'{", ".join(sort_cols_after_udf)} {sort_order.value}')
 
       if limit:
@@ -688,13 +687,13 @@ class DatasetDuckDB(DatasetDB):
     # We doing a vector-based computation, we do not need to select the actual data, just the uuids
     # plus an arbitrarily nested array of `None`s`.
     empty = bool(
-        column.transform and isinstance(column.transform, SignalTransform) and
-        manifest.data_schema.get_field(path).dtype == DataType.EMBEDDING)
+      column.transform and isinstance(column.transform, SignalTransform) and
+      manifest.data_schema.get_field(path).dtype == DataType.EMBEDDING)
     select_queries: list[str] = []
     temp_column_names: list[str] = []
 
     parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
-        self._source_manifest, *self._signal_manifests
+      self._source_manifest, *self._signal_manifests
     ]
 
     for m in parquet_manifests:

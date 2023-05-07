@@ -34,6 +34,6 @@ class Cohere(EmbeddingSignal):
     batches = chunks(data, COHERE_BATCH_SIZE)
     for batch in batches:
       embedding_batch = normalize(np.array(_cohere().embed(
-          batch, truncate='END').embeddings)).astype(np.float16)
+        batch, truncate='END').embeddings)).astype(np.float16)
       # np.split returns a shallow copy of each embedding so we don't increase the memory footprint.
       yield from (EmbeddingEntity(e) for e in np.split(embedding_batch, embedding_batch.shape[0]))

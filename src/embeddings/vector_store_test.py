@@ -20,7 +20,7 @@ class VectorStoreSuite:
     store.add([('a',), ('b',), ('c',)], np.array([[1, 2], [3, 4], [5, 6]]))
 
     np.testing.assert_array_equal(
-        store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]]))
+      store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]]))
 
   def test_get_subset(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()

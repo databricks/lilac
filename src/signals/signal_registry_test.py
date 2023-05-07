@@ -6,10 +6,10 @@ from typing_extensions import override
 
 from ..schema import DataType, EnrichmentType, Field, ItemValue, RichData
 from ..signals.signal_registry import (
-    clear_signal_registry,
-    get_signal_cls,
-    register_signal,
-    resolve_signal,
+  clear_signal_registry,
+  get_signal_cls,
+  register_signal,
+  resolve_signal,
 )
 from .signal import Signal
 

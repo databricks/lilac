@@ -14,15 +14,15 @@ from .semantic_search import SemanticSearchSignal
 TEST_EMBEDDING_NAME = 'test_embedding'
 
 EMBEDDINGS: dict[PathTuple, list[float]] = {
-    ('1',): [1.0, 0.0, 0.0],
-    ('2',): [0.9, 0.1, 0.0],
-    ('3',): [0.0, 0.0, 1.0]
+  ('1',): [1.0, 0.0, 0.0],
+  ('2',): [0.9, 0.1, 0.0],
+  ('3',): [0.0, 0.0, 1.0]
 }
 
 STR_EMBEDDINGS: dict[str, list[float]] = {
-    'hello': [1.0, 0.0, 0.0],
-    'hello world': [0.9, 0.1, 0.0],
-    'far': [0.0, 0.0, 1.0]
+  'hello': [1.0, 0.0, 0.0],
+  'hello world': [0.9, 0.1, 0.0],
+  'far': [0.0, 0.0, 1.0]
 }
 
 

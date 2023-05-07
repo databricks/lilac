@@ -6,12 +6,12 @@ from spacy import Language
 from typing_extensions import override
 
 from ...schema import (
-    EnrichmentType,
-    Field,
-    ItemValue,
-    RichData,
-    TextEntity,
-    TextEntityField,
+  EnrichmentType,
+  Field,
+  ItemValue,
+  RichData,
+  TextEntity,
+  TextEntityField,
 )
 from ...signals.signal import Signal
 

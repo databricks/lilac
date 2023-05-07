@@ -9,6 +9,5 @@ def test_text_to_expected_spans() -> None:
   text = 'Hello. Hello. Final sentence.'
   sentences = ['Hello.', 'Hello.', 'Final sentence.']
   assert text_to_expected_spans(
-      text, sentences) == [TextEntity(0, 6),
-                           TextEntity(7, 13),
-                           TextEntity(14, 29)]
+    text, sentences) == [TextEntity(0, 6), TextEntity(7, 13),
+                         TextEntity(14, 29)]

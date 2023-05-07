@@ -11,13 +11,13 @@ from ...config import CONFIG
 from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, ImageInfo, Path, arrow_schema_to_schema
 from ...tasks import TaskId
 from ...utils import (
-    GCS_REGEX,
-    CopyRequest,
-    copy_files,
-    get_image_path,
-    log,
-    makedirs,
-    open_file,
+  GCS_REGEX,
+  CopyRequest,
+  copy_files,
+  get_image_path,
+  log,
+  makedirs,
+  open_file,
 )
 from .source import Source, SourceProcessResult
 
@@ -103,21 +103,21 @@ class PandasDataset(Source):
         row_id = row[-1]
         for i, image_column in enumerate(self.image_columns):
           input_image_path = os.path.join(
-              os.path.dirname(image_base_path), image_column.subdir,
-              f'{row[i]}{image_column.path_suffix}')
+            os.path.dirname(image_base_path), image_column.subdir,
+            f'{row[i]}{image_column.path_suffix}')
           copy_image_infos.append(
-              CopyRequest(
-                  from_path=input_image_path,
-                  to_path=get_image_path(
-                      output_dir=output_dir,
-                      path=_pandas_column_to_path(image_column.name),
-                      row_id=row_id)))
+            CopyRequest(
+              from_path=input_image_path,
+              to_path=get_image_path(
+                output_dir=output_dir,
+                path=_pandas_column_to_path(image_column.name),
+                row_id=row_id)))
 
       log(f'[Pandas Source] Copying {len(copy_image_infos)} images...')
       copy_files(
-          copy_image_infos,
-          input_gcs=GCS_REGEX.match(image_base_path) is not None,
-          output_gcs=GCS_REGEX.match(out_filepath) is not None)
+        copy_image_infos,
+        input_gcs=GCS_REGEX.match(image_base_path) is not None,
+        output_gcs=GCS_REGEX.match(out_filepath) is not None)
     con.close()
 
     arrow_schema = pq.read_schema(open_file(out_filepath, mode='rb'))
@@ -125,12 +125,12 @@ class PandasDataset(Source):
     images: Optional[list[ImageInfo]] = None
     if self.image_columns:
       images = [
-          ImageInfo(path=_pandas_column_to_path(image_column.name))
-          for image_column in self.image_columns
+        ImageInfo(path=_pandas_column_to_path(image_column.name))
+        for image_column in self.image_columns
       ]
 
     return SourceProcessResult(
-        filepaths=[out_filepath], data_schema=schema, images=images, num_items=num_items)
+      filepaths=[out_filepath], data_schema=schema, images=images, num_items=num_items)
 
 
 def _pandas_column_to_path(column_name: str) -> Path:

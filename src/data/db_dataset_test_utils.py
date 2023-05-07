@@ -4,14 +4,14 @@ import pathlib
 from typing import Optional, Type, cast
 
 from ..schema import (
-    MANIFEST_FILENAME,
-    PARQUET_FILENAME_PREFIX,
-    DataType,
-    Field,
-    Item,
-    ItemValue,
-    Schema,
-    SourceManifest,
+  MANIFEST_FILENAME,
+  PARQUET_FILENAME_PREFIX,
+  DataType,
+  Field,
+  Item,
+  ItemValue,
+  Schema,
+  SourceManifest,
 )
 from ..utils import get_dataset_output_dir, open_file
 from .dataset_utils import is_primitive, write_items_to_parquet
@@ -114,12 +114,7 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
   os.makedirs(source_dir)
 
   simple_parquet_files, _ = write_items_to_parquet(
-      items,
-      source_dir,
-      schema,
-      filename_prefix=PARQUET_FILENAME_PREFIX,
-      shard_index=0,
-      num_shards=1)
+    items, source_dir, schema, filename_prefix=PARQUET_FILENAME_PREFIX, shard_index=0, num_shards=1)
   manifest = SourceManifest(files=[simple_parquet_files], data_schema=schema)
   with open_file(os.path.join(source_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.json(indent=2, exclude_none=True))

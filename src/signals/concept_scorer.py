@@ -33,7 +33,7 @@ class ConceptScoreSignal(Signal):
       get_signal_cls(self.embedding_name)
     except Exception as e:
       raise ValueError(
-          f'Embedding signal "{self.embedding_name}" not found in the registry.') from e
+        f'Embedding signal "{self.embedding_name}" not found in the registry.') from e
 
   @override
   def fields(self) -> Field:
@@ -44,8 +44,8 @@ class ConceptScoreSignal(Signal):
                                                self.embedding_name)
     if not self._concept_model_db.in_sync(concept_model):
       raise ValueError(
-          f'Concept model "{self.namespace}/{self.concept_name}/{self.embedding_name}" '
-          'is out of sync with its concept')
+        f'Concept model "{self.namespace}/{self.concept_name}/{self.embedding_name}" '
+        'is out of sync with its concept')
     return concept_model
 
   @override

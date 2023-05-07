@@ -4,8 +4,8 @@ from typing import Iterable, Optional, Union
 
 import tensorflow as tf
 from pydantic import (
-    BaseModel,
-    Field as PydanticField,
+  BaseModel,
+  Field as PydanticField,
 )
 from typing_extensions import override
 
@@ -13,13 +13,13 @@ from typing_extensions import override
 from datasets import ClassLabel, DatasetDict, Sequence, Value, load_dataset, load_from_disk
 
 from ...schema import (
-    PARQUET_FILENAME_PREFIX,
-    UUID_COLUMN,
-    DataType,
-    Field,
-    Item,
-    Schema,
-    arrow_dtype_to_dtype,
+  PARQUET_FILENAME_PREFIX,
+  UUID_COLUMN,
+  DataType,
+  Field,
+  Item,
+  Schema,
+  arrow_dtype_to_dtype,
 )
 from ...tasks import TaskId, progress
 from ..dataset_utils import write_items_to_parquet
@@ -66,8 +66,8 @@ def _infer_field(feature_value: Union[Value, dict]) -> Field:
   """Infer the field type from the feature value."""
   if isinstance(feature_value, dict):
     return Field(
-        dtype=DataType.STRUCT,
-        fields={name: _infer_field(value) for name, value in feature_value.items()})
+      dtype=DataType.STRUCT,
+      fields={name: _infer_field(value) for name, value in feature_value.items()})
   elif isinstance(feature_value, Value):
     return Field(dtype=arrow_dtype_to_dtype(feature_value.pa_type))
   elif isinstance(feature_value, Sequence):
@@ -76,11 +76,11 @@ def _infer_field(feature_value: Union[Value, dict]) -> Field:
     # These are converted to {'x': [...]} and {'y': [...]}
     if isinstance(feature_value.feature, dict):
       return Field(
-          dtype=DataType.STRUCT,
-          fields={
-              name: Field(repeated_field=_infer_field(value))
-              for name, value in feature_value.feature.items()
-          })
+        dtype=DataType.STRUCT,
+        fields={
+          name: Field(repeated_field=_infer_field(value))
+          for name, value in feature_value.feature.items()
+        })
     else:
       return Field(dtype=DataType.LIST, repeated_field=_infer_field(feature_value.feature))
 
@@ -122,7 +122,7 @@ def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> 
   fields[UUID_COLUMN] = Field(dtype=DataType.STRING)
 
   return SchemaInfo(
-      data_schema=Schema(fields=fields), class_labels=class_labels, num_items=num_items)
+    data_schema=Schema(fields=fields), class_labels=class_labels, num_items=num_items)
 
 
 class HuggingFaceDataset(Source):
@@ -137,18 +137,18 @@ class HuggingFaceDataset(Source):
 
   dataset_name: str
   config_name: Optional[str] = PydanticField(
-      description='HuggingFace dataset config. Some datasets require this.', default=None)
+    description='HuggingFace dataset config. Some datasets require this.', default=None)
   split: Optional[str] = PydanticField(
-      description='HuggingFace dataset split. Loads all splits by default.', default=None)
+    description='HuggingFace dataset split. Loads all splits by default.', default=None)
   revision: Optional[str] = PydanticField(description='HuggingFace dataset revision.', default=None)
   load_from_disk: Optional[bool] = PydanticField(
-      description='Load from local disk instead of the hub.', default=False)
+    description='Load from local disk instead of the hub.', default=False)
 
   @override
   def process(
-      self,
-      output_dir: str,
-      task_id: Optional[TaskId] = None,
+    self,
+    output_dir: str,
+    task_id: Optional[TaskId] = None,
   ) -> SourceProcessResult:
     """Process the source upload request."""
     if self.load_from_disk:
@@ -156,22 +156,22 @@ class HuggingFaceDataset(Source):
       hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.dataset_name)}
     else:
       hf_dataset_dict = load_dataset(
-          self.dataset_name, self.config_name, num_proc=multiprocessing.cpu_count())
+        self.dataset_name, self.config_name, num_proc=multiprocessing.cpu_count())
 
     schema_info = _hf_schema_to_schema(hf_dataset_dict, self.split)
 
     items = progress(
-        _convert_to_items(hf_dataset_dict, schema_info.class_labels, self.split),
-        task_id=task_id,
-        estimated_len=schema_info.num_items)
+      _convert_to_items(hf_dataset_dict, schema_info.class_labels, self.split),
+      task_id=task_id,
+      estimated_len=schema_info.num_items)
 
     filepath, num_items = write_items_to_parquet(
-        items=items,
-        output_dir=output_dir,
-        schema=schema_info.data_schema,
-        filename_prefix=PARQUET_FILENAME_PREFIX,
-        shard_index=0,
-        num_shards=1)
+      items=items,
+      output_dir=output_dir,
+      schema=schema_info.data_schema,
+      filename_prefix=PARQUET_FILENAME_PREFIX,
+      shard_index=0,
+      num_shards=1)
 
     return SourceProcessResult(
-        filepaths=[filepath], data_schema=schema_info.data_schema, images=None, num_items=num_items)
+      filepaths=[filepath], data_schema=schema_info.data_schema, images=None, num_items=num_items)

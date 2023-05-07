@@ -21,5 +21,5 @@ class TextStatisticsSignal(Signal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     return ({
-        NUM_CHARS_FEATURE_NAME: len(text_content)
+      NUM_CHARS_FEATURE_NAME: len(text_content)
     } if isinstance(text_content, str) else None for text_content in data)

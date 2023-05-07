@@ -8,13 +8,13 @@ from pydantic import BaseModel, validator
 
 from .config import data_path
 from .data.db_dataset import (
-    Bins,
-    Column,
-    DatasetManifest,
-    Filter,
-    GroupsSortBy,
-    SortOrder,
-    StatsResult,
+  Bins,
+  Column,
+  DatasetManifest,
+  Filter,
+  GroupsSortBy,
+  SortOrder,
+  StatsResult,
 )
 from .db_manager import get_dataset_db
 from .router_utils import RouteErrorHandler
@@ -114,9 +114,9 @@ def compute_signal_column(namespace: str, dataset_name: str,
 
   path_str = '.'.join(map(str, options.leaf_path))
   task_id = task_manager().task_id(
-      name=f'Compute signal "{options.signal.name}" on "{path_str}" '
-      f'in dataset "{namespace}/{dataset_name}"',
-      description=f'Config: {options.signal}')
+    name=f'Compute signal "{options.signal.name}" on "{path_str}" '
+    f'in dataset "{namespace}/{dataset_name}"',
+    description=f'Config: {options.signal}')
   task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name, options.dict(),
                          task_id)
 
@@ -153,13 +153,13 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   db = get_dataset_db(namespace, dataset_name)
 
   items = list(
-      db.select_rows(
-          columns=options.columns,
-          filters=options.filters,
-          sort_by=options.sort_by,
-          sort_order=options.sort_order,
-          limit=options.limit,
-          offset=options.offset))
+    db.select_rows(
+      columns=options.columns,
+      filters=options.filters,
+      sort_by=options.sort_by,
+      sort_order=options.sort_order,
+      limit=options.limit,
+      offset=options.offset))
   return items
 
 

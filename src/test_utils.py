@@ -15,6 +15,6 @@ def read_items(data_dir: Union[str, pathlib.Path], filepaths: list[str],
   items: list[Item] = []
   for filepath in filepaths:
     items.extend(
-        pq.read_table(os.path.join(data_dir, filepath),
-                      schema=schema_to_arrow_schema(schema)).to_pylist())
+      pq.read_table(os.path.join(data_dir, filepath),
+                    schema=schema_to_arrow_schema(schema)).to_pylist())
   return items

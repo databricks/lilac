@@ -6,8 +6,8 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
 from pydantic import (
-    BaseModel,
-    Field as PydanticField,
+  BaseModel,
+  Field as PydanticField,
 )
 
 from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, DataType, Field, Item, Schema
@@ -42,7 +42,7 @@ def _convert_to_item(tfds_element: TFDSElement) -> Item:
     return tfds_element.numpy()
   else:
     raise ValueError(
-        f'Failed to convert TFDS element to py object: unknown type: "{type(tfds_element)}"')
+      f'Failed to convert TFDS element to py object: unknown type: "{type(tfds_element)}"')
 
 
 def _tf_dtype_to_dtype(dtype: tf.DType) -> DataType:
@@ -146,13 +146,13 @@ class TensorFlowDataset(Source):
 
   tfds_name: str
   split: Optional[str] = PydanticField(
-      default=None,
-      description='The TensorFlow dataset split name. If not provided, loads all splits.')
+    default=None,
+    description='The TensorFlow dataset split name. If not provided, loads all splits.')
 
   def process(
-      self,
-      output_dir: str,
-      task_id: Optional[TaskId] = None,
+    self,
+    output_dir: str,
+    task_id: Optional[TaskId] = None,
   ) -> SourceProcessResult:
     """Process the source upload request."""
     builder = tfds.builder(self.tfds_name)
@@ -176,13 +176,13 @@ class TensorFlowDataset(Source):
     schema = _tfds_schema_to_schema(builder.info.features)
     num_shards = builder.info.splits[split].num_shards
     shard_infos = [
-        ShardInfo(
-            dataset_name=self.tfds_name,
-            split=split,
-            data_schema=schema,
-            shard_index=shard_index,
-            num_shards=num_shards,
-            output_dir=output_dir) for shard_index in range(num_shards)
+      ShardInfo(
+        dataset_name=self.tfds_name,
+        split=split,
+        data_schema=schema,
+        shard_index=shard_index,
+        num_shards=num_shards,
+        output_dir=output_dir) for shard_index in range(num_shards)
     ]
 
     # TODO(nsthorat): Use dask to parallelize this if we ever use TFDS again.
@@ -191,20 +191,20 @@ class TensorFlowDataset(Source):
     num_items = sum(shard_out.num_items for shard_out in shard_outs)
 
     return SourceProcessResult(
-        filepaths=filepaths, data_schema=schema, images=None, num_items=num_items)
+      filepaths=filepaths, data_schema=schema, images=None, num_items=num_items)
 
   def process_shard(self, shard_info: ShardInfo) -> ShardOut:
     """Process an input file shard. Each shard is processed in parallel by different workers."""
     ds = tfds.load(
-        shard_info.dataset_name, split=f'{shard_info.split}[{shard_info.shard_index}shard]')
+      shard_info.dataset_name, split=f'{shard_info.split}[{shard_info.shard_index}shard]')
 
     ds = ds.prefetch(10_000)
     items = (_convert_to_item(tfds_element) for tfds_element in ds)
     filepath, num_items = write_items_to_parquet(
-        items=items,
-        output_dir=shard_info.output_dir,
-        schema=shard_info.data_schema,
-        filename_prefix=PARQUET_FILENAME_PREFIX,
-        shard_index=shard_info.shard_index,
-        num_shards=shard_info.num_shards)
+      items=items,
+      output_dir=shard_info.output_dir,
+      schema=shard_info.data_schema,
+      filename_prefix=PARQUET_FILENAME_PREFIX,
+      shard_index=shard_info.shard_index,
+      num_shards=shard_info.num_shards)
     return ShardOut(filepath=filepath, num_items=num_items)

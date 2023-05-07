@@ -13,17 +13,17 @@ from pydantic import BaseModel
 
 from ..parquet_writer import ParquetWriter
 from ..schema import (
-    ENTITY_FEATURE_KEY,
-    LILAC_COLUMN,
-    PATH_WILDCARD,
-    UUID_COLUMN,
-    DataType,
-    Field,
-    Item,
-    ItemValue,
-    PathTuple,
-    Schema,
-    schema_to_arrow_schema,
+  ENTITY_FEATURE_KEY,
+  LILAC_COLUMN,
+  PATH_WILDCARD,
+  UUID_COLUMN,
+  DataType,
+  Field,
+  Item,
+  ItemValue,
+  PathTuple,
+  Schema,
+  schema_to_arrow_schema,
 )
 from ..signals.signal import Signal
 from ..utils import file_exists, log, open_file

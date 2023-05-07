@@ -7,10 +7,10 @@ from pydantic import BaseModel
 
 from .concepts.concept import Concept, ConceptModel
 from .concepts.db_concept import (
-    DISK_CONCEPT_DB,
-    DISK_CONCEPT_MODEL_DB,
-    ConceptInfo,
-    ConceptUpdate,
+  DISK_CONCEPT_DB,
+  DISK_CONCEPT_MODEL_DB,
+  ConceptInfo,
+  ConceptUpdate,
 )
 from .router_utils import RouteErrorHandler
 
@@ -29,7 +29,7 @@ def get_concept(namespace: str, concept_name: str) -> Concept:
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
   if not concept:
     raise HTTPException(
-        status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
+      status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
   return concept
 
 
@@ -68,13 +68,13 @@ def get_concept_model(namespace: str, concept_name: str, embedding_name: str) ->
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
   if not concept:
     raise HTTPException(
-        status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
+      status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
 
   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
   if not model:
     raise HTTPException(
-        status_code=404,
-        detail=f'Concept model "{namespace}/{concept_name}/{embedding_name}" was not found')
+      status_code=404,
+      detail=f'Concept model "{namespace}/{concept_name}/{embedding_name}" was not found')
 
   model_updated = DISK_CONCEPT_MODEL_DB.sync(model)
   return ConceptModelResponse(model=model, model_updated=model_updated).dict(exclude_none=True)
@@ -86,12 +86,12 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
   if not concept:
     raise HTTPException(
-        status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
+      status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
   if not model:
     raise HTTPException(
-        status_code=404,
-        detail=f'Concept model "{namespace}/{concept_name}/{embedding_name}" was not found')
+      status_code=404,
+      detail=f'Concept model "{namespace}/{concept_name}/{embedding_name}" was not found')
 
   model_updated = DISK_CONCEPT_MODEL_DB.sync(model)
   # TODO(smilkov): Support images.

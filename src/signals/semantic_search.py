@@ -7,12 +7,12 @@ from typing_extensions import override
 from ..embeddings.embedding import EmbeddingSignal, get_embed_fn
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
-    DataType,
-    EnrichmentType,
-    Field,
-    ItemValue,
-    PathTuple,
-    RichData,
+  DataType,
+  EnrichmentType,
+  Field,
+  ItemValue,
+  PathTuple,
+  RichData,
 )
 from .signal import Signal
 

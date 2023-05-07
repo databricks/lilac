@@ -43,9 +43,9 @@ class Source(abc.ABC, BaseModel):
 
   @abc.abstractmethod
   def process(
-      self,
-      output_dir: str,
-      task_id: Optional[TaskId] = None,
+    self,
+    output_dir: str,
+    task_id: Optional[TaskId] = None,
   ) -> SourceProcessResult:
     """Process the source upload request.
 

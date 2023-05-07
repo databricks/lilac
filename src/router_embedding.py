@@ -23,7 +23,7 @@ class EmbeddingInfo(BaseModel):
 def get_embeddings() -> list[EmbeddingInfo]:
   """List the datasets."""
   return [
-      EmbeddingInfo(name=s.name, enrichment_type=s.enrichment_type, json_schema=s.schema())
-      for s in SIGNAL_REGISTRY.values()
-      if issubclass(s, EmbeddingSignal)
+    EmbeddingInfo(name=s.name, enrichment_type=s.enrichment_type, json_schema=s.schema())
+    for s in SIGNAL_REGISTRY.values()
+    if issubclass(s, EmbeddingSignal)
   ]

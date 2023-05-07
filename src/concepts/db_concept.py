@@ -84,7 +84,7 @@ class ConceptModelDB(abc.ABC):
     concept = self._concept_db.get(concept_model.namespace, concept_model.concept_name)
     if not concept:
       raise ValueError(
-          f'Concept "{concept_model.namespace}/{concept_model.concept_name}" does not exist.')
+        f'Concept "{concept_model.namespace}/{concept_model.concept_name}" does not exist.')
     return concept.version == concept_model.version
 
   def sync(self, concept_model: ConceptModel) -> bool:
@@ -92,7 +92,7 @@ class ConceptModelDB(abc.ABC):
     concept = self._concept_db.get(concept_model.namespace, concept_model.concept_name)
     if not concept:
       raise ValueError(
-          f'Concept "{concept_model.namespace}/{concept_model.concept_name}" does not exist.')
+        f'Concept "{concept_model.namespace}/{concept_model.concept_name}" does not exist.')
     concept_path = (f'{concept_model.namespace}/{concept_model.concept_name}/'
                     f'{concept_model.embedding_name}')
     with DebugTimer(f'Syncing concept model "{concept_path}"'):
@@ -123,11 +123,11 @@ class DiskConceptModelDB(ConceptModelDB):
     concept_model_path = _concept_model_path(namespace, concept_name, embedding_name)
     if not file_exists(concept_model_path):
       return ConceptModel(
-          namespace=namespace,
-          concept_name=concept_name,
-          embedding_name=embedding_name,
-          embeddings={},
-          version=-1)
+        namespace=namespace,
+        concept_name=concept_name,
+        embedding_name=embedding_name,
+        embeddings={},
+        version=-1)
 
     with open_file(concept_model_path, 'rb') as f:
       return pickle.load(f)
@@ -174,11 +174,11 @@ class DiskConceptDB(ConceptDB):
         if file == CONCEPT_JSON_FILENAME:
           namespace, name = root.split('/')[-2:]
           concept_infos.append(
-              ConceptInfo(
-                  namespace=namespace,
-                  name=name,
-                  # TODO(nsthorat): Generalize this to images.
-                  enrichment_type=EnrichmentType.TEXT))
+            ConceptInfo(
+              namespace=namespace,
+              name=name,
+              # TODO(nsthorat): Generalize this to images.
+              enrichment_type=EnrichmentType.TEXT))
 
     return concept_infos
 

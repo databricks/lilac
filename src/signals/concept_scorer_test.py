@@ -9,11 +9,11 @@ from typing_extensions import override
 
 from ..concepts.concept import ConceptModel, ExampleIn
 from ..concepts.db_concept import (
-    ConceptDB,
-    ConceptModelDB,
-    ConceptUpdate,
-    DiskConceptDB,
-    DiskConceptModelDB,
+  ConceptDB,
+  ConceptModelDB,
+  ConceptUpdate,
+  DiskConceptDB,
+  DiskConceptModelDB,
 )
 from ..config import CONFIG
 from ..embeddings.embedding import EmbeddingSignal
@@ -37,9 +37,9 @@ def set_data_path(tmp_path: pathlib.Path) -> Generator:
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {
-    'not in concept': [1.0, 0.0, 0.0],
-    'in concept': [0.9, 0.1, 0.0],
-    'a new data point': [0.1, 0.2, 0.3],
+  'not in concept': [1.0, 0.0, 0.0],
+  'in concept': [0.9, 0.1, 0.0],
+  'a new data point': [0.1, 0.2, 0.3],
 }
 
 
@@ -76,20 +76,20 @@ def test_embedding_does_not_exist(db_cls: Type[ConceptDB]) -> None:
   namespace = 'test'
   concept_name = 'test_concept'
   train_data = [
-      ExampleIn(label=False, text='not in concept'),
-      ExampleIn(label=True, text='in concept')
+    ExampleIn(label=False, text='not in concept'),
+    ExampleIn(label=True, text='in concept')
   ]
   db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   with pytest.raises(
       ValueError, match='Embedding signal "unknown_embedding" not found in the registry'):
     ConceptScoreSignal(
-        namespace='test', concept_name='test_concept', embedding_name='unknown_embedding')
+      namespace='test', concept_name='test_concept', embedding_name='unknown_embedding')
 
 
 def test_concept_does_not_exist() -> None:
   signal = ConceptScoreSignal(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   with pytest.raises(ValueError, match='Concept "test/test_concept" does not exist'):
     signal.compute(['a new data point', 'not in concept'])
 
@@ -100,13 +100,13 @@ def test_concept_model_out_of_sync(db_cls: Type[ConceptDB]) -> None:
   namespace = 'test'
   concept_name = 'test_concept'
   train_data = [
-      ExampleIn(label=False, text='not in concept'),
-      ExampleIn(label=True, text='in concept')
+    ExampleIn(label=False, text='not in concept'),
+    ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   signal = ConceptScoreSignal(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   with pytest.raises(
       ValueError, match='Concept model "test/test_concept/test_embedding" is out of sync'):
     signal.compute(['a new data point', 'not in concept'])
@@ -121,17 +121,17 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
   namespace = 'test'
   concept_name = 'test_concept'
   train_data = [
-      ExampleIn(label=False, text='not in concept'),
-      ExampleIn(label=True, text='in concept')
+    ExampleIn(label=False, text='not in concept'),
+    ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   signal = ConceptScoreSignal(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-      ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   scores = signal.compute(['a new data point', 'not in concept'])
   expected_scores = [0.801, 0.465]
@@ -148,17 +148,17 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
   namespace = 'test'
   concept_name = 'test_concept'
   train_data = [
-      ExampleIn(label=False, text='not in concept'),
-      ExampleIn(label=True, text='in concept')
+    ExampleIn(label=False, text='not in concept'),
+    ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   signal = ConceptScoreSignal(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-      ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
@@ -180,17 +180,17 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
   namespace = 'test'
   concept_name = 'test_concept'
   train_data = [
-      ExampleIn(label=False, text='not in concept'),
-      ExampleIn(label=True, text='in concept')
+    ExampleIn(label=False, text='not in concept'),
+    ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   signal = ConceptScoreSignal(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-      ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
                    np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
@@ -219,5 +219,5 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
 
 def test_concept_score_key() -> None:
   signal = ConceptScoreSignal(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   assert signal.key() == 'test/test_concept'

@@ -29,9 +29,9 @@ def set_data_path(tmp_path: Path) -> Generator:
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {
-    'not in concept': [1.0, 0.0, 0.0],
-    'in concept': [0.9, 0.1, 0.0],
-    'a new data point': [0.1, 0.2, 0.3],
+  'not in concept': [1.0, 0.0, 0.0],
+  'in concept': [0.9, 0.1, 0.0],
+  'a new data point': [0.1, 0.2, 0.3],
 }
 
 
@@ -70,8 +70,8 @@ class ConceptDBSuite:
     namespace = 'test'
     concept_name = 'test_concept'
     train_data = [
-        ExampleIn(label=False, text='not in concept'),
-        ExampleIn(label=True, text='in concept')
+      ExampleIn(label=False, text='not in concept'),
+      ExampleIn(label=True, text='in concept')
     ]
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
@@ -83,13 +83,13 @@ class ConceptDBSuite:
     assert concept.type == 'text'
     data = [ex.dict(exclude_none=True) for ex in concept.data.values()]
     assert data == [{
-        'id': data[0]['id'],
-        'label': False,
-        'text': 'not in concept'
+      'id': data[0]['id'],
+      'label': False,
+      'text': 'not in concept'
     }, {
-        'id': data[1]['id'],
-        'label': True,
-        'text': 'in concept'
+      'id': data[1]['id'],
+      'label': True,
+      'text': 'in concept'
     }]
 
   def test_update_concept(self, db_cls: Type[ConceptDB]) -> None:
@@ -97,8 +97,8 @@ class ConceptDBSuite:
     namespace = 'test'
     concept_name = 'test_concept'
     train_data = [
-        ExampleIn(label=False, text='not in concept'),
-        ExampleIn(label=True, text='in concept')
+      ExampleIn(label=False, text='not in concept'),
+      ExampleIn(label=True, text='in concept')
     ]
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
@@ -109,8 +109,8 @@ class ConceptDBSuite:
     example = list(concept.data.values())[0]
 
     concept = db.edit(
-        namespace, concept_name,
-        ConceptUpdate(update=[Example(id=example.id, label=False, text='not in concept, updated')]))
+      namespace, concept_name,
+      ConceptUpdate(update=[Example(id=example.id, label=False, text='not in concept, updated')]))
 
     updated_example = concept.data[example.id]
     assert updated_example == Example(id=example.id, label=False, text='not in concept, updated')
@@ -120,8 +120,8 @@ class ConceptDBSuite:
     namespace = 'test'
     concept_name = 'test_concept'
     train_data = [
-        ExampleIn(label=False, text='not in concept'),
-        ExampleIn(label=True, text='in concept')
+      ExampleIn(label=False, text='not in concept'),
+      ExampleIn(label=True, text='in concept')
     ]
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
@@ -136,8 +136,8 @@ class ConceptDBSuite:
     namespace = 'test'
     concept_name = 'test_concept'
     train_data = [
-        ExampleIn(label=False, text='not in concept'),
-        ExampleIn(label=True, text='in concept')
+      ExampleIn(label=False, text='not in concept'),
+      ExampleIn(label=True, text='in concept')
     ]
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
@@ -160,8 +160,8 @@ class ConceptDBSuite:
     namespace = 'test'
     concept_name = 'test_concept'
     train_data = [
-        ExampleIn(label=False, text='not in concept'),
-        ExampleIn(label=True, text='in concept')
+      ExampleIn(label=False, text='not in concept'),
+      ExampleIn(label=True, text='in concept')
     ]
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
@@ -173,8 +173,8 @@ class ConceptDBSuite:
     namespace = 'test'
     concept_name = 'test_concept'
     train_data = [
-        ExampleIn(label=False, text='not in concept'),
-        ExampleIn(label=True, text='in concept')
+      ExampleIn(label=False, text='not in concept'),
+      ExampleIn(label=True, text='in concept')
     ]
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
@@ -187,12 +187,12 @@ def _make_test_concept_model(concept_db: ConceptDB, model_db: ConceptModelDB) ->
   namespace = 'test'
   concept_name = 'test_concept'
   train_data = [
-      ExampleIn(label=False, text='not in concept'),
-      ExampleIn(label=True, text='in concept')
+    ExampleIn(label=False, text='not in concept'),
+    ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
   return ConceptModel(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
@@ -207,7 +207,7 @@ class ConceptModelDBSuite:
 
     model_db.sync(model)
     retrieved_model = model_db.get(
-        namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
     assert retrieved_model == model
 
