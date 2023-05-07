@@ -282,10 +282,14 @@ def TextEntity(start: int,
 
 def TextEntityField(metadata: Optional[dict[str, Field]] = {},
                     extra_data: Optional[dict[str, Field]] = {},
-                    derived_from: Optional[PathTuple] = None) -> Field:
+                    derived_from: Optional[PathTuple] = None,
+                    signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
   return EntityField(
-      Field(dtype=DataType.STRING_SPAN, derived_from=derived_from), metadata, extra_data)
+      Field(dtype=DataType.STRING_SPAN, derived_from=derived_from),
+      metadata,
+      extra_data,
+      signal_root=signal_root)
 
 
 def EmbeddingEntity(embedding: Optional[np.ndarray],
