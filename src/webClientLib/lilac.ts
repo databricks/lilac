@@ -1,5 +1,13 @@
 import { DataType, Field, Schema } from './fastapi_client';
-import { castDataType, ENTITY_FEATURE_KEY, LILAC_COLUMN, Path, PATH_WILDCARD } from './schema';
+import {
+  castDataType,
+  ENTITY_FEATURE_KEY,
+  FieldValue,
+  LILAC_COLUMN,
+  Path,
+  pathIsEqual,
+  PATH_WILDCARD
+} from './schema';
 import { mergeDeep } from './utils';
 
 const VALUE_KEY = '__value';
@@ -14,20 +22,26 @@ export type LilacSchemaField = Field & {
 };
 export type LilacSchema = LilacSchemaField;
 
-export type LilacItemNode = {
-  [key: string | number]: LilacItemNode;
+export type LilacValueNode = {
+  readonly [key: string | number]: LilacValueNode;
 };
 
-type LilacItemNodeCasted<D extends DataType = DataType> = {
+/**
+ * Internal type for a LilacValueNode casted with internal properties.
+ */
+type LilacValueNodeCasted<D extends DataType = DataType> = {
   [VALUE_KEY]: castDataType<D>;
   [PATH_KEY]: Path;
   [SCHEMA_FIELD_KEY]: LilacSchemaField | undefined;
 };
 
-function castLilacItemNode<D extends DataType = DataType>(
-  node: LilacItemNode
-): LilacItemNodeCasted<D> {
-  return node as unknown as LilacItemNodeCasted;
+/**
+ * Cast a value node to an internal value node
+ */
+function castLilacValueNode<D extends DataType = DataType>(
+  node: LilacValueNode
+): LilacValueNodeCasted<D> {
+  return node as unknown as LilacValueNodeCasted;
 }
 
 /**
@@ -52,9 +66,9 @@ export function deserializeSchema(rawSchema: Schema): LilacSchema {
   return { fields, path: [] };
 }
 
-export function deserializeRow(rawRow: object, schema: LilacSchema): LilacItemNode {
+export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacValueNode {
   const fields = listFields(schema);
-  const children = lilacItemNodeFromRawValues(rawRow, fields, []);
+  const children = lilacValueNodeFromRawValue(rawRow, fields, []);
 
   if (Array.isArray(children)) {
     throw new Error('Expected row to have a single root node');
@@ -65,32 +79,32 @@ export function deserializeRow(rawRow: object, schema: LilacSchema): LilacItemNo
 
   const { [LILAC_COLUMN]: signalValues, ...values } = children;
 
-  let mergedChildren: LilacItemNode = values;
+  let mergedChildren: LilacValueNode = values;
   if (signalValues) mergedChildren = mergeDeep(values, signalValues);
-  castLilacItemNode(mergedChildren)[VALUE_KEY] = null;
-  castLilacItemNode(mergedChildren)[PATH_KEY] = [];
-  castLilacItemNode(mergedChildren)[SCHEMA_FIELD_KEY] = schema;
+  castLilacValueNode(mergedChildren)[VALUE_KEY] = null;
+  castLilacValueNode(mergedChildren)[PATH_KEY] = [];
+  castLilacValueNode(mergedChildren)[SCHEMA_FIELD_KEY] = schema;
   return mergedChildren;
 }
 
 /** List all fields as a flattend array */
-export function listFields(schema: LilacSchemaField | LilacSchema): LilacSchemaField[] {
+export function listFields(field: LilacSchemaField | LilacSchema): LilacSchemaField[] {
   return [
-    schema,
-    ...Object.values(schema.fields || {}).flatMap(listFields),
-    ...(schema.repeated_field ? listFields(schema.repeated_field) : [])
+    field,
+    ...Object.values(field.fields || {}).flatMap(listFields),
+    ...(field.repeated_field ? listFields(field.repeated_field) : [])
   ];
 }
 
 /** List all values as a flattend array */
-export function listValues(row: LilacItemNode): LilacItemNode[] {
-  if (Array.isArray(row)) return [...row, ...row.flatMap(listValues)];
+export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
+  if (Array.isArray(row)) return [...row, ...row.flatMap(listValueNodes)];
   else {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { [VALUE_KEY]: value, [PATH_KEY]: path, [SCHEMA_FIELD_KEY]: field, ...rest } = row;
 
     const childProperties = Object.values(rest || {});
-    return [...childProperties, ...childProperties.flatMap((v) => listValues(v))];
+    return [...childProperties, ...childProperties.flatMap((v) => listValueNodes(v))];
   }
 }
 
@@ -99,29 +113,29 @@ export function listValues(row: LilacItemNode): LilacItemNode[] {
  */
 export function getField(schema: LilacSchema, path: Path): LilacSchemaField | undefined {
   const list = listFields(schema);
-  return list.find((field) => field.path.join('.') === path.join('.'));
+  return list.find((field) => pathIsEqual(field.path, path));
 }
 
-export function getValue(row: LilacItemNode, _path: Path): LilacItemNode | undefined {
-  const list = listValues(row);
-  return list.find((value) => L.path(value)?.join('.') === _path.join('.'));
+export function getValueNode(row: LilacValueNode, _path: Path): LilacValueNode | undefined {
+  const list = listValueNodes(row);
+  return list.find((value) => pathIsEqual(L.path(value), _path));
 }
 
 export const L = {
-  path: (value: LilacItemNode): Path | undefined => {
+  path: (value: LilacValueNode): Path | undefined => {
     if (!value) return undefined;
-    return castLilacItemNode(value)[PATH_KEY];
+    return castLilacValueNode(value)[PATH_KEY];
   },
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  value: <D extends DataType>(value: LilacItemNode, dtype?: D): castDataType<D> | undefined => {
+  value: <D extends DataType>(value: LilacValueNode, dtype?: D): castDataType<D> | undefined => {
     if (!value) return undefined;
-    return castLilacItemNode(value)[VALUE_KEY] as castDataType<D>;
+    return castLilacValueNode(value)[VALUE_KEY] as castDataType<D>;
   },
-  field: (value: LilacItemNode): LilacSchemaField | undefined => {
+  field: (value: LilacValueNode): LilacSchemaField | undefined => {
     if (!value) return undefined;
-    return castLilacItemNode(value)[SCHEMA_FIELD_KEY];
+    return castLilacValueNode(value)[SCHEMA_FIELD_KEY];
   },
-  dtype: (value: LilacItemNode): DataType | undefined => {
+  dtype: (value: LilacValueNode): DataType | undefined => {
     const _field = L.field(value);
     return _field?.dtype;
   }
@@ -149,33 +163,32 @@ function lilacSchemaFieldFromField(field: Field, path: Path): LilacSchemaField {
   return lilacField;
 }
 
-function lilacItemNodeFromRawValues(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rawValue: any,
+function lilacValueNodeFromRawValue(
+  rawFieldValue: FieldValue,
   fields: LilacSchemaField[],
   path: Path
-): LilacItemNode {
-  const field = fields.find((field) => field.path.join('.') === path.join('.'));
+): LilacValueNode {
+  const field = fields.find((field) => pathIsEqual(field.path, path));
 
-  let ret: LilacItemNode = {};
-  if (Array.isArray(rawValue)) {
-    ret = rawValue.map((value) =>
-      lilacItemNodeFromRawValues(value, fields, [...path, PATH_WILDCARD])
-    ) as Record<number, LilacItemNode>;
-    castLilacItemNode(ret)[VALUE_KEY] = null;
+  let ret: LilacValueNode = {};
+  if (Array.isArray(rawFieldValue)) {
+    ret = rawFieldValue.map((value) =>
+      lilacValueNodeFromRawValue(value, fields, [...path, PATH_WILDCARD])
+    ) as Record<number, LilacValueNode>;
+    castLilacValueNode(ret)[VALUE_KEY] = null;
     return ret;
-  } else if (typeof rawValue === 'object') {
-    const { [ENTITY_FEATURE_KEY]: entityValue, ...rest } = rawValue;
+  } else if (rawFieldValue && typeof rawFieldValue === 'object') {
+    const { [ENTITY_FEATURE_KEY]: entityValue, ...rest } = rawFieldValue;
 
-    ret = Object.entries(rest).reduce<Record<string, LilacItemNode>>((acc, [key, value]) => {
-      acc[key] = lilacItemNodeFromRawValues(value, fields, [...path, key]);
+    ret = Object.entries(rest).reduce<Record<string, LilacValueNode>>((acc, [key, value]) => {
+      acc[key] = lilacValueNodeFromRawValue(value, fields, [...path, key]);
       return acc;
     }, {});
-    castLilacItemNode(ret)[VALUE_KEY] = entityValue || null;
+    castLilacValueNode(ret)[VALUE_KEY] = entityValue || null;
   } else {
-    castLilacItemNode(ret)[VALUE_KEY] = rawValue;
+    castLilacValueNode(ret)[VALUE_KEY] = rawFieldValue;
   }
-  castLilacItemNode(ret)[PATH_KEY] = path;
-  castLilacItemNode(ret)[SCHEMA_FIELD_KEY] = field;
+  castLilacValueNode(ret)[PATH_KEY] = path;
+  castLilacValueNode(ret)[SCHEMA_FIELD_KEY] = field;
   return ret;
 }

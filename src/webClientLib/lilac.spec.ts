@@ -5,10 +5,10 @@ import {
   deserializeRow,
   deserializeSchema,
   getField,
-  getValue,
+  getValueNode,
   L,
   listFields,
-  listValues
+  listValueNodes
 } from './lilac';
 import { ENTITY_FEATURE_KEY } from './schema';
 
@@ -237,7 +237,7 @@ describe('lilac', () => {
 
   describe('listValues', () => {
     it('should return a list of values', () => {
-      const values = listValues(row);
+      const values = listValueNodes(row);
 
       expect(values).toBeDefined();
       expect(L.path(values[0])).toEqual(['title']);
@@ -266,13 +266,19 @@ describe('lilac', () => {
 
   describe('getValue', () => {
     it('should return simple paths', () => {
-      const value = getValue(row, ['title']);
+      const value = getValueNode(row, ['title']);
       expect(L.path(value!)).toEqual(['title']);
       expect(L.value(value!)).toEqual('title text');
+
+      const value2 = getValueNode(row, ['__lilac__', 'comment_text', 'pii', 'emails', '*']);
+      expect(L.value(value2!)).toEqual({
+        end: 19,
+        start: 1
+      });
     });
 
     it('should return a value by path with repeated fields', () => {
-      const value = getValue(row, ['complex_list_of_struct', '*']);
+      const value = getValueNode(row, ['complex_list_of_struct', '*']);
       expect(L.path(value!)).toEqual(['complex_list_of_struct', '*']);
     });
   });
