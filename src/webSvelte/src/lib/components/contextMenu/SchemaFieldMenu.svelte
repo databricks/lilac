@@ -11,7 +11,7 @@
   <!-- <OverflowMenuItem text="Manage credentials" /> -->
 {:else}
   <OverflowMenuItem
-    text="Add Signal"
+    text="Compute signal"
     on:click={() =>
       triggerCommand({
         command: Command.ComputeSignal,
