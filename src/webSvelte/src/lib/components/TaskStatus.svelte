@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useGetTaskManifestQuery } from '$lib/store/apiServer';
-  import { Popover } from 'carbon-components-svelte';
+  import { Loading, Popover } from 'carbon-components-svelte';
   import Checkmark from 'carbon-icons-svelte/lib/Checkmark.svelte';
 
   const tasks = useGetTaskManifestQuery();
@@ -12,22 +12,34 @@
   $: finishedTasks = tasksList.filter((task) => task.status === 'completed');
   $: failedTasks = tasksList.filter((task) => task.status === 'error');
 
+  $: progress =
+    runningTasks.reduce((acc, task) => acc + (task?.progress || 0), 0) / runningTasks.length;
 </script>
 
 <button
-  class="relative flex gap-x-2 border p-2 transition"
+  class="relative border p-2 transition"
   on:click|stopPropagation={() => (showTasks = !showTasks)}
-  class:bg-green-300={runningTasks.length}
+  class:bg-white={!runningTasks.length}
+  class:bg-blue-200={runningTasks.length}
+  class:border-blue-400={runningTasks.length}
 >
-  {#if !runningTasks.length}
-    Tasks <Checkmark />
-  {:else if runningTasks.length === 1}
-    1 Runnning task
-    {#if runningTasks[0].progress !== undefined}
-      ({(runningTasks[0].progress * 100).toFixed(0)}%)
+  <div class="relative z-10 flex gap-x-2">
+    {#if runningTasks.length}
+      {runningTasks.length} running task{runningTasks.length > 1 ? 's' : ''}... <Loading
+        withOverlay={false}
+        small
+      />
+    {:else if failedTasks.length}
+      {failedTasks.length} failed task{failedTasks.length > 1 ? 's' : ''}
+    {:else}
+      Tasks <Checkmark />
     {/if}
-  {:else}
-    {runningTasks.length} running tasks...
+  </div>
+  {#if runningTasks.length === 1}
+    <div
+      class="absolute left-0 top-0 z-0 h-full bg-blue-400 transition"
+      style:width="{progress * 100}%"
+    />
   {/if}
 
   <Popover
