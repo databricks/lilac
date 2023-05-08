@@ -1,13 +1,10 @@
 """Implementation-agnostic tests of the Dataset DB API."""
 
 import pathlib
-import re
-from typing import Any, Generator, Iterable, Optional, Type, cast
+from typing import Generator, Iterable, Optional, Type, cast
 
 import numpy as np
-import pandas as pd
 import pytest
-from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..config import CONFIG
@@ -34,17 +31,14 @@ from ..schema import (
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
-from . import db_dataset, db_dataset_duckdb
 from .db_dataset import (
   Column,
   Comparison,
   DatasetDB,
   DatasetManifest,
   FilterTuple,
-  NamedBins,
   SignalUDF,
   SortOrder,
-  StatsResult,
 )
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
@@ -116,19 +110,6 @@ class LengthSignal(Signal):
       yield len(text_content)
 
 
-class TestParamSignal(Signal):
-  name = 'param_signal'
-  enrichment_type = EnrichmentType.TEXT
-  param: str
-
-  def fields(self) -> Field:
-    return field('string')
-
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
-    for text_content in data:
-      yield f'{str(text_content)}_{self.param}'
-
-
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
@@ -136,10 +117,6 @@ def setup_teardown() -> Iterable[None]:
   register_signal(LengthSignal)
   register_signal(TestSplitterWithLen)
   register_signal(TestEmbeddingSumSignal)
-  register_signal(TestEntitySignal)
-  register_signal(TestParamSignal)
-  register_signal(TestSparseSignal)
-  register_signal(TestSparseRichSignal)
   register_signal(TestEmbedding)
 
   # Unit test runs.
@@ -249,168 +226,6 @@ class SelectRowsSuite:
       'float': 1.0
     }]
 
-  def test_source_joined_with_signal_column(self, tmp_path: pathlib.Path,
-                                            db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
-    assert db.manifest() == DatasetManifest(
-      namespace=TEST_NAMESPACE,
-      dataset_name=TEST_DATASET_NAME,
-      data_schema=schema({
-        UUID_COLUMN: 'string',
-        'str': 'string',
-        'int': 'int32',
-        'bool': 'boolean',
-        'float': 'float32',
-      }),
-      num_items=3)
-
-    test_signal = TestSignal()
-    db.compute_signal_column(test_signal, 'str')
-
-    result = db.select_rows(['str', (LILAC_COLUMN, 'str')])
-    assert list(result) == [{
-      UUID_COLUMN: '1',
-      'str': 'a',
-      f'{LILAC_COLUMN}.str': {
-        'test_signal': {
-          'len': 1,
-          'flen': 1.0
-        }
-      }
-    }, {
-      UUID_COLUMN: '2',
-      'str': 'b',
-      f'{LILAC_COLUMN}.str': {
-        'test_signal': {
-          'len': 1,
-          'flen': 1.0
-        }
-      }
-    }, {
-      UUID_COLUMN: '3',
-      'str': 'b',
-      f'{LILAC_COLUMN}.str': {
-        'test_signal': {
-          'len': 1,
-          'flen': 1.0
-        }
-      }
-    }]
-
-    # Check the enriched dataset manifest has 'text' enriched.
-    assert db.manifest() == DatasetManifest(
-      namespace=TEST_NAMESPACE,
-      dataset_name=TEST_DATASET_NAME,
-      data_schema=schema({
-        UUID_COLUMN: 'string',
-        'str': 'string',
-        'int': 'int32',
-        'bool': 'boolean',
-        'float': 'float32',
-        LILAC_COLUMN: {
-          'str': {
-            'test_signal': signal_field({
-              'len': 'int32',
-              'flen': 'float32'
-            }),
-          }
-        }
-      }),
-      num_items=3)
-
-    # Select a specific signal leaf test_signal.flen.
-    result = db.select_rows(['str', (LILAC_COLUMN, 'str', 'test_signal', 'flen')])
-
-    assert list(result) == [{
-      UUID_COLUMN: '1',
-      'str': 'a',
-      f'{LILAC_COLUMN}.str.test_signal.flen': 1.0
-    }, {
-      UUID_COLUMN: '2',
-      'str': 'b',
-      f'{LILAC_COLUMN}.str.test_signal.flen': 1.0
-    }, {
-      UUID_COLUMN: '3',
-      'str': 'b',
-      f'{LILAC_COLUMN}.str.test_signal.flen': 1.0
-    }]
-
-    # Select multiple signal leafs with aliasing.
-    result = db.select_rows([
-      'str',
-      Column((LILAC_COLUMN, 'str', 'test_signal', 'flen'), alias='flen'),
-      Column((LILAC_COLUMN, 'str', 'test_signal', 'len'), alias='len')
-    ])
-
-    assert list(result) == [{
-      UUID_COLUMN: '1',
-      'str': 'a',
-      'flen': 1.0,
-      'len': 1
-    }, {
-      UUID_COLUMN: '2',
-      'str': 'b',
-      'flen': 1.0,
-      'len': 1
-    }, {
-      UUID_COLUMN: '3',
-      'str': 'b',
-      'flen': 1.0,
-      'len': 1
-    }]
-
-  def test_parameterized_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
-      db_cls,
-      tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': 'hello'
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'everybody'
-      }])
-    test_signal_a = TestParamSignal(param='a')
-    test_signal_b = TestParamSignal(param='b')
-    db.compute_signal_column(test_signal_a, 'text')
-    db.compute_signal_column(test_signal_b, 'text')
-
-    assert db.manifest() == DatasetManifest(
-      namespace=TEST_NAMESPACE,
-      dataset_name=TEST_DATASET_NAME,
-      data_schema=schema({
-        UUID_COLUMN: 'string',
-        'text': 'string',
-        LILAC_COLUMN: {
-          'text': {
-            'param_signal(param=a)': signal_field('string'),
-            'param_signal(param=b)': signal_field('string'),
-          }
-        }
-      }),
-      num_items=2)
-
-    result = db.select_rows(['text', LILAC_COLUMN])
-    assert list(result) == [{
-      UUID_COLUMN: '1',
-      'text': 'hello',
-      LILAC_COLUMN: {
-        'text': {
-          'param_signal(param=a)': 'hello_a',
-          'param_signal(param=b)': 'hello_b',
-        }
-      }
-    }, {
-      UUID_COLUMN: '2',
-      'text': 'everybody',
-      LILAC_COLUMN: {
-        'text': {
-          'param_signal(param=a)': 'everybody_a',
-          'param_signal(param=b)': 'everybody_b',
-        }
-      }
-    }]
-
   def test_merge_values(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls,
@@ -423,9 +238,9 @@ class SelectRowsSuite:
         'text': 'everybody'
       }])
     test_signal = TestSignal()
-    db.compute_signal_column(test_signal, 'text')
+    db.compute_signal(test_signal, 'text')
     length_signal = LengthSignal()
-    db.compute_signal_column(length_signal, 'text')
+    db.compute_signal(length_signal, 'text')
 
     result = db.select_rows(['text', LILAC_COLUMN])
     assert list(result) == [{
@@ -544,8 +359,8 @@ class SelectRowsSuite:
         'texts': ['a', 'bc', 'def']
       }])
 
-    db.compute_signal_column(TestSignal(), ('texts', '*'))
-    db.compute_signal_column(LengthSignal(), ('texts', '*'))
+    db.compute_signal(TestSignal(), ('texts', '*'))
+    db.compute_signal(LengthSignal(), ('texts', '*'))
 
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
@@ -774,7 +589,7 @@ class SelectRowsSuite:
       }])
     test_signal = TestSignal()
     # Run the signal on the repeated field.
-    db.compute_signal_column(test_signal, ('text', '*'))
+    db.compute_signal(test_signal, ('text', '*'))
 
     # Check the enriched dataset manifest has 'text' enriched.
     assert db.manifest() == DatasetManifest(
@@ -824,7 +639,7 @@ class SelectRowsSuite:
       }]
     }]
 
-  def test_signal_transform(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_udf(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls,
       tmp_path,
@@ -855,8 +670,7 @@ class SelectRowsSuite:
       }
     }]
 
-  def test_signal_transform_with_filters(self, tmp_path: pathlib.Path,
-                                         db_cls: Type[DatasetDB]) -> None:
+  def test_udf_with_filters(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls,
       tmp_path,
@@ -906,8 +720,7 @@ class SelectRowsSuite:
       }
     }]
 
-  def test_signal_transform_with_uuid_filter(self, tmp_path: pathlib.Path,
-                                             db_cls: Type[DatasetDB]) -> None:
+  def test_udf_with_uuid_filter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
 
     db = make_db(
       db_cls,
@@ -945,8 +758,8 @@ class SelectRowsSuite:
     }]
     assert signal._call_count == 2 + 2
 
-  def test_signal_transform_with_uuid_filter_repeated(self, tmp_path: pathlib.Path,
-                                                      db_cls: Type[DatasetDB]) -> None:
+  def test_udf_with_uuid_filter_repeated(self, tmp_path: pathlib.Path,
+                                         db_cls: Type[DatasetDB]) -> None:
 
     db = make_db(
       db_cls,
@@ -981,8 +794,7 @@ class SelectRowsSuite:
     }]
     assert signal._call_count == 2 + 3
 
-  def test_signal_transform_deeply_nested(self, tmp_path: pathlib.Path,
-                                          db_cls: Type[DatasetDB]) -> None:
+  def test_udf_deeply_nested(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
 
     db = make_db(
       db_cls,
@@ -1007,8 +819,7 @@ class SelectRowsSuite:
     }]
     assert signal._call_count == 6
 
-  def test_signal_transform_with_embedding(self, tmp_path: pathlib.Path,
-                                           db_cls: Type[DatasetDB]) -> None:
+  def test_udf_with_embedding(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
@@ -1020,7 +831,7 @@ class SelectRowsSuite:
         'text': 'hello2.',
       }])
 
-    db.compute_signal_column(TestEmbedding(), 'text')
+    db.compute_signal(TestEmbedding(), 'text')
 
     signal_col = SignalUDF(
       TestEmbeddingSumSignal(),
@@ -1054,8 +865,7 @@ class SelectRowsSuite:
     }]
     assert list(result) == expected_result
 
-  def test_signal_transform_with_nested_embedding(self, tmp_path: pathlib.Path,
-                                                  db_cls: Type[DatasetDB]) -> None:
+  def test_udf_with_nested_embedding(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
@@ -1067,7 +877,7 @@ class SelectRowsSuite:
         'text': ['hello world2.', 'hello2.'],
       }])
 
-    db.compute_signal_column(TestEmbedding(), ('text', '*'))
+    db.compute_signal(TestEmbedding(), ('text', '*'))
 
     signal_col = SignalUDF(TestEmbeddingSumSignal(),
                            (LILAC_COLUMN, 'text', '*', TEST_EMBEDDING_NAME, ENTITY_FEATURE_KEY))
@@ -1099,7 +909,7 @@ class SelectRowsSuite:
       num_items=3)
 
     test_signal = TestSignal()
-    db.compute_signal_column(test_signal, 'str')
+    db.compute_signal(test_signal, 'str')
     result = db.select_rows(
       ['str', Column((LILAC_COLUMN, 'str', 'test_signal'), alias='test_signal_on_str')])
 
@@ -1159,7 +969,7 @@ class SelectRowsSuite:
         'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
       }])
 
-    db.compute_signal_column(TestSplitterWithLen(), 'text')
+    db.compute_signal(TestSplitterWithLen(), 'text')
 
     result = db.select_rows(['text', (LILAC_COLUMN, 'text', 'test_splitter_len')])
     expected_result = [{
@@ -1179,208 +989,6 @@ class SelectRowsSuite:
     }]
     assert list(result) == expected_result
 
-  def test_entity_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': '[1, 1] first sentence. [1, 1] second sentence.',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-      }])
-
-    signal = TestEntitySignal()
-    db.compute_signal_column(signal, 'text')
-
-    assert db.manifest() == DatasetManifest(
-      namespace=TEST_NAMESPACE,
-      dataset_name=TEST_DATASET_NAME,
-      data_schema=schema({
-        UUID_COLUMN: 'string',
-        'text': 'string',
-        LILAC_COLUMN: {
-          'text': {
-            'test_entity_len': signal_field([TextEntityField({'len': field('int32')})])
-          }
-        },
-      }),
-      num_items=2)
-
-    # NOTE: The way this currently works is it just generates a new signal column, in the old
-    # format. This will look different once entity indexes are merged.
-    result = db.select_rows(['text', (LILAC_COLUMN, 'text', 'test_entity_len')])
-    expected_result = [{
-      UUID_COLUMN: '1',
-      'text': '[1, 1] first sentence. [1, 1] second sentence.',
-      f'{LILAC_COLUMN}.text.test_entity_len': [
-        TextEntity(0, 22, metadata={'len': 22}),
-        TextEntity(23, 46, metadata={'len': 23})
-      ]
-    }, {
-      UUID_COLUMN: '2',
-      'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-      f'{LILAC_COLUMN}.text.test_entity_len': [
-        TextEntity(0, 25, metadata={'len': 25}),
-        TextEntity(26, 49, metadata={'len': 23})
-      ]
-    }]
-    assert list(result) == expected_result
-
-  def test_embedding_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': 'hello.',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'hello2.',
-      }])
-
-    db.compute_signal_column(TestEmbedding(), 'text')
-    db.compute_signal_column(TestEmbeddingSumSignal(),
-                             (LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY))
-
-    emb_field = EmbeddingField({'neg_sum': field('float32')}, signal_root=True)
-    emb_field.fields['test_embedding_sum'] = signal_field('float32')  # type: ignore
-    assert db.manifest() == DatasetManifest(
-      namespace=TEST_NAMESPACE,
-      dataset_name=TEST_DATASET_NAME,
-      data_schema=schema({
-        UUID_COLUMN: 'string',
-        'text': 'string',
-        LILAC_COLUMN: {
-          'text': {
-            'test_embedding': emb_field
-          },
-        }
-      }),
-      num_items=2)
-
-    result = db.select_rows()
-    expected_result = [
-      {
-        UUID_COLUMN: '1',
-        'text': 'hello.',
-        LILAC_COLUMN: {
-          'text': {
-            'test_embedding': {
-              **EmbeddingEntity(embedding=None, metadata={'neg_sum': -1.0}),  # type: ignore
-              'test_embedding_sum': 1.0,
-            }
-          }
-        }
-      },
-      {
-        UUID_COLUMN: '2',
-        'text': 'hello2.',
-        LILAC_COLUMN: {
-          'text': {
-            'test_embedding': {
-              **EmbeddingEntity(embedding=None, metadata={'neg_sum': -2.0}),  # type: ignore
-              'test_embedding_sum': 2.0,
-            }
-          }
-        }
-      }
-    ]
-    assert list(result) == expected_result
-
-  def test_embedding_signal_splits(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': 'hello. hello2.',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'hello world. hello world2.',
-      }])
-
-    entity_signal = TestEntitySignal()
-    db.compute_signal_column(entity_signal, 'text')
-    db.compute_signal_column(TestEmbedding(),
-                             (LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY))
-    db.compute_signal_column(
-      TestEmbeddingSumSignal(),
-      (LILAC_COLUMN, 'text', 'test_entity_len', '*', 'test_embedding', ENTITY_FEATURE_KEY))
-
-    emb_field = EmbeddingField({'neg_sum': field('float32')}, signal_root=True)
-    emb_field.fields['test_embedding_sum'] = signal_field('float32')  # type: ignore
-
-    text_field = TextEntityField({'len': field('int32')})
-    text_field.fields['test_embedding'] = emb_field  # type: ignore
-
-    assert db.manifest() == DatasetManifest(
-      namespace=TEST_NAMESPACE,
-      dataset_name=TEST_DATASET_NAME,
-      data_schema=schema({
-        UUID_COLUMN: 'string',
-        'text': 'string',
-        LILAC_COLUMN: {
-          'text': {
-            'test_entity_len': signal_field([text_field])
-          }
-        }
-      }),
-      num_items=2)
-
-    result = db.select_rows(
-      ['text', Column((LILAC_COLUMN, 'text', 'test_entity_len'), alias='sentences')])
-    assert list(result) == [{
-      UUID_COLUMN: '1',
-      'text': 'hello. hello2.',
-      'sentences': [{
-        **TextEntity(0, 6, metadata={'len': 6}),
-        **{
-          'test_embedding': {
-            **EmbeddingEntity(None, metadata={'neg_sum': -1.0}),
-            **{
-              'test_embedding_sum': 1.0
-            }
-          }
-        }
-      }, {
-        **TextEntity(7, 14, metadata={'len': 7}),
-        **{
-          'test_embedding': {
-            **EmbeddingEntity(None, metadata={'neg_sum': -2.0}),
-            **{
-              'test_embedding_sum': 2.0
-            }
-          }
-        }
-      }]
-    }, {
-      UUID_COLUMN: '2',
-      'text': 'hello world. hello world2.',
-      'sentences': [{
-        **TextEntity(0, 12, metadata={'len': 12}),
-        **{
-          'test_embedding': {
-            **EmbeddingEntity(None, metadata={'neg_sum': -3.0}),
-            **{
-              'test_embedding_sum': 3.0
-            }
-          }
-        }
-      }, {
-        **TextEntity(13, 26, metadata={'len': 13}),
-        **{
-          'test_embedding': {
-            **EmbeddingEntity(None, metadata={'neg_sum': -4.0}),
-            **{
-              'test_embedding_sum': 4.0
-            }
-          }
-        }
-      }]
-    }]
-
   def test_invalid_column_paths(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls,
@@ -1395,8 +1003,8 @@ class SelectRowsSuite:
         'text2': ['hello2', 'world2'],
       }])
     test_signal = TestSignal()
-    db.compute_signal_column(test_signal, 'text')
-    db.compute_signal_column(test_signal, ('text2', '*'))
+    db.compute_signal(test_signal, 'text')
+    db.compute_signal(test_signal, ('text2', '*'))
 
     with pytest.raises(ValueError, match='Path part "invalid" not found in the dataset'):
       db.select_rows([(LILAC_COLUMN, 'text', 'test_signal', 'invalid')])
@@ -1479,32 +1087,6 @@ class TestSplitterWithLen(Signal):
       ]
 
 
-class TestEntitySignal(Signal):
-  """Split documents into sentence by splitting on period, generating entities.
-
-  Also produces the length as a feature.
-  """
-  name = 'test_entity_len'
-  enrichment_type = EnrichmentType.TEXT
-
-  @override
-  def fields(self) -> Field:
-    return field([TextEntityField(metadata={'len': field('int32')})])
-
-  @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
-    for text in data:
-      if not isinstance(text, str):
-        raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
-      sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
-      yield [
-        TextEntity(
-          start=text.index(sentence),
-          end=text.index(sentence) + len(sentence),
-          metadata={'len': len(sentence)}) for sentence in sentences
-      ]
-
-
 class TestEmbeddingSumSignal(Signal):
   """Sums the embeddings to return a single floating point value."""
   name = 'test_embedding_sum'
@@ -1521,626 +1103,3 @@ class TestEmbeddingSumSignal(Signal):
     embedding_sums = vector_store.get(keys).sum(axis=1)
     for embedding_sum in embedding_sums.tolist():
       yield embedding_sum
-
-
-class TestInvalidSignal(Signal):
-  name = 'test_invalid_signal'
-  enrichment_type = EnrichmentType.TEXT
-
-  @override
-  def fields(self) -> Field:
-    return field('int32')
-
-  @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    # Return an invalid output that doesn't match the input length.
-    return []
-
-
-class TestSparseSignal(Signal):
-  name = 'test_sparse_signal'
-  enrichment_type = EnrichmentType.TEXT
-
-  @override
-  def fields(self) -> Field:
-    return field('int32')
-
-  @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:
-    for text in data:
-      if text == 'hello':
-        # Skip this input.
-        yield None
-      else:
-        yield len(text)
-
-
-class TestSparseRichSignal(Signal):
-  """Find personally identifiable information (emails, phone numbers, etc)."""
-  name = 'test_sparse_rich_signal'
-  enrichment_type = EnrichmentType.TEXT
-
-  @override
-  def fields(self) -> Field:
-    return field({'emails': ['string']})
-
-  @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    for text in data:
-      if text == 'hello':
-        # Skip this input.
-        yield None
-      else:
-        yield {'emails': ['test1@hello.com', 'test2@hello.com']}
-
-
-@pytest.mark.parametrize('db_cls', ALL_DBS)
-class ComputeSignalItemsSuite:
-
-  def test_signal_output_validation(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    signal = TestInvalidSignal()
-
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': 'hello',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'hello world',
-      }])
-
-    with pytest.raises(
-        ValueError, match='The signal generated 0 values but the input data had 2 values.'):
-      db.compute_signal_column(signal, 'text')
-
-  def test_sparse_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': 'hello',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'hello world',
-      }])
-
-    db.compute_signal_column(TestSparseSignal(), 'text')
-
-    result = db.select_rows(['text', LILAC_COLUMN])
-    assert list(result) == [{
-      UUID_COLUMN: '1',
-      'text': 'hello',
-      LILAC_COLUMN: {
-        'text': {
-          'test_sparse_signal': None
-        }
-      }
-    }, {
-      UUID_COLUMN: '2',
-      'text': 'hello world',
-      LILAC_COLUMN: {
-        'text': {
-          'test_sparse_signal': 11
-        }
-      }
-    }]
-
-  def test_sparse_rich_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': 'hello',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'hello world',
-      }])
-
-    db.compute_signal_column(TestSparseRichSignal(), 'text')
-
-    result = db.select_rows(['text', LILAC_COLUMN])
-    assert list(result) == [{
-      UUID_COLUMN: '1',
-      'text': 'hello',
-      LILAC_COLUMN: {
-        'text': {
-          'test_sparse_rich_signal': None
-        }
-      }
-    }, {
-      UUID_COLUMN: '2',
-      'text': 'hello world',
-      LILAC_COLUMN: {
-        'text': {
-          'test_sparse_rich_signal': {
-            'emails': ['test1@hello.com', 'test2@hello.com']
-          }
-        }
-      }
-    }]
-
-
-@pytest.mark.parametrize('db_cls', ALL_DBS)
-class StatsSuite:
-
-  def test_simple_stats(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
-
-    result = db.stats(leaf_path='str')
-    assert result == StatsResult(total_count=3, approx_count_distinct=2, avg_text_length=1)
-
-    result = db.stats(leaf_path='float')
-    assert result == StatsResult(total_count=3, approx_count_distinct=3, min_val=1.0, max_val=3.0)
-
-    result = db.stats(leaf_path='bool')
-    assert result == StatsResult(total_count=3, approx_count_distinct=2)
-
-    result = db.stats(leaf_path='int')
-    assert result == StatsResult(total_count=3, approx_count_distinct=2, min_val=1, max_val=2)
-
-  def test_nested_stats(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    nested_items: list[Item] = [
-      {
-        'name': 'Name1',
-        'addresses': [{
-          'zips': [5, 8]
-        }]
-      },
-      {
-        'name': 'Name2',
-        'addresses': [{
-          'zips': [3]
-        }, {
-          'zips': [11, 8]
-        }]
-      },
-      {
-        'name': 'Name2',
-        'addresses': []
-      },  # No addresses.
-      {
-        'name': 'Name2',
-        'addresses': [{
-          'zips': []
-        }]
-      }  # No zips in the first address.
-    ]
-    nested_schema = schema({
-      UUID_COLUMN: 'string',
-      'name': 'string',
-      'addresses': [{
-        'zips': ['int32']
-      }]
-    })
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
-
-    result = db.stats(leaf_path='name')
-    assert result == StatsResult(total_count=4, approx_count_distinct=2, avg_text_length=5)
-
-    result = db.stats(leaf_path='addresses.*.zips.*')
-    assert result == StatsResult(total_count=5, approx_count_distinct=4, min_val=3, max_val=11)
-
-  def test_stats_approximation(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB],
-                               mocker: MockerFixture) -> None:
-    sample_size = 5
-    mocker.patch(f'{db_dataset_duckdb.__name__}.SAMPLE_SIZE_DISTINCT_COUNT', sample_size)
-
-    nested_items: list[Item] = [{'feature': str(i)} for i in range(sample_size * 10)]
-    nested_schema = schema({UUID_COLUMN: 'string', 'feature': 'string'})
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
-
-    result = db.stats(leaf_path='feature')
-    assert result == StatsResult(total_count=50, approx_count_distinct=50, avg_text_length=1)
-
-  def test_error_handling(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=SIMPLE_ITEMS)
-
-    with pytest.raises(ValueError, match='leaf_path must be provided'):
-      db.stats(cast(Any, None))
-
-    with pytest.raises(ValueError, match='Leaf "\\(\'unknown\',\\)" not found in dataset'):
-      db.stats(leaf_path='unknown')
-
-
-@pytest.mark.parametrize('db_cls', ALL_DBS)
-class SelectGroupsSuite:
-
-  def test_flat_data(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    items: list[Item] = [
-      {
-        'name': 'Name1',
-        'age': 34,
-        'active': False
-      },
-      {
-        'name': 'Name2',
-        'age': 45,
-        'active': True
-      },
-      {
-        'age': 17,
-        'active': True
-      },  # Missing "name".
-      {
-        'name': 'Name3',
-        'active': True
-      },  # Missing "age".
-      {
-        'name': 'Name4',
-        'age': 55
-      }  # Missing "active".
-    ]
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
-        UUID_COLUMN: 'string',
-        'name': 'string',
-        'age': 'int32',
-        'active': 'boolean'
-      }))
-
-    result = db.select_groups(leaf_path='name').df()
-    expected = pd.DataFrame.from_records([{
-      'value': 'Name1',
-      'count': 1
-    }, {
-      'value': 'Name2',
-      'count': 1
-    }, {
-      'value': None,
-      'count': 1
-    }, {
-      'value': 'Name3',
-      'count': 1
-    }, {
-      'value': 'Name4',
-      'count': 1
-    }])
-    pd.testing.assert_frame_equal(result, expected)
-
-    result = db.select_groups(leaf_path='age', bins=[20, 50, 60]).df()
-    expected = pd.DataFrame.from_records([
-      {
-        'value': 1,  # age 20-50.
-        'count': 2
-      },
-      {
-        'value': 0,  # age < 20.
-        'count': 1
-      },
-      {
-        'value': None,  # Missing age.
-        'count': 1
-      },
-      {
-        'value': 2,  # age 50-60.
-        'count': 1
-      }
-    ])
-    pd.testing.assert_frame_equal(result, expected)
-
-    result = db.select_groups(leaf_path='active').df()
-    expected = pd.DataFrame.from_records([
-      {
-        'value': True,
-        'count': 3
-      },
-      {
-        'value': False,
-        'count': 1
-      },
-      {
-        'value': None,  # Missing "active".
-        'count': 1
-      }
-    ])
-    pd.testing.assert_frame_equal(result, expected)
-
-  def test_result_is_iterable(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    items: list[Item] = [
-      {
-        'active': False
-      },
-      {
-        'active': True
-      },
-      {
-        'active': True
-      },
-      {
-        'active': True
-      },
-      {}  # Missing "active".
-    ]
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
-        UUID_COLUMN: 'string',
-        'active': 'boolean'
-      }))
-
-    result = db.select_groups(leaf_path='active')
-    groups = list(result)
-    assert groups == [(True, 3), (False, 1), (None, 1)]
-
-  def test_list_of_structs(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    items: list[Item] = [{
-      'list_of_structs': [{
-        'name': 'a'
-      }, {
-        'name': 'b'
-      }]
-    }, {
-      'list_of_structs': [{
-        'name': 'c'
-      }, {
-        'name': 'a'
-      }, {
-        'name': 'd'
-      }]
-    }, {
-      'list_of_structs': [{
-        'name': 'd'
-      }]
-    }]
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
-        UUID_COLUMN: 'string',
-        'list_of_structs': [{
-          'name': 'string'
-        }],
-      }))
-
-    result = db.select_groups(leaf_path='list_of_structs.*.name').df()
-    expected = pd.DataFrame.from_records([{
-      'value': 'a',
-      'count': 2
-    }, {
-      'value': 'd',
-      'count': 2
-    }, {
-      'value': 'b',
-      'count': 1
-    }, {
-      'value': 'c',
-      'count': 1
-    }])
-    pd.testing.assert_frame_equal(result, expected)
-
-  def test_nested_lists(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    items: list[Item] = [{
-      'nested_list': [[{
-        'name': 'a'
-      }], [{
-        'name': 'b'
-      }]]
-    }, {
-      'nested_list': [[{
-        'name': 'c'
-      }, {
-        'name': 'a'
-      }], [{
-        'name': 'd'
-      }]]
-    }, {
-      'nested_list': [[{
-        'name': 'd'
-      }]]
-    }]
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
-        UUID_COLUMN: 'string',
-        'nested_list': [[{
-          'name': 'string'
-        }]]
-      }))
-
-    result = db.select_groups(leaf_path='nested_list.*.*.name').df()
-    expected = pd.DataFrame.from_records([{
-      'value': 'a',
-      'count': 2
-    }, {
-      'value': 'd',
-      'count': 2
-    }, {
-      'value': 'b',
-      'count': 1
-    }, {
-      'value': 'c',
-      'count': 1
-    }])
-    pd.testing.assert_frame_equal(result, expected)
-
-  def test_nested_struct(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    items: list[Item] = [
-      {
-        'nested_struct': {
-          'struct': {
-            'name': 'c'
-          }
-        }
-      },
-      {
-        'nested_struct': {
-          'struct': {
-            'name': 'b'
-          }
-        }
-      },
-      {
-        'nested_struct': {
-          'struct': {
-            'name': 'a'
-          }
-        }
-      },
-    ]
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
-        UUID_COLUMN: 'string',
-        'nested_struct': {
-          'struct': {
-            'name': 'string'
-          }
-        },
-      }))
-
-    result = db.select_groups(leaf_path='nested_struct.struct.name').df()
-    expected = pd.DataFrame.from_records([{
-      'value': 'c',
-      'count': 1
-    }, {
-      'value': 'b',
-      'count': 1
-    }, {
-      'value': 'a',
-      'count': 1
-    }])
-    pd.testing.assert_frame_equal(result, expected)
-
-  def test_named_bins(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    items: list[Item] = [{
-      'age': 34,
-    }, {
-      'age': 45,
-    }, {
-      'age': 17,
-    }, {
-      'age': 80
-    }, {
-      'age': 55
-    }]
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
-        UUID_COLUMN: 'string',
-        'age': 'int32',
-      }))
-
-    result = db.select_groups(
-      leaf_path='age',
-      bins=NamedBins(bins=[20, 50, 65], labels=['young', 'adult', 'middle-aged', 'senior'])).df()
-    expected = pd.DataFrame.from_records([
-      {
-        'value': 'adult',  # age 20-50.
-        'count': 2
-      },
-      {
-        'value': 'young',  # age < 20.
-        'count': 1
-      },
-      {
-        'value': 'senior',  # age > 65.
-        'count': 1
-      },
-      {
-        'value': 'middle-aged',  # age 50-65.
-        'count': 1
-      }
-    ])
-    pd.testing.assert_frame_equal(result, expected)
-
-  def test_invalid_leaf(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    items: list[Item] = [
-      {
-        'nested_struct': {
-          'struct': {
-            'name': 'c'
-          }
-        }
-      },
-      {
-        'nested_struct': {
-          'struct': {
-            'name': 'b'
-          }
-        }
-      },
-      {
-        'nested_struct': {
-          'struct': {
-            'name': 'a'
-          }
-        }
-      },
-    ]
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
-        UUID_COLUMN: 'string',
-        'nested_struct': {
-          'struct': {
-            'name': 'string'
-          }
-        },
-      }))
-
-    with pytest.raises(
-        ValueError, match=re.escape("Leaf \"('nested_struct',)\" not found in dataset")):
-      db.select_groups(leaf_path='nested_struct')
-
-    with pytest.raises(
-        ValueError, match=re.escape("Leaf \"('nested_struct', 'struct')\" not found in dataset")):
-      db.select_groups(leaf_path='nested_struct.struct')
-
-    with pytest.raises(
-        ValueError,
-        match=re.escape("Leaf \"('nested_struct', 'struct', 'wrong_name')\" not found in dataset")):
-      db.select_groups(leaf_path='nested_struct.struct.wrong_name')
-
-  def test_too_many_distinct(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB],
-                             mocker: MockerFixture) -> None:
-    too_many_distinct = 5
-    mocker.patch(f'{db_dataset.__name__}.TOO_MANY_DISTINCT', too_many_distinct)
-
-    items: list[Item] = [{'feature': str(i)} for i in range(too_many_distinct + 10)]
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
-        UUID_COLUMN: 'string',
-        'feature': 'string'
-      }))
-
-    with pytest.raises(
-        ValueError, match=re.escape('Leaf "(\'feature\',)" has too many unique values: 15')):
-      db.select_groups('feature')
-
-  def test_bins_are_required_for_float(self, tmp_path: pathlib.Path,
-                                       db_cls: Type[DatasetDB]) -> None:
-    items: list[Item] = [{'feature': float(i)} for i in range(5)]
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
-        UUID_COLUMN: 'string',
-        'feature': 'float32'
-      }))
-
-    with pytest.raises(
-        ValueError,
-        match=re.escape('"bins" needs to be defined for the int/float leaf "(\'feature\',)"')):
-      db.select_groups('feature')

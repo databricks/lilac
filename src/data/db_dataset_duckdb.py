@@ -244,10 +244,10 @@ class DatasetDuckDB(DatasetDB):
     return self._col_vector_stores[path]
 
   @override
-  def compute_signal_column(self,
-                            signal: Signal,
-                            column: ColumnId,
-                            task_id: Optional[TaskId] = None) -> None:
+  def compute_signal(self,
+                     signal: Signal,
+                     column: ColumnId,
+                     task_id: Optional[TaskId] = None) -> None:
     column = column_from_identifier(column)
     if isinstance(column.feature, Column):
       raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')

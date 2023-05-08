@@ -110,7 +110,7 @@ def compute_signal_column(namespace: str, dataset_name: str,
     # pydantic serializer.
     options = ComputeSignalOptions(**options_dict)
     dataset_db = get_dataset_db(namespace, dataset_name)
-    dataset_db.compute_signal_column(options.signal, options.leaf_path, task_id=task_id)
+    dataset_db.compute_signal(options.signal, options.leaf_path, task_id=task_id)
 
   path_str = '.'.join(map(str, options.leaf_path))
   task_id = task_manager().task_id(
