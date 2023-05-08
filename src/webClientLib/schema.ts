@@ -1,4 +1,4 @@
-import type { DataType, Field, Schema as SchemaJSON } from './fastapi_client';
+import type { DataType } from './fastapi_client';
 export type LeafValue = number | boolean | string | null;
 export type FieldValue = FieldValue[] | { [fieldName: string]: FieldValue } | LeafValue;
 
@@ -30,7 +30,7 @@ export type DataTypeNumber =
   | 'float32'
   | 'float64';
 
-export type castDataType<D extends DataType> =
+export type DataTypeCasted<D extends DataType = DataType> =
   | (D extends 'string'
       ? string
       : D extends 'boolean'
@@ -106,52 +106,4 @@ export function getLeafVals(item: Item): { [pathStr: string]: LeafValue[] } {
     }
   }
   return result;
-}
-
-export class LilacSchema {
-  readonly fields: { [fieldName: string]: Field };
-  readonly leafs: [Path, Field][] = [];
-
-  /** Maps a field path in the schema to a primitive field (leaf). */
-  private readonly leafByPath: { [path: string]: Field } = {};
-
-  constructor(schemaJSON: SchemaJSON) {
-    this.fields = schemaJSON.fields;
-    this.populateLeafs();
-  }
-
-  private populateLeafs() {
-    const q: [Path, Field][] = [];
-    q.push([[], this as unknown as Field]);
-    while (q.length > 0) {
-      const [path, field] = q.pop()!;
-      if (field.fields != null) {
-        for (const [fieldName, childField] of Object.entries(field.fields)) {
-          const childPath = [...path, fieldName];
-          q.push([childPath, childField]);
-        }
-      } else if (field.repeated_field != null) {
-        const childPath = [...path, PATH_WILDCARD];
-        q.push([childPath, field.repeated_field]);
-      } else {
-        this.leafByPath[serializePath(path)] = field;
-        this.leafs.push([path, field]);
-      }
-    }
-  }
-
-  getLeaf(leafPath: Path): Field {
-    let field: Field = { fields: this.fields };
-    for (const path of leafPath) {
-      if (field.repeated_field && path === PATH_WILDCARD) {
-        field = field.repeated_field;
-      } else {
-        if (!field.fields?.[path]) {
-          throw new Error(`Leaf with path ${JSON.stringify(leafPath)} was not found.`);
-        }
-        field = field.fields[path];
-      }
-    }
-    return field;
-  }
 }

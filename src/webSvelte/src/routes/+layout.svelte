@@ -2,10 +2,14 @@
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
   import '../app.css';
 
+  // Create query client
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        refetchOnWindowFocus: false
+        // Dont refetch on window focus
+        refetchOnWindowFocus: false,
+        // Treat data as never stale, avoiding repeated fetches
+        staleTime: Infinity
       }
     }
   });

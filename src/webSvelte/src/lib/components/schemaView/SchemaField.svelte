@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getDatasetViewContext } from '$lib/store/datasetViewStore';
-  import { LILAC_COLUMN, type LilacSchema, type Path } from '$lilac';
+  import { LILAC_COLUMN, pathIsEqual, type LilacSchema, type LilacSchemaField } from '$lilac';
   import type { Field } from '$lilac/fastapi_client';
   import { CaretDown, EyeFill, EyeSlashFill } from 'svelte-bootstrap-icons';
   import { slide } from 'svelte/transition';
@@ -8,45 +8,24 @@
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
 
   export let schema: LilacSchema;
-  export let path: Path;
-  export let annotations: Field | undefined;
+  export let field: LilacSchemaField;
   export let indent = 0;
 
   let datasetViewStore = getDatasetViewContext();
 
-  let field = schema.getLeaf(path);
-
-  let isAnnotation = path[0] === LILAC_COLUMN;
-
+  let path = field.path;
+  let isAnnotation = field.path[0] === LILAC_COLUMN;
   let expanded = true;
 
-  $: hasChildren = !!field.fields;
-  $: hasAnnotations = !!annotations;
+  $: hasChildren = !!field?.fields;
+  $: children = childFields(field);
+  $: isVisible = $datasetViewStore.visibleColumns.some((p) => pathIsEqual(p, path));
 
   // Find all the child paths for a given field.
-  function childPaths(field: Field, rootPath: Path) {
-    if (field.fields) {
-      return Object.entries(field.fields).flatMap(([key, value]) => {
-        if (value.repeated_field) {
-          return Object.keys(value.repeated_field?.fields || {}).map((k) => [
-            ...rootPath,
-            key,
-            '*',
-            k
-          ]);
-        }
-        return [[...rootPath, key]];
-      });
-    }
-    return [];
+  function childFields(field?: Field) {
+    if (!field?.fields) return [];
+    return Object.values(field.fields);
   }
-
-  $: children = [
-    ...childPaths(field, path),
-    ...(annotations ? childPaths(annotations, [LILAC_COLUMN, ...path]) : [])
-  ];
-
-  $: isVisible = $datasetViewStore.visibleColumns.some((p) => p.join('.') === path.join('.'));
 </script>
 
 <div class="flex w-full flex-row border-b border-solid border-gray-200 py-2 hover:bg-gray-100">
@@ -68,7 +47,7 @@
     </button>
   </div>
   <div class="w-6" style:margin-left={indent * 10 + 'px'}>
-    {#if hasAnnotations || hasChildren}
+    {#if hasChildren}
       <button
         class="transition"
         class:rotate-180={!expanded}
@@ -83,7 +62,7 @@
       <div class="badge badge-sm badge-primary ml-2">Signal</div>
     {/if}
   </div>
-  <div class="w-12">{field.dtype}</div>
+  <div class="w-12">{field?.dtype}</div>
   <div>
     <ContextMenu>
       <SchemaFieldMenu {path} />
@@ -95,8 +74,8 @@
 {#if expanded}
   <div transition:slide|local>
     {#if children.length}
-      {#each children as childPath}
-        <svelte:self {schema} path={childPath} indent={indent + 1} />
+      {#each children as childField}
+        <svelte:self {schema} field={childField} indent={indent + 1} />
       {/each}
     {/if}
   </div>

@@ -2,17 +2,30 @@
  * Utils for RTK Query APIs.
  */
 
-import { createMutation, createQuery } from '@tanstack/svelte-query';
+import { createMutation, createQuery, type CreateQueryOptions } from '@tanstack/svelte-query';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createApiQuery<E extends (...args: any[]) => Promise<any>>(
-  endpoint: E,
-  rootKey: string
+const apiQueryKey = (rootKey: string, endpoint: string, ...args: any[]) => [
+  rootKey,
+  endpoint,
+  ...args
+];
+
+export function createApiQuery<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TQueryFn extends (...args: any[]) => Promise<any>,
+  TQueryFnData = Awaited<ReturnType<TQueryFn>>,
+  TError = Error,
+  TData = TQueryFnData
+>(
+  endpoint: TQueryFn,
+  rootKey: string,
+  queryArgs: CreateQueryOptions<TQueryFnData, TError, TData> = {}
 ) {
-  return (...args: Parameters<E>) =>
-    createQuery<Awaited<ReturnType<E>>, Error>({
-      queryKey: [rootKey, endpoint.name, ...args],
-      queryFn: () => endpoint(...args)
+  return (...args: Parameters<TQueryFn>) =>
+    createQuery<TQueryFnData, TError, TData>({
+      queryKey: apiQueryKey(rootKey, endpoint.name, ...args),
+      queryFn: () => endpoint(...args),
+      ...queryArgs
     });
 }
 
@@ -22,7 +35,7 @@ export function createApiMutation<E extends (...args: any[]) => Promise<any>>(
 ) {
   return (...args: Parameters<E>) =>
     createMutation<Awaited<ReturnType<E>>, Error>({
-      mutationKey: [rootKey, endpoint.name, ...args],
+      mutationKey: apiQueryKey(rootKey, endpoint.name, ...args),
       mutationFn: () => endpoint(...args)
     });
 }

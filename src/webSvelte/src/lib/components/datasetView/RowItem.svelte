@@ -1,51 +1,23 @@
 <script lang="ts">
   import { getDatasetViewContext } from '$lib/store/datasetViewStore';
-  import type { DataType, Field } from '$lilac/fastapi_client';
-  import type { LilacSchema } from '$lilac/schema';
-  import {
-    LILAC_COLUMN,
-    type FieldValue,
-    type Item,
-    type LeafValue,
-    type Path
-  } from '$lilac/schema';
+  import { L, getValueNode, listFields, type LilacSchemaField, type LilacValueNode } from '$lilac';
+  import { pathIsEqual, type DataTypeCasted, type Path } from '$lilac/schema';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 
-  export let item: Item;
-  export let schema: LilacSchema;
+  export let row: LilacValueNode;
 
   let datasetViewStore = getDatasetViewContext();
-
-  // console.log(schema);
-  function getFieldValueForPath(path: Path, item: Item): LeafValue {
-    let value: FieldValue = item;
-    for (const key of path) {
-      if (typeof value === 'object' && !Array.isArray(value) && value?.[key]) {
-        value = value[key];
-      }
-    }
-    return value as LeafValue;
-  }
-
-  function getFieldForPath(path: Path, schema: LilacSchema): Field | undefined {
-    return schema.getLeaf(path);
-  }
 
   /**
    * Get all columns that are derived from the given path.
    */
-  function getDerivedColumns(path: Path, columns: Path[], schema: LilacSchema): Path[] {
-    const derivedColumns: Path[] = [];
-    for (const column of columns) {
-      const field = getFieldForPath(column, schema);
-      if (field?.derived_from?.join('.') === path.join('.')) {
-        derivedColumns.push(column);
-      }
-    }
-    return derivedColumns;
+  function getDerivedFields(itemNode: LilacValueNode): LilacSchemaField[] {
+    const field = L.field(itemNode);
+    if (!field) return [];
+    return listFields(field).filter((f) => pathIsEqual(f.derived_from as Path, field.path));
   }
 
-  function formatValue(value: LeafValue, type?: DataType) {
+  function formatValue(value: DataTypeCasted) {
     if (value == null) {
       return 'N/A';
     }
@@ -55,42 +27,41 @@
     return value.toString();
   }
 
-  function removeLilacPath(s: string): boolean {
-    return s !== LILAC_COLUMN;
-  }
-
   let sortedVisibleColumns: Path[] = [];
   $: {
     sortedVisibleColumns = [...$datasetViewStore.visibleColumns];
-    sortedVisibleColumns.sort((a, b) =>
-      a.filter(removeLilacPath).join('.') > b.filter(removeLilacPath).join('.') ? 1 : -1
-    );
+    sortedVisibleColumns.sort((a, b) => (a.join('.') > b.join('.') ? 1 : -1));
   }
 </script>
 
-<div class=" mb-4 flex flex-col gap-y-4 border-b border-solid border-gray-300 pb-4">
+<div class="mb-4 flex flex-col gap-y-4 border-b border-solid border-gray-300 pb-4">
   {#each sortedVisibleColumns as column}
-    {@const value = getFieldValueForPath(column, item)}
-    {@const field = getFieldForPath(column, schema)}
-    {@const derivedColumns = getDerivedColumns(column, sortedVisibleColumns, schema)}
-    <div class="flex flex-col">
-      <div class="font-mono text-sm text-gray-600">
-        {column.filter(removeLilacPath).join('.')}
-      </div>
+    {@const valueNode = getValueNode(row, column)}
+    {#if valueNode}
+      {@const value = L.value(valueNode)}
+      {@const derivedFields = getDerivedFields(valueNode)}
 
-      <div class="relative">
-        {formatValue(value, field?.dtype)}
-        {#if derivedColumns}
-          {#each derivedColumns as derivedColumn}
-            {@const derivedColumnValue = getFieldValueForPath(derivedColumn, item)}
+      <div class="flex flex-col">
+        <div class="font-mono text-sm text-gray-600">
+          {column.join('.')}
+        </div>
 
-            <StringSpanHighlight
-              text={formatValue(value, field?.dtype)}
-              stringSpans={derivedColumnValue}
-            />
-          {/each}
-        {/if}
+        <div class="relative">
+          {formatValue(value ?? null)}
+          {#if derivedFields}
+            {#each derivedFields as derivedField}
+              {@const derivedNode = getValueNode(row, derivedField.path)}
+              {@const dtype = derivedNode && L.dtype(derivedNode)}
+              {#if derivedNode && dtype === 'string_span'}
+                {@const value = L.value(derivedNode, dtype)}
+                {#if value}
+                  <StringSpanHighlight text={formatValue(value ?? null)} stringSpans={value} />
+                {/if}
+              {/if}
+            {/each}
+          {/if}
+        </div>
       </div>
-    </div>
+    {/if}
   {/each}
 </div>
