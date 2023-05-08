@@ -161,7 +161,7 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
       sort_order=options.sort_order,
       limit=options.limit,
       offset=options.offset,
-      combine_columns=options.combine_columns))
+      combine_columns=options.combine_columns or False))
   return items
 
 
