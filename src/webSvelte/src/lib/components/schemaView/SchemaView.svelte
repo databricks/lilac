@@ -1,34 +1,26 @@
 <script lang="ts">
-  import { useGetManifestQuery } from '$lib/store/apiDataset';
+  import { useGetManifestQuery, useGetSchemaQuery } from '$lib/store/apiDataset';
   import { getDatasetViewContext } from '$lib/store/datasetViewStore';
-  import { LILAC_COLUMN, LilacSchema } from '$lilac';
   import SchemaField from './SchemaField.svelte';
 
   const datasetViewStore = getDatasetViewContext();
-
-  $: schema = $manifest.isSuccess
-    ? new LilacSchema($manifest.data?.dataset_manifest.data_schema)
-    : undefined;
-  $: fields = schema?.fields;
-
+  const schema = useGetSchemaQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
   const manifest = useGetManifestQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: console.log({ manifest: $manifest.data });
+  $: console.log({ schema: $schema.data, manifest: $manifest.data });
 </script>
 
 <div class="flex flex-col gap-y-4 px-4 py-4">
-  {#if $manifest.isLoading}
+  {#if $schema.isLoading}
     Loading...
-  {:else if $manifest.isSuccess && fields && schema}
+  {:else if $schema.isSuccess && $manifest.isSuccess && $schema.data.fields}
     <h2 class="text-lg">
       {$datasetViewStore.namespace}/{$datasetViewStore.datasetName} ({$manifest.data.dataset_manifest.num_items.toLocaleString()}
       rows)
     </h2>
     <div>
-      {#each Object.keys(fields) as key}
-        {#if key !== LILAC_COLUMN}
-          <SchemaField {schema} path={[key]} annotations={fields[LILAC_COLUMN]?.fields?.[key]} />
-        {/if}
+      {#each Object.keys($schema.data.fields) as key}
+        <SchemaField schema={$schema.data} field={$schema.data.fields[key]} />
       {/each}
     </div>
   {/if}

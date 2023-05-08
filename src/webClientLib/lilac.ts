@@ -1,8 +1,8 @@
 import { DataType, Field, Schema } from './fastapi_client';
 import {
-  castDataType,
   ENTITY_FEATURE_KEY,
   FieldValue,
+  LilacDataType,
   LILAC_COLUMN,
   Path,
   pathIsEqual,
@@ -35,7 +35,7 @@ export type LilacValueNode = {
  */
 type LilacValueNodeCasted<D extends DataType = DataType> = {
   /** Holds the actual value of the node */
-  [VALUE_KEY]: castDataType<D>;
+  [VALUE_KEY]: LilacDataType<D>;
   /** Holds the path property of the node */
   [PATH_KEY]: Path;
   /** Holds a reference to the schema field */
@@ -154,9 +154,9 @@ export const L = {
     return castLilacValueNode(value)[PATH_KEY];
   },
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  value: <D extends DataType>(value: LilacValueNode, dtype?: D): castDataType<D> | undefined => {
+  value: <D extends DataType>(value: LilacValueNode, dtype?: D): LilacDataType<D> | undefined => {
     if (!value) return undefined;
-    return castLilacValueNode(value)[VALUE_KEY] as castDataType<D>;
+    return castLilacValueNode(value)[VALUE_KEY] as LilacDataType<D>;
   },
   field: (value: LilacValueNode): LilacSchemaField | undefined => {
     if (!value) return undefined;
