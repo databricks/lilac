@@ -9,7 +9,6 @@
   $: tasksList = Object.values($tasks.data?.tasks || {});
 
   $: runningTasks = tasksList.filter((task) => task.status === 'pending');
-  $: finishedTasks = tasksList.filter((task) => task.status === 'completed');
   $: failedTasks = tasksList.filter((task) => task.status === 'error');
 
   $: progress =

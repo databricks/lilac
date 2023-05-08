@@ -8,9 +8,9 @@ const store = writable({
 /**
  * Watch a task for completion or error.
  */
-export function watchTask(taskid: string, callback: (task: TaskInfo) => void) {
+export function watchTask(taskid: string, onDone: (task: TaskInfo) => void) {
   store.update((state) => {
-    state.taskCallbacks.set(taskid, callback);
+    state.taskCallbacks.set(taskid, onDone);
     return state;
   });
 }
