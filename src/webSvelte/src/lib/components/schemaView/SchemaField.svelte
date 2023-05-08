@@ -25,15 +25,15 @@
 
   let datasetViewStore = getDatasetViewContext();
 
-  let path = field.path;
-  let signalField = isSignalField(field);
+  $: path = field.path;
+  $: signalField = isSignalField(field);
   let expanded = true;
 
-  let isRepeatedField = field.path.at(-1) === PATH_WILDCARD ? true : false;
-  let fieldName = isRepeatedField ? field.path.at(-2) : field.path.at(-1);
+  $: isRepeatedField = field.path.at(-1) === PATH_WILDCARD ? true : false;
+  $: fieldName = isRepeatedField ? field.path.at(-2) : field.path.at(-1);
 
-  let children = childFields(field);
-  let hasChildren = !!children.length;
+  $: children = childFields(field);
+  $: hasChildren = !!children.length;
   $: isVisible = $datasetViewStore.visibleColumns.some((p) => pathIsEqual(p, path));
 
   // Find all the child paths for a given field.

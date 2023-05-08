@@ -17,7 +17,7 @@
       filters: $datasetViewStore.filters,
       sort_by: $datasetViewStore.sortBy
     },
-    $schema.data
+    $schema.isSuccess ? $schema.data : undefined
   );
 </script>
 

@@ -1,16 +1,19 @@
 import {
   DataLoadersService,
   DatasetsService,
-  UUID_COLUMN,
   deserializeRow,
   deserializeSchema,
+  UUID_COLUMN,
   type DataType,
   type Filter,
   type LilacSchema,
   type SelectRowsOptions
 } from '$lilac';
-import { createInfiniteQuery, useQueryClient } from '@tanstack/svelte-query';
+import { createInfiniteQuery } from '@tanstack/svelte-query';
+import { TASKS_TAG } from './apiServer';
 import { createApiMutation, createApiQuery } from './apiUtils';
+import { queryClient } from './queryClient';
+import { watchTask } from './taskMonitoring';
 
 export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
   'string',
@@ -46,9 +49,17 @@ export const useLoadDatasetMutation = createApiMutation(DataLoadersService.load)
 export const useComputeSignalColumnMutation = createApiMutation(
   DatasetsService.computeSignalColumn,
   {
-    onSuccess: () => {
-      const queryClient = useQueryClient();
-      queryClient.invalidateQueries([]);
+    onSuccess: (resp) => {
+      queryClient.invalidateQueries([TASKS_TAG]);
+
+      watchTask(resp.task_id, () => {
+        queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
+        // If the invalidation isn't delayed, server throws an error
+        // https://github.com/lilacai/lilac/issues/136
+        setTimeout(() => {
+          queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
+        }, 500);
+      });
     }
   }
 );
