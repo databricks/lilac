@@ -74,8 +74,8 @@
 {#if expanded}
   <div transition:slide|local>
     {#if children.length}
-      {#each children as childPath}
-        <svelte:self {schema} field={childPath} indent={indent + 1} />
+      {#each children as childField}
+        <svelte:self {schema} field={childField} indent={indent + 1} />
       {/each}
     {/if}
   </div>
