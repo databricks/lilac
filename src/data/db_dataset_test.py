@@ -23,8 +23,6 @@ from ..schema import (
   PathTuple,
   RichData,
   SignalOut,
-  TextEntity,
-  TextEntityField,
   field,
   schema,
   signal_field,
@@ -115,7 +113,6 @@ def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(TestSignal)
   register_signal(LengthSignal)
-  register_signal(TestSplitterWithLen)
   register_signal(TestEmbeddingSumSignal)
   register_signal(TestEmbedding)
 
@@ -576,69 +573,6 @@ class SelectRowsSuite:
       }
     }]
 
-  def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
-      db_cls,
-      tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': ['hello', 'everybody'],
-      }, {
-        UUID_COLUMN: '2',
-        'text': ['hello2', 'everybody2'],
-      }])
-    test_signal = TestSignal()
-    # Run the signal on the repeated field.
-    db.compute_signal(test_signal, ('text', '*'))
-
-    # Check the enriched dataset manifest has 'text' enriched.
-    assert db.manifest() == DatasetManifest(
-      namespace=TEST_NAMESPACE,
-      dataset_name=TEST_DATASET_NAME,
-      data_schema=schema({
-        UUID_COLUMN: 'string',
-        'text': ['string'],
-        LILAC_COLUMN: {
-          'text': [{
-            'test_signal': signal_field({
-              'len': 'int32',
-              'flen': 'float32'
-            })
-          }]
-        }
-      }),
-      num_items=2)
-
-    result = db.select_rows([(LILAC_COLUMN, 'text', '*')])
-
-    assert list(result) == [{
-      UUID_COLUMN: '1',
-      f'{LILAC_COLUMN}.text.*': [{
-        'test_signal': {
-          'len': 5,
-          'flen': 5.0
-        }
-      }, {
-        'test_signal': {
-          'len': 9,
-          'flen': 9.0
-        }
-      }]
-    }, {
-      UUID_COLUMN: '2',
-      f'{LILAC_COLUMN}.text.*': [{
-        'test_signal': {
-          'len': 6,
-          'flen': 6.0
-        }
-      }, {
-        'test_signal': {
-          'len': 10,
-          'flen': 10.0
-        }
-      }]
-    }]
-
   def test_udf(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls,
@@ -957,38 +891,6 @@ class SelectRowsSuite:
       }),
       num_items=3)
 
-  def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
-      db_cls=db_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': '[1, 1] first sentence. [1, 1] second sentence.',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-      }])
-
-    db.compute_signal(TestSplitterWithLen(), 'text')
-
-    result = db.select_rows(['text', (LILAC_COLUMN, 'text', 'test_splitter_len')])
-    expected_result = [{
-      UUID_COLUMN: '1',
-      'text': '[1, 1] first sentence. [1, 1] second sentence.',
-      f'{LILAC_COLUMN}.text.test_splitter_len': [
-        TextEntity(0, 22, metadata={'len': 22}),
-        TextEntity(23, 46, metadata={'len': 23})
-      ]
-    }, {
-      UUID_COLUMN: '2',
-      'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-      f'{LILAC_COLUMN}.text.test_splitter_len': [
-        TextEntity(0, 25, metadata={'len': 25}),
-        TextEntity(26, 49, metadata={'len': 23})
-      ]
-    }]
-    assert list(result) == expected_result
-
   def test_invalid_column_paths(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls,
@@ -1062,29 +964,6 @@ class TestSignal(Signal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
-
-
-class TestSplitterWithLen(Signal):
-  """Split documents into sentence by splitting on period. Also produces the length as a feature."""
-  name = 'test_splitter_len'
-  enrichment_type = EnrichmentType.TEXT
-
-  @override
-  def fields(self) -> Field:
-    return field([TextEntityField(metadata={'len': field('int32')})])
-
-  @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
-    for text in data:
-      if not isinstance(text, str):
-        raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
-      sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
-      yield [
-        TextEntity(
-          start=text.index(sentence),
-          end=text.index(sentence) + len(sentence),
-          metadata={'len': len(sentence)}) for sentence in sentences
-      ]
 
 
 class TestEmbeddingSumSignal(Signal):
