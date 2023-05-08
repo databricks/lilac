@@ -1,8 +1,8 @@
 <script lang="ts">
   import { useGetSchemaQuery, useSelectRowsInfiniteQuery } from '$lib/store/apiDataset';
   import { getDatasetViewContext } from '$lib/store/datasetViewStore';
+  import { SkeletonText } from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
-  import Spinner from '../Spinner.svelte';
   import RowItem from './RowItem.svelte';
 
   let datasetViewStore = getDatasetViewContext();
@@ -22,7 +22,7 @@
 </script>
 
 {#if $rows?.isLoading || $schema.isLoading}
-  <Spinner />
+  <SkeletonText paragraph lines={3} />
 {:else if $rows?.isSuccess && $rows.data.pages.length && $schema.isSuccess && $schema.isSuccess}
   <div class="flex h-full w-full flex-col overflow-scroll">
     {#each $rows.data.pages as page}

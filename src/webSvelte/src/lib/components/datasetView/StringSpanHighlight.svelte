@@ -4,7 +4,7 @@
    * Component that renders string spans as an absolute positioned
    * layer, meant to be rendered on top of the source text.
    */
-  import type { DataTypeCasted } from '$lilac/schema';
+  import type { DataTypeCasted } from '$lilac';
 
   export let stringSpans: Array<DataTypeCasted<'string_span'>>;
   export let text: string;

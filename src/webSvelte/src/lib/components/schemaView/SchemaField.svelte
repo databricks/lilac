@@ -8,8 +8,8 @@
     type LilacSchema,
     type LilacSchemaField
   } from '$lilac';
-  import { Tag } from 'carbon-components-svelte';
-  import { CaretDown, EyeFill, EyeSlashFill } from 'svelte-bootstrap-icons';
+  import { Checkbox, Tag } from 'carbon-components-svelte';
+  import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
   import { slide } from 'svelte/transition';
   import ContextMenu from '../contextMenu/ContextMenu.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
@@ -52,21 +52,18 @@
   class="flex w-full flex-row items-center border-b border-solid border-gray-200 py-2 hover:bg-gray-100"
 >
   <div class="w-6">
-    <button
-      on:click={() => {
-        if (isVisible) {
-          datasetViewStore.removeVisibleColumn(path);
-        } else {
+    <Checkbox
+      labelText="Show"
+      hideLabel
+      selected={isVisible}
+      on:check={(ev) => {
+        if (ev.detail) {
           datasetViewStore.addVisibleColumn(path);
+        } else {
+          datasetViewStore.removeVisibleColumn(path);
         }
       }}
-    >
-      {#if isVisible}
-        <EyeFill />
-      {:else}
-        <EyeSlashFill class="opacity-50" />
-      {/if}
-    </button>
+    />
   </div>
   <div class="w-6" style:margin-left={indent * 24 + 'px'}>
     {#if hasChildren}
