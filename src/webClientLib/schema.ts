@@ -30,7 +30,7 @@ export type DataTypeNumber =
   | 'float32'
   | 'float64';
 
-export type LilacDataType<D extends DataType = DataType> =
+export type DataTypeCasted<D extends DataType = DataType> =
   | (D extends 'string'
       ? string
       : D extends 'boolean'

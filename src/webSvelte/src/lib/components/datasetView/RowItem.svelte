@@ -1,8 +1,7 @@
 <script lang="ts">
   import { getDatasetViewContext } from '$lib/store/datasetViewStore';
   import { L, getValueNode, listFields, type LilacSchemaField, type LilacValueNode } from '$lilac';
-  import type { DataType } from '$lilac/fastapi_client';
-  import type { LilacDataType, Path } from '$lilac/schema';
+  import type { DataTypeCasted, Path } from '$lilac/schema';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 
   export let row: LilacValueNode;
@@ -18,7 +17,7 @@
     return listFields(field).filter((f) => f.derived_from?.join('.') === field.path.join('.'));
   }
 
-  function formatValue(value: LilacDataType, type?: DataType) {
+  function formatValue(value: DataTypeCasted) {
     if (value == null) {
       return 'N/A';
     }
@@ -49,7 +48,7 @@
         </div>
 
         <div class="relative">
-          {formatValue(value ?? null, dtype)}
+          {formatValue(value ?? null)}
           {#if derivedFields}
             {#each derivedFields as derivedField}
               {@const derivedNode = getValueNode(row, derivedField.path)}
@@ -57,10 +56,7 @@
               {#if derivedNode && dtype === 'string_span'}
                 {@const value = L.value(derivedNode, dtype)}
                 {#if value}
-                  <StringSpanHighlight
-                    text={formatValue(value ?? null, dtype)}
-                    stringSpans={value}
-                  />
+                  <StringSpanHighlight text={formatValue(value ?? null)} stringSpans={value} />
                 {/if}
               {/if}
             {/each}
