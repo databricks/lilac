@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getDatasetViewContext } from '$lib/store/datasetViewStore';
-  import { L, getValueNode, listFields, type LilacSchemaField, type LilacValueNode } from '$lilac';
-  import { pathIsEqual, type DataTypeCasted, type Path } from '$lilac/schema';
+  import { L, getValueNode, type LilacSchemaField, type LilacValueNode } from '$lilac';
+  import type { DataTypeCasted, Path } from '$lilac/schema';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 
   export let row: LilacValueNode;
@@ -14,7 +14,9 @@
   function getDerivedFields(itemNode: LilacValueNode): LilacSchemaField[] {
     const field = L.field(itemNode);
     if (!field) return [];
-    return listFields(field).filter((f) => pathIsEqual(f.derived_from as Path, field.path));
+    // TODO: Infer derived_from using a similar impl as db_dataset_duckdb.py::_derived_from_path.
+    // return listFields(field).filter((f) => pathIsEqual(f.derived_from as Path, field.path));
+    return [];
   }
 
   function formatValue(value: DataTypeCasted) {
