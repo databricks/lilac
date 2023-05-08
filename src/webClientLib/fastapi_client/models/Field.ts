@@ -13,6 +13,5 @@ export type Field = {
     dtype?: DataType;
     signal_root?: boolean;
     is_entity?: boolean;
-    derived_from?: Array<(number | string)>;
 };
 
