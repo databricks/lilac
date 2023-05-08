@@ -54,7 +54,7 @@
 </script>
 
 <div class="mb-4 flex flex-col gap-y-4 border-b border-solid border-gray-300 pb-4">
-  {#each sortedVisibleColumns as column}
+  {#each sortedVisibleColumns as column (column)}
     {@const valueNode = getValueNode(row, column)}
     {#if valueNode && showValue(valueNode)}
       {@const value = L.value(valueNode)}

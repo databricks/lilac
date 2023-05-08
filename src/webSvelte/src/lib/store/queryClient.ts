@@ -10,6 +10,7 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       // Treat data as never stale, avoiding repeated fetches
       staleTime: Infinity,
+      retry: false,
       onError: (err) => {
         console.error((err as any).body?.detail);
         errors.update((errs) => [...errs, err as Error]);

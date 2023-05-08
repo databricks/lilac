@@ -10,7 +10,7 @@
   export let command: ComputeSignalCommand;
 
   let path = command.path;
-  let signalName: string | undefined;
+  let signalName = command.signalName;
 
   const dispatch = createEventDispatcher();
 
@@ -18,7 +18,7 @@
     command.namespace,
     command.datasetName,
     {
-      leaf_path: path,
+      leaf_path: path || [],
       signal: { signal_name: signalName }
     }
   );
@@ -39,7 +39,8 @@
     <div class="flex flex-col gap-y-8">
       <FieldSelect
         filter={(field) => !isSignalField(field)}
-        path={command.path}
+        defaultPath={command.path}
+        bind:path
         labelText="Field"
         helperText="Select field to calculate signal on"
       />

@@ -10,18 +10,20 @@
   export let text: string;
 
   // All the spans
-  let spans = stringSpans.filter(notEmpty);
-  let spanStart = 0;
+  $: spans = stringSpans.filter(notEmpty);
 
   // Fill up the gaps between the spans
   let filledSpans: Array<{ start: number; end: number; show: boolean }> = [];
-
-  for (const span of spans) {
-    if (spanStart != span.start) {
-      filledSpans.push({ start: spanStart, end: span.start, show: false });
+  $: {
+    filledSpans = [];
+    let spanStart = 0;
+    for (const span of spans) {
+      if (spanStart != span.start) {
+        filledSpans.push({ start: spanStart, end: span.start, show: false });
+      }
+      filledSpans.push({ start: span.start, end: span.end, show: true });
+      spanStart = span.end;
     }
-    filledSpans.push({ start: span.start, end: span.end, show: true });
-    spanStart = span.end;
   }
 </script>
 
