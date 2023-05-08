@@ -26,7 +26,8 @@ jobs:
           restore-keys:
             ${{ env.pythonLocation }}-
 
-      - name: Install dependencies
+      - if: steps.cache.outputs.cache-hit != 'true'
+        name: Install dependencies
         run: |
           ./scripts/setup_py.sh
 
