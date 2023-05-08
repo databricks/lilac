@@ -1,4 +1,4 @@
-import type { Path } from '$lilac';
+import type { Filter, Path } from '$lilac';
 import { getContext, hasContext, setContext } from 'svelte';
 import { writable } from 'svelte/store';
 
@@ -10,10 +10,14 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     namespace: string;
     datasetName: string;
     visibleColumns: Path[];
+    filters: Filter[];
+    sortBy?: Path[];
   }>({
     namespace,
     datasetName,
-    visibleColumns: []
+    visibleColumns: [],
+    filters: [],
+    sortBy: []
   });
 
   return {

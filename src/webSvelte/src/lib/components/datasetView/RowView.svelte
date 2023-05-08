@@ -9,16 +9,16 @@
 
   $: schema = useGetSchemaQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: rows = $schema.isSuccess
-    ? useSelectRowsInfiniteQuery(
-        $datasetViewStore.namespace,
-        $datasetViewStore.datasetName,
-        {
-          limit: 40
-        },
-        $schema.data
-      )
-    : undefined;
+  $: rows = useSelectRowsInfiniteQuery(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    {
+      limit: 40,
+      filters: $datasetViewStore.filters,
+      sort_by: $datasetViewStore.sortBy
+    },
+    $schema.data
+  );
 </script>
 
 {#if $rows?.isLoading || $schema.isLoading}

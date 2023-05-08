@@ -1,9 +1,9 @@
 import {
   DataLoadersService,
   DatasetsService,
+  UUID_COLUMN,
   deserializeRow,
   deserializeSchema,
-  UUID_COLUMN,
   type DataType,
   type Filter,
   type LilacSchema,
@@ -70,7 +70,7 @@ export const useSelectRowsInfiniteQuery = (
   namespace: string,
   datasetName: string,
   selectRowOptions: SelectRowsOptions,
-  schema: LilacSchema
+  schema: LilacSchema | undefined
 ) =>
   createInfiniteQuery({
     queryKey: [DATASETS_TAG, 'selectRows', namespace, datasetName, selectRowOptions],
@@ -78,8 +78,10 @@ export const useSelectRowsInfiniteQuery = (
       DatasetsService.selectRows(namespace, datasetName, {
         ...selectRowOptions,
         offset: pageParam * (selectRowOptions.limit || 40)
-      }).then((res) => res.map((row) => deserializeRow(row, schema))),
-    getNextPageParam: (lastPage, pages) => pages.length
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      }).then((res) => res.map((row) => deserializeRow(row, schema!))),
+    getNextPageParam: (lastPage, pages) => pages.length,
+    enabled: !!schema
   });
 
 export const useSelectRowByUUIDQuery = (
