@@ -3,8 +3,7 @@ import json
 import os
 import pathlib
 
-from ...schema import UUID_COLUMN
-from ..dataset_utils import schema
+from ...schema import UUID_COLUMN, schema
 from .json_source import JSONDataset
 from .source import SourceProcessResult
 

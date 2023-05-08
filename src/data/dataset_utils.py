@@ -5,7 +5,7 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Any, Callable, Generator, Iterator, Optional, TypeVar, Union, cast
+from typing import Any, Callable, Generator, Iterator, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -23,6 +23,8 @@ from ..schema import (
   ItemValue,
   PathTuple,
   Schema,
+  field,
+  schema,
   schema_to_arrow_schema,
 )
 from ..signals.signal import Signal
@@ -153,8 +155,8 @@ def _merge_field_into(schema: Field, destination: Field) -> None:
 def merge_schemas(schemas: list[Schema]) -> Schema:
   """Merge a list of schemas."""
   merged_schema = Schema(fields={})
-  for schema in schemas:
-    _merge_field_into(cast(Field, schema), cast(Field, merged_schema))
+  for s in schemas:
+    _merge_field_into(cast(Field, s), cast(Field, merged_schema))
   return merged_schema
 
 
@@ -350,60 +352,3 @@ def flatten_keys(
 def embedding_index_filename(prefix: str, shard_index: int, num_shards: int) -> str:
   """Return the filename for the embedding index."""
   return f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.npy'
-
-
-def schema(schema_like: object) -> Schema:
-  """Parse a schema-like object to a Schema object."""
-  field = _parse_field_like(schema_like)
-  return Schema(fields=field.fields)
-
-
-def field(field_like: object,
-          derived_from: Optional[PathTuple] = None,
-          signal_root: Optional[bool] = None) -> Field:
-  """Parse a field-like object to a Field object."""
-  field = _parse_field_like(field_like)
-  field.derived_from = derived_from
-  field.signal_root = signal_root
-  return field
-
-
-DTYPE_LIKE_TO_DTYPE: dict[str, DataType] = {
-  'uint8': DataType.UINT8,
-  'uint16': DataType.UINT16,
-  'uint32': DataType.UINT32,
-  'uint64': DataType.UINT64,
-  'int8': DataType.INT8,
-  'int16': DataType.INT16,
-  'int32': DataType.INT32,
-  'int64': DataType.INT64,
-  'float16': DataType.FLOAT16,
-  'float32': DataType.FLOAT32,
-  'float64': DataType.FLOAT64,
-  'string': DataType.STRING,
-  'string_span': DataType.STRING_SPAN,
-  'boolean': DataType.BOOLEAN,
-  'binary': DataType.BINARY,
-  'time': DataType.TIME,
-  'date': DataType.DATE,
-  'timestamp': DataType.TIMESTAMP,
-  'interval': DataType.INTERVAL,
-  'embedding': DataType.EMBEDDING,
-}
-
-
-def _parse_field_like(field_like: object) -> Field:
-  if isinstance(field_like, Field):
-    return field_like
-  elif isinstance(field_like, dict):
-    fields: dict[str, Field] = {}
-    for k, v in field_like.items():
-      fields[k] = _parse_field_like(v)
-    return Field(fields=fields, is_entity=True if ENTITY_FEATURE_KEY in fields else None)
-
-  elif isinstance(field_like, str):
-    return Field(dtype=DTYPE_LIKE_TO_DTYPE[field_like])
-  elif isinstance(field_like, list):
-    return Field(repeated_field=_parse_field_like(field_like[0]))
-  else:
-    raise ValueError(f'Cannot parse field like: {field_like}')

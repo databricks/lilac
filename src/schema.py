@@ -249,6 +249,39 @@ class Schema(BaseModel):
     return self.json(exclude_none=True, indent=2)
 
 
+def schema(schema_like: object) -> Schema:
+  """Parse a schema-like object to a Schema object."""
+  field = _parse_field_like(schema_like)
+  return Schema(fields=field.fields)
+
+
+def field(field_like: object,
+          derived_from: Optional[PathTuple] = None,
+          signal_root: Optional[bool] = None) -> Field:
+  """Parse a field-like object to a Field object."""
+  field = _parse_field_like(field_like)
+  field.derived_from = derived_from
+  field.signal_root = signal_root
+  return field
+
+
+def _parse_field_like(field_like: object) -> Field:
+  if isinstance(field_like, Field):
+    return field_like
+  elif isinstance(field_like, dict):
+    fields: dict[str, Field] = {}
+    for k, v in field_like.items():
+      fields[k] = _parse_field_like(v)
+    return Field(fields=fields, is_entity=True if ENTITY_FEATURE_KEY in fields else None)
+
+  elif isinstance(field_like, str):
+    return Field(dtype=DataType(field_like))
+  elif isinstance(field_like, list):
+    return Field(repeated_field=_parse_field_like(field_like[0]))
+  else:
+    raise ValueError(f'Cannot parse field like: {field_like}')
+
+
 def entity_paths(field: Field) -> list[PathTuple]:
   """Returns the subpaths that contain an entity."""
   entities: list[PathTuple] = []

@@ -28,11 +28,12 @@ from ..schema import (
   SignalOut,
   TextEntity,
   TextEntityField,
+  field,
+  schema,
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
 from . import db_dataset, db_dataset_duckdb
-from .dataset_utils import field, schema
 from .db_dataset import (
   Column,
   Comparison,

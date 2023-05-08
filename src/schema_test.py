@@ -3,7 +3,6 @@
 import pyarrow as pa
 import pytest
 
-from .data.dataset_utils import field, schema
 from .schema import (
   PATH_WILDCARD,
   DataType,
@@ -12,6 +11,8 @@ from .schema import (
   arrow_schema_to_schema,
   child_item_from_column_path,
   column_paths_match,
+  field,
+  schema,
   schema_to_arrow_schema,
 )
 
