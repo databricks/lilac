@@ -10,7 +10,7 @@
   export let text: string;
 
   // All the spans
-  let spans = [...stringSpans].filter(notEmpty);
+  let spans = stringSpans.filter(notEmpty);
   let spanStart = 0;
 
   // Fill up the gaps between the spans
