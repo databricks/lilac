@@ -6,11 +6,11 @@ import pytest
 from distributed import Client, Event, Future, wait
 
 from .tasks import (
-    TaskInfo,
-    TaskManager,
-    TaskManifest,
-    TaskStatus,
-    set_worker_task_progress,
+  TaskInfo,
+  TaskManager,
+  TaskManifest,
+  TaskStatus,
+  set_worker_task_progress,
 )
 
 
@@ -28,16 +28,16 @@ async def test_task_manager(test_client: Client) -> None:
   # Test the initial manifest.
   manifest = await task_manager.manifest()
   assert manifest == TaskManifest(
-      tasks={
-          task_id: TaskInfo(
-              name='test_task',
-              status=TaskStatus.PENDING,
-              progress=None,
-              description='test_description',
-              start_timestamp=manifest.tasks[task_id].start_timestamp,
-              end_timestamp=None,
-          )
-      })
+    tasks={
+      task_id: TaskInfo(
+        name='test_task',
+        status=TaskStatus.PENDING,
+        progress=None,
+        description='test_description',
+        start_timestamp=manifest.tasks[task_id].start_timestamp,
+        end_timestamp=None,
+      )
+    })
 
   test_progresses = [0.0, 0.4, 1.0]
 
@@ -74,16 +74,16 @@ async def test_task_manager(test_client: Client) -> None:
 
     manifest = await task_manager.manifest()
     assert manifest == TaskManifest(
-        tasks={
-            task_id: TaskInfo(
-                name='test_task',
-                status=TaskStatus.PENDING,
-                progress=test_progresses[i],
-                description='test_description',
-                start_timestamp=manifest.tasks[task_id].start_timestamp,
-                end_timestamp=None,
-            )
-        })
+      tasks={
+        task_id: TaskInfo(
+          name='test_task',
+          status=TaskStatus.PENDING,
+          progress=test_progresses[i],
+          description='test_description',
+          start_timestamp=manifest.tasks[task_id].start_timestamp,
+          end_timestamp=None,
+        )
+      })
   Event('end').set()
   Event('ended').wait()
 
@@ -91,15 +91,15 @@ async def test_task_manager(test_client: Client) -> None:
   # We do not need to retry here because this happens in the main loop.
   manifest = await task_manager.manifest()
   assert manifest == TaskManifest(
-      tasks={
-          task_id: TaskInfo(
-              name='test_task',
-              status=TaskStatus.COMPLETED,
-              progress=1.0,
-              description='test_description',
-              start_timestamp=manifest.tasks[task_id].start_timestamp,
-              end_timestamp=manifest.tasks[task_id].end_timestamp,
-          )
-      })
+    tasks={
+      task_id: TaskInfo(
+        name='test_task',
+        status=TaskStatus.COMPLETED,
+        progress=1.0,
+        description='test_description',
+        start_timestamp=manifest.tasks[task_id].start_timestamp,
+        end_timestamp=manifest.tasks[task_id].end_timestamp,
+      )
+    })
 
   test_client.close()

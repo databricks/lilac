@@ -15,14 +15,14 @@ def test_simple_dataframe(tmp_path: pathlib.Path) -> None:
   result = source.process(str(tmp_path))
 
   expected_result = SourceProcessResult(
-      data_schema=Schema(
-          fields={
-              UUID_COLUMN: Field(dtype=DataType.STRING),
-              'name': Field(dtype=DataType.STRING),
-              'age': Field(dtype=DataType.INT64)
-          }),
-      num_items=3,
-      filepaths=[])
+    data_schema=Schema(
+      fields={
+        UUID_COLUMN: Field(dtype=DataType.STRING),
+        'name': Field(dtype=DataType.STRING),
+        'age': Field(dtype=DataType.INT64)
+      }),
+    num_items=3,
+    filepaths=[])
 
   # Validate except for the filepaths, which are not deterministic.
   expected_result.filepaths = result.filepaths

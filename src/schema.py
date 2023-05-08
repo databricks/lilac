@@ -8,10 +8,10 @@ from typing import Any, Optional, Union, cast
 import numpy as np
 import pyarrow as pa
 from pydantic import (
-    BaseModel,
-    StrictInt,
-    StrictStr,
-    validator,
+  BaseModel,
+  StrictInt,
+  StrictStr,
+  validator,
 )
 
 MANIFEST_FILENAME = 'manifest.json'
@@ -31,7 +31,7 @@ TEXT_SPAN_END_FEATURE = 'end'
 
 # Python doesn't work with recursive types. These types provide some notion of type-safety.
 Scalar = Union[bool, datetime, int, float, str, bytes]
-ItemValue = Union[dict, list, np.ndarray, Scalar]
+ItemValue = Union[dict, list, np.ndarray, Scalar, None]
 Item = dict[str, ItemValue]
 RowKeyedItem = tuple[bytes, Item]
 SignalOut = Union[ItemValue, Item]
@@ -92,6 +92,8 @@ class DataType(str, Enum):
   LIST = 'list'
   BINARY = 'binary'
 
+  EMBEDDING = 'embedding'
+
   def __repr__(self) -> str:
     return self.value
 
@@ -99,19 +101,23 @@ class DataType(str, Enum):
 class EnrichmentType(str, Enum):
   """Enum holding the enrichment type for a signal."""
   TEXT = 'text'
+  TEXT_EMBEDDING = 'text_embedding'
   IMAGE = 'image'
 
   def __repr__(self) -> str:
     return self.value
 
 
+ENRICHMENT_TYPE_TO_VALID_DTYPES: dict[EnrichmentType, list[DataType]] = {
+  EnrichmentType.TEXT: [DataType.STRING, DataType.STRING_SPAN],
+  EnrichmentType.TEXT_EMBEDDING: [DataType.EMBEDDING],
+  EnrichmentType.IMAGE: [DataType.BINARY],
+}
+
+
 def enrichment_supports_dtype(enrichment_type: EnrichmentType, dtype: DataType) -> bool:
   """Returns True if the enrichment type supports the dtype."""
-  if enrichment_type == EnrichmentType.TEXT:
-    return dtype in (DataType.STRING, DataType.STRING_SPAN)
-  elif enrichment_type == EnrichmentType.IMAGE:
-    return dtype == DataType.BINARY
-  return False
+  return dtype in ENRICHMENT_TYPE_TO_VALID_DTYPES[enrichment_type]
 
 
 class Field(BaseModel):
@@ -175,12 +181,15 @@ class Field(BaseModel):
 
 def EntityField(entity_value: Field,
                 metadata: Optional[dict[str, Field]] = {},
-                extra_data: Optional[dict[str, Field]] = {}) -> Field:
+                extra_data: Optional[dict[str, Field]] = {},
+                signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
   res = Field(
-      fields={ENTITY_FEATURE_KEY: entity_value},
-      is_entity=True,
-      derived_from=entity_value.derived_from)
+    fields={ENTITY_FEATURE_KEY: entity_value},
+    is_entity=True,
+    derived_from=entity_value.derived_from)
+  if signal_root:
+    res.signal_root = signal_root
   if metadata and res.fields:
     res.fields[ENTITY_METADATA_KEY] = Field(fields=metadata, derived_from=entity_value.derived_from)
   if extra_data and res.fields:
@@ -188,7 +197,9 @@ def EntityField(entity_value: Field,
   return res
 
 
-def Entity(entity: Item, metadata: Optional[Item] = {}, extra_data: Optional[Item] = {}) -> Item:
+def Entity(entity: ItemValue,
+           metadata: Optional[Item] = {},
+           extra_data: Optional[Item] = {}) -> Item:
   """Creates an entity item."""
   return {ENTITY_FEATURE_KEY: entity, ENTITY_METADATA_KEY: metadata or {}, **(extra_data or {})}
 
@@ -272,10 +283,33 @@ def TextEntity(start: int,
 
 def TextEntityField(metadata: Optional[dict[str, Field]] = {},
                     extra_data: Optional[dict[str, Field]] = {},
-                    derived_from: Optional[PathTuple] = None) -> Field:
+                    derived_from: Optional[PathTuple] = None,
+                    signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
   return EntityField(
-      Field(dtype=DataType.STRING_SPAN, derived_from=derived_from), metadata, extra_data)
+    Field(dtype=DataType.STRING_SPAN, derived_from=derived_from),
+    metadata,
+    extra_data,
+    signal_root=signal_root)
+
+
+def EmbeddingEntity(embedding: Optional[np.ndarray],
+                    metadata: Optional[Item] = {},
+                    extra_data: Optional[Item] = {}) -> Item:
+  """Return the span item from start and end character offets."""
+  return Entity(embedding, metadata, extra_data)
+
+
+def EmbeddingField(metadata: Optional[dict[str, Field]] = {},
+                   extra_data: Optional[dict[str, Field]] = {},
+                   derived_from: Optional[PathTuple] = None,
+                   signal_root: Optional[bool] = False) -> Field:
+  """Returns a field that represents an entity."""
+  return EntityField(
+    Field(dtype=DataType.EMBEDDING, derived_from=derived_from),
+    metadata,
+    extra_data,
+    signal_root=signal_root)
 
 
 def child_item_from_column_path(item: Item, path: Path) -> Item:
@@ -284,8 +318,8 @@ def child_item_from_column_path(item: Item, path: Path) -> Item:
   for path_part in path:
     if path_part == PATH_WILDCARD:
       raise ValueError(
-          'child_item_from_column_path cannot be called with a path that contains a repeated '
-          f'wildcard: "{path}"')
+        'child_item_from_column_path cannot be called with a path that contains a repeated '
+        f'wildcard: "{path}"')
     # path_part can either be an integer or a string for a dictionary, both of which we can
     # directly index with.
     child_item_value = child_item_value[path_part]  # type: ignore
@@ -303,16 +337,16 @@ def validate_path_against_schema(path: Path, schema: Schema, msg: str) -> None:
     if isinstance(path_part, int) or path_part == PATH_WILDCARD:
       if field.dtype != DataType.LIST:
         raise ValueError(
-            f'Path part "{path_part}" for path "{path}" at index {i} represents an list, but the '
-            f'field at this path is "{field}". '
-            f'{msg}')
+          f'Path part "{path_part}" for path "{path}" at index {i} represents an list, but the '
+          f'field at this path is "{field}". '
+          f'{msg}')
       field = cast(Field, field.repeated_field)
     elif isinstance(path_part, str):
       if field.dtype != DataType.STRUCT:
         raise ValueError(
-            f'Path part "{path_part}" for path "{path}" at index {i} represents a field of a '
-            f'struct, but the field at this path is "{field}". '
-            f'{msg}')
+          f'Path part "{path_part}" for path "{path}" at index {i} represents a field of a '
+          f'struct, but the field at this path is "{field}". '
+          f'{msg}')
 
       if path_part not in cast(dict, field.fields):
         raise ValueError(f'Path part "{path_part}" for path "{path}" at index {i} represents a '
@@ -321,7 +355,7 @@ def validate_path_against_schema(path: Path, schema: Schema, msg: str) -> None:
 
   if field.dtype in (DataType.STRUCT, DataType.LIST):
     raise ValueError(
-        f'The path "{path}" specifies {field} but should specify a leaf primitive. {msg}')
+      f'The path "{path}" specifies {field} but should specify a leaf primitive. {msg}')
 
 
 def column_paths_match(path_match: Path, specific_path: Path) -> bool:
@@ -433,6 +467,11 @@ def dtype_to_arrow_dtype(dtype: DataType) -> pa.DataType:
     return pa.timestamp('us')
   elif dtype == DataType.INTERVAL:
     return pa.duration('us')
+  elif dtype == DataType.EMBEDDING:
+    # We reserve an empty column for embeddings in parquet files so they can live under __lilac__.
+    # The values are *not* filled out. If parquet and duckdb support embeddings in the future, we
+    # can set this dtype to the relevant pyarrow type.
+    return pa.null()
   else:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
 
@@ -448,7 +487,7 @@ def _schema_to_arrow_schema_impl(schema: Union[Schema, Field]) -> Union[pa.Schem
   """Convert a schema to an apache arrow schema."""
   if schema.fields:
     arrow_fields = {
-        name: _schema_to_arrow_schema_impl(field) for name, field in schema.fields.items()
+      name: _schema_to_arrow_schema_impl(field) for name, field in schema.fields.items()
     }
     return pa.schema(arrow_fields) if isinstance(schema, Schema) else pa.struct(arrow_fields)
   field = cast(Field, schema)
@@ -514,7 +553,7 @@ def _arrow_schema_to_schema_impl(schema: Union[pa.Schema, pa.DataType]) -> Union
   """Convert an apache arrow schema to our schema."""
   if isinstance(schema, (pa.Schema, pa.StructType)):
     fields: dict[str, Field] = {
-        field.name: cast(Field, _arrow_schema_to_schema_impl(field.type)) for field in schema
+      field.name: cast(Field, _arrow_schema_to_schema_impl(field.type)) for field in schema
     }
     return Schema(fields=fields) if isinstance(schema, pa.Schema) else Field(fields=fields)
   elif isinstance(schema, pa.ListType):
@@ -531,8 +570,8 @@ def is_float(dtype: DataType) -> bool:
 def is_integer(dtype: DataType) -> bool:
   """Check if a dtype is an integer dtype."""
   return dtype in [
-      DataType.INT8, DataType.INT16, DataType.INT32, DataType.INT64, DataType.UINT8,
-      DataType.UINT16, DataType.UINT32, DataType.UINT64
+    DataType.INT8, DataType.INT16, DataType.INT32, DataType.INT64, DataType.UINT8, DataType.UINT16,
+    DataType.UINT32, DataType.UINT64
   ]
 
 

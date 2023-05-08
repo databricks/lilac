@@ -4,17 +4,17 @@ import pathlib
 from typing import Optional, Type, cast
 
 from ..schema import (
-    MANIFEST_FILENAME,
-    PARQUET_FILENAME_PREFIX,
-    DataType,
-    Field,
-    Item,
-    ItemValue,
-    Schema,
-    SourceManifest,
+  MANIFEST_FILENAME,
+  PARQUET_FILENAME_PREFIX,
+  DataType,
+  Field,
+  Item,
+  ItemValue,
+  Schema,
+  SourceManifest,
 )
-from ..utils import get_dataset_output_dir, open_file, write_items_to_parquet
-from .dataset_utils import is_primitive
+from ..utils import get_dataset_output_dir, open_file
+from .dataset_utils import is_primitive, write_items_to_parquet
 from .db_dataset import DatasetDB
 
 TEST_NAMESPACE = 'test_namespace'
@@ -62,6 +62,41 @@ def _infer_schema(items: list[Item]) -> Schema:
   return schema
 
 
+def _parse_dtype_like(dtype_like: str) -> DataType:
+  if dtype_like == 'int32':
+    return DataType.INT32
+  elif dtype_like == 'float32':
+    return DataType.FLOAT32
+  elif dtype_like == 'string':
+    return DataType.STRING
+  elif dtype_like == 'boolean':
+    return DataType.BOOLEAN
+  elif dtype_like == 'binary':
+    return DataType.BINARY
+  else:
+    raise ValueError(f'Cannot parse dtype like: {dtype_like}')
+
+
+def _parse_field_like(field_like: object) -> Field:
+  if isinstance(field_like, dict):
+    fields: dict[str, Field] = {}
+    for k, v in field_like.items():
+      fields[k] = _parse_field_like(v)
+    return Field(fields=fields)
+  elif isinstance(field_like, str):
+    return Field(dtype=_parse_dtype_like(field_like))
+  elif isinstance(field_like, list):
+    return Field(repeated_field=_parse_field_like(field_like[0]))
+  else:
+    raise ValueError(f'Cannot parse field like: {field_like}')
+
+
+def schema_like(schema_like: object) -> Schema:
+  """Parse a schema-like object to a Schema object."""
+  field = _parse_field_like(schema_like)
+  return Schema(fields=field.fields)
+
+
 def make_db(db_cls: Type[DatasetDB],
             tmp_path: pathlib.Path,
             items: list[Item],
@@ -79,12 +114,7 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
   os.makedirs(source_dir)
 
   simple_parquet_files, _ = write_items_to_parquet(
-      items,
-      source_dir,
-      schema,
-      filename_prefix=PARQUET_FILENAME_PREFIX,
-      shard_index=0,
-      num_shards=1)
+    items, source_dir, schema, filename_prefix=PARQUET_FILENAME_PREFIX, shard_index=0, num_shards=1)
   manifest = SourceManifest(files=[simple_parquet_files], data_schema=schema)
   with open_file(os.path.join(source_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.json(indent=2, exclude_none=True))

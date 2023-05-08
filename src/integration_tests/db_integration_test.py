@@ -64,11 +64,11 @@ def db_integration_test_fake():
   # Yells because the embedding index has not been computed (or it doesnt yell if the embedding
   # happens to be shared from a model before for that column)
   db.select_rows(
-      columns=[SemanticSimilarity(Column('text'), text='hello world', embedding='cohere')])
+    columns=[SemanticSimilarity(Column('text'), text='hello world', embedding='cohere')])
 
   # This line may share embeddings the toxicity model from before.
   db.compute_semantic_index(Column('text'), embedding='cohere')
 
   # This now works because we've computed the index.
   db.select_rows(
-      columns=[SemanticSimilarity(Column('text'), text='hello world', embedding='cohere')])
+    columns=[SemanticSimilarity(Column('text'), text='hello world', embedding='cohere')])

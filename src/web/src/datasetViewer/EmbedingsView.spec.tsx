@@ -42,16 +42,6 @@ describe('EmbeddingsView', () => {
         data_schema: {
           fields: {},
         },
-        embedding_manifest: {
-          indexes: [
-            {
-              column: ['column_name'],
-              embedding: {
-                embedding_name: 'cohere',
-              },
-            },
-          ],
-        },
         num_items: 1,
       },
     });

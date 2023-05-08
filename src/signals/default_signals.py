@@ -1,4 +1,5 @@
 """Registers all available default signals."""
+from ..embeddings.cohere import Cohere
 from .concept_scorer import ConceptScoreSignal
 from .pii import PIISignal
 from .signal_registry import register_signal
@@ -15,3 +16,6 @@ def register_default_signals() -> None:
   register_signal(PIISignal)
   register_signal(SentenceSplitterSpacy)
   register_signal(TextStatisticsSignal)
+
+  # Embeddings.
+  register_signal(Cohere)

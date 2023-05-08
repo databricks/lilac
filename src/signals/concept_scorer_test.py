@@ -9,17 +9,18 @@ from typing_extensions import override
 
 from ..concepts.concept import ConceptModel, ExampleIn
 from ..concepts.db_concept import (
-    ConceptDB,
-    ConceptModelDB,
-    ConceptUpdate,
-    DiskConceptDB,
-    DiskConceptModelDB,
+  ConceptDB,
+  ConceptModelDB,
+  ConceptUpdate,
+  DiskConceptDB,
+  DiskConceptModelDB,
 )
 from ..config import CONFIG
-from ..embeddings.embedding_registry import Embedding, clear_embedding_registry, register_embedding
+from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store_numpy import NumpyVectorStore
-from ..schema import EnrichmentType, RichData
+from ..schema import EmbeddingEntity, EnrichmentType, Item, RichData
 from .concept_scorer import ConceptScoreSignal
+from .signal_registry import clear_signal_registry, register_signal
 
 ALL_CONCEPT_DBS = [DiskConceptDB]
 ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
@@ -36,36 +37,37 @@ def set_data_path(tmp_path: pathlib.Path) -> Generator:
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {
-    'not in concept': [1.0, 0.0, 0.0],
-    'in concept': [0.9, 0.1, 0.0],
-    'a new data point': [0.1, 0.2, 0.3],
+  'not in concept': [1.0, 0.0, 0.0],
+  'in concept': [0.9, 0.1, 0.0],
+  'a new data point': [0.1, 0.2, 0.3],
 }
 
 
-class TestEmbedding(Embedding):
+class TestEmbedding(EmbeddingSignal):
   """A test embed function."""
   name = 'test_embedding'
   enrichment_type = EnrichmentType.TEXT
 
   @override
-  def __call__(self, examples: Iterable[RichData]) -> np.ndarray:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Embed the examples, use a hashmap to the vector for simplicity."""
-    for example in examples:
+    for example in data:
       if example not in EMBEDDING_MAP:
         raise ValueError(f'Example "{str(example)}" not in embedding map')
-    return np.array([EMBEDDING_MAP[cast(str, example)] for example in examples])
+    embeddings = np.array([EMBEDDING_MAP[cast(str, example)] for example in data])
+    yield from (EmbeddingEntity(e) for e in embeddings)
 
 
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Generator:
   # Setup.
-  register_embedding(TestEmbedding)
+  register_signal(TestEmbedding)
 
   # Unit test runs.
   yield
 
   # Teardown.
-  clear_embedding_registry()
+  clear_signal_registry()
 
 
 @pytest.mark.parametrize('db_cls', ALL_CONCEPT_DBS)
@@ -74,19 +76,20 @@ def test_embedding_does_not_exist(db_cls: Type[ConceptDB]) -> None:
   namespace = 'test'
   concept_name = 'test_concept'
   train_data = [
-      ExampleIn(label=False, text='not in concept'),
-      ExampleIn(label=True, text='in concept')
+    ExampleIn(label=False, text='not in concept'),
+    ExampleIn(label=True, text='in concept')
   ]
   db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-  with pytest.raises(ValueError, match='Embedding "unknown_embedding" not found in the registry'):
+  with pytest.raises(
+      ValueError, match='Embedding signal "unknown_embedding" not found in the registry'):
     ConceptScoreSignal(
-        namespace='test', concept_name='test_concept', embedding_name='unknown_embedding')
+      namespace='test', concept_name='test_concept', embedding_name='unknown_embedding')
 
 
 def test_concept_does_not_exist() -> None:
   signal = ConceptScoreSignal(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   with pytest.raises(ValueError, match='Concept "test/test_concept" does not exist'):
     signal.compute(['a new data point', 'not in concept'])
 
@@ -97,13 +100,13 @@ def test_concept_model_out_of_sync(db_cls: Type[ConceptDB]) -> None:
   namespace = 'test'
   concept_name = 'test_concept'
   train_data = [
-      ExampleIn(label=False, text='not in concept'),
-      ExampleIn(label=True, text='in concept')
+    ExampleIn(label=False, text='not in concept'),
+    ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   signal = ConceptScoreSignal(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   with pytest.raises(
       ValueError, match='Concept model "test/test_concept/test_embedding" is out of sync'):
     signal.compute(['a new data point', 'not in concept'])
@@ -118,17 +121,17 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
   namespace = 'test'
   concept_name = 'test_concept'
   train_data = [
-      ExampleIn(label=False, text='not in concept'),
-      ExampleIn(label=True, text='in concept')
+    ExampleIn(label=False, text='not in concept'),
+    ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   signal = ConceptScoreSignal(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-      ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   scores = signal.compute(['a new data point', 'not in concept'])
   expected_scores = [0.801, 0.465]
@@ -145,17 +148,17 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
   namespace = 'test'
   concept_name = 'test_concept'
   train_data = [
-      ExampleIn(label=False, text='not in concept'),
-      ExampleIn(label=True, text='in concept')
+    ExampleIn(label=False, text='not in concept'),
+    ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   signal = ConceptScoreSignal(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-      ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
@@ -177,17 +180,17 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
   namespace = 'test'
   concept_name = 'test_concept'
   train_data = [
-      ExampleIn(label=False, text='not in concept'),
-      ExampleIn(label=True, text='in concept')
+    ExampleIn(label=False, text='not in concept'),
+    ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   signal = ConceptScoreSignal(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-      ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
                    np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
@@ -216,5 +219,5 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
 
 def test_concept_score_key() -> None:
   signal = ConceptScoreSignal(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   assert signal.key() == 'test/test_concept'

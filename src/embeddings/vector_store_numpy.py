@@ -26,8 +26,7 @@ class NumpyVectorStore(VectorStore):
 
     if len(keys) != embeddings.shape[0]:
       raise ValueError(
-          f'Length of keys ({len(keys)}) does not match number of embeddings {embeddings.shape[0]}.'
-      )
+        f'Length of keys ({len(keys)}) does not match number of embeddings {embeddings.shape[0]}.')
 
     self._keys = keys
     # Cast to float32 since dot product with float32 is 40-50x faster than float16 and 2.5x faster
@@ -39,8 +38,8 @@ class NumpyVectorStore(VectorStore):
     # np.split makes a shallow copy of each of the embeddings, so the data frame can be a shallow
     # view of the numpy array. This means the dataframe cannot be used to modify the embeddings.
     self._df = pd.DataFrame(
-        {NP_EMBEDDINGS_KWD: np.split(self._embeddings.flatten(), embeddings.shape[0])},
-        index=str_keys)
+      {NP_EMBEDDINGS_KWD: np.split(self._embeddings.flatten(), embeddings.shape[0])},
+      index=str_keys)
 
   @override
   def get(self, keys: Iterable[PathTuple]) -> np.ndarray:

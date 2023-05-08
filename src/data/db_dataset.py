@@ -6,17 +6,15 @@ from typing import Any, Iterator, Optional, Sequence, Union
 
 import pandas as pd
 from pydantic import (
-    BaseModel,
-    StrictBool,
-    StrictBytes,
-    StrictFloat,
-    StrictInt,
-    StrictStr,
-    validator,
+  BaseModel,
+  StrictBool,
+  StrictBytes,
+  StrictFloat,
+  StrictInt,
+  StrictStr,
+  validator,
 )
 
-from ..embeddings.embedding_index import EmbeddingIndexerManifest
-from ..embeddings.embedding_registry import EmbeddingId
 from ..schema import Path, PathTuple, Schema
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import Signal
@@ -172,7 +170,6 @@ class DatasetManifest(BaseModel):
   namespace: str
   dataset_name: str
   data_schema: Schema
-  embedding_manifest: EmbeddingIndexerManifest
   # Number of items in the dataset.
   num_items: int
 
@@ -199,7 +196,7 @@ def Bucketize(column: ColumnId, bins: list[float]) -> Column:
 def SignalUDF(signal: Signal, column: ColumnId, alias: Optional[str] = None) -> Column:
   """Execute the signal as a user-defined function on the selected rows."""
   result_column = Column(
-      feature=column_from_identifier(column).feature, transform=SignalTransform(signal=signal))
+    feature=column_from_identifier(column).feature, transform=SignalTransform(signal=signal))
   if alias:
     result_column.alias = alias
   return result_column
@@ -235,21 +232,6 @@ class DatasetDB(abc.ABC):
   @abc.abstractmethod
   def manifest(self) -> DatasetManifest:
     """Return the manifest for the dataset."""
-    pass
-
-  @abc.abstractmethod
-  def compute_embedding_index(self,
-                              embedding: EmbeddingId,
-                              column: ColumnId,
-                              task_id: Optional[TaskId] = None) -> None:
-    """Compute an embedding index for a column.
-
-    Args:
-      embedding: The embedding to compute the index for.
-      column: The column to compute the signal on.
-      task_id: The TaskManager `task_id` for this process run. This is used to update the progress
-        of the task.
-    """
     pass
 
   @abc.abstractmethod

@@ -4,9 +4,9 @@ import os
 from dotenv import dotenv_values
 
 CONFIG = {
-    **dotenv_values('.env'),  # load shared variables
-    **dotenv_values('.env.local'),  # load locally set variables
-    **os.environ,  # override loaded values with environment variables
+  **dotenv_values('.env'),  # load shared variables
+  **dotenv_values('.env.local'),  # load locally set variables
+  **os.environ,  # override loaded values with environment variables
 }
 
 

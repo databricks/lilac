@@ -26,35 +26,35 @@ def test_wrap_in_dicts_with_spec_of_one_repeated() -> None:
   spec: list[PathTuple] = [('a', 'b', 'c'), ('d',)]  # Corresponds to a.b.c.*.d.
   result = wrap_in_dicts(a, spec)
   assert result == [{
-      'a': {
-          'b': {
-              'c': [{
-                  'd': 1
-              }, {
-                  'd': 2
-              }]
-          }
+    'a': {
+      'b': {
+        'c': [{
+          'd': 1
+        }, {
+          'd': 2
+        }]
       }
+    }
   }, {
-      'a': {
-          'b': {
-              'c': [{
-                  'd': 3
-              }]
-          }
+    'a': {
+      'b': {
+        'c': [{
+          'd': 3
+        }]
       }
+    }
   }, {
-      'a': {
-          'b': {
-              'c': [{
-                  'd': 4
-              }, {
-                  'd': 5
-              }, {
-                  'd': 5
-              }]
-          }
+    'a': {
+      'b': {
+        'c': [{
+          'd': 4
+        }, {
+          'd': 5
+        }, {
+          'd': 5
+        }]
       }
+    }
   }]
 
 
@@ -63,37 +63,37 @@ def test_wrap_in_dicts_with_spec_of_double_repeated() -> None:
   spec: list[PathTuple] = [('a', 'b'), tuple(), ('c',)]  # Corresponds to a.b.*.*.c.
   result = wrap_in_dicts(a, spec)
   assert result == [{
-      'a': {
-          'b': [[{
-              'c': 1
-          }, {
-              'c': 2
-          }], [{
-              'c': 3
-          }, {
-              'c': 4
-          }, {
-              'c': 5
-          }]]
-      }
+    'a': {
+      'b': [[{
+        'c': 1
+      }, {
+        'c': 2
+      }], [{
+        'c': 3
+      }, {
+        'c': 4
+      }, {
+        'c': 5
+      }]]
+    }
   }, {
-      'a': {
-          'b': [[{
-              'c': 6
-          }]]
-      }
+    'a': {
+      'b': [[{
+        'c': 6
+      }]]
+    }
   }, {
-      'a': {
-          'b': [[{
-              'c': 7
-          }], [{
-              'c': 8
-          }], [{
-              'c': 9
-          }, {
-              'c': 10
-          }]]
-      }
+    'a': {
+      'b': [[{
+        'c': 7
+      }], [{
+        'c': 8
+      }], [{
+        'c': 9
+      }, {
+        'c': 10
+      }]]
+    }
   }]
 
 

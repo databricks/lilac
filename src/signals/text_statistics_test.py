@@ -15,7 +15,7 @@ def test_text_statistics_compute() -> None:
   scores = signal.compute(['hello', 'hello world'])
 
   assert list(scores) == [{
-      NUM_CHARS_FEATURE_NAME: len('hello')
+    NUM_CHARS_FEATURE_NAME: len('hello')
   }, {
-      NUM_CHARS_FEATURE_NAME: len('hello world')
+    NUM_CHARS_FEATURE_NAME: len('hello world')
   }]

@@ -21,14 +21,14 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
   result = source.process(str(os.path.join(tmp_path, 'data')))
 
   expected_result = SourceProcessResult(
-      data_schema=Schema(
-          fields={
-              UUID_COLUMN: Field(dtype=DataType.STRING),
-              'x': Field(dtype=DataType.UINT64),
-              'y': Field(dtype=DataType.STRING),
-          }),
-      num_items=2,
-      filepaths=[])
+    data_schema=Schema(
+      fields={
+        UUID_COLUMN: Field(dtype=DataType.STRING),
+        'x': Field(dtype=DataType.UINT64),
+        'y': Field(dtype=DataType.STRING),
+      }),
+    num_items=2,
+    filepaths=[])
 
   # Validate except for the filepaths, which are not deterministic.
   expected_result.filepaths = result.filepaths
@@ -50,14 +50,14 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
   result = source.process(str(os.path.join(tmp_path, 'data')))
 
   expected_result = SourceProcessResult(
-      data_schema=Schema(
-          fields={
-              UUID_COLUMN: Field(dtype=DataType.STRING),
-              'x': Field(dtype=DataType.UINT64),
-              'y': Field(dtype=DataType.STRING),
-          }),
-      num_items=2,
-      filepaths=[])
+    data_schema=Schema(
+      fields={
+        UUID_COLUMN: Field(dtype=DataType.STRING),
+        'x': Field(dtype=DataType.UINT64),
+        'y': Field(dtype=DataType.STRING),
+      }),
+    num_items=2,
+    filepaths=[])
 
   # Validate except for the filepaths, which are not deterministic.
   expected_result.filepaths = result.filepaths

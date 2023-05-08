@@ -88,9 +88,11 @@ ignore = [
   "D204", # 1 blank line required after class docstring.
   "D213", # Multi-line docstring summary should start at the second line.
   "D407", # Missing dashed underline after section.
-  "F841" # Unused variable rules.
+  "F841", # Unused variable rules.
+  "I001" # Delegate sorting to isort.
 ]
 fix = true
+unfixable = ["I"] # Delegate import organization to isort.
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -128,6 +130,10 @@ max-complexity = 10
 [tool.ruff.flake8-quotes]
 inline-quotes = "single"
 
+[tool.isort]
+indent = "  "
+profile = "black"
+
 [tool.ruff.isort]
 force-wrap-aliases = true
 combine-as-imports = true
@@ -147,6 +153,7 @@ indent_width = 2
 allow_split_before_dict_value = false
 coalesce_brackets = true
 split_before_expression_after_opening_paren = true
+continuation_indent_width = 2
 
 # Consider enabling these options for more compact code.
 # split_before_named_assigns = false

@@ -35,9 +35,9 @@ def process_source(base_dir: str,
 
   filenames = [os.path.basename(filepath) for filepath in source_process_result.filepaths]
   manifest = SourceManifest(
-      files=filenames,
-      data_schema=source_process_result.data_schema,
-      images=source_process_result.images)
+    files=filenames,
+    data_schema=source_process_result.data_schema,
+    images=source_process_result.images)
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.json(indent=2, exclude_none=True))
   log(f'Manifest for dataset "{dataset_name}" written to {output_dir}')
@@ -47,23 +47,23 @@ def process_source(base_dir: str,
 
 @click.command()
 @click.option(
-    '--output_dir',
-    required=True,
-    type=str,
-    help='The output directory to write the parquet files to.')
+  '--output_dir',
+  required=True,
+  type=str,
+  help='The output directory to write the parquet files to.')
 @click.option(
-    '--config_path',
-    required=True,
-    type=str,
-    help='The path to a json file describing the source configuration.')
+  '--config_path',
+  required=True,
+  type=str,
+  help='The path to a json file describing the source configuration.')
 @click.option(
-    '--dataset_name', required=True, type=str, help='The dataset name, used for binary mode only.')
+  '--dataset_name', required=True, type=str, help='The dataset name, used for binary mode only.')
 @click.option(
-    '--namespace',
-    required=False,
-    default='local',
-    type=str,
-    help='The namespace to use. Defaults to "local".')
+  '--namespace',
+  required=False,
+  default='local',
+  type=str,
+  help='The namespace to use. Defaults to "local".')
 def main(output_dir: str, config_path: str, dataset_name: str, namespace: str) -> None:
   """Run the source loader as a binary."""
   register_default_sources()
