@@ -1,20 +1,16 @@
 <script lang="ts">
+  import { notEmpty } from '$lib/utils';
   /**
    * Component that renders string spans as an absolute positioned
    * layer, meant to be rendered on top of the source text.
    */
   import type { DataTypeCasted } from '$lilac/schema';
 
-  export let stringSpans: DataTypeCasted<'string_span'>;
+  export let stringSpans: Array<DataTypeCasted<'string_span'>>;
   export let text: string;
 
-  // All the spans casted and flattened
-  let spans = Array.isArray(stringSpans)
-    ? (stringSpans.flatMap((span) =>
-        span && typeof span === 'object' ? Object.values(span) : []
-      ) as Array<{ start: number; end: number }>)
-    : [];
-
+  // All the spans
+  let spans = [...stringSpans].filter(notEmpty);
   let spanStart = 0;
 
   // Fill up the gaps between the spans

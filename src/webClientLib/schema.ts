@@ -1,4 +1,4 @@
-import type { DataType } from './fastapi_client';
+import type { DataType, EnrichmentType } from './fastapi_client';
 export type LeafValue = number | boolean | string | null;
 export type FieldValue = FieldValue[] | { [fieldName: string]: FieldValue } | LeafValue;
 
@@ -16,6 +16,12 @@ export const PATH_WILDCARD = '*';
 export const UUID_COLUMN = '__rowid__';
 export const LILAC_COLUMN = '__lilac__';
 export const ENTITY_FEATURE_KEY = '__entity__';
+
+export const ENRICHMENT_TYPE_TO_VALID_DTYPES: Record<EnrichmentType, DataType[]> = {
+  text: ['string', 'string_span'],
+  text_embedding: ['embedding'],
+  image: ['binary']
+};
 
 export type DataTypeNumber =
   | 'int8'

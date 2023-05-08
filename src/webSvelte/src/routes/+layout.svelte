@@ -1,6 +1,8 @@
 <script>
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
   import '../app.css';
+  // Carbon component must be imported after app.css
+  import 'carbon-components-svelte/css/white.css';
 
   // Create query client
   const queryClient = new QueryClient({
@@ -16,9 +18,9 @@
 </script>
 
 <QueryClientProvider client={queryClient}>
-  <main class="flex h-screen flex-col">
-    <div class="navbar bg-base-100">
-      <a class="btn-ghost btn text-xl normal-case" href="/">Lilac Inspector</a>
+  <main class="flex h-screen flex-col py-2">
+    <div class="bg-base-100 px-4">
+      <a class="text-xl normal-case" href="/">Lilac Inspector</a>
     </div>
 
     <div class="overflow-y-scroll">

@@ -2,7 +2,12 @@
  * Utils for RTK Query APIs.
  */
 
-import { createMutation, createQuery, type CreateQueryOptions } from '@tanstack/svelte-query';
+import {
+  createMutation,
+  createQuery,
+  type CreateMutationOptions,
+  type CreateQueryOptions
+} from '@tanstack/svelte-query';
 
 const apiQueryKey = (rootKey: string, endpoint: string, ...args: any[]) => [
   rootKey,
@@ -29,13 +34,12 @@ export function createApiQuery<
     });
 }
 
-export function createApiMutation<E extends (...args: any[]) => Promise<any>>(
-  endpoint: E,
-  rootKey: string
-) {
-  return (...args: Parameters<E>) =>
-    createMutation<Awaited<ReturnType<E>>, Error>({
-      mutationKey: apiQueryKey(rootKey, endpoint.name, ...args),
+export function createApiMutation<
+  TMutationFn extends (...args: any[]) => Promise<any>,
+  TData = Awaited<ReturnType<TMutationFn>>
+>(endpoint: TMutationFn, mutationArgs: CreateMutationOptions<TData, Error> = {}) {
+  return (...args: Parameters<TMutationFn>) =>
+    createMutation<TData, Error>({
       mutationFn: () => endpoint(...args)
     });
 }

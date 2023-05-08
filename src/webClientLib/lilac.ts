@@ -143,9 +143,27 @@ export function getField(schema: LilacSchema, path: Path): LilacSchemaField | un
   return list.find((field) => pathIsEqual(field.path, path));
 }
 
+/**
+ * Get the first value at the given path in a row
+ */
 export function getValueNode(row: LilacValueNode, _path: Path): LilacValueNode | undefined {
   const list = listValueNodes(row);
   return list.find((value) => pathIsEqual(L.path(value), _path));
+}
+
+/**
+ * Get all values at the given path in a row
+ */
+export function getValueNodes(row: LilacValueNode, _path: Path): LilacValueNode[] {
+  const list = listValueNodes(row);
+  return list.filter((value) => pathIsEqual(L.path(value), _path));
+}
+
+/**
+ * Determine if field is produced by a signal
+ */
+export function isSignalField(field: LilacSchemaField): boolean {
+  return field.path[0] === LILAC_COLUMN;
 }
 
 export const L = {
@@ -167,6 +185,7 @@ export const L = {
     return _field?.dtype;
   }
 };
+
 /**
  * Convert raw schema field to LilacSchemaField.
  * Adds path attribute to each field
@@ -186,6 +205,10 @@ function lilacSchemaFieldFromField(field: Field, path: Path): LilacSchemaField {
     const lilacChildField = lilacSchemaFieldFromField(repeated_field, [...path, PATH_WILDCARD]);
     lilacChildField.path = [...path, PATH_WILDCARD];
     lilacField.repeated_field = lilacChildField;
+  }
+  // Copy dtype from the child field (issue/125)
+  if (lilacField.is_entity && lilacField.fields?.[ENTITY_FEATURE_KEY]?.dtype) {
+    lilacField.dtype = lilacField.fields?.[ENTITY_FEATURE_KEY]?.dtype;
   }
   return lilacField;
 }

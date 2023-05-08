@@ -1,7 +1,16 @@
 <script lang="ts">
   import { getDatasetViewContext } from '$lib/store/datasetViewStore';
-  import { L, getValueNode, type LilacSchemaField, type LilacValueNode } from '$lilac';
+  import { notEmpty } from '$lib/utils';
+  import {
+    L,
+    getValueNode,
+    getValueNodes,
+    listFields,
+    type LilacSchemaField,
+    type LilacValueNode
+  } from '$lilac';
   import type { DataTypeCasted, Path } from '$lilac/schema';
+  import { isOrdinal, pathIsEqual } from '$lilac/schema';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 
   export let row: LilacValueNode;
@@ -9,14 +18,26 @@
   let datasetViewStore = getDatasetViewContext();
 
   /**
-   * Get all columns that are derived from the given path.
+   * Get child fields that are of string_span type
    */
-  function getDerivedFields(itemNode: LilacValueNode): LilacSchemaField[] {
+  function getDerivedStringSpanFields(itemNode: LilacValueNode): LilacSchemaField[] {
     const field = L.field(itemNode);
     if (!field) return [];
-    // TODO: Infer derived_from using a similar impl as db_dataset_duckdb.py::_derived_from_path.
-    // return listFields(field).filter((f) => pathIsEqual(f.derived_from as Path, field.path));
-    return [];
+    return (
+      listFields(field)
+        // Filter for string spans
+        .filter((field) => field.dtype === 'string_span' && field.is_entity)
+        // Filter for visible columns
+        .filter((field) => $datasetViewStore.visibleColumns.some((c) => pathIsEqual(c, field.path)))
+    );
+  }
+
+  function showValue(value: LilacValueNode) {
+    const dtype = L.dtype(value);
+    if (!dtype) return false;
+    if (isOrdinal(dtype) || dtype == 'string') {
+      return true;
+    }
   }
 
   function formatValue(value: DataTypeCasted) {
@@ -39,9 +60,9 @@
 <div class="mb-4 flex flex-col gap-y-4 border-b border-solid border-gray-300 pb-4">
   {#each sortedVisibleColumns as column}
     {@const valueNode = getValueNode(row, column)}
-    {#if valueNode}
+    {#if valueNode && showValue(valueNode)}
       {@const value = L.value(valueNode)}
-      {@const derivedFields = getDerivedFields(valueNode)}
+      {@const derivedFields = getDerivedStringSpanFields(valueNode)}
 
       <div class="flex flex-col">
         <div class="font-mono text-sm text-gray-600">
@@ -52,12 +73,12 @@
           {formatValue(value ?? null)}
           {#if derivedFields}
             {#each derivedFields as derivedField}
-              {@const derivedNode = getValueNode(row, derivedField.path)}
-              {@const dtype = derivedNode && L.dtype(derivedNode)}
-              {#if derivedNode && dtype === 'string_span'}
-                {@const value = L.value(derivedNode, dtype)}
-                {#if value}
-                  <StringSpanHighlight text={formatValue(value ?? null)} stringSpans={value} />
+              {@const derivedNodes = getValueNodes(row, derivedField.path)}
+              {@const dtype = derivedField.dtype}
+              {#if derivedNodes.length && dtype === 'string_span'}
+                {@const stringSpans = derivedNodes.map((n) => L.value(n, dtype)).filter(notEmpty)}
+                {#if stringSpans}
+                  <StringSpanHighlight text={formatValue(value ?? null)} {stringSpans} />
                 {/if}
               {/if}
             {/each}

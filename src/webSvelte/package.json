@@ -38,7 +38,8 @@
   "type": "module",
   "dependencies": {
     "@tanstack/svelte-query": "^4.29.5",
-    "daisyui": "^2.51.6",
+    "carbon-components-svelte": "^0.73.5",
+    "carbon-icons-svelte": "^11.4.0",
     "json-schema": "^0.4.0",
     "svelte-bootstrap-icons": "^2.3.1",
     "svelte-infinite-scroll": "^2.0.1"

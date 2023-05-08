@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import Spinner from '$lib/components/Spinner.svelte';
+  import Commands from '$lib/components/commands/Commands.svelte';
   import RowView from '$lib/components/datasetView/RowView.svelte';
   import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
   import { useGetManifestQuery } from '$lib/store/apiDataset';
@@ -26,3 +27,5 @@
     {/if}
   </div>
 </div>
+
+<Commands />

@@ -9,7 +9,7 @@ import {
   type LilacSchema,
   type SelectRowsOptions
 } from '$lilac';
-import { createInfiniteQuery } from '@tanstack/svelte-query';
+import { createInfiniteQuery, useQueryClient } from '@tanstack/svelte-query';
 import { createApiMutation, createApiQuery } from './apiUtils';
 
 export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
@@ -42,10 +42,15 @@ export const useGetSourceSchemaQuery = createApiQuery(
   DataLoadersService.getSourceSchema,
   DATASETS_TAG
 );
-export const useLoadDatasetMutation = createApiMutation(DataLoadersService.load, DATASETS_TAG);
+export const useLoadDatasetMutation = createApiMutation(DataLoadersService.load);
 export const useComputeSignalColumnMutation = createApiMutation(
   DatasetsService.computeSignalColumn,
-  DATASETS_TAG
+  {
+    onSuccess: () => {
+      const queryClient = useQueryClient();
+      queryClient.invalidateQueries([]);
+    }
+  }
 );
 export const useGetStatsQuery = createApiQuery(DatasetsService.getStats, DATASETS_TAG);
 export const useSelectRowsQuery = createApiQuery(function selectRows(
