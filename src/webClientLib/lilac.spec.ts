@@ -2,6 +2,7 @@
 import { afterEach, assertType, describe, expect, it } from 'vitest';
 import type { Schema } from './fastapi_client';
 import {
+  L,
   clearCache,
   deserializeRow,
   deserializeSchema,
@@ -9,7 +10,6 @@ import {
   getValueNode,
   getValueNodes,
   isSignalField,
-  L,
   listFields,
   listValueNodes
 } from './lilac';
@@ -76,16 +76,13 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
                   repeated_field: {
                     fields: {},
                     dtype: 'string_span',
-                    is_entity: true,
-                    derived_from: ['comment_text']
+                    is_entity: true
                   },
-                  dtype: 'list',
-                  derived_from: ['comment_text']
+                  dtype: 'list'
                 }
               },
               dtype: 'struct',
-              signal_root: true,
-              derived_from: ['comment_text']
+              signal_root: true
             }
           },
           dtype: 'struct'
@@ -99,13 +96,11 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
                 text_statistics: {
                   fields: {
                     num_characters: {
-                      dtype: 'int32',
-                      derived_from: ['review']
+                      dtype: 'int32'
                     }
                   },
                   dtype: 'struct',
-                  signal_root: true,
-                  derived_from: ['review']
+                  signal_root: true
                 }
               }
             }
@@ -248,6 +243,11 @@ describe('lilac', () => {
       clearCache();
       const fields3 = listFields(schema);
       expect(fields).not.toBe(fields3);
+    });
+    it('should not return root field', () => {
+      const fields = listFields(schema);
+      expect(fields).not.toContainEqual([]);
+      expect(fields).not.toContainEqual(null);
     });
   });
 

@@ -2,8 +2,8 @@ import type { DataType, Field, Schema } from './fastapi_client';
 import {
   ENTITY_FEATURE_KEY,
   LILAC_COLUMN,
-  pathIsEqual,
   PATH_WILDCARD,
+  pathIsEqual,
   type DataTypeCasted,
   type FieldValue,
   type Path
@@ -106,7 +106,7 @@ export function listFields(field: LilacSchemaField | LilacSchema): LilacSchemaFi
     field,
     ...Object.values(field.fields || {}).flatMap(listFields),
     ...(field.repeated_field ? listFields(field.repeated_field) : [])
-  ];
+  ].filter((f) => f.path.length > 0);
 
   // Cache the result
   listFieldsCache.set(field, result);

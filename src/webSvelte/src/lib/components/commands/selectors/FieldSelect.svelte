@@ -11,7 +11,7 @@
   } from '$lilac';
   import { Select, SelectItem } from 'carbon-components-svelte';
 
-  export let labelText: string = 'Field';
+  export let labelText = 'Field';
   export let helperText: string | undefined = undefined;
   export let enrichmentType: EnrichmentType | undefined = undefined;
   export let filter: ((field: LilacSchemaField) => boolean) | undefined = undefined;

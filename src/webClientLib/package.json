@@ -5,6 +5,11 @@
   "type": "module",
   "scripts": {
     "test": "vitest",
-    "lint": "prettier --plugin-search-dir ../../ --check . && eslint ."
+    "lint": "prettier --plugin-search-dir ../../ --check . && eslint .",
+    "format": "prettier --plugin-search-dir ../../ --write .",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "typescript": "^5.0.0"
   }
 }
