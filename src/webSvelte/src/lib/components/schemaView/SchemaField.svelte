@@ -11,25 +11,21 @@
   export let field: LilacSchemaField;
   export let indent = 0;
 
-  let path = field.path;
-
   let datasetViewStore = getDatasetViewContext();
 
+  let path = field.path;
   let isAnnotation = field.path[0] === LILAC_COLUMN;
-
   let expanded = true;
 
   $: hasChildren = !!field?.fields;
+  $: children = childFields(field);
+  $: isVisible = $datasetViewStore.visibleColumns.some((p) => pathIsEqual(p, path));
 
   // Find all the child paths for a given field.
   function childFields(field?: Field) {
     if (!field?.fields) return [];
     return Object.values(field.fields);
   }
-
-  $: children = childFields(field);
-
-  $: isVisible = $datasetViewStore.visibleColumns.some((p) => pathIsEqual(p, path));
 </script>
 
 <div class="flex w-full flex-row border-b border-solid border-gray-200 py-2 hover:bg-gray-100">

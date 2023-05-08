@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getDatasetViewContext } from '$lib/store/datasetViewStore';
   import { L, getValueNode, listFields, type LilacSchemaField, type LilacValueNode } from '$lilac';
-  import type { DataTypeCasted, Path } from '$lilac/schema';
+  import { pathIsEqual, type DataTypeCasted, type Path } from '$lilac/schema';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 
   export let row: LilacValueNode;
@@ -14,7 +14,7 @@
   function getDerivedFields(itemNode: LilacValueNode): LilacSchemaField[] {
     const field = L.field(itemNode);
     if (!field) return [];
-    return listFields(field).filter((f) => f.derived_from?.join('.') === field.path.join('.'));
+    return listFields(field).filter((f) => pathIsEqual(f.derived_from as Path, field.path));
   }
 
   function formatValue(value: DataTypeCasted) {
@@ -34,13 +34,12 @@
   }
 </script>
 
-<div class=" mb-4 flex flex-col gap-y-4 border-b border-solid border-gray-300 pb-4">
+<div class="mb-4 flex flex-col gap-y-4 border-b border-solid border-gray-300 pb-4">
   {#each sortedVisibleColumns as column}
-    {@const itemNode = getValueNode(row, column)}
-    {#if itemNode}
-      {@const value = L.value(itemNode)}
-      {@const dtype = L.dtype(itemNode)}
-      {@const derivedFields = getDerivedFields(itemNode)}
+    {@const valueNode = getValueNode(row, column)}
+    {#if valueNode}
+      {@const value = L.value(valueNode)}
+      {@const derivedFields = getDerivedFields(valueNode)}
 
       <div class="flex flex-col">
         <div class="font-mono text-sm text-gray-600">
