@@ -11,7 +11,6 @@ from .schema import (
   arrow_schema_to_schema,
   child_item_from_column_path,
   column_paths_match,
-  field,
   schema,
   schema_to_arrow_schema,
 )
@@ -19,7 +18,7 @@ from .schema import (
 NESTED_TEST_SCHEMA = schema({
   'person': {
     'name': 'string',
-    'last_name': field('string_span', derived_from=('person', 'name')),
+    'last_name': 'string_span',
     # Contains a double nested array of primitives.
     'data': [['float32']]
   },
@@ -101,7 +100,7 @@ def test_schema_leafs() -> None:
     ('addresses', PATH_WILDCARD, 'zipcode'): Field(dtype=DataType.INT16),
     ('blob',): Field(dtype=DataType.BINARY),
     ('person', 'name'): Field(dtype=DataType.STRING),
-    ('person', 'last_name'): Field(dtype=DataType.STRING_SPAN, derived_from=('person', 'name')),
+    ('person', 'last_name'): Field(dtype=DataType.STRING_SPAN),
     ('person', 'data', PATH_WILDCARD, PATH_WILDCARD): Field(dtype=DataType.FLOAT32)
   }
   assert NESTED_TEST_SCHEMA.leafs == expected

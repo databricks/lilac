@@ -30,6 +30,7 @@ from ..schema import (
   TextEntityField,
   field,
   schema,
+  signal_field,
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
@@ -308,13 +309,10 @@ class SelectRowsSuite:
         'float': 'float32',
         LILAC_COLUMN: {
           'str': {
-            'test_signal': field(
-              {
-                'len': field('int32', derived_from=('str',)),
-                'flen': field('float32', derived_from=('str',))
-              },
-              derived_from=('str',),
-              signal_root=True),
+            'test_signal': signal_field({
+              'len': 'int32',
+              'flen': 'float32'
+            }),
           }
         }
       }),
@@ -385,8 +383,8 @@ class SelectRowsSuite:
         'text': 'string',
         LILAC_COLUMN: {
           'text': {
-            'param_signal(param=a)': field('string', derived_from=('text',), signal_root=True),
-            'param_signal(param=b)': field('string', derived_from=('text',), signal_root=True),
+            'param_signal(param=a)': signal_field('string'),
+            'param_signal(param=b)': signal_field('string'),
           }
         }
       }),
@@ -557,14 +555,11 @@ class SelectRowsSuite:
         'texts': ['string'],
         LILAC_COLUMN: {
           'texts': [{
-            'length_signal': field('int32', derived_from=('texts', '*'), signal_root=True),
-            'test_signal': field(
-              {
-                'len': field('int32', derived_from=('texts', '*')),
-                'flen': field('float32', derived_from=('texts', '*'))
-              },
-              derived_from=('texts', '*'),
-              signal_root=True)
+            'length_signal': signal_field('int32'),
+            'test_signal': signal_field({
+              'len': 'int32',
+              'flen': 'float32'
+            })
           }]
         }
       }),
@@ -790,13 +785,10 @@ class SelectRowsSuite:
         'text': ['string'],
         LILAC_COLUMN: {
           'text': [{
-            'test_signal': field(
-              {
-                'len': field('int32', derived_from=('text', '*')),
-                'flen': field('float32', derived_from=('text', '*'))
-              },
-              derived_from=('text', '*'),
-              signal_root=True)
+            'test_signal': signal_field({
+              'len': 'int32',
+              'flen': 'float32'
+            })
           }]
         }
       }),
@@ -1146,13 +1138,10 @@ class SelectRowsSuite:
         'float': 'float32',
         LILAC_COLUMN: {
           'str': {
-            'test_signal': field(
-              {
-                'len': field('int32', derived_from=('str',)),
-                'flen': field('float32', derived_from=('str',))
-              },
-              derived_from=('str',),
-              signal_root=True)
+            'test_signal': signal_field({
+              'len': 'int32',
+              'flen': 'float32'
+            })
           }
         }
       }),
@@ -1213,12 +1202,7 @@ class SelectRowsSuite:
         'text': 'string',
         LILAC_COLUMN: {
           'text': {
-            'test_entity_len': field([
-              TextEntityField(
-                metadata={'len': field('int32', derived_from=('text',))}, derived_from=('text',))
-            ],
-                                     derived_from=('text',),
-                                     signal_root=True)
+            'test_entity_len': signal_field([TextEntityField({'len': field('int32')})])
           }
         },
       }),
@@ -1260,14 +1244,8 @@ class SelectRowsSuite:
     db.compute_signal_column(TestEmbeddingSumSignal(),
                              (LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY))
 
-    emb_field = EmbeddingField(
-      metadata={'neg_sum': field('float32', derived_from=('text',))},
-      derived_from=('text',),
-      signal_root=True)
-    emb_field.fields['test_embedding_sum'] = field(  # type: ignore
-      'float32',
-      derived_from=(LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY),
-      signal_root=True)
+    emb_field = EmbeddingField({'neg_sum': field('float32')}, signal_root=True)
+    emb_field.fields['test_embedding_sum'] = signal_field('float32')  # type: ignore
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
@@ -1331,23 +1309,10 @@ class SelectRowsSuite:
       TestEmbeddingSumSignal(),
       (LILAC_COLUMN, 'text', 'test_entity_len', '*', 'test_embedding', ENTITY_FEATURE_KEY))
 
-    emb_field = EmbeddingField(
-      metadata={
-        'neg_sum': field(
-          'float32',
-          derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY))
-      },
-      derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY),
-      signal_root=True)
-    emb_field.fields['test_embedding_sum'] = field(  # type: ignore
-      'float32',
-      derived_from=(LILAC_COLUMN, 'text', 'test_entity_len', '*', 'test_embedding',
-                    ENTITY_FEATURE_KEY),
-      signal_root=True)
+    emb_field = EmbeddingField({'neg_sum': field('float32')}, signal_root=True)
+    emb_field.fields['test_embedding_sum'] = signal_field('float32')  # type: ignore
 
-    text_field = TextEntityField(
-      metadata={'len': field('int32', derived_from=('text',))},
-      derived_from=('text',))
+    text_field = TextEntityField({'len': field('int32')})
     text_field.fields['test_embedding'] = emb_field  # type: ignore
 
     assert db.manifest() == DatasetManifest(
@@ -1358,7 +1323,7 @@ class SelectRowsSuite:
         'text': 'string',
         LILAC_COLUMN: {
           'text': {
-            'test_entity_len': field([text_field], derived_from=('text',), signal_root=True)
+            'test_entity_len': signal_field([text_field])
           }
         }
       }),

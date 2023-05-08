@@ -683,7 +683,7 @@ class DatasetDuckDB(DatasetDB):
     leafs = manifest.data_schema.leafs
     path = column.feature
     is_span = (path in leafs and leafs[path].dtype == DataType.STRING_SPAN)
-    span_field = leafs[path] if resolve_span and is_span else None
+    span_from = _derived_from_path(path, manifest.data_schema) if resolve_span and is_span else None
     # We doing a vector-based computation, we do not need to select the actual data, just the uuids
     # plus an arbitrarily nested array of `None`s`.
     empty = bool(
@@ -715,7 +715,7 @@ class DatasetDuckDB(DatasetDB):
       else:
         select_path = path
       temp_column_names.append(temp_column_name)
-      col = _make_select_column(select_path, flatten=flatten, empty=empty, span_field=span_field)
+      col = _make_select_column(select_path, flatten=flatten, empty=empty, span_from=span_from)
       select_queries.append(f'{col} AS "{temp_column_name}"')
 
     return ', '.join(select_queries), temp_column_names
@@ -828,7 +828,7 @@ class DatasetDuckDB(DatasetDB):
 def _inner_select(sub_paths: list[PathTuple],
                   inner_var: Optional[str] = None,
                   empty: bool = False,
-                  span_field: Optional[Field] = None) -> str:
+                  span_from: Optional[PathTuple] = None) -> str:
   """Recursively generate the inner select statement for a list of sub paths."""
   current_sub_path = sub_paths[0]
   lambda_var = inner_var + 'x' if inner_var else 'x'
@@ -839,15 +839,13 @@ def _inner_select(sub_paths: list[PathTuple],
   # Select the path inside structs. E.g. x['a']['b']['c'] given current_sub_path = [a, b, c].
   path_key = inner_var + ''.join([f"['{p}']" for p in current_sub_path])
   if len(sub_paths) == 1:
-    if span_field:
-      if not span_field.derived_from:
-        raise ValueError('derived_from from must be specified for span.')
-      derived_col = _make_select_column(span_field.derived_from)
+    if span_from:
+      derived_col = _make_select_column(span_from)
       path_key = (f'{derived_col}[{path_key}.{TEXT_SPAN_START_FEATURE}+1:'
                   f'{path_key}.{TEXT_SPAN_END_FEATURE}]')
     return 'NULL' if empty else path_key
   return (f'list_transform({path_key}, {lambda_var} -> '
-          f'{_inner_select(sub_paths[1:], lambda_var, empty, span_field)})')
+          f'{_inner_select(sub_paths[1:], lambda_var, empty, span_from)})')
 
 
 def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
@@ -869,19 +867,19 @@ def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
 def _make_select_column(leaf_path: Path,
                         flatten: bool = True,
                         empty: bool = False,
-                        span_field: Optional[Field] = None) -> str:
+                        span_from: Optional[PathTuple] = None) -> str:
   """Create a select column for a leaf path.
 
   Args:
     leaf_path: A path to a leaf feature. E.g. ['a', 'b', 'c'].
     flatten: Whether to flatten the result.
     empty: Whether to return an empty list (used for embedding signals that don't need the data).
-    span_field: The field that the span is derived from. If specified, the span will be resolved
+    span_from: The path this span is derived from. If specified, the span will be resolved
       to a substring of the original string.
   """
   path = normalize_path(leaf_path)
   sub_paths = _split_path_into_subpaths_of_lists(path)
-  selection = _inner_select(sub_paths, None, empty, span_field)
+  selection = _inner_select(sub_paths, None, empty, span_from)
   # We only flatten when the result of a nested list to avoid segfault.
   is_result_nested_list = len(sub_paths) >= 3  # E.g. subPaths = [[a, b, c], *, *].
   if flatten and is_result_nested_list:
@@ -1002,3 +1000,15 @@ def _col_destination_path(column: Column) -> PathTuple:
     dest_path = dest_path[1:]
 
   return dest_path
+
+
+def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:
+  leafs = schema.leafs
+  # Find the closest parent of `path` that is a signal root.
+  for i in reversed(range(len(path))):
+    sub_path = path[:i]
+    if schema.get_field(sub_path).signal_root:
+      # Skip the __LILAC__ prefix and skip the signal name at the end to get the source path
+      # that was enriched.
+      return sub_path[1:-1]
+  raise ValueError('Cannot find the source path for the enriched path: {path}')

@@ -17,7 +17,6 @@ from ..schema import (
   LILAC_COLUMN,
   PATH_WILDCARD,
   UUID_COLUMN,
-  DataType,
   Field,
   Item,
   ItemValue,
@@ -132,7 +131,6 @@ def wrap_in_dicts(input: Iterable[object], spec: list[PathTuple]) -> Iterable[ob
 def _merge_field_into(schema: Field, destination: Field) -> None:
   if isinstance(schema, Field):
     destination.is_entity = destination.is_entity or schema.is_entity
-    destination.derived_from = destination.derived_from or schema.derived_from
     destination.signal_root = destination.signal_root or schema.signal_root
   if schema.fields:
     if destination.fields is None:
@@ -191,14 +189,11 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   signal_schema = signal.fields()
   signal_schema.signal_root = True
 
-  # Apply the "derived_from" field lineage to the field we are enriching.
-  _apply_field_lineage(signal_schema, source_path)
   enriched_schema = field({signal.key(): signal_schema})
 
   # If we are enriching an entity we should store the signal data in the entity field's parent.
   if source_path[-1] == ENTITY_FEATURE_KEY:
     source_path = source_path[:-1]
-    enriched_schema.derived_from = current_schema.get_field(source_path).derived_from
 
   for path_part in reversed(source_path):
     if path_part == PATH_WILDCARD:
@@ -214,20 +209,6 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
     enriched_schema = enriched_schema.fields[LILAC_COLUMN]
 
   return schema({UUID_COLUMN: 'string', LILAC_COLUMN: enriched_schema})
-
-
-def _apply_field_lineage(field: Field, derived_from: PathTuple) -> None:
-  """Returns a new field with the derived_from field set recursively on all children."""
-  if field.dtype == DataType.STRING_SPAN:
-    # String spans act as leafs.
-    pass
-  elif field.fields:
-    for child_field in field.fields.values():
-      _apply_field_lineage(child_field, derived_from)
-  elif field.repeated_field:
-    _apply_field_lineage(field.repeated_field, derived_from)
-
-  field.derived_from = derived_from
 
 
 def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], output_dir: str,

@@ -124,9 +124,6 @@ class Field(BaseModel):
   signal_root: Optional[bool]
   # Defined when the field represents an entity.
   is_entity: Optional[bool]
-  # When defined, this field is derived from another column. This could be via a signal or via a
-  # text span.
-  derived_from: Optional[PathTuple]
 
   @validator('fields')
   def either_fields_or_repeated_field_is_defined(cls, fields: dict[str, 'Field'],
@@ -178,14 +175,11 @@ def EntityField(entity_value: Field,
                 metadata: Optional[dict[str, Field]] = {},
                 signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
-  res = Field(
-    fields={ENTITY_FEATURE_KEY: entity_value},
-    is_entity=True,
-    derived_from=entity_value.derived_from)
+  res = Field(fields={ENTITY_FEATURE_KEY: entity_value}, is_entity=True)
   if signal_root:
     res.signal_root = signal_root
   if metadata and res.fields:
-    res.fields[ENTITY_METADATA_KEY] = Field(fields=metadata, derived_from=entity_value.derived_from)
+    res.fields[ENTITY_METADATA_KEY] = Field(fields=metadata)
   return res
 
 
@@ -255,14 +249,16 @@ def schema(schema_like: object) -> Schema:
   return Schema(fields=field.fields)
 
 
-def field(field_like: object,
-          derived_from: Optional[PathTuple] = None,
-          signal_root: Optional[bool] = None) -> Field:
+def field(field_like: object, signal_root: Optional[bool] = None) -> Field:
   """Parse a field-like object to a Field object."""
   field = _parse_field_like(field_like)
-  field.derived_from = derived_from
   field.signal_root = signal_root
   return field
+
+
+def signal_field(field_like: object) -> Field:
+  """Parse a field-like object to a signal field."""
+  return field(field_like, signal_root=True)
 
 
 def _parse_field_like(field_like: object) -> Field:
@@ -302,11 +298,9 @@ def TextEntity(start: int, end: int, metadata: Optional[Item] = {}) -> Item:
 
 
 def TextEntityField(metadata: Optional[dict[str, Field]] = {},
-                    derived_from: Optional[PathTuple] = None,
                     signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
-  return EntityField(
-    Field(dtype=DataType.STRING_SPAN, derived_from=derived_from), metadata, signal_root=signal_root)
+  return EntityField(Field(dtype=DataType.STRING_SPAN), metadata, signal_root=signal_root)
 
 
 def EmbeddingEntity(embedding: Optional[np.ndarray], metadata: Optional[Item] = {}) -> Item:
@@ -315,11 +309,9 @@ def EmbeddingEntity(embedding: Optional[np.ndarray], metadata: Optional[Item] = 
 
 
 def EmbeddingField(metadata: Optional[dict[str, Field]] = {},
-                   derived_from: Optional[PathTuple] = None,
                    signal_root: Optional[bool] = False) -> Field:
   """Returns a field that represents an entity."""
-  return EntityField(
-    Field(dtype=DataType.EMBEDDING, derived_from=derived_from), metadata, signal_root=signal_root)
+  return EntityField(Field(dtype=DataType.EMBEDDING), metadata, signal_root=signal_root)
 
 
 def child_item_from_column_path(item: Item, path: Path) -> Item:
