@@ -1,9 +1,9 @@
 import {
   DataLoadersService,
   DatasetsService,
+  UUID_COLUMN,
   deserializeRow,
   deserializeSchema,
-  UUID_COLUMN,
   type DataType,
   type Filter,
   type LilacSchema,
