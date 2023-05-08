@@ -1,12 +1,12 @@
-import { DataType, Field, Schema } from './fastapi_client';
+import type { DataType, Field, Schema } from './fastapi_client';
 import {
-  DataTypeCasted,
   ENTITY_FEATURE_KEY,
-  FieldValue,
   LILAC_COLUMN,
-  Path,
   pathIsEqual,
-  PATH_WILDCARD
+  PATH_WILDCARD,
+  type DataTypeCasted,
+  type FieldValue,
+  type Path
 } from './schema';
 import { mergeDeep } from './utils';
 
