@@ -1,14 +1,7 @@
 <script lang="ts">
   import { getDatasetViewContext } from '$lib/store/datasetViewStore';
   import { notEmpty } from '$lib/utils';
-  import {
-    L,
-    getValueNode,
-    getValueNodes,
-    listFields,
-    type LilacSchemaField,
-    type LilacValueNode
-  } from '$lilac';
+  import { L, getValueNode, getValueNodes, listFields, type LilacValueNode } from '$lilac';
   import type { DataTypeCasted, Path } from '$lilac/schema';
   import { isOrdinal, pathIsEqual } from '$lilac/schema';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
@@ -20,7 +13,7 @@
   /**
    * Get child fields that are of string_span type
    */
-  function getDerivedStringSpanFields(itemNode: LilacValueNode): LilacSchemaField[] {
+  function getDerivedStringSpans(itemNode: LilacValueNode): DataTypeCasted<'string_span'>[] {
     const field = L.field(itemNode);
     if (!field) return [];
     return (
@@ -29,6 +22,9 @@
         .filter((field) => field.dtype === 'string_span' && field.is_entity)
         // Filter for visible columns
         .filter((field) => $datasetViewStore.visibleColumns.some((c) => pathIsEqual(c, field.path)))
+        .flatMap((f) => getValueNodes(row, f.path))
+        .map((v) => L.value<'string_span'>(v))
+        .filter(notEmpty)
     );
   }
 
@@ -62,7 +58,7 @@
     {@const valueNode = getValueNode(row, column)}
     {#if valueNode && showValue(valueNode)}
       {@const value = L.value(valueNode)}
-      {@const derivedFields = getDerivedStringSpanFields(valueNode)}
+      {@const derivedStringSpans = getDerivedStringSpans(valueNode)}
 
       <div class="flex flex-col">
         <div class="font-mono text-sm text-gray-600">
@@ -71,17 +67,11 @@
 
         <div class="relative">
           {formatValue(value ?? null)}
-          {#if derivedFields}
-            {#each derivedFields as derivedField}
-              {@const derivedNodes = getValueNodes(row, derivedField.path)}
-              {@const dtype = derivedField.dtype}
-              {#if derivedNodes.length && dtype === 'string_span'}
-                {@const stringSpans = derivedNodes.map((n) => L.value(n, dtype)).filter(notEmpty)}
-                {#if stringSpans}
-                  <StringSpanHighlight text={formatValue(value ?? null)} {stringSpans} />
-                {/if}
-              {/if}
-            {/each}
+          {#if derivedStringSpans}
+            <StringSpanHighlight
+              text={formatValue(value ?? null)}
+              stringSpans={derivedStringSpans}
+            />
           {/if}
         </div>
       </div>
