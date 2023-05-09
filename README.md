@@ -23,6 +23,12 @@ To run the web server in dev mode with fast edit-refresh:
 ./run_server_dev.sh
 ```
 
+Format typescript files:
+```sh
+npm run format --workspace src/webClientLib
+npm run format --workspace src/webSvelte
+```
+
 ### Configuration
 
 To use various API's, API keys need to be provided. Create a file named `.env.local` in the root, and add variables that are listed in `.env` with your own values.
