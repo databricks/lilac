@@ -3,17 +3,17 @@ import type {DataType, Field, Schema, SignalInfo} from './fastapi_client';
 import {
   LILAC_COLUMN,
   PATH_WILDCARD,
-  VALUE_FEATURE_KEY,
+  VALUE_FEATURE_KEY as VALUE_KEY,
   pathIsEqual,
   type DataTypeCasted,
   type FieldValue,
-  type Path
+  type Path,
+  type LeafValue
 } from './schema';
 import {mergeDeep} from './utils';
 
-const VALUE_KEY = '__value';
-const PATH_KEY = '__path';
-const SCHEMA_FIELD_KEY = '__field';
+const PATH_KEY = '__path__';
+const SCHEMA_FIELD_KEY = '__field__';
 
 // Cache containing the list of fields and value nodes
 let listFieldsCache = new WeakMap<LilacSchemaField, LilacSchemaField[]>();
@@ -208,10 +208,6 @@ function lilacSchemaFieldFromField(field: Field, path: Path): LilacSchemaField {
     lilacChildField.path = [...path, PATH_WILDCARD];
     lilacField.repeated_field = lilacChildField;
   }
-  // Copy dtype from the child field (issue/125)
-  if (lilacField.fields?.[VALUE_FEATURE_KEY]?.dtype != null) {
-    lilacField.dtype = lilacField.fields?.[VALUE_FEATURE_KEY]?.dtype;
-  }
   return lilacField;
 }
 
@@ -230,15 +226,14 @@ function lilacValueNodeFromRawValue(
     castLilacValueNode(ret)[VALUE_KEY] = null;
     return ret;
   } else if (rawFieldValue != null && typeof rawFieldValue === 'object') {
-    const {[VALUE_FEATURE_KEY]: value, ...rest} = rawFieldValue;
+    const {[VALUE_KEY]: value, ...rest} = rawFieldValue;
 
     ret = Object.entries(rest).reduce<Record<string, LilacValueNode>>((acc, [key, value]) => {
       acc[key] = lilacValueNodeFromRawValue(value, fields, [...path, key]);
       return acc;
     }, {});
     // TODO(nikhil,jonas): Fix this type cast.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    castLilacValueNode(ret)[VALUE_KEY] = (value as any) || null;
+    castLilacValueNode(ret)[VALUE_KEY] = value as LeafValue;
   } else {
     castLilacValueNode(ret)[VALUE_KEY] = rawFieldValue;
   }
