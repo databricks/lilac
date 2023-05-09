@@ -11,10 +11,10 @@ export function mergeDeep<T>(target: T, ...sources: T[]): T {
       const t = target[key];
       const s = source[key];
       if (isObject(s) && isObject(t)) {
-        if (!t) Object.assign(target, { [key]: {} });
+        if (!t) Object.assign(target, {[key]: {}});
         mergeDeep(t, s);
       } else if (!t) {
-        Object.assign(target, { [key]: s });
+        Object.assign(target, {[key]: s});
       }
     }
   }
