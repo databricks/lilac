@@ -83,7 +83,7 @@ def get_manifest(namespace: str, dataset_name: str) -> WebManifest:
 class ComputeSignalOptions(BaseModel):
   """The request for the compute signal endpoint."""
   signal_name: str
-  signal_args: Optional[dict[str, Any]] = None
+  signal_args: dict[str, Any] = {}
 
   # The leaf path to compute the signal on.
   leaf_path: PathTuple
@@ -98,7 +98,7 @@ class ComputeSignalResponse(BaseModel):
 def compute_signal_column(namespace: str, dataset_name: str,
                           options: ComputeSignalOptions) -> ComputeSignalResponse:
   """Compute a signal for a dataset."""
-  signal = resolve_signal({**(options.signal_args or {}), 'signal_name': options.signal_name})
+  signal = resolve_signal({**options.signal_args, 'signal_name': options.signal_name})
 
   def _task_compute_signal(namespace: str, dataset_name: str, options_dict: dict,
                            task_id: TaskId) -> None:

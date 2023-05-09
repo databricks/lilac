@@ -19,7 +19,8 @@
     command.datasetName,
     {
       leaf_path: path || [],
-      signal: {signal_name: signalName}
+      // TODO: expose `enabled` from svelte-query as an arg in `useComputeSignalColumnMutation`.
+      signal_name: signalName || ''
     }
   );
 
