@@ -88,7 +88,7 @@ export const useSelectRowsInfiniteQuery = (
   schema: LilacSchema | undefined
 ) =>
   createInfiniteQuery({
-    queryKey: [DATASETS_TAG, 'selectRows', namespace, datasetName, selectRowOptions],
+    queryKey: [DATASETS_TAG, 'selectRows', namespace, datasetName, selectRowOptions, schema],
     queryFn: ({ pageParam = 0 }) =>
       DatasetsService.selectRows(namespace, datasetName, {
         ...selectRowOptions,
