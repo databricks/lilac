@@ -5,12 +5,15 @@ import pytest
 
 from .schema import (
   PATH_WILDCARD,
+  VALUE_KEY,
   DataType,
   Field,
   Item,
   arrow_schema_to_schema,
   child_item_from_column_path,
   column_paths_match,
+  field,
+  pa_value,
   schema,
   schema_to_arrow_schema,
 )
@@ -20,7 +23,14 @@ NESTED_TEST_SCHEMA = schema({
     'name': 'string',
     'last_name': 'string_span',
     # Contains a double nested array of primitives.
-    'data': [['float32']]
+    'data': [['float32']],
+    # Contains a value and children.
+    'description': field(
+      dtype='string',
+      field_like={
+        'toxicity': 'float32',
+        'sentences': [field(dtype='string_span', field_like={'len': 'int32'})]
+      })
   },
   'addresses': [{
     'city': 'string',
@@ -64,29 +74,19 @@ NESTED_TEST_ITEM: Item = {
 }
 
 
-def test_field_infer_dtype() -> None:
-  f = Field(repeated_field=Field(dtype=DataType.STRING))
-  assert f.dtype == DataType.LIST
-
-  f = Field(fields={'name': Field(dtype=DataType.STRING)})
-  assert f.dtype == DataType.STRUCT
-
-
 def test_field_ctor_validation() -> None:
-  with pytest.raises(ValueError, match='"dtype" is required'):
+  with pytest.raises(
+      ValueError, match='One of "fields", "repeated_field", or "dtype" should be defined'):
     Field()
-
-  with pytest.raises(ValueError, match='dtype needs to be STRUCT'):
-    Field(dtype=DataType.STRING, fields={'name': Field(dtype=DataType.INT32)})
-
-  with pytest.raises(ValueError, match='dtype needs to be LIST'):
-    Field(dtype=DataType.STRING, repeated_field=Field(dtype=DataType.INT32))
 
   with pytest.raises(ValueError, match='Both "fields" and "repeated_field" should not be defined'):
     Field(
       fields={'name': Field(dtype=DataType.STRING)},
       repeated_field=Field(dtype=DataType.INT32),
     )
+
+  with pytest.raises(ValueError, match=f'{VALUE_KEY} is a reserved field name'):
+    Field(fields={VALUE_KEY: Field(dtype=DataType.STRING)},)
 
 
 def test_schema_leafs() -> None:
@@ -101,36 +101,61 @@ def test_schema_leafs() -> None:
     ('blob',): Field(dtype=DataType.BINARY),
     ('person', 'name'): Field(dtype=DataType.STRING),
     ('person', 'last_name'): Field(dtype=DataType.STRING_SPAN),
-    ('person', 'data', PATH_WILDCARD, PATH_WILDCARD): Field(dtype=DataType.FLOAT32)
+    ('person', 'data', PATH_WILDCARD, PATH_WILDCARD): Field(dtype=DataType.FLOAT32),
+    ('person', 'description'): Field(
+      dtype=DataType.STRING,
+      fields={
+        'toxicity': Field(dtype=DataType.FLOAT32),
+        'sentences': Field(
+          repeated_field=Field(
+            dtype=DataType.STRING_SPAN, fields={'len': Field(dtype=DataType.INT32)}))
+      }),
+    ('person', 'description', 'toxicity'): Field(dtype=DataType.FLOAT32),
+    ('person', 'description', 'sentences', PATH_WILDCARD): Field(
+      fields={'len': Field(dtype=DataType.INT32)}, dtype=DataType.STRING_SPAN),
+    ('person', 'description', 'sentences', PATH_WILDCARD, 'len'): Field(dtype=DataType.INT32),
   }
   assert NESTED_TEST_SCHEMA.leafs == expected
 
 
 def test_schema_to_arrow_schema() -> None:
-  expected = pa.schema({
+  arrow_schema = schema_to_arrow_schema(NESTED_TEST_SCHEMA)
+
+  assert arrow_schema == pa.schema({
     'person': pa.struct({
-      'name': pa.string(),
-      # The dtype for STRING_SPAN is implmemented as a struct with a {start, end}.
-      'last_name': pa.struct({
+      'name': pa_value(pa.string()),
+      # The dtype for STRING_SPAN is implemented as a struct with a {start, end}.
+      'last_name': pa_value(pa.struct({
         'start': pa.int32(),
         'end': pa.int32(),
-      }),
-      'data': pa.list_(pa.list_(pa.float32()))
+      })),
+      'data': pa.list_(pa.list_(pa_value(pa.float32()))),
+      'description': pa.struct({
+        'toxicity': pa_value(pa.float32()),
+        'sentences': pa.list_(
+          pa.struct({
+            'len': pa_value(pa.int32()),
+            VALUE_KEY: pa.struct({
+              'start': pa.int32(),
+              'end': pa.int32(),
+            })
+          })),
+        VALUE_KEY: pa.string(),
+      })
     }),
     'addresses': pa.list_(
       pa.struct({
-        'city': pa.string(),
-        'zipcode': pa.int16(),
-        'current': pa.bool_(),
-        'locations': pa.list_(pa.struct({
-          'latitude': pa.float16(),
-          'longitude': pa.float64()
-        })),
+        'city': pa_value(pa.string()),
+        'zipcode': pa_value(pa.int16()),
+        'current': pa_value(pa.bool_()),
+        'locations': pa.list_(
+          pa.struct({
+            'latitude': pa_value(pa.float16()),
+            'longitude': pa_value(pa.float64())
+          })),
       })),
-    'blob': pa.binary(),
+    'blob': pa_value(pa.binary()),
   })
-  arrow_schema = schema_to_arrow_schema(NESTED_TEST_SCHEMA)
-  assert arrow_schema == expected
 
 
 def test_arrow_schema_to_schema() -> None:
@@ -219,6 +244,10 @@ person:
   name: string
   last_name: string_span
   data: list( list( float32))
+  description:
+    toxicity: float32
+    sentences: list(
+      len: int32)
 addresses: list(
   city: string
   zipcode: int16

@@ -19,8 +19,8 @@ UUID_COLUMN = '__rowid__'
 # source data with enriched results.
 LILAC_COLUMN = '__lilac__'
 PATH_WILDCARD = '*'
-ENTITY_FEATURE_KEY = '__entity__'
-ENTITY_METADATA_KEY = '__metadata__'
+VALUE_KEY = '__value__'
+SIGNAL_METADATA_KEY = '__metadata__'
 TEXT_SPAN_START_FEATURE = 'start'
 TEXT_SPAN_END_FEATURE = 'end'
 
@@ -83,8 +83,6 @@ class DataType(str, Enum):
   # Time span, stored as microseconds.
   INTERVAL = 'interval'
 
-  STRUCT = 'struct'
-  LIST = 'list'
   BINARY = 'binary'
 
   EMBEDDING = 'embedding'
@@ -122,8 +120,6 @@ class Field(BaseModel):
   dtype: Optional[DataType]
   # Whether this field is the root result of a signal.
   signal_root: Optional[bool]
-  # Defined when the field represents an entity.
-  is_entity: Optional[bool]
 
   @validator('fields')
   def either_fields_or_repeated_field_is_defined(cls, fields: dict[str, 'Field'],
@@ -131,61 +127,25 @@ class Field(BaseModel):
     """Error if both `fields` and `repeated_fields` are defined."""
     if fields and values.get('repeated_field'):
       raise ValueError('Both "fields" and "repeated_field" should not be defined')
+    if VALUE_KEY in fields:
+      raise ValueError(f'{VALUE_KEY} is a reserved field name.')
     return fields
 
   @validator('dtype', always=True)
-  def infer_default_dtype(cls, dtype: Optional[DataType], values: dict[str, Any]) -> DataType:
+  def infer_default_dtype(cls, dtype: Optional[DataType], values: dict[str,
+                                                                       Any]) -> Optional[DataType]:
     """Infers the default value for dtype if not explicitly provided."""
-    if dtype:
-      if values.get('fields') and dtype != DataType.STRUCT:
-        raise ValueError('dtype needs to be STRUCT when fields is defined')
-      if values.get('repeated_field') and dtype != DataType.LIST:
-        raise ValueError('dtype needs to be LIST when repeated_field is defined')
-      return dtype
-    elif values.get('repeated_field'):
-      return DataType.LIST
-    elif values.get('fields'):
-      return DataType.STRUCT
-    else:
-      raise ValueError('"dtype" is required when both "repeated_field" and "fields" are not set')
-
-  @validator('is_entity', always=True)
-  def is_entity_validator(cls, is_entity: Optional[bool], values: dict[str, Any]) -> Optional[bool]:
-    """Error if dtype is not struct or if there is no entity feature key."""
-    if is_entity:
-      if values.get('dtype') != DataType.STRUCT:
-        raise ValueError('dtype must be DataType.STRUCT for entity fields.')
-      if ENTITY_FEATURE_KEY not in values.get('fields', {}):
-        raise ValueError(f'"{ENTITY_FEATURE_KEY}" must be a defined key when is_entity=True.')
-    else:
-      if values.get('fields') and ENTITY_FEATURE_KEY in values.get('fields', {}):
-        raise ValueError(f'"{ENTITY_FEATURE_KEY}" feature key is reserved for entities. '
-                         'Please either rename the key, or use EntityField() to generate the '
-                         'entity field field with is_entity=True.')
-    return is_entity
+    if dtype and values.get('repeated_field'):
+      raise ValueError('dtype and repeated_field cannot both be defined.')
+    if not values.get('repeated_field') and not values.get('fields') and not dtype:
+      raise ValueError('One of "fields", "repeated_field", or "dtype" should be defined')
+    return dtype
 
   def __str__(self) -> str:
     return _str_field(self, indent=0)
 
   def __repr__(self) -> str:
     return f' {self.__class__.__name__}::{self.json(exclude_none=True, indent=2)}'
-
-
-def EntityField(entity_value: Field,
-                metadata: Optional[dict[str, Field]] = {},
-                signal_root: Optional[bool] = False) -> Field:
-  """Returns a field that represents an entity."""
-  res = Field(fields={ENTITY_FEATURE_KEY: entity_value}, is_entity=True)
-  if signal_root:
-    res.signal_root = signal_root
-  if metadata and res.fields:
-    res.fields[ENTITY_METADATA_KEY] = Field(fields=metadata)
-  return res
-
-
-def Entity(entity: ItemValue, metadata: Optional[Item] = {}) -> Item:
-  """Creates an entity item."""
-  return {ENTITY_FEATURE_KEY: entity, ENTITY_METADATA_KEY: metadata or {}}
 
 
 class Schema(BaseModel):
@@ -200,25 +160,27 @@ class Schema(BaseModel):
 
   @property
   def leafs(self) -> dict[PathTuple, Field]:
-    """Return all the leaf fields in the schema (a leaf holds a primitive value)."""
+    """Return all the leaf fields in the schema. A leaf is defined as a node that contains a value.
+
+    NOTE: Leafs may contain children. Leafs can be found as any node that has a dtype defined.
+    """
     if self._leafs:
       return self._leafs
     result: dict[PathTuple, Field] = {}
     q: deque[tuple[PathTuple, Field]] = deque([((), Field(fields=self.fields))])
     while q:
       path, field = q.popleft()
-      if field.dtype == DataType.STRING_SPAN:
-        # String spans act as leafs.
+      if field.dtype:
+        # Nodes with dtypes act as leafs. They also may have children.
         result[path] = field
-      elif field.fields:
+      if field.fields:
         for name, child_field in field.fields.items():
           child_path = (*path, name)
           q.append((child_path, child_field))
       elif field.repeated_field:
         child_path = (*path, PATH_WILDCARD)
         q.append((child_path, field.repeated_field))
-      else:
-        result[path] = field
+
     self._leafs = result
     return result
 
@@ -249,16 +211,31 @@ def schema(schema_like: object) -> Schema:
   return Schema(fields=field.fields)
 
 
-def field(field_like: object, signal_root: Optional[bool] = None) -> Field:
+def field(field_like: object,
+          signal_root: Optional[bool] = None,
+          dtype: Optional[Union[DataType, str]] = None) -> Field:
   """Parse a field-like object to a Field object."""
   field = _parse_field_like(field_like)
-  field.signal_root = signal_root
+  if signal_root:
+    field.signal_root = signal_root
+  if dtype:
+    if isinstance(dtype, str):
+      dtype = DataType(dtype)
+    field.dtype = dtype
   return field
 
 
-def signal_field(field_like: object) -> Field:
+def signal_field(field_like: object,
+                 dtype: Optional[Union[DataType, str]] = None,
+                 metadata: Optional[dict[str, object]] = None) -> Field:
   """Parse a field-like object to a signal field."""
-  return field(field_like, signal_root=True)
+  # TODO(nsthorat): Add signal_root to the params to allow us to have this as a non-root.
+  out_field = field(field_like, signal_root=True, dtype=dtype)
+  if metadata:
+    if not out_field.fields:
+      out_field.fields = {}
+    out_field.fields.update({SIGNAL_METADATA_KEY: field(metadata)})
+  return out_field
 
 
 def _parse_field_like(field_like: object) -> Field:
@@ -268,7 +245,7 @@ def _parse_field_like(field_like: object) -> Field:
     fields: dict[str, Field] = {}
     for k, v in field_like.items():
       fields[k] = _parse_field_like(v)
-    return Field(fields=fields, is_entity=True if ENTITY_FEATURE_KEY in fields else None)
+    return Field(fields=fields)
 
   elif isinstance(field_like, str):
     return Field(dtype=DataType(field_like))
@@ -276,42 +253,6 @@ def _parse_field_like(field_like: object) -> Field:
     return Field(repeated_field=_parse_field_like(field_like[0]))
   else:
     raise ValueError(f'Cannot parse field like: {field_like}')
-
-
-def entity_paths(field: Field) -> list[PathTuple]:
-  """Returns the subpaths that contain an entity."""
-  entities: list[PathTuple] = []
-  if field.is_entity:
-    entities.append(())
-  if field.fields:
-    for entity_path in field.fields.values():
-      entities.extend(entity_paths(entity_path))
-  if field.repeated_field:
-    entities.extend(entity_paths(field.repeated_field))
-  return entities
-
-
-def TextEntity(start: int, end: int, metadata: Optional[Item] = {}) -> Item:
-  """Return the span item from start and end character offets."""
-  span: Item = {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
-  return Entity(span, metadata)
-
-
-def TextEntityField(metadata: Optional[dict[str, Field]] = {},
-                    signal_root: Optional[bool] = False) -> Field:
-  """Returns a field that represents an entity."""
-  return EntityField(Field(dtype=DataType.STRING_SPAN), metadata, signal_root=signal_root)
-
-
-def EmbeddingEntity(embedding: Optional[np.ndarray], metadata: Optional[Item] = {}) -> Item:
-  """Return the span item from start and end character offets."""
-  return Entity(embedding, metadata)
-
-
-def EmbeddingField(metadata: Optional[dict[str, Field]] = {},
-                   signal_root: Optional[bool] = False) -> Field:
-  """Returns a field that represents an entity."""
-  return EntityField(Field(dtype=DataType.EMBEDDING), metadata, signal_root=signal_root)
 
 
 def child_item_from_column_path(item: Item, path: Path) -> Item:
@@ -326,38 +267,6 @@ def child_item_from_column_path(item: Item, path: Path) -> Item:
     # directly index with.
     child_item_value = child_item_value[path_part]  # type: ignore
   return child_item_value
-
-
-def validate_path_against_schema(path: Path, schema: Schema, msg: str) -> None:
-  """Raise an error if the path is invalid for this schema."""
-  if len(path) == 0:
-    raise ValueError(f'The length of path must not be 0. {msg}')
-
-  # Wrap in a field for convenience.
-  field = Field(fields=schema.fields)
-  for i, path_part in enumerate(path):
-    if isinstance(path_part, int) or path_part == PATH_WILDCARD:
-      if field.dtype != DataType.LIST:
-        raise ValueError(
-          f'Path part "{path_part}" for path "{path}" at index {i} represents an list, but the '
-          f'field at this path is "{field}". '
-          f'{msg}')
-      field = cast(Field, field.repeated_field)
-    elif isinstance(path_part, str):
-      if field.dtype != DataType.STRUCT:
-        raise ValueError(
-          f'Path part "{path_part}" for path "{path}" at index {i} represents a field of a '
-          f'struct, but the field at this path is "{field}". '
-          f'{msg}')
-
-      if path_part not in cast(dict, field.fields):
-        raise ValueError(f'Path part "{path_part}" for path "{path}" at index {i} represents a '
-                         'field of struct that does not exist. Schema field: {field}. {msg}')
-      field = cast(dict[str, Field], field.fields)[path_part]
-
-  if field.dtype in (DataType.STRUCT, DataType.LIST):
-    raise ValueError(
-      f'The path "{path}" specifies {field} but should specify a leaf primitive. {msg}')
 
 
 def column_paths_match(path_match: Path, specific_path: Path) -> bool:
@@ -431,7 +340,7 @@ def _str_field(field: Field, indent: int) -> str:
   return f' {cast(DataType, field.dtype)}'
 
 
-def dtype_to_arrow_dtype(dtype: DataType) -> pa.DataType:
+def dtype_to_arrow_schema(dtype: DataType) -> Union[pa.Schema, pa.DataType]:
   """Convert the dtype to an arrow dtype."""
   if dtype == DataType.STRING:
     return pa.string()
@@ -474,8 +383,15 @@ def dtype_to_arrow_dtype(dtype: DataType) -> pa.DataType:
     # The values are *not* filled out. If parquet and duckdb support embeddings in the future, we
     # can set this dtype to the relevant pyarrow type.
     return pa.null()
+  elif dtype == DataType.STRING_SPAN:
+    return pa.struct({TEXT_SPAN_START_FEATURE: pa.int32(), TEXT_SPAN_END_FEATURE: pa.int32()})
   else:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
+
+
+def pa_value(value_schema: Union[pa.Schema, pa.DataType]) -> pa.Schema:
+  """Create a value node by wrapping a schema or dtype in {__value__: value_schema}."""
+  return pa.struct({VALUE_KEY: value_schema})
 
 
 def schema_to_arrow_schema(schema: Union[Schema, Field]) -> pa.Schema:
@@ -488,16 +404,29 @@ def schema_to_arrow_schema(schema: Union[Schema, Field]) -> pa.Schema:
 def _schema_to_arrow_schema_impl(schema: Union[Schema, Field]) -> Union[pa.Schema, pa.DataType]:
   """Convert a schema to an apache arrow schema."""
   if schema.fields:
-    arrow_fields = {
-      name: _schema_to_arrow_schema_impl(field) for name, field in schema.fields.items()
-    }
-    return pa.schema(arrow_fields) if isinstance(schema, Schema) else pa.struct(arrow_fields)
+    arrow_fields: dict[str, Union[pa.Schema, pa.DataType]] = {}
+    for name, field in schema.fields.items():
+      if name == UUID_COLUMN:
+        arrow_schema = dtype_to_arrow_schema(cast(DataType, field.dtype))
+      else:
+        arrow_schema = _schema_to_arrow_schema_impl(field)
+      arrow_fields[name] = arrow_schema
+
+    if isinstance(schema, Schema):
+      # Top-level schemas do not have __value__ fields.
+      return pa.schema(arrow_fields)
+    else:
+      # When nodes have a dtype, they have a value so we add __value__ alongside the fields.
+      if schema.dtype:
+        arrow_fields[VALUE_KEY] = dtype_to_arrow_schema(schema.dtype)
+      return pa.struct(arrow_fields)
+
   field = cast(Field, schema)
   if field.repeated_field:
     return pa.list_(_schema_to_arrow_schema_impl(field.repeated_field))
-  if field.dtype == DataType.STRING_SPAN:
-    return pa.struct({TEXT_SPAN_START_FEATURE: pa.int32(), TEXT_SPAN_END_FEATURE: pa.int32()})
-  return dtype_to_arrow_dtype(cast(DataType, field.dtype))
+
+  # Wrap nodes with a dtype with __value__ so there is space to store extra metadata.
+  return pa_value(dtype_to_arrow_schema(cast(DataType, field.dtype)))
 
 
 def arrow_dtype_to_dtype(arrow_dtype: pa.DataType) -> DataType:
@@ -548,6 +477,10 @@ def arrow_dtype_to_dtype(arrow_dtype: pa.DataType) -> DataType:
 
 def arrow_schema_to_schema(schema: pa.Schema) -> Schema:
   """Convert arrow schema to our schema."""
+  # TODO(nsthorat): Change this implementation to allow more complicated reading of arrow schemas
+  # into our schema by inferring values when {__value__: value} is present in the pyarrow schema.
+  # This isn't necessary today as this util is only needed by sources which do not have data in the
+  # lilac format.
   return cast(Schema, _arrow_schema_to_schema_impl(schema))
 
 

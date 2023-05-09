@@ -1,19 +1,19 @@
 import type {JSONSchema7} from 'json-schema';
 import type {DataType, Field, Schema, SignalInfo} from './fastapi_client';
 import {
-  ENTITY_FEATURE_KEY,
   LILAC_COLUMN,
   PATH_WILDCARD,
+  VALUE_FEATURE_KEY as VALUE_KEY,
   pathIsEqual,
   type DataTypeCasted,
   type FieldValue,
+  type LeafValue,
   type Path
 } from './schema';
 import {mergeDeep} from './utils';
 
-const VALUE_KEY = '__value';
-const PATH_KEY = '__path';
-const SCHEMA_FIELD_KEY = '__field';
+const PATH_KEY = '__path__';
+const SCHEMA_FIELD_KEY = '__field__';
 
 // Cache containing the list of fields and value nodes
 let listFieldsCache = new WeakMap<LilacSchemaField, LilacSchemaField[]>();
@@ -195,7 +195,7 @@ export const L = {
 function lilacSchemaFieldFromField(field: Field, path: Path): LilacSchemaField {
   const {fields, repeated_field, ...rest} = field;
   const lilacField: LilacSchemaField = {...rest, path: []};
-  if (fields) {
+  if (fields != null) {
     lilacField.fields = {};
     for (const [fieldName, field] of Object.entries(fields)) {
       const lilacChildField = lilacSchemaFieldFromField(field, [...path, fieldName]);
@@ -203,14 +203,10 @@ function lilacSchemaFieldFromField(field: Field, path: Path): LilacSchemaField {
       lilacField.fields[fieldName] = lilacChildField;
     }
   }
-  if (repeated_field) {
+  if (repeated_field != null) {
     const lilacChildField = lilacSchemaFieldFromField(repeated_field, [...path, PATH_WILDCARD]);
     lilacChildField.path = [...path, PATH_WILDCARD];
     lilacField.repeated_field = lilacChildField;
-  }
-  // Copy dtype from the child field (issue/125)
-  if (lilacField.is_entity && lilacField.fields?.[ENTITY_FEATURE_KEY]?.dtype) {
-    lilacField.dtype = lilacField.fields?.[ENTITY_FEATURE_KEY]?.dtype;
   }
   return lilacField;
 }
@@ -229,14 +225,15 @@ function lilacValueNodeFromRawValue(
     ) as Record<number, LilacValueNode>;
     castLilacValueNode(ret)[VALUE_KEY] = null;
     return ret;
-  } else if (rawFieldValue && typeof rawFieldValue === 'object') {
-    const {[ENTITY_FEATURE_KEY]: entityValue, ...rest} = rawFieldValue;
+  } else if (rawFieldValue != null && typeof rawFieldValue === 'object') {
+    const {[VALUE_KEY]: value, ...rest} = rawFieldValue;
 
     ret = Object.entries(rest).reduce<Record<string, LilacValueNode>>((acc, [key, value]) => {
       acc[key] = lilacValueNodeFromRawValue(value, fields, [...path, key]);
       return acc;
     }, {});
-    castLilacValueNode(ret)[VALUE_KEY] = entityValue || null;
+    // TODO(nikhil,jonas): Fix this type cast.
+    castLilacValueNode(ret)[VALUE_KEY] = value as LeafValue;
   } else {
     castLilacValueNode(ret)[VALUE_KEY] = rawFieldValue;
   }

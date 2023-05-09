@@ -1,8 +1,8 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {
-    ENTITY_FEATURE_KEY,
     PATH_WILDCARD,
+    VALUE_FEATURE_KEY,
     isSignalField,
     pathIsEqual,
     type LilacSchema,
@@ -37,7 +37,7 @@
   // Fields that have been added in the UI and don't come from the schema
   $: extraColumns = $datasetViewStore.extraColumns.filter(column =>
     // Ignore the entity field at the end of the path.
-    pathIsEqual(column.feature.filter(p => p != ENTITY_FEATURE_KEY) as Path, path)
+    pathIsEqual(column.feature.filter(p => p !== VALUE_FEATURE_KEY) as Path, path)
   );
 
   $: children = childFields(field);
@@ -51,7 +51,7 @@
     return (
       Object.values(field.fields)
         // Filter out the entity field.
-        .filter(f => f.path.at(-1) != ENTITY_FEATURE_KEY)
+        .filter(f => f.path.at(-1) !== VALUE_FEATURE_KEY)
     );
   }
 </script>

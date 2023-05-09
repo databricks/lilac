@@ -13,7 +13,7 @@ import {
   listFields,
   listValueNodes
 } from './lilac';
-import {ENTITY_FEATURE_KEY, type FieldValue} from './schema';
+import {VALUE_FEATURE_KEY, type FieldValue} from './schema';
 
 const MANIFEST_SCHEMA_FIXTURE: Schema = {
   fields: {
@@ -24,7 +24,6 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
       dtype: 'string'
     },
     complex_field: {
-      dtype: 'struct',
       fields: {
         propertyA: {
           dtype: 'string'
@@ -35,15 +34,12 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
       }
     },
     tags: {
-      dtype: 'list',
       repeated_field: {
         dtype: 'string'
       }
     },
     complex_list_of_struct: {
-      dtype: 'list',
       repeated_field: {
-        dtype: 'struct',
         fields: {
           propertyA: {
             dtype: 'string'
@@ -55,9 +51,7 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
       }
     },
     nested_list_of_list: {
-      dtype: 'list',
       repeated_field: {
-        dtype: 'list',
         repeated_field: {
           dtype: 'string'
         }
@@ -75,23 +69,17 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
                 emails: {
                   repeated_field: {
                     fields: {},
-                    dtype: 'string_span',
-                    is_entity: true
-                  },
-                  dtype: 'list'
+                    dtype: 'string_span'
+                  }
                 }
               },
-              dtype: 'struct',
               signal_root: true
             }
-          },
-          dtype: 'struct'
+          }
         },
         complex_field: {
-          dtype: 'struct',
           fields: {
             propertyA: {
-              dtype: 'struct',
               fields: {
                 text_statistics: {
                   fields: {
@@ -99,15 +87,13 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
                       dtype: 'int32'
                     }
                   },
-                  dtype: 'struct',
                   signal_root: true
                 }
               }
             }
           }
         }
-      },
-      dtype: 'struct'
+      }
     }
   }
 };
@@ -140,13 +126,13 @@ const SELECT_ROWS_RESPONSE_FIXTURE: FieldValue = {
       pii: {
         emails: [
           {
-            [ENTITY_FEATURE_KEY]: {
+            [VALUE_FEATURE_KEY]: {
               start: 1,
               end: 19
             }
           },
           {
-            [ENTITY_FEATURE_KEY]: {
+            [VALUE_FEATURE_KEY]: {
               start: 82,
               end: 100
             }

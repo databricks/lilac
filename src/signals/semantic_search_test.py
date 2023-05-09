@@ -6,9 +6,11 @@ import numpy as np
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
+from ..data.dataset_utils import signal_item
+
 from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
-from ..schema import EmbeddingEntity, EnrichmentType, Item, PathTuple, RichData
+from ..schema import EnrichmentType, Item, PathTuple, RichData
 from .semantic_search import SemanticSearchSignal
 
 TEST_EMBEDDING_NAME = 'test_embedding'
@@ -49,7 +51,7 @@ class TestEmbedding(EmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Embed the examples, use a hashmap to the vector for simplicity."""
     embeddings = np.array([STR_EMBEDDINGS[cast(str, example)] for example in data])
-    yield from (EmbeddingEntity(e) for e in embeddings)
+    yield from (signal_item(e) for e in embeddings)
 
 
 def test_semantic_search_compute_keys(mocker: MockerFixture) -> None:

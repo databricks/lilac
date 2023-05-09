@@ -12,6 +12,5 @@ export type Field = {
     fields?: Record<string, Field>;
     dtype?: DataType;
     signal_root?: boolean;
-    is_entity?: boolean;
 };
 

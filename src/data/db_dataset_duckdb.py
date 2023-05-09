@@ -20,7 +20,7 @@ from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import (
-  ENTITY_FEATURE_KEY,
+  VALUE_KEY,
   LILAC_COLUMN,
   MANIFEST_FILENAME,
   PATH_WILDCARD,
@@ -60,6 +60,7 @@ from .dataset_utils import (
   schema_contains_path,
   unflatten,
   wrap_in_dicts,
+  lilac_items,
   write_embeddings_to_disk,
   write_items_to_parquet,
 )
@@ -89,7 +90,6 @@ DEBUG = CONFIG['DEBUG'] == 'true' if 'DEBUG' in CONFIG else False
 UUID_INDEX_FILENAME = 'uuids.npy'
 
 SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
-ENTITY_INDEX_MANIFEST_SUFFIX = 'entity_manifest.json'
 SOURCE_VIEW_NAME = 'source'
 
 # Sample size for approximating the distinct count of a column.
@@ -293,7 +293,9 @@ class DatasetDuckDB(DatasetDB):
       schema=signal_schema,
       filename_prefix=signal_out_prefix,
       shard_index=0,
-      num_shards=1)
+      num_shards=1,
+      # The result of select_rows with a SignalUDF has already wrapped primitive values.
+      dont_wrap_primitives=True)
 
     signal_manifest = SignalManifest(
       files=[parquet_filename],
@@ -357,9 +359,15 @@ class DatasetDuckDB(DatasetDB):
             raise ValueError(f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
                              f'by "{signal.key()}" with enrichment type "{enrich_type}".')
 
+          # Select the value key from duckdb as this gives us the value for the leaf field, allowing
+          # us to remove python code that unwraps the value key before calling the signal.
+          column.feature = _make_value_path(column.feature)
+
       current_field = Field(fields=manifest.data_schema.fields)
       path = column.feature
       for path_part in path:
+        if path_part == VALUE_KEY:
+          continue
         if isinstance(path_part, int) or path_part.isdigit():
           raise ValueError(f'Unable to select path {path}. Selecting a specific index of '
                            'a repeated field is currently not supported.')
@@ -374,7 +382,7 @@ class DatasetDuckDB(DatasetDB):
             raise ValueError(f'Unable to select path {path}. '
                              f'Path part "{path_part}" should be a wildcard.')
           current_field = current_field.repeated_field
-        else:
+        elif not current_field.dtype:
           raise ValueError(f'Unable to select path {path}. '
                            f'Path part "{path_part}" is not defined on a primitive value.')
 
@@ -388,7 +396,8 @@ class DatasetDuckDB(DatasetDB):
     if not leaf or not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
-    inner_select, _ = self._create_select([Column(path, alias='val')],
+    value_path = _make_value_path(path)
+    inner_select, _ = self._create_select([Column(value_path, alias='val')],
                                           flatten=True,
                                           resolve_span=True)
     # Compute approximate count by sampling the data to avoid OOM.
@@ -475,7 +484,9 @@ class DatasetDuckDB(DatasetDB):
     value_column = 'value'
 
     limit_query = f'LIMIT {limit}' if limit else ''
-    inner_select = _make_select_column(path)
+    # Select the actual value from the node.
+    value_path = _make_value_path(path)
+    inner_select = _make_select_column(value_path)
     query = f"""
       SELECT {outer_select} AS {value_column}, COUNT() AS {count_column}
       FROM (SELECT {inner_select} AS {inner_val} FROM t)
@@ -593,7 +604,7 @@ class DatasetDuckDB(DatasetDB):
               topk = signal.vector_compute_topk(k, vector_store)
               unique_uuids = list(dict.fromkeys([key[0] for key, _ in topk]))
               df.set_index(UUID_COLUMN, drop=False, inplace=True)
-              # Filter the dataframe by uuids that have at least one entity in top k.
+              # Filter the dataframe by uuids that have at least one value in top k.
               df = df.loc[unique_uuids]
               for key, score in topk:
                 # Walk a deep nested array and put the score at the right location.
@@ -607,7 +618,7 @@ class DatasetDuckDB(DatasetDB):
               # Add progress.
               if task_id is not None:
                 signal_out = progress(signal_out, task_id=task_id, estimated_len=len(flat_keys))
-              df[signal_column] = unflatten(signal_out, input)
+              df[signal_column] = lilac_items(unflatten(signal_out, input))
           else:
             flat_input = cast(list[RichData], flatten(input))
             signal_out = signal.compute(flat_input)
@@ -621,7 +632,7 @@ class DatasetDuckDB(DatasetDB):
                 f'The signal generated {len(signal_out)} values but the input data had '
                 f"{len(flat_input)} values. This means the signal either didn't generate a "
                 '"None" for a sparse output, or generated too many items.')
-            df[signal_column] = unflatten(signal_out, input)
+            df[signal_column] = lilac_items(unflatten(signal_out, input))
       else:
         raise ValueError(f'Unsupported transform: {transform}')
 
@@ -686,13 +697,20 @@ class DatasetDuckDB(DatasetDB):
                             resolve_span: bool) -> tuple[str, list[str]]:
     leafs = manifest.data_schema.leafs
     path = column.feature
-    is_span = (path in leafs and leafs[path].dtype == DataType.STRING_SPAN)
+    span_path = path
+
+    # Remove the value key so we can check the dtype from leafs.
+    if path[-1] == VALUE_KEY:
+      span_path = path[:-1]
+    is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
     span_from = _derived_from_path(path, manifest.data_schema) if resolve_span and is_span else None
     # We doing a vector-based computation, we do not need to select the actual data, just the uuids
     # plus an arbitrarily nested array of `None`s`.
     empty = bool(
       column.transform and isinstance(column.transform, SignalTransform) and
-      manifest.data_schema.get_field(path).dtype == DataType.EMBEDDING)
+      # We remove the last element of the path when checking the dtype because it's VALUE_KEY for
+      # signal transforms.
+      manifest.data_schema.get_field(path[:-1]).dtype == DataType.EMBEDDING)
     select_queries: list[str] = []
     temp_column_names: list[str] = []
 
@@ -713,7 +731,7 @@ class DatasetDuckDB(DatasetDB):
       if path_is_from_lilac(path):
         m = cast(SignalManifest, m)
         select_path = (m.parquet_id, *path[1:])
-        if path not in leafs:
+        if path[-1] != VALUE_KEY and path not in leafs:
           # Non-leafs can have data in multiple manifests so we need to namespace.
           temp_column_name = f'{temp_column_name}/{m.parquet_id}'
       else:
@@ -763,7 +781,12 @@ class DatasetDuckDB(DatasetDB):
           path_tuple = (path_tuple,)
         elif isinstance(path_tuple, Column):
           path_tuple = path_tuple.feature
+
         filter = Filter(path=path_tuple, comparison=filter[1], value=filter[2])
+
+      # Select the value from the filter.
+      filter.path = _make_value_path(filter.path)
+
       if str(filter.path[0]) in udf_aliases:
         udf_filters.append(filter)
       else:
@@ -997,8 +1020,8 @@ def _col_destination_path(column: Column) -> PathTuple:
     raise ValueError(f'Cannot get destination path for transform {column.transform!r}')
 
   signal_key = column.transform.signal.key()
-  # If we are enriching an entity we should store the signal data in the entity field's parent.
-  if source_path[-1] == ENTITY_FEATURE_KEY:
+  # If we are enriching a value we should store the signal data in the value's parent.
+  if source_path[-1] == VALUE_KEY:
     dest_path = (LILAC_COLUMN, *source_path[:-1], signal_key)
   else:
     dest_path = (LILAC_COLUMN, *source_path, signal_key)
@@ -1011,12 +1034,18 @@ def _col_destination_path(column: Column) -> PathTuple:
 
 
 def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:
-  leafs = schema.leafs
   # Find the closest parent of `path` that is a signal root.
   for i in reversed(range(len(path))):
     sub_path = path[:i]
     if schema.get_field(sub_path).signal_root:
       # Skip the __LILAC__ prefix and skip the signal name at the end to get the source path
-      # that was enriched.
-      return sub_path[1:-1]
+      # that was enriched. Add the value key as it specifies the exact location of the string.
+      return _make_value_path(sub_path[1:-1])
   raise ValueError('Cannot find the source path for the enriched path: {path}')
+
+
+def _make_value_path(path: PathTuple) -> PathTuple:
+  """Returns the path to the value field of the given path."""
+  if path[-1] != VALUE_KEY and path[0] != UUID_COLUMN:
+    return (*path, VALUE_KEY)
+  return path

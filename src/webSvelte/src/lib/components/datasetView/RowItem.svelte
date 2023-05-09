@@ -19,7 +19,7 @@
     return (
       listFields(field)
         // Filter for string spans
-        .filter(field => field.dtype === 'string_span' && field.is_entity)
+        .filter(field => field.dtype === 'string_span')
         // Filter for visible columns
         .filter(field => $datasetViewStore.visibleColumns.some(c => pathIsEqual(c, field.path)))
         .flatMap(f => getValueNodes(row, f.path))

@@ -1,6 +1,6 @@
 """Tests for dataset utils."""
-from ..schema import PathTuple
-from .dataset_utils import flatten, unflatten, wrap_in_dicts
+from ..schema import UUID_COLUMN, VALUE_KEY, PathTuple
+from .dataset_utils import flatten, unflatten, wrap_in_dicts, lilac_items
 
 
 def test_flatten() -> None:
@@ -107,3 +107,53 @@ def test_unflatten_primitive_list() -> None:
   original = ['hello', 'world']
   result = unflatten(['hello', 'world'], original)
   assert result == ['hello', 'world']
+
+
+def test_lilac_items() -> None:
+  assert lilac_items([{
+    UUID_COLUMN: 'uuid',
+    'a': 1,
+    'b': [2, 3],
+    'c': {
+      VALUE_KEY: 4
+    },
+  }, {
+    'd': [{
+      VALUE_KEY: 5
+    }, {
+      VALUE_KEY: 6,
+      'd_metadata': {
+        'd2': 7
+      }
+    }]
+  }]) == [
+    {
+      # UUID column should remain untouched.
+      UUID_COLUMN: 'uuid',
+      # Primitives are wrapped deeply.
+      'a': {
+        VALUE_KEY: 1
+      },
+      'b': [{
+        VALUE_KEY: 2
+      }, {
+        VALUE_KEY: 3
+      }],
+      # Primitives that already have value key wrappers should remain untouched.
+      'c': {
+        VALUE_KEY: 4
+      },
+    },
+    {
+      'd': [{
+        VALUE_KEY: 5
+      }, {
+        VALUE_KEY: 6,
+        'd_metadata': {
+          'd2': {
+            VALUE_KEY: 7
+          }
+        }
+      }]
+    }
+  ]

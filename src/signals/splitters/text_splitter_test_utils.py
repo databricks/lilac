@@ -1,6 +1,7 @@
 """Utilities for testing text splitters."""
 
-from ...schema import Item, TextEntity
+from ...data.dataset_utils import lilac_span, signal_item
+from ...schema import Item
 
 
 def text_to_expected_spans(text: str, splits: list[str]) -> list[Item]:
@@ -10,7 +11,7 @@ def text_to_expected_spans(text: str, splits: list[str]) -> list[Item]:
   for split in splits:
     start = text.find(split, start_offset)
     end = start + len(split)
-    expected_spans.append(TextEntity(start=start, end=end))
+    expected_spans.append(signal_item(lilac_span(start=start, end=end)))
     start_offset = end
 
   return expected_spans

@@ -4,7 +4,7 @@ from typing import Callable, Iterable, Union, cast
 import numpy as np
 from pydantic import StrictStr
 
-from ..schema import ENTITY_FEATURE_KEY, EmbeddingField, Field, RichData
+from ..schema import VALUE_KEY, DataType, Field, RichData
 from ..signals.signal import Signal
 
 DEFAULT_BATCH_SIZE = 96
@@ -15,7 +15,7 @@ class EmbeddingSignal(Signal):
 
   def fields(self) -> Field:
     """Return the fields for the embedding."""
-    return EmbeddingField()
+    return Field(dtype=DataType.EMBEDDING)
 
 
 EmbeddingId = Union[StrictStr, EmbeddingSignal]
@@ -28,7 +28,7 @@ def get_embed_fn(embedding: EmbeddingSignal) -> Callable[[Iterable[RichData]], n
     items = embedding.compute(data)
 
     # We use stack here since it works with both matrices and vectors.
-    embeddings = [cast(np.ndarray, cast(dict, item)[ENTITY_FEATURE_KEY]) for item in items]
+    embeddings = [cast(np.ndarray, cast(dict, item)[VALUE_KEY]) for item in items]
     return np.array(embeddings)
 
   return _embed_fn

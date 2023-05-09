@@ -65,9 +65,7 @@ def _convert_to_items(hf_dataset_dict: DatasetDict, class_labels: dict[str, list
 def _infer_field(feature_value: Union[Value, dict]) -> Field:
   """Infer the field type from the feature value."""
   if isinstance(feature_value, dict):
-    return Field(
-      dtype=DataType.STRUCT,
-      fields={name: _infer_field(value) for name, value in feature_value.items()})
+    return Field(fields={name: _infer_field(value) for name, value in feature_value.items()})
   elif isinstance(feature_value, Value):
     return Field(dtype=arrow_dtype_to_dtype(feature_value.pa_type))
   elif isinstance(feature_value, Sequence):
@@ -76,13 +74,12 @@ def _infer_field(feature_value: Union[Value, dict]) -> Field:
     # These are converted to {'x': [...]} and {'y': [...]}
     if isinstance(feature_value.feature, dict):
       return Field(
-        dtype=DataType.STRUCT,
         fields={
           name: Field(repeated_field=_infer_field(value))
           for name, value in feature_value.feature.items()
         })
     else:
-      return Field(dtype=DataType.LIST, repeated_field=_infer_field(feature_value.feature))
+      return Field(repeated_field=_infer_field(feature_value.feature))
 
   elif isinstance(feature_value, ClassLabel):
     raise ValueError('Nested ClassLabel is not supported.')

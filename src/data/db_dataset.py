@@ -15,7 +15,7 @@ from pydantic import (
   validator,
 )
 
-from ..schema import Path, PathTuple, Schema
+from ..schema import VALUE_KEY, Path, PathTuple, Schema
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import Signal
 from ..signals.signal_registry import resolve_signal
@@ -343,7 +343,9 @@ class DatasetDB(abc.ABC):
 
 def make_parquet_id(signal: Signal, source_path: PathTuple) -> str:
   """Return a unique identifier for this parquet table."""
-  column_alias = '.'.join(map(str, source_path))
+  # Don't use the VALUE_KEY as part of the parquet id to reduce the size of paths.
+  path = source_path[:-1] if source_path[-1] == VALUE_KEY else source_path
+  column_alias = '.'.join(map(str, path))
   if column_alias.endswith('.*'):
     # Remove the trailing .* from the column name.
     column_alias = column_alias[:-2]

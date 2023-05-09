@@ -14,7 +14,7 @@ from ..schema import (
   SourceManifest,
 )
 from ..utils import get_dataset_output_dir, open_file
-from .dataset_utils import is_primitive, write_items_to_parquet
+from .dataset_utils import is_primitive, lilac_items, write_items_to_parquet
 from .db_dataset import DatasetDB
 
 TEST_NAMESPACE = 'test_namespace'
@@ -68,7 +68,7 @@ def make_db(db_cls: Type[DatasetDB],
             schema: Optional[Schema] = None) -> DatasetDB:
   """Create a test database."""
   schema = schema or _infer_schema(items)
-  _write_items(tmp_path, TEST_DATASET_NAME, items, schema)
+  _write_items(tmp_path, TEST_DATASET_NAME, cast(list, lilac_items(items)), schema)
   return db_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
 
 

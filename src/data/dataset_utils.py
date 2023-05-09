@@ -5,7 +5,7 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Any, Callable, Generator, Iterator, TypeVar, Union, cast
+from typing import Any, Callable, Generator, Iterator, Optional, Sequence, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -13,7 +13,10 @@ from pydantic import BaseModel
 
 from ..parquet_writer import ParquetWriter
 from ..schema import (
-  ENTITY_FEATURE_KEY,
+  SIGNAL_METADATA_KEY,
+  TEXT_SPAN_END_FEATURE,
+  TEXT_SPAN_START_FEATURE,
+  VALUE_KEY,
   LILAC_COLUMN,
   PATH_WILDCARD,
   UUID_COLUMN,
@@ -35,7 +38,7 @@ NP_EMBEDDINGS_KWD = 'embeddings'
 
 def is_primitive(obj: object) -> bool:
   """Returns True if the object is a primitive."""
-  if isinstance(obj, (str, bytes, np.ndarray)):
+  if isinstance(obj, (str, bytes, np.ndarray, int, float)):
     return True
   if isinstance(obj, Iterable):
     return False
@@ -43,13 +46,12 @@ def is_primitive(obj: object) -> bool:
 
 
 def _replace_embeddings_with_none(input: Union[Item, ItemValue]) -> Union[Item, ItemValue]:
-  """Replaces all embeddings with None."""
   if isinstance(input, np.ndarray):
     return None
   if isinstance(input, dict):
-    return {k: replace_embeddings_with_none(v) for k, v in input.items()}
+    return {k: _replace_embeddings_with_none(v) for k, v in input.items()}
   if isinstance(input, list):
-    return [replace_embeddings_with_none(v) for v in input]
+    return [_replace_embeddings_with_none(v) for v in input]
 
   return input
 
@@ -57,6 +59,59 @@ def _replace_embeddings_with_none(input: Union[Item, ItemValue]) -> Union[Item, 
 def replace_embeddings_with_none(input: Union[Item, ItemValue]) -> Item:
   """Replaces all embeddings with None."""
   return cast(Item, _replace_embeddings_with_none(input))
+
+
+def _wrap_primitive_values(input: Union[Item, ItemValue]) -> Union[Item, ItemValue]:
+  if isinstance(input, dict):
+    # Wrap all the values of the dictionary in {__value__: value} if it is not already wrapped and
+    # it is not a UUID.
+    return {
+      k: _wrap_primitive_values(v) if k not in (VALUE_KEY, UUID_COLUMN) else v
+      for k, v in input.items()
+    }
+  elif isinstance(input, list):
+    return [_wrap_primitive_values(v) for v in input]
+
+  if input is None:
+    # We don't wrap None values with value key to keep sparsity.
+    return None
+  return {VALUE_KEY: input}
+
+
+def lilac_items(items: Iterable[Item]) -> Iterable[Item]:
+  """A util for testing that converts items to their primitive wrapped items."""
+  if isinstance(items, (list, Sequence)):
+    return [cast(Item, _wrap_primitive_values(item)) for item in items]
+  return (cast(Item, _wrap_primitive_values(item)) for item in items)
+
+
+def lilac_item(value: Optional[ItemValue] = None,
+               metadata: Optional[dict[str, Union[Item, ItemValue]]] = None,
+               allow_none_value: Optional[bool] = False) -> Item:
+  """Wrap a value in a dict with the value key."""
+  out_item: Item = {}
+  if value is not None or allow_none_value:
+    out_item[VALUE_KEY] = value
+  if metadata:
+    out_item.update(cast(dict, _wrap_primitive_values(metadata)))
+  return out_item
+
+
+def signal_item(value: Optional[ItemValue] = None,
+                metadata: Optional[dict[str, Union[Item, ItemValue]]] = None) -> Item:
+  """Returns a signal item given signal metadata."""
+  signal_metadata: Optional[dict[str, Union[Item, ItemValue]]] = None
+  if metadata:
+    signal_metadata = {SIGNAL_METADATA_KEY: metadata}
+  return lilac_item(value, signal_metadata)
+
+
+def lilac_span(start: int, end: int) -> Item:
+  """The lilac span value.
+
+  This is useful if you want to use span_value with signal_item, for unit tests.
+  """
+  return {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
 
 
 Tflatten = TypeVar('Tflatten', object, np.ndarray)
@@ -130,8 +185,8 @@ def wrap_in_dicts(input: Iterable[object], spec: list[PathTuple]) -> Iterable[ob
 
 def _merge_field_into(schema: Field, destination: Field) -> None:
   if isinstance(schema, Field):
-    destination.is_entity = destination.is_entity or schema.is_entity
     destination.signal_root = destination.signal_root or schema.signal_root
+    destination.dtype = destination.dtype or schema.dtype
   if schema.fields:
     if destination.fields is None:
       raise ValueError('Failed to merge schemas. Origin schema has fields but destination does not')
@@ -160,6 +215,11 @@ def merge_schemas(schemas: list[Schema]) -> Schema:
 
 def schema_contains_path(schema: Schema, path: PathTuple) -> bool:
   """Check if a schema contains a path."""
+  # Remove the value key from the end of the path as it's not directly in the schema, but users can
+  # query this path.
+  if path[-1] == VALUE_KEY:
+    path = path[:-1]
+
   current_field = cast(Field, schema)
   for path_part in path:
     if path_part == PATH_WILDCARD:
@@ -190,10 +250,6 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   signal_schema.signal_root = True
 
   enriched_schema = field({signal.key(): signal_schema})
-
-  # If we are enriching an entity we should store the signal data in the entity field's parent.
-  if source_path[-1] == ENTITY_FEATURE_KEY:
-    source_path = source_path[:-1]
 
   for path_part in reversed(source_path):
     if path_part == PATH_WILDCARD:
@@ -260,10 +316,19 @@ def read_embedding_index(output_dir: str, filename: str) -> EmbeddingIndex:
   return EmbeddingIndex(path=index_path, keys=index_keys, embeddings=embeddings)
 
 
-def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schema,
-                           filename_prefix: str, shard_index: int,
-                           num_shards: int) -> tuple[str, int]:
+def write_items_to_parquet(items: Iterable[Item],
+                           output_dir: str,
+                           schema: Schema,
+                           filename_prefix: str,
+                           shard_index: int,
+                           num_shards: int,
+                           dont_wrap_primitives: Optional[bool] = False) -> tuple[str, int]:
   """Write a set of items to a parquet file, in columnar format."""
+  if not dont_wrap_primitives:
+    # NOTE: This is just an optimization since sometimes we know values are already wrapped (e.g.
+    # when are the output of a signal udf).
+    items = lilac_items(items)
+
   arrow_schema = schema_to_arrow_schema(schema)
   out_filename = parquet_filename(filename_prefix, shard_index, num_shards)
   filepath = os.path.join(output_dir, out_filename)

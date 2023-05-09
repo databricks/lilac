@@ -7,6 +7,8 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
+from ..data.dataset_utils import signal_item
+
 from ..concepts.concept import ConceptModel, ExampleIn
 from ..concepts.db_concept import (
   ConceptDB,
@@ -18,7 +20,7 @@ from ..concepts.db_concept import (
 from ..config import CONFIG
 from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store_numpy import NumpyVectorStore
-from ..schema import EmbeddingEntity, EnrichmentType, Item, RichData
+from ..schema import EnrichmentType, Item, RichData
 from .concept_scorer import ConceptScoreSignal
 from .signal_registry import clear_signal_registry, register_signal
 
@@ -55,7 +57,7 @@ class TestEmbedding(EmbeddingSignal):
       if example not in EMBEDDING_MAP:
         raise ValueError(f'Example "{str(example)}" not in embedding map')
     embeddings = np.array([EMBEDDING_MAP[cast(str, example)] for example in data])
-    yield from (EmbeddingEntity(e) for e in embeddings)
+    yield from (signal_item(e) for e in embeddings)
 
 
 @pytest.fixture(scope='module', autouse=True)
