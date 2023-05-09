@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from .dataset_utils import lilac_item, lilac_items, signal_item, span
+from .dataset_utils import lilac_item, lilac_items, lilac_span, lilac_span_value
 
 from ..config import CONFIG
 from ..embeddings.embedding import EmbeddingSignal
@@ -25,8 +25,6 @@ from ..schema import (
   PathTuple,
   RichData,
   SignalOut,
-  TextEntity,
-  TextSpanField,
   field,
   schema,
   signal_field,
@@ -36,6 +34,7 @@ from ..signals.signal_registry import clear_signal_registry, register_signal
 from .db_dataset import Column, DatasetDB, DatasetManifest
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
+from ..data.dataset_utils import lilac_embedding
 
 ALL_DBS = [DatasetDuckDB]
 
@@ -158,13 +157,11 @@ class TestEmbedding(EmbeddingSignal):
       dtype=DataType.EMBEDDING,
       fields={SIGNAL_METADATA_KEY: Field(fields={'neg_sum': Field(dtype=DataType.FLOAT32)})})
 
-    #return signal_field('embedding', metadata={'neg_sum': 'float32'})
-
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
-    yield from (signal_item(e, {'neg_sum': -1 * e.sum()}) for e in embeddings)
+    yield from (lilac_embedding(e, {'neg_sum': -1 * e.sum()}) for e in embeddings)
 
 
 class TestEntitySignal(Signal):
@@ -189,9 +186,9 @@ class TestEntitySignal(Signal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-        signal_item(
-          span(text.index(sentence),
-               text.index(sentence) + len(sentence)),
+        lilac_span(
+          text.index(sentence),
+          text.index(sentence) + len(sentence),
           metadata={'len': len(sentence)}) for sentence in sentences
       ]
 
@@ -221,7 +218,10 @@ class TestSplitterWithLen(Signal):
 
   @override
   def fields(self) -> Field:
-    return field([TextSpanField(metadata={'len': field('int32')})])
+    return field([
+      Field(
+        dtype=DataType.STRING_SPAN, fields={SIGNAL_METADATA_KEY: field({'len': field('int32')})})
+    ])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
@@ -230,10 +230,9 @@ class TestSplitterWithLen(Signal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-        TextEntity(
-          start=text.index(sentence),
-          end=text.index(sentence) + len(sentence),
-          metadata={'len': len(sentence)}) for sentence in sentences
+        lilac_span(
+          text.index(sentence),
+          text.index(sentence) + len(sentence), {'len': len(sentence)}) for sentence in sentences
       ]
 
 
@@ -628,7 +627,7 @@ class ComputeSignalItemsSuite:
       'text': 'hello. hello2.',
       'sentences': [
         lilac_item(
-          span(0, 6), {
+          lilac_span_value(0, 6), {
             SIGNAL_METADATA_KEY: {
               'len': 6
             },
@@ -642,7 +641,7 @@ class ComputeSignalItemsSuite:
               allow_none_value=True),
           }),
         lilac_item(
-          span(7, 14), {
+          lilac_span_value(7, 14), {
             SIGNAL_METADATA_KEY: {
               'len': 7
             },
@@ -661,7 +660,7 @@ class ComputeSignalItemsSuite:
       'text': 'hello world. hello world2.',
       'sentences': [
         lilac_item(
-          span(0, 12), {
+          lilac_span_value(0, 12), {
             SIGNAL_METADATA_KEY: {
               'len': 12
             },
@@ -675,7 +674,7 @@ class ComputeSignalItemsSuite:
               allow_none_value=True),
           }),
         lilac_item(
-          span(13, 26), {
+          lilac_span_value(13, 26), {
             SIGNAL_METADATA_KEY: {
               'len': 13
             },
@@ -714,7 +713,11 @@ class ComputeSignalItemsSuite:
         'text': 'string',
         LILAC_COLUMN: {
           'text': {
-            'test_entity_len': signal_field([TextSpanField({'len': field('int32')})])
+            'test_entity_len': signal_field([
+              Field(
+                dtype=DataType.STRING_SPAN,
+                fields={SIGNAL_METADATA_KEY: field({'len': field('int32')})})
+            ])
           }
         },
       }),
@@ -727,23 +730,15 @@ class ComputeSignalItemsSuite:
       UUID_COLUMN: '1',
       'text': '[1, 1] first sentence. [1, 1] second sentence.',
       f'{LILAC_COLUMN}.text.test_entity_len': [
-        lilac_item(span(0, 22), {SIGNAL_METADATA_KEY: {
-          'len': 22
-        }}),
-        lilac_item(span(23, 46), {SIGNAL_METADATA_KEY: {
-          'len': 23
-        }}),
+        lilac_span(0, 22, {'len': 22}),
+        lilac_span(23, 46, {'len': 23}),
       ]
     }, {
       UUID_COLUMN: '2',
       'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
       f'{LILAC_COLUMN}.text.test_entity_len': [
-        lilac_item(span(0, 25), {SIGNAL_METADATA_KEY: {
-          'len': 25
-        }}),
-        lilac_item(span(26, 49), {SIGNAL_METADATA_KEY: {
-          'len': 23
-        }}),
+        lilac_span(0, 25, {'len': 25}),
+        lilac_span(26, 49, {'len': 23}),
       ]
     }])
     assert list(result) == expected_result
@@ -830,23 +825,15 @@ class ComputeSignalItemsSuite:
       UUID_COLUMN: '1',
       'text': '[1, 1] first sentence. [1, 1] second sentence.',
       f'{LILAC_COLUMN}.text.test_splitter_len': [
-        lilac_item(span(0, 22), {SIGNAL_METADATA_KEY: {
-          'len': 22
-        }}),
-        lilac_item(span(23, 46), {SIGNAL_METADATA_KEY: {
-          'len': 23
-        }}),
+        lilac_span(0, 22, {'len': 22}),
+        lilac_span(23, 46, {'len': 23}),
       ]
     }, {
       UUID_COLUMN: '2',
       'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
       f'{LILAC_COLUMN}.text.test_splitter_len': [
-        lilac_item(span(0, 25), {SIGNAL_METADATA_KEY: {
-          'len': 25
-        }}),
-        lilac_item(span(26, 49), {SIGNAL_METADATA_KEY: {
-          'len': 23
-        }}),
+        lilac_span(0, 25, {'len': 25}),
+        lilac_span(26, 49, {'len': 23}),
       ]
     }])
     assert list(result) == expected_result

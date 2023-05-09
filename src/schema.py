@@ -148,18 +148,6 @@ class Field(BaseModel):
     return f' {self.__class__.__name__}::{self.json(exclude_none=True, indent=2)}'
 
 
-def EntityField(entity_value: Field,
-                metadata: Optional[dict[str, Field]] = {},
-                signal_root: Optional[bool] = False) -> Field:
-  """Returns a field that represents an entity."""
-  res = Field(fields={VALUE_KEY: entity_value})
-  if signal_root:
-    res.signal_root = signal_root
-  if metadata and res.fields:
-    res.fields[SIGNAL_METADATA_KEY] = Field(fields=metadata)
-  return res
-
-
 def Entity(entity: ItemValue, metadata: Optional[Item] = {}) -> Item:
   """Creates an entity item."""
   return {VALUE_KEY: entity, SIGNAL_METADATA_KEY: metadata or {}}
@@ -289,11 +277,6 @@ def TextSpanField(metadata: Optional[dict[str, Field]] = {},
   if signal_root:
     field.signal_root = signal_root
   return field
-
-
-def EmbeddingEntity(embedding: Optional[np.ndarray], metadata: Optional[Item] = {}) -> Item:
-  """Return the span item from start and end character offets."""
-  return Entity(embedding, metadata)
 
 
 def EmbeddingField(metadata: Optional[dict[str, Field]] = {},

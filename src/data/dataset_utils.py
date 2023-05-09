@@ -69,7 +69,7 @@ def _wrap_primitive_values(input: Union[Item, ItemValue]) -> Union[Item, ItemVal
       k: _wrap_primitive_values(v) if k not in (VALUE_KEY, UUID_COLUMN) else v
       for k, v in input.items()
     }
-  if isinstance(input, list):
+  elif isinstance(input, list):
     return [_wrap_primitive_values(v) for v in input]
 
   if input is None:
@@ -86,7 +86,7 @@ def lilac_items(items: Iterable[Item]) -> Iterable[Item]:
 
 
 def lilac_item(value: Optional[ItemValue] = None,
-               metadata: Optional[dict[str, Union[Item, ItemValue]]] = {},
+               metadata: Optional[dict[str, Union[Item, ItemValue]]] = None,
                allow_none_value: Optional[bool] = False) -> Item:
   """Wrap a value in a dict with the value key."""
   out_item: Item = {}
@@ -98,14 +98,33 @@ def lilac_item(value: Optional[ItemValue] = None,
 
 
 def signal_item(value: Optional[ItemValue] = None,
-                metadata: Optional[dict[str, Union[Item, ItemValue]]] = {}) -> Item:
+                metadata: Optional[dict[str, Union[Item, ItemValue]]] = None) -> Item:
   """Returns a signal item given signal metadata."""
-  return lilac_item(value, {SIGNAL_METADATA_KEY: metadata})
+  signal_metadata: Optional[dict[str, Union[Item, ItemValue]]] = None
+  if metadata:
+    signal_metadata = {SIGNAL_METADATA_KEY: metadata}
+  return lilac_item(value, signal_metadata)
 
 
-def span(start: int, end: int) -> Item:
+def lilac_span(start: int,
+               end: int,
+               metadata: Optional[dict[str, Union[Item, ItemValue]]] = None) -> Item:
   """Wrap a value in a dict with the value key."""
+  return signal_item(lilac_span_value(start, end), metadata)
+
+
+def lilac_span_value(start: int, end: int) -> Item:
+  """The lilac span value.
+
+  This is useful if you want to use span_value with signal_item, for unit tests.
+  """
   return {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
+
+
+def lilac_embedding(embedding: np.ndarray,
+                    metadata: Optional[dict[str, Union[Item, ItemValue]]] = {}) -> Item:
+  """Wrap a value in a dict with the value key."""
+  return signal_item(embedding, metadata)
 
 
 Tflatten = TypeVar('Tflatten', object, np.ndarray)
@@ -168,8 +187,6 @@ def _wrap_in_dicts(input: Union[object, Iterable[object]],
     return _wrap_value_in_dict(input, props)
   if input is None:
     return {}
-  # if input == {VALUE_KEY: None}:
-  #   return {VALUE_KEY: None}
   res = [_wrap_in_dicts(elem, spec[1:]) for elem in cast(Iterable, input)]
   return _wrap_value_in_dict(res, props)
 
@@ -211,7 +228,8 @@ def merge_schemas(schemas: list[Schema]) -> Schema:
 
 def schema_contains_path(schema: Schema, path: PathTuple) -> bool:
   """Check if a schema contains a path."""
-  # Remove the value key from the end of the path as it's not in the schema.
+  # Remove the value key from the end of the path as it's not directly in the schema, but users can
+  # query this path.
   if path[-1] == VALUE_KEY:
     path = path[:-1]
 
