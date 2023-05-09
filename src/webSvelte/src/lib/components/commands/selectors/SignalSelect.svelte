@@ -1,9 +1,10 @@
 <script lang="ts">
-  import {useGetSignalsQuery, type LilacSignalInfo} from '$lib/store/apiSignal';
+  import {useGetSignalsQuery} from '$lib/store/apiSignal';
+  import type {SignalInfoWithTypedSchema} from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
 
   export let defaultSignal: string | undefined = undefined;
-  export let signal: LilacSignalInfo | undefined = undefined;
+  export let signal: SignalInfoWithTypedSchema | undefined = undefined;
 
   const signals = useGetSignalsQuery();
 

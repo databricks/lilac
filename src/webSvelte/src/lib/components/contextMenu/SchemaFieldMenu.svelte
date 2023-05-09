@@ -1,14 +1,7 @@
 <script lang="ts">
   import {page} from '$app/stores';
   import {getDatasetViewContext} from '$lib/store/datasetViewStore';
-  import {
-    isConceptScoreSignal,
-    isSignalField,
-    isSignalTransform,
-    type Column,
-    type LilacSchemaField,
-    type Path
-  } from '$lilac';
+  import {isSignalTransform, type Column, type LilacSchemaField, type Path} from '$lilac';
   import {OverflowMenuItem} from 'carbon-components-svelte';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
 
@@ -22,38 +15,34 @@
 </script>
 
 {#if field}
-  {#if !isSignalField(field)}
-    <OverflowMenuItem
-      text="Compute signal"
-      on:click={() =>
-        triggerCommand({
-          command: Command.ComputeSignal,
-          namespace: $page.params.namespace,
-          datasetName: $page.params.datasetName,
-          path: field?.path
-        })}
-    />
-  {/if}
-
-  {#if field.dtype == 'embedding' || !isSignalField(field)}
-    <OverflowMenuItem
-      text="Preview concept"
-      on:click={() =>
-        triggerCommand({
-          command: Command.PreviewConcept,
-          namespace: $page.params.namespace,
-          datasetName: $page.params.datasetName,
-          path: field?.path
-        })}
-    />
-  {/if}
+  <OverflowMenuItem
+    text="Preview signal"
+    on:click={() =>
+      triggerCommand({
+        command: Command.PreviewConcept,
+        namespace: $page.params.namespace,
+        datasetName: $page.params.datasetName,
+        path: field?.path
+      })}
+  />
+  <OverflowMenuItem
+    text="Compute signal"
+    on:click={() =>
+      triggerCommand({
+        command: Command.ComputeSignal,
+        namespace: $page.params.namespace,
+        datasetName: $page.params.datasetName,
+        path: field?.path
+      })}
+  />
 {/if}
+
 {#if column}
   <OverflowMenuItem
     text="Remove"
     on:click={() => column && datsetViewStore.removeExtraColumn(column)}
   />
-  {#if column && isSignalTransform(column.transform) && isConceptScoreSignal(column.transform.signal)}
+  {#if isSignalTransform(column.transform)}
     {@const signal = column.transform.signal}
     <OverflowMenuItem
       text="Compute"

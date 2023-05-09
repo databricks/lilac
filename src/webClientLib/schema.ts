@@ -100,7 +100,7 @@ export function isSignalTransform(
 export function isConceptScoreSignal(
   signal: ConceptScoreSignal | Signal | undefined
 ): signal is ConceptScoreSignal {
-  return (signal as ConceptScoreSignal)?.concept_name !== undefined;
+  return (signal as ConceptScoreSignal)?.concept_name != undefined;
 }
 /**
  * Returns a dictionary that maps a "leaf path" to all flatten values for that leaf.

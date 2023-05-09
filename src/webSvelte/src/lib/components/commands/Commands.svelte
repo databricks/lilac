@@ -9,6 +9,7 @@
   type NoCommand = {
     command?: undefined;
   };
+
   export type ComputeSignalCommand = {
     command: Command.ComputeSignal;
     namespace: string;
@@ -22,6 +23,7 @@
     namespace: string;
     datasetName: string;
     path?: Path;
+    signalName?: string;
   };
 
   export type Commands = NoCommand | ComputeSignalCommand | PreviewConceptCommand;
@@ -35,8 +37,7 @@
 
 <script lang="ts">
   import type {Path} from '$lilac';
-  import CommandComputeSignal from './CommandComputeSignal.svelte';
-  import CommandPreviewConcept from './CommandPreviewSignal.svelte';
+  import CommandSignals from './CommandSignals.svelte';
 
   $: currentCommand = $store;
 
@@ -46,7 +47,7 @@
 </script>
 
 {#if currentCommand.command === Command.ComputeSignal}
-  <CommandComputeSignal command={currentCommand} on:close={close} />
+  <CommandSignals command={currentCommand} on:close={close} variant={'compute'} />
 {:else if currentCommand.command === Command.PreviewConcept}
-  <CommandPreviewConcept command={currentCommand} on:close={close} />
+  <CommandSignals command={currentCommand} on:close={close} variant={'preview'} />
 {/if}

@@ -5,14 +5,12 @@
     isSignalTransform,
     pathIsEqual,
     type Column,
-    type LilacSchema,
     type Path
   } from '$lilac';
   import {Checkbox, Tag} from 'carbon-components-svelte';
   import ContextMenu from '../contextMenu/ContextMenu.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
 
-  export let schema: LilacSchema;
   export let column: Column;
   export let indent = 0;
 
@@ -52,14 +50,17 @@
   <div class="w-6" style:margin-left={indent * 24 + 'px'} />
   <div class="grow truncate whitespace-nowrap text-gray-900">
     {#if transform && isSignalTransform(transform)}
+      {transform.signal.signal_name}
       {#if isConceptScoreSignal(transform.signal)}
-        {transform.signal.concept_name}
+        ({transform.signal.concept_name})
       {/if}
+    {:else}
+      Unknown signal
     {/if}
   </div>
 
   <div>
-    <Tag type="green">Concept</Tag>
+    <Tag type="green">Preview</Tag>
   </div>
   <div class="w-24 pr-2 text-right" />
   <div>

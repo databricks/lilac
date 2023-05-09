@@ -107,7 +107,7 @@
       {/each}
     {/if}
     {#each extraColumns as column}
-      <ExtraColumnField {schema} {column} indent={indent + 1} />
+      <ExtraColumnField {column} indent={indent + 1} />
     {/each}
   </div>
 {/if}
