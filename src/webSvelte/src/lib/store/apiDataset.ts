@@ -34,19 +34,11 @@ export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
 const DATASETS_TAG = 'datasets';
 
 export const useGetDatasetsQuery = createApiQuery(DatasetsService.getDatasets, DATASETS_TAG);
-export const useGetManifestQuery = createApiQuery(
-  DatasetsService.getManifest,
-  [DATASETS_TAG, 'getManifest'],
-  {}
-);
+export const useGetManifestQuery = createApiQuery(DatasetsService.getManifest, DATASETS_TAG, {});
 
-export const useGetSchemaQuery = createApiQuery(
-  DatasetsService.getManifest,
-  [DATASETS_TAG, 'getManifest'],
-  {
-    select: res => deserializeSchema(res.dataset_manifest.data_schema)
-  }
-);
+export const useGetSchemaQuery = createApiQuery(DatasetsService.getManifest, DATASETS_TAG, {
+  select: res => deserializeSchema(res.dataset_manifest.data_schema)
+});
 
 export const useGetSourcesQuery = createApiQuery(DataLoadersService.getSources, DATASETS_TAG);
 export const useGetSourceSchemaQuery = createApiQuery(
