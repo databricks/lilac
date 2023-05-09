@@ -1,5 +1,5 @@
-import { TasksService } from '$lilac';
-import { createApiQuery } from './apiUtils';
+import {TasksService} from '$lilac';
+import {createApiQuery} from './apiUtils';
 
 export const TASKS_TAG = 'tasks';
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { useGetTaskManifestQuery } from '$lib/store/apiServer';
-  import { Loading, Popover } from 'carbon-components-svelte';
+  import {useGetTaskManifestQuery} from '$lib/store/apiServer';
+  import {Loading, Popover} from 'carbon-components-svelte';
   import Checkmark from 'carbon-icons-svelte/lib/Checkmark.svelte';
 
   const tasks = useGetTaskManifestQuery();
@@ -8,8 +8,8 @@
 
   $: tasksList = Object.values($tasks.data?.tasks || {});
 
-  $: runningTasks = tasksList.filter((task) => task.status === 'pending');
-  $: failedTasks = tasksList.filter((task) => task.status === 'error');
+  $: runningTasks = tasksList.filter(task => task.status === 'pending');
+  $: failedTasks = tasksList.filter(task => task.status === 'error');
 
   $: progress =
     runningTasks.reduce((acc, task) => acc + (task?.progress || 0), 0) / runningTasks.length;
@@ -42,7 +42,7 @@
   {/if}
 
   <Popover
-    on:click:outside={(ev) => {
+    on:click:outside={ev => {
       if (showTasks) showTasks = false;
     }}
     align="bottom-right"

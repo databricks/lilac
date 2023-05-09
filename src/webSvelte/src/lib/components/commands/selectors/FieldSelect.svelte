@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { useGetSchemaQuery } from '$lib/store/apiDataset';
-  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
+  import {useGetSchemaQuery} from '$lib/store/apiDataset';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {
     ENRICHMENT_TYPE_TO_VALID_DTYPES,
     listFields,
@@ -9,7 +9,7 @@
     type LilacSchemaField,
     type Path
   } from '$lilac';
-  import { Select, SelectItem } from 'carbon-components-svelte';
+  import {Select, SelectItem} from 'carbon-components-svelte';
 
   export let labelText = 'Field';
   export let helperText: string | undefined = undefined;
@@ -24,8 +24,8 @@
 
   $: fields = $schema.isSuccess
     ? listFields($schema.data)
-        .filter((field) => field.path.length > 0)
-        .filter((field) =>
+        .filter(field => field.path.length > 0)
+        .filter(field =>
           enrichmentType
             ? field.dtype && ENRICHMENT_TYPE_TO_VALID_DTYPES[enrichmentType].includes(field.dtype)
             : true
@@ -61,19 +61,19 @@
   }
 
   $: options = [
-    ...inFilterLeafs.map((f) => ({
+    ...inFilterLeafs.map(f => ({
       value: f,
       label: formatField(f),
       disabled: false
     })),
-    ...outFilterLeafs.map((f) => ({
+    ...outFilterLeafs.map(f => ({
       value: f,
       label: formatField(f),
       disabled: true
     }))
   ];
 
-  $: initialSelectedIndex = options.findIndex((f) => pathIsEqual(f.value.path, path));
+  $: initialSelectedIndex = options.findIndex(f => pathIsEqual(f.value.path, path));
 </script>
 
 <Select {labelText} {helperText} selected={initialSelectedIndex} on:update={onUpdate} required>

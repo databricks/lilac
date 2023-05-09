@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useGetSignalsQuery } from '$lib/store/apiSignal';
+  import {useGetSignalsQuery} from '$lib/store/apiSignal';
   import {
     StructuredList,
     StructuredListBody,

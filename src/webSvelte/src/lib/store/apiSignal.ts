@@ -1,5 +1,5 @@
-import { SignalsService } from '$lilac';
-import { createApiQuery } from './apiUtils';
+import {SignalsService} from '$lilac';
+import {createApiQuery} from './apiUtils';
 
 const SIGNALS_TAG = 'signals';
 

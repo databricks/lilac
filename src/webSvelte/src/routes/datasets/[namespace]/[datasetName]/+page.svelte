@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import {page} from '$app/stores';
   import Commands from '$lib/components/commands/Commands.svelte';
   import RowView from '$lib/components/datasetView/RowView.svelte';
   import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
-  import { useGetTaskManifestQuery } from '$lib/store/apiServer';
-  import { createDatasetViewStore, setDatasetViewContext } from '$lib/store/datasetViewStore';
-  import { onTasksUpdate } from '$lib/store/taskMonitoring';
+  import {useGetTaskManifestQuery} from '$lib/store/apiServer';
+  import {createDatasetViewStore, setDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {onTasksUpdate} from '$lib/store/taskMonitoring';
 
   $: namespace = $page.params.namespace;
   $: datasetName = $page.params.datasetName;

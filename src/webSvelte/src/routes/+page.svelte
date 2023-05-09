@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useGetDatasetsQuery } from '$lib/store/apiDataset';
+  import {useGetDatasetsQuery} from '$lib/store/apiDataset';
 
   const datasets = useGetDatasetsQuery();
 </script>

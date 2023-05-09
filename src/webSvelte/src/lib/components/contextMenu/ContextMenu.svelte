@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { OverflowMenu } from 'carbon-components-svelte';
+  import {OverflowMenu} from 'carbon-components-svelte';
 </script>
 
 <OverflowMenu light>

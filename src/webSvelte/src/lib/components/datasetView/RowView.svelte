@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { useGetSchemaQuery, useSelectRowsInfiniteQuery } from '$lib/store/apiDataset';
-  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
-  import { SkeletonText } from 'carbon-components-svelte';
+  import {useGetSchemaQuery, useSelectRowsInfiniteQuery} from '$lib/store/apiDataset';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import RowItem from './RowItem.svelte';
 

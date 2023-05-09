@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { useComputeSignalColumnMutation } from '$lib/store/apiDataset';
-  import { isSignalField } from '$lilac/lilac';
-  import { ComposedModal, ModalBody, ModalFooter, ModalHeader } from 'carbon-components-svelte';
-  import { createEventDispatcher } from 'svelte';
-  import type { ComputeSignalCommand } from './Commands.svelte';
+  import {useComputeSignalColumnMutation} from '$lib/store/apiDataset';
+  import {isSignalField} from '$lilac/lilac';
+  import {ComposedModal, ModalBody, ModalFooter, ModalHeader} from 'carbon-components-svelte';
+  import {createEventDispatcher} from 'svelte';
+  import type {ComputeSignalCommand} from './Commands.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
   import SignalSelect from './selectors/SignalSelect.svelte';
 
@@ -19,7 +19,7 @@
     command.datasetName,
     {
       leaf_path: path,
-      signal: { signal_name: signalName }
+      signal: {signal_name: signalName}
     }
   );
 
@@ -38,7 +38,7 @@
   <ModalBody hasForm>
     <div class="flex flex-col gap-y-8">
       <FieldSelect
-        filter={(field) => !isSignalField(field)}
+        filter={field => !isSignalField(field)}
         path={command.path}
         labelText="Field"
         helperText="Select field to calculate signal on"

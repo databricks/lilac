@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {
     ENTITY_FEATURE_KEY,
     PATH_WILDCARD,
@@ -8,9 +8,9 @@
     type LilacSchema,
     type LilacSchemaField
   } from '$lilac';
-  import { Checkbox, Tag } from 'carbon-components-svelte';
+  import {Checkbox, Tag} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
-  import { slide } from 'svelte/transition';
+  import {slide} from 'svelte/transition';
   import ContextMenu from '../contextMenu/ContextMenu.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
 
@@ -34,7 +34,7 @@
 
   $: children = childFields(field);
   $: hasChildren = !!children.length;
-  $: isVisible = $datasetViewStore.visibleColumns.some((p) => pathIsEqual(p, path));
+  $: isVisible = $datasetViewStore.visibleColumns.some(p => pathIsEqual(p, path));
 
   // Find all the child paths for a given field.
   function childFields(field?: LilacSchemaField): LilacSchemaField[] {
@@ -43,7 +43,7 @@
     return (
       Object.values(field.fields)
         // Filter out the entity field.
-        .filter((f) => f.path.at(-1) != ENTITY_FEATURE_KEY)
+        .filter(f => f.path.at(-1) != ENTITY_FEATURE_KEY)
     );
   }
 </script>
@@ -56,7 +56,7 @@
       labelText="Show"
       hideLabel
       selected={isVisible}
-      on:check={(ev) => {
+      on:check={ev => {
         if (ev.detail) {
           datasetViewStore.addVisibleColumn(path);
         } else {

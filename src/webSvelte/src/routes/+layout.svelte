@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { QueryClientProvider } from '@tanstack/svelte-query';
+  import {QueryClientProvider} from '@tanstack/svelte-query';
   import '../app.css';
   // Carbon component must be imported after app.css
   import TaskStatus from '$lib/components/TaskStatus.svelte';
-  import { errors, queryClient } from '$lib/store/queryClient';
-  import { ToastNotification } from 'carbon-components-svelte';
+  import {errors, queryClient} from '$lib/store/queryClient';
+  import {ToastNotification} from 'carbon-components-svelte';
   import 'carbon-components-svelte/css/white.css';
 </script>
 
@@ -26,7 +26,7 @@
         title={error.name || 'Error'}
         subtitle={error.message}
         on:close={() => {
-          $errors = $errors.filter((e) => e !== error);
+          $errors = $errors.filter(e => e !== error);
         }}
       />
     {/each}

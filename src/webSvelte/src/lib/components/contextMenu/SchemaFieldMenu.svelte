@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { page } from '$app/stores';
-  import { isSignalField, type LilacSchemaField } from '$lilac';
-  import { OverflowMenuItem } from 'carbon-components-svelte';
-  import { Command, triggerCommand } from '../commands/Commands.svelte';
+  import {page} from '$app/stores';
+  import {isSignalField, type LilacSchemaField} from '$lilac';
+  import {OverflowMenuItem} from 'carbon-components-svelte';
+  import {Command, triggerCommand} from '../commands/Commands.svelte';
 
   export let field: LilacSchemaField;
 </script>
