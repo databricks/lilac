@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { afterEach, assertType, describe, expect, it } from 'vitest';
-import type { Schema } from './fastapi_client';
+import {afterEach, assertType, describe, expect, it} from 'vitest';
+import type {Schema} from './fastapi_client';
 import {
   L,
   clearCache,
@@ -13,7 +13,7 @@ import {
   listFields,
   listValueNodes
 } from './lilac';
-import { ENTITY_FEATURE_KEY, type FieldValue } from './schema';
+import {ENTITY_FEATURE_KEY, type FieldValue} from './schema';
 
 const MANIFEST_SCHEMA_FIXTURE: Schema = {
   fields: {
@@ -230,7 +230,7 @@ describe('lilac', () => {
       const fields = listFields(schema);
       expect(fields).toBeDefined();
       expect(fields[1].dtype).toEqual('string');
-      const paths = fields.map((f) => f.path);
+      const paths = fields.map(f => f.path);
       expect(paths).toContainEqual(['title']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*', 'propertyA']);
@@ -262,7 +262,7 @@ describe('lilac', () => {
       expect(values).not.toContainEqual([]);
       expect(values).not.toContainEqual(null);
 
-      const paths = values.map((f) => L.path(f));
+      const paths = values.map(f => L.path(f));
       expect(paths).toContainEqual(['title']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*', 'propertyA']);
@@ -352,7 +352,7 @@ describe('lilac', () => {
       const t = L.dtype(row.comment_text.pii.emails[0]);
       if (t === 'string_span') {
         const val = L.value(row.title, t);
-        assertType<{ start: number; end: number }>(val!);
+        assertType<{start: number; end: number}>(val!);
       } else {
         // Woops, this should never happen
         expect(0).toEqual(1);

@@ -9,8 +9,8 @@ import {
   type CreateQueryOptions
 } from '@tanstack/svelte-query';
 
-const apiQueryKey = (rootKey: string, endpoint: string, ...args: any[]) => [
-  rootKey,
+const apiQueryKey = (tags: string[], endpoint: string, ...args: unknown[]) => [
+  ...tags,
   endpoint,
   ...args
 ];
@@ -23,12 +23,13 @@ export function createApiQuery<
   TData = TQueryFnData
 >(
   endpoint: TQueryFn,
-  rootKey: string,
+  tags: string | string[],
   queryArgs: CreateQueryOptions<TQueryFnData, TError, TData> = {}
 ) {
+  tags = Array.isArray(tags) ? tags : [tags];
   return (...args: Parameters<TQueryFn>) =>
     createQuery<TQueryFnData, TError, TData>({
-      queryKey: apiQueryKey(rootKey, endpoint.name, ...args),
+      queryKey: apiQueryKey(tags as string[], endpoint.name, ...args),
       queryFn: () => endpoint(...args),
       ...queryArgs
     });

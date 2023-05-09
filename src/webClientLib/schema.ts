@@ -7,7 +7,7 @@ import type {
   SignalTransform
 } from './fastapi_client';
 export type LeafValue = number | boolean | string | null;
-export type FieldValue = FieldValue[] | { [fieldName: string]: FieldValue } | LeafValue;
+export type FieldValue = FieldValue[] | {[fieldName: string]: FieldValue} | LeafValue;
 
 export interface Item {
   [column: string]: FieldValue;
@@ -51,7 +51,7 @@ export type DataTypeCasted<D extends DataType = DataType> =
       : D extends DataTypeNumber
       ? number
       : D extends 'string_span'
-      ? { start: number; end: number }
+      ? {start: number; end: number}
       : D extends 'time' | 'date' | 'timestamp' | 'interval' | 'binary'
       ? string
       : D extends 'struct'
@@ -82,7 +82,7 @@ export function isOrdinal(dtype: DataType) {
 }
 
 export function serializePath(path: Path): string {
-  return path.map((p) => `"${p}"`).join('.');
+  return path.map(p => `"${p}"`).join('.');
 }
 
 export function pathIsEqual(path1?: Path, path2?: Path): boolean {
@@ -105,11 +105,12 @@ export function isConceptScoreSignal(
 /**
  * Returns a dictionary that maps a "leaf path" to all flatten values for that leaf.
  */
-export function getLeafVals(item: Item): { [pathStr: string]: LeafValue[] } {
+export function getLeafVals(item: Item): {[pathStr: string]: LeafValue[]} {
   const q: [Path, FieldValue][] = [];
   q.push([[], item]);
-  const result: { [pathStr: string]: LeafValue[] } = {};
+  const result: {[pathStr: string]: LeafValue[]} = {};
   while (q.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [path, value] = q.pop()!;
     if (Array.isArray(value)) {
       for (const v of value) {

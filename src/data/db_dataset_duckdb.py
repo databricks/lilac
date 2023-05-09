@@ -1,8 +1,10 @@
 """The DuckDB implementation of the dataset database."""
 import functools
 import glob
+import math
 import os
 import re
+import threading
 from typing import Any, Iterable, Iterator, Optional, Sequence, Type, Union, cast
 
 import duckdb
@@ -151,6 +153,7 @@ class DatasetDuckDB(DatasetDB):
     self._col_vector_stores: dict[PathTuple, VectorStore] = {}
     self.vector_store_cls = vector_store_cls
     self._concept_model_db = concept_model_db
+    self._manifest_lock = threading.Lock()
 
   def _create_view(self, view_name: str, files: list[str]) -> None:
     parquet_files = [os.path.join(self.dataset_path, filename) for filename in files]
@@ -217,7 +220,8 @@ class DatasetDuckDB(DatasetDB):
     # re-computing the manifest and the joined view.
     all_dataset_files = glob.iglob(os.path.join(self.dataset_path, '**'), recursive=True)
     latest_mtime = max(map(os.path.getmtime, all_dataset_files))
-    return self._recompute_joint_table(latest_mtime)
+    with self._manifest_lock:
+      return self._recompute_joint_table(latest_mtime)
 
   def count(self, filters: Optional[list[FilterLike]] = None) -> int:
     """Count the number of rows."""
@@ -947,9 +951,13 @@ class SignalManifest(BaseModel):
 
 
 def _merge_cells(dest_cell: ItemValue, source_cell: ItemValue) -> None:
+  if source_cell is None or isinstance(source_cell, float) and math.isnan(source_cell):
+    # Nothing to merge here (missing value).
+    return
   if isinstance(dest_cell, dict):
     if not isinstance(source_cell, dict):
-      raise ValueError('Failed to merge cells. Destination is a dict, but source is not.')
+      raise ValueError(f'Failed to merge cells. Destination is a dict ({dest_cell!r}), '
+                       f'but source is not ({source_cell!r}).')
     for key, value in source_cell.items():
       if key not in dest_cell:
         dest_cell[key] = value

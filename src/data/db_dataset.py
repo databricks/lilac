@@ -18,6 +18,7 @@ from pydantic import (
 from ..schema import Path, PathTuple, Schema
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import Signal
+from ..signals.signal_registry import resolve_signal
 from ..tasks import TaskId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -115,6 +116,11 @@ class SignalTransform(Transform):
 
   class Config:
     smart_union = True
+
+  @validator('signal', pre=True)
+  def parse_signal(cls, signal: dict) -> Union[ConceptScoreSignal, Signal]:
+    """Parse a signal to its specific subclass instance."""
+    return resolve_signal(signal)
 
 
 class Column(BaseModel):

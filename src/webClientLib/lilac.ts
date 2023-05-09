@@ -1,4 +1,4 @@
-import type { DataType, Field, Schema } from './fastapi_client';
+import type {DataType, Field, Schema} from './fastapi_client';
 import {
   ENTITY_FEATURE_KEY,
   LILAC_COLUMN,
@@ -8,7 +8,7 @@ import {
   type FieldValue,
   type Path
 } from './schema';
-import { mergeDeep } from './utils';
+import {mergeDeep} from './utils';
 
 const VALUE_KEY = '__value';
 const PATH_KEY = '__path';
@@ -58,10 +58,10 @@ export function deserializeSchema(rawSchema: Schema): LilacSchema {
   const lilacFields = lilacSchemaFieldFromField(rawSchema, []);
 
   if (!lilacFields.fields) {
-    return { fields: {}, path: [] };
+    return {fields: {}, path: []};
   }
 
-  const { [LILAC_COLUMN]: signalsFields, ...rest } = lilacFields.fields;
+  const {[LILAC_COLUMN]: signalsFields, ...rest} = lilacFields.fields;
   let fields = rest;
 
   // Merge the signal fields into the source fields
@@ -70,7 +70,7 @@ export function deserializeSchema(rawSchema: Schema): LilacSchema {
   }
 
   // Convert the fields to LilacSchemaField
-  return { fields, path: [] };
+  return {fields, path: []};
 }
 
 export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacValueNode {
@@ -84,7 +84,7 @@ export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacVa
     throw new Error('Expected row to have children');
   }
 
-  const { [LILAC_COLUMN]: signalValues, ...values } = children;
+  const {[LILAC_COLUMN]: signalValues, ...values} = children;
 
   // Merge signal values into the source values
   let mergedNode: LilacValueNode = values;
@@ -99,7 +99,7 @@ export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacVa
 /** List all fields as a flattend array */
 export function listFields(field: LilacSchemaField | LilacSchema | undefined): LilacSchemaField[] {
   if (!field) return [];
-  // Return the cached value if it exists
+  // Return the cached value if it exists.
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   if (listFieldsCache.has(field)) return listFieldsCache.get(field)!;
 
@@ -107,7 +107,7 @@ export function listFields(field: LilacSchemaField | LilacSchema | undefined): L
     field,
     ...Object.values(field.fields || {}).flatMap(listFields),
     ...(field.repeated_field ? listFields(field.repeated_field) : [])
-  ].filter((f) => f.path.length > 0);
+  ].filter(f => f.path.length > 0);
 
   // Cache the result
   listFieldsCache.set(field, result);
@@ -116,7 +116,7 @@ export function listFields(field: LilacSchemaField | LilacSchema | undefined): L
 
 /** List all values as a flattend array */
 export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
-  // Return the cached value if it exists
+  // Return the cached value if it exists.
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   if (listValueNodesCache.has(row)) return listValueNodesCache.get(row)!;
 
@@ -125,10 +125,10 @@ export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
   else {
     // Strip the internal properties
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { [VALUE_KEY]: value, [PATH_KEY]: path, [SCHEMA_FIELD_KEY]: field, ...rest } = row;
+    const {[VALUE_KEY]: value, [PATH_KEY]: path, [SCHEMA_FIELD_KEY]: field, ...rest} = row;
 
     const childProperties = Object.values(rest || {});
-    result = [...childProperties, ...childProperties.flatMap((v) => listValueNodes(v))];
+    result = [...childProperties, ...childProperties.flatMap(v => listValueNodes(v))];
   }
 
   // Cache the result
@@ -141,7 +141,7 @@ export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
  */
 export function getField(schema: LilacSchema, path: Path): LilacSchemaField | undefined {
   const list = listFields(schema);
-  return list.find((field) => pathIsEqual(field.path, path));
+  return list.find(field => pathIsEqual(field.path, path));
 }
 
 /**
@@ -149,7 +149,7 @@ export function getField(schema: LilacSchema, path: Path): LilacSchemaField | un
  */
 export function getValueNode(row: LilacValueNode, _path: Path): LilacValueNode | undefined {
   const list = listValueNodes(row);
-  return list.find((value) => pathIsEqual(L.path(value), _path));
+  return list.find(value => pathIsEqual(L.path(value), _path));
 }
 
 /**
@@ -157,7 +157,7 @@ export function getValueNode(row: LilacValueNode, _path: Path): LilacValueNode |
  */
 export function getValueNodes(row: LilacValueNode, _path: Path): LilacValueNode[] {
   const list = listValueNodes(row);
-  return list.filter((value) => pathIsEqual(L.path(value), _path));
+  return list.filter(value => pathIsEqual(L.path(value), _path));
 }
 
 /**
@@ -192,8 +192,8 @@ export const L = {
  * Adds path attribute to each field
  */
 function lilacSchemaFieldFromField(field: Field, path: Path): LilacSchemaField {
-  const { fields, repeated_field, ...rest } = field;
-  const lilacField: LilacSchemaField = { ...rest, path: [] };
+  const {fields, repeated_field, ...rest} = field;
+  const lilacField: LilacSchemaField = {...rest, path: []};
   if (fields) {
     lilacField.fields = {};
     for (const [fieldName, field] of Object.entries(fields)) {
@@ -219,17 +219,17 @@ function lilacValueNodeFromRawValue(
   fields: LilacSchemaField[],
   path: Path
 ): LilacValueNode {
-  const field = fields.find((field) => pathIsEqual(field.path, path));
+  const field = fields.find(field => pathIsEqual(field.path, path));
 
   let ret: LilacValueNode = {};
   if (Array.isArray(rawFieldValue)) {
-    ret = rawFieldValue.map((value) =>
+    ret = rawFieldValue.map(value =>
       lilacValueNodeFromRawValue(value, fields, [...path, PATH_WILDCARD])
     ) as Record<number, LilacValueNode>;
     castLilacValueNode(ret)[VALUE_KEY] = null;
     return ret;
   } else if (rawFieldValue && typeof rawFieldValue === 'object') {
-    const { [ENTITY_FEATURE_KEY]: entityValue, ...rest } = rawFieldValue;
+    const {[ENTITY_FEATURE_KEY]: entityValue, ...rest} = rawFieldValue;
 
     ret = Object.entries(rest).reduce<Record<string, LilacValueNode>>((acc, [key, value]) => {
       acc[key] = lilacValueNodeFromRawValue(value, fields, [...path, key]);
