@@ -10,6 +10,7 @@
     type Path
   } from '$lilac';
   import {Select, SelectItem} from 'carbon-components-svelte';
+  import {onMount} from 'svelte';
 
   export let labelText = 'Field';
   export let helperText: string | undefined = undefined;
