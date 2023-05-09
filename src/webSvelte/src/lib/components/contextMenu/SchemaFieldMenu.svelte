@@ -1,23 +1,70 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { isSignalField, type LilacSchemaField } from '$lilac';
+  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
+  import {
+    isConceptScoreSignal,
+    isSignalField,
+    isSignalTransform,
+    type Column,
+    type LilacSchemaField,
+    type Path
+  } from '$lilac';
   import { OverflowMenuItem } from 'carbon-components-svelte';
   import { Command, triggerCommand } from '../commands/Commands.svelte';
 
-  export let field: LilacSchemaField;
+  export let field: LilacSchemaField | undefined = undefined;
+  export let column: Column | undefined = undefined;
+
+  // Have to cast to Path because column.feature is (string|number)[]
+  let columnPath = column?.feature as Path | undefined;
+
+  const datsetViewStore = getDatasetViewContext();
 </script>
 
-{#if isSignalField(field)}
-  <!-- <OverflowMenuItem text="Manage credentials" /> -->
-{:else}
+{#if field}
+  {#if !isSignalField(field)}
+    <OverflowMenuItem
+      text="Compute signal"
+      on:click={() =>
+        triggerCommand({
+          command: Command.ComputeSignal,
+          namespace: $page.params.namespace,
+          datasetName: $page.params.datasetName,
+          path: field?.path
+        })}
+    />
+  {/if}
+
+  {#if field.dtype == 'embedding' || !isSignalField(field)}
+    <OverflowMenuItem
+      text="Preview concept"
+      on:click={() =>
+        triggerCommand({
+          command: Command.PreviewConcept,
+          namespace: $page.params.namespace,
+          datasetName: $page.params.datasetName,
+          path: field?.path
+        })}
+    />
+  {/if}
+{/if}
+{#if column}
   <OverflowMenuItem
-    text="Compute signal"
-    on:click={() =>
-      triggerCommand({
-        command: Command.ComputeSignal,
-        namespace: $page.params.namespace,
-        datasetName: $page.params.datasetName,
-        path: field.path
-      })}
+    text="Remove"
+    on:click={() => column && datsetViewStore.removeExtraColumn(column)}
   />
+  {#if column && isSignalTransform(column.transform) && isConceptScoreSignal(column.transform.signal)}
+    {@const signal = column.transform.signal}
+    <OverflowMenuItem
+      text="Compute"
+      on:click={() =>
+        triggerCommand({
+          command: Command.ComputeSignal,
+          namespace: $page.params.namespace,
+          datasetName: $page.params.datasetName,
+          path: columnPath,
+          signalName: signal.signal_name
+        })}
+    />
+  {/if}
 {/if}
