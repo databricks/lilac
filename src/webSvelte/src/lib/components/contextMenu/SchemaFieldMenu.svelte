@@ -1,16 +1,23 @@
 <script lang="ts">
-  import { LILAC_COLUMN, type Path } from '$lilac/schema';
-  import ContextMenuItem from './ContextMenuItem.svelte';
+  import {page} from '$app/stores';
+  import {isSignalField, type LilacSchemaField} from '$lilac';
+  import {OverflowMenuItem} from 'carbon-components-svelte';
+  import {Command, triggerCommand} from '../commands/Commands.svelte';
 
-  // export let field: Field;
-  export let path: Path;
-
-  let isAnnotation = path[0] === LILAC_COLUMN;
+  export let field: LilacSchemaField;
 </script>
 
-{#if isAnnotation}
-  <ContextMenuItem title="Add Signal" />
-  <ContextMenuItem title="Delete" />
+{#if isSignalField(field)}
+  <!-- <OverflowMenuItem text="Manage credentials" /> -->
 {:else}
-  <ContextMenuItem title="Add Signal" />
+  <OverflowMenuItem
+    text="Compute signal"
+    on:click={() =>
+      triggerCommand({
+        command: Command.ComputeSignal,
+        namespace: $page.params.namespace,
+        datasetName: $page.params.datasetName,
+        path: field.path
+      })}
+  />
 {/if}

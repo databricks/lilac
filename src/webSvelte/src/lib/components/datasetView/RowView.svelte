@@ -1,28 +1,28 @@
 <script lang="ts">
-  import { useGetSchemaQuery, useSelectRowsInfiniteQuery } from '$lib/store/apiDataset';
-  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
+  import {useGetSchemaQuery, useSelectRowsInfiniteQuery} from '$lib/store/apiDataset';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
-  import Spinner from '../Spinner.svelte';
   import RowItem from './RowItem.svelte';
 
   let datasetViewStore = getDatasetViewContext();
 
   $: schema = useGetSchemaQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: rows = $schema.isSuccess
-    ? useSelectRowsInfiniteQuery(
-        $datasetViewStore.namespace,
-        $datasetViewStore.datasetName,
-        {
-          limit: 40
-        },
-        $schema.data
-      )
-    : undefined;
+  $: rows = useSelectRowsInfiniteQuery(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    {
+      limit: 40,
+      filters: $datasetViewStore.filters,
+      sort_by: $datasetViewStore.sortBy
+    },
+    $schema.isSuccess ? $schema.data : undefined
+  );
 </script>
 
 {#if $rows?.isLoading || $schema.isLoading}
-  <Spinner />
+  <SkeletonText paragraph lines={3} />
 {:else if $rows?.isSuccess && $rows.data.pages.length && $schema.isSuccess && $schema.isSuccess}
   <div class="flex h-full w-full flex-col overflow-scroll">
     {#each $rows.data.pages as page}

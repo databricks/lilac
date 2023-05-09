@@ -1,9 +1,16 @@
 <script lang="ts">
-  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
-  import { LILAC_COLUMN, pathIsEqual, type LilacSchema, type LilacSchemaField } from '$lilac';
-  import type { Field } from '$lilac/fastapi_client';
-  import { CaretDown, EyeFill, EyeSlashFill } from 'svelte-bootstrap-icons';
-  import { slide } from 'svelte/transition';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {
+    ENTITY_FEATURE_KEY,
+    PATH_WILDCARD,
+    isSignalField,
+    pathIsEqual,
+    type LilacSchema,
+    type LilacSchemaField
+  } from '$lilac';
+  import {Checkbox, Tag} from 'carbon-components-svelte';
+  import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
+  import {slide} from 'svelte/transition';
   import ContextMenu from '../contextMenu/ContextMenu.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
 
@@ -11,42 +18,54 @@
   export let field: LilacSchemaField;
   export let indent = 0;
 
+  // Skip over the repeated field.
+  if (field.repeated_field) {
+    field = field.repeated_field;
+  }
+
   let datasetViewStore = getDatasetViewContext();
 
-  let path = field.path;
-  let isAnnotation = field.path[0] === LILAC_COLUMN;
+  $: path = field.path;
+  $: signalField = isSignalField(field);
   let expanded = true;
 
-  $: hasChildren = !!field?.fields;
+  $: isRepeatedField = field.path.at(-1) === PATH_WILDCARD ? true : false;
+  $: fieldName = isRepeatedField ? field.path.at(-2) : field.path.at(-1);
+
   $: children = childFields(field);
-  $: isVisible = $datasetViewStore.visibleColumns.some((p) => pathIsEqual(p, path));
+  $: hasChildren = !!children.length;
+  $: isVisible = $datasetViewStore.visibleColumns.some(p => pathIsEqual(p, path));
 
   // Find all the child paths for a given field.
-  function childFields(field?: Field) {
+  function childFields(field?: LilacSchemaField): LilacSchemaField[] {
     if (!field?.fields) return [];
-    return Object.values(field.fields);
+
+    return (
+      Object.values(field.fields)
+        // Filter out the entity field.
+        .filter(f => f.path.at(-1) != ENTITY_FEATURE_KEY)
+    );
   }
 </script>
 
-<div class="flex w-full flex-row border-b border-solid border-gray-200 py-2 hover:bg-gray-100">
+<div
+  class="flex w-full flex-row items-center border-b border-solid border-gray-200 py-2 hover:bg-gray-100"
+>
   <div class="w-6">
-    <button
-      on:click={() => {
-        if (isVisible) {
-          datasetViewStore.removeVisibleColumn(path);
-        } else {
+    <Checkbox
+      labelText="Show"
+      hideLabel
+      selected={isVisible}
+      on:check={ev => {
+        if (ev.detail) {
           datasetViewStore.addVisibleColumn(path);
+        } else {
+          datasetViewStore.removeVisibleColumn(path);
         }
       }}
-    >
-      {#if isVisible}
-        <EyeFill />
-      {:else}
-        <EyeSlashFill class="opacity-50" />
-      {/if}
-    </button>
+    />
   </div>
-  <div class="w-6" style:margin-left={indent * 10 + 'px'}>
+  <div class="w-6" style:margin-left={indent * 24 + 'px'}>
     {#if hasChildren}
       <button
         class="transition"
@@ -55,17 +74,18 @@
       >
     {/if}
   </div>
-  <div class="grow truncate whitespace-nowrap text-gray-900" class:text-purple-800={isAnnotation}>
-    <!-- {path.at(-1)} -->
-    {path.join('.')}
-    {#if isAnnotation}
-      <div class="badge badge-sm badge-primary ml-2">Signal</div>
-    {/if}
+  <div class="grow truncate whitespace-nowrap text-gray-900" class:text-blue-600={signalField}>
+    {fieldName}
   </div>
-  <div class="w-12">{field?.dtype}</div>
+  {#if signalField}
+    <div>
+      <Tag type="blue">Signal</Tag>
+    </div>
+  {/if}
+  <div class="w-24 pr-2 text-right">{field?.dtype}{isRepeatedField ? '[]' : ''}</div>
   <div>
     <ContextMenu>
-      <SchemaFieldMenu {path} />
+      <SchemaFieldMenu {field} />
     </ContextMenu>
   </div>
 </div>

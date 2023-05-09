@@ -1,6 +1,6 @@
-import type { DataType } from './fastapi_client';
+import type {DataType, EnrichmentType} from './fastapi_client';
 export type LeafValue = number | boolean | string | null;
-export type FieldValue = FieldValue[] | { [fieldName: string]: FieldValue } | LeafValue;
+export type FieldValue = FieldValue[] | {[fieldName: string]: FieldValue} | LeafValue;
 
 export interface Item {
   [column: string]: FieldValue;
@@ -16,6 +16,12 @@ export const PATH_WILDCARD = '*';
 export const UUID_COLUMN = '__rowid__';
 export const LILAC_COLUMN = '__lilac__';
 export const ENTITY_FEATURE_KEY = '__value__';
+
+export const ENRICHMENT_TYPE_TO_VALID_DTYPES: Record<EnrichmentType, DataType[]> = {
+  text: ['string', 'string_span'],
+  text_embedding: ['embedding'],
+  image: ['binary']
+};
 
 export type DataTypeNumber =
   | 'int8'
@@ -38,7 +44,7 @@ export type DataTypeCasted<D extends DataType = DataType> =
       : D extends DataTypeNumber
       ? number
       : D extends 'string_span'
-      ? { start: number; end: number }
+      ? {start: number; end: number}
       : D extends 'time' | 'date' | 'timestamp' | 'interval' | 'binary'
       ? string
       : D extends 'struct'
@@ -69,7 +75,7 @@ export function isOrdinal(dtype: DataType) {
 }
 
 export function serializePath(path: Path): string {
-  return path.map((p) => `"${p}"`).join('.');
+  return path.map(p => `"${p}"`).join('.');
 }
 
 export function pathIsEqual(path1?: Path, path2?: Path): boolean {
@@ -81,11 +87,12 @@ export function pathIsEqual(path1?: Path, path2?: Path): boolean {
 /**
  * Returns a dictionary that maps a "leaf path" to all flatten values for that leaf.
  */
-export function getLeafVals(item: Item): { [pathStr: string]: LeafValue[] } {
+export function getLeafVals(item: Item): {[pathStr: string]: LeafValue[]} {
   const q: [Path, FieldValue][] = [];
   q.push([[], item]);
-  const result: { [pathStr: string]: LeafValue[] } = {};
+  const result: {[pathStr: string]: LeafValue[]} = {};
   while (q.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [path, value] = q.pop()!;
     if (Array.isArray(value)) {
       for (const v of value) {

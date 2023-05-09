@@ -1,16 +1,19 @@
 import {
   DataLoadersService,
   DatasetsService,
+  UUID_COLUMN,
   deserializeRow,
   deserializeSchema,
-  UUID_COLUMN,
   type DataType,
   type Filter,
   type LilacSchema,
   type SelectRowsOptions
 } from '$lilac';
-import { createInfiniteQuery } from '@tanstack/svelte-query';
-import { createApiMutation, createApiQuery } from './apiUtils';
+import {createInfiniteQuery} from '@tanstack/svelte-query';
+import {TASKS_TAG} from './apiServer';
+import {createApiMutation, createApiQuery} from './apiUtils';
+import {queryClient} from './queryClient';
+import {watchTask} from './taskMonitoring';
 
 export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
   'string',
@@ -34,7 +37,7 @@ export const useGetDatasetsQuery = createApiQuery(DatasetsService.getDatasets, D
 export const useGetManifestQuery = createApiQuery(DatasetsService.getManifest, DATASETS_TAG, {});
 
 export const useGetSchemaQuery = createApiQuery(DatasetsService.getManifest, DATASETS_TAG, {
-  select: (res) => deserializeSchema(res.dataset_manifest.data_schema)
+  select: res => deserializeSchema(res.dataset_manifest.data_schema)
 });
 
 export const useGetSourcesQuery = createApiQuery(DataLoadersService.getSources, DATASETS_TAG);
@@ -42,10 +45,19 @@ export const useGetSourceSchemaQuery = createApiQuery(
   DataLoadersService.getSourceSchema,
   DATASETS_TAG
 );
-export const useLoadDatasetMutation = createApiMutation(DataLoadersService.load, DATASETS_TAG);
+export const useLoadDatasetMutation = createApiMutation(DataLoadersService.load);
 export const useComputeSignalColumnMutation = createApiMutation(
   DatasetsService.computeSignalColumn,
-  DATASETS_TAG
+  {
+    onSuccess: resp => {
+      queryClient.invalidateQueries([TASKS_TAG]);
+
+      watchTask(resp.task_id, () => {
+        queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
+        queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
+      });
+    }
+  }
 );
 export const useGetStatsQuery = createApiQuery(DatasetsService.getStats, DATASETS_TAG);
 export const useSelectRowsQuery = createApiQuery(function selectRows(
@@ -54,8 +66,8 @@ export const useSelectRowsQuery = createApiQuery(function selectRows(
   requestBody: SelectRowsOptions,
   schema: LilacSchema
 ) {
-  return DatasetsService.selectRows(namespace, datasetName, requestBody).then((res) =>
-    res.map((row) => deserializeRow(row, schema))
+  return DatasetsService.selectRows(namespace, datasetName, requestBody).then(res =>
+    res.map(row => deserializeRow(row, schema))
   );
 },
 DATASETS_TAG);
@@ -65,16 +77,22 @@ export const useSelectRowsInfiniteQuery = (
   namespace: string,
   datasetName: string,
   selectRowOptions: SelectRowsOptions,
-  schema: LilacSchema
+  schema: LilacSchema | undefined
 ) =>
   createInfiniteQuery({
     queryKey: [DATASETS_TAG, 'selectRows', namespace, datasetName, selectRowOptions],
-    queryFn: ({ pageParam = 0 }) =>
+    queryFn: ({pageParam = 0}) =>
       DatasetsService.selectRows(namespace, datasetName, {
         ...selectRowOptions,
         offset: pageParam * (selectRowOptions.limit || 40)
-      }).then((res) => res.map((row) => deserializeRow(row, schema))),
-    getNextPageParam: (lastPage, pages) => pages.length
+      }),
+    select: data => ({
+      ...data,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      pages: data.pages.map(page => page.map(row => deserializeRow(row, schema!)))
+    }),
+    getNextPageParam: (_, pages) => pages.length,
+    enabled: !!schema
   });
 
 export const useSelectRowByUUIDQuery = (
@@ -83,6 +101,6 @@ export const useSelectRowByUUIDQuery = (
   uuid: string,
   schema: LilacSchema
 ) => {
-  const filters: Filter[] = [{ path: [UUID_COLUMN], comparison: 'equals', value: uuid }];
-  return useSelectRowsQuery(namespace, datasetName, { filters }, schema);
+  const filters: Filter[] = [{path: [UUID_COLUMN], comparison: 'equals', value: uuid}];
+  return useSelectRowsQuery(namespace, datasetName, {filters}, schema);
 };

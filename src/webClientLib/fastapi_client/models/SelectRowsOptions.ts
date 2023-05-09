@@ -16,5 +16,6 @@ export type SelectRowsOptions = {
     sort_order?: SortOrder;
     limit?: number;
     offset?: number;
+    combine_columns?: boolean;
 };
 

@@ -145,6 +145,7 @@ class SelectRowsOptions(BaseModel):
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int]
   offset: Optional[int]
+  combine_columns: Optional[bool]
 
 
 @router.post('/{namespace}/{dataset_name}/select_rows')
@@ -159,7 +160,8 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
       sort_by=options.sort_by,
       sort_order=options.sort_order,
       limit=options.limit,
-      offset=options.offset))
+      offset=options.offset,
+      combine_columns=options.combine_columns or False))
   return items
 
 
