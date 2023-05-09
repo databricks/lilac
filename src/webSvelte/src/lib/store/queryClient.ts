@@ -14,7 +14,6 @@ export const queryClient = new QueryClient({
       staleTime: Infinity,
       retry: false,
       onError: err => {
-        console.log(err.body);
         console.error((err as ApiError).body?.detail);
         apiErrors.update(errs => [...errs, err as ApiError]);
       }
