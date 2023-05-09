@@ -68,7 +68,7 @@ def make_db(db_cls: Type[DatasetDB],
             schema: Optional[Schema] = None) -> DatasetDB:
   """Create a test database."""
   schema = schema or _infer_schema(rows)
-  _write_items(tmp_path, TEST_DATASET_NAME, lilac_items(rows), schema)
+  _write_items(tmp_path, TEST_DATASET_NAME, cast(list, lilac_items(rows)), schema)
   return db_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
 
 
