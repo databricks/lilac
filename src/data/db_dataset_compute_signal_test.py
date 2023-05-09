@@ -269,7 +269,7 @@ class ComputeSignalItemsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello',
       }, {
@@ -285,7 +285,7 @@ class ComputeSignalItemsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello',
       }, {
@@ -318,7 +318,7 @@ class ComputeSignalItemsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello',
       }, {
@@ -463,7 +463,7 @@ class ComputeSignalItemsSuite:
     db = make_db(
       db_cls,
       tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello'
       }, {
@@ -515,7 +515,7 @@ class ComputeSignalItemsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello.',
       }, {
@@ -584,7 +584,7 @@ class ComputeSignalItemsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello. hello2.',
       }, {
@@ -697,7 +697,7 @@ class ComputeSignalItemsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': '[1, 1] first sentence. [1, 1] second sentence.',
       }, {
@@ -748,7 +748,7 @@ class ComputeSignalItemsSuite:
     db = make_db(
       db_cls,
       tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': ['hello', 'everybody'],
       }, {
@@ -811,7 +811,7 @@ class ComputeSignalItemsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': '[1, 1] first sentence. [1, 1] second sentence.',
       }, {

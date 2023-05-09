@@ -57,7 +57,7 @@ class SelectGroupsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=items,
+      items=items,
       schema=schema({
         UUID_COLUMN: 'string',
         'name': 'string',
@@ -141,7 +141,7 @@ class SelectGroupsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=items,
+      items=items,
       schema=schema({
         UUID_COLUMN: 'string',
         'active': 'boolean'
@@ -174,7 +174,7 @@ class SelectGroupsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=items,
+      items=items,
       schema=schema({
         UUID_COLUMN: 'string',
         'list_of_structs': [{
@@ -221,7 +221,7 @@ class SelectGroupsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=items,
+      items=items,
       schema=schema({
         UUID_COLUMN: 'string',
         'nested_list': [[{
@@ -272,7 +272,7 @@ class SelectGroupsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=items,
+      items=items,
       schema=schema({
         UUID_COLUMN: 'string',
         'nested_struct': {
@@ -310,7 +310,7 @@ class SelectGroupsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=items,
+      items=items,
       schema=schema({
         UUID_COLUMN: 'string',
         'age': 'int32',
@@ -366,7 +366,7 @@ class SelectGroupsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=items,
+      items=items,
       schema=schema({
         UUID_COLUMN: 'string',
         'nested_struct': {
@@ -398,7 +398,7 @@ class SelectGroupsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=items,
+      items=items,
       schema=schema({
         UUID_COLUMN: 'string',
         'feature': 'string'
@@ -414,7 +414,7 @@ class SelectGroupsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=items,
+      items=items,
       schema=schema({
         UUID_COLUMN: 'string',
         'feature': 'float32'

@@ -329,7 +329,7 @@ def read_embedding_index(output_dir: str, filename: str) -> EmbeddingIndex:
   return EmbeddingIndex(path=index_path, keys=index_keys, embeddings=embeddings)
 
 
-def write_items_to_parquet(out_items: Iterable[Item],
+def write_items_to_parquet(items: Iterable[Item],
                            output_dir: str,
                            schema: Schema,
                            filename_prefix: str,
@@ -340,7 +340,7 @@ def write_items_to_parquet(out_items: Iterable[Item],
   if not dont_wrap_primitives:
     # NOTE: This is just an optimization since sometimes we know values are already wrapped (e.g.
     # when are the output of a signal udf).
-    out_items = lilac_items(out_items)
+    items = lilac_items(items)
 
   arrow_schema = schema_to_arrow_schema(schema)
   out_filename = parquet_filename(filename_prefix, shard_index, num_shards)
@@ -349,7 +349,7 @@ def write_items_to_parquet(out_items: Iterable[Item],
   writer = ParquetWriter(schema)
   writer.open(f)
   num_items = 0
-  for item in out_items:
+  for item in items:
     # Add a UUID column.
     if UUID_COLUMN not in item:
       item[UUID_COLUMN] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.

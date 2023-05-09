@@ -64,11 +64,11 @@ def _infer_schema(items: list[Item]) -> Schema:
 
 def make_db(db_cls: Type[DatasetDB],
             tmp_path: pathlib.Path,
-            rows: list[Item],
+            items: list[Item],
             schema: Optional[Schema] = None) -> DatasetDB:
   """Create a test database."""
-  schema = schema or _infer_schema(rows)
-  _write_items(tmp_path, TEST_DATASET_NAME, cast(list, lilac_items(rows)), schema)
+  schema = schema or _infer_schema(items)
+  _write_items(tmp_path, TEST_DATASET_NAME, cast(list, lilac_items(items)), schema)
   return db_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
 
 

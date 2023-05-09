@@ -288,7 +288,7 @@ class DatasetDuckDB(DatasetDB):
 
     enriched_signal_items = list(enriched_signal_items)
     parquet_filename, _ = write_items_to_parquet(
-      out_items=enriched_signal_items,
+      items=enriched_signal_items,
       output_dir=self.dataset_path,
       schema=signal_schema,
       filename_prefix=signal_out_prefix,

@@ -242,7 +242,7 @@ class SelectRowsSuite:
     db = make_db(
       db_cls,
       tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello'
       }, {
@@ -363,7 +363,7 @@ class SelectRowsSuite:
     db = make_db(
       db_cls,
       tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'texts': ['hello', 'everybody']
       }, {
@@ -458,7 +458,7 @@ class SelectRowsSuite:
     db = make_db(
       db_cls,
       tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello',
         'extra': {
@@ -592,7 +592,7 @@ class SelectRowsSuite:
     db = make_db(
       db_cls,
       tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello'
       }, {
@@ -623,7 +623,7 @@ class SelectRowsSuite:
     db = make_db(
       db_cls,
       tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello'
       }, {
@@ -674,7 +674,7 @@ class SelectRowsSuite:
     db = make_db(
       db_cls,
       tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello'
       }, {
@@ -721,7 +721,7 @@ class SelectRowsSuite:
     db = make_db(
       db_cls,
       tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': ['hello', 'hi']
       }, {
@@ -755,7 +755,7 @@ class SelectRowsSuite:
     db = make_db(
       db_cls,
       tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': [['hello'], ['hi', 'bye']]
       }, {
@@ -779,7 +779,7 @@ class SelectRowsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello.',
       }, {
@@ -825,7 +825,7 @@ class SelectRowsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': ['hello.', 'hello world.'],
       }, {
@@ -917,7 +917,7 @@ class SelectRowsSuite:
     db = make_db(
       db_cls,
       tmp_path,
-      rows=[{
+      items=[{
         UUID_COLUMN: '1',
         'text': 'hello',
         'text2': ['hello', 'world'],

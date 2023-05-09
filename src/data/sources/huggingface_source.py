@@ -163,7 +163,7 @@ class HuggingFaceDataset(Source):
       estimated_len=schema_info.num_items)
 
     filepath, num_items = write_items_to_parquet(
-      out_items=items,
+      items=items,
       output_dir=output_dir,
       schema=schema_info.data_schema,
       filename_prefix=PARQUET_FILENAME_PREFIX,
