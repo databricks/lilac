@@ -201,7 +201,6 @@ class DatasetDuckDB(DatasetDB):
     ])
 
     sql_cmd = f"""CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})"""
-    print(sql_cmd)
     self.con.execute(sql_cmd)
 
     # Get the total size of the table.
@@ -495,8 +494,6 @@ class DatasetDuckDB(DatasetDB):
       ORDER BY {sort_by} {sort_order}
       {limit_query}
     """
-    print(query)
-    #print(self._query('SELECT "__lilac__" FROM t'))
     return DuckDBSelectGroupsResult(self._query_df(query))
 
   def _sorting_by_topk_of_signal(self, limit: Optional[int], sort_order: Optional[SortOrder],
@@ -1050,7 +1047,5 @@ def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:
 def _make_value_path(path: PathTuple) -> PathTuple:
   """Returns the path to the value field of the given path."""
   if path[-1] != VALUE_KEY and path[0] != UUID_COLUMN:
-    print('got path', (*path, VALUE_KEY))
     return (*path, VALUE_KEY)
-  print('out path', path)
   return path
