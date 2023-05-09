@@ -1,4 +1,5 @@
-import type {DataType, Field, Schema} from './fastapi_client';
+import type {JSONSchema7} from 'json-schema';
+import type {DataType, Field, Schema, SignalInfo} from './fastapi_client';
 import {
   ENTITY_FEATURE_KEY,
   LILAC_COLUMN,
@@ -248,3 +249,8 @@ export function clearCache() {
   listFieldsCache = new WeakMap();
   listValueNodesCache = new WeakMap();
 }
+
+/** SignalInfo where `json_schema` is typed as `JSONSchema7`. */
+export type SignalInfoWithTypedSchema = Omit<SignalInfo, 'json_schema'> & {
+  json_schema: JSONSchema7;
+};
