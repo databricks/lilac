@@ -4,7 +4,7 @@ from typing import Iterable, Optional
 
 from typing_extensions import override
 
-from ..schema import EnrichmentType, Field, Item, RichData, TextEntity, TextEntityField
+from ..schema import EnrichmentType, Field, Item, RichData, TextEntity, TextSpanField
 from .signal import Signal
 
 EMAILS_FEATURE_NAME = 'emails'
@@ -23,7 +23,7 @@ class PIISignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(fields={EMAILS_FEATURE_NAME: Field(repeated_field=TextEntityField())})
+    return Field(fields={EMAILS_FEATURE_NAME: Field(repeated_field=TextSpanField())})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:

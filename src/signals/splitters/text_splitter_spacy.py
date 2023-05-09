@@ -11,7 +11,7 @@ from ...schema import (
   ItemValue,
   RichData,
   TextEntity,
-  TextEntityField,
+  TextSpanField,
 )
 from ...signals.signal import Signal
 
@@ -32,7 +32,7 @@ class SentenceSplitterSpacy(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(repeated_field=TextEntityField())
+    return Field(repeated_field=TextSpanField())
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:

@@ -201,7 +201,7 @@ class TensorFlowDataset(Source):
     ds = ds.prefetch(10_000)
     items = (_convert_to_item(tfds_element) for tfds_element in ds)
     filepath, num_items = write_items_to_parquet(
-      items=items,
+      out_items=items,
       output_dir=shard_info.output_dir,
       schema=shard_info.data_schema,
       filename_prefix=PARQUET_FILENAME_PREFIX,

@@ -96,7 +96,7 @@ class StatsSuite:
         'zips': ['int32']
       }]
     })
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, rows=nested_items, schema=nested_schema)
 
     result = db.stats(leaf_path='name')
     assert result == StatsResult(total_count=4, approx_count_distinct=2, avg_text_length=5)
@@ -111,13 +111,13 @@ class StatsSuite:
 
     nested_items: list[Item] = [{'feature': str(i)} for i in range(sample_size * 10)]
     nested_schema = schema({UUID_COLUMN: 'string', 'feature': 'string'})
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, rows=nested_items, schema=nested_schema)
 
     result = db.stats(leaf_path='feature')
     assert result == StatsResult(total_count=50, approx_count_distinct=50, avg_text_length=1)
 
   def test_error_handling(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls=db_cls, tmp_path=tmp_path, items=SIMPLE_ITEMS)
+    db = make_db(db_cls=db_cls, tmp_path=tmp_path, rows=SIMPLE_ITEMS)
 
     with pytest.raises(ValueError, match='leaf_path must be provided'):
       db.stats(cast(Any, None))

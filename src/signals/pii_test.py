@@ -1,6 +1,6 @@
 """Test the PII signal."""
 
-from ..schema import Field, TextEntityField
+from ..schema import Field, TextSpanField
 from .pii import EMAILS_FEATURE_NAME, PIISignal
 from .splitters.text_splitter_test_utils import text_to_expected_spans
 
@@ -8,7 +8,7 @@ from .splitters.text_splitter_test_utils import text_to_expected_spans
 def test_pii_fields() -> None:
   signal = PIISignal()
   assert signal.fields() == Field(
-    fields={EMAILS_FEATURE_NAME: Field(repeated_field=TextEntityField())})
+    fields={EMAILS_FEATURE_NAME: Field(repeated_field=TextSpanField())})
 
 
 def test_pii_compute() -> None:

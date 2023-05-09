@@ -5,6 +5,8 @@ import pathlib
 # mypy: disable-error-code="attr-defined"
 from datasets import Dataset, Features, Sequence, Value
 
+from ..dataset_utils import lilac_items
+
 from ...schema import UUID_COLUMN, schema
 from ...test_utils import read_items
 from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceDataset
@@ -32,7 +34,7 @@ def test_hf(tmp_path: pathlib.Path) -> None:
     filepaths=[])
 
   items = read_items(tmp_path, result.filepaths, expected_result.data_schema)
-  assert items == [{
+  assert items == lilac_items([{
     UUID_COLUMN: items[0][UUID_COLUMN],
     HF_SPLIT_COLUMN: 'default',
     'x': 1,
@@ -42,7 +44,7 @@ def test_hf(tmp_path: pathlib.Path) -> None:
     HF_SPLIT_COLUMN: 'default',
     'x': 2,
     'y': '20',
-  }]
+  }])
 
 
 def test_hf_sequence(tmp_path: pathlib.Path) -> None:
@@ -92,7 +94,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
     filepaths=[])
 
   items = read_items(tmp_path, result.filepaths, expected_result.data_schema)
-  assert items == [{
+  assert items == lilac_items([{
     UUID_COLUMN: items[0][UUID_COLUMN],
     HF_SPLIT_COLUMN: 'default',
     'scalar': 1,
@@ -110,4 +112,4 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
       'x': [10, 20, 30],
       'y': ['forty', 'fifty', 'sixty']
     }
-  }]
+  }])

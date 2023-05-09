@@ -7,14 +7,16 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
+from .dataset_utils import lilac_item, lilac_items, signal_item, span
+
 from ..config import CONFIG
 from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
-  ENTITY_FEATURE_KEY,
+  SIGNAL_METADATA_KEY,
   LILAC_COLUMN,
   UUID_COLUMN,
-  EmbeddingEntity,
+  DataType,
   EmbeddingField,
   EnrichmentType,
   Field,
@@ -24,7 +26,7 @@ from ..schema import (
   RichData,
   SignalOut,
   TextEntity,
-  TextEntityField,
+  TextSpanField,
   field,
   schema,
   signal_field,
@@ -152,13 +154,17 @@ class TestEmbedding(EmbeddingSignal):
   def fields(self) -> Field:
     """Return the fields for the embedding."""
     # Override in the test so we can attach extra metadata.
-    return EmbeddingField(metadata={'neg_sum': field('float32')})
+    return Field(
+      dtype=DataType.EMBEDDING,
+      fields={SIGNAL_METADATA_KEY: Field(fields={'neg_sum': Field(dtype=DataType.FLOAT32)})})
+
+    #return signal_field('embedding', metadata={'neg_sum': 'float32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
-    yield from (EmbeddingEntity(e, metadata={'neg_sum': -1 * e.sum()}) for e in embeddings)
+    yield from (signal_item(e, {'neg_sum': -1 * e.sum()}) for e in embeddings)
 
 
 class TestEntitySignal(Signal):
@@ -171,7 +177,10 @@ class TestEntitySignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return field([TextEntityField(metadata={'len': field('int32')})])
+    return field([
+      Field(
+        dtype=DataType.STRING_SPAN, fields={SIGNAL_METADATA_KEY: field({'len': field('int32')})})
+    ])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
@@ -180,9 +189,9 @@ class TestEntitySignal(Signal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-        TextEntity(
-          start=text.index(sentence),
-          end=text.index(sentence) + len(sentence),
+        signal_item(
+          span(text.index(sentence),
+               text.index(sentence) + len(sentence)),
           metadata={'len': len(sentence)}) for sentence in sentences
       ]
 
@@ -212,7 +221,7 @@ class TestSplitterWithLen(Signal):
 
   @override
   def fields(self) -> Field:
-    return field([TextEntityField(metadata={'len': field('int32')})])
+    return field([TextSpanField(metadata={'len': field('int32')})])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
@@ -262,7 +271,7 @@ class ComputeSignalItemsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      items=[{
+      rows=[{
         UUID_COLUMN: '1',
         'text': 'hello',
       }, {
@@ -278,7 +287,7 @@ class ComputeSignalItemsSuite:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      items=[{
+      rows=[{
         UUID_COLUMN: '1',
         'text': 'hello',
       }, {
@@ -289,7 +298,7 @@ class ComputeSignalItemsSuite:
     db.compute_signal(TestSparseSignal(), 'text')
 
     result = db.select_rows(['text', LILAC_COLUMN])
-    assert list(result) == [{
+    assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': 'hello',
       LILAC_COLUMN: {
@@ -305,13 +314,13 @@ class ComputeSignalItemsSuite:
           'test_sparse_signal': 11
         }
       }
-    }]
+    }])
 
   def test_sparse_rich_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      items=[{
+      rows=[{
         UUID_COLUMN: '1',
         'text': 'hello',
       }, {
@@ -322,7 +331,7 @@ class ComputeSignalItemsSuite:
     db.compute_signal(TestSparseRichSignal(), 'text')
 
     result = db.select_rows(['text', LILAC_COLUMN])
-    assert list(result) == [{
+    assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': 'hello',
       LILAC_COLUMN: {
@@ -340,7 +349,7 @@ class ComputeSignalItemsSuite:
           }
         }
       }
-    }]
+    }])
 
   def test_source_joined_with_signal_column(self, tmp_path: pathlib.Path,
                                             db_cls: Type[DatasetDB]) -> None:
@@ -361,7 +370,7 @@ class ComputeSignalItemsSuite:
     db.compute_signal(test_signal, 'str')
 
     result = db.select_rows(['str', (LILAC_COLUMN, 'str')])
-    assert list(result) == [{
+    assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'str': 'a',
       f'{LILAC_COLUMN}.str': {
@@ -388,7 +397,7 @@ class ComputeSignalItemsSuite:
           'flen': 1.0
         }
       }
-    }]
+    }])
 
     # Check the enriched dataset manifest has 'text' enriched.
     assert db.manifest() == DatasetManifest(
@@ -414,7 +423,7 @@ class ComputeSignalItemsSuite:
     # Select a specific signal leaf test_signal.flen.
     result = db.select_rows(['str', (LILAC_COLUMN, 'str', 'test_signal', 'flen')])
 
-    assert list(result) == [{
+    assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'str': 'a',
       f'{LILAC_COLUMN}.str.test_signal.flen': 1.0
@@ -426,7 +435,7 @@ class ComputeSignalItemsSuite:
       UUID_COLUMN: '3',
       'str': 'b',
       f'{LILAC_COLUMN}.str.test_signal.flen': 1.0
-    }]
+    }])
 
     # Select multiple signal leafs with aliasing.
     result = db.select_rows([
@@ -435,7 +444,7 @@ class ComputeSignalItemsSuite:
       Column((LILAC_COLUMN, 'str', 'test_signal', 'len'), alias='len')
     ])
 
-    assert list(result) == [{
+    assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'str': 'a',
       'flen': 1.0,
@@ -450,13 +459,13 @@ class ComputeSignalItemsSuite:
       'str': 'b',
       'flen': 1.0,
       'len': 1
-    }]
+    }])
 
   def test_parameterized_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls,
       tmp_path,
-      items=[{
+      rows=[{
         UUID_COLUMN: '1',
         'text': 'hello'
       }, {
@@ -484,7 +493,7 @@ class ComputeSignalItemsSuite:
       num_items=2)
 
     result = db.select_rows(['text', LILAC_COLUMN])
-    assert list(result) == [{
+    assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': 'hello',
       LILAC_COLUMN: {
@@ -502,13 +511,13 @@ class ComputeSignalItemsSuite:
           'param_signal(param=b)': 'everybody_b',
         }
       }
-    }]
+    }])
 
   def test_embedding_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      items=[{
+      rows=[{
         UUID_COLUMN: '1',
         'text': 'hello.',
       }, {
@@ -517,8 +526,7 @@ class ComputeSignalItemsSuite:
       }])
 
     db.compute_signal(TestEmbedding(), 'text')
-    db.compute_signal(TestEmbeddingSumSignal(),
-                      (LILAC_COLUMN, 'text', 'test_embedding', ENTITY_FEATURE_KEY))
+    db.compute_signal(TestEmbeddingSumSignal(), (LILAC_COLUMN, 'text', 'test_embedding'))
 
     emb_field = EmbeddingField({'neg_sum': field('float32')}, signal_root=True)
     emb_field.fields['test_embedding_sum'] = signal_field('float32')  # type: ignore
@@ -537,39 +545,44 @@ class ComputeSignalItemsSuite:
       num_items=2)
 
     result = db.select_rows()
-    expected_result = [
-      {
-        UUID_COLUMN: '1',
-        'text': 'hello.',
-        LILAC_COLUMN: {
-          'text': {
-            'test_embedding': {
-              **EmbeddingEntity(embedding=None, metadata={'neg_sum': -1.0}),  # type: ignore
-              'test_embedding_sum': 1.0,
-            }
-          }
-        }
-      },
-      {
-        UUID_COLUMN: '2',
-        'text': 'hello2.',
-        LILAC_COLUMN: {
-          'text': {
-            'test_embedding': {
-              **EmbeddingEntity(embedding=None, metadata={'neg_sum': -2.0}),  # type: ignore
-              'test_embedding_sum': 2.0,
-            }
-          }
+    expected_result = lilac_items([{
+      UUID_COLUMN: '1',
+      'text': 'hello.',
+      LILAC_COLUMN: {
+        'text': {
+          'test_embedding': lilac_item(
+            None, {
+              SIGNAL_METADATA_KEY: {
+                'neg_sum': -1.0
+              },
+              'test_embedding_sum': 1.0
+            },
+            allow_none_value=True)
         }
       }
-    ]
+    }, {
+      UUID_COLUMN: '2',
+      'text': 'hello2.',
+      LILAC_COLUMN: {
+        'text': {
+          'test_embedding': lilac_item(
+            None, {
+              SIGNAL_METADATA_KEY: {
+                'neg_sum': -2.0
+              },
+              'test_embedding_sum': 2.0
+            },
+            allow_none_value=True)
+        }
+      }
+    }])
     assert list(result) == expected_result
 
   def test_embedding_signal_splits(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      items=[{
+      rows=[{
         UUID_COLUMN: '1',
         'text': 'hello. hello2.',
       }, {
@@ -579,16 +592,18 @@ class ComputeSignalItemsSuite:
 
     entity_signal = TestEntitySignal()
     db.compute_signal(entity_signal, 'text')
-    db.compute_signal(TestEmbedding(),
-                      (LILAC_COLUMN, 'text', 'test_entity_len', '*', ENTITY_FEATURE_KEY))
-    db.compute_signal(
-      TestEmbeddingSumSignal(),
-      (LILAC_COLUMN, 'text', 'test_entity_len', '*', 'test_embedding', ENTITY_FEATURE_KEY))
+    db.compute_signal(TestEmbedding(), (LILAC_COLUMN, 'text', 'test_entity_len', '*'))
+    db.compute_signal(TestEmbeddingSumSignal(),
+                      (LILAC_COLUMN, 'text', 'test_entity_len', '*', 'test_embedding'))
 
-    emb_field = EmbeddingField({'neg_sum': field('float32')}, signal_root=True)
+    emb_field = Field(
+      dtype=DataType.EMBEDDING,
+      fields={SIGNAL_METADATA_KEY: field({'neg_sum': 'float32'})},
+      signal_root=True)
     emb_field.fields['test_embedding_sum'] = signal_field('float32')  # type: ignore
 
-    text_field = TextEntityField({'len': field('int32')})
+    text_field = Field(
+      dtype=DataType.STRING_SPAN, fields={SIGNAL_METADATA_KEY: field({'len': 'int32'})})
     text_field.fields['test_embedding'] = emb_field  # type: ignore
 
     assert db.manifest() == DatasetManifest(
@@ -607,61 +622,80 @@ class ComputeSignalItemsSuite:
 
     result = db.select_rows(
       ['text', Column((LILAC_COLUMN, 'text', 'test_entity_len'), alias='sentences')])
-    assert list(result) == [{
+
+    assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': 'hello. hello2.',
-      'sentences': [{
-        **TextEntity(0, 6, metadata={'len': 6}),
-        **{
-          'test_embedding': {
-            **EmbeddingEntity(None, metadata={'neg_sum': -1.0}),
-            **{
-              'test_embedding_sum': 1.0
-            }
-          }
-        }
-      }, {
-        **TextEntity(7, 14, metadata={'len': 7}),
-        **{
-          'test_embedding': {
-            **EmbeddingEntity(None, metadata={'neg_sum': -2.0}),
-            **{
-              'test_embedding_sum': 2.0
-            }
-          }
-        }
-      }]
+      'sentences': [
+        lilac_item(
+          span(0, 6), {
+            SIGNAL_METADATA_KEY: {
+              'len': 6
+            },
+            'test_embedding': lilac_item(
+              None, {
+                SIGNAL_METADATA_KEY: {
+                  'neg_sum': -1.0
+                },
+                'test_embedding_sum': 1.0
+              },
+              allow_none_value=True),
+          }),
+        lilac_item(
+          span(7, 14), {
+            SIGNAL_METADATA_KEY: {
+              'len': 7
+            },
+            'test_embedding': lilac_item(
+              None, {
+                SIGNAL_METADATA_KEY: {
+                  'neg_sum': -2.0
+                },
+                'test_embedding_sum': 2.0
+              },
+              allow_none_value=True),
+          }),
+      ]
     }, {
       UUID_COLUMN: '2',
       'text': 'hello world. hello world2.',
-      'sentences': [{
-        **TextEntity(0, 12, metadata={'len': 12}),
-        **{
-          'test_embedding': {
-            **EmbeddingEntity(None, metadata={'neg_sum': -3.0}),
-            **{
-              'test_embedding_sum': 3.0
-            }
-          }
-        }
-      }, {
-        **TextEntity(13, 26, metadata={'len': 13}),
-        **{
-          'test_embedding': {
-            **EmbeddingEntity(None, metadata={'neg_sum': -4.0}),
-            **{
-              'test_embedding_sum': 4.0
-            }
-          }
-        }
-      }]
-    }]
+      'sentences': [
+        lilac_item(
+          span(0, 12), {
+            SIGNAL_METADATA_KEY: {
+              'len': 12
+            },
+            'test_embedding': lilac_item(
+              None, {
+                SIGNAL_METADATA_KEY: {
+                  'neg_sum': -3.0
+                },
+                'test_embedding_sum': 3.0
+              },
+              allow_none_value=True),
+          }),
+        lilac_item(
+          span(13, 26), {
+            SIGNAL_METADATA_KEY: {
+              'len': 13
+            },
+            'test_embedding': lilac_item(
+              None, {
+                SIGNAL_METADATA_KEY: {
+                  'neg_sum': -4.0
+                },
+                'test_embedding_sum': 4.0
+              },
+              allow_none_value=True),
+          })
+      ]
+    }])
 
   def test_entity_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      items=[{
+      rows=[{
         UUID_COLUMN: '1',
         'text': '[1, 1] first sentence. [1, 1] second sentence.',
       }, {
@@ -680,7 +714,7 @@ class ComputeSignalItemsSuite:
         'text': 'string',
         LILAC_COLUMN: {
           'text': {
-            'test_entity_len': signal_field([TextEntityField({'len': field('int32')})])
+            'test_entity_len': signal_field([TextSpanField({'len': field('int32')})])
           }
         },
       }),
@@ -689,28 +723,36 @@ class ComputeSignalItemsSuite:
     # NOTE: The way this currently works is it just generates a new signal column, in the old
     # format. This will look different once entity indexes are merged.
     result = db.select_rows(['text', (LILAC_COLUMN, 'text', 'test_entity_len')])
-    expected_result = [{
+    expected_result = lilac_items([{
       UUID_COLUMN: '1',
       'text': '[1, 1] first sentence. [1, 1] second sentence.',
       f'{LILAC_COLUMN}.text.test_entity_len': [
-        TextEntity(0, 22, metadata={'len': 22}),
-        TextEntity(23, 46, metadata={'len': 23})
+        lilac_item(span(0, 22), {SIGNAL_METADATA_KEY: {
+          'len': 22
+        }}),
+        lilac_item(span(23, 46), {SIGNAL_METADATA_KEY: {
+          'len': 23
+        }}),
       ]
     }, {
       UUID_COLUMN: '2',
       'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
       f'{LILAC_COLUMN}.text.test_entity_len': [
-        TextEntity(0, 25, metadata={'len': 25}),
-        TextEntity(26, 49, metadata={'len': 23})
+        lilac_item(span(0, 25), {SIGNAL_METADATA_KEY: {
+          'len': 25
+        }}),
+        lilac_item(span(26, 49), {SIGNAL_METADATA_KEY: {
+          'len': 23
+        }}),
       ]
-    }]
+    }])
     assert list(result) == expected_result
 
   def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls,
       tmp_path,
-      items=[{
+      rows=[{
         UUID_COLUMN: '1',
         'text': ['hello', 'everybody'],
       }, {
@@ -741,7 +783,7 @@ class ComputeSignalItemsSuite:
 
     result = db.select_rows([(LILAC_COLUMN, 'text', '*')])
 
-    assert list(result) == [{
+    assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       f'{LILAC_COLUMN}.text.*': [{
         'test_signal': {
@@ -767,13 +809,13 @@ class ComputeSignalItemsSuite:
           'flen': 10.0
         }
       }]
-    }]
+    }])
 
   def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
-      items=[{
+      rows=[{
         UUID_COLUMN: '1',
         'text': '[1, 1] first sentence. [1, 1] second sentence.',
       }, {
@@ -784,19 +826,27 @@ class ComputeSignalItemsSuite:
     db.compute_signal(TestSplitterWithLen(), 'text')
 
     result = db.select_rows(['text', (LILAC_COLUMN, 'text', 'test_splitter_len')])
-    expected_result = [{
+    expected_result = lilac_items([{
       UUID_COLUMN: '1',
       'text': '[1, 1] first sentence. [1, 1] second sentence.',
       f'{LILAC_COLUMN}.text.test_splitter_len': [
-        TextEntity(0, 22, metadata={'len': 22}),
-        TextEntity(23, 46, metadata={'len': 23})
+        lilac_item(span(0, 22), {SIGNAL_METADATA_KEY: {
+          'len': 22
+        }}),
+        lilac_item(span(23, 46), {SIGNAL_METADATA_KEY: {
+          'len': 23
+        }}),
       ]
     }, {
       UUID_COLUMN: '2',
       'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
       f'{LILAC_COLUMN}.text.test_splitter_len': [
-        TextEntity(0, 25, metadata={'len': 25}),
-        TextEntity(26, 49, metadata={'len': 23})
+        lilac_item(span(0, 25), {SIGNAL_METADATA_KEY: {
+          'len': 25
+        }}),
+        lilac_item(span(26, 49), {SIGNAL_METADATA_KEY: {
+          'len': 23
+        }}),
       ]
-    }]
+    }])
     assert list(result) == expected_result
