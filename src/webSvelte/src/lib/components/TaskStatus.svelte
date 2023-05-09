@@ -42,7 +42,7 @@
   {/if}
 
   <Popover
-    on:click:outside={ev => {
+    on:click:outside={() => {
       if (showTasks) showTasks = false;
     }}
     align="bottom-right"

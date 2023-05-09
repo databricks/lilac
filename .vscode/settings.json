@@ -53,7 +53,7 @@
     }
   },
   "eslint.workingDirectories": ["auto"],
-  "eslint.validate": ["typescript"],
+  "eslint.validate": ["typescript", "svelte"],
   "python.envFile": "${workspaceFolder}/.venv",
   "python.linting.mypyEnabled": true,
   "python.formatting.provider": "yapf",

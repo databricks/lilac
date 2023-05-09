@@ -26,7 +26,7 @@
 
   let path = command.path;
   let signalInfo: SignalInfoWithTypedSchema | undefined;
-  let signalPropertyValues: Record<string, any> = {};
+  let signalPropertyValues: Record<string, string> = {};
 
   const datasetViewStore = getDatasetViewContext();
   const dispatch = createEventDispatcher();
@@ -63,15 +63,15 @@
     signalPropertyValues = {};
     Object.entries(signal.json_schema.properties || {}).forEach(([key, property]) => {
       if (typeof property == 'object' && property.default) {
-        signalPropertyValues[key] = property.default;
+        signalPropertyValues[key] = property.default.toString();
       }
     });
     signalPropertyValues = signalPropertyValues;
   }
 
-  function validateSignalPropertyValues(values: Record<string, any>) {
+  function validateSignalPropertyValues(values: Record<string, string>) {
     const errors: Record<string, string> = {};
-    Object.entries(signalInfo?.json_schema.properties || {}).forEach(([key, property]) => {
+    Object.keys(signalInfo?.json_schema.properties || {}).forEach(key => {
       if (signalInfo?.json_schema.required?.includes(key) && !values[key]) {
         errors[key] = 'Required';
       }
