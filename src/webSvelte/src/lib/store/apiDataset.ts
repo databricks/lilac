@@ -88,14 +88,18 @@ export const useSelectRowsInfiniteQuery = (
   schema: LilacSchema | undefined
 ) =>
   createInfiniteQuery({
-    queryKey: [DATASETS_TAG, 'selectRows', namespace, datasetName, selectRowOptions, schema],
+    queryKey: [DATASETS_TAG, 'selectRows', namespace, datasetName, selectRowOptions],
     queryFn: ({ pageParam = 0 }) =>
       DatasetsService.selectRows(namespace, datasetName, {
         ...selectRowOptions,
         offset: pageParam * (selectRowOptions.limit || 40)
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      }).then((res) => res.map((row) => deserializeRow(row, schema!))),
-    getNextPageParam: (lastPage, pages) => pages.length,
+      }),
+    select: (data) => ({
+      ...data,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      pages: data.pages.map((page) => page.map((row) => deserializeRow(row, schema!)))
+    }),
+    getNextPageParam: (_, pages) => pages.length,
     enabled: !!schema
   });
 
