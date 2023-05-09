@@ -92,6 +92,7 @@ export function getLeafVals(item: Item): {[pathStr: string]: LeafValue[]} {
   q.push([[], item]);
   const result: {[pathStr: string]: LeafValue[]} = {};
   while (q.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [path, value] = q.pop()!;
     if (Array.isArray(value)) {
       for (const v of value) {

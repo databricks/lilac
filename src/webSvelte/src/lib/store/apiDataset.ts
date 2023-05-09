@@ -96,6 +96,7 @@ export const useSelectRowsInfiniteQuery = (
       }),
     select: data => ({
       ...data,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       pages: data.pages.map(page => page.map(row => deserializeRow(row, schema!)))
     }),
     getNextPageParam: (_, pages) => pages.length,

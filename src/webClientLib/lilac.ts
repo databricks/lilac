@@ -100,6 +100,7 @@ export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacVa
 export function listFields(field: LilacSchemaField | LilacSchema | undefined): LilacSchemaField[] {
   if (!field) return [];
   // Return the cached value if it exists.
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   if (listFieldsCache.has(field)) return listFieldsCache.get(field)!;
 
   const result = [
@@ -116,6 +117,7 @@ export function listFields(field: LilacSchemaField | LilacSchema | undefined): L
 /** List all values as a flattend array */
 export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
   // Return the cached value if it exists.
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   if (listValueNodesCache.has(row)) return listValueNodesCache.get(row)!;
 
   let result: LilacValueNode[];
