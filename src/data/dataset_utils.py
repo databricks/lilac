@@ -338,6 +338,8 @@ def write_items_to_parquet(out_items: Iterable[Item],
                            dont_wrap_primitives: Optional[bool] = False) -> tuple[str, int]:
   """Write a set of items to a parquet file, in columnar format."""
   if not dont_wrap_primitives:
+    # NOTE: This is just an optimization since sometimes we know values are already wrapped (e.g.
+    # when are the output of a signal udf).
     out_items = lilac_items(out_items)
 
   arrow_schema = schema_to_arrow_schema(schema)

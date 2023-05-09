@@ -1,8 +1,8 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {
-    ENTITY_FEATURE_KEY,
     PATH_WILDCARD,
+    VALUE_FEATURE_KEY,
     isSignalField,
     pathIsEqual,
     type LilacSchema,
@@ -43,7 +43,7 @@
     return (
       Object.values(field.fields)
         // Filter out the entity field.
-        .filter(f => f.path.at(-1) != ENTITY_FEATURE_KEY)
+        .filter(f => f.path.at(-1) != VALUE_FEATURE_KEY)
     );
   }
 </script>
