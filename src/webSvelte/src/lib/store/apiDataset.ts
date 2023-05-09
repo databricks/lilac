@@ -61,7 +61,6 @@ export const useComputeSignalColumnMutation = createApiMutation(
       queryClient.invalidateQueries([TASKS_TAG]);
 
       watchTask(resp.task_id, () => {
-        console.log('invalidate queries');
         queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
         queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
       });
