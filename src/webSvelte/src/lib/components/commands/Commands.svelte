@@ -12,7 +12,8 @@
     command: Command.ComputeSignal;
     namespace: string;
     datasetName: string;
-    path: Path;
+    path?: Path;
+    signalName?: string;
   };
 
   export type Commands = NoCommand | ComputeSignalCommand;

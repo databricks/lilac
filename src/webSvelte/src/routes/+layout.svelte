@@ -15,7 +15,7 @@
       <TaskStatus />
     </div>
 
-    <div class="overflow-y-scroll">
+    <div class="h-full overflow-y-scroll">
       <slot />
     </div>
   </main>

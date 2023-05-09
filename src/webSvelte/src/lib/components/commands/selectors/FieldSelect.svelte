@@ -16,6 +16,7 @@
   export let enrichmentType: EnrichmentType | undefined = undefined;
   export let filter: ((field: LilacSchemaField) => boolean) | undefined = undefined;
 
+  export let defaultPath: Path | undefined = undefined;
   export let path: Path | undefined = undefined;
 
   const datasetViewStore = getDatasetViewContext();
@@ -34,10 +35,6 @@
 
   function formatField(field: LilacSchemaField): string {
     return `${field.path.join('.')} (${field.dtype})`;
-  }
-
-  function onUpdate(ev: CustomEvent<number | string>) {
-    path = options[ev.detail as number].value.path;
   }
 
   let inFilterLeafs: LilacSchemaField[] = [];
@@ -73,10 +70,21 @@
     }))
   ];
 
-  $: initialSelectedIndex = options.findIndex(f => pathIsEqual(f.value.path, path));
+  let selectedIndex = 0;
+
+  onMount(async () => {
+    const defaultSelection = options.findIndex(f => pathIsEqual(f.value.path, defaultPath));
+    if (defaultSelection >= 0) {
+      selectedIndex = defaultSelection;
+    } else {
+      selectedIndex = 0;
+    }
+  });
+
+  $: path = options[selectedIndex]?.value.path;
 </script>
 
-<Select {labelText} {helperText} selected={initialSelectedIndex} on:update={onUpdate} required>
+<Select {labelText} {helperText} bind:selected={selectedIndex} required>
   {#each options as option, i}
     <SelectItem value={i} disabled={option.disabled} text={option.label} />
   {/each}
