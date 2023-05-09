@@ -6,13 +6,15 @@
     isSignalField,
     pathIsEqual,
     type LilacSchema,
-    type LilacSchemaField
+    type LilacSchemaField,
+    type Path
   } from '$lilac';
   import {Checkbox, Tag} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
   import {slide} from 'svelte/transition';
   import ContextMenu from '../contextMenu/ContextMenu.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
+  import ExtraColumnField from './ExtraColumnField.svelte';
 
   export let schema: LilacSchema;
   export let field: LilacSchemaField;
@@ -32,8 +34,14 @@
   $: isRepeatedField = field.path.at(-1) === PATH_WILDCARD ? true : false;
   $: fieldName = isRepeatedField ? field.path.at(-2) : field.path.at(-1);
 
+  // Fields that have been added in the UI and don't come from the schema
+  $: extraColumns = $datasetViewStore.extraColumns.filter(column =>
+    // Ignore the entity field at the end of the path.
+    pathIsEqual(column.feature.filter(p => p != ENTITY_FEATURE_KEY) as Path, path)
+  );
+
   $: children = childFields(field);
-  $: hasChildren = !!children.length;
+  $: hasChildren = children.length > 0 || extraColumns.length > 0;
   $: isVisible = $datasetViewStore.visibleColumns.some(p => pathIsEqual(p, path));
 
   // Find all the child paths for a given field.
@@ -98,5 +106,8 @@
         <svelte:self {schema} field={childField} indent={indent + 1} />
       {/each}
     {/if}
+    {#each extraColumns as column}
+      <ExtraColumnField {column} indent={indent + 1} />
+    {/each}
   </div>
 {/if}

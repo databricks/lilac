@@ -1,4 +1,11 @@
-import type {DataType, EnrichmentType} from './fastapi_client';
+import type {
+  BucketizeTransform,
+  ConceptScoreSignal,
+  DataType,
+  EnrichmentType,
+  Signal,
+  SignalTransform
+} from './fastapi_client';
 export type LeafValue = number | boolean | string | null;
 export type FieldValue = FieldValue[] | {[fieldName: string]: FieldValue} | LeafValue;
 
@@ -84,6 +91,17 @@ export function pathIsEqual(path1?: Path, path2?: Path): boolean {
   return serializePath(path1) === serializePath(path2);
 }
 
+export function isSignalTransform(
+  transform: BucketizeTransform | SignalTransform | undefined
+): transform is SignalTransform {
+  return (transform as SignalTransform)?.signal !== undefined;
+}
+
+export function isConceptScoreSignal(
+  signal: ConceptScoreSignal | Signal | undefined
+): signal is ConceptScoreSignal {
+  return (signal as ConceptScoreSignal)?.concept_name != undefined;
+}
 /**
  * Returns a dictionary that maps a "leaf path" to all flatten values for that leaf.
  */

@@ -7,8 +7,6 @@
   const datasetViewStore = getDatasetViewContext();
   const schema = useGetSchemaQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
   const manifest = useGetManifestQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
-
-  $: console.log({schema: $schema.data, manifest: $manifest.data});
 </script>
 
 <div class="flex flex-col gap-y-4 px-4 py-4">

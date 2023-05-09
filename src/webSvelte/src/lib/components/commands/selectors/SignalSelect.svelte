@@ -1,47 +1,42 @@
 <script lang="ts">
   import {useGetSignalsQuery} from '$lib/store/apiSignal';
-  import {
-    StructuredList,
-    StructuredListBody,
-    StructuredListCell,
-    StructuredListHead,
-    StructuredListInput,
-    StructuredListRow,
-    StructuredListSkeleton
-  } from 'carbon-components-svelte';
-  import CheckmarkFilled from 'carbon-icons-svelte/lib/CheckmarkFilled.svelte';
+  import type {SignalInfoWithTypedSchema} from '$lilac';
+  import {SkeletonText} from 'carbon-components-svelte';
 
-  export let signalName: string | undefined;
+  export let defaultSignal: string | undefined = undefined;
+  export let signal: SignalInfoWithTypedSchema | undefined = undefined;
+
   const signals = useGetSignalsQuery();
+
+  $: {
+    if ($signals.isSuccess && !signal) {
+      signal = $signals.data?.find(s => s.name === defaultSignal) || $signals.data?.[0];
+    }
+  }
 </script>
 
 {#if $signals.isSuccess}
-  <StructuredList selection required bind:selected={signalName} label="Signal">
-    <StructuredListHead>
-      <StructuredListRow head>
-        <StructuredListCell head>Signal</StructuredListCell>
-        <StructuredListCell head>Description</StructuredListCell>
-      </StructuredListRow>
-    </StructuredListHead>
-    <StructuredListBody>
-      {#each $signals.data as signal}
-        <StructuredListRow label for={signal.name}>
-          <StructuredListCell>{signal.name}</StructuredListCell>
-          <StructuredListCell>
-            {signal.json_schema.description}
-          </StructuredListCell>
-          <StructuredListInput id={signal.name} value={signal.name} />
-          <StructuredListCell>
-            <CheckmarkFilled
-              class="bx--structured-list-svg"
-              aria-label="select an option"
-              title="select an option"
-            />
-          </StructuredListCell>
-        </StructuredListRow>
-      {/each}
-    </StructuredListBody>
-  </StructuredList>
+  <div class="flex flex-col" role="list">
+    {#each $signals.data as _signal}
+      <button data-active={signal === _signal} on:click={() => (signal = _signal)}>
+        {_signal.json_schema.title}
+      </button>
+    {/each}
+  </div>
 {:else if $signals.isLoading}
-  <StructuredListSkeleton rows={5} />
+  <SkeletonText lines={3} />
 {/if}
+
+<style lang="postcss">
+  button {
+    @apply w-full px-4 py-2 text-left text-gray-800;
+  }
+
+  button:hover {
+    @apply bg-gray-200 text-black;
+  }
+
+  button[data-active='true'] {
+    @apply bg-gray-300 text-black;
+  }
+</style>

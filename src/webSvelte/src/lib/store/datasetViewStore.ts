@@ -1,4 +1,4 @@
-import type {Filter, Path} from '$lilac';
+import type {Column, Filter, Path} from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable} from 'svelte/store';
 
@@ -12,12 +12,14 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     visibleColumns: Path[];
     filters: Filter[];
     sortBy?: Path[];
+    extraColumns: Column[];
   }>({
     namespace,
     datasetName,
     visibleColumns: [],
     filters: [],
-    sortBy: []
+    sortBy: [],
+    extraColumns: []
   });
 
   return {
@@ -32,6 +34,17 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     removeVisibleColumn: (column: Path) =>
       update(state => {
         state.visibleColumns = state.visibleColumns.filter(c => c.join('.') !== column.join('.'));
+        return state;
+      }),
+
+    addExtraColumn: (column: Column) =>
+      update(state => {
+        state.extraColumns?.push(column);
+        return state;
+      }),
+    removeExtraColumn: (column: Column) =>
+      update(state => {
+        state.extraColumns = state.extraColumns.filter(c => c !== column);
         return state;
       })
   };
