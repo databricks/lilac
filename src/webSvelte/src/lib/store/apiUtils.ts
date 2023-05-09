@@ -36,7 +36,7 @@ export function createApiQuery<
 }
 
 export function createApiMutation<
-  TMutationFn extends (...args: unknown[]) => Promise<any>,
+  TMutationFn extends (...args: any[]) => Promise<any>,
   TData = Awaited<ReturnType<TMutationFn>>
 >(endpoint: TMutationFn, mutationArgs: CreateMutationOptions<TData, Error> = {}) {
   return (...args: Parameters<TMutationFn>) =>
