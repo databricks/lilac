@@ -1,4 +1,5 @@
 import {
+  ApiError,
   DataLoadersService,
   DatasetsService,
   UUID_COLUMN,
@@ -9,7 +10,7 @@ import {
   type LilacSchema,
   type SelectRowsOptions
 } from '$lilac';
-import {createInfiniteQuery} from '@tanstack/svelte-query';
+import {createInfiniteQuery, type CreateInfiniteQueryResult} from '@tanstack/svelte-query';
 import {TASKS_TAG} from './apiServer';
 import {createApiMutation, createApiQuery} from './apiUtils';
 import {queryClient} from './queryClient';
@@ -78,7 +79,7 @@ export const useSelectRowsInfiniteQuery = (
   datasetName: string,
   selectRowOptions: SelectRowsOptions,
   schema: LilacSchema | undefined
-) =>
+): CreateInfiniteQueryResult<Awaited<ReturnType<typeof DatasetsService.selectRows>>, ApiError> =>
   createInfiniteQuery({
     queryKey: [DATASETS_TAG, 'selectRows', namespace, datasetName, selectRowOptions],
     queryFn: ({pageParam = 0}) =>

@@ -2,6 +2,7 @@
  * Utils for RTK Query APIs.
  */
 
+import type {ApiError} from '$lilac';
 import {
   createMutation,
   createQuery,
@@ -19,7 +20,7 @@ export function createApiQuery<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TQueryFn extends (...args: any[]) => Promise<any>,
   TQueryFnData = Awaited<ReturnType<TQueryFn>>,
-  TError = Error,
+  TError = ApiError,
   TData = TQueryFnData
 >(
   endpoint: TQueryFn,
@@ -39,10 +40,11 @@ export function createApiMutation<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TMutationFn extends (...args: any[]) => Promise<any>,
   TData = Awaited<ReturnType<TMutationFn>>,
+  TError = ApiError,
   TVariables = Parameters<TMutationFn>
->(endpoint: TMutationFn, mutationArgs: CreateMutationOptions<TData, Error, TVariables> = {}) {
+>(endpoint: TMutationFn, mutationArgs: CreateMutationOptions<TData, TError, TVariables> = {}) {
   return () =>
-    createMutation<TData, Error, TVariables>({
+    createMutation<TData, TError, TVariables>({
       mutationFn: endpoint,
       ...mutationArgs
     });
