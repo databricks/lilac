@@ -7,8 +7,8 @@ import {
   pathIsEqual,
   type DataTypeCasted,
   type FieldValue,
-  type Path,
-  type LeafValue
+  type LeafValue,
+  type Path
 } from './schema';
 import {mergeDeep} from './utils';
 
