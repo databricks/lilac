@@ -73,6 +73,6 @@ class ConceptScoreSignal(Signal):
 
   @override
   def key(self) -> str:
-    # NOTE: The embedding is an entity so already exists in the path structure. This means we do not
+    # NOTE: The embedding is a value so already exists in the path structure. This means we do not
     # need to provide the name as part of the key, which still guarantees uniqueness.
     return f'{self.namespace}/{self.concept_name}'

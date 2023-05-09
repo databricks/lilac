@@ -88,7 +88,6 @@ DEBUG = CONFIG['DEBUG'] == 'true' if 'DEBUG' in CONFIG else False
 UUID_INDEX_FILENAME = 'uuids.npy'
 
 SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
-ENTITY_INDEX_MANIFEST_SUFFIX = 'entity_manifest.json'
 SOURCE_VIEW_NAME = 'source'
 
 # Sample size for approximating the distinct count of a column.
@@ -491,7 +490,6 @@ class DatasetDuckDB(DatasetDB):
       ORDER BY {sort_by} {sort_order}
       {limit_query}
     """
-    print(query)
     return DuckDBSelectGroupsResult(self._query_df(query))
 
   def _sorting_by_topk_of_signal(self, limit: Optional[int], sort_order: Optional[SortOrder],
@@ -602,7 +600,7 @@ class DatasetDuckDB(DatasetDB):
               topk = signal.vector_compute_topk(k, vector_store)
               unique_uuids = list(dict.fromkeys([key[0] for key, _ in topk]))
               df.set_index(UUID_COLUMN, drop=False, inplace=True)
-              # Filter the dataframe by uuids that have at least one entity in top k.
+              # Filter the dataframe by uuids that have at least one value in top k.
               df = df.loc[unique_uuids]
               for key, score in topk:
                 # Walk a deep nested array and put the score at the right location.
@@ -1014,8 +1012,7 @@ def _col_destination_path(column: Column) -> PathTuple:
     raise ValueError(f'Cannot get destination path for transform {column.transform!r}')
 
   signal_key = column.transform.signal.key()
-  # TODO(nsthorat): Can we delete? DELETE
-  # If we are enriching an entity we should store the signal data in the entity field's parent.
+  # If we are enriching a value we should store the signal data in the value's parent.
   if source_path[-1] == VALUE_KEY:
     dest_path = (LILAC_COLUMN, *source_path[:-1], signal_key)
   else:

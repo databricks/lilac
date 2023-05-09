@@ -59,7 +59,7 @@ class Signal(abc.ABC, BaseModel):
     """Compute the signal for an iterable of keys that point to documents or images.
 
     Args:
-      keys: An iterable of entity ids (at row-level or lower) to lookup precomputed embeddings.
+      keys: An iterable of value ids (at row-level or lower) to lookup precomputed embeddings.
       vector_store: The vector store to lookup pre-computed embeddings.
 
     Returns

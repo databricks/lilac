@@ -6,7 +6,7 @@ from typing_extensions import override
 
 from ..data.dataset_utils import lilac_span
 
-from ..schema import DataType, EnrichmentType, Field, Item, RichData
+from ..schema import EnrichmentType, Field, Item, RichData, field
 from .signal import Signal
 
 EMAILS_FEATURE_NAME = 'emails'
@@ -25,8 +25,7 @@ class PIISignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(
-      fields={EMAILS_FEATURE_NAME: Field(repeated_field=Field(dtype=DataType.STRING_SPAN))})
+    return field({EMAILS_FEATURE_NAME: ['string_span']})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:

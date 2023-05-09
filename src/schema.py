@@ -148,11 +148,6 @@ class Field(BaseModel):
     return f' {self.__class__.__name__}::{self.json(exclude_none=True, indent=2)}'
 
 
-def Entity(entity: ItemValue, metadata: Optional[Item] = {}) -> Item:
-  """Creates an entity item."""
-  return {VALUE_KEY: entity, SIGNAL_METADATA_KEY: metadata or {}}
-
-
 class Schema(BaseModel):
   """Database schema."""
   fields: dict[str, Field]
@@ -258,36 +253,6 @@ def _parse_field_like(field_like: object) -> Field:
     return Field(repeated_field=_parse_field_like(field_like[0]))
   else:
     raise ValueError(f'Cannot parse field like: {field_like}')
-
-
-def TextEntity(start: int, end: int, metadata: Optional[Item] = {}) -> Item:
-  """Return the span item from start and end character offets."""
-  # TODO(nsthorat): Make this tuples.
-  span: Item = {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
-  return Entity(span, metadata)
-
-
-def TextSpanField(metadata: Optional[dict[str, Field]] = {},
-                  signal_root: Optional[bool] = False) -> Field:
-  """Returns a field that represents an entity."""
-  # TODO(nsthorat): remove this method, no longer needed.
-  field = Field(dtype=DataType.STRING_SPAN)
-  if metadata:
-    field.fields = {SIGNAL_METADATA_KEY: Field(fields=metadata)}
-  if signal_root:
-    field.signal_root = signal_root
-  return field
-
-
-def EmbeddingField(metadata: Optional[dict[str, Field]] = {},
-                   signal_root: Optional[bool] = False) -> Field:
-  """Returns a field that represents an entity."""
-  field = Field(dtype=DataType.EMBEDDING)
-  if metadata:
-    field.fields = {SIGNAL_METADATA_KEY: Field(fields=metadata)}
-  if signal_root:
-    field.signal_root = signal_root
-  return field
 
 
 def child_item_from_column_path(item: Item, path: Path) -> Item:

@@ -4,7 +4,7 @@ from typing import Callable, Iterable, Union, cast
 import numpy as np
 from pydantic import StrictStr
 
-from ..schema import VALUE_KEY, EmbeddingField, Field, RichData
+from ..schema import VALUE_KEY, DataType, Field, RichData
 from ..signals.signal import Signal
 
 DEFAULT_BATCH_SIZE = 96
@@ -15,7 +15,7 @@ class EmbeddingSignal(Signal):
 
   def fields(self) -> Field:
     """Return the fields for the embedding."""
-    return EmbeddingField()
+    return Field(dtype=DataType.EMBEDDING)
 
 
 EmbeddingId = Union[StrictStr, EmbeddingSignal]

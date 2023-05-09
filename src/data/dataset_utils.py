@@ -264,10 +264,6 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
 
   enriched_schema = field({signal.key(): signal_schema})
 
-  # If we are enriching an entity we should store the signal data in the entity field's parent.
-  if source_path[-1] == VALUE_KEY:
-    source_path = source_path[:-1]
-
   for path_part in reversed(source_path):
     if path_part == PATH_WILDCARD:
       enriched_schema = Field(repeated_field=enriched_schema)

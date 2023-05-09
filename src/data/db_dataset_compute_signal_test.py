@@ -17,7 +17,6 @@ from ..schema import (
   LILAC_COLUMN,
   UUID_COLUMN,
   DataType,
-  EmbeddingField,
   EnrichmentType,
   Field,
   Item,
@@ -164,12 +163,12 @@ class TestEmbedding(EmbeddingSignal):
     yield from (lilac_embedding(e, {'neg_sum': -1 * e.sum()}) for e in embeddings)
 
 
-class TestEntitySignal(Signal):
+class TestSplitSignal(Signal):
   """Split documents into sentence by splitting on period, generating entities.
 
   Also produces the length as a feature.
   """
-  name = 'test_entity_len'
+  name = 'test_split_len'
   enrichment_type = EnrichmentType.TEXT
 
   @override
@@ -252,7 +251,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestParamSignal)
   register_signal(TestSignal)
   register_signal(TestEmbedding)
-  register_signal(TestEntitySignal)
+  register_signal(TestSplitSignal)
   register_signal(TestEmbeddingSumSignal)
   register_signal(TestSplitterWithLen)
   # Unit test runs.
@@ -527,7 +526,11 @@ class ComputeSignalItemsSuite:
     db.compute_signal(TestEmbedding(), 'text')
     db.compute_signal(TestEmbeddingSumSignal(), (LILAC_COLUMN, 'text', 'test_embedding'))
 
-    emb_field = EmbeddingField({'neg_sum': field('float32')}, signal_root=True)
+    emb_field = Field(
+      dtype=DataType.EMBEDDING,
+      fields={SIGNAL_METADATA_KEY: field({'neg_sum': 'float32'})},
+      signal_root=True)
+
     emb_field.fields['test_embedding_sum'] = signal_field('float32')  # type: ignore
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
@@ -589,11 +592,11 @@ class ComputeSignalItemsSuite:
         'text': 'hello world. hello world2.',
       }])
 
-    entity_signal = TestEntitySignal()
-    db.compute_signal(entity_signal, 'text')
-    db.compute_signal(TestEmbedding(), (LILAC_COLUMN, 'text', 'test_entity_len', '*'))
+    split_signal = TestSplitSignal()
+    db.compute_signal(split_signal, 'text')
+    db.compute_signal(TestEmbedding(), (LILAC_COLUMN, 'text', 'test_split_len', '*'))
     db.compute_signal(TestEmbeddingSumSignal(),
-                      (LILAC_COLUMN, 'text', 'test_entity_len', '*', 'test_embedding'))
+                      (LILAC_COLUMN, 'text', 'test_split_len', '*', 'test_embedding'))
 
     emb_field = Field(
       dtype=DataType.EMBEDDING,
@@ -613,14 +616,14 @@ class ComputeSignalItemsSuite:
         'text': 'string',
         LILAC_COLUMN: {
           'text': {
-            'test_entity_len': signal_field([text_field])
+            'test_split_len': signal_field([text_field])
           }
         }
       }),
       num_items=2)
 
     result = db.select_rows(
-      ['text', Column((LILAC_COLUMN, 'text', 'test_entity_len'), alias='sentences')])
+      ['text', Column((LILAC_COLUMN, 'text', 'test_split_len'), alias='sentences')])
 
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
@@ -690,7 +693,7 @@ class ComputeSignalItemsSuite:
       ]
     }])
 
-  def test_entity_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_split_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
       db_cls=db_cls,
       tmp_path=tmp_path,
@@ -702,7 +705,7 @@ class ComputeSignalItemsSuite:
         'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
       }])
 
-    signal = TestEntitySignal()
+    signal = TestSplitSignal()
     db.compute_signal(signal, 'text')
 
     assert db.manifest() == DatasetManifest(
@@ -713,7 +716,7 @@ class ComputeSignalItemsSuite:
         'text': 'string',
         LILAC_COLUMN: {
           'text': {
-            'test_entity_len': signal_field([
+            'test_split_len': signal_field([
               Field(
                 dtype=DataType.STRING_SPAN,
                 fields={SIGNAL_METADATA_KEY: field({'len': field('int32')})})
@@ -723,20 +726,18 @@ class ComputeSignalItemsSuite:
       }),
       num_items=2)
 
-    # NOTE: The way this currently works is it just generates a new signal column, in the old
-    # format. This will look different once entity indexes are merged.
-    result = db.select_rows(['text', (LILAC_COLUMN, 'text', 'test_entity_len')])
+    result = db.select_rows(['text', (LILAC_COLUMN, 'text', 'test_split_len')])
     expected_result = lilac_items([{
       UUID_COLUMN: '1',
       'text': '[1, 1] first sentence. [1, 1] second sentence.',
-      f'{LILAC_COLUMN}.text.test_entity_len': [
+      f'{LILAC_COLUMN}.text.test_split_len': [
         lilac_span(0, 22, {'len': 22}),
         lilac_span(23, 46, {'len': 23}),
       ]
     }, {
       UUID_COLUMN: '2',
       'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-      f'{LILAC_COLUMN}.text.test_entity_len': [
+      f'{LILAC_COLUMN}.text.test_split_len': [
         lilac_span(0, 25, {'len': 25}),
         lilac_span(26, 49, {'len': 23}),
       ]
