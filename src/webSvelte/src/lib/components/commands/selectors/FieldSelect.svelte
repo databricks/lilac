@@ -2,19 +2,17 @@
   import {useGetSchemaQuery} from '$lib/store/apiDataset';
   import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {
-    ENRICHMENT_TYPE_TO_VALID_DTYPES,
+    isSignalField,
     listFields,
     pathIsEqual,
-    type EnrichmentType,
+    serializePath,
     type LilacSchemaField,
     type Path
   } from '$lilac';
-  import {Select, SelectItem} from 'carbon-components-svelte';
-  import {onMount} from 'svelte';
+  import {Select, SelectItem, SelectItemGroup, SelectSkeleton} from 'carbon-components-svelte';
 
   export let labelText = 'Field';
   export let helperText: string | undefined = undefined;
-  export let enrichmentType: EnrichmentType | undefined = undefined;
   export let filter: ((field: LilacSchemaField) => boolean) | undefined = undefined;
 
   export let defaultPath: Path | undefined = undefined;
@@ -27,66 +25,74 @@
   $: fields = $schema.isSuccess
     ? listFields($schema.data)
         .filter(field => field.path.length > 0)
-        .filter(field =>
-          enrichmentType
-            ? field.dtype && ENRICHMENT_TYPE_TO_VALID_DTYPES[enrichmentType].includes(field.dtype)
-            : true
-        )
-    : [];
+        .filter(field => (filter ? filter(field) : true))
+    : null;
+
+  $: sourceFields = fields?.filter(f => !isSignalField(f));
+  $: signalFields = fields?.filter(f => isSignalField(f));
 
   function formatField(field: LilacSchemaField): string {
     return `${field.path.join('.')} (${field.dtype})`;
   }
 
-  let inFilterLeafs: LilacSchemaField[] = [];
-  let outFilterLeafs: LilacSchemaField[] = [];
+  let selectedPath: string | undefined;
 
+  // Set the selected index to the defaultPath if set
   $: {
-    inFilterLeafs = [];
-    outFilterLeafs = [];
-
-    if (filter) {
-      for (const leaf of fields || []) {
-        if (filter(leaf)) {
-          inFilterLeafs.push(leaf);
-        } else {
-          outFilterLeafs.push(leaf);
-        }
+    if (defaultPath && fields && !selectedPath) {
+      const defaultSelection = fields.find(f => pathIsEqual(f.path, defaultPath));
+      if (defaultSelection) {
+        selectedPath = serializePath(defaultSelection.path);
       }
-    } else {
-      inFilterLeafs.push(...(fields || []));
     }
   }
 
-  $: options = [
-    ...inFilterLeafs.map(f => ({
-      value: f,
-      label: formatField(f),
-      disabled: false
-    })),
-    ...outFilterLeafs.map(f => ({
-      value: f,
-      label: formatField(f),
-      disabled: true
-    }))
-  ];
-
-  let selectedIndex = 0;
-
-  onMount(async () => {
-    const defaultSelection = options.findIndex(f => pathIsEqual(f.value.path, defaultPath));
-    if (defaultSelection >= 0) {
-      selectedIndex = defaultSelection;
-    } else {
-      selectedIndex = 0;
+  // Clear selectedPath if its not present in fields
+  $: {
+    if (fields && selectedPath) {
+      const selectedField = fields.some(f => serializePath(f.path) === selectedPath);
+      if (!selectedField) {
+        selectedPath = serializePath(fields[0].path);
+      }
     }
-  });
+  }
 
-  $: path = options[selectedIndex]?.value.path;
+  // Update path whenever selectedIndex changes
+  $: {
+    if (fields) {
+      const selectedField = fields?.find(f => serializePath(f.path) === selectedPath);
+      if (selectedField) {
+        path = selectedField.path;
+      }
+    }
+  }
 </script>
 
-<Select {labelText} {helperText} bind:selected={selectedIndex} required>
-  {#each options as option, i}
-    <SelectItem value={i} disabled={option.disabled} text={option.label} />
-  {/each}
-</Select>
+{#if !fields}
+  <SelectSkeleton />
+{:else}
+  <Select {labelText} {helperText} bind:selected={selectedPath} required>
+    {#if sourceFields?.length}
+      <SelectItemGroup label="Source Fields">
+        {#each sourceFields as field}
+          <SelectItem
+            value={serializePath(field.path)}
+            disabled={false}
+            text={formatField(field)}
+          />
+        {/each}
+      </SelectItemGroup>
+    {/if}
+    {#if signalFields?.length}
+      <SelectItemGroup label="Signal Fields">
+        {#each signalFields as field}
+          <SelectItem
+            value={serializePath(field.path)}
+            disabled={false}
+            text={formatField(field)}
+          />
+        {/each}
+      </SelectItemGroup>
+    {/if}
+  </Select>
+{/if}

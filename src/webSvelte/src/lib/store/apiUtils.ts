@@ -36,12 +36,14 @@ export function createApiQuery<
 }
 
 export function createApiMutation<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TMutationFn extends (...args: any[]) => Promise<any>,
-  TData = Awaited<ReturnType<TMutationFn>>
->(endpoint: TMutationFn, mutationArgs: CreateMutationOptions<TData, Error> = {}) {
-  return (...args: Parameters<TMutationFn>) =>
-    createMutation<TData, Error>({
-      mutationFn: () => endpoint(...args),
+  TData = Awaited<ReturnType<TMutationFn>>,
+  TVariables = Parameters<TMutationFn>
+>(endpoint: TMutationFn, mutationArgs: CreateMutationOptions<TData, Error, TVariables> = {}) {
+  return () =>
+    createMutation<TData, Error, TVariables>({
+      mutationFn: endpoint,
       ...mutationArgs
     });
 }
