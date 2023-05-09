@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from .dataset_utils import lilac_items
+from .dataset_utils import lilac_items, signal_item
 
 from ..config import CONFIG
 from ..embeddings.embedding import EmbeddingSignal
@@ -41,7 +41,6 @@ from .db_dataset import (
 )
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
-from ..data.dataset_utils import lilac_embedding
 
 ALL_DBS = [DatasetDuckDB]
 
@@ -93,7 +92,7 @@ class TestEmbedding(EmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
-    yield from (lilac_embedding(e, metadata={'neg_sum': -1 * e.sum()}) for e in embeddings)
+    yield from (signal_item(e, metadata={'neg_sum': -1 * e.sum()}) for e in embeddings)
 
 
 class LengthSignal(Signal):

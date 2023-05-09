@@ -38,7 +38,7 @@ NP_EMBEDDINGS_KWD = 'embeddings'
 
 def is_primitive(obj: object) -> bool:
   """Returns True if the object is a primitive."""
-  if isinstance(obj, (str, bytes, np.ndarray)):
+  if isinstance(obj, (str, bytes, np.ndarray, int, float)):
     return True
   if isinstance(obj, Iterable):
     return False
@@ -106,25 +106,12 @@ def signal_item(value: Optional[ItemValue] = None,
   return lilac_item(value, signal_metadata)
 
 
-def lilac_span(start: int,
-               end: int,
-               metadata: Optional[dict[str, Union[Item, ItemValue]]] = None) -> Item:
-  """Wrap a value in a dict with the value key."""
-  return signal_item(lilac_span_value(start, end), metadata)
-
-
-def lilac_span_value(start: int, end: int) -> Item:
+def lilac_span(start: int, end: int) -> Item:
   """The lilac span value.
 
   This is useful if you want to use span_value with signal_item, for unit tests.
   """
   return {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
-
-
-def lilac_embedding(embedding: np.ndarray,
-                    metadata: Optional[dict[str, Union[Item, ItemValue]]] = {}) -> Item:
-  """Wrap a value in a dict with the value key."""
-  return signal_item(embedding, metadata)
 
 
 Tflatten = TypeVar('Tflatten', object, np.ndarray)

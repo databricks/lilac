@@ -4,7 +4,7 @@ from typing import Iterable, Optional
 
 from typing_extensions import override
 
-from ..data.dataset_utils import lilac_span
+from ..data.dataset_utils import lilac_span, signal_item
 
 from ..schema import EnrichmentType, Field, Item, RichData, field
 from .signal import Signal
@@ -36,6 +36,6 @@ class PIISignal(Signal):
 
       yield {
         EMAILS_FEATURE_NAME: [
-          lilac_span(m.start(0), m.end(0)) for m in re.finditer(EMAIL_REGEX, text)
+          signal_item(lilac_span(m.start(0), m.end(0))) for m in re.finditer(EMAIL_REGEX, text)
         ]
       }

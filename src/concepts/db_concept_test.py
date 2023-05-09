@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..data.dataset_utils import lilac_embedding
+from ..data.dataset_utils import signal_item
 
 from ..config import CONFIG
 from ..embeddings.embedding import EmbeddingSignal
@@ -50,7 +50,7 @@ class TestEmbedding(EmbeddingSignal):
         raise ValueError(f'Example "{str(example)}" not in embedding map')
     embeddings = np.array([EMBEDDING_MAP[cast(str, example)] for example in data])
 
-    yield from (lilac_embedding(e) for e in embeddings)
+    yield from (signal_item(e) for e in embeddings)
 
 
 @pytest.fixture(scope='module', autouse=True)
