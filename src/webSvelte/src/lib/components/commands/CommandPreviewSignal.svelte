@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { useGetSchemaQuery } from '$lib/store/apiDataset';
-  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
+  import {useGetSchemaQuery} from '$lib/store/apiDataset';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {
     ENTITY_FEATURE_KEY,
     listFields,
@@ -17,8 +17,8 @@
     ModalFooter,
     ModalHeader
   } from 'carbon-components-svelte';
-  import { createEventDispatcher } from 'svelte';
-  import { Command, triggerCommand, type PreviewConceptCommand } from './Commands.svelte';
+  import {createEventDispatcher} from 'svelte';
+  import {Command, triggerCommand, type PreviewConceptCommand} from './Commands.svelte';
   import ConceptSelect from './selectors/ConceptSelect.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
 
@@ -32,7 +32,7 @@
   $: schema = useGetSchemaQuery(command.namespace, command.datasetName);
 
   $: hasEmbeddingField =
-    $schema.isSuccess && listFields($schema.data).some((field) => field.dtype == 'embedding');
+    $schema.isSuccess && listFields($schema.data).some(field => field.dtype == 'embedding');
 
   const datsetViewStore = getDatasetViewContext();
 
@@ -44,7 +44,7 @@
       embedding_name: 'cohere'
     };
 
-    const transform: SignalTransform = { signal };
+    const transform: SignalTransform = {signal};
     const conceptColumn: Column = {
       feature: path,
       transform
@@ -84,7 +84,7 @@
         </div>
       {:else}
         <FieldSelect
-          filter={(field) => field.dtype == 'embedding' && field.path.at(-1) == ENTITY_FEATURE_KEY}
+          filter={field => field.dtype == 'embedding' && field.path.at(-1) == ENTITY_FEATURE_KEY}
           bind:path
           labelText="Field"
           helperText="Select embedding field to use"

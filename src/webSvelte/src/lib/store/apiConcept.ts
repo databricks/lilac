@@ -1,5 +1,5 @@
-import { ConceptsService } from '$lilac';
-import { createApiQuery } from './apiUtils';
+import {ConceptsService} from '$lilac';
+import {createApiQuery} from './apiUtils';
 
 const CONCEPTS_TAG = 'concepts';
 

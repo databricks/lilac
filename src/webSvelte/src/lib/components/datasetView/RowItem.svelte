@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
-  import { notEmpty } from '$lib/utils';
-  import { L, getValueNode, getValueNodes, listFields, type LilacValueNode } from '$lilac';
-  import type { DataTypeCasted, Path } from '$lilac/schema';
-  import { isOrdinal, pathIsEqual } from '$lilac/schema';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {notEmpty} from '$lib/utils';
+  import {L, getValueNode, getValueNodes, listFields, type LilacValueNode} from '$lilac';
+  import type {DataTypeCasted, Path} from '$lilac/schema';
+  import {isOrdinal, pathIsEqual} from '$lilac/schema';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 
   export let row: LilacValueNode;
@@ -19,11 +19,11 @@
     return (
       listFields(field)
         // Filter for string spans
-        .filter((field) => field.dtype === 'string_span' && field.is_entity)
+        .filter(field => field.dtype === 'string_span' && field.is_entity)
         // Filter for visible columns
-        .filter((field) => $datasetViewStore.visibleColumns.some((c) => pathIsEqual(c, field.path)))
-        .flatMap((f) => getValueNodes(row, f.path))
-        .map((v) => L.value<'string_span'>(v))
+        .filter(field => $datasetViewStore.visibleColumns.some(c => pathIsEqual(c, field.path)))
+        .flatMap(f => getValueNodes(row, f.path))
+        .map(v => L.value<'string_span'>(v))
         .filter(notEmpty)
     );
   }
@@ -41,7 +41,7 @@
       return 'N/A';
     }
     if (typeof value === 'number') {
-      return value.toLocaleString(undefined, { maximumFractionDigits: 3 });
+      return value.toLocaleString(undefined, {maximumFractionDigits: 3});
     }
     return value.toString();
   }

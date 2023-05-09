@@ -1,5 +1,5 @@
 <script context="module" lang="ts">
-  import { writable } from 'svelte/store';
+  import {writable} from 'svelte/store';
 
   export enum Command {
     ComputeSignal = 'computeSignal',
@@ -34,7 +34,7 @@
 </script>
 
 <script lang="ts">
-  import type { Path } from '$lilac';
+  import type {Path} from '$lilac';
   import CommandComputeSignal from './CommandComputeSignal.svelte';
   import CommandPreviewConcept from './CommandPreviewSignal.svelte';
 

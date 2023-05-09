@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { useComputeSignalColumnMutation } from '$lib/store/apiDataset';
-  import type { LilacSignalInfo } from '$lib/store/apiSignal';
-  import { ENRICHMENT_TYPE_TO_VALID_DTYPES, type LilacSchemaField } from '$lilac';
+  import {useComputeSignalColumnMutation} from '$lib/store/apiDataset';
+  import type {LilacSignalInfo} from '$lib/store/apiSignal';
+  import {ENRICHMENT_TYPE_TO_VALID_DTYPES, type LilacSchemaField} from '$lilac';
   import {
     ComposedModal,
     ModalBody,
@@ -9,8 +9,8 @@
     ModalHeader,
     TextInput
   } from 'carbon-components-svelte';
-  import { createEventDispatcher } from 'svelte';
-  import type { ComputeSignalCommand } from './Commands.svelte';
+  import {createEventDispatcher} from 'svelte';
+  import type {ComputeSignalCommand} from './Commands.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
   import SignalSelect from './selectors/SignalSelect.svelte';
 
@@ -29,7 +29,7 @@
     command.datasetName,
     {
       leaf_path: path || [],
-      signal: { signal_name: signal?.name }
+      signal: {signal_name: signal?.name}
     }
   );
 
@@ -48,7 +48,7 @@
       key: key
     }))
     // Filter out signal_name property
-    .filter((property) => property.key != 'signal_name');
+    .filter(property => property.key != 'signal_name');
 
   // Reset the signal property values when signal changes
   $: {

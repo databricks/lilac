@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { useGetSignalsQuery, type LilacSignalInfo } from '$lib/store/apiSignal';
-  import { SkeletonText } from 'carbon-components-svelte';
+  import {useGetSignalsQuery, type LilacSignalInfo} from '$lib/store/apiSignal';
+  import {SkeletonText} from 'carbon-components-svelte';
 
   export let defaultSignal: string | undefined = undefined;
   export let signal: LilacSignalInfo | undefined = undefined;
@@ -9,7 +9,7 @@
 
   $: {
     if ($signals.isSuccess && !signal) {
-      signal = $signals.data?.find((s) => s.name === defaultSignal) || $signals.data?.[0];
+      signal = $signals.data?.find(s => s.name === defaultSignal) || $signals.data?.[0];
     }
   }
 </script>

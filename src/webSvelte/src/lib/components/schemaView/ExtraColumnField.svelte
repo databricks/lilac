@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {
     isConceptScoreSignal,
     isSignalTransform,
@@ -8,7 +8,7 @@
     type LilacSchema,
     type Path
   } from '$lilac';
-  import { Checkbox, Tag } from 'carbon-components-svelte';
+  import {Checkbox, Tag} from 'carbon-components-svelte';
   import ContextMenu from '../contextMenu/ContextMenu.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
 
@@ -28,7 +28,7 @@
         ]
       : [];
 
-  $: isVisible = $datasetViewStore.visibleColumns.some((p) => pathIsEqual(p, path));
+  $: isVisible = $datasetViewStore.visibleColumns.some(p => pathIsEqual(p, path));
   $: transform = column.transform;
 </script>
 
@@ -40,7 +40,7 @@
       labelText="Show"
       hideLabel
       selected={isVisible}
-      on:check={(ev) => {
+      on:check={ev => {
         if (ev.detail) {
           datasetViewStore.addVisibleColumn(path);
         } else {

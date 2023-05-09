@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {
     ENTITY_FEATURE_KEY,
     PATH_WILDCARD,
@@ -9,9 +9,9 @@
     type LilacSchemaField,
     type Path
   } from '$lilac';
-  import { Checkbox, Tag } from 'carbon-components-svelte';
+  import {Checkbox, Tag} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
-  import { slide } from 'svelte/transition';
+  import {slide} from 'svelte/transition';
   import ContextMenu from '../contextMenu/ContextMenu.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
   import ExtraColumnField from './ExtraColumnField.svelte';
@@ -35,14 +35,14 @@
   $: fieldName = isRepeatedField ? field.path.at(-2) : field.path.at(-1);
 
   // Fields that have been added in the UI and don't come from the schema
-  $: extraColumns = $datasetViewStore.extraColumns.filter((column) =>
+  $: extraColumns = $datasetViewStore.extraColumns.filter(column =>
     // Ignore the entity field at the end of the path.
-    pathIsEqual(column.feature.filter((p) => p != ENTITY_FEATURE_KEY) as Path, path)
+    pathIsEqual(column.feature.filter(p => p != ENTITY_FEATURE_KEY) as Path, path)
   );
 
   $: children = childFields(field);
   $: hasChildren = children.length > 0 || extraColumns.length > 0;
-  $: isVisible = $datasetViewStore.visibleColumns.some((p) => pathIsEqual(p, path));
+  $: isVisible = $datasetViewStore.visibleColumns.some(p => pathIsEqual(p, path));
 
   // Find all the child paths for a given field.
   function childFields(field?: LilacSchemaField): LilacSchemaField[] {
@@ -51,7 +51,7 @@
     return (
       Object.values(field.fields)
         // Filter out the entity field.
-        .filter((f) => f.path.at(-1) != ENTITY_FEATURE_KEY)
+        .filter(f => f.path.at(-1) != ENTITY_FEATURE_KEY)
     );
   }
 </script>
@@ -64,7 +64,7 @@
       labelText="Show"
       hideLabel
       selected={isVisible}
-      on:check={(ev) => {
+      on:check={ev => {
         if (ev.detail) {
           datasetViewStore.addVisibleColumn(path);
         } else {

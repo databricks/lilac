@@ -1,5 +1,5 @@
-import { SignalsService, type SignalInfo } from '$lilac';
-import { createApiQuery } from './apiUtils';
+import {SignalsService, type SignalInfo} from '$lilac';
+import {createApiQuery} from './apiUtils';
 
 const SIGNALS_TAG = 'signals';
 
@@ -23,5 +23,5 @@ export type LilacSignalInfo = Omit<SignalInfo, 'json_schema'> & {
 };
 
 export const useGetSignalsQuery = createApiQuery(SignalsService.getSignals, SIGNALS_TAG, {
-  select: (res) => res as LilacSignalInfo[]
+  select: res => res as LilacSignalInfo[]
 });

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { useGetConceptsQuery } from '$lib/store/apiConcept';
-  import type { ConceptInfo } from '$lilac';
+  import {useGetConceptsQuery} from '$lib/store/apiConcept';
+  import type {ConceptInfo} from '$lilac';
   import {
     StructuredList,
     StructuredListBody,
@@ -19,7 +19,7 @@
   let selectedConceptString: string | undefined;
 
   $: concept =
-    $concepts.data?.find((c) => `${c.namespace}/${c.name}` === selectedConceptString) ?? concept;
+    $concepts.data?.find(c => `${c.namespace}/${c.name}` === selectedConceptString) ?? concept;
 </script>
 
 {#if $concepts.isSuccess}

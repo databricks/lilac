@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { page } from '$app/stores';
-  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
+  import {page} from '$app/stores';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {
     isConceptScoreSignal,
     isSignalField,
@@ -9,8 +9,8 @@
     type LilacSchemaField,
     type Path
   } from '$lilac';
-  import { OverflowMenuItem } from 'carbon-components-svelte';
-  import { Command, triggerCommand } from '../commands/Commands.svelte';
+  import {OverflowMenuItem} from 'carbon-components-svelte';
+  import {Command, triggerCommand} from '../commands/Commands.svelte';
 
   export let field: LilacSchemaField | undefined = undefined;
   export let column: Column | undefined = undefined;

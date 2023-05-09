@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { useGetSchemaQuery, useSelectRowsInfiniteQuery } from '$lib/store/apiDataset';
-  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
-  import { LILAC_COLUMN, listFields } from '$lilac';
-  import { SkeletonText } from 'carbon-components-svelte';
+  import {useGetSchemaQuery, useSelectRowsInfiniteQuery} from '$lib/store/apiDataset';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {LILAC_COLUMN, listFields} from '$lilac';
+  import {SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import RowItem from './RowItem.svelte';
 
@@ -13,8 +13,8 @@
   $: columns = $schema.isSuccess
     ? [
         ...listFields($schema.data)
-          .map((f) => f.path)
-          .filter((p) => p[0] !== LILAC_COLUMN),
+          .map(f => f.path)
+          .filter(p => p[0] !== LILAC_COLUMN),
         // Add one entry for all lilac columns
         [LILAC_COLUMN],
         ...$datasetViewStore.extraColumns

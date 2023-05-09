@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { useGetSchemaQuery } from '$lib/store/apiDataset';
-  import { getDatasetViewContext } from '$lib/store/datasetViewStore';
+  import {useGetSchemaQuery} from '$lib/store/apiDataset';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {
     isSignalField,
     listFields,
@@ -9,7 +9,7 @@
     type LilacSchemaField,
     type Path
   } from '$lilac';
-  import { Select, SelectItem, SelectItemGroup, SelectSkeleton } from 'carbon-components-svelte';
+  import {Select, SelectItem, SelectItemGroup, SelectSkeleton} from 'carbon-components-svelte';
 
   export let labelText = 'Field';
   export let helperText: string | undefined = undefined;
@@ -24,12 +24,12 @@
 
   $: fields = $schema.isSuccess
     ? listFields($schema.data)
-        .filter((field) => field.path.length > 0)
-        .filter((field) => (filter ? filter(field) : true))
+        .filter(field => field.path.length > 0)
+        .filter(field => (filter ? filter(field) : true))
     : null;
 
-  $: sourceFields = fields?.filter((f) => !isSignalField(f));
-  $: signalFields = fields?.filter((f) => isSignalField(f));
+  $: sourceFields = fields?.filter(f => !isSignalField(f));
+  $: signalFields = fields?.filter(f => isSignalField(f));
 
   function formatField(field: LilacSchemaField): string {
     return `${field.path.join('.')} (${field.dtype})`;
@@ -40,7 +40,7 @@
   // Set the selected index to the defaultPath if set
   $: {
     if (defaultPath && fields && !selectedPath) {
-      const defaultSelection = fields.find((f) => pathIsEqual(f.path, defaultPath));
+      const defaultSelection = fields.find(f => pathIsEqual(f.path, defaultPath));
       if (defaultSelection) {
         selectedPath = serializePath(defaultSelection.path);
       }
@@ -50,7 +50,7 @@
   // Clear selectedPath if its not present in fields
   $: {
     if (fields && selectedPath) {
-      const selectedField = fields.some((f) => serializePath(f.path) === selectedPath);
+      const selectedField = fields.some(f => serializePath(f.path) === selectedPath);
       if (!selectedField) {
         selectedPath = serializePath(fields[0].path);
       }
@@ -60,7 +60,7 @@
   // Update path whenever selectedIndex changes
   $: {
     if (fields) {
-      const selectedField = fields?.find((f) => serializePath(f.path) === selectedPath);
+      const selectedField = fields?.find(f => serializePath(f.path) === selectedPath);
       if (selectedField) {
         path = selectedField.path;
       }
