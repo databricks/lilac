@@ -1,6 +1,7 @@
 <script lang="ts">
   import {useGetSchemaQuery, useSelectRowsInfiniteQuery} from '$lib/store/apiDataset';
   import {getDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {notEmpty} from '$lib/utils';
   import {LILAC_COLUMN, listFields} from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
@@ -10,15 +11,18 @@
 
   $: schema = useGetSchemaQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
+  $: anyLilacColumns = !!$schema.data?.fields?.[LILAC_COLUMN];
   $: columns = $schema.isSuccess
     ? [
+        // Add all columns except lilac columns
         ...listFields($schema.data)
           .map(f => f.path)
           .filter(p => p[0] !== LILAC_COLUMN),
-        // Add one entry for all lilac columns
-        [LILAC_COLUMN],
+        // Add one entry for all lilac columns if any are present
+        ...[anyLilacColumns ? [LILAC_COLUMN] : null],
+        // Add extra columns (UDF's)
         ...$datasetViewStore.extraColumns
-      ]
+      ].filter(notEmpty)
     : [];
 
   $: rows = useSelectRowsInfiniteQuery(
