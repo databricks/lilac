@@ -49,9 +49,7 @@
       ],
       {
         onSuccess: resp => {
-          console.log('Success', resp);
           watchTask(resp.task_id, () => {
-            console.log('Done');
             goto(`/datasets/${namespace}/${name}`);
           });
         }
