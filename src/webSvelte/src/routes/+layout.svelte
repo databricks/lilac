@@ -4,6 +4,7 @@
   // Carbon component must be imported after app.css
   import ApiErrorModal from '$lib/components/ApiErrorModal.svelte';
   import TaskStatus from '$lib/components/TaskStatus.svelte';
+  import TaskMonitor from '$lib/store/TaskMonitor.svelte';
   import {apiErrors, queryClient} from '$lib/store/queryClient';
   import type {ApiError} from '$lilac';
   import {ToastNotification} from 'carbon-components-svelte';
@@ -44,4 +45,5 @@
       <ApiErrorModal error={showError} />
     {/if}
   </div>
+  <TaskMonitor />
 </QueryClientProvider>

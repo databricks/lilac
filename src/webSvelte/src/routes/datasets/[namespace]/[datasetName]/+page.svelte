@@ -3,22 +3,12 @@
   import Commands from '$lib/components/commands/Commands.svelte';
   import RowView from '$lib/components/datasetView/RowView.svelte';
   import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
-  import {useGetTaskManifestQuery} from '$lib/store/apiServer';
   import {createDatasetViewStore, setDatasetViewContext} from '$lib/store/datasetViewStore';
-  import {onTasksUpdate} from '$lib/store/taskMonitoring';
 
   $: namespace = $page.params.namespace;
   $: datasetName = $page.params.datasetName;
 
   $: setDatasetViewContext(createDatasetViewStore(namespace, datasetName));
-
-  const tasks = useGetTaskManifestQuery();
-
-  $: {
-    if ($tasks.isSuccess) {
-      onTasksUpdate($tasks.data);
-    }
-  }
 </script>
 
 <div class="flex h-full w-full">

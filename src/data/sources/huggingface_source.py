@@ -125,19 +125,23 @@ def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> 
 class HuggingFaceDataset(Source):
   """HuggingFace data loader
 
-  For a list of datasets see: [https://huggingface.co/datasets](https://huggingface.co/datasets).
+  For a list of datasets see: [huggingface.co/datasets](https://huggingface.co/datasets).
 
   For documentation on dataset loading see:
-      [https://huggingface.co/docs/datasets/index](https://huggingface.co/docs/datasets/index)
+      [huggingface.co/docs/datasets/index](https://huggingface.co/docs/datasets/index)
   """ # noqa: D415, D400
   name = 'huggingface'
 
-  dataset_name: str
+  dataset_name: str = PydanticField(
+    required=True,
+    description='Either in the format `user/dataset` or `dataset`.',
+    regex=r'^([a-zA-Z0-9\-_]+\/)?[a-zA-Z0-9\-_]+$',
+  )
   config_name: Optional[str] = PydanticField(
-    description='HuggingFace dataset config. Some datasets require this.', default=None)
+    title='Dataset config name', description='Some datasets require this.', default=None)
   split: Optional[str] = PydanticField(
-    description='HuggingFace dataset split. Loads all splits by default.', default=None)
-  revision: Optional[str] = PydanticField(description='HuggingFace dataset revision.', default=None)
+    title='Dataset split', description='Loads all splits by default.', default=None)
+  revision: Optional[str] = PydanticField(title='Dataset revision', default=None)
   load_from_disk: Optional[bool] = PydanticField(
     description='Load from local disk instead of the hub.', default=False)
 

@@ -47,6 +47,13 @@
     }
   }
 
+  // Set selectedPath to undefined if no valid fields are found
+  $: {
+    if (!fields?.length && $schema.isSuccess) {
+      path = undefined;
+    }
+  }
+
   // Clear selectedPath if its not present in fields
   $: {
     if (fields && selectedPath) {
@@ -68,8 +75,10 @@
   }
 </script>
 
-{#if !fields}
+{#if $schema.isLoading}
   <SelectSkeleton />
+{:else if fields?.length === 0}
+  <Select invalid invalidText="No valid fields found" />
 {:else}
   <Select {labelText} {helperText} bind:selected={selectedPath} required>
     {#if sourceFields?.length}

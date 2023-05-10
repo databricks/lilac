@@ -7,15 +7,11 @@
     type Signal,
     type SignalInfoWithTypedSchema
   } from '$lilac';
-  import {
-    ComposedModal,
-    ModalBody,
-    ModalFooter,
-    ModalHeader,
-    TextInput
-  } from 'carbon-components-svelte';
-  import type {JSONSchema7} from 'json-schema';
+  import {ComposedModal, ModalBody, ModalFooter, ModalHeader} from 'carbon-components-svelte';
+  import type {JSONSchema4Type} from 'json-schema';
+  import type {JSONError} from 'json-schema-library';
   import {createEventDispatcher} from 'svelte';
+  import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
   import type {ComputeSignalCommand, PreviewConceptCommand} from './Commands.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
   import SignalSelect from './selectors/SignalSelect.svelte';
@@ -26,22 +22,19 @@
 
   let path = command.path;
   let signalInfo: SignalInfoWithTypedSchema | undefined;
-  let signalPropertyValues: Record<string, string> = {};
+  let signalPropertyValues: Record<string, JSONSchema4Type> = {};
+  let errors: JSONError[] = [];
 
   const datasetViewStore = getDatasetViewContext();
   const dispatch = createEventDispatcher();
 
   const computeSignalMutation = useComputeSignalColumnMutation();
 
-  // Reset the signal property values when signal changes
   $: {
-    if (signalInfo) setSignalPropertyDefaults(signalInfo);
+    if (signalInfo?.name) setSignalName(signalInfo.name);
   }
 
-  $: signal = {
-    signal_name: signalInfo?.name,
-    ...signalPropertyValues
-  } as Signal;
+  $: signal = signalPropertyValues as Signal;
 
   $: filterField = (field: LilacSchemaField) => {
     if (!field.dtype) return false;
@@ -52,41 +45,8 @@
     return validDtypes.includes(field.dtype);
   };
 
-  // Find the propties that should be displayed in ui
-  $: visibleProperties = signalInfo ? filterVisibleProperties(signalInfo) : [];
-
-  // Validate the signal property values when they change
-  $: errors = validateSignalPropertyValues(signalPropertyValues);
-
-  // Reset the signal property values with signal property defaults
-  function setSignalPropertyDefaults(signal: SignalInfoWithTypedSchema) {
-    signalPropertyValues = {};
-    Object.entries(signal.json_schema.properties || {}).forEach(([key, property]) => {
-      if (typeof property == 'object' && property.default) {
-        signalPropertyValues[key] = property.default.toString();
-      }
-    });
-    signalPropertyValues = signalPropertyValues;
-  }
-
-  function validateSignalPropertyValues(values: Record<string, string>) {
-    const errors: Record<string, string> = {};
-    Object.keys(signalInfo?.json_schema.properties || {}).forEach(key => {
-      if (signalInfo?.json_schema.required?.includes(key) && !values[key]) {
-        errors[key] = 'Required';
-      }
-    });
-    return errors;
-  }
-
-  function filterVisibleProperties(signal: SignalInfoWithTypedSchema): [string, JSONSchema7][] {
-    return Object.entries(signal.json_schema.properties || {})
-      .filter(([_, property]) => {
-        return typeof property == 'object';
-      })
-      .filter(([key]) => {
-        return key != 'signal_name';
-      }) as [string, JSONSchema7][];
+  function setSignalName(name: string) {
+    signalPropertyValues.signal_name = name;
   }
 
   function submit() {
@@ -137,14 +97,13 @@
               labelText="Field"
             />
 
-            {#each visibleProperties as [key, property]}
-              <TextInput
-                labelText={property.title}
-                bind:value={signalPropertyValues[key]}
-                invalid={!!errors[key]}
-                invalidText={errors[key]}
-              />
-            {/each}
+            <JsonSchemaForm
+              schema={signalInfo.json_schema}
+              bind:value={signalPropertyValues}
+              bind:validationErrors={errors}
+              showDescription={false}
+              hiddenProperties={['/signal_name']}
+            />
           {/key}
         {:else}
           No signal selected
@@ -155,7 +114,7 @@
   <ModalFooter
     primaryButtonText={variant == 'compute' ? 'Compute' : 'Preview'}
     secondaryButtonText="Cancel"
-    primaryButtonDisabled={Object.values(errors).length > 0}
+    primaryButtonDisabled={errors.length > 0 || !path}
     on:click:button--secondary={close}
   />
 </ComposedModal>

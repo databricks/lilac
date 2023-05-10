@@ -11,6 +11,7 @@ import {
   type SelectRowsOptions
 } from '$lilac';
 import {createInfiniteQuery, type CreateInfiniteQueryResult} from '@tanstack/svelte-query';
+import type {JSONSchema7} from 'json-schema';
 import {TASKS_TAG} from './apiServer';
 import {createApiMutation, createApiQuery} from './apiUtils';
 import {queryClient} from './queryClient';
@@ -44,7 +45,8 @@ export const useGetSchemaQuery = createApiQuery(DatasetsService.getManifest, DAT
 export const useGetSourcesQuery = createApiQuery(DataLoadersService.getSources, DATASETS_TAG);
 export const useGetSourceSchemaQuery = createApiQuery(
   DataLoadersService.getSourceSchema,
-  DATASETS_TAG
+  DATASETS_TAG,
+  {select: res => res as JSONSchema7}
 );
 export const useLoadDatasetMutation = createApiMutation(DataLoadersService.load);
 export const useComputeSignalColumnMutation = createApiMutation(
