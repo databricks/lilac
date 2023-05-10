@@ -5,7 +5,6 @@ from typing import Iterable, Optional
 from typing_extensions import override
 
 from ..data.dataset_utils import lilac_span, signal_item
-
 from ..schema import EnrichmentType, Field, Item, RichData, field
 from .signal import Signal
 

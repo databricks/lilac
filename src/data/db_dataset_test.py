@@ -7,8 +7,6 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from .dataset_utils import lilac_items, signal_item
-
 from ..config import CONFIG
 from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
@@ -30,6 +28,7 @@ from ..schema import (
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
+from .dataset_utils import lilac_items, signal_item
 from .db_dataset import (
   Column,
   Comparison,

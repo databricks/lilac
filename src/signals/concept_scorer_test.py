@@ -7,8 +7,6 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..data.dataset_utils import signal_item
-
 from ..concepts.concept import ConceptModel, ExampleIn
 from ..concepts.db_concept import (
   ConceptDB,
@@ -18,6 +16,7 @@ from ..concepts.db_concept import (
   DiskConceptModelDB,
 )
 from ..config import CONFIG
+from ..data.dataset_utils import signal_item
 from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import EnrichmentType, Item, RichData

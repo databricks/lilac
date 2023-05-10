@@ -6,7 +6,12 @@ from typing_extensions import override
 
 from ...tasks import TaskId
 from .source import Source, SourceProcessResult
-from .source_registry import clear_source_registry, get_source_cls, register_source, resolve_source
+from .source_registry import (
+  clear_source_registry,
+  get_source_cls,
+  register_source,
+  resolve_source,
+)
 
 
 class TestSource(Source):

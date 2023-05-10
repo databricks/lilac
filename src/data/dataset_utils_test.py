@@ -1,6 +1,6 @@
 """Tests for dataset utils."""
 from ..schema import UUID_COLUMN, VALUE_KEY, PathTuple
-from .dataset_utils import flatten, unflatten, wrap_in_dicts, lilac_items
+from .dataset_utils import flatten, lilac_items, unflatten, wrap_in_dicts
 
 
 def test_flatten() -> None:

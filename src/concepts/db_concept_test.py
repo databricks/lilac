@@ -7,14 +7,19 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..data.dataset_utils import signal_item
-
 from ..config import CONFIG
+from ..data.dataset_utils import signal_item
 from ..embeddings.embedding import EmbeddingSignal
 from ..schema import EnrichmentType, Item, RichData
 from ..signals.signal_registry import clear_signal_registry, register_signal
 from .concept import ConceptModel, Example, ExampleIn
-from .db_concept import ConceptDB, ConceptModelDB, ConceptUpdate, DiskConceptDB, DiskConceptModelDB
+from .db_concept import (
+  ConceptDB,
+  ConceptModelDB,
+  ConceptUpdate,
+  DiskConceptDB,
+  DiskConceptModelDB,
+)
 
 ALL_CONCEPT_DBS = [DiskConceptDB]
 ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]

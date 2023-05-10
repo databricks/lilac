@@ -7,9 +7,8 @@ import numpy as np
 from sklearn.preprocessing import normalize
 from typing_extensions import override
 
-from ..data.dataset_utils import signal_item
-
 from ..config import CONFIG
+from ..data.dataset_utils import signal_item
 from ..schema import EnrichmentType, Item, RichData
 from ..utils import chunks
 from .embedding import EmbeddingSignal

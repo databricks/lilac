@@ -9,5 +9,7 @@ source $(poetry env info --path)/bin/activate
 echo "Linting python with ruff..."
 ruff src
 
+isort --check src/
+
 echo "Checking python types with mypy..."
 mypy src
