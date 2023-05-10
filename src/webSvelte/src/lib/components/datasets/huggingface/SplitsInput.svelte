@@ -11,7 +11,6 @@
   const datasets = useListHFDatasetsQuery();
   $: datasetExists = $datasets.data?.includes(datasetName);
   $: splits = datasetExists ? useGetHFSplitsQuery(datasetName) : undefined;
-
 </script>
 
 {#if $splits?.data && datasetExists}
