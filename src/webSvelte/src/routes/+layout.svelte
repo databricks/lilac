@@ -2,10 +2,14 @@
   import {QueryClientProvider} from '@tanstack/svelte-query';
   import '../app.css';
   // Carbon component must be imported after app.css
+  import ApiErrorModal from '$lib/components/ApiErrorModal.svelte';
   import TaskStatus from '$lib/components/TaskStatus.svelte';
-  import {errors, queryClient} from '$lib/store/queryClient';
+  import {apiErrors, queryClient} from '$lib/store/queryClient';
+  import type {ApiError} from '$lilac';
   import {ToastNotification} from 'carbon-components-svelte';
   import 'carbon-components-svelte/css/white.css';
+
+  let showError: ApiError | undefined = undefined;
 </script>
 
 <QueryClientProvider client={queryClient}>
@@ -21,14 +25,23 @@
   </main>
 
   <div class="absolute bottom-4 right-4">
-    {#each $errors as error}
+    {#each $apiErrors as error}
       <ToastNotification
+        lowContrast
         title={error.name || 'Error'}
         subtitle={error.message}
         on:close={() => {
-          $errors = $errors.filter(e => e !== error);
+          $apiErrors = $apiErrors.filter(e => e !== error);
         }}
-      />
+      >
+        <div slot="caption">
+          <button class="underline" on:click={() => (showError = error)}>Show error</button>
+        </div>
+      </ToastNotification>
     {/each}
+
+    {#if showError}
+      <ApiErrorModal error={showError} />
+    {/if}
   </div>
 </QueryClientProvider>

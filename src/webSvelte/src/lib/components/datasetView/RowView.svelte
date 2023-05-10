@@ -3,7 +3,7 @@
   import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {notEmpty} from '$lib/utils';
   import {LILAC_COLUMN, listFields} from '$lilac';
-  import {SkeletonText} from 'carbon-components-svelte';
+  import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import RowItem from './RowItem.svelte';
 
@@ -41,6 +41,8 @@
 
 {#if $rows?.isLoading || $schema.isLoading}
   <SkeletonText paragraph lines={3} />
+{:else if $rows.isError}
+  <InlineNotification lowContrast title="Could not fetch rows:" subtitle={$rows.error.message} />
 {:else if $datasetViewStore.visibleColumns.length === 0}
   <div class="mt-12 w-full text-center text-gray-600">Select fields to display</div>
 {:else if $rows?.isSuccess && $rows.data.pages.length && $schema.isSuccess && $schema.isSuccess}
