@@ -12,7 +12,6 @@ from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
   LILAC_COLUMN,
-  SIGNAL_METADATA_KEY,
   UUID_COLUMN,
   DataType,
   EnrichmentType,
@@ -84,8 +83,7 @@ class TestEmbedding(EmbeddingSignal):
   def fields(self) -> Field:
     """Return the fields for the embedding."""
     # Override in the test so we can attach extra metadata.
-    return Field(
-      dtype=DataType.EMBEDDING, fields={SIGNAL_METADATA_KEY: field({'neg_sum': 'float32'})})
+    return Field(dtype=DataType.EMBEDDING)
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

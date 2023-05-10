@@ -188,8 +188,7 @@ def _merge_field_into(schema: Field, destination: Field) -> None:
     destination.signal_root = destination.signal_root or schema.signal_root
     destination.dtype = destination.dtype or schema.dtype
   if schema.fields:
-    if destination.fields is None:
-      raise ValueError('Failed to merge schemas. Origin schema has fields but destination does not')
+    destination.fields = destination.fields or {}
     for field_name, subfield in schema.fields.items():
       if field_name not in destination.fields:
         destination.fields[field_name] = subfield.copy(deep=True)
