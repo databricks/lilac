@@ -3,14 +3,19 @@ import multiprocessing
 from typing import Iterable, Optional, Union
 
 import tensorflow as tf
-from pydantic import (
-  BaseModel,
-  Field as PydanticField,
-)
+from pydantic import BaseModel
+from pydantic import Field as PydanticField
 from typing_extensions import override
 
 # mypy: disable-error-code="attr-defined"
-from datasets import ClassLabel, DatasetDict, Sequence, Value, load_dataset, load_from_disk
+from datasets import (
+  ClassLabel,
+  DatasetDict,
+  Sequence,
+  Value,
+  load_dataset,
+  load_from_disk,
+)
 
 from ...schema import (
   PARQUET_FILENAME_PREFIX,
