@@ -4,7 +4,7 @@ from typing import Any, Optional, Sequence, Union, cast
 
 from fastapi import APIRouter, Response
 from fastapi.responses import ORJSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from .config import data_path
 from .data.db_dataset import (
@@ -20,6 +20,7 @@ from .db_manager import get_dataset_db
 from .router_utils import RouteErrorHandler
 from .schema import PathTuple, Schema
 from .signals.default_signals import register_default_signals
+from .signals.signal import Signal
 from .signals.signal_registry import resolve_signal
 from .tasks import TaskId, task_manager
 from .utils import DATASETS_DIR_NAME
@@ -82,11 +83,15 @@ def get_manifest(namespace: str, dataset_name: str) -> WebManifest:
 
 class ComputeSignalOptions(BaseModel):
   """The request for the compute signal endpoint."""
-  signal_name: str
-  signal_args: dict[str, Any] = {}
+  signal: Signal
 
   # The leaf path to compute the signal on.
   leaf_path: PathTuple
+
+  @validator('signal', pre=True)
+  def parse_signal(cls, signal: dict) -> Signal:
+    """Parse a signal to its specific subclass instance."""
+    return resolve_signal(signal)
 
 
 class ComputeSignalResponse(BaseModel):
@@ -98,7 +103,6 @@ class ComputeSignalResponse(BaseModel):
 def compute_signal_column(namespace: str, dataset_name: str,
                           options: ComputeSignalOptions) -> ComputeSignalResponse:
   """Compute a signal for a dataset."""
-  signal = resolve_signal({**options.signal_args, 'signal_name': options.signal_name})
 
   def _task_compute_signal(namespace: str, dataset_name: str, options_dict: dict,
                            task_id: TaskId) -> None:
@@ -106,13 +110,13 @@ def compute_signal_column(namespace: str, dataset_name: str,
     # pydantic serializer.
     options = ComputeSignalOptions(**options_dict)
     dataset_db = get_dataset_db(namespace, dataset_name)
-    dataset_db.compute_signal(signal, options.leaf_path, task_id=task_id)
+    dataset_db.compute_signal(options.signal, options.leaf_path, task_id=task_id)
 
   path_str = '.'.join(map(str, options.leaf_path))
   task_id = task_manager().task_id(
-    name=f'Compute signal "{signal.name}" on "{path_str}" '
+    name=f'Compute signal "{options.signal.name}" on "{path_str}" '
     f'in dataset "{namespace}/{dataset_name}"',
-    description=f'Config: {signal}')
+    description=f'Config: {options.signal}')
   task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name, options.dict(),
                          task_id)
 
