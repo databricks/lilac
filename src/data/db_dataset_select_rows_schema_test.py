@@ -1,7 +1,7 @@
 """Tests for `db.select_rows_schema()`."""
 
 import pathlib
-from typing import Generator, Iterable, Optional, Type
+from typing import Generator, Iterable, Optional, Type, cast
 
 import pytest
 
@@ -19,6 +19,7 @@ from ..schema import (
   signal_field,
 )
 from ..signals.signal import Signal
+from ..signals.signal_registry import clear_signal_registry, register_signal
 from .db_dataset import DatasetDB, SignalUDF
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import make_db
@@ -74,6 +75,19 @@ def set_data_path(tmp_path: pathlib.Path) -> Generator:
   CONFIG['LILAC_DATA_PATH'] = data_path or ''
 
 
+@pytest.fixture(scope='module', autouse=True)
+def setup_teardown() -> Iterable[None]:
+  # Setup.
+  register_signal(LengthSignal)
+  register_signal(AddSpaceSignal)
+
+  # Unit test runs.
+  yield
+
+  # Teardown.
+  clear_signal_registry()
+
+
 class LengthSignal(Signal):
   name = 'length_signal'
   enrichment_type = EnrichmentType.TEXT
@@ -84,6 +98,18 @@ class LengthSignal(Signal):
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
     for text_content in data:
       yield len(text_content)
+
+
+class AddSpaceSignal(Signal):
+  name = 'add_space_signal'
+  enrichment_type = EnrichmentType.TEXT
+
+  def fields(self) -> Field:
+    return field('string')
+
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+    for text_content in data:
+      yield cast(str, text_content) + ' '
 
 
 @pytest.mark.parametrize('db_cls', ALL_DBS)
@@ -165,6 +191,32 @@ class SelectRowsSchemaSuite:
         'people': [{
           'name': {
             'length_signal': signal_field(dtype='int32')
+          }
+        }]
+      }
+    })
+
+  def test_embedding_udf_with_combine_cols(self, tmp_path: pathlib.Path,
+                                           db_cls: Type[DatasetDB]) -> None:
+    db = make_db(db_cls, tmp_path, TEST_DATA)
+
+    db.compute_signal(AddSpaceSignal(), ('people', '*', 'name'))
+    result = db.select_rows_schema(
+      [('people', '*', 'name'), (LILAC_COLUMN,),
+       SignalUDF(AddSpaceSignal(), (LILAC_COLUMN, 'people', '*', 'name', 'add_space_signal'))],
+      combine_columns=True)
+    assert result == schema({
+      UUID_COLUMN: 'string',
+      'people': [{
+        'name': 'string'
+      }],
+      LILAC_COLUMN: {
+        'people': [{
+          'name': {
+            'add_space_signal': signal_field({
+              'add_space_signal': signal_field(dtype='string'),
+            },
+                                             dtype='string')
           }
         }]
       }

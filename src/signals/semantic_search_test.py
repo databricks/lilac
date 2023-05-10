@@ -7,7 +7,6 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..data.dataset_utils import signal_item
-
 from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..schema import EnrichmentType, Item, PathTuple, RichData

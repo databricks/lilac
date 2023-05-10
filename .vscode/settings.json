@@ -46,7 +46,6 @@
       "source.fixAll": true
     }
   },
-  "isort.args": ["--profile", "black", "--indent", "  "],
   "[svelte]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.codeActionsOnSave": {

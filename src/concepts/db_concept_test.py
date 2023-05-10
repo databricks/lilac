@@ -7,9 +7,8 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..data.dataset_utils import signal_item
-
 from ..config import CONFIG
+from ..data.dataset_utils import signal_item
 from ..embeddings.embedding import EmbeddingSignal
 from ..schema import EnrichmentType, Item, RichData
 from ..signals.signal_registry import clear_signal_registry, register_signal

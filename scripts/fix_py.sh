@@ -6,10 +6,8 @@ set -e
 # Activate the current py virtual env.
 source $(poetry env info --path)/bin/activate
 
-echo "Linting python with ruff..."
-ruff src
+echo "Fixing python with ruff..."
+ruff --fix src/
 
-isort --check src/
-
-echo "Checking python types with mypy..."
-mypy src
+echo "Fixing python imports with isort..."
+isort src/

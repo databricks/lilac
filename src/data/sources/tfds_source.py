@@ -5,10 +5,8 @@ from typing import Optional, Union
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from pydantic import (
-  BaseModel,
-  Field as PydanticField,
-)
+from pydantic import BaseModel
+from pydantic import Field as PydanticField
 
 from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, DataType, Field, Item, Schema
 from ...tasks import TaskId

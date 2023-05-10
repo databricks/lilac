@@ -40,7 +40,7 @@
 {#if column}
   <OverflowMenuItem
     text="Remove"
-    on:click={() => column && datsetViewStore.removeExtraColumn(column)}
+    on:click={() => column && datsetViewStore.removeUdfColumn(column)}
   />
   {#if isSignalTransform(column.transform)}
     {@const signal = column.transform.signal}

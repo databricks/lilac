@@ -5,10 +5,9 @@ import pathlib
 # mypy: disable-error-code="attr-defined"
 from datasets import Dataset, Features, Sequence, Value
 
-from ..dataset_utils import lilac_items
-
 from ...schema import UUID_COLUMN, schema
 from ...test_utils import read_items
+from ..dataset_utils import lilac_items
 from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceDataset
 from .source import SourceProcessResult
 
