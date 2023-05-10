@@ -362,7 +362,7 @@ export const SearchBox = () => {
                     await computeSignal({
                       namespace: namespace!,
                       datasetName: datasetName!,
-                      options: {leaf_path: path, signal_name: signal.name},
+                      options: {leaf_path: path, signal: {signal_name: signal.name}},
                     });
                     dispatch(setTasksPanelOpen(true));
                     closeMenu();
