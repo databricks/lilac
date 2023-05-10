@@ -140,7 +140,6 @@ class HuggingFaceDataset(Source):
   dataset_name: str = PydanticField(
     required=True,
     description='Either in the format `user/dataset` or `dataset`.',
-    regex=r'^([a-zA-Z0-9\-_]+\/)?[a-zA-Z0-9\-_]+$',
   )
   config_name: Optional[str] = PydanticField(
     title='Dataset config name', description='Some datasets require this.', default=None)
