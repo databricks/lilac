@@ -37,6 +37,7 @@ export type { ScoreExample } from './models/ScoreExample';
 export type { ScoreResponse } from './models/ScoreResponse';
 export type { SelectGroupsOptions } from './models/SelectGroupsOptions';
 export type { SelectRowsOptions } from './models/SelectRowsOptions';
+export type { SelectRowsSchemaOptions } from './models/SelectRowsSchemaOptions';
 export type { Signal } from './models/Signal';
 export type { SignalInfo } from './models/SignalInfo';
 export type { SignalTransform } from './models/SignalTransform';

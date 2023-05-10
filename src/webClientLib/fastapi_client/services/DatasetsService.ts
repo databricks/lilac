@@ -5,8 +5,10 @@ import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
 import type { ComputeSignalResponse } from '../models/ComputeSignalResponse';
 import type { DatasetInfo } from '../models/DatasetInfo';
 import type { GetStatsOptions } from '../models/GetStatsOptions';
+import type { Schema } from '../models/Schema';
 import type { SelectGroupsOptions } from '../models/SelectGroupsOptions';
 import type { SelectRowsOptions } from '../models/SelectRowsOptions';
+import type { SelectRowsSchemaOptions } from '../models/SelectRowsSchemaOptions';
 import type { StatsResult } from '../models/StatsResult';
 import type { WebManifest } from '../models/WebManifest';
 
@@ -129,6 +131,35 @@ export class DatasetsService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/select_rows',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Select Rows Schema
+     * Select rows from the dataset database.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns Schema Successful Response
+     * @throws ApiError
+     */
+    public static selectRowsSchema(
+        namespace: string,
+        datasetName: string,
+        requestBody: SelectRowsSchemaOptions,
+    ): CancelablePromise<Schema> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/select_rows_schema',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,

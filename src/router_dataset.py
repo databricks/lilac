@@ -18,7 +18,7 @@ from .data.db_dataset import (
 )
 from .db_manager import get_dataset_db
 from .router_utils import RouteErrorHandler
-from .schema import PathTuple
+from .schema import PathTuple, Schema
 from .signals.default_signals import register_default_signals
 from .signals.signal_registry import resolve_signal
 from .tasks import TaskId, task_manager
@@ -144,6 +144,14 @@ class SelectRowsOptions(BaseModel):
   combine_columns: Optional[bool]
 
 
+class SelectRowsSchemaOptions(BaseModel):
+  """The request for the select rows schema endpoint."""
+  # OpenAPI doesn't generate the correct typescript when using `Sequence[ColumnId]` (confused by
+  # `tuple[Union[str, int], ...]`).
+  columns: Optional[Sequence[Union[tuple[str, ...], Column]]]
+  combine_columns: Optional[bool]
+
+
 @router.post('/{namespace}/{dataset_name}/select_rows')
 def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -> list[dict]:
   """Select rows from the dataset database."""
@@ -159,6 +167,15 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
       offset=options.offset,
       combine_columns=options.combine_columns or False))
   return items
+
+
+@router.post('/{namespace}/{dataset_name}/select_rows_schema', response_model_exclude_none=True)
+def select_rows_schema(namespace: str, dataset_name: str,
+                       options: SelectRowsSchemaOptions) -> Schema:
+  """Select rows from the dataset database."""
+  db = get_dataset_db(namespace, dataset_name)
+  return db.select_rows_schema(
+    columns=options.columns, combine_columns=options.combine_columns or False)
 
 
 class SelectGroupsOptions(BaseModel):

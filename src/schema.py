@@ -122,10 +122,13 @@ class Field(BaseModel):
   signal_root: Optional[bool]
 
   @validator('fields')
-  def either_fields_or_repeated_field_is_defined(cls, fields: dict[str, 'Field'],
-                                                 values: dict[str, Any]) -> dict[str, 'Field']:
+  def either_fields_or_repeated_field_is_defined(
+      cls, fields: Optional[dict[str, 'Field']], values: dict[str,
+                                                              Any]) -> Optional[dict[str, 'Field']]:
     """Error if both `fields` and `repeated_fields` are defined."""
-    if fields and values.get('repeated_field'):
+    if not fields:
+      return fields
+    if values.get('repeated_field'):
       raise ValueError('Both "fields" and "repeated_field" should not be defined')
     if VALUE_KEY in fields:
       raise ValueError(f'{VALUE_KEY} is a reserved field name.')
@@ -211,11 +214,11 @@ def schema(schema_like: object) -> Schema:
   return Schema(fields=field.fields)
 
 
-def field(field_like: object,
+def field(field_like: Optional[object] = None,
           signal_root: Optional[bool] = None,
           dtype: Optional[Union[DataType, str]] = None) -> Field:
   """Parse a field-like object to a Field object."""
-  field = _parse_field_like(field_like)
+  field = _parse_field_like(field_like or {}, dtype)
   if signal_root:
     field.signal_root = signal_root
   if dtype:
@@ -225,7 +228,7 @@ def field(field_like: object,
   return field
 
 
-def signal_field(field_like: object,
+def signal_field(field_like: Optional[object] = None,
                  dtype: Optional[Union[DataType, str]] = None,
                  metadata: Optional[dict[str, object]] = None) -> Field:
   """Parse a field-like object to a signal field."""
@@ -238,19 +241,20 @@ def signal_field(field_like: object,
   return out_field
 
 
-def _parse_field_like(field_like: object) -> Field:
+def _parse_field_like(field_like: object, dtype: Optional[Union[DataType, str]] = None) -> Field:
   if isinstance(field_like, Field):
     return field_like
   elif isinstance(field_like, dict):
     fields: dict[str, Field] = {}
     for k, v in field_like.items():
       fields[k] = _parse_field_like(v)
-    return Field(fields=fields)
-
+    if isinstance(dtype, str):
+      dtype = DataType(dtype)
+    return Field(fields=fields or None, dtype=dtype)
   elif isinstance(field_like, str):
     return Field(dtype=DataType(field_like))
   elif isinstance(field_like, list):
-    return Field(repeated_field=_parse_field_like(field_like[0]))
+    return Field(repeated_field=_parse_field_like(field_like[0], dtype=dtype))
   else:
     raise ValueError(f'Cannot parse field like: {field_like}')
 

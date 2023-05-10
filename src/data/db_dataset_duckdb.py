@@ -712,9 +712,15 @@ class DatasetDuckDB(DatasetDB):
 
     col_schemas: list[Schema] = []
     for col in cols:
+      dest_path = _col_destination_path(col)
       if col.transform:
-        raise NotImplementedError('select_rows_schema with transform is not yet supported.')
-      col_schemas.append(_make_schema_from_path(col.feature, self.manifest().data_schema))
+        if not isinstance(col.transform, SignalTransform):
+          raise ValueError(f'Unsupported transform: {col.transform}')
+        field = col.transform.signal.fields()
+        field.signal_root = True
+      else:
+        field = self.manifest().data_schema.get_field(dest_path)
+      col_schemas.append(_make_schema_from_path(dest_path, field))
     return merge_schemas(col_schemas)
 
   @override
@@ -1079,9 +1085,8 @@ def _make_value_path(path: PathTuple) -> PathTuple:
   return path
 
 
-def _make_schema_from_path(path: PathTuple, schema: Schema) -> Schema:
+def _make_schema_from_path(path: PathTuple, field: Field) -> Schema:
   """Returns a schema that contains only the given path."""
-  field = schema.get_field(path)
   for sub_path in reversed(path):
     if sub_path == PATH_WILDCARD:
       field = Field(repeated_field=field)
