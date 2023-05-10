@@ -2,12 +2,13 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { Signal } from './Signal';
+
 /**
  * The request for the compute signal endpoint.
  */
 export type ComputeSignalOptions = {
-    signal_name: string;
-    signal_args?: any;
+    signal: Signal;
     leaf_path: Array<(number | string)>;
 };
 
