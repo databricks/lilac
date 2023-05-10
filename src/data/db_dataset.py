@@ -316,6 +316,13 @@ class DatasetDB(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def select_rows_schema(self,
+                         columns: Optional[Sequence[ColumnId]] = None,
+                         combine_columns: bool = False) -> Schema:
+    """Returns the schema of the result of `select_rows` above with the same arguments."""
+    pass
+
+  @abc.abstractmethod
   def stats(self, leaf_path: Path) -> StatsResult:
     """Compute stats for a leaf path.
 

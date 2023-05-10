@@ -20,13 +20,13 @@ from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import (
-  VALUE_KEY,
   LILAC_COLUMN,
   MANIFEST_FILENAME,
   PATH_WILDCARD,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
   UUID_COLUMN,
+  VALUE_KEY,
   DataType,
   EnrichmentType,
   Field,
@@ -53,6 +53,7 @@ from .dataset_utils import (
   create_signal_schema,
   flatten,
   flatten_keys,
+  lilac_items,
   merge_schemas,
   path_is_from_lilac,
   read_embedding_index,
@@ -60,7 +61,6 @@ from .dataset_utils import (
   schema_contains_path,
   unflatten,
   wrap_in_dicts,
-  lilac_items,
   write_embeddings_to_disk,
   write_items_to_parquet,
 )
@@ -690,6 +690,34 @@ class DatasetDuckDB(DatasetDB):
     return SelectRowsResult(df)
 
   @override
+  def select_rows_schema(self,
+                         columns: Optional[Sequence[ColumnId]] = None,
+                         combine_columns: bool = False) -> Schema:
+    """Returns the schema of the result of `select_rows` above with the same arguments."""
+    if not combine_columns:
+      raise NotImplementedError(
+        'select_rows_schema with combine_columns=False is not yet supported.')
+
+    if not columns:
+      # Select all columns.
+      columns = list(self.manifest().data_schema.fields.keys())
+
+    cols = [column_from_identifier(column) for column in columns or []]
+    # Always return the UUID column.
+    col_paths = [col.feature for col in cols]
+    if (UUID_COLUMN,) not in col_paths:
+      cols.append(column_from_identifier(UUID_COLUMN))
+
+    self._validate_columns(cols)
+
+    col_schemas: list[Schema] = []
+    for col in cols:
+      if col.transform:
+        raise NotImplementedError('select_rows_schema with transform is not yet supported.')
+      col_schemas.append(_make_schema_from_path(col.feature, self.manifest().data_schema))
+    return merge_schemas(col_schemas)
+
+  @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
@@ -1049,3 +1077,14 @@ def _make_value_path(path: PathTuple) -> PathTuple:
   if path[-1] != VALUE_KEY and path[0] != UUID_COLUMN:
     return (*path, VALUE_KEY)
   return path
+
+
+def _make_schema_from_path(path: PathTuple, schema: Schema) -> Schema:
+  """Returns a schema that contains only the given path."""
+  field = schema.get_field(path)
+  for sub_path in reversed(path):
+    if sub_path == PATH_WILDCARD:
+      field = Field(repeated_field=field)
+    else:
+      field = Field(fields={sub_path: field})
+  return Schema(fields=field.fields)

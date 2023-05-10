@@ -5,7 +5,17 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Any, Callable, Generator, Iterator, Optional, Sequence, TypeVar, Union, cast
+from typing import (
+  Any,
+  Callable,
+  Generator,
+  Iterator,
+  Optional,
+  Sequence,
+  TypeVar,
+  Union,
+  cast,
+)
 
 import numpy as np
 import pyarrow as pa
@@ -13,13 +23,13 @@ from pydantic import BaseModel
 
 from ..parquet_writer import ParquetWriter
 from ..schema import (
+  LILAC_COLUMN,
+  PATH_WILDCARD,
   SIGNAL_METADATA_KEY,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
-  VALUE_KEY,
-  LILAC_COLUMN,
-  PATH_WILDCARD,
   UUID_COLUMN,
+  VALUE_KEY,
   Field,
   Item,
   ItemValue,
@@ -205,7 +215,7 @@ def _merge_field_into(schema: Field, destination: Field) -> None:
                        f'but destination has dtype {destination.dtype}')
 
 
-def merge_schemas(schemas: list[Schema]) -> Schema:
+def merge_schemas(schemas: Sequence[Union[Schema, Field]]) -> Schema:
   """Merge a list of schemas."""
   merged_schema = Schema(fields={})
   for s in schemas:
