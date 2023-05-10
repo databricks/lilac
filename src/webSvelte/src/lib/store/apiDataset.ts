@@ -74,6 +74,9 @@ export const useSelectRowsQuery = createApiQuery(function selectRows(
   );
 },
 DATASETS_TAG);
+export const useSelectRowsSchema = createApiQuery(DatasetsService.selectRowsSchema, DATASETS_TAG, {
+  select: res => deserializeSchema(res)
+});
 export const useSelectGroupsQuery = createApiQuery(DatasetsService.selectGroups, DATASETS_TAG);
 
 export const useSelectRowsInfiniteQuery = (

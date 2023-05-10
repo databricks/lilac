@@ -1,8 +1,10 @@
 <script lang="ts">
-  import {useGetSchemaQuery, useSelectRowsInfiniteQuery} from '$lib/store/apiDataset';
-  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
-  import {notEmpty} from '$lib/utils';
-  import {LILAC_COLUMN, listFields} from '$lilac';
+  import {
+    useGetSchemaQuery,
+    useSelectRowsInfiniteQuery,
+    useSelectRowsSchema
+  } from '$lib/store/apiDataset';
+  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/store/datasetViewStore';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import RowItem from './RowItem.svelte';
@@ -11,41 +13,38 @@
 
   $: schema = useGetSchemaQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: anyLilacColumns = listFields($schema.data).some(f => f.path[0] === LILAC_COLUMN);
-  $: columns = $schema.isSuccess
-    ? [
-        // Add all columns except lilac columns
-        ...listFields($schema.data)
-          .map(f => f.path)
-          .filter(p => p[0] !== LILAC_COLUMN),
-        // Add one entry for all lilac columns if any are present
-        ...[anyLilacColumns ? [LILAC_COLUMN] : null],
-        // Add extra columns (UDF's)
-        ...$datasetViewStore.extraColumns
-      ].filter(notEmpty)
-    : [];
+  $: selectOptions = $schema.isSuccess
+    ? getSelectRowsOptions($datasetViewStore, $schema.data)
+    : undefined;
+
+  $: selectRowsSchema = selectOptions
+    ? useSelectRowsSchema($datasetViewStore.namespace, $datasetViewStore.datasetName, selectOptions)
+    : undefined;
 
   $: rows = useSelectRowsInfiniteQuery(
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
     {
       limit: 40,
-      filters: $datasetViewStore.filters,
-      sort_by: $datasetViewStore.sortBy,
-      columns,
-      combine_columns: true
+      ...selectOptions
     },
-    $schema.isSuccess ? $schema.data : undefined
+    $selectRowsSchema?.isSuccess ? $selectRowsSchema.data : undefined
   );
 </script>
 
-{#if $rows?.isLoading || $schema.isLoading}
+{#if $rows?.isLoading || $schema.isLoading || $selectRowsSchema?.isLoading}
   <SkeletonText paragraph lines={3} />
 {:else if $rows.isError}
   <InlineNotification lowContrast title="Could not fetch rows:" subtitle={$rows.error.message} />
+{:else if $selectRowsSchema?.isError}
+  <InlineNotification
+    lowContrast
+    title="Could not fetch schema:"
+    subtitle={$selectRowsSchema.error.message}
+  />
 {:else if $datasetViewStore.visibleColumns.length === 0}
   <div class="mt-12 w-full text-center text-gray-600">Select fields to display</div>
-{:else if $rows?.isSuccess && $rows.data.pages.length && $schema.isSuccess && $schema.isSuccess}
+{:else if $rows?.isSuccess && $rows.data.pages.length && $selectRowsSchema?.isSuccess}
   <div class="flex h-full w-full flex-col overflow-scroll">
     {#each $rows.data.pages as page}
       {#each page as row}

@@ -1,25 +1,35 @@
-import type {Column, Filter, Path} from '$lilac';
+import {
+  LILAC_COLUMN,
+  listFields,
+  type Column,
+  type Filter,
+  type LilacSchema,
+  type Path,
+  type SelectRowsOptions
+} from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable} from 'svelte/store';
 
 const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
+export interface IDatasetViewStore {
+  namespace: string;
+  datasetName: string;
+  visibleColumns: Path[];
+  filters: Filter[];
+  sortBy?: Path[];
+  udfColumns: Column[];
+}
+
 export type DatasetViewStore = ReturnType<typeof createDatasetViewStore>;
 export const createDatasetViewStore = (namespace: string, datasetName: string) => {
-  const {subscribe, set, update} = writable<{
-    namespace: string;
-    datasetName: string;
-    visibleColumns: Path[];
-    filters: Filter[];
-    sortBy?: Path[];
-    extraColumns: Column[];
-  }>({
+  const {subscribe, set, update} = writable<IDatasetViewStore>({
     namespace,
     datasetName,
     visibleColumns: [],
     filters: [],
     sortBy: [],
-    extraColumns: []
+    udfColumns: []
   });
 
   return {
@@ -37,14 +47,14 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         return state;
       }),
 
-    addExtraColumn: (column: Column) =>
+    addUdfColumn: (column: Column) =>
       update(state => {
-        state.extraColumns?.push(column);
+        state.udfColumns?.push(column);
         return state;
       }),
-    removeExtraColumn: (column: Column) =>
+    removeUdfColumn: (column: Column) =>
       update(state => {
-        state.extraColumns = state.extraColumns.filter(c => c !== column);
+        state.udfColumns = state.udfColumns.filter(c => c !== column);
         return state;
       })
   };
@@ -57,4 +67,36 @@ export function setDatasetViewContext(store: DatasetViewStore) {
 export function getDatasetViewContext() {
   if (!hasContext(DATASET_VIEW_CONTEXT)) throw new Error('DatasetViewContext not found');
   return getContext<DatasetViewStore>(DATASET_VIEW_CONTEXT);
+}
+
+/**
+ * Get the options to pass to the selectRows API call
+ * based on the current state of the dataset view store
+ */
+export function getSelectRowsOptions(
+  datasetViewStore: IDatasetViewStore,
+  schema: LilacSchema
+): SelectRowsOptions {
+  const anyLilacColumns = listFields(schema).some(f => f.path[0] === LILAC_COLUMN);
+
+  // Add all columns except lilac columns
+  // TODO: Replace with * when supported
+  const columns: (Column | Path)[] = listFields(schema)
+    .map(f => f.path)
+    .filter(p => p[0] !== LILAC_COLUMN);
+
+  // Add one entry for all lilac columns if any are present
+  if (anyLilacColumns) {
+    columns.push([LILAC_COLUMN]);
+  }
+
+  // Add extra columns (UDF's)
+  columns.push(...datasetViewStore.udfColumns);
+
+  return {
+    filters: datasetViewStore.filters,
+    sort_by: datasetViewStore.sortBy,
+    columns,
+    combine_columns: true
+  };
 }

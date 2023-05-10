@@ -61,7 +61,7 @@
       ]);
     } else if (variant == 'preview') {
       if (path) {
-        datasetViewStore.addExtraColumn({
+        datasetViewStore.addUdfColumn({
           feature: path,
           transform: {signal}
         });
