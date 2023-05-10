@@ -1,12 +1,15 @@
 <script lang="ts">
   /* eslint-disable @typescript-eslint/no-explicit-any */
   import type {Draft, JSONError} from 'json-schema-library';
+  import type {SvelteComponent} from 'svelte';
   import JsonSchemaInput from './JSONSchemaInput.svelte';
 
   export let path: string;
   export let value: any[] = [];
+  export let rootValue: any;
   export let schema: Draft;
   export let validationErrors: JSONError[] = [];
+  export let customComponents: Record<string, typeof SvelteComponent>;
 
   // Get the schema for the array
   $: arrayProperty = schema.getSchema(path, value);
@@ -22,7 +25,14 @@
     <div class="mb-4 flex w-full flex-row">
       <div class="w-8 shrink-0 text-lg">{i + 1}</div>
       <div class="flex w-full grow flex-col">
-        <JsonSchemaInput path={path + '/' + i} {schema} bind:value={value[i]} {validationErrors} />
+        <JsonSchemaInput
+          path={path + '/' + i}
+          {schema}
+          {rootValue}
+          bind:value={value[i]}
+          {validationErrors}
+          {customComponents}
+        />
         <button
           class="bg-slate-600 p-2 text-white hover:bg-slate-400"
           on:click={() => {

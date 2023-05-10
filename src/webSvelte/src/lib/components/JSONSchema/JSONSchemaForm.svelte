@@ -1,6 +1,7 @@
 <script lang="ts">
   import type {JSONSchema4Type, JSONSchema7Definition} from 'json-schema';
   import {Draft07, type Draft, type JSONError} from 'json-schema-library';
+  import type {SvelteComponent} from 'svelte';
   import JsonSchemaInput from './JSONSchemaInput.svelte';
 
   /** The schema to render form for */
@@ -13,6 +14,7 @@
   export let validationErrors: JSONError[] = [];
   /** Whether to show the top level description */
   export let showDescription = true;
+  export let customComponents: Record<string, typeof SvelteComponent> = {};
 
   // Parse the JSON schema
   $: jsonSchema = typeof schema === 'object' ? new Draft07(schema) : null;
@@ -38,5 +40,7 @@
     {hiddenProperties}
     {showDescription}
     {validationErrors}
+    {customComponents}
+    rootValue={value}
   />
 {/if}
