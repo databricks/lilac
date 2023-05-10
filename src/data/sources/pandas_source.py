@@ -8,23 +8,9 @@ import pyarrow.parquet as pq
 from pydantic import BaseModel
 
 from ...config import CONFIG
-from ...schema import (
-  PARQUET_FILENAME_PREFIX,
-  UUID_COLUMN,
-  ImageInfo,
-  Path,
-  arrow_schema_to_schema,
-)
+from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, ImageInfo, Path, arrow_schema_to_schema
 from ...tasks import TaskId
-from ...utils import (
-  GCS_REGEX,
-  CopyRequest,
-  copy_files,
-  get_image_path,
-  log,
-  makedirs,
-  open_file,
-)
+from ...utils import GCS_REGEX, CopyRequest, copy_files, get_image_path, log, makedirs, open_file
 from .source import Source, SourceProcessResult
 
 

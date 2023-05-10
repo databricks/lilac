@@ -5,13 +5,7 @@ import time
 import pytest
 from distributed import Client, Event, Future, wait
 
-from .tasks import (
-  TaskInfo,
-  TaskManager,
-  TaskManifest,
-  TaskStatus,
-  set_worker_task_progress,
-)
+from .tasks import TaskInfo, TaskManager, TaskManifest, TaskStatus, set_worker_task_progress
 
 
 @pytest.fixture(scope='session')

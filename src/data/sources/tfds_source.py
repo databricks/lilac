@@ -8,14 +8,7 @@ import tensorflow_datasets as tfds
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
 
-from ...schema import (
-  PARQUET_FILENAME_PREFIX,
-  UUID_COLUMN,
-  DataType,
-  Field,
-  Item,
-  Schema,
-)
+from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, DataType, Field, Item, Schema
 from ...tasks import TaskId
 from ...utils import log
 from ..dataset_utils import write_items_to_parquet

@@ -5,17 +5,7 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import (
-  Any,
-  Callable,
-  Generator,
-  Iterator,
-  Optional,
-  Sequence,
-  TypeVar,
-  Union,
-  cast,
-)
+from typing import Any, Callable, Generator, Iterator, Optional, Sequence, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
