@@ -43,7 +43,7 @@ export function createApiMutation<
 >(endpoint: TMutationFn, mutationArgs: CreateMutationOptions<TData, Error, TVariables> = {}) {
   return () =>
     createMutation<TData, Error, TVariables>({
-      mutationFn: endpoint,
+      mutationFn: args => endpoint(...(args as unknown[])),
       ...mutationArgs
     });
 }
