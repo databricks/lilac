@@ -63,7 +63,8 @@
     <Checkbox
       labelText="Show"
       hideLabel
-      selected={isVisible}
+      checked={isVisible}
+      disabled={!field?.dtype}
       on:check={ev => {
         if (ev.detail) {
           datasetViewStore.addVisibleColumn(path);
@@ -90,7 +91,7 @@
       <Tag type="blue">Signal</Tag>
     </div>
   {/if}
-  <div class="w-24 pr-2 text-right">{field?.dtype}{isRepeatedField ? '[]' : ''}</div>
+  <div class="w-24 pr-2 text-right">{field?.dtype || ''}{isRepeatedField ? '[]' : ''}</div>
   <div>
     <ContextMenu>
       <SchemaFieldMenu {field} />

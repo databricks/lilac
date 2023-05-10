@@ -37,7 +37,7 @@
     <Checkbox
       labelText="Show"
       hideLabel
-      selected={isVisible}
+      checked={isVisible}
       on:check={ev => {
         if (ev.detail) {
           datasetViewStore.addVisibleColumn(path);
