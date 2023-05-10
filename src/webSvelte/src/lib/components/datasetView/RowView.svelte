@@ -11,7 +11,7 @@
 
   $: schema = useGetSchemaQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: anyLilacColumns = !!$schema.data?.fields?.[LILAC_COLUMN];
+  $: anyLilacColumns = listFields($schema.data).some(f => f.path[0] === LILAC_COLUMN);
   $: columns = $schema.isSuccess
     ? [
         // Add all columns except lilac columns
