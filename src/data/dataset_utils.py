@@ -199,7 +199,9 @@ def _merge_field_into(schema: Field, destination: Field) -> None:
     destination.dtype = destination.dtype or schema.dtype
   if schema.fields:
     if destination.fields is None:
-      raise ValueError('Failed to merge schemas. Origin schema has fields but destination does not')
+      destination.fields = {}
+
+      #raise ValueError('Failed to merge schemas. Origin schema has fields but destination does not')
     for field_name, subfield in schema.fields.items():
       if field_name not in destination.fields:
         destination.fields[field_name] = subfield.copy(deep=True)
@@ -225,13 +227,13 @@ def merge_schemas(schemas: Sequence[Union[Schema, Field]]) -> Schema:
 
 def schema_contains_path(schema: Schema, path: PathTuple) -> bool:
   """Check if a schema contains a path."""
-  # Remove the value key from the end of the path as it's not directly in the schema, but users can
-  # query this path.
-  if path[-1] == VALUE_KEY:
-    path = path[:-1]
-
   current_field = cast(Field, schema)
   for path_part in path:
+    # When we reach a value key, the schema should have a dtype defined on it. If not, it is derived
+    # and this schema does not contain the value.
+    if path_part == VALUE_KEY:
+      return current_field.dtype is not None
+
     if path_part == PATH_WILDCARD:
       if current_field.repeated_field is None:
         return False
@@ -270,11 +272,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   if not enriched_schema.fields:
     raise ValueError('This should not happen since enriched_schema always has fields (see above)')
 
-  # If a signal is enriching output of a signal, skip the lilac prefix to avoid double prefixing.
-  if path_is_from_lilac(source_path):
-    enriched_schema = enriched_schema.fields[LILAC_COLUMN]
-
-  return schema({UUID_COLUMN: 'string', LILAC_COLUMN: enriched_schema})
+  return schema({UUID_COLUMN: 'string', **cast(dict, enriched_schema.fields)})
 
 
 def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], output_dir: str,

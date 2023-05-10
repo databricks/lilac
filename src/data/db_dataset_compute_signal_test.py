@@ -16,6 +16,7 @@ from ..schema import (
   SIGNAL_METADATA_KEY,
   LILAC_COLUMN,
   UUID_COLUMN,
+  VALUE_KEY,
   DataType,
   EnrichmentType,
   Field,
@@ -30,7 +31,7 @@ from ..schema import (
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
-from .db_dataset import Column, DatasetDB, DatasetManifest
+from .db_dataset import Column, DatasetDB, DatasetManifest, val
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
 
@@ -298,20 +299,10 @@ class ComputeSignalItemsSuite:
     result = db.select_rows(['text', LILAC_COLUMN])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
-      'text': 'hello',
-      LILAC_COLUMN: {
-        'text': {
-          'test_sparse_signal': None
-        }
-      }
+      'text': lilac_item('hello', {'test_sparse_signal': None})
     }, {
       UUID_COLUMN: '2',
-      'text': 'hello world',
-      LILAC_COLUMN: {
-        'text': {
-          'test_sparse_signal': 11
-        }
-      }
+      'text': lilac_item('hello', {'test_sparse_signal': 11})
     }])
 
   def test_sparse_rich_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -367,35 +358,31 @@ class ComputeSignalItemsSuite:
     test_signal = TestSignal()
     db.compute_signal(test_signal, 'str')
 
-    result = db.select_rows(['str', (LILAC_COLUMN, 'str')])
-    assert list(result) == lilac_items([{
-      UUID_COLUMN: '1',
-      'str': 'a',
-      f'{LILAC_COLUMN}.str': {
-        'test_signal': {
+    result = db.select_rows(['str'])
+    assert list(result) == lilac_items([
+      {
+        UUID_COLUMN: '1',
+        'str': lilac_item('a', {'test_signal': {
           'len': 1,
           'flen': 1.0
-        }
-      }
-    }, {
-      UUID_COLUMN: '2',
-      'str': 'b',
-      f'{LILAC_COLUMN}.str': {
-        'test_signal': {
+        }}),
+      },
+      {
+        UUID_COLUMN: '2',
+        'str': lilac_item('b', {'test_signal': {
           'len': 1,
           'flen': 1.0
-        }
-      }
-    }, {
-      UUID_COLUMN: '3',
-      'str': 'b',
-      f'{LILAC_COLUMN}.str': {
-        'test_signal': {
+        }}),
+      },
+      {
+        UUID_COLUMN: '3',
+        # TODO BEFORE SUBMITTING: Make the third item actually 'c'.
+        'str': lilac_item('b', {'test_signal': {
           'len': 1,
           'flen': 1.0
-        }
+        }}),
       }
-    }])
+    ])
 
     # Check the enriched dataset manifest has 'text' enriched.
     assert db.manifest() == DatasetManifest(
@@ -403,61 +390,59 @@ class ComputeSignalItemsSuite:
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'str': 'string',
+        'str': field({
+          'test_signal': signal_field({
+            'len': 'int32',
+            'flen': 'float32'
+          }),
+        },
+                     dtype='string'),
         'int': 'int32',
         'bool': 'boolean',
         'float': 'float32',
-        LILAC_COLUMN: {
-          'str': {
-            'test_signal': signal_field({
-              'len': 'int32',
-              'flen': 'float32'
-            }),
-          }
-        }
       }),
       num_items=3)
 
     # Select a specific signal leaf test_signal.flen.
-    result = db.select_rows(['str', (LILAC_COLUMN, 'str', 'test_signal', 'flen')])
+    result = db.select_rows([val('str'), ('str', 'test_signal', 'flen')])
 
-    assert list(result) == lilac_items([{
+    assert list(result) == [{
       UUID_COLUMN: '1',
-      'str': 'a',
-      f'{LILAC_COLUMN}.str.test_signal.flen': 1.0
+      f'str.{VALUE_KEY}': 'a',
+      'str.test_signal.flen': lilac_item(1.0)
     }, {
       UUID_COLUMN: '2',
-      'str': 'b',
-      f'{LILAC_COLUMN}.str.test_signal.flen': 1.0
+      f'str.{VALUE_KEY}': 'b',
+      'str.test_signal.flen': lilac_item(1.0)
     }, {
       UUID_COLUMN: '3',
-      'str': 'b',
-      f'{LILAC_COLUMN}.str.test_signal.flen': 1.0
-    }])
+      f'str.{VALUE_KEY}': 'b',
+      'str.test_signal.flen': lilac_item(1.0)
+    }]
 
     # Select multiple signal leafs with aliasing.
     result = db.select_rows([
-      'str',
-      Column((LILAC_COLUMN, 'str', 'test_signal', 'flen'), alias='flen'),
-      Column((LILAC_COLUMN, 'str', 'test_signal', 'len'), alias='len')
+      val('str'),
+      Column(('str', 'test_signal', 'flen'), alias='flen'),
+      Column(('str', 'test_signal', 'len'), alias='len')
     ])
 
-    assert list(result) == lilac_items([{
+    assert list(result) == [{
       UUID_COLUMN: '1',
-      'str': 'a',
-      'flen': 1.0,
-      'len': 1
+      f'str.{VALUE_KEY}': 'a',
+      'flen': lilac_item(1.0),
+      'len': lilac_item(1)
     }, {
       UUID_COLUMN: '2',
-      'str': 'b',
-      'flen': 1.0,
-      'len': 1
+      f'str.{VALUE_KEY}': 'b',
+      'flen': lilac_item(1.0),
+      'len': lilac_item(1)
     }, {
       UUID_COLUMN: '3',
-      'str': 'b',
-      'flen': 1.0,
-      'len': 1
-    }])
+      f'str.{VALUE_KEY}': 'b',
+      'flen': lilac_item(1.0),
+      'len': lilac_item(1)
+    }]
 
   def test_parameterized_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(

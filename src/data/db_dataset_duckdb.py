@@ -20,7 +20,6 @@ from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import (
-  LILAC_COLUMN,
   MANIFEST_FILENAME,
   PATH_WILDCARD,
   TEXT_SPAN_END_FEATURE,
@@ -55,7 +54,6 @@ from .dataset_utils import (
   flatten_keys,
   lilac_items,
   merge_schemas,
-  path_is_from_lilac,
   read_embedding_index,
   replace_embeddings_with_none,
   schema_contains_path,
@@ -184,6 +182,7 @@ class DatasetDuckDB(DatasetDB):
 
     merged_schema = merge_schemas([self._source_manifest.data_schema] +
                                   [m.data_schema for m in self._signal_manifests])
+
     # The logic below generates the following example query:
     # CREATE OR REPLACE VIEW t AS (
     #   SELECT
@@ -192,8 +191,15 @@ class DatasetDuckDB(DatasetDB):
     #     "parquet_id2"."__LILAC__" AS "parquet_id2"
     #   FROM source JOIN "parquet_id1" USING (uuid,) JOIN "parquet_id2" USING (uuid,)
     # );
+    def _top_level_key(manifest: SignalManifest) -> str:
+      field_keys = manifest.data_schema.fields.keys()
+      if len(field_keys) != 2:
+        raise ValueError('Expected exactly two fields in signal manifest, '
+                         f'the row UUID and root this signal is enriching. Got {field_keys}.')
+      return next(filter(lambda field: field != UUID_COLUMN, manifest.data_schema.fields.keys()))
+
     select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [
-      f'"{manifest.parquet_id}"."{LILAC_COLUMN}" AS "{manifest.parquet_id}"'
+      f'"{manifest.parquet_id}"."{_top_level_key(manifest)}" AS "{manifest.parquet_id}"'
       for manifest in self._signal_manifests
     ])
     join_sql = ' '.join([SOURCE_VIEW_NAME] + [
@@ -752,6 +758,7 @@ class DatasetDuckDB(DatasetDB):
       self._source_manifest, *self._signal_manifests
     ]
 
+    manifests_with_path: list[Union[SourceManifest, SignalManifest]] = []
     for m in parquet_manifests:
       if not schema_contains_path(m.data_schema, path):
         # Skip this parquet file if it doesn't contain the path.
@@ -761,11 +768,13 @@ class DatasetDuckDB(DatasetDB):
         # Do not select UUID from the signal because it's already in the source.
         continue
 
+      manifests_with_path.append(m)
+
+    for m in manifests_with_path:
       temp_column_name = column.alias or _unique_alias(column)
-      if path_is_from_lilac(path):
-        m = cast(SignalManifest, m)
+      if isinstance(m, SignalManifest):
         select_path = (m.parquet_id, *path[1:])
-        if path[-1] != VALUE_KEY and path not in leafs:
+        if len(manifests_with_path) > 1:
           # Non-leafs can have data in multiple manifests so we need to namespace.
           temp_column_name = f'{temp_column_name}/{m.parquet_id}'
       else:
@@ -1056,13 +1065,9 @@ def _col_destination_path(column: Column) -> PathTuple:
   signal_key = column.transform.signal.key()
   # If we are enriching a value we should store the signal data in the value's parent.
   if source_path[-1] == VALUE_KEY:
-    dest_path = (LILAC_COLUMN, *source_path[:-1], signal_key)
+    dest_path = (*source_path[:-1], signal_key)
   else:
-    dest_path = (LILAC_COLUMN, *source_path, signal_key)
-
-  # If a signal is enriching output of a signal, skip the lilac prefix to avoid double prefixing.
-  if path_is_from_lilac(source_path):
-    dest_path = dest_path[1:]
+    dest_path = (*source_path, signal_key)
 
   return dest_path
 
