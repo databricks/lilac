@@ -21,7 +21,7 @@
   let datasetViewStore = getDatasetViewContext();
 
   $: path = field.path;
-  $: signalField = isSignalField(field);
+  $: signalField = isSignalField(field, schema);
   let expanded = true;
 
   $: isRepeatedField = field.path.at(-1) === PATH_WILDCARD ? true : false;
