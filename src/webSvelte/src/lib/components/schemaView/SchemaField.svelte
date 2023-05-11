@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     PATH_WILDCARD,
     VALUE_FEATURE_KEY,

@@ -4,8 +4,8 @@
   // Carbon component must be imported after app.css
   import ApiErrorModal from '$lib/components/ApiErrorModal.svelte';
   import TaskStatus from '$lib/components/TaskStatus.svelte';
-  import TaskMonitor from '$lib/store/TaskMonitor.svelte';
-  import {apiErrors, queryClient} from '$lib/store/queryClient';
+  import {apiErrors, queryClient} from '$lib/queries/queryClient';
+  import TaskMonitor from '$lib/stores/TaskMonitor.svelte';
   import type {ApiError} from '$lilac';
   import {ToastNotification} from 'carbon-components-svelte';
   import 'carbon-components-svelte/css/white.css';

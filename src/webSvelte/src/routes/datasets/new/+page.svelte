@@ -3,12 +3,8 @@
   import JsonSchemaForm from '$lib/components/JSONSchema/JSONSchemaForm.svelte';
   import DatasetNameInput from '$lib/components/datasets/huggingface/DatasetNameInput.svelte';
   import SplitsInput from '$lib/components/datasets/huggingface/SplitsInput.svelte';
-  import {
-    useGetSourceSchemaQuery,
-    useGetSourcesQuery,
-    useLoadDatasetMutation
-  } from '$lib/store/apiDataset';
-  import {watchTask} from '$lib/store/taskMonitoring';
+  import {loadDatasetMutation, querySources, querySourcesSchema} from '$lib/queries/datasetQueries';
+  import {watchTask} from '$lib/stores/taskMonitoringStore';
   import {
     Button,
     Form,
@@ -23,15 +19,15 @@
   import type {JSONSchema4Type} from 'json-schema';
   import type {JSONError} from 'json-schema-library';
 
-  const sources = useGetSourcesQuery();
-  const loadDatasetMutation = useLoadDatasetMutation();
+  const sources = querySources();
+  const loadDataset = loadDatasetMutation();
 
   let namespace = 'local';
   let name = '';
   let selectedSource = 'huggingface';
   let errors: JSONError[] = [];
 
-  $: sourcesSchema = useGetSourceSchemaQuery(selectedSource);
+  $: sourcesSchema = querySourcesSchema(selectedSource);
 
   // Dictionary of source schema property values
   let sourceSchemaValues: Record<string, JSONSchema4Type> = {};
@@ -40,7 +36,7 @@
 
   function submit() {
     if (errors.length) return;
-    $loadDatasetMutation.mutate(
+    $loadDataset.mutate(
       [
         selectedSource,
         {

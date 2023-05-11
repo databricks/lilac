@@ -1,12 +1,12 @@
 <script lang="ts">
-  import {useListHFDatasetsQuery} from '$lib/store/apiHuggingface';
+  import {queryHFDatasets} from '$lib/queries/huggingfaceQueries';
   import {TextInput} from 'carbon-components-svelte';
 
   export let value: string;
   export let invalid: boolean;
   export let invalidText: string;
 
-  const datasets = useListHFDatasetsQuery();
+  const datasets = queryHFDatasets();
 
   $: datasetExists = $datasets.data?.includes(value);
 </script>

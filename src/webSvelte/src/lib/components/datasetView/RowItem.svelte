@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {notEmpty} from '$lib/utils';
   import {L, getValueNode, getValueNodes, listFields, type LilacValueNode} from '$lilac';
   import type {DataTypeCasted, Path} from '$lilac/schema';

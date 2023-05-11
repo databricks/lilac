@@ -1,14 +1,14 @@
 import {createQuery} from '@tanstack/svelte-query';
 
 const TAG = 'huggingface';
-export const useListHFDatasetsQuery = () =>
+export const queryHFDatasets = () =>
   createQuery({
     queryFn: () => fetch('https://datasets-server.huggingface.co/valid').then(res => res.json()),
     queryKey: [TAG, 'listDatasets'],
     select: res => res.valid as string[]
   });
 
-export const useGetHFSplitsQuery = (dataset: string) =>
+export const queryHFSplits = (dataset: string) =>
   createQuery({
     queryFn: () =>
       fetch(`https://datasets-server.huggingface.co/splits?dataset=${dataset}`).then(res =>

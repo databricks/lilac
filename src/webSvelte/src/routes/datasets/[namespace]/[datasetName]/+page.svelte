@@ -3,7 +3,7 @@
   import Commands from '$lib/components/commands/Commands.svelte';
   import RowView from '$lib/components/datasetView/RowView.svelte';
   import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
-  import {createDatasetViewStore, setDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {createDatasetViewStore, setDatasetViewContext} from '$lib/stores/datasetViewStore';
 
   $: namespace = $page.params.namespace;
   $: datasetName = $page.params.datasetName;
