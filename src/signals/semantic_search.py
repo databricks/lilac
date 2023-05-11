@@ -14,7 +14,7 @@ class SemanticSearchSignal(Signal):
   """Compute semantic search for a document."""
 
   name = 'semantic_search'
-  enrichment_type = EnrichmentType.TEXT
+  enrichment_type = EnrichmentType.TEXT_EMBEDDING
 
   query: Union[str, bytes]
   embedding: EmbeddingSignal
