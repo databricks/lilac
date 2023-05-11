@@ -1,8 +1,8 @@
 """Registers all available default signals."""
-from .semantic_search import SemanticSearchSignal
 from ..embeddings.cohere import Cohere
 from .concept_scorer import ConceptScoreSignal
 from .pii import PIISignal
+from .semantic_search import SemanticSearchSignal
 from .signal_registry import register_signal
 from .splitters.text_splitter_spacy import SentenceSplitterSpacy
 from .text_statistics import TextStatisticsSignal
