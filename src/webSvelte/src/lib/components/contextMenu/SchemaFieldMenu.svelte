@@ -30,7 +30,4 @@
     })}
 />
 
-<OverflowMenuItem
-  text="Sort by"
-  on:click={() => ($datasetViewStore.sortBy = [...$datasetViewStore.sortBy, field.path])}
-/>
+<OverflowMenuItem text="Sort by" on:click={() => datasetViewStore.addSortBy(field.path)} />

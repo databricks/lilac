@@ -1,10 +1,12 @@
 import {
   listFields,
+  pathIsEqual,
   type Column,
   type Filter,
   type LilacSchema,
   type Path,
-  type SelectRowsOptions
+  type SelectRowsOptions,
+  type SortOrder
 } from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable} from 'svelte/store';
@@ -17,6 +19,7 @@ export interface IDatasetViewStore {
   visibleColumns: Path[];
   filters: Filter[];
   sortBy: Path[];
+  sortOrder: SortOrder;
   udfColumns: Column[];
 }
 
@@ -28,6 +31,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     visibleColumns: [],
     filters: [],
     sortBy: [],
+    sortOrder: 'ASC',
     udfColumns: []
   });
 
@@ -42,7 +46,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       }),
     removeVisibleColumn: (column: Path) =>
       update(state => {
-        state.visibleColumns = state.visibleColumns.filter(c => c.join('.') !== column.join('.'));
+        state.visibleColumns = state.visibleColumns.filter(c => !pathIsEqual(c, column));
         return state;
       }),
 
@@ -54,6 +58,17 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     removeUdfColumn: (column: Column) =>
       update(state => {
         state.udfColumns = state.udfColumns.filter(c => c !== column);
+        return state;
+      }),
+
+    addSortBy: (column: Path) =>
+      update(state => {
+        state.sortBy.push(column);
+        return state;
+      }),
+    removeSortBy: (column: Path) =>
+      update(state => {
+        state.sortBy = state.sortBy.filter(c => !pathIsEqual(c, column));
         return state;
       })
   };
@@ -85,6 +100,7 @@ export function getSelectRowsOptions(
   return {
     filters: datasetViewStore.filters,
     sort_by: datasetViewStore.sortBy,
+    sort_order: datasetViewStore.sortOrder,
     columns,
     combine_columns: true
   };
