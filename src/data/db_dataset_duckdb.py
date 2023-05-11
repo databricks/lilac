@@ -1075,6 +1075,7 @@ def _col_destination_path(column: Column) -> PathTuple:
 
 
 def _root_column(manifest: SignalManifest) -> str:
+  """Returns the root column of a signal manifest."""
   field_keys = manifest.data_schema.fields.keys()
   if len(field_keys) != 2:
     raise ValueError('Expected exactly two fields in signal manifest, '

@@ -28,9 +28,8 @@ from ..schema import (
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
-from .db_dataset import val
 from .dataset_utils import lilac_item, lilac_items, lilac_span, signal_item
-from .db_dataset import Column, DatasetDB, DatasetManifest
+from .db_dataset import Column, DatasetDB, DatasetManifest, val
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
 
