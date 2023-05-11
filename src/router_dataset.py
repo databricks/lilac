@@ -156,7 +156,7 @@ class SelectRowsSchemaOptions(BaseModel):
   combine_columns: Optional[bool]
 
 
-@router.post('/{namespace}/{dataset_name}/select_rows')
+@router.post('/{namespace}/{dataset_name}/select_rows', response_model_exclude_none=True)
 def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -> list[dict]:
   """Select rows from the dataset database."""
   db = get_dataset_db(namespace, dataset_name)

@@ -63,6 +63,7 @@ watchdog = {extras = ["watchmedo"], version = "^3.0.0"}
 notebook = "^6.5.4"
 matplotlib = "^3.7.1"
 isort = "^5.12.0"
+httpx = "^0.24.0"
 
 [tool.poetry.scripts]
 

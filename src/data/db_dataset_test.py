@@ -44,8 +44,6 @@ from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
 
 ALL_DBS = [DatasetDuckDB]
 
-SIMPLE_DATASET_NAME = 'simple'
-
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
   'str': 'a',

@@ -171,7 +171,8 @@ def _wrap_in_dicts(input: Union[object, Iterable[object]],
   props = spec[0] if spec else tuple()
   if len(spec) == 1:
     return _wrap_value_in_dict(input, props)
-  if input is None:
+  if input is None or isinstance(input, float) and math.isnan(input):
+    # Return empty dict for missing inputs.
     return {}
   res = [_wrap_in_dicts(elem, spec[1:]) for elem in cast(Iterable, input)]
   return _wrap_value_in_dict(res, props)

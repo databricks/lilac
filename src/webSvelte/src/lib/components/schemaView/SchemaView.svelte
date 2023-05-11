@@ -1,5 +1,9 @@
 <script lang="ts">
-  import {useGetManifestQuery, useGetSchemaQuery, useSelectRowsSchema} from '$lib/store/apiDataset';
+  import {
+    queryDatasetManifest,
+    queryDatasetSchema,
+    querySelectRowsSchema
+  } from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/store/datasetViewStore';
   import {
     Breadcrumb,
@@ -13,8 +17,8 @@
   import SchemaField from './SchemaField.svelte';
 
   const datasetViewStore = getDatasetViewContext();
-  const schema = useGetSchemaQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
-  const manifest = useGetManifestQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  const schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  const manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: selectOptions = $schema.isSuccess
     ? getSelectRowsOptions($datasetViewStore, $schema.data)
@@ -22,7 +26,11 @@
 
   // Get the resulting schmema including UDF columns
   $: selectRowsSchema = selectOptions
-    ? useSelectRowsSchema($datasetViewStore.namespace, $datasetViewStore.datasetName, selectOptions)
+    ? querySelectRowsSchema(
+        $datasetViewStore.namespace,
+        $datasetViewStore.datasetName,
+        selectOptions
+      )
     : undefined;
 </script>
 

@@ -25,8 +25,6 @@ from .db_dataset_test_utils import make_db
 
 ALL_DBS = [DatasetDuckDB]
 
-SIMPLE_DATASET_NAME = 'simple'
-
 TEST_DATA: list[Item] = [{
   UUID_COLUMN: '1',
   'erased': False,

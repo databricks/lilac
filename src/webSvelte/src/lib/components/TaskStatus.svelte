@@ -1,9 +1,9 @@
 <script lang="ts">
-  import {useGetTaskManifestQuery} from '$lib/store/apiServer';
+  import {queryTaskManifest} from '$lib/queries/taskQueries';
   import {Loading, Popover} from 'carbon-components-svelte';
   import Checkmark from 'carbon-icons-svelte/lib/Checkmark.svelte';
 
-  const tasks = useGetTaskManifestQuery();
+  const tasks = queryTaskManifest();
   let showTasks = false;
 
   $: tasksList = Object.values($tasks.data?.tasks || {});
