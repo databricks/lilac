@@ -185,7 +185,7 @@ class SelectRowsSuite:
       },
     }])
 
-    # Select * plus a an inner `info.age` column.
+    # Select * plus an inner `info.age` column.
     result = db.select_rows(['*', ('info', 'age')])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
