@@ -137,11 +137,100 @@ def set_data_path(tmp_path: pathlib.Path) -> Generator:
 @pytest.mark.parametrize('db_cls', ALL_DBS)
 class SelectRowsSuite:
 
-  def test_default(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_select_all_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
     result = db.select_rows()
     assert list(result) == lilac_items(SIMPLE_ITEMS)
+
+  def test_select_star(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    items: list[Item] = [{
+      UUID_COLUMN: '1',
+      'name': 'A',
+      'info': {
+        'age': 40
+      }
+    }, {
+      UUID_COLUMN: '2',
+      'name': 'B',
+      'info': {
+        'age': 42
+      }
+    }]
+    db = make_db(db_cls, tmp_path, items)
+
+    # Select *.
+    result = db.select_rows(['*'])
+    assert list(result) == lilac_items(items)
+
+    # Select *, plus a redundant `info` column.
+    result = db.select_rows(['*', 'info'])
+    assert list(result) == lilac_items([{
+      UUID_COLUMN: '1',
+      'name': 'A',
+      'info': {
+        'age': 40
+      },
+      'info_2': {
+        'age': 40
+      },
+    }, {
+      UUID_COLUMN: '2',
+      'name': 'B',
+      'info': {
+        'age': 42
+      },
+      'info_2': {
+        'age': 42
+      },
+    }])
+
+    # Select * plus a an inner `info.age` column.
+    result = db.select_rows(['*', ('info', 'age')])
+    assert list(result) == lilac_items([{
+      UUID_COLUMN: '1',
+      'name': 'A',
+      'info': {
+        'age': 40
+      },
+      'info.age': 40
+    }, {
+      UUID_COLUMN: '2',
+      'name': 'B',
+      'info': {
+        'age': 42
+      },
+      'info.age': 42
+    }])
+
+  def test_select_star_with_combine_cols(self, tmp_path: pathlib.Path,
+                                         db_cls: Type[DatasetDB]) -> None:
+    items: list[Item] = [{
+      UUID_COLUMN: '1',
+      'name': 'A',
+      'info': {
+        'age': 40
+      }
+    }, {
+      UUID_COLUMN: '2',
+      'name': 'B',
+      'info': {
+        'age': 42
+      }
+    }]
+    db = make_db(db_cls, tmp_path, items)
+
+    # Select *.
+    result = db.select_rows(['*'], combine_columns=True)
+    assert list(result) == lilac_items(items)
+
+    # Select *, plus a redundant `info` column.
+    result = db.select_rows(['*', 'info'], combine_columns=True)
+    assert list(result) == lilac_items(items)
+
+    # Select * plus an inner `info.age` column.
+    result = db.select_rows(['*', ('info', 'age')], combine_columns=True)
+    assert list(result) == lilac_items(items)
 
   def test_select_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)

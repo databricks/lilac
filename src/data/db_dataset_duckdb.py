@@ -513,9 +513,13 @@ class DatasetDuckDB(DatasetDB):
                   task_id: Optional[TaskId] = None,
                   resolve_span: bool = False,
                   combine_columns: bool = False) -> SelectRowsResult:
-    if not columns:
+    columns = list(columns or [])
+
+    if not columns or '*' in columns:
       # Select all columns.
-      columns = list(self.manifest().data_schema.fields.keys())
+      columns.extend(self.manifest().data_schema.fields.keys())
+      if '*' in columns:
+        columns.remove('*')
 
     cols = [column_from_identifier(column) for column in columns or []]
     # Always return the UUID column.
@@ -657,7 +661,7 @@ class DatasetDuckDB(DatasetDB):
       df = query.df()
 
     for final_col_name, temp_columns in columns_to_merge.items():
-      for temp_col_name, column in temp_columns:
+      for temp_col_name, column in temp_columns.items():
         if combine_columns:
           dest_path = _col_destination_path(column)
           spec = _split_path_into_subpaths_of_lists(dest_path)
@@ -780,12 +784,11 @@ class DatasetDuckDB(DatasetDB):
                      columns: list[Column],
                      flatten: bool,
                      resolve_span: bool,
-                     combine_columns: bool = False
-                    ) -> tuple[str, dict[str, list[tuple[str, Column]]]]:
+                     combine_columns: bool = False) -> tuple[str, dict[str, dict[str, Column]]]:
     """Create the select statement."""
     manifest = self.manifest()
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
-    alias_to_temp_col_names: dict[str, list[tuple[str, Column]]] = {}
+    alias_to_temp_col_names: dict[str, dict[str, Column]] = {}
     select_queries: list[str] = []
 
     for column in columns:
@@ -794,8 +797,10 @@ class DatasetDuckDB(DatasetDB):
       # If `combine_columns` is True, we alias every column to `*` so that we can merge them all.
       alias = '*' if combine_columns else (column.alias or _unique_alias(column))
       if alias not in alias_to_temp_col_names:
-        alias_to_temp_col_names[alias] = []
-      alias_to_temp_col_names[alias].extend([(x, column) for x in temp_column_names])
+        alias_to_temp_col_names[alias] = {}
+      temp_name_to_column = alias_to_temp_col_names[alias]
+      for temp_col_name in temp_column_names:
+        temp_name_to_column[temp_col_name] = column
 
       select_queries.append(select_str)
     return ', '.join(select_queries), alias_to_temp_col_names
@@ -1026,7 +1031,10 @@ def _merge_cells(dest_cell: ItemValue, source_cell: ItemValue) -> None:
     for dest_subcell, source_subcell in zip(dest_cell, source_cell):
       _merge_cells(dest_subcell, source_subcell)
   else:
-    raise ValueError(f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
+    # Redundant merge, since the user selected the same column twice. This can happen when you
+    # select [parent, (parent, child)] where parent already contains child and you have
+    # `combine_columns` set to True.
+    return
 
 
 def merge_values(destination: pd.Series, source: pd.Series) -> pd.Series:
