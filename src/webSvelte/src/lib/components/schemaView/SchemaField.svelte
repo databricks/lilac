@@ -47,7 +47,9 @@
   <!-- Skip over fields that contain repeated fields -->
   <svelte:self field={field.repeated_field} {indent} {schema} />
 {:else}
-  <div class="flex w-full flex-row items-center border-b border-gray-200 py-2 hover:bg-gray-100">
+  <div
+    class="flex w-full flex-row items-center border-b border-gray-200 px-4 py-2 hover:bg-gray-100"
+  >
     <div class="w-6">
       <Checkbox
         labelText="Show"
