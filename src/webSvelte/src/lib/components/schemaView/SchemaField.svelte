@@ -1,12 +1,12 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {
-      PATH_WILDCARD,
-      VALUE_FEATURE_KEY,
-      isSignalField,
-      pathIsEqual,
-      type LilacSchema,
-      type LilacSchemaField
+    PATH_WILDCARD,
+    VALUE_FEATURE_KEY,
+    isSignalField,
+    pathIsEqual,
+    type LilacSchema,
+    type LilacSchemaField
   } from '$lilac';
   import {Checkbox, Tag} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
