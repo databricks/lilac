@@ -39,12 +39,16 @@
 {#if $rows?.isLoading || $schema.isLoading || $selectRowsSchema?.isLoading}
   <SkeletonText paragraph lines={3} />
 {:else if $rows.isError}
-  <InlineNotification lowContrast title="Could not fetch rows:" subtitle={$rows.error.message} />
+  <InlineNotification
+    lowContrast
+    title="Could not fetch rows:"
+    subtitle={$rows.error.body?.detail || $rows.error.message}
+  />
 {:else if $selectRowsSchema?.isError}
   <InlineNotification
     lowContrast
     title="Could not fetch schema:"
-    subtitle={$selectRowsSchema.error.message}
+    subtitle={$selectRowsSchema.error.body?.detail || $selectRowsSchema.error.message}
   />
 {:else if $datasetViewStore.visibleColumns.length === 0}
   <div class="mt-12 w-full text-center text-gray-600">Select fields to display</div>
