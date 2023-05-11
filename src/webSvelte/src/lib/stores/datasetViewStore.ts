@@ -2,11 +2,9 @@ import {
   listFields,
   pathIsEqual,
   type Column,
-  type Filter,
   type LilacSchema,
   type Path,
-  type SelectRowsOptions,
-  type SortOrder
+  type SelectRowsOptions
 } from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable} from 'svelte/store';
@@ -17,10 +15,7 @@ export interface IDatasetViewStore {
   namespace: string;
   datasetName: string;
   visibleColumns: Path[];
-  filters: Filter[];
-  sortBy: Path[];
-  sortOrder: SortOrder;
-  udfColumns: Column[];
+  queryOptions: SelectRowsOptions;
 }
 
 export type DatasetViewStore = ReturnType<typeof createDatasetViewStore>;
@@ -29,10 +24,14 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     namespace,
     datasetName,
     visibleColumns: [],
-    filters: [],
-    sortBy: [],
-    sortOrder: 'ASC',
-    udfColumns: []
+    queryOptions: {
+      filters: [],
+      sort_by: [],
+      sort_order: 'ASC',
+      // Add * as default field when supported here
+      columns: [],
+      combine_columns: true
+    }
   });
 
   return {
@@ -52,23 +51,25 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
 
     addUdfColumn: (column: Column) =>
       update(state => {
-        state.udfColumns?.push(column);
+        state.queryOptions.columns?.push(column);
         return state;
       }),
     removeUdfColumn: (column: Column) =>
       update(state => {
-        state.udfColumns = state.udfColumns.filter(c => c !== column);
+        state.queryOptions.columns = state.queryOptions.columns?.filter(c => c !== column);
         return state;
       }),
 
     addSortBy: (column: Path) =>
       update(state => {
-        state.sortBy.push(column);
+        state.queryOptions.sort_by?.push(column);
         return state;
       }),
     removeSortBy: (column: Path) =>
       update(state => {
-        state.sortBy = state.sortBy.filter(c => !pathIsEqual(c, column));
+        state.queryOptions.sort_by = state.queryOptions.sort_by?.filter(
+          c => !pathIsEqual(c as Path, column)
+        );
         return state;
       })
   };
@@ -92,16 +93,13 @@ export function getSelectRowsOptions(
   schema: LilacSchema
 ): SelectRowsOptions {
   // TODO: Replace with * when supported
-  const columns: (Column | Path)[] = listFields(schema).map(f => f.path);
-
-  // Add extra columns (UDF's)
-  columns.push(...datasetViewStore.udfColumns);
+  const columns: (Column | Path)[] = [
+    ...listFields(schema).map(f => f.path),
+    ...(datasetViewStore.queryOptions.columns ?? [])
+  ];
 
   return {
-    filters: datasetViewStore.filters,
-    sort_by: datasetViewStore.sortBy,
-    sort_order: datasetViewStore.sortOrder,
-    columns,
-    combine_columns: true
+    ...datasetViewStore.queryOptions,
+    columns
   };
 }

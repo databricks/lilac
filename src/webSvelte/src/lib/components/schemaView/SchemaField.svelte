@@ -6,7 +6,8 @@
     isSignalField,
     pathIsEqual,
     type LilacSchema,
-    type LilacSchemaField
+    type LilacSchemaField,
+    type Path
   } from '$lilac';
   import {Checkbox, Tag} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
@@ -34,8 +35,8 @@
   $: hasChildren = children.length > 0;
 
   $: isVisible = $datasetViewStore.visibleColumns.some(p => pathIsEqual(p, path));
-  $: isSortedBy = $datasetViewStore.sortBy.some(p => pathIsEqual(p, path));
-  $: sortOrder = $datasetViewStore.sortOrder;
+  $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => pathIsEqual(p as Path, path));
+  $: sortOrder = $datasetViewStore.queryOptions.sort_order;
 
   // Find all the child paths for a given field.
   function childFields(field?: LilacSchemaField): LilacSchemaField[] {
@@ -89,8 +90,8 @@
         type="green"
         on:click={() =>
           sortOrder === 'ASC'
-            ? ($datasetViewStore.sortOrder = 'DESC')
-            : ($datasetViewStore.sortOrder = 'ASC')}
+            ? ($datasetViewStore.queryOptions.sort_order = 'DESC')
+            : ($datasetViewStore.queryOptions.sort_order = 'ASC')}
         on:remove={() => datasetViewStore.removeSortBy(path)}
       >
         Sorted
