@@ -24,9 +24,10 @@ To run the web server in dev mode with fast edit-refresh:
 ```
 
 Format typescript files:
+
 ```sh
-npm run format --workspace src/webClientLib
-npm run format --workspace src/webSvelte
+npm run format --workspace web/lib
+npm run format --workspace web/inspector
 ```
 
 ### Configuration

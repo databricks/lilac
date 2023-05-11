@@ -76,6 +76,6 @@
   "notebook.formatOnSave.enabled": true,
   "jupyter.notebookFileRoot": "${workspaceFolder}",
   "svelte.enable-ts-plugin": true,
-  "coverage-gutters.coverageBaseDir": "src/web/src/**",
-  "vitest.commandLine": "npm run test --workspace web --"
+  "coverage-gutters.coverageBaseDir": "web/**",
+  "vitest.commandLine": "npm run test --workspace web/inspector --"
 }

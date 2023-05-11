@@ -2,12 +2,12 @@
 set -e # Fail if any of the commands below fail.
 
 echo "Linting client library..."
-npm run lint --workspace src/webClientLib
-npm run check --workspace src/webClientLib
+npm run lint --workspace web/lib
+npm run check --workspace web/lib
 
 echo "Linting svelte project..."
-npm run lint --workspace src/webSvelte
+npm run lint --workspace web/inspector
 
 echo "Building svelte project..."
-npm run check --workspace src/webSvelte
-npm run build --workspace src/webSvelte
+npm run check --workspace web/inspector
+npm run build --workspace web/inspector

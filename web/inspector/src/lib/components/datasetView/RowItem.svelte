@@ -1,9 +1,16 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {notEmpty} from '$lib/utils';
-  import {L, getValueNode, getValueNodes, listFields, type LilacValueNode} from '$lilac';
-  import type {DataTypeCasted, Path} from '$lilac/schema';
-  import {isOrdinal, pathIsEqual} from '$lilac/schema';
+  import type {DataTypeCasted, Path} from '$lilac';
+  import {
+    L,
+    getValueNode,
+    getValueNodes,
+    isOrdinal,
+    listFields,
+    pathIsEqual,
+    type LilacValueNode
+  } from '$lilac';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 
   export let row: LilacValueNode;

@@ -10,6 +10,6 @@ import type { EnrichmentType } from './EnrichmentType';
 export type EmbeddingInfo = {
     name: string;
     enrichment_type: EnrichmentType;
-    json_schema: any;
+    json_schema: Record<string, any>;
 };
 

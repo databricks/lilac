@@ -8,6 +8,6 @@
 export type LoadDatasetOptions = {
     namespace: string;
     dataset_name: string;
-    config: any;
+    config: Record<string, any>;
 };
 

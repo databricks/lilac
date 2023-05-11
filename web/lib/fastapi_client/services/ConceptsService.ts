@@ -93,7 +93,7 @@ export class ConceptsService {
         namespace: string,
         conceptName: string,
         embeddingName: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/concepts/{namespace}/{concept_name}/{embedding_name}',

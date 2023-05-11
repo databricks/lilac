@@ -127,7 +127,7 @@ export class DatasetsService {
         namespace: string,
         datasetName: string,
         requestBody: SelectRowsOptions,
-    ): CancelablePromise<Array<any>> {
+    ): CancelablePromise<Array<Record<string, any>>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/select_rows',

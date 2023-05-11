@@ -33,7 +33,7 @@ export class DataLoadersService {
      */
     public static getSourceSchema(
         sourceName: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/data_loaders/{source_name}',

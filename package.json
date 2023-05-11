@@ -17,8 +17,7 @@
     "typescript": "^5.0.0"
   },
   "workspaces": [
-    "src/web",
-    "src/webSvelte",
-    "src/webClientLib"
+    "web/lib",
+    "web/inspector"
   ]
 }
