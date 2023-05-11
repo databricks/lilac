@@ -111,7 +111,7 @@ const SELECT_ROWS_RESPONSE_FIXTURE: FieldValue = {
     propertyA: lilacItem('valueA', {
       propertyA: {
         text_statistics: {
-          num_characters: 100
+          num_characters: lilacItem(100)
         }
       }
     }),
