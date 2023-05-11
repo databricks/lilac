@@ -20,7 +20,6 @@ from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import (
-  LILAC_COLUMN,
   MANIFEST_FILENAME,
   PATH_WILDCARD,
   TEXT_SPAN_END_FEATURE,
@@ -55,7 +54,6 @@ from .dataset_utils import (
   flatten_keys,
   lilac_items,
   merge_schemas,
-  path_is_from_lilac,
   read_embedding_index,
   replace_embeddings_with_none,
   schema_contains_path,
@@ -184,16 +182,18 @@ class DatasetDuckDB(DatasetDB):
 
     merged_schema = merge_schemas([self._source_manifest.data_schema] +
                                   [m.data_schema for m in self._signal_manifests])
+
     # The logic below generates the following example query:
     # CREATE OR REPLACE VIEW t AS (
     #   SELECT
     #     source.*,
-    #     "parquet_id1"."__LILAC__" AS "parquet_id1",
-    #     "parquet_id2"."__LILAC__" AS "parquet_id2"
+    #     "parquet_id1"."root_column" AS "parquet_id1",
+    #     "parquet_id2"."root_column" AS "parquet_id2"
     #   FROM source JOIN "parquet_id1" USING (uuid,) JOIN "parquet_id2" USING (uuid,)
     # );
+    # NOTE: "root_column" for each signal is defined as the top-level column.
     select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [
-      f'"{manifest.parquet_id}"."{LILAC_COLUMN}" AS "{manifest.parquet_id}"'
+      f'"{manifest.parquet_id}"."{_root_column(manifest)}" AS "{manifest.parquet_id}"'
       for manifest in self._signal_manifests
     ])
     join_sql = ' '.join([SOURCE_VIEW_NAME] + [
@@ -752,6 +752,7 @@ class DatasetDuckDB(DatasetDB):
       self._source_manifest, *self._signal_manifests
     ]
 
+    manifests_with_path: list[Union[SourceManifest, SignalManifest]] = []
     for m in parquet_manifests:
       if not schema_contains_path(m.data_schema, path):
         # Skip this parquet file if it doesn't contain the path.
@@ -761,11 +762,17 @@ class DatasetDuckDB(DatasetDB):
         # Do not select UUID from the signal because it's already in the source.
         continue
 
+      manifests_with_path.append(m)
+
+    if not manifests_with_path:
+      raise ValueError(f'Invalid path "{path}": No manifest contains path. Valid paths: '
+                       f'{list(self.manifest().data_schema.leafs.keys())}')
+
+    for m in manifests_with_path:
       temp_column_name = column.alias or _unique_alias(column)
-      if path_is_from_lilac(path):
-        m = cast(SignalManifest, m)
+      if isinstance(m, SignalManifest):
         select_path = (m.parquet_id, *path[1:])
-        if path[-1] != VALUE_KEY and path not in leafs:
+        if len(manifests_with_path) > 1:
           # Non-leafs can have data in multiple manifests so we need to namespace.
           temp_column_name = f'{temp_column_name}/{m.parquet_id}'
       else:
@@ -1026,7 +1033,11 @@ def _merge_cells(dest_cell: ItemValue, source_cell: ItemValue) -> None:
     for dest_subcell, source_subcell in zip(dest_cell, source_cell):
       _merge_cells(dest_subcell, source_subcell)
   else:
-    raise ValueError(f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
+    # Primitives can be merged together if they are equal. This can happen if a user selects a
+    # column that is the child of another.
+    # NOTE: This can be removed if we fix https://github.com/lilacai/lilac/issues/166.
+    if source_cell != dest_cell:
+      raise ValueError(f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
 
 
 def merge_values(destination: pd.Series, source: pd.Series) -> pd.Series:
@@ -1056,15 +1067,20 @@ def _col_destination_path(column: Column) -> PathTuple:
   signal_key = column.transform.signal.key()
   # If we are enriching a value we should store the signal data in the value's parent.
   if source_path[-1] == VALUE_KEY:
-    dest_path = (LILAC_COLUMN, *source_path[:-1], signal_key)
+    dest_path = (*source_path[:-1], signal_key)
   else:
-    dest_path = (LILAC_COLUMN, *source_path, signal_key)
-
-  # If a signal is enriching output of a signal, skip the lilac prefix to avoid double prefixing.
-  if path_is_from_lilac(source_path):
-    dest_path = dest_path[1:]
+    dest_path = (*source_path, signal_key)
 
   return dest_path
+
+
+def _root_column(manifest: SignalManifest) -> str:
+  """Returns the root column of a signal manifest."""
+  field_keys = manifest.data_schema.fields.keys()
+  if len(field_keys) != 2:
+    raise ValueError('Expected exactly two fields in signal manifest, '
+                     f'the row UUID and root this signal is enriching. Got {field_keys}.')
+  return next(filter(lambda field: field != UUID_COLUMN, manifest.data_schema.fields.keys()))
 
 
 def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:
@@ -1072,9 +1088,8 @@ def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:
   for i in reversed(range(len(path))):
     sub_path = path[:i]
     if schema.get_field(sub_path).signal_root:
-      # Skip the __LILAC__ prefix and skip the signal name at the end to get the source path
-      # that was enriched. Add the value key as it specifies the exact location of the string.
-      return _make_value_path(sub_path[1:-1])
+      # Skip the signal name at the end to get the source path that was enriched.
+      return _make_value_path(sub_path[:-1])
   raise ValueError('Cannot find the source path for the enriched path: {path}')
 
 

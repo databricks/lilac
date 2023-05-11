@@ -1,6 +1,6 @@
 <script lang="ts">
   import {page} from '$app/stores';
-  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {isSignalTransform, type Column, type LilacSchemaField, type Path} from '$lilac';
   import {OverflowMenuItem} from 'carbon-components-svelte';
   import {Command, triggerCommand} from '../commands/Commands.svelte';

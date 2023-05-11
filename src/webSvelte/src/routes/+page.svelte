@@ -1,9 +1,9 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
-  import {useGetDatasetsQuery} from '$lib/store/apiDataset';
+  import {queryDatasets} from '$lib/queries/datasetQueries';
   import {Button, InlineNotification, SkeletonText, TreeView} from 'carbon-components-svelte';
 
-  const datasets = useGetDatasetsQuery();
+  const datasets = queryDatasets();
 
   // Unique namespaces
   $: namespaces = $datasets.isSuccess ? [...new Set($datasets.data.map(row => row.namespace))] : [];

@@ -3,7 +3,7 @@
   import Commands from '$lib/components/commands/Commands.svelte';
   import RowView from '$lib/components/datasetView/RowView.svelte';
   import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
-  import {createDatasetViewStore, setDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {createDatasetViewStore, setDatasetViewContext} from '$lib/stores/datasetViewStore';
 
   $: namespace = $page.params.namespace;
   $: datasetName = $page.params.datasetName;
@@ -12,7 +12,7 @@
 </script>
 
 <div class="flex h-full w-full">
-  <div class=" h-full w-1/2 border-r border-solid border-gray-200">
+  <div class=" h-full w-1/2 border-r border-gray-200">
     <SchemaView />
   </div>
   <div class="h-full w-1/2 p-4">

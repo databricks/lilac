@@ -1,5 +1,4 @@
 import {
-  LILAC_COLUMN,
   listFields,
   type Column,
   type Filter,
@@ -77,18 +76,8 @@ export function getSelectRowsOptions(
   datasetViewStore: IDatasetViewStore,
   schema: LilacSchema
 ): SelectRowsOptions {
-  const anyLilacColumns = listFields(schema).some(f => f.path[0] === LILAC_COLUMN);
-
-  // Add all columns except lilac columns
   // TODO: Replace with * when supported
-  const columns: (Column | Path)[] = listFields(schema)
-    .map(f => f.path)
-    .filter(p => p[0] !== LILAC_COLUMN);
-
-  // Add one entry for all lilac columns if any are present
-  if (anyLilacColumns) {
-    columns.push([LILAC_COLUMN]);
-  }
+  const columns: (Column | Path)[] = listFields(schema).map(f => f.path);
 
   // Add extra columns (UDF's)
   columns.push(...datasetViewStore.udfColumns);

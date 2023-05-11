@@ -1,9 +1,9 @@
 import {SignalsService, type SignalInfoWithTypedSchema} from '$lilac';
-import {createApiQuery} from './apiUtils';
+import {createApiQuery} from './queryUtils';
 
 const SIGNALS_TAG = 'signals';
 
-export const useGetSignalsQuery = createApiQuery(
+export const querySignals = createApiQuery(
   SignalsService.getSignals as () => Promise<SignalInfoWithTypedSchema[]>,
   SIGNALS_TAG
 );
