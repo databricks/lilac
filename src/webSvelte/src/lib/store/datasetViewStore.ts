@@ -17,7 +17,7 @@ export interface IDatasetViewStore {
   datasetName: string;
   visibleColumns: Path[];
   filters: Filter[];
-  sortBy?: Path[];
+  sortBy: Path[];
   udfColumns: Column[];
 }
 

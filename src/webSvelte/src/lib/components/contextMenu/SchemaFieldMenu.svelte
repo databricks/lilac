@@ -1,10 +1,12 @@
 <script lang="ts">
   import {page} from '$app/stores';
+  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import type {LilacSchemaField} from '$lilac';
   import {OverflowMenuItem} from 'carbon-components-svelte';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
 
   export let field: LilacSchemaField;
+  const datasetViewStore = getDatasetViewContext();
 </script>
 
 <OverflowMenuItem
@@ -26,4 +28,9 @@
       datasetName: $page.params.datasetName,
       path: field?.path
     })}
+/>
+
+<OverflowMenuItem
+  text="Sort by"
+  on:click={() => ($datasetViewStore.sortBy = [...$datasetViewStore.sortBy, field.path])}
 />
