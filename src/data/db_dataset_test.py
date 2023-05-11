@@ -231,6 +231,29 @@ class SelectRowsSuite:
     result = db.select_rows(['*', ('info', 'age')], combine_columns=True)
     assert list(result) == lilac_items(items)
 
+    # Select *, plus redundant `name`, plus a udf.
+    udf = SignalUDF(TestSignal(), 'name')
+    result = db.select_rows(['*', 'name', udf], combine_columns=True)
+    assert list(result) == lilac_items([{
+      UUID_COLUMN: '1',
+      'name': lilac_item('A', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
+      'info': {
+        'age': 40
+      }
+    }, {
+      UUID_COLUMN: '2',
+      'name': lilac_item('B', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
+      'info': {
+        'age': 42
+      }
+    }])
+
   def test_select_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
