@@ -1,6 +1,8 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import JsonSchemaForm from '$lib/components/JSONSchema/JSONSchemaForm.svelte';
+  import DatasetNameInput from '$lib/components/datasets/huggingface/DatasetNameInput.svelte';
+  import SplitsInput from '$lib/components/datasets/huggingface/SplitsInput.svelte';
   import {
     useGetSourceSchemaQuery,
     useGetSourcesQuery,
@@ -99,6 +101,12 @@
             hiddenProperties={['/source_name']}
             bind:value={sourceSchemaValues}
             bind:validationErrors={errors}
+            customComponents={selectedSource === 'huggingface'
+              ? {
+                  '/dataset_name': DatasetNameInput,
+                  '/split': SplitsInput
+                }
+              : {}}
           />
         {/key}
       {:else if $sourcesSchema.isError}

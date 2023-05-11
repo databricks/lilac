@@ -1,21 +1,24 @@
 <script lang="ts">
   import {QueryClientProvider} from '@tanstack/svelte-query';
-  import '../app.css';
-  // Carbon component must be imported after app.css
+
   import ApiErrorModal from '$lib/components/ApiErrorModal.svelte';
   import TaskStatus from '$lib/components/TaskStatus.svelte';
   import TaskMonitor from '$lib/store/TaskMonitor.svelte';
   import {apiErrors, queryClient} from '$lib/store/queryClient';
   import type {ApiError} from '$lilac';
   import {ToastNotification} from 'carbon-components-svelte';
+  // Styles
+  import '../tailwind.css';
+  // Carbon component must be imported after tailwind.css
   import 'carbon-components-svelte/css/white.css';
+  import '../app.css';
 
   let showError: ApiError | undefined = undefined;
 </script>
 
 <QueryClientProvider client={queryClient}>
-  <main class="flex h-screen flex-col py-2">
-    <div class="bg-base-100 flex flex-row items-center justify-between px-4">
+  <main class="flex h-screen flex-col">
+    <div class="flex flex-row items-center justify-between border-b border-gray-200 px-4 py-2">
       <a class="text-xl normal-case" href="/">Lilac Inspector</a>
       <TaskStatus />
     </div>

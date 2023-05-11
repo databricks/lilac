@@ -2,6 +2,7 @@
   /* eslint-disable @typescript-eslint/no-explicit-any */
   import {NumberInput, TextInput, Toggle} from 'carbon-components-svelte';
   import type {Draft, JSONError} from 'json-schema-library';
+  import type {SvelteComponent} from 'svelte';
   import SvelteMarkdown from 'svelte-markdown';
   import JsonSchemaArrayInput from './JSONSchemaArrayInput.svelte';
 
@@ -13,12 +14,16 @@
   export let required = false;
   /** The value of the property */
   export let value: any;
+  /** The root value of the schema */
+  export let rootValue: any;
   /** List of property keys that are hidden */
   export let hiddenProperties: string[] = [];
   /** Whether to show the description */
   export let showDescription = true;
   /** List of validation errors */
   export let validationErrors: JSONError[] = [];
+  /** Custom components to use for certain properties */
+  export let customComponents: Record<string, typeof SvelteComponent>;
 
   $: property = schema.getSchema(path, value);
   $: label = `${property.title ?? ''} ${required ? '*' : '(optional)'}`;
@@ -50,7 +55,15 @@
 </script>
 
 {#if !hiddenProperties?.includes(path)}
-  {#if property.type == 'string'}
+  {#if customComponents[path]}
+    <svelte:component
+      this={customComponents[path]}
+      bind:value
+      {rootValue}
+      invalid={!!validation.length}
+      invalidText={validationText}
+    />
+  {:else if property.type == 'string'}
     <!-- Text Input -->
     <TextInput
       bind:value
@@ -77,7 +90,14 @@
     </div>
   {:else if property.type == 'array'}
     <!-- List of inputs -->
-    <JsonSchemaArrayInput {path} bind:value {schema} {validationErrors} />
+    <JsonSchemaArrayInput
+      {path}
+      bind:value
+      {schema}
+      {validationErrors}
+      {customComponents}
+      {rootValue}
+    />
   {:else if property.type == 'object'}
     <!-- Object -->
     {#if property.description && showDescription}
@@ -92,6 +112,8 @@
         {schema}
         {hiddenProperties}
         {validationErrors}
+        {customComponents}
+        {rootValue}
         required={property.required?.includes(key)}
       />
     {/each}
