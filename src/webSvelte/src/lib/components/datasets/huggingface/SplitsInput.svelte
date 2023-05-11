@@ -5,7 +5,7 @@
   export let value: string;
   export let invalid: boolean;
   export let invalidText: string;
-  export let rootValue: Record<string, string>;
+  export let rootValue: {dataset_name: string};
 
   $: datasetName = rootValue['dataset_name'];
   const datasets = useListHFDatasetsQuery();
