@@ -1,6 +1,6 @@
 # Add 'backend' label to any change within src/ but not web* folders
 'backend':
-  - any: ['src/**/*', '!src/web*/*']
+  - any: ['src/**/*', '!src/web/*', '!src/webSvelte/*', '!src/webClientLib/*']
 
 # Add 'frontend' label to any change to webSvelte folder
 'frontend':
