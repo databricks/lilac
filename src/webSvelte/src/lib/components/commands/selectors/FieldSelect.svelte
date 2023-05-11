@@ -28,8 +28,8 @@
         .filter(field => (filter ? filter(field) : true))
     : null;
 
-  $: sourceFields = fields?.filter(f => !isSignalField(f));
-  $: signalFields = fields?.filter(f => isSignalField(f));
+  $: sourceFields = fields?.filter(f => $schema.data && !isSignalField(f, $schema.data));
+  $: signalFields = fields?.filter(f => $schema.data && isSignalField(f, $schema.data));
 
   function formatField(field: LilacSchemaField): string {
     return `${field.path.join('.')} (${field.dtype})`;

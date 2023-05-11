@@ -770,6 +770,10 @@ class DatasetDuckDB(DatasetDB):
 
       manifests_with_path.append(m)
 
+    if not manifests_with_path:
+      raise ValueError(f'Invalid path "{path}": No manifest contains path. Valid paths: '
+                       f'{list(self.manifest().data_schema.leafs.keys())}')
+
     for m in manifests_with_path:
       temp_column_name = column.alias or _unique_alias(column)
       if isinstance(m, SignalManifest):
@@ -1035,7 +1039,11 @@ def _merge_cells(dest_cell: ItemValue, source_cell: ItemValue) -> None:
     for dest_subcell, source_subcell in zip(dest_cell, source_cell):
       _merge_cells(dest_subcell, source_subcell)
   else:
-    raise ValueError(f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
+    # Primitives can be merged together if they are equal. This can happen if a user selects a
+    # column that is the child of another.
+    # NOTE: This can be removed if we fix https://github.com/lilacai/lilac/issues/166.
+    if source_cell != dest_cell:
+      raise ValueError(f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
 
 
 def merge_values(destination: pd.Series, source: pd.Series) -> pd.Series:
@@ -1077,9 +1085,8 @@ def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:
   for i in reversed(range(len(path))):
     sub_path = path[:i]
     if schema.get_field(sub_path).signal_root:
-      # Skip the __LILAC__ prefix and skip the signal name at the end to get the source path
-      # that was enriched. Add the value key as it specifies the exact location of the string.
-      return _make_value_path(sub_path[1:-1])
+      # Skip the signal name at the end to get the source path that was enriched.
+      return _make_value_path(sub_path[:-1])
   raise ValueError('Cannot find the source path for the enriched path: {path}')
 
 

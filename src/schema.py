@@ -15,9 +15,6 @@ PARQUET_FILENAME_PREFIX = 'data'
 # We choose `__rowid__` inspired by the standard `rowid` pseudocolumn in DBs:
 # https://docs.oracle.com/cd/B19306_01/server.102/b14200/pseudocolumns008.htm
 UUID_COLUMN = '__rowid__'
-# Top-level column name to namespace all the data produced by lilac. This avoids polluting the
-# source data with enriched results.
-LILAC_COLUMN = '__lilac__'
 PATH_WILDCARD = '*'
 VALUE_KEY = '__value__'
 SIGNAL_METADATA_KEY = '__metadata__'

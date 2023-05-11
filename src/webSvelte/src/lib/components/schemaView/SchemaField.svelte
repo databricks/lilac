@@ -1,12 +1,12 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/store/datasetViewStore';
   import {
-    PATH_WILDCARD,
-    VALUE_FEATURE_KEY,
-    isSignalField,
-    pathIsEqual,
-    type LilacSchema,
-    type LilacSchemaField
+      PATH_WILDCARD,
+      VALUE_FEATURE_KEY,
+      isSignalField,
+      pathIsEqual,
+      type LilacSchema,
+      type LilacSchemaField
   } from '$lilac';
   import {Checkbox, Tag} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
@@ -21,7 +21,7 @@
   let datasetViewStore = getDatasetViewContext();
 
   $: path = field.path;
-  $: signalField = isSignalField(field);
+  $: signalField = isSignalField(field, schema);
   let expanded = true;
 
   $: isRepeatedField = field.path.at(-1) === PATH_WILDCARD ? true : false;

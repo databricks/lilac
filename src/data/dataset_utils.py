@@ -13,7 +13,6 @@ from pydantic import BaseModel
 
 from ..parquet_writer import ParquetWriter
 from ..schema import (
-  LILAC_COLUMN,
   PATH_WILDCARD,
   SIGNAL_METADATA_KEY,
   TEXT_SPAN_END_FEATURE,
@@ -78,7 +77,7 @@ def _wrap_primitive_values(input: Union[Item, ItemValue]) -> Union[Item, ItemVal
   return {VALUE_KEY: input}
 
 
-def lilac_items(items: Iterable[Item]) -> Iterable[Item]:
+def lilac_items(items: Iterable[Union[Item, ItemValue]]) -> Iterable[Item]:
   """A util for testing that converts items to their primitive wrapped items."""
   if isinstance(items, (list, Sequence)):
     return [cast(Item, _wrap_primitive_values(item)) for item in items]
@@ -230,11 +229,6 @@ def schema_contains_path(schema: Schema, path: PathTuple) -> bool:
         return False
       current_field = current_field.fields[str(path_part)]
   return True
-
-
-def path_is_from_lilac(path: PathTuple) -> bool:
-  """Check if a path is from lilac."""
-  return path[0] == LILAC_COLUMN
 
 
 def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema: Schema) -> Schema:

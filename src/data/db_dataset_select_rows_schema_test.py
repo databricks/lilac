@@ -7,7 +7,6 @@ import pytest
 
 from ..config import CONFIG
 from ..schema import (
-  LILAC_COLUMN,
   UUID_COLUMN,
   EnrichmentType,
   Field,
@@ -183,17 +182,13 @@ class SelectRowsSchemaSuite:
     assert result == schema({
       UUID_COLUMN: 'string',
       'people': [{
+        'name': {
+          'length_signal': signal_field(dtype='int32')
+        },
         'locations': [{
           'city': 'string'
         }]
       }],
-      LILAC_COLUMN: {
-        'people': [{
-          'name': {
-            'length_signal': signal_field(dtype='int32')
-          }
-        }]
-      }
     })
 
   def test_embedding_udf_with_combine_cols(self, tmp_path: pathlib.Path,
@@ -201,23 +196,20 @@ class SelectRowsSchemaSuite:
     db = make_db(db_cls, tmp_path, TEST_DATA)
 
     db.compute_signal(AddSpaceSignal(), ('people', '*', 'name'))
-    result = db.select_rows_schema(
-      [('people', '*', 'name'), (LILAC_COLUMN,),
-       SignalUDF(AddSpaceSignal(), (LILAC_COLUMN, 'people', '*', 'name', 'add_space_signal'))],
-      combine_columns=True)
+    result = db.select_rows_schema([('people', '*', 'name'),
+                                    SignalUDF(AddSpaceSignal(),
+                                              ('people', '*', 'name', 'add_space_signal'))],
+                                   combine_columns=True)
     assert result == schema({
       UUID_COLUMN: 'string',
       'people': [{
-        'name': 'string'
-      }],
-      LILAC_COLUMN: {
-        'people': [{
-          'name': {
+        'name': field(
+          {
             'add_space_signal': signal_field({
               'add_space_signal': signal_field(dtype='string'),
             },
                                              dtype='string')
-          }
-        }]
-      }
+          },
+          dtype='string')
+      }],
     })
