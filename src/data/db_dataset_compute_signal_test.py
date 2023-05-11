@@ -369,30 +369,25 @@ class ComputeSignalItemsSuite:
       num_items=3)
 
     result = db.select_rows(['str'])
-    assert list(result) == lilac_items([
-      {
-        UUID_COLUMN: '1',
-        'str': lilac_item('a', {'test_signal': {
-          'len': 1,
-          'flen': 1.0
-        }}),
-      },
-      {
-        UUID_COLUMN: '2',
-        'str': lilac_item('b', {'test_signal': {
-          'len': 1,
-          'flen': 1.0
-        }}),
-      },
-      {
-        UUID_COLUMN: '3',
-        # TODO BEFORE SUBMITTING: Make the third item actually 'c'.
-        'str': lilac_item('b', {'test_signal': {
-          'len': 1,
-          'flen': 1.0
-        }}),
-      }
-    ])
+    assert list(result) == lilac_items([{
+      UUID_COLUMN: '1',
+      'str': lilac_item('a', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
+    }, {
+      UUID_COLUMN: '2',
+      'str': lilac_item('b', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
+    }, {
+      UUID_COLUMN: '3',
+      'str': lilac_item('b', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
+    }])
 
     # Select a specific signal leaf test_signal.flen with val('str').
     result = db.select_rows([val('str'), ('str', 'test_signal', 'flen')])

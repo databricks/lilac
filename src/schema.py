@@ -380,7 +380,7 @@ def dtype_to_arrow_schema(dtype: DataType) -> Union[pa.Schema, pa.DataType]:
   elif dtype == DataType.INTERVAL:
     return pa.duration('us')
   elif dtype == DataType.EMBEDDING:
-    # We reserve an empty column for embeddings in parquet files so they can live under __lilac__.
+    # We reserve an empty column for embeddings in parquet files so they can be queried.
     # The values are *not* filled out. If parquet and duckdb support embeddings in the future, we
     # can set this dtype to the relevant pyarrow type.
     return pa.null()

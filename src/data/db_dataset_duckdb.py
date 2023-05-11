@@ -187,19 +187,13 @@ class DatasetDuckDB(DatasetDB):
     # CREATE OR REPLACE VIEW t AS (
     #   SELECT
     #     source.*,
-    #     "parquet_id1"."__LILAC__" AS "parquet_id1",
-    #     "parquet_id2"."__LILAC__" AS "parquet_id2"
+    #     "parquet_id1"."root_column" AS "parquet_id1",
+    #     "parquet_id2"."root_column" AS "parquet_id2"
     #   FROM source JOIN "parquet_id1" USING (uuid,) JOIN "parquet_id2" USING (uuid,)
     # );
-    def _top_level_key(manifest: SignalManifest) -> str:
-      field_keys = manifest.data_schema.fields.keys()
-      if len(field_keys) != 2:
-        raise ValueError('Expected exactly two fields in signal manifest, '
-                         f'the row UUID and root this signal is enriching. Got {field_keys}.')
-      return next(filter(lambda field: field != UUID_COLUMN, manifest.data_schema.fields.keys()))
-
+    # NOTE: "root_column" for each signal is defined as the top-level column.
     select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [
-      f'"{manifest.parquet_id}"."{_top_level_key(manifest)}" AS "{manifest.parquet_id}"'
+      f'"{manifest.parquet_id}"."{_root_column(manifest)}" AS "{manifest.parquet_id}"'
       for manifest in self._signal_manifests
     ])
     join_sql = ' '.join([SOURCE_VIEW_NAME] + [
@@ -1078,6 +1072,14 @@ def _col_destination_path(column: Column) -> PathTuple:
     dest_path = (*source_path, signal_key)
 
   return dest_path
+
+
+def _root_column(manifest: SignalManifest) -> str:
+  field_keys = manifest.data_schema.fields.keys()
+  if len(field_keys) != 2:
+    raise ValueError('Expected exactly two fields in signal manifest, '
+                     f'the row UUID and root this signal is enriching. Got {field_keys}.')
+  return next(filter(lambda field: field != UUID_COLUMN, manifest.data_schema.fields.keys()))
 
 
 def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:

@@ -21,7 +21,6 @@ export type Path = Array<string>;
 
 export const PATH_WILDCARD = '*';
 export const UUID_COLUMN = '__rowid__';
-export const LILAC_COLUMN = '__lilac__';
 export const VALUE_FEATURE_KEY = '__value__';
 
 export const ENRICHMENT_TYPE_TO_VALID_DTYPES: Record<EnrichmentType, DataType[]> = {
