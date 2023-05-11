@@ -4,7 +4,7 @@
     queryDatasetSchema,
     querySelectRowsSchema
   } from '$lib/queries/datasetQueries';
-  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/store/datasetViewStore';
+  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {
     Breadcrumb,
     BreadcrumbItem,
