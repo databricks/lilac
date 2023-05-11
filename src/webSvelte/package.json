@@ -42,6 +42,7 @@
     "@tanstack/svelte-query": "^4.29.5",
     "carbon-components-svelte": "^0.73.5",
     "carbon-icons-svelte": "^11.4.0",
+    "deep-equal": "^2.2.1",
     "json-schema": "^0.4.0",
     "json-schema-library": "^7.4.7",
     "svelte-bootstrap-icons": "^2.3.1",

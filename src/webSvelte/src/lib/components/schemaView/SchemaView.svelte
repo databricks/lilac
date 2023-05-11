@@ -48,27 +48,27 @@
     rows)
   </div>
 
-  {#if $selectRowsSchema?.isLoading}
-    <SkeletonText paragraph lines={3} />
-  {:else if $selectRowsSchema?.isSuccess && $selectRowsSchema.data.fields}
-    <Tabs>
-      <Tab label="Schema" />
-      <Tab label="Raw Query" />
-      <svelte:fragment slot="content">
-        <TabContent>
+  <Tabs>
+    <Tab label="Schema" />
+    <Tab label="Raw Query" />
+    <svelte:fragment slot="content">
+      <TabContent>
+        {#if $selectRowsSchema?.isLoading}
+          <SkeletonText paragraph lines={3} />
+        {:else if $selectRowsSchema?.isSuccess && $selectRowsSchema.data.fields}
           {#each Object.keys($selectRowsSchema.data.fields) as key (key)}
             <SchemaField
               schema={$selectRowsSchema.data}
               field={$selectRowsSchema.data.fields[key]}
             />
           {/each}
-        </TabContent>
-        <TabContent>
-          <QueryBuilder />
-        </TabContent>
-      </svelte:fragment>
-    </Tabs>
-  {/if}
+        {/if}
+      </TabContent>
+      <TabContent>
+        <QueryBuilder />
+      </TabContent>
+    </svelte:fragment>
+  </Tabs>
 </div>
 
 <style>
