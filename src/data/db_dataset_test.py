@@ -11,9 +11,9 @@ from ..config import CONFIG
 from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
-  LILAC_COLUMN,
   SIGNAL_METADATA_KEY,
   UUID_COLUMN,
+  VALUE_KEY,
   DataType,
   EnrichmentType,
   Field,
@@ -28,7 +28,7 @@ from ..schema import (
 )
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
-from .dataset_utils import lilac_items, signal_item
+from .dataset_utils import lilac_item, lilac_items, signal_item
 from .db_dataset import (
   Column,
   Comparison,
@@ -37,6 +37,7 @@ from .db_dataset import (
   FilterTuple,
   SignalUDF,
   SortOrder,
+  val,
 )
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
@@ -252,109 +253,98 @@ class SelectRowsSuite:
     length_signal = LengthSignal()
     db.compute_signal(length_signal, 'text')
 
-    result = db.select_rows(['text', LILAC_COLUMN])
+    result = db.select_rows(['text'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
-      'text': 'hello',
-      LILAC_COLUMN: {
-        'text': {
-          'length_signal': 5,
-          'test_signal': {
-            'len': 5,
-            'flen': 5.0
-          }
-        }
-      }
-    }, {
-      UUID_COLUMN: '2',
-      'text': 'everybody',
-      LILAC_COLUMN: {
-        'text': {
-          'length_signal': 9,
-          'test_signal': {
-            'len': 9,
-            'flen': 9.0
-          }
-        }
-      }
-    }])
-
-    # Test subselection.
-    result = db.select_rows(['text', (LILAC_COLUMN, 'text')])
-    assert list(result) == lilac_items([{
-      UUID_COLUMN: '1',
-      'text': 'hello',
-      f'{LILAC_COLUMN}.text': {
+      'text': lilac_item('hello', {
         'length_signal': 5,
         'test_signal': {
           'len': 5,
           'flen': 5.0
         }
-      }
+      })
     }, {
       UUID_COLUMN: '2',
-      'text': 'everybody',
-      f'{LILAC_COLUMN}.text': {
+      'text': lilac_item('everybody', {
         'length_signal': 9,
         'test_signal': {
           'len': 9,
           'flen': 9.0
         }
-      }
+      }),
     }])
 
-    result = db.select_rows([
-      'text', (LILAC_COLUMN, 'text', 'test_signal', 'flen'),
-      (LILAC_COLUMN, 'text', 'test_signal', 'len')
-    ])
-    assert list(result) == lilac_items([{
+    # Test subselection.
+    result = db.select_rows(
+      [val('text'), ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')])
+    assert list(result) == [{
       UUID_COLUMN: '1',
-      'text': 'hello',
-      f'{LILAC_COLUMN}.text.test_signal.flen': 5.0,
-      f'{LILAC_COLUMN}.text.test_signal.len': 5
+      f'text.{VALUE_KEY}': 'hello',
+      'text.test_signal.flen': lilac_item(5.0),
+      'text.test_signal.len': lilac_item(5)
     }, {
       UUID_COLUMN: '2',
-      'text': 'everybody',
-      f'{LILAC_COLUMN}.text.test_signal.flen': 9.0,
-      f'{LILAC_COLUMN}.text.test_signal.len': 9
+      f'text.{VALUE_KEY}': 'everybody',
+      'text.test_signal.flen': lilac_item(9.0),
+      'text.test_signal.len': lilac_item(9)
+    }]
+
+    # Test subselection with combine_columns=True.
+    result = db.select_rows(
+      ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')],
+      combine_columns=True)
+    assert list(result) == lilac_items([{
+      UUID_COLUMN: '1',
+      'text': lilac_item('hello', {
+        'length_signal': 5,
+        'test_signal': {
+          'len': 5,
+          'flen': 5.0
+        }
+      })
+    }, {
+      UUID_COLUMN: '2',
+      'text': lilac_item('everybody', {
+        'length_signal': 9,
+        'test_signal': {
+          'len': 9,
+          'flen': 9.0
+        }
+      }),
     }])
 
     # Test subselection with aliasing.
     result = db.select_rows(
-      columns=['text',
-               Column((LILAC_COLUMN, 'text', 'test_signal', 'len'), alias='metadata')])
-    assert list(result) == lilac_items([{
+      columns=[val('text'), Column(('text', 'test_signal', 'len'), alias='metadata')])
+    assert list(result) == [{
       UUID_COLUMN: '1',
-      'text': 'hello',
-      'metadata': 5
+      f'text.{VALUE_KEY}': 'hello',
+      'metadata': lilac_item(5)
     }, {
       UUID_COLUMN: '2',
-      'text': 'everybody',
-      'metadata': 9
-    }])
+      f'text.{VALUE_KEY}': 'everybody',
+      'metadata': lilac_item(9)
+    }]
 
-    result = db.select_rows(
-      columns=['text', Column((LILAC_COLUMN, 'text'), alias='text_enrichment')])
+    result = db.select_rows(columns=[Column(('text'), alias='text_enrichment')])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
-      'text': 'hello',
-      'text_enrichment': {
+      'text_enrichment': lilac_item('hello', {
         'length_signal': 5,
         'test_signal': {
           'len': 5,
           'flen': 5.0
         }
-      }
+      })
     }, {
       UUID_COLUMN: '2',
-      'text': 'everybody',
-      'text_enrichment': {
+      'text_enrichment': lilac_item('everybody', {
         'length_signal': 9,
         'test_signal': {
           'len': 9,
           'flen': 9.0
         }
-      }
+      })
     }])
 
   def test_merge_array_values(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -377,80 +367,80 @@ class SelectRowsSuite:
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'texts': ['string'],
-        LILAC_COLUMN: {
-          'texts': [{
-            'length_signal': signal_field('int32'),
-            'test_signal': signal_field({
-              'len': 'int32',
-              'flen': 'float32'
-            })
-          }]
-        }
+        'texts': [
+          field(
+            {
+              'length_signal': signal_field('int32'),
+              'test_signal': signal_field({
+                'len': 'int32',
+                'flen': 'float32'
+              })
+            },
+            dtype='string')
+        ],
       }),
       num_items=2)
 
-    result = db.select_rows(['texts', LILAC_COLUMN])
+    result = db.select_rows(['texts'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
-      'texts': ['hello', 'everybody'],
-      LILAC_COLUMN: {
-        'texts': [{
+      'texts': [
+        lilac_item('hello', {
           'length_signal': 5,
           'test_signal': {
             'len': 5,
             'flen': 5.0
           }
-        }, {
+        }),
+        lilac_item('everybody', {
           'length_signal': 9,
           'test_signal': {
             'len': 9,
             'flen': 9.0
           }
-        }]
-      }
+        })
+      ],
     }, {
       UUID_COLUMN: '2',
-      'texts': ['a', 'bc', 'def'],
-      LILAC_COLUMN: {
-        'texts': [{
+      'texts': [
+        lilac_item('a', {
           'length_signal': 1,
           'test_signal': {
             'len': 1,
             'flen': 1.0
           }
-        }, {
+        }),
+        lilac_item('bc', {
           'length_signal': 2,
           'test_signal': {
             'len': 2,
             'flen': 2.0
           }
-        }, {
+        }),
+        lilac_item('def', {
           'length_signal': 3,
           'test_signal': {
             'len': 3,
             'flen': 3.0
           }
-        }]
-      }
+        })
+      ],
     }])
 
     # Test subselection.
-    result = db.select_rows([
-      'texts', (LILAC_COLUMN, 'texts', '*', 'length_signal'),
-      (LILAC_COLUMN, 'texts', '*', 'test_signal', 'flen')
-    ])
-    assert list(result) == lilac_items([{
+    result = db.select_rows(
+      [val(('texts', '*')), ('texts', '*', 'length_signal'), ('texts', '*', 'test_signal', 'flen')])
+    assert list(result) == [{
       UUID_COLUMN: '1',
-      'texts': ['hello', 'everybody'],
-      f'{LILAC_COLUMN}.texts.*.test_signal.flen': [5.0, 9.0],
-      f'{LILAC_COLUMN}.texts.*.length_signal': [5, 9]
+      f'texts.*.{VALUE_KEY}': ['hello', 'everybody'],
+      'texts.*.test_signal.flen': lilac_items([5.0, 9.0]),
+      'texts.*.length_signal': lilac_items([5, 9])
     }, {
       UUID_COLUMN: '2',
-      'texts': ['a', 'bc', 'def'],
-      f'{LILAC_COLUMN}.texts.*.test_signal.flen': [1.0, 2.0, 3.0],
-      f'{LILAC_COLUMN}.texts.*.length_signal': [1, 2, 3]
-    }])
+      f'texts.*.{VALUE_KEY}': ['a', 'bc', 'def'],
+      'texts.*.test_signal.flen': lilac_items([1.0, 2.0, 3.0]),
+      'texts.*.length_signal': lilac_items([1, 2, 3])
+    }]
 
   def test_combining_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
@@ -570,20 +560,10 @@ class SelectRowsSuite:
     result = db.select_rows(['text', udf_col], combine_columns=True)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
-      'text': 'hello',
-      LILAC_COLUMN: {
-        'text': {
-          'length_signal': 5
-        }
-      }
+      'text': lilac_item('hello', {'length_signal': 5})
     }, {
       UUID_COLUMN: '2',
-      'text': 'everybody',
-      LILAC_COLUMN: {
-        'text': {
-          'length_signal': 9
-        }
-      }
+      'text': lilac_item('everybody', {'length_signal': 9})
     }])
 
   def test_udf(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -787,36 +767,33 @@ class SelectRowsSuite:
 
     db.compute_signal(TestEmbedding(), 'text')
 
-    signal_col = SignalUDF(
-      TestEmbeddingSumSignal(), column=(LILAC_COLUMN, 'text', TEST_EMBEDDING_NAME))
-    result = db.select_rows(['text', signal_col])
+    signal_col = SignalUDF(TestEmbeddingSumSignal(), column=('text', TEST_EMBEDDING_NAME))
+    result = db.select_rows([val('text'), signal_col])
 
-    expected_result = lilac_items([{
+    expected_result: list[Item] = [{
       UUID_COLUMN: '1',
-      'text': 'hello.',
-      'test_embedding_sum(__lilac__.text.test_embedding)': 1.0
+      f'text.{VALUE_KEY}': 'hello.',
+      'test_embedding_sum(text.test_embedding)': lilac_item(1.0)
     }, {
       UUID_COLUMN: '2',
-      'text': 'hello2.',
-      'test_embedding_sum(__lilac__.text.test_embedding)': 2.0
-    }])
+      f'text.{VALUE_KEY}': 'hello2.',
+      'test_embedding_sum(text.test_embedding)': lilac_item(2.0)
+    }]
     assert list(result) == expected_result
 
     # Select rows with alias.
     signal_col = SignalUDF(
-      TestEmbeddingSumSignal(),
-      Column((LILAC_COLUMN, 'text', TEST_EMBEDDING_NAME)),
-      alias='emb_sum')
-    result = db.select_rows(['text', signal_col])
-    expected_result = lilac_items([{
+      TestEmbeddingSumSignal(), Column(('text', TEST_EMBEDDING_NAME)), alias='emb_sum')
+    result = db.select_rows([val('text'), signal_col])
+    expected_result = [{
       UUID_COLUMN: '1',
-      'text': 'hello.',
-      'emb_sum': 1.0
+      f'text.{VALUE_KEY}': 'hello.',
+      'emb_sum': lilac_item(1.0)
     }, {
       UUID_COLUMN: '2',
-      'text': 'hello2.',
-      'emb_sum': 2.0
-    }])
+      f'text.{VALUE_KEY}': 'hello2.',
+      'emb_sum': lilac_item(2.0)
+    }]
     assert list(result) == expected_result
 
   def test_udf_with_nested_embedding(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -833,18 +810,17 @@ class SelectRowsSuite:
 
     db.compute_signal(TestEmbedding(), ('text', '*'))
 
-    signal_col = SignalUDF(TestEmbeddingSumSignal(),
-                           (LILAC_COLUMN, 'text', '*', TEST_EMBEDDING_NAME))
-    result = db.select_rows(['text', signal_col])
-    expected_result = lilac_items([{
+    signal_col = SignalUDF(TestEmbeddingSumSignal(), ('text', '*', TEST_EMBEDDING_NAME))
+    result = db.select_rows([val(('text', '*')), signal_col])
+    expected_result = [{
       UUID_COLUMN: '1',
-      'text': ['hello.', 'hello world.'],
-      'test_embedding_sum(__lilac__.text.*.test_embedding)': [1.0, 3.0]
+      f'text.*.{VALUE_KEY}': ['hello.', 'hello world.'],
+      'test_embedding_sum(text.*.test_embedding)': lilac_items([1.0, 3.0])
     }, {
       UUID_COLUMN: '2',
-      'text': ['hello world2.', 'hello2.'],
-      'test_embedding_sum(__lilac__.text.*.test_embedding)': [4.0, 2.0]
-    }])
+      f'text.*.{VALUE_KEY}': ['hello world2.', 'hello2.'],
+      'test_embedding_sum(text.*.test_embedding)': lilac_items([4.0, 2.0])
+    }]
     assert list(result) == expected_result
 
   def test_source_joined_with_named_signal_column(self, tmp_path: pathlib.Path,
@@ -864,31 +840,6 @@ class SelectRowsSuite:
 
     test_signal = TestSignal()
     db.compute_signal(test_signal, 'str')
-    result = db.select_rows(
-      ['str', Column((LILAC_COLUMN, 'str', 'test_signal'), alias='test_signal_on_str')])
-
-    assert list(result) == lilac_items([{
-      UUID_COLUMN: '1',
-      'str': 'a',
-      'test_signal_on_str': {
-        'len': 1,
-        'flen': 1.0
-      }
-    }, {
-      UUID_COLUMN: '2',
-      'str': 'b',
-      'test_signal_on_str': {
-        'len': 1,
-        'flen': 1.0
-      }
-    }, {
-      UUID_COLUMN: '3',
-      'str': 'b',
-      'test_signal_on_str': {
-        'len': 1,
-        'flen': 1.0
-      }
-    }])
 
     # Check the enriched dataset manifest has 'text' enriched.
     assert db.manifest() == DatasetManifest(
@@ -896,20 +847,78 @@ class SelectRowsSuite:
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'str': 'string',
+        'str': field({'test_signal': signal_field({
+          'len': 'int32',
+          'flen': 'float32'
+        })},
+                     dtype='string'),
         'int': 'int32',
         'bool': 'boolean',
         'float': 'float32',
-        LILAC_COLUMN: {
-          'str': {
-            'test_signal': signal_field({
-              'len': 'int32',
-              'flen': 'float32'
-            })
-          }
-        }
       }),
       num_items=3)
+
+    # Select both columns, without val() on str.
+    result = db.select_rows(['str', Column(('str', 'test_signal'), alias='test_signal_on_str')])
+
+    assert list(result) == lilac_items([{
+      UUID_COLUMN: '1',
+      'str': lilac_item('a', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
+      'test_signal_on_str': {
+        'len': 1,
+        'flen': 1.0
+      }
+    }, {
+      UUID_COLUMN: '2',
+      'str': lilac_item('b', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
+      'test_signal_on_str': {
+        'len': 1,
+        'flen': 1.0
+      }
+    }, {
+      UUID_COLUMN: '3',
+      'str': lilac_item('b', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
+      'test_signal_on_str': {
+        'len': 1,
+        'flen': 1.0
+      }
+    }])
+
+    # Select both columns, with val() on str.
+    result = db.select_rows(
+      [val('str'), Column(('str', 'test_signal'), alias='test_signal_on_str')])
+
+    assert list(result) == [{
+      UUID_COLUMN: '1',
+      f'str.{VALUE_KEY}': 'a',
+      'test_signal_on_str': {
+        'len': lilac_item(1),
+        'flen': lilac_item(1.0)
+      }
+    }, {
+      UUID_COLUMN: '2',
+      f'str.{VALUE_KEY}': 'b',
+      'test_signal_on_str': {
+        'len': lilac_item(1),
+        'flen': lilac_item(1.0)
+      }
+    }, {
+      UUID_COLUMN: '3',
+      f'str.{VALUE_KEY}': 'b',
+      'test_signal_on_str': {
+        'len': lilac_item(1),
+        'flen': lilac_item(1.0)
+      }
+    }]
 
   def test_invalid_column_paths(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
@@ -929,10 +938,10 @@ class SelectRowsSuite:
     db.compute_signal(test_signal, ('text2', '*'))
 
     with pytest.raises(ValueError, match='Path part "invalid" not found in the dataset'):
-      db.select_rows([(LILAC_COLUMN, 'text', 'test_signal', 'invalid')])
+      db.select_rows([('text', 'test_signal', 'invalid')])
 
     with pytest.raises(ValueError, match='Selecting a specific index of a repeated field'):
-      db.select_rows([(LILAC_COLUMN, 'text2', 4, 'test_signal')])
+      db.select_rows([('text2', 4, 'test_signal')])
 
   def test_sort(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)

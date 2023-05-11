@@ -1,7 +1,6 @@
 import type {JSONSchema7} from 'json-schema';
 import type {DataType, Field, Schema, SignalInfo} from './fastapi_client';
 import {
-  LILAC_COLUMN,
   PATH_WILDCARD,
   VALUE_FEATURE_KEY as VALUE_KEY,
   pathIsEqual,
@@ -10,7 +9,6 @@ import {
   type LeafValue,
   type Path
 } from './schema';
-import {mergeDeep} from './utils';
 
 const PATH_KEY = '__path__';
 const SCHEMA_FIELD_KEY = '__field__';
@@ -62,39 +60,25 @@ export function deserializeSchema(rawSchema: Schema): LilacSchema {
     return {fields: {}, path: []};
   }
 
-  const {[LILAC_COLUMN]: signalsFields, ...rest} = lilacFields.fields;
-  let fields = rest;
-
-  // Merge the signal fields into the source fields
-  if (signalsFields?.fields) {
-    fields = mergeDeep(fields, signalsFields.fields);
-  }
-
   // Convert the fields to LilacSchemaField
-  return {fields, path: []};
+  return {fields: lilacFields.fields, path: []};
 }
 
 export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacValueNode {
   const fields = listFields(schema);
-  const children = lilacValueNodeFromRawValue(rawRow, fields, []);
+  const rootNode = lilacValueNodeFromRawValue(rawRow, fields, []);
 
-  if (Array.isArray(children)) {
+  if (Array.isArray(rootNode)) {
     throw new Error('Expected row to have a single root node');
   }
-  if (!children) {
+  if (!rootNode) {
     throw new Error('Expected row to have children');
   }
 
-  const {[LILAC_COLUMN]: signalValues, ...values} = children;
-
-  // Merge signal values into the source values
-  let mergedNode: LilacValueNode = values;
-  if (signalValues) mergedNode = mergeDeep(values, signalValues);
-
-  castLilacValueNode(mergedNode)[VALUE_KEY] = null;
-  castLilacValueNode(mergedNode)[PATH_KEY] = [];
-  castLilacValueNode(mergedNode)[SCHEMA_FIELD_KEY] = schema;
-  return mergedNode;
+  castLilacValueNode(rootNode)[VALUE_KEY] = null;
+  castLilacValueNode(rootNode)[PATH_KEY] = [];
+  castLilacValueNode(rootNode)[SCHEMA_FIELD_KEY] = schema;
+  return rootNode;
 }
 
 /** List all fields as a flattend array */
@@ -162,10 +146,24 @@ export function getValueNodes(row: LilacValueNode, _path: Path): LilacValueNode[
 }
 
 /**
- * Determine if field is produced by a signal
+ * Determine if field is produced by a signal. We do this by walking the schema from the root to the
+ * field, and checking if a parent has a signal_root.
  */
-export function isSignalField(field: LilacSchemaField): boolean {
-  return field.path[0] === LILAC_COLUMN;
+export function isSignalField(
+  field: LilacSchemaField,
+  schema: LilacSchemaField,
+  hasSignalRootParent = false
+): boolean {
+  if (schema.signal_root) {
+    hasSignalRootParent = true;
+  }
+  if (schema === field) return hasSignalRootParent;
+  if (schema.fields != null) {
+    return Object.values(schema.fields).some(f => isSignalField(field, f, hasSignalRootParent));
+  } else if (schema.repeated_field != null) {
+    return isSignalField(field, schema.repeated_field, hasSignalRootParent);
+  }
+  return false;
 }
 
 export const L = {
