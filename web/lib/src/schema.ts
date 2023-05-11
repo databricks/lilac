@@ -5,7 +5,7 @@ import type {
   EnrichmentType,
   Signal,
   SignalTransform
-} from './fastapi_client';
+} from '../fastapi_client';
 export type LeafValue = number | boolean | string | null;
 export type FieldValue = FieldValue[] | {[fieldName: string]: FieldValue} | LeafValue;
 

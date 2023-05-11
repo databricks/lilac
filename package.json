@@ -14,7 +14,8 @@
     "prettier-plugin-organize-imports": "^3.2.2",
     "prettier-plugin-svelte": "^2.10.0",
     "prettier-plugin-tailwindcss": "^0.2.8",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^0.31.0"
   },
   "workspaces": [
     "web/lib",
