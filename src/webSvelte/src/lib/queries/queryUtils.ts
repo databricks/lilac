@@ -1,5 +1,5 @@
 /**
- * Utils for RTK Query APIs.
+ * Utils for Lilac APIs.
  */
 
 import type {ApiError} from '$lilac';

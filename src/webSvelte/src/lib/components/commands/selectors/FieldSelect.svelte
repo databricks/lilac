@@ -1,6 +1,6 @@
 <script lang="ts">
-  import {useGetSchemaQuery} from '$lib/store/apiDataset';
-  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {queryDatasetSchema} from '$lib/queries/datasetQueries';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     isSignalField,
     listFields,
@@ -20,7 +20,7 @@
 
   const datasetViewStore = getDatasetViewContext();
 
-  $: schema = useGetSchemaQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: fields = $schema.isSuccess
     ? listFields($schema.data)
@@ -28,8 +28,8 @@
         .filter(field => (filter ? filter(field) : true))
     : null;
 
-  $: sourceFields = fields?.filter(f => !isSignalField(f));
-  $: signalFields = fields?.filter(f => isSignalField(f));
+  $: sourceFields = fields?.filter(f => $schema.data && !isSignalField(f, $schema.data));
+  $: signalFields = fields?.filter(f => $schema.data && isSignalField(f, $schema.data));
 
   function formatField(field: LilacSchemaField): string {
     return `${field.path.join('.')} (${field.dtype})`;

@@ -1,12 +1,12 @@
 <script lang="ts">
-  import {useGetSignalsQuery} from '$lib/store/apiSignal';
+  import {querySignals} from '$lib/queries/signalQueries';
   import type {SignalInfoWithTypedSchema} from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
 
   export let defaultSignal: string | undefined = undefined;
   export let signal: SignalInfoWithTypedSchema | undefined = undefined;
 
-  const signals = useGetSignalsQuery();
+  const signals = querySignals();
 
   $: {
     if ($signals.isSuccess && !signal) {

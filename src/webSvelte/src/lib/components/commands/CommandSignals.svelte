@@ -1,6 +1,6 @@
 <script lang="ts">
-  import {useComputeSignalColumnMutation} from '$lib/store/apiDataset';
-  import {getDatasetViewContext} from '$lib/store/datasetViewStore';
+  import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     ENRICHMENT_TYPE_TO_VALID_DTYPES,
     type LilacSchemaField,
@@ -28,7 +28,7 @@
   const datasetViewStore = getDatasetViewContext();
   const dispatch = createEventDispatcher();
 
-  const computeSignalMutation = useComputeSignalColumnMutation();
+  const computeSignalMutation = computeSignalColumnMutation();
 
   $: {
     if (signalInfo?.name) setSignalName(signalInfo.name);

@@ -15,9 +15,6 @@ PARQUET_FILENAME_PREFIX = 'data'
 # We choose `__rowid__` inspired by the standard `rowid` pseudocolumn in DBs:
 # https://docs.oracle.com/cd/B19306_01/server.102/b14200/pseudocolumns008.htm
 UUID_COLUMN = '__rowid__'
-# Top-level column name to namespace all the data produced by lilac. This avoids polluting the
-# source data with enriched results.
-LILAC_COLUMN = '__lilac__'
 PATH_WILDCARD = '*'
 VALUE_KEY = '__value__'
 SIGNAL_METADATA_KEY = '__metadata__'
@@ -383,7 +380,7 @@ def dtype_to_arrow_schema(dtype: DataType) -> Union[pa.Schema, pa.DataType]:
   elif dtype == DataType.INTERVAL:
     return pa.duration('us')
   elif dtype == DataType.EMBEDDING:
-    # We reserve an empty column for embeddings in parquet files so they can live under __lilac__.
+    # We reserve an empty column for embeddings in parquet files so they can be queried.
     # The values are *not* filled out. If parquet and duckdb support embeddings in the future, we
     # can set this dtype to the relevant pyarrow type.
     return pa.null()

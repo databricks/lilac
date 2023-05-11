@@ -1,27 +1,31 @@
 <script lang="ts">
   import {
-    useGetSchemaQuery,
-    useSelectRowsInfiniteQuery,
-    useSelectRowsSchema
-  } from '$lib/store/apiDataset';
-  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/store/datasetViewStore';
+    infiniteQuerySelectRows,
+    queryDatasetSchema,
+    querySelectRowsSchema
+  } from '$lib/queries/datasetQueries';
+  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import RowItem from './RowItem.svelte';
 
   let datasetViewStore = getDatasetViewContext();
 
-  $: schema = useGetSchemaQuery($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: selectOptions = $schema.isSuccess
     ? getSelectRowsOptions($datasetViewStore, $schema.data)
     : undefined;
 
   $: selectRowsSchema = selectOptions
-    ? useSelectRowsSchema($datasetViewStore.namespace, $datasetViewStore.datasetName, selectOptions)
+    ? querySelectRowsSchema(
+        $datasetViewStore.namespace,
+        $datasetViewStore.datasetName,
+        selectOptions
+      )
     : undefined;
 
-  $: rows = useSelectRowsInfiniteQuery(
+  $: rows = infiniteQuerySelectRows(
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
     {

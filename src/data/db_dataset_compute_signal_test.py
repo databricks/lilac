@@ -11,9 +11,9 @@ from ..config import CONFIG
 from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
-  LILAC_COLUMN,
   SIGNAL_METADATA_KEY,
   UUID_COLUMN,
+  VALUE_KEY,
   DataType,
   EnrichmentType,
   Field,
@@ -29,7 +29,7 @@ from ..schema import (
 from ..signals.signal import Signal
 from ..signals.signal_registry import clear_signal_registry, register_signal
 from .dataset_utils import lilac_item, lilac_items, lilac_span, signal_item
-from .db_dataset import Column, DatasetDB, DatasetManifest
+from .db_dataset import Column, DatasetDB, DatasetManifest, val
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
 
@@ -294,23 +294,13 @@ class ComputeSignalItemsSuite:
 
     db.compute_signal(TestSparseSignal(), 'text')
 
-    result = db.select_rows(['text', LILAC_COLUMN])
+    result = db.select_rows(['text'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
-      'text': 'hello',
-      LILAC_COLUMN: {
-        'text': {
-          'test_sparse_signal': None
-        }
-      }
+      'text': lilac_item('hello', {'test_sparse_signal': None})
     }, {
       UUID_COLUMN: '2',
-      'text': 'hello world',
-      LILAC_COLUMN: {
-        'text': {
-          'test_sparse_signal': 11
-        }
-      }
+      'text': lilac_item('hello world', {'test_sparse_signal': 11})
     }])
 
   def test_sparse_rich_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -327,25 +317,17 @@ class ComputeSignalItemsSuite:
 
     db.compute_signal(TestSparseRichSignal(), 'text')
 
-    result = db.select_rows(['text', LILAC_COLUMN])
+    result = db.select_rows(['text'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
-      'text': 'hello',
-      LILAC_COLUMN: {
-        'text': {
-          'test_sparse_rich_signal': None
-        }
-      }
+      'text': lilac_item('hello', {'test_sparse_rich_signal': None})
     }, {
       UUID_COLUMN: '2',
-      'text': 'hello world',
-      LILAC_COLUMN: {
-        'text': {
-          'test_sparse_rich_signal': {
-            'emails': ['test1@hello.com', 'test2@hello.com']
-          }
-        }
-      }
+      'text': lilac_item(
+        'hello world',
+        {'test_sparse_rich_signal': {
+          'emails': ['test1@hello.com', 'test2@hello.com']
+        }})
     }])
 
   def test_source_joined_with_signal_column(self, tmp_path: pathlib.Path,
@@ -366,97 +348,112 @@ class ComputeSignalItemsSuite:
     test_signal = TestSignal()
     db.compute_signal(test_signal, 'str')
 
-    result = db.select_rows(['str', (LILAC_COLUMN, 'str')])
-    assert list(result) == lilac_items([{
-      UUID_COLUMN: '1',
-      'str': 'a',
-      f'{LILAC_COLUMN}.str': {
-        'test_signal': {
-          'len': 1,
-          'flen': 1.0
-        }
-      }
-    }, {
-      UUID_COLUMN: '2',
-      'str': 'b',
-      f'{LILAC_COLUMN}.str': {
-        'test_signal': {
-          'len': 1,
-          'flen': 1.0
-        }
-      }
-    }, {
-      UUID_COLUMN: '3',
-      'str': 'b',
-      f'{LILAC_COLUMN}.str': {
-        'test_signal': {
-          'len': 1,
-          'flen': 1.0
-        }
-      }
-    }])
-
     # Check the enriched dataset manifest has 'text' enriched.
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'str': 'string',
+        'str': field({
+          'test_signal': signal_field({
+            'len': 'int32',
+            'flen': 'float32'
+          }),
+        },
+                     dtype='string'),
         'int': 'int32',
         'bool': 'boolean',
         'float': 'float32',
-        LILAC_COLUMN: {
-          'str': {
-            'test_signal': signal_field({
-              'len': 'int32',
-              'flen': 'float32'
-            }),
-          }
-        }
       }),
       num_items=3)
 
-    # Select a specific signal leaf test_signal.flen.
-    result = db.select_rows(['str', (LILAC_COLUMN, 'str', 'test_signal', 'flen')])
-
+    result = db.select_rows(['str'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
-      'str': 'a',
-      f'{LILAC_COLUMN}.str.test_signal.flen': 1.0
+      'str': lilac_item('a', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
     }, {
       UUID_COLUMN: '2',
-      'str': 'b',
-      f'{LILAC_COLUMN}.str.test_signal.flen': 1.0
+      'str': lilac_item('b', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
     }, {
       UUID_COLUMN: '3',
-      'str': 'b',
-      f'{LILAC_COLUMN}.str.test_signal.flen': 1.0
+      'str': lilac_item('b', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
     }])
+
+    # Select a specific signal leaf test_signal.flen with val('str').
+    result = db.select_rows([val('str'), ('str', 'test_signal', 'flen')])
+
+    assert list(result) == [{
+      UUID_COLUMN: '1',
+      f'str.{VALUE_KEY}': 'a',
+      'str.test_signal.flen': lilac_item(1.0)
+    }, {
+      UUID_COLUMN: '2',
+      f'str.{VALUE_KEY}': 'b',
+      'str.test_signal.flen': lilac_item(1.0)
+    }, {
+      UUID_COLUMN: '3',
+      f'str.{VALUE_KEY}': 'b',
+      'str.test_signal.flen': lilac_item(1.0)
+    }]
+
+    # Select a specific signal leaf test_signal.flen and the whole 'str' subtree.
+    result = db.select_rows(['str', ('str', 'test_signal', 'flen')])
+
+    assert list(result) == [{
+      UUID_COLUMN: '1',
+      'str': lilac_item('a', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
+      'str.test_signal.flen': lilac_item(1.0)
+    }, {
+      UUID_COLUMN: '2',
+      'str': lilac_item('b', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
+      'str.test_signal.flen': lilac_item(1.0)
+    }, {
+      UUID_COLUMN: '3',
+      'str': lilac_item('b', {'test_signal': {
+        'len': 1,
+        'flen': 1.0
+      }}),
+      'str.test_signal.flen': lilac_item(1.0)
+    }]
 
     # Select multiple signal leafs with aliasing.
     result = db.select_rows([
-      'str',
-      Column((LILAC_COLUMN, 'str', 'test_signal', 'flen'), alias='flen'),
-      Column((LILAC_COLUMN, 'str', 'test_signal', 'len'), alias='len')
+      val('str'),
+      Column(('str', 'test_signal', 'flen'), alias='flen'),
+      Column(('str', 'test_signal', 'len'), alias='len')
     ])
 
-    assert list(result) == lilac_items([{
+    assert list(result) == [{
       UUID_COLUMN: '1',
-      'str': 'a',
-      'flen': 1.0,
-      'len': 1
+      f'str.{VALUE_KEY}': 'a',
+      'flen': lilac_item(1.0),
+      'len': lilac_item(1)
     }, {
       UUID_COLUMN: '2',
-      'str': 'b',
-      'flen': 1.0,
-      'len': 1
+      f'str.{VALUE_KEY}': 'b',
+      'flen': lilac_item(1.0),
+      'len': lilac_item(1)
     }, {
       UUID_COLUMN: '3',
-      'str': 'b',
-      'flen': 1.0,
-      'len': 1
-    }])
+      f'str.{VALUE_KEY}': 'b',
+      'flen': lilac_item(1.0),
+      'len': lilac_item(1)
+    }]
 
   def test_parameterized_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
@@ -479,35 +476,28 @@ class ComputeSignalItemsSuite:
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'text': 'string',
-        LILAC_COLUMN: {
-          'text': {
+        'text': field(
+          {
             'param_signal(param=a)': signal_field('string'),
             'param_signal(param=b)': signal_field('string'),
-          }
-        }
+          },
+          dtype='string'),
       }),
       num_items=2)
 
-    result = db.select_rows(['text', LILAC_COLUMN])
+    result = db.select_rows(['text'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
-      'text': 'hello',
-      LILAC_COLUMN: {
-        'text': {
-          'param_signal(param=a)': 'hello_a',
-          'param_signal(param=b)': 'hello_b',
-        }
-      }
+      'text': lilac_item('hello', {
+        'param_signal(param=a)': 'hello_a',
+        'param_signal(param=b)': 'hello_b',
+      })
     }, {
       UUID_COLUMN: '2',
-      'text': 'everybody',
-      LILAC_COLUMN: {
-        'text': {
-          'param_signal(param=a)': 'everybody_a',
-          'param_signal(param=b)': 'everybody_b',
-        }
-      }
+      'text': lilac_item('everybody', {
+        'param_signal(param=a)': 'everybody_a',
+        'param_signal(param=b)': 'everybody_b',
+      })
     }])
 
   def test_embedding_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -523,7 +513,7 @@ class ComputeSignalItemsSuite:
       }])
 
     db.compute_signal(TestEmbedding(), 'text')
-    db.compute_signal(TestEmbeddingSumSignal(), (LILAC_COLUMN, 'text', 'test_embedding'))
+    db.compute_signal(TestEmbeddingSumSignal(), ('text', 'test_embedding'))
 
     emb_field = Field(
       dtype=DataType.EMBEDDING,
@@ -536,21 +526,15 @@ class ComputeSignalItemsSuite:
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'text': 'string',
-        LILAC_COLUMN: {
-          'text': {
-            'test_embedding': emb_field
-          },
-        }
+        'text': field({'test_embedding': emb_field}, dtype='string'),
       }),
       num_items=2)
 
     result = db.select_rows()
     expected_result = lilac_items([{
       UUID_COLUMN: '1',
-      'text': 'hello.',
-      LILAC_COLUMN: {
-        'text': {
+      'text': lilac_item(
+        'hello.', {
           'test_embedding': lilac_item(
             None, {
               SIGNAL_METADATA_KEY: {
@@ -559,13 +543,11 @@ class ComputeSignalItemsSuite:
               'test_embedding_sum': 1.0
             },
             allow_none_value=True)
-        }
-      }
+        })
     }, {
       UUID_COLUMN: '2',
-      'text': 'hello2.',
-      LILAC_COLUMN: {
-        'text': {
+      'text': lilac_item(
+        'hello2.', {
           'test_embedding': lilac_item(
             None, {
               SIGNAL_METADATA_KEY: {
@@ -574,8 +556,7 @@ class ComputeSignalItemsSuite:
               'test_embedding_sum': 2.0
             },
             allow_none_value=True)
-        }
-      }
+        })
     }])
     assert list(result) == expected_result
 
@@ -593,9 +574,8 @@ class ComputeSignalItemsSuite:
 
     split_signal = TestSplitSignal()
     db.compute_signal(split_signal, 'text')
-    db.compute_signal(TestEmbedding(), (LILAC_COLUMN, 'text', 'test_split_len', '*'))
-    db.compute_signal(TestEmbeddingSumSignal(),
-                      (LILAC_COLUMN, 'text', 'test_split_len', '*', 'test_embedding'))
+    db.compute_signal(TestEmbedding(), ('text', 'test_split_len', '*'))
+    db.compute_signal(TestEmbeddingSumSignal(), ('text', 'test_split_len', '*', 'test_embedding'))
 
     emb_field = Field(
       dtype=DataType.EMBEDDING,
@@ -612,84 +592,82 @@ class ComputeSignalItemsSuite:
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'text': 'string',
-        LILAC_COLUMN: {
-          'text': {
-            'test_split_len': signal_field([text_field])
-          }
-        }
+        'text': field({'test_split_len': signal_field([text_field])}, dtype='string'),
       }),
       num_items=2)
 
-    result = db.select_rows(
-      ['text', Column((LILAC_COLUMN, 'text', 'test_split_len'), alias='sentences')])
+    result = db.select_rows(['text'])
 
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
-      'text': 'hello. hello2.',
-      'sentences': [
-        lilac_item(
-          lilac_span(0, 6), {
-            SIGNAL_METADATA_KEY: {
-              'len': 6
-            },
-            'test_embedding': lilac_item(
-              None, {
+      'text': lilac_item(
+        'hello. hello2.', {
+          'test_split_len': [
+            lilac_item(
+              lilac_span(0, 6), {
                 SIGNAL_METADATA_KEY: {
-                  'neg_sum': -1.0
+                  'len': 6
                 },
-                'test_embedding_sum': 1.0
-              },
-              allow_none_value=True),
-          }),
-        lilac_item(
-          lilac_span(7, 14), {
-            SIGNAL_METADATA_KEY: {
-              'len': 7
-            },
-            'test_embedding': lilac_item(
-              None, {
+                'test_embedding': lilac_item(
+                  None, {
+                    SIGNAL_METADATA_KEY: {
+                      'neg_sum': -1.0
+                    },
+                    'test_embedding_sum': 1.0
+                  },
+                  allow_none_value=True),
+              }),
+            lilac_item(
+              lilac_span(7, 14), {
                 SIGNAL_METADATA_KEY: {
-                  'neg_sum': -2.0
+                  'len': 7
                 },
-                'test_embedding_sum': 2.0
-              },
-              allow_none_value=True),
-          }),
-      ]
+                'test_embedding': lilac_item(
+                  None, {
+                    SIGNAL_METADATA_KEY: {
+                      'neg_sum': -2.0
+                    },
+                    'test_embedding_sum': 2.0
+                  },
+                  allow_none_value=True),
+              }),
+          ]
+        })
     }, {
       UUID_COLUMN: '2',
-      'text': 'hello world. hello world2.',
-      'sentences': [
-        lilac_item(
-          lilac_span(0, 12), {
-            SIGNAL_METADATA_KEY: {
-              'len': 12
-            },
-            'test_embedding': lilac_item(
-              None, {
+      'text': lilac_item(
+        'hello world. hello world2.', {
+          'test_split_len': [
+            lilac_item(
+              lilac_span(0, 12), {
                 SIGNAL_METADATA_KEY: {
-                  'neg_sum': -3.0
+                  'len': 12
                 },
-                'test_embedding_sum': 3.0
-              },
-              allow_none_value=True),
-          }),
-        lilac_item(
-          lilac_span(13, 26), {
-            SIGNAL_METADATA_KEY: {
-              'len': 13
-            },
-            'test_embedding': lilac_item(
-              None, {
+                'test_embedding': lilac_item(
+                  None, {
+                    SIGNAL_METADATA_KEY: {
+                      'neg_sum': -3.0
+                    },
+                    'test_embedding_sum': 3.0
+                  },
+                  allow_none_value=True),
+              }),
+            lilac_item(
+              lilac_span(13, 26), {
                 SIGNAL_METADATA_KEY: {
-                  'neg_sum': -4.0
+                  'len': 13
                 },
-                'test_embedding_sum': 4.0
-              },
-              allow_none_value=True),
-          })
-      ]
+                'test_embedding': lilac_item(
+                  None, {
+                    SIGNAL_METADATA_KEY: {
+                      'neg_sum': -4.0
+                    },
+                    'test_embedding_sum': 4.0
+                  },
+                  allow_none_value=True),
+              })
+          ]
+        })
     }])
 
   def test_split_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -712,35 +690,38 @@ class ComputeSignalItemsSuite:
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'text': 'string',
-        LILAC_COLUMN: {
-          'text': {
+        'text': field(
+          {
             'test_split_len': signal_field([
               Field(
                 dtype=DataType.STRING_SPAN,
                 fields={SIGNAL_METADATA_KEY: field({'len': field('int32')})})
             ])
-          }
-        },
+          },
+          dtype='string')
       }),
       num_items=2)
 
-    result = db.select_rows(['text', (LILAC_COLUMN, 'text', 'test_split_len')])
-    expected_result = lilac_items([{
+    result = db.select_rows(['text'])
+    expected_result = [{
       UUID_COLUMN: '1',
-      'text': '[1, 1] first sentence. [1, 1] second sentence.',
-      f'{LILAC_COLUMN}.text.test_split_len': [
-        signal_item(lilac_span(0, 22), {'len': 22}),
-        signal_item(lilac_span(23, 46), {'len': 23}),
-      ]
+      'text': lilac_item(
+        '[1, 1] first sentence. [1, 1] second sentence.', {
+          'test_split_len': [
+            signal_item(lilac_span(0, 22), {'len': 22}),
+            signal_item(lilac_span(23, 46), {'len': 23}),
+          ]
+        })
     }, {
       UUID_COLUMN: '2',
-      'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-      f'{LILAC_COLUMN}.text.test_split_len': [
-        signal_item(lilac_span(0, 25), {'len': 25}),
-        signal_item(lilac_span(26, 49), {'len': 23}),
-      ]
-    }])
+      'text': lilac_item(
+        'b2 [2, 1] first sentence. [2, 1] second sentence.', {
+          'test_split_len': [
+            signal_item(lilac_span(0, 25), {'len': 25}),
+            signal_item(lilac_span(26, 49), {'len': 23}),
+          ]
+        })
+    }]
     assert list(result) == expected_result
 
   def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
@@ -764,47 +745,42 @@ class ComputeSignalItemsSuite:
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'text': ['string'],
-        LILAC_COLUMN: {
-          'text': [{
-            'test_signal': signal_field({
-              'len': 'int32',
-              'flen': 'float32'
-            })
-          }]
-        }
+        'text': field([
+          field({'test_signal': signal_field({
+            'len': 'int32',
+            'flen': 'float32'
+          })}, dtype='string')
+        ])
       }),
       num_items=2)
 
-    result = db.select_rows([(LILAC_COLUMN, 'text', '*')])
+    result = db.select_rows([('text', '*')])
 
-    assert list(result) == lilac_items([{
+    assert list(result) == [{
       UUID_COLUMN: '1',
-      f'{LILAC_COLUMN}.text.*': [{
-        'test_signal': {
+      'text.*': [
+        lilac_item('hello', {'test_signal': {
           'len': 5,
           'flen': 5.0
-        }
-      }, {
-        'test_signal': {
+        }}),
+        lilac_item('everybody', {'test_signal': {
           'len': 9,
           'flen': 9.0
-        }
-      }]
+        }})
+      ]
     }, {
       UUID_COLUMN: '2',
-      f'{LILAC_COLUMN}.text.*': [{
-        'test_signal': {
+      'text.*': [
+        lilac_item('hello2', {'test_signal': {
           'len': 6,
           'flen': 6.0
-        }
-      }, {
-        'test_signal': {
+        }}),
+        lilac_item('everybody2', {'test_signal': {
           'len': 10,
           'flen': 10.0
-        }
-      }]
-    }])
+        }})
+      ]
+    }]
 
   def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(
@@ -820,20 +796,24 @@ class ComputeSignalItemsSuite:
 
     db.compute_signal(TestSplitterWithLen(), 'text')
 
-    result = db.select_rows(['text', (LILAC_COLUMN, 'text', 'test_splitter_len')])
-    expected_result = lilac_items([{
+    result = db.select_rows(['text'])
+    expected_result = [{
       UUID_COLUMN: '1',
-      'text': '[1, 1] first sentence. [1, 1] second sentence.',
-      f'{LILAC_COLUMN}.text.test_splitter_len': [
-        signal_item(lilac_span(0, 22), {'len': 22}),
-        signal_item(lilac_span(23, 46), {'len': 23}),
-      ]
+      'text': lilac_item(
+        '[1, 1] first sentence. [1, 1] second sentence.', {
+          'test_splitter_len': [
+            signal_item(lilac_span(0, 22), {'len': 22}),
+            signal_item(lilac_span(23, 46), {'len': 23}),
+          ]
+        }),
     }, {
       UUID_COLUMN: '2',
-      'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-      f'{LILAC_COLUMN}.text.test_splitter_len': [
-        signal_item(lilac_span(0, 25), {'len': 25}),
-        signal_item(lilac_span(26, 49), {'len': 23}),
-      ]
-    }])
+      'text': lilac_item(
+        'b2 [2, 1] first sentence. [2, 1] second sentence.', {
+          'test_splitter_len': [
+            signal_item(lilac_span(0, 25), {'len': 25}),
+            signal_item(lilac_span(26, 49), {'len': 23}),
+          ]
+        }),
+    }]
     assert list(result) == expected_result
