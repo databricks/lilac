@@ -6,9 +6,9 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export type { BinaryOp } from './models/BinaryOp';
 export type { BucketizeTransform } from './models/BucketizeTransform';
 export type { Column } from './models/Column';
-export type { Comparison } from './models/Comparison';
 export type { ComputeSignalOptions } from './models/ComputeSignalOptions';
 export type { ComputeSignalResponse } from './models/ComputeSignalResponse';
 export type { Concept } from './models/Concept';
@@ -47,6 +47,7 @@ export type { StatsResult } from './models/StatsResult';
 export type { TaskInfo } from './models/TaskInfo';
 export type { TaskManifest } from './models/TaskManifest';
 export type { TaskStatus } from './models/TaskStatus';
+export type { UnaryOp } from './models/UnaryOp';
 export type { ValidationError } from './models/ValidationError';
 export type { WebManifest } from './models/WebManifest';
 
