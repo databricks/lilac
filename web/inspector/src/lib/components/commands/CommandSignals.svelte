@@ -2,10 +2,9 @@
   import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
-    ENRICHMENT_TYPE_TO_VALID_DTYPES,
-    type LilacSchemaField,
-    type Signal,
-    type SignalInfoWithTypedSchema
+      ENRICHMENT_TYPE_TO_VALID_DTYPES,
+      type LilacSchemaField,
+      type SignalInfoWithTypedSchema
   } from '$lilac';
   import {ComposedModal, ModalBody, ModalFooter, ModalHeader} from 'carbon-components-svelte';
   import type {JSONSchema4Type} from 'json-schema';
@@ -34,7 +33,7 @@
     if (signalInfo?.name) setSignalName(signalInfo.name);
   }
 
-  $: signal = signalPropertyValues as Signal;
+  $: signal = signalPropertyValues;
 
   $: filterField = (field: LilacSchemaField) => {
     if (!field.dtype) return false;

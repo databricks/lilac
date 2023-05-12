@@ -4,12 +4,13 @@ import {
   DatasetsService,
   deserializeRow,
   deserializeSchema,
+  type ComputeSignalOptions,
   type DataType,
   type LilacSchema,
   type SelectRowsOptions
 } from '$lilac';
 import {createInfiniteQuery, type CreateInfiniteQueryResult} from '@tanstack/svelte-query';
-import type {JSONSchema7} from 'json-schema';
+import type {JSONSchema4Type, JSONSchema7} from 'json-schema';
 import {watchTask} from '../stores/taskMonitoringStore';
 import {queryClient} from './queryClient';
 import {createApiMutation, createApiQuery} from './queryUtils';
@@ -45,16 +46,28 @@ export const querySourcesSchema = createApiQuery(DataLoadersService.getSourceSch
   select: res => res as JSONSchema7
 });
 export const loadDatasetMutation = createApiMutation(DataLoadersService.load);
-export const computeSignalColumnMutation = createApiMutation(DatasetsService.computeSignalColumn, {
-  onSuccess: resp => {
-    queryClient.invalidateQueries([TASKS_TAG]);
 
-    watchTask(resp.task_id, () => {
-      queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
-      queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
-    });
+export const computeSignalColumnMutation = createApiMutation(
+  (
+    namespace,
+    dataset,
+    options: ComputeSignalOptions & {
+      // Allow additional properties on the signal. This can be subsumed if pydantic allows us to add
+      // additionalProperties to the Signal model.
+      signal: JSONSchema4Type;
+    }
+  ) => DatasetsService.computeSignalColumn(namespace, dataset, options),
+  {
+    onSuccess: resp => {
+      queryClient.invalidateQueries([TASKS_TAG]);
+
+      watchTask(resp.task_id, () => {
+        queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
+        queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
+      });
+    }
   }
-});
+);
 export const queryDatasetStats = createApiQuery(DatasetsService.getStats, DATASETS_TAG);
 export const querySelectRows = createApiQuery(function selectRows(
   namespace: string,
