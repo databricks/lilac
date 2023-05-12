@@ -1092,7 +1092,7 @@ def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:
   # Find the closest parent of `path` that is a signal root.
   for i in reversed(range(len(path))):
     sub_path = path[:i]
-    if schema.get_field(sub_path).signal:
+    if schema.get_field(sub_path).signal is not None:
       # Skip the signal name at the end to get the source path that was enriched.
       return _make_value_path(sub_path[:-1])
   raise ValueError('Cannot find the source path for the enriched path: {path}')
