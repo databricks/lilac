@@ -9,9 +9,9 @@ from typing_extensions import override
 
 from ..config import CONFIG
 from ..data.dataset_utils import signal_item
-from ..schema import EnrichmentType, Item, RichData
+from ..schema import Item, RichData
+from ..signals.signal import TextEmbeddingSignal
 from ..utils import chunks
-from .embedding import EmbeddingSignal
 
 COHERE_BATCH_SIZE = 96
 
@@ -24,10 +24,9 @@ def _cohere() -> cohere.Client:
   return cohere.Client(api_key)
 
 
-class Cohere(EmbeddingSignal):
+class Cohere(TextEmbeddingSignal):
   """Cohere embedding."""
   name = 'cohere'
-  enrichment_type = EnrichmentType.TEXT
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

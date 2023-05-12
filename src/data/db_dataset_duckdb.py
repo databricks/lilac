@@ -16,7 +16,6 @@ from typing_extensions import override
 
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..config import CONFIG, data_path
-from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import (
@@ -43,7 +42,7 @@ from ..schema import (
   normalize_path,
 )
 from ..signals.concept_scorer import ConceptScoreSignal
-from ..signals.signal import Signal
+from ..signals.signal import Signal, TextEmbeddingSignal
 from ..signals.signal_registry import resolve_signal
 from ..tasks import TaskId, progress
 from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
@@ -272,7 +271,7 @@ class DatasetDuckDB(DatasetDB):
     for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
       item[UUID_COLUMN] = uuid
 
-    is_embedding = isinstance(signal, EmbeddingSignal)
+    is_embedding = isinstance(signal, TextEmbeddingSignal)
     embedding_filename = None
     if is_embedding:
       embedding_filename = write_embeddings_to_disk(
@@ -587,7 +586,7 @@ class DatasetDuckDB(DatasetDB):
         if isinstance(signal, ConceptScoreSignal):
           # Make sure the model is in sync.
           concept_model = self._concept_model_db.get(signal.namespace, signal.concept_name,
-                                                     signal.embedding_name)
+                                                     signal.embedding)
           self._concept_model_db.sync(concept_model)
 
         signal_column = udf_col.alias or _unique_alias(udf_col)

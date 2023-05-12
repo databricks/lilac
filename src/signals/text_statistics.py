@@ -3,16 +3,15 @@ from typing import Iterable, Optional
 
 from typing_extensions import override
 
-from ..schema import DataType, EnrichmentType, Field, Item, RichData
-from .signal import Signal
+from ..schema import DataType, Field, Item, RichData
+from .signal import TextSignal
 
 NUM_CHARS_FEATURE_NAME = 'num_characters'
 
 
-class TextStatisticsSignal(Signal):
+class TextStatisticsSignal(TextSignal):
   """Compute text statistics for a document."""
   name = 'text_statistics'
-  enrichment_type = EnrichmentType.TEXT
 
   @override
   def fields(self) -> Field:

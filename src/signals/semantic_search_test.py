@@ -3,16 +3,16 @@
 from typing import Iterable, cast
 
 import numpy as np
+import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..data.dataset_utils import signal_item
-from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
-from ..schema import EnrichmentType, Item, PathTuple, RichData
+from ..schema import Item, PathTuple, RichData
 from .semantic_search import SemanticSearchSignal
-
-TEST_EMBEDDING_NAME = 'test_embedding'
+from .signal import TextEmbeddingSignal
+from .signal_registry import clear_signal_registry, register_signal
 
 EMBEDDINGS: dict[PathTuple, list[float]] = {
   ('1',): [1.0, 0.0, 0.0],
@@ -41,10 +41,9 @@ class TestVectorStore(VectorStore):
     return np.array([EMBEDDINGS[row_id] for row_id in keys])
 
 
-class TestEmbedding(EmbeddingSignal):
+class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = TEST_EMBEDDING_NAME
-  enrichment_type = EnrichmentType.TEXT
+  name = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -53,12 +52,24 @@ class TestEmbedding(EmbeddingSignal):
     yield from (signal_item(e) for e in embeddings)
 
 
+@pytest.fixture(scope='module', autouse=True)
+def setup_teardown() -> Iterable[None]:
+  # Setup.
+  register_signal(TestEmbedding)
+
+  # Unit test runs.
+  yield
+
+  # Teardown.
+  clear_signal_registry()
+
+
 def test_semantic_search_compute_keys(mocker: MockerFixture) -> None:
   vector_store = TestVectorStore()
 
   embed_mock = mocker.spy(TestEmbedding, 'compute')
 
-  signal = SemanticSearchSignal(query='hello', embedding=TestEmbedding())
+  signal = SemanticSearchSignal(query='hello', embedding=TestEmbedding.name)
   scores = list(signal.vector_compute([('1',), ('2',), ('3',)], vector_store))
 
   # Embeddings should be called only 1 time for the search.
@@ -70,7 +81,7 @@ def test_semantic_search_compute_keys(mocker: MockerFixture) -> None:
 def test_semantic_search_compute_data(mocker: MockerFixture) -> None:
   embed_mock = mocker.spy(TestEmbedding, 'compute')
 
-  signal = SemanticSearchSignal(query='hello', embedding=TestEmbedding())
+  signal = SemanticSearchSignal(query='hello', embedding=TestEmbedding.name)
   # Compute over the text.
   scores = list(signal.compute(STR_EMBEDDINGS.keys()))
 

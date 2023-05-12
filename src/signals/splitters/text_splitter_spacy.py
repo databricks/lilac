@@ -6,14 +6,13 @@ from spacy import Language
 from typing_extensions import override
 
 from ...data.dataset_utils import lilac_span, signal_item
-from ...schema import DataType, EnrichmentType, Field, ItemValue, RichData
-from ...signals.signal import Signal
+from ...schema import ItemValue, RichData
+from ...signals.signal import TextSplitterSignal
 
 
-class SentenceSplitterSpacy(Signal):
+class SentenceSplitterSpacy(TextSplitterSignal):
   """Splits documents into sentences."""
   name = 'sentences_spacy'
-  enrichment_type = EnrichmentType.TEXT
 
   spacy_pipeline: str = 'en'
 
@@ -23,10 +22,6 @@ class SentenceSplitterSpacy(Signal):
     super().__init__(spacy_pipeline=spacy_pipeline, **kwargs)
     self._tokenizer = spacy.blank(spacy_pipeline)
     self._tokenizer.add_pipe('sentencizer')
-
-  @override
-  def fields(self) -> Field:
-    return Field(repeated_field=Field(dtype=DataType.STRING_SPAN))
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:

@@ -8,14 +8,12 @@ import pytest
 from typing_extensions import override
 
 from ..config import CONFIG
-from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
   SIGNAL_METADATA_KEY,
   UUID_COLUMN,
   VALUE_KEY,
   DataType,
-  EnrichmentType,
   Field,
   Item,
   ItemValue,
@@ -26,7 +24,12 @@ from ..schema import (
   schema,
   signal_field,
 )
-from ..signals.signal import Signal
+from ..signals.signal import (
+  TextEmbeddingModelSignal,
+  TextEmbeddingSignal,
+  TextSignal,
+  TextSplitterSignal,
+)
 from ..signals.signal_registry import clear_signal_registry, register_signal
 from .dataset_utils import lilac_item, lilac_items, lilac_span, signal_item
 from .db_dataset import Column, DatasetDB, DatasetManifest, val
@@ -56,9 +59,8 @@ SIMPLE_ITEMS: list[Item] = [{
 }]
 
 
-class TestInvalidSignal(Signal):
+class TestInvalidSignal(TextSignal):
   name = 'test_invalid_signal'
-  enrichment_type = EnrichmentType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -70,9 +72,8 @@ class TestInvalidSignal(Signal):
     return []
 
 
-class TestSparseSignal(Signal):
+class TestSparseSignal(TextSignal):
   name = 'test_sparse_signal'
-  enrichment_type = EnrichmentType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -88,10 +89,9 @@ class TestSparseSignal(Signal):
         yield len(text)
 
 
-class TestSparseRichSignal(Signal):
+class TestSparseRichSignal(TextSignal):
   """Find personally identifiable information (emails, phone numbers, etc)."""
   name = 'test_sparse_rich_signal'
-  enrichment_type = EnrichmentType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -107,9 +107,8 @@ class TestSparseRichSignal(Signal):
         yield {'emails': ['test1@hello.com', 'test2@hello.com']}
 
 
-class TestParamSignal(Signal):
+class TestParamSignal(TextSignal):
   name = 'param_signal'
-  enrichment_type = EnrichmentType.TEXT
   param: str
 
   def fields(self) -> Field:
@@ -120,9 +119,8 @@ class TestParamSignal(Signal):
       yield f'{str(text_content)}_{self.param}'
 
 
-class TestSignal(Signal):
+class TestSignal(TextSignal):
   name = 'test_signal'
-  enrichment_type = EnrichmentType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -141,10 +139,9 @@ EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
 
-class TestEmbedding(EmbeddingSignal):
+class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
   name = 'test_embedding'
-  enrichment_type = EnrichmentType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -161,13 +158,12 @@ class TestEmbedding(EmbeddingSignal):
     yield from (signal_item(e, {'neg_sum': -1 * e.sum()}) for e in embeddings)
 
 
-class TestSplitSignal(Signal):
+class TestSplitSignal(TextSplitterSignal):
   """Split documents into sentence by splitting on period, generating entities.
 
   Also produces the length as a feature.
   """
   name = 'test_split_len'
-  enrichment_type = EnrichmentType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -190,10 +186,9 @@ class TestSplitSignal(Signal):
       ]
 
 
-class TestEmbeddingSumSignal(Signal):
+class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
   """Sums the embeddings to return a single floating point value."""
   name = 'test_embedding_sum'
-  enrichment_type = EnrichmentType.TEXT_EMBEDDING
 
   @override
   def fields(self) -> Field:
@@ -208,10 +203,9 @@ class TestEmbeddingSumSignal(Signal):
       yield embedding_sum
 
 
-class TestSplitterWithLen(Signal):
+class TestSplitterWithLen(TextSplitterSignal):
   """Split documents into sentence by splitting on period. Also produces the length as a feature."""
   name = 'test_splitter_len'
-  enrichment_type = EnrichmentType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -516,7 +510,7 @@ class ComputeSignalItemsSuite:
 
     embedding_signal = TestEmbedding()
     db.compute_signal(embedding_signal, 'text')
-    embedding_sum_signal = TestEmbeddingSumSignal()
+    embedding_sum_signal = TestEmbeddingSumSignal(embedding=TestEmbedding.name)
     db.compute_signal(embedding_sum_signal, ('text', 'test_embedding'))
 
     assert db.manifest() == DatasetManifest(
@@ -529,7 +523,7 @@ class ComputeSignalItemsSuite:
             'test_embedding': signal_field(
               dtype='embedding',
               fields={
-                'test_embedding_sum': signal_field(
+                'test_embedding_sum(embedding=test_embedding)': signal_field(
                   dtype='float32', signal=embedding_sum_signal.dict())
               },
               metadata={'neg_sum': 'float32'},
@@ -549,7 +543,7 @@ class ComputeSignalItemsSuite:
               SIGNAL_METADATA_KEY: {
                 'neg_sum': -1.0
               },
-              'test_embedding_sum': 1.0
+              'test_embedding_sum(embedding=test_embedding)': 1.0
             },
             allow_none_value=True)
         })
@@ -562,7 +556,7 @@ class ComputeSignalItemsSuite:
               SIGNAL_METADATA_KEY: {
                 'neg_sum': -2.0
               },
-              'test_embedding_sum': 2.0
+              'test_embedding_sum(embedding=test_embedding)': 2.0
             },
             allow_none_value=True)
         })
@@ -585,7 +579,7 @@ class ComputeSignalItemsSuite:
     db.compute_signal(split_signal, 'text')
     embedding_signal = TestEmbedding()
     db.compute_signal(embedding_signal, ('text', 'test_split_len', '*'))
-    embedding_sum_signal = TestEmbeddingSumSignal()
+    embedding_sum_signal = TestEmbeddingSumSignal(embedding=TestEmbedding.name)
     db.compute_signal(embedding_sum_signal, ('text', 'test_split_len', '*', 'test_embedding'))
 
     assert db.manifest() == DatasetManifest(
@@ -602,7 +596,7 @@ class ComputeSignalItemsSuite:
                   fields={
                     'test_embedding': signal_field(
                       fields={
-                        'test_embedding_sum': signal_field(
+                        'test_embedding_sum(embedding=test_embedding)': signal_field(
                           dtype='float32', signal=embedding_sum_signal.dict())
                       },
                       dtype='embedding',
@@ -634,7 +628,7 @@ class ComputeSignalItemsSuite:
                     SIGNAL_METADATA_KEY: {
                       'neg_sum': -1.0
                     },
-                    'test_embedding_sum': 1.0
+                    'test_embedding_sum(embedding=test_embedding)': 1.0
                   },
                   allow_none_value=True),
               }),
@@ -648,7 +642,7 @@ class ComputeSignalItemsSuite:
                     SIGNAL_METADATA_KEY: {
                       'neg_sum': -2.0
                     },
-                    'test_embedding_sum': 2.0
+                    'test_embedding_sum(embedding=test_embedding)': 2.0
                   },
                   allow_none_value=True),
               }),
@@ -669,7 +663,7 @@ class ComputeSignalItemsSuite:
                     SIGNAL_METADATA_KEY: {
                       'neg_sum': -3.0
                     },
-                    'test_embedding_sum': 3.0
+                    'test_embedding_sum(embedding=test_embedding)': 3.0
                   },
                   allow_none_value=True),
               }),
@@ -683,7 +677,7 @@ class ComputeSignalItemsSuite:
                     SIGNAL_METADATA_KEY: {
                       'neg_sum': -4.0
                     },
-                    'test_embedding_sum': 4.0
+                    'test_embedding_sum(embedding=test_embedding)': 4.0
                   },
                   allow_none_value=True),
               })

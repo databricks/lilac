@@ -8,12 +8,10 @@ import pytest
 from typing_extensions import override
 
 from ..config import CONFIG
-from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
   UUID_COLUMN,
   VALUE_KEY,
-  EnrichmentType,
   Field,
   Item,
   ItemValue,
@@ -24,7 +22,7 @@ from ..schema import (
   schema,
   signal_field,
 )
-from ..signals.signal import Signal
+from ..signals.signal import TextEmbeddingModelSignal, TextEmbeddingSignal, TextSignal
 from ..signals.signal_registry import clear_signal_registry, register_signal
 from .dataset_utils import lilac_item, lilac_items, signal_item
 from .db_dataset import (
@@ -72,10 +70,9 @@ EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
 
-class TestEmbedding(EmbeddingSignal):
+class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
   name = TEST_EMBEDDING_NAME
-  enrichment_type = EnrichmentType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -89,9 +86,8 @@ class TestEmbedding(EmbeddingSignal):
     yield from (signal_item(e, metadata={'neg_sum': -1 * e.sum()}) for e in embeddings)
 
 
-class LengthSignal(Signal):
+class LengthSignal(TextSignal):
   name = 'length_signal'
-  enrichment_type = EnrichmentType.TEXT
 
   _call_count: int = 0
 
@@ -977,23 +973,26 @@ class SelectRowsSuite:
 
     db.compute_signal(TestEmbedding(), 'text')
 
-    signal_col = SignalUDF(TestEmbeddingSumSignal(), column=('text', TEST_EMBEDDING_NAME))
+    signal_col = SignalUDF(
+      TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), column=('text', TEST_EMBEDDING_NAME))
     result = db.select_rows([val('text'), signal_col])
 
     expected_result: list[Item] = [{
       UUID_COLUMN: '1',
       f'text.{VALUE_KEY}': 'hello.',
-      'test_embedding_sum(text.test_embedding)': lilac_item(1.0)
+      'test_embedding_sum(embedding=test_embedding)(text.test_embedding)': lilac_item(1.0)
     }, {
       UUID_COLUMN: '2',
       f'text.{VALUE_KEY}': 'hello2.',
-      'test_embedding_sum(text.test_embedding)': lilac_item(2.0)
+      'test_embedding_sum(embedding=test_embedding)(text.test_embedding)': lilac_item(2.0)
     }]
     assert list(result) == expected_result
 
     # Select rows with alias.
     signal_col = SignalUDF(
-      TestEmbeddingSumSignal(), Column(('text', TEST_EMBEDDING_NAME)), alias='emb_sum')
+      TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
+      Column(('text', TEST_EMBEDDING_NAME)),
+      alias='emb_sum')
     result = db.select_rows([val('text'), signal_col])
     expected_result = [{
       UUID_COLUMN: '1',
@@ -1020,16 +1019,17 @@ class SelectRowsSuite:
 
     db.compute_signal(TestEmbedding(), ('text', '*'))
 
-    signal_col = SignalUDF(TestEmbeddingSumSignal(), ('text', '*', TEST_EMBEDDING_NAME))
+    signal_col = SignalUDF(
+      TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), ('text', '*', TEST_EMBEDDING_NAME))
     result = db.select_rows([val(('text', '*')), signal_col])
     expected_result = [{
       UUID_COLUMN: '1',
       f'text.*.{VALUE_KEY}': ['hello.', 'hello world.'],
-      'test_embedding_sum(text.*.test_embedding)': lilac_items([1.0, 3.0])
+      'test_embedding_sum(embedding=test_embedding)(text.*.test_embedding)': lilac_items([1.0, 3.0])
     }, {
       UUID_COLUMN: '2',
       f'text.*.{VALUE_KEY}': ['hello world2.', 'hello2.'],
-      'test_embedding_sum(text.*.test_embedding)': lilac_items([4.0, 2.0])
+      'test_embedding_sum(embedding=test_embedding)(text.*.test_embedding)': lilac_items([4.0, 2.0])
     }]
     assert list(result) == expected_result
 
@@ -1202,9 +1202,8 @@ class SelectRowsSuite:
     }])
 
 
-class TestSignal(Signal):
+class TestSignal(TextSignal):
   name = 'test_signal'
-  enrichment_type = EnrichmentType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -1215,10 +1214,9 @@ class TestSignal(Signal):
     return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
 
 
-class TestEmbeddingSumSignal(Signal):
+class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
   """Sums the embeddings to return a single floating point value."""
   name = 'test_embedding_sum'
-  enrichment_type = EnrichmentType.TEXT_EMBEDDING
 
   @override
   def fields(self) -> Field:

@@ -4,9 +4,10 @@ import abc
 from typing import ClassVar, Iterable, Optional
 
 from pydantic import BaseModel, validator
+from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import EnrichmentType, Field, PathTuple, RichData, SignalOut
+from ..schema import DataType, EnrichmentType, Field, PathTuple, RichData, SignalOut
 
 
 class Signal(abc.ABC, BaseModel):
@@ -109,3 +110,36 @@ class Signal(abc.ABC, BaseModel):
     args = ','.join(args_list)
     display_args = '' if not args_list else f'({args})'
     return self.name + display_args
+
+
+# Signal base classes, used for inferring the dependency chain required for computing a signal.
+class TextSignal(Signal):
+  """An interface for signals that compute over text."""
+  enrichment_type = EnrichmentType.TEXT
+  # TODO(nsthorat): split should be a union of literals.
+  split: Optional[str]
+
+
+class TextSplitterSignal(Signal):
+  """An interface for signals that compute over text."""
+  enrichment_type = EnrichmentType.TEXT
+
+  @override
+  def fields(self) -> Field:
+    return Field(repeated_field=Field(dtype=DataType.STRING_SPAN))
+
+
+class TextEmbeddingSignal(TextSignal):
+  """An interface for signals that compute embeddings for text."""
+
+  def fields(self) -> Field:
+    """Return the fields for the embedding."""
+    return Field(dtype=DataType.EMBEDDING)
+
+
+class TextEmbeddingModelSignal(TextSignal):
+  """An interface for signals that take embeddings and produce items."""
+  enrichment_type = EnrichmentType.TEXT_EMBEDDING
+  # TODO(nsthorat): Allow this to be an embedding signal if we want to allow python users to pass
+  # an embedding signal without registering it.
+  embedding: str

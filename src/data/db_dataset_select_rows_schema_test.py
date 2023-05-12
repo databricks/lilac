@@ -6,18 +6,8 @@ from typing import Generator, Iterable, Optional, Type, cast
 import pytest
 
 from ..config import CONFIG
-from ..schema import (
-  UUID_COLUMN,
-  EnrichmentType,
-  Field,
-  Item,
-  RichData,
-  SignalOut,
-  field,
-  schema,
-  signal_field,
-)
-from ..signals.signal import Signal
+from ..schema import UUID_COLUMN, Field, Item, RichData, SignalOut, field, schema, signal_field
+from ..signals.signal import TextSignal
 from ..signals.signal_registry import clear_signal_registry, register_signal
 from .db_dataset import DatasetDB, SignalUDF
 from .db_dataset_duckdb import DatasetDuckDB
@@ -85,9 +75,8 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()
 
 
-class LengthSignal(Signal):
+class LengthSignal(TextSignal):
   name = 'length_signal'
-  enrichment_type = EnrichmentType.TEXT
 
   def fields(self) -> Field:
     return field('int32')
@@ -97,9 +86,8 @@ class LengthSignal(Signal):
       yield len(text_content)
 
 
-class AddSpaceSignal(Signal):
+class AddSpaceSignal(TextSignal):
   name = 'add_space_signal'
-  enrichment_type = EnrichmentType.TEXT
 
   def fields(self) -> Field:
     return field('string')

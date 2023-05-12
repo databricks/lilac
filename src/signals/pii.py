@@ -5,8 +5,8 @@ from typing import Iterable, Optional
 from typing_extensions import override
 
 from ..data.dataset_utils import lilac_span, signal_item
-from ..schema import EnrichmentType, Field, Item, RichData, field
-from .signal import Signal
+from ..schema import Field, Item, RichData, field
+from .signal import TextSignal
 
 EMAILS_FEATURE_NAME = 'emails'
 
@@ -17,10 +17,9 @@ EMAIL_REGEX = (
 )
 
 
-class PIISignal(Signal):
+class PIISignal(TextSignal):
   """Find personally identifiable information (emails, phone numbers, etc)."""
   name = 'pii'
-  enrichment_type = EnrichmentType.TEXT
 
   @override
   def fields(self) -> Field:
