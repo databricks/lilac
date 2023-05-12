@@ -139,7 +139,7 @@ class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
   # OpenAPI doesn't generate the correct typescript when using `Sequence[ColumnId]` (confused by
   # `tuple[Union[str, int], ...]`).
-  columns: Optional[Sequence[Union[StrictStr, tuple[StrictStr, ...]]]]
+  columns: Optional[Sequence[Union[StrictStr, tuple[StrictStr, ...], Column]]]
   filters: Optional[Sequence[Filter]]
   sort_by: Optional[Sequence[PathTuple]]
   sort_order: Optional[SortOrder] = SortOrder.DESC
