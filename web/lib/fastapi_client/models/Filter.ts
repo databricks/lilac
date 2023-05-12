@@ -2,14 +2,15 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { Comparison } from './Comparison';
+import type { BinaryOp } from './BinaryOp';
+import type { UnaryOp } from './UnaryOp';
 
 /**
  * A filter on a column.
  */
 export type Filter = {
     path: Array<(number | string)>;
-    comparison: Comparison;
-    value: (number | boolean | string | Blob | Array<string>);
+    op: (BinaryOp | UnaryOp);
+    value?: (number | boolean | string | Blob | Array<string>);
 };
 
