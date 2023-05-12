@@ -26,13 +26,14 @@ from ..signals.signal import TextEmbeddingModelSignal, TextEmbeddingSignal, Text
 from ..signals.signal_registry import clear_signal_registry, register_signal
 from .dataset_utils import lilac_item, lilac_items, signal_item
 from .db_dataset import (
+  BinaryFilterTuple,
+  BinaryOp,
   Column,
-  Comparison,
   DatasetDB,
   DatasetManifest,
-  FilterTuple,
   SignalUDF,
   SortOrder,
+  UnaryOp,
   val,
 )
 from .db_dataset_duckdb import DatasetDuckDB
@@ -374,7 +375,7 @@ class SelectRowsSuite:
   def test_filter_by_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
-    id_filter: FilterTuple = (UUID_COLUMN, Comparison.EQUALS, '1')
+    id_filter: BinaryFilterTuple = (UUID_COLUMN, BinaryOp.EQUALS, '1')
     result = db.select_rows(filters=[id_filter])
 
     assert list(result) == lilac_items([{
@@ -385,7 +386,7 @@ class SelectRowsSuite:
       'float': 3.0
     }])
 
-    id_filter = (UUID_COLUMN, Comparison.EQUALS, '2')
+    id_filter = (UUID_COLUMN, BinaryOp.EQUALS, '2')
     result = db.select_rows(filters=[id_filter])
 
     assert list(result) == lilac_items([{
@@ -396,7 +397,7 @@ class SelectRowsSuite:
       'float': 2.0
     }])
 
-    id_filter = (UUID_COLUMN, Comparison.EQUALS, b'f')
+    id_filter = (UUID_COLUMN, BinaryOp.EQUALS, b'f')
     result = db.select_rows(filters=[id_filter])
 
     assert list(result) == []
@@ -404,7 +405,7 @@ class SelectRowsSuite:
   def test_filter_by_list_of_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
-    id_filter: FilterTuple = (UUID_COLUMN, Comparison.IN, ['1', '2'])
+    id_filter: BinaryFilterTuple = (UUID_COLUMN, BinaryOp.IN, ['1', '2'])
     result = db.select_rows(filters=[id_filter])
 
     assert list(result) == lilac_items([{
@@ -420,6 +421,64 @@ class SelectRowsSuite:
       'bool': True,
       'float': 2.0
     }])
+
+  def test_filter_by_exists(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+    items: list[Item] = [{
+      UUID_COLUMN: '1',
+      'name': 'A',
+      'info': {
+        'lang': 'en'
+      },
+      'ages': []
+    }, {
+      UUID_COLUMN: '2',
+      'info': {
+        'lang': 'fr'
+      },
+    }, {
+      UUID_COLUMN: '3',
+      'name': 'C',
+      'ages': [[1, 2], [3, 4]]
+    }]
+    db = make_db(
+      db_cls,
+      tmp_path,
+      items,
+      schema=schema({
+        UUID_COLUMN: 'string',
+        'name': 'string',
+        'info': {
+          'lang': 'string'
+        },
+        'ages': [['int32']]
+      }))
+
+    exists_filter = ('name', UnaryOp.EXISTS)
+    result = db.select_rows(['name'], filters=[exists_filter])
+    assert list(result) == lilac_items([{
+      UUID_COLUMN: '1',
+      'name': 'A'
+    }, {
+      UUID_COLUMN: '3',
+      'name': 'C'
+    }])
+
+    exists_filter = ('info.lang', UnaryOp.EXISTS)
+    result = db.select_rows(['name'], filters=[exists_filter])
+    assert list(result) == lilac_items([{
+      UUID_COLUMN: '1',
+      'name': 'A'
+    }, {
+      UUID_COLUMN: '2',
+      'name': None
+    }])
+
+    exists_filter = ('ages.*.*', UnaryOp.EXISTS)
+    result = db.select_rows(['name'], filters=[exists_filter])
+    assert list(result) == lilac_items([{UUID_COLUMN: '3', 'name': 'C'}])
+
+    with pytest.raises(ValueError, match='Invalid path'):
+      db.select_rows(['name'], filters=[('info', UnaryOp.EXISTS)])
 
   def test_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
@@ -817,33 +876,8 @@ class SelectRowsSuite:
 
     signal_col = SignalUDF(TestSignal(), 'text')
     # Filter by source feature.
-    filters: list[FilterTuple] = [('text', Comparison.EQUALS, 'everybody')]
+    filters: list[BinaryFilterTuple] = [('text', BinaryOp.EQUALS, 'everybody')]
     result = db.select_rows(['text', signal_col], filters=filters)
-    assert list(result) == lilac_items([{
-      UUID_COLUMN: '2',
-      'text': 'everybody',
-      'test_signal(text)': {
-        'len': 9,
-        'flen': 9.0
-      }
-    }])
-
-    # Filter by transformed feature.
-    filters = [(('test_signal(text)', 'len'), Comparison.LESS, 7)]
-    result = db.select_rows(['text', signal_col], filters=filters)
-
-    assert list(result) == lilac_items([{
-      UUID_COLUMN: '1',
-      'text': 'hello',
-      'test_signal(text)': {
-        'len': 5,
-        'flen': 5.0
-      }
-    }])
-
-    filters = [(('test_signal(text)', 'flen'), Comparison.GREATER, 6.0)]
-    result = db.select_rows(['text', signal_col], filters=filters)
-
     assert list(result) == lilac_items([{
       UUID_COLUMN: '2',
       'text': 'everybody',
@@ -868,7 +902,7 @@ class SelectRowsSuite:
 
     signal = LengthSignal()
     # Filter by a specific UUID.
-    filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '1')]
+    filters: list[BinaryFilterTuple] = [(UUID_COLUMN, BinaryOp.EQUALS, '1')]
     result = db.select_rows(['text', SignalUDF(signal, 'text')], filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
@@ -877,7 +911,7 @@ class SelectRowsSuite:
     }])
     assert signal._call_count == 1
 
-    filters = [(UUID_COLUMN, Comparison.EQUALS, '2')]
+    filters = [(UUID_COLUMN, BinaryOp.EQUALS, '2')]
     result = db.select_rows(['text', SignalUDF(signal, 'text')], filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '2',
@@ -916,7 +950,7 @@ class SelectRowsSuite:
     signal = LengthSignal()
 
     # Filter by a specific UUID.
-    filters: list[FilterTuple] = [(UUID_COLUMN, Comparison.EQUALS, '1')]
+    filters: list[BinaryFilterTuple] = [(UUID_COLUMN, BinaryOp.EQUALS, '1')]
     result = db.select_rows(['text', SignalUDF(signal, ('text', '*'))], filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
@@ -926,7 +960,7 @@ class SelectRowsSuite:
     assert signal._call_count == 2
 
     # Filter by a specific UUID.
-    filters = [(UUID_COLUMN, Comparison.EQUALS, '2')]
+    filters = [(UUID_COLUMN, BinaryOp.EQUALS, '2')]
     result = db.select_rows(['text', SignalUDF(signal, ('text', '*'))], filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '2',

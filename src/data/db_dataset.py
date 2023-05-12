@@ -73,7 +73,7 @@ class MediaResult(BaseModel):
   data: bytes
 
 
-class Comparison(str, enum.Enum):
+class BinaryOp(str, enum.Enum):
   """The comparison operator between a column and a feature value."""
   EQUALS = 'equals'
   NOT_EQUAL = 'not_equal'
@@ -82,6 +82,11 @@ class Comparison(str, enum.Enum):
   LESS = 'less'
   LESS_EQUAL = 'less_equal'
   IN = 'in'
+
+
+class UnaryOp(str, enum.Enum):
+  """A unary operator on a feature."""
+  EXISTS = 'exists'
 
 
 class SortOrder(str, enum.Enum):
@@ -200,17 +205,18 @@ def SignalUDF(signal: Signal, column: ColumnId, alias: Optional[str] = None) -> 
 
 
 FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes, list[StrictStr]]
-FilterTuple = tuple[Union[Path, Column], Comparison, FeatureValue]
+BinaryFilterTuple = tuple[Path, BinaryOp, FeatureValue]
+UnaryFilterTuple = tuple[Path, UnaryOp]
 
 
 class Filter(BaseModel):
   """A filter on a column."""
   path: PathTuple
-  comparison: Comparison
-  value: FeatureValue
+  op: Union[BinaryOp, UnaryOp]
+  value: Optional[FeatureValue] = None
 
 
-FilterLike = Union[Filter, FilterTuple]
+FilterLike = Union[Filter, BinaryFilterTuple, UnaryFilterTuple]
 
 
 class DatasetDB(abc.ABC):

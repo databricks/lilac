@@ -62,12 +62,13 @@ from .dataset_utils import (
   write_items_to_parquet,
 )
 from .db_dataset import (
+  BinaryOp,
   Bins,
   Column,
   ColumnId,
-  Comparison,
   DatasetDB,
   DatasetManifest,
+  FeatureValue,
   Filter,
   FilterLike,
   GroupsSortBy,
@@ -79,6 +80,7 @@ from .db_dataset import (
   SignalUDF,
   SortOrder,
   StatsResult,
+  UnaryOp,
   column_from_identifier,
   make_parquet_id,
 )
@@ -92,14 +94,14 @@ SOURCE_VIEW_NAME = 'source'
 # Sample size for approximating the distinct count of a column.
 SAMPLE_SIZE_DISTINCT_COUNT = 100_000
 
-COMPARISON_TO_OP: dict[Comparison, str] = {
-  Comparison.EQUALS: '=',
-  Comparison.NOT_EQUAL: '!=',
-  Comparison.GREATER: '>',
-  Comparison.GREATER_EQUAL: '>=',
-  Comparison.LESS: '<',
-  Comparison.LESS_EQUAL: '<=',
-  Comparison.IN: 'in',
+BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
+  BinaryOp.EQUALS: '=',
+  BinaryOp.NOT_EQUAL: '!=',
+  BinaryOp.GREATER: '>',
+  BinaryOp.GREATER_EQUAL: '>=',
+  BinaryOp.LESS: '<',
+  BinaryOp.LESS_EQUAL: '<=',
+  BinaryOp.IN: 'in',
 }
 
 
@@ -318,7 +320,12 @@ class DatasetDuckDB(DatasetDB):
 
       current_field = Field(fields=manifest.data_schema.fields)
       for path_part in filter.path:
+        if path_part == VALUE_KEY:
+          continue
         if path_part == PATH_WILDCARD:
+          if filter.op == UnaryOp.EXISTS:
+            # exists is supported on a repeated field.
+            continue
           raise ValueError(f'Unable to filter on path {filter.path}. '
                            'Filtering on a repeated field is currently not supported.')
         if current_field.fields:
@@ -513,11 +520,11 @@ class DatasetDuckDB(DatasetDB):
                   resolve_span: bool = False,
                   combine_columns: bool = False) -> SelectRowsResult:
     cols = [column_from_identifier(col) for col in columns or []]
-
+    manifest = self.manifest()
     star_in_cols = any(col.feature == ('*',) for col in cols)
     if not cols or star_in_cols:
       # Select all columns.
-      cols.extend([Column(name) for name in self.manifest().data_schema.fields.keys()])
+      cols.extend([Column(name) for name in manifest.data_schema.fields.keys()])
       if star_in_cols:
         cols = [col for col in cols if col.feature != ('*',)]
 
@@ -529,15 +536,19 @@ class DatasetDuckDB(DatasetDB):
     self._validate_columns(cols)
     select_query, columns_to_merge = self._create_select(
       cols, flatten=False, resolve_span=resolve_span, combine_columns=combine_columns)
-    con = self.con.cursor()
-    query = con.sql(f'SELECT {select_query} FROM t')
-
     col_aliases = set(columns_to_merge.keys())
     udf_aliases = set(col.alias or _unique_alias(col) for col in cols if col.transform)
     filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases)
-    filter_queries = self._create_where(filters)
+    filter_queries = self._create_where(filters, manifest)
+    where_query = ''
     if filter_queries:
-      query = query.filter(' AND '.join(filter_queries))
+      where_query = f"WHERE {' AND '.join(filter_queries)}"
+
+    con = self.con.cursor()
+    query = con.sql(f"""
+      SELECT {select_query} FROM t
+      {where_query}
+    """)
 
     sort_by_paths = [normalize_path(path) for path in (sort_by or [])]
     sort_cols_after_udf: list[str] = []
@@ -644,7 +655,7 @@ class DatasetDuckDB(DatasetDB):
       query = con.from_df(df)
 
       if udf_filters:
-        udf_filter_queries = self._create_where(udf_filters)
+        udf_filter_queries = self._create_where(udf_filters, manifest)
         if udf_filter_queries:
           query = query.filter(' AND '.join(udf_filter_queries))
 
@@ -730,8 +741,12 @@ class DatasetDuckDB(DatasetDB):
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
-  def _create_select_column(self, column: Column, manifest: DatasetManifest, flatten: bool,
-                            resolve_span: bool) -> tuple[str, list[str]]:
+  def _create_select_column(self,
+                            column: Column,
+                            manifest: DatasetManifest,
+                            flatten: bool,
+                            resolve_span: bool,
+                            make_temp_alias: bool = True) -> tuple[str, list[str]]:
     leafs = manifest.data_schema.leafs
     path = column.feature
     span_path = path
@@ -780,9 +795,12 @@ class DatasetDuckDB(DatasetDB):
           temp_column_name = f'{temp_column_name}/{m.parquet_id}'
       else:
         select_path = path
-      temp_column_names.append(temp_column_name)
       col = _make_select_column(select_path, flatten=flatten, empty=empty, span_from=span_from)
-      select_queries.append(f'{col} AS "{temp_column_name}"')
+      if make_temp_alias:
+        select_queries.append(f'{col} AS "{temp_column_name}"')
+        temp_column_names.append(temp_column_name)
+      else:
+        select_queries.append(col)
 
     return ', '.join(select_queries), temp_column_names
 
@@ -821,13 +839,14 @@ class DatasetDuckDB(DatasetDB):
     for filter in filter_likes:
       # Normalize `FilterLike` to `Filter`.
       if not isinstance(filter, Filter):
-        path_tuple = filter[0]
-        if isinstance(path_tuple, str):
-          path_tuple = (path_tuple,)
-        elif isinstance(path_tuple, Column):
-          path_tuple = path_tuple.feature
-
-        filter = Filter(path=path_tuple, comparison=filter[1], value=filter[2])
+        if len(filter) == 3:
+          path, op, value = filter  # type: ignore
+        elif len(filter) == 2:
+          path, op = filter  # type: ignore
+          value = None
+        else:
+          raise ValueError(f'Invalid filter: {filter}. Must be a tuple with 2 or 3 elements.')
+        filter = Filter(path=normalize_path(path), op=op, value=value)
 
       # Select the value from the filter.
       filter.path = _make_value_path(filter.path)
@@ -840,26 +859,39 @@ class DatasetDuckDB(DatasetDB):
     self._validate_filters(filters, col_aliases)
     return filters, udf_filters
 
-  def _create_where(self, filters: list[Filter]) -> list[str]:
+  def _create_where(self, filters: list[Filter], manifest: DatasetManifest) -> list[str]:
     if not filters:
       return []
     filter_queries: list[str] = []
+    binary_ops = set(BinaryOp)
+    unary_ops = set(UnaryOp)
     for filter in filters:
-      col_name = self._path_to_col(filter.path)
-      op = COMPARISON_TO_OP[filter.comparison]
-      filter_val = filter.value
-      if isinstance(filter_val, list):
-        if op != 'in':
-          raise ValueError('filter with array value can only use the IN comparison')
-        wrapped_filter_val = [f"'{part}'" for part in filter_val]
-        filter_val = f'({", ".join(wrapped_filter_val)})'
-      elif isinstance(filter_val, str):
-        filter_val = f"'{filter_val}'"
-      elif isinstance(filter_val, bytes):
-        filter_val = _bytes_to_blob_literal(filter_val)
+      select_str, _ = self._create_select_column(
+        Column(filter.path), manifest, flatten=False, resolve_span=False, make_temp_alias=False)
+
+      if filter.op in binary_ops:
+        op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
+        filter_val = cast(FeatureValue, filter.value)
+        if isinstance(filter_val, list):
+          if op != 'in':
+            raise ValueError('filter with array value can only use the IN comparison')
+          wrapped_filter_val = [f"'{part}'" for part in filter_val]
+          filter_val = f'({", ".join(wrapped_filter_val)})'
+        elif isinstance(filter_val, str):
+          filter_val = f"'{filter_val}'"
+        elif isinstance(filter_val, bytes):
+          filter_val = _bytes_to_blob_literal(filter_val)
+        else:
+          filter_val = str(filter_val)
+        filter_query = f'{select_str} {op} {filter_val}'
+      elif filter.op in unary_ops:
+        is_array = any(subpath == PATH_WILDCARD for subpath in filter.path)
+        if filter.op == UnaryOp.EXISTS:
+          filter_query = f'len({select_str}) > 0' if is_array else f'{select_str} IS NOT NULL'
+        else:
+          raise ValueError(f'Unary op: {filter.op} is not yet supported')
       else:
-        filter_val = str(filter_val)
-      filter_query = f'{col_name} {op} {filter_val}'
+        raise ValueError(f'Invalid filter op: {filter.op}')
       filter_queries.append(filter_query)
     return filter_queries
 

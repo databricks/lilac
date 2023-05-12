@@ -12,6 +12,7 @@ from .data.db_dataset import (
   Column,
   DatasetManifest,
   Filter,
+  FilterLike,
   GroupsSortBy,
   SortOrder,
   StatsResult,
@@ -140,7 +141,7 @@ class SelectRowsOptions(BaseModel):
   # OpenAPI doesn't generate the correct typescript when using `Sequence[ColumnId]` (confused by
   # `tuple[Union[str, int], ...]`).
   columns: Optional[Sequence[Union[StrictStr, tuple[StrictStr, ...], Column]]]
-  filters: Optional[Sequence[Filter]]
+  filters: Optional[Sequence[FilterLike]]
   sort_by: Optional[Sequence[PathTuple]]
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int]
