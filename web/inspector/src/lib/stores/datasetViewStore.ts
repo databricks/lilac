@@ -93,7 +93,7 @@ export function getSelectRowsOptions(
   schema: LilacSchema
 ): SelectRowsOptions {
   // TODO: Replace with * when supported
-  const columns: (Column | Path)[] = [
+  const columns = [
     ...listFields(schema).map(f => f.path),
     ...(datasetViewStore.queryOptions.columns ?? [])
   ];

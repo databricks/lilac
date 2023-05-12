@@ -152,7 +152,7 @@ class SelectRowsSchemaOptions(BaseModel):
   """The request for the select rows schema endpoint."""
   # OpenAPI doesn't generate the correct typescript when using `Sequence[ColumnId]` (confused by
   # `tuple[Union[str, int], ...]`).
-  columns: Optional[Sequence[Union[tuple[str, ...], Column]]]
+  columns: Optional[Sequence[Union[StrictStr, tuple[StrictStr, ...], Column]]]
   combine_columns: Optional[bool]
 
 
