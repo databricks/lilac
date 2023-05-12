@@ -840,13 +840,14 @@ class DatasetDuckDB(DatasetDB):
     for filter in filter_likes:
       # Normalize `FilterLike` to `Filter`.
       if not isinstance(filter, Filter):
-        path = filter[0]
-        if isinstance(path, Column):
-          path_tuple = path.feature
+        if len(filter) == 3:
+          path, op, value = filter  # type: ignore
+        elif len(filter) == 2:
+          path, op = filter  # type: ignore
+          value = None
         else:
-          path_tuple = normalize_path(path)
-        value = filter[2] if len(filter) == 3 else None  # type: ignore
-        filter = Filter(path=path_tuple, op=filter[1], value=value)
+          raise ValueError(f'Invalid filter: {filter}. Must be a tuple with 2 or 3 elements.')
+        filter = Filter(path=normalize_path(path), op=op, value=value)
 
       # Select the value from the filter.
       filter.path = _make_value_path(filter.path)

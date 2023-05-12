@@ -205,8 +205,8 @@ def SignalUDF(signal: Signal, column: ColumnId, alias: Optional[str] = None) -> 
 
 
 FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes, list[StrictStr]]
-BinaryFilterTuple = tuple[Union[Path, Column], BinaryOp, FeatureValue]
-UnaryFilterTuple = tuple[Union[Path, Column], UnaryOp]
+BinaryFilterTuple = tuple[Path, BinaryOp, FeatureValue]
+UnaryFilterTuple = tuple[Path, UnaryOp]
 
 
 class Filter(BaseModel):

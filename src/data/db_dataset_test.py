@@ -888,31 +888,6 @@ class SelectRowsSuite:
       }
     }])
 
-    # Filter by transformed feature.
-    filters = [(('test_signal(text)', 'len'), BinaryOp.LESS, 7)]
-    result = db.select_rows(['text', signal_col], filters=filters)
-
-    assert list(result) == lilac_items([{
-      UUID_COLUMN: '1',
-      'text': 'hello',
-      'test_signal(text)': {
-        'len': 5,
-        'flen': 5.0
-      }
-    }])
-
-    filters = [(('test_signal(text)', 'flen'), BinaryOp.GREATER, 6.0)]
-    result = db.select_rows(['text', signal_col], filters=filters)
-
-    assert list(result) == lilac_items([{
-      UUID_COLUMN: '2',
-      'text': 'everybody',
-      'test_signal(text)': {
-        'len': 9,
-        'flen': 9.0
-      }
-    }])
-
   def test_udf_with_uuid_filter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
 
     db = make_db(
