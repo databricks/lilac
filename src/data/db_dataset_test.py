@@ -481,6 +481,9 @@ class SelectRowsSuite:
     result = db.select_rows(['name'], filters=[exists_filter])
     assert list(result) == lilac_items([{UUID_COLUMN: '3', 'name': 'C'}])
 
+    with pytest.raises(ValueError, match='Invalid path'):
+      db.select_rows(['name'], filters=[('info', UnaryOp.EXISTS)])
+
   def test_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
 
