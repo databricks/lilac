@@ -521,11 +521,11 @@ class DatasetDuckDB(DatasetDB):
                   resolve_span: bool = False,
                   combine_columns: bool = False) -> SelectRowsResult:
     cols = [column_from_identifier(col) for col in columns or []]
-
+    manifest = self.manifest()
     star_in_cols = any(col.feature == ('*',) for col in cols)
     if not cols or star_in_cols:
       # Select all columns.
-      cols.extend([Column(name) for name in self.manifest().data_schema.fields.keys()])
+      cols.extend([Column(name) for name in manifest.data_schema.fields.keys()])
       if star_in_cols:
         cols = [col for col in cols if col.feature != ('*',)]
 
@@ -540,7 +540,7 @@ class DatasetDuckDB(DatasetDB):
     col_aliases = set(columns_to_merge.keys())
     udf_aliases = set(col.alias or _unique_alias(col) for col in cols if col.transform)
     filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases)
-    filter_queries = self._create_where(filters)
+    filter_queries = self._create_where(filters, manifest)
     where_query = ''
     if filter_queries:
       where_query = f"WHERE {' AND '.join(filter_queries)}"
@@ -656,7 +656,7 @@ class DatasetDuckDB(DatasetDB):
       query = con.from_df(df)
 
       if udf_filters:
-        udf_filter_queries = self._create_where(udf_filters)
+        udf_filter_queries = self._create_where(udf_filters, manifest)
         if udf_filter_queries:
           query = query.filter(' AND '.join(udf_filter_queries))
 
@@ -859,14 +859,16 @@ class DatasetDuckDB(DatasetDB):
     self._validate_filters(filters, col_aliases)
     return filters, udf_filters
 
-  def _create_where(self, filters: list[Filter]) -> list[str]:
-    manifest = self.manifest()
+  def _create_where(self, filters: list[Filter], manifest: DatasetManifest) -> list[str]:
     if not filters:
       return []
     filter_queries: list[str] = []
     binary_ops = set(BinaryOp)
     unary_ops = set(UnaryOp)
     for filter in filters:
+      select_str, _ = self._create_select_column(
+        Column(filter.path), manifest, flatten=False, resolve_span=False, make_temp_alias=False)
+
       if filter.op in binary_ops:
         op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
         filter_val = cast(FeatureValue, filter.value)
@@ -881,11 +883,8 @@ class DatasetDuckDB(DatasetDB):
           filter_val = _bytes_to_blob_literal(filter_val)
         else:
           filter_val = str(filter_val)
-        col_name = self._path_to_col(filter.path)
-        filter_query = f'{col_name} {op} {filter_val}'
+        filter_query = f'{select_str} {op} {filter_val}'
       elif filter.op in unary_ops:
-        select_str, _ = self._create_select_column(
-          Column(filter.path), manifest, flatten=False, resolve_span=False, make_temp_alias=False)
         is_array = any(subpath == PATH_WILDCARD for subpath in filter.path)
         if filter.op == UnaryOp.EXISTS:
           filter_query = f'len({select_str}) > 0' if is_array else f'{select_str} IS NOT NULL'
