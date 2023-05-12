@@ -174,14 +174,15 @@ class SelectRowsSchemaSuite:
   def test_udf_with_combine_cols(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, TEST_DATA)
 
+    length_signal = LengthSignal()
     result = db.select_rows_schema([('people', '*', 'locations', '*', 'city'),
-                                    SignalUDF(LengthSignal(), ('people', '*', 'name'))],
+                                    SignalUDF(length_signal, ('people', '*', 'name'))],
                                    combine_columns=True)
     assert result == schema({
       UUID_COLUMN: 'string',
       'people': [{
         'name': {
-          'length_signal': signal_field(dtype='int32')
+          'length_signal': signal_field(dtype='int32', signal=length_signal.dict())
         },
         'locations': [{
           'city': 'string'
@@ -193,9 +194,10 @@ class SelectRowsSchemaSuite:
                                            db_cls: Type[DatasetDB]) -> None:
     db = make_db(db_cls, tmp_path, TEST_DATA)
 
-    db.compute_signal(AddSpaceSignal(), ('people', '*', 'name'))
+    add_space_signal = AddSpaceSignal()
+    db.compute_signal(add_space_signal, ('people', '*', 'name'))
     result = db.select_rows_schema([('people', '*', 'name'),
-                                    SignalUDF(AddSpaceSignal(),
+                                    SignalUDF(add_space_signal,
                                               ('people', '*', 'name', 'add_space_signal'))],
                                    combine_columns=True)
     assert result == schema({
@@ -203,10 +205,12 @@ class SelectRowsSchemaSuite:
       'people': [{
         'name': field(
           {
-            'add_space_signal': signal_field({
-              'add_space_signal': signal_field(dtype='string'),
-            },
-                                             dtype='string')
+            'add_space_signal': signal_field(
+              fields={
+                'add_space_signal': signal_field(dtype='string', signal=add_space_signal.dict()),
+              },
+              dtype='string',
+              signal=add_space_signal.dict())
           },
           dtype='string')
       }],

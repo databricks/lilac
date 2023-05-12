@@ -147,14 +147,14 @@ export function getValueNodes(row: LilacValueNode, _path: Path): LilacValueNode[
 
 /**
  * Determine if field is produced by a signal. We do this by walking the schema from the root to the
- * field, and checking if a parent has a signal_root.
+ * field, and checking if a parent has a signal.
  */
 export function isSignalField(
   field: LilacSchemaField,
   schema: LilacSchemaField,
   hasSignalRootParent = false
 ): boolean {
-  if (schema.signal_root) {
+  if (schema.signal != null) {
     hasSignalRootParent = true;
   }
   if (schema === field) return hasSignalRootParent;

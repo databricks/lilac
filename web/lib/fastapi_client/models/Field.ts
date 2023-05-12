@@ -11,6 +11,6 @@ export type Field = {
     repeated_field?: Field;
     fields?: Record<string, Field>;
     dtype?: DataType;
-    signal_root?: boolean;
+    signal?: Record<string, any>;
 };
 
