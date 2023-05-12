@@ -354,13 +354,15 @@ class ComputeSignalItemsSuite:
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'str': field({
-          'test_signal': signal_field({
-            'len': 'int32',
-            'flen': 'float32'
-          }),
-        },
-                     dtype='string'),
+        'str': field(
+          {
+            'test_signal': signal_field(
+              fields={
+                'len': 'int32',
+                'flen': 'float32'
+              }, signal=test_signal.dict()),
+          },
+          dtype='string'),
         'int': 'int32',
         'bool': 'boolean',
         'float': 'float32',
@@ -478,8 +480,8 @@ class ComputeSignalItemsSuite:
         UUID_COLUMN: 'string',
         'text': field(
           {
-            'param_signal(param=a)': signal_field('string'),
-            'param_signal(param=b)': signal_field('string'),
+            'param_signal(param=a)': signal_field(dtype='string', signal=test_signal_a.dict()),
+            'param_signal(param=b)': signal_field(dtype='string', signal=test_signal_b.dict()),
           },
           dtype='string'),
       }),
@@ -512,21 +514,28 @@ class ComputeSignalItemsSuite:
         'text': 'hello2.',
       }])
 
-    db.compute_signal(TestEmbedding(), 'text')
-    db.compute_signal(TestEmbeddingSumSignal(), ('text', 'test_embedding'))
+    embedding_signal = TestEmbedding()
+    db.compute_signal(embedding_signal, 'text')
+    embedding_sum_signal = TestEmbeddingSumSignal()
+    db.compute_signal(embedding_sum_signal, ('text', 'test_embedding'))
 
-    emb_field = Field(
-      dtype=DataType.EMBEDDING,
-      fields={SIGNAL_METADATA_KEY: field({'neg_sum': 'float32'})},
-      signal_root=True)
-
-    emb_field.fields['test_embedding_sum'] = signal_field('float32')  # type: ignore
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'text': field({'test_embedding': emb_field}, dtype='string'),
+        'text': field(
+          {
+            'test_embedding': signal_field(
+              dtype='embedding',
+              fields={
+                'test_embedding_sum': signal_field(
+                  dtype='float32', signal=embedding_sum_signal.dict())
+              },
+              metadata={'neg_sum': 'float32'},
+              signal=embedding_signal.dict())
+          },
+          dtype='string'),
       }),
       num_items=2)
 
@@ -574,25 +583,37 @@ class ComputeSignalItemsSuite:
 
     split_signal = TestSplitSignal()
     db.compute_signal(split_signal, 'text')
-    db.compute_signal(TestEmbedding(), ('text', 'test_split_len', '*'))
-    db.compute_signal(TestEmbeddingSumSignal(), ('text', 'test_split_len', '*', 'test_embedding'))
-
-    emb_field = Field(
-      dtype=DataType.EMBEDDING,
-      fields={SIGNAL_METADATA_KEY: field({'neg_sum': 'float32'})},
-      signal_root=True)
-    emb_field.fields['test_embedding_sum'] = signal_field('float32')  # type: ignore
-
-    text_field = Field(
-      dtype=DataType.STRING_SPAN, fields={SIGNAL_METADATA_KEY: field({'len': 'int32'})})
-    text_field.fields['test_embedding'] = emb_field  # type: ignore
+    embedding_signal = TestEmbedding()
+    db.compute_signal(embedding_signal, ('text', 'test_split_len', '*'))
+    embedding_sum_signal = TestEmbeddingSumSignal()
+    db.compute_signal(embedding_sum_signal, ('text', 'test_split_len', '*', 'test_embedding'))
 
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'text': field({'test_split_len': signal_field([text_field])}, dtype='string'),
+        'text': field(
+          {
+            'test_split_len': signal_field(
+              fields=[
+                signal_field(
+                  dtype='string_span',
+                  fields={
+                    'test_embedding': signal_field(
+                      fields={
+                        'test_embedding_sum': signal_field(
+                          dtype='float32', signal=embedding_sum_signal.dict())
+                      },
+                      dtype='embedding',
+                      metadata={'neg_sum': 'float32'},
+                      signal=embedding_signal.dict())
+                  },
+                  metadata={'len': 'int32'})
+              ],
+              signal=split_signal.dict())
+          },
+          dtype='string'),
       }),
       num_items=2)
 
@@ -692,11 +713,9 @@ class ComputeSignalItemsSuite:
         UUID_COLUMN: 'string',
         'text': field(
           {
-            'test_split_len': signal_field([
-              Field(
-                dtype=DataType.STRING_SPAN,
-                fields={SIGNAL_METADATA_KEY: field({'len': field('int32')})})
-            ])
+            'test_split_len': signal_field(
+              fields=[signal_field(dtype='string_span', metadata={'len': 'int32'})],
+              signal=signal.dict())
           },
           dtype='string')
       }),
@@ -746,10 +765,15 @@ class ComputeSignalItemsSuite:
       data_schema=schema({
         UUID_COLUMN: 'string',
         'text': field([
-          field({'test_signal': signal_field({
-            'len': 'int32',
-            'flen': 'float32'
-          })}, dtype='string')
+          field(
+            {
+              'test_signal': signal_field(
+                fields={
+                  'len': 'int32',
+                  'flen': 'float32'
+                }, signal=test_signal.dict())
+            },
+            dtype='string')
         ])
       }),
       num_items=2)

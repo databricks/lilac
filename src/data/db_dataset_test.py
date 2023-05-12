@@ -11,10 +11,8 @@ from ..config import CONFIG
 from ..embeddings.embedding import EmbeddingSignal
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
-  SIGNAL_METADATA_KEY,
   UUID_COLUMN,
   VALUE_KEY,
-  DataType,
   EnrichmentType,
   Field,
   Item,
@@ -82,9 +80,7 @@ class TestEmbedding(EmbeddingSignal):
   @override
   def fields(self) -> Field:
     """Return the fields for the embedding."""
-    # Override in the test so we can attach extra metadata.
-    return Field(
-      dtype=DataType.EMBEDDING, fields={SIGNAL_METADATA_KEY: field({'neg_sum': 'float32'})})
+    return signal_field(dtype='embedding', metadata={'neg_sum': 'float32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -570,8 +566,10 @@ class SelectRowsSuite:
         'texts': ['a', 'bc', 'def']
       }])
 
-    db.compute_signal(TestSignal(), ('texts', '*'))
-    db.compute_signal(LengthSignal(), ('texts', '*'))
+    test_signal = TestSignal()
+    db.compute_signal(test_signal, ('texts', '*'))
+    length_signal = LengthSignal()
+    db.compute_signal(length_signal, ('texts', '*'))
 
     assert db.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
@@ -581,11 +579,12 @@ class SelectRowsSuite:
         'texts': [
           field(
             {
-              'length_signal': signal_field('int32'),
-              'test_signal': signal_field({
-                'len': 'int32',
-                'flen': 'float32'
-              })
+              'length_signal': signal_field(dtype='int32', signal=length_signal.dict()),
+              'test_signal': signal_field(
+                fields={
+                  'len': 'int32',
+                  'flen': 'float32'
+                }, signal=test_signal.dict())
             },
             dtype='string')
         ],
@@ -1058,11 +1057,15 @@ class SelectRowsSuite:
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
         UUID_COLUMN: 'string',
-        'str': field({'test_signal': signal_field({
-          'len': 'int32',
-          'flen': 'float32'
-        })},
-                     dtype='string'),
+        'str': field(
+          {
+            'test_signal': signal_field(
+              fields={
+                'len': 'int32',
+                'flen': 'float32'
+              }, signal=test_signal.dict())
+          },
+          dtype='string'),
         'int': 'int32',
         'bool': 'boolean',
         'float': 'float32',

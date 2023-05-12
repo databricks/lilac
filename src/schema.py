@@ -117,8 +117,8 @@ class Field(BaseModel):
   repeated_field: Optional['Field']
   fields: Optional[dict[str, 'Field']]
   dtype: Optional[DataType]
-  # Whether this field is the root result of a signal.
-  signal_root: Optional[bool]
+  # Defined as the serialized signal when this field is the root result of a signal.
+  signal: Optional[dict[str, Any]]
 
   @validator('fields')
   def either_fields_or_repeated_field_is_defined(
@@ -214,12 +214,12 @@ def schema(schema_like: object) -> Schema:
 
 
 def field(field_like: Optional[object] = None,
-          signal_root: Optional[bool] = None,
+          signal: Optional[dict] = None,
           dtype: Optional[Union[DataType, str]] = None) -> Field:
   """Parse a field-like object to a Field object."""
   field = _parse_field_like(field_like or {}, dtype)
-  if signal_root:
-    field.signal_root = signal_root
+  if signal:
+    field.signal = signal
   if dtype:
     if isinstance(dtype, str):
       dtype = DataType(dtype)
@@ -227,12 +227,18 @@ def field(field_like: Optional[object] = None,
   return field
 
 
-def signal_field(field_like: Optional[object] = None,
-                 dtype: Optional[Union[DataType, str]] = None,
-                 metadata: Optional[dict[str, object]] = None) -> Field:
-  """Parse a field-like object to a signal field."""
-  # TODO(nsthorat): Add signal_root to the params to allow us to have this as a non-root.
-  out_field = field(field_like, signal_root=True, dtype=dtype)
+def signal_field(dtype: Optional[Union[DataType, str]] = None,
+                 fields: Optional[object] = None,
+                 metadata: Optional[dict[str, object]] = None,
+                 signal: Optional[dict[str, Any]] = None) -> Field:
+  """Parse a field-like object to a signal field.
+
+  NOTE: fields can either be a dict[str, FieldLike] or list[FieldLike], which determines whether to
+  put the field in Field.fields or Field.repeated_field.
+  """
+  out_field = field(fields, dtype=dtype)
+  if signal:
+    out_field.signal = signal
   if metadata:
     if not out_field.fields:
       out_field.fields = {}

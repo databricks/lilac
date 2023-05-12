@@ -185,7 +185,7 @@ def wrap_in_dicts(input: Iterable[object], spec: list[PathTuple]) -> Iterable[ob
 
 def _merge_field_into(schema: Field, destination: Field) -> None:
   if isinstance(schema, Field):
-    destination.signal_root = destination.signal_root or schema.signal_root
+    destination.signal = destination.signal or schema.signal
     destination.dtype = destination.dtype or schema.dtype
   if schema.fields:
     destination.fields = destination.fields or {}
@@ -241,7 +241,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
                      f'Leaf paths: {leafs.keys()}')
 
   signal_schema = signal.fields()
-  signal_schema.signal_root = True
+  signal_schema.signal = signal.dict()
 
   enriched_schema = field({signal.key(): signal_schema})
 

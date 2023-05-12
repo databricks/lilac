@@ -721,7 +721,7 @@ class DatasetDuckDB(DatasetDB):
         if not isinstance(col.transform, SignalTransform):
           raise ValueError(f'Unsupported transform: {col.transform}')
         field = col.transform.signal.fields()
-        field.signal_root = True
+        field.signal = col.transform.signal.dict()
       else:
         field = self.manifest().data_schema.get_field(dest_path)
       col_schemas.append(_make_schema_from_path(dest_path, field))
@@ -1092,7 +1092,7 @@ def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:
   # Find the closest parent of `path` that is a signal root.
   for i in reversed(range(len(path))):
     sub_path = path[:i]
-    if schema.get_field(sub_path).signal_root:
+    if schema.get_field(sub_path).signal:
       # Skip the signal name at the end to get the source path that was enriched.
       return _make_value_path(sub_path[:-1])
   raise ValueError('Cannot find the source path for the enriched path: {path}')
