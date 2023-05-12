@@ -32,7 +32,7 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
               }
             }
           },
-          signal_root: true
+          signal: {signal_name: 'pii'}
         }
       }
     },
@@ -47,7 +47,7 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
                   dtype: 'int32'
                 }
               },
-              signal_root: true
+              signal: {signal_name: 'text_statistics'}
             }
           }
         },
