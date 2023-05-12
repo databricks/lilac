@@ -131,6 +131,7 @@ class TextSplitterSignal(Signal):
 
 class TextEmbeddingSignal(TextSignal):
   """An interface for signals that compute embeddings for text."""
+  enrichment_type = EnrichmentType.TEXT
 
   def fields(self) -> Field:
     """Return the fields for the embedding."""
