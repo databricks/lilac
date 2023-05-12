@@ -513,15 +513,15 @@ class DatasetDuckDB(DatasetDB):
                   task_id: Optional[TaskId] = None,
                   resolve_span: bool = False,
                   combine_columns: bool = False) -> SelectRowsResult:
-    columns = list(columns or [])
+    cols = [column_from_identifier(col) for col in columns or []]
 
-    if not columns or '*' in columns:
+    star_in_cols = any(col.feature == ('*',) for col in cols)
+    if not cols or star_in_cols:
       # Select all columns.
-      columns.extend(self.manifest().data_schema.fields.keys())
-      if '*' in columns:
-        columns.remove('*')
+      cols.extend([Column(name) for name in self.manifest().data_schema.fields.keys()])
+      if star_in_cols:
+        cols = [col for col in cols if col.feature != ('*',)]
 
-    cols = [column_from_identifier(column) for column in columns or []]
     # Always return the UUID column.
     col_paths = [col.feature for col in cols]
     if (UUID_COLUMN,) not in col_paths:

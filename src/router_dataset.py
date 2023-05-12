@@ -4,7 +4,7 @@ from typing import Any, Optional, Sequence, Union, cast
 
 from fastapi import APIRouter, Response
 from fastapi.responses import ORJSONResponse
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, StrictStr, validator
 
 from .config import data_path
 from .data.db_dataset import (
@@ -139,7 +139,7 @@ class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
   # OpenAPI doesn't generate the correct typescript when using `Sequence[ColumnId]` (confused by
   # `tuple[Union[str, int], ...]`).
-  columns: Optional[Sequence[Union[tuple[str, ...], Column]]]
+  columns: Optional[Sequence[Union[StrictStr, tuple[StrictStr, ...]]]]
   filters: Optional[Sequence[Filter]]
   sort_by: Optional[Sequence[PathTuple]]
   sort_order: Optional[SortOrder] = SortOrder.DESC

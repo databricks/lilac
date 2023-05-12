@@ -162,6 +162,9 @@ class SelectRowsSuite:
     result = db.select_rows(['*'])
     assert list(result) == lilac_items(items)
 
+    result = db.select_rows([('*',)])
+    assert list(result) == lilac_items(items)
+
     # Select *, plus a redundant `info` column.
     result = db.select_rows(['*', 'info'])
     assert list(result) == lilac_items([{

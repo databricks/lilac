@@ -1,5 +1,7 @@
 """Item: an individual entry in the dataset."""
 
+import csv
+import io
 from collections import deque
 from datetime import datetime
 from enum import Enum
@@ -302,9 +304,15 @@ def column_paths_match(path_match: Path, specific_path: Path) -> bool:
 
 
 def normalize_path(path: Path) -> PathTuple:
-  """Normalize a path."""
+  """Normalizes a dot seperated path, but ignores dots inside quotes, like regular SQL.
+
+  Examples
+  - 'a.b.c' will be parsed as ('a', 'b', 'c').
+  - '"a.b".c' will be parsed as ('a.b', 'c').
+  - '"a".b.c' will be parsed as ('a', 'b', 'c').
+  """
   if isinstance(path, str):
-    return tuple(path.split('.'))
+    return tuple(next(csv.reader(io.StringIO(path), delimiter='.')))
   return path
 
 

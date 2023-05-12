@@ -2,7 +2,6 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { Column } from './Column';
 import type { Filter } from './Filter';
 import type { SortOrder } from './SortOrder';
 
@@ -10,7 +9,7 @@ import type { SortOrder } from './SortOrder';
  * The request for the select rows endpoint.
  */
 export type SelectRowsOptions = {
-    columns?: Array<(Array<string> | Column)>;
+    columns?: Array<(string | Array<string>)>;
     filters?: Array<Filter>;
     sort_by?: Array<Array<(number | string)>>;
     sort_order?: SortOrder;

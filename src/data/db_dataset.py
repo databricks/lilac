@@ -140,10 +140,7 @@ class Column(BaseModel):
                transform: Optional[Transform] = None,
                **kwargs: Any):
     """Initialize a column. We override __init__ to allow positional arguments for brevity."""
-    if isinstance(feature, str):
-      feature = (feature,)
-
-    super().__init__(feature=feature, alias=alias, transform=transform, **kwargs)
+    super().__init__(feature=normalize_path(feature), alias=alias, transform=transform, **kwargs)
 
 
 ColumnId = Union[Path, Column]
@@ -183,14 +180,8 @@ class DatasetManifest(BaseModel):
 def column_from_identifier(column: ColumnId) -> Column:
   """Create a column from a column identifier."""
   if isinstance(column, Column):
-    result = column.copy()
-  else:
-    result = Column(feature=column)
-  # We normalize the feature to always be a path.
-  if isinstance(result.feature, (str, int)):
-    result.feature = (result.feature,)
-
-  return result
+    return column.copy()
+  return Column(feature=column)
 
 
 def Bucketize(column: ColumnId, bins: list[float]) -> Column:

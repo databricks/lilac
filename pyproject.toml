@@ -8,9 +8,9 @@ packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 cohere = "^3.7.0"
-datasets = "^2.11.0"
+datasets = "^2.12.0"
 duckdb = "^0.7.1"
-fastapi = "^0.92.0"
+fastapi = "^0.95.1"
 google-cloud-storage = "^2.5.0"
 python = "~3.9"
 pyarrow = "^9.0.0"
@@ -28,12 +28,12 @@ orjson = "^3.8.10"
 
 ##### Tensorflow #####
 # Install TF on all platforms but Macs with M1/M2 chips.
-tensorflow = {version = "~2.9", markers = "platform_machine != 'arm64'"}
+tensorflow = {version = "~2.12", markers = "platform_machine != 'arm64'"}
 # Install special TF packages on Macs with M1/M2 chips.
 # https://developer.apple.com/metal/tensorflow-plugin/
-tensorflow-macos = {version = "~2.9.0", markers = "platform_machine == 'arm64'"}
-tensorflow-metal = {version = "^0.6.0", markers = "platform_machine == 'arm64'"}
-tensorflow-datasets = "^4.8.3"
+tensorflow-macos = {version = "~2.12.0", markers = "platform_machine == 'arm64'"}
+tensorflow-metal = {version = "^0.8.0", markers = "platform_machine == 'arm64'"}
+tensorflow-datasets = "^4.9.2"
 dask = "^2023.3.2"
 distributed = "^2023.3.2.1"
 # Required for Dask monitoring.
