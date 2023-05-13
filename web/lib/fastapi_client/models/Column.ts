@@ -2,15 +2,15 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { BucketizeTransform } from './BucketizeTransform';
-import type { SignalTransform } from './SignalTransform';
+import type { ConceptScoreSignal } from './ConceptScoreSignal';
+import type { Signal } from './Signal';
 
 /**
  * A column in the dataset DB.
  */
 export type Column = {
-    feature: Array<(number | string)>;
+    path: Array<(number | string)>;
     alias?: string;
-    transform?: (BucketizeTransform | SignalTransform);
+    signal_udf?: (ConceptScoreSignal | Signal);
 };
 

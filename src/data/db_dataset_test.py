@@ -36,7 +36,6 @@ from .db_dataset import (
   Column,
   DatasetDB,
   DatasetManifest,
-  SignalUDF,
   SortOrder,
   UnaryOp,
   val,
@@ -331,7 +330,7 @@ class SelectRowsSuite:
     assert list(result) == lilac_items(items)
 
     # Select *, plus redundant `name`, plus a udf.
-    udf = SignalUDF(TestSignal(), 'name')
+    udf = Column('name', signal_udf=TestSignal())
     result = db.select_rows(['*', 'name', udf], combine_columns=True)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
@@ -826,7 +825,7 @@ class SelectRowsSuite:
     }])
 
     # Works with UDFs and aliases are ignored.
-    udf_col = SignalUDF(LengthSignal(), 'text', alias='ignored')
+    udf_col = Column('text', alias='ignored', signal_udf=LengthSignal())
     result = db.select_rows(['text', udf_col], combine_columns=True)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
@@ -848,7 +847,7 @@ class SelectRowsSuite:
         'text': 'everybody'
       }])
 
-    signal_col = SignalUDF(TestSignal(), 'text')
+    signal_col = Column('text', signal_udf=TestSignal())
     result = db.select_rows(['text', signal_col])
 
     assert list(result) == lilac_items([{
@@ -879,7 +878,7 @@ class SelectRowsSuite:
         'text': 'everybody'
       }])
 
-    signal_col = SignalUDF(TestSignal(), 'text')
+    signal_col = Column('text', signal_udf=TestSignal())
     # Filter by source feature.
     filters: list[BinaryFilterTuple] = [('text', BinaryOp.EQUALS, 'everybody')]
     result = db.select_rows(['text', signal_col], filters=filters)
@@ -908,7 +907,7 @@ class SelectRowsSuite:
     signal = LengthSignal()
     # Filter by a specific UUID.
     filters: list[BinaryFilterTuple] = [(UUID_COLUMN, BinaryOp.EQUALS, '1')]
-    result = db.select_rows(['text', SignalUDF(signal, 'text')], filters=filters)
+    result = db.select_rows(['text', Column('text', signal_udf=signal)], filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': 'hello',
@@ -917,7 +916,7 @@ class SelectRowsSuite:
     assert signal._call_count == 1
 
     filters = [(UUID_COLUMN, BinaryOp.EQUALS, '2')]
-    result = db.select_rows(['text', SignalUDF(signal, 'text')], filters=filters)
+    result = db.select_rows(['text', Column('text', signal_udf=signal)], filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '2',
       'text': 'everybody',
@@ -926,7 +925,7 @@ class SelectRowsSuite:
     assert signal._call_count == 1 + 1
 
     # No filters.
-    result = db.select_rows(['text', SignalUDF(signal, 'text')])
+    result = db.select_rows(['text', Column('text', signal_udf=signal)])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': 'hello',
@@ -956,7 +955,7 @@ class SelectRowsSuite:
 
     # Filter by a specific UUID.
     filters: list[BinaryFilterTuple] = [(UUID_COLUMN, BinaryOp.EQUALS, '1')]
-    result = db.select_rows(['text', SignalUDF(signal, ('text', '*'))], filters=filters)
+    result = db.select_rows(['text', Column(('text', '*'), signal_udf=signal)], filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': ['hello', 'hi'],
@@ -966,7 +965,7 @@ class SelectRowsSuite:
 
     # Filter by a specific UUID.
     filters = [(UUID_COLUMN, BinaryOp.EQUALS, '2')]
-    result = db.select_rows(['text', SignalUDF(signal, ('text', '*'))], filters=filters)
+    result = db.select_rows(['text', Column(('text', '*'), signal_udf=signal)], filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '2',
       'text': ['everybody', 'bye', 'test'],
@@ -988,7 +987,7 @@ class SelectRowsSuite:
 
     signal = LengthSignal()
 
-    result = db.select_rows([SignalUDF(signal, ('text', '*', '*'))])
+    result = db.select_rows([Column(('text', '*', '*'), signal_udf=signal)])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'length_signal(text.*)': [[5], [2, 3]]
@@ -1012,8 +1011,8 @@ class SelectRowsSuite:
 
     db.compute_signal(TestEmbedding(), 'text')
 
-    signal_col = SignalUDF(
-      TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), column=('text', TEST_EMBEDDING_NAME))
+    signal_col = Column(('text', TEST_EMBEDDING_NAME),
+                        signal_udf=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME))
     result = db.select_rows([val('text'), signal_col])
 
     expected_result: list[Item] = [{
@@ -1028,10 +1027,9 @@ class SelectRowsSuite:
     assert list(result) == expected_result
 
     # Select rows with alias.
-    signal_col = SignalUDF(
-      TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
-      Column(('text', TEST_EMBEDDING_NAME)),
-      alias='emb_sum')
+    signal_col = Column(('text', TEST_EMBEDDING_NAME),
+                        signal_udf=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
+                        alias='emb_sum')
     result = db.select_rows([val('text'), signal_col])
     expected_result = [{
       UUID_COLUMN: '1',
@@ -1058,8 +1056,8 @@ class SelectRowsSuite:
 
     db.compute_signal(TestEmbedding(), ('text', '*'))
 
-    signal_col = SignalUDF(
-      TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME), ('text', '*', TEST_EMBEDDING_NAME))
+    signal_col = Column(('text', '*', TEST_EMBEDDING_NAME),
+                        signal_udf=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME))
     result = db.select_rows([val(('text', '*')), signal_col])
     expected_result = [{
       UUID_COLUMN: '1',

@@ -1,11 +1,4 @@
-import type {
-  BucketizeTransform,
-  ConceptScoreSignal,
-  DataType,
-  Signal,
-  SignalInputType,
-  SignalTransform
-} from '../fastapi_client';
+import type {ConceptScoreSignal, DataType, Signal, SignalInputType} from '../fastapi_client';
 export type LeafValue = number | boolean | string | null;
 export type FieldValue = FieldValue[] | {[fieldName: string]: FieldValue} | LeafValue;
 
@@ -88,12 +81,6 @@ export function pathIsEqual(path1?: Path, path2?: Path): boolean {
   if (!path1 || !path2) return false;
   if (path1.length !== path2.length) return false;
   return serializePath(path1) === serializePath(path2);
-}
-
-export function isSignalTransform(
-  transform: BucketizeTransform | SignalTransform | undefined
-): transform is SignalTransform {
-  return (transform as SignalTransform)?.signal !== undefined;
 }
 
 export function isConceptScoreSignal(

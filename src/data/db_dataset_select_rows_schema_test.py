@@ -8,7 +8,7 @@ import pytest
 from ..config import CONFIG
 from ..schema import UUID_COLUMN, Field, Item, RichData, SignalOut, field, schema, signal_field
 from ..signals.signal import TextSignal, clear_signal_registry, register_signal
-from .db_dataset import DatasetDB, SignalUDF
+from .db_dataset import Column, DatasetDB
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import make_db
 
@@ -163,7 +163,7 @@ class SelectRowsSchemaSuite:
 
     length_signal = LengthSignal()
     result = db.select_rows_schema([('people', '*', 'locations', '*', 'city'),
-                                    SignalUDF(length_signal, ('people', '*', 'name'))],
+                                    Column(('people', '*', 'name'), signal_udf=length_signal)],
                                    combine_columns=True)
     assert result == schema({
       UUID_COLUMN: 'string',
@@ -183,10 +183,10 @@ class SelectRowsSchemaSuite:
 
     add_space_signal = AddSpaceSignal()
     db.compute_signal(add_space_signal, ('people', '*', 'name'))
-    result = db.select_rows_schema([('people', '*', 'name'),
-                                    SignalUDF(add_space_signal,
-                                              ('people', '*', 'name', 'add_space_signal'))],
-                                   combine_columns=True)
+    result = db.select_rows_schema(
+      [('people', '*', 'name'),
+       Column(('people', '*', 'name', 'add_space_signal'), signal_udf=add_space_signal)],
+      combine_columns=True)
     assert result == schema({
       UUID_COLUMN: 'string',
       'people': [{

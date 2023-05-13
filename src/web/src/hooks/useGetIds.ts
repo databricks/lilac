@@ -1,4 +1,4 @@
-import {Column, ConceptScoreSignal, Filter, SignalTransform, SortOrder} from '../../fastapi_client';
+import {Column, ConceptScoreSignal, Filter, SortOrder} from '../../fastapi_client';
 import {Path, UUID_COLUMN} from '../schema';
 import {useSelectRowsQuery} from '../store/apiDataset';
 import {ActiveConceptState} from '../store/store';
@@ -36,8 +36,7 @@ export function useGetIds(args: {
       activeConcept.column,
       activeConcept.embedding
     );
-    const transform: SignalTransform = {signal};
-    const conceptColumn: Column = {feature: activeConcept.column, transform, alias};
+    const conceptColumn: Column = {path: activeConcept.column, signal_udf: signal, alias};
     columns = [...columns, conceptColumn];
     // If no sort is specified, sort by the active concept.
     if (sortBy == null) {

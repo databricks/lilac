@@ -17,7 +17,7 @@ from pydantic import (
 
 from ..schema import VALUE_KEY, Path, PathTuple, Schema, normalize_path
 from ..signals.concept_scorer import ConceptScoreSignal
-from ..signals.signal import Signal, resolve_signal
+from ..signals.signal import Signal
 from ..tasks import TaskId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -104,47 +104,24 @@ class GroupsSortBy(str, enum.Enum):
   VALUE = 'value'
 
 
-class Transform(BaseModel):
-  """The base class for a feature transform, e.g. bucketization or concept."""
-  pass
-
-
-class BucketizeTransform(Transform):
-  """Bucketizes the input float into descrete integer buckets."""
-  bins: list[float]
-
-
-class SignalTransform(Transform):
-  """Computes a signal transformation over a field."""
-  signal: Union[ConceptScoreSignal, Signal]
-
-  class Config:
-    smart_union = True
-
-  @validator('signal', pre=True)
-  def parse_signal(cls, signal: dict) -> Union[ConceptScoreSignal, Signal]:
-    """Parse a signal to its specific subclass instance."""
-    return resolve_signal(signal)
-
-
 class Column(BaseModel):
   """A column in the dataset DB."""
-  feature: PathTuple
+  path: PathTuple
   alias: Optional[str]  # This is the renamed column during querying and response.
 
   # Defined when the feature is another column.
-  transform: Optional[Union[BucketizeTransform, SignalTransform]] = None
+  signal_udf: Optional[Union[ConceptScoreSignal, Signal]] = None
 
   class Config:
     smart_union = True
 
   def __init__(self,
-               feature: Path,
+               path: Path,
                alias: Optional[str] = None,
-               transform: Optional[Transform] = None,
+               signal_udf: Optional[Union[ConceptScoreSignal, Signal]] = None,
                **kwargs: Any):
     """Initialize a column. We override __init__ to allow positional arguments for brevity."""
-    super().__init__(feature=normalize_path(feature), alias=alias, transform=transform, **kwargs)
+    super().__init__(path=normalize_path(path), alias=alias, signal_udf=signal_udf, **kwargs)
 
 
 ColumnId = Union[Path, Column]
@@ -185,22 +162,7 @@ def column_from_identifier(column: ColumnId) -> Column:
   """Create a column from a column identifier."""
   if isinstance(column, Column):
     return column.copy()
-  return Column(feature=column)
-
-
-def Bucketize(column: ColumnId, bins: list[float]) -> Column:
-  """Bucketize a column."""
-  column = column_from_identifier(column)
-  return Column(feature=column.feature, transform=BucketizeTransform(bins=bins))
-
-
-def SignalUDF(signal: Signal, column: ColumnId, alias: Optional[str] = None) -> Column:
-  """Execute the signal as a user-defined function on the selected rows."""
-  result_column = Column(
-    feature=column_from_identifier(column).feature, transform=SignalTransform(signal=signal))
-  if alias:
-    result_column.alias = alias
-  return result_column
+  return Column(path=column)
 
 
 FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes, list[StrictStr]]

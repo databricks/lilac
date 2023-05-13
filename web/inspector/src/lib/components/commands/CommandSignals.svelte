@@ -62,8 +62,8 @@
     } else if (variant == 'preview') {
       if (path) {
         datasetViewStore.addUdfColumn({
-          feature: path,
-          transform: {signal}
+          path,
+          signal_udf: signal
         });
       }
     }

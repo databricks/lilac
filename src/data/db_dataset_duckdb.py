@@ -75,8 +75,6 @@ from .db_dataset import (
   NamedBins,
   SelectGroupsResult,
   SelectRowsResult,
-  SignalTransform,
-  SignalUDF,
   SortOrder,
   StatsResult,
   UnaryOp,
@@ -253,10 +251,7 @@ class DatasetDuckDB(DatasetDB):
                      column: ColumnId,
                      task_id: Optional[TaskId] = None) -> None:
     column = column_from_identifier(column)
-    if isinstance(column.feature, Column):
-      raise ValueError(f'Cannot compute a signal for {column} as it is not a leaf feature.')
-
-    signal_col = SignalUDF(signal, column, alias='value')
+    signal_col = Column(path=column.path, alias='value', signal_udf=signal)
     enriched_path = _col_destination_path(signal_col)
     spec = _split_path_into_subpaths_of_lists(enriched_path)
 
@@ -264,7 +259,7 @@ class DatasetDuckDB(DatasetDB):
     df = select_rows_result.df()
     values = df['value']
 
-    source_path = normalize_path(column.feature)
+    source_path = normalize_path(column.path)
     signal_key = signal.key()
     signal_out_prefix = signal_filename_prefix(source_path=source_path, signal_key=signal_key)
     signal_schema = create_signal_schema(signal, source_path, self.manifest().data_schema)
@@ -294,7 +289,7 @@ class DatasetDuckDB(DatasetDB):
       filename_prefix=signal_out_prefix,
       shard_index=0,
       num_shards=1,
-      # The result of select_rows with a SignalUDF has already wrapped primitive values.
+      # The result of select_rows with a signal udf has already wrapped primitive values.
       dont_wrap_primitives=True)
 
     signal_manifest = SignalManifest(
@@ -302,7 +297,7 @@ class DatasetDuckDB(DatasetDB):
       data_schema=signal_schema,
       signal=signal,
       enriched_path=source_path,
-      parquet_id=make_parquet_id(signal, column.feature),
+      parquet_id=make_parquet_id(signal, column.path),
       embedding_filename=embedding_filename)
     signal_manifest_filepath = os.path.join(self.dataset_path,
                                             signal_manifest_filename(source_path, signal_key))
@@ -346,30 +341,29 @@ class DatasetDuckDB(DatasetDB):
   def _validate_columns(self, columns: Sequence[Column]) -> None:
     manifest = self.manifest()
     for column in columns:
-      if column.transform:
-        if isinstance(column.transform, SignalTransform):
-          path = column.feature
+      if column.signal_udf:
+        path = column.path
 
-          # Signal transforms must operate on a leaf field.
-          leaf = manifest.data_schema.leafs.get(path)
-          if not leaf or not leaf.dtype:
-            raise ValueError(f'Leaf "{path}" not found in dataset. '
-                             'Signal transforms must operate on a leaf field.')
+        # Signal transforms must operate on a leaf field.
+        leaf = manifest.data_schema.leafs.get(path)
+        if not leaf or not leaf.dtype:
+          raise ValueError(f'Leaf "{path}" not found in dataset. '
+                           'Signal transforms must operate on a leaf field.')
 
-          # Signal transforms must have the same dtype as the leaf field.
-          signal = column.transform.signal
-          input_type = signal.input_type
+        # Signal transforms must have the same dtype as the leaf field.
+        signal = column.signal_udf
+        input_type = signal.input_type
 
-          if not signal_input_type_supports_dtype(input_type, leaf.dtype):
-            raise ValueError(f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
-                             f'by "{signal.key()}" with signal input type "{input_type}".')
+        if not signal_input_type_supports_dtype(input_type, leaf.dtype):
+          raise ValueError(f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
+                           f'by "{signal.key()}" with signal input type "{input_type}".')
 
-          # Select the value key from duckdb as this gives us the value for the leaf field, allowing
-          # us to remove python code that unwraps the value key before calling the signal.
-          column.feature = _make_value_path(column.feature)
+        # Select the value key from duckdb as this gives us the value for the leaf field, allowing
+        # us to remove python code that unwraps the value key before calling the signal.
+        column.path = _make_value_path(column.path)
 
       current_field = Field(fields=manifest.data_schema.fields)
-      path = column.feature
+      path = column.path
       for path_part in path:
         if path_part == VALUE_KEY:
           continue
@@ -520,15 +514,15 @@ class DatasetDuckDB(DatasetDB):
                   combine_columns: bool = False) -> SelectRowsResult:
     cols = [column_from_identifier(col) for col in columns or []]
     manifest = self.manifest()
-    star_in_cols = any(col.feature == ('*',) for col in cols)
+    star_in_cols = any(col.path == ('*',) for col in cols)
     if not cols or star_in_cols:
       # Select all columns.
       cols.extend([Column(name) for name in manifest.data_schema.fields.keys()])
       if star_in_cols:
-        cols = [col for col in cols if col.feature != ('*',)]
+        cols = [col for col in cols if col.path != ('*',)]
 
     # Always return the UUID column.
-    col_paths = [col.feature for col in cols]
+    col_paths = [col.path for col in cols]
     if (UUID_COLUMN,) not in col_paths:
       cols.append(column_from_identifier(UUID_COLUMN))
 
@@ -536,7 +530,7 @@ class DatasetDuckDB(DatasetDB):
     select_query, columns_to_merge = self._create_select(
       cols, flatten=False, resolve_span=resolve_span, combine_columns=combine_columns)
     col_aliases = set(columns_to_merge.keys())
-    udf_aliases = set(col.alias or _unique_alias(col) for col in cols if col.transform)
+    udf_aliases = set(col.alias or _unique_alias(col) for col in cols if col.signal_udf)
     filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases)
     filter_queries = self._create_where(filters, manifest)
     where_query = ''
@@ -586,68 +580,62 @@ class DatasetDuckDB(DatasetDB):
     already_sorted = False
 
     # Run UDFs on the transformed columns.
-    udf_columns = [col for col in cols if col.transform]
+    udf_columns = [col for col in cols if col.signal_udf]
     for udf_col in udf_columns:
-      transform = udf_col.transform
+      signal = cast(Signal, udf_col.signal_udf)
 
-      if isinstance(transform, SignalTransform):
-        signal = transform.signal
+      if isinstance(signal, ConceptScoreSignal):
+        # Make sure the model is in sync.
+        concept_model = self._concept_model_db.get(signal.namespace, signal.concept_name,
+                                                   signal.embedding)
+        self._concept_model_db.sync(concept_model)
 
-        if isinstance(signal, ConceptScoreSignal):
-          # Make sure the model is in sync.
-          concept_model = self._concept_model_db.get(signal.namespace, signal.concept_name,
-                                                     signal.embedding)
-          self._concept_model_db.sync(concept_model)
+      signal_column = udf_col.alias or _unique_alias(udf_col)
+      input = df[signal_column]
 
-        signal_column = udf_col.alias or _unique_alias(udf_col)
-        input = df[signal_column]
+      with DebugTimer(f'Computing signal "{signal}"'):
+        if signal.input_type in [SignalInputType.TEXT_EMBEDDING]:
+          # The input is an embedding.
+          vector_store = self._get_vector_store(udf_col.path)
 
-        with DebugTimer(f'Computing signal "{signal}"'):
-          if signal.input_type in [SignalInputType.TEXT_EMBEDDING]:
-            # The input is an embedding.
-            vector_store = self._get_vector_store(udf_col.feature)
-
-            # If we are sorting by the topk of a signal column, we can utilize the vector store
-            # via `signal.vector_compute_topk` and then use the topk to filter the dataframe. This
-            # is much faster than computing the signal for all rows and then sorting.
-            if self._sorting_by_topk_of_signal(limit, sort_order, sort_cols_after_udf,
-                                               signal_column):
-              already_sorted = True
-              k = (limit or 0) + (offset or 0)
-              topk = signal.vector_compute_topk(k, vector_store)
-              unique_uuids = list(dict.fromkeys([key[0] for key, _ in topk]))
-              df.set_index(UUID_COLUMN, drop=False, inplace=True)
-              # Filter the dataframe by uuids that have at least one value in top k.
-              df = df.loc[unique_uuids]
-              for key, score in topk:
-                # Walk a deep nested array and put the score at the right location.
-                deep_array = df[signal_column]
-                for key_part in key[:-1]:
-                  deep_array = deep_array[key_part]
-                deep_array[key[-1]] = score
-            else:
-              flat_keys = flatten_keys(df[UUID_COLUMN], input)
-              signal_out = signal.vector_compute(flat_keys, vector_store)
-              # Add progress.
-              if task_id is not None:
-                signal_out = progress(signal_out, task_id=task_id, estimated_len=len(flat_keys))
-              df[signal_column] = lilac_items(unflatten(signal_out, input))
+          # If we are sorting by the topk of a signal column, we can utilize the vector store
+          # via `signal.vector_compute_topk` and then use the topk to filter the dataframe. This
+          # is much faster than computing the signal for all rows and then sorting.
+          if self._sorting_by_topk_of_signal(limit, sort_order, sort_cols_after_udf, signal_column):
+            already_sorted = True
+            k = (limit or 0) + (offset or 0)
+            topk = signal.vector_compute_topk(k, vector_store)
+            unique_uuids = list(dict.fromkeys([key[0] for key, _ in topk]))
+            df.set_index(UUID_COLUMN, drop=False, inplace=True)
+            # Filter the dataframe by uuids that have at least one value in top k.
+            df = df.loc[unique_uuids]
+            for key, score in topk:
+              # Walk a deep nested array and put the score at the right location.
+              deep_array = df[signal_column]
+              for key_part in key[:-1]:
+                deep_array = deep_array[key_part]
+              deep_array[key[-1]] = score
           else:
-            flat_input = cast(list[RichData], flatten(input))
-            signal_out = signal.compute(flat_input)
+            flat_keys = flatten_keys(df[UUID_COLUMN], input)
+            signal_out = signal.vector_compute(flat_keys, vector_store)
             # Add progress.
             if task_id is not None:
-              signal_out = progress(signal_out, task_id=task_id, estimated_len=len(flat_input))
-            signal_out = list(signal_out)
-
-            if len(signal_out) != len(flat_input):
-              raise ValueError(
-                f'The signal generated {len(signal_out)} values but the input data had '
-                f"{len(flat_input)} values. This means the signal either didn't generate a "
-                '"None" for a sparse output, or generated too many items.')
+              signal_out = progress(signal_out, task_id=task_id, estimated_len=len(flat_keys))
             df[signal_column] = lilac_items(unflatten(signal_out, input))
-      else:
-        raise ValueError(f'Unsupported transform: {transform}')
+        else:
+          flat_input = cast(list[RichData], flatten(input))
+          signal_out = signal.compute(flat_input)
+          # Add progress.
+          if task_id is not None:
+            signal_out = progress(signal_out, task_id=task_id, estimated_len=len(flat_input))
+          signal_out = list(signal_out)
+
+          if len(signal_out) != len(flat_input):
+            raise ValueError(
+              f'The signal generated {len(signal_out)} values but the input data had '
+              f"{len(flat_input)} values. This means the signal either didn't generate a "
+              '"None" for a sparse output, or generated too many items.')
+          df[signal_column] = lilac_items(unflatten(signal_out, input))
 
     if udf_filters or sort_cols_after_udf:
       # Re-upload the udf outputs to duckdb so we can filter/sort on them.
@@ -717,7 +705,7 @@ class DatasetDuckDB(DatasetDB):
 
     cols = [column_from_identifier(column) for column in columns or []]
     # Always return the UUID column.
-    col_paths = [col.feature for col in cols]
+    col_paths = [col.path for col in cols]
     if (UUID_COLUMN,) not in col_paths:
       cols.append(column_from_identifier(UUID_COLUMN))
 
@@ -726,11 +714,9 @@ class DatasetDuckDB(DatasetDB):
     col_schemas: list[Schema] = []
     for col in cols:
       dest_path = _col_destination_path(col)
-      if col.transform:
-        if not isinstance(col.transform, SignalTransform):
-          raise ValueError(f'Unsupported transform: {col.transform}')
-        field = col.transform.signal.fields()
-        field.signal = col.transform.signal.dict()
+      if col.signal_udf:
+        field = col.signal_udf.fields()
+        field.signal = col.signal_udf.dict()
       else:
         field = self.manifest().data_schema.get_field(dest_path)
       col_schemas.append(_make_schema_from_path(dest_path, field))
@@ -747,7 +733,7 @@ class DatasetDuckDB(DatasetDB):
                             resolve_span: bool,
                             make_temp_alias: bool = True) -> tuple[str, list[str]]:
     leafs = manifest.data_schema.leafs
-    path = column.feature
+    path = column.path
     span_path = path
 
     # Remove the value key so we can check the dtype from leafs.
@@ -758,7 +744,7 @@ class DatasetDuckDB(DatasetDB):
     # We doing a vector-based computation, we do not need to select the actual data, just the uuids
     # plus an arbitrarily nested array of `None`s`.
     empty = bool(
-      column.transform and isinstance(column.transform, SignalTransform) and
+      column.signal_udf and
       # We remove the last element of the path when checking the dtype because it's VALUE_KEY for
       # signal transforms.
       manifest.data_schema.get_field(path[:-1]).dtype == DataType.EMBEDDING)
@@ -1084,22 +1070,19 @@ def merge_values(destination: pd.Series, source: pd.Series) -> pd.Series:
 
 def _unique_alias(column: Column) -> str:
   """Get a unique alias for a selection column."""
-  if column.transform and isinstance(column.transform, SignalTransform):
-    return make_parquet_id(column.transform.signal, column.feature)
-  return '.'.join(map(str, column.feature))
+  if column.signal_udf:
+    return make_parquet_id(column.signal_udf, column.path)
+  return '.'.join(map(str, column.path))
 
 
 def _col_destination_path(column: Column) -> PathTuple:
   """Get the destination path where the output of this selection column will be stored."""
-  source_path = column.feature
+  source_path = column.path
 
-  if not column.transform:
+  if not column.signal_udf:
     return source_path
 
-  if not isinstance(column.transform, SignalTransform):
-    raise ValueError(f'Cannot get destination path for transform {column.transform!r}')
-
-  signal_key = column.transform.signal.key()
+  signal_key = column.signal_udf.key()
   # If we are enriching a value we should store the signal data in the value's parent.
   if source_path[-1] == VALUE_KEY:
     dest_path = (*source_path[:-1], signal_key)

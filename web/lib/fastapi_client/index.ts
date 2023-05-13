@@ -7,7 +7,6 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { BinaryOp } from './models/BinaryOp';
-export type { BucketizeTransform } from './models/BucketizeTransform';
 export type { Column } from './models/Column';
 export type { ComputeSignalOptions } from './models/ComputeSignalOptions';
 export type { ComputeSignalResponse } from './models/ComputeSignalResponse';
@@ -40,7 +39,6 @@ export type { SelectRowsSchemaOptions } from './models/SelectRowsSchemaOptions';
 export type { Signal } from './models/Signal';
 export type { SignalInfo } from './models/SignalInfo';
 export type { SignalInputType } from './models/SignalInputType';
-export type { SignalTransform } from './models/SignalTransform';
 export type { SortOrder } from './models/SortOrder';
 export type { SourcesList } from './models/SourcesList';
 export type { StatsResult } from './models/StatsResult';
