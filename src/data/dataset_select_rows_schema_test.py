@@ -12,7 +12,7 @@ from .dataset import Column, Dataset
 from .dataset_duckdb import DatasetDuckDB
 from .dataset_test_utils import make_dataset
 
-ALL_DBS = [DatasetDuckDB]
+ALL_DATA_CLASSES = [DatasetDuckDB]
 
 TEST_DATA: list[Item] = [{
   UUID_COLUMN: '1',
@@ -96,11 +96,11 @@ class AddSpaceSignal(TextSignal):
       yield cast(str, text_content) + ' '
 
 
-@pytest.mark.parametrize('db_cls', ALL_DBS)
+@pytest.mark.parametrize('dataset_cls', ALL_DATA_CLASSES)
 class SelectRowsSchemaSuite:
 
-  def test_simple_schema(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(db_cls, tmp_path, TEST_DATA)
+  def test_simple_schema(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(dataset_cls, tmp_path, TEST_DATA)
     result = dataset.select_rows_schema(combine_columns=True)
     assert result == schema({
       UUID_COLUMN: 'string',
@@ -116,12 +116,12 @@ class SelectRowsSchemaSuite:
     })
 
   def test_subselection_with_combine_cols(self, tmp_path: pathlib.Path,
-                                          db_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(db_cls, tmp_path, TEST_DATA)
+                                          dataset_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(dataset_cls, tmp_path, TEST_DATA)
 
     result = dataset.select_rows_schema([('people', '*', 'zipcode'),
-                                    ('people', '*', 'locations', '*', 'city')],
-                                   combine_columns=True)
+                                         ('people', '*', 'locations', '*', 'city')],
+                                        combine_columns=True)
     assert result == schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -133,7 +133,7 @@ class SelectRowsSchemaSuite:
     })
 
     result = dataset.select_rows_schema([('people', '*', 'name'), ('people', '*', 'locations')],
-                                   combine_columns=True)
+                                        combine_columns=True)
     assert result == schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -158,13 +158,13 @@ class SelectRowsSchemaSuite:
       }]
     })
 
-  def test_udf_with_combine_cols(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(db_cls, tmp_path, TEST_DATA)
+  def test_udf_with_combine_cols(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(dataset_cls, tmp_path, TEST_DATA)
 
     length_signal = LengthSignal()
     result = dataset.select_rows_schema([('people', '*', 'locations', '*', 'city'),
-                                    Column(('people', '*', 'name'), signal_udf=length_signal)],
-                                   combine_columns=True)
+                                         Column(('people', '*', 'name'), signal_udf=length_signal)],
+                                        combine_columns=True)
     assert result == schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -178,8 +178,8 @@ class SelectRowsSchemaSuite:
     })
 
   def test_embedding_udf_with_combine_cols(self, tmp_path: pathlib.Path,
-                                           db_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(db_cls, tmp_path, TEST_DATA)
+                                           dataset_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(dataset_cls, tmp_path, TEST_DATA)
 
     add_space_signal = AddSpaceSignal()
     dataset.compute_signal(add_space_signal, ('people', '*', 'name'))

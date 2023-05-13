@@ -62,14 +62,14 @@ def _infer_schema(items: list[Item]) -> Schema:
   return schema
 
 
-def make_dataset(db_cls: Type[Dataset],
+def make_dataset(dataset_cls: Type[Dataset],
                  tmp_path: pathlib.Path,
                  items: list[Item],
                  schema: Optional[Schema] = None) -> Dataset:
   """Create a test dataset."""
   schema = schema or _infer_schema(items)
   _write_items(tmp_path, TEST_DATASET_NAME, cast(list, lilac_items(items)), schema)
-  return db_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
+  return dataset_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
 
 
 def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],

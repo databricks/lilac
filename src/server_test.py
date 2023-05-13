@@ -15,7 +15,7 @@ from .server import app
 
 client = TestClient(app)
 
-ALL_DBS = [DatasetDuckDB]
+ALL_DATA_CLASSES = [DatasetDuckDB]
 
 TEST_DATA: list[Item] = [{
   UUID_COLUMN: '1',
@@ -59,14 +59,14 @@ TEST_DATA: list[Item] = [{
 }]
 
 
-@pytest.fixture(scope='module', autouse=True, params=ALL_DBS)
+@pytest.fixture(scope='module', autouse=True, params=ALL_DATA_CLASSES)
 def test_data(tmp_path_factory: pytest.TempPathFactory,
               request: pytest.FixtureRequest) -> Generator:
   data_path = CONFIG['LILAC_DATA_PATH']
   tmp_path = tmp_path_factory.mktemp('data')
   CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
-  db_cls: Type[Dataset] = request.param
-  make_dataset(db_cls, tmp_path, TEST_DATA)
+  dataset_cls: Type[Dataset] = request.param
+  make_dataset(dataset_cls, tmp_path, TEST_DATA)
 
   # Test data.
   yield TEST_DATA

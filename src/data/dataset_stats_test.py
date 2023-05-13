@@ -13,7 +13,7 @@ from .dataset import Dataset, StatsResult
 from .dataset_duckdb import DatasetDuckDB
 from .dataset_test_utils import make_dataset
 
-ALL_DBS = [DatasetDuckDB]
+ALL_DATA_CLASSES = [DatasetDuckDB]
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -44,11 +44,11 @@ def set_data_path(tmp_path: pathlib.Path) -> Generator:
   CONFIG['LILAC_DATA_PATH'] = data_path or ''
 
 
-@pytest.mark.parametrize('db_cls', ALL_DBS)
+@pytest.mark.parametrize('dataset_cls', ALL_DATA_CLASSES)
 class StatsSuite:
 
-  def test_simple_stats(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(db_cls, tmp_path, SIMPLE_ITEMS)
+  def test_simple_stats(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(dataset_cls, tmp_path, SIMPLE_ITEMS)
 
     result = dataset.stats(leaf_path='str')
     assert result == StatsResult(total_count=3, approx_count_distinct=2, avg_text_length=1)
@@ -62,7 +62,7 @@ class StatsSuite:
     result = dataset.stats(leaf_path='int')
     assert result == StatsResult(total_count=3, approx_count_distinct=2, min_val=1, max_val=2)
 
-  def test_nested_stats(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_nested_stats(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     nested_items: list[Item] = [
       {
         'name': 'Name1',
@@ -97,7 +97,7 @@ class StatsSuite:
       }]
     })
     dataset = make_dataset(
-      db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
+      dataset_cls=dataset_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
 
     result = dataset.stats(leaf_path='name')
     assert result == StatsResult(total_count=4, approx_count_distinct=2, avg_text_length=5)
@@ -105,7 +105,7 @@ class StatsSuite:
     result = dataset.stats(leaf_path='addresses.*.zips.*')
     assert result == StatsResult(total_count=5, approx_count_distinct=4, min_val=3, max_val=11)
 
-  def test_stats_approximation(self, tmp_path: pathlib.Path, db_cls: Type[Dataset],
+  def test_stats_approximation(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset],
                                mocker: MockerFixture) -> None:
     sample_size = 5
     mocker.patch(f'{dataset_duckdb.__name__}.SAMPLE_SIZE_DISTINCT_COUNT', sample_size)
@@ -113,13 +113,13 @@ class StatsSuite:
     nested_items: list[Item] = [{'feature': str(i)} for i in range(sample_size * 10)]
     nested_schema = schema({UUID_COLUMN: 'string', 'feature': 'string'})
     dataset = make_dataset(
-      db_cls=db_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
+      dataset_cls=dataset_cls, tmp_path=tmp_path, items=nested_items, schema=nested_schema)
 
     result = dataset.stats(leaf_path='feature')
     assert result == StatsResult(total_count=50, approx_count_distinct=50, avg_text_length=1)
 
-  def test_error_handling(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(db_cls=db_cls, tmp_path=tmp_path, items=SIMPLE_ITEMS)
+  def test_error_handling(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(dataset_cls=dataset_cls, tmp_path=tmp_path, items=SIMPLE_ITEMS)
 
     with pytest.raises(ValueError, match='leaf_path must be provided'):
       dataset.stats(cast(Any, None))

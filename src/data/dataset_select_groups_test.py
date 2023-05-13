@@ -15,7 +15,7 @@ from .dataset import Dataset, NamedBins
 from .dataset_duckdb import DatasetDuckDB
 from .dataset_test_utils import make_dataset
 
-ALL_DBS = [DatasetDuckDB]
+ALL_DATA_CLASSES = [DatasetDuckDB]
 
 
 @pytest.fixture(autouse=True)
@@ -26,10 +26,10 @@ def set_data_path(tmp_path: pathlib.Path) -> Generator:
   CONFIG['LILAC_DATA_PATH'] = data_path or ''
 
 
-@pytest.mark.parametrize('db_cls', ALL_DBS)
+@pytest.mark.parametrize('dataset_cls', ALL_DATA_CLASSES)
 class SelectGroupsSuite:
 
-  def test_flat_data(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_flat_data(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     items: list[Item] = [
       {
         'name': 'Name1',
@@ -55,7 +55,7 @@ class SelectGroupsSuite:
       }  # Missing "active".
     ]
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=items,
       schema=schema({
@@ -122,7 +122,7 @@ class SelectGroupsSuite:
     ])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_result_is_iterable(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_result_is_iterable(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     items: list[Item] = [
       {
         'active': False
@@ -139,7 +139,7 @@ class SelectGroupsSuite:
       {}  # Missing "active".
     ]
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=items,
       schema=schema({
@@ -151,7 +151,7 @@ class SelectGroupsSuite:
     groups = list(result)
     assert groups == [(True, 3), (False, 1), (None, 1)]
 
-  def test_list_of_structs(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_list_of_structs(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     items: list[Item] = [{
       'list_of_structs': [{
         'name': 'a'
@@ -172,7 +172,7 @@ class SelectGroupsSuite:
       }]
     }]
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=items,
       schema=schema({
@@ -198,7 +198,7 @@ class SelectGroupsSuite:
     }])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_nested_lists(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_nested_lists(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     items: list[Item] = [{
       'nested_list': [[{
         'name': 'a'
@@ -219,7 +219,7 @@ class SelectGroupsSuite:
       }]]
     }]
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=items,
       schema=schema({
@@ -245,7 +245,7 @@ class SelectGroupsSuite:
     }])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_nested_struct(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_nested_struct(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     items: list[Item] = [
       {
         'nested_struct': {
@@ -270,7 +270,7 @@ class SelectGroupsSuite:
       },
     ]
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=items,
       schema=schema({
@@ -295,7 +295,7 @@ class SelectGroupsSuite:
     }])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_named_bins(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_named_bins(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     items: list[Item] = [{
       'age': 34,
     }, {
@@ -308,7 +308,7 @@ class SelectGroupsSuite:
       'age': 55
     }]
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=items,
       schema=schema({
@@ -339,7 +339,7 @@ class SelectGroupsSuite:
     ])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_invalid_leaf(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_invalid_leaf(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     items: list[Item] = [
       {
         'nested_struct': {
@@ -364,7 +364,7 @@ class SelectGroupsSuite:
       },
     ]
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=items,
       schema=schema({
@@ -389,14 +389,14 @@ class SelectGroupsSuite:
         match=re.escape("Leaf \"('nested_struct', 'struct', 'wrong_name')\" not found in dataset")):
       dataset.select_groups(leaf_path='nested_struct.struct.wrong_name')
 
-  def test_too_many_distinct(self, tmp_path: pathlib.Path, db_cls: Type[Dataset],
+  def test_too_many_distinct(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset],
                              mocker: MockerFixture) -> None:
     too_many_distinct = 5
     mocker.patch(f'{dataset_module.__name__}.TOO_MANY_DISTINCT', too_many_distinct)
 
     items: list[Item] = [{'feature': str(i)} for i in range(too_many_distinct + 10)]
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=items,
       schema=schema({
@@ -408,10 +408,11 @@ class SelectGroupsSuite:
         ValueError, match=re.escape('Leaf "(\'feature\',)" has too many unique values: 15')):
       dataset.select_groups('feature')
 
-  def test_bins_are_required_for_float(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_bins_are_required_for_float(self, tmp_path: pathlib.Path,
+                                       dataset_cls: Type[Dataset]) -> None:
     items: list[Item] = [{'feature': float(i)} for i in range(5)]
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=items,
       schema=schema({

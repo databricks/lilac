@@ -37,7 +37,7 @@ from .dataset_duckdb import DatasetDuckDB
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_dataset
 from .dataset_utils import lilac_item, lilac_items, lilac_span, signal_item
 
-ALL_DBS = [DatasetDuckDB]
+ALL_DATA_CLASSES = [DatasetDuckDB]
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -254,14 +254,15 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()
 
 
-@pytest.mark.parametrize('db_cls', ALL_DBS)
+@pytest.mark.parametrize('dataset_cls', ALL_DATA_CLASSES)
 class ComputeSignalItemsSuite:
 
-  def test_signal_output_validation(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_signal_output_validation(self, tmp_path: pathlib.Path,
+                                    dataset_cls: Type[Dataset]) -> None:
     signal = TestInvalidSignal()
 
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=[{
         UUID_COLUMN: '1',
@@ -275,9 +276,9 @@ class ComputeSignalItemsSuite:
         ValueError, match='The signal generated 0 values but the input data had 2 values.'):
       dataset.compute_signal(signal, 'text')
 
-  def test_sparse_signal(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_sparse_signal(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=[{
         UUID_COLUMN: '1',
@@ -298,9 +299,9 @@ class ComputeSignalItemsSuite:
       'text': lilac_item('hello world', {'test_sparse_signal': 11})
     }])
 
-  def test_sparse_rich_signal(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_sparse_rich_signal(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=[{
         UUID_COLUMN: '1',
@@ -326,8 +327,8 @@ class ComputeSignalItemsSuite:
     }])
 
   def test_source_joined_with_signal_column(self, tmp_path: pathlib.Path,
-                                            db_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(db_cls, tmp_path, SIMPLE_ITEMS)
+                                            dataset_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(dataset_cls, tmp_path, SIMPLE_ITEMS)
     assert dataset.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
@@ -452,9 +453,9 @@ class ComputeSignalItemsSuite:
       'len': lilac_item(1)
     }]
 
-  def test_parameterized_signal(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_parameterized_signal(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     dataset = make_dataset(
-      db_cls,
+      dataset_cls,
       tmp_path,
       items=[{
         UUID_COLUMN: '1',
@@ -497,9 +498,9 @@ class ComputeSignalItemsSuite:
       })
     }])
 
-  def test_embedding_signal(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_embedding_signal(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=[{
         UUID_COLUMN: '1',
@@ -564,9 +565,10 @@ class ComputeSignalItemsSuite:
     }])
     assert list(result) == expected_result
 
-  def test_embedding_signal_splits(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_embedding_signal_splits(self, tmp_path: pathlib.Path,
+                                   dataset_cls: Type[Dataset]) -> None:
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=[{
         UUID_COLUMN: '1',
@@ -686,9 +688,9 @@ class ComputeSignalItemsSuite:
         })
     }])
 
-  def test_split_signal(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_split_signal(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=[{
         UUID_COLUMN: '1',
@@ -738,9 +740,10 @@ class ComputeSignalItemsSuite:
     }]
     assert list(result) == expected_result
 
-  def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_signal_on_repeated_field(self, tmp_path: pathlib.Path,
+                                    dataset_cls: Type[Dataset]) -> None:
     dataset = make_dataset(
-      db_cls,
+      dataset_cls,
       tmp_path,
       items=[{
         UUID_COLUMN: '1',
@@ -801,9 +804,9 @@ class ComputeSignalItemsSuite:
       ]
     }]
 
-  def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+  def test_text_splitter(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
     dataset = make_dataset(
-      db_cls=db_cls,
+      dataset_cls=dataset_cls,
       tmp_path=tmp_path,
       items=[{
         UUID_COLUMN: '1',
