@@ -314,7 +314,7 @@ export const SearchBox = () => {
                           );
                     return hasEmbedding;
                   }}
-                  enrichmentType="text"
+                  inputType="text"
                   onSelect={(path) => {
                     dispatch(
                       setActiveConcept({
@@ -352,9 +352,9 @@ export const SearchBox = () => {
                     // at this stage.
                     return true;
                   }}
-                  enrichmentType={
+                  inputType={
                     (activePage as SearchBoxPage<'compute-signal-column'>).metadata!.signal
-                      .enrichment_type
+                      .input_type
                   }
                   onSelect={async (path) => {
                     const signal = (activePage as SearchBoxPage<'compute-signal-column'>).metadata!
@@ -383,7 +383,7 @@ export const SearchBox = () => {
               {activePage?.type == 'compute-embedding-index-column' && (
                 <ColumnSelector
                   leafFilter={() => true}
-                  enrichmentType="text"
+                  inputType="text"
                   onSelect={(path) => {
                     pushPage({
                       type: 'compute-embedding-index-accept',

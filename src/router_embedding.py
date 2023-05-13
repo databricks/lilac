@@ -5,9 +5,8 @@ from pydantic import BaseModel
 from pyparsing import Any
 
 from .router_utils import RouteErrorHandler
-from .schema import EnrichmentType
-from .signals.signal import TextEmbeddingSignal
-from .signals.signal_registry import SIGNAL_REGISTRY
+from .schema import SignalInputType
+from .signals.signal import SIGNAL_REGISTRY, TextEmbeddingSignal
 
 router = APIRouter(route_class=RouteErrorHandler)
 
@@ -15,7 +14,7 @@ router = APIRouter(route_class=RouteErrorHandler)
 class EmbeddingInfo(BaseModel):
   """Information about an embedding function."""
   name: str
-  enrichment_type: EnrichmentType
+  input_type: SignalInputType
   json_schema: dict[str, Any]
 
 
@@ -23,7 +22,7 @@ class EmbeddingInfo(BaseModel):
 def get_embeddings() -> list[EmbeddingInfo]:
   """List the datasets."""
   return [
-    EmbeddingInfo(name=s.name, enrichment_type=s.enrichment_type, json_schema=s.schema())
+    EmbeddingInfo(name=s.name, input_type=s.input_type, json_schema=s.schema())
     for s in SIGNAL_REGISTRY.values()
     if issubclass(s, TextEmbeddingSignal)
   ]

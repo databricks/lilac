@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from pyparsing import Any
 
 from .router_utils import RouteErrorHandler
-from .schema import EnrichmentType
-from .signals.signal_registry import SIGNAL_REGISTRY
+from .schema import SignalInputType
+from .signals.signal import SIGNAL_REGISTRY
 
 router = APIRouter(route_class=RouteErrorHandler)
 
@@ -14,7 +14,7 @@ router = APIRouter(route_class=RouteErrorHandler)
 class SignalInfo(BaseModel):
   """Information about a signal."""
   name: str
-  enrichment_type: EnrichmentType
+  input_type: SignalInputType
   json_schema: dict[str, Any]
 
 
@@ -22,6 +22,6 @@ class SignalInfo(BaseModel):
 def get_signals() -> list[SignalInfo]:
   """List the datasets."""
   return [
-    SignalInfo(name=s.name, enrichment_type=s.enrichment_type, json_schema=s.schema())
+    SignalInfo(name=s.name, input_type=s.input_type, json_schema=s.schema())
     for s in SIGNAL_REGISTRY.values()
   ]

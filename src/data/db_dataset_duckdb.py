@@ -26,7 +26,6 @@ from ..schema import (
   UUID_COLUMN,
   VALUE_KEY,
   DataType,
-  EnrichmentType,
   Field,
   Item,
   ItemValue,
@@ -34,16 +33,16 @@ from ..schema import (
   PathTuple,
   RichData,
   Schema,
+  SignalInputType,
   SourceManifest,
-  enrichment_supports_dtype,
   is_float,
   is_integer,
   is_ordinal,
   normalize_path,
+  signal_input_type_supports_dtype,
 )
 from ..signals.concept_scorer import ConceptScoreSignal
-from ..signals.signal import Signal, TextEmbeddingSignal
-from ..signals.signal_registry import resolve_signal
+from ..signals.signal import Signal, TextEmbeddingSignal, resolve_signal
 from ..tasks import TaskId, progress
 from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
 from . import db_dataset
@@ -359,11 +358,11 @@ class DatasetDuckDB(DatasetDB):
 
           # Signal transforms must have the same dtype as the leaf field.
           signal = column.transform.signal
-          enrich_type = signal.enrichment_type
+          input_type = signal.input_type
 
-          if not enrichment_supports_dtype(enrich_type, leaf.dtype):
+          if not signal_input_type_supports_dtype(input_type, leaf.dtype):
             raise ValueError(f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
-                             f'by "{signal.key()}" with enrichment type "{enrich_type}".')
+                             f'by "{signal.key()}" with signal input type "{input_type}".')
 
           # Select the value key from duckdb as this gives us the value for the leaf field, allowing
           # us to remove python code that unwraps the value key before calling the signal.
@@ -604,7 +603,7 @@ class DatasetDuckDB(DatasetDB):
         input = df[signal_column]
 
         with DebugTimer(f'Computing signal "{signal}"'):
-          if signal.enrichment_type in [EnrichmentType.TEXT_EMBEDDING]:
+          if signal.input_type in [SignalInputType.TEXT_EMBEDDING]:
             # The input is an embedding.
             vector_store = self._get_vector_store(udf_col.feature)
 

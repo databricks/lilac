@@ -1,20 +1,20 @@
 import {SlSpinner} from '@shoelace-style/shoelace/dist/react';
 import {useParams} from 'react-router-dom';
-import {EnrichmentType, Field} from '../../fastapi_client';
+import {InputType, Field} from '../../fastapi_client';
 import {Path, Schema} from '../schema';
 import {useGetManifestQuery, useGetMultipleStatsQuery} from '../store/apiDataset';
 import {renderPath, renderQuery} from '../utils';
 import {SearchBoxItem} from './SearchBoxItem';
-import {getLeafsByEnrichmentType} from './searchBoxUtils';
+import {getLeafsByInputType} from './searchBoxUtils';
 
 export function ColumnSelector({
   onSelect,
   leafFilter,
-  enrichmentType,
+  inputType,
 }: {
   onSelect: (path: Path, field: Field) => void;
   leafFilter?: (leaf: [Path, Field], embeddings: string[]) => boolean;
-  enrichmentType?: EnrichmentType;
+  inputType?: InputType;
 }) {
   const {namespace, datasetName} = useParams<{namespace: string; datasetName: string}>();
   if (namespace == null || datasetName == null) {
@@ -35,7 +35,7 @@ export function ColumnSelector({
     pathToEmbeddings[renderPath(path)].push('name');
   }
 
-  const leafs = schema != null ? getLeafsByEnrichmentType(schema.leafs, enrichmentType) : null;
+  const leafs = schema != null ? getLeafsByInputType(schema.leafs, inputType) : null;
 
   const inFilterLeafs: [Path, Field][] = [];
   const outFilterLeafs: [Path, Field][] = [];
@@ -56,7 +56,7 @@ export function ColumnSelector({
     {skip: schema == null}
   );
 
-  const showAvgLength = enrichmentType == 'text';
+  const showAvgLength = inputType == 'text';
 
   return renderQuery(query, () => {
     return (

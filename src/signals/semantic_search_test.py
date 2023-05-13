@@ -11,8 +11,7 @@ from ..data.dataset_utils import signal_item
 from ..embeddings.vector_store import VectorStore
 from ..schema import Item, PathTuple, RichData
 from .semantic_search import SemanticSearchSignal
-from .signal import TextEmbeddingSignal
-from .signal_registry import clear_signal_registry, register_signal
+from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
 EMBEDDINGS: dict[PathTuple, list[float]] = {
   ('1',): [1.0, 0.0, 0.0],

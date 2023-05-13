@@ -90,8 +90,8 @@ class DataType(str, Enum):
     return self.value
 
 
-class EnrichmentType(str, Enum):
-  """Enum holding the enrichment type for a signal."""
+class SignalInputType(str, Enum):
+  """Enum holding the signal input type."""
   TEXT = 'text'
   TEXT_EMBEDDING = 'text_embedding'
   IMAGE = 'image'
@@ -100,16 +100,16 @@ class EnrichmentType(str, Enum):
     return self.value
 
 
-ENRICHMENT_TYPE_TO_VALID_DTYPES: dict[EnrichmentType, list[DataType]] = {
-  EnrichmentType.TEXT: [DataType.STRING, DataType.STRING_SPAN],
-  EnrichmentType.TEXT_EMBEDDING: [DataType.EMBEDDING],
-  EnrichmentType.IMAGE: [DataType.BINARY],
+SIGNAL_INPUT_TYPE_TO_VALID_DTYPES: dict[SignalInputType, list[DataType]] = {
+  SignalInputType.TEXT: [DataType.STRING, DataType.STRING_SPAN],
+  SignalInputType.TEXT_EMBEDDING: [DataType.EMBEDDING],
+  SignalInputType.IMAGE: [DataType.BINARY],
 }
 
 
-def enrichment_supports_dtype(enrichment_type: EnrichmentType, dtype: DataType) -> bool:
-  """Returns True if the enrichment type supports the dtype."""
-  return dtype in ENRICHMENT_TYPE_TO_VALID_DTYPES[enrichment_type]
+def signal_input_type_supports_dtype(input_type: SignalInputType, dtype: DataType) -> bool:
+  """Returns True if the signal input type supports the dtype."""
+  return dtype in SIGNAL_INPUT_TYPE_TO_VALID_DTYPES[input_type]
 
 
 class Field(BaseModel):

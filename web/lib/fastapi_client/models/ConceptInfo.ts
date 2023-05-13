@@ -2,7 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { EnrichmentType } from './EnrichmentType';
+import type { SignalInputType } from './SignalInputType';
 
 /**
  * Information about a concept.
@@ -10,6 +10,6 @@ import type { EnrichmentType } from './EnrichmentType';
 export type ConceptInfo = {
     namespace: string;
     name: string;
-    enrichment_type: EnrichmentType;
+    input_type: SignalInputType;
 };
 

@@ -22,8 +22,13 @@ from ..schema import (
   schema,
   signal_field,
 )
-from ..signals.signal import TextEmbeddingModelSignal, TextEmbeddingSignal, TextSignal
-from ..signals.signal_registry import clear_signal_registry, register_signal
+from ..signals.signal import (
+  TextEmbeddingModelSignal,
+  TextEmbeddingSignal,
+  TextSignal,
+  clear_signal_registry,
+  register_signal,
+)
 from .dataset_utils import lilac_item, lilac_items, signal_item
 from .db_dataset import (
   BinaryFilterTuple,

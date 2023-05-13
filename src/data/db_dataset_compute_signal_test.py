@@ -29,8 +29,9 @@ from ..signals.signal import (
   TextEmbeddingSignal,
   TextSignal,
   TextSplitterSignal,
+  clear_signal_registry,
+  register_signal,
 )
-from ..signals.signal_registry import clear_signal_registry, register_signal
 from .dataset_utils import lilac_item, lilac_items, lilac_span, signal_item
 from .db_dataset import Column, DatasetDB, DatasetManifest, val
 from .db_dataset_duckdb import DatasetDuckDB

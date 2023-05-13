@@ -2,14 +2,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { EnrichmentType } from './EnrichmentType';
+import type { SignalInputType } from './SignalInputType';
 
 /**
  * Information about an embedding function.
  */
 export type EmbeddingInfo = {
     name: string;
-    enrichment_type: EnrichmentType;
+    input_type: SignalInputType;
     json_schema: Record<string, any>;
 };
 

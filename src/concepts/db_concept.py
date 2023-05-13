@@ -10,8 +10,8 @@ from pydantic import BaseModel
 from typing_extensions import override
 
 from ..config import data_path
-from ..schema import EnrichmentType
-from ..signals.signal_registry import get_signal_cls
+from ..schema import SignalInputType
+from ..signals.signal import get_signal_cls
 from ..utils import DebugTimer, delete_file, file_exists, open_file
 from .concept import Concept, ConceptModel, Example, ExampleIn
 
@@ -22,7 +22,7 @@ class ConceptInfo(BaseModel):
   """Information about a concept."""
   namespace: str
   name: str
-  enrichment_type: EnrichmentType
+  input_type: SignalInputType
 
 
 class ConceptUpdate(BaseModel):
@@ -178,7 +178,7 @@ class DiskConceptDB(ConceptDB):
               namespace=namespace,
               name=name,
               # TODO(nsthorat): Generalize this to images.
-              enrichment_type=EnrichmentType.TEXT))
+              input_type=SignalInputType.TEXT))
 
     return concept_infos
 

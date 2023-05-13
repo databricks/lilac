@@ -20,8 +20,7 @@ from ..data.dataset_utils import signal_item
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import Item, RichData
 from .concept_scorer import ConceptScoreSignal
-from .signal import TextEmbeddingSignal
-from .signal_registry import clear_signal_registry, register_signal
+from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
 ALL_CONCEPT_DBS = [DiskConceptDB]
 ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]

@@ -1,21 +1,18 @@
-import {EnrichmentType, Field} from '../../fastapi_client';
+import {InputType, Field} from '../../fastapi_client';
 import {Path} from '../schema';
 
-export function getLeafsByEnrichmentType(leafs: [Path, Field][], enrichmentType?: EnrichmentType) {
-  if (enrichmentType == null) {
+export function getLeafsByInputType(leafs: [Path, Field][], inputType?: InputType) {
+  if (inputType == null) {
     return leafs;
   }
-  if (enrichmentType !== 'text') {
-    throw new Error(`Unsupported enrichment type: ${enrichmentType}`);
+  if (inputType !== 'text') {
+    throw new Error(`Unsupported input type: ${inputType}`);
   }
-  return leafs.filter(([path, field]) => leafMatchesEnrichmentType([path, field], enrichmentType));
+  return leafs.filter(([path, field]) => leafMatchesInputType([path, field], inputType));
 }
 
-export function leafMatchesEnrichmentType(
-  [, field]: [Path, Field],
-  enrichmentType: EnrichmentType
-): boolean {
-  if (enrichmentType === 'text' && ['string', 'string_span'].includes(field.dtype!)) {
+export function leafMatchesInputType([, field]: [Path, Field], inputType: InputType): boolean {
+  if (inputType === 'text' && ['string', 'string_span'].includes(field.dtype!)) {
     return true;
   }
   return false;

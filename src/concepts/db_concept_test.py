@@ -10,8 +10,7 @@ from typing_extensions import override
 from ..config import CONFIG
 from ..data.dataset_utils import signal_item
 from ..schema import Item, RichData
-from ..signals.signal import TextEmbeddingSignal
-from ..signals.signal_registry import clear_signal_registry, register_signal
+from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .concept import ConceptModel, Example, ExampleIn
 from .db_concept import ConceptDB, ConceptModelDB, ConceptUpdate, DiskConceptDB, DiskConceptModelDB
 

@@ -2,7 +2,7 @@
   import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
-    ENRICHMENT_TYPE_TO_VALID_DTYPES,
+    SIGNAL_INPUT_TYPE_TO_VALID_DTYPES,
     type LilacSchemaField,
     type Signal,
     type SignalInfoWithTypedSchema
@@ -38,10 +38,10 @@
 
   $: filterField = (field: LilacSchemaField) => {
     if (!field.dtype) return false;
-    if (!signalInfo?.enrichment_type) {
+    if (!signalInfo?.input_type) {
       return true;
     }
-    const validDtypes = ENRICHMENT_TYPE_TO_VALID_DTYPES[signalInfo.enrichment_type];
+    const validDtypes = SIGNAL_INPUT_TYPE_TO_VALID_DTYPES[signalInfo.input_type];
     return validDtypes.includes(field.dtype);
   };
 

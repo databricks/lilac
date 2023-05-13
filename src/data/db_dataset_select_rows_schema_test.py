@@ -7,8 +7,7 @@ import pytest
 
 from ..config import CONFIG
 from ..schema import UUID_COLUMN, Field, Item, RichData, SignalOut, field, schema, signal_field
-from ..signals.signal import TextSignal
-from ..signals.signal_registry import clear_signal_registry, register_signal
+from ..signals.signal import TextSignal, clear_signal_registry, register_signal
 from .db_dataset import DatasetDB, SignalUDF
 from .db_dataset_duckdb import DatasetDuckDB
 from .db_dataset_test_utils import make_db

@@ -7,8 +7,7 @@ from sklearn.linear_model import LogisticRegression
 
 from ..embeddings.embedding import get_embed_fn
 from ..schema import RichData
-from ..signals.signal import TextEmbeddingSignal
-from ..signals.signal_registry import get_signal_cls
+from ..signals.signal import TextEmbeddingSignal, get_signal_cls
 from ..utils import DebugTimer
 
 LOCAL_CONCEPT_NAMESPACE = 'local'
@@ -80,7 +79,8 @@ class ConceptModel(BaseModel):
     """Get the scores for the provided examples."""
     embedding_signal = get_signal_cls(self.embedding_name)()
     if not isinstance(embedding_signal, TextEmbeddingSignal):
-      raise ValueError(f'Signal {self.embedding_name} is not an embedding signal.')
+      raise ValueError(f'Only text embedding signals are currently supported for concepts. '
+                       f'"{self.embedding_name}" is a {type(embedding_signal)}.')
 
     embed_fn = get_embed_fn(embedding_signal)
 
@@ -95,7 +95,8 @@ class ConceptModel(BaseModel):
 
     embedding_signal = get_signal_cls(self.embedding_name)()
     if not isinstance(embedding_signal, TextEmbeddingSignal):
-      raise ValueError(f'Signal {self.embedding_name} is not an embedding signal.')
+      raise ValueError(f'Only text embedding signals are currently supported for concepts. '
+                       f'"{self.embedding_name}" is a {type(embedding_signal)}.')
 
     embed_fn = get_embed_fn(embedding_signal)
     concept_embeddings: dict[str, np.ndarray] = {}

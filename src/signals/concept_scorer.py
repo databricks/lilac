@@ -8,8 +8,7 @@ from ..concepts.concept import ConceptModel
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, Field, ItemValue, PathTuple, RichData
-from .signal import TextEmbeddingModelSignal, TextEmbeddingSignal
-from .signal_registry import get_signal_cls
+from .signal import TextEmbeddingModelSignal
 
 
 class ConceptScoreSignal(TextEmbeddingModelSignal):
@@ -25,15 +24,6 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
     super().__init__(**data)
 
     self._concept_model_db = DISK_CONCEPT_MODEL_DB
-
-    # Make sure that the embedding signal exists.
-    try:
-      embedding_signal_cls = get_signal_cls(self.embedding)
-    except Exception as e:
-      raise ValueError(f'Embedding signal "{self.embedding}" not found in the registry.') from e
-
-    if not issubclass(embedding_signal_cls, TextEmbeddingSignal):
-      raise ValueError(f'Signal with name "{self.embedding}" is not a text embedding.')
 
   @override
   def fields(self) -> Field:
