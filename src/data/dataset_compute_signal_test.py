@@ -1,13 +1,11 @@
 """Tests for dataset.compute_signal()."""
 
-import pathlib
-from typing import Generator, Iterable, Optional, Type, cast
+from typing import Iterable, Optional, cast
 
 import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..config import CONFIG
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
   SIGNAL_METADATA_KEY,
@@ -32,12 +30,9 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import Column, Dataset, DatasetManifest, val
-from .dataset_duckdb import DatasetDuckDB
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_dataset
+from .dataset import Column, DatasetManifest, val
+from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker
 from .dataset_utils import lilac_item, lilac_items, lilac_span, signal_item
-
-ALL_DATA_CLASSES = [DatasetDuckDB]
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -229,14 +224,6 @@ class TestSplitterWithLen(TextSplitterSignal):
       ]
 
 
-@pytest.fixture(autouse=True)
-def set_data_path(tmp_path: pathlib.Path) -> Generator:
-  data_path = CONFIG['LILAC_DATA_PATH']
-  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
-  yield
-  CONFIG['LILAC_DATA_PATH'] = data_path or ''
-
-
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
@@ -254,39 +241,31 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()
 
 
-@pytest.mark.parametrize('dataset_cls', ALL_DATA_CLASSES)
 class ComputeSignalItemsSuite:
 
-  def test_signal_output_validation(self, tmp_path: pathlib.Path,
-                                    dataset_cls: Type[Dataset]) -> None:
+  def test_signal_output_validation(self, make_test_data: TestDataMaker) -> None:
     signal = TestInvalidSignal()
 
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': 'hello',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'hello world',
-      }])
+    dataset = make_test_data([{
+      UUID_COLUMN: '1',
+      'text': 'hello',
+    }, {
+      UUID_COLUMN: '2',
+      'text': 'hello world',
+    }])
 
     with pytest.raises(
         ValueError, match='The signal generated 0 values but the input data had 2 values.'):
       dataset.compute_signal(signal, 'text')
 
-  def test_sparse_signal(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': 'hello',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'hello world',
-      }])
+  def test_sparse_signal(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data([{
+      UUID_COLUMN: '1',
+      'text': 'hello',
+    }, {
+      UUID_COLUMN: '2',
+      'text': 'hello world',
+    }])
 
     dataset.compute_signal(TestSparseSignal(), 'text')
 
@@ -299,17 +278,14 @@ class ComputeSignalItemsSuite:
       'text': lilac_item('hello world', {'test_sparse_signal': 11})
     }])
 
-  def test_sparse_rich_signal(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': 'hello',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'hello world',
-      }])
+  def test_sparse_rich_signal(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data([{
+      UUID_COLUMN: '1',
+      'text': 'hello',
+    }, {
+      UUID_COLUMN: '2',
+      'text': 'hello world',
+    }])
 
     dataset.compute_signal(TestSparseRichSignal(), 'text')
 
@@ -326,9 +302,8 @@ class ComputeSignalItemsSuite:
         }})
     }])
 
-  def test_source_joined_with_signal_column(self, tmp_path: pathlib.Path,
-                                            dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(dataset_cls, tmp_path, SIMPLE_ITEMS)
+  def test_source_joined_with_signal_column(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data(SIMPLE_ITEMS)
     assert dataset.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
@@ -453,17 +428,14 @@ class ComputeSignalItemsSuite:
       'len': lilac_item(1)
     }]
 
-  def test_parameterized_signal(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(
-      dataset_cls,
-      tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': 'hello'
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'everybody'
-      }])
+  def test_parameterized_signal(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data([{
+      UUID_COLUMN: '1',
+      'text': 'hello'
+    }, {
+      UUID_COLUMN: '2',
+      'text': 'everybody'
+    }])
     test_signal_a = TestParamSignal(param='a')
     test_signal_b = TestParamSignal(param='b')
     dataset.compute_signal(test_signal_a, 'text')
@@ -498,17 +470,14 @@ class ComputeSignalItemsSuite:
       })
     }])
 
-  def test_embedding_signal(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': 'hello.',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'hello2.',
-      }])
+  def test_embedding_signal(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data([{
+      UUID_COLUMN: '1',
+      'text': 'hello.',
+    }, {
+      UUID_COLUMN: '2',
+      'text': 'hello2.',
+    }])
 
     embedding_signal = TestEmbedding()
     dataset.compute_signal(embedding_signal, 'text')
@@ -565,12 +534,8 @@ class ComputeSignalItemsSuite:
     }])
     assert list(result) == expected_result
 
-  def test_embedding_signal_splits(self, tmp_path: pathlib.Path,
-                                   dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=[{
+  def test_embedding_signal_splits(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data([{
         UUID_COLUMN: '1',
         'text': 'hello. hello2.',
       }, {
@@ -688,17 +653,14 @@ class ComputeSignalItemsSuite:
         })
     }])
 
-  def test_split_signal(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': '[1, 1] first sentence. [1, 1] second sentence.',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-      }])
+  def test_split_signal(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data([{
+      UUID_COLUMN: '1',
+      'text': '[1, 1] first sentence. [1, 1] second sentence.',
+    }, {
+      UUID_COLUMN: '2',
+      'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
+    }])
 
     signal = TestSplitSignal()
     dataset.compute_signal(signal, 'text')
@@ -740,18 +702,14 @@ class ComputeSignalItemsSuite:
     }]
     assert list(result) == expected_result
 
-  def test_signal_on_repeated_field(self, tmp_path: pathlib.Path,
-                                    dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(
-      dataset_cls,
-      tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': ['hello', 'everybody'],
-      }, {
-        UUID_COLUMN: '2',
-        'text': ['hello2', 'everybody2'],
-      }])
+  def test_signal_on_repeated_field(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data([{
+      UUID_COLUMN: '1',
+      'text': ['hello', 'everybody'],
+    }, {
+      UUID_COLUMN: '2',
+      'text': ['hello2', 'everybody2'],
+    }])
     test_signal = TestSignal()
     # Run the signal on the repeated field.
     dataset.compute_signal(test_signal, ('text', '*'))
@@ -804,17 +762,14 @@ class ComputeSignalItemsSuite:
       ]
     }]
 
-  def test_text_splitter(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=[{
-        UUID_COLUMN: '1',
-        'text': '[1, 1] first sentence. [1, 1] second sentence.',
-      }, {
-        UUID_COLUMN: '2',
-        'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-      }])
+  def test_text_splitter(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data([{
+      UUID_COLUMN: '1',
+      'text': '[1, 1] first sentence. [1, 1] second sentence.',
+    }, {
+      UUID_COLUMN: '2',
+      'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
+    }])
 
     dataset.compute_signal(TestSplitterWithLen(), 'text')
 

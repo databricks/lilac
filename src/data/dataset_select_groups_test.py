@@ -1,35 +1,20 @@
 """Tests for dataset.select_groups()."""
 
-import pathlib
 import re
-from typing import Generator, Type
 
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 
-from ..config import CONFIG
 from ..schema import UUID_COLUMN, Item, schema
 from . import dataset as dataset_module
-from .dataset import Dataset, NamedBins
-from .dataset_duckdb import DatasetDuckDB
-from .dataset_test_utils import make_dataset
-
-ALL_DATA_CLASSES = [DatasetDuckDB]
+from .dataset import NamedBins
+from .dataset_test_utils import TestDataMaker
 
 
-@pytest.fixture(autouse=True)
-def set_data_path(tmp_path: pathlib.Path) -> Generator:
-  data_path = CONFIG['LILAC_DATA_PATH']
-  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
-  yield
-  CONFIG['LILAC_DATA_PATH'] = data_path or ''
-
-
-@pytest.mark.parametrize('dataset_cls', ALL_DATA_CLASSES)
 class SelectGroupsSuite:
 
-  def test_flat_data(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
+  def test_flat_data(self, make_test_data: TestDataMaker) -> None:
     items: list[Item] = [
       {
         'name': 'Name1',
@@ -54,10 +39,8 @@ class SelectGroupsSuite:
         'age': 55
       }  # Missing "active".
     ]
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=items,
+    dataset = make_test_data(
+      items,
       schema=schema({
         UUID_COLUMN: 'string',
         'name': 'string',
@@ -122,7 +105,7 @@ class SelectGroupsSuite:
     ])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_result_is_iterable(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
+  def test_result_is_iterable(self, make_test_data: TestDataMaker) -> None:
     items: list[Item] = [
       {
         'active': False
@@ -138,20 +121,13 @@ class SelectGroupsSuite:
       },
       {}  # Missing "active".
     ]
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
-        UUID_COLUMN: 'string',
-        'active': 'boolean'
-      }))
+    dataset = make_test_data(items, schema=schema({UUID_COLUMN: 'string', 'active': 'boolean'}))
 
     result = dataset.select_groups(leaf_path='active')
     groups = list(result)
     assert groups == [(True, 3), (False, 1), (None, 1)]
 
-  def test_list_of_structs(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
+  def test_list_of_structs(self, make_test_data: TestDataMaker) -> None:
     items: list[Item] = [{
       'list_of_structs': [{
         'name': 'a'
@@ -171,11 +147,8 @@ class SelectGroupsSuite:
         'name': 'd'
       }]
     }]
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
+    dataset = make_test_data(
+      items, schema=schema({
         UUID_COLUMN: 'string',
         'list_of_structs': [{
           'name': 'string'
@@ -198,7 +171,7 @@ class SelectGroupsSuite:
     }])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_nested_lists(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
+  def test_nested_lists(self, make_test_data: TestDataMaker) -> None:
     items: list[Item] = [{
       'nested_list': [[{
         'name': 'a'
@@ -218,11 +191,8 @@ class SelectGroupsSuite:
         'name': 'd'
       }]]
     }]
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
+    dataset = make_test_data(
+      items, schema=schema({
         UUID_COLUMN: 'string',
         'nested_list': [[{
           'name': 'string'
@@ -245,7 +215,7 @@ class SelectGroupsSuite:
     }])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_nested_struct(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
+  def test_nested_struct(self, make_test_data: TestDataMaker) -> None:
     items: list[Item] = [
       {
         'nested_struct': {
@@ -269,10 +239,8 @@ class SelectGroupsSuite:
         }
       },
     ]
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=items,
+    dataset = make_test_data(
+      items,
       schema=schema({
         UUID_COLUMN: 'string',
         'nested_struct': {
@@ -295,7 +263,7 @@ class SelectGroupsSuite:
     }])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_named_bins(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
+  def test_named_bins(self, make_test_data: TestDataMaker) -> None:
     items: list[Item] = [{
       'age': 34,
     }, {
@@ -307,11 +275,8 @@ class SelectGroupsSuite:
     }, {
       'age': 55
     }]
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
+    dataset = make_test_data(
+      items, schema=schema({
         UUID_COLUMN: 'string',
         'age': 'int32',
       }))
@@ -339,7 +304,7 @@ class SelectGroupsSuite:
     ])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_invalid_leaf(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
+  def test_invalid_leaf(self, make_test_data: TestDataMaker) -> None:
     items: list[Item] = [
       {
         'nested_struct': {
@@ -363,10 +328,8 @@ class SelectGroupsSuite:
         }
       },
     ]
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=items,
+    dataset = make_test_data(
+      items,
       schema=schema({
         UUID_COLUMN: 'string',
         'nested_struct': {
@@ -389,36 +352,20 @@ class SelectGroupsSuite:
         match=re.escape("Leaf \"('nested_struct', 'struct', 'wrong_name')\" not found in dataset")):
       dataset.select_groups(leaf_path='nested_struct.struct.wrong_name')
 
-  def test_too_many_distinct(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset],
-                             mocker: MockerFixture) -> None:
+  def test_too_many_distinct(self, make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
     too_many_distinct = 5
     mocker.patch(f'{dataset_module.__name__}.TOO_MANY_DISTINCT', too_many_distinct)
 
     items: list[Item] = [{'feature': str(i)} for i in range(too_many_distinct + 10)]
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
-        UUID_COLUMN: 'string',
-        'feature': 'string'
-      }))
+    dataset = make_test_data(items, schema=schema({UUID_COLUMN: 'string', 'feature': 'string'}))
 
     with pytest.raises(
         ValueError, match=re.escape('Leaf "(\'feature\',)" has too many unique values: 15')):
       dataset.select_groups('feature')
 
-  def test_bins_are_required_for_float(self, tmp_path: pathlib.Path,
-                                       dataset_cls: Type[Dataset]) -> None:
+  def test_bins_are_required_for_float(self, make_test_data: TestDataMaker) -> None:
     items: list[Item] = [{'feature': float(i)} for i in range(5)]
-    dataset = make_dataset(
-      dataset_cls=dataset_cls,
-      tmp_path=tmp_path,
-      items=items,
-      schema=schema({
-        UUID_COLUMN: 'string',
-        'feature': 'float32'
-      }))
+    dataset = make_test_data(items, schema=schema({UUID_COLUMN: 'string', 'feature': 'float32'}))
 
     with pytest.raises(
         ValueError,

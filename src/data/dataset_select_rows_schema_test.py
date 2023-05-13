@@ -1,18 +1,13 @@
 """Tests for `db.select_rows_schema()`."""
 
-import pathlib
-from typing import Generator, Iterable, Optional, Type, cast
+from typing import Iterable, Optional, cast
 
 import pytest
 
-from ..config import CONFIG
 from ..schema import UUID_COLUMN, Field, Item, RichData, SignalOut, field, schema, signal_field
 from ..signals.signal import TextSignal, clear_signal_registry, register_signal
-from .dataset import Column, Dataset
-from .dataset_duckdb import DatasetDuckDB
-from .dataset_test_utils import make_dataset
-
-ALL_DATA_CLASSES = [DatasetDuckDB]
+from .dataset import Column
+from .dataset_test_utils import TestDataMaker
 
 TEST_DATA: list[Item] = [{
   UUID_COLUMN: '1',
@@ -53,14 +48,6 @@ TEST_DATA: list[Item] = [{
 }]
 
 
-@pytest.fixture(autouse=True)
-def set_data_path(tmp_path: pathlib.Path) -> Generator:
-  data_path = CONFIG['LILAC_DATA_PATH']
-  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
-  yield
-  CONFIG['LILAC_DATA_PATH'] = data_path or ''
-
-
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
@@ -96,11 +83,10 @@ class AddSpaceSignal(TextSignal):
       yield cast(str, text_content) + ' '
 
 
-@pytest.mark.parametrize('dataset_cls', ALL_DATA_CLASSES)
 class SelectRowsSchemaSuite:
 
-  def test_simple_schema(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(dataset_cls, tmp_path, TEST_DATA)
+  def test_simple_schema(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data(TEST_DATA)
     result = dataset.select_rows_schema(combine_columns=True)
     assert result == schema({
       UUID_COLUMN: 'string',
@@ -115,9 +101,8 @@ class SelectRowsSchemaSuite:
       }]
     })
 
-  def test_subselection_with_combine_cols(self, tmp_path: pathlib.Path,
-                                          dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(dataset_cls, tmp_path, TEST_DATA)
+  def test_subselection_with_combine_cols(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data(TEST_DATA)
 
     result = dataset.select_rows_schema([('people', '*', 'zipcode'),
                                          ('people', '*', 'locations', '*', 'city')],
@@ -158,8 +143,8 @@ class SelectRowsSchemaSuite:
       }]
     })
 
-  def test_udf_with_combine_cols(self, tmp_path: pathlib.Path, dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(dataset_cls, tmp_path, TEST_DATA)
+  def test_udf_with_combine_cols(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data(TEST_DATA)
 
     length_signal = LengthSignal()
     result = dataset.select_rows_schema([('people', '*', 'locations', '*', 'city'),
@@ -177,9 +162,8 @@ class SelectRowsSchemaSuite:
       }],
     })
 
-  def test_embedding_udf_with_combine_cols(self, tmp_path: pathlib.Path,
-                                           dataset_cls: Type[Dataset]) -> None:
-    dataset = make_dataset(dataset_cls, tmp_path, TEST_DATA)
+  def test_embedding_udf_with_combine_cols(self, make_test_data: TestDataMaker) -> None:
+    dataset = make_test_data(TEST_DATA)
 
     add_space_signal = AddSpaceSignal()
     dataset.compute_signal(add_space_signal, ('people', '*', 'name'))

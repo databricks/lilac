@@ -3,6 +3,8 @@ import os
 import pathlib
 from typing import Optional, Type, cast
 
+from typing_extensions import Protocol
+
 from ..schema import (
   MANIFEST_FILENAME,
   PARQUET_FILENAME_PREFIX,
@@ -60,6 +62,14 @@ def _infer_schema(items: list[Item]) -> Schema:
       raise ValueError(f'Invalid schema of item. Expected an object, but got: {item}')
     schema.fields = {**schema.fields, **field.fields}
   return schema
+
+
+class TestDataMaker(Protocol):
+  """A function that creates a test dataset."""
+
+  def __call__(self, items: list[Item], schema: Optional[Schema] = None) -> Dataset:
+    """Create a test dataset."""
+    ...
 
 
 def make_dataset(dataset_cls: Type[Dataset],
