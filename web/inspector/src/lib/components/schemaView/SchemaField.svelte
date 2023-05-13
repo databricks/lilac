@@ -2,7 +2,7 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     PATH_WILDCARD,
-    VALUE_FEATURE_KEY,
+    VALUE_KEY,
     isSignalField,
     pathIsEqual,
     type LilacSchema,
@@ -45,7 +45,7 @@
     return (
       Object.values(field.fields)
         // Filter out the entity field.
-        .filter(f => f.path.at(-1) !== VALUE_FEATURE_KEY)
+        .filter(f => f.path.at(-1) !== VALUE_KEY)
     );
   }
 </script>

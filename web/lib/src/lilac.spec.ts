@@ -13,7 +13,7 @@ import {
   listFields,
   listValueNodes
 } from './lilac';
-import {VALUE_FEATURE_KEY, type FieldValue} from './schema';
+import {VALUE_KEY, type FieldValue} from './schema';
 
 const MANIFEST_SCHEMA_FIXTURE: Schema = {
   fields: {
@@ -92,13 +92,13 @@ const SELECT_ROWS_RESPONSE_FIXTURE: FieldValue = {
     pii: {
       emails: [
         {
-          [VALUE_FEATURE_KEY]: {
+          [VALUE_KEY]: {
             start: 1,
             end: 19
           }
         },
         {
-          [VALUE_FEATURE_KEY]: {
+          [VALUE_KEY]: {
             start: 82,
             end: 100
           }
@@ -136,7 +136,7 @@ const SELECT_ROWS_RESPONSE_FIXTURE: FieldValue = {
 
 function lilacItem(value: FieldValue, fields: {[fieldName: string]: FieldValue} = {}) {
   return {
-    [VALUE_FEATURE_KEY]: value,
+    [VALUE_KEY]: value,
     ...fields
   };
 }

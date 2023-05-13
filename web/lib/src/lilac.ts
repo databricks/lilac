@@ -2,7 +2,7 @@ import type {JSONSchema7} from 'json-schema';
 import type {DataType, Field, Schema, SignalInfo} from '../fastapi_client';
 import {
   PATH_WILDCARD,
-  VALUE_FEATURE_KEY as VALUE_KEY,
+  VALUE_KEY,
   pathIsEqual,
   type DataTypeCasted,
   type FieldValue,
