@@ -156,7 +156,7 @@ class TextEmbeddingModelSignal(TextSignal):
 
     if not issubclass(embedding_signal_cls, TextEmbeddingSignal):
       raise ValueError(f'Only text embedding signals are currently supported for concepts. '
-                       f'"{self.embedding_name}" is a {embedding_signal_cls.__name__}.')
+                       f'"{self.embedding}" is a {embedding_signal_cls.__name__}.')
 
 
 SIGNAL_REGISTRY: dict[str, Type[Signal]] = {}
