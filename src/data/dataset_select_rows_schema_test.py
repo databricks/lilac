@@ -8,9 +8,9 @@ import pytest
 from ..config import CONFIG
 from ..schema import UUID_COLUMN, Field, Item, RichData, SignalOut, field, schema, signal_field
 from ..signals.signal import TextSignal, clear_signal_registry, register_signal
-from .db_dataset import Column, DatasetDB
-from .db_dataset_duckdb import DatasetDuckDB
-from .db_dataset_test_utils import make_db
+from .dataset import Column, Dataset
+from .dataset_duckdb import DatasetDuckDB
+from .dataset_test_utils import make_dataset
 
 ALL_DBS = [DatasetDuckDB]
 
@@ -99,9 +99,9 @@ class AddSpaceSignal(TextSignal):
 @pytest.mark.parametrize('db_cls', ALL_DBS)
 class SelectRowsSchemaSuite:
 
-  def test_simple_schema(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, TEST_DATA)
-    result = db.select_rows_schema(combine_columns=True)
+  def test_simple_schema(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, TEST_DATA)
+    result = dataset.select_rows_schema(combine_columns=True)
     assert result == schema({
       UUID_COLUMN: 'string',
       'erased': 'boolean',
@@ -116,10 +116,10 @@ class SelectRowsSchemaSuite:
     })
 
   def test_subselection_with_combine_cols(self, tmp_path: pathlib.Path,
-                                          db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, TEST_DATA)
+                                          db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, TEST_DATA)
 
-    result = db.select_rows_schema([('people', '*', 'zipcode'),
+    result = dataset.select_rows_schema([('people', '*', 'zipcode'),
                                     ('people', '*', 'locations', '*', 'city')],
                                    combine_columns=True)
     assert result == schema({
@@ -132,7 +132,7 @@ class SelectRowsSchemaSuite:
       }]
     })
 
-    result = db.select_rows_schema([('people', '*', 'name'), ('people', '*', 'locations')],
+    result = dataset.select_rows_schema([('people', '*', 'name'), ('people', '*', 'locations')],
                                    combine_columns=True)
     assert result == schema({
       UUID_COLUMN: 'string',
@@ -145,7 +145,7 @@ class SelectRowsSchemaSuite:
       }]
     })
 
-    result = db.select_rows_schema([('people', '*')], combine_columns=True)
+    result = dataset.select_rows_schema([('people', '*')], combine_columns=True)
     assert result == schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -158,11 +158,11 @@ class SelectRowsSchemaSuite:
       }]
     })
 
-  def test_udf_with_combine_cols(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, TEST_DATA)
+  def test_udf_with_combine_cols(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, TEST_DATA)
 
     length_signal = LengthSignal()
-    result = db.select_rows_schema([('people', '*', 'locations', '*', 'city'),
+    result = dataset.select_rows_schema([('people', '*', 'locations', '*', 'city'),
                                     Column(('people', '*', 'name'), signal_udf=length_signal)],
                                    combine_columns=True)
     assert result == schema({
@@ -178,12 +178,12 @@ class SelectRowsSchemaSuite:
     })
 
   def test_embedding_udf_with_combine_cols(self, tmp_path: pathlib.Path,
-                                           db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, TEST_DATA)
+                                           db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, TEST_DATA)
 
     add_space_signal = AddSpaceSignal()
-    db.compute_signal(add_space_signal, ('people', '*', 'name'))
-    result = db.select_rows_schema(
+    dataset.compute_signal(add_space_signal, ('people', '*', 'name'))
+    result = dataset.select_rows_schema(
       [('people', '*', 'name'),
        Column(('people', '*', 'name', 'add_space_signal'), signal_udf=add_space_signal)],
       combine_columns=True)

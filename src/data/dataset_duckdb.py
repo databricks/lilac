@@ -45,27 +45,13 @@ from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import Signal, TextEmbeddingSignal, resolve_signal
 from ..tasks import TaskId, progress
 from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
-from . import db_dataset
-from .dataset_utils import (
-  create_signal_schema,
-  flatten,
-  flatten_keys,
-  lilac_items,
-  merge_schemas,
-  read_embedding_index,
-  replace_embeddings_with_none,
-  schema_contains_path,
-  unflatten,
-  wrap_in_dicts,
-  write_embeddings_to_disk,
-  write_items_to_parquet,
-)
-from .db_dataset import (
+from . import dataset
+from .dataset import (
   BinaryOp,
   Bins,
   Column,
   ColumnId,
-  DatasetDB,
+  Dataset,
   DatasetManifest,
   FeatureValue,
   Filter,
@@ -80,6 +66,20 @@ from .db_dataset import (
   UnaryOp,
   column_from_identifier,
   make_parquet_id,
+)
+from .dataset_utils import (
+  create_signal_schema,
+  flatten,
+  flatten_keys,
+  lilac_items,
+  merge_schemas,
+  read_embedding_index,
+  replace_embeddings_with_none,
+  schema_contains_path,
+  unflatten,
+  wrap_in_dicts,
+  write_embeddings_to_disk,
+  write_items_to_parquet,
 )
 
 DEBUG = CONFIG['DEBUG'] == 'true' if 'DEBUG' in CONFIG else False
@@ -125,7 +125,7 @@ class DuckDBSelectGroupsResult(SelectGroupsResult):
     return self._df
 
 
-class DatasetDuckDB(DatasetDB):
+class DatasetDuckDB(Dataset):
   """The DuckDB implementation of the dataset database."""
 
   def __init__(
@@ -452,7 +452,7 @@ class DatasetDuckDB(DatasetDB):
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     stats = self.stats(leaf_path)
-    if not bins and stats.approx_count_distinct >= db_dataset.TOO_MANY_DISTINCT:
+    if not bins and stats.approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
       raise ValueError(f'Leaf "{path}" has too many unique values: {stats.approx_count_distinct}')
 
     inner_val = 'inner_val'

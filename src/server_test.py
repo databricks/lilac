@@ -5,10 +5,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from .config import CONFIG
+from .data.dataset import Dataset, DatasetManifest
+from .data.dataset_duckdb import DatasetDuckDB
+from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_dataset
 from .data.dataset_utils import lilac_items
-from .data.db_dataset import DatasetDB, DatasetManifest
-from .data.db_dataset_duckdb import DatasetDuckDB
-from .data.db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
 from .router_dataset import SelectRowsOptions, SelectRowsSchemaOptions, WebManifest
 from .schema import UUID_COLUMN, Item, Schema, schema
 from .server import app
@@ -65,8 +65,8 @@ def test_data(tmp_path_factory: pytest.TempPathFactory,
   data_path = CONFIG['LILAC_DATA_PATH']
   tmp_path = tmp_path_factory.mktemp('data')
   CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
-  db_cls: Type[DatasetDB] = request.param
-  make_db(db_cls, tmp_path, TEST_DATA)
+  db_cls: Type[Dataset] = request.param
+  make_dataset(db_cls, tmp_path, TEST_DATA)
 
   # Test data.
   yield TEST_DATA

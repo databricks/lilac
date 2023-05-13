@@ -7,7 +7,7 @@ from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, StrictStr, validator
 
 from .config import data_path
-from .data.db_dataset import (
+from .data.dataset import (
   Bins,
   Column,
   DatasetManifest,
@@ -17,7 +17,7 @@ from .data.db_dataset import (
   SortOrder,
   StatsResult,
 )
-from .db_manager import get_dataset_db
+from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
 from .schema import PathTuple, Schema
 from .signals.default_signals import register_default_signals
@@ -75,8 +75,8 @@ class WebManifest(BaseModel):
 @router.get('/{namespace}/{dataset_name}')
 def get_manifest(namespace: str, dataset_name: str) -> WebManifest:
   """Get the web manifest for the dataset."""
-  dataset_db = get_dataset_db(namespace, dataset_name)
-  res = WebManifest(dataset_manifest=dataset_db.manifest())
+  dataset = get_dataset(namespace, dataset_name)
+  res = WebManifest(dataset_manifest=dataset.manifest())
   # Avoids the error that Signal abstract class is not serializable.
   return cast(WebManifest, ORJSONResponse(res.dict(exclude_none=True)))
 
@@ -109,8 +109,8 @@ def compute_signal_column(namespace: str, dataset_name: str,
     # NOTE: We manually call .dict() to avoid the dask serializer, which doesn't call the underlying
     # pydantic serializer.
     options = ComputeSignalOptions(**options_dict)
-    dataset_db = get_dataset_db(namespace, dataset_name)
-    dataset_db.compute_signal(options.signal, options.leaf_path, task_id=task_id)
+    dataset = get_dataset(namespace, dataset_name)
+    dataset.compute_signal(options.signal, options.leaf_path, task_id=task_id)
 
   path_str = '.'.join(map(str, options.leaf_path))
   task_id = task_manager().task_id(
@@ -131,8 +131,8 @@ class GetStatsOptions(BaseModel):
 @router.post('/{namespace}/{dataset_name}/stats')
 def get_stats(namespace: str, dataset_name: str, options: GetStatsOptions) -> StatsResult:
   """Get the stats for the dataset."""
-  dataset_db = get_dataset_db(namespace, dataset_name)
-  return dataset_db.stats(options.leaf_path)
+  dataset = get_dataset(namespace, dataset_name)
+  return dataset.stats(options.leaf_path)
 
 
 class SelectRowsOptions(BaseModel):
@@ -159,10 +159,10 @@ class SelectRowsSchemaOptions(BaseModel):
 @router.post('/{namespace}/{dataset_name}/select_rows', response_model_exclude_none=True)
 def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -> list[dict]:
   """Select rows from the dataset database."""
-  db = get_dataset_db(namespace, dataset_name)
+  dataset = get_dataset(namespace, dataset_name)
 
   items = list(
-    db.select_rows(
+    dataset.select_rows(
       columns=options.columns,
       filters=options.filters,
       sort_by=options.sort_by,
@@ -177,8 +177,8 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
 def select_rows_schema(namespace: str, dataset_name: str,
                        options: SelectRowsSchemaOptions) -> Schema:
   """Select rows from the dataset database."""
-  db = get_dataset_db(namespace, dataset_name)
-  return db.select_rows_schema(
+  dataset = get_dataset(namespace, dataset_name)
+  return dataset.select_rows_schema(
     columns=options.columns, combine_columns=options.combine_columns or False)
 
 
@@ -196,17 +196,17 @@ class SelectGroupsOptions(BaseModel):
 def select_groups(namespace: str, dataset_name: str,
                   options: SelectGroupsOptions) -> list[tuple[Any, int]]:
   """Select groups from the dataset database."""
-  db = get_dataset_db(namespace, dataset_name)
-  result = db.select_groups(options.leaf_path, options.filters, options.sort_by, options.sort_order,
-                            options.limit, options.bins)
+  dataset = get_dataset(namespace, dataset_name)
+  result = dataset.select_groups(options.leaf_path, options.filters, options.sort_by,
+                                 options.sort_order, options.limit, options.bins)
   return list(result)
 
 
 @router.get('/{namespace}/{dataset_name}/media')
 def get_media(namespace: str, dataset_name: str, item_id: str, leaf_path: str) -> Response:
   """Get the media for the dataset."""
-  db = get_dataset_db(namespace, dataset_name)
+  dataset = get_dataset(namespace, dataset_name)
   path = tuple(leaf_path.split('.'))
-  result = db.media(item_id, path)
+  result = dataset.media(item_id, path)
   # Return the response via HTTP.
   return Response(content=result.data)

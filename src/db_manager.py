@@ -1,14 +1,14 @@
 """Manages mapping the dataset name to the database instance."""
 
-from .data.db_dataset import DatasetDB
-from .data.db_dataset_duckdb import DatasetDuckDB
+from .data.dataset import Dataset
+from .data.dataset_duckdb import DatasetDuckDB
 
-_DATASET_DBS: dict[str, DatasetDB] = {}
+_CACHED_DATASETS: dict[str, Dataset] = {}
 
 
-def get_dataset_db(namespace: str, dataset_name: str) -> DatasetDB:
-  """Get the dataset database instance for the dataset."""
+def get_dataset(namespace: str, dataset_name: str) -> Dataset:
+  """Get the dataset instance."""
   cache_key = f'{namespace}/{dataset_name}'
-  if cache_key not in _DATASET_DBS:
-    _DATASET_DBS[cache_key] = DatasetDuckDB(namespace=namespace, dataset_name=dataset_name)
-  return _DATASET_DBS[cache_key]
+  if cache_key not in _CACHED_DATASETS:
+    _CACHED_DATASETS[cache_key] = DatasetDuckDB(namespace=namespace, dataset_name=dataset_name)
+  return _CACHED_DATASETS[cache_key]

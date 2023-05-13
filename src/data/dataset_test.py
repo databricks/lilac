@@ -29,19 +29,19 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset_utils import lilac_item, lilac_items, signal_item
-from .db_dataset import (
+from .dataset import (
   BinaryFilterTuple,
   BinaryOp,
   Column,
-  DatasetDB,
+  Dataset,
   DatasetManifest,
   SortOrder,
   UnaryOp,
   val,
 )
-from .db_dataset_duckdb import DatasetDuckDB
-from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
+from .dataset_duckdb import DatasetDuckDB
+from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_dataset
+from .dataset_utils import lilac_item, lilac_items, signal_item
 
 ALL_DBS = [DatasetDuckDB]
 
@@ -133,14 +133,14 @@ def set_data_path(tmp_path: pathlib.Path) -> Generator:
 @pytest.mark.parametrize('db_cls', ALL_DBS)
 class SelectRowsSuite:
 
-  def test_select_all_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
+  def test_select_all_columns(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, SIMPLE_ITEMS)
 
-    result = db.select_rows()
+    result = dataset.select_rows()
     assert list(result) == lilac_items(SIMPLE_ITEMS)
 
   def test_select_subcols_with_dot_seperator(self, tmp_path: pathlib.Path,
-                                             db_cls: Type[DatasetDB]) -> None:
+                                             db_cls: Type[Dataset]) -> None:
     items: list[Item] = [{
       UUID_COLUMN: '1',
       'people': [{
@@ -163,9 +163,9 @@ class SelectRowsSuite:
         }
       }]
     }]
-    db = make_db(db_cls, tmp_path, items)
+    dataset = make_dataset(db_cls, tmp_path, items)
 
-    result = db.select_rows(['people.*.name', 'people.*.address.zip'])
+    result = dataset.select_rows(['people.*.name', 'people.*.address.zip'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'people.*.name': ['A', 'B'],
@@ -176,7 +176,7 @@ class SelectRowsSuite:
       'people.*.address.zip': [3]
     }])
 
-    result = db.select_rows(['people.*.address.zip'], combine_columns=True)
+    result = dataset.select_rows(['people.*.address.zip'], combine_columns=True)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'people': [{
@@ -197,11 +197,11 @@ class SelectRowsSuite:
       }]
     }])
 
-    result = db.select_rows(['people'])
+    result = dataset.select_rows(['people'])
     assert list(result) == lilac_items(items)
 
   def test_select_subcols_with_escaped_dot(self, tmp_path: pathlib.Path,
-                                           db_cls: Type[DatasetDB]) -> None:
+                                           db_cls: Type[Dataset]) -> None:
     items: list[Item] = [{
       UUID_COLUMN: '1',
       'people.new': [{
@@ -215,9 +215,9 @@ class SelectRowsSuite:
         'name': 'C'
       }]
     }]
-    db = make_db(db_cls, tmp_path, items)
+    dataset = make_dataset(db_cls, tmp_path, items)
 
-    result = db.select_rows(['"people.new".*.name'])
+    result = dataset.select_rows(['"people.new".*.name'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'people.new.*.name': ['A', 'B'],
@@ -227,7 +227,7 @@ class SelectRowsSuite:
     }])
 
     # Escape name even though it does not need to be.
-    result = db.select_rows(['"people.new".*."name"'])
+    result = dataset.select_rows(['"people.new".*."name"'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'people.new.*.name': ['A', 'B'],
@@ -236,7 +236,7 @@ class SelectRowsSuite:
       'people.new.*.name': ['C'],
     }])
 
-  def test_select_star(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_select_star(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
     items: list[Item] = [{
       UUID_COLUMN: '1',
       'name': 'A',
@@ -250,18 +250,18 @@ class SelectRowsSuite:
         'age': 42
       }
     }]
-    db = make_db(db_cls, tmp_path, items)
+    dataset = make_dataset(db_cls, tmp_path, items)
 
     # Select *.
-    result = db.select_rows(['*'])
+    result = dataset.select_rows(['*'])
     assert list(result) == lilac_items(items)
 
     # Select (*,).
-    result = db.select_rows([('*',)])
+    result = dataset.select_rows([('*',)])
     assert list(result) == lilac_items(items)
 
     # Select *, plus a redundant `info` column.
-    result = db.select_rows(['*', 'info'])
+    result = dataset.select_rows(['*', 'info'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'name': 'A',
@@ -283,7 +283,7 @@ class SelectRowsSuite:
     }])
 
     # Select * plus an inner `info.age` column.
-    result = db.select_rows(['*', ('info', 'age')])
+    result = dataset.select_rows(['*', ('info', 'age')])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'name': 'A',
@@ -301,7 +301,7 @@ class SelectRowsSuite:
     }])
 
   def test_select_star_with_combine_cols(self, tmp_path: pathlib.Path,
-                                         db_cls: Type[DatasetDB]) -> None:
+                                         db_cls: Type[Dataset]) -> None:
     items: list[Item] = [{
       UUID_COLUMN: '1',
       'name': 'A',
@@ -315,23 +315,23 @@ class SelectRowsSuite:
         'age': 42
       }
     }]
-    db = make_db(db_cls, tmp_path, items)
+    dataset = make_dataset(db_cls, tmp_path, items)
 
     # Select *.
-    result = db.select_rows(['*'], combine_columns=True)
+    result = dataset.select_rows(['*'], combine_columns=True)
     assert list(result) == lilac_items(items)
 
     # Select *, plus a redundant `info` column.
-    result = db.select_rows(['*', 'info'], combine_columns=True)
+    result = dataset.select_rows(['*', 'info'], combine_columns=True)
     assert list(result) == lilac_items(items)
 
     # Select * plus an inner `info.age` column.
-    result = db.select_rows(['*', ('info', 'age')], combine_columns=True)
+    result = dataset.select_rows(['*', ('info', 'age')], combine_columns=True)
     assert list(result) == lilac_items(items)
 
     # Select *, plus redundant `name`, plus a udf.
     udf = Column('name', signal_udf=TestSignal())
-    result = db.select_rows(['*', 'name', udf], combine_columns=True)
+    result = dataset.select_rows(['*', 'name', udf], combine_columns=True)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'name': lilac_item('A', {'test_signal': {
@@ -352,35 +352,35 @@ class SelectRowsSuite:
       }
     }])
 
-  def test_select_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
+  def test_select_ids(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, SIMPLE_ITEMS)
 
-    result = db.select_rows([UUID_COLUMN])
+    result = dataset.select_rows([UUID_COLUMN])
 
     assert list(result) == [{UUID_COLUMN: '1'}, {UUID_COLUMN: '2'}, {UUID_COLUMN: '3'}]
 
   def test_select_ids_with_limit_and_offset(self, tmp_path: pathlib.Path,
-                                            db_cls: Type[DatasetDB]) -> None:
+                                            db_cls: Type[Dataset]) -> None:
     items: list[Item] = [{UUID_COLUMN: str(i)} for i in range(10, 20)]
-    db = make_db(db_cls, tmp_path, items)
+    dataset = make_dataset(db_cls, tmp_path, items)
 
-    result = db.select_rows([UUID_COLUMN], offset=1, limit=3)
+    result = dataset.select_rows([UUID_COLUMN], offset=1, limit=3)
     assert list(result) == [{UUID_COLUMN: '11'}, {UUID_COLUMN: '12'}, {UUID_COLUMN: '13'}]
 
-    result = db.select_rows([UUID_COLUMN], offset=7, limit=2)
+    result = dataset.select_rows([UUID_COLUMN], offset=7, limit=2)
     assert list(result) == [{UUID_COLUMN: '17'}, {UUID_COLUMN: '18'}]
 
-    result = db.select_rows([UUID_COLUMN], offset=9, limit=200)
+    result = dataset.select_rows([UUID_COLUMN], offset=9, limit=200)
     assert list(result) == [{UUID_COLUMN: '19'}]
 
-    result = db.select_rows([UUID_COLUMN], offset=10, limit=200)
+    result = dataset.select_rows([UUID_COLUMN], offset=10, limit=200)
     assert list(result) == []
 
-  def test_filter_by_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
+  def test_filter_by_ids(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, SIMPLE_ITEMS)
 
     id_filter: BinaryFilterTuple = (UUID_COLUMN, BinaryOp.EQUALS, '1')
-    result = db.select_rows(filters=[id_filter])
+    result = dataset.select_rows(filters=[id_filter])
 
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
@@ -391,7 +391,7 @@ class SelectRowsSuite:
     }])
 
     id_filter = (UUID_COLUMN, BinaryOp.EQUALS, '2')
-    result = db.select_rows(filters=[id_filter])
+    result = dataset.select_rows(filters=[id_filter])
 
     assert list(result) == lilac_items([{
       UUID_COLUMN: '2',
@@ -402,15 +402,15 @@ class SelectRowsSuite:
     }])
 
     id_filter = (UUID_COLUMN, BinaryOp.EQUALS, b'f')
-    result = db.select_rows(filters=[id_filter])
+    result = dataset.select_rows(filters=[id_filter])
 
     assert list(result) == []
 
-  def test_filter_by_list_of_ids(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
+  def test_filter_by_list_of_ids(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, SIMPLE_ITEMS)
 
     id_filter: BinaryFilterTuple = (UUID_COLUMN, BinaryOp.IN, ['1', '2'])
-    result = db.select_rows(filters=[id_filter])
+    result = dataset.select_rows(filters=[id_filter])
 
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
@@ -426,7 +426,7 @@ class SelectRowsSuite:
       'float': 2.0
     }])
 
-  def test_filter_by_exists(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_filter_by_exists(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
     items: list[Item] = [{
       UUID_COLUMN: '1',
       'name': 'A',
@@ -444,7 +444,7 @@ class SelectRowsSuite:
       'name': 'C',
       'ages': [[1, 2], [3, 4]]
     }]
-    db = make_db(
+    dataset = make_dataset(
       db_cls,
       tmp_path,
       items,
@@ -458,7 +458,7 @@ class SelectRowsSuite:
       }))
 
     exists_filter = ('name', UnaryOp.EXISTS)
-    result = db.select_rows(['name'], filters=[exists_filter])
+    result = dataset.select_rows(['name'], filters=[exists_filter])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'name': 'A'
@@ -468,7 +468,7 @@ class SelectRowsSuite:
     }])
 
     exists_filter = ('info.lang', UnaryOp.EXISTS)
-    result = db.select_rows(['name'], filters=[exists_filter])
+    result = dataset.select_rows(['name'], filters=[exists_filter])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'name': 'A'
@@ -478,16 +478,16 @@ class SelectRowsSuite:
     }])
 
     exists_filter = ('ages.*.*', UnaryOp.EXISTS)
-    result = db.select_rows(['name'], filters=[exists_filter])
+    result = dataset.select_rows(['name'], filters=[exists_filter])
     assert list(result) == lilac_items([{UUID_COLUMN: '3', 'name': 'C'}])
 
     with pytest.raises(ValueError, match='Invalid path'):
-      db.select_rows(['name'], filters=[('info', UnaryOp.EXISTS)])
+      dataset.select_rows(['name'], filters=[('info', UnaryOp.EXISTS)])
 
-  def test_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
+  def test_columns(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, SIMPLE_ITEMS)
 
-    result = db.select_rows(['str', 'float'])
+    result = dataset.select_rows(['str', 'float'])
 
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
@@ -503,8 +503,8 @@ class SelectRowsSuite:
       'float': 1.0
     }])
 
-  def test_merge_values(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_merge_values(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls,
       tmp_path,
       items=[{
@@ -515,11 +515,11 @@ class SelectRowsSuite:
         'text': 'everybody'
       }])
     test_signal = TestSignal()
-    db.compute_signal(test_signal, 'text')
+    dataset.compute_signal(test_signal, 'text')
     length_signal = LengthSignal()
-    db.compute_signal(length_signal, 'text')
+    dataset.compute_signal(length_signal, 'text')
 
-    result = db.select_rows(['text'])
+    result = dataset.select_rows(['text'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': lilac_item('hello', {
@@ -541,7 +541,7 @@ class SelectRowsSuite:
     }])
 
     # Test subselection.
-    result = db.select_rows(
+    result = dataset.select_rows(
       [val('text'), ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')])
     assert list(result) == [{
       UUID_COLUMN: '1',
@@ -556,7 +556,7 @@ class SelectRowsSuite:
     }]
 
     # Test subselection with combine_columns=True.
-    result = db.select_rows(
+    result = dataset.select_rows(
       ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')],
       combine_columns=True)
     assert list(result) == lilac_items([{
@@ -580,7 +580,7 @@ class SelectRowsSuite:
     }])
 
     # Test subselection with aliasing.
-    result = db.select_rows(
+    result = dataset.select_rows(
       columns=[val('text'), Column(('text', 'test_signal', 'len'), alias='metadata')])
     assert list(result) == [{
       UUID_COLUMN: '1',
@@ -592,7 +592,7 @@ class SelectRowsSuite:
       'metadata': lilac_item(9)
     }]
 
-    result = db.select_rows(columns=[Column(('text'), alias='text_enrichment')])
+    result = dataset.select_rows(columns=[Column(('text'), alias='text_enrichment')])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text_enrichment': lilac_item('hello', {
@@ -613,8 +613,8 @@ class SelectRowsSuite:
       })
     }])
 
-  def test_merge_array_values(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_merge_array_values(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls,
       tmp_path,
       items=[{
@@ -626,11 +626,11 @@ class SelectRowsSuite:
       }])
 
     test_signal = TestSignal()
-    db.compute_signal(test_signal, ('texts', '*'))
+    dataset.compute_signal(test_signal, ('texts', '*'))
     length_signal = LengthSignal()
-    db.compute_signal(length_signal, ('texts', '*'))
+    dataset.compute_signal(length_signal, ('texts', '*'))
 
-    assert db.manifest() == DatasetManifest(
+    assert dataset.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
@@ -650,7 +650,7 @@ class SelectRowsSuite:
       }),
       num_items=2)
 
-    result = db.select_rows(['texts'])
+    result = dataset.select_rows(['texts'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'texts': [
@@ -697,7 +697,7 @@ class SelectRowsSuite:
     }])
 
     # Test subselection.
-    result = db.select_rows(
+    result = dataset.select_rows(
       [val(('texts', '*')), ('texts', '*', 'length_signal'), ('texts', '*', 'test_signal', 'flen')])
     assert list(result) == [{
       UUID_COLUMN: '1',
@@ -711,8 +711,8 @@ class SelectRowsSuite:
       'texts.*.length_signal': lilac_items([1, 2, 3])
     }]
 
-  def test_combining_columns(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_combining_columns(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls,
       tmp_path,
       items=[{
@@ -742,7 +742,7 @@ class SelectRowsSuite:
       }])
 
     # Sub-select text and test_signal.
-    result = db.select_rows(['text', ('extra', 'text', 'test_signal')], combine_columns=True)
+    result = dataset.select_rows(['text', ('extra', 'text', 'test_signal')], combine_columns=True)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': 'hello',
@@ -768,7 +768,7 @@ class SelectRowsSuite:
     }])
 
     # Sub-select text and length_signal.
-    result = db.select_rows(['text', ('extra', 'text', 'length_signal')], combine_columns=True)
+    result = dataset.select_rows(['text', ('extra', 'text', 'length_signal')], combine_columns=True)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': 'hello',
@@ -788,7 +788,7 @@ class SelectRowsSuite:
     }])
 
     # Sub-select length_signal only.
-    result = db.select_rows([('extra', 'text', 'length_signal')], combine_columns=True)
+    result = dataset.select_rows([('extra', 'text', 'length_signal')], combine_columns=True)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'extra': {
@@ -807,7 +807,7 @@ class SelectRowsSuite:
 
     # Aliases are ignored when combing columns.
     len_col = Column(('extra', 'text', 'length_signal'), alias='hello')
-    result = db.select_rows([len_col], combine_columns=True)
+    result = dataset.select_rows([len_col], combine_columns=True)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'extra': {
@@ -826,7 +826,7 @@ class SelectRowsSuite:
 
     # Works with UDFs and aliases are ignored.
     udf_col = Column('text', alias='ignored', signal_udf=LengthSignal())
-    result = db.select_rows(['text', udf_col], combine_columns=True)
+    result = dataset.select_rows(['text', udf_col], combine_columns=True)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': lilac_item('hello', {'length_signal': 5})
@@ -835,8 +835,8 @@ class SelectRowsSuite:
       'text': lilac_item('everybody', {'length_signal': 9})
     }])
 
-  def test_udf(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_udf(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls,
       tmp_path,
       items=[{
@@ -848,7 +848,7 @@ class SelectRowsSuite:
       }])
 
     signal_col = Column('text', signal_udf=TestSignal())
-    result = db.select_rows(['text', signal_col])
+    result = dataset.select_rows(['text', signal_col])
 
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
@@ -866,8 +866,8 @@ class SelectRowsSuite:
       }
     }])
 
-  def test_udf_with_filters(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_udf_with_filters(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls,
       tmp_path,
       items=[{
@@ -881,7 +881,7 @@ class SelectRowsSuite:
     signal_col = Column('text', signal_udf=TestSignal())
     # Filter by source feature.
     filters: list[BinaryFilterTuple] = [('text', BinaryOp.EQUALS, 'everybody')]
-    result = db.select_rows(['text', signal_col], filters=filters)
+    result = dataset.select_rows(['text', signal_col], filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '2',
       'text': 'everybody',
@@ -891,9 +891,9 @@ class SelectRowsSuite:
       }
     }])
 
-  def test_udf_with_uuid_filter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_udf_with_uuid_filter(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
 
-    db = make_db(
+    dataset = make_dataset(
       db_cls,
       tmp_path,
       items=[{
@@ -907,7 +907,7 @@ class SelectRowsSuite:
     signal = LengthSignal()
     # Filter by a specific UUID.
     filters: list[BinaryFilterTuple] = [(UUID_COLUMN, BinaryOp.EQUALS, '1')]
-    result = db.select_rows(['text', Column('text', signal_udf=signal)], filters=filters)
+    result = dataset.select_rows(['text', Column('text', signal_udf=signal)], filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': 'hello',
@@ -916,7 +916,7 @@ class SelectRowsSuite:
     assert signal._call_count == 1
 
     filters = [(UUID_COLUMN, BinaryOp.EQUALS, '2')]
-    result = db.select_rows(['text', Column('text', signal_udf=signal)], filters=filters)
+    result = dataset.select_rows(['text', Column('text', signal_udf=signal)], filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '2',
       'text': 'everybody',
@@ -925,7 +925,7 @@ class SelectRowsSuite:
     assert signal._call_count == 1 + 1
 
     # No filters.
-    result = db.select_rows(['text', Column('text', signal_udf=signal)])
+    result = dataset.select_rows(['text', Column('text', signal_udf=signal)])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': 'hello',
@@ -938,9 +938,9 @@ class SelectRowsSuite:
     assert signal._call_count == 2 + 2
 
   def test_udf_with_uuid_filter_repeated(self, tmp_path: pathlib.Path,
-                                         db_cls: Type[DatasetDB]) -> None:
+                                         db_cls: Type[Dataset]) -> None:
 
-    db = make_db(
+    dataset = make_dataset(
       db_cls,
       tmp_path,
       items=[{
@@ -955,7 +955,8 @@ class SelectRowsSuite:
 
     # Filter by a specific UUID.
     filters: list[BinaryFilterTuple] = [(UUID_COLUMN, BinaryOp.EQUALS, '1')]
-    result = db.select_rows(['text', Column(('text', '*'), signal_udf=signal)], filters=filters)
+    result = dataset.select_rows(['text', Column(('text', '*'), signal_udf=signal)],
+                                 filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': ['hello', 'hi'],
@@ -965,7 +966,8 @@ class SelectRowsSuite:
 
     # Filter by a specific UUID.
     filters = [(UUID_COLUMN, BinaryOp.EQUALS, '2')]
-    result = db.select_rows(['text', Column(('text', '*'), signal_udf=signal)], filters=filters)
+    result = dataset.select_rows(['text', Column(('text', '*'), signal_udf=signal)],
+                                 filters=filters)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '2',
       'text': ['everybody', 'bye', 'test'],
@@ -973,8 +975,8 @@ class SelectRowsSuite:
     }])
     assert signal._call_count == 2 + 3
 
-  def test_udf_deeply_nested(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_udf_deeply_nested(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls,
       tmp_path,
       items=[{
@@ -987,7 +989,7 @@ class SelectRowsSuite:
 
     signal = LengthSignal()
 
-    result = db.select_rows([Column(('text', '*', '*'), signal_udf=signal)])
+    result = dataset.select_rows([Column(('text', '*', '*'), signal_udf=signal)])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'length_signal(text.*)': [[5], [2, 3]]
@@ -997,8 +999,8 @@ class SelectRowsSuite:
     }])
     assert signal._call_count == 6
 
-  def test_udf_with_embedding(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_udf_with_embedding(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=[{
@@ -1009,11 +1011,11 @@ class SelectRowsSuite:
         'text': 'hello2.',
       }])
 
-    db.compute_signal(TestEmbedding(), 'text')
+    dataset.compute_signal(TestEmbedding(), 'text')
 
     signal_col = Column(('text', TEST_EMBEDDING_NAME),
                         signal_udf=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME))
-    result = db.select_rows([val('text'), signal_col])
+    result = dataset.select_rows([val('text'), signal_col])
 
     expected_result: list[Item] = [{
       UUID_COLUMN: '1',
@@ -1030,7 +1032,7 @@ class SelectRowsSuite:
     signal_col = Column(('text', TEST_EMBEDDING_NAME),
                         signal_udf=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
                         alias='emb_sum')
-    result = db.select_rows([val('text'), signal_col])
+    result = dataset.select_rows([val('text'), signal_col])
     expected_result = [{
       UUID_COLUMN: '1',
       f'text.{VALUE_KEY}': 'hello.',
@@ -1042,8 +1044,8 @@ class SelectRowsSuite:
     }]
     assert list(result) == expected_result
 
-  def test_udf_with_nested_embedding(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_udf_with_nested_embedding(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=[{
@@ -1054,11 +1056,11 @@ class SelectRowsSuite:
         'text': ['hello world2.', 'hello2.'],
       }])
 
-    db.compute_signal(TestEmbedding(), ('text', '*'))
+    dataset.compute_signal(TestEmbedding(), ('text', '*'))
 
     signal_col = Column(('text', '*', TEST_EMBEDDING_NAME),
                         signal_udf=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME))
-    result = db.select_rows([val(('text', '*')), signal_col])
+    result = dataset.select_rows([val(('text', '*')), signal_col])
     expected_result = [{
       UUID_COLUMN: '1',
       f'text.*.{VALUE_KEY}': ['hello.', 'hello world.'],
@@ -1071,9 +1073,9 @@ class SelectRowsSuite:
     assert list(result) == expected_result
 
   def test_source_joined_with_named_signal_column(self, tmp_path: pathlib.Path,
-                                                  db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
-    assert db.manifest() == DatasetManifest(
+                                                  db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, SIMPLE_ITEMS)
+    assert dataset.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
@@ -1086,10 +1088,10 @@ class SelectRowsSuite:
       num_items=3)
 
     test_signal = TestSignal()
-    db.compute_signal(test_signal, 'str')
+    dataset.compute_signal(test_signal, 'str')
 
     # Check the enriched dataset manifest has 'text' enriched.
-    assert db.manifest() == DatasetManifest(
+    assert dataset.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
@@ -1110,7 +1112,8 @@ class SelectRowsSuite:
       num_items=3)
 
     # Select both columns, without val() on str.
-    result = db.select_rows(['str', Column(('str', 'test_signal'), alias='test_signal_on_str')])
+    result = dataset.select_rows(
+      ['str', Column(('str', 'test_signal'), alias='test_signal_on_str')])
 
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
@@ -1145,7 +1148,7 @@ class SelectRowsSuite:
     }])
 
     # Select both columns, with val() on str.
-    result = db.select_rows(
+    result = dataset.select_rows(
       [val('str'), Column(('str', 'test_signal'), alias='test_signal_on_str')])
 
     assert list(result) == [{
@@ -1171,8 +1174,8 @@ class SelectRowsSuite:
       }
     }]
 
-  def test_invalid_column_paths(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_invalid_column_paths(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls,
       tmp_path,
       items=[{
@@ -1185,19 +1188,19 @@ class SelectRowsSuite:
         'text2': ['hello2', 'world2'],
       }])
     test_signal = TestSignal()
-    db.compute_signal(test_signal, 'text')
-    db.compute_signal(test_signal, ('text2', '*'))
+    dataset.compute_signal(test_signal, 'text')
+    dataset.compute_signal(test_signal, ('text2', '*'))
 
     with pytest.raises(ValueError, match='Path part "invalid" not found in the dataset'):
-      db.select_rows([('text', 'test_signal', 'invalid')])
+      dataset.select_rows([('text', 'test_signal', 'invalid')])
 
     with pytest.raises(ValueError, match='Selecting a specific index of a repeated field'):
-      db.select_rows([('text2', 4, 'test_signal')])
+      dataset.select_rows([('text2', 4, 'test_signal')])
 
-  def test_sort(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
+  def test_sort(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, SIMPLE_ITEMS)
 
-    result = db.select_rows(
+    result = dataset.select_rows(
       columns=[UUID_COLUMN, 'float'], sort_by=['float'], sort_order=SortOrder.ASC)
 
     assert list(result) == lilac_items([{
@@ -1211,7 +1214,7 @@ class SelectRowsSuite:
       'float': 3.0
     }])
 
-    result = db.select_rows(
+    result = dataset.select_rows(
       columns=[UUID_COLUMN, 'float'], sort_by=['float'], sort_order=SortOrder.DESC)
 
     assert list(result) == lilac_items([{
@@ -1225,10 +1228,10 @@ class SelectRowsSuite:
       'float': 1.0
     }])
 
-  def test_limit(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
+  def test_limit(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, SIMPLE_ITEMS)
 
-    result = db.select_rows(
+    result = dataset.select_rows(
       columns=[UUID_COLUMN, 'float'], sort_by=['float'], sort_order=SortOrder.ASC, limit=2)
     assert list(result) == lilac_items([{
       UUID_COLUMN: '3',

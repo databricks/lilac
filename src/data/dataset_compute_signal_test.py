@@ -1,4 +1,4 @@
-"""Tests for db.compute_signal()."""
+"""Tests for dataset.compute_signal()."""
 
 import pathlib
 from typing import Generator, Iterable, Optional, Type, cast
@@ -32,10 +32,10 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
+from .dataset import Column, Dataset, DatasetManifest, val
+from .dataset_duckdb import DatasetDuckDB
+from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_dataset
 from .dataset_utils import lilac_item, lilac_items, lilac_span, signal_item
-from .db_dataset import Column, DatasetDB, DatasetManifest, val
-from .db_dataset_duckdb import DatasetDuckDB
-from .db_dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_db
 
 ALL_DBS = [DatasetDuckDB]
 
@@ -257,10 +257,10 @@ def setup_teardown() -> Iterable[None]:
 @pytest.mark.parametrize('db_cls', ALL_DBS)
 class ComputeSignalItemsSuite:
 
-  def test_signal_output_validation(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_signal_output_validation(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
     signal = TestInvalidSignal()
 
-    db = make_db(
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=[{
@@ -273,10 +273,10 @@ class ComputeSignalItemsSuite:
 
     with pytest.raises(
         ValueError, match='The signal generated 0 values but the input data had 2 values.'):
-      db.compute_signal(signal, 'text')
+      dataset.compute_signal(signal, 'text')
 
-  def test_sparse_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_sparse_signal(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=[{
@@ -287,9 +287,9 @@ class ComputeSignalItemsSuite:
         'text': 'hello world',
       }])
 
-    db.compute_signal(TestSparseSignal(), 'text')
+    dataset.compute_signal(TestSparseSignal(), 'text')
 
-    result = db.select_rows(['text'])
+    result = dataset.select_rows(['text'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': lilac_item('hello', {'test_sparse_signal': None})
@@ -298,8 +298,8 @@ class ComputeSignalItemsSuite:
       'text': lilac_item('hello world', {'test_sparse_signal': 11})
     }])
 
-  def test_sparse_rich_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_sparse_rich_signal(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=[{
@@ -310,9 +310,9 @@ class ComputeSignalItemsSuite:
         'text': 'hello world',
       }])
 
-    db.compute_signal(TestSparseRichSignal(), 'text')
+    dataset.compute_signal(TestSparseRichSignal(), 'text')
 
-    result = db.select_rows(['text'])
+    result = dataset.select_rows(['text'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': lilac_item('hello', {'test_sparse_rich_signal': None})
@@ -326,9 +326,9 @@ class ComputeSignalItemsSuite:
     }])
 
   def test_source_joined_with_signal_column(self, tmp_path: pathlib.Path,
-                                            db_cls: Type[DatasetDB]) -> None:
-    db = make_db(db_cls, tmp_path, SIMPLE_ITEMS)
-    assert db.manifest() == DatasetManifest(
+                                            db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(db_cls, tmp_path, SIMPLE_ITEMS)
+    assert dataset.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
@@ -341,10 +341,10 @@ class ComputeSignalItemsSuite:
       num_items=3)
 
     test_signal = TestSignal()
-    db.compute_signal(test_signal, 'str')
+    dataset.compute_signal(test_signal, 'str')
 
     # Check the enriched dataset manifest has 'text' enriched.
-    assert db.manifest() == DatasetManifest(
+    assert dataset.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
@@ -364,7 +364,7 @@ class ComputeSignalItemsSuite:
       }),
       num_items=3)
 
-    result = db.select_rows(['str'])
+    result = dataset.select_rows(['str'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'str': lilac_item('a', {'test_signal': {
@@ -386,7 +386,7 @@ class ComputeSignalItemsSuite:
     }])
 
     # Select a specific signal leaf test_signal.flen with val('str').
-    result = db.select_rows([val('str'), ('str', 'test_signal', 'flen')])
+    result = dataset.select_rows([val('str'), ('str', 'test_signal', 'flen')])
 
     assert list(result) == [{
       UUID_COLUMN: '1',
@@ -403,7 +403,7 @@ class ComputeSignalItemsSuite:
     }]
 
     # Select a specific signal leaf test_signal.flen and the whole 'str' subtree.
-    result = db.select_rows(['str', ('str', 'test_signal', 'flen')])
+    result = dataset.select_rows(['str', ('str', 'test_signal', 'flen')])
 
     assert list(result) == [{
       UUID_COLUMN: '1',
@@ -429,7 +429,7 @@ class ComputeSignalItemsSuite:
     }]
 
     # Select multiple signal leafs with aliasing.
-    result = db.select_rows([
+    result = dataset.select_rows([
       val('str'),
       Column(('str', 'test_signal', 'flen'), alias='flen'),
       Column(('str', 'test_signal', 'len'), alias='len')
@@ -452,8 +452,8 @@ class ComputeSignalItemsSuite:
       'len': lilac_item(1)
     }]
 
-  def test_parameterized_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_parameterized_signal(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls,
       tmp_path,
       items=[{
@@ -465,10 +465,10 @@ class ComputeSignalItemsSuite:
       }])
     test_signal_a = TestParamSignal(param='a')
     test_signal_b = TestParamSignal(param='b')
-    db.compute_signal(test_signal_a, 'text')
-    db.compute_signal(test_signal_b, 'text')
+    dataset.compute_signal(test_signal_a, 'text')
+    dataset.compute_signal(test_signal_b, 'text')
 
-    assert db.manifest() == DatasetManifest(
+    assert dataset.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
@@ -482,7 +482,7 @@ class ComputeSignalItemsSuite:
       }),
       num_items=2)
 
-    result = db.select_rows(['text'])
+    result = dataset.select_rows(['text'])
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
       'text': lilac_item('hello', {
@@ -497,8 +497,8 @@ class ComputeSignalItemsSuite:
       })
     }])
 
-  def test_embedding_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_embedding_signal(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=[{
@@ -510,11 +510,11 @@ class ComputeSignalItemsSuite:
       }])
 
     embedding_signal = TestEmbedding()
-    db.compute_signal(embedding_signal, 'text')
+    dataset.compute_signal(embedding_signal, 'text')
     embedding_sum_signal = TestEmbeddingSumSignal(embedding=TestEmbedding.name)
-    db.compute_signal(embedding_sum_signal, ('text', 'test_embedding'))
+    dataset.compute_signal(embedding_sum_signal, ('text', 'test_embedding'))
 
-    assert db.manifest() == DatasetManifest(
+    assert dataset.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
@@ -534,7 +534,7 @@ class ComputeSignalItemsSuite:
       }),
       num_items=2)
 
-    result = db.select_rows()
+    result = dataset.select_rows()
     expected_result = lilac_items([{
       UUID_COLUMN: '1',
       'text': lilac_item(
@@ -564,8 +564,8 @@ class ComputeSignalItemsSuite:
     }])
     assert list(result) == expected_result
 
-  def test_embedding_signal_splits(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_embedding_signal_splits(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=[{
@@ -577,13 +577,13 @@ class ComputeSignalItemsSuite:
       }])
 
     split_signal = TestSplitSignal()
-    db.compute_signal(split_signal, 'text')
+    dataset.compute_signal(split_signal, 'text')
     embedding_signal = TestEmbedding()
-    db.compute_signal(embedding_signal, ('text', 'test_split_len', '*'))
+    dataset.compute_signal(embedding_signal, ('text', 'test_split_len', '*'))
     embedding_sum_signal = TestEmbeddingSumSignal(embedding=TestEmbedding.name)
-    db.compute_signal(embedding_sum_signal, ('text', 'test_split_len', '*', 'test_embedding'))
+    dataset.compute_signal(embedding_sum_signal, ('text', 'test_split_len', '*', 'test_embedding'))
 
-    assert db.manifest() == DatasetManifest(
+    assert dataset.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
@@ -612,7 +612,7 @@ class ComputeSignalItemsSuite:
       }),
       num_items=2)
 
-    result = db.select_rows(['text'])
+    result = dataset.select_rows(['text'])
 
     assert list(result) == lilac_items([{
       UUID_COLUMN: '1',
@@ -686,8 +686,8 @@ class ComputeSignalItemsSuite:
         })
     }])
 
-  def test_split_signal(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_split_signal(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=[{
@@ -699,9 +699,9 @@ class ComputeSignalItemsSuite:
       }])
 
     signal = TestSplitSignal()
-    db.compute_signal(signal, 'text')
+    dataset.compute_signal(signal, 'text')
 
-    assert db.manifest() == DatasetManifest(
+    assert dataset.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
@@ -716,7 +716,7 @@ class ComputeSignalItemsSuite:
       }),
       num_items=2)
 
-    result = db.select_rows(['text'])
+    result = dataset.select_rows(['text'])
     expected_result = [{
       UUID_COLUMN: '1',
       'text': lilac_item(
@@ -738,8 +738,8 @@ class ComputeSignalItemsSuite:
     }]
     assert list(result) == expected_result
 
-  def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_signal_on_repeated_field(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls,
       tmp_path,
       items=[{
@@ -751,10 +751,10 @@ class ComputeSignalItemsSuite:
       }])
     test_signal = TestSignal()
     # Run the signal on the repeated field.
-    db.compute_signal(test_signal, ('text', '*'))
+    dataset.compute_signal(test_signal, ('text', '*'))
 
     # Check the enriched dataset manifest has 'text' enriched.
-    assert db.manifest() == DatasetManifest(
+    assert dataset.manifest() == DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
@@ -773,7 +773,7 @@ class ComputeSignalItemsSuite:
       }),
       num_items=2)
 
-    result = db.select_rows([('text', '*')])
+    result = dataset.select_rows([('text', '*')])
 
     assert list(result) == [{
       UUID_COLUMN: '1',
@@ -801,8 +801,8 @@ class ComputeSignalItemsSuite:
       ]
     }]
 
-  def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
-    db = make_db(
+  def test_text_splitter(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=[{
@@ -813,9 +813,9 @@ class ComputeSignalItemsSuite:
         'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
       }])
 
-    db.compute_signal(TestSplitterWithLen(), 'text')
+    dataset.compute_signal(TestSplitterWithLen(), 'text')
 
-    result = db.select_rows(['text'])
+    result = dataset.select_rows(['text'])
     expected_result = [{
       UUID_COLUMN: '1',
       'text': lilac_item(

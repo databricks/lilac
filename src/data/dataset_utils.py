@@ -296,7 +296,7 @@ def read_embedding_index(output_dir: str, filename: str) -> EmbeddingIndex:
 
   if not file_exists(index_path):
     raise ValueError(F'Embedding index does not exist at path {index_path}. '
-                     'Please run db.compute_signal() on the embedding signal first.')
+                     'Please run dataset.compute_signal() on the embedding signal first.')
 
   # Read the embedding index from disk.
   with open_file(index_path, 'rb') as f:

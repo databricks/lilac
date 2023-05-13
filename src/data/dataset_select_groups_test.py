@@ -1,4 +1,4 @@
-"""Tests for db.select_groups()."""
+"""Tests for dataset.select_groups()."""
 
 import pathlib
 import re
@@ -10,10 +10,10 @@ from pytest_mock import MockerFixture
 
 from ..config import CONFIG
 from ..schema import UUID_COLUMN, Item, schema
-from . import db_dataset
-from .db_dataset import DatasetDB, NamedBins
-from .db_dataset_duckdb import DatasetDuckDB
-from .db_dataset_test_utils import make_db
+from . import dataset as dataset_module
+from .dataset import Dataset, NamedBins
+from .dataset_duckdb import DatasetDuckDB
+from .dataset_test_utils import make_dataset
 
 ALL_DBS = [DatasetDuckDB]
 
@@ -29,7 +29,7 @@ def set_data_path(tmp_path: pathlib.Path) -> Generator:
 @pytest.mark.parametrize('db_cls', ALL_DBS)
 class SelectGroupsSuite:
 
-  def test_flat_data(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_flat_data(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
     items: list[Item] = [
       {
         'name': 'Name1',
@@ -54,7 +54,7 @@ class SelectGroupsSuite:
         'age': 55
       }  # Missing "active".
     ]
-    db = make_db(
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=items,
@@ -65,7 +65,7 @@ class SelectGroupsSuite:
         'active': 'boolean'
       }))
 
-    result = db.select_groups(leaf_path='name').df()
+    result = dataset.select_groups(leaf_path='name').df()
     expected = pd.DataFrame.from_records([{
       'value': 'Name1',
       'count': 1
@@ -84,7 +84,7 @@ class SelectGroupsSuite:
     }])
     pd.testing.assert_frame_equal(result, expected)
 
-    result = db.select_groups(leaf_path='age', bins=[20, 50, 60]).df()
+    result = dataset.select_groups(leaf_path='age', bins=[20, 50, 60]).df()
     expected = pd.DataFrame.from_records([
       {
         'value': 1,  # age 20-50.
@@ -105,7 +105,7 @@ class SelectGroupsSuite:
     ])
     pd.testing.assert_frame_equal(result, expected)
 
-    result = db.select_groups(leaf_path='active').df()
+    result = dataset.select_groups(leaf_path='active').df()
     expected = pd.DataFrame.from_records([
       {
         'value': True,
@@ -122,7 +122,7 @@ class SelectGroupsSuite:
     ])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_result_is_iterable(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_result_is_iterable(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
     items: list[Item] = [
       {
         'active': False
@@ -138,7 +138,7 @@ class SelectGroupsSuite:
       },
       {}  # Missing "active".
     ]
-    db = make_db(
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=items,
@@ -147,11 +147,11 @@ class SelectGroupsSuite:
         'active': 'boolean'
       }))
 
-    result = db.select_groups(leaf_path='active')
+    result = dataset.select_groups(leaf_path='active')
     groups = list(result)
     assert groups == [(True, 3), (False, 1), (None, 1)]
 
-  def test_list_of_structs(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_list_of_structs(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
     items: list[Item] = [{
       'list_of_structs': [{
         'name': 'a'
@@ -171,7 +171,7 @@ class SelectGroupsSuite:
         'name': 'd'
       }]
     }]
-    db = make_db(
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=items,
@@ -182,7 +182,7 @@ class SelectGroupsSuite:
         }],
       }))
 
-    result = db.select_groups(leaf_path='list_of_structs.*.name').df()
+    result = dataset.select_groups(leaf_path='list_of_structs.*.name').df()
     expected = pd.DataFrame.from_records([{
       'value': 'a',
       'count': 2
@@ -198,7 +198,7 @@ class SelectGroupsSuite:
     }])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_nested_lists(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_nested_lists(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
     items: list[Item] = [{
       'nested_list': [[{
         'name': 'a'
@@ -218,7 +218,7 @@ class SelectGroupsSuite:
         'name': 'd'
       }]]
     }]
-    db = make_db(
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=items,
@@ -229,7 +229,7 @@ class SelectGroupsSuite:
         }]]
       }))
 
-    result = db.select_groups(leaf_path='nested_list.*.*.name').df()
+    result = dataset.select_groups(leaf_path='nested_list.*.*.name').df()
     expected = pd.DataFrame.from_records([{
       'value': 'a',
       'count': 2
@@ -245,7 +245,7 @@ class SelectGroupsSuite:
     }])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_nested_struct(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_nested_struct(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
     items: list[Item] = [
       {
         'nested_struct': {
@@ -269,7 +269,7 @@ class SelectGroupsSuite:
         }
       },
     ]
-    db = make_db(
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=items,
@@ -282,7 +282,7 @@ class SelectGroupsSuite:
         },
       }))
 
-    result = db.select_groups(leaf_path='nested_struct.struct.name').df()
+    result = dataset.select_groups(leaf_path='nested_struct.struct.name').df()
     expected = pd.DataFrame.from_records([{
       'value': 'c',
       'count': 1
@@ -295,7 +295,7 @@ class SelectGroupsSuite:
     }])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_named_bins(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_named_bins(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
     items: list[Item] = [{
       'age': 34,
     }, {
@@ -307,7 +307,7 @@ class SelectGroupsSuite:
     }, {
       'age': 55
     }]
-    db = make_db(
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=items,
@@ -316,7 +316,7 @@ class SelectGroupsSuite:
         'age': 'int32',
       }))
 
-    result = db.select_groups(
+    result = dataset.select_groups(
       leaf_path='age',
       bins=NamedBins(bins=[20, 50, 65], labels=['young', 'adult', 'middle-aged', 'senior'])).df()
     expected = pd.DataFrame.from_records([
@@ -339,7 +339,7 @@ class SelectGroupsSuite:
     ])
     pd.testing.assert_frame_equal(result, expected)
 
-  def test_invalid_leaf(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB]) -> None:
+  def test_invalid_leaf(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
     items: list[Item] = [
       {
         'nested_struct': {
@@ -363,7 +363,7 @@ class SelectGroupsSuite:
         }
       },
     ]
-    db = make_db(
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=items,
@@ -378,24 +378,24 @@ class SelectGroupsSuite:
 
     with pytest.raises(
         ValueError, match=re.escape("Leaf \"('nested_struct',)\" not found in dataset")):
-      db.select_groups(leaf_path='nested_struct')
+      dataset.select_groups(leaf_path='nested_struct')
 
     with pytest.raises(
         ValueError, match=re.escape("Leaf \"('nested_struct', 'struct')\" not found in dataset")):
-      db.select_groups(leaf_path='nested_struct.struct')
+      dataset.select_groups(leaf_path='nested_struct.struct')
 
     with pytest.raises(
         ValueError,
         match=re.escape("Leaf \"('nested_struct', 'struct', 'wrong_name')\" not found in dataset")):
-      db.select_groups(leaf_path='nested_struct.struct.wrong_name')
+      dataset.select_groups(leaf_path='nested_struct.struct.wrong_name')
 
-  def test_too_many_distinct(self, tmp_path: pathlib.Path, db_cls: Type[DatasetDB],
+  def test_too_many_distinct(self, tmp_path: pathlib.Path, db_cls: Type[Dataset],
                              mocker: MockerFixture) -> None:
     too_many_distinct = 5
-    mocker.patch(f'{db_dataset.__name__}.TOO_MANY_DISTINCT', too_many_distinct)
+    mocker.patch(f'{dataset_module.__name__}.TOO_MANY_DISTINCT', too_many_distinct)
 
     items: list[Item] = [{'feature': str(i)} for i in range(too_many_distinct + 10)]
-    db = make_db(
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=items,
@@ -406,12 +406,11 @@ class SelectGroupsSuite:
 
     with pytest.raises(
         ValueError, match=re.escape('Leaf "(\'feature\',)" has too many unique values: 15')):
-      db.select_groups('feature')
+      dataset.select_groups('feature')
 
-  def test_bins_are_required_for_float(self, tmp_path: pathlib.Path,
-                                       db_cls: Type[DatasetDB]) -> None:
+  def test_bins_are_required_for_float(self, tmp_path: pathlib.Path, db_cls: Type[Dataset]) -> None:
     items: list[Item] = [{'feature': float(i)} for i in range(5)]
-    db = make_db(
+    dataset = make_dataset(
       db_cls=db_cls,
       tmp_path=tmp_path,
       items=items,
@@ -423,4 +422,4 @@ class SelectGroupsSuite:
     with pytest.raises(
         ValueError,
         match=re.escape('"bins" needs to be defined for the int/float leaf "(\'feature\',)"')):
-      db.select_groups('feature')
+      dataset.select_groups('feature')

@@ -1,4 +1,4 @@
-"""Tests utils of for db_dataset_test."""
+"""Tests utils of for dataset_test."""
 import os
 import pathlib
 from typing import Optional, Type, cast
@@ -14,8 +14,8 @@ from ..schema import (
   SourceManifest,
 )
 from ..utils import get_dataset_output_dir, open_file
+from .dataset import Dataset
 from .dataset_utils import is_primitive, lilac_items, write_items_to_parquet
-from .db_dataset import DatasetDB
 
 TEST_NAMESPACE = 'test_namespace'
 TEST_DATASET_NAME = 'test_dataset'
@@ -62,11 +62,11 @@ def _infer_schema(items: list[Item]) -> Schema:
   return schema
 
 
-def make_db(db_cls: Type[DatasetDB],
-            tmp_path: pathlib.Path,
-            items: list[Item],
-            schema: Optional[Schema] = None) -> DatasetDB:
-  """Create a test database."""
+def make_dataset(db_cls: Type[Dataset],
+                 tmp_path: pathlib.Path,
+                 items: list[Item],
+                 schema: Optional[Schema] = None) -> Dataset:
+  """Create a test dataset."""
   schema = schema or _infer_schema(items)
   _write_items(tmp_path, TEST_DATASET_NAME, cast(list, lilac_items(items)), schema)
   return db_cls(TEST_NAMESPACE, TEST_DATASET_NAME)

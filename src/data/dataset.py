@@ -105,7 +105,7 @@ class GroupsSortBy(str, enum.Enum):
 
 
 class Column(BaseModel):
-  """A column in the dataset DB."""
+  """A column in the dataset."""
   path: PathTuple
   alias: Optional[str]  # This is the renamed column during querying and response.
 
@@ -180,7 +180,7 @@ class Filter(BaseModel):
 FilterLike = Union[Filter, BinaryFilterTuple, UnaryFilterTuple]
 
 
-class DatasetDB(abc.ABC):
+class Dataset(abc.ABC):
   """The database implementation to query a dataset."""
 
   def __init__(self, namespace: str, dataset_name: str):
