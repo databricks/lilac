@@ -305,7 +305,7 @@ class DatasetDuckDB(Dataset):
       f.write(signal_manifest.json(exclude_none=True, indent=2))
     log(f'Wrote signal manifest to {signal_manifest_filepath}')
 
-  def _validate_filters(self, filters: Sequence[Filter], col_aliases: set[str]) -> None:
+  def _validate_filters(self, filters: Sequence[Filter], col_aliases: dict[str, PathTuple]) -> None:
     manifest = self.manifest()
     for filter in filters:
       if filter.path[0] in col_aliases:
@@ -529,47 +529,50 @@ class DatasetDuckDB(Dataset):
     self._validate_columns(cols)
     select_query, columns_to_merge = self._create_select(
       cols, flatten=False, resolve_span=resolve_span, combine_columns=combine_columns)
-    col_aliases = set(columns_to_merge.keys())
+    col_aliases: dict[str, PathTuple] = {col.alias: col.path for col in cols if col.alias}
     udf_aliases = set(col.alias or _unique_alias(col) for col in cols if col.signal_udf)
+
+    # Filtering.
+    where_query = ''
     filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases)
     filter_queries = self._create_where(filters, manifest)
-    where_query = ''
     if filter_queries:
       where_query = f"WHERE {' AND '.join(filter_queries)}"
+
+    # Sorting.
+    order_query = ''
+    sort_by = [normalize_path(path) for path in (sort_by or [])]
+    if sort_by and not sort_order:
+      raise ValueError('Sort order is undefined but sort by is defined. Please define a sort_order')
+
+    sort_cols_before_udf: list[str] = []
+    sort_cols_after_udf: list[str] = []
+    for path in sort_by:
+      # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
+      if str(path[0]) in udf_aliases:
+        sort_col = _make_select_column(path, flatten=False, empty=False)
+        sort_cols_after_udf.append(sort_col)
+      else:
+        # Re-route the path if it starts with an alias by pointing it to the actual path.
+        first_subpath = str(path[0])
+        rest_of_path = path[1:]
+        if first_subpath in col_aliases:
+          path = (*col_aliases[first_subpath], *rest_of_path)
+
+        sort_col, _ = self._create_select_column(
+          Column(path), manifest, flatten=False, resolve_span=False, make_temp_alias=False)
+        sort_cols_before_udf.append(sort_col)
+
+    if sort_cols_before_udf:
+      order_query = (f'ORDER BY {", ".join(sort_cols_before_udf)} '
+                     f'{cast(SortOrder, sort_order).value}')
 
     con = self.con.cursor()
     query = con.sql(f"""
       SELECT {select_query} FROM t
       {where_query}
+      {order_query}
     """)
-
-    sort_by_paths = [normalize_path(path) for path in (sort_by or [])]
-    sort_cols_after_udf: list[str] = []
-    if sort_by_paths:
-      for sort_by_path in sort_by_paths:
-        if sort_by_path[0] not in col_aliases and sort_by_path not in col_paths:
-          raise ValueError(
-            f'Column {sort_by_path} is not defined as an alias in the given columns and is not '
-            'defined in the select. The sort by path must be defined in either the columns or as '
-            'a column alias.'
-            f'Available sort by aliases: {col_aliases}.\n'
-            f'Available columns: {columns}.\n')
-
-      if not sort_order:
-        raise ValueError(
-          'Sort order is undefined but sort by is defined. Please define a sort_order')
-
-      sort_cols_before_udf: list[str] = []
-      for sort_by_path in sort_by_paths:
-        sort_col = self._path_to_col(sort_by_path)
-        # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
-        if str(sort_by_path[0]) in udf_aliases:
-          sort_cols_after_udf.append(sort_col)
-        else:
-          sort_cols_before_udf.append(sort_col)
-
-      if sort_cols_before_udf:
-        query = query.order(f'{", ".join(sort_cols_before_udf)} {sort_order.value}')
 
     if limit and not sort_cols_after_udf:
       query = query.limit(limit, offset or 0)
@@ -814,7 +817,8 @@ class DatasetDuckDB(Dataset):
       select_queries.append(select_str)
     return ', '.join(select_queries), alias_to_temp_col_names
 
-  def _normalize_filters(self, filter_likes: Optional[Sequence[FilterLike]], col_aliases: set[str],
+  def _normalize_filters(self, filter_likes: Optional[Sequence[FilterLike]],
+                         col_aliases: dict[str, PathTuple],
                          udf_aliases: set[str]) -> tuple[list[Filter], list[Filter]]:
     """Normalize `FilterLike` to `Filter` and split into filters on source and filters on UDFs."""
     filter_likes = filter_likes or []

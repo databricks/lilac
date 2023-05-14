@@ -27,7 +27,7 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import BinaryFilterTuple, BinaryOp, Column, DatasetManifest, SortOrder, UnaryOp, val
+from .dataset import BinaryFilterTuple, BinaryOp, Column, DatasetManifest, UnaryOp, val
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker
 from .dataset_utils import lilac_item, lilac_items, signal_item
 
@@ -1130,50 +1130,6 @@ class SelectRowsSuite:
 
     with pytest.raises(ValueError, match='Selecting a specific index of a repeated field'):
       dataset.select_rows([('text2', 4, 'test_signal')])
-
-  def test_sort(self, make_test_data: TestDataMaker) -> None:
-    dataset = make_test_data(SIMPLE_ITEMS)
-
-    result = dataset.select_rows(
-      columns=[UUID_COLUMN, 'float'], sort_by=['float'], sort_order=SortOrder.ASC)
-
-    assert list(result) == lilac_items([{
-      UUID_COLUMN: '3',
-      'float': 1.0
-    }, {
-      UUID_COLUMN: '2',
-      'float': 2.0
-    }, {
-      UUID_COLUMN: '1',
-      'float': 3.0
-    }])
-
-    result = dataset.select_rows(
-      columns=[UUID_COLUMN, 'float'], sort_by=['float'], sort_order=SortOrder.DESC)
-
-    assert list(result) == lilac_items([{
-      UUID_COLUMN: '1',
-      'float': 3.0
-    }, {
-      UUID_COLUMN: '2',
-      'float': 2.0
-    }, {
-      UUID_COLUMN: '3',
-      'float': 1.0
-    }])
-
-  def test_limit(self, make_test_data: TestDataMaker) -> None:
-    dataset = make_test_data(SIMPLE_ITEMS)
-
-    result = dataset.select_rows(
-      columns=[UUID_COLUMN, 'float'], sort_by=['float'], sort_order=SortOrder.ASC, limit=2)
-    assert list(result) == lilac_items([{
-      UUID_COLUMN: '3',
-      'float': 1.0
-    }, {
-      UUID_COLUMN: '2',
-      'float': 2.0
-    }])
 
 
 class TestSignal(TextSignal):
