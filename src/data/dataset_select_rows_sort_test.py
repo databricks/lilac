@@ -1,4 +1,4 @@
-"""Implementation-agnostic tests of the Dataset DB API."""
+"""Tests for dataset.select_rows(sort_by=...)."""
 
 from typing import Iterable, Optional
 
