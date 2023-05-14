@@ -6,7 +6,7 @@ import type { ConceptScoreSignal } from './ConceptScoreSignal';
 import type { Signal } from './Signal';
 
 /**
- * A column in the dataset DB.
+ * A column in the dataset.
  */
 export type Column = {
     path: Array<(number | string)>;
