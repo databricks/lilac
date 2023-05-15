@@ -11,6 +11,39 @@ from .dataset_test_utils import TestDataMaker
 from .dataset_utils import lilac_item, lilac_items
 
 
+class TestSignal(TextSignal):
+  name = 'test_signal'
+
+  def fields(self) -> Field:
+    return field({'len': 'int32', 'is_all_cap': 'boolean'})
+
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+    for text_content in data:
+      yield {'len': len(text_content), 'is_all_cap': text_content.isupper()}
+
+
+class TestPrimitiveSignal(TextSignal):
+  name = 'primitive_signal'
+
+  def fields(self) -> Field:
+    return field('int32')
+
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+    for text_content in data:
+      yield len(text_content) + 1
+
+
+@pytest.fixture(scope='module', autouse=True)
+def setup_teardown() -> Iterable[None]:
+  # Setup.
+  register_signal(TestSignal)
+  register_signal(TestPrimitiveSignal)
+  # Unit test runs.
+  yield
+  # Teardown.
+  clear_signal_registry()
+
+
 def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
@@ -71,39 +104,6 @@ def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
   result = dataset.select_rows(
     columns=[UUID_COLUMN], sort_by=['document.header.title'], sort_order=SortOrder.DESC)
   assert list(result) == [{UUID_COLUMN: '1'}, {UUID_COLUMN: '2'}, {UUID_COLUMN: '3'}]
-
-
-class TestSignal(TextSignal):
-  name = 'test_signal'
-
-  def fields(self) -> Field:
-    return field({'len': 'int32', 'is_all_cap': 'boolean'})
-
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
-    for text_content in data:
-      yield {'len': len(text_content), 'is_all_cap': text_content.isupper()}
-
-
-class TestPrimitiveSignal(TextSignal):
-  name = 'primitive_signal'
-
-  def fields(self) -> Field:
-    return field('int32')
-
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
-    for text_content in data:
-      yield len(text_content) + 1
-
-
-@pytest.fixture(scope='module', autouse=True)
-def setup_teardown() -> Iterable[None]:
-  # Setup.
-  register_signal(TestSignal)
-  register_signal(TestPrimitiveSignal)
-  # Unit test runs.
-  yield
-  # Teardown.
-  clear_signal_registry()
 
 
 def test_sort_by_signal_no_alias_no_repeated(make_test_data: TestDataMaker) -> None:
@@ -346,19 +346,133 @@ def test_sort_by_source_non_leaf_errors(make_test_data: TestDataMaker) -> None:
     dataset.select_rows(columns=[UUID_COLUMN], sort_by=['vals'], sort_order=SortOrder.ASC)
 
 
-def test_sort_by_source_repeated_not_supported(make_test_data: TestDataMaker) -> None:
+def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
-    'vals': [7, 1]
+    'vals': [[{
+      'score': 7
+    }, {
+      'score': 1
+    }], [{
+      'score': 1
+    }, {
+      'score': 7
+    }]]
   }, {
     UUID_COLUMN: '2',
-    'vals': [3, 4]
+    'vals': [[{
+      'score': 3
+    }, {
+      'score': 4
+    }]]
   }, {
     UUID_COLUMN: '3',
-    'vals': [9, 0]
+    'vals': [[{
+      'score': 9
+    }, {
+      'score': 0
+    }]]
   }])
 
-  # Sort by repeated.
-  with pytest.raises(
-      NotImplementedError, match='Can not sort .* since repeated fields are not yet supported'):
-    dataset.select_rows(columns=[UUID_COLUMN], sort_by=['vals.*'], sort_order=SortOrder.ASC)
+  # Sort by repeated 'vals'.
+  result = dataset.select_rows(
+    columns=[UUID_COLUMN, 'vals'], sort_by=['vals.*.*.score'], sort_order=SortOrder.ASC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'vals': [[{
+      'score': 9
+    }, {
+      'score': 0
+    }]]
+  }, {
+    UUID_COLUMN: '1',
+    'vals': [[{
+      'score': 7
+    }, {
+      'score': 1
+    }], [{
+      'score': 1
+    }, {
+      'score': 7
+    }]]
+  }, {
+    UUID_COLUMN: '2',
+    'vals': [[{
+      'score': 3
+    }, {
+      'score': 4
+    }]]
+  }])
+
+  result = dataset.select_rows(
+    columns=[UUID_COLUMN, 'vals'], sort_by=['vals.*.*.score'], sort_order=SortOrder.DESC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'vals': [[{
+      'score': 9
+    }, {
+      'score': 0
+    }]]
+  }, {
+    UUID_COLUMN: '1',
+    'vals': [[{
+      'score': 7
+    }, {
+      'score': 1
+    }], [{
+      'score': 1
+    }, {
+      'score': 7
+    }]]
+  }, {
+    UUID_COLUMN: '2',
+    'vals': [[{
+      'score': 3
+    }, {
+      'score': 4
+    }]]
+  }])
+
+
+def test_sort_by_source_alias_repeated(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'vals': [[7, 1], [1, 7]]
+  }, {
+    UUID_COLUMN: '2',
+    'vals': [[3], [11]]
+  }, {
+    UUID_COLUMN: '3',
+    'vals': [[9, 0]]
+  }])
+
+  # Sort by repeated 'vals'.
+  result = dataset.select_rows(
+    columns=[UUID_COLUMN, Column('vals', alias='scores')],
+    sort_by=['scores.*.*'],
+    sort_order=SortOrder.ASC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'scores': [[9, 0]]
+  }, {
+    UUID_COLUMN: '1',
+    'scores': [[7, 1], [1, 7]]
+  }, {
+    UUID_COLUMN: '2',
+    'scores': [[3], [11]]
+  }])
+
+  result = dataset.select_rows(
+    columns=[UUID_COLUMN, Column('vals', alias='scores')],
+    sort_by=['scores.*.*'],
+    sort_order=SortOrder.DESC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '2',
+    'scores': [[3], [11]]
+  }, {
+    UUID_COLUMN: '3',
+    'scores': [[9, 0]]
+  }, {
+    UUID_COLUMN: '1',
+    'scores': [[7, 1], [1, 7]]
+  }])
