@@ -60,3 +60,8 @@ def test_resolve_signal() -> None:
 
   # Dicts resolve to the base class.
   assert resolve_signal(test_signal.dict()) == test_signal
+
+
+def test_tags() -> None:
+  """Test getting a signal."""
+  assert True is False
