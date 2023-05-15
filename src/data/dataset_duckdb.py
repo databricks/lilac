@@ -398,10 +398,8 @@ class DatasetDuckDB(Dataset):
 
     value_path = _make_value_path(path)
     duckdb_path = self._leaf_path_to_duckdb_path(value_path)
-    span_path = path[:-1] if path[-1] == VALUE_KEY else path
-    is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
-    span_from = _derived_from_path(path, manifest.data_schema) if is_span else None
-    inner_select = _select_sql(duckdb_path, flatten=True, unnest=True, span_from=span_from)
+    inner_select = _select_sql(
+      duckdb_path, flatten=True, unnest=True, span_from=self._get_span_from(path))
 
     # Compute approximate count by sampling the data to avoid OOM.
     sample_size = SAMPLE_SIZE_DISTINCT_COUNT
@@ -540,13 +538,6 @@ class DatasetDuckDB(Dataset):
 
     for column in cols:
       path = column.path
-      span_path = path
-      # Remove the value key so we can check the dtype from leafs.
-      if path[-1] == VALUE_KEY:
-        span_path = path[:-1]
-      is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
-      span_from = (
-        _derived_from_path(path, manifest.data_schema) if resolve_span and is_span else None)
       # If the signal is vector-based, we don't need to select the actual data, just the uuids
       # plus an arbitrarily nested array of `None`s`.
       empty = bool(
@@ -558,6 +549,7 @@ class DatasetDuckDB(Dataset):
       select_sqls: list[str] = []
       alias = column.alias or _unique_alias(column)
       duckdb_paths = self._column_to_duckdb_paths(column)
+      span_from = self._get_span_from(path)
 
       for temp_column_name, duckdb_path in duckdb_paths:
         sql = _select_sql(
@@ -797,6 +789,14 @@ class DatasetDuckDB(Dataset):
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
+
+  def _get_span_from(self, path: PathTuple) -> Optional[PathTuple]:
+    manifest = self.manifest()
+    leafs = manifest.data_schema.leafs
+    # Remove the value key so we can check the dtype from leafs.
+    span_path = path[:-1] if path[-1] == VALUE_KEY else path
+    is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
+    return _derived_from_path(path, manifest.data_schema) if is_span else None
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple) -> PathTuple:
     duckdb_paths = self._column_to_duckdb_paths(Column(leaf_path))
