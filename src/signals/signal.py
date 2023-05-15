@@ -148,17 +148,6 @@ class TextSignal(Signal):
         TextSplitterSignal,
         get_signal_by_type(self.split, SIGNAL_TYPE_TEXT_SPLITTER)(split=self.split))
 
-  @validator('split_signal', pre=True, always=True)
-  def parse_split_signal(cls, split_signal: dict[str, Any],
-                         values: dict[str, Any]) -> Optional[TextSplitterSignal]:
-    """Parse a split signal to its specific subclass instance."""
-    if 'split' in values and values['split']:
-      # Validate the split signal is registered and the correct type.
-      # TODO(nsthorat): Allow arguments passed to the split signal.
-      return cast(TextSplitterSignal,
-                  get_signal_by_type(values['split'], SIGNAL_TYPE_TEXT_SPLITTER)())
-    return None
-
 
 class TextEmbeddingSignal(TextSignal):
   """An interface for signals that compute embeddings for text."""
