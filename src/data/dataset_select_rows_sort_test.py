@@ -535,56 +535,156 @@ def test_sort_by_udf_alias_repeated(make_test_data: TestDataMaker) -> None:
   }])
 
 
-def test_sort_by_udf_alias_repeated_called_on_string_array(make_test_data: TestDataMaker) -> None:
+def test_sort_by_udf_alias_repeated_called_on_complex_signal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
     'texts': [{
-      'text': 'hey'
+      'text': 'eardrop'
     }, {
-      'text': 'hi'
+      'text': 'I'
     }]
   }, {
     UUID_COLUMN: '2',
+    'texts': [{
+      'text': 'hey'
+    }, {
+      'text': 'CARS'
+    }]
+  }, {
+    UUID_COLUMN: '3',
     'texts': [{
       'text': 'everyone'
     }, {
-      'text': 'great'
-    }]
-  }, {
-    UUID_COLUMN: '3',
-    'texts': [{
-      'text': 'hi'
-    }, {
-      'text': 'hurray'
+      'text': ''
     }]
   }])
 
-  # Equivalent to: SELECT `NestedArraySignal(texts.*.text) AS udf`.
-  texts_udf = Column('texts.*.text', signal_udf=NestedArraySignal(), alias='udf')
-  # Sort by `udf.*.*`, where `udf` is an alias to `NestedArraySignal(texts.*.text)`.
+  # Equivalent to: SELECT `TestSignal(texts.*.text) AS udf`.
+  texts_udf = Column('texts.*.text', signal_udf=TestSignal(), alias='udf')
+  # Sort by `udf.len`, where `udf` is an alias to `TestSignal(texts.*.text)`.
   result = dataset.select_rows(['*', texts_udf],
-                               sort_by=['udf.*.*'],
+                               sort_by=['udf.len'],
                                sort_order=SortOrder.ASC,
                                combine_columns=True)
   assert list(result) == lilac_items([{
-    UUID_COLUMN: '1',
-    'texts': [{
-      'text': lilac_item('hey', {'nested_array': [[4], [3]]})
-    }, {
-      'text': lilac_item('hi', {'nested_array': [[3], [2]]})
-    }]
-  }, {
     UUID_COLUMN: '3',
     'texts': [{
-      'text': lilac_item('hi', {'nested_array': [[3], [2]]})
+      'text': lilac_item('everyone', {'test_signal': {
+        'len': 8,
+        'is_all_cap': False
+      }})
     }, {
-      'text': lilac_item('hurray', {'nested_array': [[7], [6]]})
+      'text': lilac_item('', {'test_signal': {
+        'len': 0,
+        'is_all_cap': False
+      }})
+    }]
+  }, {
+    UUID_COLUMN: '1',
+    'texts': [{
+      'text': lilac_item('eardrop', {'test_signal': {
+        'len': 7,
+        'is_all_cap': False
+      }})
+    }, {
+      'text': lilac_item('I', {'test_signal': {
+        'len': 1,
+        'is_all_cap': True
+      }})
     }]
   }, {
     UUID_COLUMN: '2',
     'texts': [{
-      'text': lilac_item('everyone', {'nested_array': [[9], [8]]})
+      'text': lilac_item('hey', {'test_signal': {
+        'len': 3,
+        'is_all_cap': False
+      }})
     }, {
-      'text': lilac_item('great', {'nested_array': [[6], [5]]})
+      'text': lilac_item('CARS', {'test_signal': {
+        'len': 4,
+        'is_all_cap': True
+      }})
+    }]
+  }])
+
+
+def test_sort_by_udf_alias_repeated_called_on_primitive_signal(
+    make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'texts': [{
+      'text': 'eardrop'
+    }, {
+      'text': 'I'
+    }]
+  }, {
+    UUID_COLUMN: '2',
+    'texts': [{
+      'text': 'hey'
+    }, {
+      'text': 'CARS'
+    }]
+  }, {
+    UUID_COLUMN: '3',
+    'texts': [{
+      'text': 'everyone'
+    }, {
+      'text': ''
+    }]
+  }])
+
+  # Equivalent to: SELECT `TestPrimitiveSignal(texts.*.text) AS udf`.
+  texts_udf = Column('texts.*.text', signal_udf=TestPrimitiveSignal(), alias='udf')
+  # Sort by `udf`, where `udf` is an alias to `TestPrimitiveSignal(texts.*.text)`.
+  result = dataset.select_rows(['*', texts_udf],
+                               sort_by=['udf'],
+                               sort_order=SortOrder.ASC,
+                               combine_columns=True)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'texts': [{
+      'text': lilac_item('everyone', {'primitive_signal': 9})
+    }, {
+      'text': lilac_item('', {'primitive_signal': 1})
+    }]
+  }, {
+    UUID_COLUMN: '1',
+    'texts': [{
+      'text': lilac_item('eardrop', {'primitive_signal': 8})
+    }, {
+      'text': lilac_item('I', {'primitive_signal': 2})
+    }]
+  }, {
+    UUID_COLUMN: '2',
+    'texts': [{
+      'text': lilac_item('hey', {'primitive_signal': 4})
+    }, {
+      'text': lilac_item('CARS', {'primitive_signal': 5})
+    }]
+  }])
+  result = dataset.select_rows(['*', texts_udf],
+                               sort_by=['udf'],
+                               sort_order=SortOrder.DESC,
+                               combine_columns=True)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'texts': [{
+      'text': lilac_item('everyone', {'primitive_signal': 9})
+    }, {
+      'text': lilac_item('', {'primitive_signal': 1})
+    }]
+  }, {
+    UUID_COLUMN: '1',
+    'texts': [{
+      'text': lilac_item('eardrop', {'primitive_signal': 8})
+    }, {
+      'text': lilac_item('I', {'primitive_signal': 2})
+    }]
+  }, {
+    UUID_COLUMN: '2',
+    'texts': [{
+      'text': lilac_item('hey', {'primitive_signal': 4})
+    }, {
+      'text': lilac_item('CARS', {'primitive_signal': 5})
     }]
   }])

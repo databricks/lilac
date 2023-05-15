@@ -529,7 +529,9 @@ class DatasetDuckDB(Dataset):
     select_query, columns_to_merge = self._create_select(
       cols, resolve_span=resolve_span, combine_columns=combine_columns)
     col_aliases: dict[str, PathTuple] = {col.alias: col.path for col in cols if col.alias}
-    udf_aliases = set(col.alias or _unique_alias(col) for col in cols if col.signal_udf)
+    udf_aliases: dict[str, PathTuple] = {
+      col.alias or _unique_alias(col): col.path for col in cols if col.signal_udf
+    }
 
     # Filtering.
     where_query = ''
@@ -547,14 +549,19 @@ class DatasetDuckDB(Dataset):
     sort_cols_before_udf: list[str] = []
     sort_cols_after_udf: list[str] = []
     for path in sort_by:
-      path_is_udf = str(path[0]) in udf_aliases
-      # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
-      if path_is_udf:
-        sort_col = _make_select_column(path, flatten=False, unnest=False, empty=False)
+      first_subpath = str(path[0])
+      rest_of_path = path[1:]
+      udf_path = udf_aliases.get(first_subpath)
+      # UDF selection is slightly different than normal selection since the UDF column is already
+      # present as a top-level column in the table.
+      if udf_path:
+        prefix_path = [subpath for subpath in udf_path if subpath == PATH_WILDCARD]
+        path = (first_subpath, *prefix_path, *rest_of_path)
+        # Select the value that comes from the actual UDF for sorting.
+        path = _make_value_path(path)
+        sort_col = _make_select_column(path, flatten=True, unnest=False, empty=False)
       else:
         # Re-route the path if it starts with an alias by pointing it to the actual path.
-        first_subpath = str(path[0])
-        rest_of_path = path[1:]
         if first_subpath in col_aliases:
           path = (*col_aliases[first_subpath], *rest_of_path)
 
@@ -574,7 +581,8 @@ class DatasetDuckDB(Dataset):
         sort_col = (f'list_min({sort_col})'
                     if sort_order == SortOrder.ASC else f'list_max({sort_col})')
 
-      if path_is_udf:
+      # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
+      if udf_path:
         sort_cols_after_udf.append(sort_col)
       else:
         sort_cols_before_udf.append(sort_col)
@@ -835,7 +843,7 @@ class DatasetDuckDB(Dataset):
 
   def _normalize_filters(self, filter_likes: Optional[Sequence[FilterLike]],
                          col_aliases: dict[str, PathTuple],
-                         udf_aliases: set[str]) -> tuple[list[Filter], list[Filter]]:
+                         udf_aliases: dict[str, PathTuple]) -> tuple[list[Filter], list[Filter]]:
     """Normalize `FilterLike` to `Filter` and split into filters on source and filters on UDFs."""
     filter_likes = filter_likes or []
     filters: list[Filter] = []
