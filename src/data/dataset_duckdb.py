@@ -396,9 +396,8 @@ class DatasetDuckDB(Dataset):
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     value_path = _make_value_path(path)
-    inner_select, _ = self._create_select([Column(value_path, alias='val')],
-                                          flatten=True,
-                                          resolve_span=True)
+    inner_select, _ = self._create_select_column(
+      Column(value_path, alias='val'), manifest, flatten=True, unnest=True, resolve_span=True)
     # Compute approximate count by sampling the data to avoid OOM.
     sample_size = SAMPLE_SIZE_DISTINCT_COUNT
     avg_length_query = ''
@@ -485,7 +484,7 @@ class DatasetDuckDB(Dataset):
     limit_query = f'LIMIT {limit}' if limit else ''
     # Select the actual value from the node.
     value_path = _make_value_path(path)
-    inner_select = _make_select_column(value_path)
+    inner_select = _make_select_column(value_path, flatten=True, unnest=True, empty=False)
     query = f"""
       SELECT {outer_select} AS {value_column}, COUNT() AS {count_column}
       FROM (SELECT {inner_select} AS {inner_val} FROM t)
@@ -528,9 +527,11 @@ class DatasetDuckDB(Dataset):
 
     self._validate_columns(cols)
     select_query, columns_to_merge = self._create_select(
-      cols, flatten=False, resolve_span=resolve_span, combine_columns=combine_columns)
+      cols, resolve_span=resolve_span, combine_columns=combine_columns)
     col_aliases: dict[str, PathTuple] = {col.alias: col.path for col in cols if col.alias}
-    udf_aliases = set(col.alias or _unique_alias(col) for col in cols if col.signal_udf)
+    udf_aliases: dict[str, PathTuple] = {
+      col.alias or _unique_alias(col): col.path for col in cols if col.signal_udf
+    }
 
     # Filtering.
     where_query = ''
@@ -548,19 +549,22 @@ class DatasetDuckDB(Dataset):
     sort_cols_before_udf: list[str] = []
     sort_cols_after_udf: list[str] = []
     for path in sort_by:
-      has_repeated_field = any(subpath == PATH_WILDCARD for subpath in path)
-      if has_repeated_field:
-        raise NotImplementedError(
-          f'Can not sort by "{path}" since repeated fields are not yet supported.')
-
-      # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
-      if str(path[0]) in udf_aliases:
-        sort_col = _make_select_column(path, flatten=False, empty=False)
-        sort_cols_after_udf.append(sort_col)
+      first_subpath = str(path[0])
+      rest_of_path = path[1:]
+      udf_path = udf_aliases.get(first_subpath)
+      # UDF selection is slightly different than normal selection since the UDF column is already
+      # present as a top-level column in the table.
+      if udf_path:
+        # If the user selected udf(document.*.text) as "udf" and wanted to sort by "udf.len", we
+        # need to actually sort by "udf.*.len.__value__" where the "*" came from the fact that the
+        # udf was applied to a list of "text" fields.
+        prefix_path = [subpath for subpath in udf_path if subpath == PATH_WILDCARD]
+        path = (first_subpath, *prefix_path, *rest_of_path)
+        # Select the value that comes from the actual UDF for sorting.
+        path = _make_value_path(path)
+        sort_col = _make_select_column(path, flatten=True, unnest=False, empty=False)
       else:
         # Re-route the path if it starts with an alias by pointing it to the actual path.
-        first_subpath = str(path[0])
-        rest_of_path = path[1:]
         if first_subpath in col_aliases:
           path = (*col_aliases[first_subpath], *rest_of_path)
 
@@ -568,7 +572,22 @@ class DatasetDuckDB(Dataset):
           raise ValueError(f'Can not sort by "{path}" since it is not a leaf field.')
 
         sort_col, _ = self._create_select_column(
-          Column(path), manifest, flatten=False, resolve_span=False, make_temp_alias=False)
+          Column(path),
+          manifest,
+          flatten=True,
+          unnest=False,
+          resolve_span=False,
+          make_temp_alias=False)
+
+      has_repeated_field = any(subpath == PATH_WILDCARD for subpath in path)
+      if has_repeated_field:
+        sort_col = (f'list_min({sort_col})'
+                    if sort_order == SortOrder.ASC else f'list_max({sort_col})')
+
+      # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
+      if udf_path:
+        sort_cols_after_udf.append(sort_col)
+      else:
         sort_cols_before_udf.append(sort_col)
 
     if sort_cols_before_udf:
@@ -740,6 +759,7 @@ class DatasetDuckDB(Dataset):
                             column: Column,
                             manifest: DatasetManifest,
                             flatten: bool,
+                            unnest: bool,
                             resolve_span: bool,
                             make_temp_alias: bool = True) -> tuple[str, list[str]]:
     leafs = manifest.data_schema.leafs
@@ -790,7 +810,8 @@ class DatasetDuckDB(Dataset):
           temp_column_name = f'{temp_column_name}/{m.parquet_id}'
       else:
         select_path = path
-      col = _make_select_column(select_path, flatten=flatten, empty=empty, span_from=span_from)
+      col = _make_select_column(
+        select_path, flatten=flatten, unnest=unnest, empty=empty, span_from=span_from)
       if make_temp_alias:
         select_queries.append(f'{col} AS "{temp_column_name}"')
         temp_column_names.append(temp_column_name)
@@ -801,7 +822,6 @@ class DatasetDuckDB(Dataset):
 
   def _create_select(self,
                      columns: list[Column],
-                     flatten: bool,
                      resolve_span: bool,
                      combine_columns: bool = False) -> tuple[str, dict[str, dict[str, Column]]]:
     """Create the select statement."""
@@ -811,8 +831,8 @@ class DatasetDuckDB(Dataset):
     select_queries: list[str] = []
 
     for column in columns:
-      select_str, temp_column_names = self._create_select_column(column, manifest, flatten,
-                                                                 resolve_span)
+      select_str, temp_column_names = self._create_select_column(
+        column, manifest, flatten=False, unnest=False, resolve_span=resolve_span)
       # If `combine_columns` is True, we alias every column to `*` so that we can merge them all.
       alias = '*' if combine_columns else (column.alias or _unique_alias(column))
       if alias not in alias_to_temp_col_names:
@@ -826,7 +846,7 @@ class DatasetDuckDB(Dataset):
 
   def _normalize_filters(self, filter_likes: Optional[Sequence[FilterLike]],
                          col_aliases: dict[str, PathTuple],
-                         udf_aliases: set[str]) -> tuple[list[Filter], list[Filter]]:
+                         udf_aliases: dict[str, PathTuple]) -> tuple[list[Filter], list[Filter]]:
     """Normalize `FilterLike` to `Filter` and split into filters on source and filters on UDFs."""
     filter_likes = filter_likes or []
     filters: list[Filter] = []
@@ -863,7 +883,12 @@ class DatasetDuckDB(Dataset):
     unary_ops = set(UnaryOp)
     for filter in filters:
       select_str, _ = self._create_select_column(
-        Column(filter.path), manifest, flatten=False, resolve_span=False, make_temp_alias=False)
+        Column(filter.path),
+        manifest,
+        flatten=False,
+        unnest=False,
+        resolve_span=False,
+        make_temp_alias=False)
 
       if filter.op in binary_ops:
         op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
@@ -940,7 +965,7 @@ def _inner_select(sub_paths: list[PathTuple],
   path_key = inner_var + ''.join([f"['{p}']" for p in current_sub_path])
   if len(sub_paths) == 1:
     if span_from:
-      derived_col = _make_select_column(span_from)
+      derived_col = _make_select_column(span_from, flatten=False, unnest=False, empty=False)
       path_key = (f'{derived_col}[{path_key}.{TEXT_SPAN_START_FEATURE}+1:'
                   f'{path_key}.{TEXT_SPAN_END_FEATURE}]')
     return 'NULL' if empty else path_key
@@ -965,14 +990,16 @@ def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
 
 
 def _make_select_column(leaf_path: Path,
-                        flatten: bool = True,
-                        empty: bool = False,
+                        flatten: bool,
+                        unnest: bool,
+                        empty: bool,
                         span_from: Optional[PathTuple] = None) -> str:
   """Create a select column for a leaf path.
 
   Args:
     leaf_path: A path to a leaf feature. E.g. ['a', 'b', 'c'].
     flatten: Whether to flatten the result.
+    unnest: Whether to unnest the result.
     empty: Whether to return an empty list (used for embedding signals that don't need the data).
     span_from: The path this span is derived from. If specified, the span will be resolved
       to a substring of the original string.
@@ -986,7 +1013,7 @@ def _make_select_column(leaf_path: Path,
     selection = f'flatten({selection})'
   # We only unnest when the result is a list. // E.g. subPaths = [[a, b, c], *].
   is_result_a_list = len(sub_paths) >= 2
-  if flatten and is_result_a_list:
+  if unnest and is_result_a_list:
     selection = f'unnest({selection})'
   return selection
 

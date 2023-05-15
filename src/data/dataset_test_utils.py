@@ -8,6 +8,7 @@ from typing_extensions import Protocol
 from ..schema import (
   MANIFEST_FILENAME,
   PARQUET_FILENAME_PREFIX,
+  VALUE_KEY,
   DataType,
   Field,
   Item,
@@ -44,7 +45,11 @@ def _infer_field(item: Item) -> Field:
     fields: dict[str, Field] = {}
     for k, v in item.items():
       fields[k] = _infer_field(cast(Item, v))
-    return Field(fields=fields)
+    dtype = None
+    if VALUE_KEY in fields:
+      dtype = fields[VALUE_KEY].dtype
+      del fields[VALUE_KEY]
+    return Field(fields=fields, dtype=dtype)
   elif is_primitive(item):
     return Field(dtype=_infer_dtype(item))
   elif isinstance(item, list):

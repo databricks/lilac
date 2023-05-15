@@ -18,7 +18,7 @@ from ..schema import (
   signal_field,
 )
 from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
-from .dataset import BinaryFilterTuple, BinaryOp, Column, DatasetManifest, UnaryOp, val
+from .dataset import Column, DatasetManifest, val
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker
 from .dataset_utils import lilac_item, lilac_items, signal_item
 
@@ -349,115 +349,6 @@ def test_select_ids_with_limit_and_offset(make_test_data: TestDataMaker) -> None
 
   result = dataset.select_rows([UUID_COLUMN], offset=10, limit=200)
   assert list(result) == []
-
-
-def test_filter_by_ids(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(SIMPLE_ITEMS)
-
-  id_filter: BinaryFilterTuple = (UUID_COLUMN, BinaryOp.EQUALS, '1')
-  result = dataset.select_rows(filters=[id_filter])
-
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '1',
-    'str': 'a',
-    'int': 1,
-    'bool': False,
-    'float': 3.0
-  }])
-
-  id_filter = (UUID_COLUMN, BinaryOp.EQUALS, '2')
-  result = dataset.select_rows(filters=[id_filter])
-
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '2',
-    'str': 'b',
-    'int': 2,
-    'bool': True,
-    'float': 2.0
-  }])
-
-  id_filter = (UUID_COLUMN, BinaryOp.EQUALS, b'f')
-  result = dataset.select_rows(filters=[id_filter])
-
-  assert list(result) == []
-
-
-def test_filter_by_list_of_ids(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(SIMPLE_ITEMS)
-
-  id_filter: BinaryFilterTuple = (UUID_COLUMN, BinaryOp.IN, ['1', '2'])
-  result = dataset.select_rows(filters=[id_filter])
-
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '1',
-    'str': 'a',
-    'int': 1,
-    'bool': False,
-    'float': 3.0
-  }, {
-    UUID_COLUMN: '2',
-    'str': 'b',
-    'int': 2,
-    'bool': True,
-    'float': 2.0
-  }])
-
-
-def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{
-    UUID_COLUMN: '1',
-    'name': 'A',
-    'info': {
-      'lang': 'en'
-    },
-    'ages': []
-  }, {
-    UUID_COLUMN: '2',
-    'info': {
-      'lang': 'fr'
-    },
-  }, {
-    UUID_COLUMN: '3',
-    'name': 'C',
-    'ages': [[1, 2], [3, 4]]
-  }]
-  dataset = make_test_data(
-    items,
-    schema=schema({
-      UUID_COLUMN: 'string',
-      'name': 'string',
-      'info': {
-        'lang': 'string'
-      },
-      'ages': [['int32']]
-    }))
-
-  exists_filter = ('name', UnaryOp.EXISTS)
-  result = dataset.select_rows(['name'], filters=[exists_filter])
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '1',
-    'name': 'A'
-  }, {
-    UUID_COLUMN: '3',
-    'name': 'C'
-  }])
-
-  exists_filter = ('info.lang', UnaryOp.EXISTS)
-  result = dataset.select_rows(['name'], filters=[exists_filter])
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '1',
-    'name': 'A'
-  }, {
-    UUID_COLUMN: '2',
-    'name': None
-  }])
-
-  exists_filter = ('ages.*.*', UnaryOp.EXISTS)
-  result = dataset.select_rows(['name'], filters=[exists_filter])
-  assert list(result) == lilac_items([{UUID_COLUMN: '3', 'name': 'C'}])
-
-  with pytest.raises(ValueError, match='Invalid path'):
-    dataset.select_rows(['name'], filters=[('info', UnaryOp.EXISTS)])
 
 
 def test_columns(make_test_data: TestDataMaker) -> None:
@@ -909,16 +800,18 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
 def test_invalid_column_paths(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
-    'text': 'hello',
-    'text2': ['hello', 'world'],
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'hello world',
-    'text2': ['hello2', 'world2'],
+    'text': lilac_item('hello', {'test_signal': {
+      'len': 5
+    }}),
+    'text2': [
+      lilac_item('hello', {'test_signal': {
+        'len': 5
+      }}),
+      lilac_item('hi', {'test_signal': {
+        'len': 2
+      }})
+    ],
   }])
-  test_signal = TestSignal()
-  dataset.compute_signal(test_signal, 'text')
-  dataset.compute_signal(test_signal, ('text2', '*'))
 
   with pytest.raises(ValueError, match='Path part "invalid" not found in the dataset'):
     dataset.select_rows([('text', 'test_signal', 'invalid')])

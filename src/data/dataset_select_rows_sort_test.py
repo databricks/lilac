@@ -11,6 +11,51 @@ from .dataset_test_utils import TestDataMaker
 from .dataset_utils import lilac_item, lilac_items
 
 
+class TestSignal(TextSignal):
+  name = 'test_signal'
+
+  def fields(self) -> Field:
+    return field({'len': 'int32', 'is_all_cap': 'boolean'})
+
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+    for text_content in data:
+      yield {'len': len(text_content), 'is_all_cap': text_content.isupper()}
+
+
+class TestPrimitiveSignal(TextSignal):
+  name = 'primitive_signal'
+
+  def fields(self) -> Field:
+    return field('int32')
+
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+    for text_content in data:
+      yield len(text_content) + 1
+
+
+class NestedArraySignal(TextSignal):
+  name = 'nested_array'
+
+  def fields(self) -> Field:
+    return field([['int32']])
+
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+    for text_content in data:
+      yield [[len(text_content) + 1], [len(text_content)]]
+
+
+@pytest.fixture(scope='module', autouse=True)
+def setup_teardown() -> Iterable[None]:
+  # Setup.
+  register_signal(TestSignal)
+  register_signal(TestPrimitiveSignal)
+  register_signal(NestedArraySignal)
+  # Unit test runs.
+  yield
+  # Teardown.
+  clear_signal_registry()
+
+
 def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
@@ -71,39 +116,6 @@ def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
   result = dataset.select_rows(
     columns=[UUID_COLUMN], sort_by=['document.header.title'], sort_order=SortOrder.DESC)
   assert list(result) == [{UUID_COLUMN: '1'}, {UUID_COLUMN: '2'}, {UUID_COLUMN: '3'}]
-
-
-class TestSignal(TextSignal):
-  name = 'test_signal'
-
-  def fields(self) -> Field:
-    return field({'len': 'int32', 'is_all_cap': 'boolean'})
-
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
-    for text_content in data:
-      yield {'len': len(text_content), 'is_all_cap': text_content.isupper()}
-
-
-class TestPrimitiveSignal(TextSignal):
-  name = 'primitive_signal'
-
-  def fields(self) -> Field:
-    return field('int32')
-
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
-    for text_content in data:
-      yield len(text_content) + 1
-
-
-@pytest.fixture(scope='module', autouse=True)
-def setup_teardown() -> Iterable[None]:
-  # Setup.
-  register_signal(TestSignal)
-  register_signal(TestPrimitiveSignal)
-  # Unit test runs.
-  yield
-  # Teardown.
-  clear_signal_registry()
 
 
 def test_sort_by_signal_no_alias_no_repeated(make_test_data: TestDataMaker) -> None:
@@ -310,7 +322,7 @@ def test_sort_by_primitive_udf_alias_no_repeated(make_test_data: TestDataMaker) 
     'text': 'HI'
   }])
 
-  # Equivalent to: SELECT `TestSignal(text) AS udf`.
+  # Equivalent to: SELECT `TestPrimitiveSignal(text) AS udf`.
   text_udf = Column('text', signal_udf=TestPrimitiveSignal(), alias='udf')
   # Sort by the primitive value returned by the udf.
   result = dataset.select_rows(['*', text_udf], sort_by=['udf'], sort_order=SortOrder.ASC)
@@ -346,19 +358,333 @@ def test_sort_by_source_non_leaf_errors(make_test_data: TestDataMaker) -> None:
     dataset.select_rows(columns=[UUID_COLUMN], sort_by=['vals'], sort_order=SortOrder.ASC)
 
 
-def test_sort_by_source_repeated_not_supported(make_test_data: TestDataMaker) -> None:
+def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
-    'vals': [7, 1]
+    'vals': [[{
+      'score': 7
+    }, {
+      'score': 1
+    }], [{
+      'score': 1
+    }, {
+      'score': 7
+    }]]
   }, {
     UUID_COLUMN: '2',
-    'vals': [3, 4]
+    'vals': [[{
+      'score': 3
+    }, {
+      'score': 4
+    }]]
   }, {
     UUID_COLUMN: '3',
-    'vals': [9, 0]
+    'vals': [[{
+      'score': 9
+    }, {
+      'score': 0
+    }]]
   }])
 
-  # Sort by repeated.
-  with pytest.raises(
-      NotImplementedError, match='Can not sort .* since repeated fields are not yet supported'):
-    dataset.select_rows(columns=[UUID_COLUMN], sort_by=['vals.*'], sort_order=SortOrder.ASC)
+  # Sort by repeated 'vals'.
+  result = dataset.select_rows(
+    columns=[UUID_COLUMN, 'vals'], sort_by=['vals.*.*.score'], sort_order=SortOrder.ASC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'vals': [[{
+      'score': 9
+    }, {
+      'score': 0
+    }]]
+  }, {
+    UUID_COLUMN: '1',
+    'vals': [[{
+      'score': 7
+    }, {
+      'score': 1
+    }], [{
+      'score': 1
+    }, {
+      'score': 7
+    }]]
+  }, {
+    UUID_COLUMN: '2',
+    'vals': [[{
+      'score': 3
+    }, {
+      'score': 4
+    }]]
+  }])
+
+  result = dataset.select_rows(
+    columns=[UUID_COLUMN, 'vals'], sort_by=['vals.*.*.score'], sort_order=SortOrder.DESC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'vals': [[{
+      'score': 9
+    }, {
+      'score': 0
+    }]]
+  }, {
+    UUID_COLUMN: '1',
+    'vals': [[{
+      'score': 7
+    }, {
+      'score': 1
+    }], [{
+      'score': 1
+    }, {
+      'score': 7
+    }]]
+  }, {
+    UUID_COLUMN: '2',
+    'vals': [[{
+      'score': 3
+    }, {
+      'score': 4
+    }]]
+  }])
+
+
+def test_sort_by_source_alias_repeated(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'vals': [[7, 1], [1, 7]]
+  }, {
+    UUID_COLUMN: '2',
+    'vals': [[3], [11]]
+  }, {
+    UUID_COLUMN: '3',
+    'vals': [[9, 0]]
+  }])
+
+  # Sort by repeated 'vals'.
+  result = dataset.select_rows(
+    columns=[UUID_COLUMN, Column('vals', alias='scores')],
+    sort_by=['scores.*.*'],
+    sort_order=SortOrder.ASC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'scores': [[9, 0]]
+  }, {
+    UUID_COLUMN: '1',
+    'scores': [[7, 1], [1, 7]]
+  }, {
+    UUID_COLUMN: '2',
+    'scores': [[3], [11]]
+  }])
+
+  result = dataset.select_rows(
+    columns=[UUID_COLUMN, Column('vals', alias='scores')],
+    sort_by=['scores.*.*'],
+    sort_order=SortOrder.DESC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '2',
+    'scores': [[3], [11]]
+  }, {
+    UUID_COLUMN: '3',
+    'scores': [[9, 0]]
+  }, {
+    UUID_COLUMN: '1',
+    'scores': [[7, 1], [1, 7]]
+  }])
+
+
+def test_sort_by_udf_alias_repeated(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'HEY'
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'everyone'
+  }, {
+    UUID_COLUMN: '3',
+    'text': 'HI'
+  }])
+
+  # Equivalent to: SELECT `NestedArraySignal(text) AS udf`.
+  text_udf = Column('text', signal_udf=NestedArraySignal(), alias='udf')
+  # Sort by `udf.*.*`, where `udf` is an alias to `NestedArraySignal(text)`.
+  result = dataset.select_rows(['*', text_udf], sort_by=['udf.*.*'], sort_order=SortOrder.ASC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'text': 'HI',
+    'udf': [[3], [2]]
+  }, {
+    UUID_COLUMN: '1',
+    'text': 'HEY',
+    'udf': [[4], [3]]
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'everyone',
+    'udf': [[9], [8]]
+  }])
+  result = dataset.select_rows(['*', text_udf], sort_by=['udf.*.*'], sort_order=SortOrder.DESC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '2',
+    'text': 'everyone',
+    'udf': [[9], [8]]
+  }, {
+    UUID_COLUMN: '1',
+    'text': 'HEY',
+    'udf': [[4], [3]]
+  }, {
+    UUID_COLUMN: '3',
+    'text': 'HI',
+    'udf': [[3], [2]]
+  }])
+
+
+def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'texts': [{
+      'text': 'eardrop'
+    }, {
+      'text': 'I'
+    }]
+  }, {
+    UUID_COLUMN: '2',
+    'texts': [{
+      'text': 'hey'
+    }, {
+      'text': 'CARS'
+    }]
+  }, {
+    UUID_COLUMN: '3',
+    'texts': [{
+      'text': 'everyone'
+    }, {
+      'text': ''
+    }]
+  }])
+
+  # Equivalent to: SELECT `TestSignal(texts.*.text) AS udf`.
+  texts_udf = Column('texts.*.text', signal_udf=TestSignal(), alias='udf')
+  # Sort by `udf.len`, where `udf` is an alias to `TestSignal(texts.*.text)`.
+  result = dataset.select_rows(['*', texts_udf],
+                               sort_by=['udf.len'],
+                               sort_order=SortOrder.ASC,
+                               combine_columns=True)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'texts': [{
+      'text': lilac_item('everyone', {'test_signal': {
+        'len': 8,
+        'is_all_cap': False
+      }})
+    }, {
+      'text': lilac_item('', {'test_signal': {
+        'len': 0,
+        'is_all_cap': False
+      }})
+    }]
+  }, {
+    UUID_COLUMN: '1',
+    'texts': [{
+      'text': lilac_item('eardrop', {'test_signal': {
+        'len': 7,
+        'is_all_cap': False
+      }})
+    }, {
+      'text': lilac_item('I', {'test_signal': {
+        'len': 1,
+        'is_all_cap': True
+      }})
+    }]
+  }, {
+    UUID_COLUMN: '2',
+    'texts': [{
+      'text': lilac_item('hey', {'test_signal': {
+        'len': 3,
+        'is_all_cap': False
+      }})
+    }, {
+      'text': lilac_item('CARS', {'test_signal': {
+        'len': 4,
+        'is_all_cap': True
+      }})
+    }]
+  }])
+
+
+def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
+    make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'texts': [{
+      'text': 'eardrop'
+    }, {
+      'text': 'I'
+    }]
+  }, {
+    UUID_COLUMN: '2',
+    'texts': [{
+      'text': 'hey'
+    }, {
+      'text': 'CARS'
+    }]
+  }, {
+    UUID_COLUMN: '3',
+    'texts': [{
+      'text': 'everyone'
+    }, {
+      'text': ''
+    }]
+  }])
+
+  # Equivalent to: SELECT `TestPrimitiveSignal(texts.*.text) AS udf`.
+  texts_udf = Column('texts.*.text', signal_udf=TestPrimitiveSignal(), alias='udf')
+  # Sort by `udf`, where `udf` is an alias to `TestPrimitiveSignal(texts.*.text)`.
+  result = dataset.select_rows(['*', texts_udf],
+                               sort_by=['udf'],
+                               sort_order=SortOrder.ASC,
+                               combine_columns=True)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'texts': [{
+      'text': lilac_item('everyone', {'primitive_signal': 9})
+    }, {
+      'text': lilac_item('', {'primitive_signal': 1})
+    }]
+  }, {
+    UUID_COLUMN: '1',
+    'texts': [{
+      'text': lilac_item('eardrop', {'primitive_signal': 8})
+    }, {
+      'text': lilac_item('I', {'primitive_signal': 2})
+    }]
+  }, {
+    UUID_COLUMN: '2',
+    'texts': [{
+      'text': lilac_item('hey', {'primitive_signal': 4})
+    }, {
+      'text': lilac_item('CARS', {'primitive_signal': 5})
+    }]
+  }])
+  result = dataset.select_rows(['*', texts_udf],
+                               sort_by=['udf'],
+                               sort_order=SortOrder.DESC,
+                               combine_columns=True)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'texts': [{
+      'text': lilac_item('everyone', {'primitive_signal': 9})
+    }, {
+      'text': lilac_item('', {'primitive_signal': 1})
+    }]
+  }, {
+    UUID_COLUMN: '1',
+    'texts': [{
+      'text': lilac_item('eardrop', {'primitive_signal': 8})
+    }, {
+      'text': lilac_item('I', {'primitive_signal': 2})
+    }]
+  }, {
+    UUID_COLUMN: '2',
+    'texts': [{
+      'text': lilac_item('hey', {'primitive_signal': 4})
+    }, {
+      'text': lilac_item('CARS', {'primitive_signal': 5})
+    }]
+  }])
