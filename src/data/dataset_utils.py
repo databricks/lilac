@@ -4,6 +4,7 @@ import math
 import os
 import pprint
 import secrets
+from collections import deque
 from collections.abc import Iterable
 from typing import Any, Callable, Generator, Iterator, Optional, Sequence, TypeVar, Union, cast
 
@@ -388,3 +389,25 @@ def flatten_keys(
 def embedding_index_filename(prefix: str, shard_index: int, num_shards: int) -> str:
   """Return the filename for the embedding index."""
   return f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.npy'
+
+
+# TODO: Delete
+def get_signal_child(schema: Schema, path: PathTuple,
+                     signal: Signal) -> Optional[tuple[PathTuple, Field]]:
+  """Returns children of a given path that match the given signal. Returns None if there are none."""
+  field = schema.get_field(path)
+  signal_dict = signal.dict()
+  q: deque[tuple[PathTuple, Field]] = deque([((), field)])
+  while q:
+    path, field = q.popleft()
+    if field.signal == signal_dict:
+      return (path, field)
+    if field.fields:
+      for name, child_field in field.fields.items():
+        child_path = (*path, name)
+        q.append((child_path, child_field))
+    elif field.repeated_field:
+      child_path = (*path, PATH_WILDCARD)
+      q.append((child_path, field.repeated_field))
+
+  return None

@@ -42,7 +42,13 @@ from ..schema import (
   signal_input_type_supports_dtype,
 )
 from ..signals.concept_scorer import ConceptScoreSignal
-from ..signals.signal import Signal, TextEmbeddingSignal, resolve_signal
+from ..signals.signal import (
+  Signal,
+  TextEmbeddingModelSignal,
+  TextEmbeddingSignal,
+  TextSignal,
+  resolve_signal,
+)
 from ..tasks import TaskId, progress
 from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
 from . import dataset
@@ -251,6 +257,27 @@ class DatasetDuckDB(Dataset):
                      column: ColumnId,
                      task_id: Optional[TaskId] = None) -> None:
     column = column_from_identifier(column)
+    source_path = normalize_path(column.path)
+
+    # When signals are "chained", we need to compute the signals it depends on first.
+    if isinstance(signal, TextSignal):
+      new_path = source_path
+      if signal.split_signal:
+        new_path = (*new_path, signal.split_signal.key(), PATH_WILDCARD)
+        if new_path not in self.manifest().data_schema.leafs:
+          self.compute_signal(signal.split_signal, source_path, task_id=task_id)
+
+      if isinstance(signal, TextEmbeddingModelSignal):
+        if signal.embedding_signal:
+          new_path = (*new_path, signal.embedding_signal.key())
+          if new_path not in self.manifest().data_schema.leafs:
+            self.compute_signal(signal.embedding_signal, source_path, task_id=task_id)
+
+      source_path = new_path
+
+    # Create the column from the potentially new source_path.
+    column = column_from_identifier(source_path)
+
     signal_col = Column(path=column.path, alias='value', signal_udf=signal)
     enriched_path = _col_destination_path(signal_col)
     spec = _split_path_into_subpaths_of_lists(enriched_path)
@@ -259,7 +286,6 @@ class DatasetDuckDB(Dataset):
     df = select_rows_result.df()
     values = df['value']
 
-    source_path = normalize_path(column.path)
     signal_key = signal.key()
     signal_out_prefix = signal_filename_prefix(source_path=source_path, signal_key=signal_key)
     signal_schema = create_signal_schema(signal, source_path, self.manifest().data_schema)

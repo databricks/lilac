@@ -1,7 +1,7 @@
 """Interface for implementing a signal."""
 
 import abc
-from typing import ClassVar, Iterable, Optional, Type, TypeVar, Union
+from typing import Any, ClassVar, Iterable, Optional, Type, Union, cast
 
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
@@ -121,21 +121,6 @@ SIGNAL_TYPE_TEXT_EMBEDDING = 'text_embedding'
 SIGNAL_TYPE_TEXT_SPLITTER = 'text_splitter'
 
 
-# Signal base classes, used for inferring the dependency chain required for computing a signal.
-class TextSignal(Signal):
-  """An interface for signals that compute over text."""
-  input_type = SignalInputType.TEXT
-  split: Optional[str] = PydanticField(
-    extra={SIGNAL_TYPE_PYDANTIC_FIELD: SIGNAL_TYPE_TEXT_SPLITTER})
-
-  @validator('split', pre=True)
-  def parse_split(cls, split: str) -> str:
-    """Parse a signal to its specific subclass instance."""
-    # Validate the split signal is registered and the correct type.
-    get_signal_by_type(split, SIGNAL_TYPE_TEXT_SPLITTER)
-    return split
-
-
 class TextSplitterSignal(Signal):
   """An interface for signals that compute over text."""
   input_type = SignalInputType.TEXT
@@ -143,6 +128,36 @@ class TextSplitterSignal(Signal):
   @override
   def fields(self) -> Field:
     return Field(repeated_field=Field(dtype=DataType.STRING_SPAN))
+
+
+# Signal base classes, used for inferring the dependency chain required for computing a signal.
+class TextSignal(Signal):
+  """An interface for signals that compute over text."""
+  input_type = SignalInputType.TEXT
+  split: Optional[str] = PydanticField(
+    extra={SIGNAL_TYPE_PYDANTIC_FIELD: SIGNAL_TYPE_TEXT_SPLITTER})
+  split_signal: Optional[TextSplitterSignal] = PydanticField(exclude=True)
+
+  def __init__(self, split: Optional[str] = None, **kwargs: Any):
+    super().__init__(split=split, **kwargs)
+
+    # Validate the split signal is registered and the correct type.
+    # TODO(nsthorat): Allow arguments passed to the embedding signal.
+    if self.split:
+      self.split_signal = cast(
+        TextSplitterSignal,
+        get_signal_by_type(self.split, SIGNAL_TYPE_TEXT_SPLITTER)(split=self.split))
+
+  @validator('split_signal', pre=True, always=True)
+  def parse_split_signal(cls, split_signal: dict[str, Any],
+                         values: dict[str, Any]) -> Optional[TextSplitterSignal]:
+    """Parse a split signal to its specific subclass instance."""
+    if 'split' in values and values['split']:
+      # Validate the split signal is registered and the correct type.
+      # TODO(nsthorat): Allow arguments passed to the split signal.
+      return cast(TextSplitterSignal,
+                  get_signal_by_type(values['split'], SIGNAL_TYPE_TEXT_SPLITTER)())
+    return None
 
 
 class TextEmbeddingSignal(TextSignal):
@@ -157,22 +172,24 @@ class TextEmbeddingSignal(TextSignal):
 class TextEmbeddingModelSignal(TextSignal):
   """An interface for signals that take embeddings and produce items."""
   input_type = SignalInputType.TEXT_EMBEDDING
-  embedding: str = PydanticField(extra={SIGNAL_TYPE_PYDANTIC_FIELD: SIGNAL_TYPE_TEXT_EMBEDDING})
 
-  @validator('embedding', pre=True)
-  def parse_embedding(cls, embedding: str) -> str:
-    """Parse a signal to its specific subclass instance."""
-    # Validate the split signal is registered and the correct type.
-    get_signal_by_type(embedding, SIGNAL_TYPE_TEXT_EMBEDDING)
-    return embedding
+  embedding: str = PydanticField(extra={SIGNAL_TYPE_PYDANTIC_FIELD: SIGNAL_TYPE_TEXT_EMBEDDING})
+  embedding_signal: Optional[TextEmbeddingSignal] = PydanticField(exclude=True)
+
+  def __init__(self, embedding: str, **kwargs: Any):
+    super().__init__(embedding=embedding, **kwargs)
+
+    # Validate the embedding signal is registered and the correct type.
+    # TODO(nsthorat): Allow arguments passed to the embedding signal.
+    self.embedding_signal = cast(
+      TextEmbeddingSignal,
+      get_signal_by_type(self.embedding, SIGNAL_TYPE_TEXT_EMBEDDING)(split=self.split))
 
 
 SIGNAL_TYPE_CLS: dict[str, Type[Signal]] = {
   SIGNAL_TYPE_TEXT_EMBEDDING: TextEmbeddingSignal,
   SIGNAL_TYPE_TEXT_SPLITTER: TextSplitterSignal
 }
-
-Tsignalcls = TypeVar('Tsignalcls', bound=Signal)
 
 
 def get_signal_by_type(signal_name: str, signal_type: str) -> Type[Signal]:
