@@ -391,13 +391,21 @@ class DatasetDuckDB(Dataset):
       raise ValueError('leaf_path must be provided')
     path = normalize_path(leaf_path)
     manifest = self.manifest()
+    leafs = manifest.data_schema.leafs
     leaf = manifest.data_schema.leafs.get(path)
     if not leaf or not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     value_path = _make_value_path(path)
-    inner_select, _ = self._create_select_column(
-      Column(value_path, alias='val'), manifest, flatten=True, unnest=True, resolve_span=True)
+
+    duckdb_paths = self._column_to_duckdb_paths(Column(value_path, alias='val'))
+    _, duckdb_path = duckdb_paths[0]
+    span_path = path[:-1] if path[-1] == VALUE_KEY else path
+    is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
+    span_from = _derived_from_path(path, manifest.data_schema) if is_span else None
+    inner_select = _make_select_column(
+      duckdb_path, flatten=True, unnest=True, empty=False, span_from=span_from)
+
     # Compute approximate count by sampling the data to avoid OOM.
     sample_size = SAMPLE_SIZE_DISTINCT_COUNT
     avg_length_query = ''
@@ -406,12 +414,12 @@ class DatasetDuckDB(Dataset):
 
     approx_count_query = f"""
       SELECT approx_count_distinct(val) as approxCountDistinct {avg_length_query}
-      FROM (SELECT {inner_select} FROM t LIMIT {sample_size});
+      FROM (SELECT {inner_select} AS val FROM t LIMIT {sample_size});
     """
     row = self._query(approx_count_query)[0]
     approx_count_distinct = row[0]
 
-    total_count_query = f'SELECT count(val) FROM (SELECT {inner_select} FROM t)'
+    total_count_query = f'SELECT count(val) FROM (SELECT {inner_select} as val FROM t)'
     total_count = self._query(total_count_query)[0][0]
 
     # Adjust the counts for the sample size.
@@ -427,7 +435,7 @@ class DatasetDuckDB(Dataset):
     if is_ordinal(leaf.dtype):
       min_max_query = f"""
         SELECT MIN(val) AS minVal, MAX(val) AS maxVal
-        FROM (SELECT {inner_select} FROM t);
+        FROM (SELECT {inner_select} as val FROM t);
       """
       row = self._query(min_max_query)[0]
       result.min_val, result.max_val = row
@@ -755,6 +763,42 @@ class DatasetDuckDB(Dataset):
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
+  def _column_to_duckdb_paths(self, column: Column) -> list[tuple[str, PathTuple]]:
+    path = column.path
+    parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
+      self._source_manifest, *self._signal_manifests
+    ]
+
+    manifests_with_path: list[Union[SourceManifest, SignalManifest]] = []
+    for m in parquet_manifests:
+      if not schema_contains_path(m.data_schema, path):
+        # Skip this parquet file if it doesn't contain the path.
+        continue
+
+      if isinstance(m, SignalManifest) and path == (UUID_COLUMN,):
+        # Do not select UUID from the signal because it's already in the source.
+        continue
+
+      manifests_with_path.append(m)
+
+    if not manifests_with_path:
+      raise ValueError(f'Invalid path "{path}": No manifest contains path. Valid paths: '
+                       f'{list(self.manifest().data_schema.leafs.keys())}')
+
+    duckdb_paths: list[tuple[str, PathTuple]] = []
+    alias = column.alias or _unique_alias(column)
+    for m in manifests_with_path:
+      duckdb_path = path
+      temp_column_name = alias
+      if isinstance(m, SignalManifest):
+        duckdb_path = (m.parquet_id, *path[1:])
+        if len(manifests_with_path) > 1:
+          # Non-leafs can have data in multiple manifests so we need to namespace.
+          temp_column_name = f'{alias}/{m.parquet_id}'
+      duckdb_paths.append((temp_column_name, duckdb_path))
+
+    return duckdb_paths
+
   def _create_select_column(self,
                             column: Column,
                             manifest: DatasetManifest,
@@ -781,37 +825,10 @@ class DatasetDuckDB(Dataset):
     select_queries: list[str] = []
     temp_column_names: list[str] = []
 
-    parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
-      self._source_manifest, *self._signal_manifests
-    ]
-
-    manifests_with_path: list[Union[SourceManifest, SignalManifest]] = []
-    for m in parquet_manifests:
-      if not schema_contains_path(m.data_schema, path):
-        # Skip this parquet file if it doesn't contain the path.
-        continue
-
-      if isinstance(m, SignalManifest) and path == (UUID_COLUMN,):
-        # Do not select UUID from the signal because it's already in the source.
-        continue
-
-      manifests_with_path.append(m)
-
-    if not manifests_with_path:
-      raise ValueError(f'Invalid path "{path}": No manifest contains path. Valid paths: '
-                       f'{list(self.manifest().data_schema.leafs.keys())}')
-
-    for m in manifests_with_path:
-      temp_column_name = column.alias or _unique_alias(column)
-      if isinstance(m, SignalManifest):
-        select_path = (m.parquet_id, *path[1:])
-        if len(manifests_with_path) > 1:
-          # Non-leafs can have data in multiple manifests so we need to namespace.
-          temp_column_name = f'{temp_column_name}/{m.parquet_id}'
-      else:
-        select_path = path
+    duckdb_paths = self._column_to_duckdb_paths(column)
+    for temp_column_name, duckdb_path in duckdb_paths:
       col = _make_select_column(
-        select_path, flatten=flatten, unnest=unnest, empty=empty, span_from=span_from)
+        duckdb_path, flatten=flatten, unnest=unnest, empty=empty, span_from=span_from)
       if make_temp_alias:
         select_queries.append(f'{col} AS "{temp_column_name}"')
         temp_column_names.append(temp_column_name)
