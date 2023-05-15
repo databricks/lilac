@@ -322,7 +322,7 @@ def test_sort_by_primitive_udf_alias_no_repeated(make_test_data: TestDataMaker) 
     'text': 'HI'
   }])
 
-  # Equivalent to: SELECT `TestSignal(text) AS udf`.
+  # Equivalent to: SELECT `TestPrimitiveSignal(text) AS udf`.
   text_udf = Column('text', signal_udf=TestPrimitiveSignal(), alias='udf')
   # Sort by the primitive value returned by the udf.
   result = dataset.select_rows(['*', text_udf], sort_by=['udf'], sort_order=SortOrder.ASC)
@@ -502,7 +502,7 @@ def test_sort_by_udf_alias_repeated(make_test_data: TestDataMaker) -> None:
     'text': 'HI'
   }])
 
-  # Equivalent to: SELECT `TestSignal(text) AS udf`.
+  # Equivalent to: SELECT `NestedArraySignal(text) AS udf`.
   text_udf = Column('text', signal_udf=NestedArraySignal(), alias='udf')
   # Sort by `udf.*.*`, where `udf` is an alias to `TestSignal(text)`.
   result = dataset.select_rows(['*', text_udf], sort_by=['udf.*.*'], sort_order=SortOrder.ASC)
@@ -532,4 +532,59 @@ def test_sort_by_udf_alias_repeated(make_test_data: TestDataMaker) -> None:
     UUID_COLUMN: '3',
     'text': 'HI',
     'udf': [[3], [2]]
+  }])
+
+
+def test_sort_by_udf_alias_repeated_called_on_string_array(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'texts': [{
+      'text': 'hey'
+    }, {
+      'text': 'hi'
+    }]
+  }, {
+    UUID_COLUMN: '2',
+    'texts': [{
+      'text': 'everyone'
+    }, {
+      'text': 'great'
+    }]
+  }, {
+    UUID_COLUMN: '3',
+    'texts': [{
+      'text': 'hi'
+    }, {
+      'text': 'hurray'
+    }]
+  }])
+
+  # Equivalent to: SELECT `NestedArraySignal(texts.*.text) AS udf`.
+  texts_udf = Column('texts.*.text', signal_udf=NestedArraySignal(), alias='udf')
+  # Sort by `udf.*.*`, where `udf` is an alias to `TestSignal(text)`.
+  result = dataset.select_rows(['*', texts_udf],
+                               sort_by=['udf.*.*'],
+                               sort_order=SortOrder.ASC,
+                               combine_columns=True)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '1',
+    'texts': [{
+      'text': lilac_item('hey', {'nested_array': [[4], [3]]})
+    }, {
+      'text': lilac_item('hi', {'nested_array': [[3], [2]]})
+    }]
+  }, {
+    UUID_COLUMN: '3',
+    'texts': [{
+      'text': lilac_item('hi', {'nested_array': [[3], [2]]})
+    }, {
+      'text': lilac_item('hurray', {'nested_array': [[7], [6]]})
+    }]
+  }, {
+    UUID_COLUMN: '2',
+    'texts': [{
+      'text': lilac_item('everyone', {'nested_array': [[9], [8]]})
+    }, {
+      'text': lilac_item('great', {'nested_array': [[6], [5]]})
+    }]
   }])
