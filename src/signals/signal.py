@@ -11,7 +11,7 @@ from typing_extensions import override
 from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, Field, PathTuple, RichData, SignalInputType, SignalOut
 
-SIGNAL_TYPE_PYDANTIC_FIELD = '__signal_type__'
+SIGNAL_TYPE_PYDANTIC_FIELD = 'signal_type'
 
 
 class Signal(abc.ABC, BaseModel):
