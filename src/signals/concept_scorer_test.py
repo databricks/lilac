@@ -81,7 +81,7 @@ def test_embedding_does_not_exist(db_cls: Type[ConceptDB]) -> None:
   db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   with pytest.raises(
-      ValueError, match='Embedding signal "unknown_embedding" not found in the registry'):
+      ValueError, match='Signal "unknown_embedding" not found in the registry'):
     ConceptScoreSignal(namespace='test', concept_name='test_concept', embedding='unknown_embedding')
 
 
