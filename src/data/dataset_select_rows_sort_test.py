@@ -504,7 +504,7 @@ def test_sort_by_udf_alias_repeated(make_test_data: TestDataMaker) -> None:
 
   # Equivalent to: SELECT `NestedArraySignal(text) AS udf`.
   text_udf = Column('text', signal_udf=NestedArraySignal(), alias='udf')
-  # Sort by `udf.*.*`, where `udf` is an alias to `TestSignal(text)`.
+  # Sort by `udf.*.*`, where `udf` is an alias to `NestedArraySignal(text)`.
   result = dataset.select_rows(['*', text_udf], sort_by=['udf.*.*'], sort_order=SortOrder.ASC)
   assert list(result) == lilac_items([{
     UUID_COLUMN: '3',
@@ -561,7 +561,7 @@ def test_sort_by_udf_alias_repeated_called_on_string_array(make_test_data: TestD
 
   # Equivalent to: SELECT `NestedArraySignal(texts.*.text) AS udf`.
   texts_udf = Column('texts.*.text', signal_udf=NestedArraySignal(), alias='udf')
-  # Sort by `udf.*.*`, where `udf` is an alias to `TestSignal(text)`.
+  # Sort by `udf.*.*`, where `udf` is an alias to `NestedArraySignal(texts.*.text)`.
   result = dataset.select_rows(['*', texts_udf],
                                sort_by=['udf.*.*'],
                                sort_order=SortOrder.ASC,
