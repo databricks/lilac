@@ -6,27 +6,18 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..embeddings.vector_store import VectorStore
 from ..schema import (
   UUID_COLUMN,
   VALUE_KEY,
   Field,
   Item,
-  ItemValue,
-  PathTuple,
   RichData,
   SignalOut,
   field,
   schema,
   signal_field,
 )
-from ..signals.signal import (
-  TextEmbeddingModelSignal,
-  TextEmbeddingSignal,
-  TextSignal,
-  clear_signal_registry,
-  register_signal,
-)
+from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset import BinaryFilterTuple, BinaryOp, Column, DatasetManifest, UnaryOp, val
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker
 from .dataset_utils import lilac_item, lilac_items, signal_item
@@ -51,8 +42,6 @@ SIMPLE_ITEMS: list[Item] = [{
   'float': 1.0
 }]
 
-TEST_EMBEDDING_NAME = 'test_embedding'
-
 EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
                                              ('hello2.', [1.0, 1.0, 0.0]),
                                              ('hello world.', [1.0, 1.0, 1.0]),
@@ -63,7 +52,7 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = TEST_EMBEDDING_NAME
+  name = 'test_embedding'
 
   @override
   def fields(self) -> Field:
@@ -91,13 +80,23 @@ class LengthSignal(TextSignal):
       yield len(text_content)
 
 
+class TestSignal(TextSignal):
+  name = 'test_signal'
+
+  @override
+  def fields(self) -> Field:
+    return field({'len': 'int32', 'flen': 'float32'})
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
+
+
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(TestSignal)
   register_signal(LengthSignal)
-  register_signal(TestEmbeddingSumSignal)
-  register_signal(TestEmbedding)
 
   # Unit test runs.
   yield
@@ -806,226 +805,6 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
   }])
 
 
-def test_udf(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everybody'
-  }])
-
-  signal_col = Column('text', signal_udf=TestSignal())
-  result = dataset.select_rows(['text', signal_col])
-
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '1',
-    'text': 'hello',
-    'test_signal(text)': {
-      'len': 5,
-      'flen': 5.0
-    }
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everybody',
-    'test_signal(text)': {
-      'len': 9,
-      'flen': 9.0
-    }
-  }])
-
-
-def test_udf_with_filters(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everybody'
-  }])
-
-  signal_col = Column('text', signal_udf=TestSignal())
-  # Filter by source feature.
-  filters: list[BinaryFilterTuple] = [('text', BinaryOp.EQUALS, 'everybody')]
-  result = dataset.select_rows(['text', signal_col], filters=filters)
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '2',
-    'text': 'everybody',
-    'test_signal(text)': {
-      'len': 9,
-      'flen': 9.0
-    }
-  }])
-
-
-def test_udf_with_uuid_filter(make_test_data: TestDataMaker) -> None:
-
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everybody'
-  }])
-
-  signal = LengthSignal()
-  # Filter by a specific UUID.
-  filters: list[BinaryFilterTuple] = [(UUID_COLUMN, BinaryOp.EQUALS, '1')]
-  result = dataset.select_rows(['text', Column('text', signal_udf=signal)], filters=filters)
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '1',
-    'text': 'hello',
-    'length_signal(text)': 5
-  }])
-  assert signal._call_count == 1
-
-  filters = [(UUID_COLUMN, BinaryOp.EQUALS, '2')]
-  result = dataset.select_rows(['text', Column('text', signal_udf=signal)], filters=filters)
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '2',
-    'text': 'everybody',
-    'length_signal(text)': 9
-  }])
-  assert signal._call_count == 1 + 1
-
-  # No filters.
-  result = dataset.select_rows(['text', Column('text', signal_udf=signal)])
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '1',
-    'text': 'hello',
-    'length_signal(text)': 5
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everybody',
-    'length_signal(text)': 9
-  }])
-  assert signal._call_count == 2 + 2
-
-
-def test_udf_with_uuid_filter_repeated(make_test_data: TestDataMaker) -> None:
-
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': ['hello', 'hi']
-  }, {
-    UUID_COLUMN: '2',
-    'text': ['everybody', 'bye', 'test']
-  }])
-
-  signal = LengthSignal()
-
-  # Filter by a specific UUID.
-  filters: list[BinaryFilterTuple] = [(UUID_COLUMN, BinaryOp.EQUALS, '1')]
-  result = dataset.select_rows(['text', Column(('text', '*'), signal_udf=signal)], filters=filters)
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '1',
-    'text': ['hello', 'hi'],
-    'length_signal(text)': [5, 2]
-  }])
-  assert signal._call_count == 2
-
-  # Filter by a specific UUID.
-  filters = [(UUID_COLUMN, BinaryOp.EQUALS, '2')]
-  result = dataset.select_rows(['text', Column(('text', '*'), signal_udf=signal)], filters=filters)
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '2',
-    'text': ['everybody', 'bye', 'test'],
-    'length_signal(text)': [9, 3, 4]
-  }])
-  assert signal._call_count == 2 + 3
-
-
-def test_udf_deeply_nested(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': [['hello'], ['hi', 'bye']]
-  }, {
-    UUID_COLUMN: '2',
-    'text': [['everybody', 'bye'], ['test']]
-  }])
-
-  signal = LengthSignal()
-
-  result = dataset.select_rows([Column(('text', '*', '*'), signal_udf=signal)])
-  assert list(result) == lilac_items([{
-    UUID_COLUMN: '1',
-    'length_signal(text.*)': [[5], [2, 3]]
-  }, {
-    UUID_COLUMN: '2',
-    'length_signal(text.*)': [[9, 3], [4]]
-  }])
-  assert signal._call_count == 6
-
-
-def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello.',
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'hello2.',
-  }])
-
-  dataset.compute_signal(TestEmbedding(), 'text')
-
-  signal_col = Column(('text', TEST_EMBEDDING_NAME),
-                      signal_udf=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME))
-  result = dataset.select_rows([val('text'), signal_col])
-
-  expected_result: list[Item] = [{
-    UUID_COLUMN: '1',
-    f'text.{VALUE_KEY}': 'hello.',
-    'test_embedding_sum(embedding=test_embedding)(text.test_embedding)': lilac_item(1.0)
-  }, {
-    UUID_COLUMN: '2',
-    f'text.{VALUE_KEY}': 'hello2.',
-    'test_embedding_sum(embedding=test_embedding)(text.test_embedding)': lilac_item(2.0)
-  }]
-  assert list(result) == expected_result
-
-  # Select rows with alias.
-  signal_col = Column(('text', TEST_EMBEDDING_NAME),
-                      signal_udf=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME),
-                      alias='emb_sum')
-  result = dataset.select_rows([val('text'), signal_col])
-  expected_result = [{
-    UUID_COLUMN: '1',
-    f'text.{VALUE_KEY}': 'hello.',
-    'emb_sum': lilac_item(1.0)
-  }, {
-    UUID_COLUMN: '2',
-    f'text.{VALUE_KEY}': 'hello2.',
-    'emb_sum': lilac_item(2.0)
-  }]
-  assert list(result) == expected_result
-
-
-def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': ['hello.', 'hello world.'],
-  }, {
-    UUID_COLUMN: '2',
-    'text': ['hello world2.', 'hello2.'],
-  }])
-
-  dataset.compute_signal(TestEmbedding(), ('text', '*'))
-
-  signal_col = Column(('text', '*', TEST_EMBEDDING_NAME),
-                      signal_udf=TestEmbeddingSumSignal(embedding=TEST_EMBEDDING_NAME))
-  result = dataset.select_rows([val(('text', '*')), signal_col])
-  expected_result = [{
-    UUID_COLUMN: '1',
-    f'text.*.{VALUE_KEY}': ['hello.', 'hello world.'],
-    'test_embedding_sum(embedding=test_embedding)(text.*.test_embedding)': lilac_items([1.0, 3.0])
-  }, {
-    UUID_COLUMN: '2',
-    f'text.*.{VALUE_KEY}': ['hello world2.', 'hello2.'],
-    'test_embedding_sum(embedding=test_embedding)(text.*.test_embedding)': lilac_items([4.0, 2.0])
-  }]
-  assert list(result) == expected_result
-
-
 def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(SIMPLE_ITEMS)
   assert dataset.manifest() == DatasetManifest(
@@ -1146,32 +925,3 @@ def test_invalid_column_paths(make_test_data: TestDataMaker) -> None:
 
   with pytest.raises(ValueError, match='Selecting a specific index of a repeated field'):
     dataset.select_rows([('text2', 4, 'test_signal')])
-
-
-class TestSignal(TextSignal):
-  name = 'test_signal'
-
-  @override
-  def fields(self) -> Field:
-    return field({'len': 'int32', 'flen': 'float32'})
-
-  @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
-
-
-class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
-  """Sums the embeddings to return a single floating point value."""
-  name = 'test_embedding_sum'
-
-  @override
-  def fields(self) -> Field:
-    return field('float32')
-
-  @override
-  def vector_compute(self, keys: Iterable[PathTuple],
-                     vector_store: VectorStore) -> Iterable[ItemValue]:
-    # The signal just sums the values of the embedding.
-    embedding_sums = vector_store.get(keys).sum(axis=1)
-    for embedding_sum in embedding_sums.tolist():
-      yield embedding_sum
