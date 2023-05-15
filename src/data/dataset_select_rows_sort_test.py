@@ -535,7 +535,7 @@ def test_sort_by_udf_alias_repeated(make_test_data: TestDataMaker) -> None:
   }])
 
 
-def test_sort_by_udf_alias_repeated_called_on_complex_signal(make_test_data: TestDataMaker) -> None:
+def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
     'texts': [{
@@ -608,7 +608,7 @@ def test_sort_by_udf_alias_repeated_called_on_complex_signal(make_test_data: Tes
   }])
 
 
-def test_sort_by_udf_alias_repeated_called_on_primitive_signal(
+def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
     make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
