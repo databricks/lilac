@@ -536,18 +536,38 @@ class DatasetDuckDB(Dataset):
     columns_to_merge: dict[str, dict[str, Column]] = {}
     select_queries: list[str] = []
 
-    for column in cols:
-      select_str, temp_column_names = self._select_from_merged_table(
-        column, manifest, resolve_span=resolve_span)
-      alias = column.alias or _unique_alias(column)
-      if alias not in columns_to_merge:
-        columns_to_merge[alias] = {}
-      temp_name_to_column = columns_to_merge[alias]
-      for temp_col_name in temp_column_names:
-        temp_name_to_column[temp_col_name] = column
+    leafs = manifest.data_schema.leafs
 
-      select_queries.append(select_str)
-    select_query = ', '.join(select_queries)
+    for column in cols:
+      path = column.path
+      span_path = path
+      # Remove the value key so we can check the dtype from leafs.
+      if path[-1] == VALUE_KEY:
+        span_path = path[:-1]
+      is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
+      span_from = (
+        _derived_from_path(path, manifest.data_schema) if resolve_span and is_span else None)
+      # If the signal is vector-based, we don't need to select the actual data, just the uuids
+      # plus an arbitrarily nested array of `None`s`.
+      empty = bool(
+        column.signal_udf and
+        # We remove the last element of the path when checking the dtype because it's VALUE_KEY for
+        # signal transforms.
+        manifest.data_schema.get_field(path[:-1]).dtype == DataType.EMBEDDING)
+
+      select_sqls: list[str] = []
+      alias = column.alias or _unique_alias(column)
+      duckdb_paths = self._column_to_duckdb_paths(column)
+
+      for temp_column_name, duckdb_path in duckdb_paths:
+        sql = _select_sql(
+          duckdb_path, flatten=False, unnest=False, empty=empty, span_from=span_from)
+        select_sqls.append(f'{sql} AS "{temp_column_name}"')
+        if alias not in columns_to_merge:
+          columns_to_merge[alias] = {}
+        columns_to_merge[alias][temp_column_name] = column
+
+      select_queries.append(', '.join(select_sqls))
 
     col_aliases: dict[str, PathTuple] = {col.alias: col.path for col in cols if col.alias}
     udf_aliases: dict[str, PathTuple] = {
@@ -563,12 +583,13 @@ class DatasetDuckDB(Dataset):
 
     # Sorting.
     order_query = ''
-    sort_by = [normalize_path(path) for path in (sort_by or [])]
+    sort_by = cast(list[PathTuple], [normalize_path(path) for path in (sort_by or [])])
     if sort_by and not sort_order:
       raise ValueError('`sort_order` is required when `sort_by` is specified.')
 
     sort_cols_before_udf: list[str] = []
     sort_cols_after_udf: list[str] = []
+
     for path in sort_by:
       first_subpath = str(path[0])
       rest_of_path = path[1:]
@@ -611,7 +632,7 @@ class DatasetDuckDB(Dataset):
 
     con = self.con.cursor()
     query = con.sql(f"""
-      SELECT {select_query} FROM t
+      SELECT {', '.join(select_queries)} FROM t
       {where_query}
       {order_query}
     """)
@@ -817,35 +838,6 @@ class DatasetDuckDB(Dataset):
       duckdb_paths.append((temp_column_name, duckdb_path))
 
     return duckdb_paths
-
-  def _select_from_merged_table(self, column: Column, manifest: DatasetManifest,
-                                resolve_span: bool) -> tuple[str, list[str]]:
-    leafs = manifest.data_schema.leafs
-    path = column.path
-    span_path = path
-
-    # Remove the value key so we can check the dtype from leafs.
-    if path[-1] == VALUE_KEY:
-      span_path = path[:-1]
-    is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
-    span_from = _derived_from_path(path, manifest.data_schema) if resolve_span and is_span else None
-    # We doing a vector-based computation, we do not need to select the actual data, just the uuids
-    # plus an arbitrarily nested array of `None`s`.
-    empty = bool(
-      column.signal_udf and
-      # We remove the last element of the path when checking the dtype because it's VALUE_KEY for
-      # signal transforms.
-      manifest.data_schema.get_field(path[:-1]).dtype == DataType.EMBEDDING)
-    select_queries: list[str] = []
-    temp_column_names: list[str] = []
-
-    duckdb_paths = self._column_to_duckdb_paths(column)
-    for temp_column_name, duckdb_path in duckdb_paths:
-      col = _select_sql(duckdb_path, flatten=False, unnest=False, empty=empty, span_from=span_from)
-      select_queries.append(f'{col} AS "{temp_column_name}"')
-      temp_column_names.append(temp_column_name)
-
-    return ', '.join(select_queries), temp_column_names
 
   def _normalize_filters(self, filter_likes: Optional[Sequence[FilterLike]],
                          col_aliases: dict[str, PathTuple],
