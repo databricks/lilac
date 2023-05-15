@@ -18,6 +18,7 @@ class Signal(abc.ABC, BaseModel):
   """Interface for signals to implement. A signal can score documents and a dataset column."""
   # ClassVars do not get serialized with pydantic.
   name: ClassVar[str]
+  signal_type: ClassVar[Type['Signal']]
   input_type: ClassVar[SignalInputType]
 
   # The signal_name will get populated in init automatically from the class name so it gets
@@ -124,14 +125,15 @@ SIGNAL_TYPE_TEXT_SPLITTER = 'text_splitter'
 class TextSignal(Signal):
   """An interface for signals that compute over text."""
   input_type = SignalInputType.TEXT
-  # TODO(nsthorat): split should be a union of literals.
-  split: Optional[str]
+  split: Optional[str] = PydanticField(
+    extra={SIGNAL_TYPE_PYDANTIC_FIELD: SIGNAL_TYPE_TEXT_SPLITTER})
 
   @validator('split', pre=True)
   def parse_split(cls, split: str) -> str:
     """Parse a signal to its specific subclass instance."""
-    # Validate the split signal is registered.
-    return get_text_splitter_cls(split).name
+    # Validate the split signal is registered and the correct type.
+    get_signal_by_type(split, SIGNAL_TYPE_TEXT_SPLITTER)
+    return split
 
 
 class TextSplitterSignal(Signal):
@@ -155,15 +157,14 @@ class TextEmbeddingSignal(TextSignal):
 class TextEmbeddingModelSignal(TextSignal):
   """An interface for signals that take embeddings and produce items."""
   input_type = SignalInputType.TEXT_EMBEDDING
-  # TODO(nsthorat): Allow this to be an embedding signal if we want to allow python users to pass
-  # an embedding signal without registering it.
   embedding: str = PydanticField(extra={SIGNAL_TYPE_PYDANTIC_FIELD: SIGNAL_TYPE_TEXT_EMBEDDING})
 
   @validator('embedding', pre=True)
   def parse_embedding(cls, embedding: str) -> str:
     """Parse a signal to its specific subclass instance."""
-    # Validate the embedding is registered.
-    return get_text_embedding_cls(embedding).name
+    # Validate the split signal is registered and the correct type.
+    get_signal_by_type(embedding, SIGNAL_TYPE_TEXT_EMBEDDING)
+    return embedding
 
 
 SIGNAL_TYPE_CLS: dict[str, Type[Signal]] = {
@@ -174,43 +175,30 @@ SIGNAL_TYPE_CLS: dict[str, Type[Signal]] = {
 Tsignalcls = TypeVar('Tsignalcls', bound=Signal)
 
 
-def _signals_by_type(signal_subclass: Type[Tsignalcls]) -> list[Type[Tsignalcls]]:
-  """Return all registered signals that are subclasses of the given signal class."""
-  return [
-    signal_cls for signal_cls in SIGNAL_REGISTRY.values()
-    if issubclass(signal_cls, signal_subclass)
-  ]
-
-
-def _one_signal_by_type(signal_name: str, signal_type: str) -> Type[Signal]:
+def get_signal_by_type(signal_name: str, signal_type: str) -> Type[Signal]:
+  """Return a signal class by name and signal type."""
   if signal_name not in SIGNAL_REGISTRY:
     raise ValueError(f'Signal "{signal_name}" not found in the registry')
 
+  if signal_type not in SIGNAL_TYPE_CLS:
+    raise ValueError(
+      f'Invalid `signal_type` "{signal_type}". Valid signal types: {SIGNAL_TYPE_CLS.keys()}')
+
+  signal_subclass = SIGNAL_TYPE_CLS[signal_type]
   signal_cls = SIGNAL_REGISTRY[signal_name]
   if not issubclass(signal_cls, signal_subclass):
     raise ValueError(
-      f'`{signal_name}` is a `{signal_cls.__name__}`, not a `{signal_subclass.__name__}`.')
+      f'"{signal_name}" is a `{signal_cls.__name__}`, '
+      f'which is not a `signal_type` "{signal_type}", a subclass of `{signal_subclass.__name__}`.')
   return signal_cls
 
 
-def get_text_embedding_clses() -> list[Type[TextEmbeddingSignal]]:
-  """Return all registered embedding signals."""
-  return _signals_by_type(TextEmbeddingSignal)
-
-
-def get_text_embedding_cls(signal_name: str) -> Type[TextEmbeddingSignal]:
-  """Return a registered text embedding signal given the name in the registry."""
-  return _one_signal_by_type(signal_name, TextEmbeddingSignal)
-
-
-def get_text_splitter_clses() -> list[Type[TextSplitterSignal]]:
-  """Return all registered text splitter signals."""
-  return _signals_by_type(TextSplitterSignal)
-
-
-def get_text_splitter_cls(signal_name: str) -> Type[TextSplitterSignal]:
-  """Return a registered text splitter signal given the name in the registry."""
-  return _one_signal_by_type(signal_name, TextSplitterSignal)
+def get_signal_type(signal_cls: Type[Signal]) -> Optional[str]:
+  """Return the signal type for a signal class."""
+  for signal_type, signal_subclass in SIGNAL_TYPE_CLS.items():
+    if issubclass(signal_cls, signal_subclass):
+      return signal_type
+  return None
 
 
 SIGNAL_REGISTRY: dict[str, Type[Signal]] = {}

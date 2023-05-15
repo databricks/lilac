@@ -10,6 +10,7 @@ import type { SignalInputType } from './SignalInputType';
 export type SignalInfo = {
     name: string;
     input_type: SignalInputType;
+    signal_type?: string;
     json_schema: Record<string, any>;
 };
 
