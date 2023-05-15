@@ -534,8 +534,6 @@ class DatasetDuckDB(Dataset):
     columns_to_merge: dict[str, dict[str, Column]] = {}
     select_queries: list[str] = []
 
-    leafs = manifest.data_schema.leafs
-
     for column in cols:
       path = column.path
       # If the signal is vector-based, we don't need to select the actual data, just the uuids
@@ -548,22 +546,24 @@ class DatasetDuckDB(Dataset):
 
       select_sqls: list[str] = []
       alias = column.alias or _unique_alias(column)
+      if alias not in columns_to_merge:
+        columns_to_merge[alias] = {}
+
       duckdb_paths = self._column_to_duckdb_paths(column)
       span_from = self._get_span_from(path)
 
-      for temp_column_name, duckdb_path in duckdb_paths:
+      for parquet_id, duckdb_path in duckdb_paths:
         sql = _select_sql(
           duckdb_path, flatten=False, unnest=False, empty=empty, span_from=span_from)
+        temp_column_name = alias if len(duckdb_paths) == 1 else f'{alias}/{parquet_id}'
         select_sqls.append(f'{sql} AS "{temp_column_name}"')
-        if alias not in columns_to_merge:
-          columns_to_merge[alias] = {}
         columns_to_merge[alias][temp_column_name] = column
 
       select_queries.append(', '.join(select_sqls))
 
     col_aliases: dict[str, PathTuple] = {col.alias: col.path for col in cols if col.alias}
     udf_aliases: dict[str, PathTuple] = {
-      col.alias or _unique_alias(col): col.path for col in cols if col.signal_udf
+      col.alias: col.path for col in cols if col.signal_udf and col.alias
     }
 
     # Filtering.
@@ -805,8 +805,7 @@ class DatasetDuckDB(Dataset):
     return _derived_from_path(path, manifest.data_schema) if is_span else None
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple) -> PathTuple:
-    duckdb_paths = self._column_to_duckdb_paths(Column(leaf_path))
-    _, duckdb_path = duckdb_paths[0]
+    ((_, duckdb_path),) = self._column_to_duckdb_paths(Column(leaf_path))
     return duckdb_path
 
   def _column_to_duckdb_paths(self, column: Column) -> list[tuple[str, PathTuple]]:
@@ -814,8 +813,8 @@ class DatasetDuckDB(Dataset):
     parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
       self._source_manifest, *self._signal_manifests
     ]
+    duckdb_paths: list[tuple[str, PathTuple]] = []
 
-    manifests_with_path: list[Union[SourceManifest, SignalManifest]] = []
     for m in parquet_manifests:
       if not schema_contains_path(m.data_schema, path):
         # Skip this parquet file if it doesn't contain the path.
@@ -825,23 +824,18 @@ class DatasetDuckDB(Dataset):
         # Do not select UUID from the signal because it's already in the source.
         continue
 
-      manifests_with_path.append(m)
-
-    if not manifests_with_path:
-      raise ValueError(f'Invalid path "{path}": No manifest contains path. Valid paths: '
-                       f'{list(self.manifest().data_schema.leafs.keys())}')
-
-    duckdb_paths: list[tuple[str, PathTuple]] = []
-    alias = column.alias or _unique_alias(column)
-    for m in manifests_with_path:
       duckdb_path = path
-      temp_column_name = alias
+      parquet_id = 'source'
+
       if isinstance(m, SignalManifest):
         duckdb_path = (m.parquet_id, *path[1:])
-        if len(manifests_with_path) > 1:
-          # Non-leafs can have data in multiple manifests so we need to namespace.
-          temp_column_name = f'{alias}/{m.parquet_id}'
-      duckdb_paths.append((temp_column_name, duckdb_path))
+        parquet_id = m.parquet_id
+
+      duckdb_paths.append((parquet_id, duckdb_path))
+
+    if not duckdb_paths:
+      raise ValueError(f'Invalid path "{path}": No manifest contains path. Valid paths: '
+                       f'{list(self.manifest().data_schema.leafs.keys())}')
 
     return duckdb_paths
 
