@@ -555,6 +555,9 @@ class DatasetDuckDB(Dataset):
       # UDF selection is slightly different than normal selection since the UDF column is already
       # present as a top-level column in the table.
       if udf_path:
+        # If the user selected udf(document.*.text) as "udf" and wanted to sort by "udf.len", we
+        # need to actually sort by "udf.*.len.__value__" where the "*" came from the fact that the
+        # udf was applied to a list of "text" fields.
         prefix_path = [subpath for subpath in udf_path if subpath == PATH_WILDCARD]
         path = (first_subpath, *prefix_path, *rest_of_path)
         # Select the value that comes from the actual UDF for sorting.
