@@ -74,103 +74,105 @@ def test_data(tmp_path_factory: pytest.TempPathFactory,
   CONFIG['LILAC_DATA_PATH'] = data_path or ''
 
 
-class DatasetSuite:
-
-  def test_get_manifest(self) -> None:
-    url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}'
-    response = client.get(url)
-    assert response.status_code == 200
-    assert WebManifest.parse_obj(response.json()) == WebManifest(
-      dataset_manifest=DatasetManifest(
-        namespace=TEST_NAMESPACE,
-        dataset_name=TEST_DATASET_NAME,
-        data_schema=schema({
-          UUID_COLUMN: 'string',
-          'erased': 'boolean',
-          'people': [{
-            'name': 'string',
-            'zipcode': 'int32',
-            'locations': [{
-              'city': 'string',
-              'state': 'string'
-            }]
+def test_get_manifest() -> None:
+  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}'
+  response = client.get(url)
+  assert response.status_code == 200
+  assert WebManifest.parse_obj(response.json()) == WebManifest(
+    dataset_manifest=DatasetManifest(
+      namespace=TEST_NAMESPACE,
+      dataset_name=TEST_DATASET_NAME,
+      data_schema=schema({
+        UUID_COLUMN: 'string',
+        'erased': 'boolean',
+        'people': [{
+          'name': 'string',
+          'zipcode': 'int32',
+          'locations': [{
+            'city': 'string',
+            'state': 'string'
           }]
-        }),
-        num_items=3))
-
-  def test_select_rows_no_options(self) -> None:
-    url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
-    options = SelectRowsOptions()
-    response = client.post(url, json=options.dict())
-    assert response.status_code == 200
-    assert response.json() == lilac_items(TEST_DATA)
-
-  def test_select_rows_with_cols_and_limit(self) -> None:
-    url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
-    options = SelectRowsOptions(
-      columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
-      limit=1,
-      offset=1)
-    response = client.post(url, json=options.dict())
-    assert response.status_code == 200
-    assert response.json() == lilac_items([{
-      UUID_COLUMN: '2',
-      'people.*.zipcode': [1, 2],
-      'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']]
-    }])
-
-  def test_select_rows_with_cols_and_combine(self) -> None:
-    url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
-    options = SelectRowsOptions(
-      columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
-      combine_columns=True)
-    response = client.post(url, json=options.dict())
-    assert response.status_code == 200
-    assert response.json() == lilac_items([{
-      UUID_COLUMN: '1',
-      'people': [{
-        'zipcode': 0,
-        'locations': [{
-          'city': 'city1',
-        }, {
-          'city': 'city2',
         }]
-      }]
-    }, {
-      UUID_COLUMN: '2',
-      'people': [{
-        'zipcode': 1,
-        'locations': [{
-          'city': 'city3',
-        }, {
-          'city': 'city4'
-        }, {
-          'city': 'city5'
-        }]
+      }),
+      num_items=3))
+
+
+def test_select_rows_no_options() -> None:
+  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
+  options = SelectRowsOptions()
+  response = client.post(url, json=options.dict())
+  assert response.status_code == 200
+  assert response.json() == lilac_items(TEST_DATA)
+
+
+def test_select_rows_with_cols_and_limit() -> None:
+  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
+  options = SelectRowsOptions(
+    columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
+    limit=1,
+    offset=1)
+  response = client.post(url, json=options.dict())
+  assert response.status_code == 200
+  assert response.json() == lilac_items([{
+    UUID_COLUMN: '2',
+    'people.*.zipcode': [1, 2],
+    'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']]
+  }])
+
+
+def test_select_rows_with_cols_and_combine() -> None:
+  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
+  options = SelectRowsOptions(
+    columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
+    combine_columns=True)
+  response = client.post(url, json=options.dict())
+  assert response.status_code == 200
+  assert response.json() == lilac_items([{
+    UUID_COLUMN: '1',
+    'people': [{
+      'zipcode': 0,
+      'locations': [{
+        'city': 'city1',
       }, {
-        'zipcode': 2,
-        'locations': [{
-          'city': 'city1'
-        }]
+        'city': 'city2',
+      }]
+    }]
+  }, {
+    UUID_COLUMN: '2',
+    'people': [{
+      'zipcode': 1,
+      'locations': [{
+        'city': 'city3',
+      }, {
+        'city': 'city4'
+      }, {
+        'city': 'city5'
       }]
     }, {
-      UUID_COLUMN: '3'
-    }])
-
-  def test_select_rows_schema_no_cols(self) -> None:
-    url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows_schema'
-    options = SelectRowsSchemaOptions(combine_columns=True)
-    response = client.post(url, json=options.dict())
-    assert response.status_code == 200
-    assert Schema.parse_obj(response.json()) == schema({
-      UUID_COLUMN: 'string',
-      'erased': 'boolean',
-      'people': [{
-        'name': 'string',
-        'zipcode': 'int32',
-        'locations': [{
-          'city': 'string',
-          'state': 'string'
-        }]
+      'zipcode': 2,
+      'locations': [{
+        'city': 'city1'
       }]
-    })
+    }]
+  }, {
+    UUID_COLUMN: '3'
+  }])
+
+
+def test_select_rows_schema_no_cols() -> None:
+  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows_schema'
+  options = SelectRowsSchemaOptions(combine_columns=True)
+  response = client.post(url, json=options.dict())
+  assert response.status_code == 200
+  assert Schema.parse_obj(response.json()) == schema({
+    UUID_COLUMN: 'string',
+    'erased': 'boolean',
+    'people': [{
+      'name': 'string',
+      'zipcode': 'int32',
+      'locations': [{
+        'city': 'string',
+        'state': 'string'
+      }]
+    }]
+  })
