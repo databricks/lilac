@@ -648,7 +648,13 @@ class DatasetDuckDB(Dataset):
                                                    signal.embedding)
         self._concept_model_db.sync(concept_model)
 
-      temp_signal_cols = columns_to_merge[udf_col.alias or _unique_alias(udf_col)]
+      signal_alias = udf_col.alias or _unique_alias(udf_col)
+      temp_signal_cols = columns_to_merge[signal_alias]
+      if len(temp_signal_cols) != 1:
+        raise ValueError(
+          f'Unable to compute signal {signal.name}. Signal UDFs only operate on leafs, but got '
+          f'{len(temp_signal_cols)} underlying columns that contain data related to {udf_col.path}.'
+        )
       signal_column = list(temp_signal_cols.keys())[0]
       input = df[signal_column]
 
