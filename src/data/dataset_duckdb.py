@@ -397,9 +397,7 @@ class DatasetDuckDB(Dataset):
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     value_path = _make_value_path(path)
-
-    duckdb_paths = self._column_to_duckdb_paths(Column(value_path, alias='val'))
-    _, duckdb_path = duckdb_paths[0]
+    duckdb_path = self._leaf_path_to_duckdb_path(value_path)
     span_path = path[:-1] if path[-1] == VALUE_KEY else path
     is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
     span_from = _derived_from_path(path, manifest.data_schema) if is_span else None
@@ -534,8 +532,7 @@ class DatasetDuckDB(Dataset):
       cols.append(column_from_identifier(UUID_COLUMN))
 
     self._validate_columns(cols)
-    select_query, columns_to_merge = self._create_select(
-      cols, resolve_span=resolve_span, combine_columns=combine_columns)
+    select_query, columns_to_merge = self._create_select(cols, resolve_span=resolve_span)
     col_aliases: dict[str, PathTuple] = {col.alias: col.path for col in cols if col.alias}
     udf_aliases: dict[str, PathTuple] = {
       col.alias or _unique_alias(col): col.path for col in cols if col.signal_udf
@@ -579,13 +576,8 @@ class DatasetDuckDB(Dataset):
         if path not in manifest.data_schema.leafs:
           raise ValueError(f'Can not sort by "{path}" since it is not a leaf field.')
 
-        sort_col, _ = self._create_select_column(
-          Column(path),
-          manifest,
-          flatten=True,
-          unnest=False,
-          resolve_span=False,
-          make_temp_alias=False)
+        duckdb_path = self._leaf_path_to_duckdb_path(cast(PathTuple, path))
+        sort_col = _make_select_column(duckdb_path, flatten=True, unnest=False, empty=False)
 
       has_repeated_field = any(subpath == PATH_WILDCARD for subpath in path)
       if has_repeated_field:
@@ -628,7 +620,8 @@ class DatasetDuckDB(Dataset):
                                                    signal.embedding)
         self._concept_model_db.sync(concept_model)
 
-      signal_column = udf_col.alias or _unique_alias(udf_col)
+      temp_signal_cols = columns_to_merge[udf_col.alias or _unique_alias(udf_col)]
+      signal_column = list(temp_signal_cols.keys())[0]
       input = df[signal_column]
 
       with DebugTimer(f'Computing signal "{signal}"'):
@@ -693,6 +686,12 @@ class DatasetDuckDB(Dataset):
         query = query.limit(limit, offset or 0)
 
       df = query.df()
+
+    if combine_columns:
+      all_columns: dict[str, Column] = {}
+      for col_dict in columns_to_merge.values():
+        all_columns.update(col_dict)
+      columns_to_merge = {'*': all_columns}
 
     for final_col_name, temp_columns in columns_to_merge.items():
       for temp_col_name, column in temp_columns.items():
@@ -763,6 +762,11 @@ class DatasetDuckDB(Dataset):
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
+  def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple) -> PathTuple:
+    duckdb_paths = self._column_to_duckdb_paths(Column(leaf_path))
+    _, duckdb_path = duckdb_paths[0]
+    return duckdb_path
+
   def _column_to_duckdb_paths(self, column: Column) -> list[tuple[str, PathTuple]]:
     path = column.path
     parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
@@ -799,13 +803,8 @@ class DatasetDuckDB(Dataset):
 
     return duckdb_paths
 
-  def _create_select_column(self,
-                            column: Column,
-                            manifest: DatasetManifest,
-                            flatten: bool,
-                            unnest: bool,
-                            resolve_span: bool,
-                            make_temp_alias: bool = True) -> tuple[str, list[str]]:
+  def _create_select_column(self, column: Column, manifest: DatasetManifest,
+                            resolve_span: bool) -> tuple[str, list[str]]:
     leafs = manifest.data_schema.leafs
     path = column.path
     span_path = path
@@ -828,19 +827,14 @@ class DatasetDuckDB(Dataset):
     duckdb_paths = self._column_to_duckdb_paths(column)
     for temp_column_name, duckdb_path in duckdb_paths:
       col = _make_select_column(
-        duckdb_path, flatten=flatten, unnest=unnest, empty=empty, span_from=span_from)
-      if make_temp_alias:
-        select_queries.append(f'{col} AS "{temp_column_name}"')
-        temp_column_names.append(temp_column_name)
-      else:
-        select_queries.append(col)
+        duckdb_path, flatten=False, unnest=False, empty=empty, span_from=span_from)
+      select_queries.append(f'{col} AS "{temp_column_name}"')
+      temp_column_names.append(temp_column_name)
 
     return ', '.join(select_queries), temp_column_names
 
-  def _create_select(self,
-                     columns: list[Column],
-                     resolve_span: bool,
-                     combine_columns: bool = False) -> tuple[str, dict[str, dict[str, Column]]]:
+  def _create_select(self, columns: list[Column],
+                     resolve_span: bool) -> tuple[str, dict[str, dict[str, Column]]]:
     """Create the select statement."""
     manifest = self.manifest()
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
@@ -849,9 +843,8 @@ class DatasetDuckDB(Dataset):
 
     for column in columns:
       select_str, temp_column_names = self._create_select_column(
-        column, manifest, flatten=False, unnest=False, resolve_span=resolve_span)
-      # If `combine_columns` is True, we alias every column to `*` so that we can merge them all.
-      alias = '*' if combine_columns else (column.alias or _unique_alias(column))
+        column, manifest, resolve_span=resolve_span)
+      alias = column.alias or _unique_alias(column)
       if alias not in alias_to_temp_col_names:
         alias_to_temp_col_names[alias] = {}
       temp_name_to_column = alias_to_temp_col_names[alias]
@@ -899,13 +892,8 @@ class DatasetDuckDB(Dataset):
     binary_ops = set(BinaryOp)
     unary_ops = set(UnaryOp)
     for filter in filters:
-      select_str, _ = self._create_select_column(
-        Column(filter.path),
-        manifest,
-        flatten=False,
-        unnest=False,
-        resolve_span=False,
-        make_temp_alias=False)
+      duckdb_path = self._leaf_path_to_duckdb_path(filter.path)
+      select_str = _make_select_column(duckdb_path, flatten=False, unnest=False, empty=False)
 
       if filter.op in binary_ops:
         op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
