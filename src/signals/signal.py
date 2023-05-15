@@ -1,7 +1,7 @@
 """Interface for implementing a signal."""
 
 import abc
-from typing import Any, ClassVar, Iterable, Optional, Type, Union
+from typing import Any, ClassVar, Iterable, Optional, Type, TypeVar, Union
 
 from pydantic import BaseModel, validator
 from typing_extensions import override
@@ -157,6 +157,27 @@ class TextEmbeddingModelSignal(TextSignal):
     if not issubclass(embedding_signal_cls, TextEmbeddingSignal):
       raise ValueError(f'Only text embedding signals are currently supported for concepts. '
                        f'"{self.embedding}" is a {embedding_signal_cls.__name__}.')
+
+
+Tsignalcls = TypeVar('Tsignalcls', bound=Signal)
+
+
+def _signals_by_type(signal_subclass: Type[Tsignalcls]) -> list[Type[Tsignalcls]]:
+  """Return all registered signals that are subclasses of the given signal class."""
+  return [
+    signal_cls for signal_cls in SIGNAL_REGISTRY.values()
+    if issubclass(signal_cls, signal_subclass)
+  ]
+
+
+def get_text_embedding_signals() -> list[Type[TextEmbeddingSignal]]:
+  """Return all registered embedding signals."""
+  return _signals_by_type(TextEmbeddingSignal)
+
+
+def get_text_splitter_signals() -> list[Type[TextSplitterSignal]]:
+  """Return all registered text splitter signals."""
+  return _signals_by_type(TextSplitterSignal)
 
 
 SIGNAL_REGISTRY: dict[str, Type[Signal]] = {}
