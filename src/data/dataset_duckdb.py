@@ -401,8 +401,7 @@ class DatasetDuckDB(Dataset):
     span_path = path[:-1] if path[-1] == VALUE_KEY else path
     is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
     span_from = _derived_from_path(path, manifest.data_schema) if is_span else None
-    inner_select = _make_select_column(
-      duckdb_path, flatten=True, unnest=True, empty=False, span_from=span_from)
+    inner_select = _select_sql(duckdb_path, flatten=True, unnest=True, span_from=span_from)
 
     # Compute approximate count by sampling the data to avoid OOM.
     sample_size = SAMPLE_SIZE_DISTINCT_COUNT
@@ -490,7 +489,7 @@ class DatasetDuckDB(Dataset):
     limit_query = f'LIMIT {limit}' if limit else ''
     # Select the actual value from the node.
     value_path = _make_value_path(path)
-    inner_select = _make_select_column(value_path, flatten=True, unnest=True, empty=False)
+    inner_select = _select_sql(value_path, flatten=True, unnest=True)
     query = f"""
       SELECT {outer_select} AS {value_column}, COUNT() AS {count_column}
       FROM (SELECT {inner_select} AS {inner_val} FROM t)
@@ -532,7 +531,24 @@ class DatasetDuckDB(Dataset):
       cols.append(column_from_identifier(UUID_COLUMN))
 
     self._validate_columns(cols)
-    select_query, columns_to_merge = self._create_select(cols, resolve_span=resolve_span)
+
+    # Map a final column name to a list of temporary namespaced column names that need to be merged.
+    columns_to_merge: dict[str, dict[str, Column]] = {}
+    select_queries: list[str] = []
+
+    for column in cols:
+      select_str, temp_column_names = self._select_from_merged_table(
+        column, manifest, resolve_span=resolve_span)
+      alias = column.alias or _unique_alias(column)
+      if alias not in columns_to_merge:
+        columns_to_merge[alias] = {}
+      temp_name_to_column = columns_to_merge[alias]
+      for temp_col_name in temp_column_names:
+        temp_name_to_column[temp_col_name] = column
+
+      select_queries.append(select_str)
+    select_query = ', '.join(select_queries)
+
     col_aliases: dict[str, PathTuple] = {col.alias: col.path for col in cols if col.alias}
     udf_aliases: dict[str, PathTuple] = {
       col.alias or _unique_alias(col): col.path for col in cols if col.signal_udf
@@ -567,7 +583,6 @@ class DatasetDuckDB(Dataset):
         path = (first_subpath, *prefix_path, *rest_of_path)
         # Select the value that comes from the actual UDF for sorting.
         path = _make_value_path(path)
-        sort_col = _make_select_column(path, flatten=True, unnest=False, empty=False)
       else:
         # Re-route the path if it starts with an alias by pointing it to the actual path.
         if first_subpath in col_aliases:
@@ -576,9 +591,9 @@ class DatasetDuckDB(Dataset):
         if path not in manifest.data_schema.leafs:
           raise ValueError(f'Can not sort by "{path}" since it is not a leaf field.')
 
-        duckdb_path = self._leaf_path_to_duckdb_path(cast(PathTuple, path))
-        sort_col = _make_select_column(duckdb_path, flatten=True, unnest=False, empty=False)
+        path = self._leaf_path_to_duckdb_path(cast(PathTuple, path))
 
+      sort_col = _select_sql(path, flatten=True, unnest=False)
       has_repeated_field = any(subpath == PATH_WILDCARD for subpath in path)
       if has_repeated_field:
         sort_col = (f'list_min({sort_col})'
@@ -803,8 +818,8 @@ class DatasetDuckDB(Dataset):
 
     return duckdb_paths
 
-  def _create_select_column(self, column: Column, manifest: DatasetManifest,
-                            resolve_span: bool) -> tuple[str, list[str]]:
+  def _select_from_merged_table(self, column: Column, manifest: DatasetManifest,
+                                resolve_span: bool) -> tuple[str, list[str]]:
     leafs = manifest.data_schema.leafs
     path = column.path
     span_path = path
@@ -826,33 +841,11 @@ class DatasetDuckDB(Dataset):
 
     duckdb_paths = self._column_to_duckdb_paths(column)
     for temp_column_name, duckdb_path in duckdb_paths:
-      col = _make_select_column(
-        duckdb_path, flatten=False, unnest=False, empty=empty, span_from=span_from)
+      col = _select_sql(duckdb_path, flatten=False, unnest=False, empty=empty, span_from=span_from)
       select_queries.append(f'{col} AS "{temp_column_name}"')
       temp_column_names.append(temp_column_name)
 
     return ', '.join(select_queries), temp_column_names
-
-  def _create_select(self, columns: list[Column],
-                     resolve_span: bool) -> tuple[str, dict[str, dict[str, Column]]]:
-    """Create the select statement."""
-    manifest = self.manifest()
-    # Map a final column name to a list of temporary namespaced column names that need to be merged.
-    alias_to_temp_col_names: dict[str, dict[str, Column]] = {}
-    select_queries: list[str] = []
-
-    for column in columns:
-      select_str, temp_column_names = self._create_select_column(
-        column, manifest, resolve_span=resolve_span)
-      alias = column.alias or _unique_alias(column)
-      if alias not in alias_to_temp_col_names:
-        alias_to_temp_col_names[alias] = {}
-      temp_name_to_column = alias_to_temp_col_names[alias]
-      for temp_col_name in temp_column_names:
-        temp_name_to_column[temp_col_name] = column
-
-      select_queries.append(select_str)
-    return ', '.join(select_queries), alias_to_temp_col_names
 
   def _normalize_filters(self, filter_likes: Optional[Sequence[FilterLike]],
                          col_aliases: dict[str, PathTuple],
@@ -893,7 +886,7 @@ class DatasetDuckDB(Dataset):
     unary_ops = set(UnaryOp)
     for filter in filters:
       duckdb_path = self._leaf_path_to_duckdb_path(filter.path)
-      select_str = _make_select_column(duckdb_path, flatten=False, unnest=False, empty=False)
+      select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
 
       if filter.op in binary_ops:
         op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
@@ -970,7 +963,7 @@ def _inner_select(sub_paths: list[PathTuple],
   path_key = inner_var + ''.join([f"['{p}']" for p in current_sub_path])
   if len(sub_paths) == 1:
     if span_from:
-      derived_col = _make_select_column(span_from, flatten=False, unnest=False, empty=False)
+      derived_col = _select_sql(span_from, flatten=False, unnest=False)
       path_key = (f'{derived_col}[{path_key}.{TEXT_SPAN_START_FEATURE}+1:'
                   f'{path_key}.{TEXT_SPAN_END_FEATURE}]')
     return 'NULL' if empty else path_key
@@ -994,22 +987,21 @@ def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
   return sub_paths
 
 
-def _make_select_column(leaf_path: Path,
-                        flatten: bool,
-                        unnest: bool,
-                        empty: bool,
-                        span_from: Optional[PathTuple] = None) -> str:
-  """Create a select column for a leaf path.
+def _select_sql(path: PathTuple,
+                flatten: bool,
+                unnest: bool,
+                empty: bool = False,
+                span_from: Optional[PathTuple] = None) -> str:
+  """Create a select column for a path.
 
   Args:
-    leaf_path: A path to a leaf feature. E.g. ['a', 'b', 'c'].
+    path: A path to a feature. E.g. ['a', 'b', 'c'].
     flatten: Whether to flatten the result.
     unnest: Whether to unnest the result.
     empty: Whether to return an empty list (used for embedding signals that don't need the data).
     span_from: The path this span is derived from. If specified, the span will be resolved
       to a substring of the original string.
   """
-  path = normalize_path(leaf_path)
   sub_paths = _split_path_into_subpaths_of_lists(path)
   selection = _inner_select(sub_paths, None, empty, span_from)
   # We only flatten when the result of a nested list to avoid segfault.
