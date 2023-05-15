@@ -272,8 +272,7 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestEmbedding(), 'text')
 
-  signal_col = Column(('text', 'test_embedding'),
-                      signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
+  signal_col = Column('text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
   result = dataset.select_rows([val('text'), signal_col])
 
   expected_result: list[Item] = [{
@@ -288,9 +287,8 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   assert list(result) == expected_result
 
   # Select rows with alias.
-  signal_col = Column(('text', 'test_embedding'),
-                      signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'),
-                      alias='emb_sum')
+  signal_col = Column(
+    'text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'), alias='emb_sum')
   result = dataset.select_rows([val('text'), signal_col])
   expected_result = [{
     UUID_COLUMN: '1',
@@ -315,8 +313,7 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestEmbedding(), ('text', '*'))
 
-  signal_col = Column(('text', '*', 'test_embedding'),
-                      signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
+  signal_col = Column(('text', '*'), signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
   result = dataset.select_rows([val(('text', '*')), signal_col])
   expected_result = [{
     UUID_COLUMN: '1',
@@ -328,3 +325,20 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
     'test_embedding_sum(embedding=test_embedding)(text.*.test_embedding)': lilac_items([4.0, 2.0])
   }]
   assert list(result) == expected_result
+
+
+def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello2.',
+  }])
+
+  # Embedding is not precomputed, yet we ask for the embedding.
+
+  signal_col = Column('text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
+
+  with pytest.raises(ValueError, match='Embedding signal "test_embedding" is not computed'):
+    dataset.select_rows([val('text'), signal_col])

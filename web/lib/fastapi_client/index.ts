@@ -45,6 +45,8 @@ export type { StatsResult } from './models/StatsResult';
 export type { TaskInfo } from './models/TaskInfo';
 export type { TaskManifest } from './models/TaskManifest';
 export type { TaskStatus } from './models/TaskStatus';
+export type { TextEmbeddingSignal } from './models/TextEmbeddingSignal';
+export type { TextSplitterSignal } from './models/TextSplitterSignal';
 export type { UnaryOp } from './models/UnaryOp';
 export type { ValidationError } from './models/ValidationError';
 export type { WebManifest } from './models/WebManifest';

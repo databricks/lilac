@@ -251,6 +251,56 @@ class DatasetDuckDB(Dataset):
 
     return self._col_vector_stores[path]
 
+  def _prepare_signal(self,
+                      signal: Signal,
+                      source_path: PathTuple,
+                      compute_dependencies: Optional[bool] = False,
+                      task_id: Optional[TaskId] = None) -> PathTuple:
+    """Run all the signals depedencies required to run this signal.
+
+    Args:
+      signal: The signal to prepare.
+      source_path: The source path the signal is running over.
+      compute_dependencies: If True, signals will get computed for the whole column. If False,
+        throw if the required inputs are not computed yet.
+      task_id: The TaskId used to run the signal.
+
+    Returns
+      The final path the signal will be run over.
+    """
+    is_value_path = False
+    if source_path[-1] == VALUE_KEY:
+      is_value_path = True
+      source_path = source_path[:-1]
+
+    new_path = source_path
+
+    if isinstance(signal, TextSignal):
+      if signal.split_signal:
+        new_path = (*new_path, signal.split_signal.key(), PATH_WILDCARD)
+        if new_path not in self.manifest().data_schema.leafs:
+          if compute_dependencies:
+            self.compute_signal(signal.split_signal, source_path, task_id=task_id)
+          else:
+            raise ValueError(f'Split signal "{signal.split_signal.key()}" is not computed. '
+                             f'Please run `dataset.compute_signal` over {source_path} first.')
+
+      if isinstance(signal, TextEmbeddingModelSignal):
+        if signal.embedding_signal:
+          new_path = (*new_path, signal.embedding_signal.key())
+          if new_path not in self.manifest().data_schema.leafs:
+            if compute_dependencies:
+              self.compute_signal(signal.embedding_signal, source_path, task_id=task_id)
+            else:
+              raise ValueError(
+                f'Embedding signal "{signal.embedding_signal.key()}" is not computed over '
+                f'{source_path}. Please run `dataset.compute_signal` over '
+                f'{source_path} first.')
+
+    if is_value_path:
+      new_path = (*new_path, VALUE_KEY)
+    return new_path
+
   @override
   def compute_signal(self,
                      signal: Signal,
@@ -259,33 +309,19 @@ class DatasetDuckDB(Dataset):
     column = column_from_identifier(column)
     source_path = normalize_path(column.path)
 
-    # When signals are "chained", we need to compute the signals it depends on first.
-    if isinstance(signal, TextSignal):
-      new_path = source_path
-      if signal.split_signal:
-        new_path = (*new_path, signal.split_signal.key(), PATH_WILDCARD)
-        if new_path not in self.manifest().data_schema.leafs:
-          self.compute_signal(signal.split_signal, source_path, task_id=task_id)
+    # Prepare the the dependencies of this signal.
+    signal_source_path = self._prepare_signal(signal, source_path, compute_dependencies=True)
 
-      if isinstance(signal, TextEmbeddingModelSignal):
-        if signal.embedding_signal:
-          new_path = (*new_path, signal.embedding_signal.key())
-          if new_path not in self.manifest().data_schema.leafs:
-            self.compute_signal(signal.embedding_signal, source_path, task_id=task_id)
-
-      source_path = new_path
-
-    # Create the column from the potentially new source_path.
-    column = column_from_identifier(source_path)
-
-    signal_col = Column(path=column.path, alias='value', signal_udf=signal)
-    enriched_path = _col_destination_path(signal_col)
-    spec = _split_path_into_subpaths_of_lists(enriched_path)
-
+    signal_col = Column(path=source_path, alias='value', signal_udf=signal)
     select_rows_result = self.select_rows([signal_col], task_id=task_id, resolve_span=True)
     df = select_rows_result.df()
     values = df['value']
 
+    source_path = signal_source_path
+    signal_col.path = source_path
+
+    enriched_path = _col_destination_path(signal_col)
+    spec = _split_path_into_subpaths_of_lists(enriched_path)
     signal_key = signal.key()
     signal_out_prefix = signal_filename_prefix(source_path=source_path, signal_key=signal_key)
     signal_schema = create_signal_schema(signal, source_path, self.manifest().data_schema)
@@ -553,6 +589,13 @@ class DatasetDuckDB(Dataset):
     col_paths = [col.path for col in cols]
     if (UUID_COLUMN,) not in col_paths:
       cols.append(column_from_identifier(UUID_COLUMN))
+
+    # Prepare UDF columns. Throw an error if they are not computed. Update the paths of the UDFs so
+    # they match the paths of the columns defined by splits and embeddings.
+    for col in cols:
+      if col.signal_udf:
+        # Do not auto-compute dependencies, throw an error if they are not computed.
+        col.path = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
 
     self._validate_columns(cols)
 
