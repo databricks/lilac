@@ -33,11 +33,23 @@ class TestPrimitiveSignal(TextSignal):
       yield len(text_content) + 1
 
 
+class NestedArraySignal(TextSignal):
+  name = 'nested_array'
+
+  def fields(self) -> Field:
+    return field([['int32']])
+
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+    for text_content in data:
+      yield [[len(text_content) + 1], [len(text_content)]]
+
+
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(TestSignal)
   register_signal(TestPrimitiveSignal)
+  register_signal(NestedArraySignal)
   # Unit test runs.
   yield
   # Teardown.
@@ -475,4 +487,49 @@ def test_sort_by_source_alias_repeated(make_test_data: TestDataMaker) -> None:
   }, {
     UUID_COLUMN: '1',
     'scores': [[7, 1], [1, 7]]
+  }])
+
+
+def test_sort_by_udf_alias_repeated(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'HEY'
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'everyone'
+  }, {
+    UUID_COLUMN: '3',
+    'text': 'HI'
+  }])
+
+  # Equivalent to: SELECT `TestSignal(text) AS udf`.
+  text_udf = Column('text', signal_udf=NestedArraySignal(), alias='udf')
+  # Sort by `udf.*.*`, where `udf` is an alias to `TestSignal(text)`.
+  result = dataset.select_rows(['*', text_udf], sort_by=['udf.*.*'], sort_order=SortOrder.ASC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'text': 'HI',
+    'udf': [[3], [2]]
+  }, {
+    UUID_COLUMN: '1',
+    'text': 'HEY',
+    'udf': [[4], [3]]
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'everyone',
+    'udf': [[9], [8]]
+  }])
+  result = dataset.select_rows(['*', text_udf], sort_by=['udf.*.*'], sort_order=SortOrder.DESC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '2',
+    'text': 'everyone',
+    'udf': [[9], [8]]
+  }, {
+    UUID_COLUMN: '1',
+    'text': 'HEY',
+    'udf': [[4], [3]]
+  }, {
+    UUID_COLUMN: '3',
+    'text': 'HI',
+    'udf': [[3], [2]]
   }])

@@ -547,10 +547,10 @@ class DatasetDuckDB(Dataset):
     sort_cols_before_udf: list[str] = []
     sort_cols_after_udf: list[str] = []
     for path in sort_by:
+      path_is_udf = str(path[0]) in udf_aliases
       # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
-      if str(path[0]) in udf_aliases:
+      if path_is_udf:
         sort_col = _make_select_column(path, flatten=False, unnest=False, empty=False)
-        sort_cols_after_udf.append(sort_col)
       else:
         # Re-route the path if it starts with an alias by pointing it to the actual path.
         first_subpath = str(path[0])
@@ -569,10 +569,14 @@ class DatasetDuckDB(Dataset):
           resolve_span=False,
           make_temp_alias=False)
 
-        has_repeated_field = any(subpath == PATH_WILDCARD for subpath in path)
-        if has_repeated_field:
-          sort_col = (f'list_min({sort_col})'
-                      if sort_order == SortOrder.ASC else f'list_max({sort_col})')
+      has_repeated_field = any(subpath == PATH_WILDCARD for subpath in path)
+      if has_repeated_field:
+        sort_col = (f'list_min({sort_col})'
+                    if sort_order == SortOrder.ASC else f'list_max({sort_col})')
+
+      if path_is_udf:
+        sort_cols_after_udf.append(sort_col)
+      else:
         sort_cols_before_udf.append(sort_col)
 
     if sort_cols_before_udf:
