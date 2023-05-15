@@ -543,11 +543,16 @@ class DatasetDuckDB(Dataset):
     order_query = ''
     sort_by = [normalize_path(path) for path in (sort_by or [])]
     if sort_by and not sort_order:
-      raise ValueError('Sort order is undefined but sort by is defined. Please define a sort_order')
+      raise ValueError('`sort_order` is required when `sort_by` is specified.')
 
     sort_cols_before_udf: list[str] = []
     sort_cols_after_udf: list[str] = []
     for path in sort_by:
+      has_repeated_field = any(subpath == PATH_WILDCARD for subpath in path)
+      if has_repeated_field:
+        raise NotImplementedError(
+          f'Can not sort by "{path}" since repeated fields are not yet supported.')
+
       # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
       if str(path[0]) in udf_aliases:
         sort_col = _make_select_column(path, flatten=False, empty=False)
@@ -558,6 +563,9 @@ class DatasetDuckDB(Dataset):
         rest_of_path = path[1:]
         if first_subpath in col_aliases:
           path = (*col_aliases[first_subpath], *rest_of_path)
+
+        if path not in manifest.data_schema.leafs:
+          raise ValueError(f'Can not sort by "{path}" since it is not a leaf field.')
 
         sort_col, _ = self._create_select_column(
           Column(path), manifest, flatten=False, resolve_span=False, make_temp_alias=False)
@@ -651,8 +659,7 @@ class DatasetDuckDB(Dataset):
 
       if not already_sorted and sort_cols_after_udf:
         if not sort_order:
-          raise ValueError(
-            'Sort order is undefined but sort by is defined. Please define a sort_order')
+          raise ValueError('`sort_order` is required when `sort_by` is specified.')
         query = query.order(f'{", ".join(sort_cols_after_udf)} {sort_order.value}')
 
       if limit:

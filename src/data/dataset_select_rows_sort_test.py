@@ -84,10 +84,22 @@ class TestSignal(TextSignal):
       yield {'len': len(text_content), 'is_all_cap': text_content.isupper()}
 
 
+class TestPrimitiveSignal(TextSignal):
+  name = 'primitive_signal'
+
+  def fields(self) -> Field:
+    return field('int32')
+
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+    for text_content in data:
+      yield len(text_content) + 1
+
+
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(TestSignal)
+  register_signal(TestPrimitiveSignal)
   # Unit test runs.
   yield
   # Teardown.
@@ -284,3 +296,69 @@ def test_sort_by_udf_alias_no_repeated(make_test_data: TestDataMaker) -> None:
       'is_all_cap': False
     }
   }])
+
+
+def test_sort_by_primitive_udf_alias_no_repeated(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'HEY'
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'everyone'
+  }, {
+    UUID_COLUMN: '3',
+    'text': 'HI'
+  }])
+
+  # Equivalent to: SELECT `TestSignal(text) AS udf`.
+  text_udf = Column('text', signal_udf=TestPrimitiveSignal(), alias='udf')
+  # Sort by the primitive value returned by the udf.
+  result = dataset.select_rows(['*', text_udf], sort_by=['udf'], sort_order=SortOrder.ASC)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '3',
+    'text': 'HI',
+    'udf': 3
+  }, {
+    UUID_COLUMN: '1',
+    'text': 'HEY',
+    'udf': 4
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'everyone',
+    'udf': 9
+  }])
+
+
+def test_sort_by_source_non_leaf_errors(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'vals': [7, 1]
+  }, {
+    UUID_COLUMN: '2',
+    'vals': [3, 4]
+  }, {
+    UUID_COLUMN: '3',
+    'vals': [9, 0]
+  }])
+
+  # Sort by repeated.
+  with pytest.raises(ValueError, match='Can not sort by .* since it is not a leaf field'):
+    dataset.select_rows(columns=[UUID_COLUMN], sort_by=['vals'], sort_order=SortOrder.ASC)
+
+
+def test_sort_by_source_repeated_not_supported(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'vals': [7, 1]
+  }, {
+    UUID_COLUMN: '2',
+    'vals': [3, 4]
+  }, {
+    UUID_COLUMN: '3',
+    'vals': [9, 0]
+  }])
+
+  # Sort by repeated.
+  with pytest.raises(
+      NotImplementedError, match='Can not sort .* since repeated fields are not yet supported'):
+    dataset.select_rows(columns=[UUID_COLUMN], sort_by=['vals.*'], sort_order=SortOrder.ASC)
