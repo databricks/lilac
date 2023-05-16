@@ -844,6 +844,10 @@ class DatasetDuckDB(Dataset):
     for col in cols:
       dest_path = _col_destination_path(col)
       if col.signal_udf:
+        # Prepare the dependencies of this signal.
+        col.path = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=True)
+        dest_path = _col_destination_path(col)
+
         field = col.signal_udf.fields()
         field.signal = col.signal_udf.dict()
       else:
