@@ -46,7 +46,7 @@
           value: f,
           tag:
             filters.length > 0
-              ? {value: filters.length, type: 'blue' as TagProps['type']}
+              ? {value: filters.length.toString(), type: 'blue' as TagProps['type']}
               : undefined
         };
       })
