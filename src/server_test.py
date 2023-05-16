@@ -192,7 +192,7 @@ def test_select_rows_star_plus_udf() -> None:
     UUID_COLUMN: '1',
     'erased': False,
     'people': [{
-      'name': lilac_item('A', {'length_signal(signal_name=length_signal)': 1}),
+      'name': lilac_item('A', {'length_signal': 1}),
       'zipcode': 0,
       'locations': [{
         'city': 'city1',
@@ -206,7 +206,7 @@ def test_select_rows_star_plus_udf() -> None:
     UUID_COLUMN: '2',
     'erased': True,
     'people': [{
-      'name': lilac_item('B', {'length_signal(signal_name=length_signal)': 1}),
+      'name': lilac_item('B', {'length_signal': 1}),
       'zipcode': 1,
       'locations': [{
         'city': 'city3',
@@ -217,7 +217,7 @@ def test_select_rows_star_plus_udf() -> None:
         'city': 'city5'
       }]
     }, {
-      'name': lilac_item('C', {'length_signal(signal_name=length_signal)': 1}),
+      'name': lilac_item('C', {'length_signal': 1}),
       'zipcode': 2,
       'locations': [{
         'city': 'city1',

@@ -796,7 +796,6 @@ class DatasetDuckDB(Dataset):
       for temp_col_name, column in temp_columns.items():
         if combine_columns:
           dest_path = _col_destination_path(column)
-          print('dest_path', dest_path)
           spec = _split_path_into_subpaths_of_lists(dest_path)
           df[temp_col_name] = wrap_in_dicts(df[temp_col_name], spec)
 
@@ -1171,8 +1170,6 @@ def _col_destination_path(column: Column) -> PathTuple:
     return source_path
 
   signal_key = column.signal_udf.key()
-  print('/////////////////////////')
-  print('signal_key', signal_key)
   # If we are enriching a value we should store the signal data in the value's parent.
   if source_path[-1] == VALUE_KEY:
     dest_path = (*source_path[:-1], signal_key)
