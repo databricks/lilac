@@ -1,6 +1,6 @@
 """Tests for dataset.compute_signal()."""
 
-from typing import Iterable, Optional, cast
+from typing import Iterable, Optional, Union, cast
 
 import numpy as np
 import pytest
@@ -152,13 +152,15 @@ class TestSplitSignal(TextSplitterSignal):
       ]
 
 
-EMBEDDINGS: list[tuple[str, list[float]]] = [
+EMBEDDINGS: list[tuple[str, Union[list[float], list[list[float]]]]] = [
   ('hello.', [1.0, 0.0, 0.0]),
   # This embedding has an outer dimension of 1.
   ('hello2.', [[1.0, 1.0, 0.0]])
 ]
 
-STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
+STR_EMBEDDINGS: dict[str, Union[list[float], list[list[float]]]] = {
+  text: embedding for text, embedding in EMBEDDINGS
+}
 
 
 class TestEmbedding(TextEmbeddingSignal):
