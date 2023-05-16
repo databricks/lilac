@@ -57,7 +57,7 @@ class TaskManager():
     # is particularly useful for signals that use libraries with multiprocessing support.
     dask.config.set({'distributed.worker.daemon': False})
 
-    self._dask_client = dask_client or Client(asynchronous=True)
+    self._dask_client = dask_client or Client(asynchronous=True, memory_limit='16 GB')
 
   async def manifest(self) -> TaskManifest:
     """Get all tasks."""

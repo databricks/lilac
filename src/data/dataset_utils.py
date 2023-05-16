@@ -132,10 +132,9 @@ def _flatten(input: Union[Iterable, object], is_primitive_predicate: Callable[[o
 
 
 def flatten(input: Union[Iterable, Tflatten],
-            is_primitive_predicate: Callable[[object], bool] = is_primitive) -> list[Tflatten]:
+            is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Iterable[Tflatten]:
   """Flattens a nested iterable."""
-  return list(_flatten(input, is_primitive_predicate))
-
+  return _flatten(input, is_primitive_predicate)
 
 def _wrap_value_in_dict(input: Union[object, dict], props: PathTuple) -> Union[object, dict]:
   # If the signal produced no value, or nan, we should return None so the parquet value is sparse.
