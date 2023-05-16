@@ -17,7 +17,7 @@ from pydantic import (
 
 from ..schema import VALUE_KEY, Path, PathTuple, Schema, normalize_path
 from ..signals.concept_scorer import ConceptScoreSignal
-from ..signals.signal import Signal
+from ..signals.signal import Signal, resolve_signal
 from ..tasks import TaskId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -122,6 +122,13 @@ class Column(BaseModel):
                **kwargs: Any):
     """Initialize a column. We override __init__ to allow positional arguments for brevity."""
     super().__init__(path=normalize_path(path), alias=alias, signal_udf=signal_udf, **kwargs)
+
+  @validator('signal_udf', pre=True)
+  def parse_signal_udf(cls, signal_udf: Optional[dict]) -> Optional[Signal]:
+    """Parse a signal to its specific subclass instance."""
+    if not signal_udf:
+      return None
+    return resolve_signal(signal_udf)
 
 
 ColumnId = Union[Path, Column]

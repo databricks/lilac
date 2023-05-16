@@ -1,17 +1,18 @@
 """Test our public REST API."""
-from typing import Generator, Type
+from typing import Generator, Iterable, Optional, Type
 
 import pytest
 from fastapi.testclient import TestClient
 
 from .config import CONFIG
-from .data.dataset import Dataset, DatasetManifest
+from .data.dataset import Column, Dataset, DatasetManifest
 from .data.dataset_duckdb import DatasetDuckDB
 from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_dataset
-from .data.dataset_utils import lilac_items
+from .data.dataset_utils import lilac_item, lilac_items
 from .router_dataset import SelectRowsOptions, SelectRowsSchemaOptions, WebManifest
-from .schema import UUID_COLUMN, Item, Schema, schema
+from .schema import UUID_COLUMN, Field, Item, RichData, Schema, SignalOut, field, schema
 from .server import app
+from .signals.signal import TextSignal, clear_signal_registry, register_signal
 
 client = TestClient(app)
 
@@ -57,6 +58,16 @@ TEST_DATA: list[Item] = [{
   UUID_COLUMN: '3',
   'erased': True,
 }]
+
+
+@pytest.fixture(scope='module', autouse=True)
+def setup_teardown() -> Iterable[None]:
+  # Setup.
+  register_signal(LengthSignal)
+  # Unit test runs.
+  yield
+  # Teardown.
+  clear_signal_registry()
 
 
 @pytest.fixture(scope='module', autouse=True, params=DATASET_CLASSES)
@@ -155,7 +166,67 @@ def test_select_rows_with_cols_and_combine() -> None:
       }]
     }]
   }, {
-    UUID_COLUMN: '3'
+    UUID_COLUMN: '3',
+    'people': None
+  }])
+
+
+class LengthSignal(TextSignal):
+  name = 'length_signal'
+
+  def fields(self) -> Field:
+    return field('int32')
+
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+    for text_content in data:
+      yield len(text_content) if text_content is not None else None
+
+
+def test_select_rows_star_plus_udf() -> None:
+  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
+  udf = Column('people.*.name', alias='len', signal_udf=LengthSignal())
+  options = SelectRowsOptions(columns=['*', udf], combine_columns=True)
+  response = client.post(url, json=options.dict())
+  assert response.status_code == 200
+  assert response.json() == lilac_items([{
+    UUID_COLUMN: '1',
+    'erased': False,
+    'people': [{
+      'name': lilac_item('A', {'length_signal(signal_name=length_signal)': 1}),
+      'zipcode': 0,
+      'locations': [{
+        'city': 'city1',
+        'state': 'state1'
+      }, {
+        'city': 'city2',
+        'state': 'state2'
+      }]
+    }]
+  }, {
+    UUID_COLUMN: '2',
+    'erased': True,
+    'people': [{
+      'name': lilac_item('B', {'length_signal(signal_name=length_signal)': 1}),
+      'zipcode': 1,
+      'locations': [{
+        'city': 'city3',
+        'state': 'state3'
+      }, {
+        'city': 'city4'
+      }, {
+        'city': 'city5'
+      }]
+    }, {
+      'name': lilac_item('C', {'length_signal(signal_name=length_signal)': 1}),
+      'zipcode': 2,
+      'locations': [{
+        'city': 'city1',
+        'state': 'state1'
+      }]
+    }]
+  }, {
+    UUID_COLUMN: '3',
+    'erased': True,
   }])
 
 

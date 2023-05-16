@@ -113,12 +113,6 @@ class DuckDBSelectGroupsResult(SelectGroupsResult):
 
   def __init__(self, df: pd.DataFrame) -> None:
     """Initialize the result."""
-    # DuckDB returns np.nan for missing field in string column, replace with None for correctness.
-    value_column = 'value'
-    # TODO(https://github.com/duckdb/duckdb/issues/4066): Remove this once duckdb fixes upstream.
-    if is_object_dtype(df[value_column]):
-      df[value_column].replace(np.nan, None, inplace=True)
-
     self._df = df
 
   @override
@@ -703,7 +697,7 @@ class DatasetDuckDB(Dataset):
       query = query.limit(limit, offset or 0)
 
     # Download the data so we can run UDFs on it in Python.
-    df = query.df()
+    df = _replace_nan_with_none(query.df())
 
     already_sorted = False
 
@@ -789,7 +783,7 @@ class DatasetDuckDB(Dataset):
       if limit:
         query = query.limit(limit, offset or 0)
 
-      df = query.df()
+      df = _replace_nan_with_none(query.df())
 
     if combine_columns:
       all_columns: dict[str, Column] = {}
@@ -822,11 +816,6 @@ class DatasetDuckDB(Dataset):
       # Since we aliased every column to `*`, the object with have only '*' as the key. We need to
       # elevate the all the columns under '*'.
       df = pd.DataFrame.from_records(df['*'])
-
-    # DuckDB returns np.nan for missing field in string column, replace with None for correctness.
-    for col in df.columns:
-      if is_object_dtype(df[col]):
-        df[col].replace(np.nan, None, inplace=True)
 
     return SelectRowsResult(df)
 
@@ -999,7 +988,7 @@ class DatasetDuckDB(Dataset):
   def _query_df(self, query: str) -> pd.DataFrame:
     """Execute a query that returns a dataframe."""
     result = self._execute(query)
-    df = result.df()
+    df = _replace_nan_with_none(result.df())
     result.close()
     return df
 
@@ -1223,3 +1212,12 @@ def _make_schema_from_path(path: PathTuple, field: Field) -> Schema:
     else:
       field = Field(fields={sub_path: field})
   return Schema(fields=field.fields)
+
+
+def _replace_nan_with_none(df: pd.DataFrame) -> pd.DataFrame:
+  """DuckDB returns np.nan for missing field in string column, replace with None for correctness."""
+  # TODO(https://github.com/duckdb/duckdb/issues/4066): Remove this once duckdb fixes upstream.
+  for col in df.columns:
+    if is_object_dtype(df[col]):
+      df[col].replace(np.nan, None, inplace=True)
+  return df
