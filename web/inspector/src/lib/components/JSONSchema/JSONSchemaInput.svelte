@@ -1,6 +1,6 @@
 <script lang="ts">
   /* eslint-disable @typescript-eslint/no-explicit-any */
-  import {NumberInput, TextInput, Toggle} from 'carbon-components-svelte';
+  import {NumberInput, Select, SelectItem, TextInput, Toggle} from 'carbon-components-svelte';
   import type {Draft, JSONError} from 'json-schema-library';
   import type {SvelteComponent} from 'svelte';
   import SvelteMarkdown from 'svelte-markdown';
@@ -63,6 +63,18 @@
       invalid={!!validation.length}
       invalidText={validationText}
     />
+  {:else if property.type == 'error'}
+    <!-- Error -->
+    <div class="text-red-600">{property.message}</div>
+  {:else if property.enum}
+    <Select bind:value name={path} helperText={property.description} labelText={label}>
+      {#if !required}
+        <SelectItem value={undefined} text={'not set'} />
+      {/if}
+      {#each property.enum as item}
+        <SelectItem value={item} />
+      {/each}
+    </Select>
   {:else if property.type == 'string'}
     <!-- Text Input -->
     <TextInput
@@ -117,9 +129,6 @@
         required={property.required?.includes(key)}
       />
     {/each}
-  {:else if property.type == 'error'}
-    <!-- Error -->
-    <div class="text-red-600">{property.message}</div>
   {:else}
     Unknown property: {JSON.stringify(property)}
   {/if}
