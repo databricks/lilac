@@ -276,7 +276,11 @@ def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], 
     return isinstance(input, np.ndarray)
 
   flat_keys = flatten_keys(keys, embeddings, is_primitive_predicate=embedding_predicate)
-  flat_embeddings = np.array(list(flatten(embeddings, is_primitive_predicate=embedding_predicate)))
+  embedding_vectors = list(
+    # Remove extra outer dimensions of 1.
+    (np.squeeze(embedding)
+     for embedding in flatten(embeddings, is_primitive_predicate=embedding_predicate)))
+  flat_embeddings = np.array(embedding_vectors)
 
   # Write the embedding index and the ordered UUID column to disk so they can be joined later.
   np_keys = np.empty(len(flat_keys), dtype=object)
