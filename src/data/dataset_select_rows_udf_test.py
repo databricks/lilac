@@ -23,12 +23,13 @@ from ..signals.signal import (
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSignal,
+  TextSplitterSignal,
   clear_signal_registry,
   register_signal,
 )
 from .dataset import BinaryFilterTuple, BinaryOp, Column, val
 from .dataset_test_utils import TestDataMaker
-from .dataset_utils import lilac_item, lilac_items, signal_item
+from .dataset_utils import lilac_item, lilac_items, lilac_span, signal_item
 
 EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
                                              ('hello2.', [1.0, 1.0, 0.0]),
@@ -101,6 +102,7 @@ class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
 def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(LengthSignal)
+  register_signal(TestSplitter)
   register_signal(TestEmbedding)
   register_signal(TestSignal)
   register_signal(TestEmbeddingSumSignal)
@@ -342,3 +344,52 @@ def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
 
   with pytest.raises(ValueError, match='Embedding signal "test_embedding" is not computed'):
     dataset.select_rows([val('text'), signal_col])
+
+
+class TestSplitter(TextSplitterSignal):
+  """Split documents into sentence by splitting on period."""
+  name = 'test_splitter'
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
+    for text in data:
+      if not isinstance(text, str):
+        raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
+      result: list[Item] = []
+      for sentence in text.split('.'):
+        start = text.index(sentence)
+        end = start + len(sentence)
+        result.append(signal_item(lilac_span(start, end)))
+      yield result
+
+
+def test_udf_on_top_of_precomputed_split(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'sentence 1. sentence 2 is longer',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'sentence 1 is longer. sent2 is short',
+  }])
+  dataset.compute_signal(TestSplitter(), 'text')
+  udf = Column('text', signal_udf=LengthSignal(split='test_splitter'))
+  result = dataset.select_rows(['*', udf], combine_columns=True)
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '1',
+    'text': lilac_item(
+      'sentence 1. sentence 2 is longer', {
+        'test_splitter': [
+          lilac_item(lilac_span(0, 10), {'length_signal': 10}),
+          lilac_item(lilac_span(11, 32), {'length_signal': 21})
+        ]
+      })
+  }, {
+    UUID_COLUMN: '2',
+    'text': lilac_item(
+      'sentence 1 is longer. sent2 is short', {
+        'test_splitter': [
+          lilac_item(lilac_span(0, 20), {'length_signal': 20}),
+          lilac_item(lilac_span(21, 36), {'length_signal': 15})
+        ]
+      })
+  }])

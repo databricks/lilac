@@ -613,7 +613,7 @@ class DatasetDuckDB(Dataset):
         columns_to_merge[final_col_name] = {}
 
       duckdb_paths = self._column_to_duckdb_paths(column)
-      span_from = self._get_span_from(path) if resolve_span else None
+      span_from = self._get_span_from(path) if resolve_span or column.signal_udf else None
 
       for parquet_id, duckdb_path in duckdb_paths:
         sql = _select_sql(
