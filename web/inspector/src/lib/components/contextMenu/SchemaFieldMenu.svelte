@@ -31,3 +31,13 @@
 />
 
 <OverflowMenuItem text="Sort by" on:click={() => datasetViewStore.addSortBy(field.path)} />
+<OverflowMenuItem
+  text="Filter"
+  on:click={() =>
+    triggerCommand({
+      command: Command.EditFilter,
+      namespace: $page.params.namespace,
+      datasetName: $page.params.datasetName,
+      path: field.path
+    })}
+/>

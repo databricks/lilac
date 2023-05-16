@@ -132,9 +132,17 @@ def _flatten(input: Union[Iterable, object], is_primitive_predicate: Callable[[o
 
 
 def flatten(input: Union[Iterable, Tflatten],
-            is_primitive_predicate: Callable[[object], bool] = is_primitive) -> list[Tflatten]:
+            is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Iterable[Tflatten]:
   """Flattens a nested iterable."""
-  return list(_flatten(input, is_primitive_predicate))
+  return _flatten(input, is_primitive_predicate)
+
+
+def count_primitives(input: Iterable) -> int:
+  """Iterate through each element of the input, flattening each one, computing a count.
+
+  Sum the final set of counts. This is the important iterable not to exhaust.
+  """
+  return sum((len(list(flatten(i))) for i in input))
 
 
 def _wrap_value_in_dict(input: Union[object, dict], props: PathTuple) -> Union[object, dict]:
@@ -268,7 +276,7 @@ def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], 
     return isinstance(input, np.ndarray)
 
   flat_keys = flatten_keys(keys, embeddings, is_primitive_predicate=embedding_predicate)
-  flat_embeddings = np.array(flatten(embeddings, is_primitive_predicate=embedding_predicate))
+  flat_embeddings = np.array(list(flatten(embeddings, is_primitive_predicate=embedding_predicate)))
 
   # Write the embedding index and the ordered UUID column to disk so they can be joined later.
   np_keys = np.empty(len(flat_keys), dtype=object)

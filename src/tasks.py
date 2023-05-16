@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
 
 import dask
+import psutil
 from dask.distributed import Client, Variable
 from distributed import Future, get_worker
 from pydantic import BaseModel
@@ -57,7 +58,9 @@ class TaskManager():
     # is particularly useful for signals that use libraries with multiprocessing support.
     dask.config.set({'distributed.worker.daemon': False})
 
-    self._dask_client = dask_client or Client(asynchronous=True)
+    total_memory_gb = psutil.virtual_memory().total / (1024**3)
+    self._dask_client = dask_client or Client(
+      asynchronous=True, memory_limit=f'{total_memory_gb} GB')
 
   async def manifest(self) -> TaskManifest:
     """Get all tasks."""

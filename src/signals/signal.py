@@ -102,7 +102,7 @@ class Signal(abc.ABC, BaseModel):
     NOTE: Overriding this method is sensitive. If you override it, make sure that it is globally
     unique. It will be used as the dictionary key for enriched values.
     """
-    args_dict = self.dict(exclude_unset=True)
+    args_dict = self.dict(exclude_unset=True, exclude_defaults=True)
     # If a user explicitly defines a signal name for whatever reason, remove it as it's redundant.
     if 'signal_name' in args_dict:
       del args_dict['signal_name']

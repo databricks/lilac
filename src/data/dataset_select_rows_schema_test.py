@@ -3,11 +3,23 @@
 from typing import Iterable, Optional, cast
 
 import pytest
+from typing_extensions import override
 
-from ..schema import UUID_COLUMN, Field, Item, RichData, SignalOut, field, schema, signal_field
-from ..signals.signal import TextSignal, clear_signal_registry, register_signal
+from ..schema import (
+  UUID_COLUMN,
+  Field,
+  Item,
+  ItemValue,
+  RichData,
+  SignalOut,
+  field,
+  schema,
+  signal_field,
+)
+from ..signals.signal import TextSignal, TextSplitterSignal, clear_signal_registry, register_signal
 from .dataset import Column
 from .dataset_test_utils import TestDataMaker
+from .dataset_utils import lilac_span, signal_item
 
 TEST_DATA: list[Item] = [{
   UUID_COLUMN: '1',
@@ -48,11 +60,28 @@ TEST_DATA: list[Item] = [{
 }]
 
 
+class TestSplitter(TextSplitterSignal):
+  """Split documents into sentence by splitting on period."""
+  name = 'test_splitter'
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
+    for text in data:
+      if not isinstance(text, str):
+        raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
+      sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
+      yield [
+        signal_item(lilac_span(text.index(sentence),
+                               text.index(sentence) + len(sentence))) for sentence in sentences
+      ]
+
+
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(LengthSignal)
   register_signal(AddSpaceSignal)
+  register_signal(TestSplitter)
 
   # Unit test runs.
   yield
@@ -186,4 +215,37 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
         },
         dtype='string')
     }],
+  })
+
+
+def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello. hello2.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello world. hello world2.',
+  }])
+
+  test_splitter = TestSplitter()
+  dataset.compute_signal(test_splitter, ('text'))
+  add_space_signal = AddSpaceSignal(split='test_splitter')
+  result = dataset.select_rows_schema(
+    [('text'), Column(('text'), signal_udf=add_space_signal)], combine_columns=True)
+
+  assert result == schema({
+    UUID_COLUMN: 'string',
+    'text': field(
+      {
+        'test_splitter': signal_field(
+          fields=[
+            signal_field(
+              dtype='string_span',
+              fields={
+                'add_space_signal': signal_field(dtype='string', signal=add_space_signal.dict())
+              })
+          ],
+          signal=test_splitter.dict())
+      },
+      dtype='string')
   })
