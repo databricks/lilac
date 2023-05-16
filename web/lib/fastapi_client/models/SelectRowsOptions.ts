@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { Column } from './Column';
-import type { FilterREST } from './FilterREST';
+import type { Filter } from './Filter';
 import type { SortOrder } from './SortOrder';
 
 /**
@@ -11,7 +11,7 @@ import type { SortOrder } from './SortOrder';
  */
 export type SelectRowsOptions = {
     columns?: Array<(Array<string> | string | Column)>;
-    filters?: Array<FilterREST>;
+    filters?: Array<Filter>;
     sort_by?: Array<(Array<string> | string)>;
     sort_order?: SortOrder;
     limit?: number;

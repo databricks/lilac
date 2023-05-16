@@ -6,7 +6,7 @@
     listFields,
     pathIsEqual,
     type BinaryOp,
-    type FilterREST,
+    type Filter,
     type LilacSchemaField,
     type Path,
     type UnaryOp
@@ -55,7 +55,7 @@
   $: defaultField = $schema.isSuccess ? getField($schema.data, command.path) : undefined;
 
   // Copy filters from query options
-  let stagedFilters: FilterREST[] = [];
+  let stagedFilters: Filter[] = [];
   onMount(() => {
     stagedFilters = structuredClone($datasetViewStore.queryOptions.filters || []);
   });

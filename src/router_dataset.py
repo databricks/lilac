@@ -7,18 +7,9 @@ from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, StrictStr, validator
 
 from .config import data_path
-from .data.dataset import (
-  BinaryOp,
-  Bins,
-  Column,
-  DatasetManifest,
-  FeatureValue,
-  Filter,
-  GroupsSortBy,
-  SortOrder,
-  StatsResult,
-  UnaryOp,
-)
+from .data.dataset import BinaryOp, Bins, Column, DatasetManifest, FeatureValue
+from .data.dataset import Filter as PyFilter
+from .data.dataset import GroupsSortBy, SortOrder, StatsResult, UnaryOp
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
 from .schema import PathTuple, Schema, normalize_path
@@ -140,7 +131,7 @@ def get_stats(namespace: str, dataset_name: str, options: GetStatsOptions) -> St
 PathREST = Union[tuple[StrictStr, ...], StrictStr]
 
 
-class FilterREST(BaseModel):
+class Filter(BaseModel):
   """A filter on a column."""
   path: PathREST  # This can be pure string and we need to split on dot.
   op: Union[BinaryOp, UnaryOp]
@@ -150,7 +141,7 @@ class FilterREST(BaseModel):
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
   columns: Optional[Sequence[Union[PathREST, Column]]]
-  filters: Optional[Sequence[FilterREST]]
+  filters: Optional[Sequence[Filter]]
   sort_by: Optional[Sequence[PathREST]]
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int]
@@ -170,7 +161,7 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   dataset = get_dataset(namespace, dataset_name)
 
   sanitized_filters = [
-    Filter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
+    PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
   ]
   items = list(
     dataset.select_rows(
@@ -196,7 +187,7 @@ def select_rows_schema(namespace: str, dataset_name: str,
 class SelectGroupsOptions(BaseModel):
   """The request for the select groups endpoint."""
   leaf_path: PathTuple
-  filters: Optional[list[Filter]]
+  filters: Optional[Sequence[Filter]]
   sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int] = 100
@@ -208,7 +199,10 @@ def select_groups(namespace: str, dataset_name: str,
                   options: SelectGroupsOptions) -> list[tuple[Any, int]]:
   """Select groups from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
-  result = dataset.select_groups(options.leaf_path, options.filters, options.sort_by,
+  sanitized_filters = [
+    PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
+  ]
+  result = dataset.select_groups(options.leaf_path, sanitized_filters, options.sort_by,
                                  options.sort_order, options.limit, options.bins)
   return list(result)
 
