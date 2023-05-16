@@ -80,12 +80,16 @@ class BinaryOp(str, enum.Enum):
   GREATER_EQUAL = 'greater_equal'
   LESS = 'less'
   LESS_EQUAL = 'less_equal'
-  IN = 'in'
 
 
 class UnaryOp(str, enum.Enum):
   """A unary operator on a feature."""
   EXISTS = 'exists'
+
+
+class ListOp(str, enum.Enum):
+  """A list operator on a feature."""
+  IN = 'in'
 
 
 class SortOrder(str, enum.Enum):
@@ -172,8 +176,10 @@ def column_from_identifier(column: ColumnId) -> Column:
   return Column(path=column)
 
 
-FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes, list[StrictStr]]
+FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes]
+FeatureListValue = list[StrictStr]
 BinaryFilterTuple = tuple[Path, BinaryOp, FeatureValue]
+ListFilterTuple = tuple[Path, ListOp, FeatureListValue]
 UnaryFilterTuple = tuple[Path, UnaryOp]
 
 
@@ -184,7 +190,7 @@ class Filter(BaseModel):
   value: Optional[FeatureValue] = None
 
 
-FilterLike = Union[Filter, BinaryFilterTuple, UnaryFilterTuple]
+FilterLike = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListFilterTuple]
 
 
 class Dataset(abc.ABC):

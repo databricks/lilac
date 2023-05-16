@@ -5,13 +5,17 @@
     getField,
     listFields,
     pathIsEqual,
+    type BinaryFilter,
     type BinaryOp,
-    type Filter,
     type LilacSchemaField,
+    type ListFilter,
+    type ListOp,
     type Path,
+    type UnaryFilter,
     type UnaryOp
   } from '$lilac';
   import {
+    Checkbox,
     ComposedModal,
     ModalBody,
     ModalFooter,
@@ -55,7 +59,7 @@
   $: defaultField = $schema.isSuccess ? getField($schema.data, command.path) : undefined;
 
   // Copy filters from query options
-  let stagedFilters: Filter[] = [];
+  let stagedFilters: (UnaryFilter | ListFilter | BinaryFilter)[] = [];
   onMount(() => {
     stagedFilters = structuredClone($datasetViewStore.queryOptions.filters || []);
   });
@@ -64,9 +68,18 @@
     pathIsEqual(f.path as Path, selectedField?.path)
   );
 
+  // Ensure that exists ops have null value
+  $: {
+    for (const filter of stagedFilters) {
+      if (filter.op === 'exists') {
+        filter.value = null;
+      }
+    }
+  }
+
   let selectedField: LilacSchemaField | undefined = undefined;
 
-  const operations: [BinaryOp | UnaryOp, string][] = [
+  const operations: [BinaryOp | UnaryOp | ListOp, string][] = [
     ['equals', 'equals (=)'],
     ['not_equal', 'not equal (!=)'],
     ['greater', 'greater than (>)'],
@@ -104,10 +117,16 @@
                   <SelectItem value={op[0]} text={op[1]} />
                 {/each}
               </Select>
-              {#if typeof filter.value === 'string'}
-                <TextInput labelText="Value" bind:value={filter.value} />
+              {#if filter.op === 'exists'}
+                <!-- Dont show any seconday input -->
+              {:else if filter.op === 'in'}
+                <span>In operator not yet implemented</span>
+              {:else if typeof filter.value === 'boolean'}
+                <Checkbox />
+              {:else if typeof filter.value === 'function'}
+                <span>Blob filter not yet implemented</span>
               {:else}
-                <TextInput labelText="Value" value="Unsuported type" disabled />
+                <TextInput labelText="Value" bind:value={filter.value} />
               {/if}
               <button
                 class="mt-5"

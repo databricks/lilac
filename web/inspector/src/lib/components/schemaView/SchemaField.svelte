@@ -8,6 +8,7 @@
     type BinaryOp,
     type LilacSchema,
     type LilacSchemaField,
+    type ListOp,
     type Path,
     type UnaryOp
   } from '$lilac';
@@ -25,7 +26,7 @@
   export let field: LilacSchemaField;
   export let indent = 0;
 
-  const FILTER_SHORTHANDS: Record<BinaryOp | UnaryOp, string> = {
+  const FILTER_SHORTHANDS: Record<BinaryOp | UnaryOp | ListOp, string> = {
     equals: '=',
     not_equal: '!=',
     less: '<',
@@ -137,7 +138,7 @@
         {#if filters.length > 1}
           Filtered
         {:else}
-          {FILTER_SHORTHANDS[filters[0].op]} {filters[0].value}
+          {FILTER_SHORTHANDS[filters[0].op]} {filters[0].value ?? ''}
         {/if}
       </RemovableTag>
     {/if}

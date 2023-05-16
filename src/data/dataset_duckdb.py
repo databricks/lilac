@@ -59,10 +59,12 @@ from .dataset import (
   ColumnId,
   Dataset,
   DatasetManifest,
+  FeatureListValue,
   FeatureValue,
   Filter,
   FilterLike,
   GroupsSortBy,
+  ListOp,
   MediaResult,
   NamedBins,
   SelectGroupsResult,
@@ -105,7 +107,6 @@ BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
   BinaryOp.GREATER_EQUAL: '>=',
   BinaryOp.LESS: '<',
   BinaryOp.LESS_EQUAL: '<=',
-  BinaryOp.IN: 'in',
 }
 
 
@@ -942,6 +943,7 @@ class DatasetDuckDB(Dataset):
     filter_queries: list[str] = []
     binary_ops = set(BinaryOp)
     unary_ops = set(UnaryOp)
+    list_ops = set(ListOp)
     for filter in filters:
       duckdb_path = self._leaf_path_to_duckdb_path(filter.path)
       select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
@@ -949,12 +951,7 @@ class DatasetDuckDB(Dataset):
       if filter.op in binary_ops:
         op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
         filter_val = cast(FeatureValue, filter.value)
-        if isinstance(filter_val, list):
-          if op != 'in':
-            raise ValueError('filter with array value can only use the IN comparison')
-          wrapped_filter_val = [f"'{part}'" for part in filter_val]
-          filter_val = f'({", ".join(wrapped_filter_val)})'
-        elif isinstance(filter_val, str):
+        if isinstance(filter_val, str):
           filter_val = f"'{filter_val}'"
         elif isinstance(filter_val, bytes):
           filter_val = _bytes_to_blob_literal(filter_val)
@@ -967,6 +964,14 @@ class DatasetDuckDB(Dataset):
           filter_query = f'len({select_str}) > 0' if is_array else f'{select_str} IS NOT NULL'
         else:
           raise ValueError(f'Unary op: {filter.op} is not yet supported')
+      elif filter.op in list_ops:
+        if filter.op == ListOp.IN:
+          filter_list_val = cast(FeatureListValue, filter.value)
+          if not isinstance(filter_list_val, list):
+            raise ValueError('filter with array value can only use the IN comparison')
+          wrapped_filter_val = [f"'{part}'" for part in filter_list_val]
+          filter_val = f'({", ".join(wrapped_filter_val)})'
+          filter_query = f'{select_str} IN {filter_val}'
       else:
         raise ValueError(f'Invalid filter op: {filter.op}')
       filter_queries.append(filter_query)

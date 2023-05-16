@@ -7,9 +7,9 @@ from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, StrictStr, validator
 
 from .config import data_path
-from .data.dataset import BinaryOp, Bins, Column, DatasetManifest, FeatureValue
+from .data.dataset import BinaryOp, Bins, Column, DatasetManifest, FeatureListValue, FeatureValue
 from .data.dataset import Filter as PyFilter
-from .data.dataset import GroupsSortBy, SortOrder, StatsResult, UnaryOp
+from .data.dataset import GroupsSortBy, ListOp, SortOrder, StatsResult, UnaryOp
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
 from .schema import PathTuple, Schema, normalize_path
@@ -131,11 +131,28 @@ def get_stats(namespace: str, dataset_name: str, options: GetStatsOptions) -> St
 PathREST = Union[tuple[StrictStr, ...], StrictStr]
 
 
-class Filter(BaseModel):
+class BinaryFilter(BaseModel):
   """A filter on a column."""
-  path: PathREST  # This can be pure string and we need to split on dot.
-  op: Union[BinaryOp, UnaryOp]
-  value: Optional[FeatureValue] = None
+  path: PathREST
+  op: BinaryOp
+  value: FeatureValue
+
+
+class UnaryFilter(BaseModel):
+  """A filter on a column."""
+  path: PathREST
+  op: UnaryOp
+  value: None = None
+
+
+class ListFilter(BaseModel):
+  """A filter on a column."""
+  path: PathREST
+  op: ListOp
+  value: FeatureListValue
+
+
+Filter = Union[BinaryFilter, UnaryFilter, ListFilter]
 
 
 class SelectRowsOptions(BaseModel):

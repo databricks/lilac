@@ -3,7 +3,7 @@
 import pytest
 
 from ..schema import UUID_COLUMN, Item, schema
-from .dataset import BinaryFilterTuple, BinaryOp, UnaryOp
+from .dataset import BinaryFilterTuple, BinaryOp, ListFilterTuple, ListOp, UnaryOp
 from .dataset_test_utils import TestDataMaker
 from .dataset_utils import lilac_items
 
@@ -62,7 +62,7 @@ def test_filter_by_ids(make_test_data: TestDataMaker) -> None:
 def test_filter_by_list_of_ids(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
-  id_filter: BinaryFilterTuple = (UUID_COLUMN, BinaryOp.IN, ['1', '2'])
+  id_filter: ListFilterTuple = (UUID_COLUMN, ListOp.IN, ['1', '2'])
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == lilac_items([{
