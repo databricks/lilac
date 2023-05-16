@@ -5320,6 +5320,8 @@ python-versions = ">=3.8"
 files = [
     {file = "tensorflow_macos-2.12.0-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:db464c88e10e927725997f9b872a21c9d057789d3b7e9a26e4ef1af41d0bcc8c"},
     {file = "tensorflow_macos-2.12.0-cp310-cp310-macosx_12_0_x86_64.whl", hash = "sha256:172277c33cb1ae0da19f98c5bcd4946149cfa73c8ea05c6ba18365d58dd3c6f2"},
+    {file = "tensorflow_macos-2.12.0-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:9c9b14fbb73ec4cb0f209722a1489020fd8614c92ae22589f2309c48cefdf21f"},
+    {file = "tensorflow_macos-2.12.0-cp311-cp311-macosx_12_0_x86_64.whl", hash = "sha256:6a54539bd076746f69ae8bef7282f981674fe4dbf59c3a84c4af86ae6bae9d5c"},
     {file = "tensorflow_macos-2.12.0-cp38-cp38-macosx_12_0_arm64.whl", hash = "sha256:e3fa53e63672fd71998bbd71cc5478c74dbe5a2d9291d1801c575358c28403c2"},
     {file = "tensorflow_macos-2.12.0-cp38-cp38-macosx_12_0_x86_64.whl", hash = "sha256:5499312c21ed3ed47cc6b4cf861896e9564c2c32d8d3c2ef1437c5ca31adfc73"},
     {file = "tensorflow_macos-2.12.0-cp39-cp39-macosx_12_0_arm64.whl", hash = "sha256:84cb873c90be63efabfecca53fdc48b734a037d0750532b55cb7ce7c343b5cac"},
@@ -5376,6 +5378,8 @@ python-versions = "*"
 files = [
     {file = "tensorflow_metal-0.8.0-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:bbbb28df62e20d707420f4c52d04bf87f5e5990fa36ad3ad49cf43883b2a2e15"},
     {file = "tensorflow_metal-0.8.0-cp310-cp310-macosx_12_0_x86_64.whl", hash = "sha256:cafbfc62cd24cc6fbde64ab29a2981b87eee489534ba8f01e8609582312e62bd"},
+    {file = "tensorflow_metal-0.8.0-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:2a6a11a2f702153bb0b6bf44288ba7095b8e0999aba5c9aad219931a15ecf860"},
+    {file = "tensorflow_metal-0.8.0-cp311-cp311-macosx_12_0_x86_64.whl", hash = "sha256:6b75d4e519e763d710ed6eb6a20adf98034f1399251df288a410462f0712da32"},
     {file = "tensorflow_metal-0.8.0-cp38-cp38-macosx_12_0_arm64.whl", hash = "sha256:b6e6b0b516be4d52c9149436bdd99df85f1e6a3453ff811d59b5eef1e2368834"},
     {file = "tensorflow_metal-0.8.0-cp38-cp38-macosx_12_0_x86_64.whl", hash = "sha256:15d5fa9fec83c96940e8588e6b4140cda53f859778af713c617dc8be86025636"},
     {file = "tensorflow_metal-0.8.0-cp39-cp39-macosx_12_0_arm64.whl", hash = "sha256:8a4ef5f4804d4becf9c59d376512b1f160477e408c5d00cd4f647c6d64728531"},
@@ -5654,6 +5658,18 @@ python-versions = "*"
 files = [
     {file = "types-Pillow-9.5.0.4.tar.gz", hash = "sha256:f1b6af47abd151847ee25911ffeba784899bc7dc7f9eba8ca6a5aac522b012ef"},
     {file = "types_Pillow-9.5.0.4-py3-none-any.whl", hash = "sha256:69427d9fa4320ff6e30f00fb9c0dd71185dc0a16de4757774220104759483466"},
+]
+
+[[package]]
+name = "types-psutil"
+version = "5.9.5.12"
+description = "Typing stubs for psutil"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-psutil-5.9.5.12.tar.gz", hash = "sha256:61a91679d3fe737250013b624dca09375e7cc3ad77dcc734553746c429c02aca"},
+    {file = "types_psutil-5.9.5.12-py3-none-any.whl", hash = "sha256:e9a147b8561235c6afcce5aa1adb973fad9ab2c50cf89820697687f53510358f"},
 ]
 
 [[package]]
@@ -6410,4 +6426,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.9"
-content-hash = "6b387ec45709dafe0e191774f0a53eb0fbe4437fc9654c34c858e100dee877e8"
+content-hash = "e887e6ef35a2ad526cc0a06e62b4f10e36e42856a79e7a7f9ec9055a2f9dcbf2"

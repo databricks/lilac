@@ -74,6 +74,7 @@ from .dataset import (
   make_parquet_id,
 )
 from .dataset_utils import (
+  count_primitives,
   create_signal_schema,
   flatten,
   flatten_keys,
@@ -752,18 +753,20 @@ class DatasetDuckDB(Dataset):
               signal_out = progress(signal_out, task_id=task_id, estimated_len=len(flat_keys))
             df[signal_column] = lilac_items(unflatten(signal_out, input))
         else:
-          flat_input = cast(list[RichData], flatten(input))
+          num_rich_data = count_primitives(input)
+          flat_input = cast(Iterable[RichData], flatten(input))
           signal_out = signal.compute(flat_input)
           # Add progress.
           if task_id is not None:
-            signal_out = progress(signal_out, task_id=task_id, estimated_len=len(flat_input))
+            signal_out = progress(signal_out, task_id=task_id, estimated_len=num_rich_data)
           signal_out = list(signal_out)
 
-          if len(signal_out) != len(flat_input):
+          if len(signal_out) != num_rich_data:
             raise ValueError(
               f'The signal generated {len(signal_out)} values but the input data had '
-              f"{len(flat_input)} values. This means the signal either didn't generate a "
+              f"{num_rich_data} values. This means the signal either didn't generate a "
               '"None" for a sparse output, or generated too many items.')
+
           df[signal_column] = lilac_items(unflatten(signal_out, input))
 
     if udf_filters or sort_cols_after_udf:

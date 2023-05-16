@@ -5,15 +5,18 @@
     VALUE_KEY,
     isSignalField,
     pathIsEqual,
+    type BinaryOp,
     type LilacSchema,
     type LilacSchemaField,
-    type Path
+    type Path,
+    type UnaryOp
   } from '$lilac';
   import {Checkbox, Tag} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
   import SortAscending from 'carbon-icons-svelte/lib/SortAscending.svelte';
   import SortDescending from 'carbon-icons-svelte/lib/SortDescending.svelte';
   import {slide} from 'svelte/transition';
+  import {Command, triggerCommand} from '../commands/Commands.svelte';
   import RemovableTag from '../common/RemovableTag.svelte';
   import ContextMenu from '../contextMenu/ContextMenu.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
@@ -21,6 +24,17 @@
   export let schema: LilacSchema;
   export let field: LilacSchemaField;
   export let indent = 0;
+
+  const FILTER_SHORTHANDS: Record<BinaryOp | UnaryOp, string> = {
+    equals: '=',
+    not_equal: '!=',
+    less: '<',
+    less_equal: '<=',
+    greater: '>',
+    greater_equal: '>=',
+    in: 'in',
+    exists: 'exists'
+  };
 
   let datasetViewStore = getDatasetViewContext();
 
@@ -35,8 +49,13 @@
   $: hasChildren = children.length > 0;
 
   $: isVisible = $datasetViewStore.visibleColumns.some(p => pathIsEqual(p, path));
+
   $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => pathIsEqual(p as Path, path));
   $: sortOrder = $datasetViewStore.queryOptions.sort_order;
+
+  $: filters =
+    $datasetViewStore.queryOptions.filters?.filter(f => pathIsEqual(f.path as Path, path)) || [];
+  $: isFiltered = filters.length > 0;
 
   // Find all the child paths for a given field.
   function childFields(field?: LilacSchemaField): LilacSchemaField[] {
@@ -99,6 +118,26 @@
           <SortAscending />
         {:else}
           <SortDescending />
+        {/if}
+      </RemovableTag>
+    {/if}
+    {#if isFiltered}
+      <RemovableTag
+        interactive
+        type="magenta"
+        on:click={() =>
+          triggerCommand({
+            command: Command.EditFilter,
+            namespace: $datasetViewStore.namespace,
+            datasetName: $datasetViewStore.datasetName,
+            path
+          })}
+        on:remove={() => datasetViewStore.removeFilters(path)}
+      >
+        {#if filters.length > 1}
+          Filtered
+        {:else}
+          {FILTER_SHORTHANDS[filters[0].op]} {filters[0].value}
         {/if}
       </RemovableTag>
     {/if}

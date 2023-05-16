@@ -17,6 +17,16 @@ def test_splitter_spacy() -> None:
   assert split_items == [expected_spans]
 
 
+def test_spacy_key() -> None:
+  signal = SentenceSplitterSpacy()
+  assert signal.key() == 'sentences'
+
+
+def test_spacy_non_en_key() -> None:
+  signal = SentenceSplitterSpacy(language='es')
+  assert signal.key() == 'sentences(language=es)'
+
+
 def test_splitter_spacy_float() -> None:
   signal = SentenceSplitterSpacy()
   text = 1.2
