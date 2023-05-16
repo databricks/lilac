@@ -186,8 +186,8 @@ UnaryFilterTuple = tuple[Path, UnaryOp]
 class Filter(BaseModel):
   """A filter on a column."""
   path: PathTuple
-  op: Union[BinaryOp, UnaryOp]
-  value: Optional[FeatureValue] = None
+  op: Union[BinaryOp, UnaryOp, ListOp]
+  value: Optional[Union[FeatureValue, FeatureListValue]] = None
 
 
 FilterLike = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListFilterTuple]
