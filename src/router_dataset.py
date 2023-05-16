@@ -151,7 +151,7 @@ class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
   columns: Optional[Sequence[Union[PathREST, Column]]]
   filters: Optional[Sequence[FilterREST]]
-  sort_by: Optional[Sequence[PathTuple]]
+  sort_by: Optional[Sequence[PathREST]]
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int]
   offset: Optional[int]
