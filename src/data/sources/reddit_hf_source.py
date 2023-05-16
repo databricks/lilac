@@ -37,7 +37,7 @@ def _convert_to_items(hf_dataset_dict: DatasetDict, subreddits: Optional[list[st
                       class_labels: dict[str, list[str]]) -> Iterable[Item]:
   """Convert a huggingface split datasets to an iterable of items."""
   split_names = list(hf_dataset_dict.keys())
-  subreddits = [s.lower() for s in subreddits]
+  subreddits = [s.lower() for s in subreddits or []]
 
   for split_name in split_names:
     split_dataset = hf_dataset_dict[split_name]
