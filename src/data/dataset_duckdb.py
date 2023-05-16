@@ -276,26 +276,27 @@ class DatasetDuckDB(Dataset):
     new_path = source_path
 
     if isinstance(signal, TextSignal):
-      if signal.get_split_signal():
-        new_path = (*new_path, signal.get_split_signal().key(), PATH_WILDCARD)
+      split_signal = signal.get_split_signal()
+      if split_signal:
+        new_path = (*new_path, split_signal.key(), PATH_WILDCARD)
         if new_path not in self.manifest().data_schema.leafs:
           if compute_dependencies:
-            self.compute_signal(signal.get_split_signal(), source_path, task_id=task_id)
+            self.compute_signal(split_signal, source_path, task_id=task_id)
           else:
-            raise ValueError(f'Split signal "{signal.get_split_signal().key()}" is not computed. '
+            raise ValueError(f'Split signal "{split_signal.key()}" is not computed. '
                              f'Please run `dataset.compute_signal` over {source_path} first.')
 
       if isinstance(signal, TextEmbeddingModelSignal):
-        if signal.get_embedding_signal():
-          new_path = (*new_path, signal.get_embedding_signal().key())
+        embedding_signal = signal.get_embedding_signal()
+        if embedding_signal:
+          new_path = (*new_path, embedding_signal.key())
           if new_path not in self.manifest().data_schema.leafs:
             if compute_dependencies:
-              self.compute_signal(signal.get_embedding_signal(), source_path, task_id=task_id)
+              self.compute_signal(embedding_signal, source_path, task_id=task_id)
             else:
-              raise ValueError(
-                f'Embedding signal "{signal.get_embedding_signal().key()}" is not computed over '
-                f'{source_path}. Please run `dataset.compute_signal` over '
-                f'{source_path} first.')
+              raise ValueError(f'Embedding signal "{embedding_signal.key()}" is not computed over '
+                               f'{source_path}. Please run `dataset.compute_signal` over '
+                               f'{source_path} first.')
 
     if is_value_path:
       new_path = (*new_path, VALUE_KEY)
