@@ -97,7 +97,7 @@
       <div class="flex w-full flex-col gap-y-6">
         {#if selectedField}
           {@const fieldPath = selectedField.path}
-          {#each currentFieldFilters as filter, i}
+          {#each currentFieldFilters as filter}
             <div class="flex items-center gap-x-2">
               <Select bind:selected={filter.op} labelText="Operation">
                 {#each operations as op}
