@@ -767,7 +767,8 @@ class DatasetDuckDB(Dataset):
               f'The signal generated {len(signal_out)} values but the input data had '
               f"{num_rich_data} values. This means the signal either didn't generate a "
               '"None" for a sparse output, or generated too many items.')
-        df[signal_column] = lilac_items(unflatten(signal_out, input))
+
+          df[signal_column] = lilac_items(unflatten(signal_out, input))
 
     if udf_filters or sort_cols_after_udf:
       # Re-upload the udf outputs to duckdb so we can filter/sort on them.
