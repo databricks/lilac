@@ -278,11 +278,11 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   expected_result: list[Item] = [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello.',
-    'test_embedding_sum(embedding=test_embedding)(text.test_embedding)': lilac_item(1.0)
+    'test_embedding_sum(text.test_embedding)': lilac_item(1.0)
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'hello2.',
-    'test_embedding_sum(embedding=test_embedding)(text.test_embedding)': lilac_item(2.0)
+    'test_embedding_sum(text.test_embedding)': lilac_item(2.0)
   }]
   assert list(result) == expected_result
 
@@ -318,11 +318,11 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
   expected_result = [{
     UUID_COLUMN: '1',
     f'text.*.{VALUE_KEY}': ['hello.', 'hello world.'],
-    'test_embedding_sum(embedding=test_embedding)(text.*.test_embedding)': lilac_items([1.0, 3.0])
+    'test_embedding_sum(text.*.test_embedding)': lilac_items([1.0, 3.0])
   }, {
     UUID_COLUMN: '2',
     f'text.*.{VALUE_KEY}': ['hello world2.', 'hello2.'],
-    'test_embedding_sum(embedding=test_embedding)(text.*.test_embedding)': lilac_items([4.0, 2.0])
+    'test_embedding_sum(text.*.test_embedding)': lilac_items([4.0, 2.0])
   }]
   assert list(result) == expected_result
 

@@ -276,24 +276,24 @@ class DatasetDuckDB(Dataset):
     new_path = source_path
 
     if isinstance(signal, TextSignal):
-      if signal.split_signal:
-        new_path = (*new_path, signal.split_signal.key(), PATH_WILDCARD)
+      if signal.get_split_signal():
+        new_path = (*new_path, signal.get_split_signal().key(), PATH_WILDCARD)
         if new_path not in self.manifest().data_schema.leafs:
           if compute_dependencies:
-            self.compute_signal(signal.split_signal, source_path, task_id=task_id)
+            self.compute_signal(signal.get_split_signal(), source_path, task_id=task_id)
           else:
-            raise ValueError(f'Split signal "{signal.split_signal.key()}" is not computed. '
+            raise ValueError(f'Split signal "{signal.get_split_signal().key()}" is not computed. '
                              f'Please run `dataset.compute_signal` over {source_path} first.')
 
       if isinstance(signal, TextEmbeddingModelSignal):
-        if signal.embedding_signal:
-          new_path = (*new_path, signal.embedding_signal.key())
+        if signal.get_embedding_signal():
+          new_path = (*new_path, signal.get_embedding_signal().key())
           if new_path not in self.manifest().data_schema.leafs:
             if compute_dependencies:
-              self.compute_signal(signal.embedding_signal, source_path, task_id=task_id)
+              self.compute_signal(signal.get_embedding_signal(), source_path, task_id=task_id)
             else:
               raise ValueError(
-                f'Embedding signal "{signal.embedding_signal.key()}" is not computed over '
+                f'Embedding signal "{signal.get_embedding_signal().key()}" is not computed over '
                 f'{source_path}. Please run `dataset.compute_signal` over '
                 f'{source_path} first.')
 
@@ -307,9 +307,9 @@ class DatasetDuckDB(Dataset):
                      column: ColumnId,
                      task_id: Optional[TaskId] = None) -> None:
     column = column_from_identifier(column)
-    source_path = normalize_path(column.path)
+    source_path = column.path
 
-    # Prepare the the dependencies of this signal.
+    # Prepare the dependencies of this signal.
     signal_source_path = self._prepare_signal(signal, source_path, compute_dependencies=True)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)

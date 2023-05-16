@@ -9,7 +9,7 @@ from pydantic import validator
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import DataType, Field, PathTuple, RichData, SignalInputType, SignalOut
+from ..schema import Field, PathTuple, RichData, SignalInputType, SignalOut, field
 
 SIGNAL_TYPE_PYDANTIC_FIELD = 'signal_type'
 
@@ -106,15 +106,19 @@ class Signal(abc.ABC, BaseModel):
     # If a user explicitly defines a signal name for whatever reason, remove it as it's redundant.
     if 'signal_name' in args_dict:
       del args_dict['signal_name']
-    args = None
-    args_list: list[str] = []
-    for k, v in args_dict.items():
-      if v:
-        args_list.append(f'{k}={v}')
 
-    args = ','.join(args_list)
-    display_args = '' if not args_list else f'({args})'
-    return self.name + display_args
+    return self.name + _args_key_from_dict(args_dict)
+
+
+def _args_key_from_dict(args_dict: dict[str, Any]) -> str:
+  args = None
+  args_list: list[str] = []
+  for k, v in args_dict.items():
+    if v:
+      args_list.append(f'{k}={v}')
+
+  args = ','.join(args_list)
+  return '' if not args_list else f'({args})'
 
 
 SIGNAL_TYPE_TEXT_EMBEDDING = 'text_embedding'
@@ -127,7 +131,7 @@ class TextSplitterSignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(repeated_field=Field(dtype=DataType.STRING_SPAN))
+    return field(['string_span'])
 
 
 # Signal base classes, used for inferring the dependency chain required for computing a signal.
@@ -136,7 +140,7 @@ class TextSignal(Signal):
   input_type = SignalInputType.TEXT
   split: Optional[str] = PydanticField(
     extra={SIGNAL_TYPE_PYDANTIC_FIELD: SIGNAL_TYPE_TEXT_SPLITTER})
-  split_signal: Optional[TextSplitterSignal] = PydanticField(exclude=True)
+  _split_signal: Optional[TextSplitterSignal] = None
 
   def __init__(self, split: Optional[str] = None, **kwargs: Any):
     super().__init__(split=split, **kwargs)
@@ -144,9 +148,24 @@ class TextSignal(Signal):
     # Validate the split signal is registered and the correct type.
     # TODO(nsthorat): Allow arguments passed to the embedding signal.
     if self.split:
-      self.split_signal = cast(
+      self._split_signal = cast(
         TextSplitterSignal,
         get_signal_by_type(self.split, SIGNAL_TYPE_TEXT_SPLITTER)(split=self.split))
+
+  def get_split_signal(self) -> Optional[TextSplitterSignal]:
+    """Return the embedding signal."""
+    return self._split_signal
+
+  @override
+  def key(self) -> str:
+    # NOTE: The split already exists in the path structure. This means we do not need to provide
+    # the signal names as part of the key, which still guarantees uniqueness.
+
+    args_dict = self.dict(exclude_unset=True)
+    if 'split' in args_dict:
+      del args_dict['split']
+
+    return self.name + _args_key_from_dict(args_dict)
 
 
 class TextEmbeddingSignal(TextSignal):
@@ -155,7 +174,7 @@ class TextEmbeddingSignal(TextSignal):
 
   def fields(self) -> Field:
     """Return the fields for the embedding."""
-    return Field(dtype=DataType.EMBEDDING)
+    return field('embedding')
 
 
 class TextEmbeddingModelSignal(TextSignal):
@@ -163,16 +182,32 @@ class TextEmbeddingModelSignal(TextSignal):
   input_type = SignalInputType.TEXT_EMBEDDING
 
   embedding: str = PydanticField(extra={SIGNAL_TYPE_PYDANTIC_FIELD: SIGNAL_TYPE_TEXT_EMBEDDING})
-  embedding_signal: Optional[TextEmbeddingSignal] = PydanticField(exclude=True)
+  _embedding_signal: TextEmbeddingSignal
 
   def __init__(self, embedding: str, **kwargs: Any):
     super().__init__(embedding=embedding, **kwargs)
 
     # Validate the embedding signal is registered and the correct type.
     # TODO(nsthorat): Allow arguments passed to the embedding signal.
-    self.embedding_signal = cast(
+    self._embedding_signal = cast(
       TextEmbeddingSignal,
       get_signal_by_type(self.embedding, SIGNAL_TYPE_TEXT_EMBEDDING)(split=self.split))
+
+  def get_embedding_signal(self) -> Optional[TextEmbeddingSignal]:
+    """Return the embedding signal."""
+    return self._embedding_signal
+
+  @override
+  def key(self) -> str:
+    # NOTE: The embedding and split already exists in the path structure. This means we do not
+    # need to provide the signal names as part of the key, which still guarantees uniqueness.
+
+    args_dict = self.dict(exclude_unset=True)
+    del args_dict['embedding']
+    if 'split' in args_dict:
+      del args_dict['split']
+
+    return self.name + _args_key_from_dict(args_dict)
 
 
 SIGNAL_TYPE_CLS: dict[str, Type[Signal]] = {
