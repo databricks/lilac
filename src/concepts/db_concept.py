@@ -52,7 +52,7 @@ class ConceptDB(abc.ABC):
 
   @abc.abstractmethod
   def edit(self, namespace: str, name: str, change: ConceptUpdate) -> Concept:
-    """Edit a concept."""
+    """Edit a concept. If the concept doesn't exist, it creates it."""
     pass
 
   @abc.abstractmethod

@@ -86,7 +86,7 @@ def _infer_field(feature_value: Union[Value, dict]) -> Field:
     raise ValueError(f'Feature is not a `Value`, `Sequence`, or `dict`: {feature_value}')
 
 
-def _hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> SchemaInfo:
+def hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> SchemaInfo:
   """Convert the HuggingFace schema to our schema."""
   if split:
     split_datasets = [hf_dataset_dict[split]]
@@ -148,7 +148,6 @@ class HuggingFaceDataset(Source):
     output_dir: str,
     task_id: Optional[TaskId] = None,
   ) -> SourceProcessResult:
-    """Process the source upload request."""
     if self.load_from_disk:
       # Load from disk.
       hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.dataset_name)}
@@ -156,7 +155,7 @@ class HuggingFaceDataset(Source):
       hf_dataset_dict = load_dataset(
         self.dataset_name, self.config_name, num_proc=multiprocessing.cpu_count())
 
-    schema_info = _hf_schema_to_schema(hf_dataset_dict, self.split)
+    schema_info = hf_schema_to_schema(hf_dataset_dict, self.split)
 
     items = progress(
       _convert_to_items(hf_dataset_dict, schema_info.class_labels, self.split),
