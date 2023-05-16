@@ -10,6 +10,6 @@ import type { UnaryOp } from './UnaryOp';
 export type UnaryFilter = {
     path: (Array<string> | string);
     op: UnaryOp;
-    value: null;
+    value?: null;
 };
 
