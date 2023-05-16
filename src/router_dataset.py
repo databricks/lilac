@@ -7,19 +7,12 @@ from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, StrictStr, validator
 
 from .config import data_path
-from .data.dataset import (
-  Bins,
-  Column,
-  DatasetManifest,
-  Filter,
-  FilterLike,
-  GroupsSortBy,
-  SortOrder,
-  StatsResult,
-)
+from .data.dataset import BinaryOp, Bins, Column, DatasetManifest, FeatureValue
+from .data.dataset import Filter as PyFilter
+from .data.dataset import GroupsSortBy, SortOrder, StatsResult, UnaryOp
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
-from .schema import PathTuple, Schema
+from .schema import PathTuple, Schema, normalize_path
 from .signals.default_signals import register_default_signals
 from .signals.signal import Signal, resolve_signal
 from .tasks import TaskId, task_manager
@@ -135,13 +128,21 @@ def get_stats(namespace: str, dataset_name: str, options: GetStatsOptions) -> St
   return dataset.stats(options.leaf_path)
 
 
+PathREST = Union[tuple[StrictStr, ...], StrictStr]
+
+
+class Filter(BaseModel):
+  """A filter on a column."""
+  path: PathREST  # This can be pure string and we need to split on dot.
+  op: Union[BinaryOp, UnaryOp]
+  value: Optional[FeatureValue] = None
+
+
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
-  # OpenAPI doesn't generate the correct typescript when using `Sequence[ColumnId]` (confused by
-  # `tuple[Union[str, int], ...]`).
-  columns: Optional[Sequence[Union[StrictStr, tuple[StrictStr, ...], Column]]]
-  filters: Optional[Sequence[FilterLike]]
-  sort_by: Optional[Sequence[PathTuple]]
+  columns: Optional[Sequence[Union[PathREST, Column]]]
+  filters: Optional[Sequence[Filter]]
+  sort_by: Optional[Sequence[PathREST]]
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int]
   offset: Optional[int]
@@ -150,9 +151,7 @@ class SelectRowsOptions(BaseModel):
 
 class SelectRowsSchemaOptions(BaseModel):
   """The request for the select rows schema endpoint."""
-  # OpenAPI doesn't generate the correct typescript when using `Sequence[ColumnId]` (confused by
-  # `tuple[Union[str, int], ...]`).
-  columns: Optional[Sequence[Union[StrictStr, tuple[StrictStr, ...], Column]]]
+  columns: Optional[Sequence[Union[PathREST, Column]]]
   combine_columns: Optional[bool]
 
 
@@ -161,10 +160,13 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   """Select rows from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
 
+  sanitized_filters = [
+    PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
+  ]
   items = list(
     dataset.select_rows(
       columns=options.columns,
-      filters=options.filters,
+      filters=sanitized_filters,
       sort_by=options.sort_by,
       sort_order=options.sort_order,
       limit=options.limit,
@@ -185,7 +187,7 @@ def select_rows_schema(namespace: str, dataset_name: str,
 class SelectGroupsOptions(BaseModel):
   """The request for the select groups endpoint."""
   leaf_path: PathTuple
-  filters: Optional[list[Filter]]
+  filters: Optional[Sequence[Filter]]
   sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int] = 100
@@ -197,7 +199,10 @@ def select_groups(namespace: str, dataset_name: str,
                   options: SelectGroupsOptions) -> list[tuple[Any, int]]:
   """Select groups from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
-  result = dataset.select_groups(options.leaf_path, options.filters, options.sort_by,
+  sanitized_filters = [
+    PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
+  ]
+  result = dataset.select_groups(options.leaf_path, sanitized_filters, options.sort_by,
                                  options.sort_order, options.limit, options.bins)
   return list(result)
 
