@@ -227,23 +227,25 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
     'text': 'hello world. hello world2.',
   }])
 
-  dataset.compute_signal(TestSplitter(), ('text'))
+  test_splitter = TestSplitter()
+  dataset.compute_signal(test_splitter, ('text'))
   add_space_signal = AddSpaceSignal(split='test_splitter')
   result = dataset.select_rows_schema(
     [('text'), Column(('text'), signal_udf=add_space_signal)], combine_columns=True)
 
-  print(result)
   assert result == schema({
     UUID_COLUMN: 'string',
     'text': field(
       {
-        'test_splitter': signal_field(fields=[
-          signal_field(
-            dtype='string_span',
-            fields={
-              'add_space_signal': signal_field(dtype='string', signal=add_space_signal.dict())
-            })
-        ])
+        'test_splitter': signal_field(
+          fields=[
+            signal_field(
+              dtype='string_span',
+              fields={
+                'add_space_signal': signal_field(dtype='string', signal=add_space_signal.dict())
+              })
+          ],
+          signal=test_splitter.dict())
       },
       dtype='string')
   })

@@ -842,7 +842,6 @@ class DatasetDuckDB(Dataset):
 
     col_schemas: list[Schema] = []
     for col in cols:
-      dest_path = _col_destination_path(col)
       if col.signal_udf:
         # Prepare the dependencies of this signal.
         col.path = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=True)
@@ -851,6 +850,7 @@ class DatasetDuckDB(Dataset):
         field = col.signal_udf.fields()
         field.signal = col.signal_udf.dict()
       else:
+        dest_path = _col_destination_path(col)
         field = self.manifest().data_schema.get_field(dest_path)
       col_schemas.append(_make_schema_from_path(dest_path, field))
     return merge_schemas(col_schemas)
