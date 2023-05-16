@@ -2,21 +2,31 @@
 
 from typing import Iterable, Optional, cast
 
+import numpy as np
 import pytest
 from typing_extensions import override
 
+from ..embeddings.vector_store import VectorStore
 from ..schema import (
   UUID_COLUMN,
   Field,
   Item,
   ItemValue,
+  PathTuple,
   RichData,
   SignalOut,
   field,
   schema,
   signal_field,
 )
-from ..signals.signal import TextSignal, TextSplitterSignal, clear_signal_registry, register_signal
+from ..signals.signal import (
+  TextEmbeddingModelSignal,
+  TextEmbeddingSignal,
+  TextSignal,
+  TextSplitterSignal,
+  clear_signal_registry,
+  register_signal,
+)
 from .dataset import Column
 from .dataset_test_utils import TestDataMaker
 from .dataset_utils import lilac_span, signal_item
@@ -76,12 +86,50 @@ class TestSplitter(TextSplitterSignal):
       ]
 
 
+EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
+                                             ('hello2.', [1.0, 1.0, 0.0]),
+                                             ('hello world.', [1.0, 1.0, 1.0]),
+                                             ('hello world2.', [2.0, 1.0, 1.0])]
+
+STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
+
+
+class TestEmbedding(TextEmbeddingSignal):
+  """A test embed function."""
+  name = 'test_embedding'
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+    """Call the embedding function."""
+    embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
+    yield from (signal_item(e) for e in embeddings)
+
+
+class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
+  """Sums the embeddings to return a single floating point value."""
+  name = 'test_embedding_sum'
+
+  @override
+  def fields(self) -> Field:
+    return field('float32')
+
+  @override
+  def vector_compute(self, keys: Iterable[PathTuple],
+                     vector_store: VectorStore) -> Iterable[ItemValue]:
+    # The signal just sums the values of the embedding.
+    embedding_sums = vector_store.get(keys).sum(axis=1)
+    for embedding_sum in embedding_sums.tolist():
+      yield embedding_sum
+
+
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(LengthSignal)
   register_signal(AddSpaceSignal)
   register_signal(TestSplitter)
+  register_signal(TestEmbedding)
+  register_signal(TestEmbeddingSumSignal)
 
   # Unit test runs.
   yield
@@ -243,6 +291,48 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
               dtype='string_span',
               fields={
                 'add_space_signal': signal_field(dtype='string', signal=add_space_signal.dict())
+              })
+          ],
+          signal=test_splitter.dict())
+      },
+      dtype='string')
+  })
+
+
+def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello. hello2.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello world. hello world2.',
+  }])
+
+  test_splitter = TestSplitter()
+  dataset.compute_signal(test_splitter, 'text')
+  test_embedding = TestEmbedding(split='test_splitter')
+  dataset.compute_signal(test_embedding, 'text')
+
+  embedding_sum_signal = TestEmbeddingSumSignal(split='test_splitter', embedding='test_embedding')
+  result = dataset.select_rows_schema(
+    [('text'), Column(('text'), signal_udf=embedding_sum_signal)], combine_columns=True)
+
+  assert result == schema({
+    UUID_COLUMN: 'string',
+    'text': field(
+      {
+        'test_splitter': signal_field(
+          fields=[
+            signal_field(
+              dtype='string_span',
+              fields={
+                'test_embedding': signal_field(
+                  dtype='embedding',
+                  fields={
+                    'test_embedding_sum': signal_field(
+                      dtype='float32', signal=embedding_sum_signal.dict())
+                  },
+                  signal=test_embedding.dict()),
               })
           ],
           signal=test_splitter.dict())

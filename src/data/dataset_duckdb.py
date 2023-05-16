@@ -841,19 +841,22 @@ class DatasetDuckDB(Dataset):
     if (UUID_COLUMN,) not in col_paths:
       cols.append(column_from_identifier(UUID_COLUMN))
 
+    # Prepare UDF columns. Throw an error if they are not computed. Update the paths of the UDFs so
+    # they match the paths of the columns defined by splits and embeddings.
+    for col in cols:
+      if col.signal_udf:
+        # Do not auto-compute dependencies, throw an error if they are not computed.
+        col.path = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
+
     self._validate_columns(cols)
 
     col_schemas: list[Schema] = []
     for col in cols:
+      dest_path = _col_destination_path(col)
       if col.signal_udf:
-        # Prepare the dependencies of this signal.
-        col.path = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
-        dest_path = _col_destination_path(col)
-
         field = col.signal_udf.fields()
         field.signal = col.signal_udf.dict()
       else:
-        dest_path = _col_destination_path(col)
         field = self.manifest().data_schema.get_field(dest_path)
       col_schemas.append(_make_schema_from_path(dest_path, field))
     return merge_schemas(col_schemas)
