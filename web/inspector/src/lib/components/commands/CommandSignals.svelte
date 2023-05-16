@@ -14,7 +14,7 @@
   import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
   import type {ComputeSignalCommand, PreviewConceptCommand} from './Commands.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
-  import SignalSelect from './selectors/SignalSelect.svelte';
+  import SignalList from './selectors/SignalList.svelte';
 
   export let command: ComputeSignalCommand | PreviewConceptCommand;
   /** The variant of the command */
@@ -80,7 +80,7 @@
   <ModalBody hasForm>
     <div class="flex flex-row">
       <div class="-ml-4 mr-4 w-80 grow-0">
-        <SignalSelect defaultSignal={command.signalName} bind:signal={signalInfo} />
+        <SignalList defaultSignal={command.signalName} bind:signal={signalInfo} />
       </div>
 
       <div class="flex w-full flex-col gap-y-6">

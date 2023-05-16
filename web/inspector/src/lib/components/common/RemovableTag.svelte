@@ -1,12 +1,14 @@
 <script lang="ts">
   import {Tag} from 'carbon-components-svelte';
+  import type {TagProps} from 'carbon-components-svelte/types/Tag/Tag.svelte';
   import CloseOutline from 'carbon-icons-svelte/lib/CloseOutline.svelte';
   import {createEventDispatcher} from 'svelte';
 
   const dispatch = createEventDispatcher();
+  export let type: TagProps['type'];
 </script>
 
-<Tag {...$$restProps} on:click>
+<Tag {type} {...$$restProps} on:click>
   <span class="flex gap-x-1">
     <button
       class="opacity-50 hover:opacity-100"

@@ -71,6 +71,14 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
           c => !pathIsEqual(c as Path, column)
         );
         return state;
+      }),
+
+    removeFilters: (column: Path) =>
+      update(state => {
+        state.queryOptions.filters = state.queryOptions.filters?.filter(
+          c => !pathIsEqual(c.path as Path, column)
+        );
+        return state;
       })
   };
 };
