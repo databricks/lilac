@@ -19,7 +19,7 @@ from ..schema import (
 from ..signals.signal import TextSignal, TextSplitterSignal, clear_signal_registry, register_signal
 from .dataset import Column
 from .dataset_test_utils import TestDataMaker
-from .dataset_utils import lilac_span
+from .dataset_utils import lilac_span, signal_item
 
 TEST_DATA: list[Item] = [{
   UUID_COLUMN: '1',
@@ -71,8 +71,8 @@ class TestSplitter(TextSplitterSignal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-        lilac_span(text.index(sentence),
-                   text.index(sentence) + len(sentence)) for sentence in sentences
+        signal_item(lilac_span(text.index(sentence),
+                               text.index(sentence) + len(sentence))) for sentence in sentences
       ]
 
 
