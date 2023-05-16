@@ -23,6 +23,7 @@ export type { ExampleIn } from './models/ExampleIn';
 export type { ExampleOrigin } from './models/ExampleOrigin';
 export type { Field } from './models/Field';
 export type { Filter } from './models/Filter';
+export type { FilterREST } from './models/FilterREST';
 export type { GetStatsOptions } from './models/GetStatsOptions';
 export type { GroupsSortBy } from './models/GroupsSortBy';
 export type { HTTPValidationError } from './models/HTTPValidationError';

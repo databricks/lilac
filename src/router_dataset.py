@@ -8,18 +8,20 @@ from pydantic import BaseModel, StrictStr, validator
 
 from .config import data_path
 from .data.dataset import (
+  BinaryOp,
   Bins,
   Column,
   DatasetManifest,
+  FeatureValue,
   Filter,
-  FilterLike,
   GroupsSortBy,
   SortOrder,
   StatsResult,
+  UnaryOp,
 )
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
-from .schema import PathTuple, Schema
+from .schema import PathTuple, Schema, normalize_path
 from .signals.default_signals import register_default_signals
 from .signals.signal import Signal, resolve_signal
 from .tasks import TaskId, task_manager
@@ -135,12 +137,20 @@ def get_stats(namespace: str, dataset_name: str, options: GetStatsOptions) -> St
   return dataset.stats(options.leaf_path)
 
 
+PathREST = Union[tuple[StrictStr, ...], StrictStr]
+
+
+class FilterREST(BaseModel):
+  """A filter on a column."""
+  path: PathREST  # This can be pure string and we need to split on dot.
+  op: Union[BinaryOp, UnaryOp]
+  value: Optional[FeatureValue] = None
+
+
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
-  # OpenAPI doesn't generate the correct typescript when using `Sequence[ColumnId]` (confused by
-  # `tuple[Union[str, int], ...]`).
-  columns: Optional[Sequence[Union[StrictStr, tuple[StrictStr, ...], Column]]]
-  filters: Optional[Sequence[FilterLike]]
+  columns: Optional[Sequence[Union[PathREST, Column]]]
+  filters: Optional[Sequence[FilterREST]]
   sort_by: Optional[Sequence[PathTuple]]
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int]
@@ -150,9 +160,7 @@ class SelectRowsOptions(BaseModel):
 
 class SelectRowsSchemaOptions(BaseModel):
   """The request for the select rows schema endpoint."""
-  # OpenAPI doesn't generate the correct typescript when using `Sequence[ColumnId]` (confused by
-  # `tuple[Union[str, int], ...]`).
-  columns: Optional[Sequence[Union[StrictStr, tuple[StrictStr, ...], Column]]]
+  columns: Optional[Sequence[Union[PathREST, Column]]]
   combine_columns: Optional[bool]
 
 
@@ -161,10 +169,13 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   """Select rows from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
 
+  sanitized_filters = [
+    Filter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
+  ]
   items = list(
     dataset.select_rows(
       columns=options.columns,
-      filters=options.filters,
+      filters=sanitized_filters,
       sort_by=options.sort_by,
       sort_order=options.sort_order,
       limit=options.limit,
