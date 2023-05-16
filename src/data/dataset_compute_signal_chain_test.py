@@ -72,10 +72,8 @@ class TestSplitter(TextSplitterSignal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-        signal_item(
-          lilac_span(text.index(sentence),
-                     text.index(sentence) + len(sentence)), {'len': len(sentence)})
-        for sentence in sentences
+        lilac_span(text.index(sentence),
+                   text.index(sentence) + len(sentence)) for sentence in sentences
       ]
 
 
