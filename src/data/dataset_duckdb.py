@@ -301,8 +301,7 @@ class DatasetDuckDB(Dataset):
                      signal: Signal,
                      column: ColumnId,
                      task_id: Optional[TaskId] = None) -> None:
-    column = column_from_identifier(column)
-    source_path = column.path
+    source_path = column_from_identifier(column).path
 
     # Prepare the dependencies of this signal.
     signal_source_path = self._prepare_signal(signal, source_path, compute_dependencies=True)
@@ -354,7 +353,7 @@ class DatasetDuckDB(Dataset):
       data_schema=signal_schema,
       signal=signal,
       enriched_path=source_path,
-      parquet_id=make_parquet_id(signal, column.path),
+      parquet_id=make_parquet_id(signal, source_path),
       embedding_filename=embedding_filename)
     signal_manifest_filepath = os.path.join(self.dataset_path,
                                             signal_manifest_filename(source_path, signal_key))
