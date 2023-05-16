@@ -278,6 +278,7 @@ def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], 
   flat_keys = flatten_keys(keys, embeddings, is_primitive_predicate=embedding_predicate)
   embedding_vectors: list[np.ndarray] = []
   for embedding_vector in flatten(embeddings, is_primitive_predicate=embedding_predicate):
+    # We use squeeze here because embedding functions can return outer dimensions of 1.
     embedding_vector = embedding_vector.squeeze()
     if embedding_vector.ndim != 1:
       raise ValueError(f'Expected embeddings to be 1-dimensional, got {embedding_vector.ndim} '
