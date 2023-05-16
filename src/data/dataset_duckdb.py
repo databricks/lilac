@@ -309,7 +309,6 @@ class DatasetDuckDB(Dataset):
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
     select_rows_result = self.select_rows([signal_col], task_id=task_id, resolve_span=True)
-
     df = select_rows_result.df()
     values = df['value']
 
