@@ -609,19 +609,20 @@ class DatasetDuckDB(Dataset):
         manifest.data_schema.get_field(path[:-1]).dtype == DataType.EMBEDDING)
 
       select_sqls: list[str] = []
-      alias = column.alias or _unique_alias(column)
-      if alias not in columns_to_merge:
-        columns_to_merge[alias] = {}
+      final_col_name = column.alias or _unique_alias(column)
+      if final_col_name not in columns_to_merge:
+        columns_to_merge[final_col_name] = {}
 
       duckdb_paths = self._column_to_duckdb_paths(column)
-      span_from = self._get_span_from(path)
+      span_from = self._get_span_from(path) if resolve_span else None
 
       for parquet_id, duckdb_path in duckdb_paths:
         sql = _select_sql(
           duckdb_path, flatten=False, unnest=False, empty=empty, span_from=span_from)
-        temp_column_name = alias if len(duckdb_paths) == 1 else f'{alias}/{parquet_id}'
+        temp_column_name = (
+          final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}')
         select_sqls.append(f'{sql} AS "{temp_column_name}"')
-        columns_to_merge[alias][temp_column_name] = column
+        columns_to_merge[final_col_name][temp_column_name] = column
 
       select_queries.append(', '.join(select_sqls))
 
@@ -795,6 +796,7 @@ class DatasetDuckDB(Dataset):
       for temp_col_name, column in temp_columns.items():
         if combine_columns:
           dest_path = _col_destination_path(column)
+          print('dest_path', dest_path)
           spec = _split_path_into_subpaths_of_lists(dest_path)
           df[temp_col_name] = wrap_in_dicts(df[temp_col_name], spec)
 
@@ -1169,6 +1171,8 @@ def _col_destination_path(column: Column) -> PathTuple:
     return source_path
 
   signal_key = column.signal_udf.key()
+  print('/////////////////////////')
+  print('signal_key', signal_key)
   # If we are enriching a value we should store the signal data in the value's parent.
   if source_path[-1] == VALUE_KEY:
     dest_path = (*source_path[:-1], signal_key)

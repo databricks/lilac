@@ -162,6 +162,8 @@ class TextSignal(Signal):
     # the signal names as part of the key, which still guarantees uniqueness.
 
     args_dict = self.dict(exclude_unset=True)
+    if 'signal_name' in args_dict:
+      del args_dict['signal_name']
     if 'split' in args_dict:
       del args_dict['split']
 
@@ -203,6 +205,8 @@ class TextEmbeddingModelSignal(TextSignal):
     # need to provide the signal names as part of the key, which still guarantees uniqueness.
 
     args_dict = self.dict(exclude_unset=True)
+    if 'signal_name' in args_dict:
+      del args_dict['signal_name']
     del args_dict['embedding']
     if 'split' in args_dict:
       del args_dict['split']
