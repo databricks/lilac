@@ -18,6 +18,7 @@ def get_embed_fn(embedding: TextEmbeddingSignal) -> Callable[[Iterable[RichData]
 
     # We use stack here since it works with both matrices and vectors.
     embeddings = [cast(np.ndarray, cast(dict, item)[VALUE_KEY]) for item in items]
+    print('get_embed_fn returning', np.array(embeddings), np.array(embeddings).shape)
     return np.array(embeddings)
 
   return _embed_fn

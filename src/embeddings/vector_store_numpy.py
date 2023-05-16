@@ -52,6 +52,8 @@ class NumpyVectorStore(VectorStore):
       The embeddings for the given keys.
     """
     str_keys = list(map(str, keys))
+    stack = np.stack(self._df.loc[str_keys][NP_EMBEDDINGS_KWD])
+    print('vector store getting', stack.shape)
     return np.stack(self._df.loc[str_keys][NP_EMBEDDINGS_KWD])
 
   @override

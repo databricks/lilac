@@ -19,7 +19,12 @@ class Signal(abc.ABC, BaseModel):
   # ClassVars do not get serialized with pydantic.
   name: ClassVar[str]
   signal_type: ClassVar[Type['Signal']]
+  # The input type is used to populate the UI for signals that require other signals. For example,
+  # if a signal is an TextEmbeddingModelSignal, it computes over embeddings, but it's input type
+  # will be text.
   input_type: ClassVar[SignalInputType]
+  # The compute type defines what should be passed to compute().
+  compute_type: ClassVar[SignalInputType]
 
   # The signal_name will get populated in init automatically from the class name so it gets
   # serialized and the signal author doesn't have to define both the static property and the field.
@@ -128,6 +133,7 @@ SIGNAL_TYPE_TEXT_SPLITTER = 'text_splitter'
 class TextSplitterSignal(Signal):
   """An interface for signals that compute over text."""
   input_type = SignalInputType.TEXT
+  compute_type = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -138,6 +144,8 @@ class TextSplitterSignal(Signal):
 class TextSignal(Signal):
   """An interface for signals that compute over text."""
   input_type = SignalInputType.TEXT
+  compute_type = SignalInputType.TEXT
+
   split: Optional[str] = PydanticField(
     extra={SIGNAL_TYPE_PYDANTIC_FIELD: SIGNAL_TYPE_TEXT_SPLITTER})
   _split_signal: Optional[TextSplitterSignal] = None
@@ -173,6 +181,7 @@ class TextSignal(Signal):
 class TextEmbeddingSignal(TextSignal):
   """An interface for signals that compute embeddings for text."""
   input_type = SignalInputType.TEXT
+  compute_type = SignalInputType.TEXT
 
   def fields(self) -> Field:
     """Return the fields for the embedding."""
@@ -181,7 +190,10 @@ class TextEmbeddingSignal(TextSignal):
 
 class TextEmbeddingModelSignal(TextSignal):
   """An interface for signals that take embeddings and produce items."""
-  input_type = SignalInputType.TEXT_EMBEDDING
+  input_type = SignalInputType.TEXT
+  # compute() takes embeddings, while it operates over text fields by transitively computing splits
+  # and embeddings.
+  compute_type = SignalInputType.TEXT_EMBEDDING
 
   embedding: str = PydanticField(extra={SIGNAL_TYPE_PYDANTIC_FIELD: SIGNAL_TYPE_TEXT_EMBEDDING})
   _embedding_signal: TextEmbeddingSignal

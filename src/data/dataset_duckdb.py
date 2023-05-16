@@ -39,7 +39,7 @@ from ..schema import (
   is_integer,
   is_ordinal,
   normalize_path,
-  signal_input_type_supports_dtype,
+  signal_compute_type_supports_dtype,
 )
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import (
@@ -409,11 +409,11 @@ class DatasetDuckDB(Dataset):
 
         # Signal transforms must have the same dtype as the leaf field.
         signal = column.signal_udf
-        input_type = signal.input_type
+        compute_type = signal.compute_type
 
-        if not signal_input_type_supports_dtype(input_type, leaf.dtype):
+        if not signal_compute_type_supports_dtype(compute_type, leaf.dtype):
           raise ValueError(f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
-                           f'by "{signal.key()}" with signal input type "{input_type}".')
+                           f'by "{signal.key()}" with signal input type "{compute_type}".')
 
         # Select the value key from duckdb as this gives us the value for the leaf field, allowing
         # us to remove python code that unwraps the value key before calling the signal.
@@ -724,7 +724,7 @@ class DatasetDuckDB(Dataset):
       input = df[signal_column]
 
       with DebugTimer(f'Computing signal "{signal}"'):
-        if signal.input_type in [SignalInputType.TEXT_EMBEDDING]:
+        if signal.compute_type in [SignalInputType.TEXT_EMBEDDING]:
           # The input is an embedding.
           vector_store = self._get_vector_store(udf_col.path)
 
