@@ -843,23 +843,22 @@ class DatasetDuckDB(Dataset):
     if (UUID_COLUMN,) not in col_paths:
       cols.append(column_from_identifier(UUID_COLUMN))
 
-    alias_udf_paths: dict[str, PathTuple] = {}
-
     # Prepare UDF columns. Throw an error if they are not computed. Update the paths of the UDFs so
     # they match the paths of the columns defined by splits and embeddings.
     for col in cols:
       if col.signal_udf:
         # Do not auto-compute dependencies, throw an error if they are not computed.
         col.path = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
-        if col.alias:
-          alias_udf_paths[col.alias] = _col_destination_path(col)
 
     self._validate_columns(cols)
 
+    alias_udf_paths: dict[str, PathTuple] = {}
     col_schemas: list[Schema] = []
     for col in cols:
       dest_path = _col_destination_path(col)
       if col.signal_udf:
+        if col.alias:
+          alias_udf_paths[col.alias] = dest_path
         field = col.signal_udf.fields()
         field.signal = col.signal_udf.dict()
       else:
