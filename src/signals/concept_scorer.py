@@ -7,7 +7,7 @@ from typing_extensions import override
 from ..concepts.concept import ConceptModel
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.vector_store import VectorStore
-from ..schema import DataType, Field, ItemValue, PathTuple, RichData
+from ..schema import DataType, Field, ItemValue, RichData, VectorKey
 from .signal import TextEmbeddingModelSignal
 
 
@@ -42,7 +42,7 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
     return concept_model.score(data)
 
   @override
-  def vector_compute(self, keys: Iterable[PathTuple],
+  def vector_compute(self, keys: Iterable[VectorKey],
                      vector_store: VectorStore) -> Iterable[Optional[ItemValue]]:
     concept_model = self._get_concept_model()
     embeddings = vector_store.get(keys)
@@ -53,7 +53,7 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
       self,
       topk: int,
       vector_store: VectorStore,
-      keys: Optional[Iterable[PathTuple]] = None) -> list[tuple[PathTuple, Optional[ItemValue]]]:
+      keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, Optional[ItemValue]]]:
     concept_model = self._get_concept_model()
     query: np.ndarray = concept_model._model.coef_.flatten()
     topk_keys = [key for key, _ in vector_store.topk(query, topk, keys)]

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from typing_extensions import override
 
-from ..schema import PathTuple
+from ..schema import VectorKey
 from .vector_store import VectorStore
 
 NP_INDEX_KEYS_KWD = 'keys'
@@ -16,11 +16,11 @@ NP_EMBEDDINGS_KWD = 'embeddings'
 class NumpyVectorStore(VectorStore):
   """Stores vectors as in-memory np arrays."""
   _embeddings: np.ndarray
-  _keys: list[PathTuple]
+  _keys: list[VectorKey]
   _df: pd.DataFrame
 
   @override
-  def add(self, keys: list[PathTuple], embeddings: np.ndarray) -> None:
+  def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
     if hasattr(self, '_embeddings') or hasattr(self, '_keys'):
       raise ValueError('Embeddings already exist in this store. Upsert is not yet supported.')
 
@@ -42,7 +42,7 @@ class NumpyVectorStore(VectorStore):
       index=str_keys)
 
   @override
-  def get(self, keys: Iterable[PathTuple]) -> np.ndarray:
+  def get(self, keys: Iterable[VectorKey]) -> np.ndarray:
     """Return the embeddings for given keys.
 
     Args:
@@ -58,7 +58,7 @@ class NumpyVectorStore(VectorStore):
   def topk(self,
            query: np.ndarray,
            k: int,
-           keys: Optional[Iterable[PathTuple]] = None) -> list[tuple[PathTuple, float]]:
+           keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
     if keys:
       embeddings = self.get(keys)
       keys = list(keys)
@@ -76,5 +76,5 @@ class NumpyVectorStore(VectorStore):
     indices = indices[np.argsort(similarities[indices])][::-1]
 
     topk_similarities = similarities[indices]
-    topk_keys: list[PathTuple] = [keys[idx] for idx in indices]
+    topk_keys = [keys[idx] for idx in indices]
     return list(zip(topk_keys, topk_similarities))

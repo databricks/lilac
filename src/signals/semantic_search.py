@@ -6,7 +6,7 @@ from typing_extensions import override
 
 from ..embeddings.embedding import get_embed_fn
 from ..embeddings.vector_store import VectorStore
-from ..schema import DataType, Field, ItemValue, PathTuple, RichData
+from ..schema import DataType, Field, ItemValue, RichData, VectorKey
 from .signal import TextEmbeddingModelSignal, TextEmbeddingSignal, get_signal_cls
 
 
@@ -46,7 +46,7 @@ class SemanticSearchSignal(TextEmbeddingModelSignal):
     return similarities.tolist()
 
   @override
-  def vector_compute(self, keys: Iterable[PathTuple],
+  def vector_compute(self, keys: Iterable[VectorKey],
                      vector_store: VectorStore) -> Iterable[Optional[ItemValue]]:
     text_embeddings = vector_store.get(keys)
     similarities = text_embeddings.dot(self._get_search_embedding()).flatten()

@@ -9,7 +9,7 @@ from typing import Any, Callable, Generator, Iterator, Optional, Sequence, TypeV
 
 import numpy as np
 import pyarrow as pa
-from pydantic import BaseModel, StrictInt, StrictStr
+from pydantic import BaseModel
 
 from ..parquet_writer import ParquetWriter
 from ..schema import (
@@ -24,6 +24,7 @@ from ..schema import (
   ItemValue,
   PathTuple,
   Schema,
+  VectorKey,
   field,
   schema,
   schema_to_arrow_schema,
@@ -297,16 +298,13 @@ def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], 
   return out_filename
 
 
-EmbeddingKey = tuple[Union[StrictStr, StrictInt], ...]
-
-
 class EmbeddingIndex(BaseModel):
   """The result of an embedding index query."""
 
   class Config:
     arbitrary_types_allowed = True
 
-  keys: list[EmbeddingKey]
+  keys: list[VectorKey]
   embeddings: np.ndarray
 
 
@@ -378,13 +376,13 @@ def parquet_filename(prefix: str, shard_index: int, num_shards: int) -> str:
 
 
 def _flatten_keys(uuid: str, nested_input: Iterable, location: list[int],
-                  is_primitive_predicate: Callable[[object], bool]) -> list[EmbeddingKey]:
+                  is_primitive_predicate: Callable[[object], bool]) -> list[VectorKey]:
   if is_primitive_predicate(nested_input):
     return [(uuid, *location)]
   elif is_primitive(nested_input):
     return []
   else:
-    result: list[EmbeddingKey] = []
+    result: list[VectorKey] = []
     if isinstance(nested_input, dict):
       for value in nested_input.values():
         result.extend(_flatten_keys(uuid, value, location, is_primitive_predicate))
@@ -397,9 +395,9 @@ def _flatten_keys(uuid: str, nested_input: Iterable, location: list[int],
 def flatten_keys(
     uuids: Iterable[str],
     nested_input: Iterable,
-    is_primitive_predicate: Callable[[object], bool] = is_primitive) -> list[EmbeddingKey]:
+    is_primitive_predicate: Callable[[object], bool] = is_primitive) -> list[VectorKey]:
   """Flatten the uuid keys of a nested input."""
-  result: list[EmbeddingKey] = []
+  result: list[VectorKey] = []
   for uuid, input in zip(uuids, nested_input):
     result.extend(_flatten_keys(uuid, input, [], is_primitive_predicate))
   return result

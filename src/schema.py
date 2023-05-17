@@ -9,7 +9,7 @@ from typing import Any, Optional, Union, cast
 
 import numpy as np
 import pyarrow as pa
-from pydantic import BaseModel, StrictStr, validator
+from pydantic import BaseModel, StrictInt, StrictStr, validator
 
 MANIFEST_FILENAME = 'manifest.json'
 PARQUET_FILENAME_PREFIX = 'data'
@@ -43,11 +43,7 @@ PathKeyedItem = tuple[Path, Item]
 
 # These fields are for for python only and not written to a schema.
 RichData = Union[str, bytes]
-RowKeyedPath = tuple[bytes, Path]
-PathKeyedRichData = tuple[Path, Union[str, bytes]]
-RowPathKeyedItem = tuple[RowKeyedPath, Item]
-# The str is the signal name.
-PathKeyedSignalItem = tuple[str, Path, Item]
+VectorKey = tuple[Union[StrictStr, StrictInt], ...]
 
 
 class DataType(str, Enum):

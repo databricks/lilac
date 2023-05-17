@@ -12,9 +12,9 @@ from ..schema import (
   Field,
   Item,
   ItemValue,
-  PathTuple,
   RichData,
   SignalOut,
+  VectorKey,
   field,
   schema,
   signal_field,
@@ -114,7 +114,7 @@ class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
     return field('float32')
 
   @override
-  def vector_compute(self, keys: Iterable[PathTuple],
+  def vector_compute(self, keys: Iterable[VectorKey],
                      vector_store: VectorStore) -> Iterable[ItemValue]:
     # The signal just sums the values of the embedding.
     embedding_sums = vector_store.get(keys).sum(axis=1)
