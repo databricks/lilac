@@ -77,8 +77,18 @@ export function serializePath(path: Path): string {
   return path.map(p => `"${p}"`).join('.');
 }
 
-export function pathIsEqual(path1?: Path, path2?: Path): boolean {
+export function deserializePath(path: string | Path): Path {
+  if (Array.isArray(path)) return path;
+  const matches = path.match(/("[^"]+"|[\w*]+)/g)?.map(match => match.replace(/"/g, ''));
+  return matches || [];
+}
+export function pathIsEqual(
+  path1: Path | string | undefined,
+  path2: Path | string | undefined
+): boolean {
   if (!path1 || !path2) return false;
+  path1 = deserializePath(path1);
+  path2 = deserializePath(path2);
   if (path1.length !== path2.length) return false;
   for (let i = 0; i < path1.length; i++) {
     if (path1[i] !== path2[i]) return false;
@@ -86,8 +96,13 @@ export function pathIsEqual(path1?: Path, path2?: Path): boolean {
   return true;
 }
 
-export function pathIncludes(path1?: Path, path2?: Path): boolean {
+export function pathIncludes(
+  path1: Path | string | undefined,
+  path2: Path | string | undefined
+): boolean {
   if (!path1 || !path2) return false;
+  path1 = deserializePath(path1);
+  path2 = deserializePath(path2);
   if (path1.length < path2.length) return false;
   return pathIsEqual(path1.slice(0, path2.length), path2);
 }
@@ -97,8 +112,10 @@ export function pathIncludes(path1?: Path, path2?: Path): boolean {
  * @param path1 Path that may contain wildcard pattern
  * @param path2 Path to match against path1
  */
-export function pathIsMatching(path1?: Path, path2?: Path) {
+export function pathIsMatching(path1: Path | string | undefined, path2: Path | string | undefined) {
   if (!path1 || !path2) return false;
+  path1 = deserializePath(path1);
+  path2 = deserializePath(path2);
   if (path1.length !== path2.length) return false;
   for (let i = 0; i < path1.length; i++) {
     if (path1[i] === path2[i]) continue;

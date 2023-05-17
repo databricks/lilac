@@ -11,7 +11,6 @@
     type LilacSchema,
     type LilacSchemaField,
     type ListOp,
-    type Path,
     type UnaryOp
   } from '$lilac';
   import {Checkbox, Tag} from 'carbon-components-svelte';
@@ -58,15 +57,11 @@
 
   $: isVisible = $datasetViewStore.visibleColumns.some(p => pathIsEqual(p, path));
 
-  $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p =>
-    pathIsEqual(p as Path, alias || path)
-  );
+  $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => pathIsEqual(p, alias || path));
   $: sortOrder = $datasetViewStore.queryOptions.sort_order;
 
   $: filters =
-    $datasetViewStore.queryOptions.filters?.filter(f =>
-      pathIsEqual(f.path as Path, alias || path)
-    ) || [];
+    $datasetViewStore.queryOptions.filters?.filter(f => pathIsEqual(f.path, alias || path)) || [];
   $: isFiltered = filters.length > 0;
 
   $: disabled = !field.dtype || field.dtype === 'embedding';
