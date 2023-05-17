@@ -65,7 +65,7 @@
   });
 
   $: currentFieldFilters = stagedFilters.filter(f =>
-    pathIsEqual(f.path, selectedField?.alias || selectedField?.path)
+    pathIsEqual(f.path as Path, selectedField?.alias || selectedField?.path)
   );
 
   // Ensure that exists ops have null value
