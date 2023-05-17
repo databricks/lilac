@@ -4,7 +4,7 @@ from typing import Any, Optional, Sequence, Union, cast
 
 from fastapi import APIRouter, Response
 from fastapi.responses import ORJSONResponse
-from pydantic import BaseModel, StrictStr, validator
+from pydantic import BaseModel, validator
 
 from .config import data_path
 from .data.dataset import BinaryOp, Bins, Column, DatasetManifest, FeatureListValue, FeatureValue
@@ -19,7 +19,7 @@ from .data.dataset import (
 )
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
-from .schema import PathTuple, normalize_path
+from .schema import Path, normalize_path
 from .signals.default_signals import register_default_signals
 from .signals.signal import Signal, resolve_signal
 from .tasks import TaskId, task_manager
@@ -86,7 +86,7 @@ class ComputeSignalOptions(BaseModel):
   signal: Signal
 
   # The leaf path to compute the signal on.
-  leaf_path: PathTuple
+  leaf_path: Path
 
   @validator('signal', pre=True)
   def parse_signal(cls, signal: dict) -> Signal:
@@ -125,7 +125,7 @@ def compute_signal_column(namespace: str, dataset_name: str,
 
 class GetStatsOptions(BaseModel):
   """The request for the get stats endpoint."""
-  leaf_path: PathTuple
+  leaf_path: Path
 
 
 @router.post('/{namespace}/{dataset_name}/stats')
@@ -135,26 +135,23 @@ def get_stats(namespace: str, dataset_name: str, options: GetStatsOptions) -> St
   return dataset.stats(options.leaf_path)
 
 
-PathREST = Union[tuple[StrictStr, ...], StrictStr]
-
-
 class BinaryFilter(BaseModel):
   """A filter on a column."""
-  path: PathREST
+  path: Path
   op: BinaryOp
   value: FeatureValue
 
 
 class UnaryFilter(BaseModel):
   """A filter on a column."""
-  path: PathREST
+  path: Path
   op: UnaryOp
   value: None = None
 
 
 class ListFilter(BaseModel):
   """A filter on a column."""
-  path: PathREST
+  path: Path
   op: ListOp
   value: FeatureListValue
 
@@ -164,9 +161,9 @@ Filter = Union[BinaryFilter, UnaryFilter, ListFilter]
 
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
-  columns: Optional[Sequence[Union[PathREST, Column]]]
+  columns: Optional[Sequence[Union[Path, Column]]]
   filters: Optional[Sequence[Filter]]
-  sort_by: Optional[Sequence[PathREST]]
+  sort_by: Optional[Sequence[Path]]
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int]
   offset: Optional[int]
@@ -175,7 +172,7 @@ class SelectRowsOptions(BaseModel):
 
 class SelectRowsSchemaOptions(BaseModel):
   """The request for the select rows schema endpoint."""
-  columns: Optional[Sequence[Union[PathREST, Column]]]
+  columns: Optional[Sequence[Union[Path, Column]]]
   combine_columns: Optional[bool]
 
 
@@ -210,7 +207,7 @@ def select_rows_schema(namespace: str, dataset_name: str,
 
 class SelectGroupsOptions(BaseModel):
   """The request for the select groups endpoint."""
-  leaf_path: PathTuple
+  leaf_path: Path
   filters: Optional[Sequence[Filter]]
   sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT
   sort_order: Optional[SortOrder] = SortOrder.DESC

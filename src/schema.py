@@ -9,7 +9,7 @@ from typing import Any, Optional, Union, cast
 
 import numpy as np
 import pyarrow as pa
-from pydantic import BaseModel, StrictInt, StrictStr, validator
+from pydantic import BaseModel, StrictStr, validator
 
 MANIFEST_FILENAME = 'manifest.json'
 PARQUET_FILENAME_PREFIX = 'data'
@@ -35,9 +35,9 @@ SignalOut = Union[ItemValue, Item]
 # Examples:
 #  ['article', 'field'] represents {'article': {'field': VALUES}}
 #  ['article', '*', 'field'] represents {'article': [{'field': VALUES}, {'field': VALUES}]}
-#  ['article', 0, 'field'] represents {'article': [{'field': VALUES}, {'field': UNRELATED}]}
-PathTuple = tuple[Union[StrictInt, StrictStr], ...]
-Path = Union[StrictStr, PathTuple]
+#  ['article', '0', 'field'] represents {'article': {'field': VALUES}}
+PathTuple = tuple[StrictStr, ...]
+Path = Union[PathTuple, StrictStr]
 
 PathKeyedItem = tuple[Path, Item]
 

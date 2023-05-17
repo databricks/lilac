@@ -426,9 +426,6 @@ class DatasetDuckDB(Dataset):
       for path_part in path:
         if path_part == VALUE_KEY:
           continue
-        if isinstance(path_part, int) or path_part.isdigit():
-          raise ValueError(f'Unable to select path {path}. Selecting a specific index of '
-                           'a repeated field is currently not supported.')
         if current_field.fields:
           if path_part not in current_field.fields:
             raise ValueError(f'Unable to select path {path}. '
@@ -436,6 +433,9 @@ class DatasetDuckDB(Dataset):
           current_field = current_field.fields[path_part]
           continue
         elif current_field.repeated_field:
+          if path_part.isdigit():
+            raise ValueError(f'Unable to select path {path}. Selecting a specific index of '
+                             'a repeated field is currently not supported.')
           if path_part != PATH_WILDCARD:
             raise ValueError(f'Unable to select path {path}. '
                              f'Path part "{path_part}" should be a wildcard.')
