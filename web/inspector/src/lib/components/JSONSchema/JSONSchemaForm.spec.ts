@@ -144,7 +144,7 @@ describe('JSONSchemaForm', () => {
     );
 
     const requiredInput = screen.getByRole('textbox', {name: 'Required Text *'});
-    const optionalInput = screen.getByRole('textbox', {name: 'Optional Text (optional)'});
+    const optionalInput = screen.getByRole('textbox', {name: 'Optional Text'});
 
     const validationText = screen.getByText('Value is required');
     expect(validationText).toBeInTheDocument();
