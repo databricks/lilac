@@ -15,9 +15,6 @@ class SemanticSearchSignal(TextEmbeddingModelSignal):
 
   <br>This is done by embedding the query with the same embedding as the document and computing a
   a similarity score between them.
-
-  <br>This will compute the similarity between the query and each document in the corpus. The query
-  given to the signal will be embedded on the fly, and potentially sent to an external server.
   """
   name = 'semantic_search'
   display_name = 'Semantic Search'
