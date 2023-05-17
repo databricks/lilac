@@ -8,7 +8,8 @@ from ..data.dataset_utils import lilac_span, signal_item
 from ..schema import Field, Item, RichData, field
 from .signal import TextSignal
 
-EMAILS_FEATURE_NAME = 'emails'
+EMAILS_KEY = 'emails'
+NUM_EMAILS_KEY = 'num_emails'
 
 # This regex is a fully RFC 5322 regex for email addresses.
 # https://uibakery.io/regex-library/email-regex-python
@@ -23,7 +24,7 @@ class PIISignal(TextSignal):
 
   @override
   def fields(self) -> Field:
-    return field({EMAILS_FEATURE_NAME: ['string_span']})
+    return field({EMAILS_KEY: ['string_span'], NUM_EMAILS_KEY: 'int32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -31,9 +32,7 @@ class PIISignal(TextSignal):
       if not isinstance(text, str):
         yield None
         continue
-
-      yield {
-        EMAILS_FEATURE_NAME: [
-          signal_item(lilac_span(m.start(0), m.end(0))) for m in re.finditer(EMAIL_REGEX, text)
-        ]
-      }
+      emails = [
+        signal_item(lilac_span(m.start(0), m.end(0))) for m in re.finditer(EMAIL_REGEX, text)
+      ]
+      yield {EMAILS_KEY: emails, NUM_EMAILS_KEY: len(emails)}
