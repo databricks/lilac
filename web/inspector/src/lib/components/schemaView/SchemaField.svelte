@@ -4,6 +4,7 @@
     PATH_WILDCARD,
     VALUE_KEY,
     isSignalField,
+    isSignalRootField,
     pathIsEqual,
     type BinaryOp,
     type LilacSchema,
@@ -40,7 +41,9 @@
   let datasetViewStore = getDatasetViewContext();
 
   $: path = field.path;
+  $: alias = field.alias;
   $: signalField = isSignalField(field, schema);
+  $: signalRoot = isSignalRootField(field);
   let expanded = true;
 
   $: isRepeatedField = field.path.at(-1) === PATH_WILDCARD ? true : false;
@@ -51,11 +54,15 @@
 
   $: isVisible = $datasetViewStore.visibleColumns.some(p => pathIsEqual(p, path));
 
-  $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => pathIsEqual(p as Path, path));
+  $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p =>
+    pathIsEqual(p as Path, alias || path)
+  );
   $: sortOrder = $datasetViewStore.queryOptions.sort_order;
 
   $: filters =
-    $datasetViewStore.queryOptions.filters?.filter(f => pathIsEqual(f.path as Path, path)) || [];
+    $datasetViewStore.queryOptions.filters?.filter(f =>
+      pathIsEqual(f.path as Path, alias || path)
+    ) || [];
   $: isFiltered = filters.length > 0;
 
   // Find all the child paths for a given field.
@@ -68,6 +75,13 @@
         .filter(f => f.path.at(-1) !== VALUE_KEY)
     );
   }
+
+  // Check if any query option columns match the alias
+  $: udfColumn = alias
+    ? $datasetViewStore.queryOptions.columns?.find(
+        c => typeof c === 'object' && !Array.isArray(c) && c.alias === alias?.[0]
+      )
+    : undefined;
 </script>
 
 {#if field.repeated_field}
@@ -76,6 +90,8 @@
 {:else}
   <div
     class="flex w-full flex-row items-center border-b border-gray-200 px-4 py-2 hover:bg-gray-100"
+    class:bg-blue-50={signalField}
+    class:hover:bg-blue-100={signalField}
   >
     <div class="w-6">
       <Checkbox
@@ -101,7 +117,7 @@
         >
       {/if}
     </div>
-    <div class="grow truncate whitespace-nowrap text-gray-900" class:text-blue-600={signalField}>
+    <div class="grow truncate whitespace-nowrap text-gray-900">
       {fieldName}
     </div>
     {#if isSortedBy}
@@ -112,7 +128,7 @@
           sortOrder === 'ASC'
             ? ($datasetViewStore.queryOptions.sort_order = 'DESC')
             : ($datasetViewStore.queryOptions.sort_order = 'ASC')}
-        on:remove={() => datasetViewStore.removeSortBy(path)}
+        on:remove={() => datasetViewStore.removeSortBy(alias || path)}
       >
         Sorted
         {#if sortOrder == 'ASC'}
@@ -133,7 +149,7 @@
             datasetName: $datasetViewStore.datasetName,
             path
           })}
-        on:remove={() => datasetViewStore.removeFilters(path)}
+        on:remove={() => datasetViewStore.removeFilters(alias || path)}
       >
         {#if filters.length > 1}
           Filtered
@@ -142,14 +158,17 @@
         {/if}
       </RemovableTag>
     {/if}
-    {#if signalField}
+    {#if signalRoot && udfColumn}
+      <Tag type="green">Signal Preview</Tag>
+    {:else if signalRoot}
       <Tag type="blue">Signal</Tag>
     {/if}
-
-    <div class="w-24 pr-2 text-right">{field?.dtype || ''}{isRepeatedField ? '[]' : ''}</div>
+    {#if field?.dtype}
+      <div class="w-24 pr-2 text-right">{field.dtype}{isRepeatedField ? '[]' : ''}</div>
+    {/if}
     <div>
       <ContextMenu>
-        <SchemaFieldMenu {field} />
+        <SchemaFieldMenu {field} {schema} />
       </ContextMenu>
     </div>
   </div>

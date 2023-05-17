@@ -3,6 +3,7 @@ import type {DataType, Field, Schema, SignalInfo} from '../fastapi_client';
 import {
   PATH_WILDCARD,
   VALUE_KEY,
+  pathIncludes,
   pathIsEqual,
   type DataTypeCasted,
   type FieldValue,
@@ -19,6 +20,7 @@ let listValueNodesCache = new WeakMap<LilacValueNode, LilacValueNode[]>();
 
 export type LilacSchemaField = Field & {
   path: Path;
+  alias?: Path;
   // Overwrite the fields and repeated_field properties to be LilacSchemaField
   repeated_field?: LilacSchemaField;
   fields?: Record<string, LilacSchemaField>;
@@ -53,8 +55,11 @@ function castLilacValueNode<D extends DataType = DataType>(
 /**
  * Deserialize a raw schema response to a LilacSchema.
  */
-export function deserializeSchema(rawSchema: Schema): LilacSchema {
-  const lilacFields = lilacSchemaFieldFromField(rawSchema, []);
+export function deserializeSchema(
+  rawSchema: Schema,
+  aliasUdfPaths?: Record<string, Path>
+): LilacSchema {
+  const lilacFields = lilacSchemaFieldFromField(rawSchema, aliasUdfPaths, []);
 
   if (!lilacFields.fields) {
     return {fields: {}, path: []};
@@ -154,7 +159,7 @@ export function isSignalField(
   schema: LilacSchemaField,
   hasSignalRootParent = false
 ): boolean {
-  if (schema.signal != null) {
+  if (isSignalRootField(schema)) {
     hasSignalRootParent = true;
   }
   if (schema === field) return hasSignalRootParent;
@@ -164,6 +169,10 @@ export function isSignalField(
     return isSignalField(field, schema.repeated_field, hasSignalRootParent);
   }
   return false;
+}
+
+export function isSignalRootField(field: LilacSchemaField) {
+  return !!field.signal;
 }
 
 export const L = {
@@ -190,21 +199,36 @@ export const L = {
  * Convert raw schema field to LilacSchemaField.
  * Adds path attribute to each field
  */
-function lilacSchemaFieldFromField(field: Field, path: Path): LilacSchemaField {
+function lilacSchemaFieldFromField(
+  field: Field,
+  aliasUdfPaths: Record<string, Path> | undefined,
+  path: Path
+): LilacSchemaField {
   const {fields, repeated_field, ...rest} = field;
   const lilacField: LilacSchemaField = {...rest, path: []};
   if (fields != null) {
     lilacField.fields = {};
     for (const [fieldName, field] of Object.entries(fields)) {
-      const lilacChildField = lilacSchemaFieldFromField(field, [...path, fieldName]);
+      const lilacChildField = lilacSchemaFieldFromField(field, aliasUdfPaths, [...path, fieldName]);
       lilacChildField.path = [...path, fieldName];
       lilacField.fields[fieldName] = lilacChildField;
     }
   }
   if (repeated_field != null) {
-    const lilacChildField = lilacSchemaFieldFromField(repeated_field, [...path, PATH_WILDCARD]);
+    const lilacChildField = lilacSchemaFieldFromField(repeated_field, aliasUdfPaths, [
+      ...path,
+      PATH_WILDCARD
+    ]);
     lilacChildField.path = [...path, PATH_WILDCARD];
     lilacField.repeated_field = lilacChildField;
+  }
+  if (aliasUdfPaths != null) {
+    const alias = Object.entries(aliasUdfPaths).find(([, aliasPath]) =>
+      pathIncludes(path, aliasPath)
+    )?.[0];
+    if (alias) {
+      lilacField.alias = [alias, ...path.slice(aliasUdfPaths[alias].length)];
+    }
   }
   return lilacField;
 }

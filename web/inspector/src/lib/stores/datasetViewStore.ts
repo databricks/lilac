@@ -51,6 +51,9 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
 
     addUdfColumn: (column: Column) =>
       update(state => {
+        // Ensure that UDF's have an alias
+        if (!column.alias && column.signal_udf?.signal_name)
+          column.alias = `${column.path.join('_')}_${column.signal_udf?.signal_name}`;
         state.queryOptions.columns?.push(column);
         return state;
       }),

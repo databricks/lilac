@@ -83,6 +83,12 @@ export function pathIsEqual(path1?: Path, path2?: Path): boolean {
   return serializePath(path1) === serializePath(path2);
 }
 
+export function pathIncludes(path1?: Path, path2?: Path): boolean {
+  if (!path1 || !path2) return false;
+  if (path1.length < path2.length) return false;
+  return serializePath(path1.slice(0, path2.length)) === serializePath(path2);
+}
+
 export function isConceptScoreSignal(
   signal: ConceptScoreSignal | Signal | undefined
 ): signal is ConceptScoreSignal {

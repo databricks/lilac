@@ -86,6 +86,10 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
   }
 };
 
+const SCHEMA_ALIAS_UDF_PATHS_FIXTURE = {
+  alias1: ['complex_field', 'propertyA']
+};
+
 const SELECT_ROWS_RESPONSE_FIXTURE: FieldValue = {
   title: lilacItem('title text'),
   comment_text: lilacItem('text content', {
@@ -142,7 +146,7 @@ function lilacItem(value: FieldValue, fields: {[fieldName: string]: FieldValue} 
 }
 
 describe('lilac', () => {
-  const schema = deserializeSchema(MANIFEST_SCHEMA_FIXTURE);
+  const schema = deserializeSchema(MANIFEST_SCHEMA_FIXTURE, SCHEMA_ALIAS_UDF_PATHS_FIXTURE);
   const row = deserializeRow(SELECT_ROWS_RESPONSE_FIXTURE, schema);
 
   afterEach(() => {
@@ -174,6 +178,14 @@ describe('lilac', () => {
       ]);
 
       expect(schema.fields?.comment_text.fields?.pii.path).toEqual(['comment_text', 'pii']);
+    });
+
+    it('parses aliases', () => {
+      expect(schema.fields?.complex_field.fields!.propertyA.alias).toEqual(['alias1']);
+      expect(schema.fields?.complex_field.fields!.propertyA.fields!.text_statistics.alias).toEqual([
+        'alias1',
+        'text_statistics'
+      ]);
     });
   });
 

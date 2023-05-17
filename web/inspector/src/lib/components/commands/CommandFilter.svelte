@@ -65,7 +65,7 @@
   });
 
   $: currentFieldFilters = stagedFilters.filter(f =>
-    pathIsEqual(f.path as Path, selectedField?.path)
+    pathIsEqual(f.path, selectedField?.alias || selectedField?.path)
   );
 
   // Ensure that exists ops have null value
@@ -109,7 +109,7 @@
       </div>
       <div class="flex w-full flex-col gap-y-6">
         {#if selectedField}
-          {@const fieldPath = selectedField.path}
+          {@const fieldPath = selectedField.alias || selectedField.path}
           {#each currentFieldFilters as filter}
             <div class="flex items-center gap-x-2">
               <Select bind:selected={filter.op} labelText="Operation">
