@@ -122,14 +122,13 @@ def _flatten(input: Union[Iterable, object], is_primitive_predicate: Callable[[o
   """Flattens a nested iterable."""
   if is_primitive_predicate(input):
     yield input
+  elif isinstance(input, dict):
+    yield input
   elif is_primitive(input):
-    pass
+    yield input
   else:
     for elem in cast(Iterable, input):
-      if isinstance(elem, dict):
-        yield from _flatten(elem.values(), is_primitive_predicate)
-      else:
-        yield from _flatten(elem, is_primitive_predicate)
+      yield from _flatten(elem, is_primitive_predicate)
 
 
 def flatten(input: Union[Iterable, Tflatten],
@@ -280,7 +279,7 @@ def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], 
   embedding_vectors: list[np.ndarray] = []
   for embedding_vector in flatten(embeddings, is_primitive_predicate=embedding_predicate):
     # We use squeeze here because embedding functions can return outer dimensions of 1.
-    embedding_vector = embedding_vector.squeeze()
+    embedding_vector = embedding_vector[VALUE_KEY].squeeze()
     if embedding_vector.ndim != 1:
       raise ValueError(f'Expected embeddings to be 1-dimensional, got {embedding_vector.ndim} '
                        f'with shape {embedding_vector.shape}.')

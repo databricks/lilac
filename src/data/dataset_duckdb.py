@@ -598,6 +598,7 @@ class DatasetDuckDB(Dataset):
 
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
     columns_to_merge: dict[str, dict[str, Column]] = {}
+    temp_column_to_offset_column: dict[str, tuple[str, Field]] = {}
     select_queries: list[str] = []
 
     for column in cols:
@@ -625,6 +626,13 @@ class DatasetDuckDB(Dataset):
           final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}')
         select_sqls.append(f'{sql} AS "{temp_column_name}"')
         columns_to_merge[final_col_name][temp_column_name] = column
+
+        if column.signal_udf and span_from and _schema_has_spans(column.signal_udf.fields()):
+          sql = _select_sql(duckdb_path, flatten=False, unnest=False, empty=empty, span_from=None)
+          temp_offset_column_name = f'{temp_column_name}/offset'
+          select_sqls.append(f'{sql} AS "{temp_offset_column_name}"')
+          temp_column_to_offset_column[temp_column_name] = (temp_offset_column_name,
+                                                            column.signal_udf.fields())
 
       select_queries.append(', '.join(select_sqls))
 
@@ -763,6 +771,13 @@ class DatasetDuckDB(Dataset):
             signal_out = progress(signal_out, task_id=task_id, estimated_len=num_rich_data)
           signal_out = list(signal_out)
 
+          if signal_column in temp_column_to_offset_column:
+            offset_column_name, schema = temp_column_to_offset_column[signal_column]
+            nested_spans: Iterable[Item] = df[offset_column_name]
+            flat_spans = list(flatten(nested_spans))
+            for span, item in zip(flat_spans, signal_out):
+              _offset_any_span(cast(int, span['start']), item, schema)
+
           if len(signal_out) != num_rich_data:
             raise ValueError(
               f'The signal generated {len(signal_out)} values but the input data had '
@@ -795,6 +810,9 @@ class DatasetDuckDB(Dataset):
       for col_dict in columns_to_merge.values():
         all_columns.update(col_dict)
       columns_to_merge = {'*': all_columns}
+
+    for offset_column, _ in temp_column_to_offset_column.values():
+      del df[offset_column]
 
     for final_col_name, temp_columns in columns_to_merge.items():
       for temp_col_name, column in temp_columns.items():
@@ -1241,3 +1259,31 @@ def _replace_nan_with_none(df: pd.DataFrame) -> pd.DataFrame:
     if is_object_dtype(df[col]):
       df[col].replace(np.nan, None, inplace=True)
   return df
+
+
+def _offset_any_span(offset: int, item: ItemValue, schema: Field) -> None:
+  """Offsets any spans inplace by the given parent offset."""
+  if schema.dtype == DataType.STRING_SPAN:
+    item = cast(dict, item)
+    item[VALUE_KEY]['start'] += offset
+    item[VALUE_KEY]['end'] += offset
+  if schema.fields:
+    item = cast(dict, item)
+    for key, sub_schema in schema.fields.items():
+      _offset_any_span(offset, item[key], sub_schema)
+  if schema.repeated_field:
+    item = cast(list, item)
+    for sub_item in item:
+      _offset_any_span(offset, sub_item, schema.repeated_field)
+
+
+def _schema_has_spans(field: Field) -> bool:
+  if field.dtype and field.dtype == DataType.STRING_SPAN:
+    return True
+  if field.fields:
+    children_have_spans = any(_schema_has_spans(sub_field) for sub_field in field.fields.values())
+    if children_have_spans:
+      return True
+  if field.repeated_field:
+    return _schema_has_spans(field.repeated_field)
+  return False
