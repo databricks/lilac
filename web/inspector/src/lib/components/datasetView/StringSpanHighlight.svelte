@@ -24,11 +24,6 @@
   export let visibleColumns: Path[];
 
   $: spans = stringSpanFields.flatMap(f => getValueNodes(row, f.path));
-  // .map(v => L.value<'string_span'>(v))
-  // .filter(notEmpty);
-
-  // // All the spans
-  // $: spans = stringSpans.filter(notEmpty);
 
   // Fill up the gaps between the spans
   let filledSpans: Array<{
