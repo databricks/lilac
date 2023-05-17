@@ -140,17 +140,15 @@ def test_signal_type_enum() -> None:
   assert schema_properties['embedding']['enum'] == [TestTextEmbedding.name]
 
 
+class TestSignalNoDisplayName(Signal):
+  name = 'signal_no_name'
+
+
+class TestSignalDisplayName(Signal):
+  name = 'signal_display_name'
+  display_name = 'test display name'
+
+
 def test_signal_title_schema() -> None:
-
-  class TestSignalNoDisplayName(Signal):
-    name = 'signal_no_name'
-
-  schema = TestSignalNoDisplayName.schema()
-  assert schema['title'] == TestSignalNoDisplayName.__name__
-
-  class TestSignalDisplayName(Signal):
-    name = 'signal_display_name'
-    display_name = 'test display name'
-
-  schema = TestSignalDisplayName.schema()
-  assert schema['title'] == 'test display name'
+  assert TestSignalNoDisplayName.schema()['title'] == TestSignalNoDisplayName.__name__
+  assert TestSignalDisplayName.schema()['title'] == 'test display name'
