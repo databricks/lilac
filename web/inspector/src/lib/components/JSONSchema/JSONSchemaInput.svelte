@@ -26,7 +26,7 @@
   export let customComponents: Record<string, typeof SvelteComponent>;
 
   $: property = schema.getSchema(path, value);
-  $: label = `${property.title ?? ''} ${required ? '*' : '(optional)'}`;
+  $: label = property.title ? `${property.title} ${required ? '*' : ''}` : '';
 
   // FInd the validation error for this property using some pointer magic
   $: validation = validationErrors.filter(
@@ -84,6 +84,7 @@
       labelText={label}
       invalid={!!validation.length}
       invalidText={validationText}
+      placeholder={!required ? '(optional)' : ''}
     />
   {:else if property.type == 'number'}
     <!-- Number Input -->

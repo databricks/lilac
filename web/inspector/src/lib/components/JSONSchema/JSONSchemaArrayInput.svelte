@@ -32,6 +32,7 @@
           bind:value={value[i]}
           {validationErrors}
           {customComponents}
+          required
         />
         <button
           class="bg-slate-600 p-2 text-white hover:bg-slate-400"

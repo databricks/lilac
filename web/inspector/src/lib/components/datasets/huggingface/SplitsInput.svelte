@@ -22,8 +22,9 @@
     warn={!datasetExists}
     warnText={"Dataset doesn't exist"}
     titleText="Split"
+    placeholder="(optional)"
     items={$splits?.data?.map(s => ({id: s.split, text: s.split})) || []}
   />
 {:else}
-  <TextInput bind:value {invalid} {invalidText} labelText="Split" />
+  <TextInput bind:value {invalid} {invalidText} labelText="Split" placeholder="(optional)" />
 {/if}
