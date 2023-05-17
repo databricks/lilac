@@ -1,17 +1,14 @@
 """Interface for implementing a signal."""
 
 import abc
-from typing import Any, ClassVar, Iterable, Optional, Type, Union, cast
+from typing import Any, ClassVar, Iterable, Optional, Type, TypeVar, Union
 
-from pydantic import BaseModel
-from pydantic import Field as PydanticField
-from pydantic import validator
+from pydantic import BaseModel, validator
+from pydantic.fields import ModelField
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
 from ..schema import Field, PathTuple, RichData, SignalInputType, SignalOut, field
-
-SIGNAL_TYPE_PYDANTIC_FIELD = 'signal_type'
 
 
 class Signal(abc.ABC, BaseModel):
@@ -126,8 +123,15 @@ def _args_key_from_dict(args_dict: dict[str, Any]) -> str:
   return '' if not args_list else f'({args})'
 
 
-SIGNAL_TYPE_TEXT_EMBEDDING = 'text_embedding'
-SIGNAL_TYPE_TEXT_SPLITTER = 'text_splitter'
+class SignalTypeEnum(str):
+  """A string that represents a text splitter signal."""
+  signal_type: ClassVar[Type[Signal]]
+
+  @classmethod
+  def __modify_schema__(cls, field_schema: dict[str, Any], field: Optional[ModelField]) -> None:
+    if field:
+      field_schema['enum'] = [x.name for x in get_signals_by_type(cls.signal_type)]
+    return None
 
 
 class TextSplitterSignal(Signal):
@@ -140,14 +144,18 @@ class TextSplitterSignal(Signal):
     return field(['string_span'])
 
 
+class TextSplitterEnum(SignalTypeEnum):
+  """A string enum that represents a text splitter signal."""
+  signal_type = TextSplitterSignal
+
+
 # Signal base classes, used for inferring the dependency chain required for computing a signal.
 class TextSignal(Signal):
   """An interface for signals that compute over text."""
   input_type = SignalInputType.TEXT
   compute_type = SignalInputType.TEXT
 
-  split: Optional[str] = PydanticField(
-    extra={SIGNAL_TYPE_PYDANTIC_FIELD: SIGNAL_TYPE_TEXT_SPLITTER})
+  split: Optional[TextSplitterEnum]
   _split_signal: Optional[TextSplitterSignal] = None
 
   def __init__(self, split: Optional[str] = None, **kwargs: Any):
@@ -156,9 +164,7 @@ class TextSignal(Signal):
     # Validate the split signal is registered and the correct type.
     # TODO(nsthorat): Allow arguments passed to the embedding signal.
     if self.split:
-      self._split_signal = cast(
-        TextSplitterSignal,
-        get_signal_by_type(self.split, SIGNAL_TYPE_TEXT_SPLITTER)(split=self.split))
+      self._split_signal = get_signal_by_type(self.split, TextSplitterSignal)(split=self.split)
 
   def get_split_signal(self) -> Optional[TextSplitterSignal]:
     """Return the embedding signal."""
@@ -188,6 +194,11 @@ class TextEmbeddingSignal(TextSignal):
     return field('embedding')
 
 
+class TextEmbeddingEnum(SignalTypeEnum):
+  """A string enum that represents a text embedding signal."""
+  signal_type = TextEmbeddingSignal
+
+
 class TextEmbeddingModelSignal(TextSignal):
   """An interface for signals that take embeddings and produce items."""
   input_type = SignalInputType.TEXT
@@ -195,7 +206,7 @@ class TextEmbeddingModelSignal(TextSignal):
   # and embeddings.
   compute_type = SignalInputType.TEXT_EMBEDDING
 
-  embedding: str = PydanticField(extra={SIGNAL_TYPE_PYDANTIC_FIELD: SIGNAL_TYPE_TEXT_EMBEDDING})
+  embedding: TextEmbeddingEnum
   _embedding_signal: TextEmbeddingSignal
 
   def __init__(self, embedding: str, **kwargs: Any):
@@ -203,9 +214,8 @@ class TextEmbeddingModelSignal(TextSignal):
 
     # Validate the embedding signal is registered and the correct type.
     # TODO(nsthorat): Allow arguments passed to the embedding signal.
-    self._embedding_signal = cast(
-      TextEmbeddingSignal,
-      get_signal_by_type(self.embedding, SIGNAL_TYPE_TEXT_EMBEDDING)(split=self.split))
+    self._embedding_signal = get_signal_by_type(self.embedding, TextEmbeddingSignal)(
+      split=self.split)
 
   def get_embedding_signal(self) -> Optional[TextEmbeddingSignal]:
     """Return the embedding signal."""
@@ -226,36 +236,28 @@ class TextEmbeddingModelSignal(TextSignal):
     return self.name + _args_key_from_dict(args_dict)
 
 
-SIGNAL_TYPE_CLS: dict[str, Type[Signal]] = {
-  SIGNAL_TYPE_TEXT_EMBEDDING: TextEmbeddingSignal,
-  SIGNAL_TYPE_TEXT_SPLITTER: TextSplitterSignal
-}
+Tsignal = TypeVar('Tsignal', bound=Signal)
 
 
-def get_signal_by_type(signal_name: str, signal_type: str) -> Type[Signal]:
+def get_signal_by_type(signal_name: str, signal_type: Type[Tsignal]) -> Type[Tsignal]:
   """Return a signal class by name and signal type."""
   if signal_name not in SIGNAL_REGISTRY:
     raise ValueError(f'Signal "{signal_name}" not found in the registry')
 
-  if signal_type not in SIGNAL_TYPE_CLS:
-    raise ValueError(
-      f'Invalid `signal_type` "{signal_type}". Valid signal types: {SIGNAL_TYPE_CLS.keys()}')
-
-  signal_subclass = SIGNAL_TYPE_CLS[signal_type]
   signal_cls = SIGNAL_REGISTRY[signal_name]
-  if not issubclass(signal_cls, signal_subclass):
-    raise ValueError(
-      f'"{signal_name}" is a `{signal_cls.__name__}`, '
-      f'which is not a `signal_type` "{signal_type}", a subclass of `{signal_subclass.__name__}`.')
+  if not issubclass(signal_cls, signal_type):
+    raise ValueError(f'"{signal_name}" is a `{signal_cls.__name__}`, '
+                     f'which is not a subclass of `{signal_type.__name__}`.')
   return signal_cls
 
 
-def get_signal_type(signal_cls: Type[Signal]) -> Optional[str]:
-  """Return the signal type for a signal class."""
-  for signal_type, signal_subclass in SIGNAL_TYPE_CLS.items():
-    if issubclass(signal_cls, signal_subclass):
-      return signal_type
-  return None
+def get_signals_by_type(signal_type: Type[Tsignal]) -> list[Type[Tsignal]]:
+  """Return all signals that match a signal type."""
+  signal_clses: list[Type[Tsignal]] = []
+  for signal_cls in SIGNAL_REGISTRY.values():
+    if issubclass(signal_cls, signal_type):
+      signal_clses.append(signal_cls)
+  return signal_clses
 
 
 SIGNAL_REGISTRY: dict[str, Type[Signal]] = {}

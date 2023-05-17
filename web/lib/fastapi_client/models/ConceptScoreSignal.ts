@@ -7,8 +7,8 @@
  */
 export type ConceptScoreSignal = {
     signal_name?: string;
-    split?: string;
-    embedding: string;
+    split?: 'sentences';
+    embedding: 'cohere';
     namespace: string;
     concept_name: string;
 };
