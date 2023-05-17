@@ -43,9 +43,7 @@
         getSelectRowsOptions($datasetViewStore, $datasetSchema.data)
       )
     : undefined;
-  $: {
-    console.log($schema?.data);
-  }
+
   // Create list of fields, and include current count of filters
   $: fields = $schema?.isSuccess
     ? listFields($schema?.data).map(f => {
