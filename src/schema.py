@@ -108,7 +108,7 @@ SIGNAL_COMPUTE_TYPE_TO_VALID_DTYPES: dict[SignalInputType, list[DataType]] = {
 
 
 def signal_compute_type_supports_dtype(input_type: SignalInputType, dtype: DataType) -> bool:
-  """Returns True if the signal input type supports the dtype."""
+  """Returns True if the signal compute type supports the dtype."""
   return dtype in SIGNAL_COMPUTE_TYPE_TO_VALID_DTYPES[input_type]
 
 
