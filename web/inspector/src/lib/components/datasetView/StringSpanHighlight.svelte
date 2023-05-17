@@ -131,6 +131,7 @@
           conceptName={span.concepts[0].concept_name}
           conceptNamespace={span.concepts[0].namespace}
           text={text.slice(span.start, span.end)}
+          on:close={() => (selectedSpan = undefined)}
         />{/if}{/each}
   </div>
 </div>
