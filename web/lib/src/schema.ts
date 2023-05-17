@@ -80,13 +80,34 @@ export function serializePath(path: Path): string {
 export function pathIsEqual(path1?: Path, path2?: Path): boolean {
   if (!path1 || !path2) return false;
   if (path1.length !== path2.length) return false;
-  return serializePath(path1) === serializePath(path2);
+  for (let i = 0; i < path1.length; i++) {
+    if (path1[i] !== path2[i]) return false;
+  }
+  return true;
 }
 
 export function pathIncludes(path1?: Path, path2?: Path): boolean {
   if (!path1 || !path2) return false;
   if (path1.length < path2.length) return false;
-  return serializePath(path1.slice(0, path2.length)) === serializePath(path2);
+  return pathIsEqual(path1.slice(0, path2.length), path2);
+}
+
+/**
+ * Returns true if path2 matches the pattern of path1
+ * @param path1 Path that may contain wildcard pattern
+ * @param path2 Path to match against path1
+ */
+export function pathIsMatching(path1?: Path, path2?: Path) {
+  if (!path1 || !path2) return false;
+  if (path1.length !== path2.length) return false;
+  for (let i = 0; i < path1.length; i++) {
+    if (path1[i] === path2[i]) continue;
+    if (path1[i] !== path2[i] && path1[i] !== PATH_WILDCARD) return false;
+    if (path1[i] === PATH_WILDCARD) {
+      if (!path2[i].match(/^\d+$/)) return false;
+    }
+  }
+  return true;
 }
 
 export function isConceptScoreSignal(
