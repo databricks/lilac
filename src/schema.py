@@ -270,7 +270,8 @@ def child_item_from_column_path(item: Item, path: Path) -> Item:
         f'wildcard: "{path}"')
     # path_part can either be an integer or a string for a dictionary, both of which we can
     # directly index with.
-    child_item_value = child_item_value[path_part]  # type: ignore
+    child_path = int(path_part) if path_part.isdigit() else path_part
+    child_item_value = child_item_value[child_path]  # type: ignore
   return child_item_value
 
 
