@@ -18,9 +18,13 @@
 
 <QueryClientProvider client={queryClient}>
   <main class="flex h-screen flex-col">
-    <div class="flex flex-row items-center justify-between border-b border-gray-200 px-4 py-2">
+    <div class="flex flex-row items-center gap-x-8 border-b border-gray-200 px-4 py-2">
       <a class="text-xl normal-case" href="/">Lilac Inspector</a>
-      <TaskStatus />
+      <a class="opacity-50 hover:underline" href="/">Datasets</a>
+      <a class="opacity-50 hover:underline" href="/concepts">Concepts</a>
+      <div class="ml-auto">
+        <TaskStatus />
+      </div>
     </div>
 
     <div class="h-full overflow-y-scroll">
