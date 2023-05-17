@@ -817,4 +817,4 @@ def test_invalid_column_paths(make_test_data: TestDataMaker) -> None:
     dataset.select_rows([('text', 'test_signal', 'invalid')])
 
   with pytest.raises(ValueError, match='Selecting a specific index of a repeated field'):
-    dataset.select_rows([('text2', 4, 'test_signal')])
+    dataset.select_rows([('text2', '4', 'test_signal')])

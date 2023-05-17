@@ -5,7 +5,7 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import DataType, Field, ItemValue, PathTuple, RichData, SignalInputType, field
+from ..schema import DataType, Field, ItemValue, RichData, SignalInputType, VectorKey, field
 from .signal import (
   Signal,
   TextEmbeddingModelSignal,
@@ -68,7 +68,7 @@ class TestTextEmbeddingModelSignal(TextEmbeddingModelSignal):
     return field('float32')
 
   @override
-  def vector_compute(self, keys: Iterable[PathTuple],
+  def vector_compute(self, keys: Iterable[VectorKey],
                      vector_store: VectorStore) -> Iterable[ItemValue]:
     # The signal just sums the values of the embedding.
     del keys, vector_store

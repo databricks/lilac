@@ -10,7 +10,6 @@
     type LilacSchemaField,
     type ListFilter,
     type ListOp,
-    type Path,
     type UnaryFilter,
     type UnaryOp
   } from '$lilac';
@@ -47,7 +46,7 @@
   // Create list of fields, and include current count of filters
   $: fields = $schema?.isSuccess
     ? listFields($schema?.data).map(f => {
-        const filters = stagedFilters.filter(filter => pathIsEqual(filter.path as Path, f.path));
+        const filters = stagedFilters.filter(filter => pathIsEqual(filter.path, f.path));
         return {
           title: f.path.join('.'),
           value: f,
@@ -68,7 +67,7 @@
   });
 
   $: currentFieldFilters = stagedFilters.filter(f =>
-    pathIsEqual(f.path as Path, selectedField?.alias || selectedField?.path)
+    pathIsEqual(f.path, selectedField?.alias || selectedField?.path)
   );
 
   // Ensure that exists ops have null value

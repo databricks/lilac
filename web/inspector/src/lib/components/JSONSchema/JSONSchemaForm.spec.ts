@@ -117,6 +117,32 @@ describe('JSONSchemaForm', () => {
     });
   });
 
+  it('should render enums', async () => {
+    const value = writable({});
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        enum: {
+          type: 'string',
+          enum: ['one', 'two', 'three']
+        }
+      }
+    };
+
+    render(html`<${JSONSchemaForm} schema=${schema} bind:value=${value} />`);
+
+    const select = screen.getByRole('combobox');
+    expect(select).toBeInTheDocument();
+
+    const options = screen.getAllByRole<HTMLOptionElement>('option');
+    expect(options).toHaveLength(4);
+    expect(options[0]).toHaveTextContent('not set');
+    expect(options[0]).not.toHaveValue();
+
+    expect(options[1]).toHaveTextContent('one');
+    expect(options[1]).toHaveValue('one');
+  });
+
   it('should validate the form', async () => {
     const value = writable({});
     const errors = writable<JSONError[]>([]);

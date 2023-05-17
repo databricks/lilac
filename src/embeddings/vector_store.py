@@ -5,14 +5,14 @@ from typing import Iterable, Optional
 
 import numpy as np
 
-from ..schema import PathTuple
+from ..schema import VectorKey
 
 
 class VectorStore(abc.ABC):
   """Interface for storing and retrieving vectors."""
 
   @abc.abstractmethod
-  def add(self, keys: list[PathTuple], embeddings: np.ndarray) -> None:
+  def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
     """Add or edit the given keyed embeddings to the store.
 
     If the keys already exist they will be overwritten, acting as an "upsert".
@@ -24,7 +24,7 @@ class VectorStore(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def get(self, keys: Iterable[PathTuple]) -> np.ndarray:
+  def get(self, keys: Iterable[VectorKey]) -> np.ndarray:
     """Return the embeddings for given keys.
 
     Args:
@@ -38,7 +38,7 @@ class VectorStore(abc.ABC):
   def topk(self,
            query: np.ndarray,
            k: int,
-           keys: Optional[Iterable[PathTuple]] = None) -> list[tuple[PathTuple, float]]:
+           keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
     """Return the top k most similar vectors.
 
     Args:

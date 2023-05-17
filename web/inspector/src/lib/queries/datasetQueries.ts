@@ -32,7 +32,7 @@ export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
   'boolean'
 ];
 
-const DATASETS_TAG = 'datasets';
+export const DATASETS_TAG = 'datasets';
 
 export const queryDatasets = createApiQuery(DatasetsService.getDatasets, DATASETS_TAG);
 export const queryDatasetManifest = createApiQuery(DatasetsService.getManifest, DATASETS_TAG, {});

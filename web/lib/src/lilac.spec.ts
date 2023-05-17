@@ -10,6 +10,7 @@ import {
   getValueNode,
   getValueNodes,
   isSignalField,
+  listFieldParents,
   listFields,
   listValueNodes
 } from './lilac';
@@ -234,10 +235,22 @@ describe('lilac', () => {
     });
   });
 
+  describe('listFieldParents', () => {
+    it('lists the parents of a field', () => {
+      const parents = listFieldParents(
+        schema.fields!.complex_field.fields!.propertyA.fields!.text_statistics,
+        schema
+      );
+      expect(parents).toBeDefined();
+      expect(parents).toHaveLength(2);
+      expect(parents[0]).toEqual(schema.fields!.complex_field);
+      expect(parents[1]).toEqual(schema.fields!.complex_field.fields!.propertyA);
+    });
+  });
+
   describe('listValues', () => {
     it('should return a list of values', () => {
       const values = listValueNodes(row);
-
       expect(values).toBeDefined();
       expect(L.path(values[0])).toEqual(['title']);
       expect(L.value(values[0])).toEqual('title text');
@@ -247,8 +260,8 @@ describe('lilac', () => {
 
       const paths = values.map(f => L.path(f));
       expect(paths).toContainEqual(['title']);
-      expect(paths).toContainEqual(['complex_list_of_struct', '*']);
-      expect(paths).toContainEqual(['complex_list_of_struct', '*', 'propertyA']);
+      expect(paths).toContainEqual(['complex_list_of_struct', '0']);
+      expect(paths).toContainEqual(['complex_list_of_struct', '0', 'propertyA']);
     });
     it('returns cached results', () => {
       const values = listValueNodes(row);
@@ -285,9 +298,14 @@ describe('lilac', () => {
       });
     });
 
-    it('should return a value by path with repeated fields', () => {
+    it('should return first value by path with repeated fields', () => {
       const value = getValueNode(row, ['complex_list_of_struct', '*']);
-      expect(L.path(value!)).toEqual(['complex_list_of_struct', '*']);
+      expect(L.path(value!)).toEqual(['complex_list_of_struct', '0']);
+    });
+
+    it('should return specific index when no wildcard is given', () => {
+      const value = getValueNode(row, ['complex_list_of_struct', '1']);
+      expect(L.path(value!)).toEqual(['complex_list_of_struct', '1']);
     });
   });
 
@@ -302,6 +320,7 @@ describe('lilac', () => {
         end: 100,
         start: 82
       });
+      expect(values).toHaveLength(2);
     });
   });
 
@@ -352,7 +371,7 @@ describe('lilac', () => {
 
   describe('nested lists', () => {
     it('can get values', () => {
-      expect(L.path(row.nested_list_of_list[0][0])).toEqual(['nested_list_of_list', '*', '*']);
+      expect(L.path(row.nested_list_of_list[0][0])).toEqual(['nested_list_of_list', '0', '0']);
       expect(L.dtype(row.nested_list_of_list[0][0])).toEqual('string');
     });
   });

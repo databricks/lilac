@@ -4,7 +4,7 @@ import {
   PATH_WILDCARD,
   VALUE_KEY,
   pathIncludes,
-  pathIsEqual,
+  pathIsMatching,
   type DataTypeCasted,
   type FieldValue,
   type LeafValue,
@@ -127,27 +127,40 @@ export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
 }
 
 /**
+ * List all fields that are parent of the given field
+ */
+export function listFieldParents(field: LilacSchemaField, schema: LilacSchema): LilacSchemaField[] {
+  const parents: LilacSchemaField[] = [];
+  for (let i = 1; i < field.path.length; i++) {
+    const path = field.path.slice(0, i);
+    const parent = getField(schema, path);
+    if (parent) parents.push(parent);
+  }
+  return parents;
+}
+
+/**
  * Get a field in schema by path
  */
 export function getField(schema: LilacSchema, path: Path): LilacSchemaField | undefined {
   const list = listFields(schema);
-  return list.find(field => pathIsEqual(field.path, path));
+  return list.find(field => pathIsMatching(field.path, path));
 }
 
 /**
  * Get the first value at the given path in a row
  */
-export function getValueNode(row: LilacValueNode, _path: Path): LilacValueNode | undefined {
+export function getValueNode(row: LilacValueNode, path: Path): LilacValueNode | undefined {
   const list = listValueNodes(row);
-  return list.find(value => pathIsEqual(L.path(value), _path));
+  return list.find(value => pathIsMatching(path, L.path(value)));
 }
 
 /**
  * Get all values at the given path in a row
  */
-export function getValueNodes(row: LilacValueNode, _path: Path): LilacValueNode[] {
+export function getValueNodes(row: LilacValueNode, path: Path): LilacValueNode[] {
   const list = listValueNodes(row);
-  return list.filter(value => pathIsEqual(L.path(value), _path));
+  return list.filter(value => pathIsMatching(path, L.path(value)));
 }
 
 /**
@@ -238,12 +251,12 @@ function lilacValueNodeFromRawValue(
   fields: LilacSchemaField[],
   path: Path
 ): LilacValueNode {
-  const field = fields.find(field => pathIsEqual(field.path, path));
+  const field = fields.find(field => pathIsMatching(field.path, path));
 
   let ret: LilacValueNode = {};
   if (Array.isArray(rawFieldValue)) {
-    ret = rawFieldValue.map(value =>
-      lilacValueNodeFromRawValue(value, fields, [...path, PATH_WILDCARD])
+    ret = rawFieldValue.map((value, i) =>
+      lilacValueNodeFromRawValue(value, fields, [...path, i.toString()])
     ) as Record<number, LilacValueNode>;
     castLilacValueNode(ret)[VALUE_KEY] = null;
     return ret;

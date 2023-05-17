@@ -9,6 +9,6 @@ import type { Schema } from './Schema';
  */
 export type SelectRowsSchemaResult = {
     data_schema: Schema;
-    alias_udf_paths?: Record<string, Array<(number | string)>>;
+    alias_udf_paths?: Record<string, Array<string>>;
 };
 

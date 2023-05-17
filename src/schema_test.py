@@ -201,8 +201,8 @@ def test_simple_schema_str() -> None:
 
 def test_child_item_from_column_path() -> None:
   assert child_item_from_column_path(NESTED_TEST_ITEM,
-                                     ('addresses', 0, 'locations', 0, 'longitude')) == 3.8
-  assert child_item_from_column_path(NESTED_TEST_ITEM, ('addresses', 1, 'city')) == 'b'
+                                     ('addresses', '0', 'locations', '0', 'longitude')) == 3.8
+  assert child_item_from_column_path(NESTED_TEST_ITEM, ('addresses', '1', 'city')) == 'b'
 
 
 def test_child_item_from_column_path_raises_wildcard() -> None:
@@ -224,9 +224,10 @@ def test_column_paths_match() -> None:
 
   # Wildcards work for repeateds.
   assert column_paths_match(
-    path_match=('person', PATH_WILDCARD, 'name'), specific_path=('person', 0, 'name')) is True
+    path_match=('person', PATH_WILDCARD, 'name'), specific_path=('person', '0', 'name')) is True
   assert column_paths_match(
-    path_match=('person', PATH_WILDCARD, 'name'), specific_path=('person', 0, 'not_name')) is False
+    path_match=('person', PATH_WILDCARD, 'name'),
+    specific_path=('person', '0', 'not_name')) is False
 
   # Sub-path matches always return False.
   assert column_paths_match(path_match=(PATH_WILDCARD,), specific_path=('person', 'name')) is False
@@ -234,7 +235,7 @@ def test_column_paths_match() -> None:
     path_match=(
       'person',
       PATH_WILDCARD,
-    ), specific_path=('person', 0, 'name')) is False
+    ), specific_path=('person', '0', 'name')) is False
 
 
 def test_nested_schema_str() -> None:

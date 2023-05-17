@@ -1,57 +1,12 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {notEmpty} from '$lib/utils';
-  import type {DataTypeCasted, Path} from '$lilac';
-  import {
-    L,
-    getValueNode,
-    getValueNodes,
-    isOrdinal,
-    listFields,
-    pathIsEqual,
-    type LilacValueNode
-  } from '$lilac';
-  import StringSpanHighlight from './StringSpanHighlight.svelte';
+  import type {LilacSchema, LilacValueNode, Path} from '$lilac';
+  import RowItemValue from './RowItemValue.svelte';
 
   export let row: LilacValueNode;
+  export let schema: LilacSchema;
 
   let datasetViewStore = getDatasetViewContext();
-
-  /**
-   * Get child fields that are of string_span type
-   */
-  function getDerivedStringSpans(itemNode: LilacValueNode): DataTypeCasted<'string_span'>[] {
-    const field = L.field(itemNode);
-    if (!field) return [];
-    return (
-      listFields(field)
-        // Filter for string spans
-        .filter(field => field.dtype === 'string_span')
-        // Filter for visible columns
-        .filter(field => $datasetViewStore.visibleColumns.some(c => pathIsEqual(c, field.path)))
-        .flatMap(f => getValueNodes(row, f.path))
-        .map(v => L.value<'string_span'>(v))
-        .filter(notEmpty)
-    );
-  }
-
-  function showValue(value: LilacValueNode) {
-    const dtype = L.dtype(value);
-    if (!dtype) return false;
-    if (isOrdinal(dtype) || dtype == 'string') {
-      return true;
-    }
-  }
-
-  function formatValue(value: DataTypeCasted) {
-    if (value == null) {
-      return 'N/A';
-    }
-    if (typeof value === 'number') {
-      return value.toLocaleString(undefined, {maximumFractionDigits: 3});
-    }
-    return value.toString();
-  }
 
   let sortedVisibleColumns: Path[] = [];
   $: {
@@ -62,26 +17,6 @@
 
 <div class="mb-4 flex flex-col gap-y-4 border-b border-gray-300 pb-4">
   {#each sortedVisibleColumns as column (column.join('.'))}
-    {@const valueNode = getValueNode(row, column)}
-    {#if valueNode && showValue(valueNode)}
-      {@const value = L.value(valueNode)}
-      {@const derivedStringSpans = getDerivedStringSpans(valueNode)}
-
-      <div class="flex flex-col">
-        <div class="font-mono text-sm text-gray-600">
-          {column.join('.')}
-        </div>
-
-        <div class="relative">
-          {formatValue(value ?? null)}
-          {#if derivedStringSpans}
-            <StringSpanHighlight
-              text={formatValue(value ?? null)}
-              stringSpans={derivedStringSpans}
-            />
-          {/if}
-        </div>
-      </div>
-    {/if}
+    <RowItemValue {row} path={column} visibleColumns={$datasetViewStore.visibleColumns} {schema} />
   {/each}
 </div>

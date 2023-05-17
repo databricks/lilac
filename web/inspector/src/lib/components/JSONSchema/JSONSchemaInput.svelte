@@ -67,7 +67,7 @@
     <!-- Error -->
     <div class="text-red-600">{property.message}</div>
   {:else if property.enum}
-    <Select bind:value name={path} helperText={property.description} labelText={label}>
+    <Select bind:selected={value} name={path} helperText={property.description} labelText={label}>
       {#if !required}
         <SelectItem value={undefined} text={'not set'} />
       {/if}

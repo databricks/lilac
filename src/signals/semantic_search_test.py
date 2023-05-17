@@ -9,11 +9,11 @@ from typing_extensions import override
 
 from ..data.dataset_utils import signal_item
 from ..embeddings.vector_store import VectorStore
-from ..schema import Item, PathTuple, RichData
+from ..schema import Item, RichData, VectorKey
 from .semantic_search import SemanticSearchSignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
-EMBEDDINGS: dict[PathTuple, list[float]] = {
+EMBEDDINGS: dict[VectorKey, list[float]] = {
   ('1',): [1.0, 0.0, 0.0],
   ('2',): [0.9, 0.1, 0.0],
   ('3',): [0.0, 0.0, 1.0]
@@ -30,12 +30,12 @@ class TestVectorStore(VectorStore):
   """A test vector store with fixed embeddings."""
 
   @override
-  def add(self, keys: list[PathTuple], embeddings: np.ndarray) -> None:
+  def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
     # We fix the vectors for the test vector store.
     pass
 
   @override
-  def get(self, keys: Iterable[PathTuple]) -> np.ndarray:
+  def get(self, keys: Iterable[VectorKey]) -> np.ndarray:
     keys = keys or []
     return np.array([EMBEDDINGS[row_id] for row_id in keys])
 

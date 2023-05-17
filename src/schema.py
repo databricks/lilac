@@ -35,19 +35,15 @@ SignalOut = Union[ItemValue, Item]
 # Examples:
 #  ['article', 'field'] represents {'article': {'field': VALUES}}
 #  ['article', '*', 'field'] represents {'article': [{'field': VALUES}, {'field': VALUES}]}
-#  ['article', 0, 'field'] represents {'article': [{'field': VALUES}, {'field': UNRELATED}]}
-PathTuple = tuple[Union[StrictInt, StrictStr], ...]
-Path = Union[StrictStr, PathTuple]
+#  ['article', '0', 'field'] represents {'article': {'field': VALUES}}
+PathTuple = tuple[StrictStr, ...]
+Path = Union[PathTuple, StrictStr]
 
 PathKeyedItem = tuple[Path, Item]
 
 # These fields are for for python only and not written to a schema.
 RichData = Union[str, bytes]
-RowKeyedPath = tuple[bytes, Path]
-PathKeyedRichData = tuple[Path, Union[str, bytes]]
-RowPathKeyedItem = tuple[RowKeyedPath, Item]
-# The str is the signal name.
-PathKeyedSignalItem = tuple[str, Path, Item]
+VectorKey = tuple[Union[StrictStr, StrictInt], ...]
 
 
 class DataType(str, Enum):
@@ -274,7 +270,8 @@ def child_item_from_column_path(item: Item, path: Path) -> Item:
         f'wildcard: "{path}"')
     # path_part can either be an integer or a string for a dictionary, both of which we can
     # directly index with.
-    child_item_value = child_item_value[path_part]  # type: ignore
+    child_path = int(path_part) if path_part.isdigit() else path_part
+    child_item_value = child_item_value[child_path]  # type: ignore
   return child_item_value
 
 

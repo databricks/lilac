@@ -13,7 +13,7 @@ import type { UnaryFilter } from './UnaryFilter';
  * The request for the select groups endpoint.
  */
 export type SelectGroupsOptions = {
-    leaf_path: Array<(number | string)>;
+    leaf_path: (Array<string> | string);
     filters?: Array<(BinaryFilter | UnaryFilter | ListFilter)>;
     sort_by?: GroupsSortBy;
     sort_order?: SortOrder;
