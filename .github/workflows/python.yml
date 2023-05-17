@@ -1,6 +1,12 @@
 on:
   pull_request:
     types: [opened, reopened, synchronize]
+    paths:
+      - 'src/**'
+      - 'poetry.lock'
+      - 'pyproject.toml'
+      - '.github/workflows/python.yml'
+      - 'scripts/**'
 
 jobs:
   build:
