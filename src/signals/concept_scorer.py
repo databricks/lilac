@@ -12,7 +12,7 @@ from .signal import TextEmbeddingModelSignal
 
 
 class ConceptScoreSignal(TextEmbeddingModelSignal):
-  """Compute scores along a "concept" for documents."""
+  """Compute scores along a given concept for documents."""
   name = 'concept_score'
   display_name = 'Concept'
 

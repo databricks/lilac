@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 /**
- * Compute scores along a "concept" for documents.
+ * Compute scores along a given concept for documents.
  */
 export type ConceptScoreSignal = {
     signal_name?: string;

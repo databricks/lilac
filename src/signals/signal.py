@@ -16,7 +16,7 @@ class Signal(abc.ABC, BaseModel):
   # ClassVars do not get serialized with pydantic.
   name: ClassVar[str]
   # The display name is just used for rendering in the UI.
-  display_name: ClassVar[str]
+  display_name: ClassVar[Optional[str]]
 
   signal_type: ClassVar[Type['Signal']]
   # The input type is used to populate the UI for signals that require other signals. For example,
