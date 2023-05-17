@@ -52,6 +52,13 @@ class SelectGroupsResult():
     pass
 
 
+class SelectRowsSchemaResult(BaseModel):
+  """The result of a select rows schema query."""
+  data_schema: Schema
+  # Maps a udf name to its destination path in the schema.
+  alias_udf_paths: dict[str, PathTuple] = {}
+
+
 class StatsResult(BaseModel):
   """The result of a stats() query."""
   # The number of leaf values.
@@ -291,7 +298,7 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def select_rows_schema(self,
                          columns: Optional[Sequence[ColumnId]] = None,
-                         combine_columns: bool = False) -> Schema:
+                         combine_columns: bool = False) -> SelectRowsSchemaResult:
     """Returns the schema of the result of `select_rows` above with the same arguments."""
     pass
 

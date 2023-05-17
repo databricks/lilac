@@ -27,7 +27,7 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import Column
+from .dataset import Column, SelectRowsSchemaResult
 from .dataset_test_utils import TestDataMaker
 from .dataset_utils import lilac_span, signal_item
 
@@ -163,18 +163,19 @@ class AddSpaceSignal(TextSignal):
 def test_simple_schema(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
   result = dataset.select_rows_schema(combine_columns=True)
-  assert result == schema({
-    UUID_COLUMN: 'string',
-    'erased': 'boolean',
-    'people': [{
-      'name': 'string',
-      'zipcode': 'int32',
-      'locations': [{
-        'city': 'string',
-        'state': 'string'
+  assert result == SelectRowsSchemaResult(
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'erased': 'boolean',
+      'people': [{
+        'name': 'string',
+        'zipcode': 'int32',
+        'locations': [{
+          'city': 'string',
+          'state': 'string'
+        }]
       }]
-    }]
-  })
+    }))
 
 
 def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -183,41 +184,44 @@ def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows_schema([('people', '*', 'zipcode'),
                                        ('people', '*', 'locations', '*', 'city')],
                                       combine_columns=True)
-  assert result == schema({
-    UUID_COLUMN: 'string',
-    'people': [{
-      'zipcode': 'int32',
-      'locations': [{
-        'city': 'string'
+  assert result == SelectRowsSchemaResult(
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'people': [{
+        'zipcode': 'int32',
+        'locations': [{
+          'city': 'string'
+        }]
       }]
-    }]
-  })
+    }))
 
   result = dataset.select_rows_schema([('people', '*', 'name'), ('people', '*', 'locations')],
                                       combine_columns=True)
-  assert result == schema({
-    UUID_COLUMN: 'string',
-    'people': [{
-      'name': 'string',
-      'locations': [{
-        'city': 'string',
-        'state': 'string'
+  assert result == SelectRowsSchemaResult(
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'people': [{
+        'name': 'string',
+        'locations': [{
+          'city': 'string',
+          'state': 'string'
+        }]
       }]
-    }]
-  })
+    }))
 
   result = dataset.select_rows_schema([('people', '*')], combine_columns=True)
-  assert result == schema({
-    UUID_COLUMN: 'string',
-    'people': [{
-      'name': 'string',
-      'zipcode': 'int32',
-      'locations': [{
-        'city': 'string',
-        'state': 'string'
+  assert result == SelectRowsSchemaResult(
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'people': [{
+        'name': 'string',
+        'zipcode': 'int32',
+        'locations': [{
+          'city': 'string',
+          'state': 'string'
+        }]
       }]
-    }]
-  })
+    }))
 
 
 def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -227,17 +231,18 @@ def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows_schema([('people', '*', 'locations', '*', 'city'),
                                        Column(('people', '*', 'name'), signal_udf=length_signal)],
                                       combine_columns=True)
-  assert result == schema({
-    UUID_COLUMN: 'string',
-    'people': [{
-      'name': {
-        'length_signal': signal_field(dtype='int32', signal=length_signal.dict())
-      },
-      'locations': [{
-        'city': 'string'
-      }]
-    }],
-  })
+  assert result == SelectRowsSchemaResult(
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'people': [{
+        'name': {
+          'length_signal': signal_field(dtype='int32', signal=length_signal.dict())
+        },
+        'locations': [{
+          'city': 'string'
+        }]
+      }],
+    }))
 
 
 def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -249,21 +254,22 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
     [('people', '*', 'name'),
      Column(('people', '*', 'name', 'add_space_signal'), signal_udf=add_space_signal)],
     combine_columns=True)
-  assert result == schema({
-    UUID_COLUMN: 'string',
-    'people': [{
-      'name': field(
-        {
-          'add_space_signal': signal_field(
-            fields={
-              'add_space_signal': signal_field(dtype='string', signal=add_space_signal.dict()),
-            },
-            dtype='string',
-            signal=add_space_signal.dict())
-        },
-        dtype='string')
-    }],
-  })
+  assert result == SelectRowsSchemaResult(
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'people': [{
+        'name': field(
+          {
+            'add_space_signal': signal_field(
+              fields={
+                'add_space_signal': signal_field(dtype='string', signal=add_space_signal.dict()),
+              },
+              dtype='string',
+              signal=add_space_signal.dict())
+          },
+          dtype='string')
+      }],
+    }))
 
 
 def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -281,22 +287,23 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows_schema(
     [('text'), Column(('text'), signal_udf=add_space_signal)], combine_columns=True)
 
-  assert result == schema({
-    UUID_COLUMN: 'string',
-    'text': field(
-      {
-        'test_splitter': signal_field(
-          fields=[
-            signal_field(
-              dtype='string_span',
-              fields={
-                'add_space_signal': signal_field(dtype='string', signal=add_space_signal.dict())
-              })
-          ],
-          signal=test_splitter.dict())
-      },
-      dtype='string')
-  })
+  assert result == SelectRowsSchemaResult(
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'text': field(
+        {
+          'test_splitter': signal_field(
+            fields=[
+              signal_field(
+                dtype='string_span',
+                fields={
+                  'add_space_signal': signal_field(dtype='string', signal=add_space_signal.dict())
+                })
+            ],
+            signal=test_splitter.dict())
+        },
+        dtype='string')
+    }))
 
 
 def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -317,7 +324,7 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
   result = dataset.select_rows_schema(
     [('text'), Column(('text'), signal_udf=embedding_sum_signal)], combine_columns=True)
 
-  assert result == schema({
+  expected_schema = schema({
     UUID_COLUMN: 'string',
     'text': field(
       {
@@ -339,3 +346,14 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
       },
       dtype='string')
   })
+  assert result == SelectRowsSchemaResult(data_schema=expected_schema, alias_udf_paths={})
+
+  # Alias the udf.
+  result = dataset.select_rows_schema(
+    [('text'), Column(('text'), signal_udf=embedding_sum_signal, alias='udf1')],
+    combine_columns=True)
+  assert result == SelectRowsSchemaResult(
+    data_schema=expected_schema,
+    alias_udf_paths={
+      'udf1': ('text', 'test_splitter', '*', 'test_embedding', 'test_embedding_sum')
+    })

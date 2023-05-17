@@ -9,10 +9,17 @@ from pydantic import BaseModel, StrictStr, validator
 from .config import data_path
 from .data.dataset import BinaryOp, Bins, Column, DatasetManifest, FeatureListValue, FeatureValue
 from .data.dataset import Filter as PyFilter
-from .data.dataset import GroupsSortBy, ListOp, SortOrder, StatsResult, UnaryOp
+from .data.dataset import (
+  GroupsSortBy,
+  ListOp,
+  SelectRowsSchemaResult,
+  SortOrder,
+  StatsResult,
+  UnaryOp,
+)
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
-from .schema import PathTuple, Schema, normalize_path
+from .schema import PathTuple, normalize_path
 from .signals.default_signals import register_default_signals
 from .signals.signal import Signal, resolve_signal
 from .tasks import TaskId, task_manager
@@ -194,7 +201,7 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
 
 @router.post('/{namespace}/{dataset_name}/select_rows_schema', response_model_exclude_none=True)
 def select_rows_schema(namespace: str, dataset_name: str,
-                       options: SelectRowsSchemaOptions) -> Schema:
+                       options: SelectRowsSchemaOptions) -> SelectRowsSchemaResult:
   """Select rows from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
   return dataset.select_rows_schema(

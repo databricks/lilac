@@ -5,10 +5,10 @@ import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
 import type { ComputeSignalResponse } from '../models/ComputeSignalResponse';
 import type { DatasetInfo } from '../models/DatasetInfo';
 import type { GetStatsOptions } from '../models/GetStatsOptions';
-import type { Schema } from '../models/Schema';
 import type { SelectGroupsOptions } from '../models/SelectGroupsOptions';
 import type { SelectRowsOptions } from '../models/SelectRowsOptions';
 import type { SelectRowsSchemaOptions } from '../models/SelectRowsSchemaOptions';
+import type { SelectRowsSchemaResult } from '../models/SelectRowsSchemaResult';
 import type { StatsResult } from '../models/StatsResult';
 import type { WebManifest } from '../models/WebManifest';
 
@@ -149,14 +149,14 @@ export class DatasetsService {
      * @param namespace
      * @param datasetName
      * @param requestBody
-     * @returns Schema Successful Response
+     * @returns SelectRowsSchemaResult Successful Response
      * @throws ApiError
      */
     public static selectRowsSchema(
         namespace: string,
         datasetName: string,
         requestBody: SelectRowsSchemaOptions,
-    ): CancelablePromise<Schema> {
+    ): CancelablePromise<SelectRowsSchemaResult> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/select_rows_schema',

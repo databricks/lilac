@@ -71,7 +71,7 @@ export const querySelectRowsSchema = createApiQuery(
   DatasetsService.selectRowsSchema,
   DATASETS_TAG,
   {
-    select: res => deserializeSchema(res)
+    select: res => deserializeSchema(res.data_schema)
   }
 );
 export const querySelectGroups = createApiQuery(DatasetsService.selectGroups, DATASETS_TAG);

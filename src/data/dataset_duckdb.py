@@ -69,6 +69,7 @@ from .dataset import (
   NamedBins,
   SelectGroupsResult,
   SelectRowsResult,
+  SelectRowsSchemaResult,
   SortOrder,
   StatsResult,
   UnaryOp,
@@ -826,7 +827,7 @@ class DatasetDuckDB(Dataset):
   @override
   def select_rows_schema(self,
                          columns: Optional[Sequence[ColumnId]] = None,
-                         combine_columns: bool = False) -> Schema:
+                         combine_columns: bool = False) -> SelectRowsSchemaResult:
     """Returns the schema of the result of `select_rows` above with the same arguments."""
     if not combine_columns:
       raise NotImplementedError(
@@ -842,12 +843,16 @@ class DatasetDuckDB(Dataset):
     if (UUID_COLUMN,) not in col_paths:
       cols.append(column_from_identifier(UUID_COLUMN))
 
+    alias_udf_paths: dict[str, PathTuple] = {}
+
     # Prepare UDF columns. Throw an error if they are not computed. Update the paths of the UDFs so
     # they match the paths of the columns defined by splits and embeddings.
     for col in cols:
       if col.signal_udf:
         # Do not auto-compute dependencies, throw an error if they are not computed.
         col.path = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
+        if col.alias:
+          alias_udf_paths[col.alias] = _col_destination_path(col)
 
     self._validate_columns(cols)
 
@@ -860,7 +865,8 @@ class DatasetDuckDB(Dataset):
       else:
         field = self.manifest().data_schema.get_field(dest_path)
       col_schemas.append(_make_schema_from_path(dest_path, field))
-    return merge_schemas(col_schemas)
+    data_schema = merge_schemas(col_schemas)
+    return SelectRowsSchemaResult(data_schema=data_schema, alias_udf_paths=alias_udf_paths)
 
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:

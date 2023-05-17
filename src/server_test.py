@@ -5,12 +5,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from .config import CONFIG
-from .data.dataset import Column, Dataset, DatasetManifest
+from .data.dataset import Column, Dataset, DatasetManifest, SelectRowsSchemaResult
 from .data.dataset_duckdb import DatasetDuckDB
 from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_dataset
 from .data.dataset_utils import lilac_item, lilac_items
 from .router_dataset import SelectRowsOptions, SelectRowsSchemaOptions, WebManifest
-from .schema import UUID_COLUMN, Field, Item, RichData, Schema, SignalOut, field, schema
+from .schema import UUID_COLUMN, Field, Item, RichData, SignalOut, field, schema
 from .server import app
 from .signals.signal import TextSignal, clear_signal_registry, register_signal
 
@@ -235,15 +235,16 @@ def test_select_rows_schema_no_cols() -> None:
   options = SelectRowsSchemaOptions(combine_columns=True)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert Schema.parse_obj(response.json()) == schema({
-    UUID_COLUMN: 'string',
-    'erased': 'boolean',
-    'people': [{
-      'name': 'string',
-      'zipcode': 'int32',
-      'locations': [{
-        'city': 'string',
-        'state': 'string'
+  assert SelectRowsSchemaResult.parse_obj(response.json()) == SelectRowsSchemaResult(
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'erased': 'boolean',
+      'people': [{
+        'name': 'string',
+        'zipcode': 'int32',
+        'locations': [{
+          'city': 'string',
+          'state': 'string'
+        }]
       }]
-    }]
-  })
+    }))
