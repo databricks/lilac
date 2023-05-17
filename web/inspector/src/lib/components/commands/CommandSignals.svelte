@@ -2,10 +2,10 @@
   import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
-      SIGNAL_INPUT_TYPE_TO_VALID_DTYPES,
-      type LilacSchemaField,
-      type Signal,
-      type SignalInfoWithTypedSchema
+    SIGNAL_INPUT_TYPE_TO_VALID_DTYPES,
+    type LilacSchemaField,
+    type Signal,
+    type SignalInfoWithTypedSchema
   } from '$lilac';
   import {ComposedModal, ModalBody, ModalFooter, ModalHeader} from 'carbon-components-svelte';
   import type {JSONSchema4Type} from 'json-schema';
@@ -88,7 +88,7 @@
         {#if signalInfo}
           {#key signalInfo}
             <div>
-              <SvelteMarkdown source={signalInfo.json_schema.description}></SvelteMarkdown>
+              <SvelteMarkdown source={signalInfo.json_schema.description} />
             </div>
 
             <FieldSelect
