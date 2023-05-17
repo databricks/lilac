@@ -1,6 +1,6 @@
 <script lang="ts">
-  import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {queryDatasetSchema, querySelectRowsSchema} from '$lib/queries/datasetQueries';
+  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {
     getField,
     listFields,
@@ -35,15 +35,20 @@
   const datasetViewStore = getDatasetViewContext();
   const dispatch = createEventDispatcher();
 
-  $: schema = querySelectRowsSchema(
-    command.namespace,
-    command.datasetName,
-    $datasetViewStore.queryOptions
-  );
-
+  $: datasetSchema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  $: schema = $datasetSchema.isSuccess
+    ? querySelectRowsSchema(
+        command.namespace,
+        command.datasetName,
+        getSelectRowsOptions($datasetViewStore, $datasetSchema.data)
+      )
+    : undefined;
+  $: {
+    console.log($schema?.data);
+  }
   // Create list of fields, and include current count of filters
-  $: fields = $schema.isSuccess
-    ? listFields($schema.data).map(f => {
+  $: fields = $schema?.isSuccess
+    ? listFields($schema?.data).map(f => {
         const filters = stagedFilters.filter(filter => pathIsEqual(filter.path as Path, f.path));
         return {
           title: f.path.join('.'),
@@ -56,7 +61,7 @@
       })
     : [];
 
-  $: defaultField = $schema.isSuccess ? getField($schema.data, command.path) : undefined;
+  $: defaultField = $schema?.isSuccess ? getField($schema.data, command.path) : undefined;
 
   // Copy filters from query options
   let stagedFilters: (UnaryFilter | ListFilter | BinaryFilter)[] = [];
