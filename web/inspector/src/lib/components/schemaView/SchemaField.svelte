@@ -3,6 +3,7 @@
   import {
     PATH_WILDCARD,
     VALUE_KEY,
+    getField,
     isSignalField,
     isSignalRootField,
     pathIsEqual,
@@ -39,12 +40,15 @@
   };
 
   let datasetViewStore = getDatasetViewContext();
+  let expanded = true;
 
   $: path = field.path;
   $: alias = field.alias;
+  $: parentField = getField(schema, field.path.slice(0, -1));
+
   $: signalField = isSignalField(field, schema);
-  $: signalRoot = isSignalRootField(field);
-  let expanded = true;
+  $: signalRoot =
+    isRepeatedField && parentField ? isSignalRootField(parentField) : isSignalRootField(field);
 
   $: isRepeatedField = field.path.at(-1) === PATH_WILDCARD ? true : false;
   $: fieldName = isRepeatedField ? field.path.at(-2) : field.path.at(-1);
