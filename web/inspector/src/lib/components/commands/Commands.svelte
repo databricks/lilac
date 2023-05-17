@@ -4,7 +4,8 @@
   export enum Command {
     ComputeSignal = 'computeSignal',
     PreviewConcept = 'previewConcept',
-    EditFilter = 'editFilter'
+    EditFilter = 'editFilter',
+    CreateConcept = 'createConcept'
   }
 
   type NoCommand = {
@@ -34,11 +35,16 @@
     path: Path;
   };
 
+  export type CreateConceptCommand = {
+    command: Command.CreateConcept;
+  };
+
   export type Commands =
     | NoCommand
     | ComputeSignalCommand
     | PreviewConceptCommand
-    | EditFilterCommand;
+    | EditFilterCommand
+    | CreateConceptCommand;
 
   export function triggerCommand(command: Commands) {
     store.set(command);
@@ -49,6 +55,7 @@
 
 <script lang="ts">
   import type {Path} from '$lilac';
+  import CommandCreateConcept from './CommandCreateConcept.svelte';
   import CommandFilter from './CommandFilter.svelte';
   import CommandSignals from './CommandSignals.svelte';
 
@@ -65,4 +72,6 @@
   <CommandSignals command={currentCommand} on:close={close} variant={'preview'} />
 {:else if currentCommand.command === Command.EditFilter}
   <CommandFilter command={currentCommand} on:close={close} />
+{:else if currentCommand.command === Command.CreateConcept}
+  <CommandCreateConcept on:close={close} />
 {/if}
