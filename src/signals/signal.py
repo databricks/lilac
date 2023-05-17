@@ -124,7 +124,10 @@ def _args_key_from_dict(args_dict: dict[str, Any]) -> str:
 
 
 class SignalTypeEnum(str):
-  """A string that represents a text splitter signal."""
+  """A class that represents a string enum for a signal type.
+
+  This allows us to populate the JSON schema enum field in the UI.
+  """
   signal_type: ClassVar[Type[Signal]]
 
   @classmethod
