@@ -11,9 +11,12 @@ from .signal import TextEmbeddingModelSignal, TextEmbeddingSignal, get_signal_cl
 
 
 class SemanticSearchSignal(TextEmbeddingModelSignal):
-  """Compute semantic search similarity for a document.
+  """Compute semantic similarity for between a document.
 
-  This will compute the similarity between the query and each document in the corpus. The query
+  <br>This is done by embedding the query with the same embedding as the document and computing a
+  a similarity score between them.
+
+  <br>This will compute the similarity between the query and each document in the corpus. The query
   given to the signal will be embedded on the fly, and potentially sent to an external server.
   """
   name = 'semantic_search'
