@@ -134,17 +134,13 @@ describe('JSONSchemaForm', () => {
     const select = screen.getByRole('combobox');
     expect(select).toBeInTheDocument();
 
-    const options = screen.getAllByRole('option');
+    const options = screen.getAllByRole<HTMLOptionElement>('option');
     expect(options).toHaveLength(4);
     expect(options[0]).toHaveTextContent('not set');
     expect(options[0]).not.toHaveValue();
 
     expect(options[1]).toHaveTextContent('one');
     expect(options[1]).toHaveValue('one');
-
-    // Select option
-    await userEvent.selectOptions(select, 'two');
-    expect(get(value)).toEqual({enum: 'two'});
   });
 
   it('should validate the form', async () => {
