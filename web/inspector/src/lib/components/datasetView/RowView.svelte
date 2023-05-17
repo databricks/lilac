@@ -52,11 +52,11 @@
   <SkeletonText paragraph lines={3} />
 {:else if $datasetViewStore.visibleColumns.length === 0}
   <div class="mt-12 w-full text-center text-gray-600">Select fields to display</div>
-{:else if $rows?.isSuccess && $rows.data.pages.length && $selectRowsSchema?.isSuccess}
+{:else if $rows?.isSuccess && $rows.data.pages.length && $selectRowsSchema?.isSuccess && $schema.isSuccess}
   <div class="flex h-full w-full flex-col overflow-scroll">
     {#each $rows.data.pages as page}
       {#each page as row}
-        <RowItem {row} />
+        <RowItem {row} schema={$schema.data} />
       {/each}
     {/each}
     <InfiniteScroll threshold={100} on:loadMore={() => $rows?.fetchNextPage()} />

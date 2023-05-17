@@ -69,6 +69,8 @@
     ) || [];
   $: isFiltered = filters.length > 0;
 
+  $: disabled = !field.dtype || field.dtype === 'embedding';
+
   // Find all the child paths for a given field.
   function childFields(field?: LilacSchemaField): LilacSchemaField[] {
     if (!field?.fields) return [];
@@ -102,7 +104,7 @@
         labelText="Show"
         hideLabel
         checked={isVisible}
-        disabled={!field?.dtype}
+        {disabled}
         on:check={ev => {
           if (ev.detail) {
             datasetViewStore.addVisibleColumn(path);
