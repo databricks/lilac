@@ -27,6 +27,7 @@ def _cohere() -> cohere.Client:
 class Cohere(TextEmbeddingSignal):
   """Cohere embedding."""
   name = 'cohere'
+  display_name = 'Cohere Embeddings'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

@@ -20,6 +20,7 @@ EMAIL_REGEX = (
 class PIISignal(TextSignal):
   """Find personally identifiable information (emails, phone numbers, etc)."""
   name = 'pii'
+  display_name = 'Personal Information (PII)'
 
   @override
   def fields(self) -> Field:

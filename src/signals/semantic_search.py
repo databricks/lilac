@@ -13,6 +13,7 @@ from .signal import TextEmbeddingModelSignal, TextEmbeddingSignal, get_signal_cl
 class SemanticSearchSignal(TextEmbeddingModelSignal):
   """Compute semantic search for a document."""
   name = 'semantic_search'
+  display_name = 'Semantic Search'
 
   query: Union[str, bytes]
 

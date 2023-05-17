@@ -14,6 +14,7 @@ from .signal import TextEmbeddingModelSignal
 class ConceptScoreSignal(TextEmbeddingModelSignal):
   """Compute scores along a "concept" for documents."""
   name = 'concept_score'
+  display_name = 'Concept'
 
   namespace: str
   concept_name: str

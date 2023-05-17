@@ -10,8 +10,12 @@ NUM_CHARS_FEATURE_NAME = 'num_characters'
 
 
 class TextStatisticsSignal(TextSignal):
-  """Compute text statistics for a document."""
+  """Compute text statistics for a document.
+
+  - Number of characters
+  """
   name = 'text_statistics'
+  display_name = 'Text Statistics'
 
   @override
   def fields(self) -> Field:
