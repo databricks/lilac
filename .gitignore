@@ -23,7 +23,7 @@ data/concept/**/*.pkl
 
 # Env
 .env.local
-/src/web/src/coverage
+/web/*/coverage
 
 # Typescript.
 tsconfig.tsbuildinfo

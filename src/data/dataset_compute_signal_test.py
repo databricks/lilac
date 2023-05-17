@@ -1,7 +1,8 @@
 """Tests for dataset.compute_signal()."""
 
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Union, cast
 
+import numpy as np
 import pytest
 from typing_extensions import override
 
@@ -19,7 +20,13 @@ from ..schema import (
   schema,
   signal_field,
 )
-from ..signals.signal import TextSignal, TextSplitterSignal, clear_signal_registry, register_signal
+from ..signals.signal import (
+  TextEmbeddingSignal,
+  TextSignal,
+  TextSplitterSignal,
+  clear_signal_registry,
+  register_signal,
+)
 from .dataset import Column, DatasetManifest, val
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker
 from .dataset_utils import lilac_item, lilac_items, lilac_span, signal_item
@@ -145,6 +152,28 @@ class TestSplitSignal(TextSplitterSignal):
       ]
 
 
+EMBEDDINGS: list[tuple[str, Union[list[float], list[list[float]]]]] = [
+  ('hello.', [1.0, 0.0, 0.0]),
+  # This embedding has an outer dimension of 1.
+  ('hello2.', [[1.0, 1.0, 0.0]])
+]
+
+STR_EMBEDDINGS: dict[str, Union[list[float], list[list[float]]]] = {
+  text: embedding for text, embedding in EMBEDDINGS
+}
+
+
+class TestEmbedding(TextEmbeddingSignal):
+  """A test embed function."""
+  name = 'test_embedding'
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+    """Call the embedding function."""
+    embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
+    yield from (signal_item(e) for e in embeddings)
+
+
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
@@ -153,6 +182,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestParamSignal)
   register_signal(TestSignal)
   register_signal(TestSplitSignal)
+  register_signal(TestEmbedding)
   # Unit test runs.
   yield
   # Teardown.
@@ -533,4 +563,40 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
         ]
       }),
   }]
+  assert list(result) == expected_result
+
+
+def test_embedding_signal(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello2.',
+  }])
+
+  embedding_signal = TestEmbedding(embedding=TestEmbedding.name)
+  dataset.compute_signal(embedding_signal, 'text')
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'text': field(
+        {'test_embedding': signal_field(dtype='embedding', signal=embedding_signal.dict())},
+        dtype='string'),
+    }),
+    num_items=2)
+
+  result = dataset.select_rows()
+
+  # Embeddings are replaced with "None".
+  expected_result = lilac_items([{
+    UUID_COLUMN: '1',
+    'text': lilac_item('hello.', {'test_embedding': lilac_item(None, allow_none_value=True)})
+  }, {
+    UUID_COLUMN: '2',
+    'text': lilac_item('hello2.', {'test_embedding': lilac_item(None, allow_none_value=True)})
+  }])
   assert list(result) == expected_result

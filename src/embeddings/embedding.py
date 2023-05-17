@@ -16,8 +16,14 @@ def get_embed_fn(embedding: TextEmbeddingSignal) -> Callable[[Iterable[RichData]
   def _embed_fn(data: Iterable[RichData]) -> np.ndarray:
     items = embedding.compute(data)
 
-    # We use stack here since it works with both matrices and vectors.
-    embeddings = [cast(np.ndarray, cast(dict, item)[VALUE_KEY]) for item in items]
-    return np.array(embeddings)
+    embedding_vectors: list[np.ndarray] = []
+    for item in items:
+      # We use squeeze here because embedding functions can return outer dimensions of 1.
+      embedding_vector = cast(np.ndarray, cast(dict, item)[VALUE_KEY]).squeeze()
+      if embedding_vector.ndim != 1:
+        raise ValueError(f'Expected embeddings to be 1-dimensional, got {embedding_vector.ndim} '
+                         f'with shape {embedding_vector.shape}.')
+      embedding_vectors.append(embedding_vector)
+    return np.array(embedding_vectors)
 
   return _embed_fn

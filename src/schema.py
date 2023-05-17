@@ -100,16 +100,16 @@ class SignalInputType(str, Enum):
     return self.value
 
 
-SIGNAL_INPUT_TYPE_TO_VALID_DTYPES: dict[SignalInputType, list[DataType]] = {
+SIGNAL_COMPUTE_TYPE_TO_VALID_DTYPES: dict[SignalInputType, list[DataType]] = {
   SignalInputType.TEXT: [DataType.STRING, DataType.STRING_SPAN],
   SignalInputType.TEXT_EMBEDDING: [DataType.EMBEDDING],
   SignalInputType.IMAGE: [DataType.BINARY],
 }
 
 
-def signal_input_type_supports_dtype(input_type: SignalInputType, dtype: DataType) -> bool:
-  """Returns True if the signal input type supports the dtype."""
-  return dtype in SIGNAL_INPUT_TYPE_TO_VALID_DTYPES[input_type]
+def signal_compute_type_supports_dtype(input_type: SignalInputType, dtype: DataType) -> bool:
+  """Returns True if the signal compute type supports the dtype."""
+  return dtype in SIGNAL_COMPUTE_TYPE_TO_VALID_DTYPES[input_type]
 
 
 class Field(BaseModel):
