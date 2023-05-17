@@ -133,7 +133,11 @@ def _flatten(input: Union[Iterable, object], is_primitive_predicate: Callable[[o
 
 def flatten(input: Union[Iterable, Tflatten],
             is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Iterable[Tflatten]:
-  """Flattens a nested iterable."""
+  """Flattens a nested iterable.
+
+  Primitives and dictionaries are not flattened. The user can also provide a predicate to determine
+  what is a primitive.
+  """
   return _flatten(input, is_primitive_predicate)
 
 
