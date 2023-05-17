@@ -35,7 +35,10 @@ class Signal(abc.ABC, BaseModel):
 
     @staticmethod
     def schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
-      """Add the title to the schema from the display name and name."""
+      """Add the title to the schema from the display name and name.
+
+      Pydantic defaults this to the class name.
+      """
       if hasattr(signal, 'display_name'):
         schema['title'] = signal.display_name
 
