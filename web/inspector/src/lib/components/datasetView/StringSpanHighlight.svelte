@@ -9,19 +9,24 @@
     formatValue,
     getValueNode,
     getValueNodes,
+    isConceptScoreSignal,
     isFloat,
     listFields,
     pathIsEqual,
+    type ConceptScoreSignal,
     type LilacSchemaField,
     type LilacValueNode,
     type Path
   } from '$lilac';
   import {tooltip} from '../common/tootltip';
+  import StringSpanHighlightConceptPicker from './StringSpanHighlightConceptPicker.svelte';
 
   export let text: string;
   export let stringSpanFields: Array<LilacSchemaField>;
   export let row: LilacValueNode;
   export let visibleColumns: Path[];
+
+  let selectedSpan: (typeof filledSpans)[number] | undefined;
 
   $: spans = stringSpanFields.flatMap(f => getValueNodes(row, f.path));
 
@@ -30,7 +35,9 @@
     start: number;
     end: number;
     show: boolean;
+    filler: boolean;
     properties?: Array<LilacValueNode>;
+    concepts?: Array<ConceptScoreSignal>;
   }> = [];
 
   $: {
@@ -43,7 +50,7 @@
 
       // Add filler
       if (spanStart != spanValue.start) {
-        filledSpans.push({start: spanStart, end: spanValue.start, show: false});
+        filledSpans.push({start: spanStart, end: spanValue.start, show: false, filler: true});
       }
 
       // Find all sub fields to the span so we can show their value in the tooltip
@@ -60,6 +67,7 @@
         .flatMap(field => getValueNode(span, field.path))
         .filter(notEmpty);
 
+      let concepts: (typeof filledSpans)[number]['concepts'] = [];
       let show = true;
       // If any children are floats, use that to determine if we should show the span
       if (children.some(c => c && isFloat(L.dtype(c)))) {
@@ -70,6 +78,11 @@
               show = true;
             }
           }
+
+          const signal = L.field(child)?.signal;
+          if (isConceptScoreSignal(signal)) {
+            concepts.push(signal);
+          }
         }
       }
 
@@ -77,7 +90,9 @@
         start: spanValue.start,
         end: spanValue.end,
         show,
-        properties: children
+        properties: children,
+        filler: false,
+        concepts
       });
       spanStart = spanValue.end;
     }
@@ -96,10 +111,26 @@
   <div class=" absolute top-0 w-full">
     {#each filledSpans as span}<span
         use:tooltip
+        role="button"
+        tabindex="0"
+        on:keydown={e => {
+          if (e.key == 'Enter') {
+            if (!span.filler && span.concepts?.length) selectedSpan = span;
+          }
+        }}
+        on:click={() => {
+          if (!span.filler && span.concepts?.length) selectedSpan = span;
+        }}
         title={tooltipText(span)}
-        class="bg-yellow-500 text-transparent opacity-0 hover:opacity-30"
+        class="relative bg-yellow-500 text-transparent opacity-0 hover:opacity-30"
+        class:bg-green-500={selectedSpan == span}
         class:opacity-10={span.show}
+        class:opacity-40={selectedSpan == span}
         class:hover:opacity-40={span.show}>{text.slice(span.start, span.end)}</span
-      >{/each}
+      >{#if selectedSpan == span && span.concepts?.length}<StringSpanHighlightConceptPicker
+          conceptName={span.concepts[0].concept_name}
+          conceptNamespace={span.concepts[0].namespace}
+          text={text.slice(span.start, span.end)}
+        />{/if}{/each}
   </div>
 </div>
