@@ -138,3 +138,17 @@ def test_signal_type_enum() -> None:
   # Make sure the schema split enum contains the test splitter.
   assert schema_properties['split']['enum'] == [TestTextSplitter.name]
   assert schema_properties['embedding']['enum'] == [TestTextEmbedding.name]
+
+
+class TestSignalNoDisplayName(Signal):
+  name = 'signal_no_name'
+
+
+class TestSignalDisplayName(Signal):
+  name = 'signal_display_name'
+  display_name = 'test display name'
+
+
+def test_signal_title_schema() -> None:
+  assert TestSignalNoDisplayName.schema()['title'] == TestSignalNoDisplayName.__name__
+  assert TestSignalDisplayName.schema()['title'] == 'test display name'

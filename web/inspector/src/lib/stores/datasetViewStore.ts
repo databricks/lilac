@@ -71,7 +71,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     removeSortBy: (column: Path) =>
       update(state => {
         state.queryOptions.sort_by = state.queryOptions.sort_by?.filter(
-          c => !pathIsEqual(c as Path, column)
+          c => !pathIsEqual(c, column)
         );
         return state;
       }),
@@ -79,7 +79,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     removeFilters: (column: Path) =>
       update(state => {
         state.queryOptions.filters = state.queryOptions.filters?.filter(
-          c => !pathIsEqual(c.path as Path, column)
+          c => !pathIsEqual(c.path, column)
         );
         return state;
       })

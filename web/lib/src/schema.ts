@@ -53,8 +53,8 @@ export type DataTypeCasted<D extends DataType = DataType> =
       : never)
   | null;
 
-export function isFloat(dtype: DataType): dtype is 'float16' | 'float32' | 'float64' {
-  return ['float16', 'float32', 'float64'].indexOf(dtype) >= 0;
+export function isFloat(dtype: DataType | undefined): dtype is 'float16' | 'float32' | 'float64' {
+  return ['float16', 'float32', 'float64'].indexOf(dtype ?? '') >= 0;
 }
 
 export function isInteger(
@@ -77,8 +77,18 @@ export function serializePath(path: Path): string {
   return path.map(p => `"${p}"`).join('.');
 }
 
-export function pathIsEqual(path1?: Path, path2?: Path): boolean {
+export function deserializePath(path: string | Path): Path {
+  if (Array.isArray(path)) return path;
+  const matches = path.match(/("[^"]+"|[\w*]+)/g)?.map(match => match.replace(/"/g, ''));
+  return matches || [];
+}
+export function pathIsEqual(
+  path1: Path | string | undefined,
+  path2: Path | string | undefined
+): boolean {
   if (!path1 || !path2) return false;
+  path1 = deserializePath(path1);
+  path2 = deserializePath(path2);
   if (path1.length !== path2.length) return false;
   for (let i = 0; i < path1.length; i++) {
     if (path1[i] !== path2[i]) return false;
@@ -86,8 +96,13 @@ export function pathIsEqual(path1?: Path, path2?: Path): boolean {
   return true;
 }
 
-export function pathIncludes(path1?: Path, path2?: Path): boolean {
+export function pathIncludes(
+  path1: Path | string | undefined,
+  path2: Path | string | undefined
+): boolean {
   if (!path1 || !path2) return false;
+  path1 = deserializePath(path1);
+  path2 = deserializePath(path2);
   if (path1.length < path2.length) return false;
   return pathIsEqual(path1.slice(0, path2.length), path2);
 }
@@ -97,8 +112,10 @@ export function pathIncludes(path1?: Path, path2?: Path): boolean {
  * @param path1 Path that may contain wildcard pattern
  * @param path2 Path to match against path1
  */
-export function pathIsMatching(path1?: Path, path2?: Path) {
+export function pathIsMatching(path1: Path | string | undefined, path2: Path | string | undefined) {
   if (!path1 || !path2) return false;
+  path1 = deserializePath(path1);
+  path2 = deserializePath(path2);
   if (path1.length !== path2.length) return false;
   for (let i = 0; i < path1.length; i++) {
     if (path1[i] === path2[i]) continue;
@@ -109,39 +126,18 @@ export function pathIsMatching(path1?: Path, path2?: Path) {
   }
   return true;
 }
-
 export function isConceptScoreSignal(
   signal: ConceptScoreSignal | Signal | undefined
 ): signal is ConceptScoreSignal {
   return (signal as ConceptScoreSignal)?.concept_name != undefined;
 }
-/**
- * Returns a dictionary that maps a "leaf path" to all flatten values for that leaf.
- */
-export function getLeafVals(item: Item): {[pathStr: string]: LeafValue[]} {
-  const q: [Path, FieldValue][] = [];
-  q.push([[], item]);
-  const result: {[pathStr: string]: LeafValue[]} = {};
-  while (q.length > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const [path, value] = q.pop()!;
-    if (Array.isArray(value)) {
-      for (const v of value) {
-        const childPath = [...path, PATH_WILDCARD];
-        q.push([childPath, v]);
-      }
-    } else if (value != null && typeof value === 'object') {
-      for (const [fieldName, childField] of Object.entries(value)) {
-        const childPath = [...path, fieldName];
-        q.push([childPath, childField]);
-      }
-    } else {
-      const pathStr = serializePath(path);
-      if (!(pathStr in result)) {
-        result[pathStr] = [];
-      }
-      result[pathStr].push(value);
-    }
+
+export function formatValue(value: DataTypeCasted) {
+  if (value == null) {
+    return 'N/A';
   }
-  return result;
+  if (typeof value === 'number') {
+    return value.toLocaleString(undefined, {maximumFractionDigits: 3});
+  }
+  return value.toString();
 }

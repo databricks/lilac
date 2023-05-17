@@ -11,6 +11,7 @@
   import type {JSONSchema4Type} from 'json-schema';
   import type {JSONError} from 'json-schema-library';
   import {createEventDispatcher} from 'svelte';
+  import SvelteMarkdown from 'svelte-markdown';
   import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
   import type {ComputeSignalCommand, PreviewConceptCommand} from './Commands.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
@@ -87,7 +88,7 @@
         {#if signalInfo}
           {#key signalInfo}
             <div>
-              {signalInfo.json_schema.description}
+              <SvelteMarkdown source={signalInfo.json_schema.description} />
             </div>
 
             <FieldSelect

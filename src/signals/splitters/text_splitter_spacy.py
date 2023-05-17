@@ -11,8 +11,9 @@ from ...signals.signal import TextSplitterSignal
 
 
 class SentenceSplitterSpacy(TextSplitterSignal):
-  """Splits documents into sentences."""
+  """Splits documents into sentences using the SpaCy sentence tokenizer."""
   name = 'sentences'
+  display_name = 'Sentence Splitter'
 
   language: str = 'en'
 

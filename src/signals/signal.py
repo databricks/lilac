@@ -15,6 +15,9 @@ class Signal(abc.ABC, BaseModel):
   """Interface for signals to implement. A signal can score documents and a dataset column."""
   # ClassVars do not get serialized with pydantic.
   name: ClassVar[str]
+  # The display name is just used for rendering in the UI.
+  display_name: ClassVar[Optional[str]]
+
   signal_type: ClassVar[Type['Signal']]
   # The input type is used to populate the UI for signals that require other signals. For example,
   # if a signal is an TextEmbeddingModelSignal, it computes over embeddings, but it's input type
@@ -29,6 +32,15 @@ class Signal(abc.ABC, BaseModel):
 
   class Config:
     underscore_attrs_are_private = True
+
+    @staticmethod
+    def schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
+      """Add the title to the schema from the display name and name.
+
+      Pydantic defaults this to the class name.
+      """
+      if hasattr(signal, 'display_name'):
+        schema['title'] = signal.display_name
 
   @validator('signal_name', pre=True, always=True)
   def validate_signal_name(cls, signal_name: str) -> str:
