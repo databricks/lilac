@@ -3,7 +3,7 @@
 import abc
 import os
 import pickle
-from typing import Optional, cast
+from typing import Optional, Union, cast
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -201,14 +201,16 @@ class DiskConceptDB(ConceptDB):
     removed_points = change.remove or []
 
     # Create the concept if it doesn't exist.
+    created_new = False
     if not file_exists(concept_json_path):
       # Deduce the concept type from the first example.
-      points = [*inserted_points, *updated_points]
-      if points:
-        type = 'text' if points[0].text else 'img'
-      else:
-        raise ValueError('Cannot create a concept with no examples.')
+      points: list[Union[ExampleIn, Example]] = [*inserted_points, *updated_points]
+      # Default to text if no points are provided.
+      type = 'text'
+      if points and points[0].img:
+        type = 'img'
       concept = Concept(namespace=namespace, concept_name=name, type=type, data=[], version=0)
+      created_new = True
     else:
       concept = cast(Concept, self.get(namespace, name))
 
@@ -230,8 +232,12 @@ class DiskConceptDB(ConceptDB):
 
     concept.version += 1
 
-    with open_file(concept_json_path, 'w') as f:
-      f.write(concept.json(exclude_none=True))
+    # New concepts without any data do not have to be written to disk yet.
+    skip_writing_to_disk = created_new and not concept.data
+
+    if not skip_writing_to_disk:
+      with open_file(concept_json_path, 'w') as f:
+        f.write(concept.json(exclude_none=True))
 
     return concept
 
