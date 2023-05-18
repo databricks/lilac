@@ -21,6 +21,8 @@ export interface IDatasetViewStore {
 const LS_KEY = 'datasetViewStore';
 
 export type DatasetViewStore = ReturnType<typeof createDatasetViewStore>;
+
+let udfAliasCounter = 0;
 export const createDatasetViewStore = (namespace: string, datasetName: string) => {
   const initialState: IDatasetViewStore = {
     namespace,
@@ -66,7 +68,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       update(state => {
         // Ensure that UDF's have an alias
         if (!column.alias && column.signal_udf?.signal_name)
-          column.alias = `${column.path.join('_')}_${column.signal_udf?.signal_name}`;
+          column.alias = `udf${udfAliasCounter++}`;
         state.queryOptions.columns?.push(column);
         return state;
       }),
