@@ -354,7 +354,7 @@ def test_sort_by_source_non_leaf_errors(make_test_data: TestDataMaker) -> None:
   }])
 
   # Sort by repeated.
-  with pytest.raises(ValueError, match='Can not sort by .* since it is not a leaf field'):
+  with pytest.raises(ValueError, match='Unable to sort by path'):
     dataset.select_rows(columns=[UUID_COLUMN], sort_by=['vals'], sort_order=SortOrder.ASC)
 
 
