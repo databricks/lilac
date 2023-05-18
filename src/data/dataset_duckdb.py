@@ -396,13 +396,13 @@ class DatasetDuckDB(Dataset):
           raise ValueError(f'Unable to filter on path {filter.path}. '
                            f'Path part "{path_part}" is not defined on a primitive value.')
 
-  def _validate_columns(self, columns: Sequence[Column], manifest: DatasetManifest) -> None:
+  def _validate_columns(self, columns: Sequence[Column], schema: Schema) -> None:
     for column in columns:
       if column.signal_udf:
         path = column.path
 
         # Signal transforms must operate on a leaf field.
-        leaf = manifest.data_schema.leafs.get(path)
+        leaf = schema.leafs.get(path)
         if not leaf or not leaf.dtype:
           raise ValueError(f'Leaf "{path}" not found in dataset. '
                            'Signal transforms must operate on a leaf field.')
@@ -419,7 +419,7 @@ class DatasetDuckDB(Dataset):
         # us to remove python code that unwraps the value key before calling the signal.
         column.path = _make_value_path(column.path)
 
-      current_field = Field(fields=manifest.data_schema.fields)
+      current_field = Field(fields=schema.fields)
       path = column.path
       for path_part in path:
         if path_part == VALUE_KEY:
@@ -444,8 +444,8 @@ class DatasetDuckDB(Dataset):
           raise ValueError(f'Unable to select path {path}. '
                            f'Path part "{path_part}" is not defined on a primitive value.')
 
-  def _validate_sort_path(self, path: PathTuple, manifest: DatasetManifest) -> None:
-    current_field = Field(fields=manifest.data_schema.fields)
+  def _validate_sort_path(self, path: PathTuple, schema: Schema) -> None:
+    current_field = Field(fields=schema.fields)
     for path_part in path:
       if path_part == VALUE_KEY:
         if not current_field.dtype:
@@ -619,7 +619,7 @@ class DatasetDuckDB(Dataset):
         # Do not auto-compute dependencies, throw an error if they are not computed.
         col.path = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
 
-    self._validate_columns(cols, manifest)
+    self._validate_columns(cols, manifest.data_schema)
 
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
     columns_to_merge: dict[str, dict[str, Column]] = {}
@@ -669,7 +669,7 @@ class DatasetDuckDB(Dataset):
     # Filtering.
     where_query = ''
     filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases)
-    filter_queries = self._create_where(filters, manifest)
+    filter_queries = self._create_where(filters)
     if filter_queries:
       where_query = f"WHERE {' AND '.join(filter_queries)}"
 
@@ -701,7 +701,7 @@ class DatasetDuckDB(Dataset):
         if first_subpath in col_aliases:
           path = (*col_aliases[first_subpath], *rest_of_path)
 
-        self._validate_sort_path(path, manifest)
+        self._validate_sort_path(path, manifest.data_schema)
         path = self._leaf_path_to_duckdb_path(cast(PathTuple, path))
 
       sort_col = _select_sql(path, flatten=True, unnest=False)
@@ -814,7 +814,7 @@ class DatasetDuckDB(Dataset):
       query = con.from_df(df)
 
       if udf_filters:
-        udf_filter_queries = self._create_where(udf_filters, manifest)
+        udf_filter_queries = self._create_where(udf_filters)
         if udf_filter_queries:
           query = query.filter(' AND '.join(udf_filter_queries))
 
@@ -890,7 +890,7 @@ class DatasetDuckDB(Dataset):
         # Do not auto-compute dependencies, throw an error if they are not computed.
         col.path = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
 
-    self._validate_columns(cols, manifest)
+    self._validate_columns(cols, manifest.data_schema)
 
     alias_udf_paths: dict[str, PathTuple] = {}
     col_schemas: list[Schema] = []
@@ -985,7 +985,7 @@ class DatasetDuckDB(Dataset):
     self._validate_filters(filters, col_aliases)
     return filters, udf_filters
 
-  def _create_where(self, filters: list[Filter], manifest: DatasetManifest) -> list[str]:
+  def _create_where(self, filters: list[Filter]) -> list[str]:
     if not filters:
       return []
     filter_queries: list[str] = []
