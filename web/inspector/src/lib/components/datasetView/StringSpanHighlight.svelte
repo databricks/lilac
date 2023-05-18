@@ -26,19 +26,27 @@
   export let row: LilacValueNode;
   export let visibleColumns: Path[];
 
-  let selectedSpan: (typeof filledSpans)[number] | undefined;
+  interface AnnotatedStringSpan {
+    /** The start character of the span */
+    start: number;
+    /** The end character of the span */
+    end: number;
+    /** Whether to show the span */
+    show: boolean;
+    /** Whether this span is a filler span (no interactions) */
+    filler: boolean;
+    /** The sub-properties of the span */
+    properties?: Array<LilacValueNode>;
+    /** The concepts associated with the span */
+    concepts?: Array<ConceptScoreSignal>;
+  }
+
+  let selectedSpan: AnnotatedStringSpan | undefined;
 
   $: spans = stringSpanFields.flatMap(f => getValueNodes(row, f.path));
 
   // Fill up the gaps between the spans
-  let filledSpans: Array<{
-    start: number;
-    end: number;
-    show: boolean;
-    filler: boolean;
-    properties?: Array<LilacValueNode>;
-    concepts?: Array<ConceptScoreSignal>;
-  }> = [];
+  let filledSpans: Array<AnnotatedStringSpan> = [];
 
   $: {
     filledSpans = [];
@@ -67,7 +75,7 @@
         .flatMap(field => getValueNode(span, field.path))
         .filter(notEmpty);
 
-      let concepts: (typeof filledSpans)[number]['concepts'] = [];
+      let concepts: AnnotatedStringSpan['concepts'] = [];
       let show = true;
       // If any children are floats, use that to determine if we should show the span
       if (children.some(c => c && isFloat(L.dtype(c)))) {
@@ -98,7 +106,7 @@
     }
   }
 
-  function tooltipText(span: (typeof filledSpans)[number]) {
+  function tooltipText(span: AnnotatedStringSpan) {
     if (!span.properties) return '';
     return span.properties
       .map(p => `${L.path(p)?.at(-1)} = ${formatValue(L.value(p) ?? '')}`)
