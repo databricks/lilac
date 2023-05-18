@@ -1,5 +1,6 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
+  import {createConceptMutation} from '$lib/queries/conceptQueries';
   import {
     ComposedModal,
     ModalBody,
@@ -12,11 +13,18 @@
   let namespace = 'local';
   let name = '';
 
+  const conceptCreate = createConceptMutation();
+
   const dispatch = createEventDispatcher();
 
   function submit() {
     close();
-    goto('/concepts/' + namespace + '/' + name);
+
+    $conceptCreate.mutate([{namespace, name, type: 'text'}], {
+      onSuccess: () => {
+        goto('/concepts/' + namespace + '/' + name);
+      }
+    });
   }
 
   function close() {
