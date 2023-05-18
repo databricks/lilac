@@ -206,7 +206,10 @@ class TextEmbeddingSignal(TextSignal):
 
   @override
   def fields(self) -> Field:
-    """NOTE: Override this method at your own risk. Embeddings should come with extra metadata."""
+    """NOTE: Override this method at your own risk if you want to add extra metadata.
+
+    Embeddings should not come with extra metadata.
+    """
     return field('embedding')
 
 
