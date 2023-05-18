@@ -2,7 +2,6 @@
 from typing import Any, Callable, Iterable, Optional, Union, cast
 
 import numpy as np
-from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..embeddings.embedding import get_embed_fn
@@ -20,7 +19,7 @@ class SemanticSearchSignal(TextEmbeddingModelSignal):
   name = 'semantic_search'
   display_name = 'Semantic Search'
 
-  query: Union[str, bytes] = PydanticField(type='string', description='The query to search for.')
+  query: str
 
   _embed_fn: Callable[[Iterable[RichData]], np.ndarray]
   _search_text_embedding: Optional[np.ndarray] = None
