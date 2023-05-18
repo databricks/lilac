@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {isPathVisible} from '$lib/stores/datasetViewStore';
   /**
    * Component that renders a single value from a row in the dataset row view
    * In the case of strings with string_spans, it will render the derived string spans as well
@@ -11,7 +12,6 @@
     isOrdinal,
     listFieldParents,
     listFields,
-    pathIsEqual,
     type LilacSchema,
     type LilacSchemaField,
     type LilacValueNode,
@@ -23,6 +23,7 @@
   export let row: LilacValueNode;
   export let visibleColumns: Path[];
   export let schema: LilacSchema;
+  export let aliasMapping: Record<string, Path> | undefined;
 
   $: valueNodes = getValueNodes(row, path);
   $: field = L.field(valueNodes[0]);
@@ -54,7 +55,7 @@
         // Filter for string spans
         .filter(field => field.dtype === 'string_span')
         // Filter for visible columns
-        .filter(field => visibleColumns.some(c => pathIsEqual(c, field.path)))
+        .filter(field => isPathVisible(visibleColumns, field.path, aliasMapping))
     );
   }
 </script>
@@ -74,6 +75,7 @@
           {stringSpanFields}
           {row}
           {visibleColumns}
+          {aliasMapping}
         />
       {/if}
     </div>

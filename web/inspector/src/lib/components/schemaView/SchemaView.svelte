@@ -2,6 +2,7 @@
   import {
     queryDatasetManifest,
     queryDatasetSchema,
+    querySelectRowsAliasUdfPaths,
     querySelectRowsSchema
   } from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
@@ -27,6 +28,14 @@
   // Get the resulting schmema including UDF columns
   $: selectRowsSchema = selectOptions
     ? querySelectRowsSchema(
+        $datasetViewStore.namespace,
+        $datasetViewStore.datasetName,
+        selectOptions
+      )
+    : undefined;
+
+  $: aliasMapping = selectOptions
+    ? querySelectRowsAliasUdfPaths(
         $datasetViewStore.namespace,
         $datasetViewStore.datasetName,
         selectOptions
@@ -62,6 +71,7 @@
             <SchemaField
               schema={$selectRowsSchema.data}
               field={$selectRowsSchema.data.fields[key]}
+              aliasMapping={$aliasMapping?.data}
             />
           {/each}
         {/if}

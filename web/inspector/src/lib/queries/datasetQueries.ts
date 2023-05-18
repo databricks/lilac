@@ -76,6 +76,13 @@ export const querySelectRowsSchema = createApiQuery(
   }
 );
 
+export const querySelectRowsAliasUdfPaths = createApiQuery(
+  DatasetsService.selectRowsSchema,
+  DATASETS_TAG,
+  {
+    select: res => res.alias_udf_paths
+  }
+);
 export const querySelectGroups = createApiQuery(DatasetsService.selectGroups, DATASETS_TAG);
 
 export const infiniteQuerySelectRows = (

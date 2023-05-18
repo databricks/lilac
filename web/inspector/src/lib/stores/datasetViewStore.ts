@@ -51,11 +51,13 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     reset: () => {
       set(initialState);
     },
-    addVisibleColumn: (column: Path) =>
-      update(state => {
+    addVisibleColumn: (column: Path) => {
+      return update(state => {
+        if (state.visibleColumns.some(c => pathIsEqual(c, column))) return state;
         state.visibleColumns.push(column);
         return state;
-      }),
+      });
+    },
     removeVisibleColumn: (column: Path) =>
       update(state => {
         state.visibleColumns = state.visibleColumns.filter(c => !pathIsEqual(c, column));
@@ -126,4 +128,17 @@ export function getSelectRowsOptions(
     ...datasetViewStore.queryOptions,
     columns
   };
+}
+
+export function isPathVisible(
+  visibleColumns: IDatasetViewStore['visibleColumns'],
+  path: Path,
+  aliasMapping: Record<string, Path> | undefined
+) {
+  return (
+    visibleColumns
+      // Map aliased columns to their full path
+      .map(c => (aliasMapping?.[c[0]] && [...aliasMapping[c[0]], ...c.slice(1)]) ?? c)
+      .some(c => pathIsEqual(c, path))
+  );
 }

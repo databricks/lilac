@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {isPathVisible} from '$lib/stores/datasetViewStore';
   import {notEmpty} from '$lib/utils';
   /**
    * Component that renders string spans as an absolute positioned
@@ -12,7 +13,6 @@
     isConceptScoreSignal,
     isFloat,
     listFields,
-    pathIsEqual,
     type ConceptScoreSignal,
     type LilacSchemaField,
     type LilacValueNode,
@@ -25,6 +25,7 @@
   export let stringSpanFields: Array<LilacSchemaField>;
   export let row: LilacValueNode;
   export let visibleColumns: Path[];
+  export let aliasMapping: Record<string, Path> | undefined;
 
   interface AnnotatedStringSpan {
     /** The start character of the span */
@@ -65,7 +66,7 @@
       const children = listFields(L.field(span))
         .slice(1)
         // Filter out non-visible columns
-        .filter(field => visibleColumns.some(c => pathIsEqual(c, field.path)))
+        .filter(field => isPathVisible(visibleColumns, field.path, aliasMapping))
         // Replace the path with prefix of the path with value path that includes index instead of wildcard
         .map(field => ({
           ...field,

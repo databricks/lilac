@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {deserializePath, pathIncludes, pathIsEqual, pathIsMatching} from './schema';
+import {deserializePath, pathIncludes, pathIsEqual, pathIsMatching, serializePath} from './schema';
 
 describe('schema', () => {
   it('deserialize path', () => {
@@ -12,6 +12,14 @@ describe('schema', () => {
       'something.with.dots',
       'xyz'
     ]);
+  });
+
+  it('serialize path', () => {
+    expect(serializePath(['foo', 'bar'])).toEqual('foo.bar');
+    expect(serializePath(['foo', 'bar', '*'])).toEqual('foo.bar.*');
+    expect(serializePath(['foo', 'bar', 'something.with.dots', 'xyz'])).toEqual(
+      'foo.bar."something.with.dots".xyz'
+    );
   });
 
   it('pathIsEqual', () => {
