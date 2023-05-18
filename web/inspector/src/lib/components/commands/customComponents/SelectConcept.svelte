@@ -21,7 +21,7 @@
     : [];
 
   $: {
-    if (!value && $concepts.isSuccess) {
+    if ((!value || !rootValue.namespace) && $concepts.isSuccess) {
       rootValue.namespace = $concepts.data[0].namespace;
       value = $concepts.data[0].name;
     }

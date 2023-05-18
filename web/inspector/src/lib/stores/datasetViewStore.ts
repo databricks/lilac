@@ -7,7 +7,7 @@ import {
   type SelectRowsOptions
 } from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
-import {writable} from 'svelte/store';
+import {persisted} from './persistedStore';
 
 const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
@@ -18,9 +18,11 @@ export interface IDatasetViewStore {
   queryOptions: SelectRowsOptions;
 }
 
+const LS_KEY = 'datasetViewStore';
+
 export type DatasetViewStore = ReturnType<typeof createDatasetViewStore>;
 export const createDatasetViewStore = (namespace: string, datasetName: string) => {
-  const {subscribe, set, update} = writable<IDatasetViewStore>({
+  const initialState: IDatasetViewStore = {
     namespace,
     datasetName,
     visibleColumns: [],
@@ -32,12 +34,23 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       columns: [],
       combine_columns: true
     }
-  });
+  };
+
+  const {subscribe, set, update} = persisted<IDatasetViewStore>(
+    `${LS_KEY}/${namespace}/${datasetName}`,
+    initialState,
+    {
+      storage: 'session'
+    }
+  );
 
   return {
     subscribe,
     set,
     update,
+    reset: () => {
+      set(initialState);
+    },
     addVisibleColumn: (column: Path) =>
       update(state => {
         state.visibleColumns.push(column);
