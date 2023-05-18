@@ -1,10 +1,4 @@
-import type {
-  Column,
-  ConceptScoreSignal,
-  DataType,
-  Signal,
-  SignalInputType
-} from '../fastapi_client';
+import type {ConceptScoreSignal, DataType, Signal, SignalInputType} from '../fastapi_client';
 import type {LilacSchemaField} from './lilac';
 export type LeafValue = number | boolean | string | null;
 export type FieldValue = FieldValue[] | {[fieldName: string]: FieldValue} | LeafValue;
