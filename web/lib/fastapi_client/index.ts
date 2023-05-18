@@ -13,6 +13,8 @@ export type { ComputeSignalOptions } from './models/ComputeSignalOptions';
 export type { ComputeSignalResponse } from './models/ComputeSignalResponse';
 export type { Concept } from './models/Concept';
 export type { ConceptInfo } from './models/ConceptInfo';
+export type { ConceptModel } from './models/ConceptModel';
+export type { ConceptModelResponse } from './models/ConceptModelResponse';
 export type { ConceptScoreSignal } from './models/ConceptScoreSignal';
 export type { ConceptUpdate } from './models/ConceptUpdate';
 export type { DatasetInfo } from './models/DatasetInfo';

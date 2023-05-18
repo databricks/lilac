@@ -99,10 +99,10 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
     """Call the embedding function."""
     embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
-    yield from (signal_item(e) for e in embeddings)
+    yield from embeddings
 
 
 class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
@@ -115,7 +115,7 @@ class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
 
   @override
   def vector_compute(self, keys: Iterable[VectorKey],
-                     vector_store: VectorStore) -> Iterable[ItemValue]:
+                     vector_store: VectorStore) -> Iterable[SignalOut]:
     # The signal just sums the values of the embedding.
     embedding_sums = vector_store.get(keys).sum(axis=1)
     for embedding_sum in embedding_sums.tolist():
