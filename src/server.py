@@ -8,14 +8,7 @@ from fastapi.responses import HTMLResponse, ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 
-from . import (
-  router_concept,
-  router_data_loader,
-  router_dataset,
-  router_embedding,
-  router_signal,
-  router_tasks,
-)
+from . import router_concept, router_data_loader, router_dataset, router_signal, router_tasks
 from .router_utils import RouteErrorHandler
 from .tasks import task_manager
 
@@ -33,9 +26,6 @@ tags_metadata: list[dict[str, Any]] = [{
 }, {
   'name': 'signals',
   'description': 'API for managing signals.',
-}, {
-  'name': 'embeddings',
-  'description': 'API for managing embeddings.',
 }]
 
 
@@ -54,7 +44,6 @@ v1_router.include_router(router_dataset.router, prefix='/datasets', tags=['datas
 v1_router.include_router(router_concept.router, prefix='/concepts', tags=['concepts'])
 v1_router.include_router(router_data_loader.router, prefix='/data_loaders', tags=['data_loaders'])
 v1_router.include_router(router_signal.router, prefix='/signals', tags=['signals'])
-v1_router.include_router(router_embedding.router, prefix='/embeddings', tags=['embeddings'])
 v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
 
 app.include_router(v1_router, prefix='/api/v1')
