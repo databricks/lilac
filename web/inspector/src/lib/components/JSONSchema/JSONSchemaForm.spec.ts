@@ -65,7 +65,7 @@ describe('JSONSchemaForm', () => {
     const addButton = screen.getByRole('button', {name: /add/i});
     expect(addButton).toBeInTheDocument();
 
-    expect(get(value)).toEqual({});
+    expect(get(value)).toEqual({array: []});
     await userEvent.click(addButton);
     await userEvent.click(addButton);
 
