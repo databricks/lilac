@@ -29,7 +29,6 @@
     : null;
 
   $: sourceFields = fields?.filter(f => $schema.data && !isSignalField(f, $schema.data));
-  $: signalFields = fields?.filter(f => $schema.data && isSignalField(f, $schema.data));
 
   function formatField(field: LilacSchemaField): string {
     return `${field.path.join('.')} (${field.dtype})`;
@@ -84,17 +83,6 @@
     {#if sourceFields?.length}
       <SelectItemGroup label="Source Fields">
         {#each sourceFields as field}
-          <SelectItem
-            value={serializePath(field.path)}
-            disabled={false}
-            text={formatField(field)}
-          />
-        {/each}
-      </SelectItemGroup>
-    {/if}
-    {#if signalFields?.length}
-      <SelectItemGroup label="Signal Fields">
-        {#each signalFields as field}
           <SelectItem
             value={serializePath(field.path)}
             disabled={false}
