@@ -101,8 +101,7 @@ class TestEmbedding(TextEmbeddingSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
     """Call the embedding function."""
-    embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
-    yield from embeddings
+    yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
 
 
 class TestEmbeddingSumSignal(TextEmbeddingModelSignal):

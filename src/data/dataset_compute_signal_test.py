@@ -168,10 +168,9 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
     """Call the embedding function."""
-    embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
-    yield from (signal_item(e) for e in embeddings)
+    yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
 
 
 @pytest.fixture(scope='module', autouse=True)

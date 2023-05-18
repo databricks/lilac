@@ -16,9 +16,8 @@ from ..concepts.db_concept import (
   DiskConceptModelDB,
 )
 from ..config import CONFIG
-from ..data.dataset_utils import signal_item
 from ..embeddings.vector_store_numpy import NumpyVectorStore
-from ..schema import Item, RichData
+from ..schema import RichData, SignalOut
 from .concept_scorer import ConceptScoreSignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
@@ -48,13 +47,12 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
     """Embed the examples, use a hashmap to the vector for simplicity."""
     for example in data:
       if example not in EMBEDDING_MAP:
         raise ValueError(f'Example "{str(example)}" not in embedding map')
-    embeddings = np.array([EMBEDDING_MAP[cast(str, example)] for example in data])
-    yield from (signal_item(e) for e in embeddings)
+    yield from [np.array(EMBEDDING_MAP[cast(str, example)]) for example in data]
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -80,8 +78,7 @@ def test_embedding_does_not_exist(db_cls: Type[ConceptDB]) -> None:
   ]
   db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-  with pytest.raises(
-      ValueError, match='Signal "unknown_embedding" not found in the registry'):
+  with pytest.raises(ValueError, match='Signal "unknown_embedding" not found in the registry'):
     ConceptScoreSignal(namespace='test', concept_name='test_concept', embedding='unknown_embedding')
 
 

@@ -10,13 +10,12 @@ from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
 from ..schema import (
-  SIGNAL_METADATA_KEY,
   UUID_COLUMN,
-  DataType,
   Field,
   Item,
   ItemValue,
   RichData,
+  SignalOut,
   VectorKey,
   field,
   schema,
@@ -86,18 +85,9 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def fields(self) -> Field:
-    """Return the fields for the embedding."""
-    # Override in the test so we can attach extra metadata.
-    return Field(
-      dtype=DataType.EMBEDDING,
-      fields={SIGNAL_METADATA_KEY: Field(fields={'neg_sum': Field(dtype=DataType.FLOAT32)})})
-
-  @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
     """Call the embedding function."""
-    embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
-    yield from (signal_item(e, {'neg_sum': -1 * e.sum()}) for e in embeddings)
+    yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
 
 
 class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
@@ -162,7 +152,6 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
               'test_embedding_sum': signal_field(
                 dtype='float32', signal=embedding_sum_signal.dict())
             },
-            metadata={'neg_sum': 'float32'},
             signal=embedding_signal.dict())
         },
         dtype='string'),
@@ -173,29 +162,13 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
   expected_result = lilac_items([{
     UUID_COLUMN: '1',
     'text': lilac_item(
-      'hello.', {
-        'test_embedding': lilac_item(
-          None, {
-            SIGNAL_METADATA_KEY: {
-              'neg_sum': -1.0
-            },
-            'test_embedding_sum': 1.0
-          },
-          allow_none_value=True)
-      })
+      'hello.',
+      {'test_embedding': lilac_item(None, {'test_embedding_sum': 1.0}, allow_none_value=True)})
   }, {
     UUID_COLUMN: '2',
     'text': lilac_item(
-      'hello2.', {
-        'test_embedding': lilac_item(
-          None, {
-            SIGNAL_METADATA_KEY: {
-              'neg_sum': -2.0
-            },
-            'test_embedding_sum': 2.0
-          },
-          allow_none_value=True)
-      })
+      'hello2.',
+      {'test_embedding': lilac_item(None, {'test_embedding_sum': 2.0}, allow_none_value=True)})
   }])
   assert list(result) == expected_result
 
@@ -231,7 +204,6 @@ def test_auto_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixt
               'test_embedding_sum': signal_field(
                 dtype='float32', signal=embedding_sum_signal.dict())
             },
-            metadata={'neg_sum': 'float32'},
             signal=cast(Signal, embedding_sum_signal._embedding_signal).dict())
         },
         dtype='string'),
@@ -242,29 +214,13 @@ def test_auto_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixt
   expected_result = lilac_items([{
     UUID_COLUMN: '1',
     'text': lilac_item(
-      'hello.', {
-        'test_embedding': lilac_item(
-          None, {
-            SIGNAL_METADATA_KEY: {
-              'neg_sum': -1.0
-            },
-            'test_embedding_sum': 1.0
-          },
-          allow_none_value=True)
-      })
+      'hello.',
+      {'test_embedding': lilac_item(None, {'test_embedding_sum': 1.0}, allow_none_value=True)})
   }, {
     UUID_COLUMN: '2',
     'text': lilac_item(
-      'hello2.', {
-        'test_embedding': lilac_item(
-          None, {
-            SIGNAL_METADATA_KEY: {
-              'neg_sum': -2.0
-            },
-            'test_embedding_sum': 2.0
-          },
-          allow_none_value=True)
-      })
+      'hello2.',
+      {'test_embedding': lilac_item(None, {'test_embedding_sum': 2.0}, allow_none_value=True)})
   }])
   assert list(result) == expected_result
 
@@ -312,7 +268,6 @@ def test_manual_embedding_signal_splits(make_test_data: TestDataMaker,
                         dtype='float32', signal=embedding_sum_signal.dict())
                     },
                     dtype='embedding',
-                    metadata={'neg_sum': 'float32'},
                     signal=embedding_signal.dict())
                 },
               )
@@ -333,24 +288,12 @@ def test_manual_embedding_signal_splits(make_test_data: TestDataMaker,
           lilac_item(
             lilac_span(0, 6), {
               'test_embedding': lilac_item(
-                None, {
-                  SIGNAL_METADATA_KEY: {
-                    'neg_sum': -1.0
-                  },
-                  'test_embedding_sum': 1.0
-                },
-                allow_none_value=True),
+                None, {'test_embedding_sum': 1.0}, allow_none_value=True),
             }),
           lilac_item(
             lilac_span(7, 14), {
               'test_embedding': lilac_item(
-                None, {
-                  SIGNAL_METADATA_KEY: {
-                    'neg_sum': -2.0
-                  },
-                  'test_embedding_sum': 2.0
-                },
-                allow_none_value=True),
+                None, {'test_embedding_sum': 2.0}, allow_none_value=True),
             }),
         ]
       })
@@ -362,24 +305,12 @@ def test_manual_embedding_signal_splits(make_test_data: TestDataMaker,
           lilac_item(
             lilac_span(0, 12), {
               'test_embedding': lilac_item(
-                None, {
-                  SIGNAL_METADATA_KEY: {
-                    'neg_sum': -3.0
-                  },
-                  'test_embedding_sum': 3.0
-                },
-                allow_none_value=True),
+                None, {'test_embedding_sum': 3.0}, allow_none_value=True),
             }),
           lilac_item(
             lilac_span(13, 26), {
               'test_embedding': lilac_item(
-                None, {
-                  SIGNAL_METADATA_KEY: {
-                    'neg_sum': -4.0
-                  },
-                  'test_embedding_sum': 4.0
-                },
-                allow_none_value=True),
+                None, {'test_embedding_sum': 4.0}, allow_none_value=True),
             })
         ]
       })
@@ -424,7 +355,6 @@ def test_auto_embedding_signal_splits(make_test_data: TestDataMaker, mocker: Moc
                         dtype='float32', signal=embedding_sum_signal.dict())
                     },
                     dtype='embedding',
-                    metadata={'neg_sum': 'float32'},
                     signal=cast(Signal, embedding_sum_signal._embedding_signal).dict())
                 },
               )
@@ -445,24 +375,12 @@ def test_auto_embedding_signal_splits(make_test_data: TestDataMaker, mocker: Moc
           lilac_item(
             lilac_span(0, 6), {
               'test_embedding': lilac_item(
-                None, {
-                  SIGNAL_METADATA_KEY: {
-                    'neg_sum': -1.0
-                  },
-                  'test_embedding_sum': 1.0
-                },
-                allow_none_value=True),
+                None, {'test_embedding_sum': 1.0}, allow_none_value=True),
             }),
           lilac_item(
             lilac_span(7, 14), {
               'test_embedding': lilac_item(
-                None, {
-                  SIGNAL_METADATA_KEY: {
-                    'neg_sum': -2.0
-                  },
-                  'test_embedding_sum': 2.0
-                },
-                allow_none_value=True),
+                None, {'test_embedding_sum': 2.0}, allow_none_value=True),
             }),
         ]
       })
@@ -474,24 +392,12 @@ def test_auto_embedding_signal_splits(make_test_data: TestDataMaker, mocker: Moc
           lilac_item(
             lilac_span(0, 12), {
               'test_embedding': lilac_item(
-                None, {
-                  SIGNAL_METADATA_KEY: {
-                    'neg_sum': -3.0
-                  },
-                  'test_embedding_sum': 3.0
-                },
-                allow_none_value=True),
+                None, {'test_embedding_sum': 3.0}, allow_none_value=True),
             }),
           lilac_item(
             lilac_span(13, 26), {
               'test_embedding': lilac_item(
-                None, {
-                  SIGNAL_METADATA_KEY: {
-                    'neg_sum': -4.0
-                  },
-                  'test_embedding_sum': 4.0
-                },
-                allow_none_value=True),
+                None, {'test_embedding_sum': 4.0}, allow_none_value=True),
             })
         ]
       })

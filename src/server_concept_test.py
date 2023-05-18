@@ -14,7 +14,7 @@ from .concepts.concept import Concept, ConceptModel, Example, ExampleIn, Example
 from .concepts.db_concept import ConceptInfo, ConceptUpdate
 from .config import CONFIG
 from .router_concept import ConceptModelResponse, ScoreBody, ScoreExample, ScoreResponse
-from .schema import ItemValue, RichData, SignalInputType
+from .schema import RichData, SignalInputType, SignalOut
 from .server import app
 from .signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
@@ -33,7 +33,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
     """Call the embedding function."""
     embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
     yield from embeddings

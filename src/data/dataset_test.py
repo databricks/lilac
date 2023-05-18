@@ -20,7 +20,7 @@ from ..schema import (
 from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset import Column, DatasetManifest, val
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker
-from .dataset_utils import lilac_item, lilac_items, signal_item
+from .dataset_utils import lilac_item, lilac_items
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -55,15 +55,9 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def fields(self) -> Field:
-    """Return the fields for the embedding."""
-    return signal_field(dtype='embedding', metadata={'neg_sum': 'float32'})
-
-  @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
     """Call the embedding function."""
-    embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
-    yield from (signal_item(e, metadata={'neg_sum': -1 * e.sum()}) for e in embeddings)
+    yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
 
 
 class LengthSignal(TextSignal):

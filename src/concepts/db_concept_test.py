@@ -8,8 +8,7 @@ import pytest
 from typing_extensions import override
 
 from ..config import CONFIG
-from ..data.dataset_utils import signal_item
-from ..schema import Item, RichData
+from ..schema import RichData, SignalOut
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .concept import ConceptModel, Example, ExampleIn
 from .db_concept import ConceptDB, ConceptModelDB, ConceptUpdate, DiskConceptDB, DiskConceptModelDB
@@ -40,14 +39,12 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
     """Embed the examples, use a hashmap to the vector for simplicity."""
     for example in data:
       if example not in EMBEDDING_MAP:
         raise ValueError(f'Example "{str(example)}" not in embedding map')
-    embeddings = np.array([EMBEDDING_MAP[cast(str, example)] for example in data])
-
-    yield from (signal_item(e) for e in embeddings)
+    yield from [np.array(EMBEDDING_MAP[cast(str, example)]) for example in data]
 
 
 @pytest.fixture(scope='module', autouse=True)

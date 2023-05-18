@@ -7,9 +7,8 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..data.dataset_utils import signal_item
 from ..embeddings.vector_store import VectorStore
-from ..schema import Item, RichData, VectorKey
+from ..schema import RichData, SignalOut, VectorKey
 from .semantic_search import SemanticSearchSignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
@@ -45,10 +44,9 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
     """Embed the examples, use a hashmap to the vector for simplicity."""
-    embeddings = np.array([STR_EMBEDDINGS[cast(str, example)] for example in data])
-    yield from (signal_item(e) for e in embeddings)
+    yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
 
 
 @pytest.fixture(scope='module', autouse=True)

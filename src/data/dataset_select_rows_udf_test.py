@@ -17,7 +17,6 @@ from ..schema import (
   SignalOut,
   VectorKey,
   field,
-  signal_field,
 )
 from ..signals.signal import (
   TextEmbeddingModelSignal,
@@ -44,15 +43,9 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def fields(self) -> Field:
-    """Return the fields for the embedding."""
-    return signal_field(dtype='embedding', metadata={'neg_sum': 'float32'})
-
-  @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
     """Call the embedding function."""
-    embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
-    yield from (signal_item(e, metadata={'neg_sum': -1 * e.sum()}) for e in embeddings)
+    yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
 
 
 class LengthSignal(TextSignal):
