@@ -10,10 +10,12 @@
   import {ComposedModal, ModalBody, ModalFooter, ModalHeader} from 'carbon-components-svelte';
   import type {JSONSchema4Type} from 'json-schema';
   import type {JSONError} from 'json-schema-library';
-  import {createEventDispatcher} from 'svelte';
+  import {SvelteComponent, createEventDispatcher} from 'svelte';
   import SvelteMarkdown from 'svelte-markdown';
   import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
   import type {ComputeSignalCommand, PreviewConceptCommand} from './Commands.svelte';
+  import EmptyComponent from './customComponents/EmptyComponent.svelte';
+  import SelectConcept from './customComponents/SelectConcept.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
   import SignalList from './selectors/SignalList.svelte';
 
@@ -23,7 +25,7 @@
 
   let path = command.path;
   let signalInfo: SignalInfoWithTypedSchema | undefined;
-  let signalPropertyValues: Record<string, JSONSchema4Type> = {};
+  let signalPropertyValues: Record<string, Record<string, JSONSchema4Type>> = {};
   let errors: JSONError[] = [];
 
   const datasetViewStore = getDatasetViewContext();
@@ -31,11 +33,18 @@
 
   const computeSignalMutation = computeSignalColumnMutation();
 
+  const customComponents: Record<string, Record<string, typeof SvelteComponent>> = {
+    concept_score: {
+      '/namespace': EmptyComponent,
+      '/concept_name': SelectConcept
+    }
+  };
+
   $: {
     if (signalInfo?.name) setSignalName(signalInfo.name);
   }
 
-  $: signal = signalPropertyValues as Signal;
+  $: signal = signalInfo?.name ? (signalPropertyValues[signalInfo.name] as Signal) : undefined;
 
   $: filterField = (field: LilacSchemaField) => {
     if (!field.dtype) return false;
@@ -47,10 +56,12 @@
   };
 
   function setSignalName(name: string) {
-    signalPropertyValues.signal_name = name;
+    if (!signalPropertyValues[name]) signalPropertyValues[name] = {};
+    signalPropertyValues[name].signal_name = name;
   }
 
   function submit() {
+    if (!signal) return;
     if (variant == 'compute') {
       $computeSignalMutation.mutate([
         command.namespace,
@@ -100,10 +111,11 @@
 
             <JsonSchemaForm
               schema={signalInfo.json_schema}
-              bind:value={signalPropertyValues}
+              bind:value={signalPropertyValues[signalInfo?.name]}
               bind:validationErrors={errors}
               showDescription={false}
               hiddenProperties={['/signal_name']}
+              customComponents={customComponents[signalInfo?.name]}
             />
           {/key}
         {:else}
