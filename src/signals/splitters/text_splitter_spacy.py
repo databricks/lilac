@@ -37,3 +37,7 @@ class SentenceSplitterSpacy(TextSplitterSignal):
         yield result
       else:
         yield None
+
+  class Config:
+    # Language is required even though it has a default value.
+    schema_extra = {'required': ['language']}
