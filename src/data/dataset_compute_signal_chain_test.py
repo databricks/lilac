@@ -1,6 +1,7 @@
 """Tests for dataset.compute_signal() when signals are chained."""
 
-from typing import Iterable, cast
+import re
+from typing import Iterable, List, Optional, cast
 
 import numpy as np
 import pytest
@@ -25,6 +26,7 @@ from ..signals.signal import (
   Signal,
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
+  TextSignal,
   TextSplitterSignal,
   clear_signal_registry,
   register_signal,
@@ -121,6 +123,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestSplitter)
   register_signal(TestEmbedding)
   register_signal(TestEmbeddingSumSignal)
+  register_signal(EntitySignal)
   # Unit test runs.
   yield
   # Teardown.
@@ -490,6 +493,50 @@ def test_auto_embedding_signal_splits(make_test_data: TestDataMaker, mocker: Moc
                 },
                 allow_none_value=True),
             })
+        ]
+      })
+  }])
+
+
+ENTITY_REGEX = r'[A-Za-z]+@[A-Za-z]+'
+
+
+class EntitySignal(TextSignal):
+  """Find special entities."""
+  name = 'entity'
+
+  @override
+  def fields(self) -> Field:
+    return field(['string_span'])
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[List[Item]]]:
+    for text in data:
+      if not isinstance(text, str):
+        yield None
+        continue
+      yield [signal_item(lilac_span(m.start(0), m.end(0))) for m in re.finditer(ENTITY_REGEX, text)]
+
+
+def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
+  text = 'Hello nik@test. Here are some other entities like pii@gmail and all@lilac.'
+  dataset = make_test_data([{UUID_COLUMN: '1', 'text': text}])
+  entity = EntitySignal(split='test_splitter')
+  dataset.compute_signal(entity, 'text')
+
+  result = dataset.select_rows(['text'])
+  assert list(result) == lilac_items([{
+    UUID_COLUMN: '1',
+    'text': lilac_item(
+      text, {
+        'test_splitter': [
+          lilac_item(lilac_span(0, 15), {'entity': [lilac_item(lilac_span(6, 14)),]}),
+          lilac_item(
+            lilac_span(16, 74),
+            {'entity': [
+              lilac_item(lilac_span(50, 59)),
+              lilac_item(lilac_span(64, 73)),
+            ]}),
         ]
       })
   }])
