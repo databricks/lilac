@@ -25,7 +25,7 @@
 
   let path = command.path;
   let signalInfo: SignalInfoWithTypedSchema | undefined;
-  let signalPropertyValues: Record<string, JSONSchema4Type> = {};
+  let signalPropertyValues: Record<string, Record<string, JSONSchema4Type>> = {};
   let errors: JSONError[] = [];
 
   const datasetViewStore = getDatasetViewContext();
@@ -44,7 +44,7 @@
     if (signalInfo?.name) setSignalName(signalInfo.name);
   }
 
-  $: signal = signalPropertyValues as Signal;
+  $: signal = signalInfo?.name ? (signalPropertyValues[signalInfo.name] as Signal) : undefined;
 
   $: filterField = (field: LilacSchemaField) => {
     if (!field.dtype) return false;
@@ -56,10 +56,12 @@
   };
 
   function setSignalName(name: string) {
-    signalPropertyValues.signal_name = name;
+    if (!signalPropertyValues[name]) signalPropertyValues[name] = {};
+    signalPropertyValues[name].signal_name = name;
   }
 
   function submit() {
+    if (!signal) return;
     if (variant == 'compute') {
       $computeSignalMutation.mutate([
         command.namespace,
@@ -109,7 +111,7 @@
 
             <JsonSchemaForm
               schema={signalInfo.json_schema}
-              bind:value={signalPropertyValues}
+              bind:value={signalPropertyValues[signalInfo?.name]}
               bind:validationErrors={errors}
               showDescription={false}
               hiddenProperties={['/signal_name']}
