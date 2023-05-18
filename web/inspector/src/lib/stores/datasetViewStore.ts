@@ -22,21 +22,23 @@ const LS_KEY = 'datasetViewStore';
 
 export type DatasetViewStore = ReturnType<typeof createDatasetViewStore>;
 export const createDatasetViewStore = (namespace: string, datasetName: string) => {
+  const initialState: IDatasetViewStore = {
+    namespace,
+    datasetName,
+    visibleColumns: [],
+    queryOptions: {
+      filters: [],
+      sort_by: [],
+      sort_order: 'ASC',
+      // Add * as default field when supported here
+      columns: [],
+      combine_columns: true
+    }
+  };
+
   const {subscribe, set, update} = persisted<IDatasetViewStore>(
     `${LS_KEY}/${namespace}/${datasetName}`,
-    {
-      namespace,
-      datasetName,
-      visibleColumns: [],
-      queryOptions: {
-        filters: [],
-        sort_by: [],
-        sort_order: 'ASC',
-        // Add * as default field when supported here
-        columns: [],
-        combine_columns: true
-      }
-    },
+    initialState,
     {
       storage: 'session'
     }
@@ -46,6 +48,9 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     subscribe,
     set,
     update,
+    reset: () => {
+      set(initialState);
+    },
     addVisibleColumn: (column: Path) =>
       update(state => {
         state.visibleColumns.push(column);

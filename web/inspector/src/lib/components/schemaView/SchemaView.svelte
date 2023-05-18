@@ -35,7 +35,7 @@
 </script>
 
 <div class="flex h-full flex-col pt-4">
-  <div class="mb-4 flex w-full justify-between px-4">
+  <div class="mb-4 flex w-full items-center justify-between gap-x-2 px-4">
     <Breadcrumb noTrailingSlash skeleton={$schema.isLoading}>
       <BreadcrumbItem href="/">datasets</BreadcrumbItem>
       <BreadcrumbItem href="/">{$datasetViewStore.namespace}</BreadcrumbItem>
@@ -43,9 +43,11 @@
     </Breadcrumb>
 
     {#if $manifest.isSuccess}
-      ({$manifest.data.dataset_manifest.num_items.toLocaleString()}
+      ({$manifest.data.dataset_manifest.num_items.toLocaleString()} rows)
     {/if}
-    rows)
+    <button class="ml-auto border p-2 hover:bg-gray-100" on:click={datasetViewStore.reset}
+      >Reset View</button
+    >
   </div>
 
   <Tabs>
