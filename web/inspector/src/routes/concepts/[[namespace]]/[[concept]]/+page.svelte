@@ -41,11 +41,7 @@
     {#if $concept?.isLoading}
       <SkeletonText />
     {:else if $concept?.isError}
-      {#if $concept?.data}
-        <ConceptView concept={$concept.data} />
-      {:else}
-        <p>{$concept.error.message}</p>
-      {/if}
+      <p>{$concept.error.message}</p>
     {:else if $concept?.isSuccess}
       <ConceptView concept={$concept.data} />
     {/if}

@@ -3,6 +3,7 @@
 /* eslint-disable */
 
 import type { Example } from './Example';
+import type { SignalInputType } from './SignalInputType';
 
 /**
  * A concept is a collection of examples.
@@ -10,7 +11,7 @@ import type { Example } from './Example';
 export type Concept = {
     namespace?: string;
     concept_name: string;
-    type: ('text' | 'img');
+    type: SignalInputType;
     data: Record<string, Example>;
     version?: number;
 };

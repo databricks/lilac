@@ -1,12 +1,12 @@
 """Defines the concept and the concept models."""
-from typing import Iterable, Literal, Optional, Union
+from typing import Iterable, Optional
 
 import numpy as np
 from pydantic import BaseModel
 from sklearn.linear_model import LogisticRegression
 
 from ..embeddings.embedding import get_embed_fn
-from ..schema import RichData
+from ..schema import RichData, SignalInputType
 from ..signals.signal import TextEmbeddingSignal, get_signal_cls
 from ..utils import DebugTimer
 
@@ -45,7 +45,7 @@ class Concept(BaseModel):
   # The name of the concept.
   concept_name: str
   # The type of the data format that this concept represents.
-  type: Union[Literal['text'], Literal['img']]
+  type: SignalInputType
   data: dict[str, Example]
   version: int = 0
 
