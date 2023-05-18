@@ -1,4 +1,5 @@
 import type {ConceptScoreSignal, DataType, Signal, SignalInputType} from '../fastapi_client';
+import type {LilacSchemaField} from './lilac';
 export type LeafValue = number | boolean | string | null;
 export type FieldValue = FieldValue[] | {[fieldName: string]: FieldValue} | LeafValue;
 
@@ -75,6 +76,16 @@ export function isOrdinal(dtype: DataType) {
 
 export function serializePath(path: Path): string {
   return path.map(p => `"${p}"`).join('.');
+}
+
+export function isSortableField(field: LilacSchemaField) {
+  return (
+    field.dtype && !(['embedding', 'binary', 'string_span'] as DataType[]).includes(field.dtype)
+  );
+}
+
+export function isFilterableField(field: LilacSchemaField) {
+  return field.dtype && !(['embedding', 'binary'] as DataType[]).includes(field.dtype);
 }
 
 export function deserializePath(path: string | Path): Path {

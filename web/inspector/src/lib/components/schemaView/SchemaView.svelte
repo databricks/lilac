@@ -34,8 +34,8 @@
     : undefined;
 </script>
 
-<div class="flex flex-col gap-y-4 py-4">
-  <div class="flex w-full justify-between px-4">
+<div class="flex h-full flex-col pt-4">
+  <div class="mb-4 flex w-full justify-between px-4">
     <Breadcrumb noTrailingSlash skeleton={$schema.isLoading}>
       <BreadcrumbItem href="/">datasets</BreadcrumbItem>
       <BreadcrumbItem href="/">{$datasetViewStore.namespace}</BreadcrumbItem>
@@ -51,7 +51,7 @@
   <Tabs>
     <Tab label="Schema" />
     <Tab label="Raw Query" />
-    <svelte:fragment slot="content">
+    <div class="h-full overflow-y-auto" slot="content">
       <TabContent>
         {#if $selectRowsSchema?.isLoading}
           <SkeletonText paragraph lines={3} />
@@ -67,7 +67,7 @@
       <TabContent>
         <QueryBuilder />
       </TabContent>
-    </svelte:fragment>
+    </div>
   </Tabs>
 </div>
 

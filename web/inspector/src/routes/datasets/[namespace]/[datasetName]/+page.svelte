@@ -15,7 +15,7 @@
   <div class=" h-full w-1/2 border-r border-gray-200">
     <SchemaView />
   </div>
-  <div class="h-full w-1/2 p-4">
+  <div class="h-full w-1/2">
     <RowView />
   </div>
 </div>

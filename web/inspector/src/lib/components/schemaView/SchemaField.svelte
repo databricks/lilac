@@ -13,14 +13,13 @@
     type ListOp,
     type UnaryOp
   } from '$lilac';
-  import {Checkbox, Tag} from 'carbon-components-svelte';
+  import {Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
   import SortAscending from 'carbon-icons-svelte/lib/SortAscending.svelte';
   import SortDescending from 'carbon-icons-svelte/lib/SortDescending.svelte';
   import {slide} from 'svelte/transition';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import RemovableTag from '../common/RemovableTag.svelte';
-  import ContextMenu from '../contextMenu/ContextMenu.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
 
   export let schema: LilacSchema;
@@ -112,7 +111,7 @@
     <div class="w-6" style:margin-left={indent * 24 + 'px'}>
       {#if hasChildren}
         <button
-          class="transition"
+          class="p-2 transition hover:opacity-60"
           class:rotate-180={!expanded}
           on:click={() => (expanded = !expanded)}><CaretDown class="w-3" /></button
         >
@@ -168,9 +167,9 @@
       <div class="w-24 pr-2 text-right">{field.dtype}{isRepeatedField ? '[]' : ''}</div>
     {/if}
     <div>
-      <ContextMenu>
+      <OverflowMenu light flipped>
         <SchemaFieldMenu {field} {schema} />
-      </ContextMenu>
+      </OverflowMenu>
     </div>
   </div>
 

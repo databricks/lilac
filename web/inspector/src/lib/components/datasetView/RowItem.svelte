@@ -15,7 +15,7 @@
   }
 </script>
 
-<div class="mb-4 flex flex-col gap-y-4 border-b border-gray-300 pb-4">
+<div class="mb-4 flex flex-col gap-y-4 border-b border-gray-300 p-4">
   {#each sortedVisibleColumns as column (column.join('.'))}
     <RowItemValue {row} path={column} visibleColumns={$datasetViewStore.visibleColumns} {schema} />
   {/each}
