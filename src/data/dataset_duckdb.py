@@ -974,7 +974,7 @@ class DatasetDuckDB(Dataset):
           raise ValueError(f'Invalid filter: {filter}. Must be a tuple with 2 or 3 elements.')
         filter = Filter(path=normalize_path(path), op=op, value=value)
 
-      # # We only allow sorting by nodes with a value, so we append the value.
+      # We only allow filtering by nodes with a value.
       filter.path = _make_value_path(filter.path)
 
       if str(filter.path[0]) in udf_aliases:
