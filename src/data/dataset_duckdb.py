@@ -832,7 +832,6 @@ class DatasetDuckDB(Dataset):
           df[final_col_name] = merge_values(df[final_col_name], df[temp_col_name])
         del df[temp_col_name]
 
-    query.close()
     con.close()
 
     if combine_columns:
