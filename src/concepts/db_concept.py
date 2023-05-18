@@ -221,7 +221,6 @@ class DiskConceptDB(ConceptDB):
 
     for example in inserted_points:
       id = uuid.uuid4().hex
-      print('got new id', id)
       concept.data[id] = Example(id=id, **example.dict())
 
     for example in updated_points:
