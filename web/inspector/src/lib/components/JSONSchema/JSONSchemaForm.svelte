@@ -29,7 +29,7 @@
 
   // Reset the source schema property values with defaults
   function setValueDefaults(jsonSchema: Draft) {
-    value = jsonSchema.getTemplate(value);
+    value = jsonSchema.getTemplate(value, undefined, {addOptionalProps: false});
   }
 </script>
 
