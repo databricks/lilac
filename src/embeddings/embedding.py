@@ -4,6 +4,7 @@ from typing import Callable, Iterable, Union, cast
 import numpy as np
 from pydantic import StrictStr
 
+from ..data.dataset_utils import lilac_items
 from ..schema import VALUE_KEY, RichData
 from ..signals.signal import TextEmbeddingSignal
 
@@ -14,7 +15,7 @@ def get_embed_fn(embedding: TextEmbeddingSignal) -> Callable[[Iterable[RichData]
   """Return a function that returns the embedding matrix for the given embedding signal."""
 
   def _embed_fn(data: Iterable[RichData]) -> np.ndarray:
-    items = embedding.compute(data)
+    items = lilac_items(embedding.compute(data))
 
     embedding_vectors: list[np.ndarray] = []
     for item in items:

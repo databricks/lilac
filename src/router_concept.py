@@ -57,15 +57,11 @@ class ConceptModelResponse(BaseModel):
   model_synced: bool
 
 
-class GetConceptModelOptions(BaseModel):
-  """Options for the get_concept_model endpoint."""
-  # If true, the model will be updated before returning it. If false, will not sync the model.
-  sync_model: bool = False
-
-
 @router.get('/{namespace}/{concept_name}/{embedding_name}')
-def get_concept_model(namespace: str, concept_name: str, embedding_name: str,
-                      options: GetConceptModelOptions) -> ConceptModelResponse:
+def get_concept_model(namespace: str,
+                      concept_name: str,
+                      embedding_name: str,
+                      sync_model: bool = False) -> ConceptModelResponse:
   """Get a concept model from a database."""
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
   if not concept:
@@ -78,7 +74,7 @@ def get_concept_model(namespace: str, concept_name: str, embedding_name: str,
       status_code=404,
       detail=f'Concept model "{namespace}/{concept_name}/{embedding_name}" was not found')
 
-  if options.sync_model:
+  if sync_model:
     model_synced = DISK_CONCEPT_MODEL_DB.sync(model)
   else:
     model_synced = DISK_CONCEPT_MODEL_DB.in_sync(model)

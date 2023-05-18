@@ -269,8 +269,9 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   return schema({UUID_COLUMN: 'string', **cast(dict, enriched_schema.fields)})
 
 
-def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], output_dir: str,
-                             filename_prefix: str, shard_index: int, num_shards: int) -> str:
+def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object],
+                                  output_dir: str, filename_prefix: str, shard_index: int,
+                                  num_shards: int) -> str:
   """Write a set of embeddings to disk."""
   out_filename = embedding_index_filename(filename_prefix, shard_index, num_shards)
   index_path = os.path.join(output_dir, out_filename)

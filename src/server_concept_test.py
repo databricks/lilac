@@ -1,83 +1,59 @@
 """Test the public REST API for concepts."""
-from typing import Generator, Iterable, Optional, Type
+import uuid
+from typing import Generator, Iterable, cast
 
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import parse_obj_as
+from pytest_mock import MockerFixture
+from sklearn.linear_model import LogisticRegression
+from typing_extensions import override
 
+from .concepts.concept import Concept, ConceptModel, Example, ExampleIn, ExampleOrigin
+from .concepts.db_concept import ConceptInfo, ConceptUpdate
 from .config import CONFIG
-from .data.dataset import Column, Dataset, DatasetManifest, SelectRowsSchemaResult
-from .data.dataset_duckdb import DatasetDuckDB
-from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_dataset
-from .data.dataset_utils import lilac_item, lilac_items
-from .router_dataset import SelectRowsOptions, SelectRowsSchemaOptions, WebManifest
-from .schema import UUID_COLUMN, Field, Item, RichData, SignalOut, field, schema
+from .router_concept import ConceptModelResponse, ScoreBody, ScoreExample, ScoreResponse
+from .schema import ItemValue, RichData, SignalInputType
 from .server import app
-from .signals.signal import TextSignal, clear_signal_registry, register_signal
+from .signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
 client = TestClient(app)
 
-DATASET_CLASSES = [DatasetDuckDB]
+EMBEDDINGS: list[tuple[str, list[float]]] = [('hello', [1.0, 0.0, 0.0]), ('hello2', [1.0, 1.0,
+                                                                                     0.0]),
+                                             ('hello world', [1.0, 1.0, 1.0]),
+                                             ('hello world2', [2.0, 1.0, 1.0])]
 
-TEST_DATA: list[Item] = [{
-  UUID_COLUMN: '1',
-  'erased': False,
-  'people': [{
-    'name': 'A',
-    'zipcode': 0,
-    'locations': [{
-      'city': 'city1',
-      'state': 'state1'
-    }, {
-      'city': 'city2',
-      'state': 'state2'
-    }]
-  }]
-}, {
-  UUID_COLUMN: '2',
-  'erased': True,
-  'people': [{
-    'name': 'B',
-    'zipcode': 1,
-    'locations': [{
-      'city': 'city3',
-      'state': 'state3'
-    }, {
-      'city': 'city4'
-    }, {
-      'city': 'city5'
-    }]
-  }, {
-    'name': 'C',
-    'zipcode': 2,
-    'locations': [{
-      'city': 'city1',
-      'state': 'state1'
-    }]
-  }]
-}, {
-  UUID_COLUMN: '3',
-  'erased': True,
-}]
+STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
+
+
+class TestEmbedding(TextEmbeddingSignal):
+  """A test embed function."""
+  name = 'test_embedding'
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
+    """Call the embedding function."""
+    embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
+    yield from embeddings
 
 
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
-  register_signal(LengthSignal)
+  register_signal(TestEmbedding)
   # Unit test runs.
   yield
   # Teardown.
   clear_signal_registry()
 
 
-@pytest.fixture(scope='module', autouse=True, params=DATASET_CLASSES)
-def test_data(tmp_path_factory: pytest.TempPathFactory,
-              request: pytest.FixtureRequest) -> Generator:
+@pytest.fixture(autouse=True)
+def test_data(tmp_path_factory: pytest.TempPathFactory) -> Generator:
   data_path = CONFIG['LILAC_DATA_PATH']
   tmp_path = tmp_path_factory.mktemp('data')
   CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
-  dataset_cls: Type[Dataset] = request.param
-  make_dataset(dataset_cls, tmp_path, TEST_DATA)
 
   yield
 
@@ -85,166 +61,188 @@ def test_data(tmp_path_factory: pytest.TempPathFactory,
   CONFIG['LILAC_DATA_PATH'] = data_path or ''
 
 
-def test_get_manifest() -> None:
-  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}'
+def _uuid(id: bytes) -> uuid.UUID:
+  return uuid.UUID((id * 16).hex())
+
+
+def test_concept_edits(mocker: MockerFixture) -> None:
+  mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
+
+  url = '/api/v1/concepts/'
+  response = client.get(url)
+
+  assert response.status_code == 200
+  assert response.json() == []
+
+  # Make sure we can create a concept with an example.
+  mock_uuid.return_value = _uuid(b'1')
+  url = '/api/v1/concepts/concept_namespace/concept'
+  concept_update = ConceptUpdate(insert=[
+    ExampleIn(
+      label=True,
+      text='hello',
+      origin=ExampleOrigin(
+        dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'))
+  ])
+  response = client.post(url, json=concept_update.dict())
+  assert response.status_code == 200
+  assert Concept.parse_obj(response.json()) == Concept(
+    namespace='concept_namespace',
+    concept_name='concept',
+    type='text',
+    data={
+      _uuid(b'1').hex: Example(
+        id=_uuid(b'1').hex,
+        label=True,
+        text='hello',
+        origin=ExampleOrigin(
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'))
+    },
+    version=1)
+
+  url = '/api/v1/concepts/'
+  response = client.get(url)
+
+  assert response.status_code == 200
+  assert parse_obj_as(list[ConceptInfo], response.json()) == [
+    ConceptInfo(namespace='concept_namespace', name='concept', input_type=SignalInputType.TEXT)
+  ]
+
+  # Add another example.
+  mock_uuid.return_value = _uuid(b'2')
+  url = '/api/v1/concepts/concept_namespace/concept'
+  concept_update = ConceptUpdate(insert=[
+    ExampleIn(
+      label=True,
+      text='hello2',
+      origin=ExampleOrigin(
+        dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d2'))
+  ])
+  response = client.post(url, json=concept_update.dict())
+  assert response.status_code == 200
+  assert Concept.parse_obj(response.json()) == Concept(
+    namespace='concept_namespace',
+    concept_name='concept',
+    type='text',
+    data={
+      _uuid(b'1').hex: Example(
+        id=_uuid(b'1').hex,
+        label=True,
+        text='hello',
+        origin=ExampleOrigin(
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1')),
+      _uuid(b'2').hex: Example(
+        id=_uuid(b'2').hex,
+        label=True,
+        text='hello2',
+        origin=ExampleOrigin(
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d2'))
+    },
+    version=2)
+
+  # Edit both examples.
+  url = '/api/v1/concepts/concept_namespace/concept'
+  concept_update = ConceptUpdate(update=[
+    # Switch the label.
+    Example(id=_uuid(b'1').hex, label=False, text='hello'),
+    # Switch the text.
+    Example(id=_uuid(b'2').hex, label=True, text='hello world'),
+  ])
+  response = client.post(url, json=concept_update.dict())
+  assert response.status_code == 200
+  assert Concept.parse_obj(response.json()) == Concept(
+    namespace='concept_namespace',
+    concept_name='concept',
+    type='text',
+    data={
+      _uuid(b'1').hex: Example(id=_uuid(b'1').hex, label=False, text='hello'),
+      _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=True, text='hello world')
+    },
+    version=3)
+
+  # Delete the first example.
+  url = '/api/v1/concepts/concept_namespace/concept'
+  concept_update = ConceptUpdate(remove=[_uuid(b'1').hex])
+  response = client.post(url, json=concept_update.dict())
+  assert response.status_code == 200
+  assert Concept.parse_obj(response.json()) == Concept(
+    namespace='concept_namespace',
+    concept_name='concept',
+    type='text',
+    data={_uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=True, text='hello world')},
+    version=4)
+
+  # The concept still exists.
+  url = '/api/v1/concepts/'
+  response = client.get(url)
+
+  assert response.status_code == 200
+  assert parse_obj_as(list[ConceptInfo], response.json()) == [
+    ConceptInfo(namespace='concept_namespace', name='concept', input_type=SignalInputType.TEXT)
+  ]
+
+
+def test_concept_model_sync(mocker: MockerFixture) -> None:
+  mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
+
+  url = '/api/v1/concepts/'
+  response = client.get(url)
+
+  assert response.status_code == 200
+  assert response.json() == []
+
+  # Add two examples.
+  mock_uuid.side_effect = [_uuid(b'1'), _uuid(b'2')]
+  url = '/api/v1/concepts/concept_namespace/concept'
+  concept_update = ConceptUpdate(insert=[
+    ExampleIn(
+      label=True,
+      text='hello',
+      origin=ExampleOrigin(
+        dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1')),
+    ExampleIn(
+      label=False,
+      text='hello world',
+      origin=ExampleOrigin(
+        dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d2'))
+  ])
+  response = client.post(url, json=concept_update.dict())
+  assert response.status_code == 200
+
+  # Get the concept model.
+  url = '/api/v1/concepts/concept_namespace/concept/test_embedding?sync_model=False'
   response = client.get(url)
   assert response.status_code == 200
-  assert WebManifest.parse_obj(response.json()) == WebManifest(
-    dataset_manifest=DatasetManifest(
-      namespace=TEST_NAMESPACE,
-      dataset_name=TEST_DATASET_NAME,
-      data_schema=schema({
-        UUID_COLUMN: 'string',
-        'erased': 'boolean',
-        'people': [{
-          'name': 'string',
-          'zipcode': 'int32',
-          'locations': [{
-            'city': 'string',
-            'state': 'string'
-          }]
-        }]
-      }),
-      num_items=3))
+  assert ConceptModelResponse.parse_obj(response.json()) == ConceptModelResponse(
+    model=ConceptModel(
+      namespace='concept_namespace',
+      concept_name='concept',
+      embedding_name='test_embedding',
+      version=-1),
+    # The model shouldn't yet be synced because we set sync_model=False.
+    model_synced=False)
 
-
-def test_select_rows_no_options() -> None:
-  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
-  options = SelectRowsOptions()
-  response = client.post(url, json=options.dict())
+  # Sync the concept model.
+  url = '/api/v1/concepts/concept_namespace/concept/test_embedding?sync_model=True'
+  response = client.get(url)
   assert response.status_code == 200
-  assert response.json() == lilac_items(TEST_DATA)
+  assert ConceptModelResponse.parse_obj(response.json()) == ConceptModelResponse(
+    model=ConceptModel(
+      namespace='concept_namespace',
+      concept_name='concept',
+      embedding_name='test_embedding',
+      version=1),
+    # The model should be synced because we set sync_model=True.
+    model_synced=True)
 
-
-def test_select_rows_with_cols_and_limit() -> None:
-  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
-  options = SelectRowsOptions(
-    columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
-    limit=1,
-    offset=1)
-  response = client.post(url, json=options.dict())
+  # Score an example.
+  mock_predict_proba = mocker.patch.object(LogisticRegression, 'predict_proba', autospec=True)
+  mock_predict_proba.return_value = np.array([[0.1, 0.9], [0.0, 1.0]])
+  url = '/api/v1/concepts/concept_namespace/concept/test_embedding/score'
+  score_body = ScoreBody(examples=[ScoreExample(text='hello world'), ScoreExample(text='hello')])
+  response = client.post(url, json=score_body.dict())
   assert response.status_code == 200
-  assert response.json() == lilac_items([{
-    UUID_COLUMN: '2',
-    'people.*.zipcode': [1, 2],
-    'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']]
-  }])
-
-
-def test_select_rows_with_cols_and_combine() -> None:
-  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
-  options = SelectRowsOptions(
-    columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
-    combine_columns=True)
-  response = client.post(url, json=options.dict())
-  assert response.status_code == 200
-  assert response.json() == lilac_items([{
-    UUID_COLUMN: '1',
-    'people': [{
-      'zipcode': 0,
-      'locations': [{
-        'city': 'city1',
-      }, {
-        'city': 'city2',
-      }]
-    }]
-  }, {
-    UUID_COLUMN: '2',
-    'people': [{
-      'zipcode': 1,
-      'locations': [{
-        'city': 'city3',
-      }, {
-        'city': 'city4'
-      }, {
-        'city': 'city5'
-      }]
-    }, {
-      'zipcode': 2,
-      'locations': [{
-        'city': 'city1'
-      }]
-    }]
-  }, {
-    UUID_COLUMN: '3',
-    'people': None
-  }])
-
-
-class LengthSignal(TextSignal):
-  name = 'length_signal'
-
-  def fields(self) -> Field:
-    return field('int32')
-
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
-    for text_content in data:
-      yield len(text_content) if text_content is not None else None
-
-
-def test_select_rows_star_plus_udf() -> None:
-  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
-  udf = Column('people.*.name', alias='len', signal_udf=LengthSignal())
-  options = SelectRowsOptions(columns=['*', udf], combine_columns=True)
-  response = client.post(url, json=options.dict())
-  assert response.status_code == 200
-  assert response.json() == lilac_items([{
-    UUID_COLUMN: '1',
-    'erased': False,
-    'people': [{
-      'name': lilac_item('A', {'length_signal': 1}),
-      'zipcode': 0,
-      'locations': [{
-        'city': 'city1',
-        'state': 'state1'
-      }, {
-        'city': 'city2',
-        'state': 'state2'
-      }]
-    }]
-  }, {
-    UUID_COLUMN: '2',
-    'erased': True,
-    'people': [{
-      'name': lilac_item('B', {'length_signal': 1}),
-      'zipcode': 1,
-      'locations': [{
-        'city': 'city3',
-        'state': 'state3'
-      }, {
-        'city': 'city4'
-      }, {
-        'city': 'city5'
-      }]
-    }, {
-      'name': lilac_item('C', {'length_signal': 1}),
-      'zipcode': 2,
-      'locations': [{
-        'city': 'city1',
-        'state': 'state1'
-      }]
-    }]
-  }, {
-    UUID_COLUMN: '3',
-    'erased': True,
-  }])
-
-
-def test_select_rows_schema_no_cols() -> None:
-  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows_schema'
-  options = SelectRowsSchemaOptions(combine_columns=True)
-  response = client.post(url, json=options.dict())
-  assert response.status_code == 200
-  assert SelectRowsSchemaResult.parse_obj(response.json()) == SelectRowsSchemaResult(
-    data_schema=schema({
-      UUID_COLUMN: 'string',
-      'erased': 'boolean',
-      'people': [{
-        'name': 'string',
-        'zipcode': 'int32',
-        'locations': [{
-          'city': 'string',
-          'state': 'string'
-        }]
-      }]
-    }))
+  assert ScoreResponse.parse_obj(response.json()) == ScoreResponse(
+    scores=[0.9, 1.0],
+    # The model should already be synced.
+    model_synced=False)

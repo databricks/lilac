@@ -88,7 +88,7 @@ from .dataset_utils import (
   schema_contains_path,
   unflatten,
   wrap_in_dicts,
-  write_embeddings_to_disk,
+  write_item_embeddings_to_disk,
   write_items_to_parquet,
 )
 
@@ -329,7 +329,7 @@ class DatasetDuckDB(Dataset):
     is_embedding = isinstance(signal, TextEmbeddingSignal)
     embedding_filename = None
     if is_embedding:
-      embedding_filename = write_embeddings_to_disk(
+      embedding_filename = write_item_embeddings_to_disk(
         keys=df[UUID_COLUMN],
         embeddings=values,
         output_dir=self.dataset_path,
