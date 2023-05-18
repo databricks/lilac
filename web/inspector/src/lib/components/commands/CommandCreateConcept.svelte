@@ -18,11 +18,10 @@
   const dispatch = createEventDispatcher();
 
   function submit() {
-    close();
-
     $conceptCreate.mutate([{namespace, name, type: 'text'}], {
       onSuccess: () => {
         goto('/concepts/' + namespace + '/' + name);
+        close();
       }
     });
   }
