@@ -20,6 +20,8 @@ data/datasets
 data/local_cache
 # Ignore pickled concept models but not the concept's training data.
 data/concept/**/*.pkl
+data/concept/*
+!data/concept/lilac/
 
 # Env
 .env.local
