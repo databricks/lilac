@@ -10,6 +10,7 @@ from typing_extensions import override
 from ..concepts.concept import ConceptModel, ExampleIn
 from ..concepts.db_concept import (
   ConceptDB,
+  ConceptInfo,
   ConceptModelDB,
   ConceptUpdate,
   DiskConceptDB,
@@ -72,6 +73,8 @@ def test_embedding_does_not_exist(db_cls: Type[ConceptDB]) -> None:
   db = db_cls()
   namespace = 'test'
   concept_name = 'test_concept'
+  db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+
   train_data = [
     ExampleIn(label=False, text='not in concept'),
     ExampleIn(label=True, text='in concept')
@@ -94,6 +97,8 @@ def test_concept_model_out_of_sync(db_cls: Type[ConceptDB]) -> None:
   concept_db = db_cls()
   namespace = 'test'
   concept_name = 'test_concept'
+  concept_db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+
   train_data = [
     ExampleIn(label=False, text='not in concept'),
     ExampleIn(label=True, text='in concept')
@@ -115,6 +120,8 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
   model_db = model_db_cls(concept_db)
   namespace = 'test'
   concept_name = 'test_concept'
+  concept_db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+
   train_data = [
     ExampleIn(label=False, text='not in concept'),
     ExampleIn(label=True, text='in concept')
@@ -142,6 +149,8 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
   model_db = model_db_cls(concept_db)
   namespace = 'test'
   concept_name = 'test_concept'
+  concept_db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+
   train_data = [
     ExampleIn(label=False, text='not in concept'),
     ExampleIn(label=True, text='in concept')
@@ -174,6 +183,8 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
   model_db = model_db_cls(concept_db)
   namespace = 'test'
   concept_name = 'test_concept'
+  concept_db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+
   train_data = [
     ExampleIn(label=False, text='not in concept'),
     ExampleIn(label=True, text='in concept')

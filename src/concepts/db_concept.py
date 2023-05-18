@@ -6,7 +6,7 @@ import pickle
 
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
-from typing import Optional, cast
+from typing import List, Optional, Union, cast
 
 from pydantic import BaseModel
 from typing_extensions import override
@@ -24,19 +24,19 @@ class ConceptInfo(BaseModel):
   """Information about a concept."""
   namespace: str
   name: str
-  input_type: SignalInputType
+  type: SignalInputType
 
 
 class ConceptUpdate(BaseModel):
   """An update to a concept."""
   # List of examples to be inserted.
-  insert: Optional[list[ExampleIn]]
+  insert: Optional[list[ExampleIn]] = []
 
   # List of examples to be updated.
-  update: Optional[list[Example]]
+  update: Optional[list[Example]] = []
 
   # The ids of the examples to be removed.
-  remove: Optional[list[str]]
+  remove: Optional[list[str]] = []
 
 
 class ConceptDB(abc.ABC):
@@ -53,8 +53,13 @@ class ConceptDB(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def create(self, info: ConceptInfo) -> Concept:
+    """Create a concept."""
+    pass
+
+  @abc.abstractmethod
   def edit(self, namespace: str, name: str, change: ConceptUpdate) -> Concept:
-    """Edit a concept. If the concept doesn't exist, it creates it."""
+    """Edit a concept. If the concept doesn't exist, throw an error."""
     pass
 
   @abc.abstractmethod
@@ -180,7 +185,7 @@ class DiskConceptDB(ConceptDB):
               namespace=namespace,
               name=name,
               # TODO(nsthorat): Generalize this to images.
-              input_type=SignalInputType.TEXT))
+              type=SignalInputType.TEXT))
 
     return concept_infos
 
@@ -195,24 +200,42 @@ class DiskConceptDB(ConceptDB):
       return Concept.parse_raw(f.read())
 
   @override
+  def create(self, info: ConceptInfo) -> Concept:
+    """Create a concept."""
+    concept_json_path = _concept_json_path(info.namespace, info.name)
+    if file_exists(concept_json_path):
+      raise ValueError(
+        f'Concept with namespace "{info.namespace}" and name "{info.name}" already exists.')
+
+    concept = Concept(
+      namespace=info.namespace, concept_name=info.name, type=info.type, data=[], version=0)
+    with open_file(concept_json_path, 'w') as f:
+      f.write(concept.json(exclude_none=True))
+
+    return concept
+
+  def _validate_examples(self, examples: List[Union[ExampleIn, Example]],
+                         type: SignalInputType) -> None:
+    for example in examples:
+      inferred_type = 'text' if example.text else 'img'
+      if inferred_type != type:
+        raise ValueError(f'Example type "{inferred_type}" does not match concept type "{type}".')
+
+  @override
   def edit(self, namespace: str, name: str, change: ConceptUpdate) -> Concept:
     concept_json_path = _concept_json_path(namespace, name)
+
+    if not file_exists(concept_json_path):
+      raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" does not exist. '
+                       'Please call create() first.')
 
     inserted_points = change.insert or []
     updated_points = change.update or []
     removed_points = change.remove or []
 
-    # Create the concept if it doesn't exist.
-    if not file_exists(concept_json_path):
-      # Deduce the concept type from the first example.
-      points = [*inserted_points, *updated_points]
-      if points:
-        type = 'text' if points[0].text else 'img'
-      else:
-        raise ValueError('Cannot create a concept with no examples.')
-      concept = Concept(namespace=namespace, concept_name=name, type=type, data=[], version=0)
-    else:
-      concept = cast(Concept, self.get(namespace, name))
+    concept = cast(Concept, self.get(namespace, name))
+
+    self._validate_examples([*inserted_points, *updated_points], concept.type)
 
     for example_id in removed_points:
       if example_id not in concept.data:

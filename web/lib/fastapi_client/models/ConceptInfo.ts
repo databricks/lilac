@@ -10,6 +10,6 @@ import type { SignalInputType } from './SignalInputType';
 export type ConceptInfo = {
     namespace: string;
     name: string;
-    input_type: SignalInputType;
+    type: SignalInputType;
 };
 

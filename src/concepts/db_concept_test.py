@@ -11,7 +11,14 @@ from ..config import CONFIG
 from ..schema import RichData, SignalOut
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .concept import ConceptModel, Example, ExampleIn
-from .db_concept import ConceptDB, ConceptModelDB, ConceptUpdate, DiskConceptDB, DiskConceptModelDB
+from .db_concept import (
+  ConceptDB,
+  ConceptInfo,
+  ConceptModelDB,
+  ConceptUpdate,
+  DiskConceptDB,
+  DiskConceptModelDB,
+)
 
 ALL_CONCEPT_DBS = [DiskConceptDB]
 ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
@@ -61,6 +68,13 @@ def setup_teardown() -> Generator:
 @pytest.mark.parametrize('db_cls', ALL_CONCEPT_DBS)
 class ConceptDBSuite:
 
+  def test_create_concept(self, db_cls: Type[ConceptDB]) -> None:
+    db = db_cls()
+    info = ConceptInfo(namespace='test', name='test_concept', type='text')
+    db.create(info)
+
+    assert db.list() == [info]
+
   def test_add_concept(self, db_cls: Type[ConceptDB]) -> None:
     db = db_cls()
     namespace = 'test'
@@ -69,6 +83,7 @@ class ConceptDBSuite:
       ExampleIn(label=False, text='not in concept'),
       ExampleIn(label=True, text='in concept')
     ]
+    db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
     concept = db.get(namespace, concept_name)
@@ -96,6 +111,7 @@ class ConceptDBSuite:
       ExampleIn(label=False, text='not in concept'),
       ExampleIn(label=True, text='in concept')
     ]
+    db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
     concept = db.get(namespace, concept_name)
@@ -115,6 +131,8 @@ class ConceptDBSuite:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
+    db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+
     train_data = [
       ExampleIn(label=False, text='not in concept'),
       ExampleIn(label=True, text='in concept')
@@ -131,6 +149,8 @@ class ConceptDBSuite:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
+    db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+
     train_data = [
       ExampleIn(label=False, text='not in concept'),
       ExampleIn(label=True, text='in concept')
@@ -155,6 +175,8 @@ class ConceptDBSuite:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
+    db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+
     train_data = [
       ExampleIn(label=False, text='not in concept'),
       ExampleIn(label=True, text='in concept')
@@ -164,10 +186,24 @@ class ConceptDBSuite:
     with pytest.raises(ValueError, match='Example with id "invalid_id" does not exist'):
       db.edit(namespace, concept_name, ConceptUpdate(remove=['invalid_id']))
 
+  def test_edit_before_creation(self, db_cls: Type[ConceptDB]) -> None:
+    db = db_cls()
+    namespace = 'test'
+    concept_name = 'test_concept'
+
+    with pytest.raises(
+        ValueError, match='Concept with namespace "test" and name "test_concept" does not exist'):
+      db.edit(namespace, concept_name,
+              ConceptUpdate(insert=[
+                ExampleIn(label=False, text='not in concept'),
+              ]))
+
   def test_edit_invalid_id(self, db_cls: Type[ConceptDB]) -> None:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
+    db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+
     train_data = [
       ExampleIn(label=False, text='not in concept'),
       ExampleIn(label=True, text='in concept')
@@ -182,6 +218,8 @@ class ConceptDBSuite:
 def _make_test_concept_model(concept_db: ConceptDB, model_db: ConceptModelDB) -> ConceptModel:
   namespace = 'test'
   concept_name = 'test_concept'
+  concept_db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+
   train_data = [
     ExampleIn(label=False, text='not in concept'),
     ExampleIn(label=True, text='in concept')

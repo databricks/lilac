@@ -82,6 +82,27 @@ export class ConceptsService {
     }
 
     /**
+     * Create Concept
+     * Edit a concept in the database.
+     * @param requestBody
+     * @returns Concept Successful Response
+     * @throws ApiError
+     */
+    public static createConcept(
+        requestBody: ConceptInfo,
+    ): CancelablePromise<Concept> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/concepts/create',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Get Concept Model
      * Get a concept model from a database.
      * @param namespace

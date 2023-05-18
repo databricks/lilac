@@ -28,6 +28,12 @@ def get_concept(namespace: str, concept_name: str) -> Concept:
   return concept
 
 
+@router.post('/create', response_model_exclude_none=True)
+def create_concept(concept_info: ConceptInfo) -> Concept:
+  """Edit a concept in the database."""
+  return DISK_CONCEPT_DB.create(concept_info)
+
+
 @router.post('/{namespace}/{concept_name}', response_model_exclude_none=True)
 def edit_concept(namespace: str, concept_name: str, change: ConceptUpdate) -> Concept:
   """Edit a concept in the database."""

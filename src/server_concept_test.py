@@ -65,16 +65,43 @@ def _uuid(id: bytes) -> uuid.UUID:
   return uuid.UUID((id * 16).hex())
 
 
-def test_concept_edits(mocker: MockerFixture) -> None:
-  mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
-
+def test_concept_create(mocker: MockerFixture) -> None:
   url = '/api/v1/concepts/'
   response = client.get(url)
 
   assert response.status_code == 200
   assert response.json() == []
 
-  # Make sure we can create a concept with an example.
+  # Create a concept.
+  url = '/api/v1/concepts/create'
+  concept_info = ConceptInfo(
+    namespace='concept_namespace', name='concept', type=SignalInputType.TEXT)
+  response = client.post(url, json=concept_info.dict())
+  assert response.status_code == 200
+  assert response.json() == Concept(
+    namespace='concept_namespace',
+    concept_name='concept',
+    type=SignalInputType.TEXT,
+    data={},
+    version=0).dict()
+
+  # Make sure list shows us the new concept.
+  url = '/api/v1/concepts/'
+  response = client.get(url)
+  assert response.status_code == 200
+  assert parse_obj_as(list[ConceptInfo], response.json()) == [concept_info]
+
+
+def test_concept_edits(mocker: MockerFixture) -> None:
+  mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
+
+  # Create the concept.
+  response = client.post(
+    '/api/v1/concepts/create',
+    json=ConceptInfo(namespace='concept_namespace', name='concept',
+                     type=SignalInputType.TEXT).dict())
+
+  # Make sure we can add an example.
   mock_uuid.return_value = _uuid(b'1')
   url = '/api/v1/concepts/concept_namespace/concept'
   concept_update = ConceptUpdate(insert=[
@@ -105,7 +132,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
 
   assert response.status_code == 200
   assert parse_obj_as(list[ConceptInfo], response.json()) == [
-    ConceptInfo(namespace='concept_namespace', name='concept', input_type=SignalInputType.TEXT)
+    ConceptInfo(namespace='concept_namespace', name='concept', type=SignalInputType.TEXT)
   ]
 
   # Add another example.
@@ -178,18 +205,18 @@ def test_concept_edits(mocker: MockerFixture) -> None:
 
   assert response.status_code == 200
   assert parse_obj_as(list[ConceptInfo], response.json()) == [
-    ConceptInfo(namespace='concept_namespace', name='concept', input_type=SignalInputType.TEXT)
+    ConceptInfo(namespace='concept_namespace', name='concept', type=SignalInputType.TEXT)
   ]
 
 
 def test_concept_model_sync(mocker: MockerFixture) -> None:
   mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
 
-  url = '/api/v1/concepts/'
-  response = client.get(url)
-
-  assert response.status_code == 200
-  assert response.json() == []
+  # Create the concept.
+  response = client.post(
+    '/api/v1/concepts/create',
+    json=ConceptInfo(namespace='concept_namespace', name='concept',
+                     type=SignalInputType.TEXT).dict())
 
   # Add two examples.
   mock_uuid.side_effect = [_uuid(b'1'), _uuid(b'2')]
@@ -246,3 +273,37 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
     scores=[0.9, 1.0],
     # The model should already be synced.
     model_synced=False)
+
+
+def test_concept_edits_error_before_create(mocker: MockerFixture) -> None:
+  url = '/api/v1/concepts/concept_namespace/concept'
+  concept_update = ConceptUpdate(insert=[
+    ExampleIn(
+      label=True,
+      text='hello',
+      origin=ExampleOrigin(
+        dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'))
+  ])
+  response = client.post(url, json=concept_update.dict())
+  assert response.is_error is True
+  assert response.status_code == 500
+
+
+def test_concept_edits_wrong_type(mocker: MockerFixture) -> None:
+  # Create the concept.
+  response = client.post(
+    '/api/v1/concepts/create',
+    json=ConceptInfo(namespace='concept_namespace', name='concept',
+                     type=SignalInputType.IMAGE).dict())
+
+  url = '/api/v1/concepts/concept_namespace/concept'
+  concept_update = ConceptUpdate(insert=[
+    ExampleIn(
+      label=True,
+      text='hello',
+      origin=ExampleOrigin(
+        dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'))
+  ])
+  response = client.post(url, json=concept_update.dict())
+  assert response.is_error is True
+  assert response.status_code == 500
