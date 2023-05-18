@@ -1,4 +1,10 @@
-import type {ConceptScoreSignal, DataType, Signal, SignalInputType} from '../fastapi_client';
+import type {
+  Column,
+  ConceptScoreSignal,
+  DataType,
+  Signal,
+  SignalInputType
+} from '../fastapi_client';
 import type {LilacSchemaField} from './lilac';
 export type LeafValue = number | boolean | string | null;
 export type FieldValue = FieldValue[] | {[fieldName: string]: FieldValue} | LeafValue;
@@ -151,4 +157,8 @@ export function formatValue(value: DataTypeCasted) {
     return value.toLocaleString(undefined, {maximumFractionDigits: 3});
   }
   return value.toString();
+}
+
+export function isColumn(pathOrColumn: string | string[] | Column): pathOrColumn is Column {
+  return (pathOrColumn as Column).path != undefined;
 }
