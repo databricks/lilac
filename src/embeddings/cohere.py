@@ -25,8 +25,18 @@ def _cohere() -> cohere.Client:
 
 
 class Cohere(TextEmbeddingSignal):
-  """Cohere embedding."""
+  """Computes embeddings using Cohere's embedding API.
+
+  <br>**Important**: This will send data to an external server!
+
+  <br>To use this signal, you must get a Cohere API key from
+  [cohere.com/embed](https://cohere.com/embed) and add it to your .env.local.
+
+  <br>For details on pricing, see: https://cohere.com/pricing.
+  """
+
   name = 'cohere'
+  display_name = 'Cohere Embeddings'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

@@ -122,19 +122,22 @@ def _flatten(input: Union[Iterable, object], is_primitive_predicate: Callable[[o
   """Flattens a nested iterable."""
   if is_primitive_predicate(input):
     yield input
+  elif isinstance(input, dict):
+    yield input
   elif is_primitive(input):
-    pass
+    yield input
   else:
     for elem in cast(Iterable, input):
-      if isinstance(elem, dict):
-        yield from _flatten(elem.values(), is_primitive_predicate)
-      else:
-        yield from _flatten(elem, is_primitive_predicate)
+      yield from _flatten(elem, is_primitive_predicate)
 
 
 def flatten(input: Union[Iterable, Tflatten],
             is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Iterable[Tflatten]:
-  """Flattens a nested iterable."""
+  """Flattens a nested iterable.
+
+  Primitives and dictionaries are not flattened. The user can also provide a predicate to determine
+  what is a primitive.
+  """
   return _flatten(input, is_primitive_predicate)
 
 
@@ -266,8 +269,9 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   return schema({UUID_COLUMN: 'string', **cast(dict, enriched_schema.fields)})
 
 
-def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], output_dir: str,
-                             filename_prefix: str, shard_index: int, num_shards: int) -> str:
+def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object],
+                                  output_dir: str, filename_prefix: str, shard_index: int,
+                                  num_shards: int) -> str:
   """Write a set of embeddings to disk."""
   out_filename = embedding_index_filename(filename_prefix, shard_index, num_shards)
   index_path = os.path.join(output_dir, out_filename)
@@ -280,7 +284,7 @@ def write_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object], 
   embedding_vectors: list[np.ndarray] = []
   for embedding_vector in flatten(embeddings, is_primitive_predicate=embedding_predicate):
     # We use squeeze here because embedding functions can return outer dimensions of 1.
-    embedding_vector = embedding_vector.squeeze()
+    embedding_vector = embedding_vector[VALUE_KEY].squeeze()
     if embedding_vector.ndim != 1:
       raise ValueError(f'Expected embeddings to be 1-dimensional, got {embedding_vector.ndim} '
                        f'with shape {embedding_vector.shape}.')

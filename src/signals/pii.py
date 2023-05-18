@@ -5,8 +5,8 @@ from typing import Iterable, Optional
 from typing_extensions import override
 
 from ..data.dataset_utils import lilac_span, signal_item
-from ..schema import Field, Item, RichData, field
-from .signal import TextSignal
+from ..schema import Field, Item, RichData, SignalInputType, field
+from .signal import Signal
 
 EMAILS_KEY = 'emails'
 NUM_EMAILS_KEY = 'num_emails'
@@ -18,9 +18,15 @@ EMAIL_REGEX = (
 )
 
 
-class PIISignal(TextSignal):
+# NOTE: We don't extend TextSignal so we avoid giving the user the option to compute PII over
+# splits as this doesn't add any value and can be confusing.
+class PIISignal(Signal):
   """Find personally identifiable information (emails, phone numbers, etc)."""
   name = 'pii'
+  display_name = 'Personal Information (PII)'
+
+  input_type = SignalInputType.TEXT
+  compute_type = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:

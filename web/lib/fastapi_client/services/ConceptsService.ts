@@ -3,6 +3,7 @@
 /* eslint-disable */
 import type { Concept } from '../models/Concept';
 import type { ConceptInfo } from '../models/ConceptInfo';
+import type { ConceptModelResponse } from '../models/ConceptModelResponse';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
 import type { ScoreBody } from '../models/ScoreBody';
 import type { ScoreResponse } from '../models/ScoreResponse';
@@ -86,14 +87,16 @@ export class ConceptsService {
      * @param namespace
      * @param conceptName
      * @param embeddingName
-     * @returns any Successful Response
+     * @param syncModel
+     * @returns ConceptModelResponse Successful Response
      * @throws ApiError
      */
     public static getConceptModel(
         namespace: string,
         conceptName: string,
         embeddingName: string,
-    ): CancelablePromise<Record<string, any>> {
+        syncModel: boolean = false,
+    ): CancelablePromise<ConceptModelResponse> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/concepts/{namespace}/{concept_name}/{embedding_name}',
@@ -101,6 +104,9 @@ export class ConceptsService {
                 'namespace': namespace,
                 'concept_name': conceptName,
                 'embedding_name': embeddingName,
+            },
+            query: {
+                'sync_model': syncModel,
             },
             errors: {
                 422: `Validation Error`,

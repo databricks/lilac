@@ -7,6 +7,6 @@
  */
 export type ScoreResponse = {
     scores: Array<number>;
-    model_updated: boolean;
+    model_synced: boolean;
 };
 

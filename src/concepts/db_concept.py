@@ -3,8 +3,10 @@
 import abc
 import os
 import pickle
+
+# NOTE: We have to import the module for uuid so it can be mocked.
+import uuid
 from typing import Optional, cast
-from uuid import uuid4
 
 from pydantic import BaseModel
 from typing_extensions import override
@@ -218,7 +220,7 @@ class DiskConceptDB(ConceptDB):
       concept.data.pop(example_id)
 
     for example in inserted_points:
-      id = uuid4().hex
+      id = uuid.uuid4().hex
       concept.data[id] = Example(id=id, **example.dict())
 
     for example in updated_points:

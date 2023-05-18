@@ -48,17 +48,20 @@ class ScoreBody(BaseModel):
 class ScoreResponse(BaseModel):
   """Response body for the score endpoint."""
   scores: list[float]
-  model_updated: bool
+  model_synced: bool
 
 
 class ConceptModelResponse(BaseModel):
   """Response body for the get_concept_model endpoint."""
   model: ConceptModel
-  model_updated: bool
+  model_synced: bool
 
 
 @router.get('/{namespace}/{concept_name}/{embedding_name}')
-def get_concept_model(namespace: str, concept_name: str, embedding_name: str) -> dict:
+def get_concept_model(namespace: str,
+                      concept_name: str,
+                      embedding_name: str,
+                      sync_model: bool = False) -> ConceptModelResponse:
   """Get a concept model from a database."""
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
   if not concept:
@@ -71,8 +74,11 @@ def get_concept_model(namespace: str, concept_name: str, embedding_name: str) ->
       status_code=404,
       detail=f'Concept model "{namespace}/{concept_name}/{embedding_name}" was not found')
 
-  model_updated = DISK_CONCEPT_MODEL_DB.sync(model)
-  return ConceptModelResponse(model=model, model_updated=model_updated).dict(exclude_none=True)
+  if sync_model:
+    model_synced = DISK_CONCEPT_MODEL_DB.sync(model)
+  else:
+    model_synced = DISK_CONCEPT_MODEL_DB.in_sync(model)
+  return ConceptModelResponse(model=model, model_synced=model_synced)
 
 
 @router.post('/{namespace}/{concept_name}/{embedding_name}/score', response_model_exclude_none=True)
@@ -91,4 +97,4 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
   model_updated = DISK_CONCEPT_MODEL_DB.sync(model)
   # TODO(smilkov): Support images.
   texts = [example.text or '' for example in body.examples]
-  return ScoreResponse(scores=model.score(texts), model_updated=model_updated)
+  return ScoreResponse(scores=model.score(texts), model_synced=model_updated)

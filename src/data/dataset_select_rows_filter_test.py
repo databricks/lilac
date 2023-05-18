@@ -133,5 +133,5 @@ def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['name'], filters=[exists_filter])
   assert list(result) == lilac_items([{UUID_COLUMN: '3', 'name': 'C'}])
 
-  with pytest.raises(ValueError, match='Invalid path'):
+  with pytest.raises(ValueError, match='Unable to filter on path'):
     dataset.select_rows(['name'], filters=[('info', UnaryOp.EXISTS)])
