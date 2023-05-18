@@ -1,4 +1,5 @@
 import {
+  isColumn,
   listFields,
   pathIsEqual,
   type Column,
@@ -22,7 +23,6 @@ const LS_KEY = 'datasetViewStore';
 
 export type DatasetViewStore = ReturnType<typeof createDatasetViewStore>;
 
-let udfAliasCounter = 0;
 export const createDatasetViewStore = (namespace: string, datasetName: string) => {
   const initialState: IDatasetViewStore = {
     namespace,
@@ -66,9 +66,16 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
 
     addUdfColumn: (column: Column) =>
       update(state => {
+        // Parse out current udf aliases, and make sure the new one is unique
+        let aliasNumbers = state.queryOptions.columns
+          ?.filter(isColumn)
+          .map(c => c.alias?.match(/udf(\d+)/)?.[1])
+          .filter(Boolean)
+          .map(Number);
+        if (!aliasNumbers?.length) aliasNumbers = [0];
         // Ensure that UDF's have an alias
         if (!column.alias && column.signal_udf?.signal_name)
-          column.alias = `udf${udfAliasCounter++}`;
+          column.alias = `udf${Math.max(...aliasNumbers) + 1}`;
         state.queryOptions.columns?.push(column);
         return state;
       }),
