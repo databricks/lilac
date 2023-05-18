@@ -10,10 +10,12 @@
   import {ComposedModal, ModalBody, ModalFooter, ModalHeader} from 'carbon-components-svelte';
   import type {JSONSchema4Type} from 'json-schema';
   import type {JSONError} from 'json-schema-library';
-  import {createEventDispatcher} from 'svelte';
+  import {SvelteComponent, createEventDispatcher} from 'svelte';
   import SvelteMarkdown from 'svelte-markdown';
   import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
   import type {ComputeSignalCommand, PreviewConceptCommand} from './Commands.svelte';
+  import EmptyComponent from './customComponents/EmptyComponent.svelte';
+  import SelectConcept from './customComponents/SelectConcept.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
   import SignalList from './selectors/SignalList.svelte';
 
@@ -30,6 +32,13 @@
   const dispatch = createEventDispatcher();
 
   const computeSignalMutation = computeSignalColumnMutation();
+
+  const customComponents: Record<string, Record<string, typeof SvelteComponent>> = {
+    concept_score: {
+      '/namespace': EmptyComponent,
+      '/concept_name': SelectConcept
+    }
+  };
 
   $: {
     if (signalInfo?.name) setSignalName(signalInfo.name);
@@ -104,6 +113,7 @@
               bind:validationErrors={errors}
               showDescription={false}
               hiddenProperties={['/signal_name']}
+              customComponents={customComponents[signalInfo?.name]}
             />
           {/key}
         {:else}
