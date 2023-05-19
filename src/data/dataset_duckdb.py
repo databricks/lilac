@@ -587,6 +587,18 @@ class DatasetDuckDB(Dataset):
     return bool(limit and sort_order == SortOrder.DESC and sort_cols_after_udf and
                 self._path_to_col(signal_column) == sort_cols_after_udf[0])
 
+  def _normalize_columns(self, columns: Optional[Sequence[ColumnId]],
+                         schema: Schema) -> Sequence[Column]:
+    """Normalizes the columns to a list of `Column` objects."""
+    cols = [column_from_identifier(col) for col in columns or []]
+    star_in_cols = any(col.path == ('*',) for col in cols)
+    if not cols or star_in_cols:
+      # Select all columns.
+      cols.extend([Column(name) for name in schema.fields.keys()])
+      if star_in_cols:
+        cols = [col for col in cols if col.path != ('*',)]
+    return cols
+
   @override
   def select_rows(self,
                   columns: Optional[Sequence[ColumnId]] = None,
@@ -598,14 +610,8 @@ class DatasetDuckDB(Dataset):
                   task_id: Optional[TaskId] = None,
                   resolve_span: bool = False,
                   combine_columns: bool = False) -> SelectRowsResult:
-    cols = [column_from_identifier(col) for col in columns or []]
     manifest = self.manifest()
-    star_in_cols = any(col.path == ('*',) for col in cols)
-    if not cols or star_in_cols:
-      # Select all columns.
-      cols.extend([Column(name) for name in manifest.data_schema.fields.keys()])
-      if star_in_cols:
-        cols = [col for col in cols if col.path != ('*',)]
+    cols = self._normalize_columns(columns, manifest.data_schema)
 
     # Always return the UUID column.
     col_paths = [col.path for col in cols]
@@ -873,11 +879,7 @@ class DatasetDuckDB(Dataset):
       raise NotImplementedError(
         'select_rows_schema with combine_columns=False is not yet supported.')
     manifest = self.manifest()
-    if not columns:
-      # Select all columns.
-      columns = list(manifest.data_schema.fields.keys())
-
-    cols = [column_from_identifier(column) for column in columns or []]
+    cols = self._normalize_columns(columns, manifest.data_schema)
     # Always return the UUID column.
     col_paths = [col.path for col in cols]
     if (UUID_COLUMN,) not in col_paths:

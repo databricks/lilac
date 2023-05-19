@@ -230,6 +230,31 @@ def test_select_rows_star_plus_udf() -> None:
   }])
 
 
+def test_select_rows_schema_star_plus_udf() -> None:
+  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows_schema'
+  signal = LengthSignal()
+  udf = Column('people.*.name', alias='len', signal_udf=signal)
+  options = SelectRowsSchemaOptions(columns=['*', udf], combine_columns=True)
+  response = client.post(url, json=options.dict())
+  assert response.status_code == 200
+  assert SelectRowsSchemaResult.parse_obj(response.json()) == SelectRowsSchemaResult(
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'erased': 'boolean',
+      'people': [{
+        'name': field(
+          {'length_signal': field(signal=signal.dict(exclude_none=True), dtype='int32')},
+          dtype='string'),
+        'zipcode': 'int32',
+        'locations': [{
+          'city': 'string',
+          'state': 'string'
+        }]
+      }]
+    }),
+    alias_udf_paths={'len': ('people', '*', 'name', 'length_signal')})
+
+
 def test_select_rows_schema_no_cols() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows_schema'
   options = SelectRowsSchemaOptions(combine_columns=True)
