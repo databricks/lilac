@@ -1135,7 +1135,8 @@ def read_source_manifest(dataset_path: str) -> SourceManifest:
 
 def _signal_dir(enriched_path: PathTuple) -> str:
   """Get the filename prefix for a signal parquet file."""
-  return os.path.join(*enriched_path)
+  path_without_wildcards = (p for p in enriched_path if p != PATH_WILDCARD)
+  return os.path.join(*path_without_wildcards)
 
 
 def split_column_name(column: str, split_name: str) -> str:
