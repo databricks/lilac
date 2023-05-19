@@ -1,6 +1,6 @@
 """Tests for dataset utils."""
 from ..schema import UUID_COLUMN, VALUE_KEY, PathTuple
-from .dataset_utils import count_primitives, flatten, lilac_items, unflatten, wrap_in_dicts
+from .dataset_utils import count_primitives, flatten, itemize_primitives, unflatten, wrap_in_dicts
 
 
 def test_flatten() -> None:
@@ -114,8 +114,8 @@ def test_unflatten_primitive_list() -> None:
   assert result == ['hello', 'world']
 
 
-def test_lilac_items() -> None:
-  assert lilac_items([{
+def test_itemize_primitives() -> None:
+  assert itemize_primitives([{
     UUID_COLUMN: 'uuid',
     'a': 1,
     'b': [2, 3],

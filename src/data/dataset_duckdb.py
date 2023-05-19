@@ -82,7 +82,7 @@ from .dataset_utils import (
   create_signal_schema,
   flatten,
   flatten_keys,
-  lilac_items,
+  itemize_primitives,
   merge_schemas,
   read_embedding_index,
   replace_embeddings_with_none,
@@ -784,7 +784,7 @@ class DatasetDuckDB(Dataset):
             # Add progress.
             if task_id is not None:
               signal_out = progress(signal_out, task_id=task_id, estimated_len=len(flat_keys))
-            df[signal_column] = lilac_items(unflatten(signal_out, input))
+            df[signal_column] = itemize_primitives(unflatten(signal_out, input))
         else:
           num_rich_data = count_primitives(input)
           flat_input = cast(Iterable[RichData], flatten(input))
@@ -807,7 +807,7 @@ class DatasetDuckDB(Dataset):
               f"{num_rich_data} values. This means the signal either didn't generate a "
               '"None" for a sparse output, or generated too many items.')
 
-          df[signal_column] = lilac_items(unflatten(signal_out, input))
+          df[signal_column] = itemize_primitives(unflatten(signal_out, input))
 
     if udf_filters or sort_cols_after_udf:
       # Re-upload the udf outputs to duckdb so we can filter/sort on them.

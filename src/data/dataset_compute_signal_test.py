@@ -7,10 +7,8 @@ import pytest
 from typing_extensions import override
 
 from ..schema import (
-  SIGNAL_METADATA_KEY,
   UUID_COLUMN,
   VALUE_KEY,
-  DataType,
   Field,
   Item,
   ItemValue,
@@ -28,8 +26,8 @@ from ..signals.signal import (
   register_signal,
 )
 from .dataset import Column, DatasetManifest, val
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker
-from .dataset_utils import lilac_item, lilac_items, lilac_span, signal_item
+from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, expected_item
+from .dataset_utils import lilac_span
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -125,18 +123,8 @@ class TestSignal(TextSignal):
 
 
 class TestSplitSignal(TextSplitterSignal):
-  """Split documents into sentence by splitting on period, generating entities.
-
-  Also produces the length as a feature.
-  """
-  name = 'test_split_len'
-
-  @override
-  def fields(self) -> Field:
-    return field([
-      Field(
-        dtype=DataType.STRING_SPAN, fields={SIGNAL_METADATA_KEY: field({'len': field('int32')})})
-    ])
+  """Split documents into sentence by splitting on period, generating entities."""
+  name = 'test_split'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
@@ -145,10 +133,8 @@ class TestSplitSignal(TextSplitterSignal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-        signal_item(
-          lilac_span(text.index(sentence),
-                     text.index(sentence) + len(sentence)), {'len': len(sentence)})
-        for sentence in sentences
+        lilac_span(text.index(sentence),
+                   text.index(sentence) + len(sentence)) for sentence in sentences
       ]
 
 
@@ -216,13 +202,13 @@ def test_sparse_signal(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(TestSparseSignal(), 'text')
 
   result = dataset.select_rows(['text'])
-  assert list(result) == lilac_items([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': lilac_item('hello', {'test_sparse_signal': None})
+    'text': expected_item('hello', {'test_sparse_signal': None})
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item('hello world', {'test_sparse_signal': 11})
-  }])
+    'text': expected_item('hello world', {'test_sparse_signal': 11})
+  }]
 
 
 def test_sparse_rich_signal(make_test_data: TestDataMaker) -> None:
@@ -237,17 +223,17 @@ def test_sparse_rich_signal(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(TestSparseRichSignal(), 'text')
 
   result = dataset.select_rows(['text'])
-  assert list(result) == lilac_items([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': lilac_item('hello', {'test_sparse_rich_signal': None})
+    'text': expected_item('hello', {'test_sparse_rich_signal': None})
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item(
+    'text': expected_item(
       'hello world',
       {'test_sparse_rich_signal': {
         'emails': ['test1@hello.com', 'test2@hello.com']
       }})
-  }])
+  }]
 
 
 def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None:
@@ -289,25 +275,25 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
     num_items=3)
 
   result = dataset.select_rows(['str'])
-  assert list(result) == lilac_items([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'str': lilac_item('a', {'test_signal': {
+    'str': expected_item('a', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
   }, {
     UUID_COLUMN: '2',
-    'str': lilac_item('b', {'test_signal': {
+    'str': expected_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
   }, {
     UUID_COLUMN: '3',
-    'str': lilac_item('b', {'test_signal': {
+    'str': expected_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
-  }])
+  }]
 
   # Select a specific signal leaf test_signal.flen with val('str').
   result = dataset.select_rows([val('str'), ('str', 'test_signal', 'flen')])
@@ -315,15 +301,15 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'str.{VALUE_KEY}': 'a',
-    'str.test_signal.flen': lilac_item(1.0)
+    'str.test_signal.flen': expected_item(1.0)
   }, {
     UUID_COLUMN: '2',
     f'str.{VALUE_KEY}': 'b',
-    'str.test_signal.flen': lilac_item(1.0)
+    'str.test_signal.flen': expected_item(1.0)
   }, {
     UUID_COLUMN: '3',
     f'str.{VALUE_KEY}': 'b',
-    'str.test_signal.flen': lilac_item(1.0)
+    'str.test_signal.flen': expected_item(1.0)
   }]
 
   # Select a specific signal leaf test_signal.flen and the whole 'str' subtree.
@@ -331,25 +317,25 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
 
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'str': lilac_item('a', {'test_signal': {
+    'str': expected_item('a', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
-    'str.test_signal.flen': lilac_item(1.0)
+    'str.test_signal.flen': expected_item(1.0)
   }, {
     UUID_COLUMN: '2',
-    'str': lilac_item('b', {'test_signal': {
+    'str': expected_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
-    'str.test_signal.flen': lilac_item(1.0)
+    'str.test_signal.flen': expected_item(1.0)
   }, {
     UUID_COLUMN: '3',
-    'str': lilac_item('b', {'test_signal': {
+    'str': expected_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
-    'str.test_signal.flen': lilac_item(1.0)
+    'str.test_signal.flen': expected_item(1.0)
   }]
 
   # Select multiple signal leafs with aliasing.
@@ -362,18 +348,18 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'str.{VALUE_KEY}': 'a',
-    'flen': lilac_item(1.0),
-    'len': lilac_item(1)
+    'flen': expected_item(1.0),
+    'len': expected_item(1)
   }, {
     UUID_COLUMN: '2',
     f'str.{VALUE_KEY}': 'b',
-    'flen': lilac_item(1.0),
-    'len': lilac_item(1)
+    'flen': expected_item(1.0),
+    'len': expected_item(1)
   }, {
     UUID_COLUMN: '3',
     f'str.{VALUE_KEY}': 'b',
-    'flen': lilac_item(1.0),
-    'len': lilac_item(1)
+    'flen': expected_item(1.0),
+    'len': expected_item(1)
   }]
 
 
@@ -405,19 +391,19 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
     num_items=2)
 
   result = dataset.select_rows(['text'])
-  assert list(result) == lilac_items([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': lilac_item('hello', {
+    'text': expected_item('hello', {
       'param_signal(param=a)': 'hello_a',
       'param_signal(param=b)': 'hello_b',
     })
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item('everybody', {
+    'text': expected_item('everybody', {
       'param_signal(param=a)': 'everybody_a',
       'param_signal(param=b)': 'everybody_b',
     })
-  }])
+  }]
 
 
 def test_split_signal(make_test_data: TestDataMaker) -> None:
@@ -438,11 +424,7 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        {
-          'test_split_len': signal_field(
-            fields=[signal_field(dtype='string_span', metadata={'len': 'int32'})],
-            signal=signal.dict())
-        },
+        {'test_split': signal_field(fields=[signal_field('string_span')], signal=signal.dict())},
         dtype='string')
     }),
     num_items=2)
@@ -450,22 +432,15 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['text'])
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': lilac_item(
-      '[1, 1] first sentence. [1, 1] second sentence.', {
-        'test_split_len': [
-          signal_item(lilac_span(0, 22), {'len': 22}),
-          signal_item(lilac_span(23, 46), {'len': 23}),
-        ]
-      })
+    'text': expected_item('[1, 1] first sentence. [1, 1] second sentence.',
+                          {'test_split': [lilac_span(0, 22), lilac_span(23, 46)]})
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item(
-      'b2 [2, 1] first sentence. [2, 1] second sentence.', {
-        'test_split_len': [
-          signal_item(lilac_span(0, 25), {'len': 25}),
-          signal_item(lilac_span(26, 49), {'len': 23}),
-        ]
-      })
+    'text': expected_item('b2 [2, 1] first sentence. [2, 1] second sentence.',
+                          {'test_split': [
+                            lilac_span(0, 25),
+                            lilac_span(26, 49),
+                          ]})
   }]
   assert list(result) == expected_result
 
@@ -507,11 +482,11 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text.*': [
-      lilac_item('hello', {'test_signal': {
+      expected_item('hello', {'test_signal': {
         'len': 5,
         'flen': 5.0
       }}),
-      lilac_item('everybody', {'test_signal': {
+      expected_item('everybody', {'test_signal': {
         'len': 9,
         'flen': 9.0
       }})
@@ -519,11 +494,11 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
   }, {
     UUID_COLUMN: '2',
     'text.*': [
-      lilac_item('hello2', {'test_signal': {
+      expected_item('hello2', {'test_signal': {
         'len': 6,
         'flen': 6.0
       }}),
-      lilac_item('everybody2', {'test_signal': {
+      expected_item('everybody2', {'test_signal': {
         'len': 10,
         'flen': 10.0
       }})
@@ -545,22 +520,18 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['text'])
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': lilac_item(
-      '[1, 1] first sentence. [1, 1] second sentence.', {
-        'test_split_len': [
-          signal_item(lilac_span(0, 22), {'len': 22}),
-          signal_item(lilac_span(23, 46), {'len': 23}),
-        ]
-      }),
+    'text': expected_item('[1, 1] first sentence. [1, 1] second sentence.',
+                          {'test_split': [
+                            lilac_span(0, 22),
+                            lilac_span(23, 46),
+                          ]}),
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item(
-      'b2 [2, 1] first sentence. [2, 1] second sentence.', {
-        'test_split_len': [
-          signal_item(lilac_span(0, 25), {'len': 25}),
-          signal_item(lilac_span(26, 49), {'len': 23}),
-        ]
-      }),
+    'text': expected_item('b2 [2, 1] first sentence. [2, 1] second sentence.',
+                          {'test_split': [
+                            lilac_span(0, 25),
+                            lilac_span(26, 49),
+                          ]}),
   }]
   assert list(result) == expected_result
 
@@ -591,11 +562,11 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows()
 
   # Embeddings are replaced with "None".
-  expected_result = lilac_items([{
+  expected_result = [{
     UUID_COLUMN: '1',
-    'text': lilac_item('hello.', {'test_embedding': lilac_item(None, allow_none_value=True)})
+    'text': expected_item('hello.', {'test_embedding': expected_item(None, allow_none_value=True)})
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item('hello2.', {'test_embedding': lilac_item(None, allow_none_value=True)})
-  }])
+    'text': expected_item('hello2.', {'test_embedding': expected_item(None, allow_none_value=True)})
+  }]
   assert list(result) == expected_result

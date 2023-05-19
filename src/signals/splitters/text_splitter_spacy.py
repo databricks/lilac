@@ -5,7 +5,7 @@ import spacy
 from spacy import Language
 from typing_extensions import override
 
-from ...data.dataset_utils import lilac_span, signal_item
+from ...data.dataset_utils import lilac_span
 from ...schema import ItemValue, RichData
 from ...signals.signal import TextSplitterSignal
 
@@ -32,7 +32,7 @@ class SentenceSplitterSpacy(TextSplitterSignal):
 
     for doc in self._tokenizer.pipe(text_data):
       sentences = doc.sents
-      result = [signal_item(lilac_span(token.start_char, token.end_char)) for token in sentences]
+      result = [lilac_span(token.start_char, token.end_char) for token in sentences]
       if result:
         yield result
       else:

@@ -5,7 +5,7 @@ import pytest
 from ..schema import UUID_COLUMN, Item, schema
 from .dataset import BinaryFilterTuple, BinaryOp, ListFilterTuple, ListOp, UnaryOp
 from .dataset_test_utils import TestDataMaker
-from .dataset_utils import lilac_items
+from .dataset_utils import itemize_primitives
 
 TEST_DATA: list[Item] = [{
   UUID_COLUMN: '1',
@@ -34,7 +34,7 @@ def test_filter_by_ids(make_test_data: TestDataMaker) -> None:
   id_filter: BinaryFilterTuple = (UUID_COLUMN, BinaryOp.EQUALS, '1')
   result = dataset.select_rows(filters=[id_filter])
 
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'str': 'a',
     'int': 1,
@@ -45,7 +45,7 @@ def test_filter_by_ids(make_test_data: TestDataMaker) -> None:
   id_filter = (UUID_COLUMN, BinaryOp.EQUALS, '2')
   result = dataset.select_rows(filters=[id_filter])
 
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '2',
     'str': 'b',
     'int': 2,
@@ -65,7 +65,7 @@ def test_filter_by_list_of_ids(make_test_data: TestDataMaker) -> None:
   id_filter: ListFilterTuple = (UUID_COLUMN, ListOp.IN, ['1', '2'])
   result = dataset.select_rows(filters=[id_filter])
 
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'str': 'a',
     'int': 1,
@@ -111,7 +111,7 @@ def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
 
   exists_filter = ('name', UnaryOp.EXISTS)
   result = dataset.select_rows(['name'], filters=[exists_filter])
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'name': 'A'
   }, {
@@ -121,7 +121,7 @@ def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
 
   exists_filter = ('info.lang', UnaryOp.EXISTS)
   result = dataset.select_rows(['name'], filters=[exists_filter])
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'name': 'A'
   }, {
@@ -131,7 +131,7 @@ def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
 
   exists_filter = ('ages.*.*', UnaryOp.EXISTS)
   result = dataset.select_rows(['name'], filters=[exists_filter])
-  assert list(result) == lilac_items([{UUID_COLUMN: '3', 'name': 'C'}])
+  assert list(result) == itemize_primitives([{UUID_COLUMN: '3', 'name': 'C'}])
 
   with pytest.raises(ValueError, match='Unable to filter on path'):
     dataset.select_rows(['name'], filters=[('info', UnaryOp.EXISTS)])
