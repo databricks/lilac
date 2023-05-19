@@ -52,6 +52,7 @@ export const computeSignalColumnMutation = createApiMutation(DatasetsService.com
 
     watchTask(resp.task_id, () => {
       queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
+      queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
       queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
     });
   }

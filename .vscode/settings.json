@@ -6,7 +6,8 @@
     "**/dist/**": true,
     "**/yarn.lock": true,
     "**/poetry.lock": true,
-    "**/package-lock.json": true
+    "**/package-lock.json": true,
+    "**/.svelte-kit/**": true
   },
   "files.trimTrailingWhitespace": true,
   "editor.formatOnSave": true,
