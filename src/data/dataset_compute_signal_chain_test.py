@@ -31,8 +31,8 @@ from ..signals.signal import (
   register_signal,
 )
 from .dataset import DatasetManifest
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker
-from .dataset_utils import lilac_item, lilac_items, lilac_span, signal_item
+from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, expected_item
+from .dataset_utils import lilac_span
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -73,10 +73,8 @@ class TestSplitter(TextSplitterSignal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-        signal_item(
-          lilac_span(text.index(sentence),
-                     text.index(sentence) + len(sentence)), {'len': len(sentence)})
-        for sentence in sentences
+        lilac_span(text.index(sentence),
+                   text.index(sentence) + len(sentence)) for sentence in sentences
       ]
 
 
@@ -159,17 +157,17 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
     num_items=2)
 
   result = dataset.select_rows()
-  expected_result = lilac_items([{
+  expected_result = [{
     UUID_COLUMN: '1',
-    'text': lilac_item(
+    'text': expected_item(
       'hello.',
-      {'test_embedding': lilac_item(None, {'test_embedding_sum': 1.0}, allow_none_value=True)})
+      {'test_embedding': expected_item(None, {'test_embedding_sum': 1.0}, allow_none_value=True)})
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item(
+    'text': expected_item(
       'hello2.',
-      {'test_embedding': lilac_item(None, {'test_embedding_sum': 2.0}, allow_none_value=True)})
-  }])
+      {'test_embedding': expected_item(None, {'test_embedding_sum': 2.0}, allow_none_value=True)})
+  }]
   assert list(result) == expected_result
 
 
@@ -211,17 +209,17 @@ def test_auto_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixt
     num_items=2)
 
   result = dataset.select_rows()
-  expected_result = lilac_items([{
+  expected_result = [{
     UUID_COLUMN: '1',
-    'text': lilac_item(
+    'text': expected_item(
       'hello.',
-      {'test_embedding': lilac_item(None, {'test_embedding_sum': 1.0}, allow_none_value=True)})
+      {'test_embedding': expected_item(None, {'test_embedding_sum': 1.0}, allow_none_value=True)})
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item(
+    'text': expected_item(
       'hello2.',
-      {'test_embedding': lilac_item(None, {'test_embedding_sum': 2.0}, allow_none_value=True)})
-  }])
+      {'test_embedding': expected_item(None, {'test_embedding_sum': 2.0}, allow_none_value=True)})
+  }]
   assert list(result) == expected_result
 
 
@@ -280,41 +278,41 @@ def test_manual_embedding_signal_splits(make_test_data: TestDataMaker,
 
   result = dataset.select_rows(['text'])
 
-  assert list(result) == lilac_items([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': lilac_item(
+    'text': expected_item(
       'hello. hello2.', {
         'test_splitter': [
-          lilac_item(
+          expected_item(
             lilac_span(0, 6), {
-              'test_embedding': lilac_item(
+              'test_embedding': expected_item(
                 None, {'test_embedding_sum': 1.0}, allow_none_value=True),
             }),
-          lilac_item(
+          expected_item(
             lilac_span(7, 14), {
-              'test_embedding': lilac_item(
+              'test_embedding': expected_item(
                 None, {'test_embedding_sum': 2.0}, allow_none_value=True),
             }),
         ]
       })
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item(
+    'text': expected_item(
       'hello world. hello world2.', {
         'test_splitter': [
-          lilac_item(
+          expected_item(
             lilac_span(0, 12), {
-              'test_embedding': lilac_item(
+              'test_embedding': expected_item(
                 None, {'test_embedding_sum': 3.0}, allow_none_value=True),
             }),
-          lilac_item(
+          expected_item(
             lilac_span(13, 26), {
-              'test_embedding': lilac_item(
+              'test_embedding': expected_item(
                 None, {'test_embedding_sum': 4.0}, allow_none_value=True),
             })
         ]
       })
-  }])
+  }]
 
 
 def test_auto_embedding_signal_splits(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
@@ -367,41 +365,41 @@ def test_auto_embedding_signal_splits(make_test_data: TestDataMaker, mocker: Moc
 
   result = dataset.select_rows(['text'])
 
-  assert list(result) == lilac_items([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': lilac_item(
+    'text': expected_item(
       'hello. hello2.', {
         'test_splitter': [
-          lilac_item(
+          expected_item(
             lilac_span(0, 6), {
-              'test_embedding': lilac_item(
+              'test_embedding': expected_item(
                 None, {'test_embedding_sum': 1.0}, allow_none_value=True),
             }),
-          lilac_item(
+          expected_item(
             lilac_span(7, 14), {
-              'test_embedding': lilac_item(
+              'test_embedding': expected_item(
                 None, {'test_embedding_sum': 2.0}, allow_none_value=True),
             }),
         ]
       })
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item(
+    'text': expected_item(
       'hello world. hello world2.', {
         'test_splitter': [
-          lilac_item(
+          expected_item(
             lilac_span(0, 12), {
-              'test_embedding': lilac_item(
+              'test_embedding': expected_item(
                 None, {'test_embedding_sum': 3.0}, allow_none_value=True),
             }),
-          lilac_item(
+          expected_item(
             lilac_span(13, 26), {
-              'test_embedding': lilac_item(
+              'test_embedding': expected_item(
                 None, {'test_embedding_sum': 4.0}, allow_none_value=True),
             })
         ]
       })
-  }])
+  }]
 
 
 ENTITY_REGEX = r'[A-Za-z]+@[A-Za-z]+'
@@ -421,7 +419,7 @@ class EntitySignal(TextSignal):
       if not isinstance(text, str):
         yield None
         continue
-      yield [signal_item(lilac_span(m.start(0), m.end(0))) for m in re.finditer(ENTITY_REGEX, text)]
+      yield [lilac_span(m.start(0), m.end(0)) for m in re.finditer(ENTITY_REGEX, text)]
 
 
 def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
@@ -431,18 +429,18 @@ def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(entity, 'text')
 
   result = dataset.select_rows(['text'])
-  assert list(result) == lilac_items([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': lilac_item(
+    'text': expected_item(
       text, {
         'test_splitter': [
-          lilac_item(lilac_span(0, 15), {'entity': [lilac_item(lilac_span(6, 14)),]}),
-          lilac_item(
+          expected_item(lilac_span(0, 15), {'entity': [expected_item(lilac_span(6, 14)),]}),
+          expected_item(
             lilac_span(16, 74),
             {'entity': [
-              lilac_item(lilac_span(50, 59)),
-              lilac_item(lilac_span(64, 73)),
+              expected_item(lilac_span(50, 59)),
+              expected_item(lilac_span(64, 73)),
             ]}),
         ]
       })
-  }])
+  }]

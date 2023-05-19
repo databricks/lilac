@@ -20,7 +20,7 @@ from ...schema import (
   arrow_dtype_to_dtype,
 )
 from ...tasks import TaskId, progress
-from ..dataset_utils import write_items_to_parquet
+from ..dataset_utils import itemize_primitives, write_items_to_parquet
 from .source import Source, SourceProcessResult
 
 TFDSElement = Union[dict, tf.RaggedTensor, tf.Tensor]
@@ -57,7 +57,7 @@ def _convert_to_items(hf_dataset_dict: DatasetDict, class_labels: dict[str, list
       # Inject the split name.
       example[HF_SPLIT_COLUMN] = split_name
 
-      yield example
+      yield itemize_primitives(example)
 
 
 def _infer_field(feature_value: Union[Value, dict]) -> Field:

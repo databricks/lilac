@@ -7,7 +7,7 @@ from datasets import Dataset, Features, Sequence, Value
 
 from ...schema import UUID_COLUMN, schema
 from ...test_utils import read_items
-from ..dataset_utils import lilac_items
+from ..dataset_utils import itemize_primitives
 from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceDataset
 from .source import SourceProcessResult
 
@@ -33,7 +33,7 @@ def test_hf(tmp_path: pathlib.Path) -> None:
     filepaths=[])
 
   items = read_items(tmp_path, result.filepaths, expected_result.data_schema)
-  assert items == lilac_items([{
+  assert items == itemize_primitives([{
     UUID_COLUMN: items[0][UUID_COLUMN],
     HF_SPLIT_COLUMN: 'default',
     'x': 1,
@@ -93,7 +93,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
     filepaths=[])
 
   items = read_items(tmp_path, result.filepaths, expected_result.data_schema)
-  assert items == lilac_items([{
+  assert items == itemize_primitives([{
     UUID_COLUMN: items[0][UUID_COLUMN],
     HF_SPLIT_COLUMN: 'default',
     'scalar': 1,

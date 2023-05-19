@@ -19,8 +19,8 @@ from ..schema import (
 )
 from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset import Column, DatasetManifest, val
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker
-from .dataset_utils import lilac_item, lilac_items
+from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, expected_item
+from .dataset_utils import itemize_primitives
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -103,7 +103,7 @@ def test_select_all_columns(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(SIMPLE_ITEMS)
 
   result = dataset.select_rows()
-  assert list(result) == lilac_items(SIMPLE_ITEMS)
+  assert list(result) == itemize_primitives(SIMPLE_ITEMS)
 
 
 def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> None:
@@ -132,7 +132,7 @@ def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> Non
   dataset = make_test_data(items)
 
   result = dataset.select_rows(['people.*.name', 'people.*.address.zip'])
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'people.*.name': ['A', 'B'],
     'people.*.address.zip': [1, 2]
@@ -143,7 +143,7 @@ def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> Non
   }])
 
   result = dataset.select_rows(['people.*.address.zip'], combine_columns=True)
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'people': [{
       'address': {
@@ -164,7 +164,7 @@ def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> Non
   }])
 
   result = dataset.select_rows(['people'])
-  assert list(result) == lilac_items(items)
+  assert list(result) == itemize_primitives(items)
 
 
 def test_select_subcols_with_escaped_dot(make_test_data: TestDataMaker) -> None:
@@ -184,7 +184,7 @@ def test_select_subcols_with_escaped_dot(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(items)
 
   result = dataset.select_rows(['"people.new".*.name'])
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'people.new.*.name': ['A', 'B'],
   }, {
@@ -194,7 +194,7 @@ def test_select_subcols_with_escaped_dot(make_test_data: TestDataMaker) -> None:
 
   # Escape name even though it does not need to be.
   result = dataset.select_rows(['"people.new".*."name"'])
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'people.new.*.name': ['A', 'B'],
   }, {
@@ -221,15 +221,15 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
 
   # Select *.
   result = dataset.select_rows(['*'])
-  assert list(result) == lilac_items(items)
+  assert list(result) == itemize_primitives(items)
 
   # Select (*,).
   result = dataset.select_rows([('*',)])
-  assert list(result) == lilac_items(items)
+  assert list(result) == itemize_primitives(items)
 
   # Select *, plus a redundant `info` column.
   result = dataset.select_rows(['*', 'info'])
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'name': 'A',
     'info': {
@@ -251,7 +251,7 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
 
   # Select * plus an inner `info.age` column.
   result = dataset.select_rows(['*', ('info', 'age')])
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'name': 'A',
     'info': {
@@ -286,22 +286,22 @@ def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
 
   # Select *.
   result = dataset.select_rows(['*'], combine_columns=True)
-  assert list(result) == lilac_items(items)
+  assert list(result) == itemize_primitives(items)
 
   # Select *, plus a redundant `info` column.
   result = dataset.select_rows(['*', 'info'], combine_columns=True)
-  assert list(result) == lilac_items(items)
+  assert list(result) == itemize_primitives(items)
 
   # Select * plus an inner `info.age` column.
   result = dataset.select_rows(['*', ('info', 'age')], combine_columns=True)
-  assert list(result) == lilac_items(items)
+  assert list(result) == itemize_primitives(items)
 
   # Select *, plus redundant `name`, plus a udf.
   udf = Column('name', signal_udf=TestSignal())
   result = dataset.select_rows(['*', 'name', udf], combine_columns=True)
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
-    'name': lilac_item('A', {'test_signal': {
+    'name': expected_item('A', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -310,7 +310,7 @@ def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
     }
   }, {
     UUID_COLUMN: '2',
-    'name': lilac_item('B', {'test_signal': {
+    'name': expected_item('B', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -350,7 +350,7 @@ def test_columns(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows(['str', 'float'])
 
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'str': 'a',
     'float': 3.0
@@ -379,9 +379,9 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(length_signal, 'text')
 
   result = dataset.select_rows(['text'])
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
-    'text': lilac_item('hello', {
+    'text': expected_item('hello', {
       'length_signal': 5,
       'test_signal': {
         'len': 5,
@@ -390,7 +390,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
     })
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item('everybody', {
+    'text': expected_item('everybody', {
       'length_signal': 9,
       'test_signal': {
         'len': 9,
@@ -405,21 +405,21 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello',
-    'text.test_signal.flen': lilac_item(5.0),
-    'text.test_signal.len': lilac_item(5)
+    'text.test_signal.flen': expected_item(5.0),
+    'text.test_signal.len': expected_item(5)
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'everybody',
-    'text.test_signal.flen': lilac_item(9.0),
-    'text.test_signal.len': lilac_item(9)
+    'text.test_signal.flen': expected_item(9.0),
+    'text.test_signal.len': expected_item(9)
   }]
 
   # Test subselection with combine_columns=True.
   result = dataset.select_rows(
     ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')], combine_columns=True)
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
-    'text': lilac_item('hello', {
+    'text': expected_item('hello', {
       'length_signal': 5,
       'test_signal': {
         'len': 5,
@@ -428,7 +428,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
     })
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item('everybody', {
+    'text': expected_item('everybody', {
       'length_signal': 9,
       'test_signal': {
         'len': 9,
@@ -443,17 +443,17 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello',
-    'metadata': lilac_item(5)
+    'metadata': expected_item(5)
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'everybody',
-    'metadata': lilac_item(9)
+    'metadata': expected_item(9)
   }]
 
   result = dataset.select_rows(columns=[Column(('text'), alias='text_enrichment')])
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
-    'text_enrichment': lilac_item('hello', {
+    'text_enrichment': expected_item('hello', {
       'length_signal': 5,
       'test_signal': {
         'len': 5,
@@ -462,7 +462,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
     })
   }, {
     UUID_COLUMN: '2',
-    'text_enrichment': lilac_item('everybody', {
+    'text_enrichment': expected_item('everybody', {
       'length_signal': 9,
       'test_signal': {
         'len': 9,
@@ -507,17 +507,17 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
     num_items=2)
 
   result = dataset.select_rows(['texts'])
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'texts': [
-      lilac_item('hello', {
+      expected_item('hello', {
         'length_signal': 5,
         'test_signal': {
           'len': 5,
           'flen': 5.0
         }
       }),
-      lilac_item('everybody', {
+      expected_item('everybody', {
         'length_signal': 9,
         'test_signal': {
           'len': 9,
@@ -528,21 +528,21 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
   }, {
     UUID_COLUMN: '2',
     'texts': [
-      lilac_item('a', {
+      expected_item('a', {
         'length_signal': 1,
         'test_signal': {
           'len': 1,
           'flen': 1.0
         }
       }),
-      lilac_item('bc', {
+      expected_item('bc', {
         'length_signal': 2,
         'test_signal': {
           'len': 2,
           'flen': 2.0
         }
       }),
-      lilac_item('def', {
+      expected_item('def', {
         'length_signal': 3,
         'test_signal': {
           'len': 3,
@@ -558,13 +558,13 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'texts.*.{VALUE_KEY}': ['hello', 'everybody'],
-    'texts.*.test_signal.flen': lilac_items([5.0, 9.0]),
-    'texts.*.length_signal': lilac_items([5, 9])
+    'texts.*.test_signal.flen': itemize_primitives([5.0, 9.0]),
+    'texts.*.length_signal': itemize_primitives([5, 9])
   }, {
     UUID_COLUMN: '2',
     f'texts.*.{VALUE_KEY}': ['a', 'bc', 'def'],
-    'texts.*.test_signal.flen': lilac_items([1.0, 2.0, 3.0]),
-    'texts.*.length_signal': lilac_items([1, 2, 3])
+    'texts.*.test_signal.flen': itemize_primitives([1.0, 2.0, 3.0]),
+    'texts.*.length_signal': itemize_primitives([1, 2, 3])
   }]
 
 
@@ -597,7 +597,7 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
 
   # Sub-select text and test_signal.
   result = dataset.select_rows(['text', ('extra', 'text', 'test_signal')], combine_columns=True)
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'text': 'hello',
     'extra': {
@@ -623,7 +623,7 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
 
   # Sub-select text and length_signal.
   result = dataset.select_rows(['text', ('extra', 'text', 'length_signal')], combine_columns=True)
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'text': 'hello',
     'extra': {
@@ -643,7 +643,7 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
 
   # Sub-select length_signal only.
   result = dataset.select_rows([('extra', 'text', 'length_signal')], combine_columns=True)
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'extra': {
       'text': {
@@ -662,7 +662,7 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
   # Aliases are ignored when combing columns.
   len_col = Column(('extra', 'text', 'length_signal'), alias='hello')
   result = dataset.select_rows([len_col], combine_columns=True)
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
     'extra': {
       'text': {
@@ -681,12 +681,12 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
   # Works with UDFs and aliases are ignored.
   udf_col = Column('text', alias='ignored', signal_udf=LengthSignal())
   result = dataset.select_rows(['text', udf_col], combine_columns=True)
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
-    'text': lilac_item('hello', {'length_signal': 5})
+    'text': expected_item('hello', {'length_signal': 5})
   }, {
     UUID_COLUMN: '2',
-    'text': lilac_item('everybody', {'length_signal': 9})
+    'text': expected_item('everybody', {'length_signal': 9})
   }])
 
 
@@ -731,9 +731,9 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
   # Select both columns, without val() on str.
   result = dataset.select_rows(['str', Column(('str', 'test_signal'), alias='test_signal_on_str')])
 
-  assert list(result) == lilac_items([{
+  assert list(result) == itemize_primitives([{
     UUID_COLUMN: '1',
-    'str': lilac_item('a', {'test_signal': {
+    'str': expected_item('a', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -743,7 +743,7 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
     }
   }, {
     UUID_COLUMN: '2',
-    'str': lilac_item('b', {'test_signal': {
+    'str': expected_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -753,7 +753,7 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
     }
   }, {
     UUID_COLUMN: '3',
-    'str': lilac_item('b', {'test_signal': {
+    'str': expected_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -771,22 +771,22 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
     UUID_COLUMN: '1',
     f'str.{VALUE_KEY}': 'a',
     'test_signal_on_str': {
-      'len': lilac_item(1),
-      'flen': lilac_item(1.0)
+      'len': expected_item(1),
+      'flen': expected_item(1.0)
     }
   }, {
     UUID_COLUMN: '2',
     f'str.{VALUE_KEY}': 'b',
     'test_signal_on_str': {
-      'len': lilac_item(1),
-      'flen': lilac_item(1.0)
+      'len': expected_item(1),
+      'flen': expected_item(1.0)
     }
   }, {
     UUID_COLUMN: '3',
     f'str.{VALUE_KEY}': 'b',
     'test_signal_on_str': {
-      'len': lilac_item(1),
-      'flen': lilac_item(1.0)
+      'len': expected_item(1),
+      'flen': expected_item(1.0)
     }
   }]
 
@@ -794,14 +794,14 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
 def test_invalid_column_paths(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
-    'text': lilac_item('hello', {'test_signal': {
+    'text': expected_item('hello', {'test_signal': {
       'len': 5
     }}),
     'text2': [
-      lilac_item('hello', {'test_signal': {
+      expected_item('hello', {'test_signal': {
         'len': 5
       }}),
-      lilac_item('hi', {'test_signal': {
+      expected_item('hi', {'test_signal': {
         'len': 2
       }})
     ],

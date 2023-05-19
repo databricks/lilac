@@ -7,8 +7,8 @@ from fastapi.testclient import TestClient
 from .config import CONFIG
 from .data.dataset import Column, Dataset, DatasetManifest, SelectRowsSchemaResult
 from .data.dataset_duckdb import DatasetDuckDB
-from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, make_dataset
-from .data.dataset_utils import lilac_item, lilac_items
+from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, expected_item, make_dataset
+from .data.dataset_utils import itemize_primitives
 from .router_dataset import SelectRowsOptions, SelectRowsSchemaOptions, WebManifest
 from .schema import UUID_COLUMN, Field, Item, RichData, SignalOut, field, schema
 from .server import app
@@ -113,7 +113,7 @@ def test_select_rows_no_options() -> None:
   options = SelectRowsOptions()
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert response.json() == lilac_items(TEST_DATA)
+  assert response.json() == itemize_primitives(TEST_DATA)
 
 
 def test_select_rows_with_cols_and_limit() -> None:
@@ -124,7 +124,7 @@ def test_select_rows_with_cols_and_limit() -> None:
     offset=1)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert response.json() == lilac_items([{
+  assert response.json() == itemize_primitives([{
     UUID_COLUMN: '2',
     'people.*.zipcode': [1, 2],
     'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']]
@@ -138,7 +138,7 @@ def test_select_rows_with_cols_and_combine() -> None:
     combine_columns=True)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert response.json() == lilac_items([{
+  assert response.json() == itemize_primitives([{
     UUID_COLUMN: '1',
     'people': [{
       'zipcode': 0,
@@ -188,11 +188,11 @@ def test_select_rows_star_plus_udf() -> None:
   options = SelectRowsOptions(columns=['*', udf], combine_columns=True)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert response.json() == lilac_items([{
+  assert response.json() == itemize_primitives([{
     UUID_COLUMN: '1',
     'erased': False,
     'people': [{
-      'name': lilac_item('A', {'length_signal': 1}),
+      'name': expected_item('A', {'length_signal': 1}),
       'zipcode': 0,
       'locations': [{
         'city': 'city1',
@@ -206,7 +206,7 @@ def test_select_rows_star_plus_udf() -> None:
     UUID_COLUMN: '2',
     'erased': True,
     'people': [{
-      'name': lilac_item('B', {'length_signal': 1}),
+      'name': expected_item('B', {'length_signal': 1}),
       'zipcode': 1,
       'locations': [{
         'city': 'city3',
@@ -217,7 +217,7 @@ def test_select_rows_star_plus_udf() -> None:
         'city': 'city5'
       }]
     }, {
-      'name': lilac_item('C', {'length_signal': 1}),
+      'name': expected_item('C', {'length_signal': 1}),
       'zipcode': 2,
       'locations': [{
         'city': 'city1',

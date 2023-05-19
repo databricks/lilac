@@ -1,7 +1,7 @@
 """Tests utils of for dataset_test."""
 import os
 import pathlib
-from typing import Optional, Type, cast
+from typing import Optional, Type, Union, cast
 
 from typing_extensions import Protocol
 
@@ -18,7 +18,7 @@ from ..schema import (
 )
 from ..utils import get_dataset_output_dir, open_file
 from .dataset import Dataset
-from .dataset_utils import is_primitive, lilac_items, write_items_to_parquet
+from .dataset_utils import is_primitive, itemize_primitives, write_items_to_parquet
 
 TEST_NAMESPACE = 'test_namespace'
 TEST_DATASET_NAME = 'test_dataset'
@@ -83,7 +83,7 @@ def make_dataset(dataset_cls: Type[Dataset],
                  schema: Optional[Schema] = None) -> Dataset:
   """Create a test dataset."""
   schema = schema or _infer_schema(items)
-  _write_items(tmp_path, TEST_DATASET_NAME, cast(list, lilac_items(items)), schema)
+  _write_items(tmp_path, TEST_DATASET_NAME, cast(list, itemize_primitives(items)), schema)
   return dataset_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
 
 
@@ -98,3 +98,20 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
   manifest = SourceManifest(files=[simple_parquet_files], data_schema=schema)
   with open_file(os.path.join(source_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.json(indent=2, exclude_none=True))
+
+
+def expected_item(value: Optional[ItemValue] = None,
+                  metadata: Optional[dict[str, Union[Item, ItemValue]]] = None,
+                  allow_none_value: Optional[bool] = False) -> Item:
+  """Wrap a value in a dict with the value key."""
+  out_item: Item = {}
+  if value is not None or allow_none_value:
+    if isinstance(value, dict):
+      if list(value.keys()) != [VALUE_KEY]:
+        raise ValueError(f'Value dict must have only one key, {VALUE_KEY}, but got {value.keys()}')
+      out_item[VALUE_KEY] = value[VALUE_KEY]
+    else:
+      out_item[VALUE_KEY] = value
+  if metadata:
+    out_item.update(cast(dict, itemize_primitives(metadata)))
+  return out_item

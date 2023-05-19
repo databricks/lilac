@@ -29,7 +29,7 @@ from ..signals.signal import (
 )
 from .dataset import Column, SelectRowsSchemaResult
 from .dataset_test_utils import TestDataMaker
-from .dataset_utils import lilac_span, signal_item
+from .dataset_utils import lilac_span
 
 TEST_DATA: list[Item] = [{
   UUID_COLUMN: '1',
@@ -81,8 +81,8 @@ class TestSplitter(TextSplitterSignal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-        signal_item(lilac_span(text.index(sentence),
-                               text.index(sentence) + len(sentence))) for sentence in sentences
+        lilac_span(text.index(sentence),
+                   text.index(sentence) + len(sentence)) for sentence in sentences
       ]
 
 

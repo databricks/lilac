@@ -14,7 +14,6 @@ from pydantic import BaseModel
 from ..parquet_writer import ParquetWriter
 from ..schema import (
   PATH_WILDCARD,
-  SIGNAL_METADATA_KEY,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
   UUID_COLUMN,
@@ -61,16 +60,22 @@ def replace_embeddings_with_none(input: Union[Item, ItemValue]) -> Item:
   return cast(Item, _replace_embeddings_with_none(input))
 
 
-def _wrap_primitive_values(input: Union[Item, ItemValue]) -> Union[Item, ItemValue]:
+def itemize_primitives(input: Union[Item, ItemValue, list[Item]]) -> Union[Item, ItemValue]:
+  """Wraps primitives values recursively on an item, or item value, or items.
+
+  This creates {__value__: primitive} for every primitive recursively.
+
+  If a primitive has already been wrapped, it is left untouched.
+  """
   if isinstance(input, dict):
     # Wrap all the values of the dictionary in {__value__: value} if it is not already wrapped and
     # it is not a UUID.
     return {
-      k: _wrap_primitive_values(v) if k not in (VALUE_KEY, UUID_COLUMN) else v
+      k: itemize_primitives(v) if k not in (VALUE_KEY, UUID_COLUMN) else v
       for k, v in input.items()
     }
   elif isinstance(input, list):
-    return [_wrap_primitive_values(v) for v in input]
+    return [itemize_primitives(v) for v in input]
 
   if input is None:
     # We don't wrap None values with value key to keep sparsity.
@@ -78,40 +83,9 @@ def _wrap_primitive_values(input: Union[Item, ItemValue]) -> Union[Item, ItemVal
   return {VALUE_KEY: input}
 
 
-def lilac_items(items: Iterable[Union[Item, ItemValue]]) -> Iterable[Item]:
-  """A util for testing that converts items to their primitive wrapped items."""
-  if isinstance(items, (list, Sequence)):
-    return [cast(Item, _wrap_primitive_values(item)) for item in items]
-  return (cast(Item, _wrap_primitive_values(item)) for item in items)
-
-
-def lilac_item(value: Optional[ItemValue] = None,
-               metadata: Optional[dict[str, Union[Item, ItemValue]]] = None,
-               allow_none_value: Optional[bool] = False) -> Item:
-  """Wrap a value in a dict with the value key."""
-  out_item: Item = {}
-  if value is not None or allow_none_value:
-    out_item[VALUE_KEY] = value
-  if metadata:
-    out_item.update(cast(dict, _wrap_primitive_values(metadata)))
-  return out_item
-
-
-def signal_item(value: Optional[ItemValue] = None,
-                metadata: Optional[dict[str, Union[Item, ItemValue]]] = None) -> Item:
-  """Returns a signal item given signal metadata."""
-  signal_metadata: Optional[dict[str, Union[Item, ItemValue]]] = None
-  if metadata:
-    signal_metadata = {SIGNAL_METADATA_KEY: metadata}
-  return lilac_item(value, signal_metadata)
-
-
 def lilac_span(start: int, end: int) -> Item:
-  """The lilac span value.
-
-  This is useful if you want to use span_value with signal_item, for unit tests.
-  """
-  return {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}
+  """Creates a lilac span item, representing a pointer to a slice of text."""
+  return {VALUE_KEY: {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}}
 
 
 Tflatten = TypeVar('Tflatten', object, np.ndarray)
@@ -339,7 +313,7 @@ def write_items_to_parquet(items: Iterable[Item],
   if not dont_wrap_primitives:
     # NOTE: This is just an optimization since sometimes we know values are already wrapped (e.g.
     # when are the output of a signal udf).
-    items = lilac_items(items)
+    items = (cast(Item, itemize_primitives(item)) for item in items)
 
   arrow_schema = schema_to_arrow_schema(schema)
   out_filename = parquet_filename(filename_prefix, shard_index, num_shards)
