@@ -10,7 +10,7 @@ from typing_extensions import override
 from ..config import CONFIG
 from ..schema import RichData, SignalOut
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
-from .concept import ConceptModel, Example, ExampleIn
+from .concept import DRAFT_MAIN, Concept, ConceptModelManager, Example, ExampleIn
 from .db_concept import (
   ConceptDB,
   ConceptInfo,
@@ -70,10 +70,9 @@ class ConceptDBSuite:
 
   def test_create_concept(self, db_cls: Type[ConceptDB]) -> None:
     db = db_cls()
-    info = ConceptInfo(namespace='test', name='test_concept', type='text')
-    db.create(info)
+    db.create(namespace='test', name='test_concept', type='text')
 
-    assert db.list() == [info]
+    assert db.list() == [ConceptInfo(namespace='test', name='test_concept', type='text', drafts=[])]
 
   def test_add_concept(self, db_cls: Type[ConceptDB]) -> None:
     db = db_cls()
@@ -83,25 +82,27 @@ class ConceptDBSuite:
       ExampleIn(label=False, text='not in concept'),
       ExampleIn(label=True, text='in concept')
     ]
-    db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+    db.create(namespace=namespace, name=concept_name, type='text')
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
     concept = db.get(namespace, concept_name)
 
     assert concept is not None
-    assert concept.namespace == namespace
-    assert concept.concept_name == concept_name
-    assert concept.type == 'text'
-    data = [ex.dict(exclude_none=True) for ex in concept.data.values()]
-    assert data == [{
-      'id': data[0]['id'],
-      'label': False,
-      'text': 'not in concept'
-    }, {
-      'id': data[1]['id'],
-      'label': True,
-      'text': 'in concept'
-    }]
+    print(concept.data)
+
+    key_0 = list(concept.data[DRAFT_MAIN].keys())[0]
+    key_1 = list(concept.data[DRAFT_MAIN].keys())[1]
+    assert concept == Concept(
+      namespace=namespace,
+      concept_name=concept_name,
+      type='text',
+      data={
+        DRAFT_MAIN: {
+          key_0: Example(id=key_0, label=False, text='not in concept'),
+          key_1: Example(id=key_1, label=True, text='in concept')
+        }
+      },
+      version=1)
 
   def test_update_concept(self, db_cls: Type[ConceptDB]) -> None:
     db = db_cls()
@@ -111,7 +112,7 @@ class ConceptDBSuite:
       ExampleIn(label=False, text='not in concept'),
       ExampleIn(label=True, text='in concept')
     ]
-    db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+    db.create(namespace=namespace, name=concept_name, type='text')
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
     concept = db.get(namespace, concept_name)
@@ -131,7 +132,7 @@ class ConceptDBSuite:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
-    db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+    db.create(namespace=namespace, name=concept_name, type='text')
 
     train_data = [
       ExampleIn(label=False, text='not in concept'),
@@ -149,7 +150,7 @@ class ConceptDBSuite:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
-    db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+    db.create(namespace=namespace, name=concept_name, type='text')
 
     train_data = [
       ExampleIn(label=False, text='not in concept'),
@@ -161,9 +162,9 @@ class ConceptDBSuite:
 
     assert concept is not None
 
-    example = list(concept.data.values())[0]
+    example = list(concept.data[DRAFT_MAIN].values())[0]
 
-    db.edit(namespace, concept_name, ConceptUpdate(remove=[example.id]))
+    db.edit(namespace, concept_name, ConceptUpdate(remove=[ExampleRemove(id=example.id)]))
 
     concept = db.get(namespace, concept_name)
 
@@ -175,7 +176,7 @@ class ConceptDBSuite:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
-    db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+    db.create(namespace=namespace, name=concept_name, type='text')
 
     train_data = [
       ExampleIn(label=False, text='not in concept'),
@@ -202,7 +203,7 @@ class ConceptDBSuite:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
-    db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+    db.create(namespace=namespace, name=concept_name, type='text')
 
     train_data = [
       ExampleIn(label=False, text='not in concept'),
@@ -215,17 +216,18 @@ class ConceptDBSuite:
               ConceptUpdate(update=[Example(id='invalid_id', label=False, text='not in concept')]))
 
 
-def _make_test_concept_model(concept_db: ConceptDB, model_db: ConceptModelDB) -> ConceptModel:
+def _make_test_concept_model_manager(concept_db: ConceptDB,
+                                     model_db: ConceptModelDB) -> ConceptModelManager:
   namespace = 'test'
   concept_name = 'test_concept'
-  concept_db.create(ConceptInfo(namespace=namespace, name=concept_name, type='text'))
+  concept_db.create(namespace=namespace, name=concept_name, type='text')
 
   train_data = [
     ExampleIn(label=False, text='not in concept'),
     ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
-  return ConceptModel(
+  return ConceptModelManager(
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
 
@@ -237,7 +239,7 @@ class ConceptModelDBSuite:
                               model_db_cls: Type[ConceptModelDB]) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    model = _make_test_concept_model(concept_db, model_db)
+    model = _make_test_concept_model_manager(concept_db, model_db)
 
     model_db.sync(model)
     retrieved_model = model_db.get(
@@ -249,7 +251,7 @@ class ConceptModelDBSuite:
                       model_db_cls: Type[ConceptModelDB]) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    model = _make_test_concept_model(concept_db, model_db)
+    model = _make_test_concept_model_manager(concept_db, model_db)
 
     assert model_db.in_sync(model) is False
     model_db.sync(model)
@@ -259,7 +261,7 @@ class ConceptModelDBSuite:
                              model_db_cls: Type[ConceptModelDB]) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    model = _make_test_concept_model(concept_db, model_db)
+    model = _make_test_concept_model_manager(concept_db, model_db)
     model_db.sync(model)
     assert model_db.in_sync(model) is True
 
@@ -277,7 +279,7 @@ class ConceptModelDBSuite:
                                       model_db_cls: Type[ConceptModelDB]) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    model = _make_test_concept_model(concept_db, model_db)
+    model = _make_test_concept_model_manager(concept_db, model_db)
     model_db.sync(model)
 
     # Edit the concept.

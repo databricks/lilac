@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from .concepts.concept import Concept, ConceptModel
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
 from .router_utils import RouteErrorHandler
+from .schema import SignalInputType
 
 router = APIRouter(route_class=RouteErrorHandler)
 
@@ -28,10 +29,17 @@ def get_concept(namespace: str, concept_name: str) -> Concept:
   return concept
 
 
+class CreateConceptOptions(BaseModel):
+  """Options for creating a concept."""
+  namespace: str
+  name: str
+  type: SignalInputType
+
+
 @router.post('/create', response_model_exclude_none=True)
-def create_concept(concept_info: ConceptInfo) -> Concept:
+def create_concept(options: CreateConceptOptions) -> Concept:
   """Edit a concept in the database."""
-  return DISK_CONCEPT_DB.create(concept_info)
+  return DISK_CONCEPT_DB.create(options.namespace, options.name, options.type)
 
 
 @router.post('/{namespace}/{concept_name}', response_model_exclude_none=True)

@@ -19,6 +19,9 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
   namespace: str
   concept_name: str
 
+  # The draft version of the concept to use. If not provided, the latest version is used.
+  draft: Optional[str]
+
   _concept_model_db: ConceptModelDB
 
   def __init__(self, **data: Any):
