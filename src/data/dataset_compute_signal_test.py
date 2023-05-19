@@ -123,10 +123,7 @@ class TestSignal(TextSignal):
 
 
 class TestSplitSignal(TextSplitterSignal):
-  """Split documents into sentence by splitting on period, generating entities.
-
-  Also produces the length as a feature.
-  """
+  """Split documents into sentence by splitting on period, generating entities."""
   name = 'test_split'
 
   @override
