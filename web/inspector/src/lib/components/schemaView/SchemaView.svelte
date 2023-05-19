@@ -14,6 +14,7 @@
     TabContent,
     Tabs
   } from 'carbon-components-svelte';
+  import ConceptSchemaBuilder from '../commands/conceptSchemaBuilder/ConceptSchemaBuilder.svelte';
   import QueryBuilder from '../queryBuilder/QueryBuilder.svelte';
   import SchemaField from './SchemaField.svelte';
 
@@ -60,6 +61,7 @@
   <Tabs>
     <Tab label="Schema" />
     <Tab label="Raw Query" />
+    <Tab label="Concepts" />
     <div class="h-full overflow-y-auto" slot="content">
       <TabContent>
         {#if $selectRowsSchema?.isLoading}
@@ -76,6 +78,9 @@
       </TabContent>
       <TabContent>
         <QueryBuilder />
+      </TabContent>
+      <TabContent>
+        <ConceptSchemaBuilder />
       </TabContent>
     </div>
   </Tabs>

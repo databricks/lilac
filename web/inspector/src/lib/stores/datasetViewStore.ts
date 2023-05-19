@@ -81,6 +81,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
 
     addSortBy: (column: Path) =>
       update(state => {
+        if (state.queryOptions.sort_by?.some(c => pathIsEqual(c, column))) return state;
         state.queryOptions.sort_by?.push(column);
         return state;
       }),
