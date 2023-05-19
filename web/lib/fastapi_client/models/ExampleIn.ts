@@ -12,5 +12,6 @@ export type ExampleIn = {
     text?: string;
     img?: Blob;
     origin?: ExampleOrigin;
+    draft?: ('main' | string);
 };
 

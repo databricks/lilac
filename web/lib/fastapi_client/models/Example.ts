@@ -12,6 +12,7 @@ export type Example = {
     text?: string;
     img?: Blob;
     origin?: ExampleOrigin;
+    draft?: ('main' | string);
     id: string;
 };
 

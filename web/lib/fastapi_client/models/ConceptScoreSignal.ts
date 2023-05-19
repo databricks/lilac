@@ -11,5 +11,6 @@ export type ConceptScoreSignal = {
     embedding: 'cohere';
     namespace: string;
     concept_name: string;
+    draft?: string;
 };
 

@@ -5,12 +5,11 @@
 import type { SignalInputType } from './SignalInputType';
 
 /**
- * Information about a concept.
+ * Options for creating a concept.
  */
-export type ConceptInfo = {
+export type CreateConceptOptions = {
     namespace: string;
     name: string;
     type: SignalInputType;
-    drafts: Array<('main' | string)>;
 };
 

@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from .concepts.concept import Concept, ConceptModel
+from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
 from .router_utils import RouteErrorHandler
 from .schema import SignalInputType
@@ -57,6 +57,7 @@ class ScoreExample(BaseModel):
 class ScoreBody(BaseModel):
   """Request body for the score endpoint."""
   examples: list[ScoreExample]
+  draft: str = DRAFT_MAIN
 
 
 class ScoreResponse(BaseModel):
@@ -102,13 +103,16 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
   if not concept:
     raise HTTPException(
       status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
-  model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
-  if not model:
+  manager = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
+  concept_model = manager.get_model(body.draft)
+  if not concept_model:
     raise HTTPException(
       status_code=404,
-      detail=f'Concept model "{namespace}/{concept_name}/{embedding_name}" was not found')
+      detail=
+      f'Concept model "{namespace}/{concept_name}/{embedding_name}" with draft {body.draft} was not found'
+    )
 
-  model_updated = DISK_CONCEPT_MODEL_DB.sync(model)
+  models_updated = DISK_CONCEPT_MODEL_DB.sync(manager)
   # TODO(smilkov): Support images.
   texts = [example.text or '' for example in body.examples]
-  return ScoreResponse(scores=model.score(texts), model_synced=model_updated)
+  return ScoreResponse(scores=concept_model.score(texts), model_synced=models_updated)

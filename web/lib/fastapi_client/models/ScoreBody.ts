@@ -9,5 +9,6 @@ import type { ScoreExample } from './ScoreExample';
  */
 export type ScoreBody = {
     examples: Array<ScoreExample>;
+    draft?: string;
 };
 

@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..concepts.concept import ConceptModel, ExampleIn
+from ..concepts.concept import ConceptModelManager, ExampleIn
 from ..concepts.db_concept import (
   ConceptDB,
   ConceptModelDB,
@@ -132,7 +132,8 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModelManager(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   scores = signal.compute(['a new data point', 'not in concept'])
   expected_scores = [0.801, 0.465]
@@ -161,7 +162,8 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModelManager(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
@@ -195,7 +197,8 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModelManager(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
                    np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))

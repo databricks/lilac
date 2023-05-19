@@ -5,6 +5,7 @@ import type { Concept } from '../models/Concept';
 import type { ConceptInfo } from '../models/ConceptInfo';
 import type { ConceptModelResponse } from '../models/ConceptModelResponse';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
+import type { CreateConceptOptions } from '../models/CreateConceptOptions';
 import type { ScoreBody } from '../models/ScoreBody';
 import type { ScoreResponse } from '../models/ScoreResponse';
 
@@ -89,7 +90,7 @@ export class ConceptsService {
      * @throws ApiError
      */
     public static createConcept(
-        requestBody: ConceptInfo,
+        requestBody: CreateConceptOptions,
     ): CancelablePromise<Concept> {
         return __request(OpenAPI, {
             method: 'POST',

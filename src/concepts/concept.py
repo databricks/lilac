@@ -1,5 +1,5 @@
 """Defines the concept and the concept models."""
-from typing import Iterable, Literal, Optional, Union
+from typing import Iterable, Literal, Optional, OrderedDict, Union
 
 import numpy as np
 from pydantic import BaseModel
