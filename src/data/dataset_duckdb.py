@@ -96,7 +96,7 @@ from .dataset_utils import (
 DEBUG = CONFIG['DEBUG'] == 'true' if 'DEBUG' in CONFIG else False
 UUID_INDEX_FILENAME = 'uuids.npy'
 
-SIGNAL_MANIFEST_SUFFIX = 'signal_manifest.json'
+SIGNAL_MANIFEST_FILENAME = 'signal_manifest.json'
 SOURCE_VIEW_NAME = 'source'
 
 # Sample size for approximating the distinct count of a column.
@@ -149,7 +149,6 @@ class DatasetDuckDB(Dataset):
     self._source_manifest = read_source_manifest(self.dataset_path)
     self._signal_manifests: list[SignalManifest] = []
     self.con = duckdb.connect(database=':memory:')
-    self._create_view('t', self._source_manifest.files)
 
     # Maps a column path and embedding to the vector store. This is lazily generated as needed.
     self._col_vector_stores: dict[PathTuple, VectorStore] = {}
@@ -157,8 +156,7 @@ class DatasetDuckDB(Dataset):
     self._concept_model_db = concept_model_db
     self._manifest_lock = threading.Lock()
 
-  def _create_view(self, view_name: str, files: list[str]) -> None:
-    parquet_files = [os.path.join(self.dataset_path, filename) for filename in files]
+  def _create_view(self, view_name: str, parquet_files: list[str]) -> None:
     self.con.execute(f"""
       CREATE OR REPLACE VIEW "{view_name}" AS (SELECT * FROM read_parquet({parquet_files}));
     """)
@@ -171,18 +169,20 @@ class DatasetDuckDB(Dataset):
     merged_schema = self._source_manifest.data_schema.copy(deep=True)
     self._signal_manifests = []
     # Make a joined view of all the column groups.
-    self._create_view(SOURCE_VIEW_NAME, self._source_manifest.files)
+    self._create_view(SOURCE_VIEW_NAME,
+                      [os.path.join(self.dataset_path, f) for f in self._source_manifest.files])
 
     # Add the signal column groups.
     for root, _, files in os.walk(self.dataset_path):
       for file in files:
-        if not file.endswith(SIGNAL_MANIFEST_SUFFIX):
+        if not file.endswith(SIGNAL_MANIFEST_FILENAME):
           continue
 
         with open_file(os.path.join(root, file)) as f:
           signal_manifest = SignalManifest.parse_raw(f.read())
         self._signal_manifests.append(signal_manifest)
-        self._create_view(signal_manifest.parquet_id, signal_manifest.files)
+        signal_files = [os.path.join(root, f) for f in signal_manifest.files]
+        self._create_view(signal_manifest.parquet_id, signal_files)
 
     merged_schema = merge_schemas([self._source_manifest.data_schema] +
                                   [m.data_schema for m in self._signal_manifests])
@@ -233,16 +233,17 @@ class DatasetDuckDB(Dataset):
 
   def _get_vector_store(self, path: PathTuple) -> VectorStore:
     if path not in self._col_vector_stores:
-      embedding_signal_manifest = next(
+      manifest = next(
         m for m in self._signal_manifests if schema_contains_path(m.data_schema, path))
-      if not embedding_signal_manifest:
+      if not manifest:
         raise ValueError(f'No embedding found for path {path}.')
-      if not embedding_signal_manifest.embedding_filename:
+      if not manifest.embedding_filename:
         raise ValueError(f'Signal manifest for path {path} is not an embedding. '
-                         f'Got signal manifest: {embedding_signal_manifest}')
+                         f'Got signal manifest: {manifest}')
 
-      embedding_index = read_embedding_index(self.dataset_path,
-                                             embedding_signal_manifest.embedding_filename)
+      filepath = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
+                              manifest.embedding_filename)
+      embedding_index = read_embedding_index(filepath)
       # Get all the embeddings and pass it to the vector store.
       vector_store = self.vector_store_cls()
       vector_store.add(embedding_index.keys, embedding_index.embeddings)
@@ -322,8 +323,7 @@ class DatasetDuckDB(Dataset):
 
     enriched_path = _col_destination_path(signal_col)
     spec = _split_path_into_subpaths_of_lists(enriched_path)
-    signal_key = signal.key()
-    signal_out_prefix = signal_filename_prefix(source_path=source_path, signal_key=signal_key)
+    output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
     signal_schema = create_signal_schema(signal, source_path, self.manifest().data_schema)
     enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
     for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
@@ -332,13 +332,13 @@ class DatasetDuckDB(Dataset):
     is_embedding = isinstance(signal, TextEmbeddingSignal)
     embedding_filename = None
     if is_embedding:
-      embedding_filename = write_item_embeddings_to_disk(
-        keys=df[UUID_COLUMN],
-        embeddings=values,
-        output_dir=self.dataset_path,
-        filename_prefix=signal_out_prefix,
-        shard_index=0,
-        num_shards=1)
+      embedding_filename = os.path.basename(
+        write_item_embeddings_to_disk(
+          keys=df[UUID_COLUMN],
+          embeddings=values,
+          output_dir=output_dir,
+          shard_index=0,
+          num_shards=1))
 
       # Replace the embeddings with None so they are not serialized in the parquet file.
       enriched_signal_items = (replace_embeddings_with_none(item) for item in enriched_signal_items)
@@ -346,9 +346,9 @@ class DatasetDuckDB(Dataset):
     enriched_signal_items = list(enriched_signal_items)
     parquet_filename, _ = write_items_to_parquet(
       items=enriched_signal_items,
-      output_dir=self.dataset_path,
+      output_dir=output_dir,
       schema=signal_schema,
-      filename_prefix=signal_out_prefix,
+      filename_prefix='data',
       shard_index=0,
       num_shards=1,
       # The result of select_rows with a signal udf has already wrapped primitive values.
@@ -361,8 +361,7 @@ class DatasetDuckDB(Dataset):
       enriched_path=source_path,
       parquet_id=make_parquet_id(signal, source_path),
       embedding_filename=embedding_filename)
-    signal_manifest_filepath = os.path.join(self.dataset_path,
-                                            signal_manifest_filename(source_path, signal_key))
+    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.json(exclude_none=True, indent=2))
     log(f'Wrote signal manifest to {signal_manifest_filepath}')
@@ -1134,14 +1133,10 @@ def read_source_manifest(dataset_path: str) -> SourceManifest:
     return SourceManifest.parse_raw(f.read())
 
 
-def signal_filename_prefix(source_path: PathTuple, signal_key: str) -> str:
+def _signal_dir(enriched_path: PathTuple) -> str:
   """Get the filename prefix for a signal parquet file."""
-  return f"{'.'.join(map(str, source_path))}.{signal_key}"
-
-
-def signal_manifest_filename(source_path: PathTuple, signal_key: str) -> str:
-  """Get the filename for a signal output."""
-  return f'{signal_filename_prefix(source_path, signal_key)}.{SIGNAL_MANIFEST_SUFFIX}'
+  path_without_wildcards = (p for p in enriched_path if p != PATH_WILDCARD)
+  return os.path.join(*path_without_wildcards)
 
 
 def split_column_name(column: str, split_name: str) -> str:

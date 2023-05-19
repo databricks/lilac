@@ -244,11 +244,9 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
 
 
 def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object],
-                                  output_dir: str, filename_prefix: str, shard_index: int,
-                                  num_shards: int) -> str:
+                                  output_dir: str, shard_index: int, num_shards: int) -> str:
   """Write a set of embeddings to disk."""
-  out_filename = embedding_index_filename(filename_prefix, shard_index, num_shards)
-  index_path = os.path.join(output_dir, out_filename)
+  output_filepath = embedding_index_filename(output_dir, shard_index, num_shards)
 
   # Restrict the keys to only those that are embeddings.
   def embedding_predicate(input: Any) -> bool:
@@ -270,10 +268,10 @@ def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[obje
   np_keys = np.empty(len(flat_keys), dtype=object)
   np_keys[:] = flat_keys
 
-  with open_file(index_path, 'wb') as f:
+  with open_file(output_filepath, 'wb') as f:
     np.savez(f, **{NP_INDEX_KEYS_KWD: np_keys, NP_EMBEDDINGS_KWD: flat_embeddings})
 
-  return out_filename
+  return output_filepath
 
 
 class EmbeddingIndex(BaseModel):
@@ -286,10 +284,8 @@ class EmbeddingIndex(BaseModel):
   embeddings: np.ndarray
 
 
-def read_embedding_index(output_dir: str, filename: str) -> EmbeddingIndex:
+def read_embedding_index(index_path: str) -> EmbeddingIndex:
   """Reads the embedding index for a column from disk."""
-  index_path = os.path.join(output_dir, filename)
-
   if not file_exists(index_path):
     raise ValueError(F'Embedding index does not exist at path {index_path}. '
                      'Please run dataset.compute_signal() on the embedding signal first.')
