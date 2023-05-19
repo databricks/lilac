@@ -39,7 +39,7 @@
     ? querySelectRowsSchema(
         command.namespace,
         command.datasetName,
-        getSelectRowsOptions($datasetViewStore, $datasetSchema.data)
+        getSelectRowsOptions($datasetViewStore)
       )
     : undefined;
 

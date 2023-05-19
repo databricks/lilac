@@ -1,12 +1,4 @@
-import {
-  isColumn,
-  listFields,
-  pathIsEqual,
-  type Column,
-  type LilacSchema,
-  type Path,
-  type SelectRowsOptions
-} from '$lilac';
+import {isColumn, pathIsEqual, type Column, type Path, type SelectRowsOptions} from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
 import {persisted} from './persistedStore';
 
@@ -123,15 +115,8 @@ export function getDatasetViewContext() {
  * Get the options to pass to the selectRows API call
  * based on the current state of the dataset view store
  */
-export function getSelectRowsOptions(
-  datasetViewStore: IDatasetViewStore,
-  schema: LilacSchema
-): SelectRowsOptions {
-  // TODO: Replace with * when supported
-  const columns = [
-    ...listFields(schema).map(f => f.path),
-    ...(datasetViewStore.queryOptions.columns ?? [])
-  ];
+export function getSelectRowsOptions(datasetViewStore: IDatasetViewStore): SelectRowsOptions {
+  const columns = ['*', ...(datasetViewStore.queryOptions.columns ?? [])];
 
   return {
     ...datasetViewStore.queryOptions,

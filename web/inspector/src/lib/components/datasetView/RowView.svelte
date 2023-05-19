@@ -14,9 +14,7 @@
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: selectOptions = $schema.isSuccess
-    ? getSelectRowsOptions($datasetViewStore, $schema.data)
-    : undefined;
+  $: selectOptions = $schema.isSuccess ? getSelectRowsOptions($datasetViewStore) : undefined;
 
   $: selectRowsSchema = selectOptions
     ? querySelectRowsSchema(

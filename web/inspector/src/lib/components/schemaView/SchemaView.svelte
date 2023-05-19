@@ -21,9 +21,7 @@
   const schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   const manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: selectOptions = $schema.isSuccess
-    ? getSelectRowsOptions($datasetViewStore, $schema.data)
-    : undefined;
+  $: selectOptions = $schema.isSuccess ? getSelectRowsOptions($datasetViewStore) : undefined;
 
   // Get the resulting schmema including UDF columns
   $: selectRowsSchema = selectOptions
