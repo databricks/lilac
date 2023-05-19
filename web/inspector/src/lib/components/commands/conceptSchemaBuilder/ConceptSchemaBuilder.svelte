@@ -32,7 +32,7 @@
       const field = $schema.data && getField($schema.data, p);
       return field && !isSignalField(field, $schema.data);
     });
-    console.log(visibleNonSignalColumns);
+
     // If there is only one visible non-signal column, and nothing selected, select it
     if (!selectedField && $schema.isSuccess && visibleNonSignalColumns?.length == 1) {
       selectedField = getField($schema.data, $datasetViewStore.visibleColumns[0]);
