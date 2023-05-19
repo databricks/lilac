@@ -41,6 +41,8 @@ class Signal(abc.ABC, BaseModel):
       """
       if hasattr(signal, 'display_name'):
         schema['title'] = signal.display_name
+      if hasattr(signal, 'name'):
+        schema['properties']['signal_name']['enum'] = [signal.name]
 
   @validator('signal_name', pre=True, always=True)
   def validate_signal_name(cls, signal_name: str) -> str:
