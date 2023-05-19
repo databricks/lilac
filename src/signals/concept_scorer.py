@@ -21,6 +21,13 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
 
   _concept_model_db: ConceptModelDB
 
+  class Config:
+
+    @staticmethod
+    def schema_extra(schema: dict[str, Any], model: type['ConceptScoreSignal']) -> None:
+      """Add the signal name as an enum with only 1 option."""
+      schema['properties']['signal_name']['enum'] = [model.name]
+
   def __init__(self, **data: Any):
     super().__init__(**data)
 

@@ -6,7 +6,7 @@
  * Compute scores along a given concept for documents.
  */
 export type ConceptScoreSignal = {
-    signal_name?: string;
+    signal_name?: 'concept_score';
     split?: 'sentences';
     embedding: 'cohere';
     namespace: string;
