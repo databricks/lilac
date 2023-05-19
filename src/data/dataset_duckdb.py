@@ -588,7 +588,7 @@ class DatasetDuckDB(Dataset):
                 self._path_to_col(signal_column) == sort_cols_after_udf[0])
 
   def _normalize_columns(self, columns: Optional[Sequence[ColumnId]],
-                         schema: Schema) -> Sequence[Column]:
+                         schema: Schema) -> list[Column]:
     """Normalizes the columns to a list of `Column` objects."""
     cols = [column_from_identifier(col) for col in columns or []]
     star_in_cols = any(col.path == ('*',) for col in cols)
