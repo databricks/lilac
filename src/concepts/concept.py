@@ -3,6 +3,7 @@ from typing import Iterable, Optional
 
 import numpy as np
 from pydantic import BaseModel
+from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
 
 from ..embeddings.embedding import get_embed_fn
@@ -73,7 +74,10 @@ class ConceptModel(BaseModel):
 
   def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
-    return self._model.predict_proba(embeddings)[:, 1]
+    try:
+      return self._model.predict_proba(embeddings)[:, 1]
+    except NotFittedError:
+      return np.random.rand(len(embeddings))
 
   def score(self, examples: Iterable[RichData]) -> list[float]:
     """Get the scores for the provided examples."""
@@ -122,7 +126,8 @@ class ConceptModel(BaseModel):
     embedding_matrix = list(concept_embeddings.values())
     new_labels = [concept.data[id].label for id in concept_embeddings.keys()]
 
-    self._model.fit(embedding_matrix, new_labels)
+    if len(set(new_labels)) == 2:
+      self._model.fit(embedding_matrix, new_labels)
     self._embeddings = concept_embeddings
     # Synchronize the model version with the concept version.
     self.version = concept.version
