@@ -207,16 +207,8 @@ class DiskConceptDB(ConceptDB):
       raise ValueError(
         f'Concept with namespace "{info.namespace}" and name "{info.name}" already exists.')
 
-    id_positive = uuid.uuid4().hex
-    data: dict[str, Example] = {}
-    data[id_positive] = Example(
-      id=id_positive, label=True, text='I am a brand new concept! I am excited to be here!')
-    id_negative = uuid.uuid4().hex
-    data[id_negative] = Example(
-      id=id_negative, label=False, text='Random piece of text and not part of the concept.')
-
     concept = Concept(
-      namespace=info.namespace, concept_name=info.name, type=info.type, data=data, version=0)
+      namespace=info.namespace, concept_name=info.name, type=info.type, data={}, version=0)
     with open_file(concept_json_path, 'w') as f:
       f.write(concept.json(exclude_none=True, indent=2))
 
