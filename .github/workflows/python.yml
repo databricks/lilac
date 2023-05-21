@@ -15,6 +15,10 @@ on:
       - '.github/workflows/python.yml'
       - 'scripts/**'
 
+env:
+  # Disable CUDA, otherwise `import torch` fals on CPU-only machines.
+  CUDA_VISIBLE_DEVICES: ''
+
 jobs:
   build:
     runs-on: ubuntu-latest
