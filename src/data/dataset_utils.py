@@ -377,6 +377,7 @@ def flatten_keys(
   return result
 
 
-def embedding_index_filename(prefix: str, shard_index: int, num_shards: int) -> str:
+def embedding_index_filename(output_dir: str, shard_index: int, num_shards: int) -> str:
   """Return the filename for the embedding index."""
-  return f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.npy'
+  npy_filename = f'embeddings-{shard_index:05d}-of-{num_shards:05d}.npy'
+  return os.path.join(output_dir, npy_filename)

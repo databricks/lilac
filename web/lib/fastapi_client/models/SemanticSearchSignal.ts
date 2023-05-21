@@ -11,7 +11,7 @@
 export type SemanticSearchSignal = {
     signal_name?: 'semantic_search';
     split?: 'sentences';
-    embedding: 'cohere';
+    embedding: 'cohere' | 'sbert';
     query: string;
 };
 

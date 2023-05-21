@@ -8,7 +8,7 @@
 export type ConceptScoreSignal = {
     signal_name?: 'concept_score';
     split?: 'sentences';
-    embedding: 'cohere';
+    embedding: 'cohere' | 'sbert';
     namespace: string;
     concept_name: string;
 };

@@ -8,6 +8,6 @@
 export type TextEmbeddingModelSignal = {
     signal_name?: string;
     split?: 'sentences';
-    embedding: 'cohere';
+    embedding: 'cohere' | 'sbert';
 };
 
