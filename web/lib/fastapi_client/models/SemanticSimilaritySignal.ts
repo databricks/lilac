@@ -3,13 +3,13 @@
 /* eslint-disable */
 
 /**
- * Compute semantic similarity for between a document.
+ * Compute semantic similarity for a query and a document.
  *
  * <br>This is done by embedding the query with the same embedding as the document and computing a
  * a similarity score between them.
  */
-export type SemanticSearchSignal = {
-    signal_name?: 'semantic_search';
+export type SemanticSimilaritySignal = {
+    signal_name?: 'semantic_similarity';
     split?: 'sentences';
     embedding: 'cohere' | 'sbert';
     query: string;

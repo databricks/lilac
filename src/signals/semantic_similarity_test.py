@@ -9,7 +9,7 @@ from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
 from ..schema import RichData, SignalOut, VectorKey
-from .semantic_search import SemanticSearchSignal
+from .semantic_similarity import SemanticSimilaritySignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
 EMBEDDINGS: dict[VectorKey, list[float]] = {
@@ -61,12 +61,12 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()
 
 
-def test_semantic_search_compute_keys(mocker: MockerFixture) -> None:
+def test_semantic_similarity_compute_keys(mocker: MockerFixture) -> None:
   vector_store = TestVectorStore()
 
   embed_mock = mocker.spy(TestEmbedding, 'compute')
 
-  signal = SemanticSearchSignal(query='hello', embedding=TestEmbedding.name)
+  signal = SemanticSimilaritySignal(query='hello', embedding=TestEmbedding.name)
   scores = list(signal.vector_compute([('1',), ('2',), ('3',)], vector_store))
 
   # Embeddings should be called only 1 time for the search.
@@ -75,10 +75,10 @@ def test_semantic_search_compute_keys(mocker: MockerFixture) -> None:
   assert scores == [1.0, 0.9, 0.0]
 
 
-def test_semantic_search_compute_data(mocker: MockerFixture) -> None:
+def test_semantic_similarity_compute_data(mocker: MockerFixture) -> None:
   embed_mock = mocker.spy(TestEmbedding, 'compute')
 
-  signal = SemanticSearchSignal(query='hello', embedding=TestEmbedding.name)
+  signal = SemanticSimilaritySignal(query='hello', embedding=TestEmbedding.name)
   # Compute over the text.
   scores = list(signal.compute(STR_EMBEDDINGS.keys()))
 
