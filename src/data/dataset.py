@@ -17,7 +17,7 @@ from pydantic import (
 
 from ..schema import VALUE_KEY, Path, PathTuple, Schema, normalize_path
 from ..signals.concept_scorer import ConceptScoreSignal
-from ..signals.semantic_search import SemanticSearchSignal
+from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
   Signal,
   TextEmbeddingModelSignal,
@@ -95,6 +95,7 @@ class BinaryOp(str, enum.Enum):
   GREATER_EQUAL = 'greater_equal'
   LESS = 'less'
   LESS_EQUAL = 'less_equal'
+  LIKE = 'like'
 
 
 class UnaryOp(str, enum.Enum):
@@ -123,7 +124,7 @@ class GroupsSortBy(str, enum.Enum):
   VALUE = 'value'
 
 
-AllSignalTypes = Union[SemanticSearchSignal, ConceptScoreSignal, TextEmbeddingModelSignal,
+AllSignalTypes = Union[SemanticSimilaritySignal, ConceptScoreSignal, TextEmbeddingModelSignal,
                        TextEmbeddingSignal, TextSplitterSignal, TextSignal, Signal]
 
 

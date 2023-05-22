@@ -133,7 +133,7 @@
         title={tooltipText(span)}
         class="relative bg-yellow-500 text-transparent opacity-0 hover:opacity-30"
         class:bg-green-500={selectedSpan == span}
-        class:opacity-10={span.show}
+        class:opacity-20={span.show}
         class:opacity-40={selectedSpan == span}
         class:hover:opacity-40={span.show}>{text.slice(span.start, span.end)}</span
       >{#if selectedSpan == span && span.concepts?.length}<StringSpanHighlightConceptPicker

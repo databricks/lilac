@@ -36,7 +36,8 @@
     greater: '>',
     greater_equal: '>=',
     in: 'in',
-    exists: 'exists'
+    exists: 'exists',
+    like: 'has'
   };
 
   let datasetViewStore = getDatasetViewContext();

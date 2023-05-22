@@ -211,7 +211,7 @@ class DiskConceptDB(ConceptDB):
 
     concept = Concept(namespace=namespace, concept_name=name, type=type, data={}, version=0)
     with open_file(concept_json_path, 'w') as f:
-      f.write(concept.json(exclude_none=True))
+      f.write(concept.json(exclude_none=True, indent=2))
 
     return concept
 
@@ -258,7 +258,7 @@ class DiskConceptDB(ConceptDB):
     concept.version += 1
 
     with open_file(concept_json_path, 'w') as f:
-      f.write(concept.json(exclude_none=True))
+      f.write(concept.json(exclude_none=True, indent=2))
 
     return concept
 
