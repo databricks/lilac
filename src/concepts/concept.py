@@ -1,5 +1,5 @@
 """Defines the concept and the concept models."""
-from typing import Iterable, Literal, Optional, OrderedDict, Union
+from typing import Iterable, Literal, Optional, Union
 
 import numpy as np
 from pydantic import BaseModel
@@ -52,7 +52,7 @@ class Concept(BaseModel):
   concept_name: str
   # The type of the data format that this concept represents.
   type: SignalInputType
-  data: dict[DraftId, dict[str, Example]]
+  data: dict[str, Example]
   version: int = 0
 
 
@@ -95,8 +95,32 @@ class ConceptModel(BaseModel):
 
   def fit(self, embeddings: np.ndarray, labels: list[bool]) -> None:
     """Fit the model to the provided embeddings and labels."""
-    print(labels)
     self._model.fit(embeddings, labels)
+
+
+def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
+  """Get the examples in the provided draft by overriding the main draft."""
+  draft_examples: dict[str, dict[str, Example]] = {}
+  for id, example in concept.data.items():
+    draft_examples.setdefault(example.draft, {})[example.id] = example
+
+  if draft not in draft_examples:
+    raise ValueError(
+      f'Draft {draft} not found in concept. Found drafts: {list(draft_examples.keys())}')
+
+  if draft == DRAFT_MAIN:
+    return draft_examples[DRAFT_MAIN]
+
+  # Map the text of the draft to its id so we can duplicate across the main draft.
+  draft_text_ids = {example.text: id for id, example in draft_examples[draft].items()}
+
+  # Write each of examples from main to the draft examples only if the text does not appear in the
+  # draft.
+  for id, example in draft_examples[DRAFT_MAIN].items():
+    if example.text not in draft_text_ids:
+      draft_examples[draft][id] = example
+
+  return draft_examples[draft]
 
 
 # TODO(nsthorat): Maybe ConceptModelSuite? ConceptModelSet?
@@ -129,6 +153,31 @@ class ConceptModelManager(BaseModel):
       # The model is up to date.
       return False
 
+    self._compute_embeddings(concept)
+    self._fit_drafts(concept)
+
+    # Synchronize the model version with the concept version.
+    self.version = concept.version
+    return True
+
+  def _fit_drafts(self, concept: Concept) -> None:
+    drafts: set[DraftId] = set()
+    for example in concept.data.values():
+      drafts.add(example.draft)
+
+    # Fit each of the drafts.
+    for draft in drafts:
+      self._concept_models[draft] = ConceptModel(
+        namespace=self.namespace,
+        concept_name=self.concept_name,
+        embedding_name=self.embedding_name,
+        version=-1)
+      examples = draft_examples(concept, draft)
+      embeddings = np.array([self._embeddings[id] for id in examples.keys()])
+      labels = [example.label for example in examples.values()]
+      self._concept_models[draft].fit(embeddings, labels)
+
+  def _compute_embeddings(self, concept: Concept) -> None:
     embedding_signal = get_signal_cls(self.embedding_name)()
     if not isinstance(embedding_signal, TextEmbeddingSignal):
       raise ValueError(f'Only text embedding signals are currently supported for concepts. '
@@ -140,18 +189,17 @@ class ConceptModelManager(BaseModel):
     # Compute the embeddings for the examples with cache miss.
     texts_of_missing_embeddings: dict[str, str] = {}
     draft_ids: dict[DraftId, list[str]] = {}
-    for draft_id, examples in concept.data.items():
-      for id, example in examples.items():
-        if id in self._embeddings:
-          # Cache hit.
-          concept_embeddings[id] = self._embeddings[id]
-        else:
-          # Cache miss.
-          # TODO(smilkov): Support images.
-          texts_of_missing_embeddings[id] = example.text or ''
+    for id, example in concept.data.items():
+      if id in self._embeddings:
+        # Cache hit.
+        concept_embeddings[id] = self._embeddings[id]
+      else:
+        # Cache miss.
+        # TODO(smilkov): Support images.
+        texts_of_missing_embeddings[id] = example.text or ''
 
-        # Map draft ids to the ids of the examples in that draft.
-        draft_ids.setdefault(draft_id, []).append(id)
+      # Map draft ids to the ids of the examples in that draft.
+      draft_ids.setdefault(example.draft, []).append(id)
 
     missing_ids = texts_of_missing_embeddings.keys()
     with DebugTimer('Computing embeddings for examples in concept '
@@ -161,25 +209,3 @@ class ConceptModelManager(BaseModel):
     for id, embedding in zip(missing_ids, missing_embeddings):
       concept_embeddings[id] = embedding
     self._embeddings = concept_embeddings
-
-    # Fit each of the drafts.
-    # NOTE: This could be optimized if we only pass in the diff of the concept, instead of the
-    # entire concept.
-    for draft_id, example_ids in draft_ids.items():
-      draft_embeddings: list[np.ndarray] = []
-      draft_labels: list[bool] = []
-      for example_id in example_ids:
-        # TODO: First create the labels for the base, then override with the labels from the draft.
-        draft_embeddings.append(concept_embeddings[example_id])
-        draft_labels.append(concept.data[draft_id][example_id].label)
-      if draft_id not in self._concept_models:
-        self._concept_models[draft_id] = ConceptModel(
-          namespace=self.namespace,
-          concept_name=self.concept_name,
-          embedding_name=self.embedding_name,
-          version=-1)
-      self._concept_models[draft_id].fit(np.array(draft_embeddings), draft_labels)
-
-    # Synchronize the model version with the concept version.
-    self.version = concept.version
-    return True

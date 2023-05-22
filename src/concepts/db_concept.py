@@ -239,23 +239,21 @@ class DiskConceptDB(ConceptDB):
     self._validate_examples([*inserted_points, *updated_points], concept.type)
 
     for remove_example in removed_points:
-      if remove_example.id not in concept.data[remove_example.draft]:
-        raise ValueError(
-          f'Example with id "{remove_example.id}" and draft "{remove_example.draft}" '
-          'does not exist.')
-      concept.data[remove_example.draft].pop(remove_example.id)
+      if remove_example.id not in concept.data:
+        raise ValueError(f'Example with id "{remove_example.id}" does not exist.')
+      concept.data.pop(remove_example.id)
 
     for example in inserted_points:
       id = uuid.uuid4().hex
-      concept.data.setdefault(example.draft, {})[id] = Example(id=id, **example.dict())
+      concept.data[id] = Example(id=id, **example.dict())
 
     for example in updated_points:
-      if example.id not in concept.data[example.draft]:
-        raise ValueError(f'Example with id "{example.id}" and draft "{example.draft}" '
-                         'does not exist.')
+      if example.id not in concept.data:
+        raise ValueError(f'Example with id "{example.id}" does not exist.')
+
       # Remove the old example and make a new one with a new id to keep it functional.
-      concept.data[example.draft].pop(example.id)
-      concept.data[example.draft][example.id] = example.copy()
+      concept.data.pop(example.id)
+      concept.data[example.id] = example.copy()
 
     concept.version += 1
 

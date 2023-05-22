@@ -1,10 +1,10 @@
 """A signal to compute semantic search for a document."""
-from typing import Any, Callable, Iterable, Optional, Union, cast
+from typing import Any, Iterable, Optional, Union, cast
 
 import numpy as np
 from typing_extensions import override
 
-from ..embeddings.embedding import get_embed_fn
+from ..embeddings.embedding import EmbedFn, get_embed_fn
 from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, Field, ItemValue, RichData, VectorKey
 from .signal import TextEmbeddingModelSignal, TextEmbeddingSignal, get_signal_cls
@@ -21,7 +21,7 @@ class SemanticSearchSignal(TextEmbeddingModelSignal):
 
   query: str
 
-  _embed_fn: Callable[[Iterable[RichData]], np.ndarray]
+  _embed_fn: EmbedFn
   _search_text_embedding: Optional[np.ndarray] = None
 
   def __init__(self, query: Union[str, bytes], embedding: str, **kwargs: dict[Any, Any]):

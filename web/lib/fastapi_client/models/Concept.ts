@@ -12,7 +12,7 @@ export type Concept = {
     namespace?: string;
     concept_name: string;
     type: SignalInputType;
-    data: Record<string, Record<string, Example>>;
+    data: Record<string, Example>;
     version?: number;
 };
 

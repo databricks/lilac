@@ -127,14 +127,12 @@ def test_concept_edits(mocker: MockerFixture) -> None:
     concept_name='concept',
     type='text',
     data={
-      DRAFT_MAIN: {
-        _uuid(b'1').hex: Example(
-          id=_uuid(b'1').hex,
-          label=True,
-          text='hello',
-          origin=ExampleOrigin(
-            dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'))
-      }
+      _uuid(b'1').hex: Example(
+        id=_uuid(b'1').hex,
+        label=True,
+        text='hello',
+        origin=ExampleOrigin(
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'))
     },
     version=1)
 
@@ -164,20 +162,18 @@ def test_concept_edits(mocker: MockerFixture) -> None:
     concept_name='concept',
     type='text',
     data={
-      DRAFT_MAIN: {
-        _uuid(b'1').hex: Example(
-          id=_uuid(b'1').hex,
-          label=True,
-          text='hello',
-          origin=ExampleOrigin(
-            dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1')),
-        _uuid(b'2').hex: Example(
-          id=_uuid(b'2').hex,
-          label=True,
-          text='hello2',
-          origin=ExampleOrigin(
-            dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d2'))
-      }
+      _uuid(b'1').hex: Example(
+        id=_uuid(b'1').hex,
+        label=True,
+        text='hello',
+        origin=ExampleOrigin(
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1')),
+      _uuid(b'2').hex: Example(
+        id=_uuid(b'2').hex,
+        label=True,
+        text='hello2',
+        origin=ExampleOrigin(
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d2'))
     },
     version=2)
 
@@ -196,10 +192,8 @@ def test_concept_edits(mocker: MockerFixture) -> None:
     concept_name='concept',
     type='text',
     data={
-      DRAFT_MAIN: {
-        _uuid(b'1').hex: Example(id=_uuid(b'1').hex, label=False, text='hello'),
-        _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=True, text='hello world')
-      }
+      _uuid(b'1').hex: Example(id=_uuid(b'1').hex, label=False, text='hello'),
+      _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=True, text='hello world')
     },
     version=3)
 
@@ -212,11 +206,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
     namespace='concept_namespace',
     concept_name='concept',
     type='text',
-    data={
-      DRAFT_MAIN: {
-        _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=True, text='hello world')
-      }
-    },
+    data={_uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=True, text='hello world')},
     version=4)
 
   # The concept still exists.

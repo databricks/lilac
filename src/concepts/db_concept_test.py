@@ -39,6 +39,8 @@ EMBEDDING_MAP: dict[str, list[float]] = {
   'not in concept': [1.0, 0.0, 0.0],
   'in concept': [0.9, 0.1, 0.0],
   'a new data point': [0.1, 0.2, 0.3],
+  'a true draft point': [0.4, 0.5, 0.6],
+  'a false draft point': [0.7, 0.8, 0.9],
 }
 
 
@@ -77,6 +79,8 @@ class ConceptDBSuite:
       ConceptInfo(namespace='test', name='test_concept', type='text', drafts=[DRAFT_MAIN])
     ]
 
+    # TODO IMPORTANT: Add a test for adding a draft point to make sure list shows it.
+
   def test_add_example(self, db_cls: Type[ConceptDB]) -> None:
     db = db_cls()
     namespace = 'test'
@@ -92,17 +96,14 @@ class ConceptDBSuite:
 
     assert concept is not None
 
-    key_0 = list(concept.data[DRAFT_MAIN].keys())[0]
-    key_1 = list(concept.data[DRAFT_MAIN].keys())[1]
+    keys = list(concept.data.keys())
     assert concept == Concept(
       namespace=namespace,
       concept_name=concept_name,
       type='text',
       data={
-        DRAFT_MAIN: {
-          key_0: Example(id=key_0, label=False, text='not in concept'),
-          key_1: Example(id=key_1, label=True, text='in concept')
-        }
+        keys[0]: Example(id=keys[0], label=False, text='not in concept'),
+        keys[1]: Example(id=keys[1], label=True, text='in concept')
       },
       version=1)
 
@@ -115,28 +116,18 @@ class ConceptDBSuite:
       ]))
 
     concept = db.get(namespace, concept_name)
-
     assert concept is not None
 
-    key_main_0 = list(concept.data[DRAFT_MAIN].keys())[0]
-    key_main_1 = list(concept.data[DRAFT_MAIN].keys())[1]
-    key_draft_0 = list(concept.data['test_draft'].keys())[0]
-    key_draft_1 = list(concept.data['test_draft'].keys())[1]
+    keys = list(concept.data.keys())
     assert concept == Concept(
       namespace=namespace,
       concept_name=concept_name,
       type='text',
       data={
-        DRAFT_MAIN: {
-          key_main_0: Example(id=key_main_0, label=False, text='not in concept'),
-          key_main_1: Example(id=key_main_1, label=True, text='in concept')
-        },
-        'test_draft': {
-          key_draft_0: Example(
-            id=key_draft_0, label=False, text='really not in concept', draft='test_draft'),
-          key_draft_1: Example(
-            id=key_draft_1, label=True, text='really in concept', draft='test_draft'),
-        }
+        keys[0]: Example(id=keys[0], label=False, text='not in concept'),
+        keys[1]: Example(id=keys[1], label=True, text='in concept'),
+        keys[2]: Example(id=keys[2], label=False, text='really not in concept', draft='test_draft'),
+        keys[3]: Example(id=keys[3], label=True, text='really in concept', draft='test_draft'),
       },
       version=2)
 
@@ -154,36 +145,25 @@ class ConceptDBSuite:
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
     concept = db.get(namespace, concept_name)
-
     assert concept is not None
 
-    key_main_0 = list(concept.data[DRAFT_MAIN].keys())[0]
-    key_main_1 = list(concept.data[DRAFT_MAIN].keys())[1]
-    key_draft_0 = list(concept.data['test_draft'].keys())[0]
-    key_draft_1 = list(concept.data['test_draft'].keys())[1]
-
+    keys = list(concept.data.keys())
     # Edit the first example.
     concept = db.edit(
       namespace, concept_name,
-      ConceptUpdate(update=[Example(id=key_main_0, label=False, text='not in concept, updated')]))
+      ConceptUpdate(update=[Example(id=keys[0], label=False, text='not in concept, updated')]))
 
     assert concept == Concept(
       namespace=namespace,
       concept_name=concept_name,
       type='text',
       data={
-        DRAFT_MAIN: {
-          # The first example should be updated alone.
-          key_main_0: Example(id=key_main_0, label=False, text='not in concept, updated'),
-          key_main_1: Example(id=key_main_1, label=True, text='in concept')
-        },
-        'test_draft': {
-          # Drafts are untouched.
-          key_draft_0: Example(
-            id=key_draft_0, label=False, text='really not in concept', draft='test_draft'),
-          key_draft_1: Example(
-            id=key_draft_1, label=True, text='really in concept', draft='test_draft'),
-        }
+        # The first example should be updated alone.
+        keys[0]: Example(id=keys[0], label=False, text='not in concept, updated'),
+        keys[1]: Example(id=keys[1], label=True, text='in concept'),
+        # Drafts are untouched.
+        keys[2]: Example(id=keys[2], label=False, text='really not in concept', draft='test_draft'),
+        keys[3]: Example(id=keys[3], label=True, text='really in concept', draft='test_draft'),
       },
       version=2)
 
@@ -191,7 +171,7 @@ class ConceptDBSuite:
     concept = db.edit(
       namespace, concept_name,
       ConceptUpdate(update=[
-        Example(id=key_draft_1, label=True, text='really in concept, updated', draft='test_draft')
+        Example(id=keys[3], label=True, text='really in concept, updated', draft='test_draft')
       ]))
 
     assert concept == Concept(
@@ -199,17 +179,12 @@ class ConceptDBSuite:
       concept_name=concept_name,
       type='text',
       data={
-        DRAFT_MAIN: {
-          # Main remains the same.
-          key_main_0: Example(id=key_main_0, label=False, text='not in concept, updated'),
-          key_main_1: Example(id=key_main_1, label=True, text='in concept')
-        },
-        'test_draft': {
-          key_draft_0: Example(
-            id=key_draft_0, label=False, text='really not in concept', draft='test_draft'),
-          key_draft_1: Example(
-            id=key_draft_1, label=True, text='really in concept, updated', draft='test_draft'),
-        }
+        # Main remains the same.
+        keys[0]: Example(id=keys[0], label=False, text='not in concept, updated'),
+        keys[1]: Example(id=keys[1], label=True, text='in concept'),
+        keys[2]: Example(id=keys[2], label=False, text='really not in concept', draft='test_draft'),
+        keys[3]: Example(
+          id=keys[3], label=True, text='really in concept, updated', draft='test_draft'),
       },
       version=3)
 
@@ -244,21 +219,19 @@ class ConceptDBSuite:
       ExampleIn(label=True, text='in concept')
     ]
     concept = db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
+    assert concept is not None
 
-    key_0 = list(concept.data[DRAFT_MAIN].keys())[0]
-    key_1 = list(concept.data[DRAFT_MAIN].keys())[1]
+    keys = list(concept.data.keys())
 
-    concept = db.edit(namespace, concept_name, ConceptUpdate(remove=[ExampleRemove(id=key_0)]))
+    concept = db.edit(namespace, concept_name, ConceptUpdate(remove=[ExampleRemove(id=keys[0])]))
 
     assert concept == Concept(
       namespace=namespace,
       concept_name=concept_name,
       type='text',
       data={
-        DRAFT_MAIN: {
-          # key_0 was removed.
-          key_1: Example(id=key_1, label=True, text='in concept')
-        }
+        # key_0 was removed.
+        keys[1]: Example(id=keys[1], label=True, text='in concept')
       },
       version=2)
 
@@ -275,28 +248,20 @@ class ConceptDBSuite:
     db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
     concept = db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-    key_main_0 = list(concept.data[DRAFT_MAIN].keys())[0]
-    key_main_1 = list(concept.data[DRAFT_MAIN].keys())[1]
-    key_draft_0 = list(concept.data['test_draft'].keys())[0]
-    key_draft_1 = list(concept.data['test_draft'].keys())[1]
+    keys = list(concept.data.keys())
 
     concept = db.edit(namespace, concept_name,
-                      ConceptUpdate(remove=[ExampleRemove(id=key_draft_0, draft='test_draft')]))
+                      ConceptUpdate(remove=[ExampleRemove(id=keys[2], draft='test_draft')]))
 
     assert concept == Concept(
       namespace=namespace,
       concept_name=concept_name,
       type='text',
       data={
-        DRAFT_MAIN: {
-          key_main_0: Example(id=key_main_0, label=False, text='not in concept'),
-          key_main_1: Example(id=key_main_1, label=True, text='in concept')
-        },
-        'test_draft': {
-          # The first example is removed.
-          key_draft_1: Example(
-            id=key_draft_1, label=True, text='really in concept', draft='test_draft'),
-        }
+        keys[0]: Example(id=keys[0], label=False, text='not in concept'),
+        keys[1]: Example(id=keys[1], label=True, text='in concept'),
+        # The first draft example is removed.
+        keys[3]: Example(id=keys[3], label=True, text='really in concept', draft='test_draft'),
       },
       version=2)
 
@@ -314,22 +279,8 @@ class ConceptDBSuite:
     ]
     concept = db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-    key_main_0 = list(concept.data[DRAFT_MAIN].keys())[0]
-    key_draft_0 = list(concept.data['test_draft'].keys())[0]
-
-    with pytest.raises(
-        ValueError, match=f'Example with id "invalid_id" and draft "{DRAFT_MAIN}" does not exist'):
+    with pytest.raises(ValueError, match='Example with id "invalid_id" does not exist'):
       db.edit(namespace, concept_name, ConceptUpdate(remove=[ExampleRemove(id='invalid_id')]))
-
-    with pytest.raises(
-        ValueError,
-        match=f'Example with id "{key_draft_0}" and draft "{DRAFT_MAIN}" does not exist'):
-      db.edit(namespace, concept_name, ConceptUpdate(remove=[ExampleRemove(id=key_draft_0)]))
-
-    with pytest.raises(
-        ValueError, match=f'Example with id "{key_main_0}" and draft "test_draft" does not exist'):
-      db.edit(namespace, concept_name,
-              ConceptUpdate(remove=[ExampleRemove(id=key_main_0, draft='test_draft')]))
 
   def test_edit_before_creation(self, db_cls: Type[ConceptDB]) -> None:
     db = db_cls()
@@ -355,8 +306,7 @@ class ConceptDBSuite:
     ]
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-    with pytest.raises(
-        ValueError, match=f'Example with id "invalid_id" and draft "{DRAFT_MAIN}" does not exist'):
+    with pytest.raises(ValueError, match='Example with id "invalid_id" does not exist'):
       db.edit(namespace, concept_name,
               ConceptUpdate(update=[Example(id='invalid_id', label=False, text='not in concept')]))
 
@@ -390,10 +340,11 @@ class ConceptModelDBSuite:
     retrieved_model = model_db.get(
       namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
-    assert retrieved_model == model
+    assert retrieved_model.get_model(DRAFT_MAIN) == model.get_model(DRAFT_MAIN)
 
   def test_sync_model(self, concept_db_cls: Type[ConceptDB],
                       model_db_cls: Type[ConceptModelDB]) -> None:
+    # TODO(nsthorat): Mock the linear model.
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
     model = _make_test_concept_model_manager(concept_db, model_db)
@@ -420,6 +371,20 @@ class ConceptModelDBSuite:
     model_db.sync(model)
     assert model_db.in_sync(model) is True
 
+    # Make sure drafts cause the model to be out of sync.
+    concept_db.edit(
+      'test', 'test_concept',
+      ConceptUpdate(insert=[
+        ExampleIn(label=True, text='a true draft point', draft='test_draft'),
+        ExampleIn(label=False, text='a false draft point', draft='test_draft')
+      ]))
+
+    # Make sure the model is out of sync.
+    assert model_db.in_sync(model) is False
+
+    model_db.sync(model)
+    assert model_db.in_sync(model) is True
+
   def test_embedding_not_found_in_map(self, concept_db_cls: Type[ConceptDB],
                                       model_db_cls: Type[ConceptModelDB]) -> None:
     concept_db = concept_db_cls()
@@ -435,4 +400,5 @@ class ConceptModelDBSuite:
     assert model_db.in_sync(model) is False
 
     with pytest.raises(ValueError, match='Example "unknown text" not in embedding map'):
+      model_db.sync(model)
       model_db.sync(model)
