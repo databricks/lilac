@@ -1,6 +1,6 @@
 """Loads reddit data from Huggingface."""
 import multiprocessing
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional, Union, cast
 
 import tensorflow as tf
 from pydantic import BaseModel
@@ -34,7 +34,7 @@ class SchemaInfo(BaseModel):
 
 
 def _convert_to_items(hf_dataset_dict: DatasetDict, subreddits: Optional[list[str]],
-                      class_labels: dict[str, list[str]]) -> Iterable[Item]:
+                      class_labels: dict[str, list[str]]) -> Iterable[Optional[Item]]:
   """Convert a huggingface split datasets to an iterable of items."""
   split_names = list(hf_dataset_dict.keys())
   subreddits = [s.lower() for s in subreddits or []]
@@ -54,6 +54,8 @@ def _convert_to_items(hf_dataset_dict: DatasetDict, subreddits: Optional[list[st
       if subreddits:
         item_subreddit = example[HF_SUBREDDIT_COL]
         if item_subreddit.lower() not in subreddits:
+          # Yield None so that the progress bar is accurate.
+          yield None
           continue
 
       yield example
@@ -81,10 +83,14 @@ class RedditDataset(Source):
 
     schema_info = hf_schema_to_schema(hf_dataset_dict, split=None)
 
+    # Items will include a bunch of `None`s so that the progress estimate is accurate.
     items = progress(
       _convert_to_items(hf_dataset_dict, self.subreddits, schema_info.class_labels),
       task_id=task_id,
       estimated_len=schema_info.num_items)
+
+    # Filter out the `None`s.
+    items = cast(Iterable[Item], (item for item in items if item is not None))
 
     filepath, num_items = write_items_to_parquet(
       items=items,
