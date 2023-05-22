@@ -88,7 +88,17 @@ class ConceptDBSuite:
       ConceptInfo(namespace='test', name='test_concept', type='text', drafts=[DRAFT_MAIN])
     ]
 
-    # TODO IMPORTANT: Add a test for adding a draft point to make sure list shows it.
+    # Make sure list with drafts relects the drafts.
+    train_data = [
+      ExampleIn(label=False, text='not in concept', draft='test_draft'),
+      ExampleIn(label=True, text='in concept', draft='test_draft')
+    ]
+    db.edit('test', 'test_concept', ConceptUpdate(insert=train_data))
+
+    assert db.list() == [
+      ConceptInfo(
+        namespace='test', name='test_concept', type='text', drafts=[DRAFT_MAIN, 'test_draft'])
+    ]
 
   def test_add_example(self, db_cls: Type[ConceptDB]) -> None:
     db = db_cls()
@@ -158,9 +168,10 @@ class ConceptDBSuite:
 
     keys = list(concept.data.keys())
     # Edit the first example.
-    concept = db.edit(
+    db.edit(
       namespace, concept_name,
       ConceptUpdate(update=[Example(id=keys[0], label=False, text='not in concept, updated')]))
+    concept = db.get(namespace, concept_name)
 
     assert concept == Concept(
       namespace=namespace,
@@ -177,11 +188,12 @@ class ConceptDBSuite:
       version=2)
 
     # Edit the second example on the draft.
-    concept = db.edit(
+    db.edit(
       namespace, concept_name,
       ConceptUpdate(update=[
         Example(id=keys[3], label=True, text='really in concept, updated', draft='test_draft')
       ]))
+    concept = db.get(namespace, concept_name)
 
     assert concept == Concept(
       namespace=namespace,
@@ -197,8 +209,6 @@ class ConceptDBSuite:
       },
       version=3)
 
-  # TODO: Test validation when you try to edit a point that doesnt exist, wrong draft.
-
   def test_remove_concept(self, db_cls: Type[ConceptDB]) -> None:
     db = db_cls()
     namespace = 'test'
@@ -210,6 +220,7 @@ class ConceptDBSuite:
       ExampleIn(label=True, text='in concept')
     ]
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
+    concept = db.get(namespace, concept_name)
 
     db.remove(namespace, concept_name)
 
@@ -227,12 +238,14 @@ class ConceptDBSuite:
       ExampleIn(label=False, text='not in concept'),
       ExampleIn(label=True, text='in concept')
     ]
-    concept = db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
+    db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
+    concept = db.get(namespace, concept_name)
     assert concept is not None
 
     keys = list(concept.data.keys())
 
-    concept = db.edit(namespace, concept_name, ConceptUpdate(remove=[ExampleRemove(id=keys[0])]))
+    db.edit(namespace, concept_name, ConceptUpdate(remove=[ExampleRemove(id=keys[0])]))
+    concept = db.get(namespace, concept_name)
 
     assert concept == Concept(
       namespace=namespace,
@@ -255,12 +268,14 @@ class ConceptDBSuite:
       ExampleIn(label=True, text='really in concept', draft='test_draft')
     ]
     db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
-    concept = db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
+    db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
+    concept = db.get(namespace, concept_name)
 
     keys = list(concept.data.keys())
 
-    concept = db.edit(namespace, concept_name,
-                      ConceptUpdate(remove=[ExampleRemove(id=keys[2], draft='test_draft')]))
+    db.edit(namespace, concept_name,
+            ConceptUpdate(remove=[ExampleRemove(id=keys[2], draft='test_draft')]))
+    concept = db.get(namespace, concept_name)
 
     assert concept == Concept(
       namespace=namespace,
@@ -286,7 +301,7 @@ class ConceptDBSuite:
       ExampleIn(label=False, text='really not in concept', draft='test_draft'),
       ExampleIn(label=True, text='really in concept', draft='test_draft')
     ]
-    concept = db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
+    db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
     with pytest.raises(ValueError, match='Example with id "invalid_id" does not exist'):
       db.edit(namespace, concept_name, ConceptUpdate(remove=[ExampleRemove(id='invalid_id')]))
@@ -318,6 +333,66 @@ class ConceptDBSuite:
     with pytest.raises(ValueError, match='Example with id "invalid_id" does not exist'):
       db.edit(namespace, concept_name,
               ConceptUpdate(update=[Example(id='invalid_id', label=False, text='not in concept')]))
+
+  def test_merge_draft(self, db_cls: Type[ConceptDB]) -> None:
+    db = db_cls()
+    namespace = 'test'
+    concept_name = 'test_concept'
+    db.create(namespace=namespace, name=concept_name, type='text')
+
+    train_data = [
+      ExampleIn(label=True, text='hello'),
+      ExampleIn(label=False, text='world'),
+      ExampleIn(label=True, text='hello draft 1', draft='draft1'),
+      ExampleIn(label=False, text='world draft 1', draft='draft1'),
+      # Duplicate of main.
+      ExampleIn(label=False, text='hello', draft='draft2'),
+      ExampleIn(label=True, text='world draft 2', draft='draft2'),
+    ]
+    db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
+
+    db.merge_draft(namespace, concept_name, 'draft1')
+
+    concept = db.get(namespace, concept_name)
+    assert concept is not None
+    keys = list(concept.data.keys())
+
+    assert concept.dict() == Concept(
+      namespace='test',
+      concept_name='test_concept',
+      type=SignalInputType.TEXT,
+      data={
+        keys[0]: Example(id=keys[0], label=True, text='hello'),
+        keys[1]: Example(id=keys[1], label=False, text='world'),
+        # Draft examples are merged.
+        keys[2]: Example(id=keys[2], label=True, text='hello draft 1'),
+        keys[3]: Example(id=keys[3], label=False, text='world draft 1'),
+        # Draft 2 is untouched.
+        keys[4]: Example(id=keys[4], label=False, text='hello', draft='draft2'),
+        keys[5]: Example(id=keys[5], label=True, text='world draft 2', draft='draft2'),
+      },
+      version=2).dict()
+
+    db.merge_draft(namespace, concept_name, 'draft2')
+
+    concept = db.get(namespace, concept_name)
+    assert concept is not None
+
+    assert concept == Concept(
+      namespace='test',
+      concept_name='test_concept',
+      type=SignalInputType.TEXT,
+      data={
+        # The first example is a duplicate of the label from the draft, so it is removed.
+        keys[1]: Example(id=keys[1], label=False, text='world'),
+        # Draft examples are merged.
+        keys[2]: Example(id=keys[2], label=True, text='hello draft 1'),
+        keys[3]: Example(id=keys[3], label=False, text='world draft 1'),
+        # Draft examples are merged.
+        keys[4]: Example(id=keys[4], label=False, text='hello'),
+        keys[5]: Example(id=keys[5], label=True, text='world draft 2'),
+      },
+      version=3)
 
 
 def _make_test_concept_model_manager(

@@ -749,9 +749,9 @@ class DatasetDuckDB(Dataset):
 
       if isinstance(signal, ConceptScoreSignal):
         # Make sure the model is in sync.
-        concept_model = self._concept_model_db.get(signal.namespace, signal.concept_name,
+        manager = self._concept_model_db.get(signal.namespace, signal.concept_name,
                                                    signal.embedding)
-        self._concept_model_db.sync(concept_model)
+        self._concept_model_db.sync(manager)
 
       signal_alias = udf_col.alias or _unique_alias(udf_col)
       temp_signal_cols = columns_to_merge[signal_alias]

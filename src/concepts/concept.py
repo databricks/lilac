@@ -55,24 +55,12 @@ class Concept(BaseModel):
   data: dict[str, Example]
   version: int = 0
 
-  def merge_draft(self, draft: DraftId) -> None:
-    """Merges a draft into main."""
-    # Map the text of examples in main so we can remove them if they are duplicates.
-    main_text_ids = {
-      example.text: id for id, example in self.data.items() if example.draft == DRAFT_MAIN
-    }
-
-    draft_examples = {id: example for id, example in self.data.items() if example.draft == draft}
-    for id, example in draft_examples.items():
-      if example.draft == draft:
-        example.draft = DRAFT_MAIN
-
-      # Remove duplicates in main.
-      main_text_id = main_text_ids.get(example.text)
-      if main_text_id:
-        del self.data[main_text_id]
-
-    self.version += 1
+  def drafts(self) -> list[DraftId]:
+    """Gets all the drafts for the concept."""
+    drafts: set[DraftId] = set([DRAFT_MAIN])  # Always return the main draft.
+    for example in self.data.values():
+      drafts.add(example.draft)
+    return list(drafts)
 
 
 class ConceptModel(BaseModel):

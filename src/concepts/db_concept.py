@@ -74,6 +74,11 @@ class ConceptDB(abc.ABC):
     """Remove a concept."""
     pass
 
+  @abc.abstractmethod
+  def merge_draft(self, namespace: str, name: str, draft: DraftId) -> Concept:
+    """Merge a draft concept.."""
+    pass
+
 
 class ConceptModelDB(abc.ABC):
   """Interface for the concept model database."""
@@ -181,14 +186,15 @@ class DiskConceptDB(ConceptDB):
       for file in files:
         if file == CONCEPT_JSON_FILENAME:
           namespace, name = root.split('/')[-2:]
+          concept = cast(Concept, self.get(namespace, name))
+
           concept_infos.append(
             ConceptInfo(
               namespace=namespace,
               name=name,
               # TODO(nsthorat): Generalize this to images.
               type=SignalInputType.TEXT,
-              # TODO: list the drafts.
-              drafts=[DRAFT_MAIN]))
+              drafts=sorted(concept.drafts())))
 
     return concept_infos
 
@@ -257,10 +263,20 @@ class DiskConceptDB(ConceptDB):
 
     concept.version += 1
 
-    with open_file(concept_json_path, 'w') as f:
-      f.write(concept.json(exclude_none=True, indent=2))
+    self._save(concept)
 
     return concept
+
+  def _save(self, concept: Concept) -> None:
+    concept_json_path = _concept_json_path(concept.namespace, concept.concept_name)
+
+    if not file_exists(concept_json_path):
+      raise ValueError(
+        f'Concept with namespace "{concept.namespace}" and name "{concept.concept_name}" '
+        'does not exist. Please call create() first.')
+
+    with open_file(concept_json_path, 'w') as f:
+      f.write(concept.json(exclude_none=True, indent=2))
 
   @override
   def remove(self, namespace: str, name: str) -> None:
@@ -270,6 +286,37 @@ class DiskConceptDB(ConceptDB):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" does not exist.')
 
     delete_file(concept_json_path)
+
+  @override
+  def merge_draft(self, namespace: str, name: str, draft: DraftId) -> Concept:
+    """Merge a draft concept.."""
+    concept = self.get(namespace, name)
+    if not concept:
+      raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" does not exist.')
+
+    if draft == DRAFT_MAIN:
+      return
+
+    # Map the text of examples in main so we can remove them if they are duplicates.
+    main_text_ids = {
+      example.text: id for id, example in concept.data.items() if example.draft == DRAFT_MAIN
+    }
+
+    draft_examples = {id: example for id, example in concept.data.items() if example.draft == draft}
+    for id, example in draft_examples.items():
+      if example.draft == draft:
+        example.draft = DRAFT_MAIN
+
+      # Remove duplicates in main.
+      main_text_id = main_text_ids.get(example.text)
+      if main_text_id:
+        del concept.data[main_text_id]
+
+    concept.version += 1
+
+    self._save(concept)
+
+    return concept
 
 
 # A singleton concept database.

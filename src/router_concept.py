@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel
+from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, DraftId
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
 from .router_utils import RouteErrorHandler
 from .schema import SignalInputType
@@ -44,6 +44,18 @@ def create_concept(options: CreateConceptOptions) -> Concept:
 
 @router.post('/{namespace}/{concept_name}', response_model_exclude_none=True)
 def edit_concept(namespace: str, concept_name: str, change: ConceptUpdate) -> Concept:
+  """Edit a concept in the database."""
+  return DISK_CONCEPT_DB.edit(namespace, concept_name, change)
+
+
+class ConceptMergeDraftOptions(BaseModel):
+  """Example to score along a specific concept."""
+  draft: DraftId
+
+
+@router.post('/{namespace}/{concept_name}/merge_draft', response_model_exclude_none=True)
+def merge_concept_draft(namespace: str, concept_name: str,
+                        options: ConceptMergeDraftOptions) -> None:
   """Edit a concept in the database."""
   return DISK_CONCEPT_DB.edit(namespace, concept_name, change)
 
