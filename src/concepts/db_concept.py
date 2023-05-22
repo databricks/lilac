@@ -289,7 +289,7 @@ class DiskConceptDB(ConceptDB):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" does not exist.')
 
     if draft == DRAFT_MAIN:
-      return
+      return concept
 
     # Map the text of examples in main so we can remove them if they are duplicates.
     main_text_ids = {

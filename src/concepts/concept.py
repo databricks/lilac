@@ -130,7 +130,6 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
   return draft_examples[draft]
 
 
-# TODO(nsthorat): Maybe ConceptModelSuite? ConceptModelSet?
 class ConceptModelManager(BaseModel):
   """A concept model. Stores all concept model drafts and manages syncing."""
   # The concept that this model is for.

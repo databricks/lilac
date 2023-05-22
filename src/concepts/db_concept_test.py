@@ -27,7 +27,6 @@ from .db_concept import (
   ConceptUpdate,
   DiskConceptDB,
   DiskConceptModelDB,
-  ExampleRemove,
 )
 
 ALL_CONCEPT_DBS = [DiskConceptDB]
@@ -248,7 +247,7 @@ class ConceptDBSuite:
 
     keys = list(concept.data.keys())
 
-    db.edit(namespace, concept_name, ConceptUpdate(remove=[ExampleRemove(id=keys[0])]))
+    db.edit(namespace, concept_name, ConceptUpdate(remove=[keys[0]]))
     concept = db.get(namespace, concept_name)
 
     assert concept == Concept(
@@ -274,11 +273,11 @@ class ConceptDBSuite:
     db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
     concept = db.get(namespace, concept_name)
+    assert concept is not None
 
     keys = list(concept.data.keys())
 
-    db.edit(namespace, concept_name,
-            ConceptUpdate(remove=[ExampleRemove(id=keys[2], draft='test_draft')]))
+    db.edit(namespace, concept_name, ConceptUpdate(remove=[keys[2]]))
     concept = db.get(namespace, concept_name)
 
     assert concept == Concept(
@@ -308,7 +307,7 @@ class ConceptDBSuite:
     db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
     with pytest.raises(ValueError, match='Example with id "invalid_id" does not exist'):
-      db.edit(namespace, concept_name, ConceptUpdate(remove=[ExampleRemove(id='invalid_id')]))
+      db.edit(namespace, concept_name, ConceptUpdate(remove=['invalid_id']))
 
   def test_edit_before_creation(self, db_cls: Type[ConceptDB]) -> None:
     db = db_cls()
