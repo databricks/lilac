@@ -9,7 +9,7 @@ from typing_extensions import override
 
 from ..schema import RichData, SignalOut
 from ..signals.signal import TextEmbeddingSignal
-from ..utils import chunks
+from ..utils import chunks, log
 
 # The `all-mpnet-base-v2` model provides the best quality, while `all-MiniLM-L6-v2`` is 5 times
 # faster and still offers good quality. See https://www.sbert.net/docs/pretrained_models.html#sentence-embedding-models/
@@ -38,7 +38,7 @@ class SBERT(TextEmbeddingSignal):
     if torch.backends.mps.is_available():
       self._device = 'mps'
     elif not torch.backends.mps.is_built():
-      print('MPS not available because the current PyTorch install was not built with MPS enabled.')
+      log('MPS not available because the current PyTorch install was not built with MPS enabled.')
     self._model = SentenceTransformer(self.model_name, device=self._device)
 
   def _optimal_batch_size(self) -> int:

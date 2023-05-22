@@ -15,10 +15,6 @@ on:
       - '.github/workflows/python.yml'
       - 'scripts/**'
 
-env:
-  # Disable CUDA, otherwise `import torch` fals on CPU-only machines.
-  CUDA_VISIBLE_DEVICES: ''
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,7 +32,7 @@ jobs:
         # Re-install pytorch for cpu to avoid errors that cuda was not found
         run: |
           ./scripts/setup_py.sh
-          poetry run pip3 install --force-reinstall --pre torch --index-url https://download.pytorch.org/whl/nightly/cpu
+          poetry run pip3 install --force-reinstall --pre torch==2.* --index-url https://download.pytorch.org/whl/nightly/cpu
 
       # We run testing before linting since testing, surprisingly, is much faster.
       - name: Test python
