@@ -45,7 +45,7 @@ class Example(ExampleIn):
 
 
 class Concept(BaseModel):
-  """A concept is a collection of examples. This is the public API."""
+  """A concept is a collection of examples."""
   # The namespace of the concept.
   namespace: str = LOCAL_CONCEPT_NAMESPACE
   # The name of the concept.
@@ -111,12 +111,12 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
   for id, example in concept.data.items():
     draft_examples.setdefault(example.draft, {})[example.id] = example
 
+  if draft == DRAFT_MAIN:
+    return draft_examples.get(DRAFT_MAIN, {})
+
   if draft not in draft_examples:
     raise ValueError(
       f'Draft {draft} not found in concept. Found drafts: {list(draft_examples.keys())}')
-
-  if draft == DRAFT_MAIN:
-    return draft_examples[DRAFT_MAIN]
 
   # Map the text of the draft to its id so we can duplicate across the main draft.
   draft_text_ids = {example.text: id for id, example in draft_examples[draft].items()}
@@ -204,7 +204,6 @@ class ConceptModelManager(BaseModel):
 
     # Compute the embeddings for the examples with cache miss.
     texts_of_missing_embeddings: dict[str, str] = {}
-    draft_ids: dict[DraftId, list[str]] = {}
     for id, example in concept.data.items():
       if id in self._embeddings:
         # Cache hit.
@@ -213,9 +212,6 @@ class ConceptModelManager(BaseModel):
         # Cache miss.
         # TODO(smilkov): Support images.
         texts_of_missing_embeddings[id] = example.text or ''
-
-      # Map draft ids to the ids of the examples in that draft.
-      draft_ids.setdefault(example.draft, []).append(id)
 
     missing_ids = texts_of_missing_embeddings.keys()
     with DebugTimer('Computing embeddings for examples in concept '

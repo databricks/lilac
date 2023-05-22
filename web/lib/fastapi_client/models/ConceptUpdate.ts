@@ -4,7 +4,6 @@
 
 import type { Example } from './Example';
 import type { ExampleIn } from './ExampleIn';
-import type { ExampleRemove } from './ExampleRemove';
 
 /**
  * An update to a concept.
@@ -12,6 +11,6 @@ import type { ExampleRemove } from './ExampleRemove';
 export type ConceptUpdate = {
     insert?: Array<ExampleIn>;
     update?: Array<Example>;
-    remove?: Array<ExampleRemove>;
+    remove?: Array<string>;
 };
 

@@ -11,7 +11,7 @@ from sklearn.linear_model import LogisticRegression
 from typing_extensions import override
 
 from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, Example, ExampleIn, ExampleOrigin
-from .concepts.db_concept import ConceptInfo, ConceptUpdate, ExampleRemove
+from .concepts.db_concept import ConceptInfo, ConceptUpdate
 from .config import CONFIG
 from .router_concept import (
   ConceptModelResponse,
@@ -200,7 +200,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
 
   # Delete the first example.
   url = '/api/v1/concepts/concept_namespace/concept'
-  concept_update = ConceptUpdate(remove=[ExampleRemove(id=_uuid(b'1').hex)])
+  concept_update = ConceptUpdate(remove=[_uuid(b'1').hex])
   response = client.post(url, json=concept_update.dict())
   assert response.status_code == 200
   assert Concept.parse_obj(response.json()) == Concept(

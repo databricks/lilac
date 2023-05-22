@@ -126,9 +126,8 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
   if not concept_model:
     raise HTTPException(
       status_code=404,
-      detail=
-      f'Concept model "{namespace}/{concept_name}/{embedding_name}" with draft {body.draft} was not found'
-    )
+      detail=f'Concept model "{namespace}/{concept_name}/{embedding_name}" with draft {body.draft} '
+      'was not found')
 
   models_updated = DISK_CONCEPT_MODEL_DB.sync(manager)
   # TODO(smilkov): Support images.

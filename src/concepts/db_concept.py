@@ -28,12 +28,6 @@ class ConceptInfo(BaseModel):
   drafts: list[DraftId]
 
 
-class ExampleRemove(BaseModel):
-  """An example to be removed from a draft."""
-  id: str
-  draft: DraftId = DRAFT_MAIN
-
-
 class ConceptUpdate(BaseModel):
   """An update to a concept."""
   # List of examples to be inserted.
@@ -43,7 +37,7 @@ class ConceptUpdate(BaseModel):
   update: Optional[list[Example]] = []
 
   # The ids of the examples to be removed.
-  remove: Optional[list[ExampleRemove]] = []
+  remove: Optional[list[str]] = []
 
 
 class ConceptDB(abc.ABC):
@@ -245,9 +239,9 @@ class DiskConceptDB(ConceptDB):
     self._validate_examples([*inserted_points, *updated_points], concept.type)
 
     for remove_example in removed_points:
-      if remove_example.id not in concept.data:
-        raise ValueError(f'Example with id "{remove_example.id}" does not exist.')
-      concept.data.pop(remove_example.id)
+      if remove_example not in concept.data:
+        raise ValueError(f'Example with id "{remove_example}" does not exist.')
+      concept.data.pop(remove_example)
 
     for example in inserted_points:
       id = uuid.uuid4().hex

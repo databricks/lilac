@@ -748,7 +748,7 @@ class DatasetDuckDB(Dataset):
       signal = cast(Signal, udf_col.signal_udf)
 
       if isinstance(signal, ConceptScoreSignal):
-        # Make sure the model is in sync.
+        # Make sure the manager is in sync.
         manager = self._concept_model_db.get(signal.namespace, signal.concept_name,
                                                    signal.embedding)
         self._concept_model_db.sync(manager)

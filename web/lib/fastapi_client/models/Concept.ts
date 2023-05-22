@@ -6,7 +6,7 @@ import type { Example } from './Example';
 import type { SignalInputType } from './SignalInputType';
 
 /**
- * A concept is a collection of examples. This is the public API.
+ * A concept is a collection of examples.
  */
 export type Concept = {
     namespace?: string;

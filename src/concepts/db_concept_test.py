@@ -82,10 +82,11 @@ class ConceptDBSuite:
 
   def test_create_concept(self, db_cls: Type[ConceptDB]) -> None:
     db = db_cls()
-    db.create(namespace='test', name='test_concept', type='text')
+    db.create(namespace='test', name='test_concept', type=SignalInputType.TEXT)
 
     assert db.list() == [
-      ConceptInfo(namespace='test', name='test_concept', type='text', drafts=[DRAFT_MAIN])
+      ConceptInfo(
+        namespace='test', name='test_concept', type=SignalInputType.TEXT, drafts=[DRAFT_MAIN])
     ]
 
     # Make sure list with drafts relects the drafts.
@@ -97,7 +98,10 @@ class ConceptDBSuite:
 
     assert db.list() == [
       ConceptInfo(
-        namespace='test', name='test_concept', type='text', drafts=[DRAFT_MAIN, 'test_draft'])
+        namespace='test',
+        name='test_concept',
+        type=SignalInputType.TEXT,
+        drafts=[DRAFT_MAIN, 'test_draft'])
     ]
 
   def test_add_example(self, db_cls: Type[ConceptDB]) -> None:
@@ -119,7 +123,7 @@ class ConceptDBSuite:
     assert concept == Concept(
       namespace=namespace,
       concept_name=concept_name,
-      type='text',
+      type=SignalInputType.TEXT,
       data={
         keys[0]: Example(id=keys[0], label=False, text='not in concept'),
         keys[1]: Example(id=keys[1], label=True, text='in concept')
@@ -141,7 +145,7 @@ class ConceptDBSuite:
     assert concept == Concept(
       namespace=namespace,
       concept_name=concept_name,
-      type='text',
+      type=SignalInputType.TEXT,
       data={
         keys[0]: Example(id=keys[0], label=False, text='not in concept'),
         keys[1]: Example(id=keys[1], label=True, text='in concept'),
@@ -176,7 +180,7 @@ class ConceptDBSuite:
     assert concept == Concept(
       namespace=namespace,
       concept_name=concept_name,
-      type='text',
+      type=SignalInputType.TEXT,
       data={
         # The first example should be updated alone.
         keys[0]: Example(id=keys[0], label=False, text='not in concept, updated'),
@@ -198,7 +202,7 @@ class ConceptDBSuite:
     assert concept == Concept(
       namespace=namespace,
       concept_name=concept_name,
-      type='text',
+      type=SignalInputType.TEXT,
       data={
         # Main remains the same.
         keys[0]: Example(id=keys[0], label=False, text='not in concept, updated'),
@@ -213,7 +217,7 @@ class ConceptDBSuite:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
-    db.create(namespace=namespace, name=concept_name, type='text')
+    db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
 
     train_data = [
       ExampleIn(label=False, text='not in concept'),
@@ -232,7 +236,7 @@ class ConceptDBSuite:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
-    db.create(namespace=namespace, name=concept_name, type='text')
+    db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
 
     train_data = [
       ExampleIn(label=False, text='not in concept'),
@@ -250,7 +254,7 @@ class ConceptDBSuite:
     assert concept == Concept(
       namespace=namespace,
       concept_name=concept_name,
-      type='text',
+      type=SignalInputType.TEXT,
       data={
         # key_0 was removed.
         keys[1]: Example(id=keys[1], label=True, text='in concept')
@@ -280,7 +284,7 @@ class ConceptDBSuite:
     assert concept == Concept(
       namespace=namespace,
       concept_name=concept_name,
-      type='text',
+      type=SignalInputType.TEXT,
       data={
         keys[0]: Example(id=keys[0], label=False, text='not in concept'),
         keys[1]: Example(id=keys[1], label=True, text='in concept'),
@@ -293,7 +297,7 @@ class ConceptDBSuite:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
-    db.create(namespace=namespace, name=concept_name, type='text')
+    db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
 
     train_data = [
       ExampleIn(label=False, text='not in concept'),
@@ -322,7 +326,7 @@ class ConceptDBSuite:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
-    db.create(namespace=namespace, name=concept_name, type='text')
+    db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
 
     train_data = [
       ExampleIn(label=False, text='not in concept'),
@@ -338,7 +342,7 @@ class ConceptDBSuite:
     db = db_cls()
     namespace = 'test'
     concept_name = 'test_concept'
-    db.create(namespace=namespace, name=concept_name, type='text')
+    db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
 
     train_data = [
       ExampleIn(label=True, text='hello'),
