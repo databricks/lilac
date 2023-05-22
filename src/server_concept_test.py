@@ -16,6 +16,7 @@ from .config import CONFIG
 from .router_concept import (
   ConceptModelResponse,
   CreateConceptOptions,
+  MergeConceptDraftOptions,
   ScoreBody,
   ScoreExample,
   ScoreResponse,
@@ -218,6 +219,97 @@ def test_concept_edits(mocker: MockerFixture) -> None:
     ConceptInfo(
       namespace='concept_namespace', name='concept', type=SignalInputType.TEXT, drafts=[DRAFT_MAIN])
   ]
+
+
+def test_concept_drafts(mocker: MockerFixture) -> None:
+  mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
+
+  # Create the concept.
+  response = client.post(
+    '/api/v1/concepts/create',
+    json=CreateConceptOptions(
+      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
+
+  # Add examples, some drafts.
+  mock_uuid.side_effect = [_uuid(b'1'), _uuid(b'2'), _uuid(b'3'), _uuid(b'4')]
+  url = '/api/v1/concepts/concept_namespace/concept'
+  concept_update = ConceptUpdate(insert=[
+    ExampleIn(label=True, text='in concept'),
+    ExampleIn(label=False, text='out of concept'),
+    ExampleIn(label=False, text='in concept', draft='test_draft'),
+    ExampleIn(label=False, text='out of concept draft', draft='test_draft')
+  ])
+  response = client.post(url, json=concept_update.dict())
+  assert response.status_code == 200
+
+  # Make sure list shows us the drafts
+  url = '/api/v1/concepts/'
+  response = client.get(url)
+  assert response.status_code == 200
+  assert parse_obj_as(list[ConceptInfo], response.json()) == [
+    ConceptInfo(
+      namespace='concept_namespace',
+      name='concept',
+      type=SignalInputType.TEXT,
+      drafts=[DRAFT_MAIN, 'test_draft'])
+  ]
+
+  # Make sure when we request main, we only get data in main.
+  url = '/api/v1/concepts/concept_namespace/concept'
+  response = client.get(url)
+  assert response.status_code == 200
+  assert Concept.parse_obj(response.json()) == Concept(
+    namespace='concept_namespace',
+    concept_name='concept',
+    type='text',
+    data={
+      # Only main are returned.
+      _uuid(b'1').hex: Example(id=_uuid(b'1').hex, label=True, text='in concept'),
+      _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=False, text='out of concept')
+    },
+    version=1)
+
+  # Make sure when we request the draft, we get the draft data deduped with main.
+  url = '/api/v1/concepts/concept_namespace/concept?draft=test_draft'
+  response = client.get(url)
+  assert response.status_code == 200
+  assert Concept.parse_obj(response.json()) == Concept(
+    namespace='concept_namespace',
+    concept_name='concept',
+    type='text',
+    data={
+      # b'1' is deduped with b'3'.
+      _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=False, text='out of concept'),
+      # ID 3 is a duplicate of main's 1.
+      _uuid(b'3').hex: Example(
+        id=_uuid(b'3').hex, label=False, text='in concept', draft='test_draft'),
+      _uuid(b'4').hex: Example(
+        id=_uuid(b'4').hex, label=False, text='out of concept draft', draft='test_draft')
+    },
+    version=1)
+
+  # Merge the draft.
+  response = client.post(
+    '/api/v1/concepts/concept_namespace/concept/merge_draft',
+    json=MergeConceptDraftOptions(draft='test_draft').dict())
+  assert response.status_code == 200
+
+  # Make sure we get the merged drafts.
+  url = '/api/v1/concepts/concept_namespace/concept'
+  response = client.get(url)
+  assert response.status_code == 200
+  assert Concept.parse_obj(response.json()).dict() == Concept(
+    namespace='concept_namespace',
+    concept_name='concept',
+    type='text',
+    data={
+      # b'1' is deduped with b'3'.
+      _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=False, text='out of concept'),
+      # ID 3 is a duplicate of main's 1.
+      _uuid(b'3').hex: Example(id=_uuid(b'3').hex, label=False, text='in concept'),
+      _uuid(b'4').hex: Example(id=_uuid(b'4').hex, label=False, text='out of concept draft')
+    },
+    version=2).dict()
 
 
 def test_concept_model_sync(mocker: MockerFixture) -> None:

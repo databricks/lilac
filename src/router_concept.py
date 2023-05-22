@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, DraftId
+from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, DraftId, draft_examples
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
 from .router_utils import RouteErrorHandler
 from .schema import SignalInputType
@@ -20,12 +20,18 @@ def get_concepts() -> list[ConceptInfo]:
 
 
 @router.get('/{namespace}/{concept_name}', response_model_exclude_none=True)
-def get_concept(namespace: str, concept_name: str) -> Concept:
+def get_concept(namespace: str,
+                concept_name: str,
+                draft: Optional[DraftId] = DRAFT_MAIN) -> Concept:
   """Get a concept from a database."""
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
   if not concept:
     raise HTTPException(
       status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
+
+  # Only return the examples from the draft.
+  concept.data = draft_examples(concept, draft or DRAFT_MAIN)
+
   return concept
 
 
@@ -48,16 +54,16 @@ def edit_concept(namespace: str, concept_name: str, change: ConceptUpdate) -> Co
   return DISK_CONCEPT_DB.edit(namespace, concept_name, change)
 
 
-class ConceptMergeDraftOptions(BaseModel):
-  """Example to score along a specific concept."""
+class MergeConceptDraftOptions(BaseModel):
+  """Merge a draft into main."""
   draft: DraftId
 
 
 @router.post('/{namespace}/{concept_name}/merge_draft', response_model_exclude_none=True)
 def merge_concept_draft(namespace: str, concept_name: str,
-                        options: ConceptMergeDraftOptions) -> None:
-  """Edit a concept in the database."""
-  return DISK_CONCEPT_DB.edit(namespace, concept_name, change)
+                        options: MergeConceptDraftOptions) -> Concept:
+  """Merge a draft in the concept into main."""
+  return DISK_CONCEPT_DB.merge_draft(namespace, concept_name, options.draft)
 
 
 class ScoreExample(BaseModel):
