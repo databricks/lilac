@@ -1,5 +1,5 @@
 """Defines the concept and the concept models."""
-from typing import Iterable, Literal, Optional, Union
+from typing import Any, Iterable, Literal, Optional, Union
 
 import numpy as np
 from pydantic import BaseModel
@@ -54,6 +54,25 @@ class Concept(BaseModel):
   type: SignalInputType
   data: dict[str, Example]
   version: int = 0
+
+  def merge_draft(self, draft: DraftId) -> None:
+    """Merges a draft into main."""
+    # Map the text of examples in main so we can remove them if they are duplicates.
+    main_text_ids = {
+      example.text: id for id, example in self.data.items() if example.draft == DRAFT_MAIN
+    }
+
+    draft_examples = {id: example for id, example in self.data.items() if example.draft == draft}
+    for id, example in draft_examples.items():
+      if example.draft == draft:
+        example.draft = DRAFT_MAIN
+
+      # Remove duplicates in main.
+      main_text_id = main_text_ids.get(example.text)
+      if main_text_id:
+        del self.data[main_text_id]
+
+    self.version += 1
 
 
 class ConceptModel(BaseModel):
@@ -143,6 +162,14 @@ class ConceptModelManager(BaseModel):
   _embeddings: dict[str, np.ndarray] = {}
   _concept_models: dict[DraftId, ConceptModel] = {}
 
+  def __init__(self,
+               concept_models: Optional[dict[DraftId, ConceptModel]] = {},
+               **kwargs: Any) -> None:
+
+    super().__init__(**kwargs)
+    if concept_models:
+      self._concept_models = concept_models
+
   def get_model(self, draft: DraftId) -> ConceptModel:
     """Get the model for the provided draft."""
     return self._concept_models[draft]
@@ -165,13 +192,14 @@ class ConceptModelManager(BaseModel):
     for example in concept.data.values():
       drafts.add(example.draft)
 
-    # Fit each of the drafts.
-    for draft in drafts:
-      self._concept_models[draft] = ConceptModel(
-        namespace=self.namespace,
-        concept_name=self.concept_name,
-        embedding_name=self.embedding_name,
-        version=-1)
+    # Fit each of the drafts, sort by draft name for deterministic behavior.
+    for draft in sorted(drafts):
+      if draft not in self._concept_models:
+        self._concept_models[draft] = ConceptModel(
+          namespace=self.namespace,
+          concept_name=self.concept_name,
+          embedding_name=self.embedding_name,
+          version=-1)
       examples = draft_examples(concept, draft)
       embeddings = np.array([self._embeddings[id] for id in examples.keys()])
       labels = [example.label for example in examples.values()]

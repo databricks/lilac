@@ -1,16 +1,25 @@
 """Tests for the the database concept."""
 
 from pathlib import Path
-from typing import Generator, Iterable, Type, cast
+from typing import Generator, Iterable, Optional, Type, cast
 
 import numpy as np
 import pytest
+from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..config import CONFIG
 from ..schema import RichData, SignalInputType, SignalOut
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
-from .concept import DRAFT_MAIN, Concept, ConceptModelManager, Example, ExampleIn
+from .concept import (
+  DRAFT_MAIN,
+  Concept,
+  ConceptModel,
+  ConceptModelManager,
+  DraftId,
+  Example,
+  ExampleIn,
+)
 from .db_concept import (
   ConceptDB,
   ConceptInfo,
@@ -311,8 +320,10 @@ class ConceptDBSuite:
               ConceptUpdate(update=[Example(id='invalid_id', label=False, text='not in concept')]))
 
 
-def _make_test_concept_model_manager(concept_db: ConceptDB,
-                                     model_db: ConceptModelDB) -> ConceptModelManager:
+def _make_test_concept_model_manager(
+    concept_db: ConceptDB,
+    model_db: ConceptModelDB,
+    concept_models: Optional[dict[DraftId, ConceptModel]] = {}) -> ConceptModelManager:
   namespace = 'test'
   concept_name = 'test_concept'
   concept_db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
@@ -323,67 +334,176 @@ def _make_test_concept_model_manager(concept_db: ConceptDB,
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
   return ConceptModelManager(
-    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    namespace='test',
+    concept_name='test_concept',
+    embedding_name='test_embedding',
+    concept_models=concept_models)
+
+
+class TestConceptModel(ConceptModel):
+
+  @override
+  def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
+    """Get the scores for the provided embeddings."""
+    return np.array([.1])
+
+  @override
+  def fit(self, embeddings: np.ndarray, labels: list[bool]) -> None:
+    pass
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
 @pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
 class ConceptModelDBSuite:
 
-  def test_save_and_get_model(self, concept_db_cls: Type[ConceptDB],
-                              model_db_cls: Type[ConceptModelDB]) -> None:
+  def test_save_and_get_model_manager(self, concept_db_cls: Type[ConceptDB],
+                                      model_db_cls: Type[ConceptModelDB]) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    model = _make_test_concept_model_manager(concept_db, model_db)
+    manager = _make_test_concept_model_manager(concept_db, model_db)
 
-    model_db.sync(model)
-    retrieved_model = model_db.get(
+    model_db.sync(manager)
+    retrieved_manager = model_db.get(
       namespace='test', concept_name='test_concept', embedding_name='test_embedding')
 
-    assert retrieved_model.get_model(DRAFT_MAIN) == model.get_model(DRAFT_MAIN)
+    assert retrieved_manager.get_model(DRAFT_MAIN) == manager.get_model(DRAFT_MAIN)
 
-  def test_sync_model(self, concept_db_cls: Type[ConceptDB],
-                      model_db_cls: Type[ConceptModelDB]) -> None:
-    # TODO(nsthorat): Mock the linear model.
+  def test_sync_model(self, concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB],
+                      mocker: MockerFixture) -> None:
+
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    model = _make_test_concept_model_manager(concept_db, model_db)
+    model = TestConceptModel(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    score_embeddings_mock = mocker.spy(TestConceptModel, 'score_embeddings')
+    fit_mock = mocker.spy(TestConceptModel, 'fit')
 
-    assert model_db.in_sync(model) is False
-    model_db.sync(model)
-    assert model_db.in_sync(model) is True
+    manager = _make_test_concept_model_manager(
+      concept_db, model_db, concept_models={DRAFT_MAIN: model})
+
+    assert model_db.in_sync(manager) is False
+    assert score_embeddings_mock.call_count == 0
+    assert fit_mock.call_count == 0
+
+    model_db.sync(manager)
+
+    assert model_db.in_sync(manager) is True
+    assert score_embeddings_mock.call_count == 0
+    assert fit_mock.call_count == 1
 
   def test_out_of_sync_model(self, concept_db_cls: Type[ConceptDB],
-                             model_db_cls: Type[ConceptModelDB]) -> None:
+                             model_db_cls: Type[ConceptModelDB], mocker: MockerFixture) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    model = _make_test_concept_model_manager(concept_db, model_db)
-    model_db.sync(model)
-    assert model_db.in_sync(model) is True
+    score_embeddings_mock = mocker.spy(TestConceptModel, 'score_embeddings')
+    fit_mock = mocker.spy(TestConceptModel, 'fit')
+    model = TestConceptModel(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    manager = _make_test_concept_model_manager(
+      concept_db, model_db, concept_models={DRAFT_MAIN: model})
+    model_db.sync(manager)
+    assert model_db.in_sync(manager) is True
+    assert score_embeddings_mock.call_count == 0
+    assert fit_mock.call_count == 1
+
+    (called_model, called_embeddings, called_labels) = fit_mock.call_args_list[-1].args
+    assert called_model == model
+    np.testing.assert_array_equal(
+      called_embeddings, np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']]))
+    assert called_labels == [False, True]
 
     # Edit the concept.
     concept_db.edit('test', 'test_concept',
                     ConceptUpdate(insert=[ExampleIn(label=False, text='a new data point')]))
 
-    # Make sure the model is out of sync.
-    assert model_db.in_sync(model) is False
+    # Make sure the manager is out of sync.
+    assert model_db.in_sync(manager) is False
+    assert score_embeddings_mock.call_count == 0
+    assert fit_mock.call_count == 1
 
-    model_db.sync(model)
-    assert model_db.in_sync(model) is True
+    model_db.sync(manager)
+    assert model_db.in_sync(manager) is True
+    assert score_embeddings_mock.call_count == 0
+    assert fit_mock.call_count == 2
+    # Fit is called again with new points on main only.
+    (called_model, called_embeddings, called_labels) = fit_mock.call_args_list[-1].args
+    assert called_model == model
+    np.testing.assert_array_equal(
+      called_embeddings,
+      np.array([
+        EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept'],
+        EMBEDDING_MAP['a new data point']
+      ]))
+    assert called_labels == [False, True, False]
+
+  def test_out_of_sync_draft_model(self, concept_db_cls: Type[ConceptDB],
+                                   model_db_cls: Type[ConceptModelDB],
+                                   mocker: MockerFixture) -> None:
+    concept_db = concept_db_cls()
+    model_db = model_db_cls(concept_db)
+    score_embeddings_mock = mocker.spy(TestConceptModel, 'score_embeddings')
+    fit_mock = mocker.spy(TestConceptModel, 'fit')
+    model = TestConceptModel(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    draft_model = TestConceptModel(
+      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    manager = _make_test_concept_model_manager(
+      concept_db, model_db, concept_models={
+        DRAFT_MAIN: model,
+        'test_draft': draft_model
+      })
+    model_db.sync(manager)
+    assert model_db.in_sync(manager) is True
+    assert score_embeddings_mock.call_count == 0
+    assert fit_mock.call_count == 1
 
     # Make sure drafts cause the model to be out of sync.
     concept_db.edit(
-      'test', 'test_concept',
+      'test',
+      'test_concept',
       ConceptUpdate(insert=[
         ExampleIn(label=True, text='a true draft point', draft='test_draft'),
-        ExampleIn(label=False, text='a false draft point', draft='test_draft')
+        ExampleIn(label=False, text='a false draft point', draft='test_draft'),
+        # This point exists in main, but we switched the label.
+        ExampleIn(label=False, text='in concept', draft='test_draft'),
       ]))
 
-    # Make sure the model is out of sync.
-    assert model_db.in_sync(model) is False
+    # Make sure the manager is out of sync.
+    assert model_db.in_sync(manager) is False
+    assert score_embeddings_mock.call_count == 0
+    assert fit_mock.call_count == 1
 
-    model_db.sync(model)
-    assert model_db.in_sync(model) is True
+    model_db.sync(manager)
+    assert model_db.in_sync(manager) is True
+    assert score_embeddings_mock.call_count == 0
+    assert fit_mock.call_count == 3  # Fit is called on both the draft, and main.
+
+    # Fit is called again with the same points.
+    ((called_model, called_embeddings, called_labels),
+     (called_draft_model, called_draft_embeddings, called_draft_labels)) = (
+       c.args for c in fit_mock.call_args_list[-2:])
+
+    # The draft model is called with the data from main, and the data from draft.
+    assert called_draft_model == draft_model
+    np.testing.assert_array_equal(
+      called_draft_embeddings,
+      np.array([
+        EMBEDDING_MAP['a true draft point'], EMBEDDING_MAP['a false draft point'],
+        EMBEDDING_MAP['in concept'], EMBEDDING_MAP['not in concept']
+      ]))
+    assert called_draft_labels == [
+      True,
+      False,
+      # This was overriden by the draft.
+      False,
+      False
+    ]
+
+    # The main model was fit without the data from the draft.
+    assert called_model == model
+    np.testing.assert_array_equal(
+      called_embeddings, np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']]))
+    assert called_labels == [False, True]
 
   def test_embedding_not_found_in_map(self, concept_db_cls: Type[ConceptDB],
                                       model_db_cls: Type[ConceptModelDB]) -> None:
