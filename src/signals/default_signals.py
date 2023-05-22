@@ -1,5 +1,6 @@
 """Registers all available default signals."""
 from ..embeddings.cohere import Cohere
+from ..embeddings.sbert import SBERT
 from .concept_scorer import ConceptScoreSignal
 from .pii import PIISignal
 from .semantic_search import SemanticSearchSignal
@@ -20,6 +21,7 @@ def register_default_signals() -> None:
 
   # Embeddings.
   register_signal(Cohere)
+  register_signal(SBERT)
 
   # Text embedding inputs.
   register_signal(SemanticSearchSignal)

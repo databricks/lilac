@@ -42,6 +42,7 @@ gcsfs = "^2023.4.0"
 python-dotenv = "^1.0.0"
 psutil = "^5.9.5"
 types-psutil = "^5.9.5.12"
+sentence-transformers = "^2.2.2"
 
 [tool.poetry.group.dev]  # Deps for development.
 optional = true

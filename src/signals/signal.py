@@ -192,7 +192,7 @@ class TextSignal(Signal):
     # NOTE: The split already exists in the path structure. This means we do not need to provide
     # the signal names as part of the key, which still guarantees uniqueness.
 
-    args_dict = self.dict(exclude_unset=True)
+    args_dict = self.dict(exclude_unset=True, exclude_defaults=True)
     if 'signal_name' in args_dict:
       del args_dict['signal_name']
     if 'split' in args_dict:
