@@ -109,6 +109,7 @@ BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
   BinaryOp.GREATER_EQUAL: '>=',
   BinaryOp.LESS: '<',
   BinaryOp.LESS_EQUAL: '<=',
+  BinaryOp.LIKE: 'ILIKE',
 }
 
 SUPPORTED_OPS_ON_REPEATED: set[FilterOp] = set([UnaryOp.EXISTS])
@@ -1002,6 +1003,8 @@ class DatasetDuckDB(Dataset):
         op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
         filter_val = cast(FeatureValue, filter.value)
         if isinstance(filter_val, str):
+          if filter.op == BinaryOp.LIKE:
+            filter_val = f'%{filter_val}%'
           filter_val = f"'{filter_val}'"
         elif isinstance(filter_val, bytes):
           filter_val = _bytes_to_blob_literal(filter_val)

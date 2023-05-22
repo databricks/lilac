@@ -95,6 +95,7 @@ class BinaryOp(str, enum.Enum):
   GREATER_EQUAL = 'greater_equal'
   LESS = 'less'
   LESS_EQUAL = 'less_equal'
+  LIKE = 'like'
 
 
 class UnaryOp(str, enum.Enum):

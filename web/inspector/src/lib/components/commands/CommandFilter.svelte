@@ -89,7 +89,8 @@
     ['less', 'less than (<)'],
     ['less_equal', 'less or equal (<=)'],
     ['in', 'in'],
-    ['exists', 'exists']
+    ['exists', 'exists'],
+    ['like', 'has']
   ];
 
   function close() {

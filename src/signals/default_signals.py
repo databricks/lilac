@@ -6,6 +6,7 @@ from .pii import PIISignal
 from .semantic_search import SemanticSearchSignal
 from .signal import register_signal
 from .splitters.text_splitter_spacy import SentenceSplitterSpacy
+from .substring_search import SubstringSignal
 from .text_statistics import TextStatisticsSignal
 
 
@@ -18,6 +19,7 @@ def register_default_signals() -> None:
   register_signal(PIISignal)
   register_signal(SentenceSplitterSpacy)
   register_signal(TextStatisticsSignal)
+  register_signal(SubstringSignal)
 
   # Embeddings.
   register_signal(Cohere)
