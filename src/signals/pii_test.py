@@ -19,3 +19,14 @@ def test_pii_compute() -> None:
   expected_spans = text_to_expected_spans(text, ['nik@test.com', 'pii@gmail.com'])
 
   assert emails == [{EMAILS_KEY: expected_spans, NUM_EMAILS_KEY: 2}]
+
+
+def test_pii_case_insensitive() -> None:
+  signal = PIISignal()
+
+  text = 'These are some emails: NIK@Test.com. pII@gmAIL.COM are where emails are read.'
+  emails = list(signal.compute([text]))
+
+  expected_spans = text_to_expected_spans(text, ['NIK@Test.com', 'pII@gmAIL.COM'])
+
+  assert emails == [{EMAILS_KEY: expected_spans, NUM_EMAILS_KEY: 2}]

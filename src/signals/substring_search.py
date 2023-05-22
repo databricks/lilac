@@ -12,7 +12,7 @@ from .signal import Signal
 class SubstringSignal(Signal):
   """Find a substring in a document."""
   name = 'substring_search'
-  display_name = 'Substring search'
+  display_name = 'Substring Search'
   input_type = SignalInputType.TEXT
   compute_type = SignalInputType.TEXT
 
@@ -20,8 +20,8 @@ class SubstringSignal(Signal):
 
   _regex: re.Pattern[str]
 
-  def __init__(self, **kwargs: dict[Any, Any]):
-    super().__init__(**kwargs)
+  def __init__(self, query: str, **kwargs: dict[Any, Any]):
+    super().__init__(query=query, **kwargs)
     self._regex = re.compile(self.query, re.IGNORECASE)
 
   @override
