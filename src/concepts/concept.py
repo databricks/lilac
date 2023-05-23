@@ -109,7 +109,7 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
   """Get the examples in the provided draft by overriding the main draft."""
   draft_examples: dict[str, dict[str, Example]] = {}
   for id, example in concept.data.items():
-    draft_examples.setdefault(example.draft, {})[example.id] = example
+    draft_examples.setdefault(example.draft or DRAFT_MAIN, {})[example.id] = example
 
   if draft == DRAFT_MAIN:
     return draft_examples.get(DRAFT_MAIN, {})
