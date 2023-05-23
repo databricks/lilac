@@ -102,8 +102,8 @@
         hideLabel
         checked={isVisible}
         {disabled}
-        on:check={ev => {
-          if (ev.detail) {
+        on:change={() => {
+          if (!isVisible) {
             datasetViewStore.addVisibleColumn(path);
           } else {
             datasetViewStore.removeVisibleColumn(path);

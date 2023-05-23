@@ -15,6 +15,7 @@
     Tabs
   } from 'carbon-components-svelte';
   import QueryBuilder from '../queryBuilder/QueryBuilder.svelte';
+  import FlattenedField from './FlattenedField.svelte';
   import SchemaField from './SchemaField.svelte';
 
   const datasetViewStore = getDatasetViewContext();
@@ -59,8 +60,22 @@
 
   <Tabs>
     <Tab label="Schema" />
+    <Tab label="Tree View" />
     <Tab label="Raw Query" />
     <div class="h-full overflow-y-auto" slot="content">
+      <TabContent>
+        {#if $selectRowsSchema?.isLoading}
+          <SkeletonText paragraph lines={3} />
+        {:else if $selectRowsSchema?.isSuccess && $selectRowsSchema.data.fields}
+          {#each Object.keys($selectRowsSchema.data.fields) as key (key)}
+            <FlattenedField
+              schema={$selectRowsSchema.data}
+              field={$selectRowsSchema.data.fields[key]}
+              aliasMapping={$aliasMapping?.data}
+            />
+          {/each}
+        {/if}
+      </TabContent>
       <TabContent>
         {#if $selectRowsSchema?.isLoading}
           <SkeletonText paragraph lines={3} />

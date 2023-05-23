@@ -1,5 +1,5 @@
 import type {JSONSchema7} from 'json-schema';
-import type {DataType, Field, Schema, SignalInfo} from '../fastapi_client';
+import type {DataType, Field, Schema, Signal, SignalInfo} from '../fastapi_client';
 import {
   PATH_WILDCARD,
   VALUE_KEY,
@@ -18,12 +18,14 @@ const SCHEMA_FIELD_KEY = '__field__';
 let listFieldsCache = new WeakMap<LilacSchemaField, LilacSchemaField[]>();
 let listValueNodesCache = new WeakMap<LilacValueNode, LilacValueNode[]>();
 
-export type LilacSchemaField = Field & {
+export type LilacSchemaField<S extends Signal = Signal> = Field & {
   path: Path;
   alias?: Path;
   // Overwrite the fields and repeated_field properties to be LilacSchemaField
   repeated_field?: LilacSchemaField;
   fields?: Record<string, LilacSchemaField>;
+  // Overwrite signal type from generic
+  signal?: S;
 };
 export type LilacSchema = LilacSchemaField;
 
