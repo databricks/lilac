@@ -1,5 +1,5 @@
 """Defines the concept and the concept models."""
-from typing import Any, Iterable, Literal, Optional, Union
+from typing import Iterable, Literal, Optional, Union
 
 import numpy as np
 from pydantic import BaseModel
@@ -36,7 +36,7 @@ class ExampleIn(BaseModel):
   img: Optional[bytes]
   origin: Optional[ExampleOrigin]
   # The name of the draft to put the example in. If None, puts it in the main draft.
-  draft: DraftId = DRAFT_MAIN
+  draft: Optional[DraftId] = DRAFT_MAIN
 
 
 class Example(ExampleIn):
@@ -59,8 +59,9 @@ class Concept(BaseModel):
     """Gets all the drafts for the concept."""
     drafts: set[DraftId] = set([DRAFT_MAIN])  # Always return the main draft.
     for example in self.data.values():
-      drafts.add(example.draft)
-    return list(drafts)
+      if example.draft:
+        drafts.add(example.draft)
+    return list(sorted(drafts))
 
 
 class ConceptModel(BaseModel):
@@ -79,7 +80,6 @@ class ConceptModel(BaseModel):
   version: int = -1
 
   # The following fields are excluded from JSON serialization, but still pickleable.
-  _embeddings: dict[str, np.ndarray] = {}
   # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
   _model: LogisticRegression = LogisticRegression(
     class_weight='balanced', C=30, tol=1e-5, warm_start=True, max_iter=1_000, n_jobs=-1)
@@ -118,7 +118,7 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
     raise ValueError(
       f'Draft {draft} not found in concept. Found drafts: {list(draft_examples.keys())}')
 
-  # Map the text of the draft to its id so we can duplicate across the main draft.
+  # Map the text of the draft to its id so we can dedup with main.
   draft_text_ids = {example.text: id for id, example in draft_examples[draft].items()}
 
   # Write each of examples from main to the draft examples only if the text does not appear in the
@@ -130,7 +130,7 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
   return draft_examples[draft]
 
 
-class ConceptModelManager(BaseModel):
+class ConceptModelManager():
   """A concept model. Stores all concept model drafts and manages syncing."""
   # The concept that this model is for.
   namespace: str
@@ -138,11 +138,7 @@ class ConceptModelManager(BaseModel):
 
   # The name of the embedding for this model.
   embedding_name: str
-  version: int = -1
-
-  class Config:
-    arbitrary_types_allowed = True
-    underscore_attrs_are_private = True
+  version: int
 
   # The following fields are excluded from JSON serialization, but still pickleable.
   # Maps a concept id to the embeddings.
@@ -150,15 +146,27 @@ class ConceptModelManager(BaseModel):
   _concept_models: dict[DraftId, ConceptModel] = {}
 
   def __init__(self,
-               concept_models: Optional[dict[DraftId, ConceptModel]] = {},
-               **kwargs: Any) -> None:
+               namespace: str,
+               concept_name: str,
+               embedding_name: str,
+               version: int = -1,
+               concept_models: Optional[dict[DraftId, ConceptModel]] = {}) -> None:
 
-    super().__init__(**kwargs)
+    self.namespace = namespace
+    self.concept_name = concept_name
+    self.embedding_name = embedding_name
+    self.version = version
     if concept_models:
       self._concept_models = concept_models
 
   def get_model(self, draft: DraftId) -> ConceptModel:
     """Get the model for the provided draft."""
+    if draft not in self._concept_models:
+      self._concept_models[draft] = ConceptModel(
+        namespace=self.namespace,
+        concept_name=self.concept_name,
+        embedding_name=self.embedding_name,
+        version=-1)
     return self._concept_models[draft]
 
   def sync(self, concept: Concept) -> bool:
@@ -172,25 +180,21 @@ class ConceptModelManager(BaseModel):
 
     # Synchronize the model version with the concept version.
     self.version = concept.version
+
     return True
 
   def _fit_drafts(self, concept: Concept) -> None:
-    drafts: set[DraftId] = set()
-    for example in concept.data.values():
-      drafts.add(example.draft)
-
     # Fit each of the drafts, sort by draft name for deterministic behavior.
-    for draft in sorted(drafts):
-      if draft not in self._concept_models:
-        self._concept_models[draft] = ConceptModel(
-          namespace=self.namespace,
-          concept_name=self.concept_name,
-          embedding_name=self.embedding_name,
-          version=-1)
+    for draft in concept.drafts():
       examples = draft_examples(concept, draft)
       embeddings = np.array([self._embeddings[id] for id in examples.keys()])
       labels = [example.label for example in examples.values()]
-      self._concept_models[draft].fit(embeddings, labels)
+
+      model = self.get_model(draft)
+      model.fit(embeddings, labels)
+
+      # Synchronize the model version with the concept version.
+      model.version = concept.version
 
   def _compute_embeddings(self, concept: Concept) -> None:
     embedding_signal = get_signal_cls(self.embedding_name)()

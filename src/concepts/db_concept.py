@@ -188,7 +188,7 @@ class DiskConceptDB(ConceptDB):
               name=name,
               # TODO(nsthorat): Generalize this to images.
               type=SignalInputType.TEXT,
-              drafts=sorted(concept.drafts())))
+              drafts=concept.drafts()))
 
     return concept_infos
 
@@ -210,8 +210,7 @@ class DiskConceptDB(ConceptDB):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" already exists.')
 
     concept = Concept(namespace=namespace, concept_name=name, type=type, data={}, version=0)
-    with open_file(concept_json_path, 'w') as f:
-      f.write(concept.json(exclude_none=True, indent=2))
+    self._save(concept)
 
     return concept
 
@@ -264,11 +263,6 @@ class DiskConceptDB(ConceptDB):
   def _save(self, concept: Concept) -> None:
     concept_json_path = _concept_json_path(concept.namespace, concept.concept_name)
 
-    if not file_exists(concept_json_path):
-      raise ValueError(
-        f'Concept with namespace "{concept.namespace}" and name "{concept.concept_name}" '
-        'does not exist. Please call create() first.')
-
     with open_file(concept_json_path, 'w') as f:
       f.write(concept.json(exclude_none=True, indent=2))
 
@@ -292,15 +286,15 @@ class DiskConceptDB(ConceptDB):
       return concept
 
     # Map the text of examples in main so we can remove them if they are duplicates.
-    main_text_ids = {
+    main_text_ids: dict[Optional[str], str] = {
       example.text: id for id, example in concept.data.items() if example.draft == DRAFT_MAIN
     }
 
-    draft_examples = {id: example for id, example in concept.data.items() if example.draft == draft}
-    for id, example in draft_examples.items():
-      if example.draft == draft:
-        example.draft = DRAFT_MAIN
-
+    draft_examples: dict[str, Example] = {
+      id: example for id, example in concept.data.items() if example.draft == draft
+    }
+    for example in draft_examples.values():
+      example.draft = DRAFT_MAIN
       # Remove duplicates in main.
       main_text_id = main_text_ids.get(example.text)
       if main_text_id:

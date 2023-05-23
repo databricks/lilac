@@ -11,6 +11,6 @@ export type ConceptScoreSignal = {
     embedding: 'cohere' | 'sbert';
     namespace: string;
     concept_name: string;
-    draft?: ('main' | string);
+    draft?: string;
 };
 
