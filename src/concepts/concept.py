@@ -1,5 +1,5 @@
 """Defines the concept and the concept models."""
-from typing import Iterable, Literal, Optional, Union
+from typing import Any, Iterable, Literal, Optional, Union
 
 import numpy as np
 from pydantic import BaseModel
@@ -130,7 +130,7 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
   return draft_examples[draft]
 
 
-class ConceptModelManager():
+class ConceptModelManager(BaseModel):
   """A concept model. Stores all concept model drafts and manages syncing."""
   # The concept that this model is for.
   namespace: str
@@ -138,7 +138,11 @@ class ConceptModelManager():
 
   # The name of the embedding for this model.
   embedding_name: str
-  version: int
+  version: int = -1
+
+  class Config:
+    arbitrary_types_allowed = True
+    underscore_attrs_are_private = True
 
   # The following fields are excluded from JSON serialization, but still pickleable.
   # Maps a concept id to the embeddings.
@@ -146,16 +150,10 @@ class ConceptModelManager():
   _concept_models: dict[DraftId, ConceptModel] = {}
 
   def __init__(self,
-               namespace: str,
-               concept_name: str,
-               embedding_name: str,
-               version: int = -1,
-               concept_models: Optional[dict[DraftId, ConceptModel]] = {}) -> None:
+               concept_models: Optional[dict[DraftId, ConceptModel]] = {},
+               **kwargs: Any) -> None:
 
-    self.namespace = namespace
-    self.concept_name = concept_name
-    self.embedding_name = embedding_name
-    self.version = version
+    super().__init__(**kwargs)
     if concept_models:
       self._concept_models = concept_models
 
