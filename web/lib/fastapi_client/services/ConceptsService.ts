@@ -144,6 +144,7 @@ export class ConceptsService {
      * @param namespace
      * @param conceptName
      * @param embeddingName
+     * @param draft
      * @param syncModel
      * @returns ConceptModelResponse Successful Response
      * @throws ApiError
@@ -152,6 +153,7 @@ export class ConceptsService {
         namespace: string,
         conceptName: string,
         embeddingName: string,
+        draft?: ('main' | string),
         syncModel: boolean = false,
     ): CancelablePromise<ConceptModelResponse> {
         return __request(OpenAPI, {
@@ -163,6 +165,7 @@ export class ConceptsService {
                 'embedding_name': embeddingName,
             },
             query: {
+                'draft': draft,
                 'sync_model': syncModel,
             },
             errors: {
