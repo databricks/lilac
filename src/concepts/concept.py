@@ -138,7 +138,7 @@ class ConceptModelManager(BaseModel):
 
   # The name of the embedding for this model.
   embedding_name: str
-  version: int
+  version: int = -1
 
   class Config:
     arbitrary_types_allowed = True
@@ -153,10 +153,9 @@ class ConceptModelManager(BaseModel):
                concept_models: Optional[dict[DraftId, ConceptModel]] = {},
                **kwargs: Any) -> None:
 
+    super().__init__(**kwargs)
     if concept_models:
       self._concept_models = concept_models
-
-    super().__init__(**kwargs)
 
   def get_model(self, draft: DraftId) -> ConceptModel:
     """Get the model for the provided draft."""
