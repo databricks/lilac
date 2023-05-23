@@ -115,7 +115,7 @@ class TaskManager():
 
     task_info = self._tasks[task_id]
     task_future = self._dask_client.submit(
-      functools.partial(_execute_task, task, task_info), *args, key=task_id)
+      functools.partial(_execute_task, task, task_info, task_id), *args, key=task_id)
     task_future.add_done_callback(
       lambda task_future: self._set_task_completed(task_id, task_future))
 
@@ -130,13 +130,8 @@ def task_manager() -> TaskManager:
   return TaskManager()
 
 
-# The task definition for a worker.
-WORKER_TASK_INFO: TaskInfo
-
-
-def _execute_task(task: Task, task_info: TaskInfo, *args: Any) -> None:
-  global WORKER_TASK_INFO
-  WORKER_TASK_INFO = task_info
+def _execute_task(task: Task, task_info: TaskInfo, task_id: str, *args: Any) -> None:
+  get_worker().state.tasks[task_id].annotations['task_info'] = task_info
   task(*args)
 
 
@@ -161,8 +156,10 @@ def progress(it: Iterable[TProgress],
   emit_every = int(estimated_len * emit_every_frac)
   emit_every = max(1, emit_every)
 
+  task_info: TaskInfo = get_worker().state.tasks[task_id].annotations['task_info']
+
   it_idx = 0
-  for t in tqdm(it, desc=WORKER_TASK_INFO.name, total=estimated_len):
+  for t in tqdm(it, desc=task_info.name, total=estimated_len):
     if it_idx % emit_every == 0:
       set_worker_task_progress(task_id, float(it_idx / estimated_len))
     it_idx += 1
