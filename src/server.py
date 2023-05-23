@@ -73,11 +73,12 @@ def read_index() -> str:
     return f.read()
 
 
-class EndpointFilter(logging.Filter):
+class GetTasksFilter(logging.Filter):
+  """Task filter for /tasks."""
 
   def filter(self, record: logging.LogRecord) -> bool:
+    """Filters out /api/v1/tasks/ from the logs."""
     return record.getMessage().find('/api/v1/tasks/') == -1
 
 
-# Filter out /endpoint
-logging.getLogger('uvicorn.access').addFilter(EndpointFilter())
+logging.getLogger('uvicorn.access').addFilter(GetTasksFilter())
