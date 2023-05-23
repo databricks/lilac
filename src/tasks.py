@@ -134,7 +134,7 @@ def task_manager() -> TaskManager:
 WORKER_TASK_INFO: TaskInfo
 
 
-def _execute_task(task: Task, task_info: TaskInfo, *args) -> None:
+def _execute_task(task: Task, task_info: TaskInfo, *args: Any) -> None:
   global WORKER_TASK_INFO
   WORKER_TASK_INFO = task_info
   task(*args)
