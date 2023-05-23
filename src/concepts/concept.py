@@ -140,6 +140,10 @@ class ConceptModelManager(BaseModel):
   embedding_name: str
   version: int
 
+  class Config:
+    arbitrary_types_allowed = True
+    underscore_attrs_are_private = True
+
   # The following fields are excluded from JSON serialization, but still pickleable.
   # Maps a concept id to the embeddings.
   _embeddings: dict[str, np.ndarray] = {}
@@ -147,12 +151,12 @@ class ConceptModelManager(BaseModel):
 
   def __init__(self,
                concept_models: Optional[dict[DraftId, ConceptModel]] = {},
-               *kwargs: Any) -> None:
+               **kwargs: Any) -> None:
 
     if concept_models:
       self._concept_models = concept_models
 
-    super().__init__(*kwargs)
+    super().__init__(**kwargs)
 
   def get_model(self, draft: DraftId) -> ConceptModel:
     """Get the model for the provided draft."""
