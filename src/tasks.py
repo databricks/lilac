@@ -12,6 +12,7 @@ import psutil
 from dask.distributed import Client, Variable
 from distributed import Future, get_worker
 from pydantic import BaseModel
+from tqdm import tqdm
 
 from .utils import log
 
@@ -112,7 +113,9 @@ class TaskManager():
     """Create a unique ID for a task."""
     log(f'Scheduling task "{task_id}": "{self._tasks[task_id].name}".')
 
-    task_future = self._dask_client.submit(task, *args, key=task_id)
+    task_info = self._tasks[task_id]
+    task_future = self._dask_client.submit(
+      functools.partial(_execute_task, task, task_info), *args, key=task_id)
     task_future.add_done_callback(
       lambda task_future: self._set_task_completed(task_id, task_future))
 
@@ -125,6 +128,16 @@ class TaskManager():
 def task_manager() -> TaskManager:
   """The global singleton for the task manager."""
   return TaskManager()
+
+
+# The task definition for a worker.
+WORKER_TASK_INFO: TaskInfo
+
+
+def _execute_task(task: Task, task_info: TaskInfo, *args) -> None:
+  global WORKER_TASK_INFO
+  WORKER_TASK_INFO = task_info
+  task(*args)
 
 
 def _progress_event_topic(task_id: TaskId) -> Variable:
@@ -149,7 +162,7 @@ def progress(it: Iterable[TProgress],
   emit_every = max(1, emit_every)
 
   it_idx = 0
-  for t in it:
+  for t in tqdm(it, desc=WORKER_TASK_INFO.name, total=estimated_len):
     if it_idx % emit_every == 0:
       set_worker_task_progress(task_id, float(it_idx / estimated_len))
     it_idx += 1

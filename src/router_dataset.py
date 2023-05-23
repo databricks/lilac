@@ -114,8 +114,7 @@ def compute_signal_column(namespace: str, dataset_name: str,
 
   path_str = '.'.join(map(str, options.leaf_path))
   task_id = task_manager().task_id(
-    name=f'Compute signal "{options.signal.name}" on "{path_str}" '
-    f'in dataset "{namespace}/{dataset_name}"',
+    name=f'[{namespace}/{dataset_name}] Compute signal "{options.signal.name}" on "{path_str}"',
     description=f'Config: {options.signal}')
   task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name, options.dict(),
                          task_id)
