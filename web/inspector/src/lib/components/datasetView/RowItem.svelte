@@ -15,7 +15,7 @@
   let datasetViewStore = getDatasetViewContext();
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
 
-  // Get the resulting schmema including UDF columns
+  // Get the resulting schema including UDF columns
   $: selectRowsSchema = selectOptions
     ? querySelectRowsSchema(
         $datasetViewStore.namespace,

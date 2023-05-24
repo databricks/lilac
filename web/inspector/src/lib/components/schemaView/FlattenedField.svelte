@@ -58,7 +58,7 @@
     [];
   $: isFiltered = filters.length > 0;
 
-  // // Find all the child paths for a given field.
+  // Find all the child paths for a given field.
   function childFields(field?: Lilac.LilacSchemaField): Lilac.LilacSchemaField[] {
     if (field?.repeated_field) return childFields(field.repeated_field);
     if (!field?.fields) return [];
