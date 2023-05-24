@@ -11,6 +11,7 @@ import threading
 import time
 from asyncio import AbstractEventLoop
 from concurrent.futures import Executor, ThreadPoolExecutor
+from datetime import timedelta
 from functools import partial, wraps
 from typing import IO, Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
 
@@ -234,3 +235,19 @@ class DebugTimer:
   def __exit__(self, *args: list[Any]) -> None:
     """Stop the timer and print the elapsed time."""
     log(f'{self.name} took {(time.perf_counter() - self.start):.3f}s.')
+
+
+def pretty_timedelta(delta: timedelta) -> str:
+  """Pretty-prints a `timedelta`."""
+  seconds = delta.total_seconds()
+  days, seconds = divmod(seconds, 86400)
+  hours, seconds = divmod(seconds, 3600)
+  minutes, seconds = divmod(seconds, 60)
+  if days > 0:
+    return '%dd%dh%dm%ds' % (days, hours, minutes, seconds)
+  elif hours > 0:
+    return '%dh%dm%ds' % (hours, minutes, seconds)
+  elif minutes > 0:
+    return '%dm%ds' % (minutes, seconds)
+  else:
+    return '%ds' % (seconds,)

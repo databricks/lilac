@@ -16,7 +16,7 @@ from distributed import Future, get_client, get_worker
 from pydantic import BaseModel, parse_obj_as
 from tqdm import tqdm
 
-from .utils import log
+from .utils import log, pretty_timedelta
 
 TaskId = str
 # ID for the step of a task.
@@ -131,6 +131,13 @@ class TaskManager():
     return task_id
 
   def _set_task_completed(self, task_id: TaskId, task_future: Future) -> None:
+    end_timestamp = datetime.now().isoformat()
+    self._tasks[task_id].end_timestamp = end_timestamp
+
+    elapsed = datetime.fromisoformat(end_timestamp) - datetime.fromisoformat(
+      self._tasks[task_id].start_timestamp)
+    elapsed_formatted = pretty_timedelta(elapsed)
+
     if task_future.status == 'error':
       self._tasks[task_id].status = TaskStatus.ERROR
       tb = traceback.format_tb(task_future.traceback())
@@ -143,15 +150,10 @@ class TaskManager():
       loop.run_until_complete(self._update_tasks())
       self._tasks[task_id].status = TaskStatus.COMPLETED
       self._tasks[task_id].progress = 1.0
-      self._tasks[task_id].message = 'Completed'
+      self._tasks[task_id].message = f'Completed in {elapsed_formatted}'
 
-    end_timestamp = datetime.now().isoformat()
-    self._tasks[task_id].end_timestamp = end_timestamp
-
-    elapsed = datetime.fromisoformat(end_timestamp) - datetime.fromisoformat(
-      self._tasks[task_id].start_timestamp)
     log(f'Task completed "{task_id}": "{self._tasks[task_id].name}" in '
-        f'{_pretty_timedelta(elapsed)}.')
+        f'{elapsed_formatted}.')
 
   def execute(self, task_id: str, task: Task, *args: Any) -> None:
     """Create a unique ID for a task."""
@@ -266,32 +268,17 @@ def set_worker_task_progress(task_step_id: TaskStepId, it_idx: int, elapsed_sec:
   This method does not exist on the TaskManager as it is meant to be a standalone method used by
   workers running tasks on separate processes so does not have access to task manager state.
   """
-  progress = float(it_idx / estimated_len)
+  progress = float(it_idx) / estimated_len
   task_id, step_id = task_step_id
   steps = get_worker_steps(task_id)
   steps[step_id].progress = progress
 
   # 1748/1748 [elapsed 00:16<00:00, 106.30 ex/s]
-  elapsed = f'{_pretty_timedelta(timedelta(seconds=elapsed_sec))}'
+  elapsed = f'{pretty_timedelta(timedelta(seconds=elapsed_sec))}'
   if it_idx != estimated_len:
     # Only show estimated when in progress.
-    elapsed = f'{elapsed} < {_pretty_timedelta(timedelta(seconds=estimated_total_sec))}'
+    elapsed = f'{elapsed} < {pretty_timedelta(timedelta(seconds=estimated_total_sec))}'
   steps[step_id].details = (f'{it_idx}/{estimated_len} '
                             f'[{elapsed}, {it_per_sec:.2f} ex/s]')
 
   set_worker_steps(task_id, steps)
-
-
-def _pretty_timedelta(delta: timedelta) -> str:
-  seconds = delta.total_seconds()
-  days, seconds = divmod(seconds, 86400)
-  hours, seconds = divmod(seconds, 3600)
-  minutes, seconds = divmod(seconds, 60)
-  if days > 0:
-    return '%dd%dh%dm%ds' % (days, hours, minutes, seconds)
-  elif hours > 0:
-    return '%dh%dm%ds' % (hours, minutes, seconds)
-  elif minutes > 0:
-    return '%dm%ds' % (minutes, seconds)
-  else:
-    return '%ds' % (seconds,)

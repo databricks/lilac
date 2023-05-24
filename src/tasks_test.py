@@ -32,7 +32,7 @@ async def test_task_manager(test_client: Client) -> None:
       )
     })
 
-  it_len = 3
+  it_len = 4
 
   def _test_task() -> None:
     Event('start').wait()
@@ -59,7 +59,7 @@ async def test_task_manager(test_client: Client) -> None:
   Event('start').set()
   Event('started').wait()
 
-  for i in range(len(test_progresses)):
+  for i in range(it_len):
     Event(f'send-progress-{i}').set()
     Event(f'recv-progress-{i}').wait()
 
@@ -68,7 +68,7 @@ async def test_task_manager(test_client: Client) -> None:
     start = time.time()
     timeout = .2
     while not ((await task_manager.manifest()).tasks[task_id].progress
-               == test_progresses[i]) and time.time() - start < timeout:
+               == float(i) / it_len) and time.time() - start < timeout:
       time.sleep(.01)
 
     manifest = await task_manager.manifest()
@@ -77,7 +77,7 @@ async def test_task_manager(test_client: Client) -> None:
         task_id: TaskInfo(
           name='test_task',
           status=TaskStatus.PENDING,
-          progress=test_progresses[i],
+          progress=float(i) / it_len,
           description='test_description',
           start_timestamp=manifest.tasks[task_id].start_timestamp,
           end_timestamp=None,
