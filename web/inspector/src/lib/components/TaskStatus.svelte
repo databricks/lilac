@@ -63,7 +63,7 @@
             <ProgressBar
               labelText={task.message || ''}
               helperText={task.status != 'completed' ? task.details : ''}
-              value={task.status != 'completed' ? task.step_progress || undefined : 1.0}
+              value={task.step_progress == null ? undefined : task.step_progress}
               max={1.0}
               size={'sm'}
               status={task.status === 'completed' ? 'finished' : 'active'}

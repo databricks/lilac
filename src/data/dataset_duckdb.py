@@ -279,37 +279,37 @@ class DatasetDuckDB(Dataset):
 
     new_path = source_path
 
-    new_steps: list[TaskStepInfo] = []
-    new_step_id = 0
     signals_to_compute: list[tuple[PathTuple, Signal]] = []
     if isinstance(signal, TextSignal):
       split_signal = signal.get_split_signal()
       if split_signal:
         new_path = (*new_path, split_signal.key(), PATH_WILDCARD)
-        signals_to_compute.append((new_path, split_signal))
         if new_path not in self.manifest().data_schema.leafs:
-          new_steps.append(TaskStepInfo())
-          new_step_id += 1
+          if not compute_dependencies:
+            raise ValueError(f'Signal "{signal.key()}" is not computed over '
+                             f'{source_path}. Please run `dataset.compute_signal` over '
+                             f'{source_path} first.')
+          signals_to_compute.append((new_path, split_signal))
 
       if isinstance(signal, TextEmbeddingModelSignal):
         embedding_signal = signal.get_embedding_signal()
         if embedding_signal:
           new_path = (*new_path, embedding_signal.key())
-          signals_to_compute.append((new_path, embedding_signal))
           if new_path not in self.manifest().data_schema.leafs:
-            new_steps.append(TaskStepInfo())
-            new_step_id += 1
+            if not compute_dependencies:
+              raise ValueError(f'Signal "{signal.key()}" is not computed over '
+                               f'{source_path}. Please run `dataset.compute_signal` over '
+                               f'{source_path} first.')
+            signals_to_compute.append((new_path, embedding_signal))
 
+    new_steps = len(signals_to_compute)
     # Setup the task steps so the task progress indicator knows the number of steps before they are
     # computed.
     if task_step_id:
       (task_id, step_id) = task_step_id
-      out_step_id = step_id
-      if signals_to_compute and compute_dependencies and new_steps:
+      if new_steps:
         # Make a step for the parent.
-        new_steps.append(TaskStepInfo())
-        set_worker_steps(task_id, new_steps)
-        out_step_id = new_step_id
+        set_worker_steps(task_id, [TaskStepInfo() for i in range(new_steps + 1)])
 
     for i, (new_path, signal) in enumerate(signals_to_compute):
       if new_path not in self.manifest().data_schema.leafs:
@@ -323,7 +323,7 @@ class DatasetDuckDB(Dataset):
     if is_value_path:
       new_path = (*new_path, VALUE_KEY)
 
-    return (new_path, (task_id, out_step_id) if task_step_id else None)
+    return (new_path, (task_id, step_id + new_steps) if task_step_id else None)
 
   @override
   def compute_signal(self,
