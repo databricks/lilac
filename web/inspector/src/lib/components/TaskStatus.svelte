@@ -92,5 +92,6 @@
   }
   :global(.task-button .bx--popover-contents) {
     width: 28rem;
+    max-width: 28rem;
   }
 </style>

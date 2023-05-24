@@ -118,7 +118,11 @@ class TaskManager():
   async def manifest(self) -> TaskManifest:
     """Get all tasks."""
     await self._update_tasks()
-    tasks_with_progress = [task.progress for task in self._tasks.values() if task.progress]
+    tasks_with_progress = [
+      task.progress
+      for task in self._tasks.values()
+      if task.progress and task.status != TaskStatus.COMPLETED
+    ]
     return TaskManifest(
       tasks=self._tasks,
       progress=sum(tasks_with_progress) / len(tasks_with_progress) if tasks_with_progress else None)
