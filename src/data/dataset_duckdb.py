@@ -309,7 +309,7 @@ class DatasetDuckDB(Dataset):
       (task_id, step_id) = task_step_id
       if new_steps:
         # Make a step for the parent.
-        set_worker_steps(task_id, [TaskStepInfo() for i in range(new_steps + 1)])
+        set_worker_steps(task_id, [TaskStepInfo()] * (new_steps + 1))
 
     for i, (new_path, signal) in enumerate(signals_to_compute):
       if new_path not in self.manifest().data_schema.leafs:

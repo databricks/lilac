@@ -103,7 +103,7 @@ class TaskManager():
               break
           task.details = steps[cur_step].details
           task.step_progress = steps[cur_step].progress
-          task.progress = (cur_step + sum([step.progress or 0.0 for step in steps])) / len(steps)
+          task.progress = (sum([step.progress or 0.0 for step in steps])) / len(steps)
           # Don't show an indefinite jump if there are multiple steps.
           if cur_step > 0 and task.step_progress is None:
             task.step_progress = 0.0
@@ -148,6 +148,9 @@ class TaskManager():
       # This runs in dask callback thread, so we have to make a new event loop.
       loop = asyncio.new_event_loop()
       loop.run_until_complete(self._update_tasks())
+      for step in self._tasks[task_id].steps or []:
+        step.progress = 1.0
+
       self._tasks[task_id].status = TaskStatus.COMPLETED
       self._tasks[task_id].progress = 1.0
       self._tasks[task_id].message = f'Completed in {elapsed_formatted}'
@@ -251,7 +254,6 @@ def set_worker_steps(task_id: TaskId, steps: list[TaskStepInfo]) -> None:
 
 def get_worker_steps(task_id: TaskId) -> list[TaskStepInfo]:
   """Gets the last worker steps."""
-  print('getting steps')
   events = get_client().get_events(_progress_event_topic(task_id))
   if not events or not events[-1]:
     return []
@@ -271,9 +273,9 @@ def set_worker_task_progress(task_step_id: TaskStepId, it_idx: int, elapsed_sec:
   """
   progress = float(it_idx) / estimated_len
   task_id, step_id = task_step_id
-  print('getting steps')
   steps = get_worker_steps(task_id)
-  print('got steps', steps)
+  if len(steps) <= step_id:
+    raise ValueError(f'No step with idx {step_id} exists. Got steps: {steps}')
   steps[step_id].progress = progress
 
   # 1748/1748 [elapsed 00:16<00:00, 106.30 ex/s]
