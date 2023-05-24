@@ -59,7 +59,7 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope='function', autouse=True)
 def setup_data_dir(tmp_path: Path, mocker: MockerFixture) -> None:
   mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
 

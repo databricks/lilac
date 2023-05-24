@@ -5,6 +5,7 @@ from typing import Generator, Iterable, Type, cast
 
 import numpy as np
 import pytest
+from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..concepts.concept import ConceptModelManager, ExampleIn
@@ -26,13 +27,8 @@ ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
 
 
 @pytest.fixture(autouse=True)
-def set_data_path(tmp_path: pathlib.Path) -> Generator:
-  data_path = CONFIG['LILAC_DATA_PATH']
-  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
-
-  yield
-
-  CONFIG['LILAC_DATA_PATH'] = data_path or ''
+def set_data_path(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
+  mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {
