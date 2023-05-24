@@ -165,7 +165,10 @@
   {/if}
   {#each embeddingFields as embeddingField}<Tooltip>
       <Tag type="purple" slot="icon"
-        ><AssemblyCluster class="inline-block" /> {embeddingField.signal?.signal_name}</Tag
+        ><AssemblyCluster class="mr-1 inline-block" />{embeddingField.signal
+          ?.signal_name}{embeddingField.signal?.split
+          ? ` | ${embeddingField.signal?.split}`
+          : ''}</Tag
       >
       {embeddingField.signal?.signal_name} embeddings computed
     </Tooltip>
