@@ -2,7 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ConceptDatasetInfo } from './ConceptDatasetInfo';
+import type { ConceptDatasetOptions } from './ConceptDatasetOptions';
 import type { SignalInputType } from './SignalInputType';
 
 /**
@@ -12,6 +12,6 @@ export type CreateConceptOptions = {
     namespace: string;
     name: string;
     type: SignalInputType;
-    dataset?: ConceptDatasetInfo;
+    dataset?: ConceptDatasetOptions;
 };
 

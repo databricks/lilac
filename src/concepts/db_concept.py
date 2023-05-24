@@ -221,7 +221,7 @@ class DiskConceptDB(ConceptDB):
     self._save(concept)
     if negative_examples:
       examples = [ExampleIn(label=False, text=text) for text in negative_examples]
-      self.edit(namespace, name, ConceptUpdate(insert=examples))
+      concept = self.edit(namespace, name, ConceptUpdate(insert=examples))
 
     return concept
 

@@ -4,11 +4,11 @@ from typing import Generator, Optional, Type
 
 import pytest
 
-from ..config import CONFIG
-from ..schema import Item, Schema
-from .dataset import Dataset
-from .dataset_duckdb import DatasetDuckDB
-from .dataset_test_utils import make_dataset
+from .config import CONFIG
+from .data.dataset import Dataset
+from .data.dataset_duckdb import DatasetDuckDB
+from .data.dataset_test_utils import make_dataset
+from .schema import Item, Schema
 
 
 @pytest.fixture(scope='function', params=[DatasetDuckDB])

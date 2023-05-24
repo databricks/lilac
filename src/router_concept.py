@@ -41,7 +41,7 @@ def get_concept(namespace: str,
   return concept
 
 
-class ConceptDatasetInfo(BaseModel):
+class ConceptDatasetOptions(BaseModel):
   """Information about a dataset associated with a concept."""
   # Namespace of the dataset.
   namespace: str
@@ -61,7 +61,7 @@ class CreateConceptOptions(BaseModel):
   type: SignalInputType
 
   # Dataset information associated with this concept. Used to generate negative examples.
-  dataset: Optional[ConceptDatasetInfo] = None
+  dataset: Optional[ConceptDatasetOptions] = None
 
 
 def _split_docs_into_sentences(docs: Iterable[str]) -> list[str]:
@@ -89,7 +89,8 @@ def create_concept(options: CreateConceptOptions) -> Concept:
     docs = docs.df()['text']
     sentences = _split_docs_into_sentences(docs)
     # Choose a random unique subset of sentences.
-    negative_examples = random.sample(sentences, NUM_NEGATIVE_EXAMPLES)
+    num_samples = min(NUM_NEGATIVE_EXAMPLES, len(sentences))
+    negative_examples = random.sample(sentences, num_samples)
 
   return DISK_CONCEPT_DB.create(options.namespace, options.name, options.type, negative_examples)
 

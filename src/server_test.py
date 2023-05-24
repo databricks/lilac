@@ -1,8 +1,10 @@
 """Test our public REST API."""
-from typing import Generator, Iterable, Optional, Type
+from pathlib import Path
+from typing import Iterable, Optional, Type
 
 import pytest
 from fastapi.testclient import TestClient
+from pytest_mock import MockerFixture
 
 from .config import CONFIG
 from .data.dataset import Column, Dataset, DatasetManifest, SelectRowsSchemaResult
@@ -70,19 +72,11 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()
 
 
-@pytest.fixture(scope='module', autouse=True, params=DATASET_CLASSES)
-def test_data(tmp_path_factory: pytest.TempPathFactory,
-              request: pytest.FixtureRequest) -> Generator:
-  data_path = CONFIG['LILAC_DATA_PATH']
-  tmp_path = tmp_path_factory.mktemp('data')
-  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
+@pytest.fixture(autouse=True, params=DATASET_CLASSES)
+def test_data(tmp_path: Path, mocker: MockerFixture, request: pytest.FixtureRequest) -> None:
+  mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
   dataset_cls: Type[Dataset] = request.param
   make_dataset(dataset_cls, tmp_path, TEST_DATA)
-
-  yield
-
-  # Teardown.
-  CONFIG['LILAC_DATA_PATH'] = data_path or ''
 
 
 def test_get_manifest() -> None:
