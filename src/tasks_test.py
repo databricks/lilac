@@ -26,22 +26,27 @@ async def test_task_manager(test_client: Client) -> None:
       task_id: TaskInfo(
         name='test_task',
         status=TaskStatus.PENDING,
-        progress=None,
         description='test_description',
         start_timestamp=manifest.tasks[task_id].start_timestamp,
         end_timestamp=None,
       )
     })
 
-  test_progresses = [0.0, 0.4, 1.0]
+  it_len = 3
 
   def _test_task() -> None:
     Event('start').wait()
     Event('started').set()
 
-    for i in range(len(test_progresses)):
+    for i in range(it_len):
       Event(f'send-progress-{i}').wait()
-      set_worker_task_progress(task_id, test_progresses[i])
+      set_worker_task_progress(
+        task_step_id=(task_id, 0),
+        it_idx=i,
+        elapsed_sec=float(i),
+        it_per_sec=float(i),
+        estimated_total_sec=it_len,
+        estimated_len=it_len)
       Event(f'recv-progress-{i}').set()
 
     Event('end').wait()

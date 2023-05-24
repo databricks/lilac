@@ -159,8 +159,9 @@ class HuggingFaceDataset(Source):
 
     items = progress(
       _convert_to_items(hf_dataset_dict, schema_info.class_labels, self.split),
-      task_id=task_id,
-      estimated_len=schema_info.num_items)
+      task_step_id=task_id,
+      estimated_len=schema_info.num_items,
+      step_description=f'Reading from {self.dataset_name}...')
 
     filepath, num_items = write_items_to_parquet(
       items=items,

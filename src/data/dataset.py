@@ -26,7 +26,7 @@ from ..signals.signal import (
   TextSplitterSignal,
   resolve_signal,
 )
-from ..tasks import TaskId
+from ..tasks import TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
 TOO_MANY_DISTINCT = 10_000
@@ -237,14 +237,14 @@ class Dataset(abc.ABC):
   def compute_signal(self,
                      signal: Signal,
                      column: ColumnId,
-                     task_id: Optional[TaskId] = None) -> None:
+                     task_step_id: Optional[TaskStepId] = None) -> None:
     """Compute a signal for a column.
 
     Args:
       signal: The signal to compute over the given columns.
       column: The column to compute the signal on.
-      task_id: The TaskManager `task_id` for this process run. This is used to update the progress
-        of the task.
+      task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
+        progress of the task.
     """
     pass
 
@@ -280,7 +280,7 @@ class Dataset(abc.ABC):
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
                   limit: Optional[int] = 100,
                   offset: Optional[int] = 0,
-                  task_id: Optional[TaskId] = None,
+                  task_step_id: Optional[TaskStepId] = None,
                   resolve_span: bool = False,
                   combine_columns: bool = False) -> SelectRowsResult:
     """Select grouped columns to power a histogram.
@@ -300,7 +300,8 @@ class Dataset(abc.ABC):
       sort_order: The sort order.
       limit: The maximum number of rows to return.
       offset: The offset to start returning rows from.
-      task_id: The TaskManager `task_id` for this process run. This is used to update the progress.
+      task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
+        progress.
       resolve_span: Whether to resolve the span of the row.
       combine_columns: Whether to combine columns into a single object. The object will be pruned
         to only include sub-fields that correspond to the requested columns.
