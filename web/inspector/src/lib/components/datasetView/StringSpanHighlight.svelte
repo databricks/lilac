@@ -1,22 +1,22 @@
 <script lang="ts">
   import {isPathVisible} from '$lib/stores/datasetViewStore';
   import {notEmpty} from '$lib/utils';
-  /**
+/**
    * Component that renders string spans as an absolute positioned
    * layer, meant to be rendered on top of the source text.
    */
   import {
-    L,
-    formatValue,
-    getValueNode,
-    getValueNodes,
-    isConceptScoreSignal,
-    isFloat,
-    listFields,
-    type ConceptScoreSignal,
-    type LilacSchemaField,
-    type LilacValueNode,
-    type Path
+      L,
+      formatValue,
+      getValueNode,
+      getValueNodes,
+      isConceptScoreSignal,
+      isFloat,
+      listFields,
+      type ConceptScoreSignal,
+      type LilacSchemaField,
+      type LilacValueNode,
+      type Path
   } from '$lilac';
   import {tooltip} from '../common/tootltip';
   import StringSpanHighlightConceptPicker from './StringSpanHighlightConceptPicker.svelte';
@@ -89,7 +89,7 @@
 
       let concepts: AnnotatedStringSpan['concepts'] = [];
       let show = true;
-      let score = null;
+      let score = 0.0;
       // If any children are floats, use that to determine if we should show the span
       if (children.some(c => c && isFloat(L.dtype(c)))) {
         show = false;
