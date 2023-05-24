@@ -286,7 +286,7 @@ class DatasetDuckDB(Dataset):
         new_path = (*new_path, split_signal.key(), PATH_WILDCARD)
         if new_path not in self.manifest().data_schema.leafs:
           if not compute_dependencies:
-            raise ValueError(f'Signal "{signal.key()}" is not computed over '
+            raise ValueError(f'Split signal "{split_signal.key()}" is not computed over '
                              f'{source_path}. Please run `dataset.compute_signal` over '
                              f'{source_path} first.')
           signals_to_compute.append((new_path, split_signal))
@@ -297,7 +297,7 @@ class DatasetDuckDB(Dataset):
           new_path = (*new_path, embedding_signal.key())
           if new_path not in self.manifest().data_schema.leafs:
             if not compute_dependencies:
-              raise ValueError(f'Signal "{signal.key()}" is not computed over '
+              raise ValueError(f'Embedding signal "{embedding_signal.key()}" is not computed over '
                                f'{source_path}. Please run `dataset.compute_signal` over '
                                f'{source_path} first.')
             signals_to_compute.append((new_path, embedding_signal))
@@ -313,13 +313,9 @@ class DatasetDuckDB(Dataset):
 
     for i, (new_path, signal) in enumerate(signals_to_compute):
       if new_path not in self.manifest().data_schema.leafs:
-        if compute_dependencies:
-          self.compute_signal(
-            signal, source_path, task_step_id=(task_id, i) if task_step_id else None)
-        else:
-          raise ValueError(f'Signal "{signal.key()}" is not computed over '
-                           f'{source_path}. Please run `dataset.compute_signal` over '
-                           f'{source_path} first.')
+        self.compute_signal(
+          signal, source_path, task_step_id=(task_id, i) if task_step_id else None)
+
     if is_value_path:
       new_path = (*new_path, VALUE_KEY)
 

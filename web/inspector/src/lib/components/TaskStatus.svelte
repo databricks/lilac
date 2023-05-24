@@ -13,8 +13,7 @@
   $: runningTasks = tasksList.filter(task => task.status === 'pending');
   $: failedTasks = tasksList.filter(task => task.status === 'error');
 
-  $: progress =
-    runningTasks.reduce((acc, task) => acc + (task?.progress || 0), 0) / runningTasks.length;
+  $: progress = $tasks.data?.progress || 0.0;
 </script>
 
 <button
@@ -54,16 +53,16 @@
   >
     <div class="flex flex-col">
       {#each tasksList as task}
+        {@const progressValue = task.step_progress == null ? undefined : task.step_progress}
         <div class="relative border-b-2 border-slate-200 p-4 text-left last:border-b-0">
           <div class="text-s flex flex-row">
             <div class="mr-2">{task.name}</div>
           </div>
           <div class="progress-container mt-3">
-            {(console.log(task), '')}
             <ProgressBar
               labelText={task.message || ''}
               helperText={task.status != 'completed' ? task.details : ''}
-              value={task.step_progress == null ? undefined : task.step_progress}
+              value={task.status === 'completed' ? 1.0 : progressValue}
               max={1.0}
               size={'sm'}
               status={task.status === 'completed' ? 'finished' : 'active'}
@@ -85,6 +84,6 @@
     @apply font-light;
   }
   :global(.task-button .bx--popover-contents) {
-    @apply max-w-md;
+    width: 28rem;
   }
 </style>

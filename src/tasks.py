@@ -59,6 +59,7 @@ class TaskInfo(BaseModel):
 class TaskManifest(BaseModel):
   """Information for tasks that are running or completed."""
   tasks: dict[str, TaskInfo]
+  progress: Optional[float]
 
 
 STEPS_LOG_KEY = 'steps'
@@ -117,7 +118,10 @@ class TaskManager():
   async def manifest(self) -> TaskManifest:
     """Get all tasks."""
     await self._update_tasks()
-    return TaskManifest(tasks=self._tasks)
+    tasks_with_progress = [task.progress for task in self._tasks.values() if task.progress]
+    return TaskManifest(
+      tasks=self._tasks,
+      progress=sum(tasks_with_progress) / len(tasks_with_progress) if tasks_with_progress else None)
 
   def task_id(self, name: str, description: Optional[str] = None) -> TaskId:
     """Create a unique ID for a task."""
@@ -283,7 +287,7 @@ def set_worker_task_progress(task_step_id: TaskStepId, it_idx: int, elapsed_sec:
   if it_idx != estimated_len:
     # Only show estimated when in progress.
     elapsed = f'{elapsed} < {pretty_timedelta(timedelta(seconds=estimated_total_sec))}'
-  steps[step_id].details = (f'{it_idx}/{estimated_len} '
-                            f'[{elapsed}, {it_per_sec:.2f} ex/s]')
+  steps[step_id].details = (f'{it_idx:,}/{estimated_len:,} '
+                            f'[{elapsed}, {it_per_sec:,.2f} ex/s]')
 
   set_worker_steps(task_id, steps)
