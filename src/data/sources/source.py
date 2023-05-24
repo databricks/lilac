@@ -52,7 +52,7 @@ class Source(abc.ABC, BaseModel):
     Args:
       output_dir: The directory to write the output files to.
       shards_loader: The function to use to load the shards. If None, the default shards loader
-      task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the progress
-        of the task.
+      task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
+        progress of the task.
     """
     pass
