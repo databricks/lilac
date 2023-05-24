@@ -10,12 +10,14 @@
   import {ComposedModal, ModalBody, ModalFooter, ModalHeader} from 'carbon-components-svelte';
   import type {JSONSchema4Type} from 'json-schema';
   import type {JSONError} from 'json-schema-library';
-  import {SvelteComponent, createEventDispatcher} from 'svelte';
+  import {SvelteComponent, createEventDispatcher, setContext} from 'svelte';
   import SvelteMarkdown from 'svelte-markdown';
+  import {writable} from 'svelte/store';
   import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
   import type {ComputeSignalCommand, PreviewConceptCommand} from './Commands.svelte';
   import EmptyComponent from './customComponents/EmptyComponent.svelte';
   import SelectConcept from './customComponents/SelectConcept.svelte';
+  import SelectEmbedding from './customComponents/SelectEmbedding.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
   import SignalList from './selectors/SignalList.svelte';
 
@@ -23,10 +25,13 @@
   /** The variant of the command */
   export let variant: 'compute' | 'preview';
 
-  let path = command.path;
+  const path = writable(command.path);
   let signalInfo: SignalInfoWithTypedSchema | undefined;
   let signalPropertyValues: Record<string, Record<string, JSONSchema4Type>> = {};
   let errors: JSONError[] = [];
+
+  // Store the field path store in the context so custom components can access it
+  setContext('SIGNAL_FIELD_PATH', path);
 
   const datasetViewStore = getDatasetViewContext();
   const dispatch = createEventDispatcher();
@@ -36,7 +41,8 @@
   const customComponents: Record<string, Record<string, typeof SvelteComponent>> = {
     concept_score: {
       '/namespace': EmptyComponent,
-      '/concept_name': SelectConcept
+      '/concept_name': SelectConcept,
+      '/embedding': SelectEmbedding
     }
   };
 
@@ -67,14 +73,14 @@
         command.namespace,
         command.datasetName,
         {
-          leaf_path: path || [],
+          leaf_path: $path || [],
           signal
         }
       ]);
     } else if (variant == 'preview') {
       if (path) {
         datasetViewStore.addUdfColumn({
-          path,
+          path: $path,
           signal_udf: signal
         });
       }
@@ -105,7 +111,7 @@
             <FieldSelect
               filter={filterField}
               defaultPath={command.path}
-              bind:path
+              bind:path={$path}
               labelText="Field"
             />
 
@@ -127,7 +133,7 @@
   <ModalFooter
     primaryButtonText={variant == 'compute' ? 'Compute' : 'Preview'}
     secondaryButtonText="Cancel"
-    primaryButtonDisabled={errors.length > 0 || !path}
+    primaryButtonDisabled={errors.length > 0 || !$path}
     on:click:button--secondary={close}
   />
 </ComposedModal>
