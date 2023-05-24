@@ -35,6 +35,7 @@ async def test_task_manager(test_client: Client) -> None:
   it_len = 4
 
   def _test_task() -> None:
+    print('test task')
     Event('start').wait()
     Event('started').set()
 
@@ -52,8 +53,6 @@ async def test_task_manager(test_client: Client) -> None:
     Event('end').wait()
     Event('ended').set()
 
-  task_manager.execute(task_id, _test_task)
-
   # Start the task. We are using events to synchronize the testing code and the task to iteratively
   # advance the progress.
   Event('start').set()
@@ -63,12 +62,16 @@ async def test_task_manager(test_client: Client) -> None:
     Event(f'send-progress-{i}').set()
     Event(f'recv-progress-{i}').wait()
 
+    print((await task_manager.manifest()).tasks[task_id].progress)
+
     # The logging events through the scheduler are not guaranteed to be timed with the events, so we
     # implement a simple retry mechanism to check the progress here and timeout after .2 seconds.
     start = time.time()
     timeout = .2
     while not ((await task_manager.manifest()).tasks[task_id].progress
                == float(i) / it_len) and time.time() - start < timeout:
+      print((await task_manager.manifest()).tasks[task_id].progress)
+      print(float(i), it_len)
       time.sleep(.01)
 
     manifest = await task_manager.manifest()
@@ -85,6 +88,7 @@ async def test_task_manager(test_client: Client) -> None:
       })
   Event('end').set()
   Event('ended').wait()
+  task_manager.execute(task_id, _test_task)
 
   wait(Future(task_id))
   # We do not need to retry here because this happens in the main loop.

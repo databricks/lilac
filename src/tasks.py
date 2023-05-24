@@ -251,6 +251,7 @@ def set_worker_steps(task_id: TaskId, steps: list[TaskStepInfo]) -> None:
 
 def get_worker_steps(task_id: TaskId) -> list[TaskStepInfo]:
   """Gets the last worker steps."""
+  print('getting steps')
   events = get_client().get_events(_progress_event_topic(task_id))
   if not events or not events[-1]:
     return []
@@ -270,7 +271,9 @@ def set_worker_task_progress(task_step_id: TaskStepId, it_idx: int, elapsed_sec:
   """
   progress = float(it_idx) / estimated_len
   task_id, step_id = task_step_id
+  print('getting steps')
   steps = get_worker_steps(task_id)
+  print('got steps', steps)
   steps[step_id].progress = progress
 
   # 1748/1748 [elapsed 00:16<00:00, 106.30 ex/s]
