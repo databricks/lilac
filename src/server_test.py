@@ -1,5 +1,4 @@
 """Test our public REST API."""
-from pathlib import Path
 from typing import Iterable, Optional, Type
 
 import pytest
@@ -72,9 +71,11 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()
 
 
-@pytest.fixture(autouse=True, params=DATASET_CLASSES)
-def test_data(tmp_path: Path, mocker: MockerFixture, request: pytest.FixtureRequest) -> None:
-  mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
+@pytest.fixture(scope='module', autouse=True, params=DATASET_CLASSES)
+def test_data(tmp_path_factory: pytest.TempPathFactory, module_mocker: MockerFixture,
+              request: pytest.FixtureRequest) -> None:
+  tmp_path = tmp_path_factory.mktemp('data')
+  module_mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
   dataset_cls: Type[Dataset] = request.param
   make_dataset(dataset_cls, tmp_path, TEST_DATA)
 
