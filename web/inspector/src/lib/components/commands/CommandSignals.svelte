@@ -1,18 +1,38 @@
+<script context="module" lang="ts">
+  const COMMAND_SIGNAL_CONTEXT = 'COMMAND_SIGNAL_CONTEXT';
+
+  interface CommandSignalStore {
+    path: Path | undefined;
+    jsonSchema: JSONSchema7 | undefined;
+  }
+
+  export function getCommandSignalContext() {
+    return getContext<Readable<CommandSignalStore>>(COMMAND_SIGNAL_CONTEXT);
+  }
+
+  function createCommandSignalContext(path?: Path, jsonSchema?: JSONSchema7) {
+    const store = writable<CommandSignalStore>({path, jsonSchema});
+    setContext(COMMAND_SIGNAL_CONTEXT, store);
+    return store;
+  }
+</script>
+
 <script lang="ts">
   import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     SIGNAL_INPUT_TYPE_TO_VALID_DTYPES,
     type LilacSchemaField,
+    type Path,
     type Signal,
     type SignalInfoWithTypedSchema
   } from '$lilac';
   import {ComposedModal, ModalBody, ModalFooter, ModalHeader} from 'carbon-components-svelte';
-  import type {JSONSchema4Type} from 'json-schema';
+  import type {JSONSchema4Type, JSONSchema7} from 'json-schema';
   import type {JSONError} from 'json-schema-library';
-  import {SvelteComponent, createEventDispatcher, setContext} from 'svelte';
+  import {SvelteComponent, createEventDispatcher, getContext, setContext} from 'svelte';
   import SvelteMarkdown from 'svelte-markdown';
-  import {writable} from 'svelte/store';
+  import {writable, type Readable} from 'svelte/store';
   import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
   import type {ComputeSignalCommand, PreviewConceptCommand} from './Commands.svelte';
   import EmptyComponent from './customComponents/EmptyComponent.svelte';
@@ -25,13 +45,15 @@
   /** The variant of the command */
   export let variant: 'compute' | 'preview';
 
-  const path = writable(command.path);
+  let path = command.path;
   let signalInfo: SignalInfoWithTypedSchema | undefined;
   let signalPropertyValues: Record<string, Record<string, JSONSchema4Type>> = {};
   let errors: JSONError[] = [];
 
-  // Store the field path store in the context so custom components can access it
-  setContext('SIGNAL_FIELD_PATH', path);
+  // Store the field path and json schema in the context so custom components can access it
+  const contextStore = createCommandSignalContext(path, signalInfo?.json_schema);
+  $: $contextStore.path = path;
+  $: $contextStore.jsonSchema = signalInfo?.json_schema;
 
   const datasetViewStore = getDatasetViewContext();
   const dispatch = createEventDispatcher();
@@ -42,6 +64,9 @@
     concept_score: {
       '/namespace': EmptyComponent,
       '/concept_name': SelectConcept,
+      '/embedding': SelectEmbedding
+    },
+    semantic_similarity: {
       '/embedding': SelectEmbedding
     }
   };
@@ -73,14 +98,14 @@
         command.namespace,
         command.datasetName,
         {
-          leaf_path: $path || [],
+          leaf_path: path || [],
           signal
         }
       ]);
     } else if (variant == 'preview') {
       if (path) {
         datasetViewStore.addUdfColumn({
-          path: $path,
+          path: path,
           signal_udf: signal
         });
       }
@@ -111,7 +136,7 @@
             <FieldSelect
               filter={filterField}
               defaultPath={command.path}
-              bind:path={$path}
+              bind:path
               labelText="Field"
             />
 
@@ -133,7 +158,7 @@
   <ModalFooter
     primaryButtonText={variant == 'compute' ? 'Compute' : 'Preview'}
     secondaryButtonText="Cancel"
-    primaryButtonDisabled={errors.length > 0 || !$path}
+    primaryButtonDisabled={errors.length > 0 || !path}
     on:click:button--secondary={close}
   />
 </ComposedModal>

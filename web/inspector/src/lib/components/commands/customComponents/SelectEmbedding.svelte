@@ -1,12 +1,10 @@
 <script lang="ts">
   import {queryDatasetSchema} from '$lib/queries/datasetQueries';
-  import {querySignals} from '$lib/queries/signalQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {getField, listFields, type Path, type TextEmbeddingSignal} from '$lilac';
+  import {getField, listFields, type TextEmbeddingSignal} from '$lilac';
   import {Select, SelectItem} from 'carbon-components-svelte';
   import type {JSONSchema7} from 'json-schema';
-  import {getContext} from 'svelte';
-  import type {Writable} from 'svelte/store';
+  import {getCommandSignalContext} from '../CommandSignals.svelte';
 
   export let rootValue: {split: string};
   export let invalid: boolean;
@@ -14,23 +12,21 @@
   export let value: string;
 
   const datasetViewStore = getDatasetViewContext();
-  const signals = querySignals();
   const schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   // Get the current field from the context, set by the CommandSignals component
-  const field = getContext<Writable<Path>>('SIGNAL_FIELD_PATH');
+  const ctx = getCommandSignalContext();
 
   // Find the embedding signal json schema field
-  $: embeddingSignalField = $signals.data?.find(s => s.name === 'concept_score')?.json_schema
-    .properties?.embedding as JSONSchema7 | undefined;
+  $: embeddingSignalField = $ctx.jsonSchema?.properties?.embedding as JSONSchema7 | undefined;
 
   // Read the split value from the root value
   $: split = rootValue['split'];
 
   // Find all existing pre-computed embeddings for the current split from the schema
   $: existingEmbeddings =
-    $field && $schema.data
-      ? listFields(getField($schema.data, $field)).filter(
+    $ctx.path && $schema.data
+      ? listFields(getField($schema.data, $ctx.path)).filter(
           f => f.dtype === 'embedding' && (f.signal as TextEmbeddingSignal).split == split
         )
       : undefined;
