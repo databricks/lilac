@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, DraftId, draft_examples
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
+from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
 from .schema import SignalInputType
 
@@ -41,11 +42,21 @@ class CreateConceptOptions(BaseModel):
   name: str
   type: SignalInputType
 
+  dataset_namespace: Optional[str] = None
+  dataset_name: Optional[str] = None
+
 
 @router.post('/create', response_model_exclude_none=True)
 def create_concept(options: CreateConceptOptions) -> Concept:
   """Edit a concept in the database."""
-  return DISK_CONCEPT_DB.create(options.namespace, options.name, options.type)
+  if options.dataset_namespace:
+    if options.dataset_name is None:
+      raise HTTPException(
+        status_code=400, detail='Must specify `dataset_name` if `dataset_namespace` is specified')
+    dataset = get_dataset(options.dataset_namespace, options.dataset_name)
+    dataset._query_df
+  return None
+  # return DISK_CONCEPT_DB.create(options.namespace, options.name, options.type)
 
 
 @router.post('/{namespace}/{concept_name}', response_model_exclude_none=True)
