@@ -12,7 +12,7 @@ from typing_extensions import override
 
 from ...config import CONFIG, data_path
 from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, arrow_schema_to_schema
-from ...tasks import TaskId
+from ...tasks import TaskStepId
 from ...utils import delete_file, file_exists, log, makedirs, open_file
 from .source import Source, SourceProcessResult
 
@@ -42,7 +42,9 @@ class JSONDataset(Source):
                  "'values', 'array_of_values']."))
 
   @override
-  def process(self, output_dir: str, task_id: Optional[TaskId] = None) -> SourceProcessResult:
+  def process(self,
+              output_dir: str,
+              task_step_id: Optional[TaskStepId] = None) -> SourceProcessResult:
     """Process the source upload request."""
     # Download JSON files to local cache if they are remote to speed up duckdb.
     gcs_filepaths: list[str] = []

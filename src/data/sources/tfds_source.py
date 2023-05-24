@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from pydantic import Field as PydanticField
 
 from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, DataType, Field, Item, Schema
-from ...tasks import TaskId
+from ...tasks import TaskStepId
 from ...utils import log
 from ..dataset_utils import write_items_to_parquet
 from .source import Source, SourceProcessResult
@@ -150,7 +150,7 @@ class TensorFlowDataset(Source):
   def process(
     self,
     output_dir: str,
-    task_id: Optional[TaskId] = None,
+    task_step_id: Optional[TaskStepId] = None,
   ) -> SourceProcessResult:
     """Process the source upload request."""
     builder = tfds.builder(self.tfds_name)

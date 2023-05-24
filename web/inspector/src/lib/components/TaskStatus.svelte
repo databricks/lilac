@@ -1,6 +1,7 @@
 <script lang="ts">
   import {queryTaskManifest} from '$lib/queries/taskQueries';
   import {Loading, Popover, ProgressBar} from 'carbon-components-svelte';
+  import type {ProgressBarProps} from 'carbon-components-svelte/types/ProgressBar/ProgressBar.svelte';
   import Checkmark from 'carbon-icons-svelte/lib/Checkmark.svelte';
 
   const tasks = queryTaskManifest();
@@ -14,6 +15,12 @@
   $: failedTasks = tasksList.filter(task => task.status === 'error');
 
   $: progress = $tasks.data?.progress || 0.0;
+
+  const taskToProgressStatus: {[taskStatus: string]: ProgressBarProps['status']} = {
+    pending: 'active',
+    completed: 'finished',
+    error: 'error'
+  };
 </script>
 
 <button
@@ -65,7 +72,7 @@
               value={task.status === 'completed' ? 1.0 : progressValue}
               max={1.0}
               size={'sm'}
-              status={task.status === 'completed' ? 'finished' : 'active'}
+              status={taskToProgressStatus[task.status]}
             />
           </div>
         </div>

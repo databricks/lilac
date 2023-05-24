@@ -31,7 +31,7 @@ def process_source(base_dir: str,
   output_dir = get_dataset_output_dir(base_dir, namespace, dataset_name)
 
   with DebugTimer(f'[{source.name}] Processing dataset "{dataset_name}"'):
-    source_process_result = source.process(output_dir, task_id)
+    source_process_result = source.process(output_dir, (task_id, 0) if task_id else None)
 
   filenames = [os.path.basename(filepath) for filepath in source_process_result.filepaths]
   manifest = SourceManifest(

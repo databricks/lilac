@@ -88,7 +88,7 @@ class RedditDataset(Source):
       _convert_to_items(hf_dataset_dict, self.subreddits, schema_info.class_labels),
       task_step_id=task_step_id,
       estimated_len=schema_info.num_items,
-      step_description=f'Reading from subreddits: {",".join(self.subreddits)}...')
+      step_description=f'Reading from subreddits: {",".join(self.subreddits or [])}...')
 
     # Filter out the `None`s.
     items = cast(Iterable[Item], (item for item in items if item is not None))
