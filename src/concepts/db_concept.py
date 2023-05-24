@@ -264,7 +264,7 @@ class DiskConceptDB(ConceptDB):
     concept_json_path = _concept_json_path(concept.namespace, concept.concept_name)
 
     with open_file(concept_json_path, 'w') as f:
-      f.write(concept.json(exclude_none=True, indent=2))
+      f.write(concept.json(exclude_none=True, indent=2, exclude_defaults=True))
 
   @override
   def remove(self, namespace: str, name: str) -> None:
