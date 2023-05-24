@@ -1,21 +1,43 @@
+<script context="module" lang="ts">
+  const COMMAND_SIGNAL_CONTEXT = 'COMMAND_SIGNAL_CONTEXT';
+
+  interface CommandSignalStore {
+    path: Path | undefined;
+    jsonSchema: JSONSchema7 | undefined;
+  }
+
+  export function getCommandSignalContext() {
+    return getContext<Readable<CommandSignalStore>>(COMMAND_SIGNAL_CONTEXT);
+  }
+
+  function createCommandSignalContext(path?: Path, jsonSchema?: JSONSchema7) {
+    const store = writable<CommandSignalStore>({path, jsonSchema});
+    setContext(COMMAND_SIGNAL_CONTEXT, store);
+    return store;
+  }
+</script>
+
 <script lang="ts">
   import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     SIGNAL_INPUT_TYPE_TO_VALID_DTYPES,
     type LilacSchemaField,
+    type Path,
     type Signal,
     type SignalInfoWithTypedSchema
   } from '$lilac';
   import {ComposedModal, ModalBody, ModalFooter, ModalHeader} from 'carbon-components-svelte';
-  import type {JSONSchema4Type} from 'json-schema';
+  import type {JSONSchema4Type, JSONSchema7} from 'json-schema';
   import type {JSONError} from 'json-schema-library';
-  import {SvelteComponent, createEventDispatcher} from 'svelte';
+  import {SvelteComponent, createEventDispatcher, getContext, setContext} from 'svelte';
   import SvelteMarkdown from 'svelte-markdown';
+  import {writable, type Readable} from 'svelte/store';
   import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
   import type {ComputeSignalCommand, PreviewConceptCommand} from './Commands.svelte';
   import EmptyComponent from './customComponents/EmptyComponent.svelte';
   import SelectConcept from './customComponents/SelectConcept.svelte';
+  import SelectEmbedding from './customComponents/SelectEmbedding.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
   import SignalList from './selectors/SignalList.svelte';
 
@@ -28,6 +50,11 @@
   let signalPropertyValues: Record<string, Record<string, JSONSchema4Type>> = {};
   let errors: JSONError[] = [];
 
+  // Store the field path and json schema in the context so custom components can access it
+  const contextStore = createCommandSignalContext(path, signalInfo?.json_schema);
+  $: $contextStore.path = path;
+  $: $contextStore.jsonSchema = signalInfo?.json_schema;
+
   const datasetViewStore = getDatasetViewContext();
   const dispatch = createEventDispatcher();
 
@@ -36,7 +63,11 @@
   const customComponents: Record<string, Record<string, typeof SvelteComponent>> = {
     concept_score: {
       '/namespace': EmptyComponent,
-      '/concept_name': SelectConcept
+      '/concept_name': SelectConcept,
+      '/embedding': SelectEmbedding
+    },
+    semantic_similarity: {
+      '/embedding': SelectEmbedding
     }
   };
 
@@ -74,7 +105,7 @@
     } else if (variant == 'preview') {
       if (path) {
         datasetViewStore.addUdfColumn({
-          path,
+          path: path,
           signal_udf: signal
         });
       }
