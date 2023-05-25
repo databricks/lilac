@@ -1,14 +1,15 @@
 <script lang="ts">
   import {
-    infiniteQuerySelectRows,
-    queryDatasetSchema,
-    querySelectRowsAliasUdfPaths,
-    querySelectRowsSchema
+      infiniteQuerySelectRows,
+      queryDatasetSchema,
+      querySelectRowsAliasUdfPaths,
+      querySelectRowsSchema
   } from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import RowItem from './RowItem.svelte';
+  import SearchBox from './SearchBox.svelte';
 
   let datasetViewStore = getDatasetViewContext();
 
@@ -43,6 +44,8 @@
   );
 </script>
 
+<SearchBox />
+
 {#if $rows.isError}
   <InlineNotification
     lowContrast
@@ -69,3 +72,4 @@
     <InfiniteScroll threshold={100} on:loadMore={() => $rows?.fetchNextPage()} />
   </div>
 {/if}
+

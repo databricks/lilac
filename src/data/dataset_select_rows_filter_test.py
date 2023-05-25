@@ -135,3 +135,27 @@ def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
 
   with pytest.raises(ValueError, match='Unable to filter on path'):
     dataset.select_rows(['name'], filters=[('info', UnaryOp.EXISTS)])
+
+
+def test_filter_like(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'looking for world in text',
+  }, {
+    UUID_COLUMN: '3',
+    'text': 'unrelated text'
+  }])
+
+  id_filter: BinaryFilterTuple = ('text', BinaryOp.LIKE, 'world')
+  result = dataset.select_rows(filters=[id_filter])
+
+  assert list(result) == itemize_primitives([{
+    UUID_COLUMN: '1',
+    'text': 'hello world'
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'looking for world in text',
+  }])
