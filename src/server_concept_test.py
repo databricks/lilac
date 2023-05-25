@@ -10,10 +10,17 @@ from pytest_mock import MockerFixture
 from sklearn.linear_model import LogisticRegression
 from typing_extensions import override
 
-from .concepts.concept import Concept, ConceptModel, Example, ExampleIn, ExampleOrigin
+from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, Example, ExampleIn, ExampleOrigin
 from .concepts.db_concept import ConceptInfo, ConceptUpdate
 from .config import CONFIG
-from .router_concept import ConceptModelResponse, ScoreBody, ScoreExample, ScoreResponse
+from .router_concept import (
+  ConceptModelResponse,
+  CreateConceptOptions,
+  MergeConceptDraftOptions,
+  ScoreBody,
+  ScoreExample,
+  ScoreResponse,
+)
 from .schema import RichData, SignalInputType, SignalOut
 from .server import app
 from .signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
@@ -74,9 +81,9 @@ def test_concept_create(mocker: MockerFixture) -> None:
 
   # Create a concept.
   url = '/api/v1/concepts/create'
-  concept_info = ConceptInfo(
+  create_concept = CreateConceptOptions(
     namespace='concept_namespace', name='concept', type=SignalInputType.TEXT)
-  response = client.post(url, json=concept_info.dict())
+  response = client.post(url, json=create_concept.dict())
   assert response.status_code == 200
   assert response.json() == Concept(
     namespace='concept_namespace',
@@ -89,7 +96,10 @@ def test_concept_create(mocker: MockerFixture) -> None:
   url = '/api/v1/concepts/'
   response = client.get(url)
   assert response.status_code == 200
-  assert parse_obj_as(list[ConceptInfo], response.json()) == [concept_info]
+  assert parse_obj_as(list[ConceptInfo], response.json()) == [
+    ConceptInfo(
+      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT, drafts=[DRAFT_MAIN])
+  ]
 
 
 def test_concept_edits(mocker: MockerFixture) -> None:
@@ -98,8 +108,8 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   # Create the concept.
   response = client.post(
     '/api/v1/concepts/create',
-    json=ConceptInfo(namespace='concept_namespace', name='concept',
-                     type=SignalInputType.TEXT).dict())
+    json=CreateConceptOptions(
+      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
 
   # Make sure we can add an example.
   mock_uuid.return_value = _uuid(b'1')
@@ -132,7 +142,8 @@ def test_concept_edits(mocker: MockerFixture) -> None:
 
   assert response.status_code == 200
   assert parse_obj_as(list[ConceptInfo], response.json()) == [
-    ConceptInfo(namespace='concept_namespace', name='concept', type=SignalInputType.TEXT)
+    ConceptInfo(
+      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT, drafts=[DRAFT_MAIN])
   ]
 
   # Add another example.
@@ -205,8 +216,100 @@ def test_concept_edits(mocker: MockerFixture) -> None:
 
   assert response.status_code == 200
   assert parse_obj_as(list[ConceptInfo], response.json()) == [
-    ConceptInfo(namespace='concept_namespace', name='concept', type=SignalInputType.TEXT)
+    ConceptInfo(
+      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT, drafts=[DRAFT_MAIN])
   ]
+
+
+def test_concept_drafts(mocker: MockerFixture) -> None:
+  mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
+
+  # Create the concept.
+  response = client.post(
+    '/api/v1/concepts/create',
+    json=CreateConceptOptions(
+      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
+
+  # Add examples, some drafts.
+  mock_uuid.side_effect = [_uuid(b'1'), _uuid(b'2'), _uuid(b'3'), _uuid(b'4')]
+  url = '/api/v1/concepts/concept_namespace/concept'
+  concept_update = ConceptUpdate(insert=[
+    ExampleIn(label=True, text='in concept'),
+    ExampleIn(label=False, text='out of concept'),
+    ExampleIn(label=False, text='in concept', draft='test_draft'),
+    ExampleIn(label=False, text='out of concept draft', draft='test_draft')
+  ])
+  response = client.post(url, json=concept_update.dict())
+  assert response.status_code == 200
+
+  # Make sure list shows us the drafts
+  url = '/api/v1/concepts/'
+  response = client.get(url)
+  assert response.status_code == 200
+  assert parse_obj_as(list[ConceptInfo], response.json()) == [
+    ConceptInfo(
+      namespace='concept_namespace',
+      name='concept',
+      type=SignalInputType.TEXT,
+      drafts=[DRAFT_MAIN, 'test_draft'])
+  ]
+
+  # Make sure when we request main, we only get data in main.
+  url = '/api/v1/concepts/concept_namespace/concept'
+  response = client.get(url)
+  assert response.status_code == 200
+  assert Concept.parse_obj(response.json()) == Concept(
+    namespace='concept_namespace',
+    concept_name='concept',
+    type='text',
+    data={
+      # Only main are returned.
+      _uuid(b'1').hex: Example(id=_uuid(b'1').hex, label=True, text='in concept'),
+      _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=False, text='out of concept')
+    },
+    version=1)
+
+  # Make sure when we request the draft, we get the draft data deduped with main.
+  url = '/api/v1/concepts/concept_namespace/concept?draft=test_draft'
+  response = client.get(url)
+  assert response.status_code == 200
+  assert Concept.parse_obj(response.json()) == Concept(
+    namespace='concept_namespace',
+    concept_name='concept',
+    type='text',
+    data={
+      # b'1' is deduped with b'3'.
+      _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=False, text='out of concept'),
+      # ID 3 is a duplicate of main's 1.
+      _uuid(b'3').hex: Example(
+        id=_uuid(b'3').hex, label=False, text='in concept', draft='test_draft'),
+      _uuid(b'4').hex: Example(
+        id=_uuid(b'4').hex, label=False, text='out of concept draft', draft='test_draft')
+    },
+    version=1)
+
+  # Merge the draft.
+  response = client.post(
+    '/api/v1/concepts/concept_namespace/concept/merge_draft',
+    json=MergeConceptDraftOptions(draft='test_draft').dict())
+  assert response.status_code == 200
+
+  # Make sure we get the merged drafts.
+  url = '/api/v1/concepts/concept_namespace/concept'
+  response = client.get(url)
+  assert response.status_code == 200
+  assert Concept.parse_obj(response.json()).dict() == Concept(
+    namespace='concept_namespace',
+    concept_name='concept',
+    type='text',
+    data={
+      # b'1' is deduped with b'3'.
+      _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=False, text='out of concept'),
+      # ID 3 is a duplicate of main's 1.
+      _uuid(b'3').hex: Example(id=_uuid(b'3').hex, label=False, text='in concept'),
+      _uuid(b'4').hex: Example(id=_uuid(b'4').hex, label=False, text='out of concept draft')
+    },
+    version=2).dict()
 
 
 def test_concept_model_sync(mocker: MockerFixture) -> None:
@@ -215,8 +318,8 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   # Create the concept.
   response = client.post(
     '/api/v1/concepts/create',
-    json=ConceptInfo(namespace='concept_namespace', name='concept',
-                     type=SignalInputType.TEXT).dict())
+    json=CreateConceptOptions(
+      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
 
   # Add two examples.
   mock_uuid.side_effect = [_uuid(b'1'), _uuid(b'2')]
@@ -293,8 +396,8 @@ def test_concept_edits_wrong_type(mocker: MockerFixture) -> None:
   # Create the concept.
   response = client.post(
     '/api/v1/concepts/create',
-    json=ConceptInfo(namespace='concept_namespace', name='concept',
-                     type=SignalInputType.IMAGE).dict())
+    json=CreateConceptOptions(
+      namespace='concept_namespace', name='concept', type=SignalInputType.IMAGE).dict())
 
   url = '/api/v1/concepts/concept_namespace/concept'
   concept_update = ConceptUpdate(insert=[

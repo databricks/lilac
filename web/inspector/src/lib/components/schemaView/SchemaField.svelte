@@ -36,7 +36,8 @@
     greater: '>',
     greater_equal: '>=',
     in: 'in',
-    exists: 'exists'
+    exists: 'exists',
+    like: 'has'
   };
 
   let datasetViewStore = getDatasetViewContext();
@@ -101,8 +102,8 @@
         hideLabel
         checked={isVisible}
         {disabled}
-        on:check={ev => {
-          if (ev.detail) {
+        on:change={() => {
+          if (!isVisible) {
             datasetViewStore.addVisibleColumn(path);
           } else {
             datasetViewStore.removeVisibleColumn(path);

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { ConceptScoreSignal } from './ConceptScoreSignal';
-import type { SemanticSearchSignal } from './SemanticSearchSignal';
+import type { SemanticSimilaritySignal } from './SemanticSimilaritySignal';
 import type { Signal } from './Signal';
 import type { TextEmbeddingModelSignal } from './TextEmbeddingModelSignal';
 import type { TextEmbeddingSignal } from './TextEmbeddingSignal';
@@ -16,6 +16,6 @@ import type { TextSplitterSignal } from './TextSplitterSignal';
 export type Column = {
     path: Array<string>;
     alias?: string;
-    signal_udf?: (SemanticSearchSignal | ConceptScoreSignal | TextEmbeddingModelSignal | TextEmbeddingSignal | TextSplitterSignal | TextSignal | Signal);
+    signal_udf?: (SemanticSimilaritySignal | ConceptScoreSignal | TextEmbeddingModelSignal | TextEmbeddingSignal | TextSplitterSignal | TextSignal | Signal);
 };
 

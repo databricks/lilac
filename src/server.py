@@ -1,5 +1,6 @@
 """Serves the Lilac server."""
 
+import logging
 import os
 from typing import Any
 
@@ -70,3 +71,14 @@ def read_index() -> str:
   """Return the index.html file."""
   with open(os.path.join(DIST_PATH, 'index.html')) as f:
     return f.read()
+
+
+class GetTasksFilter(logging.Filter):
+  """Task filter for /tasks."""
+
+  def filter(self, record: logging.LogRecord) -> bool:
+    """Filters out /api/v1/tasks/ from the logs."""
+    return record.getMessage().find('/api/v1/tasks/') == -1
+
+
+logging.getLogger('uvicorn.access').addFilter(GetTasksFilter())

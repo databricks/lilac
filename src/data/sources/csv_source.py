@@ -11,7 +11,7 @@ from typing_extensions import override
 
 from ...config import CONFIG, data_path
 from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, ImageInfo, Path, arrow_schema_to_schema
-from ...tasks import TaskId
+from ...tasks import TaskStepId
 from ...utils import (
   GCS_REGEX,
   CopyRequest,
@@ -47,7 +47,9 @@ class CSVDataset(Source):
   )
 
   @override
-  def process(self, output_dir: str, task_id: Optional[TaskId] = None) -> SourceProcessResult:
+  def process(self,
+              output_dir: str,
+              task_step_id: Optional[TaskStepId] = None) -> SourceProcessResult:
     """Process the source upload request."""
     # Download CSV files to local cache if they are remote to speed up duckdb.
     gcs_filepaths: list[str] = []

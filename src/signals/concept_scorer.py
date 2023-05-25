@@ -4,7 +4,7 @@ from typing import Any, Iterable, Optional
 import numpy as np
 from typing_extensions import override
 
-from ..concepts.concept import ConceptModel
+from ..concepts.concept import DRAFT_MAIN, ConceptModel
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, Field, ItemValue, RichData, VectorKey
@@ -19,6 +19,9 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
   namespace: str
   concept_name: str
 
+  # The draft version of the concept to use. If not provided, the latest version is used.
+  draft: str = DRAFT_MAIN
+
   _concept_model_db: ConceptModelDB
 
   def __init__(self, **data: Any):
@@ -31,10 +34,12 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
     return Field(dtype=DataType.FLOAT32)
 
   def _get_concept_model(self) -> ConceptModel:
-    concept_model = self._concept_model_db.get(self.namespace, self.concept_name, self.embedding)
-    if not self._concept_model_db.in_sync(concept_model):
+    manager = self._concept_model_db.get(self.namespace, self.concept_name, self.embedding)
+    if not self._concept_model_db.in_sync(manager):
       raise ValueError(f'Concept model "{self.namespace}/{self.concept_name}/{self.embedding}" '
                        'is out of sync with its concept')
+
+    concept_model = manager.get_model(self.draft)
     return concept_model
 
   @override

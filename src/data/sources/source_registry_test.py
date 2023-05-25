@@ -4,7 +4,7 @@ from typing import Iterable, Optional, cast
 import pytest
 from typing_extensions import override
 
-from ...tasks import TaskId
+from ...tasks import TaskStepId
 from .source import Source, SourceProcessResult
 from .source_registry import clear_source_registry, get_source_cls, register_source, resolve_source
 
@@ -14,7 +14,9 @@ class TestSource(Source):
   name = 'test_source'
 
   @override
-  def process(self, output_dir: str, task_id: Optional[TaskId] = None) -> SourceProcessResult:
+  def process(self,
+              output_dir: str,
+              task_step_id: Optional[TaskStepId] = None) -> SourceProcessResult:
     return cast(SourceProcessResult, None)
 
 

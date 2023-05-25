@@ -71,9 +71,9 @@ async def load(source_name: str, options: LoadDatasetOptions,
   source = source_cls(**options.config)
 
   task_id = task_manager().task_id(
-    name=f'Load dataset {options.namespace}/{options.dataset_name}',
+    name=f'[{options.namespace}/{options.dataset_name}] Load dataset',
     description=f'Loader: {source.name}. \n Config: {source}')
   task_manager().execute(task_id, process_source, data_path(), options.namespace,
-                         options.dataset_name, source, task_id)
+                         options.dataset_name, source, (task_id, 0))
 
   return LoadDatasetResponse(task_id=task_id)

@@ -9,8 +9,10 @@ from ..signals.signal import TextEmbeddingSignal
 
 EmbeddingId = Union[StrictStr, TextEmbeddingSignal]
 
+EmbedFn = Callable[[Iterable[RichData]], np.ndarray]
 
-def get_embed_fn(embedding: TextEmbeddingSignal) -> Callable[[Iterable[RichData]], np.ndarray]:
+
+def get_embed_fn(embedding: TextEmbeddingSignal) -> EmbedFn:
   """Return a function that returns the embedding matrix for the given embedding signal."""
 
   def _embed_fn(data: Iterable[RichData]) -> np.ndarray:

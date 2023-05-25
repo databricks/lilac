@@ -29,8 +29,10 @@ jobs:
           python-version: '3.9.13'
           cache: 'poetry'
       - name: Install dependencies
+        # Re-install pytorch for cpu to avoid errors that cuda was not found
         run: |
           ./scripts/setup_py.sh
+          poetry run pip3 install --force-reinstall --pre torch==2.* --index-url https://download.pytorch.org/whl/nightly/cpu
 
       # We run testing before linting since testing, surprisingly, is much faster.
       - name: Test python
