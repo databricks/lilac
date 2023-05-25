@@ -10,6 +10,7 @@
 
   export let schema: Lilac.LilacSchema;
   export let field: Lilac.LilacSchemaField;
+  export let sourceField: Lilac.LilacSchemaField | undefined = undefined;
   export let indent = 0;
   export let aliasMapping: Record<string, Lilac.Path> | undefined;
 
@@ -174,7 +175,22 @@
     </Tooltip>
   {/each}
   {#if Lilac.isSignalRootField(field) && udfColumn}
-    <Tag type="green">Signal Preview</Tag>
+    <Tag
+      interactive
+      type="green"
+      on:click={() =>
+        field.signal &&
+        field.alias?.length === 1 &&
+        triggerCommand({
+          command: Command.EditPreviewConcept,
+          namespace: $datasetViewStore.namespace,
+          datasetName: $datasetViewStore.datasetName,
+          path: sourceField?.path,
+          signalName: field.signal?.signal_name,
+          value: field.signal,
+          alias: field.alias[0]
+        })}>Signal Preview</Tag
+    >
   {:else if Lilac.isSignalRootField(field)}
     <Tag type="blue">Signal</Tag>
   {/if}
@@ -189,7 +205,15 @@
   <div transition:slide|local>
     {#if children.length}
       {#each children as childField}
-        <svelte:self {schema} field={childField} indent={indent + 1} {aliasMapping} />
+        <svelte:self
+          {schema}
+          field={childField}
+          indent={indent + 1}
+          {aliasMapping}
+          sourceField={isSourceField && Lilac.isSignalField(childField, schema)
+            ? field
+            : sourceField}
+        />
       {/each}
     {/if}
   </div>

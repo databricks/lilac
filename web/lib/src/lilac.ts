@@ -20,6 +20,7 @@ let listValueNodesCache = new WeakMap<LilacValueNode, LilacValueNode[]>();
 
 export type LilacSchemaField<S extends Signal = Signal> = Field & {
   path: Path;
+  /** Aliased path to the field, if alias is provided for the field or parent field */
   alias?: Path;
   // Overwrite the fields and repeated_field properties to be LilacSchemaField
   repeated_field?: LilacSchemaField;

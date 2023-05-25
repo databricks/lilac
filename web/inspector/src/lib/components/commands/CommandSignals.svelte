@@ -34,21 +34,29 @@
   import SvelteMarkdown from 'svelte-markdown';
   import {writable, type Readable} from 'svelte/store';
   import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
-  import type {ComputeSignalCommand, PreviewConceptCommand} from './Commands.svelte';
+  import {
+    Command,
+    type ComputeSignalCommand,
+    type EditPreviewConceptCommand,
+    type PreviewConceptCommand
+  } from './Commands.svelte';
   import EmptyComponent from './customComponents/EmptyComponent.svelte';
   import SelectConcept from './customComponents/SelectConcept.svelte';
   import SelectEmbedding from './customComponents/SelectEmbedding.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
   import SignalList from './selectors/SignalList.svelte';
 
-  export let command: ComputeSignalCommand | PreviewConceptCommand;
-  /** The variant of the command */
-  export let variant: 'compute' | 'preview';
+  export let command: ComputeSignalCommand | PreviewConceptCommand | EditPreviewConceptCommand;
 
   let path = command.path;
   let signalInfo: SignalInfoWithTypedSchema | undefined;
   let signalPropertyValues: Record<string, Record<string, JSONSchema4Type>> = {};
   let errors: JSONError[] = [];
+
+  // Set the signal values if we are editing a signal
+  if (command.command === Command.EditPreviewConcept && command.signalName) {
+    signalPropertyValues = {[command.signalName]: {...command.value}};
+  }
 
   // Store the field path and json schema in the context so custom components can access it
   const contextStore = createCommandSignalContext(path, signalInfo?.json_schema);
@@ -93,7 +101,7 @@
 
   function submit() {
     if (!signal) return;
-    if (variant == 'compute') {
+    if (command.command === Command.ComputeSignal) {
       $computeSignalMutation.mutate([
         command.namespace,
         command.datasetName,
@@ -102,11 +110,19 @@
           signal
         }
       ]);
-    } else if (variant == 'preview') {
+    } else if (command.command === Command.PreviewConcept) {
       if (path) {
         datasetViewStore.addUdfColumn({
           path: path,
           signal_udf: signal
+        });
+      }
+    } else if (command.command === Command.EditPreviewConcept) {
+      if (path) {
+        datasetViewStore.editUdfColumn(command.alias, {
+          path: path,
+          signal_udf: signal,
+          alias: command.alias
         });
       }
     }
@@ -119,7 +135,10 @@
 </script>
 
 <ComposedModal open on:submit={submit} on:close={close}>
-  <ModalHeader label="Signals" title={variant == 'compute' ? 'Compute Signal' : 'Preview Signal'} />
+  <ModalHeader
+    label="Signals"
+    title={command.command === Command.ComputeSignal ? 'Compute Signal' : 'Preview Signal'}
+  />
   <ModalBody hasForm>
     <div class="flex flex-row">
       <div class="-ml-4 mr-4 w-80 grow-0">
@@ -156,7 +175,7 @@
     </div>
   </ModalBody>
   <ModalFooter
-    primaryButtonText={variant == 'compute' ? 'Compute' : 'Preview'}
+    primaryButtonText={command.command === Command.ComputeSignal ? 'Compute' : 'Preview'}
     secondaryButtonText="Cancel"
     primaryButtonDisabled={errors.length > 0 || !path}
     on:click:button--secondary={close}

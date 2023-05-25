@@ -4,6 +4,7 @@
   export enum Command {
     ComputeSignal = 'computeSignal',
     PreviewConcept = 'previewConcept',
+    EditPreviewConcept = 'editPreviewConcept',
     EditFilter = 'editFilter',
     CreateConcept = 'createConcept'
   }
@@ -12,20 +13,31 @@
     command?: undefined;
   };
 
-  export type ComputeSignalCommand = {
-    command: Command.ComputeSignal;
+  type SignalCommandBase = {
+    /** The dataset namespace */
     namespace: string;
+    /** The dataset name */
     datasetName: string;
+    /** The path to the field to select by default */
     path?: Path;
+    /** The name of the signal to show by default */
     signalName?: string;
   };
 
-  export type PreviewConceptCommand = {
+  export type ComputeSignalCommand = SignalCommandBase & {
+    command: Command.ComputeSignal;
+  };
+
+  export type PreviewConceptCommand = SignalCommandBase & {
     command: Command.PreviewConcept;
-    namespace: string;
-    datasetName: string;
-    path?: Path;
-    signalName?: string;
+  };
+
+  export type EditPreviewConceptCommand = SignalCommandBase & {
+    command: Command.EditPreviewConcept;
+    /** The value of the signal to edit */
+    value: Signal;
+    /** The alias of the signal to edit */
+    alias: string;
   };
 
   export type EditFilterCommand = {
@@ -43,6 +55,7 @@
     | NoCommand
     | ComputeSignalCommand
     | PreviewConceptCommand
+    | EditPreviewConceptCommand
     | EditFilterCommand
     | CreateConceptCommand;
 
@@ -54,7 +67,7 @@
 </script>
 
 <script lang="ts">
-  import type {Path} from '$lilac';
+  import type {Path, Signal} from '$lilac';
   import CommandCreateConcept from './CommandCreateConcept.svelte';
   import CommandFilter from './CommandFilter.svelte';
   import CommandSignals from './CommandSignals.svelte';
@@ -66,10 +79,8 @@
   }
 </script>
 
-{#if currentCommand.command === Command.ComputeSignal}
-  <CommandSignals command={currentCommand} on:close={close} variant={'compute'} />
-{:else if currentCommand.command === Command.PreviewConcept}
-  <CommandSignals command={currentCommand} on:close={close} variant={'preview'} />
+{#if currentCommand.command === Command.ComputeSignal || currentCommand.command === Command.PreviewConcept || currentCommand.command === Command.EditPreviewConcept}
+  <CommandSignals command={currentCommand} on:close={close} />
 {:else if currentCommand.command === Command.EditFilter}
   <CommandFilter command={currentCommand} on:close={close} />
 {:else if currentCommand.command === Command.CreateConcept}
