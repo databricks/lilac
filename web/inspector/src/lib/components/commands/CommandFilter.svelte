@@ -81,6 +81,10 @@
 
   let selectedField: LilacSchemaField | undefined = undefined;
 
+  $: if (!selectedField && defaultField) {
+    selectedField = defaultField;
+  }
+
   const operations: [BinaryOp | UnaryOp | ListOp, string][] = [
     ['equals', 'equals (=)'],
     ['not_equal', 'not equal (!=)'],
@@ -108,7 +112,11 @@
   <ModalBody hasForm>
     <div class="flex flex-row">
       <div class="-ml-4 mr-4 w-80 grow-0">
-        <CommandSelectList items={fields} bind:item={selectedField} defaultItem={defaultField} />
+        <CommandSelectList
+          items={fields}
+          item={selectedField}
+          on:select={ev => (selectedField = ev.detail)}
+        />
       </div>
       <div class="flex w-full flex-col gap-y-6">
         {#if selectedField}
