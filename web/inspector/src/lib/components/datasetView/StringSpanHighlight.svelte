@@ -89,14 +89,15 @@
 
       let concepts: AnnotatedStringSpan['concepts'] = [];
       let show = true;
-      let score = 0.0;
+      let maxScore = 0.0;
       // If any children are floats, use that to determine if we should show the span
       if (children.some(c => c && isFloat(L.dtype(c)))) {
         show = false;
         for (const child of children) {
           if (isFloat(L.dtype(child))) {
-            score = L.value<'float32'>(child) ?? 0;
-            if (score > showScoreThreshold) {
+            const score = L.value<'float32'>(child) ?? 0;
+            maxScore = Math.max(score, maxScore);
+            if (maxScore > showScoreThreshold) {
               show = true;
             }
           }
@@ -112,7 +113,7 @@
         start: spanValue.start,
         end: spanValue.end,
         show,
-        score,
+        score: maxScore,
         properties: children,
         filler: false,
         concepts
