@@ -1,4 +1,5 @@
 """Defines the concept and the concept models."""
+from enum import Enum
 from typing import Any, Iterable, Literal, Optional, Union
 
 import numpy as np
@@ -65,6 +66,31 @@ class Concept(BaseModel):
     return list(sorted(drafts))
 
 
+class Sensitivity(str, Enum):
+  """Sensitivity levels of a concept."""
+  NOT_SENSITIVE = 'not sensitive'
+  BALANCED = 'balanced'
+  SENSITIVE = 'sensitive'
+  VERY_SENSITIVE = 'very sensitive'
+
+  def __repr__(self) -> str:
+    return self.value
+
+
+SENSITIVITY_PERCENTILES: dict[Sensitivity, float] = {
+  Sensitivity.NOT_SENSITIVE: 1,  # Will fire for 1% of text.
+  Sensitivity.BALANCED: 2,  # Will fire for 2% of text.
+  Sensitivity.SENSITIVE: 3,  # Will fire for 3% of text.
+  Sensitivity.VERY_SENSITIVE: 5,  # Will fire for 5% of text.
+}
+
+
+class ConceptThreshold(BaseModel):
+  """The threshold for a concept at a given sensitivity."""
+  sensitivity: Sensitivity
+  threshold: float
+
+
 class ConceptModel(BaseModel):
   """A concept model."""
 
@@ -84,6 +110,8 @@ class ConceptModel(BaseModel):
   # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
   _model: LogisticRegression = LogisticRegression(
     class_weight='balanced', C=30, tol=1e-5, warm_start=True, max_iter=1_000, n_jobs=-1)
+
+  thresholds: list[ConceptThreshold] = []
 
   def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
@@ -106,8 +134,16 @@ class ConceptModel(BaseModel):
 
   def fit(self, embeddings: np.ndarray, labels: list[bool]) -> None:
     """Fit the model to the provided embeddings and labels."""
-    if len(set(labels)) == 2:
-      self._model.fit(embeddings, labels)
+    if len(set(labels)) < 2:
+      return
+    self._model.fit(embeddings, labels)
+    scores = self.score_embeddings(embeddings)
+    negative_scores = [score for label, score in zip(labels, scores) if not label]
+    thresholds = np.percentile(negative_scores, [100 - p for p in SENSITIVITY_PERCENTILES.values()])
+    self.thresholds = [
+      ConceptThreshold(sensitivity=s, threshold=t)
+      for s, t in zip(SENSITIVITY_PERCENTILES.keys(), thresholds)
+    ]
 
 
 def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:

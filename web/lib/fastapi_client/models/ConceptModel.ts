@@ -2,6 +2,8 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { ConceptThreshold } from './ConceptThreshold';
+
 /**
  * A concept model.
  */
@@ -10,5 +12,6 @@ export type ConceptModel = {
     concept_name: string;
     embedding_name: string;
     version?: number;
+    thresholds?: Array<ConceptThreshold>;
 };
 
