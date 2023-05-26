@@ -64,7 +64,7 @@
   $: spans = stringSpanFields.flatMap(f => getValueNodes(row, f.path));
   $: searchSpans = searchSpanFields.flatMap(f => getValueNodes(row, f.path));
 
-  // Fill up the gaps between the spans
+  // Fill up the gaps between the spans.
   let filledSpans: Array<AnnotatedStringSpan> = [];
 
   $: {
@@ -75,7 +75,7 @@
       const valuePath = L.path(span);
       if (!spanValue || !valuePath) continue;
 
-      // Add filler
+      // Add filler.
       if (spanStart != spanValue.start) {
         filledSpans.push({
           start: spanStart,
@@ -86,12 +86,12 @@
         });
       }
 
-      // Find all sub fields to the span so we can show their value in the tooltip
+      // Find all sub fields to the span so we can show their value in the tooltip.
       const children = listFields(L.field(span))
         .slice(1)
         // Filter out non-visible columns
         .filter(field => isPathVisible(visibleColumns, field.path, aliasMapping))
-        // Replace the path with prefix of the path with value path that includes index instead of wildcard
+        // Replace the path with prefix of the path with value path that includes index instead of wildcard.
         .map(field => ({
           ...field,
           path: [...valuePath, ...field.path.slice(valuePath.length)]
@@ -103,7 +103,7 @@
       let concepts: AnnotatedStringSpan['concepts'] = [];
       let show = true;
       let maxScore = 0.0;
-      // If any children are floats, use that to determine if we should show the span
+      // If any children are floats, use that to determine if we should show the span.
       if (children.some(c => c && isFloat(L.dtype(c)))) {
         show = false;
         for (const child of children) {
@@ -146,7 +146,7 @@
       const valuePath = L.path(searchSpan);
       if (!spanValue || !valuePath) continue;
 
-      // Add filler
+      // Add filler.
       if (spanStart != spanValue.start) {
         filledSearchSpans.push({
           start: spanStart,

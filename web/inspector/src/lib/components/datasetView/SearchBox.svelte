@@ -52,9 +52,6 @@
       selectedSearchPath = null;
     }
   }
-  $: {
-    console.log(selectedSearchPath);
-  }
 
   // Copy filters from query options
   let searchText: string;
