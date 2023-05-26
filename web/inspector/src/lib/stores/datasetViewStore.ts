@@ -1,4 +1,11 @@
-import {isColumn, pathIsEqual, type Column, type Path, type SelectRowsOptions} from '$lilac';
+import {
+  isColumn,
+  pathIncludes,
+  pathIsEqual,
+  type Column,
+  type Path,
+  type SelectRowsOptions
+} from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
 import {persisted} from './persistedStore';
 
@@ -78,6 +85,15 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         state.queryOptions.columns = state.queryOptions.columns?.filter(c => c !== column);
         return state;
       }),
+    editUdfColumn: (alias: string, column: Column) => {
+      return update(state => {
+        state.queryOptions.columns = state.queryOptions.columns?.map(c => {
+          if (isColumn(c) && c.alias == alias) return column;
+          return c;
+        });
+        return state;
+      });
+    },
 
     addSortBy: (column: Path) =>
       update(state => {
@@ -133,6 +149,12 @@ export function isPathVisible(
     visibleColumns
       // Map aliased columns to their full path
       .map(c => (aliasMapping?.[c[0]] && [...aliasMapping[c[0]], ...c.slice(1)]) ?? c)
-      .some(c => pathIsEqual(c, path))
+      .some(c => {
+        // Check if path is in the visible columns array
+        if (pathIsEqual(c, path)) return true;
+        // Check if a child path is in visible rows
+        if (pathIncludes(c, path)) return true;
+        return false;
+      })
   );
 }

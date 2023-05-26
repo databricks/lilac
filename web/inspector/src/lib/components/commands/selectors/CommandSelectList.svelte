@@ -1,6 +1,7 @@
 <script lang="ts">
   import {SkeletonText, Tag} from 'carbon-components-svelte';
   import type {TagProps} from 'carbon-components-svelte/types/Tag/Tag.svelte';
+  import {createEventDispatcher} from 'svelte';
 
   export let skeleton = false;
   export let items: {
@@ -8,14 +9,9 @@
     value: unknown;
     tag?: {value: string; type?: TagProps['type']};
   }[] = [];
-  export let defaultItem: unknown = undefined;
   export let item: unknown = undefined;
 
-  $: {
-    if (!item && defaultItem) {
-      item = defaultItem;
-    }
-  }
+  const dispatch = createEventDispatcher();
 </script>
 
 {#if skeleton}
@@ -25,7 +21,7 @@
     {#each items as _item}
       <button
         data-active={item === _item.value}
-        on:click={() => (item = _item.value)}
+        on:click={() => dispatch('select', _item.value)}
         class="flex items-center justify-between"
       >
         {_item.title}

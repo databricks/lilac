@@ -34,6 +34,8 @@
     end: number;
     /** Whether to show the span */
     show: boolean;
+    /** The score value. */
+    score: number;
     /** Whether this span is a filler span (no interactions) */
     filler: boolean;
     /** The sub-properties of the span */
@@ -41,6 +43,9 @@
     /** The concepts associated with the span */
     concepts?: Array<ConceptScoreSignal>;
   }
+
+  const showScoreThreshold = 0.5;
+  const maxScoreBackgroundOpacity = 0.5;
 
   let selectedSpan: AnnotatedStringSpan | undefined;
 
@@ -59,7 +64,13 @@
 
       // Add filler
       if (spanStart != spanValue.start) {
-        filledSpans.push({start: spanStart, end: spanValue.start, show: false, filler: true});
+        filledSpans.push({
+          start: spanStart,
+          end: spanValue.start,
+          score: 0.0,
+          show: false,
+          filler: true
+        });
       }
 
       // Find all sub fields to the span so we can show their value in the tooltip
@@ -78,12 +89,15 @@
 
       let concepts: AnnotatedStringSpan['concepts'] = [];
       let show = true;
+      let maxScore = 0.0;
       // If any children are floats, use that to determine if we should show the span
       if (children.some(c => c && isFloat(L.dtype(c)))) {
         show = false;
         for (const child of children) {
           if (isFloat(L.dtype(child))) {
-            if ((L.value<'float32'>(child) ?? 0) > 0.5) {
+            const score = L.value<'float32'>(child) ?? 0;
+            maxScore = Math.max(score, maxScore);
+            if (maxScore > showScoreThreshold) {
               show = true;
             }
           }
@@ -99,6 +113,7 @@
         start: spanValue.start,
         end: spanValue.end,
         show,
+        score: maxScore,
         properties: children,
         filler: false,
         concepts
@@ -131,11 +146,15 @@
           if (!span.filler && span.concepts?.length) selectedSpan = span;
         }}
         title={tooltipText(span)}
-        class="relative bg-yellow-500 text-transparent opacity-0 hover:opacity-30"
+        class="relative bg-yellow-500 text-transparent opacity-0 hover:!opacity-30"
         class:bg-green-500={selectedSpan == span}
-        class:opacity-20={span.show}
-        class:opacity-40={selectedSpan == span}
-        class:hover:opacity-40={span.show}>{text.slice(span.start, span.end)}</span
+        class:hover:bg-yellow-600={true}
+        style:opacity={/* Linear scale opacity based on score. */ Math.max(
+          span.score - showScoreThreshold,
+          0
+        ) * maxScoreBackgroundOpacity}
+        class:hover:!opacity-40={/* Override the inline style opacity on hover. */ true}
+        >{text.slice(span.start, span.end)}</span
       >{#if selectedSpan == span && span.concepts?.length}<StringSpanHighlightConceptPicker
           conceptName={span.concepts[0].concept_name}
           conceptNamespace={span.concepts[0].namespace}

@@ -6,7 +6,7 @@ from typing import ClassVar, Optional
 from pydantic import BaseModel, validator
 
 from ...schema import ImageInfo, Schema
-from ...tasks import TaskId
+from ...tasks import TaskStepId
 
 
 class SourceProcessResult(BaseModel):
@@ -45,14 +45,14 @@ class Source(abc.ABC, BaseModel):
   def process(
     self,
     output_dir: str,
-    task_id: Optional[TaskId] = None,
+    task_step_id: Optional[TaskStepId] = None,
   ) -> SourceProcessResult:
     """Process the source upload request.
 
     Args:
       output_dir: The directory to write the output files to.
       shards_loader: The function to use to load the shards. If None, the default shards loader
-      task_id: The TaskManager `task_id` for this process run. This is used to update the progress
-        of the task.
+      task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
+        progress of the task.
     """
     pass

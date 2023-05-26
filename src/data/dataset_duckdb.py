@@ -49,7 +49,7 @@ from ..signals.signal import (
   TextSignal,
   resolve_signal,
 )
-from ..tasks import TaskId, progress
+from ..tasks import TaskStepId, TaskStepInfo, progress, set_worker_steps
 from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
 from . import dataset
 from .dataset import (
@@ -254,11 +254,12 @@ class DatasetDuckDB(Dataset):
 
     return self._col_vector_stores[path]
 
-  def _prepare_signal(self,
-                      signal: Signal,
-                      source_path: PathTuple,
-                      compute_dependencies: Optional[bool] = False,
-                      task_id: Optional[TaskId] = None) -> PathTuple:
+  def _prepare_signal(
+      self,
+      signal: Signal,
+      source_path: PathTuple,
+      compute_dependencies: Optional[bool] = False,
+      task_step_id: Optional[TaskStepId] = None) -> tuple[PathTuple, Optional[TaskStepId]]:
     """Run all the signals depedencies required to run this signal.
 
     Args:
@@ -266,10 +267,10 @@ class DatasetDuckDB(Dataset):
       source_path: The source path the signal is running over.
       compute_dependencies: If True, signals will get computed for the whole column. If False,
         throw if the required inputs are not computed yet.
-      task_id: The TaskId used to run the signal.
+      task_step_id: The TaskStepId used to run the signal.
 
     Returns
-      The final path the signal will be run over.
+      The final path the signal will be run over and the new step id for the final signal.
     """
     is_value_path = False
     if source_path[-1] == VALUE_KEY:
@@ -278,45 +279,63 @@ class DatasetDuckDB(Dataset):
 
     new_path = source_path
 
+    signals_to_compute: list[tuple[PathTuple, Signal]] = []
     if isinstance(signal, TextSignal):
       split_signal = signal.get_split_signal()
       if split_signal:
         new_path = (*new_path, split_signal.key(), PATH_WILDCARD)
         if new_path not in self.manifest().data_schema.leafs:
-          if compute_dependencies:
-            self.compute_signal(split_signal, source_path, task_id=task_id)
-          else:
-            raise ValueError(f'Split signal "{split_signal.key()}" is not computed. '
-                             f'Please run `dataset.compute_signal` over {source_path} first.')
+          if not compute_dependencies:
+            raise ValueError(f'Split signal "{split_signal.key()}" is not computed over '
+                             f'{source_path}. Please run `dataset.compute_signal` over '
+                             f'{source_path} first.')
+          signals_to_compute.append((new_path, split_signal))
 
       if isinstance(signal, TextEmbeddingModelSignal):
         embedding_signal = signal.get_embedding_signal()
         if embedding_signal:
           new_path = (*new_path, embedding_signal.key())
           if new_path not in self.manifest().data_schema.leafs:
-            if compute_dependencies:
-              self.compute_signal(embedding_signal, source_path, task_id=task_id)
-            else:
+            if not compute_dependencies:
               raise ValueError(f'Embedding signal "{embedding_signal.key()}" is not computed over '
                                f'{source_path}. Please run `dataset.compute_signal` over '
                                f'{source_path} first.')
+            signals_to_compute.append((new_path, embedding_signal))
+
+    new_steps = len(signals_to_compute)
+    # Setup the task steps so the task progress indicator knows the number of steps before they are
+    # computed.
+    if task_step_id:
+      (task_id, step_id) = task_step_id
+      if new_steps:
+        # Make a step for the parent.
+        set_worker_steps(task_id, [TaskStepInfo()] * (new_steps + 1))
+
+    for i, (new_path, signal) in enumerate(signals_to_compute):
+      if new_path not in self.manifest().data_schema.leafs:
+        self.compute_signal(
+          signal, source_path, task_step_id=(task_id, i) if task_step_id else None)
 
     if is_value_path:
       new_path = (*new_path, VALUE_KEY)
-    return new_path
+
+    return (new_path, (task_id, step_id + new_steps) if task_step_id else None)
 
   @override
   def compute_signal(self,
                      signal: Signal,
                      column: ColumnId,
-                     task_id: Optional[TaskId] = None) -> None:
+                     task_step_id: Optional[TaskStepId] = None) -> None:
     source_path = column_from_identifier(column).path
 
     # Prepare the dependencies of this signal.
-    signal_source_path = self._prepare_signal(signal, source_path, compute_dependencies=True)
+    signal_source_path, task_step_id = self._prepare_signal(
+      signal, source_path, compute_dependencies=True, task_step_id=task_step_id)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([signal_col], task_id=task_id, resolve_span=True)
+    select_rows_result = self.select_rows([signal_col],
+                                          task_step_id=task_step_id,
+                                          resolve_span=True)
     df = select_rows_result.df()
     values = df['value']
 
@@ -608,7 +627,7 @@ class DatasetDuckDB(Dataset):
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
                   limit: Optional[int] = None,
                   offset: Optional[int] = 0,
-                  task_id: Optional[TaskId] = None,
+                  task_step_id: Optional[TaskStepId] = None,
                   resolve_span: bool = False,
                   combine_columns: bool = False) -> SelectRowsResult:
     manifest = self.manifest()
@@ -624,7 +643,7 @@ class DatasetDuckDB(Dataset):
     for col in cols:
       if col.signal_udf:
         # Do not auto-compute dependencies, throw an error if they are not computed.
-        col.path = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
+        col.path, _ = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
 
     self._validate_columns(cols, manifest.data_schema)
 
@@ -750,7 +769,7 @@ class DatasetDuckDB(Dataset):
       if isinstance(signal, ConceptScoreSignal):
         # Make sure the manager is in sync.
         manager = self._concept_model_db.get(signal.namespace, signal.concept_name,
-                                                   signal.embedding)
+                                             signal.embedding)
         self._concept_model_db.sync(manager)
 
       signal_alias = udf_col.alias or _unique_alias(udf_col)
@@ -789,16 +808,24 @@ class DatasetDuckDB(Dataset):
             flat_keys = flatten_keys(df[UUID_COLUMN], input)
             signal_out = signal.vector_compute(flat_keys, vector_store)
             # Add progress.
-            if task_id is not None:
-              signal_out = progress(signal_out, task_id=task_id, estimated_len=len(flat_keys))
+            if task_step_id is not None:
+              signal_out = progress(
+                signal_out,
+                task_step_id=task_step_id,
+                estimated_len=len(flat_keys),
+                step_description=f'Computing {signal.key()}...')
             df[signal_column] = itemize_primitives(unflatten(signal_out, input))
         else:
           num_rich_data = count_primitives(input)
           flat_input = cast(Iterable[RichData], flatten(input))
           signal_out = signal.compute(flat_input)
           # Add progress.
-          if task_id is not None:
-            signal_out = progress(signal_out, task_id=task_id, estimated_len=num_rich_data)
+          if task_step_id is not None:
+            signal_out = progress(
+              signal_out,
+              task_step_id=task_step_id,
+              estimated_len=num_rich_data,
+              step_description=f'Computing {signal.key()}...')
           signal_out = list(signal_out)
 
           if signal_column in temp_column_to_offset_column:
@@ -891,7 +918,7 @@ class DatasetDuckDB(Dataset):
     for col in cols:
       if col.signal_udf:
         # Do not auto-compute dependencies, throw an error if they are not computed.
-        col.path = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
+        col.path, _ = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
 
     self._validate_columns(cols, manifest.data_schema)
 

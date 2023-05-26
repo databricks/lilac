@@ -1,6 +1,11 @@
 <script lang="ts">
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import type {LilacSchema, LilacValueNode, Path} from '$lilac';
+  import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
+  import {
+    getDatasetViewContext,
+    getSelectRowsOptions,
+    isPathVisible
+  } from '$lib/stores/datasetViewStore';
+  import {listFields, type LilacSchema, type LilacValueNode, type Path} from '$lilac';
   import RowItemValue from './RowItemValue.svelte';
 
   export let row: LilacValueNode;
@@ -8,10 +13,24 @@
   export let aliasMapping: Record<string, Path> | undefined;
 
   let datasetViewStore = getDatasetViewContext();
+  $: selectOptions = getSelectRowsOptions($datasetViewStore);
+
+  // Get the resulting schema including UDF columns
+  $: selectRowsSchema = selectOptions
+    ? querySelectRowsSchema(
+        $datasetViewStore.namespace,
+        $datasetViewStore.datasetName,
+        selectOptions
+      )
+    : undefined;
 
   let sortedVisibleColumns: Path[] = [];
+
   $: {
-    sortedVisibleColumns = [...$datasetViewStore.visibleColumns];
+    let allFields = $selectRowsSchema?.isSuccess ? listFields($selectRowsSchema.data) : [];
+    sortedVisibleColumns = allFields
+      .filter(f => isPathVisible($datasetViewStore.visibleColumns, f.path, aliasMapping))
+      .map(f => f.path);
     sortedVisibleColumns.sort((a, b) => (a.join('.') > b.join('.') ? 1 : -1));
   }
 </script>

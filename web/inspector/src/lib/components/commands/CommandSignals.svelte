@@ -1,32 +1,67 @@
+<script context="module" lang="ts">
+  const COMMAND_SIGNAL_CONTEXT = 'COMMAND_SIGNAL_CONTEXT';
+
+  interface CommandSignalStore {
+    path: Path | undefined;
+    jsonSchema: JSONSchema7 | undefined;
+  }
+
+  export function getCommandSignalContext() {
+    return getContext<Readable<CommandSignalStore>>(COMMAND_SIGNAL_CONTEXT);
+  }
+
+  function createCommandSignalContext(path?: Path, jsonSchema?: JSONSchema7) {
+    const store = writable<CommandSignalStore>({path, jsonSchema});
+    setContext(COMMAND_SIGNAL_CONTEXT, store);
+    return store;
+  }
+</script>
+
 <script lang="ts">
   import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     SIGNAL_INPUT_TYPE_TO_VALID_DTYPES,
     type LilacSchemaField,
+    type Path,
     type Signal,
     type SignalInfoWithTypedSchema
   } from '$lilac';
   import {ComposedModal, ModalBody, ModalFooter, ModalHeader} from 'carbon-components-svelte';
-  import type {JSONSchema4Type} from 'json-schema';
+  import type {JSONSchema4Type, JSONSchema7} from 'json-schema';
   import type {JSONError} from 'json-schema-library';
-  import {SvelteComponent, createEventDispatcher} from 'svelte';
+  import {SvelteComponent, createEventDispatcher, getContext, setContext} from 'svelte';
   import SvelteMarkdown from 'svelte-markdown';
+  import {writable, type Readable} from 'svelte/store';
   import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
-  import type {ComputeSignalCommand, PreviewConceptCommand} from './Commands.svelte';
+  import {
+    Command,
+    type ComputeSignalCommand,
+    type EditPreviewConceptCommand,
+    type PreviewConceptCommand
+  } from './Commands.svelte';
   import EmptyComponent from './customComponents/EmptyComponent.svelte';
   import SelectConcept from './customComponents/SelectConcept.svelte';
+  import SelectEmbedding from './customComponents/SelectEmbedding.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
   import SignalList from './selectors/SignalList.svelte';
 
-  export let command: ComputeSignalCommand | PreviewConceptCommand;
-  /** The variant of the command */
-  export let variant: 'compute' | 'preview';
+  export let command: ComputeSignalCommand | PreviewConceptCommand | EditPreviewConceptCommand;
 
   let path = command.path;
   let signalInfo: SignalInfoWithTypedSchema | undefined;
   let signalPropertyValues: Record<string, Record<string, JSONSchema4Type>> = {};
   let errors: JSONError[] = [];
+
+  // Set the signal values if we are editing a signal
+  if (command.command === Command.EditPreviewConcept && command.signalName) {
+    signalPropertyValues = {[command.signalName]: {...command.value}};
+  }
+
+  // Store the field path and json schema in the context so custom components can access it
+  const contextStore = createCommandSignalContext(path, signalInfo?.json_schema);
+  $: $contextStore.path = path;
+  $: $contextStore.jsonSchema = signalInfo?.json_schema;
 
   const datasetViewStore = getDatasetViewContext();
   const dispatch = createEventDispatcher();
@@ -36,7 +71,11 @@
   const customComponents: Record<string, Record<string, typeof SvelteComponent>> = {
     concept_score: {
       '/namespace': EmptyComponent,
-      '/concept_name': SelectConcept
+      '/concept_name': SelectConcept,
+      '/embedding': SelectEmbedding
+    },
+    semantic_similarity: {
+      '/embedding': SelectEmbedding
     }
   };
 
@@ -62,7 +101,7 @@
 
   function submit() {
     if (!signal) return;
-    if (variant == 'compute') {
+    if (command.command === Command.ComputeSignal) {
       $computeSignalMutation.mutate([
         command.namespace,
         command.datasetName,
@@ -71,11 +110,19 @@
           signal
         }
       ]);
-    } else if (variant == 'preview') {
+    } else if (command.command === Command.PreviewConcept) {
       if (path) {
         datasetViewStore.addUdfColumn({
-          path,
+          path: path,
           signal_udf: signal
+        });
+      }
+    } else if (command.command === Command.EditPreviewConcept) {
+      if (path) {
+        datasetViewStore.editUdfColumn(command.alias, {
+          path: path,
+          signal_udf: signal,
+          alias: command.alias
         });
       }
     }
@@ -88,7 +135,10 @@
 </script>
 
 <ComposedModal open on:submit={submit} on:close={close}>
-  <ModalHeader label="Signals" title={variant == 'compute' ? 'Compute Signal' : 'Preview Signal'} />
+  <ModalHeader
+    label="Signals"
+    title={command.command === Command.ComputeSignal ? 'Compute Signal' : 'Preview Signal'}
+  />
   <ModalBody hasForm>
     <div class="flex flex-row">
       <div class="-ml-4 mr-4 w-80 grow-0">
@@ -125,7 +175,7 @@
     </div>
   </ModalBody>
   <ModalFooter
-    primaryButtonText={variant == 'compute' ? 'Compute' : 'Preview'}
+    primaryButtonText={command.command === Command.ComputeSignal ? 'Compute' : 'Preview'}
     secondaryButtonText="Cancel"
     primaryButtonDisabled={errors.length > 0 || !path}
     on:click:button--secondary={close}

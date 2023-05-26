@@ -21,8 +21,8 @@
       title: signal.json_schema.title || 'Unnamed signal',
       value: signal
     }))}
-    defaultItem={signal}
-    bind:item={signal}
+    item={signal}
+    on:select={e => (signal = e.detail)}
   />
 {:else if $signals.isLoading}
   <CommandSelectList skeleton />

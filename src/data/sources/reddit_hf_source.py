@@ -11,7 +11,7 @@ from typing_extensions import override
 from datasets import DatasetDict, load_dataset
 
 from ...schema import PARQUET_FILENAME_PREFIX, Item, Schema
-from ...tasks import TaskId, progress
+from ...tasks import TaskStepId, progress
 from ..dataset_utils import write_items_to_parquet
 from .huggingface_source import hf_schema_to_schema
 from .source import Source, SourceProcessResult
@@ -77,7 +77,7 @@ class RedditDataset(Source):
   def process(
     self,
     output_dir: str,
-    task_id: Optional[TaskId] = None,
+    task_step_id: Optional[TaskStepId] = None,
   ) -> SourceProcessResult:
     hf_dataset_dict = load_dataset(HF_REDDIT_DATASET_NAME, num_proc=multiprocessing.cpu_count())
 
@@ -86,8 +86,9 @@ class RedditDataset(Source):
     # Items will include a bunch of `None`s so that the progress estimate is accurate.
     items = progress(
       _convert_to_items(hf_dataset_dict, self.subreddits, schema_info.class_labels),
-      task_id=task_id,
-      estimated_len=schema_info.num_items)
+      task_step_id=task_step_id,
+      estimated_len=schema_info.num_items,
+      step_description=f'Reading from subreddits: {",".join(self.subreddits or [])}...')
 
     # Filter out the `None`s.
     items = cast(Iterable[Item], (item for item in items if item is not None))

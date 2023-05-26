@@ -6,7 +6,14 @@ from typing import Any, Iterable, Optional, cast
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, DraftId, draft_examples
+from .concepts.concept import (
+  DRAFT_MAIN,
+  Concept,
+  ConceptModel,
+  DraftId,
+  Sensitivity,
+  draft_examples,
+)
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
 from .data.dataset import Column, val
 from .db_manager import get_dataset
@@ -123,6 +130,7 @@ class ScoreBody(BaseModel):
   """Request body for the score endpoint."""
   examples: list[ScoreExample]
   draft: str = DRAFT_MAIN
+  sensitivity = Sensitivity.BALANCED
 
 
 class ScoreResponse(BaseModel):
@@ -181,4 +189,5 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
   models_updated = DISK_CONCEPT_MODEL_DB.sync(manager)
   # TODO(smilkov): Support images.
   texts = [example.text or '' for example in body.examples]
-  return ScoreResponse(scores=concept_model.score(texts), model_synced=models_updated)
+  return ScoreResponse(
+    scores=concept_model.score(texts, body.sensitivity), model_synced=models_updated)

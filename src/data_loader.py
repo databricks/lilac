@@ -18,7 +18,7 @@ from .data.sources.default_sources import register_default_sources
 from .data.sources.source import Source
 from .data.sources.source_registry import resolve_source
 from .schema import MANIFEST_FILENAME, SourceManifest
-from .tasks import TaskId
+from .tasks import TaskStepId
 from .utils import DebugTimer, get_dataset_output_dir, log, open_file
 
 
@@ -26,12 +26,12 @@ def process_source(base_dir: str,
                    namespace: str,
                    dataset_name: str,
                    source: Source,
-                   task_id: Optional[TaskId] = None) -> tuple[str, int]:
+                   task_step_id: Optional[TaskStepId] = None) -> tuple[str, int]:
   """Process a source."""
   output_dir = get_dataset_output_dir(base_dir, namespace, dataset_name)
 
   with DebugTimer(f'[{source.name}] Processing dataset "{dataset_name}"'):
-    source_process_result = source.process(output_dir, task_id)
+    source_process_result = source.process(output_dir, task_step_id)
 
   filenames = [os.path.basename(filepath) for filepath in source_process_result.filepaths]
   manifest = SourceManifest(
