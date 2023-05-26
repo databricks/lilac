@@ -52,7 +52,7 @@ class NumpyVectorStore(VectorStore):
       The embeddings for the given keys.
     """
     str_keys = list(map(str, keys))
-    return np.array(self._df.loc[str_keys][NP_EMBEDDINGS_KWD])
+    return np.stack(self._df.loc[str_keys][NP_EMBEDDINGS_KWD])
 
   @override
   def topk(self,
