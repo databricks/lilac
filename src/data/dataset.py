@@ -65,7 +65,7 @@ class SelectRowsSchemaResult(BaseModel):
   data_schema: Schema
   # Maps a udf name to its destination path in the schema.
   alias_udf_paths: dict[str, PathTuple] = {}
-  # Maps the list of sesarch queries to their result paths. This lines up with the order given by
+  # Maps the list of search queries to their result paths. This lines up with the order given by
   # the searches.
   search_results_paths: list[PathTuple] = []
 
