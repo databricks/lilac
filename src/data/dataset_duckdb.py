@@ -1070,7 +1070,7 @@ class DatasetDuckDB(Dataset):
 
     return search_udfs
 
-  def _create_where(self, filters: list[Filter], searches: list[Search]) -> list[str]:
+  def _create_where(self, filters: list[Filter], searches: list[Search] = []) -> list[str]:
     if not filters and not searches:
       return []
     sql_filter_queries: list[str] = []
