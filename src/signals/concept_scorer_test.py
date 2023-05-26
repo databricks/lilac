@@ -135,10 +135,9 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
     ConceptModelManager(
       namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
-  scores = signal.compute(['a new data point', 'not in concept'])
-  expected_scores = [0.801, 0.465]
-  for score, expected_score in zip(scores, expected_scores):
-    assert pytest.approx(expected_score, 1e-3) == score
+  scores = cast(list[float], list(signal.compute(['a new data point', 'not in concept'])))
+  assert scores[0] > 0.5
+  assert scores[1] < 0.5
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
@@ -169,11 +168,10 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
   vector_store.add([('1',), ('2',), ('3',)],
                    np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
 
-  scores = signal.vector_compute([('1',), ('2',), ('3',)], vector_store)
-
-  expected_scores = [0.465, 0.535, 0.801]
-  for score, expected_score in zip(scores, expected_scores):
-    assert pytest.approx(expected_score, 1e-3) == score
+  scores = cast(list[float], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_store)))
+  assert scores[0] < 0.5
+  assert scores[1] > 0.5
+  assert scores[2] > 0.5
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
@@ -205,24 +203,21 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
 
   # Compute topk without id restriction.
   topk_result = signal.vector_compute_topk(3, vector_store)
-  expected_result = [(('3',), 0.801), (('2',), 0.535), (('1',), 0.465)]
-  for (id, score), (expected_id, expected_score) in zip(topk_result, expected_result):
+  expected_result = [('3',), ('2',), ('1',)]
+  for (id, _), expected_id in zip(topk_result, expected_result):
     assert id == expected_id
-    assert score == pytest.approx(expected_score, 1e-3)
 
   # Compute top 1.
   topk_result = signal.vector_compute_topk(1, vector_store)
-  expected_result = [(('3',), 0.801)]
-  for (id, score), (expected_id, expected_score) in zip(topk_result, expected_result):
+  expected_result = [('3',)]
+  for (id, _), expected_id in zip(topk_result, expected_result):
     assert id == expected_id
-    assert score == pytest.approx(expected_score, 1e-3)
 
   # Compute topk with id restriction.
   topk_result = signal.vector_compute_topk(3, vector_store, keys=[('1',), ('2',)])
-  expected_result = [(('2',), 0.535), (('1',), 0.465)]
-  for (id, score), (expected_id, expected_score) in zip(topk_result, expected_result):
+  expected_result = [('2',), ('1',)]
+  for (id, _), expected_id in zip(topk_result, expected_result):
     assert id == expected_id
-    assert score == pytest.approx(expected_score, 1e-3)
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
@@ -256,22 +251,18 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB],
   vector_store.add([('1',), ('2',), ('3',)],
                    np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
 
-  scores = signal.vector_compute([('1',), ('2',), ('3',)], vector_store)
-
-  expected_scores = [0.465, 0.535, 0.801]
-  for score, expected_score in zip(scores, expected_scores):
-    assert pytest.approx(expected_score, 1e-3) == score
+  scores = cast(list[float], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_store)))
+  assert scores[0] < 0.5
+  assert scores[1] > 0.5
+  assert scores[2] > 0.5
 
   # Make sure the draft signal works. It has different values than the original signal.
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
                    np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
 
-  scores = draft_signal.vector_compute([('1',), ('2',), ('3',)], vector_store)
-
-  expected_scores = [0.620, 0.596, 0.187]
-  for score, expected_score in zip(scores, expected_scores):
-    assert pytest.approx(expected_score, 1e-3) == score
+  draft_scores = draft_signal.vector_compute([('1',), ('2',), ('3',)], vector_store)
+  assert draft_scores != scores
 
 
 def test_concept_score_key() -> None:

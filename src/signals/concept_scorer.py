@@ -4,7 +4,7 @@ from typing import Any, Iterable, Optional
 import numpy as np
 from typing_extensions import override
 
-from ..concepts.concept import DRAFT_MAIN, ConceptModel
+from ..concepts.concept import DRAFT_MAIN, ConceptModel, Sensitivity
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.vector_store import VectorStore
 from ..schema import DataType, Field, ItemValue, RichData, VectorKey
@@ -21,6 +21,8 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
 
   # The draft version of the concept to use. If not provided, the latest version is used.
   draft: str = DRAFT_MAIN
+
+  sensitivity = Sensitivity.BALANCED
 
   _concept_model_db: ConceptModelDB
 
@@ -45,14 +47,14 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:
     concept_model = self._get_concept_model()
-    return concept_model.score(data)
+    return concept_model.score(data, self.sensitivity)
 
   @override
   def vector_compute(self, keys: Iterable[VectorKey],
                      vector_store: VectorStore) -> Iterable[Optional[ItemValue]]:
     concept_model = self._get_concept_model()
     embeddings = vector_store.get(keys)
-    return concept_model.score_embeddings(embeddings).tolist()
+    return concept_model.score_embeddings(embeddings, self.sensitivity).tolist()
 
   @override
   def vector_compute_topk(

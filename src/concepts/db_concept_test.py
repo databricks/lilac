@@ -19,6 +19,7 @@ from .concept import (
   DraftId,
   Example,
   ExampleIn,
+  Sensitivity,
 )
 from .db_concept import (
   ConceptDB,
@@ -421,7 +422,7 @@ def _make_test_concept_model_manager(
 class TestConceptModel(ConceptModel):
 
   @override
-  def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
+  def score_embeddings(self, embeddings: np.ndarray, sensitivity: Sensitivity) -> np.ndarray:
     """Get the scores for the provided embeddings."""
     return np.array([.1])
 

@@ -7,7 +7,6 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import parse_obj_as
 from pytest_mock import MockerFixture
-from sklearn.linear_model import LogisticRegression
 from typing_extensions import override
 
 from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, Example, ExampleIn, ExampleOrigin
@@ -366,8 +365,8 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
     model_synced=True)
 
   # Score an example.
-  mock_predict_proba = mocker.patch.object(LogisticRegression, 'predict_proba', autospec=True)
-  mock_predict_proba.return_value = np.array([[0.1, 0.9], [0.0, 1.0]])
+  mock_score_emb = mocker.patch.object(ConceptModel, 'score_embeddings', autospec=True)
+  mock_score_emb.return_value = np.array([0.9, 1.0])
   url = '/api/v1/concepts/concept_namespace/concept/test_embedding/score'
   score_body = ScoreBody(examples=[ScoreExample(text='hello world'), ScoreExample(text='hello')])
   response = client.post(url, json=score_body.dict())

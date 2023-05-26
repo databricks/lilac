@@ -16,7 +16,6 @@ export type { ConceptInfo } from './models/ConceptInfo';
 export type { ConceptModel } from './models/ConceptModel';
 export type { ConceptModelResponse } from './models/ConceptModelResponse';
 export type { ConceptScoreSignal } from './models/ConceptScoreSignal';
-export type { ConceptThreshold } from './models/ConceptThreshold';
 export type { ConceptUpdate } from './models/ConceptUpdate';
 export type { CreateConceptOptions } from './models/CreateConceptOptions';
 export type { DatasetInfo } from './models/DatasetInfo';
