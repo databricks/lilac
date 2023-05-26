@@ -1,8 +1,9 @@
 <script lang="ts">
   import {queryConcepts} from '$lib/queries/conceptQueries';
+  import type {ConceptScoreSignal} from '$lilac';
   import {Select, SelectItem, SelectItemGroup} from 'carbon-components-svelte';
 
-  export let rootValue: {namespace: string; concept_name: string};
+  export let rootValue: ConceptScoreSignal;
   export let invalid: boolean;
   export let invalidText: string;
   export let value: string;
@@ -35,7 +36,13 @@
   }
 </script>
 
-<Select labelText="Concept *" on:update={onChange} {invalid} {invalidText}>
+<Select
+  labelText="Concept *"
+  on:update={onChange}
+  selected={`${rootValue.namespace}/${value}`}
+  {invalid}
+  {invalidText}
+>
   {#if $concepts.isSuccess}
     {#each conceptGroups as group}
       <SelectItemGroup label={group.namespace}>

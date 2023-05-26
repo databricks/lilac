@@ -1,8 +1,11 @@
 """Defines the concept and the concept models."""
+from enum import Enum
 from typing import Any, Iterable, Literal, Optional, Union
 
 import numpy as np
 from pydantic import BaseModel
+from scipy.interpolate import interp1d
+from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
 
 from ..embeddings.embedding import get_embed_fn
@@ -64,6 +67,38 @@ class Concept(BaseModel):
     return list(sorted(drafts))
 
 
+class Sensitivity(str, Enum):
+  """Sensitivity levels of a concept.
+
+  The sensitivity of concept models vary as a function of how powerful the embedding is, and how
+  complicated or subtle the concept is. Therefore, we provide a way to control the sensitivity of
+  the concept model.
+
+  - `VERY_SENSITIVE` will fire "True" more often and therefore introduce more false positives
+  (will add things that don't fit in the concept).
+  - `NOT_SENSITIVE` will fire "True" less often and therefore introduce more false negatives
+  (misses things that fit in the concept).
+
+  """
+  NOT_SENSITIVE = 'not sensitive'
+  BALANCED = 'balanced'
+  SENSITIVE = 'sensitive'
+  VERY_SENSITIVE = 'very sensitive'
+
+  def __repr__(self) -> str:
+    return self.value
+
+
+# Assuming random text will likely not be in the concept, these percentiles control how likely a
+# random text will be classified as "True".
+SENSITIVITY_PERCENTILES: dict[Sensitivity, float] = {
+  Sensitivity.NOT_SENSITIVE: 1,  # 1% of random negative text will be classified as "True".
+  Sensitivity.BALANCED: 3,  # Likewise, but for 3%.
+  Sensitivity.SENSITIVE: 10,  # Likewise, but for 10%.
+  Sensitivity.VERY_SENSITIVE: 20,  # Likewise, but for 20%.
+}
+
+
 class ConceptModel(BaseModel):
   """A concept model."""
 
@@ -83,12 +118,20 @@ class ConceptModel(BaseModel):
   # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
   _model: LogisticRegression = LogisticRegression(
     class_weight='balanced', C=30, tol=1e-5, warm_start=True, max_iter=1_000, n_jobs=-1)
+  _thresholds: dict[Sensitivity, float] = {}
 
-  def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
+  def score_embeddings(self, embeddings: np.ndarray, sensitivity: Sensitivity) -> np.ndarray:
     """Get the scores for the provided embeddings."""
-    return self._model.predict_proba(embeddings)[:, 1]
+    try:
+      scores = self._model.predict_proba(embeddings)[:, 1]
+      threshold = self._thresholds[sensitivity]
+      # Map [0, threshold, 1] to [0, 0.5, 1].
+      interpolate_fn = interp1d([0, threshold, 1], [0, 0.4999, 1])
+      return interpolate_fn(scores)
+    except NotFittedError:
+      return np.random.rand(len(embeddings))
 
-  def score(self, examples: Iterable[RichData]) -> list[float]:
+  def score(self, examples: Iterable[RichData], sensitivity: Sensitivity) -> list[float]:
     """Get the scores for the provided examples."""
     embedding_signal = get_signal_cls(self.embedding_name)()
     if not isinstance(embedding_signal, TextEmbeddingSignal):
@@ -98,11 +141,17 @@ class ConceptModel(BaseModel):
     embed_fn = get_embed_fn(embedding_signal)
 
     embeddings = np.array(embed_fn(examples))
-    return self.score_embeddings(embeddings).tolist()
+    return self.score_embeddings(embeddings, sensitivity).tolist()
 
   def fit(self, embeddings: np.ndarray, labels: list[bool]) -> None:
     """Fit the model to the provided embeddings and labels."""
+    if len(set(labels)) < 2:
+      return
     self._model.fit(embeddings, labels)
+    scores = self._model.predict_proba(embeddings)[:, 1]
+    negative_scores = [score for label, score in zip(labels, scores) if not label]
+    thresholds = np.percentile(negative_scores, [100 - p for p in SENSITIVITY_PERCENTILES.values()])
+    self._thresholds = dict(zip(SENSITIVITY_PERCENTILES.keys(), thresholds))
 
 
 def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:

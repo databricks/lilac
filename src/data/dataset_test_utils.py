@@ -12,7 +12,6 @@ from ..schema import (
   DataType,
   Field,
   Item,
-  ItemValue,
   Schema,
   SourceManifest,
 )
@@ -24,7 +23,7 @@ TEST_NAMESPACE = 'test_namespace'
 TEST_DATASET_NAME = 'test_dataset'
 
 
-def _infer_dtype(value: ItemValue) -> DataType:
+def _infer_dtype(value: Item) -> DataType:
   if isinstance(value, str):
     return DataType.STRING
   elif isinstance(value, bool):
@@ -100,8 +99,8 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
     f.write(manifest.json(indent=2, exclude_none=True))
 
 
-def expected_item(value: Optional[ItemValue] = None,
-                  metadata: Optional[dict[str, Union[Item, ItemValue]]] = None,
+def expected_item(value: Optional[Item] = None,
+                  metadata: Optional[dict[str, Union[Item, Item]]] = None,
                   allow_none_value: Optional[bool] = False) -> Item:
   """Wrap a value in a dict with the value key."""
   out_item: Item = {}

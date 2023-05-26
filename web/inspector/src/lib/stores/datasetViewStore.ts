@@ -85,6 +85,15 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         state.queryOptions.columns = state.queryOptions.columns?.filter(c => c !== column);
         return state;
       }),
+    editUdfColumn: (alias: string, column: Column) => {
+      return update(state => {
+        state.queryOptions.columns = state.queryOptions.columns?.map(c => {
+          if (isColumn(c) && c.alias == alias) return column;
+          return c;
+        });
+        return state;
+      });
+    },
 
     addSortBy: (column: Path) =>
       update(state => {

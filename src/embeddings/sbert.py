@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import normalize
 from typing_extensions import override
 
-from ..schema import RichData, SignalOut
+from ..schema import Item, RichData
 from ..signals.signal import TextEmbeddingSignal
 from ..utils import chunks, log
 
@@ -48,7 +48,7 @@ class SBERT(TextEmbeddingSignal):
     return SBERT_DEFAULT_BATCH_SIZE
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     batch_size = self._optimal_batch_size()
 
     for batch in chunks(data, batch_size):

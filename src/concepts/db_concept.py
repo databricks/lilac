@@ -6,13 +6,13 @@ import pickle
 
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
-from typing import List, Optional, Union, cast
+from typing import Iterable, List, Optional, Union, cast
 
 from pydantic import BaseModel
 from typing_extensions import override
 
 from ..config import data_path
-from ..schema import SignalInputType
+from ..schema import RichData, SignalInputType
 from ..signals.signal import get_signal_cls
 from ..utils import DebugTimer, delete_file, file_exists, open_file
 from .concept import DRAFT_MAIN, Concept, ConceptModelManager, DraftId, Example, ExampleIn
@@ -54,7 +54,11 @@ class ConceptDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def create(self, namespace: str, name: str, type: SignalInputType) -> Concept:
+  def create(self,
+             namespace: str,
+             name: str,
+             type: SignalInputType,
+             negative_examples: Iterable[RichData] = []) -> Concept:
     """Create a concept."""
     pass
 
@@ -203,7 +207,11 @@ class DiskConceptDB(ConceptDB):
       return Concept.parse_raw(f.read())
 
   @override
-  def create(self, namespace: str, name: str, type: SignalInputType) -> Concept:
+  def create(self,
+             namespace: str,
+             name: str,
+             type: SignalInputType,
+             negative_examples: Iterable[RichData] = []) -> Concept:
     """Create a concept."""
     concept_json_path = _concept_json_path(namespace, name)
     if file_exists(concept_json_path):
@@ -211,6 +219,9 @@ class DiskConceptDB(ConceptDB):
 
     concept = Concept(namespace=namespace, concept_name=name, type=type, data={}, version=0)
     self._save(concept)
+    if negative_examples:
+      examples = [ExampleIn(label=False, text=text) for text in negative_examples]
+      concept = self.edit(namespace, name, ConceptUpdate(insert=examples))
 
     return concept
 

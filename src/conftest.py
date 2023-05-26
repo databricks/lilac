@@ -3,19 +3,20 @@ import pathlib
 from typing import Generator, Optional, Type
 
 import pytest
+from pytest_mock import MockerFixture
 
-from ..config import CONFIG
-from ..schema import Item, Schema
-from .dataset import Dataset
-from .dataset_duckdb import DatasetDuckDB
-from .dataset_test_utils import make_dataset
+from .config import CONFIG
+from .data.dataset import Dataset
+from .data.dataset_duckdb import DatasetDuckDB
+from .data.dataset_test_utils import make_dataset
+from .schema import Item, Schema
 
 
 @pytest.fixture(scope='function', params=[DatasetDuckDB])
-def make_test_data(tmp_path: pathlib.Path, request: pytest.FixtureRequest) -> Generator:
+def make_test_data(tmp_path: pathlib.Path, mocker: MockerFixture,
+                   request: pytest.FixtureRequest) -> Generator:
   """A pytest fixture for creating temporary test datasets."""
-  data_path = CONFIG['LILAC_DATA_PATH']
-  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
+  mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
   dataset_cls: Type[Dataset] = request.param
 
   def _make_test_data(items: list[Item], schema: Optional[Schema] = None) -> Dataset:
@@ -23,6 +24,3 @@ def make_test_data(tmp_path: pathlib.Path, request: pytest.FixtureRequest) -> Ge
 
   # Return the factory for datasets that test methods can use.
   yield _make_test_data
-
-  # Teardown.
-  CONFIG['LILAC_DATA_PATH'] = data_path or ''

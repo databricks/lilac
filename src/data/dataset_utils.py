@@ -20,7 +20,6 @@ from ..schema import (
   VALUE_KEY,
   Field,
   Item,
-  ItemValue,
   PathTuple,
   Schema,
   VectorKey,
@@ -44,7 +43,7 @@ def is_primitive(obj: object) -> bool:
   return True
 
 
-def _replace_embeddings_with_none(input: Union[Item, ItemValue]) -> Union[Item, ItemValue]:
+def _replace_embeddings_with_none(input: Union[Item, Item]) -> Union[Item, Item]:
   if isinstance(input, np.ndarray):
     return None
   if isinstance(input, dict):
@@ -55,12 +54,12 @@ def _replace_embeddings_with_none(input: Union[Item, ItemValue]) -> Union[Item, 
   return input
 
 
-def replace_embeddings_with_none(input: Union[Item, ItemValue]) -> Item:
+def replace_embeddings_with_none(input: Union[Item, Item]) -> Item:
   """Replaces all embeddings with None."""
   return cast(Item, _replace_embeddings_with_none(input))
 
 
-def itemize_primitives(input: Union[Item, ItemValue, list[Item]]) -> Union[Item, ItemValue]:
+def itemize_primitives(input: Union[Item, Item, list[Item]]) -> Union[Item, Item]:
   """Wraps primitives values recursively on an item, or item value, or items.
 
   This creates {__value__: primitive} for every primitive recursively.

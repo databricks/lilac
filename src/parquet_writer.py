@@ -4,7 +4,7 @@ from typing import IO, Optional
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from .schema import Item, ItemValue, Schema, schema_to_arrow_schema
+from .schema import Item, Schema, schema_to_arrow_schema
 
 
 class ParquetWriter:
@@ -18,7 +18,7 @@ class ParquetWriter:
     self._schema = schema_to_arrow_schema(schema)
     self._codec = codec
     self._row_group_buffer_size = row_group_buffer_size
-    self._buffer: list[list[Optional[ItemValue]]] = [[] for _ in range(len(self._schema.names))]
+    self._buffer: list[list[Optional[Item]]] = [[] for _ in range(len(self._schema.names))]
     self._buffer_size = record_batch_size
     self._record_batches: list[pa.RecordBatch] = []
     self._record_batches_byte_size = 0

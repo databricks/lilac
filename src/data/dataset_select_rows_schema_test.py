@@ -7,18 +7,7 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import (
-  UUID_COLUMN,
-  Field,
-  Item,
-  ItemValue,
-  RichData,
-  SignalOut,
-  VectorKey,
-  field,
-  schema,
-  signal_field,
-)
+from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema, signal_field
 from ..signals.signal import (
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
@@ -27,7 +16,8 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import Column, SelectRowsSchemaResult
+from ..signals.substring_search import SubstringSignal
+from .dataset import Column, SearchType, SelectRowsSchemaResult
 from .dataset_test_utils import TestDataMaker
 from .dataset_utils import lilac_span
 
@@ -75,7 +65,7 @@ class TestSplitter(TextSplitterSignal):
   name = 'test_splitter'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     for text in data:
       if not isinstance(text, str):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
@@ -99,7 +89,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
 
@@ -113,8 +103,7 @@ class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
     return field('float32')
 
   @override
-  def vector_compute(self, keys: Iterable[VectorKey],
-                     vector_store: VectorStore) -> Iterable[SignalOut]:
+  def vector_compute(self, keys: Iterable[VectorKey], vector_store: VectorStore) -> Iterable[Item]:
     # The signal just sums the values of the embedding.
     embedding_sums = vector_store.get(keys).sum(axis=1)
     for embedding_sum in embedding_sums.tolist():
@@ -143,7 +132,7 @@ class LengthSignal(TextSignal):
   def fields(self) -> Field:
     return field('int32')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for text_content in data:
       yield len(text_content)
 
@@ -154,7 +143,7 @@ class AddSpaceSignal(TextSignal):
   def fields(self) -> Field:
     return field('string')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for text_content in data:
       yield cast(str, text_content) + ' '
 
@@ -356,3 +345,39 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
     alias_udf_paths={
       'udf1': ('text', 'test_splitter', '*', 'test_embedding', 'test_embedding_sum')
     })
+
+
+def test_search_schema(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world',
+    'text2': 'hello world2',
+  }])
+  query_world = 'world'
+  query_hello = 'hello'
+
+  result = dataset.select_rows_schema(
+    searches=[('text', SearchType.LIKE, query_world), ('text2', SearchType.LIKE, query_hello)],
+    combine_columns=True)
+
+  expected_world_signal = SubstringSignal(query=query_world)
+  expected_hello_signal = SubstringSignal(query=query_hello)
+
+  assert result == SelectRowsSchemaResult(
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'text': field(
+        {
+          expected_world_signal.key(): signal_field(
+            fields=['string_span'], signal=expected_world_signal.dict())
+        },
+        dtype='string'),
+      'text2': field(
+        {
+          expected_hello_signal.key(): signal_field(
+            fields=['string_span'], signal=expected_hello_signal.dict())
+        },
+        dtype='string')
+    }),
+    search_results_paths=[('text', expected_world_signal.key()),
+                          ('text2', expected_hello_signal.key())])

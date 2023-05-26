@@ -1,19 +1,21 @@
 """Test the public REST API for concepts."""
 import uuid
-from typing import Generator, Iterable, cast
+from pathlib import Path
+from typing import Iterable, cast
 
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import parse_obj_as
 from pytest_mock import MockerFixture
-from sklearn.linear_model import LogisticRegression
 from typing_extensions import override
 
 from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, Example, ExampleIn, ExampleOrigin
 from .concepts.db_concept import ConceptInfo, ConceptUpdate
 from .config import CONFIG
+from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker
 from .router_concept import (
+  ConceptDatasetOptions,
   ConceptModelResponse,
   CreateConceptOptions,
   MergeConceptDraftOptions,
@@ -21,7 +23,7 @@ from .router_concept import (
   ScoreExample,
   ScoreResponse,
 )
-from .schema import RichData, SignalInputType, SignalOut
+from .schema import UUID_COLUMN, Item, RichData, SignalInputType
 from .server import app
 from .signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
@@ -40,7 +42,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
     yield from embeddings
@@ -56,23 +58,16 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()
 
 
-@pytest.fixture(autouse=True)
-def test_data(tmp_path_factory: pytest.TempPathFactory) -> Generator:
-  data_path = CONFIG['LILAC_DATA_PATH']
-  tmp_path = tmp_path_factory.mktemp('data')
-  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
-
-  yield
-
-  # Teardown.
-  CONFIG['LILAC_DATA_PATH'] = data_path or ''
+@pytest.fixture(scope='function', autouse=True)
+def setup_data_dir(tmp_path: Path, mocker: MockerFixture) -> None:
+  mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
 
 
 def _uuid(id: bytes) -> uuid.UUID:
   return uuid.UUID((id * 16).hex())
 
 
-def test_concept_create(mocker: MockerFixture) -> None:
+def test_concept_create() -> None:
   url = '/api/v1/concepts/'
   response = client.get(url)
 
@@ -91,6 +86,56 @@ def test_concept_create(mocker: MockerFixture) -> None:
     type=SignalInputType.TEXT,
     data={},
     version=0).dict()
+
+  # Make sure list shows us the new concept.
+  url = '/api/v1/concepts/'
+  response = client.get(url)
+  assert response.status_code == 200
+  assert parse_obj_as(list[ConceptInfo], response.json()) == [
+    ConceptInfo(
+      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT, drafts=[DRAFT_MAIN])
+  ]
+
+
+def test_concept_create_negative_examples(make_test_data: TestDataMaker) -> None:
+  url = '/api/v1/concepts/'
+  response = client.get(url)
+
+  assert response.status_code == 200
+  assert response.json() == []
+
+  make_test_data([
+    {
+      UUID_COLUMN: '1',
+      'body': 'hello. world'
+    },
+    {
+      UUID_COLUMN: '2',
+      'body': 'How is everybody?'
+    },
+  ])
+
+  # Create a concept.
+  url = '/api/v1/concepts/create'
+
+  # Provide dataset options for negative examples.
+  dataset_options = ConceptDatasetOptions(
+    namespace=TEST_NAMESPACE, name=TEST_DATASET_NAME, path='body')
+
+  create_concept = CreateConceptOptions(
+    namespace='concept_namespace',
+    name='concept',
+    type=SignalInputType.TEXT,
+    dataset=dataset_options)
+
+  response = client.post(url, json=create_concept.dict())
+  assert response.status_code == 200
+
+  # Make sure the concept has the correct negative examples.
+  concept = Concept.parse_obj(response.json())
+  negative_examples = set([ex.text for ex in concept.data.values()])
+  expected_negative_examples = set(['hello.', 'world', 'How is everybody?'])
+  assert negative_examples == expected_negative_examples
 
   # Make sure list shows us the new concept.
   url = '/api/v1/concepts/'
@@ -366,8 +411,8 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
     model_synced=True)
 
   # Score an example.
-  mock_predict_proba = mocker.patch.object(LogisticRegression, 'predict_proba', autospec=True)
-  mock_predict_proba.return_value = np.array([[0.1, 0.9], [0.0, 1.0]])
+  mock_score_emb = mocker.patch.object(ConceptModel, 'score_embeddings', autospec=True)
+  mock_score_emb.return_value = np.array([0.9, 1.0])
   url = '/api/v1/concepts/concept_namespace/concept/test_embedding/score'
   score_body = ScoreBody(examples=[ScoreExample(text='hello world'), ScoreExample(text='hello')])
   response = client.post(url, json=score_body.dict())

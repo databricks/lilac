@@ -4,7 +4,7 @@ from typing import Iterable, Optional
 
 import pytest
 
-from ..schema import UUID_COLUMN, Field, RichData, SignalOut, field
+from ..schema import UUID_COLUMN, Field, Item, RichData, field
 from ..signals.signal import TextSignal, clear_signal_registry, register_signal
 from .dataset import Column, SortOrder
 from .dataset_test_utils import TestDataMaker, expected_item
@@ -17,7 +17,7 @@ class TestSignal(TextSignal):
   def fields(self) -> Field:
     return field({'len': 'int32', 'is_all_cap': 'boolean'})
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for text_content in data:
       yield {'len': len(text_content), 'is_all_cap': text_content.isupper()}
 
@@ -28,7 +28,7 @@ class TestPrimitiveSignal(TextSignal):
   def fields(self) -> Field:
     return field('int32')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for text_content in data:
       yield len(text_content) + 1
 
@@ -39,7 +39,7 @@ class NestedArraySignal(TextSignal):
   def fields(self) -> Field:
     return field([['int32']])
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for text_content in data:
       yield [[len(text_content) + 1], [len(text_content)]]
 

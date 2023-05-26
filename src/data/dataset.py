@@ -65,6 +65,9 @@ class SelectRowsSchemaResult(BaseModel):
   data_schema: Schema
   # Maps a udf name to its destination path in the schema.
   alias_udf_paths: dict[str, PathTuple] = {}
+  # Maps the list of search queries to their result paths. This lines up with the order given by
+  # the searches.
+  search_results_paths: list[PathTuple] = []
 
 
 class StatsResult(BaseModel):
@@ -95,6 +98,10 @@ class BinaryOp(str, enum.Enum):
   GREATER_EQUAL = 'greater_equal'
   LESS = 'less'
   LESS_EQUAL = 'less_equal'
+
+
+class SearchType(str, enum.Enum):
+  """The search type between a column and a query."""
   LIKE = 'like'
 
 
@@ -214,6 +221,19 @@ class Filter(BaseModel):
 
 FilterLike = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListFilterTuple]
 
+SearchValue = StrictStr
+SearchTuple = tuple[Path, SearchType, SearchValue]
+
+
+class Search(BaseModel):
+  """A search on a column."""
+  path: PathTuple
+  type: SearchType
+  query: SearchValue
+
+
+SearchLike = Union[Search, SearchTuple]
+
 
 class Dataset(abc.ABC):
   """The database implementation to query a dataset."""
@@ -275,6 +295,7 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def select_rows(self,
                   columns: Optional[Sequence[ColumnId]] = None,
+                  searches: Optional[Sequence[SearchLike]] = None,
                   filters: Optional[Sequence[FilterLike]] = None,
                   sort_by: Optional[Sequence[Path]] = None,
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
@@ -289,6 +310,7 @@ class Dataset(abc.ABC):
       columns: The columns to select. A column is an instance of `Column` which can either
         define a path to a feature, or a column with an applied Transform, e.g. a Concept. If none,
         it selects all columns.
+      searches: The searches to apply to the query.
       filters: The filters to apply to the query.
       sort_by: An ordered list of what to sort by. When defined, this is a list of aliases of column
         names defined by the "alias" field in Column. If no alias is provided for a column, an
@@ -314,6 +336,7 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def select_rows_schema(self,
                          columns: Optional[Sequence[ColumnId]] = None,
+                         searches: Optional[Sequence[SearchLike]] = None,
                          combine_columns: bool = False) -> SelectRowsSchemaResult:
     """Returns the schema of the result of `select_rows` above with the same arguments."""
     pass

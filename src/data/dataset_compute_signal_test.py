@@ -6,18 +6,7 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..schema import (
-  UUID_COLUMN,
-  VALUE_KEY,
-  Field,
-  Item,
-  ItemValue,
-  RichData,
-  SignalOut,
-  field,
-  schema,
-  signal_field,
-)
+from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schema, signal_field
 from ..signals.signal import (
   TextEmbeddingSignal,
   TextSignal,
@@ -71,7 +60,7 @@ class TestSparseSignal(TextSignal):
     return field('int32')
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for text in data:
       if text == 'hello':
         # Skip this input.
@@ -105,7 +94,7 @@ class TestParamSignal(TextSignal):
   def fields(self) -> Field:
     return field('string')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for text_content in data:
       yield f'{str(text_content)}_{self.param}'
 
@@ -127,7 +116,7 @@ class TestSplitSignal(TextSplitterSignal):
   name = 'test_split'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     for text in data:
       if not isinstance(text, str):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
@@ -154,7 +143,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
 

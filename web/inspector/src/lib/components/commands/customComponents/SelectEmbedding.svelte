@@ -1,15 +1,21 @@
 <script lang="ts">
   import {queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {getField, listFields, type TextEmbeddingSignal} from '$lilac';
+  import {
+    getField,
+    listFields,
+    type ConceptScoreSignal,
+    type SemanticSimilaritySignal,
+    type TextEmbeddingSignal
+  } from '$lilac';
   import {Select, SelectItem} from 'carbon-components-svelte';
   import type {JSONSchema7} from 'json-schema';
   import {getCommandSignalContext} from '../CommandSignals.svelte';
 
-  export let rootValue: {split: string};
   export let invalid: boolean;
   export let invalidText: string;
   export let value: string;
+  export let rootValue: TextEmbeddingSignal | ConceptScoreSignal | SemanticSimilaritySignal;
 
   const datasetViewStore = getDatasetViewContext();
   const schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
@@ -21,7 +27,7 @@
   $: embeddingSignalField = $ctx.jsonSchema?.properties?.embedding as JSONSchema7 | undefined;
 
   // Read the split value from the root value
-  $: split = rootValue['split'];
+  $: split = rootValue['split'] || undefined;
 
   // Find all existing pre-computed embeddings for the current split from the schema
   $: existingEmbeddings =
@@ -40,18 +46,18 @@
     return 0;
   });
 
-  // Warn if no embeddings are computed for this split
-  $: anyEmbeddingsComputed = sortedEnum.some(
-    embedding =>
-      existingEmbeddings?.some(f => f.signal?.signal_name === embedding?.toString()) || false
-  );
+  // Check if the current value is computed
+  $: computed = existingEmbeddings?.some(f => f.signal?.signal_name === value?.toString()) || false;
+
+  // Create warn text if the current value is not computed
+  $: warnText = !computed ? 'Embedding not pre-computed for this split' : undefined;
 </script>
 
 <Select
   labelText="Embedding *"
-  warn={!anyEmbeddingsComputed}
-  warnText="No embeddings pre-computed for this split"
   bind:selected={value}
+  warn={!!warnText}
+  {warnText}
   {invalid}
   {invalidText}
 >
