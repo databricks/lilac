@@ -9,18 +9,7 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import (
-  UUID_COLUMN,
-  Field,
-  Item,
-  ItemValue,
-  RichData,
-  SignalOut,
-  VectorKey,
-  field,
-  schema,
-  signal_field,
-)
+from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema, signal_field
 from ..signals.signal import (
   Signal,
   TextEmbeddingModelSignal,
@@ -67,7 +56,7 @@ class TestSplitter(TextSplitterSignal):
   name = 'test_splitter'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[ItemValue]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     for text in data:
       if not isinstance(text, str):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
@@ -83,7 +72,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
 
@@ -98,7 +87,7 @@ class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
 
   @override
   def vector_compute(self, keys: Iterable[VectorKey],
-                     vector_store: VectorStore) -> Iterable[ItemValue]:
+                     vector_store: VectorStore) -> Iterable[Item]:
     # The signal just sums the values of the embedding.
     embedding_sums = vector_store.get(keys).sum(axis=1)
     for embedding_sum in embedding_sums.tolist():

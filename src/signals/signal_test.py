@@ -5,7 +5,7 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import DataType, Field, RichData, SignalInputType, SignalOut, VectorKey, field
+from ..schema import DataType, Field, Item, RichData, SignalInputType, VectorKey, field
 from .signal import (
   Signal,
   TextEmbeddingModelSignal,
@@ -34,7 +34,7 @@ class TestSignal(Signal):
     return Field(dtype=DataType.FLOAT32)
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     del data
     return []
 
@@ -44,7 +44,7 @@ class TestTextSplitter(TextSplitterSignal):
   name = 'test_splitter'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     del data
     return []
 
@@ -54,7 +54,7 @@ class TestTextEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     del data
     return []
 
@@ -68,8 +68,7 @@ class TestTextEmbeddingModelSignal(TextEmbeddingModelSignal):
     return field('float32')
 
   @override
-  def vector_compute(self, keys: Iterable[VectorKey],
-                     vector_store: VectorStore) -> Iterable[SignalOut]:
+  def vector_compute(self, keys: Iterable[VectorKey], vector_store: VectorStore) -> Iterable[Item]:
     # The signal just sums the values of the embedding.
     del keys, vector_store
     return []

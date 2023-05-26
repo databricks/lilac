@@ -6,7 +6,7 @@ from typing_extensions import override
 
 from ..embeddings.embedding import EmbedFn, get_embed_fn
 from ..embeddings.vector_store import VectorStore
-from ..schema import DataType, Field, ItemValue, RichData, VectorKey
+from ..schema import DataType, Field, Item, RichData, VectorKey
 from .signal import TextEmbeddingModelSignal, TextEmbeddingSignal, get_signal_cls
 
 
@@ -45,14 +45,14 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
     return self._search_text_embedding
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     text_embeddings = self._embed_fn(data)
     similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
     return similarities.tolist()
 
   @override
   def vector_compute(self, keys: Iterable[VectorKey],
-                     vector_store: VectorStore) -> Iterable[Optional[ItemValue]]:
+                     vector_store: VectorStore) -> Iterable[Optional[Item]]:
     text_embeddings = vector_store.get(keys)
     similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
     return similarities.tolist()

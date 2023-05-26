@@ -8,7 +8,7 @@ from pydantic.fields import ModelField
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import Field, RichData, SignalInputType, SignalOut, VectorKey, field
+from ..schema import Field, Item, RichData, SignalInputType, VectorKey, field
 
 
 class Signal(abc.ABC, BaseModel):
@@ -65,7 +65,7 @@ class Signal(abc.ABC, BaseModel):
     """
     pass
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     """Compute the signal for an iterable of documents or images.
 
     Args:
@@ -77,7 +77,7 @@ class Signal(abc.ABC, BaseModel):
     raise NotImplementedError
 
   def vector_compute(self, keys: Iterable[VectorKey],
-                     vector_store: VectorStore) -> Iterable[Optional[SignalOut]]:
+                     vector_store: VectorStore) -> Iterable[Optional[Item]]:
     """Compute the signal for an iterable of keys that point to documents or images.
 
     Args:
@@ -93,7 +93,7 @@ class Signal(abc.ABC, BaseModel):
       self,
       topk: int,
       vector_store: VectorStore,
-      keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, Optional[SignalOut]]]:
+      keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, Optional[Item]]]:
     """Return signal results only for the top k documents or images.
 
     Signals decide how to rank each document/image in the dataset, usually by a similarity score

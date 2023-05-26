@@ -7,7 +7,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional, Union, cast
 
-import numpy as np
 import pyarrow as pa
 from pydantic import BaseModel, StrictInt, StrictStr, validator
 
@@ -25,10 +24,7 @@ TEXT_SPAN_END_FEATURE = 'end'
 
 # Python doesn't work with recursive types. These types provide some notion of type-safety.
 Scalar = Union[bool, datetime, int, float, str, bytes]
-ItemValue = Union[dict, list, np.ndarray, Scalar, None]
-Item = dict[str, ItemValue]
-RowKeyedItem = tuple[bytes, Item]
-SignalOut = Union[ItemValue, Item]
+Item = Any
 
 # Contains a string field name, a wildcard for repeateds, or a specific integer index for repeateds.
 # This path represents a path to a particular column.
@@ -271,7 +267,7 @@ def child_item_from_column_path(item: Item, path: Path) -> Item:
     # path_part can either be an integer or a string for a dictionary, both of which we can
     # directly index with.
     child_path = int(path_part) if path_part.isdigit() else path_part
-    child_item_value = child_item_value[child_path]  # type: ignore
+    child_item_value = child_item_value[child_path]
   return child_item_value
 
 

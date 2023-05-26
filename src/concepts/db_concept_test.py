@@ -9,7 +9,7 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..config import CONFIG
-from ..schema import RichData, SignalInputType, SignalOut
+from ..schema import Item, RichData, SignalInputType
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .concept import (
   DRAFT_MAIN,
@@ -35,13 +35,8 @@ ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
 
 
 @pytest.fixture(autouse=True)
-def set_data_path(tmp_path: Path) -> Generator:
-  data_path = CONFIG['LILAC_DATA_PATH']
-  CONFIG['LILAC_DATA_PATH'] = str(tmp_path)
-
-  yield
-
-  CONFIG['LILAC_DATA_PATH'] = data_path or ''
+def set_data_path(tmp_path: Path, mocker: MockerFixture) -> None:
+  mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {
@@ -58,7 +53,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Embed the examples, use a hashmap to the vector for simplicity."""
     for example in data:
       if example not in EMBEDDING_MAP:

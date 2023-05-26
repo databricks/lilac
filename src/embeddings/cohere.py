@@ -8,7 +8,7 @@ from sklearn.preprocessing import normalize
 from typing_extensions import override
 
 from ..config import CONFIG
-from ..schema import RichData, SignalOut
+from ..schema import Item, RichData
 from ..signals.signal import TextEmbeddingSignal
 from ..utils import chunks
 
@@ -38,7 +38,7 @@ class Cohere(TextEmbeddingSignal):
   display_name = 'Cohere Embeddings'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     batches = chunks(data, COHERE_BATCH_SIZE)
     for batch in batches:
