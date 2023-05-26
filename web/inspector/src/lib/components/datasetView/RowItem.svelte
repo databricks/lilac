@@ -1,9 +1,9 @@
 <script lang="ts">
   import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {
-      getDatasetViewContext,
-      getSelectRowsOptions,
-      isPathVisible
+    getDatasetViewContext,
+    getSelectRowsOptions,
+    isPathVisible
   } from '$lib/stores/datasetViewStore';
   import {listFields, type LilacSchema, type LilacValueNode, type Path} from '$lilac';
   import RowItemValue from './RowItemValue.svelte';
@@ -46,7 +46,7 @@
       {row}
       path={column}
       visibleColumns={$datasetViewStore.visibleColumns}
-      searchResultsPaths={searchResultsPaths}
+      {searchResultsPaths}
       {schema}
       {aliasMapping}
     />

@@ -1,18 +1,18 @@
 <script lang="ts">
   import {
-      queryDatasetManifest,
-      queryDatasetSchema,
-      querySelectRowsAliasUdfPaths,
-      querySelectRowsSchema
+    queryDatasetManifest,
+    queryDatasetSchema,
+    querySelectRowsAliasUdfPaths,
+    querySelectRowsSchema
   } from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {
-      Breadcrumb,
-      BreadcrumbItem,
-      SkeletonText,
-      Tab,
-      TabContent,
-      Tabs
+    Breadcrumb,
+    BreadcrumbItem,
+    SkeletonText,
+    Tab,
+    TabContent,
+    Tabs
   } from 'carbon-components-svelte';
   import QueryBuilder from '../queryBuilder/QueryBuilder.svelte';
   import FlattenedField from './FlattenedField.svelte';

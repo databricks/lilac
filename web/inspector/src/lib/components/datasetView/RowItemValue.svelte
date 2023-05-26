@@ -47,15 +47,14 @@
       ? getDerivedStringSpanFields(field)
       : [];
 
-  // If type is a string, figure out if there are any children that are string_span
-  // Only do this if the column is visible, and it isn't a repeated field
+  // For string fields, find the derived search span fields.
   $: searchSpanFields =
     showValue && field && dtype === 'string' && valueNodes.length === 1
       ? getDerivedSearchSpanFields(field)
       : [];
 
   /**
-   * Get child fields that are of string_span type
+   * Get child fields that are of string_span type.
    */
   function getDerivedStringSpanFields(field: LilacSchemaField): LilacSchemaField[] {
     if (!field) return [];
@@ -93,19 +92,14 @@
     </div>
 
     <div>
-      {#if !stringSpanFields.length && false}
-        {'FIX THIS'}
-        {values.map(formatValue).join(', ')}
-      {:else}
-        <StringSpanHighlight
-          text={formatValue(values[0])}
-          {stringSpanFields}
-          {searchSpanFields}
-          {row}
-          {visibleColumns}
-          {aliasMapping}
-        />
-      {/if}
+      <StringSpanHighlight
+        text={formatValue(values[0])}
+        {stringSpanFields}
+        {searchSpanFields}
+        {row}
+        {visibleColumns}
+        {aliasMapping}
+      />
     </div>
   </div>
 {/if}

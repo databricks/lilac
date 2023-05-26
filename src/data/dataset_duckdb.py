@@ -812,15 +812,18 @@ class DatasetDuckDB(Dataset):
               deep_array[key[-1]] = score
           else:
             flat_keys = flatten_keys(df[UUID_COLUMN], input)
-            signal_out = signal.vector_compute(flat_keys, vector_store)
-            # Add progress.
-            if task_step_id is not None:
-              signal_out = progress(
-                signal_out,
-                task_step_id=task_step_id,
-                estimated_len=len(flat_keys),
-                step_description=f'Computing {signal.key()}...')
-            df[signal_column] = itemize_primitives(unflatten(signal_out, input))
+            if isinstance(flat_keys, list) and not flat_keys:
+              df[signal_column] = []
+            else:
+              signal_out = signal.vector_compute(flat_keys, vector_store)
+              # Add progress.
+              if task_step_id is not None:
+                signal_out = progress(
+                  signal_out,
+                  task_step_id=task_step_id,
+                  estimated_len=len(flat_keys),
+                  step_description=f'Computing {signal.key()}...')
+              df[signal_column] = itemize_primitives(unflatten(signal_out, input))
         else:
           num_rich_data = count_primitives(input)
           flat_input = cast(Iterable[RichData], flatten(input))
@@ -861,6 +864,7 @@ class DatasetDuckDB(Dataset):
       if not already_sorted and sort_cols_after_udf:
         if not sort_order:
           raise ValueError('`sort_order` is required when `sort_by` is specified.')
+        print('querying', f'{", ".join(sort_cols_after_udf)} {sort_order.value}')
         query = query.order(f'{", ".join(sort_cols_after_udf)} {sort_order.value}')
 
       if limit:
