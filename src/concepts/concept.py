@@ -68,7 +68,18 @@ class Concept(BaseModel):
 
 
 class Sensitivity(str, Enum):
-  """Sensitivity levels of a concept."""
+  """Sensitivity levels of a concept.
+
+  The sensitivity of concept models vary as a function of how powerful the embedding is, and how
+  complicated or subtle the concept is. Therefore, we provide a way to control the sensitivity of
+  the concept model.
+
+  - `VERY_SENSITIVE` will fire "True" more often and therefore introduce more false positives
+  (will add things that don't fit in the concept).
+  - `NOT_SENSITIVE` will fire "True" less often and therefore introduce more false negatives
+  (misses things that fit in the concept).
+
+  """
   NOT_SENSITIVE = 'not sensitive'
   BALANCED = 'balanced'
   SENSITIVE = 'sensitive'
@@ -78,12 +89,13 @@ class Sensitivity(str, Enum):
     return self.value
 
 
+# Assuming random text will likely not be in the concept, these percentiles control how likely a
+# random text will be classified as "True".
 SENSITIVITY_PERCENTILES: dict[Sensitivity, float] = {
-  # Assuming completely random text is most likely a negative, this will fire for 1% of any text.
-  Sensitivity.NOT_SENSITIVE: 1,
-  Sensitivity.BALANCED: 2,  # Likewise, but for 2%.
-  Sensitivity.SENSITIVE: 3,  # Likewise, but for 3%.
-  Sensitivity.VERY_SENSITIVE: 5,  # Likewise, but for 5%.
+  Sensitivity.NOT_SENSITIVE: 1,  # 1% of random negative text will be classified as "True".
+  Sensitivity.BALANCED: 3,  # Likewise, but for 3%.
+  Sensitivity.SENSITIVE: 10,  # Likewise, but for 10%.
+  Sensitivity.VERY_SENSITIVE: 20,  # Likewise, but for 20%.
 }
 
 
