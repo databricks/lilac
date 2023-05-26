@@ -18,7 +18,7 @@ from ..concepts.db_concept import (
 )
 from ..config import CONFIG
 from ..embeddings.vector_store_numpy import NumpyVectorStore
-from ..schema import RichData, SignalInputType, SignalOut
+from ..schema import Item, RichData, SignalInputType
 from .concept_scorer import ConceptScoreSignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
@@ -43,7 +43,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Embed the examples, use a hashmap to the vector for simplicity."""
     for example in data:
       if example not in EMBEDDING_MAP:

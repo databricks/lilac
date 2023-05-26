@@ -23,7 +23,7 @@ from .router_concept import (
   ScoreExample,
   ScoreResponse,
 )
-from .schema import UUID_COLUMN, RichData, SignalInputType, SignalOut
+from .schema import UUID_COLUMN, Item, RichData, SignalInputType
 from .server import app
 from .signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
@@ -42,7 +42,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[SignalOut]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
     yield from embeddings

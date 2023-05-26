@@ -5,7 +5,7 @@ from typing import Any, Iterable, Optional
 from typing_extensions import override
 
 from ..data.dataset_utils import lilac_span
-from ..schema import Field, ItemValue, RichData, SignalInputType, field
+from ..schema import Field, Item, RichData, SignalInputType, field
 from .signal import Signal
 
 
@@ -29,7 +29,7 @@ class SubstringSignal(Signal):
     return field(['string_span'])
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[ItemValue]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for text in data:
       if not isinstance(text, str):
         yield None

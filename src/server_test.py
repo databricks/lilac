@@ -11,7 +11,7 @@ from .data.dataset_duckdb import DatasetDuckDB
 from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, expected_item, make_dataset
 from .data.dataset_utils import itemize_primitives
 from .router_dataset import SelectRowsOptions, SelectRowsSchemaOptions, WebManifest
-from .schema import UUID_COLUMN, Field, Item, RichData, SignalOut, field, schema
+from .schema import UUID_COLUMN, Field, Item, RichData, field, schema
 from .server import app
 from .signals.signal import TextSignal, clear_signal_registry, register_signal
 
@@ -172,7 +172,7 @@ class LengthSignal(TextSignal):
   def fields(self) -> Field:
     return field('int32')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[SignalOut]]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for text_content in data:
       yield len(text_content) if text_content is not None else None
 

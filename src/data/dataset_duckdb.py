@@ -28,7 +28,6 @@ from ..schema import (
   DataType,
   Field,
   Item,
-  ItemValue,
   Path,
   PathTuple,
   RichData,
@@ -1209,7 +1208,7 @@ class SignalManifest(BaseModel):
     return resolve_signal(signal)
 
 
-def _merge_cells(dest_cell: ItemValue, source_cell: ItemValue) -> None:
+def _merge_cells(dest_cell: Item, source_cell: Item) -> None:
   if source_cell is None or isinstance(source_cell, float) and math.isnan(source_cell):
     # Nothing to merge here (missing value).
     return
@@ -1311,7 +1310,7 @@ def _replace_nan_with_none(df: pd.DataFrame) -> pd.DataFrame:
   return df
 
 
-def _offset_any_span(offset: int, item: ItemValue, schema: Field) -> None:
+def _offset_any_span(offset: int, item: Item, schema: Field) -> None:
   """Offsets any spans inplace by the given parent offset."""
   if schema.dtype == DataType.STRING_SPAN:
     item = cast(dict, item)
