@@ -104,6 +104,14 @@ $ sudo rm -rf /Library/Developer/CommandLineTools
 $ xcode-select --install
 ```
 
+#### mypy hogging RAM and CPU
+
+Try removing your mypy cache:
+
+```sh
+rm -rf .mypy_cache/
+```
+
 #### Installing TensorFlow on M1
 
 M1/M2 chips need a special TF installation. These steps are taken from the official
