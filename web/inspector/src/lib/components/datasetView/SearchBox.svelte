@@ -1,7 +1,7 @@
 <script lang="ts">
-  import {queryDatasetSchema, queryDatasetStats} from '$lib/queries/datasetQueries';
+  import {queriesDatasetStats, queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, isPathVisible} from '$lib/stores/datasetViewStore';
-  import {listFields, type Path} from '$lilac';
+  import {listFields, serializePath, type Path} from '$lilac';
   import {TextInput} from 'carbon-components-svelte';
 
   let datasetViewStore = getDatasetViewContext();
@@ -17,16 +17,37 @@
       .map(f => f.path);
   }
 
-  $: statsQueries = visibleStringFields.map(path =>
-    queryDatasetStats($datasetViewStore.namespace, $datasetViewStore.datasetName, {
-      leaf_path: path
+  $: statsQueries = queriesDatasetStats(
+    visibleStringFields.map(path => {
+      return [
+        $datasetViewStore.namespace,
+        $datasetViewStore.datasetName,
+        {
+          leaf_path: path
+        }
+      ];
     })
   );
 
+  let longestStringPath: string = 'none';
   $: {
-    statsQueries.forEach(query => {
-      console.log($query?.isSuccess);
-    });
+    if ($statsQueries && $statsQueries.length > 0 && $statsQueries.every(q => q.isSuccess)) {
+      console.log($statsQueries);
+      const stats = $statsQueries.map(q => q.data);
+      const pathLengths = stats
+        .map((s, i) => {
+          return {
+            path: visibleStringFields[i],
+            avg_text_length: s?.avg_text_length || 0
+          };
+        })
+        .sort((a, b) => {
+          return b.avg_text_length - a.avg_text_length;
+        });
+
+      longestStringPath = serializePath(pathLengths[0].path);
+      console.log('longest path', longestStringPath);
+    }
   }
 
   let searchText = '';
@@ -37,9 +58,9 @@
   };
 </script>
 
-<div class="search-container mx-4 mb-2">
+<div class="search-container mx-4 mb-2 flex flex-row items-center justify-items-center">
   <TextInput
-    labelText="Search"
+    labelText={`Search "${longestStringPath}"`}
     bind:value={searchText}
     on:keydown={e => (e.key == 'Enter' ? search() : null)}
     size="sm"

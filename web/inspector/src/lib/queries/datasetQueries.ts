@@ -13,7 +13,7 @@ import {createInfiniteQuery, type CreateInfiniteQueryResult} from '@tanstack/sve
 import type {JSONSchema7} from 'json-schema';
 import {watchTask} from '../stores/taskMonitoringStore';
 import {queryClient} from './queryClient';
-import {createApiMutation, createApiQuery} from './queryUtils';
+import {createApiMutation, createApiQueries, createApiQuery} from './queryUtils';
 import {TASKS_TAG} from './taskQueries';
 
 export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
@@ -58,6 +58,7 @@ export const computeSignalColumnMutation = createApiMutation(DatasetsService.com
   }
 });
 export const queryDatasetStats = createApiQuery(DatasetsService.getStats, DATASETS_TAG);
+export const queriesDatasetStats = createApiQueries(DatasetsService.getStats, DATASETS_TAG);
 export const querySelectRows = createApiQuery(function selectRows(
   namespace: string,
   datasetName: string,
