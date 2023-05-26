@@ -1,18 +1,18 @@
 <script lang="ts">
   import {
-    queryDatasetManifest,
-    queryDatasetSchema,
-    querySelectRowsAliasUdfPaths,
-    querySelectRowsSchema
+      queryDatasetManifest,
+      queryDatasetSchema,
+      querySelectRowsAliasUdfPaths,
+      querySelectRowsSchema
   } from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {
-    Breadcrumb,
-    BreadcrumbItem,
-    SkeletonText,
-    Tab,
-    TabContent,
-    Tabs
+      Breadcrumb,
+      BreadcrumbItem,
+      SkeletonText,
+      Tab,
+      TabContent,
+      Tabs
   } from 'carbon-components-svelte';
   import QueryBuilder from '../queryBuilder/QueryBuilder.svelte';
   import FlattenedField from './FlattenedField.svelte';
@@ -66,11 +66,11 @@
       <TabContent>
         {#if $selectRowsSchema?.isLoading}
           <SkeletonText paragraph lines={3} />
-        {:else if $selectRowsSchema?.isSuccess && $selectRowsSchema.data.fields}
-          {#each Object.keys($selectRowsSchema.data.fields) as key (key)}
+        {:else if $selectRowsSchema?.isSuccess && $selectRowsSchema.data.schema.fields}
+          {#each Object.keys($selectRowsSchema.data.schema.fields) as key (key)}
             <FlattenedField
-              schema={$selectRowsSchema.data}
-              field={$selectRowsSchema.data.fields[key]}
+              schema={$selectRowsSchema.data.schema}
+              field={$selectRowsSchema.data.schema.fields[key]}
               aliasMapping={$aliasMapping?.data}
             />
           {/each}
@@ -79,11 +79,11 @@
       <TabContent>
         {#if $selectRowsSchema?.isLoading}
           <SkeletonText paragraph lines={3} />
-        {:else if $selectRowsSchema?.isSuccess && $selectRowsSchema.data.fields}
-          {#each Object.keys($selectRowsSchema.data.fields) as key (key)}
+        {:else if $selectRowsSchema?.isSuccess && $selectRowsSchema.data.schema.fields}
+          {#each Object.keys($selectRowsSchema.data.schema.fields) as key (key)}
             <SchemaField
-              schema={$selectRowsSchema.data}
-              field={$selectRowsSchema.data.fields[key]}
+              schema={$selectRowsSchema.data.schema}
+              field={$selectRowsSchema.data.schema.fields[key]}
               aliasMapping={$aliasMapping?.data}
             />
           {/each}

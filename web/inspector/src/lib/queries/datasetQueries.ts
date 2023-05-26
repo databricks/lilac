@@ -74,7 +74,12 @@ export const querySelectRowsSchema = createApiQuery(
   DatasetsService.selectRowsSchema,
   DATASETS_TAG,
   {
-    select: res => deserializeSchema(res.data_schema, res.alias_udf_paths as Record<string, Path>)
+    select: res => {
+      return {
+        schema: deserializeSchema(res.data_schema, res.alias_udf_paths as Record<string, Path>),
+        searchResultsPaths: res.search_results_paths as Path[]
+      };
+    }
   }
 );
 

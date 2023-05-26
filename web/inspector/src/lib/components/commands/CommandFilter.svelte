@@ -35,7 +35,7 @@
   const dispatch = createEventDispatcher();
 
   $: datasetSchema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
-  $: schema = $datasetSchema.isSuccess
+  $: selectRowsSchema = $datasetSchema.isSuccess
     ? querySelectRowsSchema(
         command.namespace,
         command.datasetName,
@@ -44,8 +44,8 @@
     : undefined;
 
   // Create list of fields, and include current count of filters
-  $: fields = $schema?.isSuccess
-    ? listFields($schema?.data).map(f => {
+  $: fields = $selectRowsSchema?.isSuccess
+    ? listFields($selectRowsSchema?.data.schema).map(f => {
         const filters = stagedFilters.filter(filter => pathIsEqual(filter.path, f.path));
         return {
           title: f.path.join('.'),
@@ -58,7 +58,9 @@
       })
     : [];
 
-  $: defaultField = $schema?.isSuccess ? getField($schema.data, command.path) : undefined;
+  $: defaultField = $selectRowsSchema?.isSuccess
+    ? getField($selectRowsSchema.data.schema, command.path)
+    : undefined;
 
   // Copy filters from query options
   let stagedFilters: (UnaryFilter | ListFilter | BinaryFilter)[] = [];
@@ -93,8 +95,7 @@
     ['less', 'less than (<)'],
     ['less_equal', 'less or equal (<=)'],
     ['in', 'in'],
-    ['exists', 'exists'],
-    ['like', 'has']
+    ['exists', 'exists']
   ];
 
   function close() {

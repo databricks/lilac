@@ -28,6 +28,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     datasetName,
     visibleColumns: [],
     queryOptions: {
+      searches: [],
       filters: [],
       sort_by: [],
       sort_order: 'ASC',

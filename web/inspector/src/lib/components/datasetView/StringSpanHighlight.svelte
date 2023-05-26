@@ -23,6 +23,7 @@
 
   export let text: string;
   export let stringSpanFields: Array<LilacSchemaField>;
+  export let searchSpanFields: Array<LilacSchemaField>;
   export let row: LilacValueNode;
   export let visibleColumns: Path[];
   export let aliasMapping: Record<string, Path> | undefined;
@@ -44,12 +45,24 @@
     concepts?: Array<ConceptScoreSignal>;
   }
 
+  interface AnnotatedSearchSpan {
+    /** The start character of the span */
+    start: number;
+    /** The end character of the span */
+    end: number;
+    /** Whether to show the span */
+    show: boolean;
+    /** Whether this span is a filler span (no interactions) */
+    filler: boolean;
+  }
+
   const showScoreThreshold = 0.5;
   const maxScoreBackgroundOpacity = 0.5;
 
   let selectedSpan: AnnotatedStringSpan | undefined;
 
   $: spans = stringSpanFields.flatMap(f => getValueNodes(row, f.path));
+  $: searchSpans = searchSpanFields.flatMap(f => getValueNodes(row, f.path));
 
   // Fill up the gaps between the spans
   let filledSpans: Array<AnnotatedStringSpan> = [];
@@ -122,6 +135,37 @@
     }
   }
 
+  // Create the search specific spans, filling gaps like we do for regular spans.
+  let filledSearchSpans: Array<AnnotatedSearchSpan> = [];
+
+  $: {
+    filledSearchSpans = [];
+    let spanStart = 0;
+    for (const searchSpan of searchSpans) {
+      const spanValue = L.value<'string_span'>(searchSpan);
+      const valuePath = L.path(searchSpan);
+      if (!spanValue || !valuePath) continue;
+
+      // Add filler
+      if (spanStart != spanValue.start) {
+        filledSearchSpans.push({
+          start: spanStart,
+          end: spanValue.start,
+          show: false,
+          filler: true
+        });
+      }
+
+      filledSearchSpans.push({
+        start: spanValue.start,
+        end: spanValue.end,
+        show: true,
+        filler: false
+      });
+      spanStart = spanValue.end;
+    }
+  }
+
   function tooltipText(span: AnnotatedStringSpan) {
     if (!span.properties) return '';
     return span.properties
@@ -132,8 +176,20 @@
 
 <div class="relative leading-5">
   {text}
-  <div class=" absolute top-0 w-full">
-    {#each filledSpans as span}<span
+  <div class="absolute top-0 w-full">
+    {#each filledSearchSpans as span}
+      <span
+        use:tooltip
+        role="button"
+        tabindex="0"
+        class="relative border-black text-transparent"
+        class:border-b-2={span.show}>{text.slice(span.start, span.end)}</span
+      >
+    {/each}
+  </div>
+  <div class="absolute top-0 w-full">
+    {#each filledSpans as span}
+      <span
         use:tooltip
         role="button"
         tabindex="0"
@@ -160,6 +216,7 @@
           conceptNamespace={span.concepts[0].namespace}
           text={text.slice(span.start, span.end)}
           on:close={() => (selectedSpan = undefined)}
-        />{/if}{/each}
+        />{/if}
+    {/each}
   </div>
 </div>

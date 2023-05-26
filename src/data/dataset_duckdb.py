@@ -648,12 +648,11 @@ class DatasetDuckDB(Dataset):
         # Do not auto-compute dependencies, throw an error if they are not computed.
         col.path, _ = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
 
+    self._validate_columns(cols, manifest.data_schema)
+
     searches = self._normalize_searches(searches)
     search_udfs = self._search_udfs(searches)
     cols.extend(search_udfs)
-
-    self._validate_columns(cols, manifest.data_schema)
-
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
     columns_to_merge: dict[str, dict[str, Column]] = {}
     temp_column_to_offset_column: dict[str, tuple[str, Field]] = {}
@@ -916,9 +915,6 @@ class DatasetDuckDB(Dataset):
         'select_rows_schema with combine_columns=False is not yet supported.')
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema)
-    searches = self._normalize_searches(searches)
-    search_udfs = self._search_udfs(searches)
-    cols.extend(search_udfs)
 
     # Always return the UUID column.
     col_paths = [col.path for col in cols]
@@ -933,6 +929,10 @@ class DatasetDuckDB(Dataset):
         col.path, _ = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
 
     self._validate_columns(cols, manifest.data_schema)
+
+    searches = self._normalize_searches(searches)
+    search_udfs = self._search_udfs(searches)
+    cols.extend(search_udfs)
 
     alias_udf_paths: dict[str, PathTuple] = {}
     col_schemas: list[Schema] = []
@@ -1053,6 +1053,8 @@ class DatasetDuckDB(Dataset):
       if field.dtype != DataType.STRING:
         raise ValueError(f'Invalid search path: {search.path}. '
                          f'Must be a string field, got dtype {field.dtype}')
+
+      search.path = _make_value_path(search.path)
 
       searches.append(search)
 
