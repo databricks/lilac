@@ -15,7 +15,7 @@ from .concepts.concept import (
   draft_examples,
 )
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
-from .data.dataset import Column, val
+from .data.dataset import Column, UnaryOp, val
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
 from .schema import UUID_COLUMN, VALUE_KEY, Path, SignalInputType
@@ -23,7 +23,7 @@ from .signals.splitters.text_splitter_spacy import SentenceSplitterSpacy
 
 router = APIRouter(route_class=RouteErrorHandler)
 
-NUM_NEGATIVE_EXAMPLES = 100
+DEFAULT_NUM_NEG_EXAMPLES = 100
 
 
 @router.get('/', response_model_exclude_none=True)
@@ -56,6 +56,8 @@ class ConceptDatasetOptions(BaseModel):
   name: str
   # Path holding the text to use for negative examples.
   path: Path
+
+  num_negative_examples = DEFAULT_NUM_NEG_EXAMPLES
 
 
 class CreateConceptOptions(BaseModel):
@@ -91,12 +93,13 @@ def create_concept(options: CreateConceptOptions) -> Concept:
     dataset = get_dataset(options.dataset.namespace, options.dataset.name)
     # Sorting by UUID column will return examples with random order.
     docs = dataset.select_rows([Column(val(options.dataset.path), alias='text')],
+                               filters=[(options.dataset.path, UnaryOp.EXISTS)],
                                sort_by=[UUID_COLUMN],
-                               limit=NUM_NEGATIVE_EXAMPLES)
+                               limit=options.dataset.num_negative_examples)
     docs = docs.df()['text']
     sentences = _split_docs_into_sentences(docs)
     # Choose a random unique subset of sentences.
-    num_samples = min(NUM_NEGATIVE_EXAMPLES, len(sentences))
+    num_samples = min(options.dataset.num_negative_examples, len(sentences))
     negative_examples = random.sample(sentences, num_samples)
 
   return DISK_CONCEPT_DB.create(options.namespace, options.name, options.type, negative_examples)
