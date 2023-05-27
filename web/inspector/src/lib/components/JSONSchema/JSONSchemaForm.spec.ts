@@ -136,7 +136,7 @@ describe('JSONSchemaForm', () => {
 
     const options = screen.getAllByRole<HTMLOptionElement>('option');
     expect(options).toHaveLength(4);
-    expect(options[0]).toHaveTextContent('not set');
+    expect(options[0]).toHaveTextContent('-----');
     expect(options[0]).not.toHaveValue();
 
     expect(options[1]).toHaveTextContent('one');

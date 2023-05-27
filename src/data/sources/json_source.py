@@ -1,63 +1,49 @@
 """CSV source."""
-import os
+import urllib.request
 import uuid
-from enum import Enum
-from typing import Optional
+from typing import Iterable
 
 import duckdb
-import pyarrow.parquet as pq
-import requests
-from pydantic import Field
+from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ...config import CONFIG, data_path
-from ...schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, arrow_schema_to_schema
-from ...tasks import TaskStepId
-from ...utils import delete_file, file_exists, log, makedirs, open_file
-from .source import Source, SourceProcessResult
-
-
-class JSONFormat(str, Enum):
-  """JSON format options."""
-  AUTO = 'auto'
-  RECORDS = 'records'
-  ARRAY_OF_RECORDS = 'array_of_records'
-  VALUES = 'values'
-  ARRAY_OF_VALUES = 'array_of_values'
+from ...schema import UUID_COLUMN, Item
+from ...utils import file_exists, log
+from .pandas_source import PandasDataset
+from .source import Source, SourceSchema
 
 
 class JSONDataset(Source):
   """JSON data loader
 
-  Supports both JSON and JSONL. If using JSONL, set `json_format=records`.
+  Supports both JSON and JSONL. If using JSONL, set `json_format=newline_delimited`.
 
   JSON files can live locally as a filepath, or point to an external URL.
   """ # noqa: D415, D400
   name = 'json'
 
-  filepaths: list[str] = Field(description='A list of filepaths to JSON files.')
-  json_format: JSONFormat = Field(
-    default=JSONFormat.AUTO,
-    description=("Can be one of ['auto', 'records', 'array_of_records', "
-                 "'values', 'array_of_values']."))
+  filepaths: list[str] = PydanticField(description='A list of filepaths to JSON files.')
+
+  _source_schema: SourceSchema
+  _pd_source: PandasDataset
 
   @override
-  def process(self,
-              output_dir: str,
-              task_step_id: Optional[TaskStepId] = None) -> SourceProcessResult:
-    """Process the source upload request."""
+  def prepare(self) -> None:
     # Download JSON files to local cache if they are remote to speed up duckdb.
     gcs_filepaths: list[str] = []
     temp_files_to_delete = []
     for filepath in self.filepaths:
       if filepath.startswith(('http://', 'https://')):
+        http_url = filepath
         tmp_filename = uuid.uuid4().bytes.hex()
         gcs_filepath = f'{data_path()}/local_cache/{tmp_filename}'
         if not file_exists(gcs_filepath):
-          log(f'Downloading JSON from url {filepath} to {gcs_filepath}')
-          dl = requests.get(filepath, timeout=10000, allow_redirects=True)
-          with open_file(gcs_filepath, 'wb') as f:
-            f.write(dl.content)
+          log(f'Downloading JSON from url {http_url} to {gcs_filepath}')
+
+          urllib.request.urlretrieve(http_url, gcs_filepath)
+          print('downloaded...')
+
           temp_files_to_delete.append(gcs_filepath)
         filepath = gcs_filepath
       else:
@@ -68,21 +54,18 @@ class JSONDataset(Source):
     con = duckdb.connect(database=':memory:')
     con.install_extension('httpfs')
     con.load_extension('httpfs')
-    con.install_extension('json')
-    con.load_extension('json')
+
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     s3_filepaths = [path.replace('gs://', 's3://') for path in gcs_filepaths]
-    json_sql = f"SELECT nextval('serial')::STRING as {UUID_COLUMN}, * FROM read_json(\
-      {s3_filepaths}, json_format='{self.json_format}', IGNORE_ERRORS=true, AUTO_DETECT=true)"
 
-    prefix = os.path.join(output_dir, PARQUET_FILENAME_PREFIX)
-    shard_index = 0
-    num_shards = 1
-    out_filepath = f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.parquet'
+    json_sql = f"""
+      CREATE SEQUENCE serial START 1;
+      SELECT nextval('serial')::STRING as {UUID_COLUMN}, *
+      FROM read_json_auto(
+        {s3_filepaths},
+        IGNORE_ERRORS=true
+      )"""
 
-    # DuckDB won't create the parent dirs so we have to create it.
-    out_dirname = os.path.dirname(out_filepath)
-    makedirs(out_dirname)
     gcs_setup = ''
     if 'GCS_REGION' in CONFIG:
       gcs_setup = f"""
@@ -91,27 +74,21 @@ class JSONDataset(Source):
         SET s3_secret_access_key='{CONFIG['GCS_SECRET_KEY']}';
         SET s3_endpoint='storage.googleapis.com';
       """
-    # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
-    s3_out_filepath = out_filepath.replace('gs://', 's3://')
-    con.execute(f"""
+
+    df = con.execute(f"""
       {gcs_setup}
-      CREATE SEQUENCE serial START 1;
-      COPY ({json_sql}) TO '{s3_out_filepath}'
-    """)
+      {json_sql}
+    """).df()
 
-    num_items = con.execute(f"""
-      CREATE VIEW json_view AS (SELECT * FROM read_parquet('{s3_out_filepath}'));
-      SELECT COUNT({UUID_COLUMN}) FROM json_view;
-    """).fetchall()[0][0]
+    self._pd_source = PandasDataset(df=df)
+    self._pd_source.prepare()
 
-    con.close()
+  @override
+  def source_schema(self) -> SourceSchema:
+    """Return the source schema."""
+    return self._pd_source.source_schema()
 
-    filepaths = [s3_out_filepath]
-
-    arrow_schema = pq.read_schema(open_file(filepaths[0], mode='rb'))
-    schema = arrow_schema_to_schema(arrow_schema)
-    # Clean up the temporary files that we created for http JSON requests.
-    for temp_filename in temp_files_to_delete:
-      delete_file(temp_filename)
-
-    return SourceProcessResult(filepaths=filepaths, data_schema=schema, num_items=num_items)
+  @override
+  def process(self) -> Iterable[Item]:
+    """Process the source upload request."""
+    return self._pd_source.process()

@@ -69,7 +69,7 @@
   {:else if property.enum}
     <Select bind:selected={value} name={path} helperText={property.description} labelText={label}>
       {#if !required}
-        <SelectItem value={undefined} text={'not set'} />
+        <SelectItem value={undefined} text={'-----'} />
       {/if}
       {#each property.enum as item}
         <SelectItem value={item} />

@@ -201,7 +201,7 @@ TProgress = TypeVar('TProgress')
 
 def progress(it: Iterable[TProgress],
              task_step_id: Optional[TaskStepId],
-             estimated_len: int,
+             estimated_len: Optional[int],
              step_description: Optional[str] = None,
              emit_every_frac: float = .01) -> Iterable[TProgress]:
   """An iterable wrapper that emits progress and yields the original iterable."""
@@ -221,9 +221,9 @@ def progress(it: Iterable[TProgress],
     steps[step_id].progress = 0.0
   set_worker_steps(task_id, steps)
 
-  estimated_len = max(1, estimated_len)
+  estimated_len = max(1, estimated_len) if estimated_len else None
 
-  emit_every = int(estimated_len * emit_every_frac)
+  emit_every = int(estimated_len * emit_every_frac) if estimated_len else 1
   emit_every = max(1, emit_every)
 
   task_info: TaskInfo = get_worker().state.tasks[task_id].annotations['task_info']
@@ -232,7 +232,7 @@ def progress(it: Iterable[TProgress],
   start_time = time.time()
   with tqdm(it, desc=task_info.name, total=estimated_len) as tq:
     for t in tq:
-      if it_idx % emit_every == 0:
+      if estimated_len and it_idx % emit_every == 0:
         it_per_sec = tq.format_dict['rate'] or 0.0
         set_worker_task_progress(
           task_step_id=task_step_id,
@@ -247,11 +247,11 @@ def progress(it: Iterable[TProgress],
   total_time = time.time() - start_time
   set_worker_task_progress(
     task_step_id=task_step_id,
-    it_idx=estimated_len,
+    it_idx=estimated_len if estimated_len else it_idx,
     elapsed_sec=total_time,
-    it_per_sec=estimated_len / total_time,
+    it_per_sec=(estimated_len or it_idx) / total_time,
     estimated_total_sec=total_time,
-    estimated_len=estimated_len)
+    estimated_len=estimated_len or it_idx)
 
 
 def set_worker_steps(task_id: TaskId, steps: list[TaskStepInfo]) -> None:

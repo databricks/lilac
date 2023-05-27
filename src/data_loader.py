@@ -3,23 +3,24 @@
 To run the source loader as a binary directly:
 
 poetry run python -m src.data_loader \
-  --dataset_name=$DATASET \
+  --dataset_name=movies_dataset \
   --output_dir=./data/ \
   --config_path=./datasets/the_movies_dataset.json
 """
 import json
 import os
-from typing import Optional
+from typing import Iterable, Optional, cast
 
 import click
 from distributed import Client
 
+from .data.dataset_utils import write_items_to_parquet
 from .data.sources.default_sources import register_default_sources
 from .data.sources.source import Source
 from .data.sources.source_registry import resolve_source
-from .schema import MANIFEST_FILENAME, SourceManifest
-from .tasks import TaskStepId
-from .utils import DebugTimer, get_dataset_output_dir, log, open_file
+from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, Item, Schema, SourceManifest
+from .tasks import TaskStepId, progress
+from .utils import get_dataset_output_dir, log, open_file
 
 
 def process_source(base_dir: str,
@@ -30,19 +31,37 @@ def process_source(base_dir: str,
   """Process a source."""
   output_dir = get_dataset_output_dir(base_dir, namespace, dataset_name)
 
-  with DebugTimer(f'[{source.name}] Processing dataset "{dataset_name}"'):
-    source_process_result = source.process(output_dir, task_step_id)
+  source.prepare()
+  source_schema = source.source_schema()
+  items = source.process()
 
-  filenames = [os.path.basename(filepath) for filepath in source_process_result.filepaths]
-  manifest = SourceManifest(
-    files=filenames,
-    data_schema=source_process_result.data_schema,
-    images=source_process_result.images)
+  # Add progress.
+  if task_step_id is not None:
+    items = progress(
+      items,
+      task_step_id=task_step_id,
+      estimated_len=source_schema.num_items,
+      step_description=f'Reading from source {source.name}...')
+
+  # Filter out the `None`s after progress.
+  items = cast(Iterable[Item], (item for item in items if item is not None))
+
+  data_schema = Schema(fields=source_schema.fields)
+  filepath, num_items = write_items_to_parquet(
+    items=items,
+    output_dir=output_dir,
+    schema=data_schema,
+    filename_prefix=PARQUET_FILENAME_PREFIX,
+    shard_index=0,
+    num_shards=1)
+
+  filenames = [os.path.basename(filepath)]
+  manifest = SourceManifest(files=filenames, data_schema=data_schema, images=None)
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.json(indent=2, exclude_none=True))
   log(f'Manifest for dataset "{dataset_name}" written to {output_dir}')
 
-  return output_dir, source_process_result.num_items
+  return output_dir, num_items
 
 
 @click.command()
