@@ -9,11 +9,23 @@ from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
 
 from ..embeddings.embedding import get_embed_fn
-from ..schema import RichData, SignalInputType
+from ..schema import Path, RichData, SignalInputType
 from ..signals.signal import TextEmbeddingSignal, get_signal_cls
 from ..utils import DebugTimer
 
 LOCAL_CONCEPT_NAMESPACE = 'local'
+
+DEFAULT_NUM_NEG_EXAMPLES = 100
+
+
+class ConceptDatasetInfo(BaseModel):
+  """Information about a dataset associated with a concept."""
+  # Namespace of the dataset.
+  namespace: str
+  # Name of the dataset.
+  name: str
+  # Path holding the text to use for negative examples.
+  path: Path
 
 
 class ExampleOrigin(BaseModel):
@@ -99,16 +111,12 @@ SENSITIVITY_PERCENTILES: dict[Sensitivity, float] = {
 }
 
 
-class ConceptModel(BaseModel):
+class LogisticEmbeddingModel(BaseModel):
   """A concept model."""
 
   class Config:
     arbitrary_types_allowed = True
     underscore_attrs_are_private = True
-
-  # The concept that this model is for.
-  namespace: str
-  concept_name: str
 
   # The name of the embedding for this model.
   embedding_name: str
@@ -179,7 +187,7 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
   return draft_examples[draft]
 
 
-class ConceptModelManager(BaseModel):
+class ConceptModel(BaseModel):
   """A concept model. Stores all concept model drafts and manages syncing."""
   # The concept that this model is for.
   namespace: str
@@ -189,6 +197,9 @@ class ConceptModelManager(BaseModel):
   embedding_name: str
   version: int = -1
 
+  negative_examples: dict[str, Example] = {}
+  dataset: Optional[ConceptDatasetInfo] = None
+
   class Config:
     arbitrary_types_allowed = True
     underscore_attrs_are_private = True
@@ -196,25 +207,25 @@ class ConceptModelManager(BaseModel):
   # The following fields are excluded from JSON serialization, but still pickleable.
   # Maps a concept id to the embeddings.
   _embeddings: dict[str, np.ndarray] = {}
-  _concept_models: dict[DraftId, ConceptModel] = {}
+  _logistic_models: dict[DraftId, LogisticEmbeddingModel] = {}
 
   def __init__(self,
-               concept_models: Optional[dict[DraftId, ConceptModel]] = {},
+               logistic_models: Optional[dict[DraftId, LogisticEmbeddingModel]] = {},
                **kwargs: Any) -> None:
 
     super().__init__(**kwargs)
-    if concept_models:
-      self._concept_models = concept_models
+    if logistic_models:
+      self._logistic_models = logistic_models
 
-  def get_model(self, draft: DraftId) -> ConceptModel:
+  def get_model(self, draft: DraftId) -> LogisticEmbeddingModel:
     """Get the model for the provided draft."""
-    if draft not in self._concept_models:
-      self._concept_models[draft] = ConceptModel(
+    if draft not in self._logistic_models:
+      self._logistic_models[draft] = LogisticEmbeddingModel(
         namespace=self.namespace,
         concept_name=self.concept_name,
         embedding_name=self.embedding_name,
         version=-1)
-    return self._concept_models[draft]
+    return self._logistic_models[draft]
 
   def sync(self, concept: Concept) -> bool:
     """Update the model with the latest labeled concept data."""
@@ -234,8 +245,9 @@ class ConceptModelManager(BaseModel):
     # Fit each of the drafts, sort by draft name for deterministic behavior.
     for draft in concept.drafts():
       examples = draft_examples(concept, draft)
-      embeddings = np.array([self._embeddings[id] for id in examples.keys()])
-      labels = [example.label for example in examples.values()]
+      all_examples = {**examples, **self.negative_examples}
+      embeddings = np.array([self._embeddings[id] for id in all_examples.keys()])
+      labels = [example.label for example in all_examples.values()]
 
       model = self.get_model(draft)
       model.fit(embeddings, labels)
@@ -254,7 +266,8 @@ class ConceptModelManager(BaseModel):
 
     # Compute the embeddings for the examples with cache miss.
     texts_of_missing_embeddings: dict[str, str] = {}
-    for id, example in concept.data.items():
+    all_examples = {**concept.data, **self.negative_examples}
+    for id, example in all_examples.items():
       if id in self._embeddings:
         # Cache hit.
         concept_embeddings[id] = self._embeddings[id]

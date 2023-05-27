@@ -142,7 +142,7 @@ class Column(BaseModel):
   def __init__(self,
                path: Path,
                alias: Optional[str] = None,
-               signal_udf: Optional[Union[ConceptScoreSignal, Signal]] = None,
+               signal_udf: Optional[Signal] = None,
                **kwargs: Any):
     """Initialize a column. We override __init__ to allow positional arguments for brevity."""
     super().__init__(path=normalize_path(path), alias=alias, signal_udf=signal_udf, **kwargs)

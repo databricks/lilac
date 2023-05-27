@@ -74,15 +74,10 @@ def makedirs(dir_path: str) -> None:
   os.makedirs(dir_path, exist_ok=True)
 
 
-def get_output_dir(base_dir: str, username: str, model_name: str) -> str:
-  """Return the output directory for a given model."""
-  return os.path.join(base_dir, username, model_name)
-
-
 def get_dataset_output_dir(base_dir: Union[str, pathlib.Path], namespace: str,
-                           model_name: str) -> str:
-  """Return the output directory for a given model."""
-  return os.path.join(base_dir, DATASETS_DIR_NAME, namespace, model_name)
+                           dataset_name: str) -> str:
+  """Return the output directory for a dataset."""
+  return os.path.join(base_dir, DATASETS_DIR_NAME, namespace, dataset_name)
 
 
 class CopyRequest(BaseModel):

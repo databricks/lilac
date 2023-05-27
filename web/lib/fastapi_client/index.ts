@@ -12,7 +12,7 @@ export type { Column } from './models/Column';
 export type { ComputeSignalOptions } from './models/ComputeSignalOptions';
 export type { ComputeSignalResponse } from './models/ComputeSignalResponse';
 export type { Concept } from './models/Concept';
-export type { ConceptDatasetOptions } from './models/ConceptDatasetOptions';
+export type { ConceptDatasetInfo } from './models/ConceptDatasetInfo';
 export type { ConceptInfo } from './models/ConceptInfo';
 export type { ConceptModel } from './models/ConceptModel';
 export type { ConceptModelResponse } from './models/ConceptModelResponse';

@@ -8,7 +8,7 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..concepts.concept import ConceptModelManager, ExampleIn
+from ..concepts.concept import ConceptModel, ExampleIn
 from ..concepts.db_concept import (
   ConceptDB,
   ConceptModelDB,
@@ -128,8 +128,7 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    ConceptModelManager(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   scores = cast(list[float], list(signal.compute(['a new data point', 'not in concept'])))
   assert scores[0] > 0.5
@@ -157,8 +156,7 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    ConceptModelManager(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
@@ -191,8 +189,7 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    ConceptModelManager(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
                    np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
@@ -240,8 +237,7 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    ConceptModelManager(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],

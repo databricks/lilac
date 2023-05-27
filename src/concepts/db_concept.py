@@ -12,10 +12,18 @@ from pydantic import BaseModel
 from typing_extensions import override
 
 from ..config import data_path
-from ..schema import RichData, SignalInputType
+from ..schema import PATH_WILDCARD, RichData, SignalInputType
 from ..signals.signal import get_signal_cls
-from ..utils import DebugTimer, delete_file, file_exists, open_file
-from .concept import DRAFT_MAIN, Concept, ConceptModelManager, DraftId, Example, ExampleIn
+from ..utils import DebugTimer, delete_file, file_exists, get_dataset_output_dir, open_file
+from .concept import (
+  DRAFT_MAIN,
+  Concept,
+  ConceptDatasetInfo,
+  ConceptModel,
+  DraftId,
+  Example,
+  ExampleIn,
+)
 
 CONCEPT_JSON_FILENAME = 'concept.json'
 
@@ -54,11 +62,7 @@ class ConceptDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def create(self,
-             namespace: str,
-             name: str,
-             type: SignalInputType,
-             negative_examples: Iterable[RichData] = []) -> Concept:
+  def create(self, namespace: str, name: str, type: SignalInputType) -> Concept:
     """Create a concept."""
     pass
 
@@ -87,36 +91,57 @@ class ConceptModelDB(abc.ABC):
     self._concept_db = concept_db
 
   @abc.abstractmethod
-  def get(self, namespace: str, concept_name: str, embedding_name: str) -> ConceptModelManager:
-    """Get the manager associated with the provided concept the embedding."""
+  def create(self,
+             namespace: str,
+             concept_name: str,
+             embedding_name: str,
+             dataset: Optional[ConceptDatasetInfo] = None,
+             negative_examples: Iterable[RichData] = []) -> ConceptModel:
+    """Create the concept model."""
     pass
 
   @abc.abstractmethod
-  def _save(self, manager: ConceptModelManager) -> None:
-    """Save the concept model manager."""
+  def get(self,
+          namespace: str,
+          concept_name: str,
+          embedding_name: str,
+          dataset: Optional[ConceptDatasetInfo] = None) -> Optional[ConceptModel]:
+    """Get the model associated with the provided concept the embedding.
+
+    Returns None if the model does not exist.
+    """
     pass
 
-  def in_sync(self, manager: ConceptModelManager) -> bool:
-    """Return True if the manager is up to date with the concept."""
-    concept = self._concept_db.get(manager.namespace, manager.concept_name)
-    if not concept:
-      raise ValueError(f'Concept "{manager.namespace}/{manager.concept_name}" does not exist.')
-    return concept.version == manager.version
+  @abc.abstractmethod
+  def _save(self, model: ConceptModel) -> None:
+    """Save the concept model."""
+    pass
 
-  def sync(self, manager: ConceptModelManager) -> bool:
-    """Sync the concept model. Returns true if the model was updated."""
-    concept = self._concept_db.get(manager.namespace, manager.concept_name)
+  def in_sync(self, model: ConceptModel) -> bool:
+    """Return True if the model is up to date with the concept."""
+    concept = self._concept_db.get(model.namespace, model.concept_name)
     if not concept:
-      raise ValueError(f'Concept "{manager.namespace}/{manager.concept_name}" does not exist.')
-    concept_path = (f'{manager.namespace}/{manager.concept_name}/'
-                    f'{manager.embedding_name}')
+      raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
+    return concept.version == model.version
+
+  def sync(self, model: ConceptModel) -> bool:
+    """Sync the concept model. Returns true if the model was updated."""
+    concept = self._concept_db.get(model.namespace, model.concept_name)
+    if not concept:
+      raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
+    concept_path = (f'{model.namespace}/{model.concept_name}/'
+                    f'{model.embedding_name}')
     with DebugTimer(f'Syncing concept model "{concept_path}"'):
-      model_updated = manager.sync(concept)
-    self._save(manager)
+      model_updated = model.sync(concept)
+    self._save(model)
     return model_updated
 
   @abc.abstractmethod
-  def remove(self, namespace: str, concept_name: str, embedding_name: str) -> None:
+  def remove(self,
+             namespace: str,
+             concept_name: str,
+             embedding_name: str,
+             dataset: Optional[ConceptDatasetInfo] = None) -> None:
     """Remove the model of a concept."""
     pass
 
@@ -125,7 +150,35 @@ class DiskConceptModelDB(ConceptModelDB):
   """Interface for the concept model database."""
 
   @override
-  def get(self, namespace: str, concept_name: str, embedding_name: str) -> ConceptModelManager:
+  def create(self,
+             namespace: str,
+             concept_name: str,
+             embedding_name: str,
+             dataset: Optional[ConceptDatasetInfo] = None,
+             negatives: Iterable[RichData] = []) -> ConceptModel:
+    if self.get(namespace, concept_name, embedding_name, dataset):
+      raise ValueError('Concept model already exists.')
+
+    negative_examples: dict[str, Example] = {}
+    for text in (negatives or []):
+      ex = Example(label=False, text=text, id=uuid.uuid4().hex)
+      negative_examples[ex.id] = ex
+
+    model = ConceptModel(
+      namespace=namespace,
+      concept_name=concept_name,
+      embedding_name=embedding_name,
+      version=-1,
+      dataset=dataset,
+      negative_examples=negative_examples)
+    return model
+
+  @override
+  def get(self,
+          namespace: str,
+          concept_name: str,
+          embedding_name: str,
+          dataset: Optional[ConceptDatasetInfo] = None) -> Optional[ConceptModel]:
     # Make sure the concept exists.
     concept = self._concept_db.get(namespace, concept_name)
     if not concept:
@@ -135,24 +188,27 @@ class DiskConceptModelDB(ConceptModelDB):
     if not get_signal_cls(embedding_name):
       raise ValueError(f'Embedding signal "{embedding_name}" not found in the registry.')
 
-    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name)
+    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name, dataset)
     if not file_exists(concept_model_path):
-      return ConceptModelManager(
-        namespace=namespace, concept_name=concept_name, embedding_name=embedding_name, version=-1)
+      return None
 
     with open_file(concept_model_path, 'rb') as f:
       return pickle.load(f)
 
-  def _save(self, manager: ConceptModelManager) -> None:
+  def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
-    concept_model_path = _concept_model_path(manager.namespace, manager.concept_name,
-                                             manager.embedding_name)
+    concept_model_path = _concept_model_path(model.namespace, model.concept_name,
+                                             model.embedding_name, model.dataset)
     with open_file(concept_model_path, 'wb') as f:
-      pickle.dump(manager, f)
+      pickle.dump(model, f)
 
   @override
-  def remove(self, namespace: str, concept_name: str, embedding_name: str) -> None:
-    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name)
+  def remove(self,
+             namespace: str,
+             concept_name: str,
+             embedding_name: str,
+             dataset: Optional[ConceptDatasetInfo] = None) -> None:
+    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name, dataset)
 
     if not file_exists(concept_model_path):
       raise ValueError(f'Concept model {namespace}/{concept_name}/{embedding_name} does not exist.')
@@ -169,8 +225,17 @@ def _concept_json_path(namespace: str, name: str) -> str:
   return os.path.join(_concept_output_dir(namespace, name), CONCEPT_JSON_FILENAME)
 
 
-def _concept_model_path(namespace: str, concept_name: str, embedding_name: str) -> str:
-  return os.path.join(_concept_output_dir(namespace, concept_name), f'{embedding_name}.pkl')
+def _concept_model_path(namespace: str,
+                        concept_name: str,
+                        embedding_name: str,
+                        dataset: Optional[ConceptDatasetInfo] = None) -> str:
+  if not dataset:
+    return os.path.join(_concept_output_dir(namespace, concept_name), f'{embedding_name}.pkl')
+
+  dataset_dir = get_dataset_output_dir(data_path(), dataset.namespace, dataset.name)
+  path_without_wildcards = (p for p in dataset.path if p != PATH_WILDCARD)
+  path_dir = os.path.join(dataset_dir, *path_without_wildcards)
+  return os.path.join(path_dir, '.concepts', namespace, concept_name, f'{embedding_name}.pkl')
 
 
 class DiskConceptDB(ConceptDB):
@@ -207,11 +272,7 @@ class DiskConceptDB(ConceptDB):
       return Concept.parse_raw(f.read())
 
   @override
-  def create(self,
-             namespace: str,
-             name: str,
-             type: SignalInputType,
-             negative_examples: Iterable[RichData] = []) -> Concept:
+  def create(self, namespace: str, name: str, type: SignalInputType) -> Concept:
     """Create a concept."""
     concept_json_path = _concept_json_path(namespace, name)
     if file_exists(concept_json_path):
@@ -219,10 +280,6 @@ class DiskConceptDB(ConceptDB):
 
     concept = Concept(namespace=namespace, concept_name=name, type=type, data={}, version=0)
     self._save(concept)
-    if negative_examples:
-      examples = [ExampleIn(label=False, text=text) for text in negative_examples]
-      concept = self.edit(namespace, name, ConceptUpdate(insert=examples))
-
     return concept
 
   def _validate_examples(self, examples: List[Union[ExampleIn, Example]],
