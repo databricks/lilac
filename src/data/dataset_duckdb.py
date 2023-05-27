@@ -14,7 +14,6 @@ from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, validator
 from typing_extensions import override
 
-from ..concepts.concept import ConceptDatasetInfo
 from ..config import CONFIG, data_path
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
@@ -40,7 +39,6 @@ from ..schema import (
   normalize_path,
   signal_compute_type_supports_dtype,
 )
-from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import (
   Signal,
   TextEmbeddingModelSignal,
@@ -760,12 +758,6 @@ class DatasetDuckDB(Dataset):
     udf_columns = [col for col in cols if col.signal_udf]
     for udf_col in udf_columns:
       signal = cast(Signal, udf_col.signal_udf)
-
-      if isinstance(signal, ConceptScoreSignal):
-        # Set dataset information on the signal.
-        signal.dataset = ConceptDatasetInfo(
-          namespace=self.namespace, name=self.dataset_name, path=udf_col.path)
-
       signal_alias = udf_col.alias or _unique_alias(udf_col)
       temp_signal_cols = columns_to_merge[signal_alias]
       if len(temp_signal_cols) != 1:

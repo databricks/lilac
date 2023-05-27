@@ -448,8 +448,7 @@ class ConceptModelDBSuite:
 
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    logistic_model = TestLogisticModel(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    logistic_model = TestLogisticModel(embedding_name='test_embedding')
     score_embeddings_mock = mocker.spy(TestLogisticModel, 'score_embeddings')
     fit_mock = mocker.spy(TestLogisticModel, 'fit')
 
@@ -471,8 +470,7 @@ class ConceptModelDBSuite:
     model_db = model_db_cls(concept_db)
     score_embeddings_mock = mocker.spy(TestLogisticModel, 'score_embeddings')
     fit_mock = mocker.spy(TestLogisticModel, 'fit')
-    logistic_model = TestLogisticModel(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    logistic_model = TestLogisticModel(embedding_name='test_embedding')
     model = _make_test_concept_model(concept_db, logistic_models={DRAFT_MAIN: logistic_model})
     model_db.sync(model)
     assert model_db.in_sync(model) is True
@@ -500,7 +498,7 @@ class ConceptModelDBSuite:
     assert fit_mock.call_count == 2
     # Fit is called again with new points on main only.
     (called_model, called_embeddings, called_labels) = fit_mock.call_args_list[-1].args
-    assert called_model == model
+    assert called_model == logistic_model
     np.testing.assert_array_equal(
       called_embeddings,
       np.array([
@@ -516,10 +514,8 @@ class ConceptModelDBSuite:
     model_db = model_db_cls(concept_db)
     score_embeddings_mock = mocker.spy(TestLogisticModel, 'score_embeddings')
     fit_mock = mocker.spy(TestLogisticModel, 'fit')
-    logistic_model = TestLogisticModel(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-    draft_model = TestLogisticModel(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    logistic_model = TestLogisticModel(embedding_name='test_embedding')
+    draft_model = TestLogisticModel(embedding_name='test_embedding')
     model = _make_test_concept_model(
       concept_db, logistic_models={
         DRAFT_MAIN: logistic_model,
@@ -573,7 +569,7 @@ class ConceptModelDBSuite:
     ]
 
     # The main model was fit without the data from the draft.
-    assert called_model == model
+    assert called_model == draft_model
     np.testing.assert_array_equal(
       called_embeddings, np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']]))
     assert called_labels == [False, True]

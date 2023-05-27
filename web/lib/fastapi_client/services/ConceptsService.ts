@@ -2,7 +2,6 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { Concept } from '../models/Concept';
-import type { ConceptDatasetInfo } from '../models/ConceptDatasetInfo';
 import type { ConceptInfo } from '../models/ConceptInfo';
 import type { ConceptModelResponse } from '../models/ConceptModelResponse';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
@@ -145,7 +144,6 @@ export class ConceptsService {
      * @param namespace
      * @param conceptName
      * @param embeddingName
-     * @param requestBody
      * @param syncModel
      * @returns ConceptModelResponse Successful Response
      * @throws ApiError
@@ -154,7 +152,6 @@ export class ConceptsService {
         namespace: string,
         conceptName: string,
         embeddingName: string,
-        requestBody: ConceptDatasetInfo,
         syncModel: boolean = false,
     ): CancelablePromise<ConceptModelResponse> {
         return __request(OpenAPI, {
@@ -168,8 +165,6 @@ export class ConceptsService {
             query: {
                 'sync_model': syncModel,
             },
-            body: requestBody,
-            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

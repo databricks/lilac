@@ -6,8 +6,11 @@ from fastapi import APIRouter, Response
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, validator
 
+from .concepts.concept import ConceptDatasetInfo
 from .config import data_path
-from .data.dataset import BinaryOp, Bins, Column, DatasetManifest, FeatureListValue, FeatureValue
+from .data.dataset import BinaryOp, Bins
+from .data.dataset import Column as DBColumn
+from .data.dataset import DatasetManifest, FeatureListValue, FeatureValue
 from .data.dataset import Filter as PyFilter
 from .data.dataset import (
   GroupsSortBy,
@@ -20,8 +23,17 @@ from .data.dataset import (
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
 from .schema import Path, normalize_path
+from .signals.concept_scorer import ConceptScoreSignal
 from .signals.default_signals import register_default_signals
-from .signals.signal import Signal, resolve_signal
+from .signals.semantic_similarity import SemanticSimilaritySignal
+from .signals.signal import (
+  Signal,
+  TextEmbeddingModelSignal,
+  TextEmbeddingSignal,
+  TextSignal,
+  TextSplitterSignal,
+  resolve_signal,
+)
 from .tasks import TaskId, task_manager
 from .utils import DATASETS_DIR_NAME
 
@@ -157,6 +169,15 @@ class ListFilter(BaseModel):
 
 Filter = Union[BinaryFilter, UnaryFilter, ListFilter]
 
+AllSignalTypes = Union[SemanticSimilaritySignal, ConceptScoreSignal, TextEmbeddingModelSignal,
+                       TextEmbeddingSignal, TextSplitterSignal, TextSignal, Signal]
+
+
+# We override the `Column` class so we can add explicitly all signal types for better OpenAPI spec.
+class Column(DBColumn):
+  """A column in the dataset."""
+  signal_udf: Optional[AllSignalTypes] = None
+
 
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
@@ -183,6 +204,14 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   sanitized_filters = [
     PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
   ]
+
+  # Set dataset information on any concept signals.
+  for column in (options.columns or []):
+    if isinstance(column, Column) and isinstance(column.signal_udf, ConceptScoreSignal):
+      # Set dataset information on the signal.
+      column.signal_udf.dataset = ConceptDatasetInfo(
+        namespace=namespace, name=dataset_name, path=column.path)
+
   items = list(
     dataset.select_rows(
       columns=options.columns,
