@@ -1,6 +1,5 @@
 """A signal to compute a score along a concept."""
-import random
-from typing import Any, Iterable, Optional, cast
+from typing import Any, Iterable, Optional
 
 import numpy as np
 from typing_extensions import override
@@ -13,12 +12,9 @@ from ..concepts.concept import (
   Sensitivity,
 )
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
-from ..data.dataset import Column, UnaryOp, val
-from ..db_manager import get_dataset
 from ..embeddings.vector_store import VectorStore
-from ..schema import UUID_COLUMN, VALUE_KEY, DataType, Field, Item, RichData, VectorKey
+from ..schema import DataType, Field, Item, RichData, VectorKey
 from .signal import TextEmbeddingModelSignal
-from .splitters.text_splitter_spacy import SentenceSplitterSpacy
 
 
 class ConceptScoreSignal(TextEmbeddingModelSignal):
@@ -53,24 +49,8 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
     model = self._concept_model_db.get(self.namespace, self.concept_name, self.embedding,
                                        self.dataset)
     if not model:
-      negative_examples: list[str] = []
-
-      if self.dataset:
-        # Sorting by UUID column will return examples with random order.
-        dataset = get_dataset(self.dataset.namespace, self.dataset.name)
-        path = self.dataset.path
-        docs = dataset.select_rows([Column(val(path), alias='text')],
-                                   filters=[(path, UnaryOp.EXISTS)],
-                                   sort_by=[UUID_COLUMN],
-                                   limit=self.num_negative_examples)
-        docs = docs.df()['text']
-        sentences = _split_docs_into_sentences(docs)
-        # Choose a random unique subset of sentences.
-        num_samples = min(self.num_negative_examples, len(sentences))
-        negative_examples = random.sample(sentences, num_samples)
-
       model = self._concept_model_db.create(self.namespace, self.concept_name, self.embedding,
-                                            self.dataset, negative_examples)
+                                            self.dataset)
     self._concept_model_db.sync(model)
     return model.get_model(self.draft)
 
@@ -102,14 +82,3 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
     # NOTE: The embedding is a value so already exists in the path structure. This means we do not
     # need to provide the name as part of the key, which still guarantees uniqueness.
     return f'{self.namespace}/{self.concept_name}'
-
-
-def _split_docs_into_sentences(docs: Iterable[str]) -> list[str]:
-  splitter = SentenceSplitterSpacy()
-  doc_spans = list(splitter.compute(docs))
-  sentences: list[str] = []
-  for sentence_spans, text in zip(doc_spans, docs):
-    for span in cast(Iterable[Any], sentence_spans):
-      start, end = span[VALUE_KEY]['start'], span[VALUE_KEY]['end']
-      sentences.append(text[start:end])
-  return sentences

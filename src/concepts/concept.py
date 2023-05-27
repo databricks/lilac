@@ -27,6 +27,8 @@ class ConceptDatasetInfo(BaseModel):
   # Path holding the text to use for negative examples.
   path: Path
 
+  num_negative_examples = DEFAULT_NUM_NEG_EXAMPLES
+
 
 class ExampleOrigin(BaseModel):
   """The origin of an example."""
