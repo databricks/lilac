@@ -32,8 +32,7 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
 
   num_negative_examples = DEFAULT_NUM_NEG_EXAMPLES
 
-  dataset: Optional[ConceptDatasetInfo] = None
-
+  _dataset: Optional[ConceptDatasetInfo] = None
   _concept_model_db: ConceptModelDB
 
   def __init__(self, **data: Any):
@@ -45,12 +44,16 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
   def fields(self) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
+  def set_dataset_info(self, dataset: ConceptDatasetInfo) -> None:
+    """Set the dataset info for this signal."""
+    self._dataset = dataset
+
   def _get_logistic_model(self) -> LogisticEmbeddingModel:
     model = self._concept_model_db.get(self.namespace, self.concept_name, self.embedding,
-                                       self.dataset)
+                                       self._dataset)
     if not model:
       model = self._concept_model_db.create(self.namespace, self.concept_name, self.embedding,
-                                            self.dataset)
+                                            self._dataset)
     self._concept_model_db.sync(model)
     return model.get_model(self.draft)
 

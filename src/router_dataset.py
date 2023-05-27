@@ -209,8 +209,8 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   for column in (options.columns or []):
     if isinstance(column, Column) and isinstance(column.signal_udf, ConceptScoreSignal):
       # Set dataset information on the signal.
-      column.signal_udf.dataset = ConceptDatasetInfo(
-        namespace=namespace, name=dataset_name, path=column.path)
+      column.signal_udf.set_dataset_info(
+        ConceptDatasetInfo(namespace=namespace, name=dataset_name, path=column.path))
 
   items = list(
     dataset.select_rows(
