@@ -16,7 +16,8 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import Column, SelectRowsSchemaResult
+from ..signals.substring_search import SubstringSignal
+from .dataset import Column, SearchType, SelectRowsSchemaResult
 from .dataset_test_utils import TestDataMaker
 from .dataset_utils import lilac_span
 
@@ -344,3 +345,39 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
     alias_udf_paths={
       'udf1': ('text', 'test_splitter', '*', 'test_embedding', 'test_embedding_sum')
     })
+
+
+def test_search_schema(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world',
+    'text2': 'hello world2',
+  }])
+  query_world = 'world'
+  query_hello = 'hello'
+
+  result = dataset.select_rows_schema(
+    searches=[('text', SearchType.LIKE, query_world), ('text2', SearchType.LIKE, query_hello)],
+    combine_columns=True)
+
+  expected_world_signal = SubstringSignal(query=query_world)
+  expected_hello_signal = SubstringSignal(query=query_hello)
+
+  assert result == SelectRowsSchemaResult(
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'text': field(
+        {
+          expected_world_signal.key(): signal_field(
+            fields=['string_span'], signal=expected_world_signal.dict())
+        },
+        dtype='string'),
+      'text2': field(
+        {
+          expected_hello_signal.key(): signal_field(
+            fields=['string_span'], signal=expected_hello_signal.dict())
+        },
+        dtype='string')
+    }),
+    search_results_paths=[('text', expected_world_signal.key()),
+                          ('text2', expected_hello_signal.key())])

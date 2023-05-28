@@ -46,6 +46,7 @@ from ..signals.signal import (
   TextSignal,
   resolve_signal,
 )
+from ..signals.substring_search import SubstringSignal
 from ..tasks import TaskStepId, TaskStepInfo, progress, set_worker_steps
 from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
 from . import dataset
@@ -65,6 +66,9 @@ from .dataset import (
   ListOp,
   MediaResult,
   NamedBins,
+  Search,
+  SearchLike,
+  SearchType,
   SelectGroupsResult,
   SelectRowsResult,
   SelectRowsSchemaResult,
@@ -105,8 +109,7 @@ BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
   BinaryOp.GREATER: '>',
   BinaryOp.GREATER_EQUAL: '>=',
   BinaryOp.LESS: '<',
-  BinaryOp.LESS_EQUAL: '<=',
-  BinaryOp.LIKE: 'ILIKE',
+  BinaryOp.LESS_EQUAL: '<='
 }
 
 SUPPORTED_OPS_ON_REPEATED: set[FilterOp] = set([UnaryOp.EXISTS])
@@ -615,6 +618,7 @@ class DatasetDuckDB(Dataset):
   @override
   def select_rows(self,
                   columns: Optional[Sequence[ColumnId]] = None,
+                  searches: Optional[Sequence[SearchLike]] = None,
                   filters: Optional[Sequence[FilterLike]] = None,
                   sort_by: Optional[Sequence[Path]] = None,
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
@@ -637,6 +641,10 @@ class DatasetDuckDB(Dataset):
       if col.signal_udf:
         # Do not auto-compute dependencies, throw an error if they are not computed.
         col.path, _ = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
+
+    searches = self._normalize_searches(searches)
+    search_udfs = self._search_udfs(searches)
+    cols.extend(search_udfs)
 
     self._validate_columns(cols, manifest.data_schema)
 
@@ -685,10 +693,10 @@ class DatasetDuckDB(Dataset):
       col.alias: col.path for col in cols if col.signal_udf and col.alias
     }
 
-    # Filtering.
+    # Filtering and searching.
     where_query = ''
     filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases)
-    filter_queries = self._create_where(filters)
+    filter_queries = self._create_where(filters, searches)
     if filter_queries:
       where_query = f"WHERE {' AND '.join(filter_queries)}"
 
@@ -887,6 +895,7 @@ class DatasetDuckDB(Dataset):
   @override
   def select_rows_schema(self,
                          columns: Optional[Sequence[ColumnId]] = None,
+                         searches: Optional[Sequence[SearchLike]] = None,
                          combine_columns: bool = False) -> SelectRowsSchemaResult:
     """Returns the schema of the result of `select_rows` above with the same arguments."""
     if not combine_columns:
@@ -894,6 +903,10 @@ class DatasetDuckDB(Dataset):
         'select_rows_schema with combine_columns=False is not yet supported.')
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema)
+    searches = self._normalize_searches(searches)
+    search_udfs = self._search_udfs(searches)
+    cols.extend(search_udfs)
+
     # Always return the UUID column.
     col_paths = [col.path for col in cols]
     if (UUID_COLUMN,) not in col_paths:
@@ -920,8 +933,16 @@ class DatasetDuckDB(Dataset):
       else:
         field = self.manifest().data_schema.get_field(dest_path)
       col_schemas.append(_make_schema_from_path(dest_path, field))
+
+    search_results_paths: list[PathTuple] = [
+      _col_destination_path(search) for search in search_udfs
+    ]
+
     data_schema = merge_schemas(col_schemas)
-    return SelectRowsSchemaResult(data_schema=data_schema, alias_udf_paths=alias_udf_paths)
+    return SelectRowsSchemaResult(
+      data_schema=data_schema,
+      alias_udf_paths=alias_udf_paths,
+      search_results_paths=search_results_paths)
 
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
@@ -1001,10 +1022,60 @@ class DatasetDuckDB(Dataset):
     self._validate_filters(filters, col_aliases)
     return filters, udf_filters
 
-  def _create_where(self, filters: list[Filter]) -> list[str]:
-    if not filters:
+  def _normalize_searches(self, search_likes: Optional[Sequence[SearchLike]]) -> list[Search]:
+    """Normalize `FilterLike` to `Filter` and split into filters on source and filters on UDFs."""
+    search_likes = search_likes or []
+    searches: list[Search] = []
+
+    for search in search_likes:
+      # Normalize `FilterLike` to `Filter`.
+      if not isinstance(search, Search):
+        if len(search) == 3:
+          path, op, query = search
+        else:
+          raise ValueError(f'Invalid search: {search}. Must be a tuple with  3 elements.')
+        search = Search(path=normalize_path(path), type=op, query=query)
+
+      field = self.manifest().data_schema.get_field(search.path)
+      if field.dtype != DataType.STRING:
+        raise ValueError(f'Invalid search path: {search.path}. '
+                         f'Must be a string field, got dtype {field.dtype}')
+
+      searches.append(search)
+
+    return searches
+
+  def _search_udfs(self, searches: list[Search]) -> list[Column]:
+    """Create a UDF for each search for finding the location of the text with spans."""
+    search_udfs: list[Column] = []
+    for i, search in enumerate(searches):
+      if search.type == SearchType.LIKE:
+        search_udfs.append(Column(path=search.path, signal_udf=SubstringSignal(query=search.query)))
+      else:
+        raise ValueError(f'Unknown search operator {search.type}.')
+
+    return search_udfs
+
+  def _create_where(self, filters: list[Filter], searches: list[Search] = []) -> list[str]:
+    if not filters and not searches:
       return []
-    filter_queries: list[str] = []
+    sql_filter_queries: list[str] = []
+
+    # Add search where queries.
+    for search in searches:
+      duckdb_path = self._leaf_path_to_duckdb_path(search.path)
+      select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
+      if search.type == SearchType.LIKE:
+        sql_op = 'ILIKE'
+        query_val = f"'%{search.query}%'"
+      else:
+        raise ValueError(f'Unknown search operator {search.type}.')
+
+      filter_query = f'{select_str} {sql_op} {query_val}'
+
+      sql_filter_queries.append(filter_query)
+
+    # Add filter where queries.
     binary_ops = set(BinaryOp)
     unary_ops = set(UnaryOp)
     list_ops = set(ListOp)
@@ -1013,17 +1084,15 @@ class DatasetDuckDB(Dataset):
       select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
 
       if filter.op in binary_ops:
-        op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
+        sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
         filter_val = cast(FeatureValue, filter.value)
         if isinstance(filter_val, str):
-          if filter.op == BinaryOp.LIKE:
-            filter_val = f'%{filter_val}%'
           filter_val = f"'{filter_val}'"
         elif isinstance(filter_val, bytes):
           filter_val = _bytes_to_blob_literal(filter_val)
         else:
           filter_val = str(filter_val)
-        filter_query = f'{select_str} {op} {filter_val}'
+        filter_query = f'{select_str} {sql_op} {filter_val}'
       elif filter.op in unary_ops:
         is_array = any(subpath == PATH_WILDCARD for subpath in filter.path)
         if filter.op == UnaryOp.EXISTS:
@@ -1040,8 +1109,8 @@ class DatasetDuckDB(Dataset):
           filter_query = f'{select_str} IN {filter_val}'
       else:
         raise ValueError(f'Invalid filter op: {filter.op}')
-      filter_queries.append(filter_query)
-    return filter_queries
+      sql_filter_queries.append(filter_query)
+    return sql_filter_queries
 
   def _execute(self, query: str) -> duckdb.DuckDBPyConnection:
     """Execute a query in duckdb."""
