@@ -11,7 +11,7 @@ from .data.dataset import BinaryOp, Bins, Column, DatasetManifest, FeatureListVa
 from .data.dataset import Filter as PyFilter
 from .data.dataset import GroupsSortBy, ListOp
 from .data.dataset import Search as PySearch
-from .data.dataset import SearchType, SelectRowsSchemaResult, SortOrder, StatsResult, UnaryOp
+from .data.dataset import SelectRowsSchemaResult, SortOrder, StatsResult, UnaryOp
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
 from .schema import Path, normalize_path
@@ -153,11 +153,9 @@ class ListFilter(BaseModel):
 Filter = Union[BinaryFilter, UnaryFilter, ListFilter]
 
 
-class Search(BaseModel):
+class Search(PySearch):
   """A search on a column."""
-  path: Path
-  type: SearchType
-  query: str
+  path: Path  # type: ignore
 
 
 class SelectRowsOptions(BaseModel):

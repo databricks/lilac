@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {queriesDatasetStats, queryDatasetSchema} from '$lib/queries/datasetQueries';
+  import {queryDatasetSchema, queryManyDatasetStats} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, isPathVisible} from '$lib/stores/datasetViewStore';
   import {listFields, serializePath, type Path} from '$lilac';
   import {Button, TextInput} from 'carbon-components-svelte';
@@ -19,7 +19,7 @@
       .map(f => f.path);
   }
 
-  $: statsQueries = queriesDatasetStats(
+  $: statsQueries = queryManyDatasetStats(
     visibleStringFields.map(path => {
       return [
         $datasetViewStore.namespace,
@@ -72,7 +72,7 @@
     $datasetViewStore.queryOptions.searches = [
       {
         path: [selectedSearchPath],
-        type: 'like',
+        type: 'contains',
         query: searchText
       }
     ];

@@ -37,7 +37,7 @@ export function createApiQuery<
     });
 }
 
-export function createApiQueries<
+export function createParallelApiQueries<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TQueryFn extends (...args: any[]) => ReturnType<TQueryFn>,
   TQueryFnData = Awaited<ReturnType<TQueryFn>>,

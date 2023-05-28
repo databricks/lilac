@@ -183,8 +183,10 @@
         role="button"
         tabindex="0"
         class="relative border-black text-transparent"
-        class:border-b-2={span.show}>{text.slice(span.start, span.end)}</span
+        class:border-b-2={span.show}
       >
+        {text.slice(span.start, span.end)}
+      </span>
     {/each}
   </div>
   <div class="absolute top-0 w-full">
@@ -210,8 +212,9 @@
           0
         ) * maxScoreBackgroundOpacity}
         class:hover:!opacity-40={/* Override the inline style opacity on hover. */ true}
-        >{text.slice(span.start, span.end)}</span
-      >{#if selectedSpan == span && span.concepts?.length}<StringSpanHighlightConceptPicker
+        >{text.slice(span.start, span.end)}
+      </span>
+      {#if selectedSpan == span && span.concepts?.length}<StringSpanHighlightConceptPicker
           conceptName={span.concepts[0].concept_name}
           conceptNamespace={span.concepts[0].namespace}
           text={text.slice(span.start, span.end)}

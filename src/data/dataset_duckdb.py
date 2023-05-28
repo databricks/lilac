@@ -1064,7 +1064,7 @@ class DatasetDuckDB(Dataset):
     """Create a UDF for each search for finding the location of the text with spans."""
     search_udfs: list[Column] = []
     for i, search in enumerate(searches):
-      if search.type == SearchType.LIKE:
+      if search.type == SearchType.CONTAINS:
         search_udfs.append(Column(path=search.path, signal_udf=SubstringSignal(query=search.query)))
       else:
         raise ValueError(f'Unknown search operator {search.type}.')
@@ -1080,7 +1080,7 @@ class DatasetDuckDB(Dataset):
     for search in searches:
       duckdb_path = self._leaf_path_to_duckdb_path(search.path)
       select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
-      if search.type == SearchType.LIKE:
+      if search.type == SearchType.CONTAINS:
         sql_op = 'ILIKE'
         query_val = f"'%{search.query}%'"
       else:

@@ -102,7 +102,7 @@ class BinaryOp(str, enum.Enum):
 
 class SearchType(str, enum.Enum):
   """The search type between a column and a query."""
-  LIKE = 'like'
+  CONTAINS = 'contains'
 
 
 class UnaryOp(str, enum.Enum):
