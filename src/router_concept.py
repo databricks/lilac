@@ -114,7 +114,9 @@ def get_concept_model(namespace: str,
 
   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
   if not model:
-    model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name)
+    raise HTTPException(
+      status_code=404,
+      detail=f'Concept model "{namespace}/{concept_name}/{embedding_name}" was not found')
 
   if sync_model:
     model_synced = DISK_CONCEPT_MODEL_DB.sync(model)
@@ -132,7 +134,9 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
       status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
   if model is None:
-    model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name)
+    raise HTTPException(
+      status_code=404,
+      detail=f'Concept model "{namespace}/{concept_name}/{embedding_name}" was not found')
   logistic_model = model.get_model(body.draft)
   if not logistic_model:
     raise HTTPException(
