@@ -15,6 +15,8 @@ from ..utils import DebugTimer
 
 LOCAL_CONCEPT_NAMESPACE = 'local'
 
+# Number of randomly sampled negative examples to use for training. This is used to obtain a more
+# balanced model that can work with the specific dataset.
 DEFAULT_NUM_NEG_EXAMPLES = 100
 
 

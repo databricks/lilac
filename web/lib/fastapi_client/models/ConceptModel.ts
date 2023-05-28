@@ -14,6 +14,6 @@ export type ConceptModel = {
     embedding_name: string;
     version?: number;
     negative_examples?: Record<string, Example>;
-    dataset?: ConceptDatasetInfo;
+    dataset_info?: ConceptDatasetInfo;
 };
 

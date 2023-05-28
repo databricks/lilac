@@ -28,8 +28,11 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
   # The draft version of the concept to use. If not provided, the latest version is used.
   draft: str = DRAFT_MAIN
 
+  # The sensitivity of the concept. See the `Sensitive` enum for more details.
   sensitivity = Sensitivity.BALANCED
 
+  # Number of randomly chosen negative examples to use when training the concept. This is used to
+  # obtain a better suited model for the concrete dataset.
   num_negative_examples = DEFAULT_NUM_NEG_EXAMPLES
 
   _dataset_info: Optional[ConceptDatasetInfo] = None
