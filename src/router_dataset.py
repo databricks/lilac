@@ -9,14 +9,9 @@ from pydantic import BaseModel, validator
 from .config import data_path
 from .data.dataset import BinaryOp, Bins, Column, DatasetManifest, FeatureListValue, FeatureValue
 from .data.dataset import Filter as PyFilter
-from .data.dataset import (
-  GroupsSortBy,
-  ListOp,
-  SelectRowsSchemaResult,
-  SortOrder,
-  StatsResult,
-  UnaryOp,
-)
+from .data.dataset import GroupsSortBy, ListOp
+from .data.dataset import Search as PySearch
+from .data.dataset import SelectRowsSchemaResult, SortOrder, StatsResult, UnaryOp
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
 from .schema import Path, normalize_path
@@ -158,9 +153,15 @@ class ListFilter(BaseModel):
 Filter = Union[BinaryFilter, UnaryFilter, ListFilter]
 
 
+class Search(PySearch):
+  """A search on a column."""
+  path: Path  # type: ignore
+
+
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
   columns: Optional[Sequence[Union[Path, Column]]]
+  searches: Optional[Sequence[Search]]
   filters: Optional[Sequence[Filter]]
   sort_by: Optional[Sequence[Path]]
   sort_order: Optional[SortOrder] = SortOrder.DESC
@@ -172,6 +173,7 @@ class SelectRowsOptions(BaseModel):
 class SelectRowsSchemaOptions(BaseModel):
   """The request for the select rows schema endpoint."""
   columns: Optional[Sequence[Union[Path, Column]]]
+  searches: Optional[Sequence[Search]]
   combine_columns: Optional[bool]
 
 
@@ -180,12 +182,18 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   """Select rows from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
 
+  sanitized_searches = [
+    PySearch(path=normalize_path(f.path), type=f.type, query=f.query)
+    for f in (options.searches or [])
+  ]
   sanitized_filters = [
     PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
   ]
+
   items = list(
     dataset.select_rows(
       columns=options.columns,
+      searches=sanitized_searches,
       filters=sanitized_filters,
       sort_by=options.sort_by,
       sort_order=options.sort_order,
@@ -200,8 +208,14 @@ def select_rows_schema(namespace: str, dataset_name: str,
                        options: SelectRowsSchemaOptions) -> SelectRowsSchemaResult:
   """Select rows from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
+  sanitized_searches = [
+    PySearch(path=normalize_path(f.path), type=f.type, query=f.query)
+    for f in (options.searches or [])
+  ]
   return dataset.select_rows_schema(
-    columns=options.columns, combine_columns=options.combine_columns or False)
+    columns=options.columns,
+    searches=sanitized_searches,
+    combine_columns=options.combine_columns or False)
 
 
 class SelectGroupsOptions(BaseModel):

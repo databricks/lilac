@@ -357,7 +357,8 @@ def test_search_schema(make_test_data: TestDataMaker) -> None:
   query_hello = 'hello'
 
   result = dataset.select_rows_schema(
-    searches=[('text', SearchType.LIKE, query_world), ('text2', SearchType.LIKE, query_hello)],
+    searches=[('text', SearchType.CONTAINS, query_world),
+              ('text2', SearchType.CONTAINS, query_hello)],
     combine_columns=True)
 
   expected_world_signal = SubstringSignal(query=query_world)
