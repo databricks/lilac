@@ -441,7 +441,7 @@ class ConceptModelDBSuite:
     if not retrieved_model:
       retrieved_model = model_db.create(
         namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-    assert retrieved_model.get_model(DRAFT_MAIN) == model.get_model(DRAFT_MAIN)
+    assert retrieved_model == model
 
   def test_sync_model(self, concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB],
                       mocker: MockerFixture) -> None:

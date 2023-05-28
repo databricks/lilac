@@ -99,7 +99,7 @@ class ConceptModelDB(abc.ABC):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             dataset: Optional[ConceptDatasetInfo] = None) -> ConceptModel:
+             dataset_info: Optional[ConceptDatasetInfo] = None) -> ConceptModel:
     """Create the concept model."""
     pass
 
@@ -108,7 +108,7 @@ class ConceptModelDB(abc.ABC):
           namespace: str,
           concept_name: str,
           embedding_name: str,
-          dataset: Optional[ConceptDatasetInfo] = None) -> Optional[ConceptModel]:
+          dataset_info: Optional[ConceptDatasetInfo] = None) -> Optional[ConceptModel]:
     """Get the model associated with the provided concept the embedding.
 
     Returns None if the model does not exist.
@@ -144,7 +144,7 @@ class ConceptModelDB(abc.ABC):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             dataset: Optional[ConceptDatasetInfo] = None) -> None:
+             dataset_info: Optional[ConceptDatasetInfo] = None) -> None:
     """Remove the model of a concept."""
     pass
 
@@ -157,23 +157,23 @@ class DiskConceptModelDB(ConceptModelDB):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             dataset: Optional[ConceptDatasetInfo] = None) -> ConceptModel:
-    if self.get(namespace, concept_name, embedding_name, dataset):
+             dataset_info: Optional[ConceptDatasetInfo] = None) -> ConceptModel:
+    if self.get(namespace, concept_name, embedding_name, dataset_info):
       raise ValueError('Concept model already exists.')
 
     negative_examples: dict[str, Example] = {}
 
-    if dataset:
+    if dataset_info:
       # Sorting by UUID column will return examples with random order.
-      db = get_dataset(dataset.namespace, dataset.name)
-      docs = db.select_rows([Column(val(dataset.path), alias='text')],
-                            filters=[(dataset.path, UnaryOp.EXISTS)],
+      db = get_dataset(dataset_info.namespace, dataset_info.name)
+      docs = db.select_rows([Column(val(dataset_info.path), alias='text')],
+                            filters=[(dataset_info.path, UnaryOp.EXISTS)],
                             sort_by=[UUID_COLUMN],
-                            limit=dataset.num_negative_examples)
+                            limit=dataset_info.num_negative_examples)
       docs = docs.df()['text']
       sentences = _split_docs_into_sentences(docs)
       # Choose a random unique subset of sentences.
-      num_samples = min(dataset.num_negative_examples, len(sentences))
+      num_samples = min(dataset_info.num_negative_examples, len(sentences))
       negatives = random.sample(sentences, num_samples)
       for text in negatives:
         ex = Example(label=False, text=text, id=uuid.uuid4().hex)
@@ -184,7 +184,7 @@ class DiskConceptModelDB(ConceptModelDB):
       concept_name=concept_name,
       embedding_name=embedding_name,
       version=-1,
-      dataset=dataset,
+      dataset_info=dataset_info,
       negative_examples=negative_examples)
 
   @override
@@ -192,7 +192,7 @@ class DiskConceptModelDB(ConceptModelDB):
           namespace: str,
           concept_name: str,
           embedding_name: str,
-          dataset: Optional[ConceptDatasetInfo] = None) -> Optional[ConceptModel]:
+          dataset_info: Optional[ConceptDatasetInfo] = None) -> Optional[ConceptModel]:
     # Make sure the concept exists.
     concept = self._concept_db.get(namespace, concept_name)
     if not concept:
@@ -202,7 +202,7 @@ class DiskConceptModelDB(ConceptModelDB):
     if not get_signal_cls(embedding_name):
       raise ValueError(f'Embedding signal "{embedding_name}" not found in the registry.')
 
-    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name, dataset)
+    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name, dataset_info)
     if not file_exists(concept_model_path):
       return None
 
@@ -212,7 +212,7 @@ class DiskConceptModelDB(ConceptModelDB):
   def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
     concept_model_path = _concept_model_path(model.namespace, model.concept_name,
-                                             model.embedding_name, model.dataset)
+                                             model.embedding_name, model.dataset_info)
     with open_file(concept_model_path, 'wb') as f:
       pickle.dump(model, f)
 
@@ -221,8 +221,8 @@ class DiskConceptModelDB(ConceptModelDB):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             dataset: Optional[ConceptDatasetInfo] = None) -> None:
-    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name, dataset)
+             dataset_info: Optional[ConceptDatasetInfo] = None) -> None:
+    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name, dataset_info)
 
     if not file_exists(concept_model_path):
       raise ValueError(f'Concept model {namespace}/{concept_name}/{embedding_name} does not exist.')
@@ -242,12 +242,12 @@ def _concept_json_path(namespace: str, name: str) -> str:
 def _concept_model_path(namespace: str,
                         concept_name: str,
                         embedding_name: str,
-                        dataset: Optional[ConceptDatasetInfo] = None) -> str:
-  if not dataset:
+                        dataset_info: Optional[ConceptDatasetInfo] = None) -> str:
+  if not dataset_info:
     return os.path.join(_concept_output_dir(namespace, concept_name), f'{embedding_name}.pkl')
 
-  dataset_dir = get_dataset_output_dir(data_path(), dataset.namespace, dataset.name)
-  path_without_wildcards = (p for p in dataset.path if p != PATH_WILDCARD)
+  dataset_dir = get_dataset_output_dir(data_path(), dataset_info.namespace, dataset_info.name)
+  path_without_wildcards = (p for p in dataset_info.path if p != PATH_WILDCARD)
   path_dir = os.path.join(dataset_dir, *path_without_wildcards)
   return os.path.join(path_dir, '.concepts', namespace, concept_name, f'{embedding_name}.pkl')
 

@@ -8,7 +8,7 @@ from ..concepts.concept import (
   DEFAULT_NUM_NEG_EXAMPLES,
   DRAFT_MAIN,
   ConceptDatasetInfo,
-  LogisticEmbeddingModel,
+  ConceptModel,
   Sensitivity,
 )
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
@@ -32,7 +32,7 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
 
   num_negative_examples = DEFAULT_NUM_NEG_EXAMPLES
 
-  _dataset: Optional[ConceptDatasetInfo] = None
+  _dataset_info: Optional[ConceptDatasetInfo] = None
   _concept_model_db: ConceptModelDB
 
   def __init__(self, **data: Any):
@@ -44,30 +44,30 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
   def fields(self) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
-  def set_dataset_info(self, dataset: ConceptDatasetInfo) -> None:
+  def set_dataset_info(self, dataset_info: ConceptDatasetInfo) -> None:
     """Set the dataset info for this signal."""
-    self._dataset = dataset
+    self._dataset_info = dataset_info
 
-  def _get_logistic_model(self) -> LogisticEmbeddingModel:
+  def _get_concept_model(self) -> ConceptModel:
     model = self._concept_model_db.get(self.namespace, self.concept_name, self.embedding,
-                                       self._dataset)
+                                       self._dataset_info)
     if not model:
       model = self._concept_model_db.create(self.namespace, self.concept_name, self.embedding,
-                                            self._dataset)
+                                            self._dataset_info)
     self._concept_model_db.sync(model)
-    return model.get_model(self.draft)
+    return model
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    logistic_model = self._get_logistic_model()
-    return logistic_model.score(data, self.sensitivity)
+    concept_model = self._get_concept_model()
+    return concept_model.score(self.draft, data, self.sensitivity)
 
   @override
   def vector_compute(self, keys: Iterable[VectorKey],
                      vector_store: VectorStore) -> Iterable[Optional[Item]]:
-    logistic_model = self._get_logistic_model()
+    concept_model = self._get_concept_model()
     embeddings = vector_store.get(keys)
-    return logistic_model.score_embeddings(embeddings, self.sensitivity).tolist()
+    return concept_model.score_embeddings(self.draft, embeddings, self.sensitivity).tolist()
 
   @override
   def vector_compute_topk(
@@ -75,8 +75,8 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
       topk: int,
       vector_store: VectorStore,
       keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, Optional[Item]]]:
-    logistic_model = self._get_logistic_model()
-    query: np.ndarray = logistic_model._model.coef_.flatten()
+    concept_model = self._get_concept_model()
+    query: np.ndarray = concept_model.coef(self.draft)
     topk_keys = [key for key, _ in vector_store.topk(query, topk, keys)]
     return list(zip(topk_keys, self.vector_compute(topk_keys, vector_store)))
 

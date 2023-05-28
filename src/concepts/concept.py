@@ -114,7 +114,7 @@ SENSITIVITY_PERCENTILES: dict[Sensitivity, float] = {
 
 
 class LogisticEmbeddingModel(BaseModel):
-  """A concept model."""
+  """A model that uses logistic regression with embeddings."""
 
   class Config:
     arbitrary_types_allowed = True
@@ -200,7 +200,7 @@ class ConceptModel(BaseModel):
   version: int = -1
 
   negative_examples: dict[str, Example] = {}
-  dataset: Optional[ConceptDatasetInfo] = None
+  dataset_info: Optional[ConceptDatasetInfo] = None
 
   class Config:
     arbitrary_types_allowed = True
@@ -219,7 +219,21 @@ class ConceptModel(BaseModel):
     if logistic_models:
       self._logistic_models = logistic_models
 
-  def get_model(self, draft: DraftId) -> LogisticEmbeddingModel:
+  def score_embeddings(self, draft: DraftId, embeddings: np.ndarray,
+                       sensitivity: Sensitivity) -> np.ndarray:
+    """Get the scores for the provided embeddings."""
+    return self._get_draft_model(draft).score_embeddings(embeddings, sensitivity)
+
+  def score(self, draft: DraftId, examples: Iterable[RichData],
+            sensitivity: Sensitivity) -> list[float]:
+    """Get the scores for the provided examples."""
+    return self._get_draft_model(draft).score(examples, sensitivity)
+
+  def coef(self, draft: DraftId) -> np.ndarray:
+    """Get the coefficients of the underlying ML model."""
+    return self._get_draft_model(draft)._model.coef_.flatten()
+
+  def _get_draft_model(self, draft: DraftId) -> LogisticEmbeddingModel:
     """Get the model for the provided draft."""
     if draft not in self._logistic_models:
       self._logistic_models[draft] = LogisticEmbeddingModel(
@@ -236,14 +250,7 @@ class ConceptModel(BaseModel):
       return False
 
     self._compute_embeddings(concept)
-    self._fit_drafts(concept)
 
-    # Synchronize the model version with the concept version.
-    self.version = concept.version
-
-    return True
-
-  def _fit_drafts(self, concept: Concept) -> None:
     # Fit each of the drafts, sort by draft name for deterministic behavior.
     for draft in concept.drafts():
       examples = draft_examples(concept, draft)
@@ -251,11 +258,16 @@ class ConceptModel(BaseModel):
       embeddings = np.array([self._embeddings[id] for id in all_examples.keys()])
       labels = [example.label for example in all_examples.values()]
 
-      model = self.get_model(draft)
+      model = self._get_draft_model(draft)
       model.fit(embeddings, labels)
 
       # Synchronize the model version with the concept version.
       model.version = concept.version
+
+    # Synchronize the model version with the concept version.
+    self.version = concept.version
+
+    return True
 
   def _compute_embeddings(self, concept: Concept) -> None:
     embedding_signal = get_signal_cls(self.embedding_name)()
