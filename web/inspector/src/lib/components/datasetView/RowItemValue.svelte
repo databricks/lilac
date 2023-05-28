@@ -12,6 +12,7 @@
     isOrdinal,
     listFieldParents,
     listFields,
+    pathIncludes,
     type LilacSchema,
     type LilacSchemaField,
     type LilacValueNode,
@@ -22,6 +23,7 @@
   export let path: Path;
   export let row: LilacValueNode;
   export let visibleColumns: Path[];
+  export let searchResultsPaths: Path[];
   export let schema: LilacSchema;
   export let aliasMapping: Record<string, Path> | undefined;
 
@@ -45,8 +47,14 @@
       ? getDerivedStringSpanFields(field)
       : [];
 
+  // For string fields, find the derived search span fields.
+  $: searchSpanFields =
+    showValue && field && dtype === 'string' && valueNodes.length === 1
+      ? getDerivedSearchSpanFields(field)
+      : [];
+
   /**
-   * Get child fields that are of string_span type
+   * Get child fields that are of string_span type.
    */
   function getDerivedStringSpanFields(field: LilacSchemaField): LilacSchemaField[] {
     if (!field) return [];
@@ -58,6 +66,23 @@
         .filter(field => isPathVisible(visibleColumns, field.path, aliasMapping))
     );
   }
+
+  /**
+   * Get child fields that are searches.
+   */
+  function getDerivedSearchSpanFields(field: LilacSchemaField): LilacSchemaField[] {
+    if (!field) return [];
+    return (
+      listFields(field)
+        // Filter for string spans
+        .filter(field => field.dtype === 'string_span')
+        // Filter for visible columns
+        .filter(field =>
+          // Enables search results to be highlighted.
+          searchResultsPaths.some(searchPath => pathIncludes(field.path, searchPath))
+        )
+    );
+  }
 </script>
 
 {#if showValue}
@@ -67,17 +92,14 @@
     </div>
 
     <div>
-      {#if !stringSpanFields.length}
-        {values.map(formatValue).join(', ')}
-      {:else}
-        <StringSpanHighlight
-          text={formatValue(values[0])}
-          {stringSpanFields}
-          {row}
-          {visibleColumns}
-          {aliasMapping}
-        />
-      {/if}
+      <StringSpanHighlight
+        text={formatValue(values[0])}
+        {stringSpanFields}
+        {searchSpanFields}
+        {row}
+        {visibleColumns}
+        {aliasMapping}
+      />
     </div>
   </div>
 {/if}

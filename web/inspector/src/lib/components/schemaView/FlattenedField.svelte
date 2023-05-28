@@ -25,8 +25,7 @@
     greater: '>',
     greater_equal: '>=',
     in: 'in',
-    exists: 'exists',
-    like: 'has'
+    exists: 'exists'
   };
 
   let datasetViewStore = getDatasetViewContext();
@@ -81,6 +80,8 @@
         .filter(c => {
           if (c.dtype === 'embedding') return false;
           if (c.signal?.signal_name === 'sentences') return false;
+          if (c.signal?.signal_name === 'substring_search') return false;
+
           return true;
         })
     );

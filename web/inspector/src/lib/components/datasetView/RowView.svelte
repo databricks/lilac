@@ -9,6 +9,7 @@
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import RowItem from './RowItem.svelte';
+  import SearchBox from './SearchBox.svelte';
 
   let datasetViewStore = getDatasetViewContext();
 
@@ -39,9 +40,11 @@
       limit: 40,
       ...selectOptions
     },
-    $selectRowsSchema?.isSuccess ? $selectRowsSchema.data : undefined
+    $selectRowsSchema?.isSuccess ? $selectRowsSchema.data.schema : undefined
   );
 </script>
+
+<SearchBox />
 
 {#if $rows.isError}
   <InlineNotification
@@ -59,6 +62,8 @@
   <SkeletonText paragraph lines={3} />
 {:else if $datasetViewStore.visibleColumns.length === 0}
   <div class="mt-12 w-full text-center text-gray-600">Select fields to display</div>
+{:else if $rows?.isSuccess && $rows.data.pages.length === 1 && $rows.data.pages[0].length === 0}
+  <div class="mx-4 mt-8 w-full text-gray-600">No results.</div>
 {:else if $rows?.isSuccess && $rows.data.pages.length && $selectRowsSchema?.isSuccess && $schema.isSuccess && $selectRowsAliasPaths?.isSuccess}
   <div class="flex h-full w-full flex-col overflow-scroll">
     {#each $rows.data.pages as page}

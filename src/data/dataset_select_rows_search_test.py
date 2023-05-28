@@ -25,7 +25,8 @@ def test_search_like(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
   query = 'world'
-  result = dataset.select_rows(searches=[('text', SearchType.LIKE, 'world')], combine_columns=True)
+  result = dataset.select_rows(
+    searches=[('text', SearchType.CONTAINS, 'world')], combine_columns=True)
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == itemize_primitives([{
@@ -50,8 +51,8 @@ def test_search_like_multiple(make_test_data: TestDataMaker) -> None:
   expected_again_looking_udf = SubstringSignal(query=query_looking_world)
 
   result = dataset.select_rows(
-    searches=[('text', SearchType.LIKE, query_world),
-              ('text2', SearchType.LIKE, query_looking_world)],
+    searches=[('text', SearchType.CONTAINS, query_world),
+              ('text2', SearchType.CONTAINS, query_looking_world)],
     combine_columns=True)
 
   assert list(result) == itemize_primitives([{
@@ -70,7 +71,7 @@ def test_search_like_with_filters(make_test_data: TestDataMaker) -> None:
   query = 'world'
   result = dataset.select_rows(
     filters=[(UUID_COLUMN, ListOp.IN, ['1', '3'])],
-    searches=[('text', SearchType.LIKE, 'world')],
+    searches=[('text', SearchType.CONTAINS, 'world')],
     combine_columns=True)
 
   expected_signal_udf = SubstringSignal(query=query)

@@ -25,13 +25,18 @@
     : undefined;
 
   let sortedVisibleColumns: Path[] = [];
+  let searchResultsPaths: Path[] = [];
 
   $: {
-    let allFields = $selectRowsSchema?.isSuccess ? listFields($selectRowsSchema.data) : [];
+    let allFields = $selectRowsSchema?.isSuccess ? listFields($selectRowsSchema.data.schema) : [];
     sortedVisibleColumns = allFields
       .filter(f => isPathVisible($datasetViewStore.visibleColumns, f.path, aliasMapping))
       .map(f => f.path);
     sortedVisibleColumns.sort((a, b) => (a.join('.') > b.join('.') ? 1 : -1));
+
+    searchResultsPaths = $selectRowsSchema?.isSuccess
+      ? $selectRowsSchema.data.searchResultsPaths
+      : [];
   }
 </script>
 
@@ -41,6 +46,7 @@
       {row}
       path={column}
       visibleColumns={$datasetViewStore.visibleColumns}
+      {searchResultsPaths}
       {schema}
       {aliasMapping}
     />

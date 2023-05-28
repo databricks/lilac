@@ -39,6 +39,8 @@ export type { Schema } from './models/Schema';
 export type { ScoreBody } from './models/ScoreBody';
 export type { ScoreExample } from './models/ScoreExample';
 export type { ScoreResponse } from './models/ScoreResponse';
+export type { Search } from './models/Search';
+export type { SearchType } from './models/SearchType';
 export type { SelectGroupsOptions } from './models/SelectGroupsOptions';
 export type { SelectRowsOptions } from './models/SelectRowsOptions';
 export type { SelectRowsSchemaOptions } from './models/SelectRowsSchemaOptions';
