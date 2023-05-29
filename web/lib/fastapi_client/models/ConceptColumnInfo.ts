@@ -5,7 +5,7 @@
 /**
  * Information about a dataset associated with a concept.
  */
-export type ConceptDatasetInfo = {
+export type ConceptColumnInfo = {
     namespace: string;
     name: string;
     path: (Array<string> | string);

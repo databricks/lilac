@@ -2,7 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ConceptDatasetInfo } from './ConceptDatasetInfo';
+import type { ConceptColumnInfo } from './ConceptColumnInfo';
 
 /**
  * A concept model. Stores all concept model drafts and manages syncing.
@@ -12,6 +12,6 @@ export type ConceptModel = {
     concept_name: string;
     embedding_name: string;
     version?: number;
-    dataset_info?: ConceptDatasetInfo;
+    dataset_info?: ConceptColumnInfo;
 };
 
