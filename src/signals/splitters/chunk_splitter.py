@@ -41,7 +41,7 @@ from ..signal import TextSplitterSignal
 TextChunk = tuple[str, tuple[int, int]]
 
 
-class RecursiveCharacterTextSplitter(TextSplitterSignal):
+class ChunkSplitter(TextSplitterSignal):
   """Recursively split documents by different characters to find one that works."""
 
   name = 'chunk'
