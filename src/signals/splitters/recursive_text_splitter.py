@@ -38,6 +38,8 @@ from ...schema import Item, RichData
 from ...utils import log
 from ..signal import TextSplitterSignal
 
+TextChunk = tuple[str, tuple[int, int]]
+
 
 class RecursiveCharacterTextSplitter(TextSplitterSignal):
   """Recursively split documents by different characters to find one that works."""
@@ -61,19 +63,40 @@ class RecursiveCharacterTextSplitter(TextSplitterSignal):
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    text_data = (row if isinstance(row, str) else '' for row in data)
-
-    for doc in self._tokenizer.pipe(text_data):
-      sentences = doc.sents
-      result = [lilac_span(token.start_char, token.end_char) for token in sentences]
-      if result:
-        yield result
-      else:
+    for text in data:
+      if not isinstance(text, str):
         yield None
+        continue
 
-  def _split_text(self, text: str) -> list[str]:
+      chunks = self._split_text(text)
+      if not chunks:
+        yield None
+        continue
+
+      yield [lilac_span(start, end) for _, (start, end) in chunks]
+
+  def _sep_split(self, text: str, separator: str) -> list[TextChunk]:
+    if not separator:
+      # We need to split by char.
+      return [(letter, (i, i + 1)) for i, letter in enumerate(text)]
+
+    offset = 0
+    chunks: list[TextChunk] = []
+    end_index = text.find(separator, offset)
+
+    while end_index >= 0:
+      chunks.append((text[offset:end_index], (offset, end_index)))
+      offset = end_index + len(separator)
+      end_index = text.find(separator, offset)
+
+    # Append the last chunk.
+    chunks.append((text[offset:], (offset, len(text))))
+
+    return chunks
+
+  def _split_text(self, text: str) -> list[TextChunk]:
     """Split incoming text and return chunks."""
-    final_chunks: list[str] = []
+    final_chunks: list[TextChunk] = []
     # Get appropriate separator to use
     separator = self.separators[-1]
     for _s in self.separators:
@@ -84,51 +107,54 @@ class RecursiveCharacterTextSplitter(TextSplitterSignal):
         separator = _s
         break
     # Now that we have the separator, split the text.
-    if separator:
-      splits = text.split(separator)
-    else:
-      splits = list(text)
+    splits = self._sep_split(text, separator)
     # Now go merging things, recursively splitting longer texts.
-    good_splits: list[str] = []
-    for s in splits:
-      if self.length_function(s) < self.chunk_size:
-        good_splits.append(s)
+    good_splits: list[TextChunk] = []
+    for chunk in splits:
+      text_chunk, (start, _) = chunk
+      if self.length_function(text_chunk) < self.chunk_size:
+        good_splits.append(chunk)
       else:
         if good_splits:
           merged_text = self._merge_splits(good_splits, separator)
           final_chunks.extend(merged_text)
           good_splits = []
-        other_info = self._split_text(s)
-        final_chunks.extend(other_info)
+        other_chunks = self._split_text(text_chunk)
+        # Adjust the offsets of the other chunks.
+        other_chunks = [(t, (s + start, e + start)) for t, (s, e) in other_chunks]
+        final_chunks.extend(other_chunks)
     if good_splits:
       merged_text = self._merge_splits(good_splits, separator)
       final_chunks.extend(merged_text)
     return final_chunks
 
-  def _join_docs(self, docs: list[str], separator: str) -> Optional[str]:
-    text = separator.join(docs)
+  def _join_chunks(self, chunks: list[TextChunk], separator: str) -> Optional[TextChunk]:
+    text = separator.join([text for text, _ in chunks])
     text = text.strip()
     if text == '':
       return None
-    else:
-      return text
 
-  def _merge_splits(self, splits: Iterable[str], separator: str) -> list[str]:
+    _, (first_span_start, _) = chunks[0]
+    _, (_, last_span_end) = chunks[-1]
+    return (text, (first_span_start, last_span_end))
+
+  def _merge_splits(self, splits: Iterable[TextChunk], separator: str) -> list[TextChunk]:
     # We now want to combine these smaller pieces into medium size
     # chunks to send to the LLM.
     separator_len = self.length_function(separator)
 
-    docs: list[str] = []
-    current_doc: list[str] = []
+    docs: list[TextChunk] = []
+    current_doc: list[TextChunk] = []
     total = 0
-    for d in splits:
-      _len = self.length_function(d)
+    for chunk in splits:
+      text_chunk, _ = chunk
+      _len = self.length_function(text_chunk)
       if (total + _len + (separator_len if len(current_doc) > 0 else 0) > self.chunk_size):
         if total > self.chunk_size:
           log(f'Created a chunk of size {total}, '
               f'which is longer than the specified {self.chunk_size}')
         if len(current_doc) > 0:
-          doc = self._join_docs(current_doc, separator)
+          doc = self._join_chunks(current_doc, separator)
           if doc is not None:
             docs.append(doc)
           # Keep on popping if:
@@ -137,12 +163,12 @@ class RecursiveCharacterTextSplitter(TextSplitterSignal):
           while total > self.chunk_overlap or (
               total + _len +
             (separator_len if len(current_doc) > 0 else 0) > self.chunk_size and total > 0):
-            total -= self.length_function(current_doc[0]) + (
+            total -= self.length_function(current_doc[0][0]) + (
               separator_len if len(current_doc) > 1 else 0)
             current_doc = current_doc[1:]
-      current_doc.append(d)
+      current_doc.append(chunk)
       total += _len + (separator_len if len(current_doc) > 1 else 0)
-    doc = self._join_docs(current_doc, separator)
+    doc = self._join_chunks(current_doc, separator)
     if doc is not None:
       docs.append(doc)
     return docs
