@@ -17,10 +17,10 @@ def test_paragraphs_no_overlap() -> None:
 
 def test_single_world_is_too_long_no_overlap() -> None:
   signal = ChunkSplitter(chunk_size=6, chunk_overlap=0)
-  text = 'ThisIsASigleWordThatIsTooLong'
+  text = 'ThisIsASingleWordThatIsTooLong'
   split_items = list(signal.compute([text]))
 
-  expected_spans = text_to_expected_spans(text, ['ThisIs', 'ASigle', 'WordTh', 'atIsTo', 'oLong'])
+  expected_spans = text_to_expected_spans(text, ['ThisIs', 'ASingl', 'eWordT', 'hatIsT', 'ooLong'])
   assert split_items == [expected_spans]
 
 

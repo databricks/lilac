@@ -41,6 +41,8 @@ from ..signal import TextSplitterSignal
 
 TextChunk = tuple[str, tuple[int, int]]
 
+DEFAULT_SEPARATORS = ['\n\n', '\n', ' ', '']
+
 
 class ChunkSplitter(TextSplitterSignal):
   """Recursively split documents by different characters to find one that works."""
@@ -51,7 +53,7 @@ class ChunkSplitter(TextSplitterSignal):
   chunk_size: int = 4000
   chunk_overlap: int = 200
   length_function: Callable[[str], int] = len
-  separators: list[str] = ['\n\n', '\n', ' ', '']
+  separators: list[str] = DEFAULT_SEPARATORS
 
   @validator('chunk_overlap')
   def check_overlap_smaller_than_chunk(cls, chunk_overlap: int, values: dict[str, Any]) -> int:
@@ -61,6 +63,15 @@ class ChunkSplitter(TextSplitterSignal):
       raise ValueError(f'Got a larger chunk overlap ({chunk_overlap}) than chunk size '
                        f'({chunk_size}), should be smaller.')
     return chunk_overlap
+
+  @validator('separators')
+  def check_separators_are_strings(cls, separators: list[str]) -> list[str]:
+    """Check that the separators are strings."""
+    separators = list(separators) or DEFAULT_SEPARATORS
+    for sep in separators:
+      if not isinstance(sep, str):
+        raise ValueError(f'Got separator {sep} that is not a string.')
+    return separators
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -77,7 +88,7 @@ class ChunkSplitter(TextSplitterSignal):
       yield [lilac_span(start, end) for _, (start, end) in chunks]
 
   def _sep_split(self, text: str, separator: str) -> list[TextChunk]:
-    if not separator:
+    if separator == '':
       # We need to split by char.
       return [(letter, (i, i + 1)) for i, letter in enumerate(text)]
 
