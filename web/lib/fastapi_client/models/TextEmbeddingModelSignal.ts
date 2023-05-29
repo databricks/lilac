@@ -7,7 +7,7 @@
  */
 export type TextEmbeddingModelSignal = {
     signal_name?: string;
-    split?: 'sentences';
+    split?: 'sentences' | 'chunk';
     embedding: 'cohere' | 'sbert';
 };
 

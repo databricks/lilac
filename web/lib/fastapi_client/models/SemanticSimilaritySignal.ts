@@ -10,7 +10,7 @@
  */
 export type SemanticSimilaritySignal = {
     signal_name?: 'semantic_similarity';
-    split?: 'sentences';
+    split?: 'sentences' | 'chunk';
     embedding: 'cohere' | 'sbert';
     query: string;
 };

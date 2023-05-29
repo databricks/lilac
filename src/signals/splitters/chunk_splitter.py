@@ -50,10 +50,11 @@ class ChunkSplitter(TextSplitterSignal):
   name = 'chunk'
   display_name = 'Chunk Splitter'
 
-  chunk_size: int = 4000
-  chunk_overlap: int = 200
-  length_function: Callable[[str], int] = len
+  chunk_size: int = 200
+  chunk_overlap: int = 50
   separators: list[str] = DEFAULT_SEPARATORS
+
+  _length_function: Callable[[str], int] = len
 
   @validator('chunk_overlap')
   def check_overlap_smaller_than_chunk(cls, chunk_overlap: int, values: dict[str, Any]) -> int:
@@ -124,7 +125,7 @@ class ChunkSplitter(TextSplitterSignal):
     good_splits: list[TextChunk] = []
     for chunk in splits:
       text_chunk, (start, _) = chunk
-      if self.length_function(text_chunk) < self.chunk_size:
+      if self._length_function(text_chunk) < self.chunk_size:
         good_splits.append(chunk)
       else:
         if good_splits:
@@ -153,14 +154,14 @@ class ChunkSplitter(TextSplitterSignal):
   def _merge_splits(self, splits: Iterable[TextChunk], separator: str) -> list[TextChunk]:
     # We now want to combine these smaller pieces into medium size
     # chunks to send to the LLM.
-    separator_len = self.length_function(separator)
+    separator_len = self._length_function(separator)
 
     docs: list[TextChunk] = []
     current_doc: list[TextChunk] = []
     total = 0
     for chunk in splits:
       text_chunk, _ = chunk
-      _len = self.length_function(text_chunk)
+      _len = self._length_function(text_chunk)
       if (total + _len + (separator_len if len(current_doc) > 0 else 0) > self.chunk_size):
         if total > self.chunk_size:
           log(f'Created a chunk of size {total}, '
@@ -175,7 +176,7 @@ class ChunkSplitter(TextSplitterSignal):
           while total > self.chunk_overlap or (
               total + _len +
             (separator_len if len(current_doc) > 0 else 0) > self.chunk_size and total > 0):
-            total -= self.length_function(current_doc[0][0]) + (
+            total -= self._length_function(current_doc[0][0]) + (
               separator_len if len(current_doc) > 1 else 0)
             current_doc = current_doc[1:]
       current_doc.append(chunk)

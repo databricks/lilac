@@ -31,3 +31,13 @@ def test_newlines_with_overlap() -> None:
 
   expected_chunks = ['Hello.', 'World.', 'This will', 'will get', 'get split.']
   assert spans_to_text(text, spans) == expected_chunks
+
+
+def test_serialization() -> None:
+  signal = ChunkSplitter(chunk_size=12, chunk_overlap=5)
+  assert signal.dict() == {
+    'signal_name': 'chunk',
+    'chunk_size': 12,
+    'chunk_overlap': 5,
+    'separators': ['\n\n', '\n', ' ', '']
+  }
