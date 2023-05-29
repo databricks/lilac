@@ -15,5 +15,6 @@ export type ConceptScoreSignal = {
     concept_name: string;
     draft?: string;
     sensitivity?: Sensitivity;
+    num_negative_examples?: number;
 };
 

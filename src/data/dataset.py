@@ -16,16 +16,7 @@ from pydantic import (
 )
 
 from ..schema import VALUE_KEY, Path, PathTuple, Schema, normalize_path
-from ..signals.concept_scorer import ConceptScoreSignal
-from ..signals.semantic_similarity import SemanticSimilaritySignal
-from ..signals.signal import (
-  Signal,
-  TextEmbeddingModelSignal,
-  TextEmbeddingSignal,
-  TextSignal,
-  TextSplitterSignal,
-  resolve_signal,
-)
+from ..signals.signal import Signal, resolve_signal
 from ..tasks import TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -131,17 +122,13 @@ class GroupsSortBy(str, enum.Enum):
   VALUE = 'value'
 
 
-AllSignalTypes = Union[SemanticSimilaritySignal, ConceptScoreSignal, TextEmbeddingModelSignal,
-                       TextEmbeddingSignal, TextSplitterSignal, TextSignal, Signal]
-
-
 class Column(BaseModel):
   """A column in the dataset."""
   path: PathTuple
   alias: Optional[str]  # This is the renamed column during querying and response.
 
   # Defined when the feature is another column.
-  signal_udf: Optional[AllSignalTypes] = None
+  signal_udf: Optional[Signal] = None
 
   class Config:
     smart_union = True
@@ -149,7 +136,7 @@ class Column(BaseModel):
   def __init__(self,
                path: Path,
                alias: Optional[str] = None,
-               signal_udf: Optional[Union[ConceptScoreSignal, Signal]] = None,
+               signal_udf: Optional[Signal] = None,
                **kwargs: Any):
     """Initialize a column. We override __init__ to allow positional arguments for brevity."""
     super().__init__(path=normalize_path(path), alias=alias, signal_udf=signal_udf, **kwargs)

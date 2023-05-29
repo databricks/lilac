@@ -8,7 +8,7 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..concepts.concept import ConceptModelManager, ExampleIn
+from ..concepts.concept import ConceptColumnInfo, ConceptModel, ExampleIn
 from ..concepts.db_concept import (
   ConceptDB,
   ConceptModelDB,
@@ -17,8 +17,9 @@ from ..concepts.db_concept import (
   DiskConceptModelDB,
 )
 from ..config import CONFIG
+from ..data.dataset_test_utils import TestDataMaker
 from ..embeddings.vector_store_numpy import NumpyVectorStore
-from ..schema import Item, RichData, SignalInputType
+from ..schema import UUID_COLUMN, Item, RichData, SignalInputType
 from .concept_scorer import ConceptScoreSignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
@@ -32,9 +33,11 @@ def set_data_path(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {
-  'not in concept': [1.0, 0.0, 0.0],
+  'not in concept': [0.1, 0.9, 0.0],
   'in concept': [0.9, 0.1, 0.0],
   'a new data point': [0.1, 0.2, 0.3],
+  'hello.': [0.1, 0.2, 0.3],
+  'hello2.': [0.1, 0.2, 0.3],
 }
 
 
@@ -87,26 +90,6 @@ def test_concept_does_not_exist() -> None:
     signal.compute(['a new data point', 'not in concept'])
 
 
-@pytest.mark.parametrize('db_cls', ALL_CONCEPT_DBS)
-def test_concept_model_out_of_sync(db_cls: Type[ConceptDB]) -> None:
-  concept_db = db_cls()
-  namespace = 'test'
-  concept_name = 'test_concept'
-  concept_db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
-
-  train_data = [
-    ExampleIn(label=False, text='not in concept'),
-    ExampleIn(label=True, text='in concept')
-  ]
-  concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
-
-  signal = ConceptScoreSignal(
-    namespace='test', concept_name='test_concept', embedding='test_embedding')
-  with pytest.raises(
-      ValueError, match='Concept model "test/test_concept/test_embedding" is out of sync'):
-    signal.compute(['a new data point', 'not in concept'])
-
-
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
 @pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
 def test_concept_model_score(concept_db_cls: Type[ConceptDB],
@@ -128,12 +111,52 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    ConceptModelManager(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   scores = cast(list[float], list(signal.compute(['a new data point', 'not in concept'])))
   assert scores[0] > 0.5
   assert scores[1] < 0.5
+
+
+@pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
+@pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
+def test_concept_model_with_dataset_score(concept_db_cls: Type[ConceptDB],
+                                          model_db_cls: Type[ConceptModelDB],
+                                          make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello2.',
+  }])
+
+  concept_db = concept_db_cls()
+  model_db = model_db_cls(concept_db)
+  namespace = 'test'
+  concept_name = 'test_concept'
+  concept_db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
+
+  train_data = [
+    ExampleIn(label=False, text='not in concept'),
+    ExampleIn(label=True, text='in concept')
+  ]
+  concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
+
+  signal = ConceptScoreSignal(
+    namespace='test', concept_name='test_concept', embedding='test_embedding')
+  signal.set_dataset_info(
+    ConceptColumnInfo(namespace=dataset.namespace, name=dataset.dataset_name, path='text'))
+
+  # Explicitly sync the model with the concept.
+  model_db.sync(
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+
+  scores = cast(list[float],
+                list(signal.compute(['a new data point', 'in concept', 'not in concept'])))
+  assert scores[0] < 0.5
+  assert scores[1] > 0.5
+  assert scores[2] < 0.5
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
@@ -157,16 +180,15 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    ConceptModelManager(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
-                   np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
+                   np.array([[1.0, 0.0, 0.0], [0.1, 0.9, 0.0], [0.1, 0.2, 0.3]]))
 
   scores = cast(list[float], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_store)))
-  assert scores[0] < 0.5
-  assert scores[1] > 0.5
+  assert scores[0] > 0.5
+  assert scores[1] < 0.5
   assert scores[2] > 0.5
 
 
@@ -191,15 +213,14 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    ConceptModelManager(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
-                   np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
+                   np.array([[0.1, 0.2, 0.3], [0.1, 0.87, 0.0], [1.0, 0.0, 0.0]]))
 
   # Compute topk without id restriction.
   topk_result = signal.vector_compute_topk(3, vector_store)
-  expected_result = [('3',), ('2',), ('1',)]
+  expected_result = [('3',), ('1',), ('2',)]
   for (id, _), expected_id in zip(topk_result, expected_result):
     assert id == expected_id
 
@@ -211,7 +232,7 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
 
   # Compute topk with id restriction.
   topk_result = signal.vector_compute_topk(3, vector_store, keys=[('1',), ('2',)])
-  expected_result = [('2',), ('1',)]
+  expected_result = [('1',), ('2',)]
   for (id, _), expected_id in zip(topk_result, expected_result):
     assert id == expected_id
 
@@ -240,17 +261,16 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    ConceptModelManager(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
 
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
-                   np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
+                   np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.9, 0.0]]))
 
   scores = cast(list[float], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_store)))
-  assert scores[0] < 0.5
+  assert scores[0] > 0.5
   assert scores[1] > 0.5
-  assert scores[2] > 0.5
+  assert scores[2] < 0.5
 
   # Make sure the draft signal works. It has different values than the original signal.
   vector_store = NumpyVectorStore()

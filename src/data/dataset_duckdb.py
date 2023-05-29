@@ -14,7 +14,6 @@ from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, validator
 from typing_extensions import override
 
-from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..config import CONFIG, data_path
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
@@ -40,7 +39,6 @@ from ..schema import (
   normalize_path,
   signal_compute_type_supports_dtype,
 )
-from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import (
   Signal,
   TextEmbeddingModelSignal,
@@ -137,13 +135,10 @@ class DuckDBSelectGroupsResult(SelectGroupsResult):
 class DatasetDuckDB(Dataset):
   """The DuckDB implementation of the dataset database."""
 
-  def __init__(
-    self,
-    namespace: str,
-    dataset_name: str,
-    vector_store_cls: Type[VectorStore] = NumpyVectorStore,
-    concept_model_db: ConceptModelDB = DISK_CONCEPT_MODEL_DB,
-  ):
+  def __init__(self,
+               namespace: str,
+               dataset_name: str,
+               vector_store_cls: Type[VectorStore] = NumpyVectorStore):
     super().__init__(namespace, dataset_name)
 
     self.dataset_path = get_dataset_output_dir(data_path(), namespace, dataset_name)
@@ -156,7 +151,6 @@ class DatasetDuckDB(Dataset):
     # Maps a column path and embedding to the vector store. This is lazily generated as needed.
     self._col_vector_stores: dict[PathTuple, VectorStore] = {}
     self.vector_store_cls = vector_store_cls
-    self._concept_model_db = concept_model_db
     self._manifest_lock = threading.Lock()
 
   def _create_view(self, view_name: str, parquet_files: list[str]) -> None:
@@ -771,13 +765,6 @@ class DatasetDuckDB(Dataset):
     udf_columns = [col for col in cols if col.signal_udf]
     for udf_col in udf_columns:
       signal = cast(Signal, udf_col.signal_udf)
-
-      if isinstance(signal, ConceptScoreSignal):
-        # Make sure the manager is in sync.
-        manager = self._concept_model_db.get(signal.namespace, signal.concept_name,
-                                             signal.embedding)
-        self._concept_model_db.sync(manager)
-
       signal_alias = udf_col.alias or _unique_alias(udf_col)
       temp_signal_cols = columns_to_merge[signal_alias]
       if len(temp_signal_cols) != 1:

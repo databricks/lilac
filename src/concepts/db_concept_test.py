@@ -1,7 +1,7 @@
 """Tests for the the database concept."""
 
 from pathlib import Path
-from typing import Generator, Iterable, Optional, Type, cast
+from typing import Generator, Iterable, Type, cast
 
 import numpy as np
 import pytest
@@ -15,10 +15,10 @@ from .concept import (
   DRAFT_MAIN,
   Concept,
   ConceptModel,
-  ConceptModelManager,
   DraftId,
   Example,
   ExampleIn,
+  LogisticEmbeddingModel,
   Sensitivity,
 )
 from .db_concept import (
@@ -394,10 +394,9 @@ class ConceptDBSuite:
       version=3)
 
 
-def _make_test_concept_model_manager(
+def _make_test_concept_model(
     concept_db: ConceptDB,
-    model_db: ConceptModelDB,
-    concept_models: Optional[dict[DraftId, ConceptModel]] = {}) -> ConceptModelManager:
+    logistic_models: dict[DraftId, LogisticEmbeddingModel] = {}) -> ConceptModel:
   namespace = 'test'
   concept_name = 'test_concept'
   concept_db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
@@ -407,14 +406,13 @@ def _make_test_concept_model_manager(
     ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
-  return ConceptModelManager(
-    namespace='test',
-    concept_name='test_concept',
-    embedding_name='test_embedding',
-    concept_models=concept_models)
+  model = ConceptModel(
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+  model._logistic_models = logistic_models
+  return model
 
 
-class TestConceptModel(ConceptModel):
+class TestLogisticModel(LogisticEmbeddingModel):
 
   @override
   def score_embeddings(self, embeddings: np.ndarray, sensitivity: Sensitivity) -> np.ndarray:
@@ -430,38 +428,38 @@ class TestConceptModel(ConceptModel):
 @pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
 class ConceptModelDBSuite:
 
-  def test_save_and_get_model_manager(self, concept_db_cls: Type[ConceptDB],
-                                      model_db_cls: Type[ConceptModelDB]) -> None:
+  def test_save_and_get_model(self, concept_db_cls: Type[ConceptDB],
+                              model_db_cls: Type[ConceptModelDB]) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    manager = _make_test_concept_model_manager(concept_db, model_db)
+    model = _make_test_concept_model(concept_db)
 
-    model_db.sync(manager)
-    retrieved_manager = model_db.get(
+    model_db.sync(model)
+    retrieved_model = model_db.get(
       namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-
-    assert retrieved_manager.get_model(DRAFT_MAIN) == manager.get_model(DRAFT_MAIN)
+    if not retrieved_model:
+      retrieved_model = model_db.create(
+        namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+    assert retrieved_model == model
 
   def test_sync_model(self, concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB],
                       mocker: MockerFixture) -> None:
 
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    model = TestConceptModel(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-    score_embeddings_mock = mocker.spy(TestConceptModel, 'score_embeddings')
-    fit_mock = mocker.spy(TestConceptModel, 'fit')
+    logistic_model = TestLogisticModel(embedding_name='test_embedding')
+    score_embeddings_mock = mocker.spy(TestLogisticModel, 'score_embeddings')
+    fit_mock = mocker.spy(TestLogisticModel, 'fit')
 
-    manager = _make_test_concept_model_manager(
-      concept_db, model_db, concept_models={DRAFT_MAIN: model})
+    model = _make_test_concept_model(concept_db, logistic_models={DRAFT_MAIN: logistic_model})
 
-    assert model_db.in_sync(manager) is False
+    assert model_db.in_sync(model) is False
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 0
 
-    model_db.sync(manager)
+    model_db.sync(model)
 
-    assert model_db.in_sync(manager) is True
+    assert model_db.in_sync(model) is True
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 1
 
@@ -469,19 +467,17 @@ class ConceptModelDBSuite:
                              model_db_cls: Type[ConceptModelDB], mocker: MockerFixture) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    score_embeddings_mock = mocker.spy(TestConceptModel, 'score_embeddings')
-    fit_mock = mocker.spy(TestConceptModel, 'fit')
-    model = TestConceptModel(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-    manager = _make_test_concept_model_manager(
-      concept_db, model_db, concept_models={DRAFT_MAIN: model})
-    model_db.sync(manager)
-    assert model_db.in_sync(manager) is True
+    score_embeddings_mock = mocker.spy(TestLogisticModel, 'score_embeddings')
+    fit_mock = mocker.spy(TestLogisticModel, 'fit')
+    logistic_model = TestLogisticModel(embedding_name='test_embedding')
+    model = _make_test_concept_model(concept_db, logistic_models={DRAFT_MAIN: logistic_model})
+    model_db.sync(model)
+    assert model_db.in_sync(model) is True
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 1
 
     (called_model, called_embeddings, called_labels) = fit_mock.call_args_list[-1].args
-    assert called_model == model
+    assert called_model == logistic_model
     np.testing.assert_array_equal(
       called_embeddings, np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']]))
     assert called_labels == [False, True]
@@ -490,18 +486,18 @@ class ConceptModelDBSuite:
     concept_db.edit('test', 'test_concept',
                     ConceptUpdate(insert=[ExampleIn(label=False, text='a new data point')]))
 
-    # Make sure the manager is out of sync.
-    assert model_db.in_sync(manager) is False
+    # Make sure the model is out of sync.
+    assert model_db.in_sync(model) is False
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 1
 
-    model_db.sync(manager)
-    assert model_db.in_sync(manager) is True
+    model_db.sync(model)
+    assert model_db.in_sync(model) is True
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 2
     # Fit is called again with new points on main only.
     (called_model, called_embeddings, called_labels) = fit_mock.call_args_list[-1].args
-    assert called_model == model
+    assert called_model == logistic_model
     np.testing.assert_array_equal(
       called_embeddings,
       np.array([
@@ -515,19 +511,17 @@ class ConceptModelDBSuite:
                                    mocker: MockerFixture) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    score_embeddings_mock = mocker.spy(TestConceptModel, 'score_embeddings')
-    fit_mock = mocker.spy(TestConceptModel, 'fit')
-    model = TestConceptModel(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-    draft_model = TestConceptModel(
-      namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-    manager = _make_test_concept_model_manager(
-      concept_db, model_db, concept_models={
-        DRAFT_MAIN: model,
+    score_embeddings_mock = mocker.spy(TestLogisticModel, 'score_embeddings')
+    fit_mock = mocker.spy(TestLogisticModel, 'fit')
+    logistic_model = TestLogisticModel(embedding_name='test_embedding')
+    draft_model = TestLogisticModel(embedding_name='test_embedding')
+    model = _make_test_concept_model(
+      concept_db, logistic_models={
+        DRAFT_MAIN: logistic_model,
         'test_draft': draft_model
       })
-    model_db.sync(manager)
-    assert model_db.in_sync(manager) is True
+    model_db.sync(model)
+    assert model_db.in_sync(model) is True
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 1
 
@@ -542,13 +536,13 @@ class ConceptModelDBSuite:
         ExampleIn(label=False, text='in concept', draft='test_draft'),
       ]))
 
-    # Make sure the manager is out of sync.
-    assert model_db.in_sync(manager) is False
+    # Make sure the model is out of sync.
+    assert model_db.in_sync(model) is False
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 1
 
-    model_db.sync(manager)
-    assert model_db.in_sync(manager) is True
+    model_db.sync(model)
+    assert model_db.in_sync(model) is True
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 3  # Fit is called on both the draft, and main.
 
@@ -574,7 +568,7 @@ class ConceptModelDBSuite:
     ]
 
     # The main model was fit without the data from the draft.
-    assert called_model == model
+    assert called_model == draft_model
     np.testing.assert_array_equal(
       called_embeddings, np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']]))
     assert called_labels == [False, True]
@@ -583,7 +577,7 @@ class ConceptModelDBSuite:
                                       model_db_cls: Type[ConceptModelDB]) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    model = _make_test_concept_model_manager(concept_db, model_db)
+    model = _make_test_concept_model(concept_db)
     model_db.sync(model)
 
     # Edit the concept.

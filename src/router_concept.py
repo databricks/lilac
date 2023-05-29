@@ -1,7 +1,6 @@
 """Router for the concept database."""
 
-import random
-from typing import Any, Iterable, Optional, cast
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -15,15 +14,10 @@ from .concepts.concept import (
   draft_examples,
 )
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
-from .data.dataset import Column, UnaryOp, val
-from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
-from .schema import UUID_COLUMN, VALUE_KEY, Path, SignalInputType
-from .signals.splitters.text_splitter_spacy import SentenceSplitterSpacy
+from .schema import SignalInputType
 
 router = APIRouter(route_class=RouteErrorHandler)
-
-DEFAULT_NUM_NEG_EXAMPLES = 100
 
 
 @router.get('/', response_model_exclude_none=True)
@@ -48,18 +42,6 @@ def get_concept(namespace: str,
   return concept
 
 
-class ConceptDatasetOptions(BaseModel):
-  """Information about a dataset associated with a concept."""
-  # Namespace of the dataset.
-  namespace: str
-  # Name of the dataset.
-  name: str
-  # Path holding the text to use for negative examples.
-  path: Path
-
-  num_negative_examples = DEFAULT_NUM_NEG_EXAMPLES
-
-
 class CreateConceptOptions(BaseModel):
   """Options for creating a concept."""
   # Namespace of the concept.
@@ -69,40 +51,11 @@ class CreateConceptOptions(BaseModel):
   # Input type (modality) of the concept.
   type: SignalInputType
 
-  # Dataset information associated with this concept. Used to generate negative examples.
-  dataset: Optional[ConceptDatasetOptions] = None
-
-
-def _split_docs_into_sentences(docs: Iterable[str]) -> list[str]:
-  splitter = SentenceSplitterSpacy()
-  doc_spans = list(splitter.compute(docs))
-  sentences: list[str] = []
-  for sentence_spans, text in zip(doc_spans, docs):
-    for span in cast(Iterable[Any], sentence_spans):
-      start, end = span[VALUE_KEY]['start'], span[VALUE_KEY]['end']
-      sentences.append(text[start:end])
-  return sentences
-
 
 @router.post('/create', response_model_exclude_none=True)
 def create_concept(options: CreateConceptOptions) -> Concept:
   """Edit a concept in the database."""
-  negative_examples: list[str] = []
-
-  if options.dataset:
-    dataset = get_dataset(options.dataset.namespace, options.dataset.name)
-    # Sorting by UUID column will return examples with random order.
-    docs = dataset.select_rows([Column(val(options.dataset.path), alias='text')],
-                               filters=[(options.dataset.path, UnaryOp.EXISTS)],
-                               sort_by=[UUID_COLUMN],
-                               limit=options.dataset.num_negative_examples)
-    docs = docs.df()['text']
-    sentences = _split_docs_into_sentences(docs)
-    # Choose a random unique subset of sentences.
-    num_samples = min(options.dataset.num_negative_examples, len(sentences))
-    negative_examples = random.sample(sentences, num_samples)
-
-  return DISK_CONCEPT_DB.create(options.namespace, options.name, options.type, negative_examples)
+  return DISK_CONCEPT_DB.create(options.namespace, options.name, options.type)
 
 
 @router.post('/{namespace}/{concept_name}', response_model_exclude_none=True)
@@ -152,7 +105,6 @@ class ConceptModelResponse(BaseModel):
 def get_concept_model(namespace: str,
                       concept_name: str,
                       embedding_name: str,
-                      draft: Optional[DraftId] = None,
                       sync_model: bool = False) -> ConceptModelResponse:
   """Get a concept model from a database."""
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
@@ -160,18 +112,15 @@ def get_concept_model(namespace: str,
     raise HTTPException(
       status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
 
-  manager = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
-  if not manager:
-    raise HTTPException(
-      status_code=404,
-      detail=f'Concept model "{namespace}/{concept_name}/{embedding_name}" was not found')
+  model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
+  if not model:
+    model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name)
 
   if sync_model:
-    model_synced = DISK_CONCEPT_MODEL_DB.sync(manager)
+    model_synced = DISK_CONCEPT_MODEL_DB.sync(model)
   else:
-    model_synced = DISK_CONCEPT_MODEL_DB.in_sync(manager)
-  return ConceptModelResponse(
-    model=manager.get_model(draft or DRAFT_MAIN), model_synced=model_synced)
+    model_synced = DISK_CONCEPT_MODEL_DB.in_sync(model)
+  return ConceptModelResponse(model=model, model_synced=model_synced)
 
 
 @router.post('/{namespace}/{concept_name}/{embedding_name}/score', response_model_exclude_none=True)
@@ -181,16 +130,11 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
   if not concept:
     raise HTTPException(
       status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
-  manager = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
-  concept_model = manager.get_model(body.draft)
-  if not concept_model:
-    raise HTTPException(
-      status_code=404,
-      detail=f'Concept model "{namespace}/{concept_name}/{embedding_name}" with draft {body.draft} '
-      'was not found')
-
-  models_updated = DISK_CONCEPT_MODEL_DB.sync(manager)
+  model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
+  if model is None:
+    model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name)
+  models_updated = DISK_CONCEPT_MODEL_DB.sync(model)
   # TODO(smilkov): Support images.
   texts = [example.text or '' for example in body.examples]
   return ScoreResponse(
-    scores=concept_model.score(texts, body.sensitivity), model_synced=models_updated)
+    scores=model.score(body.draft, texts, body.sensitivity), model_synced=models_updated)

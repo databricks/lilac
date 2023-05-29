@@ -1,6 +1,8 @@
 """Defines the concept and the concept models."""
+import random
+import uuid
 from enum import Enum
-from typing import Any, Iterable, Literal, Optional, Union
+from typing import Any, Iterable, Literal, Optional, Union, cast
 
 import numpy as np
 from pydantic import BaseModel
@@ -8,12 +10,39 @@ from scipy.interpolate import interp1d
 from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
 
+from ..data.dataset import Column, UnaryOp, val
+from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
-from ..schema import RichData, SignalInputType
+from ..schema import (
+  TEXT_SPAN_END_FEATURE,
+  TEXT_SPAN_START_FEATURE,
+  UUID_COLUMN,
+  VALUE_KEY,
+  Path,
+  RichData,
+  SignalInputType,
+)
 from ..signals.signal import TextEmbeddingSignal, get_signal_cls
+from ..signals.splitters.text_splitter_spacy import SentenceSplitterSpacy
 from ..utils import DebugTimer
 
 LOCAL_CONCEPT_NAMESPACE = 'local'
+
+# Number of randomly sampled negative examples to use for training. This is used to obtain a more
+# balanced model that works with a specific dataset.
+DEFAULT_NUM_NEG_EXAMPLES = 100
+
+
+class ConceptColumnInfo(BaseModel):
+  """Information about a dataset associated with a concept."""
+  # Namespace of the dataset.
+  namespace: str
+  # Name of the dataset.
+  name: str
+  # Path holding the text to use for negative examples.
+  path: Path
+
+  num_negative_examples = DEFAULT_NUM_NEG_EXAMPLES
 
 
 class ExampleOrigin(BaseModel):
@@ -99,19 +128,13 @@ SENSITIVITY_PERCENTILES: dict[Sensitivity, float] = {
 }
 
 
-class ConceptModel(BaseModel):
-  """A concept model."""
+class LogisticEmbeddingModel(BaseModel):
+  """A model that uses logistic regression with embeddings."""
 
   class Config:
     arbitrary_types_allowed = True
     underscore_attrs_are_private = True
 
-  # The concept that this model is for.
-  namespace: str
-  concept_name: str
-
-  # The name of the embedding for this model.
-  embedding_name: str
   version: int = -1
 
   # The following fields are excluded from JSON serialization, but still pickleable.
@@ -130,18 +153,6 @@ class ConceptModel(BaseModel):
       return interpolate_fn(scores)
     except NotFittedError:
       return np.random.rand(len(embeddings))
-
-  def score(self, examples: Iterable[RichData], sensitivity: Sensitivity) -> list[float]:
-    """Get the scores for the provided examples."""
-    embedding_signal = get_signal_cls(self.embedding_name)()
-    if not isinstance(embedding_signal, TextEmbeddingSignal):
-      raise ValueError(f'Only text embedding signals are currently supported for concepts. '
-                       f'"{self.embedding_name}" is a {type(embedding_signal)}.')
-
-    embed_fn = get_embed_fn(embedding_signal)
-
-    embeddings = np.array(embed_fn(examples))
-    return self.score_embeddings(embeddings, sensitivity).tolist()
 
   def fit(self, embeddings: np.ndarray, labels: list[bool]) -> None:
     """Fit the model to the provided embeddings and labels."""
@@ -179,7 +190,7 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
   return draft_examples[draft]
 
 
-class ConceptModelManager(BaseModel):
+class ConceptModel(BaseModel):
   """A concept model. Stores all concept model drafts and manages syncing."""
   # The concept that this model is for.
   namespace: str
@@ -189,32 +200,72 @@ class ConceptModelManager(BaseModel):
   embedding_name: str
   version: int = -1
 
+  dataset_info: Optional[ConceptColumnInfo] = None
+
   class Config:
     arbitrary_types_allowed = True
     underscore_attrs_are_private = True
 
+  def __init__(self, **kwargs: Any):
+    super().__init__(**kwargs)
+    self._generate_random_negatives()
+
+  def _generate_random_negatives(self) -> None:
+    if not self.dataset_info:
+      return
+
+    # Sorting by UUID column will return examples with random order.
+    db = get_dataset(self.dataset_info.namespace, self.dataset_info.name)
+    docs = db.select_rows([Column(val(self.dataset_info.path), alias='text')],
+                          filters=[(self.dataset_info.path, UnaryOp.EXISTS)],
+                          sort_by=[UUID_COLUMN],
+                          limit=self.dataset_info.num_negative_examples)
+    docs = docs.df()['text']
+    sentences = _split_docs_into_sentences(docs)
+    # Choose a random unique subset of sentences.
+    num_samples = min(self.dataset_info.num_negative_examples, len(sentences))
+    negatives = random.sample(sentences, num_samples)
+    for text in negatives:
+      ex = Example(label=False, text=text, id=uuid.uuid4().hex)
+      self._negative_examples[ex.id] = ex
+
   # The following fields are excluded from JSON serialization, but still pickleable.
   # Maps a concept id to the embeddings.
   _embeddings: dict[str, np.ndarray] = {}
-  _concept_models: dict[DraftId, ConceptModel] = {}
+  _logistic_models: dict[DraftId, LogisticEmbeddingModel] = {}
+  _negative_examples: dict[str, Example] = {}
 
-  def __init__(self,
-               concept_models: Optional[dict[DraftId, ConceptModel]] = {},
-               **kwargs: Any) -> None:
+  def score_embeddings(self, draft: DraftId, embeddings: np.ndarray,
+                       sensitivity: Sensitivity) -> np.ndarray:
+    """Get the scores for the provided embeddings."""
+    return self._get_logistic_model(draft).score_embeddings(embeddings, sensitivity)
 
-    super().__init__(**kwargs)
-    if concept_models:
-      self._concept_models = concept_models
+  def score(self, draft: DraftId, examples: Iterable[RichData],
+            sensitivity: Sensitivity) -> list[float]:
+    """Get the scores for the provided examples."""
+    embedding_signal = get_signal_cls(self.embedding_name)()
+    if not isinstance(embedding_signal, TextEmbeddingSignal):
+      raise ValueError(f'Only text embedding signals are currently supported for concepts. '
+                       f'"{self.embedding_name}" is a {type(embedding_signal)}.')
 
-  def get_model(self, draft: DraftId) -> ConceptModel:
-    """Get the model for the provided draft."""
-    if draft not in self._concept_models:
-      self._concept_models[draft] = ConceptModel(
+    embed_fn = get_embed_fn(embedding_signal)
+
+    embeddings = np.array(embed_fn(examples))
+    return self._get_logistic_model(draft).score_embeddings(embeddings, sensitivity).tolist()
+
+  def coef(self, draft: DraftId) -> np.ndarray:
+    """Get the coefficients of the underlying ML model."""
+    return self._get_logistic_model(draft)._model.coef_.flatten()
+
+  def _get_logistic_model(self, draft: DraftId) -> LogisticEmbeddingModel:
+    """Get the logistic model for the provided draft."""
+    if draft not in self._logistic_models:
+      self._logistic_models[draft] = LogisticEmbeddingModel(
         namespace=self.namespace,
         concept_name=self.concept_name,
         embedding_name=self.embedding_name,
         version=-1)
-    return self._concept_models[draft]
+    return self._logistic_models[draft]
 
   def sync(self, concept: Concept) -> bool:
     """Update the model with the latest labeled concept data."""
@@ -223,25 +274,24 @@ class ConceptModelManager(BaseModel):
       return False
 
     self._compute_embeddings(concept)
-    self._fit_drafts(concept)
+
+    # Fit each of the drafts, sort by draft name for deterministic behavior.
+    for draft in concept.drafts():
+      examples = draft_examples(concept, draft)
+      all_examples = {**examples, **self._negative_examples}
+      embeddings = np.array([self._embeddings[id] for id in all_examples.keys()])
+      labels = [example.label for example in all_examples.values()]
+
+      model = self._get_logistic_model(draft)
+      model.fit(embeddings, labels)
+
+      # Synchronize the model version with the concept version.
+      model.version = concept.version
 
     # Synchronize the model version with the concept version.
     self.version = concept.version
 
     return True
-
-  def _fit_drafts(self, concept: Concept) -> None:
-    # Fit each of the drafts, sort by draft name for deterministic behavior.
-    for draft in concept.drafts():
-      examples = draft_examples(concept, draft)
-      embeddings = np.array([self._embeddings[id] for id in examples.keys()])
-      labels = [example.label for example in examples.values()]
-
-      model = self.get_model(draft)
-      model.fit(embeddings, labels)
-
-      # Synchronize the model version with the concept version.
-      model.version = concept.version
 
   def _compute_embeddings(self, concept: Concept) -> None:
     embedding_signal = get_signal_cls(self.embedding_name)()
@@ -254,7 +304,8 @@ class ConceptModelManager(BaseModel):
 
     # Compute the embeddings for the examples with cache miss.
     texts_of_missing_embeddings: dict[str, str] = {}
-    for id, example in concept.data.items():
+    all_examples = {**concept.data, **self._negative_examples}
+    for id, example in all_examples.items():
       if id in self._embeddings:
         # Cache hit.
         concept_embeddings[id] = self._embeddings[id]
@@ -271,3 +322,15 @@ class ConceptModelManager(BaseModel):
     for id, embedding in zip(missing_ids, missing_embeddings):
       concept_embeddings[id] = embedding
     self._embeddings = concept_embeddings
+
+
+def _split_docs_into_sentences(docs: Iterable[str]) -> list[str]:
+  splitter = SentenceSplitterSpacy()
+  doc_spans = list(splitter.compute(docs))
+  sentences: list[str] = []
+  for sentence_spans, text in zip(doc_spans, docs):
+    for span in cast(Iterable[Any], sentence_spans):
+      start = span[VALUE_KEY][TEXT_SPAN_START_FEATURE]
+      end = span[VALUE_KEY][TEXT_SPAN_END_FEATURE]
+      sentences.append(text[start:end])
+  return sentences
