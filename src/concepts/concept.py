@@ -16,7 +16,7 @@ from ..utils import DebugTimer
 LOCAL_CONCEPT_NAMESPACE = 'local'
 
 # Number of randomly sampled negative examples to use for training. This is used to obtain a more
-# balanced model that can work with the specific dataset.
+# balanced model that works with a specific dataset.
 DEFAULT_NUM_NEG_EXAMPLES = 100
 
 
@@ -122,8 +122,6 @@ class LogisticEmbeddingModel(BaseModel):
     arbitrary_types_allowed = True
     underscore_attrs_are_private = True
 
-  # The name of the embedding for this model.
-  embedding_name: str
   version: int = -1
 
   # The following fields are excluded from JSON serialization, but still pickleable.
@@ -142,18 +140,6 @@ class LogisticEmbeddingModel(BaseModel):
       return interpolate_fn(scores)
     except NotFittedError:
       return np.random.rand(len(embeddings))
-
-  def score(self, examples: Iterable[RichData], sensitivity: Sensitivity) -> list[float]:
-    """Get the scores for the provided examples."""
-    embedding_signal = get_signal_cls(self.embedding_name)()
-    if not isinstance(embedding_signal, TextEmbeddingSignal):
-      raise ValueError(f'Only text embedding signals are currently supported for concepts. '
-                       f'"{self.embedding_name}" is a {type(embedding_signal)}.')
-
-    embed_fn = get_embed_fn(embedding_signal)
-
-    embeddings = np.array(embed_fn(examples))
-    return self.score_embeddings(embeddings, sensitivity).tolist()
 
   def fit(self, embeddings: np.ndarray, labels: list[bool]) -> None:
     """Fit the model to the provided embeddings and labels."""
@@ -221,7 +207,15 @@ class ConceptModel(BaseModel):
   def score(self, draft: DraftId, examples: Iterable[RichData],
             sensitivity: Sensitivity) -> list[float]:
     """Get the scores for the provided examples."""
-    return self._get_draft_model(draft).score(examples, sensitivity)
+    embedding_signal = get_signal_cls(self.embedding_name)()
+    if not isinstance(embedding_signal, TextEmbeddingSignal):
+      raise ValueError(f'Only text embedding signals are currently supported for concepts. '
+                       f'"{self.embedding_name}" is a {type(embedding_signal)}.')
+
+    embed_fn = get_embed_fn(embedding_signal)
+
+    embeddings = np.array(embed_fn(examples))
+    return self._get_draft_model(draft).score_embeddings(embeddings, sensitivity).tolist()
 
   def coef(self, draft: DraftId) -> np.ndarray:
     """Get the coefficients of the underlying ML model."""
