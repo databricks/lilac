@@ -13,7 +13,15 @@ from sklearn.linear_model import LogisticRegression
 from ..data.dataset import Column, UnaryOp, val
 from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
-from ..schema import UUID_COLUMN, VALUE_KEY, Path, RichData, SignalInputType
+from ..schema import (
+  TEXT_SPAN_END_FEATURE,
+  TEXT_SPAN_START_FEATURE,
+  UUID_COLUMN,
+  VALUE_KEY,
+  Path,
+  RichData,
+  SignalInputType,
+)
 from ..signals.signal import TextEmbeddingSignal, get_signal_cls
 from ..signals.splitters.text_splitter_spacy import SentenceSplitterSpacy
 from ..utils import DebugTimer
@@ -25,7 +33,7 @@ LOCAL_CONCEPT_NAMESPACE = 'local'
 DEFAULT_NUM_NEG_EXAMPLES = 100
 
 
-class ConceptDatasetInfo(BaseModel):
+class ConceptColumnInfo(BaseModel):
   """Information about a dataset associated with a concept."""
   # Namespace of the dataset.
   namespace: str
@@ -192,7 +200,7 @@ class ConceptModel(BaseModel):
   embedding_name: str
   version: int = -1
 
-  dataset_info: Optional[ConceptDatasetInfo] = None
+  dataset_info: Optional[ConceptColumnInfo] = None
 
   class Config:
     arbitrary_types_allowed = True
@@ -230,7 +238,7 @@ class ConceptModel(BaseModel):
   def score_embeddings(self, draft: DraftId, embeddings: np.ndarray,
                        sensitivity: Sensitivity) -> np.ndarray:
     """Get the scores for the provided embeddings."""
-    return self._get_draft_model(draft).score_embeddings(embeddings, sensitivity)
+    return self._get_logistic_model(draft).score_embeddings(embeddings, sensitivity)
 
   def score(self, draft: DraftId, examples: Iterable[RichData],
             sensitivity: Sensitivity) -> list[float]:
@@ -243,14 +251,14 @@ class ConceptModel(BaseModel):
     embed_fn = get_embed_fn(embedding_signal)
 
     embeddings = np.array(embed_fn(examples))
-    return self._get_draft_model(draft).score_embeddings(embeddings, sensitivity).tolist()
+    return self._get_logistic_model(draft).score_embeddings(embeddings, sensitivity).tolist()
 
   def coef(self, draft: DraftId) -> np.ndarray:
     """Get the coefficients of the underlying ML model."""
-    return self._get_draft_model(draft)._model.coef_.flatten()
+    return self._get_logistic_model(draft)._model.coef_.flatten()
 
-  def _get_draft_model(self, draft: DraftId) -> LogisticEmbeddingModel:
-    """Get the model for the provided draft."""
+  def _get_logistic_model(self, draft: DraftId) -> LogisticEmbeddingModel:
+    """Get the logistic model for the provided draft."""
     if draft not in self._logistic_models:
       self._logistic_models[draft] = LogisticEmbeddingModel(
         namespace=self.namespace,
@@ -274,7 +282,7 @@ class ConceptModel(BaseModel):
       embeddings = np.array([self._embeddings[id] for id in all_examples.keys()])
       labels = [example.label for example in all_examples.values()]
 
-      model = self._get_draft_model(draft)
+      model = self._get_logistic_model(draft)
       model.fit(embeddings, labels)
 
       # Synchronize the model version with the concept version.
@@ -322,6 +330,7 @@ def _split_docs_into_sentences(docs: Iterable[str]) -> list[str]:
   sentences: list[str] = []
   for sentence_spans, text in zip(doc_spans, docs):
     for span in cast(Iterable[Any], sentence_spans):
-      start, end = span[VALUE_KEY]['start'], span[VALUE_KEY]['end']
+      start = span[VALUE_KEY][TEXT_SPAN_START_FEATURE]
+      end = span[VALUE_KEY][TEXT_SPAN_END_FEATURE]
       sentences.append(text[start:end])
   return sentences

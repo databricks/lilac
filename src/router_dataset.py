@@ -6,7 +6,7 @@ from fastapi import APIRouter, Response
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, validator
 
-from .concepts.concept import ConceptDatasetInfo
+from .concepts.concept import ConceptColumnInfo
 from .config import data_path
 from .data.dataset import BinaryOp, Bins
 from .data.dataset import Column as DBColumn
@@ -216,7 +216,7 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
     if isinstance(column, Column) and isinstance(column.signal_udf, ConceptScoreSignal):
       # Set dataset information on the signal.
       column.signal_udf.set_dataset_info(
-        ConceptDatasetInfo(namespace=namespace, name=dataset_name, path=column.path))
+        ConceptColumnInfo(namespace=namespace, name=dataset_name, path=column.path))
 
   items = list(
     dataset.select_rows(
