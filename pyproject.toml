@@ -26,14 +26,6 @@ uvicorn = {extras = ["standard"], version = "^0.20.0"}
 # For fast JSON serialization: https://fastapi.tiangolo.com/advanced/custom-response/#use-orjsonresponse
 orjson = "^3.8.10"
 
-##### Tensorflow #####
-# Install TF on all platforms but Macs with M1/M2 chips.
-tensorflow = {version = "~2.12", markers = "platform_machine != 'arm64'"}
-# Install special TF packages on Macs with M1/M2 chips.
-# https://developer.apple.com/metal/tensorflow-plugin/
-tensorflow-macos = {version = "~2.12.0", markers = "platform_machine == 'arm64'"}
-tensorflow-metal = {version = "^0.8.0", markers = "platform_machine == 'arm64'"}
-tensorflow-datasets = "^4.9.2"
 dask = "^2023.3.2"
 distributed = "^2023.3.2.1"
 # Required for Dask monitoring.
