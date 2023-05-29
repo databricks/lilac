@@ -3,7 +3,8 @@
 Recursively tries to split by different characters to find one that works.
 
 The implementation below is forked from the LangChain project with the MIT license below.
-Source: https://github.com/hwchase17/langchain/blob/master/langchain/text_splitter.py
+See `RecursiveCharacterTextSplitter` in
+https://github.com/hwchase17/langchain/blob/master/langchain/text_splitter.py
 """
 
 # The MIT License
