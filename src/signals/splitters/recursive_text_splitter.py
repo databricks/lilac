@@ -73,7 +73,7 @@ class RecursiveCharacterTextSplitter(TextSplitterSignal):
 
   def _split_text(self, text: str) -> list[str]:
     """Split incoming text and return chunks."""
-    final_chunks = []
+    final_chunks: list[str] = []
     # Get appropriate separator to use
     separator = self.separators[-1]
     for _s in self.separators:
@@ -83,25 +83,25 @@ class RecursiveCharacterTextSplitter(TextSplitterSignal):
       if _s in text:
         separator = _s
         break
-    # Now that we have the separator, split the text
+    # Now that we have the separator, split the text.
     if separator:
       splits = text.split(separator)
     else:
       splits = list(text)
     # Now go merging things, recursively splitting longer texts.
-    _good_splits = []
+    good_splits: list[str] = []
     for s in splits:
       if self.length_function(s) < self.chunk_size:
-        _good_splits.append(s)
+        good_splits.append(s)
       else:
-        if _good_splits:
-          merged_text = self._merge_splits(_good_splits, separator)
+        if good_splits:
+          merged_text = self._merge_splits(good_splits, separator)
           final_chunks.extend(merged_text)
-          _good_splits = []
+          good_splits = []
         other_info = self._split_text(s)
         final_chunks.extend(other_info)
-    if _good_splits:
-      merged_text = self._merge_splits(_good_splits, separator)
+    if good_splits:
+      merged_text = self._merge_splits(good_splits, separator)
       final_chunks.extend(merged_text)
     return final_chunks
 
@@ -118,7 +118,7 @@ class RecursiveCharacterTextSplitter(TextSplitterSignal):
     # chunks to send to the LLM.
     separator_len = self.length_function(separator)
 
-    docs = []
+    docs: list[str] = []
     current_doc: list[str] = []
     total = 0
     for d in splits:
