@@ -23,7 +23,7 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
   assert source_schema == SourceSchema(
     fields=schema({
       UUID_COLUMN: 'string',
-      'x': 'uint64',
+      'x': 'int64',
       'y': 'string'
     }).fields, num_items=2)
 
@@ -53,10 +53,11 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
   source.prepare()
 
   source_schema = source.source_schema()
+
   assert source_schema == SourceSchema(
     fields=schema({
       UUID_COLUMN: 'string',
-      'x': 'uint64',
+      'x': 'int64',
       'y': 'string'
     }).fields, num_items=2)
 
