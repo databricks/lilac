@@ -1,6 +1,8 @@
 """Defines the concept and the concept models."""
+import random
+import uuid
 from enum import Enum
-from typing import Iterable, Literal, Optional, Union
+from typing import Any, Iterable, Literal, Optional, Union, cast
 
 import numpy as np
 from pydantic import BaseModel
@@ -8,9 +10,12 @@ from scipy.interpolate import interp1d
 from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
 
+from ..data.dataset import Column, UnaryOp, val
+from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
-from ..schema import Path, RichData, SignalInputType
+from ..schema import UUID_COLUMN, VALUE_KEY, Path, RichData, SignalInputType
 from ..signals.signal import TextEmbeddingSignal, get_signal_cls
+from ..signals.splitters.text_splitter_spacy import SentenceSplitterSpacy
 from ..utils import DebugTimer
 
 LOCAL_CONCEPT_NAMESPACE = 'local'
@@ -187,17 +192,40 @@ class ConceptModel(BaseModel):
   embedding_name: str
   version: int = -1
 
-  negative_examples: dict[str, Example] = {}
   dataset_info: Optional[ConceptDatasetInfo] = None
 
   class Config:
     arbitrary_types_allowed = True
     underscore_attrs_are_private = True
 
+  def __init__(self, **kwargs: Any):
+    super().__init__(**kwargs)
+    self._generate_random_negatives()
+
+  def _generate_random_negatives(self) -> None:
+    if not self.dataset_info:
+      return
+
+    # Sorting by UUID column will return examples with random order.
+    db = get_dataset(self.dataset_info.namespace, self.dataset_info.name)
+    docs = db.select_rows([Column(val(self.dataset_info.path), alias='text')],
+                          filters=[(self.dataset_info.path, UnaryOp.EXISTS)],
+                          sort_by=[UUID_COLUMN],
+                          limit=self.dataset_info.num_negative_examples)
+    docs = docs.df()['text']
+    sentences = _split_docs_into_sentences(docs)
+    # Choose a random unique subset of sentences.
+    num_samples = min(self.dataset_info.num_negative_examples, len(sentences))
+    negatives = random.sample(sentences, num_samples)
+    for text in negatives:
+      ex = Example(label=False, text=text, id=uuid.uuid4().hex)
+      self._negative_examples[ex.id] = ex
+
   # The following fields are excluded from JSON serialization, but still pickleable.
   # Maps a concept id to the embeddings.
   _embeddings: dict[str, np.ndarray] = {}
   _logistic_models: dict[DraftId, LogisticEmbeddingModel] = {}
+  _negative_examples: dict[str, Example] = {}
 
   def score_embeddings(self, draft: DraftId, embeddings: np.ndarray,
                        sensitivity: Sensitivity) -> np.ndarray:
@@ -242,7 +270,7 @@ class ConceptModel(BaseModel):
     # Fit each of the drafts, sort by draft name for deterministic behavior.
     for draft in concept.drafts():
       examples = draft_examples(concept, draft)
-      all_examples = {**examples, **self.negative_examples}
+      all_examples = {**examples, **self._negative_examples}
       embeddings = np.array([self._embeddings[id] for id in all_examples.keys()])
       labels = [example.label for example in all_examples.values()]
 
@@ -268,7 +296,7 @@ class ConceptModel(BaseModel):
 
     # Compute the embeddings for the examples with cache miss.
     texts_of_missing_embeddings: dict[str, str] = {}
-    all_examples = {**concept.data, **self.negative_examples}
+    all_examples = {**concept.data, **self._negative_examples}
     for id, example in all_examples.items():
       if id in self._embeddings:
         # Cache hit.
@@ -286,3 +314,14 @@ class ConceptModel(BaseModel):
     for id, embedding in zip(missing_ids, missing_embeddings):
       concept_embeddings[id] = embedding
     self._embeddings = concept_embeddings
+
+
+def _split_docs_into_sentences(docs: Iterable[str]) -> list[str]:
+  splitter = SentenceSplitterSpacy()
+  doc_spans = list(splitter.compute(docs))
+  sentences: list[str] = []
+  for sentence_spans, text in zip(doc_spans, docs):
+    for span in cast(Iterable[Any], sentence_spans):
+      start, end = span[VALUE_KEY]['start'], span[VALUE_KEY]['end']
+      sentences.append(text[start:end])
+  return sentences

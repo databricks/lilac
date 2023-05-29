@@ -3,21 +3,17 @@
 import abc
 import os
 import pickle
-import random
 
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
-from typing import Any, Iterable, List, Optional, Union, cast
+from typing import List, Optional, Union, cast
 
 from pydantic import BaseModel
 from typing_extensions import override
 
 from ..config import data_path
-from ..data.dataset import Column, UnaryOp, val
-from ..db_manager import get_dataset
-from ..schema import PATH_WILDCARD, UUID_COLUMN, VALUE_KEY, SignalInputType, normalize_path
+from ..schema import PATH_WILDCARD, SignalInputType, normalize_path
 from ..signals.signal import get_signal_cls
-from ..signals.splitters.text_splitter_spacy import SentenceSplitterSpacy
 from ..utils import DebugTimer, delete_file, file_exists, get_dataset_output_dir, open_file
 from .concept import (
   DRAFT_MAIN,
@@ -161,31 +157,12 @@ class DiskConceptModelDB(ConceptModelDB):
     if self.get(namespace, concept_name, embedding_name, dataset_info):
       raise ValueError('Concept model already exists.')
 
-    negative_examples: dict[str, Example] = {}
-
-    if dataset_info:
-      # Sorting by UUID column will return examples with random order.
-      db = get_dataset(dataset_info.namespace, dataset_info.name)
-      docs = db.select_rows([Column(val(dataset_info.path), alias='text')],
-                            filters=[(dataset_info.path, UnaryOp.EXISTS)],
-                            sort_by=[UUID_COLUMN],
-                            limit=dataset_info.num_negative_examples)
-      docs = docs.df()['text']
-      sentences = _split_docs_into_sentences(docs)
-      # Choose a random unique subset of sentences.
-      num_samples = min(dataset_info.num_negative_examples, len(sentences))
-      negatives = random.sample(sentences, num_samples)
-      for text in negatives:
-        ex = Example(label=False, text=text, id=uuid.uuid4().hex)
-        negative_examples[ex.id] = ex
-
     return ConceptModel(
       namespace=namespace,
       concept_name=concept_name,
       embedding_name=embedding_name,
       version=-1,
-      dataset_info=dataset_info,
-      negative_examples=negative_examples)
+      dataset_info=dataset_info)
 
   @override
   def get(self,
@@ -388,17 +365,6 @@ class DiskConceptDB(ConceptDB):
     self._save(concept)
 
     return concept
-
-
-def _split_docs_into_sentences(docs: Iterable[str]) -> list[str]:
-  splitter = SentenceSplitterSpacy()
-  doc_spans = list(splitter.compute(docs))
-  sentences: list[str] = []
-  for sentence_spans, text in zip(doc_spans, docs):
-    for span in cast(Iterable[Any], sentence_spans):
-      start, end = span[VALUE_KEY]['start'], span[VALUE_KEY]['end']
-      sentences.append(text[start:end])
-  return sentences
 
 
 # A singleton concept database.
