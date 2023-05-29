@@ -61,9 +61,8 @@ class Source(abc.ABC, BaseModel):
   def prepare(self) -> None:
     """Prepare the source.
 
-    This allows the source to do setup outside init, but before its processed to avoid expensive
-    computation when the pydantic model is deserialized, but logic that can be shared between fields
-    and processing items.
+    This allows the source to do setup outside the constructor, but before its processed. This
+    avoids potentially expensive computation the pydantic model is deserialized.
     """
     pass
 

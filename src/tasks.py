@@ -223,8 +223,7 @@ def progress(it: Iterable[TProgress],
 
   estimated_len = max(1, estimated_len) if estimated_len else None
 
-  emit_every = int(estimated_len * emit_every_frac) if estimated_len else 1
-  emit_every = max(1, emit_every)
+  emit_every = max(1, int(estimated_len * emit_every_frac)) if estimated_len else None
 
   task_info: TaskInfo = get_worker().state.tasks[task_id].annotations['task_info']
 
@@ -232,7 +231,7 @@ def progress(it: Iterable[TProgress],
   start_time = time.time()
   with tqdm(it, desc=task_info.name, total=estimated_len) as tq:
     for t in tq:
-      if estimated_len and it_idx % emit_every == 0:
+      if estimated_len and emit_every and it_idx % emit_every == 0:
         it_per_sec = tq.format_dict['rate'] or 0.0
         set_worker_task_progress(
           task_step_id=task_step_id,

@@ -62,7 +62,7 @@ class PandasDataset(Source):
           else:
             item[name] = str(item_value)
 
-      # Fix NaT timestamp fields.
+      # Fix NaT (not a time) timestamp fields.
       for name in timestamp_fields.keys():
         item_value = item[name]
         if pd.isnull(item_value):

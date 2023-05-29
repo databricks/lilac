@@ -16,12 +16,11 @@ from datetime import timedelta
 from functools import partial, wraps
 from typing import IO, Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
 
-import duckdb
 import requests
 from google.cloud.storage import Blob, Client
 from pydantic import BaseModel
 
-from .config import CONFIG, data_path
+from .config import data_path
 from .schema import Path
 
 GCS_PROTOCOL = 'gs://'
@@ -87,21 +86,6 @@ def download_http_files(filepaths: list[str]) -> list[str]:
     out_filepaths.append(filepath)
 
   return out_filepaths
-
-
-def duckdb_gcs_setup(con: duckdb.DuckDBPyConnection) -> str:
-  """Setup DuckDB for GCS."""
-  con.install_extension('httpfs')
-  con.load_extension('httpfs')
-
-  if 'GCS_REGION' in CONFIG:
-    return f"""
-        SET s3_region='{CONFIG['GCS_REGION']}';
-        SET s3_access_key_id='{CONFIG['GCS_ACCESS_KEY']}';
-        SET s3_secret_access_key='{CONFIG['GCS_SECRET_KEY']}';
-        SET s3_endpoint='storage.googleapis.com';
-      """
-  return ''
 
 
 def makedirs(dir_path: str) -> None:

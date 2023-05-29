@@ -6,7 +6,8 @@ from pydantic import Field
 from typing_extensions import override
 
 from ...schema import Item
-from ...utils import download_http_files, duckdb_gcs_setup
+from ...utils import download_http_files
+from ..duckdb_utils import duckdb_gcs_setup
 from .pandas_source import PandasDataset
 from .source import Source, SourceSchema
 
