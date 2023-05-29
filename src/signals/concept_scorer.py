@@ -1,5 +1,5 @@
 """A signal to compute a score along a concept."""
-from typing import Any, Iterable, Optional
+from typing import Iterable, Optional
 
 import numpy as np
 from typing_extensions import override
@@ -36,12 +36,7 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
   num_negative_examples = DEFAULT_NUM_NEG_EXAMPLES
 
   _dataset_info: Optional[ConceptDatasetInfo] = None
-  _concept_model_db: ConceptModelDB
-
-  def __init__(self, **data: Any):
-    super().__init__(**data)
-
-    self._concept_model_db = DISK_CONCEPT_MODEL_DB
+  _concept_model_db: ConceptModelDB = DISK_CONCEPT_MODEL_DB
 
   @override
   def fields(self) -> Field:

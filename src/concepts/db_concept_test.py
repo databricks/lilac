@@ -1,7 +1,7 @@
 """Tests for the the database concept."""
 
 from pathlib import Path
-from typing import Generator, Iterable, Optional, Type, cast
+from typing import Generator, Iterable, Type, cast
 
 import numpy as np
 import pytest
@@ -396,7 +396,7 @@ class ConceptDBSuite:
 
 def _make_test_concept_model(
     concept_db: ConceptDB,
-    logistic_models: Optional[dict[DraftId, LogisticEmbeddingModel]] = {}) -> ConceptModel:
+    logistic_models: dict[DraftId, LogisticEmbeddingModel] = {}) -> ConceptModel:
   namespace = 'test'
   concept_name = 'test_concept'
   concept_db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
@@ -406,11 +406,10 @@ def _make_test_concept_model(
     ExampleIn(label=True, text='in concept')
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
-  return ConceptModel(
-    namespace='test',
-    concept_name='test_concept',
-    embedding_name='test_embedding',
-    logistic_models=logistic_models)
+  model = ConceptModel(
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+  model._logistic_models = logistic_models
+  return model
 
 
 class TestLogisticModel(LogisticEmbeddingModel):

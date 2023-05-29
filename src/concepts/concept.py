@@ -1,6 +1,6 @@
 """Defines the concept and the concept models."""
 from enum import Enum
-from typing import Any, Iterable, Literal, Optional, Union
+from typing import Iterable, Literal, Optional, Union
 
 import numpy as np
 from pydantic import BaseModel
@@ -212,14 +212,6 @@ class ConceptModel(BaseModel):
   # Maps a concept id to the embeddings.
   _embeddings: dict[str, np.ndarray] = {}
   _logistic_models: dict[DraftId, LogisticEmbeddingModel] = {}
-
-  def __init__(self,
-               logistic_models: Optional[dict[DraftId, LogisticEmbeddingModel]] = {},
-               **kwargs: Any) -> None:
-
-    super().__init__(**kwargs)
-    if logistic_models:
-      self._logistic_models = logistic_models
 
   def score_embeddings(self, draft: DraftId, embeddings: np.ndarray,
                        sensitivity: Sensitivity) -> np.ndarray:

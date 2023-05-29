@@ -15,7 +15,7 @@ from typing_extensions import override
 from ..config import data_path
 from ..data.dataset import Column, UnaryOp, val
 from ..db_manager import get_dataset
-from ..schema import PATH_WILDCARD, UUID_COLUMN, VALUE_KEY, SignalInputType
+from ..schema import PATH_WILDCARD, UUID_COLUMN, VALUE_KEY, SignalInputType, normalize_path
 from ..signals.signal import get_signal_cls
 from ..signals.splitters.text_splitter_spacy import SentenceSplitterSpacy
 from ..utils import DebugTimer, delete_file, file_exists, get_dataset_output_dir, open_file
@@ -247,7 +247,8 @@ def _concept_model_path(namespace: str,
     return os.path.join(_concept_output_dir(namespace, concept_name), f'{embedding_name}.pkl')
 
   dataset_dir = get_dataset_output_dir(data_path(), dataset_info.namespace, dataset_info.name)
-  path_without_wildcards = (p for p in dataset_info.path if p != PATH_WILDCARD)
+  path_tuple = normalize_path(dataset_info.path)
+  path_without_wildcards = (p for p in path_tuple if p != PATH_WILDCARD)
   path_dir = os.path.join(dataset_dir, *path_without_wildcards)
   return os.path.join(path_dir, '.concepts', namespace, concept_name, f'{embedding_name}.pkl')
 
