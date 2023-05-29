@@ -2,6 +2,7 @@
 import multiprocessing
 from typing import Iterable, Optional, Union
 
+import numpy as np
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from typing_extensions import override
@@ -10,6 +11,7 @@ from typing_extensions import override
 from datasets import ClassLabel, DatasetDict, Sequence, Value, load_dataset, load_from_disk
 
 from ...schema import UUID_COLUMN, DataType, Field, Item, arrow_dtype_to_dtype
+from .pandas_source import PandasDataset
 from .source import Source, SourceSchema
 
 HF_SPLIT_COLUMN = '__hfsplit__'
@@ -133,7 +135,11 @@ class HuggingFaceDataset(Source):
 
     for split_name in split_names:
       split_dataset = self._dataset_dict[split_name]
-      for example in split_dataset:
+
+      pd_dataset = PandasDataset(split_dataset.to_pandas())
+      pd_dataset.prepare()
+
+      for example in pd_dataset.process():
         # Replace the class labels with strings.
         for feature_name in self._schema_info.class_labels.keys():
           if feature_name in example:
@@ -143,4 +149,21 @@ class HuggingFaceDataset(Source):
         # Inject the split name.
         example[HF_SPLIT_COLUMN] = split_name
 
+        # If there are multiple splits, change the key to prefix with the split to avoid collisions.
+        if len(split_names) > 1:
+          example[UUID_COLUMN] = f'{split_name}-{example[UUID_COLUMN]}'
+
+        # Huggingface Sequences are represented as np.arrays. Convert them to lists.
+        example = _np_array_to_list_deep(example)
+
         yield example
+
+
+def _np_array_to_list_deep(item: Item) -> Item:
+  """Convert all numpy arrays to lists."""
+  for key, value in item.items():
+    if isinstance(value, np.ndarray):
+      item[key] = value.tolist()
+    elif isinstance(value, dict):
+      item[key] = _np_array_to_list_deep(value)
+  return item

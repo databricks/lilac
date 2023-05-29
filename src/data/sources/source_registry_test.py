@@ -1,11 +1,10 @@
 """A source to compute semantic search for a document."""
-from typing import Iterable, Optional, cast
+from typing import Iterable, cast
 
 import pytest
 from typing_extensions import override
 
-from ...tasks import TaskStepId
-from .source import Source, SourceProcessResult
+from .source import Source, SourceProcessResult, SourceSchema
 from .source_registry import clear_source_registry, get_source_cls, register_source, resolve_source
 
 
@@ -14,9 +13,16 @@ class TestSource(Source):
   name = 'test_source'
 
   @override
-  def process(self,
-              output_dir: str,
-              task_step_id: Optional[TaskStepId] = None) -> SourceProcessResult:
+  def prepare(self) -> None:
+    pass
+
+  @override
+  def source_schema(self) -> SourceSchema:
+    """Return the source schema."""
+    return cast(SourceSchema, None)
+
+  @override
+  def process(self) -> SourceProcessResult:
     return cast(SourceProcessResult, None)
 
 

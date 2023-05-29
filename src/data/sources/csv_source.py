@@ -1,15 +1,12 @@
 """CSV source."""
-import uuid
 from typing import Iterable, Optional
 
 import duckdb
-import requests
 from pydantic import Field
 from typing_extensions import override
 
-from ...config import CONFIG, data_path
-from ...schema import UUID_COLUMN, Item
-from ...utils import file_exists, log, open_file
+from ...schema import Item
+from ...utils import download_http_files, duckdb_gcs_setup
 from .pandas_source import PandasDataset
 from .source import Source, SourceSchema
 
@@ -29,59 +26,24 @@ class CSVDataset(Source):
 
   @override
   def prepare(self) -> None:
-    # Download CSV files to local cache if they are remote to speed up duckdb.
-    gcs_filepaths: list[str] = []
-    temp_files_to_delete = []
-    for filepath in self.filepaths:
-      if filepath.startswith(('http://', 'https://')):
-        tmp_filename = uuid.uuid4().bytes.hex()
-        gcs_filepath = f'{data_path()}/local_cache/{tmp_filename}'
-        if not file_exists(gcs_filepath):
-          log(f'Downloading CSV from url {filepath} to {gcs_filepath}')
-          dl = requests.get(filepath, timeout=10000, allow_redirects=True)
-          with open_file(gcs_filepath, 'wb') as f:
-            f.write(dl.content)
-          temp_files_to_delete.append(gcs_filepath)
-        filepath = gcs_filepath
-      else:
-        if not file_exists(filepath):
-          raise ValueError(f'CSV file {filepath} was not found.')
-      gcs_filepaths.append(filepath)
+    # Download CSV files to /tmp if they are via HTTP to speed up duckdb.
+    filepaths = download_http_files(self.filepaths)
 
     con = duckdb.connect(database=':memory:')
-    con.install_extension('httpfs')
-    con.load_extension('httpfs')
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
-    s3_filepaths = [path.replace('gs://', 's3://') for path in gcs_filepaths]
+    s3_filepaths = [path.replace('gs://', 's3://') for path in filepaths]
 
-    delim = self.delim or ','
-    csv_sql = f"""
-      CREATE SEQUENCE serial START 1;
-      SELECT nextval('serial')::STRING as {UUID_COLUMN}, *
-      FROM read_csv_auto(
+    # NOTE: We use duckdb here to increase parallelism for multiple files.
+    df = con.execute(f"""
+      {duckdb_gcs_setup(con)}
+      SELECT * FROM read_csv_auto(
         {s3_filepaths},
         SAMPLE_SIZE=500000,
-        DELIM='{delim}',
+        DELIM='{self.delim or ','}',
         IGNORE_ERRORS=true
     )
-    """
-
-    gcs_setup = ''
-    if 'GCS_REGION' in CONFIG:
-      gcs_setup = f"""
-        SET s3_region='{CONFIG['GCS_REGION']}';
-        SET s3_access_key_id='{CONFIG['GCS_ACCESS_KEY']}';
-        SET s3_secret_access_key='{CONFIG['GCS_SECRET_KEY']}';
-        SET s3_endpoint='storage.googleapis.com';
-      """
-
-    con.execute(f"""
-      {gcs_setup}
-      CREATE SEQUENCE serial START 1;
-      CREATE VIEW csv_view AS ({csv_sql});
-    """)
-    df = con.execute('SELECT * FROM csv_view').fetchdf()
+    """).fetchdf()
 
     self._pd_source = PandasDataset(df=df)
     self._pd_source.prepare()

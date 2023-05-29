@@ -1,11 +1,11 @@
-"""Tests for the pandas source."""
+"""Tests for the JSON source."""
 import json
 import os
 import pathlib
 
 from ...schema import UUID_COLUMN, schema
 from .json_source import JSONDataset
-from .source import SourceProcessResult
+from .source import SourceSchema
 
 
 def test_simple_json(tmp_path: pathlib.Path) -> None:
@@ -16,23 +16,28 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
   with open(filepath, 'w') as f:
     f.write(json.dumps(json_records))
 
-  source = JSONDataset(dataset_name='test_dataset', filepaths=[filepath])
+  source = JSONDataset(filepaths=[filepath])
+  source.prepare()
 
-  result = source.process(str(os.path.join(tmp_path, 'data')))
-
-  expected_result = SourceProcessResult(
-    data_schema=schema({
+  source_schema = source.source_schema()
+  assert source_schema == SourceSchema(
+    fields=schema({
       UUID_COLUMN: 'string',
       'x': 'uint64',
       'y': 'string'
-    }),
-    num_items=2,
-    filepaths=[])
+    }).fields, num_items=2)
 
-  # Validate except for the filepaths, which are not deterministic.
-  expected_result.filepaths = result.filepaths
-  assert result == expected_result
-  assert len(result.filepaths) == 1
+  items = list(source.process())
+
+  assert items == [{
+    UUID_COLUMN: '0',
+    'x': 1,
+    'y': 'ten'
+  }, {
+    UUID_COLUMN: '1',
+    'x': 2,
+    'y': 'twenty'
+  }]
 
 
 def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
@@ -44,20 +49,25 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
   with open(filepath, 'w') as f:
     f.writelines(json_lines)
 
-  source = JSONDataset(dataset_name='test_dataset', filepaths=[filepath], json_format='records')
+  source = JSONDataset(dataset_name='test_dataset', filepaths=[filepath])
+  source.prepare()
 
-  result = source.process(str(os.path.join(tmp_path, 'data')))
-
-  expected_result = SourceProcessResult(
-    data_schema=schema({
+  source_schema = source.source_schema()
+  assert source_schema == SourceSchema(
+    fields=schema({
       UUID_COLUMN: 'string',
       'x': 'uint64',
       'y': 'string'
-    }),
-    num_items=2,
-    filepaths=[])
+    }).fields, num_items=2)
 
-  # Validate except for the filepaths, which are not deterministic.
-  expected_result.filepaths = result.filepaths
-  assert result == expected_result
-  assert len(result.filepaths) == 1
+  items = list(source.process())
+
+  assert items == [{
+    UUID_COLUMN: '0',
+    'x': 1,
+    'y': 'ten'
+  }, {
+    UUID_COLUMN: '1',
+    'x': 2,
+    'y': 'twenty'
+  }]

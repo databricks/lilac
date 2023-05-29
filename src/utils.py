@@ -9,15 +9,19 @@ import re
 import shutil
 import threading
 import time
+import uuid
 from asyncio import AbstractEventLoop
 from concurrent.futures import Executor, ThreadPoolExecutor
 from datetime import timedelta
 from functools import partial, wraps
 from typing import IO, Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
 
+import duckdb
+import requests
 from google.cloud.storage import Blob, Client
 from pydantic import BaseModel
 
+from .config import CONFIG, data_path
 from .schema import Path
 
 GCS_PROTOCOL = 'gs://'
@@ -65,6 +69,39 @@ def open_file(filepath: str, mode: str = 'r') -> IO:
 
   encoding = None if binary_mode else 'utf-8'
   return open(filepath, mode=mode, encoding=encoding)
+
+
+def download_http_files(filepaths: list[str]) -> list[str]:
+  """Download files from HTTP(s) URLs."""
+  out_filepaths: list[str] = []
+  for filepath in filepaths:
+    if filepath.startswith(('http://', 'https://')):
+      tmp_filename = uuid.uuid4().hex
+      tmp_filepath = f'/tmp/{data_path()}/local_cache/{tmp_filename}'
+      log(f'Downloading from url {filepath} to {tmp_filepath}')
+      dl = requests.get(filepath, timeout=10000, allow_redirects=True)
+      with open_file(tmp_filepath, 'wb') as f:
+        f.write(dl.content)
+      filepath = tmp_filepath
+
+    out_filepaths.append(filepath)
+
+  return out_filepaths
+
+
+def duckdb_gcs_setup(con: duckdb.DuckDBPyConnection) -> str:
+  """Setup DuckDB for GCS."""
+  con.install_extension('httpfs')
+  con.load_extension('httpfs')
+
+  if 'GCS_REGION' in CONFIG:
+    return f"""
+        SET s3_region='{CONFIG['GCS_REGION']}';
+        SET s3_access_key_id='{CONFIG['GCS_ACCESS_KEY']}';
+        SET s3_secret_access_key='{CONFIG['GCS_SECRET_KEY']}';
+        SET s3_endpoint='storage.googleapis.com';
+      """
+  return ''
 
 
 def makedirs(dir_path: str) -> None:

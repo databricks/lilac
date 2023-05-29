@@ -6,44 +6,44 @@ import pathlib
 from datasets import Dataset, Features, Sequence, Value
 
 from ...schema import UUID_COLUMN, schema
-from ...test_utils import read_items
-from ..dataset_utils import itemize_primitives
 from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceDataset
-from .source import SourceProcessResult
+from .source import SourceSchema
 
 
 def test_hf(tmp_path: pathlib.Path) -> None:
-  dataset = Dataset.from_list([{'x': 1, 'y': '10'}, {'x': 2, 'y': '20'}])
+  dataset = Dataset.from_list([{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}])
 
   dataset_name = os.path.join(tmp_path, 'hf-test-dataset')
   dataset.save_to_disk(dataset_name)
 
   source = HuggingFaceDataset(dataset_name=dataset_name, load_from_disk=True)
 
-  result = source.process(str(tmp_path))
+  items = source.process()
+  source.prepare()
 
-  expected_result = SourceProcessResult(
-    data_schema=schema({
+  source_schema = source.source_schema()
+  assert source_schema == SourceSchema(
+    fields=schema({
       UUID_COLUMN: 'string',
       HF_SPLIT_COLUMN: 'string',
       'x': 'int64',
-      'y': 'string',
-    }),
-    num_items=2,
-    filepaths=[])
+      'y': 'string'
+    }).fields,
+    num_items=2)
 
-  items = read_items(tmp_path, result.filepaths, expected_result.data_schema)
-  assert items == itemize_primitives([{
-    UUID_COLUMN: items[0][UUID_COLUMN],
+  items = list(source.process())
+
+  assert items == [{
+    UUID_COLUMN: '0',
     HF_SPLIT_COLUMN: 'default',
     'x': 1,
-    'y': '10',
+    'y': 'ten'
   }, {
-    UUID_COLUMN: items[1][UUID_COLUMN],
+    UUID_COLUMN: '1',
     HF_SPLIT_COLUMN: 'default',
     'x': 2,
-    'y': '20',
-  }])
+    'y': 'twenty'
+  }]
 
 
 def test_hf_sequence(tmp_path: pathlib.Path) -> None:
@@ -76,10 +76,12 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
 
   source = HuggingFaceDataset(dataset_name=dataset_name, load_from_disk=True)
 
-  result = source.process(str(tmp_path))
+  items = source.process()
+  source.prepare()
 
-  expected_result = SourceProcessResult(
-    data_schema=schema({
+  source_schema = source.source_schema()
+  assert source_schema == SourceSchema(
+    fields=schema({
       UUID_COLUMN: 'string',
       HF_SPLIT_COLUMN: 'string',
       'scalar': 'int64',
@@ -88,13 +90,13 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
         'x': ['int64'],
         'y': ['string'],
       },
-    }),
-    num_items=2,
-    filepaths=[])
+    }).fields,
+    num_items=2)
 
-  items = read_items(tmp_path, result.filepaths, expected_result.data_schema)
-  assert items == itemize_primitives([{
-    UUID_COLUMN: items[0][UUID_COLUMN],
+  items = list(source.process())
+
+  assert items == [{
+    UUID_COLUMN: '0',
     HF_SPLIT_COLUMN: 'default',
     'scalar': 1,
     'seq': [1, 0],
@@ -103,7 +105,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
       'y': ['four', 'five', 'six']
     }
   }, {
-    UUID_COLUMN: items[1][UUID_COLUMN],
+    UUID_COLUMN: '1',
     HF_SPLIT_COLUMN: 'default',
     'scalar': 2,
     'seq': [2, 0],
@@ -111,4 +113,4 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
       'x': [10, 20, 30],
       'y': ['forty', 'fifty', 'sixty']
     }
-  }])
+  }]
