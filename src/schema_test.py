@@ -5,6 +5,8 @@ import pytest
 
 from .schema import (
   PATH_WILDCARD,
+  TEXT_SPAN_END_FEATURE,
+  TEXT_SPAN_START_FEATURE,
   VALUE_KEY,
   DataType,
   Field,
@@ -13,7 +15,6 @@ from .schema import (
   child_item_from_column_path,
   column_paths_match,
   field,
-  pa_value,
   schema,
   schema_to_arrow_schema,
 )
@@ -26,11 +27,11 @@ NESTED_TEST_SCHEMA = schema({
     'data': [['float32']],
     # Contains a value and children.
     'description': field(
-      dtype='string',
-      field_like={
+      {
         'toxicity': 'float32',
-        'sentences': [field(dtype='string_span', field_like={'len': 'int32'})]
-      })
+        'sentences': [field({'len': 'int32'}, dtype='string_span')]
+      },
+      dtype='string')
   },
   'addresses': [{
     'city': 'string',
@@ -123,21 +124,23 @@ def test_schema_to_arrow_schema() -> None:
 
   assert arrow_schema == pa.schema({
     'person': pa.struct({
-      'name': pa_value(pa.string()),
+      'name': pa.string(),
       # The dtype for STRING_SPAN is implemented as a struct with a {start, end}.
-      'last_name': pa_value(pa.struct({
-        'start': pa.int32(),
-        'end': pa.int32(),
-      })),
-      'data': pa.list_(pa.list_(pa_value(pa.float32()))),
+      'last_name': pa.struct({
+        VALUE_KEY: pa.struct({
+          TEXT_SPAN_START_FEATURE: pa.int32(),
+          TEXT_SPAN_END_FEATURE: pa.int32(),
+        })
+      }),
+      'data': pa.list_(pa.list_(pa.float32())),
       'description': pa.struct({
-        'toxicity': pa_value(pa.float32()),
+        'toxicity': pa.float32(),
         'sentences': pa.list_(
           pa.struct({
-            'len': pa_value(pa.int32()),
+            'len': pa.int32(),
             VALUE_KEY: pa.struct({
-              'start': pa.int32(),
-              'end': pa.int32(),
+              TEXT_SPAN_START_FEATURE: pa.int32(),
+              TEXT_SPAN_END_FEATURE: pa.int32(),
             })
           })),
         VALUE_KEY: pa.string(),
@@ -145,16 +148,15 @@ def test_schema_to_arrow_schema() -> None:
     }),
     'addresses': pa.list_(
       pa.struct({
-        'city': pa_value(pa.string()),
-        'zipcode': pa_value(pa.int16()),
-        'current': pa_value(pa.bool_()),
-        'locations': pa.list_(
-          pa.struct({
-            'latitude': pa_value(pa.float16()),
-            'longitude': pa_value(pa.float64())
-          })),
+        'city': pa.string(),
+        'zipcode': pa.int16(),
+        'current': pa.bool_(),
+        'locations': pa.list_(pa.struct({
+          'latitude': pa.float16(),
+          'longitude': pa.float64()
+        })),
       })),
-    'blob': pa_value(pa.binary()),
+    'blob': pa.binary(),
   })
 
 

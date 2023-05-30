@@ -8,8 +8,7 @@ from pytest_mock import MockerFixture
 from .config import CONFIG
 from .data.dataset import Column, Dataset, DatasetManifest, SelectRowsSchemaResult
 from .data.dataset_duckdb import DatasetDuckDB
-from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, expected_item, make_dataset
-from .data.dataset_utils import itemize_primitives
+from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, enriched_item, make_dataset
 from .router_dataset import SelectRowsOptions, SelectRowsSchemaOptions, WebManifest
 from .schema import UUID_COLUMN, Field, Item, RichData, field, schema
 from .server import app
@@ -108,7 +107,7 @@ def test_select_rows_no_options() -> None:
   options = SelectRowsOptions()
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert response.json() == itemize_primitives(TEST_DATA)
+  assert response.json() == TEST_DATA
 
 
 def test_select_rows_with_cols_and_limit() -> None:
@@ -119,11 +118,11 @@ def test_select_rows_with_cols_and_limit() -> None:
     offset=1)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert response.json() == itemize_primitives([{
+  assert response.json() == [{
     UUID_COLUMN: '2',
     'people.*.zipcode': [1, 2],
     'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']]
-  }])
+  }]
 
 
 def test_select_rows_with_cols_and_combine() -> None:
@@ -133,7 +132,7 @@ def test_select_rows_with_cols_and_combine() -> None:
     combine_columns=True)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert response.json() == itemize_primitives([{
+  assert response.json() == [{
     UUID_COLUMN: '1',
     'people': [{
       'zipcode': 0,
@@ -163,7 +162,7 @@ def test_select_rows_with_cols_and_combine() -> None:
   }, {
     UUID_COLUMN: '3',
     'people': None
-  }])
+  }]
 
 
 class LengthSignal(TextSignal):
@@ -183,11 +182,11 @@ def test_select_rows_star_plus_udf() -> None:
   options = SelectRowsOptions(columns=['*', udf], combine_columns=True)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert response.json() == itemize_primitives([{
+  assert response.json() == [{
     UUID_COLUMN: '1',
     'erased': False,
     'people': [{
-      'name': expected_item('A', {'length_signal': 1}),
+      'name': enriched_item('A', {'length_signal': 1}),
       'zipcode': 0,
       'locations': [{
         'city': 'city1',
@@ -201,7 +200,7 @@ def test_select_rows_star_plus_udf() -> None:
     UUID_COLUMN: '2',
     'erased': True,
     'people': [{
-      'name': expected_item('B', {'length_signal': 1}),
+      'name': enriched_item('B', {'length_signal': 1}),
       'zipcode': 1,
       'locations': [{
         'city': 'city3',
@@ -212,7 +211,7 @@ def test_select_rows_star_plus_udf() -> None:
         'city': 'city5'
       }]
     }, {
-      'name': expected_item('C', {'length_signal': 1}),
+      'name': enriched_item('C', {'length_signal': 1}),
       'zipcode': 2,
       'locations': [{
         'city': 'city1',
@@ -222,7 +221,7 @@ def test_select_rows_star_plus_udf() -> None:
   }, {
     UUID_COLUMN: '3',
     'erased': True,
-  }])
+  }]
 
 
 def test_select_rows_schema_star_plus_udf() -> None:

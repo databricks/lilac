@@ -200,7 +200,7 @@ class ConceptModel(BaseModel):
   embedding_name: str
   version: int = -1
 
-  dataset_info: Optional[ConceptColumnInfo] = None
+  column_info: Optional[ConceptColumnInfo] = None
 
   class Config:
     arbitrary_types_allowed = True
@@ -211,19 +211,19 @@ class ConceptModel(BaseModel):
     self._generate_random_negatives()
 
   def _generate_random_negatives(self) -> None:
-    if not self.dataset_info:
+    if not self.column_info:
       return
 
     # Sorting by UUID column will return examples with random order.
-    db = get_dataset(self.dataset_info.namespace, self.dataset_info.name)
-    docs = db.select_rows([Column(val(self.dataset_info.path), alias='text')],
-                          filters=[(self.dataset_info.path, UnaryOp.EXISTS)],
+    db = get_dataset(self.column_info.namespace, self.column_info.name)
+    docs = db.select_rows([Column(val(self.column_info.path), alias='text')],
+                          filters=[(self.column_info.path, UnaryOp.EXISTS)],
                           sort_by=[UUID_COLUMN],
-                          limit=self.dataset_info.num_negative_examples)
+                          limit=self.column_info.num_negative_examples)
     docs = docs.df()['text']
     sentences = _split_docs_into_sentences(docs)
     # Choose a random unique subset of sentences.
-    num_samples = min(self.dataset_info.num_negative_examples, len(sentences))
+    num_samples = min(self.column_info.num_negative_examples, len(sentences))
     negatives = random.sample(sentences, num_samples)
     for text in negatives:
       ex = Example(label=False, text=text, id=uuid.uuid4().hex)

@@ -83,7 +83,6 @@ from .dataset_utils import (
   create_signal_schema,
   flatten,
   flatten_keys,
-  itemize_primitives,
   merge_schemas,
   read_embedding_index,
   replace_embeddings_with_none,
@@ -367,9 +366,7 @@ class DatasetDuckDB(Dataset):
       schema=signal_schema,
       filename_prefix='data',
       shard_index=0,
-      num_shards=1,
-      # The result of select_rows with a signal udf has already wrapped primitive values.
-      dont_wrap_primitives=True)
+      num_shards=1)
 
     signal_manifest = SignalManifest(
       files=[parquet_filename],
@@ -411,6 +408,8 @@ class DatasetDuckDB(Dataset):
         else:
           raise ValueError(f'Unable to filter on path {filter.path}. '
                            f'Path part "{path_part}" is not defined on a primitive value.')
+      if not current_field.dtype:
+        raise ValueError(f'Unable to filter on path {filter.path}. The field has no value.')
 
   def _validate_columns(self, columns: Sequence[Column], schema: Schema) -> None:
     for column in columns:
@@ -430,10 +429,6 @@ class DatasetDuckDB(Dataset):
         if not signal_compute_type_supports_dtype(compute_type, leaf.dtype):
           raise ValueError(f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
                            f'by "{signal.key()}" with signal input type "{compute_type}".')
-
-        # Select the value key from duckdb as this gives us the value for the leaf field, allowing
-        # us to remove python code that unwraps the value key before calling the signal.
-        column.path = _make_value_path(column.path)
 
       current_field = Field(fields=schema.fields)
       path = column.path
@@ -484,6 +479,8 @@ class DatasetDuckDB(Dataset):
       elif not current_field.dtype:
         raise ValueError(f'Unable to sort by path {path}. '
                          f'Path part "{path_part}" is not defined on a primitive value.')
+    if not current_field.dtype:
+      raise ValueError(f'Unable to sort by path {path}. The field has no value.')
 
   @override
   def stats(self, leaf_path: Path) -> StatsResult:
@@ -585,9 +582,7 @@ class DatasetDuckDB(Dataset):
     value_column = 'value'
 
     limit_query = f'LIMIT {limit}' if limit else ''
-    # Select the actual value from the node.
-    value_path = _make_value_path(path)
-    inner_select = _select_sql(value_path, flatten=True, unnest=True)
+    inner_select = _select_sql(path, flatten=True, unnest=True)
     query = f"""
       SELECT {outer_select} AS {value_column}, COUNT() AS {count_column}
       FROM (SELECT {inner_select} AS {inner_val} FROM t)
@@ -657,10 +652,7 @@ class DatasetDuckDB(Dataset):
       # If the signal is vector-based, we don't need to select the actual data, just the uuids
       # plus an arbitrarily nested array of `None`s`.
       empty = bool(
-        column.signal_udf and
-        # We remove the last element of the path when checking the dtype because it's VALUE_KEY for
-        # signal transforms.
-        manifest.data_schema.get_field(path[:-1]).dtype == DataType.EMBEDDING)
+        column.signal_udf and manifest.data_schema.get_field(path).dtype == DataType.EMBEDDING)
 
       select_sqls: list[str] = []
       final_col_name = column.alias or _unique_alias(column)
@@ -710,7 +702,6 @@ class DatasetDuckDB(Dataset):
 
     for path in sort_by:
       # We only allow sorting by nodes with a value.
-      path = _make_value_path(path)
       first_subpath = str(path[0])
       rest_of_path = path[1:]
       udf_path = udf_aliases.get(first_subpath)
@@ -807,7 +798,7 @@ class DatasetDuckDB(Dataset):
                 task_step_id=task_step_id,
                 estimated_len=len(flat_keys),
                 step_description=f'Computing {signal.key()}...')
-            df[signal_column] = itemize_primitives(unflatten(signal_out, input))
+            df[signal_column] = unflatten(signal_out, input)
         else:
           num_rich_data = count_primitives(input)
           flat_input = cast(Iterable[RichData], flatten(input))
@@ -826,7 +817,7 @@ class DatasetDuckDB(Dataset):
             nested_spans: Iterable[Item] = df[offset_column_name]
             flat_spans = list(flatten(nested_spans))
             for span, item in zip(flat_spans, signal_out):
-              _offset_any_span(cast(int, span['start']), item, schema)
+              _offset_any_span(cast(int, span[VALUE_KEY][TEXT_SPAN_START_FEATURE]), item, schema)
 
           if len(signal_out) != num_rich_data:
             raise ValueError(
@@ -834,7 +825,7 @@ class DatasetDuckDB(Dataset):
               f"{num_rich_data} values. This means the signal either didn't generate a "
               '"None" for a sparse output, or generated too many items.')
 
-          df[signal_column] = itemize_primitives(unflatten(signal_out, input))
+          df[signal_column] = unflatten(signal_out, input)
 
     if udf_filters or sort_cols_after_udf:
       # Re-upload the udf outputs to duckdb so we can filter/sort on them.
@@ -879,7 +870,7 @@ class DatasetDuckDB(Dataset):
         if final_col_name not in df:
           df[final_col_name] = df[temp_col_name]
         else:
-          df[final_col_name] = merge_values(df[final_col_name], df[temp_col_name])
+          df[final_col_name] = merge_series(df[final_col_name], df[temp_col_name])
         del df[temp_col_name]
 
     con.close()
@@ -957,6 +948,7 @@ class DatasetDuckDB(Dataset):
     return _derived_from_path(path, manifest.data_schema) if is_span else None
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple) -> PathTuple:
+    leaf_path = _make_value_path(leaf_path)
     ((_, duckdb_path),) = self._column_to_duckdb_paths(Column(leaf_path))
     return duckdb_path
 
@@ -967,9 +959,18 @@ class DatasetDuckDB(Dataset):
     ]
     duckdb_paths: list[tuple[str, PathTuple]] = []
 
+    select_a_leaf_value = column.signal_udf is not None
+    if path[-1] == VALUE_KEY:
+      select_a_leaf_value = True
+      path = path[:-1]
+
     for m in parquet_manifests:
+      # Skip this parquet file if it doesn't contain the path.
       if not schema_contains_path(m.data_schema, path):
-        # Skip this parquet file if it doesn't contain the path.
+        continue
+
+      # Skip this parquet file if the path doesn't have a dtype.
+      if select_a_leaf_value and not m.data_schema.get_field(path).dtype:
         continue
 
       if isinstance(m, SignalManifest) and path == (UUID_COLUMN,):
@@ -1011,9 +1012,6 @@ class DatasetDuckDB(Dataset):
           raise ValueError(f'Invalid filter: {filter}. Must be a tuple with 2 or 3 elements.')
         filter = Filter(path=normalize_path(path), op=op, value=value)
 
-      # We only allow filtering by nodes with a value.
-      filter.path = _make_value_path(filter.path)
-
       if str(filter.path[0]) in udf_aliases:
         udf_filters.append(filter)
       else:
@@ -1040,9 +1038,6 @@ class DatasetDuckDB(Dataset):
       if field.dtype != DataType.STRING:
         raise ValueError(f'Invalid search path: {search.path}. '
                          f'Must be a string field, got dtype {field.dtype}')
-
-      search.path = _make_value_path(search.path)
-
       searches.append(search)
 
     return searches
@@ -1164,8 +1159,8 @@ def _inner_select(sub_paths: list[PathTuple],
   if len(sub_paths) == 1:
     if span_from:
       derived_col = _select_sql(span_from, flatten=False, unnest=False)
-      path_key = (f'{derived_col}[{path_key}.{TEXT_SPAN_START_FEATURE}+1:'
-                  f'{path_key}.{TEXT_SPAN_END_FEATURE}]')
+      path_key = (f'{derived_col}[{path_key}.{VALUE_KEY}.{TEXT_SPAN_START_FEATURE}+1:'
+                  f'{path_key}.{VALUE_KEY}.{TEXT_SPAN_END_FEATURE}]')
     return 'NULL' if empty else path_key
   return (f'list_transform({path_key}, {lambda_var} -> '
           f'{_inner_select(sub_paths[1:], lambda_var, empty, span_from)})')
@@ -1266,37 +1261,47 @@ class SignalManifest(BaseModel):
     return resolve_signal(signal)
 
 
-def _merge_cells(dest_cell: Item, source_cell: Item) -> None:
+def _merge_cells(dest_cell: Item, source_cell: Item) -> Item:
   if source_cell is None or isinstance(source_cell, float) and math.isnan(source_cell):
     # Nothing to merge here (missing value).
-    return
+    return dest_cell
   if isinstance(dest_cell, dict):
-    if not isinstance(source_cell, dict):
+    if isinstance(source_cell, list):
       raise ValueError(f'Failed to merge cells. Destination is a dict ({dest_cell!r}), '
-                       f'but source is not ({source_cell!r}).')
-    for key, value in source_cell.items():
-      if key not in dest_cell:
-        dest_cell[key] = value
-      else:
-        _merge_cells(dest_cell[key], value)
+                       f'but source is a list ({source_cell!r}).')
+    if isinstance(source_cell, dict):
+      res = {**dest_cell}
+      for key, value in source_cell.items():
+        res[key] = (value if key not in dest_cell else _merge_cells(dest_cell[key], value))
+      return res
+    else:
+      return {VALUE_KEY: source_cell, **dest_cell}
   elif isinstance(dest_cell, list):
     if not isinstance(source_cell, list):
       raise ValueError('Failed to merge cells. Destination is a list, but source is not.')
-    for dest_subcell, source_subcell in zip(dest_cell, source_cell):
+    return [
       _merge_cells(dest_subcell, source_subcell)
+      for dest_subcell, source_subcell in zip(dest_cell, source_cell)
+    ]
   else:
-    # Primitives can be merged together if they are equal. This can happen if a user selects a
-    # column that is the child of another.
-    # NOTE: This can be removed if we fix https://github.com/lilacai/lilac/issues/166.
-    if source_cell != dest_cell:
-      raise ValueError(f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
+    # The destination is a primitive.
+    if isinstance(source_cell, list):
+      raise ValueError(f'Failed to merge cells. Destination is a primitive ({dest_cell!r}), '
+                       f'but source is a list ({source_cell!r}).')
+    if isinstance(source_cell, dict):
+      return {VALUE_KEY: dest_cell, **source_cell}
+    else:
+      # Primitives can be merged together if they are equal. This can happen if a user selects a
+      # column that is the child of another.
+      # NOTE: This can be removed if we fix https://github.com/lilacai/lilac/issues/166.
+      if source_cell != dest_cell:
+        raise ValueError(f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
+      return dest_cell
 
 
-def merge_values(destination: pd.Series, source: pd.Series) -> pd.Series:
+def merge_series(destination: pd.Series, source: pd.Series) -> list[Item]:
   """Merge two series of values recursively."""
-  for dest_cell, source_cell in zip(destination, source):
-    _merge_cells(dest_cell, source_cell)
-  return destination
+  return _merge_cells(destination.tolist(), source.tolist())
 
 
 def _unique_alias(column: Column) -> str:
@@ -1338,7 +1343,7 @@ def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:
     sub_path = path[:i]
     if schema.get_field(sub_path).signal is not None:
       # Skip the signal name at the end to get the source path that was enriched.
-      return _make_value_path(sub_path[:-1])
+      return sub_path[:-1]
   raise ValueError('Cannot find the source path for the enriched path: {path}')
 
 
@@ -1372,8 +1377,8 @@ def _offset_any_span(offset: int, item: Item, schema: Field) -> None:
   """Offsets any spans inplace by the given parent offset."""
   if schema.dtype == DataType.STRING_SPAN:
     item = cast(dict, item)
-    item[VALUE_KEY]['start'] += offset
-    item[VALUE_KEY]['end'] += offset
+    item[VALUE_KEY][TEXT_SPAN_START_FEATURE] += offset
+    item[VALUE_KEY][TEXT_SPAN_END_FEATURE] += offset
   if schema.fields:
     item = cast(dict, item)
     for key, sub_schema in schema.fields.items():

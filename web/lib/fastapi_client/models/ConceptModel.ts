@@ -12,6 +12,6 @@ export type ConceptModel = {
     concept_name: string;
     embedding_name: string;
     version?: number;
-    dataset_info?: ConceptColumnInfo;
+    column_info?: ConceptColumnInfo;
 };
 

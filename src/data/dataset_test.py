@@ -9,8 +9,7 @@ from typing_extensions import override
 from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schema, signal_field
 from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset import Column, DatasetManifest, val
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, expected_item
-from .dataset_utils import itemize_primitives
+from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -93,7 +92,7 @@ def test_select_all_columns(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(SIMPLE_ITEMS)
 
   result = dataset.select_rows()
-  assert list(result) == itemize_primitives(SIMPLE_ITEMS)
+  assert list(result) == SIMPLE_ITEMS
 
 
 def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> None:
@@ -122,7 +121,7 @@ def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> Non
   dataset = make_test_data(items)
 
   result = dataset.select_rows(['people.*.name', 'people.*.address.zip'])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'people.*.name': ['A', 'B'],
     'people.*.address.zip': [1, 2]
@@ -130,10 +129,10 @@ def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> Non
     UUID_COLUMN: '2',
     'people.*.name': ['C'],
     'people.*.address.zip': [3]
-  }])
+  }]
 
   result = dataset.select_rows(['people.*.address.zip'], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'people': [{
       'address': {
@@ -151,10 +150,10 @@ def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> Non
         'zip': 3
       }
     }]
-  }])
+  }]
 
   result = dataset.select_rows(['people'])
-  assert list(result) == itemize_primitives(items)
+  assert list(result) == items
 
 
 def test_select_subcols_with_escaped_dot(make_test_data: TestDataMaker) -> None:
@@ -174,23 +173,23 @@ def test_select_subcols_with_escaped_dot(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(items)
 
   result = dataset.select_rows(['"people.new".*.name'])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'people.new.*.name': ['A', 'B'],
   }, {
     UUID_COLUMN: '2',
     'people.new.*.name': ['C'],
-  }])
+  }]
 
   # Escape name even though it does not need to be.
   result = dataset.select_rows(['"people.new".*."name"'])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'people.new.*.name': ['A', 'B'],
   }, {
     UUID_COLUMN: '2',
     'people.new.*.name': ['C'],
-  }])
+  }]
 
 
 def test_select_star(make_test_data: TestDataMaker) -> None:
@@ -211,15 +210,15 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
 
   # Select *.
   result = dataset.select_rows(['*'])
-  assert list(result) == itemize_primitives(items)
+  assert list(result) == items
 
   # Select (*,).
   result = dataset.select_rows([('*',)])
-  assert list(result) == itemize_primitives(items)
+  assert list(result) == items
 
   # Select *, plus a redundant `info` column.
   result = dataset.select_rows(['*', 'info'])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'name': 'A',
     'info': {
@@ -237,11 +236,11 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
     'info_2': {
       'age': 42
     },
-  }])
+  }]
 
   # Select * plus an inner `info.age` column.
   result = dataset.select_rows(['*', ('info', 'age')])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'name': 'A',
     'info': {
@@ -255,7 +254,7 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
       'age': 42
     },
     'info.age': 42
-  }])
+  }]
 
 
 def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -276,22 +275,23 @@ def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
 
   # Select *.
   result = dataset.select_rows(['*'], combine_columns=True)
-  assert list(result) == itemize_primitives(items)
+  assert list(result) == items
 
   # Select *, plus a redundant `info` column.
   result = dataset.select_rows(['*', 'info'], combine_columns=True)
-  assert list(result) == itemize_primitives(items)
+  assert list(result) == items
 
   # Select * plus an inner `info.age` column.
   result = dataset.select_rows(['*', ('info', 'age')], combine_columns=True)
-  assert list(result) == itemize_primitives(items)
+  assert list(result) == items
 
   # Select *, plus redundant `name`, plus a udf.
   udf = Column('name', signal_udf=TestSignal())
   result = dataset.select_rows(['*', 'name', udf], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'name': expected_item('A', {'test_signal': {
+    'name': enriched_item('A', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -300,14 +300,14 @@ def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
     }
   }, {
     UUID_COLUMN: '2',
-    'name': expected_item('B', {'test_signal': {
+    'name': enriched_item('B', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
     'info': {
       'age': 42
     }
-  }])
+  }]
 
 
 def test_select_ids(make_test_data: TestDataMaker) -> None:
@@ -340,7 +340,7 @@ def test_columns(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows(['str', 'float'])
 
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'str': 'a',
     'float': 3.0
@@ -352,7 +352,7 @@ def test_columns(make_test_data: TestDataMaker) -> None:
     UUID_COLUMN: '3',
     'str': 'b',
     'float': 1.0
-  }])
+  }]
 
 
 def test_merge_values(make_test_data: TestDataMaker) -> None:
@@ -369,9 +369,9 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(length_signal, 'text')
 
   result = dataset.select_rows(['text'])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello', {
+    'text': enriched_item('hello', {
       'length_signal': 5,
       'test_signal': {
         'len': 5,
@@ -380,14 +380,14 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
     })
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('everybody', {
+    'text': enriched_item('everybody', {
       'length_signal': 9,
       'test_signal': {
         'len': 9,
         'flen': 9.0
       }
     }),
-  }])
+  }]
 
   # Test subselection.
   result = dataset.select_rows(
@@ -395,21 +395,21 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello',
-    'text.test_signal.flen': expected_item(5.0),
-    'text.test_signal.len': expected_item(5)
+    'text.test_signal.flen': 5.0,
+    'text.test_signal.len': 5
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'everybody',
-    'text.test_signal.flen': expected_item(9.0),
-    'text.test_signal.len': expected_item(9)
+    'text.test_signal.flen': 9.0,
+    'text.test_signal.len': 9
   }]
 
   # Test subselection with combine_columns=True.
   result = dataset.select_rows(
     ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello', {
+    'text': enriched_item('hello', {
       'length_signal': 5,
       'test_signal': {
         'len': 5,
@@ -418,14 +418,14 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
     })
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('everybody', {
+    'text': enriched_item('everybody', {
       'length_signal': 9,
       'test_signal': {
         'len': 9,
         'flen': 9.0
       }
     }),
-  }])
+  }]
 
   # Test subselection with aliasing.
   result = dataset.select_rows(
@@ -433,17 +433,17 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello',
-    'metadata': expected_item(5)
+    'metadata': 5
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'everybody',
-    'metadata': expected_item(9)
+    'metadata': 9
   }]
 
   result = dataset.select_rows(columns=[Column(('text'), alias='text_enrichment')])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'text_enrichment': expected_item('hello', {
+    'text_enrichment': enriched_item('hello', {
       'length_signal': 5,
       'test_signal': {
         'len': 5,
@@ -452,14 +452,14 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
     })
   }, {
     UUID_COLUMN: '2',
-    'text_enrichment': expected_item('everybody', {
+    'text_enrichment': enriched_item('everybody', {
       'length_signal': 9,
       'test_signal': {
         'len': 9,
         'flen': 9.0
       }
     })
-  }])
+  }]
 
 
 def test_merge_array_values(make_test_data: TestDataMaker) -> None:
@@ -497,17 +497,17 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
     num_items=2)
 
   result = dataset.select_rows(['texts'])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'texts': [
-      expected_item('hello', {
+      enriched_item('hello', {
         'length_signal': 5,
         'test_signal': {
           'len': 5,
           'flen': 5.0
         }
       }),
-      expected_item('everybody', {
+      enriched_item('everybody', {
         'length_signal': 9,
         'test_signal': {
           'len': 9,
@@ -518,21 +518,21 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
   }, {
     UUID_COLUMN: '2',
     'texts': [
-      expected_item('a', {
+      enriched_item('a', {
         'length_signal': 1,
         'test_signal': {
           'len': 1,
           'flen': 1.0
         }
       }),
-      expected_item('bc', {
+      enriched_item('bc', {
         'length_signal': 2,
         'test_signal': {
           'len': 2,
           'flen': 2.0
         }
       }),
-      expected_item('def', {
+      enriched_item('def', {
         'length_signal': 3,
         'test_signal': {
           'len': 3,
@@ -540,7 +540,7 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
         }
       })
     ],
-  }])
+  }]
 
   # Test subselection.
   result = dataset.select_rows(
@@ -548,13 +548,13 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'texts.*.{VALUE_KEY}': ['hello', 'everybody'],
-    'texts.*.test_signal.flen': itemize_primitives([5.0, 9.0]),
-    'texts.*.length_signal': itemize_primitives([5, 9])
+    'texts.*.test_signal.flen': [5.0, 9.0],
+    'texts.*.length_signal': [5, 9]
   }, {
     UUID_COLUMN: '2',
     f'texts.*.{VALUE_KEY}': ['a', 'bc', 'def'],
-    'texts.*.test_signal.flen': itemize_primitives([1.0, 2.0, 3.0]),
-    'texts.*.length_signal': itemize_primitives([1, 2, 3])
+    'texts.*.test_signal.flen': [1.0, 2.0, 3.0],
+    'texts.*.length_signal': [1, 2, 3]
   }]
 
 
@@ -587,7 +587,7 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
 
   # Sub-select text and test_signal.
   result = dataset.select_rows(['text', ('extra', 'text', 'test_signal')], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'text': 'hello',
     'extra': {
@@ -609,11 +609,11 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
         }
       }
     }
-  }])
+  }]
 
   # Sub-select text and length_signal.
   result = dataset.select_rows(['text', ('extra', 'text', 'length_signal')], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'text': 'hello',
     'extra': {
@@ -629,11 +629,11 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
         'length_signal': 9
       }
     }
-  }])
+  }]
 
   # Sub-select length_signal only.
   result = dataset.select_rows([('extra', 'text', 'length_signal')], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'extra': {
       'text': {
@@ -647,12 +647,12 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
         'length_signal': 9
       }
     }
-  }])
+  }]
 
   # Aliases are ignored when combing columns.
   len_col = Column(('extra', 'text', 'length_signal'), alias='hello')
   result = dataset.select_rows([len_col], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'extra': {
       'text': {
@@ -666,18 +666,18 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
         'length_signal': 9
       }
     }
-  }])
+  }]
 
   # Works with UDFs and aliases are ignored.
   udf_col = Column('text', alias='ignored', signal_udf=LengthSignal())
   result = dataset.select_rows(['text', udf_col], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello', {'length_signal': 5})
+    'text': enriched_item('hello', {'length_signal': 5})
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('everybody', {'length_signal': 9})
-  }])
+    'text': enriched_item('everybody', {'length_signal': 9})
+  }]
 
 
 def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -> None:
@@ -721,9 +721,9 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
   # Select both columns, without val() on str.
   result = dataset.select_rows(['str', Column(('str', 'test_signal'), alias='test_signal_on_str')])
 
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'str': expected_item('a', {'test_signal': {
+    'str': enriched_item('a', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -733,7 +733,7 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
     }
   }, {
     UUID_COLUMN: '2',
-    'str': expected_item('b', {'test_signal': {
+    'str': enriched_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -743,7 +743,7 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
     }
   }, {
     UUID_COLUMN: '3',
-    'str': expected_item('b', {'test_signal': {
+    'str': enriched_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -751,7 +751,7 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
       'len': 1,
       'flen': 1.0
     }
-  }])
+  }]
 
   # Select both columns, with val() on str.
   result = dataset.select_rows(
@@ -761,22 +761,22 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
     UUID_COLUMN: '1',
     f'str.{VALUE_KEY}': 'a',
     'test_signal_on_str': {
-      'len': expected_item(1),
-      'flen': expected_item(1.0)
+      'len': 1,
+      'flen': 1.0
     }
   }, {
     UUID_COLUMN: '2',
     f'str.{VALUE_KEY}': 'b',
     'test_signal_on_str': {
-      'len': expected_item(1),
-      'flen': expected_item(1.0)
+      'len': 1,
+      'flen': 1.0
     }
   }, {
     UUID_COLUMN: '3',
     f'str.{VALUE_KEY}': 'b',
     'test_signal_on_str': {
-      'len': expected_item(1),
-      'flen': expected_item(1.0)
+      'len': 1,
+      'flen': 1.0
     }
   }]
 
@@ -784,14 +784,14 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
 def test_invalid_column_paths(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
-    'text': expected_item('hello', {'test_signal': {
+    'text': enriched_item('hello', {'test_signal': {
       'len': 5
     }}),
     'text2': [
-      expected_item('hello', {'test_signal': {
+      enriched_item('hello', {'test_signal': {
         'len': 5
       }}),
-      expected_item('hi', {'test_signal': {
+      enriched_item('hi', {'test_signal': {
         'len': 2
       }})
     ],

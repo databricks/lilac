@@ -3,8 +3,8 @@
 from ..schema import UUID_COLUMN, Item
 from ..signals.substring_search import SubstringSignal
 from .dataset import ListOp, SearchType
-from .dataset_test_utils import TestDataMaker, expected_item
-from .dataset_utils import itemize_primitives, lilac_span
+from .dataset_test_utils import TestDataMaker, enriched_item
+from .dataset_utils import lilac_span
 
 TEST_DATA: list[Item] = [{
   UUID_COLUMN: '1',
@@ -27,19 +27,17 @@ def test_search_like(make_test_data: TestDataMaker) -> None:
   query = 'world'
   result = dataset.select_rows(
     searches=[('text', SearchType.CONTAINS, 'world')], combine_columns=True)
-
   expected_signal_udf = SubstringSignal(query=query)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello world',
-                          {expected_signal_udf.key(): [expected_item(lilac_span(6, 11))]}),
+    'text': enriched_item('hello world', {expected_signal_udf.key(): [lilac_span(6, 11)]}),
     'text2': 'again hello world'
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('looking for world in text',
-                          {expected_signal_udf.key(): [expected_item(lilac_span(12, 17))]}),
+    'text': enriched_item('looking for world in text',
+                          {expected_signal_udf.key(): [lilac_span(12, 17)]}),
     'text2': 'again looking for world in text',
-  }])
+  }]
 
 
 def test_search_like_multiple(make_test_data: TestDataMaker) -> None:
@@ -55,14 +53,14 @@ def test_search_like_multiple(make_test_data: TestDataMaker) -> None:
               ('text2', SearchType.CONTAINS, query_looking_world)],
     combine_columns=True)
 
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '2',
-    'text': expected_item('looking for world in text', {
-      expected_world_udf.key(): [expected_item(lilac_span(12, 17))],
+    'text': enriched_item('looking for world in text', {
+      expected_world_udf.key(): [lilac_span(12, 17)],
     }),
-    'text2': expected_item('again looking for world in text',
-                           {expected_again_looking_udf.key(): [expected_item(lilac_span(6, 23))]})
-  }])
+    'text2': enriched_item('again looking for world in text',
+                           {expected_again_looking_udf.key(): [lilac_span(6, 23)]})
+  }]
 
 
 def test_search_like_with_filters(make_test_data: TestDataMaker) -> None:
@@ -75,12 +73,11 @@ def test_search_like_with_filters(make_test_data: TestDataMaker) -> None:
     combine_columns=True)
 
   expected_signal_udf = SubstringSignal(query=query)
-  assert list(result) == itemize_primitives([
+  assert list(result) == [
     {
       UUID_COLUMN: '1',
-      'text': expected_item('hello world',
-                            {expected_signal_udf.key(): [expected_item(lilac_span(6, 11))]}),
+      'text': enriched_item('hello world', {expected_signal_udf.key(): [lilac_span(6, 11)]}),
       'text2': 'again hello world'
     },
     # The second row doesn't match the UUID filter.
-  ])
+  ]

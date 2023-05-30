@@ -17,8 +17,8 @@ from ..signals.signal import (
   register_signal,
 )
 from .dataset import BinaryFilterTuple, BinaryOp, Column, val
-from .dataset_test_utils import TestDataMaker, expected_item
-from .dataset_utils import itemize_primitives, lilac_span
+from .dataset_test_utils import TestDataMaker, enriched_item
+from .dataset_utils import lilac_span
 
 EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
                                              ('hello2.', [1.0, 1.0, 0.0]),
@@ -106,7 +106,7 @@ def test_udf(make_test_data: TestDataMaker) -> None:
   signal_col = Column('text', signal_udf=TestSignal())
   result = dataset.select_rows(['text', signal_col])
 
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'text': 'hello',
     'test_signal(text)': {
@@ -120,7 +120,7 @@ def test_udf(make_test_data: TestDataMaker) -> None:
       'len': 9,
       'flen': 9.0
     }
-  }])
+  }]
 
 
 def test_udf_with_filters(make_test_data: TestDataMaker) -> None:
@@ -136,14 +136,14 @@ def test_udf_with_filters(make_test_data: TestDataMaker) -> None:
   # Filter by source feature.
   filters: list[BinaryFilterTuple] = [('text', BinaryOp.EQUALS, 'everybody')]
   result = dataset.select_rows(['text', signal_col], filters=filters)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '2',
     'text': 'everybody',
     'test_signal(text)': {
       'len': 9,
       'flen': 9.0
     }
-  }])
+  }]
 
 
 def test_udf_with_uuid_filter(make_test_data: TestDataMaker) -> None:
@@ -160,25 +160,17 @@ def test_udf_with_uuid_filter(make_test_data: TestDataMaker) -> None:
   filters: list[BinaryFilterTuple] = [(UUID_COLUMN, BinaryOp.EQUALS, '1')]
   udf_col = Column('text', signal_udf=LengthSignal())
   result = dataset.select_rows(['text', udf_col], filters=filters)
-  assert list(result) == itemize_primitives([{
-    UUID_COLUMN: '1',
-    'text': 'hello',
-    'length_signal(text)': 5
-  }])
+  assert list(result) == [{UUID_COLUMN: '1', 'text': 'hello', 'length_signal(text)': 5}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 1
 
   filters = [(UUID_COLUMN, BinaryOp.EQUALS, '2')]
   result = dataset.select_rows(['text', udf_col], filters=filters)
-  assert list(result) == itemize_primitives([{
-    UUID_COLUMN: '2',
-    'text': 'everybody',
-    'length_signal(text)': 9
-  }])
+  assert list(result) == [{UUID_COLUMN: '2', 'text': 'everybody', 'length_signal(text)': 9}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 1 + 1
 
   # No filters.
   result = dataset.select_rows(['text', udf_col])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'text': 'hello',
     'length_signal(text)': 5
@@ -186,7 +178,7 @@ def test_udf_with_uuid_filter(make_test_data: TestDataMaker) -> None:
     UUID_COLUMN: '2',
     'text': 'everybody',
     'length_signal(text)': 9
-  }])
+  }]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2 + 2
 
 
@@ -204,21 +196,21 @@ def test_udf_with_uuid_filter_repeated(make_test_data: TestDataMaker) -> None:
   filters: list[BinaryFilterTuple] = [(UUID_COLUMN, BinaryOp.EQUALS, '1')]
   udf_col = Column(('text', '*'), signal_udf=LengthSignal())
   result = dataset.select_rows(['text', udf_col], filters=filters)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'text': ['hello', 'hi'],
     'length_signal(text)': [5, 2]
-  }])
+  }]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2
 
   # Filter by a specific UUID.
   filters = [(UUID_COLUMN, BinaryOp.EQUALS, '2')]
   result = dataset.select_rows(['text', udf_col], filters=filters)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '2',
     'text': ['everybody', 'bye', 'test'],
     'length_signal(text)': [9, 3, 4]
-  }])
+  }]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2 + 3
 
 
@@ -233,13 +225,13 @@ def test_udf_deeply_nested(make_test_data: TestDataMaker) -> None:
 
   udf_col = Column(('text', '*', '*'), signal_udf=LengthSignal())
   result = dataset.select_rows([udf_col])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'length_signal(text.*)': [[5], [2, 3]]
   }, {
     UUID_COLUMN: '2',
     'length_signal(text.*)': [[9, 3], [4]]
-  }])
+  }]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 6
 
 
@@ -260,11 +252,11 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   expected_result: list[Item] = [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello.',
-    'test_embedding_sum(text.test_embedding)': expected_item(1.0)
+    'test_embedding_sum(text.test_embedding)': 1.0
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'hello2.',
-    'test_embedding_sum(text.test_embedding)': expected_item(2.0)
+    'test_embedding_sum(text.test_embedding)': 2.0
   }]
   assert list(result) == expected_result
 
@@ -275,11 +267,11 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   expected_result = [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello.',
-    'emb_sum': expected_item(1.0)
+    'emb_sum': 1.0
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'hello2.',
-    'emb_sum': expected_item(2.0)
+    'emb_sum': 2.0
   }]
   assert list(result) == expected_result
 
@@ -300,11 +292,11 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
   expected_result = [{
     UUID_COLUMN: '1',
     f'text.*.{VALUE_KEY}': ['hello.', 'hello world.'],
-    'test_embedding_sum(text.*.test_embedding)': itemize_primitives([1.0, 3.0])
+    'test_embedding_sum(text.*.test_embedding)': [1.0, 3.0]
   }, {
     UUID_COLUMN: '2',
     f'text.*.{VALUE_KEY}': ['hello world2.', 'hello2.'],
-    'test_embedding_sum(text.*.test_embedding)': itemize_primitives([4.0, 2.0])
+    'test_embedding_sum(text.*.test_embedding)': [4.0, 2.0]
   }]
   assert list(result) == expected_result
 
@@ -356,20 +348,18 @@ def test_udf_on_top_of_precomputed_split(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['*', udf], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item(
+    'text': enriched_item(
       'sentence 1. sentence 2 is longer', {
-        'test_splitter': [
-          expected_item(lilac_span(0, 10), {'length_signal': 10}),
-          expected_item(lilac_span(11, 32), {'length_signal': 21})
-        ]
+        'test_splitter':
+          [lilac_span(0, 10, {'length_signal': 10}),
+           lilac_span(11, 32, {'length_signal': 21})]
       })
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item(
+    'text': enriched_item(
       'sentence 1 is longer. sent2 is short', {
-        'test_splitter': [
-          expected_item(lilac_span(0, 20), {'length_signal': 20}),
-          expected_item(lilac_span(21, 36), {'length_signal': 15})
-        ]
+        'test_splitter':
+          [lilac_span(0, 20, {'length_signal': 20}),
+           lilac_span(21, 36, {'length_signal': 15})]
       })
   }]

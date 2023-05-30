@@ -392,14 +392,14 @@ def dtype_to_arrow_schema(dtype: DataType) -> Union[pa.Schema, pa.DataType]:
     # can set this dtype to the relevant pyarrow type.
     return pa.null()
   elif dtype == DataType.STRING_SPAN:
-    return pa.struct({TEXT_SPAN_START_FEATURE: pa.int32(), TEXT_SPAN_END_FEATURE: pa.int32()})
+    return pa.struct({
+      VALUE_KEY: pa.struct({
+        TEXT_SPAN_START_FEATURE: pa.int32(),
+        TEXT_SPAN_END_FEATURE: pa.int32()
+      })
+    })
   else:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
-
-
-def pa_value(value_schema: Union[pa.Schema, pa.DataType]) -> pa.Schema:
-  """Create a value node by wrapping a schema or dtype in {__value__: value_schema}."""
-  return pa.struct({VALUE_KEY: value_schema})
 
 
 def schema_to_arrow_schema(schema: Union[Schema, Field]) -> pa.Schema:
@@ -424,17 +424,20 @@ def _schema_to_arrow_schema_impl(schema: Union[Schema, Field]) -> Union[pa.Schem
       # Top-level schemas do not have __value__ fields.
       return pa.schema(arrow_fields)
     else:
-      # When nodes have a dtype, they have a value so we add __value__ alongside the fields.
+      # When nodes have both dtype and children, we add __value__ alongside the fields.
       if schema.dtype:
-        arrow_fields[VALUE_KEY] = dtype_to_arrow_schema(schema.dtype)
+        value_schema = dtype_to_arrow_schema(schema.dtype)
+        if schema.dtype == DataType.STRING_SPAN:
+          value_schema = value_schema[VALUE_KEY].type
+        arrow_fields[VALUE_KEY] = value_schema
+
       return pa.struct(arrow_fields)
 
   field = cast(Field, schema)
   if field.repeated_field:
     return pa.list_(_schema_to_arrow_schema_impl(field.repeated_field))
 
-  # Wrap nodes with a dtype with __value__ so there is space to store extra metadata.
-  return pa_value(dtype_to_arrow_schema(cast(DataType, field.dtype)))
+  return dtype_to_arrow_schema(cast(DataType, field.dtype))
 
 
 def arrow_dtype_to_dtype(arrow_dtype: pa.DataType) -> DataType:

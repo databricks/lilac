@@ -15,7 +15,7 @@ from ..signals.signal import (
   register_signal,
 )
 from .dataset import Column, DatasetManifest, val
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, expected_item
+from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
 from .dataset_utils import lilac_span
 
 SIMPLE_ITEMS: list[Item] = [{
@@ -193,10 +193,10 @@ def test_sparse_signal(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['text'])
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello', {'test_sparse_signal': None})
+    'text': enriched_item('hello', {'test_sparse_signal': None})
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('hello world', {'test_sparse_signal': 11})
+    'text': enriched_item('hello world', {'test_sparse_signal': 11})
   }]
 
 
@@ -214,10 +214,10 @@ def test_sparse_rich_signal(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['text'])
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello', {'test_sparse_rich_signal': None})
+    'text': enriched_item('hello', {'test_sparse_rich_signal': None})
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item(
+    'text': enriched_item(
       'hello world',
       {'test_sparse_rich_signal': {
         'emails': ['test1@hello.com', 'test2@hello.com']
@@ -266,19 +266,19 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
   result = dataset.select_rows(['str'])
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'str': expected_item('a', {'test_signal': {
+    'str': enriched_item('a', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
   }, {
     UUID_COLUMN: '2',
-    'str': expected_item('b', {'test_signal': {
+    'str': enriched_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
   }, {
     UUID_COLUMN: '3',
-    'str': expected_item('b', {'test_signal': {
+    'str': enriched_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -290,15 +290,15 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'str.{VALUE_KEY}': 'a',
-    'str.test_signal.flen': expected_item(1.0)
+    'str.test_signal.flen': 1.0
   }, {
     UUID_COLUMN: '2',
     f'str.{VALUE_KEY}': 'b',
-    'str.test_signal.flen': expected_item(1.0)
+    'str.test_signal.flen': 1.0
   }, {
     UUID_COLUMN: '3',
     f'str.{VALUE_KEY}': 'b',
-    'str.test_signal.flen': expected_item(1.0)
+    'str.test_signal.flen': 1.0
   }]
 
   # Select a specific signal leaf test_signal.flen and the whole 'str' subtree.
@@ -306,25 +306,25 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
 
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'str': expected_item('a', {'test_signal': {
+    'str': enriched_item('a', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
-    'str.test_signal.flen': expected_item(1.0)
+    'str.test_signal.flen': 1.0
   }, {
     UUID_COLUMN: '2',
-    'str': expected_item('b', {'test_signal': {
+    'str': enriched_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
-    'str.test_signal.flen': expected_item(1.0)
+    'str.test_signal.flen': 1.0
   }, {
     UUID_COLUMN: '3',
-    'str': expected_item('b', {'test_signal': {
+    'str': enriched_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
-    'str.test_signal.flen': expected_item(1.0)
+    'str.test_signal.flen': 1.0
   }]
 
   # Select multiple signal leafs with aliasing.
@@ -337,18 +337,18 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'str.{VALUE_KEY}': 'a',
-    'flen': expected_item(1.0),
-    'len': expected_item(1)
+    'flen': 1.0,
+    'len': 1
   }, {
     UUID_COLUMN: '2',
     f'str.{VALUE_KEY}': 'b',
-    'flen': expected_item(1.0),
-    'len': expected_item(1)
+    'flen': 1.0,
+    'len': 1
   }, {
     UUID_COLUMN: '3',
     f'str.{VALUE_KEY}': 'b',
-    'flen': expected_item(1.0),
-    'len': expected_item(1)
+    'flen': 1.0,
+    'len': 1
   }]
 
 
@@ -382,13 +382,13 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['text'])
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello', {
+    'text': enriched_item('hello', {
       'param_signal(param=a)': 'hello_a',
       'param_signal(param=b)': 'hello_b',
     })
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('everybody', {
+    'text': enriched_item('everybody', {
       'param_signal(param=a)': 'everybody_a',
       'param_signal(param=b)': 'everybody_b',
     })
@@ -421,11 +421,11 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['text'])
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': expected_item('[1, 1] first sentence. [1, 1] second sentence.',
+    'text': enriched_item('[1, 1] first sentence. [1, 1] second sentence.',
                           {'test_split': [lilac_span(0, 22), lilac_span(23, 46)]})
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('b2 [2, 1] first sentence. [2, 1] second sentence.',
+    'text': enriched_item('b2 [2, 1] first sentence. [2, 1] second sentence.',
                           {'test_split': [
                             lilac_span(0, 25),
                             lilac_span(26, 49),
@@ -471,11 +471,11 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text.*': [
-      expected_item('hello', {'test_signal': {
+      enriched_item('hello', {'test_signal': {
         'len': 5,
         'flen': 5.0
       }}),
-      expected_item('everybody', {'test_signal': {
+      enriched_item('everybody', {'test_signal': {
         'len': 9,
         'flen': 9.0
       }})
@@ -483,11 +483,11 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
   }, {
     UUID_COLUMN: '2',
     'text.*': [
-      expected_item('hello2', {'test_signal': {
+      enriched_item('hello2', {'test_signal': {
         'len': 6,
         'flen': 6.0
       }}),
-      expected_item('everybody2', {'test_signal': {
+      enriched_item('everybody2', {'test_signal': {
         'len': 10,
         'flen': 10.0
       }})
@@ -509,14 +509,14 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['text'])
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': expected_item('[1, 1] first sentence. [1, 1] second sentence.',
+    'text': enriched_item('[1, 1] first sentence. [1, 1] second sentence.',
                           {'test_split': [
                             lilac_span(0, 22),
                             lilac_span(23, 46),
                           ]}),
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('b2 [2, 1] first sentence. [2, 1] second sentence.',
+    'text': enriched_item('b2 [2, 1] first sentence. [2, 1] second sentence.',
                           {'test_split': [
                             lilac_span(0, 25),
                             lilac_span(26, 49),
@@ -553,9 +553,9 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
   # Embeddings are replaced with "None".
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello.', {'test_embedding': expected_item(None, allow_none_value=True)})
+    'text': enriched_item('hello.', {'test_embedding': None})
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('hello2.', {'test_embedding': expected_item(None, allow_none_value=True)})
+    'text': enriched_item('hello2.', {'test_embedding': None})
   }]
   assert list(result) == expected_result
