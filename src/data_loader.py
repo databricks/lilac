@@ -83,10 +83,10 @@ def process_source(base_dir: Union[str, pathlib.Path],
 
 def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
   """Sanitize items by removing NaNs and NaTs."""
-  string_fields = {name: field for name, field in fields.items() if field.dtype == DataType.STRING}
-  timestamp_fields = {
-    name: field for name, field in fields.items() if field.dtype == DataType.TIMESTAMP
-  }
+  string_fields = set(
+    [field_name for field_name, field in fields.items() if field.dtype == DataType.STRING])
+  timestamp_fields = set(
+    [field_name for field_name, field in fields.items() if field.dtype == DataType.TIMESTAMP])
   for item in items:
     if item is None:
       yield item
@@ -97,18 +97,18 @@ def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
       item[UUID_COLUMN] = uuid.uuid4().hex
 
     # Fix NaN string fields.
-    for name in string_fields.keys():
-      item_value = item[name]
-      if not isinstance(item_value, str):
+    for name in string_fields:
+      item_value = item.get(name)
+      if item_value and not isinstance(item_value, str):
         if math.isnan(item_value):
           item[name] = None
         else:
           item[name] = str(item_value)
 
     # Fix NaT (not a time) timestamp fields.
-    for name in timestamp_fields.keys():
-      item_value = item[name]
-      if pd.isnull(item_value):
+    for name in timestamp_fields:
+      item_value = item.get(name)
+      if item_value and pd.isnull(item_value):
         item[name] = None
 
     yield item

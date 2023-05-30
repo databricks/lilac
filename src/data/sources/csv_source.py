@@ -11,7 +11,7 @@ from ...utils import download_http_files
 from ..duckdb_utils import duckdb_gcs_setup
 from .source import Source, SourceSchema, schema_from_df
 
-ROW_ID_COLUMN = '__row_id__'
+LINE_NUMBER_COLUMN = '__line_number__'
 
 
 class CSVDataset(Source):
@@ -49,7 +49,7 @@ class CSVDataset(Source):
     """).df()
 
     # Create the source schema in prepare to share it between process and source_schema.
-    self._source_schema = schema_from_df(self._df, ROW_ID_COLUMN)
+    self._source_schema = schema_from_df(self._df, LINE_NUMBER_COLUMN)
 
   @override
   def source_schema(self) -> SourceSchema:
@@ -61,6 +61,6 @@ class CSVDataset(Source):
     """Process the source upload request."""
     cols = self._df.columns.tolist()
     yield from ({
-      ROW_ID_COLUMN: idx,
+      LINE_NUMBER_COLUMN: idx,
       **dict(zip(cols, item_vals)),
     } for idx, *item_vals in self._df.itertuples())
