@@ -870,7 +870,7 @@ class DatasetDuckDB(Dataset):
         if final_col_name not in df:
           df[final_col_name] = df[temp_col_name]
         else:
-          df[final_col_name] = merge_values(df[final_col_name], df[temp_col_name])
+          df[final_col_name] = merge_series(df[final_col_name], df[temp_col_name])
         del df[temp_col_name]
 
     con.close()
@@ -1299,11 +1299,9 @@ def _merge_cells(dest_cell: Item, source_cell: Item) -> Item:
       return dest_cell
 
 
-def merge_values(destination: pd.Series, source: pd.Series) -> list[Item]:
+def merge_series(destination: pd.Series, source: pd.Series) -> list[Item]:
   """Merge two series of values recursively."""
-  return [
-    _merge_cells(dest_cell, source_cell) for dest_cell, source_cell in zip(destination, source)
-  ]
+  return _merge_cells(destination.tolist(), source.tolist())
 
 
 def _unique_alias(column: Column) -> str:
