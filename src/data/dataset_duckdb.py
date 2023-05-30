@@ -1261,54 +1261,49 @@ class SignalManifest(BaseModel):
     return resolve_signal(signal)
 
 
-def _merge_cells(dest_cell: Item, source_cell: Item, dest_parent: Optional[Union[list, dict]],
-                 dest_key: Optional[Union[str, int]]) -> None:
+def _merge_cells(dest_cell: Item, source_cell: Item) -> Item:
   if source_cell is None or isinstance(source_cell, float) and math.isnan(source_cell):
     # Nothing to merge here (missing value).
-    return
+    return dest_cell
   if isinstance(dest_cell, dict):
     if isinstance(source_cell, list):
       raise ValueError(f'Failed to merge cells. Destination is a dict ({dest_cell!r}), '
                        f'but source is a list ({source_cell!r}).')
     if isinstance(source_cell, dict):
+      res = {**dest_cell}
       for key, value in source_cell.items():
-        if key not in dest_cell:
-          dest_cell[key] = value
-        else:
-          _merge_cells(dest_cell[key], value, dest_cell, key)
+        res[key] = (value if key not in dest_cell else _merge_cells(dest_cell[key], value))
+      return res
     else:
-      dest_cell[VALUE_KEY] = source_cell
+      return {VALUE_KEY: source_cell, **dest_cell}
   elif isinstance(dest_cell, list):
     if not isinstance(source_cell, list):
       raise ValueError('Failed to merge cells. Destination is a list, but source is not.')
-    for i, (dest_subcell, source_subcell) in enumerate(zip(dest_cell, source_cell)):
-      _merge_cells(dest_subcell, source_subcell, dest_cell, i)
+    return [
+      _merge_cells(dest_subcell, source_subcell)
+      for dest_subcell, source_subcell in zip(dest_cell, source_cell)
+    ]
   else:
     # The destination is a primitive.
     if isinstance(source_cell, list):
       raise ValueError(f'Failed to merge cells. Destination is a primitive ({dest_cell!r}), '
                        f'but source is a list ({source_cell!r}).')
     if isinstance(source_cell, dict):
-      source_cell[VALUE_KEY] = dest_cell
-      # Change the destination parent to point to the newly modified source cell.
-      if dest_parent is None:
-        raise ValueError('Cannot merge cells. Destination parent is None.')
-      if dest_key is None:
-        raise ValueError('Cannot merge cells. Destination key is None.')
-      dest_parent[cast(int, dest_key)] = source_cell
+      return {VALUE_KEY: dest_cell, **source_cell}
     else:
       # Primitives can be merged together if they are equal. This can happen if a user selects a
       # column that is the child of another.
       # NOTE: This can be removed if we fix https://github.com/lilacai/lilac/issues/166.
       if source_cell != dest_cell:
         raise ValueError(f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
+      return dest_cell
 
 
-def merge_values(destination: pd.Series, source: pd.Series) -> pd.Series:
+def merge_values(destination: pd.Series, source: pd.Series) -> list[Item]:
   """Merge two series of values recursively."""
-  for i, (dest_cell, source_cell) in enumerate(zip(destination, source)):
-    _merge_cells(dest_cell, source_cell, destination, i)
-  return destination
+  return [
+    _merge_cells(dest_cell, source_cell) for dest_cell, source_cell in zip(destination, source)
+  ]
 
 
 def _unique_alias(column: Column) -> str:
