@@ -95,7 +95,7 @@ class ConceptModelDB(abc.ABC):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             dataset_info: Optional[ConceptColumnInfo] = None) -> ConceptModel:
+             column_info: Optional[ConceptColumnInfo] = None) -> ConceptModel:
     """Create the concept model."""
     pass
 
@@ -104,7 +104,7 @@ class ConceptModelDB(abc.ABC):
           namespace: str,
           concept_name: str,
           embedding_name: str,
-          dataset_info: Optional[ConceptColumnInfo] = None) -> Optional[ConceptModel]:
+          column_info: Optional[ConceptColumnInfo] = None) -> Optional[ConceptModel]:
     """Get the model associated with the provided concept the embedding.
 
     Returns None if the model does not exist.
@@ -140,7 +140,7 @@ class ConceptModelDB(abc.ABC):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             dataset_info: Optional[ConceptColumnInfo] = None) -> None:
+             column_info: Optional[ConceptColumnInfo] = None) -> None:
     """Remove the model of a concept."""
     pass
 
@@ -153,8 +153,8 @@ class DiskConceptModelDB(ConceptModelDB):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             dataset_info: Optional[ConceptColumnInfo] = None) -> ConceptModel:
-    if self.get(namespace, concept_name, embedding_name, dataset_info):
+             column_info: Optional[ConceptColumnInfo] = None) -> ConceptModel:
+    if self.get(namespace, concept_name, embedding_name, column_info):
       raise ValueError('Concept model already exists.')
 
     return ConceptModel(
@@ -162,14 +162,14 @@ class DiskConceptModelDB(ConceptModelDB):
       concept_name=concept_name,
       embedding_name=embedding_name,
       version=-1,
-      dataset_info=dataset_info)
+      column_info=column_info)
 
   @override
   def get(self,
           namespace: str,
           concept_name: str,
           embedding_name: str,
-          dataset_info: Optional[ConceptColumnInfo] = None) -> Optional[ConceptModel]:
+          column_info: Optional[ConceptColumnInfo] = None) -> Optional[ConceptModel]:
     # Make sure the concept exists.
     concept = self._concept_db.get(namespace, concept_name)
     if not concept:
@@ -179,7 +179,7 @@ class DiskConceptModelDB(ConceptModelDB):
     if not get_signal_cls(embedding_name):
       raise ValueError(f'Embedding signal "{embedding_name}" not found in the registry.')
 
-    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name, dataset_info)
+    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name, column_info)
     if not file_exists(concept_model_path):
       return None
 
@@ -189,7 +189,7 @@ class DiskConceptModelDB(ConceptModelDB):
   def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
     concept_model_path = _concept_model_path(model.namespace, model.concept_name,
-                                             model.embedding_name, model.dataset_info)
+                                             model.embedding_name, model.column_info)
     with open_file(concept_model_path, 'wb') as f:
       pickle.dump(model, f)
 
@@ -198,8 +198,8 @@ class DiskConceptModelDB(ConceptModelDB):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             dataset_info: Optional[ConceptColumnInfo] = None) -> None:
-    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name, dataset_info)
+             column_info: Optional[ConceptColumnInfo] = None) -> None:
+    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name, column_info)
 
     if not file_exists(concept_model_path):
       raise ValueError(f'Concept model {namespace}/{concept_name}/{embedding_name} does not exist.')
@@ -219,12 +219,12 @@ def _concept_json_path(namespace: str, name: str) -> str:
 def _concept_model_path(namespace: str,
                         concept_name: str,
                         embedding_name: str,
-                        dataset_info: Optional[ConceptColumnInfo] = None) -> str:
-  if not dataset_info:
+                        column_info: Optional[ConceptColumnInfo] = None) -> str:
+  if not column_info:
     return os.path.join(_concept_output_dir(namespace, concept_name), f'{embedding_name}.pkl')
 
-  dataset_dir = get_dataset_output_dir(data_path(), dataset_info.namespace, dataset_info.name)
-  path_tuple = normalize_path(dataset_info.path)
+  dataset_dir = get_dataset_output_dir(data_path(), column_info.namespace, column_info.name)
+  path_tuple = normalize_path(column_info.path)
   path_without_wildcards = (p for p in path_tuple if p != PATH_WILDCARD)
   path_dir = os.path.join(dataset_dir, *path_without_wildcards)
   return os.path.join(path_dir, '.concepts', namespace, concept_name, f'{embedding_name}.pkl')

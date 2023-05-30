@@ -35,24 +35,24 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
   # obtain a better suited model for the concrete dataset.
   num_negative_examples = DEFAULT_NUM_NEG_EXAMPLES
 
-  _dataset_info: Optional[ConceptColumnInfo] = None
+  _column_info: Optional[ConceptColumnInfo] = None
   _concept_model_db: ConceptModelDB = DISK_CONCEPT_MODEL_DB
 
   @override
   def fields(self) -> Field:
     return Field(dtype=DataType.FLOAT32)
 
-  def set_dataset_info(self, dataset_info: ConceptColumnInfo) -> None:
+  def set_column_info(self, column_info: ConceptColumnInfo) -> None:
     """Set the dataset info for this signal."""
-    self._dataset_info = dataset_info
-    self._dataset_info.num_negative_examples = self.num_negative_examples
+    self._column_info = column_info
+    self._column_info.num_negative_examples = self.num_negative_examples
 
   def _get_concept_model(self) -> ConceptModel:
     model = self._concept_model_db.get(self.namespace, self.concept_name, self.embedding,
-                                       self._dataset_info)
+                                       self._column_info)
     if not model:
       model = self._concept_model_db.create(self.namespace, self.concept_name, self.embedding,
-                                            self._dataset_info)
+                                            self._column_info)
     self._concept_model_db.sync(model)
     return model
 

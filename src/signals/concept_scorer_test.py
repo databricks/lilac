@@ -145,7 +145,7 @@ def test_concept_model_with_dataset_score(concept_db_cls: Type[ConceptDB],
 
   signal = ConceptScoreSignal(
     namespace='test', concept_name='test_concept', embedding='test_embedding')
-  signal.set_dataset_info(
+  signal.set_column_info(
     ConceptColumnInfo(namespace=dataset.namespace, name=dataset.dataset_name, path='text'))
 
   # Explicitly sync the model with the concept.
