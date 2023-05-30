@@ -83,7 +83,6 @@ from .dataset_utils import (
   create_signal_schema,
   flatten,
   flatten_keys,
-  itemize_primitives,
   merge_schemas,
   read_embedding_index,
   replace_embeddings_with_none,
@@ -367,9 +366,7 @@ class DatasetDuckDB(Dataset):
       schema=signal_schema,
       filename_prefix='data',
       shard_index=0,
-      num_shards=1,
-      # The result of select_rows with a signal udf has already wrapped primitive values.
-      dont_wrap_primitives=True)
+      num_shards=1)
 
     signal_manifest = SignalManifest(
       files=[parquet_filename],
@@ -430,10 +427,6 @@ class DatasetDuckDB(Dataset):
         if not signal_compute_type_supports_dtype(compute_type, leaf.dtype):
           raise ValueError(f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
                            f'by "{signal.key()}" with signal input type "{compute_type}".')
-
-        # Select the value key from duckdb as this gives us the value for the leaf field, allowing
-        # us to remove python code that unwraps the value key before calling the signal.
-        column.path = _make_value_path(column.path)
 
       current_field = Field(fields=schema.fields)
       path = column.path
@@ -657,10 +650,7 @@ class DatasetDuckDB(Dataset):
       # If the signal is vector-based, we don't need to select the actual data, just the uuids
       # plus an arbitrarily nested array of `None`s`.
       empty = bool(
-        column.signal_udf and
-        # We remove the last element of the path when checking the dtype because it's VALUE_KEY for
-        # signal transforms.
-        manifest.data_schema.get_field(path[:-1]).dtype == DataType.EMBEDDING)
+        column.signal_udf and manifest.data_schema.get_field(path).dtype == DataType.EMBEDDING)
 
       select_sqls: list[str] = []
       final_col_name = column.alias or _unique_alias(column)
@@ -747,6 +737,11 @@ class DatasetDuckDB(Dataset):
                      f'{cast(SortOrder, sort_order).value}')
 
     con = self.con.cursor()
+    print(f"""
+      SELECT {', '.join(select_queries)} FROM t
+      {where_query}
+      {order_query}
+    """)
     query = con.sql(f"""
       SELECT {', '.join(select_queries)} FROM t
       {where_query}
@@ -807,7 +802,7 @@ class DatasetDuckDB(Dataset):
                 task_step_id=task_step_id,
                 estimated_len=len(flat_keys),
                 step_description=f'Computing {signal.key()}...')
-            df[signal_column] = itemize_primitives(unflatten(signal_out, input))
+            df[signal_column] = unflatten(signal_out, input)
         else:
           num_rich_data = count_primitives(input)
           flat_input = cast(Iterable[RichData], flatten(input))
@@ -834,7 +829,7 @@ class DatasetDuckDB(Dataset):
               f"{num_rich_data} values. This means the signal either didn't generate a "
               '"None" for a sparse output, or generated too many items.')
 
-          df[signal_column] = itemize_primitives(unflatten(signal_out, input))
+          df[signal_column] = unflatten(signal_out, input)
 
     if udf_filters or sort_cols_after_udf:
       # Re-upload the udf outputs to duckdb so we can filter/sort on them.
@@ -864,6 +859,7 @@ class DatasetDuckDB(Dataset):
     for offset_column, _ in temp_column_to_offset_column.values():
       del df[offset_column]
 
+    print(df)
     for final_col_name, temp_columns in columns_to_merge.items():
       for temp_col_name, column in temp_columns.items():
         if combine_columns:
@@ -879,7 +875,13 @@ class DatasetDuckDB(Dataset):
         if final_col_name not in df:
           df[final_col_name] = df[temp_col_name]
         else:
+          print('-----------------', temp_col_name, '------------------')
+          print(df[temp_col_name])
+          print('>>>>>>>>>>>>>>')
+          print(df[final_col_name])
+          print('===============')
           df[final_col_name] = merge_values(df[final_col_name], df[temp_col_name])
+          print(df[final_col_name])
         del df[temp_col_name]
 
     con.close()
@@ -1271,25 +1273,35 @@ def _merge_cells(dest_cell: Item, source_cell: Item) -> None:
     # Nothing to merge here (missing value).
     return
   if isinstance(dest_cell, dict):
-    if not isinstance(source_cell, dict):
+    if isinstance(source_cell, list):
       raise ValueError(f'Failed to merge cells. Destination is a dict ({dest_cell!r}), '
-                       f'but source is not ({source_cell!r}).')
-    for key, value in source_cell.items():
-      if key not in dest_cell:
-        dest_cell[key] = value
-      else:
-        _merge_cells(dest_cell[key], value)
+                       f'but source is a list ({source_cell!r}).')
+    if isinstance(source_cell, dict):
+      for key, value in source_cell.items():
+        if key not in dest_cell:
+          dest_cell[key] = value
+        else:
+          _merge_cells(dest_cell[key], value)
+    else:
+      dest_cell[VALUE_KEY] = source_cell
   elif isinstance(dest_cell, list):
     if not isinstance(source_cell, list):
       raise ValueError('Failed to merge cells. Destination is a list, but source is not.')
     for dest_subcell, source_subcell in zip(dest_cell, source_cell):
       _merge_cells(dest_subcell, source_subcell)
   else:
-    # Primitives can be merged together if they are equal. This can happen if a user selects a
-    # column that is the child of another.
-    # NOTE: This can be removed if we fix https://github.com/lilacai/lilac/issues/166.
-    if source_cell != dest_cell:
-      raise ValueError(f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
+    # The destination is a primitive.
+    if isinstance(source_cell, list):
+      raise ValueError(f'Failed to merge cells. Destination is a primitive ({dest_cell!r}), '
+                       f'but source is a list ({source_cell!r}).')
+    if isinstance(source_cell, dict):
+      source_cell[VALUE_KEY] = dest_cell
+    else:
+      # Primitives can be merged together if they are equal. This can happen if a user selects a
+      # column that is the child of another.
+      # NOTE: This can be removed if we fix https://github.com/lilacai/lilac/issues/166.
+      if source_cell != dest_cell:
+        raise ValueError(f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
 
 
 def merge_values(destination: pd.Series, source: pd.Series) -> pd.Series:

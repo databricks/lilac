@@ -424,7 +424,7 @@ def _schema_to_arrow_schema_impl(schema: Union[Schema, Field]) -> Union[pa.Schem
       # Top-level schemas do not have __value__ fields.
       return pa.schema(arrow_fields)
     else:
-      # When nodes have a dtype, they have a value so we add __value__ alongside the fields.
+      # When nodes have both dtype and children, we add __value__ alongside the fields.
       if schema.dtype:
         arrow_fields[VALUE_KEY] = dtype_to_arrow_schema(schema.dtype)
       return pa.struct(arrow_fields)
@@ -433,8 +433,7 @@ def _schema_to_arrow_schema_impl(schema: Union[Schema, Field]) -> Union[pa.Schem
   if field.repeated_field:
     return pa.list_(_schema_to_arrow_schema_impl(field.repeated_field))
 
-  # Wrap nodes with a dtype with __value__ so there is space to store extra metadata.
-  return pa_value(dtype_to_arrow_schema(cast(DataType, field.dtype)))
+  return dtype_to_arrow_schema(cast(DataType, field.dtype))
 
 
 def arrow_dtype_to_dtype(arrow_dtype: pa.DataType) -> DataType:

@@ -5,7 +5,7 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Any, Callable, Generator, Iterator, Optional, Sequence, TypeVar, Union, cast
+from typing import Any, Callable, Generator, Iterator, Sequence, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -297,19 +297,10 @@ def read_embedding_index(index_path: str) -> EmbeddingIndex:
   return EmbeddingIndex(path=index_path, keys=index_keys, embeddings=embeddings)
 
 
-def write_items_to_parquet(items: Iterable[Item],
-                           output_dir: str,
-                           schema: Schema,
-                           filename_prefix: str,
-                           shard_index: int,
-                           num_shards: int,
-                           dont_wrap_primitives: Optional[bool] = False) -> tuple[str, int]:
+def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schema,
+                           filename_prefix: str, shard_index: int,
+                           num_shards: int) -> tuple[str, int]:
   """Write a set of items to a parquet file, in columnar format."""
-  if not dont_wrap_primitives:
-    # NOTE: This is just an optimization since sometimes we know values are already wrapped (e.g.
-    # when are the output of a signal udf).
-    items = (cast(Item, itemize_primitives(item)) for item in items)
-
   arrow_schema = schema_to_arrow_schema(schema)
   out_filename = parquet_filename(filename_prefix, shard_index, num_shards)
   filepath = os.path.join(output_dir, out_filename)

@@ -82,7 +82,7 @@ def make_dataset(dataset_cls: Type[Dataset],
                  schema: Optional[Schema] = None) -> Dataset:
   """Create a test dataset."""
   schema = schema or _infer_schema(items)
-  _write_items(tmp_path, TEST_DATASET_NAME, cast(list, itemize_primitives(items)), schema)
+  _write_items(tmp_path, TEST_DATASET_NAME, items, schema)
   return dataset_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
 
 
