@@ -58,10 +58,10 @@
     >
   </div>
 
-  <Tabs>
-    <Tab label="Schema" />
-    <Tab label="Tree View" />
-    <Tab label="Raw Query" />
+  <Tabs class="overflow-hidden">
+    <Tab label="Schema" class="w-1/3" />
+    <Tab label="Tree View" class="w-1/3" />
+    <Tab label="Raw Query" class="w-1/3" />
     <div class="h-full overflow-y-auto" slot="content">
       <TabContent>
         {#if $selectRowsSchema?.isLoading}

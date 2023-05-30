@@ -119,7 +119,7 @@
         >
       {/if}
     </div>
-    <div class="grow truncate whitespace-nowrap text-gray-900">
+    <div class="grow truncate whitespace-nowrap pr-2 text-gray-900" title={fieldName}>
       {fieldName}
     </div>
     {#if isSortedBy}
@@ -161,12 +161,12 @@
       </RemovableTag>
     {/if}
     {#if signalRoot && udfColumn}
-      <Tag type="green">Signal Preview</Tag>
+      <Tag type="green" class="whitespace-nowrap">Signal Preview</Tag>
     {:else if signalRoot}
-      <Tag type="blue">Signal</Tag>
+      <Tag type="blue" class="whitespace-nowrap">Signal</Tag>
     {/if}
     {#if field?.dtype}
-      <div class="w-24 pr-2 text-right">{field.dtype}{isRepeatedField ? '[]' : ''}</div>
+      <div class="w-24 px-2 text-right">{field.dtype}{isRepeatedField ? '[]' : ''}</div>
     {/if}
     <div>
       <OverflowMenu light flipped>

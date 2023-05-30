@@ -12,10 +12,10 @@
 </script>
 
 <div class="flex h-full w-full">
-  <div class=" h-full w-1/2 border-r border-gray-200">
+  <div class=" h-full w-1/3 border-r border-gray-200">
     <SchemaView />
   </div>
-  <div class="h-full w-1/2">
+  <div class="h-full w-2/3">
     <RowView />
   </div>
 </div>

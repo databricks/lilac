@@ -27,7 +27,7 @@
       </div>
     </div>
 
-    <div class="h-full overflow-y-scroll">
+    <div class="h-full overflow-y-hidden">
       <slot />
     </div>
   </main>
