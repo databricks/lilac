@@ -9,7 +9,7 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from .data.dataset_duckdb import read_source_manifest
-from .data.dataset_utils import itemize_primitives, parquet_filename
+from .data.dataset_utils import parquet_filename
 from .data.sources.source import Source, SourceSchema
 from .data_loader import process_source
 from .schema import PARQUET_FILENAME_PREFIX, UUID_COLUMN, Item, SourceManifest, schema
@@ -63,7 +63,7 @@ def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
 
   items = read_items(output_dir, source_manifest.files, source_manifest.data_schema)
 
-  assert items == itemize_primitives([{
+  assert items == [{
     UUID_COLUMN: fake_uuid(b'1').hex,
     'x': 1,
     'y': 'ten'
@@ -71,4 +71,4 @@ def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
     UUID_COLUMN: fake_uuid(b'2').hex,
     'x': 2,
     'y': 'twenty'
-  }])
+  }]
