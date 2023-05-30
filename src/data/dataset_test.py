@@ -10,7 +10,6 @@ from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schem
 from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset import Column, DatasetManifest, val
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, expected_item
-from .dataset_utils import itemize_primitives
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -588,7 +587,7 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
 
   # Sub-select text and test_signal.
   result = dataset.select_rows(['text', ('extra', 'text', 'test_signal')], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'text': 'hello',
     'extra': {
@@ -610,11 +609,11 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
         }
       }
     }
-  }])
+  }]
 
   # Sub-select text and length_signal.
   result = dataset.select_rows(['text', ('extra', 'text', 'length_signal')], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'text': 'hello',
     'extra': {
@@ -630,11 +629,11 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
         'length_signal': 9
       }
     }
-  }])
+  }]
 
   # Sub-select length_signal only.
   result = dataset.select_rows([('extra', 'text', 'length_signal')], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'extra': {
       'text': {
@@ -648,12 +647,12 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
         'length_signal': 9
       }
     }
-  }])
+  }]
 
   # Aliases are ignored when combing columns.
   len_col = Column(('extra', 'text', 'length_signal'), alias='hello')
   result = dataset.select_rows([len_col], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'extra': {
       'text': {
@@ -667,18 +666,18 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
         'length_signal': 9
       }
     }
-  }])
+  }]
 
   # Works with UDFs and aliases are ignored.
   udf_col = Column('text', alias='ignored', signal_udf=LengthSignal())
   result = dataset.select_rows(['text', udf_col], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'text': expected_item('hello', {'length_signal': 5})
   }, {
     UUID_COLUMN: '2',
     'text': expected_item('everybody', {'length_signal': 9})
-  }])
+  }]
 
 
 def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -> None:
@@ -722,7 +721,7 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
   # Select both columns, without val() on str.
   result = dataset.select_rows(['str', Column(('str', 'test_signal'), alias='test_signal_on_str')])
 
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'str': expected_item('a', {'test_signal': {
       'len': 1,
@@ -752,7 +751,7 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
       'len': 1,
       'flen': 1.0
     }
-  }])
+  }]
 
   # Select both columns, with val() on str.
   result = dataset.select_rows(
@@ -762,22 +761,22 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
     UUID_COLUMN: '1',
     f'str.{VALUE_KEY}': 'a',
     'test_signal_on_str': {
-      'len': expected_item(1),
-      'flen': expected_item(1.0)
+      'len': 1,
+      'flen': 1.0
     }
   }, {
     UUID_COLUMN: '2',
     f'str.{VALUE_KEY}': 'b',
     'test_signal_on_str': {
-      'len': expected_item(1),
-      'flen': expected_item(1.0)
+      'len': 1,
+      'flen': 1.0
     }
   }, {
     UUID_COLUMN: '3',
     f'str.{VALUE_KEY}': 'b',
     'test_signal_on_str': {
-      'len': expected_item(1),
-      'flen': expected_item(1.0)
+      'len': 1,
+      'flen': 1.0
     }
   }]
 

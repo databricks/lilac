@@ -392,7 +392,12 @@ def dtype_to_arrow_schema(dtype: DataType) -> Union[pa.Schema, pa.DataType]:
     # can set this dtype to the relevant pyarrow type.
     return pa.null()
   elif dtype == DataType.STRING_SPAN:
-    return pa.struct({TEXT_SPAN_START_FEATURE: pa.int32(), TEXT_SPAN_END_FEATURE: pa.int32()})
+    return pa.struct({
+      VALUE_KEY: pa.struct({
+        TEXT_SPAN_START_FEATURE: pa.int32(),
+        TEXT_SPAN_END_FEATURE: pa.int32()
+      })
+    })
   else:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
 
@@ -426,7 +431,11 @@ def _schema_to_arrow_schema_impl(schema: Union[Schema, Field]) -> Union[pa.Schem
     else:
       # When nodes have both dtype and children, we add __value__ alongside the fields.
       if schema.dtype:
-        arrow_fields[VALUE_KEY] = dtype_to_arrow_schema(schema.dtype)
+        value_schema = dtype_to_arrow_schema(schema.dtype)
+        if schema.dtype == DataType.STRING_SPAN:
+          value_schema = value_schema[VALUE_KEY].type
+        arrow_fields[VALUE_KEY] = value_schema
+
       return pa.struct(arrow_fields)
 
   field = cast(Field, schema)

@@ -408,6 +408,8 @@ class DatasetDuckDB(Dataset):
         else:
           raise ValueError(f'Unable to filter on path {filter.path}. '
                            f'Path part "{path_part}" is not defined on a primitive value.')
+      if not current_field.dtype:
+        raise ValueError(f'Unable to filter on path {filter.path}. The field has no value.')
 
   def _validate_columns(self, columns: Sequence[Column], schema: Schema) -> None:
     for column in columns:
@@ -477,6 +479,8 @@ class DatasetDuckDB(Dataset):
       elif not current_field.dtype:
         raise ValueError(f'Unable to sort by path {path}. '
                          f'Path part "{path_part}" is not defined on a primitive value.')
+    if not current_field.dtype:
+      raise ValueError(f'Unable to sort by path {path}. The field has no value.')
 
   @override
   def stats(self, leaf_path: Path) -> StatsResult:
@@ -578,9 +582,7 @@ class DatasetDuckDB(Dataset):
     value_column = 'value'
 
     limit_query = f'LIMIT {limit}' if limit else ''
-    # Select the actual value from the node.
-    value_path = _make_value_path(path)
-    inner_select = _select_sql(value_path, flatten=True, unnest=True)
+    inner_select = _select_sql(path, flatten=True, unnest=True)
     query = f"""
       SELECT {outer_select} AS {value_column}, COUNT() AS {count_column}
       FROM (SELECT {inner_select} AS {inner_val} FROM t)
@@ -657,7 +659,7 @@ class DatasetDuckDB(Dataset):
       if final_col_name not in columns_to_merge:
         columns_to_merge[final_col_name] = {}
 
-      duckdb_paths = self._column_to_duckdb_paths(column, combine_columns)
+      duckdb_paths = self._column_to_duckdb_paths(column)
       span_from = self._get_span_from(path) if resolve_span or column.signal_udf else None
 
       for parquet_id, duckdb_path in duckdb_paths:
@@ -700,7 +702,6 @@ class DatasetDuckDB(Dataset):
 
     for path in sort_by:
       # We only allow sorting by nodes with a value.
-      path = _make_value_path(path)
       first_subpath = str(path[0])
       rest_of_path = path[1:]
       udf_path = udf_aliases.get(first_subpath)
@@ -816,7 +817,7 @@ class DatasetDuckDB(Dataset):
             nested_spans: Iterable[Item] = df[offset_column_name]
             flat_spans = list(flatten(nested_spans))
             for span, item in zip(flat_spans, signal_out):
-              _offset_any_span(cast(int, span['start']), item, schema)
+              _offset_any_span(cast(int, span[VALUE_KEY][TEXT_SPAN_START_FEATURE]), item, schema)
 
           if len(signal_out) != num_rich_data:
             raise ValueError(
@@ -947,11 +948,10 @@ class DatasetDuckDB(Dataset):
     return _derived_from_path(path, manifest.data_schema) if is_span else None
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple) -> PathTuple:
-    ((_, duckdb_path),) = self._column_to_duckdb_paths(Column(leaf_path), combine_columns=False)
+    ((_, duckdb_path),) = self._column_to_duckdb_paths(Column(leaf_path))
     return duckdb_path
 
-  def _column_to_duckdb_paths(self, column: Column,
-                              combine_columns: bool) -> list[tuple[str, PathTuple]]:
+  def _column_to_duckdb_paths(self, column: Column) -> list[tuple[str, PathTuple]]:
     path = column.path
     parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
       self._source_manifest, *self._signal_manifests
@@ -1011,9 +1011,6 @@ class DatasetDuckDB(Dataset):
           raise ValueError(f'Invalid filter: {filter}. Must be a tuple with 2 or 3 elements.')
         filter = Filter(path=normalize_path(path), op=op, value=value)
 
-      # We only allow filtering by nodes with a value.
-      filter.path = _make_value_path(filter.path)
-
       if str(filter.path[0]) in udf_aliases:
         udf_filters.append(filter)
       else:
@@ -1040,9 +1037,6 @@ class DatasetDuckDB(Dataset):
       if field.dtype != DataType.STRING:
         raise ValueError(f'Invalid search path: {search.path}. '
                          f'Must be a string field, got dtype {field.dtype}')
-
-      search.path = _make_value_path(search.path)
-
       searches.append(search)
 
     return searches
@@ -1164,8 +1158,8 @@ def _inner_select(sub_paths: list[PathTuple],
   if len(sub_paths) == 1:
     if span_from:
       derived_col = _select_sql(span_from, flatten=False, unnest=False)
-      path_key = (f'{derived_col}[{path_key}.{TEXT_SPAN_START_FEATURE}+1:'
-                  f'{path_key}.{TEXT_SPAN_END_FEATURE}]')
+      path_key = (f'{derived_col}[{path_key}.{VALUE_KEY}.{TEXT_SPAN_START_FEATURE}+1:'
+                  f'{path_key}.{VALUE_KEY}.{TEXT_SPAN_END_FEATURE}]')
     return 'NULL' if empty else path_key
   return (f'list_transform({path_key}, {lambda_var} -> '
           f'{_inner_select(sub_paths[1:], lambda_var, empty, span_from)})')
@@ -1355,7 +1349,7 @@ def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:
     sub_path = path[:i]
     if schema.get_field(sub_path).signal is not None:
       # Skip the signal name at the end to get the source path that was enriched.
-      return _make_value_path(sub_path[:-1])
+      return sub_path[:-1]
   raise ValueError('Cannot find the source path for the enriched path: {path}')
 
 
@@ -1389,8 +1383,8 @@ def _offset_any_span(offset: int, item: Item, schema: Field) -> None:
   """Offsets any spans inplace by the given parent offset."""
   if schema.dtype == DataType.STRING_SPAN:
     item = cast(dict, item)
-    item[VALUE_KEY]['start'] += offset
-    item[VALUE_KEY]['end'] += offset
+    item[VALUE_KEY][TEXT_SPAN_START_FEATURE] += offset
+    item[VALUE_KEY][TEXT_SPAN_END_FEATURE] += offset
   if schema.fields:
     item = cast(dict, item)
     for key, sub_schema in schema.fields.items():

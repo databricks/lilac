@@ -290,15 +290,15 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'str.{VALUE_KEY}': 'a',
-    'str.test_signal.flen': expected_item(1.0)
+    'str.test_signal.flen': 1.0
   }, {
     UUID_COLUMN: '2',
     f'str.{VALUE_KEY}': 'b',
-    'str.test_signal.flen': expected_item(1.0)
+    'str.test_signal.flen': 1.0
   }, {
     UUID_COLUMN: '3',
     f'str.{VALUE_KEY}': 'b',
-    'str.test_signal.flen': expected_item(1.0)
+    'str.test_signal.flen': 1.0
   }]
 
   # Select a specific signal leaf test_signal.flen and the whole 'str' subtree.
@@ -310,21 +310,21 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
       'len': 1,
       'flen': 1.0
     }}),
-    'str.test_signal.flen': expected_item(1.0)
+    'str.test_signal.flen': 1.0
   }, {
     UUID_COLUMN: '2',
     'str': expected_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
-    'str.test_signal.flen': expected_item(1.0)
+    'str.test_signal.flen': 1.0
   }, {
     UUID_COLUMN: '3',
     'str': expected_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
-    'str.test_signal.flen': expected_item(1.0)
+    'str.test_signal.flen': 1.0
   }]
 
   # Select multiple signal leafs with aliasing.
@@ -337,18 +337,18 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'str.{VALUE_KEY}': 'a',
-    'flen': expected_item(1.0),
-    'len': expected_item(1)
+    'flen': 1.0,
+    'len': 1
   }, {
     UUID_COLUMN: '2',
     f'str.{VALUE_KEY}': 'b',
-    'flen': expected_item(1.0),
-    'len': expected_item(1)
+    'flen': 1.0,
+    'len': 1
   }, {
     UUID_COLUMN: '3',
     f'str.{VALUE_KEY}': 'b',
-    'flen': expected_item(1.0),
-    'len': expected_item(1)
+    'flen': 1.0,
+    'len': 1
   }]
 
 
@@ -553,9 +553,9 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
   # Embeddings are replaced with "None".
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello.', {'test_embedding': expected_item(None, allow_none_value=True)})
+    'text': expected_item('hello.', {'test_embedding': None})
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('hello2.', {'test_embedding': expected_item(None, allow_none_value=True)})
+    'text': expected_item('hello2.', {'test_embedding': None})
   }]
   assert list(result) == expected_result

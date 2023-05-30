@@ -100,17 +100,6 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
 
 
 def expected_item(value: Optional[Item] = None,
-                  metadata: Optional[dict[str, Union[Item, Item]]] = None,
-                  allow_none_value: Optional[bool] = False) -> Item:
+                  metadata: Optional[dict[str, Union[Item, Item]]] = None) -> Item:
   """Wrap a value in a dict with the value key."""
-  out_item: Item = {}
-  if value is not None or allow_none_value:
-    if isinstance(value, dict):
-      if list(value.keys()) != [VALUE_KEY]:
-        raise ValueError(f'Value dict must have only one key, {VALUE_KEY}, but got {value.keys()}')
-      out_item[VALUE_KEY] = value[VALUE_KEY]
-    else:
-      out_item[VALUE_KEY] = value
-  if metadata:
-    out_item.update(cast(dict, metadata))
-  return out_item
+  return {VALUE_KEY: value, **(metadata or {})}

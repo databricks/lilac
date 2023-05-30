@@ -59,32 +59,9 @@ def replace_embeddings_with_none(input: Union[Item, Item]) -> Item:
   return cast(Item, _replace_embeddings_with_none(input))
 
 
-def itemize_primitives(input: Union[Item, Item, list[Item]]) -> Union[Item, Item]:
-  """Wraps primitives values recursively on an item, or item value, or items.
-
-  This creates {__value__: primitive} for every primitive recursively.
-
-  If a primitive has already been wrapped, it is left untouched.
-  """
-  if isinstance(input, dict):
-    # Wrap all the values of the dictionary in {__value__: value} if it is not already wrapped and
-    # it is not a UUID.
-    return {
-      k: itemize_primitives(v) if k not in (VALUE_KEY, UUID_COLUMN) else v
-      for k, v in input.items()
-    }
-  elif isinstance(input, list):
-    return [itemize_primitives(v) for v in input]
-
-  if input is None:
-    # We don't wrap None values with value key to keep sparsity.
-    return None
-  return {VALUE_KEY: input}
-
-
-def lilac_span(start: int, end: int) -> Item:
+def lilac_span(start: int, end: int, metadata: dict[str, Any] = {}) -> Item:
   """Creates a lilac span item, representing a pointer to a slice of text."""
-  return {VALUE_KEY: {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}}
+  return {VALUE_KEY: {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}, **metadata}
 
 
 Tflatten = TypeVar('Tflatten', object, np.ndarray)
@@ -255,7 +232,7 @@ def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[obje
   embedding_vectors: list[np.ndarray] = []
   for embedding_vector in flatten(embeddings, is_primitive_predicate=embedding_predicate):
     # We use squeeze here because embedding functions can return outer dimensions of 1.
-    embedding_vector = embedding_vector[VALUE_KEY].squeeze()
+    embedding_vector = embedding_vector.squeeze()
     if embedding_vector.ndim != 1:
       raise ValueError(f'Expected embeddings to be 1-dimensional, got {embedding_vector.ndim} '
                        f'with shape {embedding_vector.shape}.')
