@@ -948,6 +948,7 @@ class DatasetDuckDB(Dataset):
     return _derived_from_path(path, manifest.data_schema) if is_span else None
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple) -> PathTuple:
+    leaf_path = _make_value_path(leaf_path)
     ((_, duckdb_path),) = self._column_to_duckdb_paths(Column(leaf_path))
     return duckdb_path
 
