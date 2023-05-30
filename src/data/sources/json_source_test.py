@@ -3,8 +3,8 @@ import json
 import os
 import pathlib
 
-from ...schema import UUID_COLUMN, schema
-from .json_source import JSONDataset
+from ...schema import schema
+from .json_source import ROW_ID_COLUMN, JSONDataset
 from .source import SourceSchema
 
 
@@ -22,7 +22,7 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
     fields=schema({
-      UUID_COLUMN: 'string',
+      ROW_ID_COLUMN: 'int64',
       'x': 'int64',
       'y': 'string'
     }).fields, num_items=2)
@@ -30,11 +30,11 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
   items = list(source.process())
 
   assert items == [{
-    UUID_COLUMN: '0',
+    ROW_ID_COLUMN: 0,
     'x': 1,
     'y': 'ten'
   }, {
-    UUID_COLUMN: '1',
+    ROW_ID_COLUMN: 1,
     'x': 2,
     'y': 'twenty'
   }]
@@ -56,7 +56,7 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
 
   assert source_schema == SourceSchema(
     fields=schema({
-      UUID_COLUMN: 'string',
+      ROW_ID_COLUMN: 'int64',
       'x': 'int64',
       'y': 'string'
     }).fields, num_items=2)
@@ -64,11 +64,11 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
   items = list(source.process())
 
   assert items == [{
-    UUID_COLUMN: '0',
+    ROW_ID_COLUMN: 0,
     'x': 1,
     'y': 'ten'
   }, {
-    UUID_COLUMN: '1',
+    ROW_ID_COLUMN: 1,
     'x': 2,
     'y': 'twenty'
   }]

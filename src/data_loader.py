@@ -8,22 +8,36 @@ poetry run python -m src.data_loader \
   --config_path=./datasets/the_movies_dataset.json
 """
 import json
+import math
 import os
-from typing import Iterable, Optional, cast
+import pathlib
+import uuid
+from typing import Iterable, Optional, Union, cast
 
 import click
+import pandas as pd
 from distributed import Client
 
 from .data.dataset_utils import write_items_to_parquet
 from .data.sources.default_sources import register_default_sources
 from .data.sources.source import Source
 from .data.sources.source_registry import resolve_source
-from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, Item, Schema, SourceManifest
+from .schema import (
+  MANIFEST_FILENAME,
+  PARQUET_FILENAME_PREFIX,
+  UUID_COLUMN,
+  DataType,
+  Field,
+  Item,
+  Schema,
+  SourceManifest,
+  field,
+)
 from .tasks import TaskStepId, progress
 from .utils import get_dataset_output_dir, log, open_file
 
 
-def process_source(base_dir: str,
+def process_source(base_dir: Union[str, pathlib.Path],
                    namespace: str,
                    dataset_name: str,
                    source: Source,
@@ -34,6 +48,9 @@ def process_source(base_dir: str,
   source.prepare()
   source_schema = source.source_schema()
   items = source.process()
+
+  # Add UUIDs and fix NaN in string columns.
+  items = normalize_items(items, source_schema.fields)
 
   # Add progress.
   if task_step_id is not None:
@@ -46,7 +63,7 @@ def process_source(base_dir: str,
   # Filter out the `None`s after progress.
   items = cast(Iterable[Item], (item for item in items if item is not None))
 
-  data_schema = Schema(fields=source_schema.fields)
+  data_schema = Schema(fields={**source_schema.fields, UUID_COLUMN: field('string')})
   filepath, num_items = write_items_to_parquet(
     items=items,
     output_dir=output_dir,
@@ -62,6 +79,39 @@ def process_source(base_dir: str,
   log(f'Manifest for dataset "{dataset_name}" written to {output_dir}')
 
   return output_dir, num_items
+
+
+def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
+  """Sanitize items by removing NaNs and NaTs."""
+  string_fields = {name: field for name, field in fields.items() if field.dtype == DataType.STRING}
+  timestamp_fields = {
+    name: field for name, field in fields.items() if field.dtype == DataType.TIMESTAMP
+  }
+  for item in items:
+    if item is None:
+      yield item
+      continue
+
+    # Add row uuid if it doesn't exist.
+    if UUID_COLUMN not in item:
+      item[UUID_COLUMN] = uuid.uuid4().hex
+
+    # Fix NaN string fields.
+    for name in string_fields.keys():
+      item_value = item[name]
+      if not isinstance(item_value, str):
+        if math.isnan(item_value):
+          item[name] = None
+        else:
+          item[name] = str(item_value)
+
+    # Fix NaT (not a time) timestamp fields.
+    for name in timestamp_fields.keys():
+      item_value = item[name]
+      if pd.isnull(item_value):
+        item[name] = None
+
+    yield item
 
 
 @click.command()

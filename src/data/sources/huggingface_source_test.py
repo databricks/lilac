@@ -5,7 +5,7 @@ import pathlib
 # mypy: disable-error-code="attr-defined"
 from datasets import Dataset, Features, Sequence, Value
 
-from ...schema import UUID_COLUMN, schema
+from ...schema import schema
 from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceDataset
 from .source import SourceSchema
 
@@ -24,22 +24,18 @@ def test_hf(tmp_path: pathlib.Path) -> None:
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
     fields=schema({
-      UUID_COLUMN: 'string',
       HF_SPLIT_COLUMN: 'string',
       'x': 'int64',
       'y': 'string'
-    }).fields,
-    num_items=2)
+    }).fields, num_items=2)
 
   items = list(source.process())
 
   assert items == [{
-    UUID_COLUMN: '0',
     HF_SPLIT_COLUMN: 'default',
     'x': 1,
     'y': 'ten'
   }, {
-    UUID_COLUMN: '1',
     HF_SPLIT_COLUMN: 'default',
     'x': 2,
     'y': 'twenty'
@@ -82,7 +78,6 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
     fields=schema({
-      UUID_COLUMN: 'string',
       HF_SPLIT_COLUMN: 'string',
       'scalar': 'int64',
       'seq': ['int64'],
@@ -96,7 +91,6 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
   items = list(source.process())
 
   assert items == [{
-    UUID_COLUMN: '0',
     HF_SPLIT_COLUMN: 'default',
     'scalar': 1,
     'seq': [1, 0],
@@ -105,7 +99,6 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
       'y': ['four', 'five', 'six']
     }
   }, {
-    UUID_COLUMN: '1',
     HF_SPLIT_COLUMN: 'default',
     'scalar': 2,
     'seq': [2, 0],

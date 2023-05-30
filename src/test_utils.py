@@ -2,6 +2,7 @@
 
 import os
 import pathlib
+import uuid
 from typing import Union
 
 import pyarrow.parquet as pq
@@ -18,3 +19,8 @@ def read_items(data_dir: Union[str, pathlib.Path], filepaths: list[str],
       pq.read_table(os.path.join(data_dir, filepath),
                     schema=schema_to_arrow_schema(schema)).to_pylist())
   return items
+
+
+def fake_uuid(id: bytes) -> uuid.UUID:
+  """Create a test UUID."""
+  return uuid.UUID((id * 16).hex())

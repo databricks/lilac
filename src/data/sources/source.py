@@ -3,9 +3,20 @@
 import abc
 from typing import ClassVar, Iterable, Optional
 
+import numpy as np
+import pandas as pd
+import pyarrow as pa
 from pydantic import BaseModel, validator
 
-from ...schema import Field, ImageInfo, Item, Schema
+from ...schema import (
+  Field,
+  ImageInfo,
+  Item,
+  Schema,
+  arrow_dtype_to_dtype,
+  arrow_schema_to_schema,
+  field,
+)
 
 
 class SourceSchema(BaseModel):
@@ -75,3 +86,18 @@ class Source(abc.ABC, BaseModel):
         progress of the task.
     """
     pass
+
+
+def schema_from_df(df: pd.DataFrame, index_colname: str) -> SourceSchema:
+  """Create a source schema from a dataframe."""
+  index_np_dtype = df.index.dtype
+  # String index dtypes are stored as objects.
+  if index_np_dtype == np.dtype(object):
+    index_np_dtype = np.dtype(str)
+  index_dtype = arrow_dtype_to_dtype(pa.from_numpy_dtype(index_np_dtype))
+
+  schema = arrow_schema_to_schema(pa.Schema.from_pandas(df, preserve_index=False))
+  return SourceSchema(
+    fields={
+      **schema.fields, index_colname: field(dtype=index_dtype)
+    }, num_items=len(df))

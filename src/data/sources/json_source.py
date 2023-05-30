@@ -2,14 +2,16 @@
 from typing import Iterable
 
 import duckdb
+import pandas as pd
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ...schema import Item
 from ...utils import download_http_files
 from ..duckdb_utils import duckdb_gcs_setup
-from .pandas_source import PandasDataset
-from .source import Source, SourceSchema
+from .source import Source, SourceSchema, schema_from_df
+
+ROW_ID_COLUMN = '__row_id__'
 
 
 class JSONDataset(Source):
@@ -24,7 +26,7 @@ class JSONDataset(Source):
   filepaths: list[str] = PydanticField(description='A list of filepaths to JSON files.')
 
   _source_schema: SourceSchema
-  _pd_source: PandasDataset
+  _df: pd.DataFrame
 
   @override
   def prepare(self) -> None:
@@ -37,7 +39,7 @@ class JSONDataset(Source):
     s3_filepaths = [path.replace('gs://', 's3://') for path in filepaths]
 
     # NOTE: We use duckdb here to increase parallelism for multiple files.
-    df = con.execute(f"""
+    self._df = con.execute(f"""
       {duckdb_gcs_setup(con)}
       SELECT * FROM read_json_auto(
         {s3_filepaths},
@@ -45,15 +47,19 @@ class JSONDataset(Source):
       )
     """).df()
 
-    self._pd_source = PandasDataset(df=df)
-    self._pd_source.prepare()
+    # Create the source schema in prepare to share it between process and source_schema.
+    self._source_schema = schema_from_df(self._df, ROW_ID_COLUMN)
 
   @override
   def source_schema(self) -> SourceSchema:
     """Return the source schema."""
-    return self._pd_source.source_schema()
+    return self._source_schema
 
   @override
   def process(self) -> Iterable[Item]:
     """Process the source upload request."""
-    return self._pd_source.process()
+    cols = self._df.columns.tolist()
+    yield from ({
+      ROW_ID_COLUMN: idx,
+      **dict(zip(cols, item_vals)),
+    } for idx, *item_vals in self._df.itertuples())

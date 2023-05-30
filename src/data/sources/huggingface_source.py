@@ -10,8 +10,7 @@ from typing_extensions import override
 # mypy: disable-error-code="attr-defined"
 from datasets import ClassLabel, DatasetDict, Sequence, Value, load_dataset, load_from_disk
 
-from ...schema import UUID_COLUMN, DataType, Field, Item, arrow_dtype_to_dtype
-from .pandas_source import PandasDataset
+from ...schema import DataType, Field, Item, arrow_dtype_to_dtype
 from .source import Source, SourceSchema
 
 HF_SPLIT_COLUMN = '__hfsplit__'
@@ -80,8 +79,6 @@ def hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> S
 
   # Add the split column to the schema.
   fields[HF_SPLIT_COLUMN] = Field(dtype=DataType.STRING)
-  # Add UUID to the Schema.
-  fields[UUID_COLUMN] = Field(dtype=DataType.STRING)
 
   return SchemaInfo(fields=fields, class_labels=class_labels, num_items=num_items)
 
@@ -136,10 +133,7 @@ class HuggingFaceDataset(Source):
     for split_name in split_names:
       split_dataset = self._dataset_dict[split_name]
 
-      pd_dataset = PandasDataset(split_dataset.to_pandas())
-      pd_dataset.prepare()
-
-      for example in pd_dataset.process():
+      for example in split_dataset:
         # Replace the class labels with strings.
         for feature_name in self._schema_info.class_labels.keys():
           if feature_name in example:
@@ -148,10 +142,6 @@ class HuggingFaceDataset(Source):
 
         # Inject the split name.
         example[HF_SPLIT_COLUMN] = split_name
-
-        # If there are multiple splits, change the key to prefix with the split to avoid collisions.
-        if len(split_names) > 1:
-          example[UUID_COLUMN] = f'{split_name}-{example[UUID_COLUMN]}'
 
         # Huggingface Sequences are represented as np.arrays. Convert them to lists.
         example = _np_array_to_list_deep(example)

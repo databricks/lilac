@@ -129,7 +129,7 @@ class TaskManager():
 
   def task_id(self, name: str, description: Optional[str] = None) -> TaskId:
     """Create a unique ID for a task."""
-    task_id = uuid.uuid4().bytes.hex()
+    task_id = uuid.uuid4().hex
     self._tasks[task_id] = TaskInfo(
       name=name,
       status=TaskStatus.PENDING,

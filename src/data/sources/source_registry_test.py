@@ -4,7 +4,8 @@ from typing import Iterable, cast
 import pytest
 from typing_extensions import override
 
-from .source import Source, SourceProcessResult, SourceSchema
+from ...schema import Item
+from .source import Source, SourceSchema
 from .source_registry import clear_source_registry, get_source_cls, register_source, resolve_source
 
 
@@ -22,8 +23,8 @@ class TestSource(Source):
     return cast(SourceSchema, None)
 
   @override
-  def process(self) -> SourceProcessResult:
-    return cast(SourceProcessResult, None)
+  def process(self) -> Iterable[Item]:
+    yield None
 
 
 @pytest.fixture(scope='module', autouse=True)

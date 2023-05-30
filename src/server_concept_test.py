@@ -32,6 +32,7 @@ from .router_concept import (
 from .schema import Item, RichData, SignalInputType
 from .server import app
 from .signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
+from .test_utils import fake_uuid
 
 client = TestClient(app)
 
@@ -67,10 +68,6 @@ def setup_teardown() -> Iterable[None]:
 @pytest.fixture(scope='function', autouse=True)
 def setup_data_dir(tmp_path: Path, mocker: MockerFixture) -> None:
   mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
-
-
-def _uuid(id: bytes) -> uuid.UUID:
-  return uuid.UUID((id * 16).hex())
 
 
 def test_concept_create() -> None:
@@ -113,7 +110,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
       namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
 
   # Make sure we can add an example.
-  mock_uuid.return_value = _uuid(b'1')
+  mock_uuid.return_value = fake_uuid(b'1')
   url = '/api/v1/concepts/concept_namespace/concept'
   concept_update = ConceptUpdate(insert=[
     ExampleIn(
@@ -129,8 +126,8 @@ def test_concept_edits(mocker: MockerFixture) -> None:
     concept_name='concept',
     type='text',
     data={
-      _uuid(b'1').hex: Example(
-        id=_uuid(b'1').hex,
+      fake_uuid(b'1').hex: Example(
+        id=fake_uuid(b'1').hex,
         label=True,
         text='hello',
         origin=ExampleOrigin(
@@ -148,7 +145,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   ]
 
   # Add another example.
-  mock_uuid.return_value = _uuid(b'2')
+  mock_uuid.return_value = fake_uuid(b'2')
   url = '/api/v1/concepts/concept_namespace/concept'
   concept_update = ConceptUpdate(insert=[
     ExampleIn(
@@ -164,14 +161,14 @@ def test_concept_edits(mocker: MockerFixture) -> None:
     concept_name='concept',
     type='text',
     data={
-      _uuid(b'1').hex: Example(
-        id=_uuid(b'1').hex,
+      fake_uuid(b'1').hex: Example(
+        id=fake_uuid(b'1').hex,
         label=True,
         text='hello',
         origin=ExampleOrigin(
           dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1')),
-      _uuid(b'2').hex: Example(
-        id=_uuid(b'2').hex,
+      fake_uuid(b'2').hex: Example(
+        id=fake_uuid(b'2').hex,
         label=True,
         text='hello2',
         origin=ExampleOrigin(
@@ -183,9 +180,9 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   url = '/api/v1/concepts/concept_namespace/concept'
   concept_update = ConceptUpdate(update=[
     # Switch the label.
-    Example(id=_uuid(b'1').hex, label=False, text='hello'),
+    Example(id=fake_uuid(b'1').hex, label=False, text='hello'),
     # Switch the text.
-    Example(id=_uuid(b'2').hex, label=True, text='hello world'),
+    Example(id=fake_uuid(b'2').hex, label=True, text='hello world'),
   ])
   response = client.post(url, json=concept_update.dict())
   assert response.status_code == 200
@@ -194,21 +191,21 @@ def test_concept_edits(mocker: MockerFixture) -> None:
     concept_name='concept',
     type='text',
     data={
-      _uuid(b'1').hex: Example(id=_uuid(b'1').hex, label=False, text='hello'),
-      _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=True, text='hello world')
+      fake_uuid(b'1').hex: Example(id=fake_uuid(b'1').hex, label=False, text='hello'),
+      fake_uuid(b'2').hex: Example(id=fakeuuid(b'2').hex, label=True, text='hello world')
     },
     version=3)
 
   # Delete the first example.
   url = '/api/v1/concepts/concept_namespace/concept'
-  concept_update = ConceptUpdate(remove=[_uuid(b'1').hex])
+  concept_update = ConceptUpdate(remove=[fake_uuid(b'1').hex])
   response = client.post(url, json=concept_update.dict())
   assert response.status_code == 200
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
     type='text',
-    data={_uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=True, text='hello world')},
+    data={fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=True, text='hello world')},
     version=4)
 
   # The concept still exists.
@@ -232,7 +229,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
       namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
 
   # Add examples, some drafts.
-  mock_uuid.side_effect = [_uuid(b'1'), _uuid(b'2'), _uuid(b'3'), _uuid(b'4')]
+  mock_uuid.side_effect = [fake_uuid(b'1'), fake_uuid(b'2'), fake_uuid(b'3'), fake_uuid(b'4')]
   url = '/api/v1/concepts/concept_namespace/concept'
   concept_update = ConceptUpdate(insert=[
     ExampleIn(label=True, text='in concept'),
@@ -265,8 +262,8 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
     type='text',
     data={
       # Only main are returned.
-      _uuid(b'1').hex: Example(id=_uuid(b'1').hex, label=True, text='in concept'),
-      _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=False, text='out of concept')
+      fake_uuid(b'1').hex: Example(id=fake_uuid(b'1').hex, label=True, text='in concept'),
+      fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=False, text='out of concept')
     },
     version=1)
 
@@ -280,12 +277,12 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
     type='text',
     data={
       # b'1' is deduped with b'3'.
-      _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=False, text='out of concept'),
+      fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=False, text='out of concept'),
       # ID 3 is a duplicate of main's 1.
-      _uuid(b'3').hex: Example(
-        id=_uuid(b'3').hex, label=False, text='in concept', draft='test_draft'),
-      _uuid(b'4').hex: Example(
-        id=_uuid(b'4').hex, label=False, text='out of concept draft', draft='test_draft')
+      fake_uuid(b'3').hex: Example(
+        id=fake_uuid(b'3').hex, label=False, text='in concept', draft='test_draft'),
+      fake_uuid(b'4').hex: Example(
+        id=fake_uuid(b'4').hex, label=False, text='out of concept draft', draft='test_draft')
     },
     version=1)
 
@@ -305,10 +302,11 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
     type='text',
     data={
       # b'1' is deduped with b'3'.
-      _uuid(b'2').hex: Example(id=_uuid(b'2').hex, label=False, text='out of concept'),
+      fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=False, text='out of concept'),
       # ID 3 is a duplicate of main's 1.
-      _uuid(b'3').hex: Example(id=_uuid(b'3').hex, label=False, text='in concept'),
-      _uuid(b'4').hex: Example(id=_uuid(b'4').hex, label=False, text='out of concept draft')
+      fake_uuid(b'3').hex: Example(id=fake_uuid(b'3').hex, label=False, text='in concept'),
+      fake_uuid(b'4').hex: Example(
+        id=fake_uuid(b'4').hex, label=False, text='out of concept draft')
     },
     version=2).dict()
 
@@ -323,7 +321,7 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
       namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
 
   # Add two examples.
-  mock_uuid.side_effect = [_uuid(b'1'), _uuid(b'2')]
+  mock_uuid.side_effect = [fake_uuid(b'1'), fake_uuid(b'2')]
   url = '/api/v1/concepts/concept_namespace/concept'
   concept_update = ConceptUpdate(insert=[
     ExampleIn(
