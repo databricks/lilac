@@ -174,22 +174,20 @@
   }
 </script>
 
-<div class="relative mb-4 leading-5">
+<div class="relative leading-5">
+  {text}
   <div class="absolute top-0 w-full">
     {#each filledSearchSpans as span}
       <span
         use:tooltip
         role="button"
         tabindex="0"
-        class="inline-block border-black text-transparent"
+        class="relative border-black text-transparent"
         class:border-b-2={span.show}
       >
         {text.slice(span.start, span.end)}
       </span>
     {/each}
-  </div>
-  <div class="absolute top-0 w-full">
-    {text}
   </div>
   <div class="absolute top-0 w-full">
     {#each filledSpans as span}
