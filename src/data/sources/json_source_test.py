@@ -18,6 +18,7 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
 
   source = JSONDataset(filepaths=[filepath])
   source.prepare()
+
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
     fields=schema({

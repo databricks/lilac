@@ -402,11 +402,6 @@ def dtype_to_arrow_schema(dtype: DataType) -> Union[pa.Schema, pa.DataType]:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
 
 
-def pa_value(value_schema: Union[pa.Schema, pa.DataType]) -> pa.Schema:
-  """Create a value node by wrapping a schema or dtype in {__value__: value_schema}."""
-  return pa.struct({VALUE_KEY: value_schema})
-
-
 def schema_to_arrow_schema(schema: Union[Schema, Field]) -> pa.Schema:
   """Convert our schema to arrow schema."""
   arrow_schema = cast(pa.Schema, _schema_to_arrow_schema_impl(schema))
