@@ -5,6 +5,8 @@ import pytest
 
 from .schema import (
   PATH_WILDCARD,
+  TEXT_SPAN_END_FEATURE,
+  TEXT_SPAN_START_FEATURE,
   VALUE_KEY,
   DataType,
   Field,
@@ -124,10 +126,12 @@ def test_schema_to_arrow_schema() -> None:
     'person': pa.struct({
       'name': pa.string(),
       # The dtype for STRING_SPAN is implemented as a struct with a {start, end}.
-      'last_name': pa.struct({VALUE_KEY: pa.struct({
-        'start': pa.int32(),
-        'end': pa.int32(),
-      })}),
+      'last_name': pa.struct({
+        VALUE_KEY: pa.struct({
+          TEXT_SPAN_START_FEATURE: pa.int32(),
+          TEXT_SPAN_END_FEATURE: pa.int32(),
+        })
+      }),
       'data': pa.list_(pa.list_(pa.float32())),
       'description': pa.struct({
         'toxicity': pa.float32(),
@@ -135,8 +139,8 @@ def test_schema_to_arrow_schema() -> None:
           pa.struct({
             'len': pa.int32(),
             VALUE_KEY: pa.struct({
-              'start': pa.int32(),
-              'end': pa.int32(),
+              TEXT_SPAN_START_FEATURE: pa.int32(),
+              TEXT_SPAN_END_FEATURE: pa.int32(),
             })
           })),
         VALUE_KEY: pa.string(),
