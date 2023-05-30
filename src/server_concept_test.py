@@ -192,7 +192,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
     type='text',
     data={
       fake_uuid(b'1').hex: Example(id=fake_uuid(b'1').hex, label=False, text='hello'),
-      fake_uuid(b'2').hex: Example(id=fakeuuid(b'2').hex, label=True, text='hello world')
+      fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=True, text='hello world')
     },
     version=3)
 
