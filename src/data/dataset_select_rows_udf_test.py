@@ -17,7 +17,7 @@ from ..signals.signal import (
   register_signal,
 )
 from .dataset import BinaryFilterTuple, BinaryOp, Column, val
-from .dataset_test_utils import TestDataMaker, expected_item
+from .dataset_test_utils import TestDataMaker, enriched_item
 from .dataset_utils import lilac_span
 
 EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
@@ -348,7 +348,7 @@ def test_udf_on_top_of_precomputed_split(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['*', udf], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item(
+    'text': enriched_item(
       'sentence 1. sentence 2 is longer', {
         'test_splitter':
           [lilac_span(0, 10, {'length_signal': 10}),
@@ -356,7 +356,7 @@ def test_udf_on_top_of_precomputed_split(make_test_data: TestDataMaker) -> None:
       })
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item(
+    'text': enriched_item(
       'sentence 1 is longer. sent2 is short', {
         'test_splitter':
           [lilac_span(0, 20, {'length_signal': 20}),

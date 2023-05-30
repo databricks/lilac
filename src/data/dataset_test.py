@@ -9,7 +9,7 @@ from typing_extensions import override
 from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schema, signal_field
 from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset import Column, DatasetManifest, val
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, expected_item
+from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -291,7 +291,7 @@ def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
 
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'name': expected_item('A', {'test_signal': {
+    'name': enriched_item('A', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -300,7 +300,7 @@ def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
     }
   }, {
     UUID_COLUMN: '2',
-    'name': expected_item('B', {'test_signal': {
+    'name': enriched_item('B', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -371,7 +371,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['text'])
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello', {
+    'text': enriched_item('hello', {
       'length_signal': 5,
       'test_signal': {
         'len': 5,
@@ -380,7 +380,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
     })
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('everybody', {
+    'text': enriched_item('everybody', {
       'length_signal': 9,
       'test_signal': {
         'len': 9,
@@ -409,7 +409,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
     ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello', {
+    'text': enriched_item('hello', {
       'length_signal': 5,
       'test_signal': {
         'len': 5,
@@ -418,7 +418,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
     })
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('everybody', {
+    'text': enriched_item('everybody', {
       'length_signal': 9,
       'test_signal': {
         'len': 9,
@@ -443,7 +443,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(columns=[Column(('text'), alias='text_enrichment')])
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text_enrichment': expected_item('hello', {
+    'text_enrichment': enriched_item('hello', {
       'length_signal': 5,
       'test_signal': {
         'len': 5,
@@ -452,7 +452,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
     })
   }, {
     UUID_COLUMN: '2',
-    'text_enrichment': expected_item('everybody', {
+    'text_enrichment': enriched_item('everybody', {
       'length_signal': 9,
       'test_signal': {
         'len': 9,
@@ -500,14 +500,14 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     'texts': [
-      expected_item('hello', {
+      enriched_item('hello', {
         'length_signal': 5,
         'test_signal': {
           'len': 5,
           'flen': 5.0
         }
       }),
-      expected_item('everybody', {
+      enriched_item('everybody', {
         'length_signal': 9,
         'test_signal': {
           'len': 9,
@@ -518,21 +518,21 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
   }, {
     UUID_COLUMN: '2',
     'texts': [
-      expected_item('a', {
+      enriched_item('a', {
         'length_signal': 1,
         'test_signal': {
           'len': 1,
           'flen': 1.0
         }
       }),
-      expected_item('bc', {
+      enriched_item('bc', {
         'length_signal': 2,
         'test_signal': {
           'len': 2,
           'flen': 2.0
         }
       }),
-      expected_item('def', {
+      enriched_item('def', {
         'length_signal': 3,
         'test_signal': {
           'len': 3,
@@ -673,10 +673,10 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['text', udf_col], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello', {'length_signal': 5})
+    'text': enriched_item('hello', {'length_signal': 5})
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('everybody', {'length_signal': 9})
+    'text': enriched_item('everybody', {'length_signal': 9})
   }]
 
 
@@ -723,7 +723,7 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
 
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'str': expected_item('a', {'test_signal': {
+    'str': enriched_item('a', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -733,7 +733,7 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
     }
   }, {
     UUID_COLUMN: '2',
-    'str': expected_item('b', {'test_signal': {
+    'str': enriched_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -743,7 +743,7 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
     }
   }, {
     UUID_COLUMN: '3',
-    'str': expected_item('b', {'test_signal': {
+    'str': enriched_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
@@ -784,14 +784,14 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
 def test_invalid_column_paths(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
-    'text': expected_item('hello', {'test_signal': {
+    'text': enriched_item('hello', {'test_signal': {
       'len': 5
     }}),
     'text2': [
-      expected_item('hello', {'test_signal': {
+      enriched_item('hello', {'test_signal': {
         'len': 5
       }}),
-      expected_item('hi', {'test_signal': {
+      enriched_item('hi', {'test_signal': {
         'len': 2
       }})
     ],

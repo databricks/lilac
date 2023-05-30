@@ -30,7 +30,7 @@ from ..signals.signal import (
   register_signal,
 )
 from .dataset import DatasetManifest
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, expected_item
+from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
 from .dataset_utils import lilac_span
 
 SIMPLE_ITEMS: list[Item] = [{
@@ -157,20 +157,18 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
   result = dataset.select_rows()
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello.', {
-      'test_embedding': {
-        VALUE_KEY: None,
-        'test_embedding_sum': 1.0
-      }
-    })
+    'text': enriched_item('hello.',
+                          {'test_embedding': {
+                            VALUE_KEY: None,
+                            'test_embedding_sum': 1.0
+                          }})
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('hello2.', {
-      'test_embedding': {
-        VALUE_KEY: None,
-        'test_embedding_sum': 2.0
-      }
-    })
+    'text': enriched_item('hello2.',
+                          {'test_embedding': {
+                            VALUE_KEY: None,
+                            'test_embedding_sum': 2.0
+                          }})
   }]
   assert list(result) == expected_result
 
@@ -215,14 +213,14 @@ def test_auto_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixt
   result = dataset.select_rows()
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': expected_item('hello.',
+    'text': enriched_item('hello.',
                           {'test_embedding': {
                             VALUE_KEY: None,
                             'test_embedding_sum': 1.0
                           }})
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item('hello2.',
+    'text': enriched_item('hello2.',
                           {'test_embedding': {
                             VALUE_KEY: None,
                             'test_embedding_sum': 2.0
@@ -288,7 +286,7 @@ def test_manual_embedding_signal_splits(make_test_data: TestDataMaker,
 
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item(
+    'text': enriched_item(
       'hello. hello2.', {
         'test_splitter': [
           lilac_span(0, 6, {
@@ -307,7 +305,7 @@ def test_manual_embedding_signal_splits(make_test_data: TestDataMaker,
       })
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item(
+    'text': enriched_item(
       'hello world. hello world2.', {
         'test_splitter': [
           lilac_span(0, 12, {
@@ -379,7 +377,7 @@ def test_auto_embedding_signal_splits(make_test_data: TestDataMaker, mocker: Moc
 
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item(
+    'text': enriched_item(
       'hello. hello2.', {
         'test_splitter': [
           lilac_span(0, 6, {
@@ -398,7 +396,7 @@ def test_auto_embedding_signal_splits(make_test_data: TestDataMaker, mocker: Moc
       })
   }, {
     UUID_COLUMN: '2',
-    'text': expected_item(
+    'text': enriched_item(
       'hello world. hello world2.', {
         'test_splitter': [
           lilac_span(0, 12, {
@@ -447,7 +445,7 @@ def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['text'])
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': expected_item(
+    'text': enriched_item(
       text, {
         'test_splitter': [
           lilac_span(0, 15, {'entity': [lilac_span(6, 14)]}),

@@ -8,7 +8,7 @@ from pytest_mock import MockerFixture
 from .config import CONFIG
 from .data.dataset import Column, Dataset, DatasetManifest, SelectRowsSchemaResult
 from .data.dataset_duckdb import DatasetDuckDB
-from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, expected_item, make_dataset
+from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, enriched_item, make_dataset
 from .router_dataset import SelectRowsOptions, SelectRowsSchemaOptions, WebManifest
 from .schema import UUID_COLUMN, Field, Item, RichData, field, schema
 from .server import app
@@ -186,7 +186,7 @@ def test_select_rows_star_plus_udf() -> None:
     UUID_COLUMN: '1',
     'erased': False,
     'people': [{
-      'name': expected_item('A', {'length_signal': 1}),
+      'name': enriched_item('A', {'length_signal': 1}),
       'zipcode': 0,
       'locations': [{
         'city': 'city1',
@@ -200,7 +200,7 @@ def test_select_rows_star_plus_udf() -> None:
     UUID_COLUMN: '2',
     'erased': True,
     'people': [{
-      'name': expected_item('B', {'length_signal': 1}),
+      'name': enriched_item('B', {'length_signal': 1}),
       'zipcode': 1,
       'locations': [{
         'city': 'city3',
@@ -211,7 +211,7 @@ def test_select_rows_star_plus_udf() -> None:
         'city': 'city5'
       }]
     }, {
-      'name': expected_item('C', {'length_signal': 1}),
+      'name': enriched_item('C', {'length_signal': 1}),
       'zipcode': 2,
       'locations': [{
         'city': 'city1',

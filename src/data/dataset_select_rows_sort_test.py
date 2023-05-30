@@ -7,7 +7,7 @@ import pytest
 from ..schema import UUID_COLUMN, Field, Item, RichData, field
 from ..signals.signal import TextSignal, clear_signal_registry, register_signal
 from .dataset import Column, SortOrder
-from .dataset_test_utils import TestDataMaker, expected_item
+from .dataset_test_utils import TestDataMaker, enriched_item
 
 
 class TestSignal(TextSignal):
@@ -228,19 +228,19 @@ def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> No
     columns=[text_alias], sort_by=['document.test_signal.is_all_cap'], sort_order=SortOrder.ASC)
   assert list(result) == [{
     UUID_COLUMN: '2',
-    'document': expected_item('everyone', {'test_signal': {
+    'document': enriched_item('everyone', {'test_signal': {
       'len': 8,
       'is_all_cap': False
     }})
   }, {
     UUID_COLUMN: '1',
-    'document': expected_item('HEY', {'test_signal': {
+    'document': enriched_item('HEY', {'test_signal': {
       'len': 3,
       'is_all_cap': True
     }})
   }, {
     UUID_COLUMN: '3',
-    'document': expected_item('HI', {'test_signal': {
+    'document': enriched_item('HI', {'test_signal': {
       'len': 2,
       'is_all_cap': True
     }})
@@ -250,19 +250,19 @@ def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> No
     columns=[text_alias], sort_by=['document.test_signal.is_all_cap'], sort_order=SortOrder.DESC)
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'document': expected_item('HEY', {'test_signal': {
+    'document': enriched_item('HEY', {'test_signal': {
       'len': 3,
       'is_all_cap': True
     }})
   }, {
     UUID_COLUMN: '3',
-    'document': expected_item('HI', {'test_signal': {
+    'document': enriched_item('HI', {'test_signal': {
       'len': 2,
       'is_all_cap': True
     }})
   }, {
     UUID_COLUMN: '2',
-    'document': expected_item('everyone', {'test_signal': {
+    'document': enriched_item('everyone', {'test_signal': {
       'len': 8,
       'is_all_cap': False
     }})
@@ -568,12 +568,12 @@ def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: Tes
   assert list(result) == [{
     UUID_COLUMN: '3',
     'texts': [{
-      'text': expected_item('everyone', {'test_signal': {
+      'text': enriched_item('everyone', {'test_signal': {
         'len': 8,
         'is_all_cap': False
       }})
     }, {
-      'text': expected_item('', {'test_signal': {
+      'text': enriched_item('', {'test_signal': {
         'len': 0,
         'is_all_cap': False
       }})
@@ -581,12 +581,12 @@ def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: Tes
   }, {
     UUID_COLUMN: '1',
     'texts': [{
-      'text': expected_item('eardrop', {'test_signal': {
+      'text': enriched_item('eardrop', {'test_signal': {
         'len': 7,
         'is_all_cap': False
       }})
     }, {
-      'text': expected_item('I', {'test_signal': {
+      'text': enriched_item('I', {'test_signal': {
         'len': 1,
         'is_all_cap': True
       }})
@@ -594,12 +594,12 @@ def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: Tes
   }, {
     UUID_COLUMN: '2',
     'texts': [{
-      'text': expected_item('hey', {'test_signal': {
+      'text': enriched_item('hey', {'test_signal': {
         'len': 3,
         'is_all_cap': False
       }})
     }, {
-      'text': expected_item('CARS', {'test_signal': {
+      'text': enriched_item('CARS', {'test_signal': {
         'len': 4,
         'is_all_cap': True
       }})
@@ -642,23 +642,23 @@ def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
   assert list(result) == [{
     UUID_COLUMN: '3',
     'texts': [{
-      'text': expected_item('everyone', {'primitive_signal': 9})
+      'text': enriched_item('everyone', {'primitive_signal': 9})
     }, {
-      'text': expected_item('', {'primitive_signal': 1})
+      'text': enriched_item('', {'primitive_signal': 1})
     }]
   }, {
     UUID_COLUMN: '1',
     'texts': [{
-      'text': expected_item('eardrop', {'primitive_signal': 8})
+      'text': enriched_item('eardrop', {'primitive_signal': 8})
     }, {
-      'text': expected_item('I', {'primitive_signal': 2})
+      'text': enriched_item('I', {'primitive_signal': 2})
     }]
   }, {
     UUID_COLUMN: '2',
     'texts': [{
-      'text': expected_item('hey', {'primitive_signal': 4})
+      'text': enriched_item('hey', {'primitive_signal': 4})
     }, {
-      'text': expected_item('CARS', {'primitive_signal': 5})
+      'text': enriched_item('CARS', {'primitive_signal': 5})
     }]
   }]
   result = dataset.select_rows(['*', texts_udf],
@@ -668,22 +668,22 @@ def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
   assert list(result) == [{
     UUID_COLUMN: '3',
     'texts': [{
-      'text': expected_item('everyone', {'primitive_signal': 9})
+      'text': enriched_item('everyone', {'primitive_signal': 9})
     }, {
-      'text': expected_item('', {'primitive_signal': 1})
+      'text': enriched_item('', {'primitive_signal': 1})
     }]
   }, {
     UUID_COLUMN: '1',
     'texts': [{
-      'text': expected_item('eardrop', {'primitive_signal': 8})
+      'text': enriched_item('eardrop', {'primitive_signal': 8})
     }, {
-      'text': expected_item('I', {'primitive_signal': 2})
+      'text': enriched_item('I', {'primitive_signal': 2})
     }]
   }, {
     UUID_COLUMN: '2',
     'texts': [{
-      'text': expected_item('hey', {'primitive_signal': 4})
+      'text': enriched_item('hey', {'primitive_signal': 4})
     }, {
-      'text': expected_item('CARS', {'primitive_signal': 5})
+      'text': enriched_item('CARS', {'primitive_signal': 5})
     }]
   }]

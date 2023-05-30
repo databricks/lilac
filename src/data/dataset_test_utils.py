@@ -99,7 +99,7 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
     f.write(manifest.json(indent=2, exclude_none=True))
 
 
-def expected_item(value: Optional[Item] = None,
-                  metadata: Optional[dict[str, Union[Item, Item]]] = None) -> Item:
+def enriched_item(value: Optional[Item] = None,
+                  metadata: dict[str, Union[Item, Item]] = {}) -> Item:
   """Wrap a value in a dict with the value key."""
-  return {VALUE_KEY: value, **(metadata or {})}
+  return {VALUE_KEY: value, **metadata}
