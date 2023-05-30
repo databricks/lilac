@@ -274,42 +274,41 @@ def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
   }]
   dataset = make_test_data(items)
 
-  # # Select *.
-  # result = dataset.select_rows(['*'], combine_columns=True)
-  # assert list(result) == items
+  # Select *.
+  result = dataset.select_rows(['*'], combine_columns=True)
+  assert list(result) == items
 
-  # # Select *, plus a redundant `info` column.
-  # result = dataset.select_rows(['*', 'info'], combine_columns=True)
-  # assert list(result) == items
+  # Select *, plus a redundant `info` column.
+  result = dataset.select_rows(['*', 'info'], combine_columns=True)
+  assert list(result) == items
 
-  # # Select * plus an inner `info.age` column.
-  # result = dataset.select_rows(['*', ('info', 'age')], combine_columns=True)
-  # assert list(result) == items
+  # Select * plus an inner `info.age` column.
+  result = dataset.select_rows(['*', ('info', 'age')], combine_columns=True)
+  assert list(result) == items
 
   # Select *, plus redundant `name`, plus a udf.
   udf = Column('name', signal_udf=TestSignal())
   result = dataset.select_rows(['*', 'name', udf], combine_columns=True)
-  print(list(result))
 
-  # assert list(result) == [{
-  #   UUID_COLUMN: '1',
-  #   'name': expected_item('A', {'test_signal': {
-  #     'len': 1,
-  #     'flen': 1.0
-  #   }}),
-  #   'info': {
-  #     'age': 40
-  #   }
-  # }, {
-  #   UUID_COLUMN: '2',
-  #   'name': expected_item('B', {'test_signal': {
-  #     'len': 1,
-  #     'flen': 1.0
-  #   }}),
-  #   'info': {
-  #     'age': 42
-  #   }
-  # }]
+  assert list(result) == [{
+    UUID_COLUMN: '1',
+    'name': expected_item('A', {'test_signal': {
+      'len': 1,
+      'flen': 1.0
+    }}),
+    'info': {
+      'age': 40
+    }
+  }, {
+    UUID_COLUMN: '2',
+    'name': expected_item('B', {'test_signal': {
+      'len': 1,
+      'flen': 1.0
+    }}),
+    'info': {
+      'age': 42
+    }
+  }]
 
 
 def test_select_ids(make_test_data: TestDataMaker) -> None:
@@ -342,7 +341,7 @@ def test_columns(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows(['str', 'float'])
 
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'str': 'a',
     'float': 3.0
@@ -354,7 +353,7 @@ def test_columns(make_test_data: TestDataMaker) -> None:
     UUID_COLUMN: '3',
     'str': 'b',
     'float': 1.0
-  }])
+  }]
 
 
 def test_merge_values(make_test_data: TestDataMaker) -> None:
@@ -371,7 +370,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(length_signal, 'text')
 
   result = dataset.select_rows(['text'])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'text': expected_item('hello', {
       'length_signal': 5,
@@ -389,7 +388,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
         'flen': 9.0
       }
     }),
-  }])
+  }]
 
   # Test subselection.
   result = dataset.select_rows(
@@ -397,19 +396,19 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello',
-    'text.test_signal.flen': expected_item(5.0),
-    'text.test_signal.len': expected_item(5)
+    'text.test_signal.flen': 5.0,
+    'text.test_signal.len': 5
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'everybody',
-    'text.test_signal.flen': expected_item(9.0),
-    'text.test_signal.len': expected_item(9)
+    'text.test_signal.flen': 9.0,
+    'text.test_signal.len': 9
   }]
 
   # Test subselection with combine_columns=True.
   result = dataset.select_rows(
     ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')], combine_columns=True)
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'text': expected_item('hello', {
       'length_signal': 5,
@@ -427,7 +426,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
         'flen': 9.0
       }
     }),
-  }])
+  }]
 
   # Test subselection with aliasing.
   result = dataset.select_rows(
@@ -435,15 +434,15 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello',
-    'metadata': expected_item(5)
+    'metadata': 5
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'everybody',
-    'metadata': expected_item(9)
+    'metadata': 9
   }]
 
   result = dataset.select_rows(columns=[Column(('text'), alias='text_enrichment')])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'text_enrichment': expected_item('hello', {
       'length_signal': 5,
@@ -461,7 +460,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
         'flen': 9.0
       }
     })
-  }])
+  }]
 
 
 def test_merge_array_values(make_test_data: TestDataMaker) -> None:
@@ -499,7 +498,7 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
     num_items=2)
 
   result = dataset.select_rows(['texts'])
-  assert list(result) == itemize_primitives([{
+  assert list(result) == [{
     UUID_COLUMN: '1',
     'texts': [
       expected_item('hello', {
@@ -542,7 +541,7 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
         }
       })
     ],
-  }])
+  }]
 
   # Test subselection.
   result = dataset.select_rows(
@@ -550,13 +549,13 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     f'texts.*.{VALUE_KEY}': ['hello', 'everybody'],
-    'texts.*.test_signal.flen': itemize_primitives([5.0, 9.0]),
-    'texts.*.length_signal': itemize_primitives([5, 9])
+    'texts.*.test_signal.flen': [5.0, 9.0],
+    'texts.*.length_signal': [5, 9]
   }, {
     UUID_COLUMN: '2',
     f'texts.*.{VALUE_KEY}': ['a', 'bc', 'def'],
-    'texts.*.test_signal.flen': itemize_primitives([1.0, 2.0, 3.0]),
-    'texts.*.length_signal': itemize_primitives([1, 2, 3])
+    'texts.*.test_signal.flen': [1.0, 2.0, 3.0],
+    'texts.*.length_signal': [1, 2, 3]
   }]
 
 

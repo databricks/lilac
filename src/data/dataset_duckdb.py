@@ -657,7 +657,7 @@ class DatasetDuckDB(Dataset):
       if final_col_name not in columns_to_merge:
         columns_to_merge[final_col_name] = {}
 
-      duckdb_paths = self._column_to_duckdb_paths(column)
+      duckdb_paths = self._column_to_duckdb_paths(column, combine_columns)
       span_from = self._get_span_from(path) if resolve_span or column.signal_udf else None
 
       for parquet_id, duckdb_path in duckdb_paths:
@@ -737,11 +737,6 @@ class DatasetDuckDB(Dataset):
                      f'{cast(SortOrder, sort_order).value}')
 
     con = self.con.cursor()
-    print(f"""
-      SELECT {', '.join(select_queries)} FROM t
-      {where_query}
-      {order_query}
-    """)
     query = con.sql(f"""
       SELECT {', '.join(select_queries)} FROM t
       {where_query}
@@ -859,7 +854,6 @@ class DatasetDuckDB(Dataset):
     for offset_column, _ in temp_column_to_offset_column.values():
       del df[offset_column]
 
-    print(df)
     for final_col_name, temp_columns in columns_to_merge.items():
       for temp_col_name, column in temp_columns.items():
         if combine_columns:
@@ -875,13 +869,7 @@ class DatasetDuckDB(Dataset):
         if final_col_name not in df:
           df[final_col_name] = df[temp_col_name]
         else:
-          print('-----------------', temp_col_name, '------------------')
-          print(df[temp_col_name])
-          print('>>>>>>>>>>>>>>')
-          print(df[final_col_name])
-          print('===============')
           df[final_col_name] = merge_values(df[final_col_name], df[temp_col_name])
-          print(df[final_col_name])
         del df[temp_col_name]
 
     con.close()
@@ -959,19 +947,29 @@ class DatasetDuckDB(Dataset):
     return _derived_from_path(path, manifest.data_schema) if is_span else None
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple) -> PathTuple:
-    ((_, duckdb_path),) = self._column_to_duckdb_paths(Column(leaf_path))
+    ((_, duckdb_path),) = self._column_to_duckdb_paths(Column(leaf_path), combine_columns=False)
     return duckdb_path
 
-  def _column_to_duckdb_paths(self, column: Column) -> list[tuple[str, PathTuple]]:
+  def _column_to_duckdb_paths(self, column: Column,
+                              combine_columns: bool) -> list[tuple[str, PathTuple]]:
     path = column.path
     parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
       self._source_manifest, *self._signal_manifests
     ]
     duckdb_paths: list[tuple[str, PathTuple]] = []
 
+    select_a_leaf_value = column.signal_udf is not None
+    if path[-1] == VALUE_KEY:
+      select_a_leaf_value = True
+      path = path[:-1]
+
     for m in parquet_manifests:
+      # Skip this parquet file if it doesn't contain the path.
       if not schema_contains_path(m.data_schema, path):
-        # Skip this parquet file if it doesn't contain the path.
+        continue
+
+      # Skip this parquet file if the path doesn't have a dtype.
+      if select_a_leaf_value and not m.data_schema.get_field(path).dtype:
         continue
 
       if isinstance(m, SignalManifest) and path == (UUID_COLUMN,):
@@ -1268,7 +1266,8 @@ class SignalManifest(BaseModel):
     return resolve_signal(signal)
 
 
-def _merge_cells(dest_cell: Item, source_cell: Item) -> None:
+def _merge_cells(dest_cell: Item, source_cell: Item, dest_parent: Optional[Union[list, dict]],
+                 dest_key: Optional[Union[str, int]]) -> None:
   if source_cell is None or isinstance(source_cell, float) and math.isnan(source_cell):
     # Nothing to merge here (missing value).
     return
@@ -1281,14 +1280,14 @@ def _merge_cells(dest_cell: Item, source_cell: Item) -> None:
         if key not in dest_cell:
           dest_cell[key] = value
         else:
-          _merge_cells(dest_cell[key], value)
+          _merge_cells(dest_cell[key], value, dest_cell, key)
     else:
       dest_cell[VALUE_KEY] = source_cell
   elif isinstance(dest_cell, list):
     if not isinstance(source_cell, list):
       raise ValueError('Failed to merge cells. Destination is a list, but source is not.')
-    for dest_subcell, source_subcell in zip(dest_cell, source_cell):
-      _merge_cells(dest_subcell, source_subcell)
+    for i, (dest_subcell, source_subcell) in enumerate(zip(dest_cell, source_cell)):
+      _merge_cells(dest_subcell, source_subcell, dest_cell, i)
   else:
     # The destination is a primitive.
     if isinstance(source_cell, list):
@@ -1296,6 +1295,12 @@ def _merge_cells(dest_cell: Item, source_cell: Item) -> None:
                        f'but source is a list ({source_cell!r}).')
     if isinstance(source_cell, dict):
       source_cell[VALUE_KEY] = dest_cell
+      # Change the destination parent to point to the newly modified source cell.
+      if dest_parent is None:
+        raise ValueError('Cannot merge cells. Destination parent is None.')
+      if dest_key is None:
+        raise ValueError('Cannot merge cells. Destination key is None.')
+      dest_parent[cast(int, dest_key)] = source_cell
     else:
       # Primitives can be merged together if they are equal. This can happen if a user selects a
       # column that is the child of another.
@@ -1306,8 +1311,8 @@ def _merge_cells(dest_cell: Item, source_cell: Item) -> None:
 
 def merge_values(destination: pd.Series, source: pd.Series) -> pd.Series:
   """Merge two series of values recursively."""
-  for dest_cell, source_cell in zip(destination, source):
-    _merge_cells(dest_cell, source_cell)
+  for i, (dest_cell, source_cell) in enumerate(zip(destination, source)):
+    _merge_cells(dest_cell, source_cell, destination, i)
   return destination
 
 

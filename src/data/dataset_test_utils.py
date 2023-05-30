@@ -17,7 +17,7 @@ from ..schema import (
 )
 from ..utils import get_dataset_output_dir, open_file
 from .dataset import Dataset
-from .dataset_utils import is_primitive, itemize_primitives, write_items_to_parquet
+from .dataset_utils import is_primitive, write_items_to_parquet
 
 TEST_NAMESPACE = 'test_namespace'
 TEST_DATASET_NAME = 'test_dataset'
@@ -112,5 +112,5 @@ def expected_item(value: Optional[Item] = None,
     else:
       out_item[VALUE_KEY] = value
   if metadata:
-    out_item.update(cast(dict, itemize_primitives(metadata)))
+    out_item.update(cast(dict, metadata))
   return out_item
