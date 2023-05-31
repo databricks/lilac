@@ -20,7 +20,6 @@ from .router_utils import RouteErrorHandler
 from .schema import Path, normalize_path
 from .signals.concept_scorer import ConceptScoreSignal
 from .signals.default_signals import register_default_signals
-from .signals.semantic_similarity import SemanticSimilaritySignal
 from .signals.signal import (
   Signal,
   TextEmbeddingModelSignal,
@@ -163,8 +162,8 @@ class ListFilter(BaseModel):
 
 Filter = Union[BinaryFilter, UnaryFilter, ListFilter]
 
-AllSignalTypes = Union[SemanticSimilaritySignal, ConceptScoreSignal, TextEmbeddingModelSignal,
-                       TextEmbeddingSignal, TextSignal, Signal]
+AllSignalTypes = Union[ConceptScoreSignal, TextEmbeddingModelSignal, TextEmbeddingSignal,
+                       TextSignal, Signal]
 
 
 # We override the `Column` class so we can add explicitly all signal types for better OpenAPI spec.

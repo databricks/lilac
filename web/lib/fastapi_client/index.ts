@@ -45,7 +45,6 @@ export type { SelectGroupsOptions } from './models/SelectGroupsOptions';
 export type { SelectRowsOptions } from './models/SelectRowsOptions';
 export type { SelectRowsSchemaOptions } from './models/SelectRowsSchemaOptions';
 export type { SelectRowsSchemaResult } from './models/SelectRowsSchemaResult';
-export type { SemanticSimilaritySignal } from './models/SemanticSimilaritySignal';
 export type { Sensitivity } from './models/Sensitivity';
 export type { Signal } from './models/Signal';
 export type { SignalInfo } from './models/SignalInfo';
