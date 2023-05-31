@@ -19,7 +19,7 @@ from ..signals.signal import (
 from ..signals.substring_search import SubstringSignal
 from .dataset import Column, SearchType, SelectRowsSchemaResult
 from .dataset_test_utils import TestDataMaker
-from .dataset_utils import lilac_span
+from .dataset_utils import lilac_embedding, lilac_span
 
 TEST_DATA: list[Item] = [{
   UUID_COLUMN: '1',
@@ -91,7 +91,8 @@ class TestEmbedding(TextEmbeddingSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
-    yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
+    for example in data:
+      yield lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))
 
 
 class TestEmbeddingSumSignal(TextEmbeddingModelSignal):

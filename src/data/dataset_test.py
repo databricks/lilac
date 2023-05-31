@@ -10,6 +10,7 @@ from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schem
 from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset import Column, DatasetManifest, val
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
+from .dataset_utils import lilac_embedding
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -46,7 +47,8 @@ class TestEmbedding(TextEmbeddingSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
-    yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
+    for example in data:
+      yield lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))
 
 
 class LengthSignal(TextSignal):
