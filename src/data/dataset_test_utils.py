@@ -1,7 +1,7 @@
 """Tests utils of for dataset_test."""
 import os
 import pathlib
-from typing import Optional, Type, Union, cast
+from typing import Optional, Type, cast
 
 from typing_extensions import Protocol
 
@@ -14,10 +14,12 @@ from ..schema import (
   Item,
   Schema,
   SourceManifest,
+  field,
 )
+from ..signals.signal import EMBEDDING_KEY
 from ..utils import get_dataset_output_dir, open_file
 from .dataset import Dataset
-from .dataset_utils import is_primitive, write_items_to_parquet
+from .dataset_utils import is_primitive, lilac_span, write_items_to_parquet
 
 TEST_NAMESPACE = 'test_namespace'
 TEST_DATASET_NAME = 'test_dataset'
@@ -99,7 +101,16 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
     f.write(manifest.json(indent=2, exclude_none=True))
 
 
-def enriched_item(value: Optional[Item] = None,
-                  metadata: dict[str, Union[Item, Item]] = {}) -> Item:
+def enriched_item(value: Optional[Item] = None, metadata: dict[str, Item] = {}) -> Item:
   """Wrap a value in a dict with the value key."""
   return {VALUE_KEY: value, **metadata}
+
+
+def enriched_embedding_span(start: int, end: int, metadata: dict[str, Item] = {}) -> Item:
+  """Makes an item that represents an embedding span that was enriched with metadata."""
+  return lilac_span(start, end, {EMBEDDING_KEY: {VALUE_KEY: None, **metadata}})
+
+
+def enriched_embedding_span_field(metadata: Optional[object] = {}) -> Field:
+  """Makes a field that represents an embedding span that was enriched with metadata."""
+  return field('string_span', fields={EMBEDDING_KEY: field('embedding', fields=metadata)})

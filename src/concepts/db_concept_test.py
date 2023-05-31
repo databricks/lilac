@@ -9,6 +9,7 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..config import CONFIG
+from ..data.dataset_utils import lilac_embedding
 from ..schema import Item, RichData, SignalInputType
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .concept import (
@@ -58,7 +59,7 @@ class TestEmbedding(TextEmbeddingSignal):
     for example in data:
       if example not in EMBEDDING_MAP:
         raise ValueError(f'Example "{str(example)}" not in embedding map')
-    yield from [np.array(EMBEDDING_MAP[cast(str, example)]) for example in data]
+      yield [lilac_embedding(0, len(example), np.array(EMBEDDING_MAP[cast(str, example)]))]
 
 
 @pytest.fixture(scope='module', autouse=True)

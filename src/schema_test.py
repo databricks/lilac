@@ -27,11 +27,11 @@ NESTED_TEST_SCHEMA = schema({
     'data': [['float32']],
     # Contains a value and children.
     'description': field(
-      {
+      'string',
+      fields={
         'toxicity': 'float32',
-        'sentences': [field({'len': 'int32'}, dtype='string_span')]
-      },
-      dtype='string')
+        'sentences': [field('string_span', fields={'len': 'int32'})]
+      })
   },
   'addresses': [{
     'city': 'string',

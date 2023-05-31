@@ -3,7 +3,7 @@ from typing import Iterable, Optional
 
 from typing_extensions import override
 
-from ..schema import DataType, Field, Item, RichData
+from ..schema import Field, Item, RichData, field
 from .signal import TextSignal
 
 NUM_CHARS_FEATURE_NAME = 'num_characters'
@@ -16,7 +16,7 @@ class TextStatisticsSignal(TextSignal):
 
   @override
   def fields(self) -> Field:
-    return Field(fields={NUM_CHARS_FEATURE_NAME: Field(dtype=DataType.INT32)})
+    return field(fields={NUM_CHARS_FEATURE_NAME: 'int32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:

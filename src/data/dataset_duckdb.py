@@ -41,10 +41,10 @@ from ..schema import (
 )
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
+  EMBEDDING_KEY,
   Signal,
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
-  TextSignal,
   resolve_signal,
 )
 from ..signals.substring_search import SubstringSignal
@@ -276,27 +276,15 @@ class DatasetDuckDB(Dataset):
     new_path = source_path
 
     signals_to_compute: list[tuple[PathTuple, Signal]] = []
-    if isinstance(signal, TextSignal):
-      split_signal = signal.get_split_signal()
-      if split_signal:
-        new_path = (*new_path, split_signal.key(), PATH_WILDCARD)
-        if new_path not in self.manifest().data_schema.leafs:
-          if not compute_dependencies:
-            raise ValueError(f'Split signal "{split_signal.key()}" is not computed over '
-                             f'{source_path}. Please run `dataset.compute_signal` over '
-                             f'{source_path} first.')
-          signals_to_compute.append((new_path, split_signal))
-
-      if isinstance(signal, TextEmbeddingModelSignal):
-        embedding_signal = signal.get_embedding_signal()
-        if embedding_signal:
-          new_path = (*new_path, embedding_signal.key())
-          if new_path not in self.manifest().data_schema.leafs:
-            if not compute_dependencies:
-              raise ValueError(f'Embedding signal "{embedding_signal.key()}" is not computed over '
-                               f'{source_path}. Please run `dataset.compute_signal` over '
-                               f'{source_path} first.')
-            signals_to_compute.append((new_path, embedding_signal))
+    if isinstance(signal, TextEmbeddingModelSignal):
+      embedding_signal = signal.get_embedding_signal()
+      new_path = (*new_path, embedding_signal.key(), PATH_WILDCARD, EMBEDDING_KEY)
+      if new_path not in self.manifest().data_schema.leafs:
+        if not compute_dependencies:
+          raise ValueError(f'Embedding signal "{embedding_signal.key()}" is not computed over '
+                           f'{source_path}. Please run `dataset.compute_signal` over '
+                           f'{source_path} first.')
+        signals_to_compute.append((new_path, embedding_signal))
 
     new_steps = len(signals_to_compute)
     # Setup the task steps so the task progress indicator knows the number of steps before they are

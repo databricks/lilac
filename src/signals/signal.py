@@ -3,12 +3,14 @@
 import abc
 from typing import Any, ClassVar, Iterable, Optional, Type, TypeVar, Union
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Extra, validator
 from pydantic.fields import ModelField
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
 from ..schema import Field, Item, RichData, SignalInputType, VectorKey, field
+
+EMBEDDING_KEY = 'embedding'
 
 
 class Signal(abc.ABC, BaseModel):
@@ -32,6 +34,7 @@ class Signal(abc.ABC, BaseModel):
 
   class Config:
     underscore_attrs_are_private = True
+    extra = Extra.forbid
 
     @staticmethod
     def schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
@@ -158,7 +161,7 @@ class TextSplitterSignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return field(['string_span'])
+    return field(fields=['string_span'])
 
 
 class TextSplitterEnum(SignalTypeEnum):
@@ -172,32 +175,11 @@ class TextSignal(Signal):
   input_type = SignalInputType.TEXT
   compute_type = SignalInputType.TEXT
 
-  split: Optional[TextSplitterEnum]
-  _split_signal: Optional[TextSplitterSignal] = None
-
-  def __init__(self, split: Optional[str] = None, **kwargs: Any):
-    super().__init__(split=split, **kwargs)
-
-    # Validate the split signal is registered and the correct type.
-    # TODO(nsthorat): Allow arguments passed to the embedding signal.
-    if self.split:
-      self._split_signal = get_signal_by_type(self.split, TextSplitterSignal)(split=self.split)
-
-  def get_split_signal(self) -> Optional[TextSplitterSignal]:
-    """Return the embedding signal."""
-    return self._split_signal
-
   @override
   def key(self) -> str:
-    # NOTE: The split already exists in the path structure. This means we do not need to provide
-    # the signal names as part of the key, which still guarantees uniqueness.
-
     args_dict = self.dict(exclude_unset=True, exclude_defaults=True)
     if 'signal_name' in args_dict:
       del args_dict['signal_name']
-    if 'split' in args_dict:
-      del args_dict['split']
-
     return self.name + _args_key_from_dict(args_dict)
 
 
@@ -206,13 +188,19 @@ class TextEmbeddingSignal(TextSignal):
   input_type = SignalInputType.TEXT
   compute_type = SignalInputType.TEXT
 
+  _split = True
+
+  def __init__(self, split: bool = True, **kwargs: Any):
+    super().__init__(**kwargs)
+    self._split = split
+
   @override
   def fields(self) -> Field:
     """NOTE: Override this method at your own risk if you want to add extra metadata.
 
     Embeddings should not come with extra metadata.
     """
-    return field('embedding')
+    return field(fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
 
 
 class TextEmbeddingEnum(SignalTypeEnum):
@@ -230,15 +218,14 @@ class TextEmbeddingModelSignal(TextSignal):
   embedding: TextEmbeddingEnum
   _embedding_signal: TextEmbeddingSignal
 
-  def __init__(self, embedding: str, **kwargs: Any):
-    super().__init__(embedding=embedding, **kwargs)
+  def __init__(self, **kwargs: Any):
+    super().__init__(**kwargs)
 
     # Validate the embedding signal is registered and the correct type.
     # TODO(nsthorat): Allow arguments passed to the embedding signal.
-    self._embedding_signal = get_signal_by_type(self.embedding, TextEmbeddingSignal)(
-      split=self.split)
+    self._embedding_signal = get_signal_by_type(self.embedding, TextEmbeddingSignal)()
 
-  def get_embedding_signal(self) -> Optional[TextEmbeddingSignal]:
+  def get_embedding_signal(self) -> TextEmbeddingSignal:
     """Return the embedding signal."""
     return self._embedding_signal
 
@@ -251,9 +238,6 @@ class TextEmbeddingModelSignal(TextSignal):
     if 'signal_name' in args_dict:
       del args_dict['signal_name']
     del args_dict['embedding']
-    if 'split' in args_dict:
-      del args_dict['split']
-
     return self.name + _args_key_from_dict(args_dict)
 
 

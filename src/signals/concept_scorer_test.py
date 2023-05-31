@@ -18,6 +18,7 @@ from ..concepts.db_concept import (
 )
 from ..config import CONFIG
 from ..data.dataset_test_utils import TestDataMaker
+from ..data.dataset_utils import lilac_embedding
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import UUID_COLUMN, Item, RichData, SignalInputType
 from .concept_scorer import ConceptScoreSignal
@@ -51,7 +52,7 @@ class TestEmbedding(TextEmbeddingSignal):
     for example in data:
       if example not in EMBEDDING_MAP:
         raise ValueError(f'Example "{str(example)}" not in embedding map')
-    yield from [np.array(EMBEDDING_MAP[cast(str, example)]) for example in data]
+      yield [lilac_embedding(0, len(example), np.array(EMBEDDING_MAP[cast(str, example)]))]
 
 
 @pytest.fixture(scope='module', autouse=True)

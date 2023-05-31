@@ -162,7 +162,7 @@ class LogisticEmbeddingModel(BaseModel):
     scores = self._model.predict_proba(embeddings)[:, 1]
     negative_scores = [score for label, score in zip(labels, scores) if not label]
     thresholds = np.percentile(negative_scores, [100 - p for p in SENSITIVITY_PERCENTILES.values()])
-    self._thresholds = dict(zip(SENSITIVITY_PERCENTILES.keys(), thresholds))
+    self._thresholds = dict(zip(SENSITIVITY_PERCENTILES.keys(), thresholds))  # type: ignore
 
 
 def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
@@ -248,8 +248,7 @@ class ConceptModel(BaseModel):
       raise ValueError(f'Only text embedding signals are currently supported for concepts. '
                        f'"{self.embedding_name}" is a {type(embedding_signal)}.')
 
-    embed_fn = get_embed_fn(embedding_signal)
-
+    embed_fn = get_embed_fn(self.embedding_name)
     embeddings = np.array(embed_fn(examples))
     return self._get_logistic_model(draft).score_embeddings(embeddings, sensitivity).tolist()
 
@@ -299,7 +298,7 @@ class ConceptModel(BaseModel):
       raise ValueError(f'Only text embedding signals are currently supported for concepts. '
                        f'"{self.embedding_name}" is a {type(embedding_signal)}.')
 
-    embed_fn = get_embed_fn(embedding_signal)
+    embed_fn = get_embed_fn(self.embedding_name)
     concept_embeddings: dict[str, np.ndarray] = {}
 
     # Compute the embeddings for the examples with cache miss.

@@ -18,7 +18,7 @@ from ..signals.signal import (
 )
 from .dataset import BinaryFilterTuple, BinaryOp, Column, val
 from .dataset_test_utils import TestDataMaker, enriched_item
-from .dataset_utils import lilac_span
+from .dataset_utils import lilac_embedding, lilac_span
 
 EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
                                              ('hello2.', [1.0, 1.0, 0.0]),
@@ -35,7 +35,8 @@ class TestEmbedding(TextEmbeddingSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
-    yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
+    for example in data:
+      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 class LengthSignal(TextSignal):
@@ -57,7 +58,7 @@ class TestSignal(TextSignal):
 
   @override
   def fields(self) -> Field:
-    return field({'len': 'int32', 'flen': 'float32'})
+    return field(fields={'len': 'int32', 'flen': 'float32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -252,11 +253,11 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   expected_result: list[Item] = [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello.',
-    'test_embedding_sum(text.test_embedding)': 1.0
+    'test_embedding_sum(text.test_embedding.*.embedding)': [1.0]
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'hello2.',
-    'test_embedding_sum(text.test_embedding)': 2.0
+    'test_embedding_sum(text.test_embedding.*.embedding)': [2.0]
   }]
   assert list(result) == expected_result
 
@@ -267,11 +268,11 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   expected_result = [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello.',
-    'emb_sum': 1.0
+    'emb_sum': [1.0]
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'hello2.',
-    'emb_sum': 2.0
+    'emb_sum': [2.0]
   }]
   assert list(result) == expected_result
 
@@ -292,11 +293,11 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
   expected_result = [{
     UUID_COLUMN: '1',
     f'text.*.{VALUE_KEY}': ['hello.', 'hello world.'],
-    'test_embedding_sum(text.*.test_embedding)': [1.0, 3.0]
+    'test_embedding_sum(text.*.test_embedding.*.embedding)': [[1.0], [3.0]]
   }, {
     UUID_COLUMN: '2',
     f'text.*.{VALUE_KEY}': ['hello world2.', 'hello2.'],
-    'test_embedding_sum(text.*.test_embedding)': [4.0, 2.0]
+    'test_embedding_sum(text.*.test_embedding.*.embedding)': [[4.0], [2.0]]
   }]
   assert list(result) == expected_result
 
@@ -335,7 +336,7 @@ class TestSplitter(TextSplitterSignal):
       yield result
 
 
-def test_udf_on_top_of_precomputed_split(make_test_data: TestDataMaker) -> None:
+def test_udf_after_precomputed_split(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
     'text': 'sentence 1. sentence 2 is longer',
@@ -344,22 +345,18 @@ def test_udf_on_top_of_precomputed_split(make_test_data: TestDataMaker) -> None:
     'text': 'sentence 1 is longer. sent2 is short',
   }])
   dataset.compute_signal(TestSplitter(), 'text')
-  udf = Column('text', signal_udf=LengthSignal(split='test_splitter'))
+  udf = Column('text', signal_udf=LengthSignal())
   result = dataset.select_rows(['*', udf], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text': enriched_item(
-      'sentence 1. sentence 2 is longer', {
-        'test_splitter':
-          [lilac_span(0, 10, {'length_signal': 10}),
-           lilac_span(11, 32, {'length_signal': 21})]
-      })
+    'text': enriched_item('sentence 1. sentence 2 is longer', {
+      'length_signal': 32,
+      'test_splitter': [lilac_span(0, 10), lilac_span(11, 32)]
+    })
   }, {
     UUID_COLUMN: '2',
-    'text': enriched_item(
-      'sentence 1 is longer. sent2 is short', {
-        'test_splitter':
-          [lilac_span(0, 20, {'length_signal': 20}),
-           lilac_span(21, 36, {'length_signal': 15})]
-      })
+    'text': enriched_item('sentence 1 is longer. sent2 is short', {
+      'length_signal': 36,
+      'test_splitter': [lilac_span(0, 20), lilac_span(21, 36)]
+    })
   }]

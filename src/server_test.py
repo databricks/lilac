@@ -237,8 +237,7 @@ def test_select_rows_schema_star_plus_udf() -> None:
       'erased': 'boolean',
       'people': [{
         'name': field(
-          {'length_signal': field(signal=signal.dict(exclude_none=True), dtype='int32')},
-          dtype='string'),
+          'string', fields={'length_signal': field('int32', signal.dict(exclude_none=True))}),
         'zipcode': 'int32',
         'locations': [{
           'city': 'string',

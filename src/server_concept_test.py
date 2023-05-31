@@ -21,6 +21,7 @@ from .concepts.concept import (
 )
 from .concepts.db_concept import ConceptInfo, ConceptUpdate
 from .config import CONFIG
+from .data.dataset_utils import lilac_embedding
 from .router_concept import (
   ConceptModelResponse,
   CreateConceptOptions,
@@ -51,8 +52,8 @@ class TestEmbedding(TextEmbeddingSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
-    embeddings = [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
-    yield from embeddings
+    for example in data:
+      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 @pytest.fixture(scope='module', autouse=True)

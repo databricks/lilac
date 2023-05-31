@@ -6,7 +6,7 @@ from typing_extensions import override
 
 from ..data.dataset_utils import lilac_span
 from ..schema import Field, Item, RichData, SignalInputType, field
-from .signal import Signal
+from .signal import TextSignal
 
 EMAILS_KEY = 'emails'
 NUM_EMAILS_KEY = 'num_emails'
@@ -18,9 +18,7 @@ EMAIL_REGEX = re.compile(
   re.IGNORECASE)
 
 
-# NOTE: We don't extend TextSignal so we avoid giving the user the option to compute PII over
-# splits as this doesn't add any value and can be confusing.
-class PIISignal(Signal):
+class PIISignal(TextSignal):
   """Find personally identifiable information (emails, phone numbers, etc)."""
   name = 'pii'
   display_name = 'Personal Information (PII)'
@@ -30,7 +28,7 @@ class PIISignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return field({EMAILS_KEY: ['string_span'], NUM_EMAILS_KEY: 'int32'})
+    return field(fields={EMAILS_KEY: ['string_span'], NUM_EMAILS_KEY: 'int32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:

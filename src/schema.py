@@ -205,11 +205,13 @@ def schema(schema_like: object) -> Schema:
   return Schema(fields=field.fields)
 
 
-def field(field_like: Optional[object] = None,
-          signal: Optional[dict] = None,
-          dtype: Optional[Union[DataType, str]] = None) -> Field:
+def field(
+  dtype: Optional[Union[DataType, str]] = None,
+  signal: Optional[dict] = None,
+  fields: Optional[object] = None,
+) -> Field:
   """Parse a field-like object to a Field object."""
-  field = _parse_field_like(field_like or {}, dtype)
+  field = _parse_field_like(fields or {}, dtype)
   if signal:
     field.signal = signal
   if dtype:
@@ -217,25 +219,6 @@ def field(field_like: Optional[object] = None,
       dtype = DataType(dtype)
     field.dtype = dtype
   return field
-
-
-def signal_field(dtype: Optional[Union[DataType, str]] = None,
-                 fields: Optional[object] = None,
-                 metadata: Optional[dict[str, object]] = None,
-                 signal: Optional[dict[str, Any]] = None) -> Field:
-  """Parse a field-like object to a signal field.
-
-  NOTE: fields can either be a dict[str, FieldLike] or list[FieldLike], which determines whether to
-  put the field in Field.fields or Field.repeated_field.
-  """
-  out_field = field(fields, dtype=dtype)
-  if signal:
-    out_field.signal = signal
-  if metadata:
-    if not out_field.fields:
-      out_field.fields = {}
-    out_field.fields.update({SIGNAL_METADATA_KEY: field(metadata)})
-  return out_field
 
 
 def _parse_field_like(field_like: object, dtype: Optional[Union[DataType, str]] = None) -> Field:

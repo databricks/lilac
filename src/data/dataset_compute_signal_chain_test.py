@@ -9,19 +9,8 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import (
-  UUID_COLUMN,
-  VALUE_KEY,
-  Field,
-  Item,
-  RichData,
-  VectorKey,
-  field,
-  schema,
-  signal_field,
-)
+from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema
 from ..signals.signal import (
-  Signal,
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSignal,
@@ -30,8 +19,15 @@ from ..signals.signal import (
   register_signal,
 )
 from .dataset import DatasetManifest
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
-from .dataset_utils import lilac_span
+from .dataset_test_utils import (
+  TEST_DATASET_NAME,
+  TEST_NAMESPACE,
+  TestDataMaker,
+  enriched_embedding_span,
+  enriched_embedding_span_field,
+  enriched_item,
+)
+from .dataset_utils import lilac_embedding, lilac_span
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -84,7 +80,8 @@ class TestEmbedding(TextEmbeddingSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
-    yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
+    for example in data:
+      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
@@ -109,7 +106,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestSplitter)
   register_signal(TestEmbedding)
   register_signal(TestEmbeddingSumSignal)
-  register_signal(EntitySignal)
+  register_signal(NamedEntity)
   # Unit test runs.
   yield
   # Teardown.
@@ -141,34 +138,27 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        {
-          'test_embedding': signal_field(
-            dtype='embedding',
-            fields={
-              'test_embedding_sum': signal_field(
-                dtype='float32', signal=embedding_sum_signal.dict())
-            },
-            signal=embedding_signal.dict())
-        },
-        dtype='string'),
+        'string',
+        fields={
+          'test_embedding': field(
+            signal=embedding_signal.dict(),
+            fields=[
+              enriched_embedding_span_field(
+                {'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
+            ])
+        }),
     }),
     num_items=2)
 
   result = dataset.select_rows()
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': enriched_item('hello.',
-                          {'test_embedding': {
-                            VALUE_KEY: None,
-                            'test_embedding_sum': 1.0
-                          }})
+    'text': enriched_item(
+      'hello.', {'test_embedding': [enriched_embedding_span(0, 6, {'test_embedding_sum': 1.0})]})
   }, {
     UUID_COLUMN: '2',
-    'text': enriched_item('hello2.',
-                          {'test_embedding': {
-                            VALUE_KEY: None,
-                            'test_embedding_sum': 2.0
-                          }})
+    'text': enriched_item(
+      'hello2.', {'test_embedding': [enriched_embedding_span(0, 7, {'test_embedding_sum': 2.0})]})
   }]
   assert list(result) == expected_result
 
@@ -197,235 +187,41 @@ def test_auto_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixt
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        {
-          'test_embedding': signal_field(
-            dtype='embedding',
-            fields={
-              'test_embedding_sum': signal_field(
-                dtype='float32', signal=embedding_sum_signal.dict())
-            },
-            signal=cast(Signal, embedding_sum_signal._embedding_signal).dict())
-        },
-        dtype='string'),
+        'string',
+        fields={
+          'test_embedding': field(
+            signal=embedding_sum_signal._embedding_signal.dict(),
+            fields=[
+              enriched_embedding_span_field(
+                {'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
+            ])
+        }),
     }),
     num_items=2)
 
   result = dataset.select_rows()
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': enriched_item('hello.',
-                          {'test_embedding': {
-                            VALUE_KEY: None,
-                            'test_embedding_sum': 1.0
-                          }})
+    'text': enriched_item(
+      'hello.', {'test_embedding': [enriched_embedding_span(0, 6, {'test_embedding_sum': 1.0})]})
   }, {
     UUID_COLUMN: '2',
-    'text': enriched_item('hello2.',
-                          {'test_embedding': {
-                            VALUE_KEY: None,
-                            'test_embedding_sum': 2.0
-                          }})
+    'text': enriched_item(
+      'hello2.', {'test_embedding': [enriched_embedding_span(0, 7, {'test_embedding_sum': 2.0})]})
   }]
   assert list(result) == expected_result
-
-
-def test_manual_embedding_signal_splits(make_test_data: TestDataMaker,
-                                        mocker: MockerFixture) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello. hello2.',
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'hello world. hello world2.',
-  }])
-
-  split_mock = mocker.spy(TestSplitter, 'compute')
-  embed_mock = mocker.spy(TestEmbedding, 'compute')
-
-  split_signal = TestSplitter()
-  dataset.compute_signal(split_signal, 'text')
-  embedding_signal = TestEmbedding(split=TestSplitter.name)
-  dataset.compute_signal(embedding_signal, 'text')
-  embedding_sum_signal = TestEmbeddingSumSignal(
-    split=TestSplitter.name, embedding=TestEmbedding.name)
-  dataset.compute_signal(embedding_sum_signal, 'text')
-
-  # Make sure the split and embedding signals are not called twice.
-  assert split_mock.call_count == 1
-  assert embed_mock.call_count == 1
-
-  assert dataset.manifest() == DatasetManifest(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      UUID_COLUMN: 'string',
-      'text': field(
-        {
-          'test_splitter': signal_field(
-            fields=[
-              signal_field(
-                dtype='string_span',
-                fields={
-                  'test_embedding': signal_field(
-                    fields={
-                      'test_embedding_sum': signal_field(
-                        dtype='float32', signal=embedding_sum_signal.dict())
-                    },
-                    dtype='embedding',
-                    signal=embedding_signal.dict())
-                },
-              )
-            ],
-            signal=split_signal.dict())
-        },
-        dtype='string'),
-    }),
-    num_items=2)
-
-  result = dataset.select_rows(['text'])
-
-  assert list(result) == [{
-    UUID_COLUMN: '1',
-    'text': enriched_item(
-      'hello. hello2.', {
-        'test_splitter': [
-          lilac_span(0, 6, {
-            'test_embedding': {
-              VALUE_KEY: None,
-              'test_embedding_sum': 1.0
-            },
-          }),
-          lilac_span(7, 14, {
-            'test_embedding': {
-              VALUE_KEY: None,
-              'test_embedding_sum': 2.0
-            },
-          }),
-        ]
-      })
-  }, {
-    UUID_COLUMN: '2',
-    'text': enriched_item(
-      'hello world. hello world2.', {
-        'test_splitter': [
-          lilac_span(0, 12, {
-            'test_embedding': {
-              VALUE_KEY: None,
-              'test_embedding_sum': 3.0
-            },
-          }),
-          lilac_span(13, 26, {
-            'test_embedding': {
-              VALUE_KEY: None,
-              'test_embedding_sum': 4.0
-            },
-          })
-        ]
-      })
-  }]
-
-
-def test_auto_embedding_signal_splits(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello. hello2.',
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'hello world. hello world2.',
-  }])
-
-  split_mock = mocker.spy(TestSplitter, 'compute')
-  embed_mock = mocker.spy(TestEmbedding, 'compute')
-
-  embedding_sum_signal = TestEmbeddingSumSignal(
-    split=TestSplitter.name, embedding=TestEmbedding.name)
-  dataset.compute_signal(embedding_sum_signal, 'text')
-
-  # Make sure the split and embedding signals are not called twice.
-  assert split_mock.call_count == 1
-  assert embed_mock.call_count == 1
-
-  assert dataset.manifest() == DatasetManifest(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      UUID_COLUMN: 'string',
-      'text': field(
-        {
-          'test_splitter': signal_field(
-            fields=[
-              signal_field(
-                dtype='string_span',
-                fields={
-                  'test_embedding': signal_field(
-                    fields={
-                      'test_embedding_sum': signal_field(
-                        dtype='float32', signal=embedding_sum_signal.dict())
-                    },
-                    dtype='embedding',
-                    signal=cast(Signal, embedding_sum_signal._embedding_signal).dict())
-                },
-              )
-            ],
-            signal=cast(Signal, embedding_sum_signal._split_signal).dict())
-        },
-        dtype='string'),
-    }),
-    num_items=2)
-
-  result = dataset.select_rows(['text'])
-
-  assert list(result) == [{
-    UUID_COLUMN: '1',
-    'text': enriched_item(
-      'hello. hello2.', {
-        'test_splitter': [
-          lilac_span(0, 6, {
-            'test_embedding': {
-              VALUE_KEY: None,
-              'test_embedding_sum': 1.0
-            },
-          }),
-          lilac_span(7, 14, {
-            'test_embedding': {
-              VALUE_KEY: None,
-              'test_embedding_sum': 2.0
-            },
-          }),
-        ]
-      })
-  }, {
-    UUID_COLUMN: '2',
-    'text': enriched_item(
-      'hello world. hello world2.', {
-        'test_splitter': [
-          lilac_span(0, 12, {
-            'test_embedding': {
-              VALUE_KEY: None,
-              'test_embedding_sum': 3.0
-            },
-          }),
-          lilac_span(13, 26, {
-            'test_embedding': {
-              VALUE_KEY: None,
-              'test_embedding_sum': 4.0
-            },
-          })
-        ]
-      })
-  }]
 
 
 ENTITY_REGEX = r'[A-Za-z]+@[A-Za-z]+'
 
 
-class EntitySignal(TextSignal):
+class NamedEntity(TextSignal):
   """Find special entities."""
   name = 'entity'
 
   @override
   def fields(self) -> Field:
-    return field(['string_span'])
+    return field(fields=['string_span'])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[List[Item]]]:
@@ -439,8 +235,9 @@ class EntitySignal(TextSignal):
 def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
   text = 'Hello nik@test. Here are some other entities like pii@gmail and all@lilac.'
   dataset = make_test_data([{UUID_COLUMN: '1', 'text': text}])
-  entity = EntitySignal(split='test_splitter')
-  dataset.compute_signal(entity, 'text')
+  entity = NamedEntity()
+  dataset.compute_signal(TestSplitter(), 'text')
+  dataset.compute_signal(entity, ('text', 'test_splitter', '*'))
 
   result = dataset.select_rows(['text'])
   assert list(result) == [{

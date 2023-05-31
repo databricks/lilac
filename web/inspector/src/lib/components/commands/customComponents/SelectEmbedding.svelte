@@ -1,13 +1,7 @@
 <script lang="ts">
   import {queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {
-    getField,
-    listFields,
-    type ConceptScoreSignal,
-    type SemanticSimilaritySignal,
-    type TextEmbeddingSignal
-  } from '$lilac';
+  import {getField, listFields} from '$lilac';
   import {Select, SelectItem} from 'carbon-components-svelte';
   import type {JSONSchema7} from 'json-schema';
   import {getCommandSignalContext} from '../CommandSignals.svelte';
@@ -15,7 +9,6 @@
   export let invalid: boolean;
   export let invalidText: string;
   export let value: string;
-  export let rootValue: TextEmbeddingSignal | ConceptScoreSignal | SemanticSimilaritySignal;
 
   const datasetViewStore = getDatasetViewContext();
   const schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
@@ -26,14 +19,11 @@
   // Find the embedding signal json schema field
   $: embeddingSignalField = $ctx.jsonSchema?.properties?.embedding as JSONSchema7 | undefined;
 
-  // Read the split value from the root value
-  $: split = rootValue['split'] || undefined;
-
   // Find all existing pre-computed embeddings for the current split from the schema
   $: existingEmbeddings =
     $ctx.path && $schema.data
       ? listFields(getField($schema.data, $ctx.path)).filter(
-          f => f.dtype === 'embedding' && (f.signal as TextEmbeddingSignal).split == split
+          f => f.signal != null && listFields(f).some(f => f.dtype === 'embedding')
         )
       : undefined;
 
@@ -45,6 +35,9 @@
     if (!aComputed && bComputed) return 1;
     return 0;
   });
+
+  // Make the initial selected value by the first computed embedding.
+  $: value = sortedEnum[0]?.toString() || '';
 
   // Check if the current value is computed
   $: computed = existingEmbeddings?.some(f => f.signal?.signal_name === value?.toString()) || false;

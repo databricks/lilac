@@ -6,10 +6,11 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schema, signal_field
+from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schema
 from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset import Column, DatasetManifest, val
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
+from .dataset_utils import lilac_embedding
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -46,7 +47,8 @@ class TestEmbedding(TextEmbeddingSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
-    yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
+    for example in data:
+      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 class LengthSignal(TextSignal):
@@ -68,7 +70,7 @@ class TestSignal(TextSignal):
 
   @override
   def fields(self) -> Field:
-    return field({'len': 'int32', 'flen': 'float32'})
+    return field(fields={'len': 'int32', 'flen': 'float32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -483,15 +485,15 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
       UUID_COLUMN: 'string',
       'texts': [
         field(
-          {
-            'length_signal': signal_field(dtype='int32', signal=length_signal.dict()),
-            'test_signal': signal_field(
-              fields={
+          'string',
+          fields={
+            'length_signal': field('int32', length_signal.dict()),
+            'test_signal': field(
+              signal=test_signal.dict(), fields={
                 'len': 'int32',
                 'flen': 'float32'
-              }, signal=test_signal.dict())
-          },
-          dtype='string')
+              })
+          })
       ],
     }),
     num_items=2)
@@ -704,14 +706,14 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
     data_schema=schema({
       UUID_COLUMN: 'string',
       'str': field(
-        {
-          'test_signal': signal_field(
-            fields={
+        'string',
+        fields={
+          'test_signal': field(
+            signal=test_signal.dict(), fields={
               'len': 'int32',
               'flen': 'float32'
-            }, signal=test_signal.dict())
-        },
-        dtype='string'),
+            })
+        }),
       'int': 'int32',
       'bool': 'boolean',
       'float': 'float32',

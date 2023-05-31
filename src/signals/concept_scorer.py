@@ -13,7 +13,7 @@ from ..concepts.concept import (
 )
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.vector_store import VectorStore
-from ..schema import DataType, Field, Item, RichData, VectorKey
+from ..schema import Field, Item, RichData, VectorKey, field
 from .signal import TextEmbeddingModelSignal
 
 
@@ -40,7 +40,7 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
 
   @override
   def fields(self) -> Field:
-    return Field(dtype=DataType.FLOAT32)
+    return field('float32')
 
   def set_column_info(self, column_info: ConceptColumnInfo) -> None:
     """Set the dataset info for this signal."""

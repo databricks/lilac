@@ -5,7 +5,7 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import DataType, Field, Item, RichData, SignalInputType, VectorKey, field
+from ..schema import Field, Item, RichData, SignalInputType, VectorKey, field
 from .signal import (
   Signal,
   TextEmbeddingModelSignal,
@@ -31,7 +31,7 @@ class TestSignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return Field(dtype=DataType.FLOAT32)
+    return field('float32')
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -134,8 +134,6 @@ def test_get_signals_by_type() -> None:
 def test_signal_type_enum() -> None:
   model_signal = TestTextEmbeddingModelSignal(embedding='test_embedding')
   schema_properties = model_signal.schema()['properties']
-  # Make sure the schema split enum contains the test splitter.
-  assert schema_properties['split']['enum'] == [TestTextSplitter.name]
   assert schema_properties['embedding']['enum'] == [TestTextEmbedding.name]
 
 

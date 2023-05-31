@@ -9,7 +9,6 @@ import type { Sensitivity } from './Sensitivity';
  */
 export type ConceptScoreSignal = {
     signal_name?: 'concept_score';
-    split?: 'sentences' | 'chunk';
     embedding: 'cohere' | 'sbert';
     namespace: string;
     concept_name: string;
