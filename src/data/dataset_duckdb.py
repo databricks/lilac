@@ -39,7 +39,13 @@ from ..schema import (
   normalize_path,
   signal_compute_type_supports_dtype,
 )
-from ..signals.signal import Signal, TextEmbeddingModelSignal, TextEmbeddingSignal, resolve_signal
+from ..signals.signal import (
+  EMBEDDING_KEY,
+  Signal,
+  TextEmbeddingModelSignal,
+  TextEmbeddingSignal,
+  resolve_signal,
+)
 from ..signals.substring_search import SubstringSignal
 from ..tasks import TaskStepId, TaskStepInfo, progress, set_worker_steps
 from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
@@ -271,7 +277,7 @@ class DatasetDuckDB(Dataset):
     signals_to_compute: list[tuple[PathTuple, Signal]] = []
     if isinstance(signal, TextEmbeddingModelSignal):
       embedding_signal = signal.get_embedding_signal()
-      new_path = (*new_path, embedding_signal.key())
+      new_path = (*new_path, embedding_signal.key(), EMBEDDING_KEY)
       if new_path not in self.manifest().data_schema.leafs:
         if not compute_dependencies:
           raise ValueError(f'Embedding signal "{embedding_signal.key()}" is not computed over '
