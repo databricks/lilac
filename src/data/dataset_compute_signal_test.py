@@ -6,8 +6,9 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schema, signal_field
+from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schema
 from ..signals.signal import (
+  EMBEDDING_KEY,
   TextEmbeddingSignal,
   TextSignal,
   TextSplitterSignal,
@@ -16,7 +17,7 @@ from ..signals.signal import (
 )
 from .dataset import Column, DatasetManifest, val
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
-from .dataset_utils import lilac_span
+from .dataset_utils import lilac_embedding, lilac_span
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',
@@ -145,7 +146,9 @@ class TestEmbedding(TextEmbeddingSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
-    yield from [np.array(STR_EMBEDDINGS[cast(str, example)]) for example in data]
+    for example in data:
+      example = cast(str, example)
+      yield lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[example]))
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -250,11 +253,10 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
       UUID_COLUMN: 'string',
       'str': field(
         {
-          'test_signal': signal_field(
-            fields={
-              'len': 'int32',
-              'flen': 'float32'
-            }, signal=test_signal.dict()),
+          'test_signal': field({
+            'len': 'int32',
+            'flen': 'float32'
+          }, signal=test_signal.dict()),
         },
         dtype='string'),
       'int': 'int32',
@@ -372,8 +374,8 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
       UUID_COLUMN: 'string',
       'text': field(
         {
-          'param_signal(param=a)': signal_field(dtype='string', signal=test_signal_a.dict()),
-          'param_signal(param=b)': signal_field(dtype='string', signal=test_signal_b.dict()),
+          'param_signal(param=a)': field(dtype='string', signal=test_signal_a.dict()),
+          'param_signal(param=b)': field(dtype='string', signal=test_signal_b.dict()),
         },
         dtype='string'),
     }),
@@ -412,9 +414,8 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
-      'text': field(
-        {'test_split': signal_field(fields=[signal_field('string_span')], signal=signal.dict())},
-        dtype='string')
+      'text': field({'test_split': field([field('string_span')], signal=signal.dict())},
+                    dtype='string')
     }),
     num_items=2)
 
@@ -454,13 +455,10 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
       UUID_COLUMN: 'string',
       'text': field([
         field(
-          {
-            'test_signal': signal_field(
-              fields={
-                'len': 'int32',
-                'flen': 'float32'
-              }, signal=test_signal.dict())
-          },
+          {'test_signal': field({
+            'len': 'int32',
+            'flen': 'float32'
+          }, signal=test_signal.dict())},
           dtype='string')
       ])
     }),
@@ -543,8 +541,13 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        {'test_embedding': signal_field(dtype='embedding', signal=embedding_signal.dict())},
-        dtype='string'),
+        dtype='string',
+        fields={
+          'test_embedding': field(
+            dtype='string_span',
+            signal=embedding_signal.dict(),
+            fields={EMBEDDING_KEY: 'embedding'})
+        }),
     }),
     num_items=2)
 
@@ -553,9 +556,9 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
   # Embeddings are replaced with "None".
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': enriched_item('hello.', {'test_embedding': None})
+    'text': enriched_item('hello.', {'test_embedding': lilac_embedding(0, 6, None)})
   }, {
     UUID_COLUMN: '2',
-    'text': enriched_item('hello2.', {'test_embedding': None})
+    'text': enriched_item('hello2.', {'test_embedding': lilac_embedding(0, 7, None)})
   }]
   assert list(result) == expected_result

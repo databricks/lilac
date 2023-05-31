@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schema, signal_field
+from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schema
 from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset import Column, DatasetManifest, val
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
@@ -484,9 +484,8 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
       'texts': [
         field(
           {
-            'length_signal': signal_field(dtype='int32', signal=length_signal.dict()),
-            'test_signal': signal_field(
-              fields={
+            'length_signal': field(dtype='int32', signal=length_signal.dict()),
+            'test_signal': field({
                 'len': 'int32',
                 'flen': 'float32'
               }, signal=test_signal.dict())
@@ -705,8 +704,7 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
       UUID_COLUMN: 'string',
       'str': field(
         {
-          'test_signal': signal_field(
-            fields={
+          'test_signal': field({
               'len': 'int32',
               'flen': 'float32'
             }, signal=test_signal.dict())

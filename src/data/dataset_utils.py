@@ -5,7 +5,7 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Any, Callable, Generator, Iterator, Sequence, TypeVar, Union, cast
+from typing import Any, Callable, Generator, Iterator, Optional, Sequence, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -27,7 +27,7 @@ from ..schema import (
   schema,
   schema_to_arrow_schema,
 )
-from ..signals.signal import Signal
+from ..signals.signal import EMBEDDING_KEY, Signal
 from ..utils import file_exists, log, open_file
 
 NP_INDEX_KEYS_KWD = 'keys'
@@ -62,6 +62,11 @@ def replace_embeddings_with_none(input: Union[Item, Item]) -> Item:
 def lilac_span(start: int, end: int, metadata: dict[str, Any] = {}) -> Item:
   """Creates a lilac span item, representing a pointer to a slice of text."""
   return {VALUE_KEY: {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}, **metadata}
+
+
+def lilac_embedding(start: int, end: int, embedding: Optional[np.ndarray]) -> Item:
+  """Creates a lilac embedding item, representing a vector with a pointer to a slice of text."""
+  return lilac_span(start, end, {EMBEDDING_KEY: embedding})
 
 
 Tflatten = TypeVar('Tflatten', object, np.ndarray)
@@ -230,9 +235,9 @@ def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[obje
 
   flat_keys = flatten_keys(keys, embeddings, is_primitive_predicate=embedding_predicate)
   embedding_vectors: list[np.ndarray] = []
-  for embedding_vector in flatten(embeddings, is_primitive_predicate=embedding_predicate):
+  for lilac_embedding in flatten(embeddings, is_primitive_predicate=embedding_predicate):
     # We use squeeze here because embedding functions can return outer dimensions of 1.
-    embedding_vector = embedding_vector.squeeze()
+    embedding_vector = lilac_embedding[EMBEDDING_KEY].squeeze()
     if embedding_vector.ndim != 1:
       raise ValueError(f'Expected embeddings to be 1-dimensional, got {embedding_vector.ndim} '
                        f'with shape {embedding_vector.shape}.')

@@ -6,7 +6,7 @@ from typing_extensions import override
 
 from ..embeddings.embedding import EmbedFn, get_embed_fn
 from ..embeddings.vector_store import VectorStore
-from ..schema import DataType, Field, Item, RichData, VectorKey
+from ..schema import Field, Item, RichData, VectorKey, field
 from .signal import TextEmbeddingModelSignal, TextEmbeddingSignal, get_signal_cls
 
 
@@ -35,7 +35,7 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
 
   @override
   def fields(self) -> Field:
-    return Field(dtype=DataType.FLOAT32)
+    return field('float32')
 
   def _get_search_embedding(self) -> np.ndarray:
     """Return the embedding for the search text."""

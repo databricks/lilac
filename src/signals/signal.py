@@ -10,6 +10,8 @@ from typing_extensions import override
 from ..embeddings.vector_store import VectorStore
 from ..schema import Field, Item, RichData, SignalInputType, VectorKey, field
 
+EMBEDDING_KEY = 'embedding'
+
 
 class Signal(abc.ABC, BaseModel):
   """Interface for signals to implement. A signal can score documents and a dataset column."""
@@ -172,32 +174,11 @@ class TextSignal(Signal):
   input_type = SignalInputType.TEXT
   compute_type = SignalInputType.TEXT
 
-  split: Optional[TextSplitterEnum]
-  _split_signal: Optional[TextSplitterSignal] = None
-
-  def __init__(self, split: Optional[str] = None, **kwargs: Any):
-    super().__init__(split=split, **kwargs)
-
-    # Validate the split signal is registered and the correct type.
-    # TODO(nsthorat): Allow arguments passed to the embedding signal.
-    if self.split:
-      self._split_signal = get_signal_by_type(self.split, TextSplitterSignal)(split=self.split)
-
-  def get_split_signal(self) -> Optional[TextSplitterSignal]:
-    """Return the embedding signal."""
-    return self._split_signal
-
   @override
   def key(self) -> str:
-    # NOTE: The split already exists in the path structure. This means we do not need to provide
-    # the signal names as part of the key, which still guarantees uniqueness.
-
     args_dict = self.dict(exclude_unset=True, exclude_defaults=True)
     if 'signal_name' in args_dict:
       del args_dict['signal_name']
-    if 'split' in args_dict:
-      del args_dict['split']
-
     return self.name + _args_key_from_dict(args_dict)
 
 
@@ -212,7 +193,7 @@ class TextEmbeddingSignal(TextSignal):
 
     Embeddings should not come with extra metadata.
     """
-    return field('embedding')
+    return field({EMBEDDING_KEY: 'embedding'}, dtype='string_span')
 
 
 class TextEmbeddingEnum(SignalTypeEnum):
@@ -235,10 +216,9 @@ class TextEmbeddingModelSignal(TextSignal):
 
     # Validate the embedding signal is registered and the correct type.
     # TODO(nsthorat): Allow arguments passed to the embedding signal.
-    self._embedding_signal = get_signal_by_type(self.embedding, TextEmbeddingSignal)(
-      split=self.split)
+    self._embedding_signal = get_signal_by_type(self.embedding, TextEmbeddingSignal)()
 
-  def get_embedding_signal(self) -> Optional[TextEmbeddingSignal]:
+  def get_embedding_signal(self) -> TextEmbeddingSignal:
     """Return the embedding signal."""
     return self._embedding_signal
 
@@ -251,9 +231,6 @@ class TextEmbeddingModelSignal(TextSignal):
     if 'signal_name' in args_dict:
       del args_dict['signal_name']
     del args_dict['embedding']
-    if 'split' in args_dict:
-      del args_dict['split']
-
     return self.name + _args_key_from_dict(args_dict)
 
 

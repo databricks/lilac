@@ -9,17 +9,7 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import (
-  UUID_COLUMN,
-  VALUE_KEY,
-  Field,
-  Item,
-  RichData,
-  VectorKey,
-  field,
-  schema,
-  signal_field,
-)
+from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, VectorKey, field, schema
 from ..signals.signal import (
   Signal,
   TextEmbeddingModelSignal,
@@ -142,12 +132,9 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
       UUID_COLUMN: 'string',
       'text': field(
         {
-          'test_embedding': signal_field(
+          'test_embedding': field(
+            {'test_embedding_sum': field(dtype='float32', signal=embedding_sum_signal.dict())},
             dtype='embedding',
-            fields={
-              'test_embedding_sum': signal_field(
-                dtype='float32', signal=embedding_sum_signal.dict())
-            },
             signal=embedding_signal.dict())
         },
         dtype='string'),
@@ -198,12 +185,9 @@ def test_auto_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixt
       UUID_COLUMN: 'string',
       'text': field(
         {
-          'test_embedding': signal_field(
+          'test_embedding': field(
+            {'test_embedding_sum': field(dtype='float32', signal=embedding_sum_signal.dict())},
             dtype='embedding',
-            fields={
-              'test_embedding_sum': signal_field(
-                dtype='float32', signal=embedding_sum_signal.dict())
-            },
             signal=cast(Signal, embedding_sum_signal._embedding_signal).dict())
         },
         dtype='string'),
@@ -261,22 +245,20 @@ def test_manual_embedding_signal_splits(make_test_data: TestDataMaker,
       UUID_COLUMN: 'string',
       'text': field(
         {
-          'test_splitter': signal_field(
-            fields=[
-              signal_field(
-                dtype='string_span',
-                fields={
-                  'test_embedding': signal_field(
-                    fields={
-                      'test_embedding_sum': signal_field(
-                        dtype='float32', signal=embedding_sum_signal.dict())
-                    },
-                    dtype='embedding',
-                    signal=embedding_signal.dict())
-                },
-              )
-            ],
-            signal=split_signal.dict())
+          'test_splitter': field([
+            field(
+              {
+                'test_embedding': field(
+                  {
+                    'test_embedding_sum': field(
+                      dtype='float32', signal=embedding_sum_signal.dict())
+                  },
+                  dtype='embedding',
+                  signal=embedding_signal.dict())
+              },
+              dtype='string_span')
+          ],
+                                 signal=split_signal.dict())
         },
         dtype='string'),
     }),
@@ -352,22 +334,20 @@ def test_auto_embedding_signal_splits(make_test_data: TestDataMaker, mocker: Moc
       UUID_COLUMN: 'string',
       'text': field(
         {
-          'test_splitter': signal_field(
-            fields=[
-              signal_field(
-                dtype='string_span',
-                fields={
-                  'test_embedding': signal_field(
-                    fields={
-                      'test_embedding_sum': signal_field(
-                        dtype='float32', signal=embedding_sum_signal.dict())
-                    },
-                    dtype='embedding',
-                    signal=cast(Signal, embedding_sum_signal._embedding_signal).dict())
-                },
-              )
-            ],
-            signal=cast(Signal, embedding_sum_signal._split_signal).dict())
+          'test_splitter': field([
+            field(
+              {
+                'test_embedding': field(
+                  {
+                    'test_embedding_sum': field(
+                      dtype='float32', signal=embedding_sum_signal.dict())
+                  },
+                  dtype='embedding',
+                  signal=cast(Signal, embedding_sum_signal._embedding_signal).dict())
+              },
+              dtype='string_span')
+          ],
+                                 signal=embedding_sum_signal.dict())
         },
         dtype='string'),
     }),

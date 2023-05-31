@@ -7,7 +7,7 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema, signal_field
+from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema
 from ..signals.signal import (
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
@@ -224,7 +224,7 @@ def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
       UUID_COLUMN: 'string',
       'people': [{
         'name': {
-          'length_signal': signal_field(dtype='int32', signal=length_signal.dict())
+          'length_signal': field(dtype='int32', signal=length_signal.dict())
         },
         'locations': [{
           'city': 'string'
@@ -248,9 +248,9 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
       'people': [{
         'name': field(
           {
-            'add_space_signal': signal_field(
-              fields={
-                'add_space_signal': signal_field(dtype='string', signal=add_space_signal.dict()),
+            'add_space_signal': field(
+              {
+                'add_space_signal': field(dtype='string', signal=add_space_signal.dict()),
               },
               dtype='string',
               signal=add_space_signal.dict())
@@ -280,15 +280,11 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
       UUID_COLUMN: 'string',
       'text': field(
         {
-          'test_splitter': signal_field(
-            fields=[
-              signal_field(
-                dtype='string_span',
-                fields={
-                  'add_space_signal': signal_field(dtype='string', signal=add_space_signal.dict())
-                })
-            ],
-            signal=test_splitter.dict())
+          'test_splitter': field([
+            field({'add_space_signal': field(dtype='string', signal=add_space_signal.dict())},
+                  dtype='string_span')
+          ],
+                                 signal=test_splitter.dict())
         },
         dtype='string')
     }))
@@ -316,21 +312,17 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
     UUID_COLUMN: 'string',
     'text': field(
       {
-        'test_splitter': signal_field(
-          fields=[
-            signal_field(
-              dtype='string_span',
-              fields={
-                'test_embedding': signal_field(
-                  dtype='embedding',
-                  fields={
-                    'test_embedding_sum': signal_field(
-                      dtype='float32', signal=embedding_sum_signal.dict())
-                  },
-                  signal=test_embedding.dict()),
-              })
-          ],
-          signal=test_splitter.dict())
+        'test_splitter': field([
+          field(
+            {
+              'test_embedding': field(
+                {'test_embedding_sum': field(dtype='float32', signal=embedding_sum_signal.dict())},
+                dtype='embedding',
+                signal=test_embedding.dict()),
+            },
+            dtype='string_span')
+        ],
+                               signal=test_splitter.dict())
       },
       dtype='string')
   })
@@ -368,16 +360,10 @@ def test_search_schema(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        {
-          expected_world_signal.key(): signal_field(
-            fields=['string_span'], signal=expected_world_signal.dict())
-        },
+        {expected_world_signal.key(): field(['string_span'], signal=expected_world_signal.dict())},
         dtype='string'),
       'text2': field(
-        {
-          expected_hello_signal.key(): signal_field(
-            fields=['string_span'], signal=expected_hello_signal.dict())
-        },
+        {expected_hello_signal.key(): field(['string_span'], signal=expected_hello_signal.dict())},
         dtype='string')
     }),
     search_results_paths=[('text', expected_world_signal.key()),
