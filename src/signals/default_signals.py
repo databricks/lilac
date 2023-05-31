@@ -3,7 +3,6 @@ from ..embeddings.cohere import Cohere
 from ..embeddings.sbert import SBERT
 from .concept_scorer import ConceptScoreSignal
 from .pii import PIISignal
-from .semantic_similarity import SemanticSimilaritySignal
 from .signal import register_signal
 from .text_statistics import TextStatisticsSignal
 
@@ -20,6 +19,3 @@ def register_default_signals() -> None:
   # Embeddings.
   register_signal(Cohere)
   register_signal(SBERT)
-
-  # Text embedding inputs.
-  register_signal(SemanticSimilaritySignal)

@@ -106,7 +106,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestSplitter)
   register_signal(TestEmbedding)
   register_signal(TestEmbeddingSumSignal)
-  register_signal(EntitySignal)
+  register_signal(NamedEntity)
   # Unit test runs.
   yield
   # Teardown.
@@ -215,7 +215,7 @@ def test_auto_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixt
 ENTITY_REGEX = r'[A-Za-z]+@[A-Za-z]+'
 
 
-class EntitySignal(TextSignal):
+class NamedEntity(TextSignal):
   """Find special entities."""
   name = 'entity'
 
@@ -235,7 +235,7 @@ class EntitySignal(TextSignal):
 def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
   text = 'Hello nik@test. Here are some other entities like pii@gmail and all@lilac.'
   dataset = make_test_data([{UUID_COLUMN: '1', 'text': text}])
-  entity = EntitySignal()
+  entity = NamedEntity()
   dataset.compute_signal(TestSplitter(), 'text')
   dataset.compute_signal(entity, ('text', 'test_splitter', '*'))
 

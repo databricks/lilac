@@ -277,7 +277,7 @@ class DatasetDuckDB(Dataset):
     signals_to_compute: list[tuple[PathTuple, Signal]] = []
     if isinstance(signal, TextEmbeddingModelSignal):
       embedding_signal = signal.get_embedding_signal()
-      new_path = (*new_path, embedding_signal.key(), '*', EMBEDDING_KEY)
+      new_path = (*new_path, embedding_signal.key(), PATH_WILDCARD, EMBEDDING_KEY)
       if new_path not in self.manifest().data_schema.leafs:
         if not compute_dependencies:
           raise ValueError(f'Embedding signal "{embedding_signal.key()}" is not computed over '
