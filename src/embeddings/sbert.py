@@ -1,5 +1,5 @@
 """Sentence-BERT embeddings. Open-source models, designed to run on device."""
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, cast
 
 import numpy as np
 import torch
@@ -7,8 +7,10 @@ from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import normalize
 from typing_extensions import override
 
+from ..data.dataset_utils import lilac_embedding
 from ..schema import Item, RichData
 from ..signals.signal import TextEmbeddingSignal
+from ..signals.splitters.chunk_splitter import split_text
 from ..utils import chunks, log
 
 # The `all-mpnet-base-v2` model provides the best quality, while `all-MiniLM-L6-v2`` is 5 times
@@ -53,10 +55,20 @@ class SBERT(TextEmbeddingSignal):
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+    """Call the embedding function."""
     batch_size = self._optimal_batch_size()
+    # We will yield several spans for each input text.
+    for text in data:
+      text = cast(str, text)
+      text_chunks = split_text(text, chunk_overlap=0) if self.split else [(text, (0, len(text)))]
+      all_embeddings: list[np.ndarray] = []
+      for batch in chunks(text_chunks, batch_size):
+        embedding_batch = normalize(np.array(self._model.encode(batch))).astype(np.float16)
+        # np.split returns a shallow copy of each embedding so we don't increase the mem footprint.
+        all_embeddings.extend(np.split(embedding_batch, embedding_batch.shape[0]))
 
-    for batch in chunks(data, batch_size):
-      embedding_batch = np.array(self._model.encode(batch))
-      embedding_batch = normalize(embedding_batch).astype(np.float16)
-      # np.split returns a shallow copy of each embedding so we don't increase the memory footprint.
-      yield from np.split(embedding_batch, embedding_batch.shape[0])
+      # Yield many spans for each input text.
+      yield [
+        lilac_embedding(start, end, embedding)
+        for (_, (start, end)), embedding in zip(text_chunks, all_embeddings)
+      ]

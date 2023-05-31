@@ -8,7 +8,6 @@ import type { Signal } from './Signal';
 import type { TextEmbeddingModelSignal } from './TextEmbeddingModelSignal';
 import type { TextEmbeddingSignal } from './TextEmbeddingSignal';
 import type { TextSignal } from './TextSignal';
-import type { TextSplitterSignal } from './TextSplitterSignal';
 
 /**
  * A column in the dataset.
@@ -16,6 +15,6 @@ import type { TextSplitterSignal } from './TextSplitterSignal';
 export type Column = {
     path: Array<string>;
     alias?: string;
-    signal_udf?: (SemanticSimilaritySignal | ConceptScoreSignal | TextEmbeddingModelSignal | TextEmbeddingSignal | TextSplitterSignal | TextSignal | Signal);
+    signal_udf?: (SemanticSimilaritySignal | ConceptScoreSignal | TextEmbeddingModelSignal | TextEmbeddingSignal | TextSignal | Signal);
 };
 

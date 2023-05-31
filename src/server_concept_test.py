@@ -53,7 +53,7 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     for example in data:
-      yield lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))
+      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 @pytest.fixture(scope='module', autouse=True)

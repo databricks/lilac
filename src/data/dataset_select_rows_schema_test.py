@@ -18,7 +18,7 @@ from ..signals.signal import (
 )
 from ..signals.substring_search import SubstringSignal
 from .dataset import Column, SearchType, SelectRowsSchemaResult
-from .dataset_test_utils import TestDataMaker, embedding_field
+from .dataset_test_utils import TestDataMaker, enriched_embedding_span_field
 from .dataset_utils import lilac_embedding, lilac_span
 
 TEST_DATA: list[Item] = [{
@@ -92,7 +92,7 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     for example in data:
-      yield lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))
+      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
@@ -317,9 +317,12 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
             field(
               'string_span',
               fields={
-                'test_embedding': embedding_field(
-                  test_embedding,
-                  {'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
+                'test_embedding': field(
+                  signal=test_embedding.dict(),
+                  fields=[
+                    enriched_embedding_span_field(
+                      {'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
+                  ])
               })
           ])
       })
@@ -332,7 +335,8 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
   assert result == SelectRowsSchemaResult(
     data_schema=expected_schema,
     alias_udf_paths={
-      'udf1': ('text', 'test_splitter', '*', 'test_embedding', 'embedding', 'test_embedding_sum')
+      'udf1':
+        ('text', 'test_splitter', '*', 'test_embedding', '*', 'embedding', 'test_embedding_sum')
     })
 
 

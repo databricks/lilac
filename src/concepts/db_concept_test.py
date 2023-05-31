@@ -59,7 +59,7 @@ class TestEmbedding(TextEmbeddingSignal):
     for example in data:
       if example not in EMBEDDING_MAP:
         raise ValueError(f'Example "{str(example)}" not in embedding map')
-      yield lilac_embedding(0, len(example), np.array(EMBEDDING_MAP[cast(str, example)]))
+      yield [lilac_embedding(0, len(example), np.array(EMBEDDING_MAP[cast(str, example)]))]
 
 
 @pytest.fixture(scope='module', autouse=True)

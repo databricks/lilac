@@ -5,15 +5,16 @@ import numpy as np
 from pydantic import StrictStr
 
 from ..schema import RichData
-from ..signals.signal import EMBEDDING_KEY, TextEmbeddingSignal
+from ..signals.signal import EMBEDDING_KEY, TextEmbeddingSignal, get_signal_by_type
 
 EmbeddingId = Union[StrictStr, TextEmbeddingSignal]
 
 EmbedFn = Callable[[Iterable[RichData]], np.ndarray]
 
 
-def get_embed_fn(embedding: TextEmbeddingSignal) -> EmbedFn:
+def get_embed_fn(embedding_name: str) -> EmbedFn:
   """Return a function that returns the embedding matrix for the given embedding signal."""
+  embedding = get_signal_by_type(embedding_name, TextEmbeddingSignal)(split=False)
 
   def _embed_fn(data: Iterable[RichData]) -> np.ndarray:
     items = embedding.compute(data)
@@ -22,7 +23,10 @@ def get_embed_fn(embedding: TextEmbeddingSignal) -> EmbedFn:
     for item in items:
       if not item:
         raise ValueError('Embedding signal returned None.')
-      embedding_vector = item[EMBEDDING_KEY]
+      if len(item) != 1:
+        raise ValueError(
+          f'Embedding signal returned {len(item)} items, but expected 1 since split was False')
+      embedding_vector = item[0][EMBEDDING_KEY]
       if not isinstance(embedding_vector, np.ndarray):
         raise ValueError(
           f'Embedding signal returned {type(embedding_vector)} which is not an ndarray.')

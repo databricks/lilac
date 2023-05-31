@@ -36,7 +36,7 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     for example in data:
-      yield lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))
+      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 class LengthSignal(TextSignal):
@@ -253,11 +253,11 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   expected_result: list[Item] = [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello.',
-    'test_embedding_sum(text.test_embedding.embedding)': 1.0
+    'test_embedding_sum(text.test_embedding.*.embedding)': [1.0]
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'hello2.',
-    'test_embedding_sum(text.test_embedding.embedding)': 2.0
+    'test_embedding_sum(text.test_embedding.*.embedding)': [2.0]
   }]
   assert list(result) == expected_result
 
@@ -268,11 +268,11 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   expected_result = [{
     UUID_COLUMN: '1',
     f'text.{VALUE_KEY}': 'hello.',
-    'emb_sum': 1.0
+    'emb_sum': [1.0]
   }, {
     UUID_COLUMN: '2',
     f'text.{VALUE_KEY}': 'hello2.',
-    'emb_sum': 2.0
+    'emb_sum': [2.0]
   }]
   assert list(result) == expected_result
 
@@ -293,11 +293,11 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
   expected_result = [{
     UUID_COLUMN: '1',
     f'text.*.{VALUE_KEY}': ['hello.', 'hello world.'],
-    'test_embedding_sum(text.*.test_embedding.embedding)': [1.0, 3.0]
+    'test_embedding_sum(text.*.test_embedding.*.embedding)': [[1.0], [3.0]]
   }, {
     UUID_COLUMN: '2',
     f'text.*.{VALUE_KEY}': ['hello world2.', 'hello2.'],
-    'test_embedding_sum(text.*.test_embedding.embedding)': [4.0, 2.0]
+    'test_embedding_sum(text.*.test_embedding.*.embedding)': [[4.0], [2.0]]
   }]
   assert list(result) == expected_result
 

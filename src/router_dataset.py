@@ -26,7 +26,6 @@ from .signals.signal import (
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSignal,
-  TextSplitterSignal,
   resolve_signal,
 )
 from .tasks import TaskId, task_manager
@@ -165,7 +164,7 @@ class ListFilter(BaseModel):
 Filter = Union[BinaryFilter, UnaryFilter, ListFilter]
 
 AllSignalTypes = Union[SemanticSimilaritySignal, ConceptScoreSignal, TextEmbeddingModelSignal,
-                       TextEmbeddingSignal, TextSplitterSignal, TextSignal, Signal]
+                       TextEmbeddingSignal, TextSignal, Signal]
 
 
 # We override the `Column` class so we can add explicitly all signal types for better OpenAPI spec.

@@ -16,7 +16,7 @@ from ..schema import (
   SourceManifest,
   field,
 )
-from ..signals.signal import EMBEDDING_KEY, Signal
+from ..signals.signal import EMBEDDING_KEY
 from ..utils import get_dataset_output_dir, open_file
 from .dataset import Dataset
 from .dataset_utils import is_primitive, lilac_span, write_items_to_parquet
@@ -106,13 +106,11 @@ def enriched_item(value: Optional[Item] = None, metadata: dict[str, Item] = {}) 
   return {VALUE_KEY: value, **metadata}
 
 
-def enriched_embedding(start: int, end: int, metadata: dict[str, Item] = {}) -> Item:
+def enriched_embedding_span(start: int, end: int, metadata: dict[str, Item] = {}) -> Item:
   """Makes an item that represents an embedding span that was enriched with metadata."""
   return lilac_span(start, end, {EMBEDDING_KEY: {VALUE_KEY: None, **metadata}})
 
 
-def embedding_field(signal: Optional[Signal] = None, metadata: Optional[object] = {}) -> Field:
+def enriched_embedding_span_field(metadata: Optional[object] = {}) -> Field:
   """Makes a field that represents an embedding span that was enriched with metadata."""
-  signal_dict = signal.dict() if signal else None
-  return field(
-    'string_span', signal=signal_dict, fields={EMBEDDING_KEY: field('embedding', fields=metadata)})
+  return field('string_span', fields={EMBEDDING_KEY: field('embedding', fields=metadata)})

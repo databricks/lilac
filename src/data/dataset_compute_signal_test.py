@@ -19,7 +19,7 @@ from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
   TestDataMaker,
-  embedding_field,
+  enriched_embedding_span_field,
   enriched_item,
 )
 from .dataset_utils import lilac_embedding, lilac_span
@@ -153,7 +153,7 @@ class TestEmbedding(TextEmbeddingSignal):
     """Call the embedding function."""
     for example in data:
       example = cast(str, example)
-      yield lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[example]))
+      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[example]))]
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -552,7 +552,8 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
       'text': field(
         'string',
         fields={
-          'test_embedding': embedding_field(embedding_signal)
+          'test_embedding': field(
+            signal=embedding_signal.dict(), fields=[enriched_embedding_span_field()])
         }),
     }),
     num_items=2)
@@ -562,9 +563,9 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
   # Embeddings are replaced with "None".
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': enriched_item('hello.', {'test_embedding': lilac_embedding(0, 6, None)})
+    'text': enriched_item('hello.', {'test_embedding': [lilac_embedding(0, 6, None)]})
   }, {
     UUID_COLUMN: '2',
-    'text': enriched_item('hello2.', {'test_embedding': lilac_embedding(0, 7, None)})
+    'text': enriched_item('hello2.', {'test_embedding': [lilac_embedding(0, 7, None)]})
   }]
   assert list(result) == expected_result

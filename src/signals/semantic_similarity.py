@@ -1,5 +1,5 @@
 """A signal to compute semantic search for a document."""
-from typing import Any, Iterable, Optional, Union, cast
+from typing import Any, Iterable, Optional, Union
 
 import numpy as np
 from typing_extensions import override
@@ -7,7 +7,7 @@ from typing_extensions import override
 from ..embeddings.embedding import EmbedFn, get_embed_fn
 from ..embeddings.vector_store import VectorStore
 from ..schema import Field, Item, RichData, VectorKey, field
-from .signal import TextEmbeddingModelSignal, TextEmbeddingSignal, get_signal_cls
+from .signal import TextEmbeddingModelSignal
 
 
 class SemanticSimilaritySignal(TextEmbeddingModelSignal):
@@ -31,7 +31,7 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
     super().__init__(query=query, embedding=embedding, **kwargs)
 
     # TODO(nsthorat): The embedding cls might have arguments. This needs to be resolved.
-    self._embed_fn = get_embed_fn(cast(TextEmbeddingSignal, get_signal_cls(embedding)()))
+    self._embed_fn = get_embed_fn(embedding)
 
   @override
   def fields(self) -> Field:

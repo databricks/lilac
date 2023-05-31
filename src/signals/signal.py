@@ -188,13 +188,15 @@ class TextEmbeddingSignal(TextSignal):
   input_type = SignalInputType.TEXT
   compute_type = SignalInputType.TEXT
 
+  split: bool = True
+
   @override
   def fields(self) -> Field:
     """NOTE: Override this method at your own risk if you want to add extra metadata.
 
     Embeddings should not come with extra metadata.
     """
-    return field('string_span', fields={EMBEDDING_KEY: 'embedding'})
+    return field(fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
 
 
 class TextEmbeddingEnum(SignalTypeEnum):
