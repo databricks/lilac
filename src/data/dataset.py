@@ -15,6 +15,7 @@ from pydantic import (
   validator,
 )
 
+from ..embeddings.embedding import EmbeddingId
 from ..schema import VALUE_KEY, Path, PathTuple, Schema, normalize_path
 from ..signals.signal import Signal, resolve_signal
 from ..tasks import TaskStepId
@@ -51,16 +52,6 @@ class SelectGroupsResult():
     pass
 
 
-class SelectRowsSchemaResult(BaseModel):
-  """The result of a select rows schema query."""
-  data_schema: Schema
-  # Maps a udf name to its destination path in the schema.
-  alias_udf_paths: dict[str, PathTuple] = {}
-  # Maps the list of search queries to their result paths. This lines up with the order given by
-  # the searches.
-  search_results_paths: list[PathTuple] = []
-
-
 class StatsResult(BaseModel):
   """The result of a stats() query."""
   # The number of leaf values.
@@ -94,6 +85,7 @@ class BinaryOp(str, enum.Enum):
 class SearchType(str, enum.Enum):
   """The search type between a column and a query."""
   CONTAINS = 'contains'
+  SEMANTIC = 'semantic'
 
 
 class UnaryOp(str, enum.Enum):
@@ -120,6 +112,18 @@ class GroupsSortBy(str, enum.Enum):
   """
   COUNT = 'count'
   VALUE = 'value'
+
+
+class SelectRowsSchemaResult(BaseModel):
+  """The result of a select rows schema query."""
+  data_schema: Schema
+  # Maps a udf name to its destination path in the schema.
+  alias_udf_paths: dict[str, PathTuple] = {}
+  # Maps the list of search queries to their result paths. This lines up with the order given by
+  # the searches.
+  search_results_paths: list[PathTuple] = []
+  # Returns what the results are sorted by.
+  sort_results: list[tuple[Path, SortOrder]] = []
 
 
 class Column(BaseModel):
@@ -209,12 +213,13 @@ class Filter(BaseModel):
 FilterLike = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListFilterTuple]
 
 SearchValue = StrictStr
-SearchTuple = tuple[Path, SearchType, SearchValue]
+SearchTuple = tuple[Path, EmbeddingId, SearchType, SearchValue]
 
 
 class Search(BaseModel):
   """A search on a column."""
   path: PathTuple
+  embedding: Optional[str]
   type: SearchType
   query: SearchValue
 

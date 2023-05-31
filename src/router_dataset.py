@@ -204,7 +204,7 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   dataset = get_dataset(namespace, dataset_name)
 
   sanitized_searches = [
-    PySearch(path=normalize_path(f.path), type=f.type, query=f.query)
+    PySearch(path=normalize_path(f.path), embedding=f.embedding, type=f.type, query=f.query)
     for f in (options.searches or [])
   ]
   sanitized_filters = [
@@ -237,7 +237,7 @@ def select_rows_schema(namespace: str, dataset_name: str,
   """Select rows from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
   sanitized_searches = [
-    PySearch(path=normalize_path(f.path), type=f.type, query=f.query)
+    PySearch(path=normalize_path(f.path), embedding=f.embedding, type=f.type, query=f.query)
     for f in (options.searches or [])
   ]
   return dataset.select_rows_schema(

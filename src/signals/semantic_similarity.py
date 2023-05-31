@@ -56,3 +56,13 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
     text_embeddings = vector_store.get(keys)
     similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
     return similarities.tolist()
+
+  @override
+  def vector_compute_topk(
+      self,
+      topk: int,
+      vector_store: VectorStore,
+      keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, Optional[Item]]]:
+    query = self._get_search_embedding()
+    topk_keys = [key for key, _ in vector_store.topk(query, topk, keys)]
+    return list(zip(topk_keys, self.vector_compute(topk_keys, vector_store)))

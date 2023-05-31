@@ -2,11 +2,12 @@
   import {queryDatasetSchema, queryManyDatasetStats} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, isPathVisible} from '$lib/stores/datasetViewStore';
   import {listFields, serializePath, type Path} from '$lilac';
-  import {Button, TextInput} from 'carbon-components-svelte';
+  import {Button, Select, SelectItem, Tab, Tabs, TextInput} from 'carbon-components-svelte';
   import {Close} from 'carbon-icons-svelte';
   import {onMount} from 'svelte';
 
   let datasetViewStore = getDatasetViewContext();
+  let selectedPathStr: string = undefined;
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
@@ -72,23 +73,48 @@
     $datasetViewStore.queryOptions.searches = [
       {
         path: [selectedSearchPath],
-        type: 'contains',
+        embedding: 'sbert',
+        type: 'semantic',
         query: searchText
       }
     ];
   };
 </script>
 
-<div class="search-container mx-4 mb-2 flex flex-row items-end">
-  <TextInput
-    labelText={selectedSearchPath == null
-      ? 'Select a text field to search'
-      : `Search "${selectedSearchPath}"`}
-    disabled={selectedSearchPath == null}
-    bind:value={searchText}
-    on:keydown={e => (e.key == 'Enter' ? search() : null)}
-    size="sm"
-  />
+<div class="mx-4 my-2 flex flex-row items-end">
+  <div class="mr-8 w-32">
+    <Select bind:selected={selectedPathStr} name={selectedPathStr} labelText={'Search field'}>
+      {#each visibleStringFields as field}
+        <SelectItem value={serializePath(field)} text={serializePath(field)} />
+      {/each}
+    </Select>
+  </div>
+  <div class="search-container flex flex-col">
+    <div class="w-full">
+      <Tabs class="flex flex-row">
+        <Tab disabled={false}>Keyword</Tab>
+        <Tab disabled={false}>Semantic</Tab>
+        <Tab disabled={false}>Conceptual</Tab>
+      </Tabs>
+      <TabPanels>
+        <TabPanel>Tab Panel 1</TabPanel>
+        <TabPanel>
+          Tab Panel 2 <Button>Example button</Button>
+        </TabPanel>
+        <TabPanel>Tab Panel 3</TabPanel>
+        <TabPanel>Tab Panel 4</TabPanel>
+        <TabPanel>Tab Panel 5</TabPanel>
+      </TabPanels>
+    </div>
+    <div>
+      <TextInput
+        class="w-full"
+        disabled={selectedSearchPath == null}
+        bind:value={searchText}
+        on:keydown={e => (e.key == 'Enter' ? search() : null)}
+      />
+    </div>
+  </div>
   <div class=" -ml-6 mr-2 flex h-8 items-center">
     <button
       class="z-10 opacity-50 hover:opacity-100"
@@ -107,14 +133,25 @@
     <Button
       disabled={selectedSearchPath == null}
       kind="ghost"
+      on:click={() => search()}
       size="small"
-      on:click={() => search()}>Search</Button
     >
+      Search
+    </Button>
   </div>
 </div>
 
 <style lang="postcss">
   .search-container {
-    width: 30rem;
+    width: 32rem;
+  }
+  :global(.bx--tabs__nav) {
+    @apply flex w-full flex-row;
+  }
+  :global(.bx--tabs__nav-item) {
+    @apply w-1/3 flex-grow;
+  }
+  :global(.bx--tabs__nav-item .bx--tabs__nav-link) {
+    @apply w-full;
   }
 </style>

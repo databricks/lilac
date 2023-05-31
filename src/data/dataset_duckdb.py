@@ -39,6 +39,7 @@ from ..schema import (
   normalize_path,
   signal_compute_type_supports_dtype,
 )
+from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
   Signal,
   TextEmbeddingModelSignal,
@@ -640,7 +641,13 @@ class DatasetDuckDB(Dataset):
     self._validate_columns(cols, manifest.data_schema)
 
     searches = self._normalize_searches(searches)
-    search_udfs = self._search_udfs(searches)
+    search_udfs, search_sorts = self._search_udfs(searches)
+    if search_sorts:
+      if not sort_by:
+        # TODO: fix.
+        search_sort_by, sort_order = search_sorts[0]
+        sort_by = [search_sort_by]
+
     cols.extend(search_udfs)
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
     columns_to_merge: dict[str, dict[str, Column]] = {}
@@ -701,6 +708,7 @@ class DatasetDuckDB(Dataset):
     sort_cols_after_udf: list[str] = []
 
     for path in sort_by:
+      print('path in sort by', path, udf_aliases)
       # We only allow sorting by nodes with a value.
       first_subpath = str(path[0])
       rest_of_path = path[1:]
@@ -771,6 +779,10 @@ class DatasetDuckDB(Dataset):
           # The input is an embedding.
           vector_store = self._get_vector_store(udf_col.path)
 
+          print(
+            'are we sorting',
+            self._sorting_by_topk_of_signal(limit, sort_order, sort_cols_after_udf, signal_column))
+
           # If we are sorting by the topk of a signal column, we can utilize the vector store
           # via `signal.vector_compute_topk` and then use the topk to filter the dataframe. This
           # is much faster than computing the signal for all rows and then sorting.
@@ -778,6 +790,7 @@ class DatasetDuckDB(Dataset):
             already_sorted = True
             k = (limit or 0) + (offset or 0)
             topk = signal.vector_compute_topk(k, vector_store)
+            print('got topk', topk)
             unique_uuids = list(dict.fromkeys([key[0] for key, _ in topk]))
             df.set_index(UUID_COLUMN, drop=False, inplace=True)
             # Filter the dataframe by uuids that have at least one value in top k.
@@ -909,7 +922,7 @@ class DatasetDuckDB(Dataset):
     self._validate_columns(cols, manifest.data_schema)
 
     searches = self._normalize_searches(searches)
-    search_udfs = self._search_udfs(searches)
+    search_udfs, search_sort_bys = self._search_udfs(searches)
     cols.extend(search_udfs)
 
     alias_udf_paths: dict[str, PathTuple] = {}
@@ -1042,16 +1055,28 @@ class DatasetDuckDB(Dataset):
 
     return searches
 
-  def _search_udfs(self, searches: list[Search]) -> list[Column]:
+  def _search_udfs(self,
+                   searches: list[Search]) -> tuple[list[Column], list[tuple[Path, SortOrder]]]:
     """Create a UDF for each search for finding the location of the text with spans."""
     search_udfs: list[Column] = []
+    sort_bys: list[tuple[Path, SortOrder]] = []
     for i, search in enumerate(searches):
       if search.type == SearchType.CONTAINS:
         search_udfs.append(Column(path=search.path, signal_udf=SubstringSignal(query=search.query)))
+      elif search.type == SearchType.SEMANTIC:
+        if not search.embedding:
+          raise ValueError(f'Please provide an embedding for semantic search. Got search: {search}')
+
+        signal_path = (*search.path, 'sentences', '*', search.embedding)
+        similarity_signal = SemanticSimilaritySignal(query=search.query, embedding=search.embedding)
+        search_udfs.append(
+          Column(path=signal_path, signal_udf=similarity_signal, alias=similarity_signal.key()))
+        sort_bys.append(((similarity_signal.key(),), SortOrder.DESC))
       else:
         raise ValueError(f'Unknown search operator {search.type}.')
 
-    return search_udfs
+    print('sort bys', sort_bys)
+    return search_udfs, sort_bys
 
   def _create_where(self, filters: list[Filter], searches: list[Search] = []) -> list[str]:
     if not filters and not searches:
@@ -1065,6 +1090,9 @@ class DatasetDuckDB(Dataset):
       if search.type == SearchType.CONTAINS:
         sql_op = 'ILIKE'
         query_val = f"'%{search.query}%'"
+      elif search.type == SearchType.SEMANTIC:
+        # Semantic search doesn't filter, it just sorts.
+        continue
       else:
         raise ValueError(f'Unknown search operator {search.type}.')
 

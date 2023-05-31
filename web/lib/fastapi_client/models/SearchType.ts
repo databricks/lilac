@@ -5,4 +5,4 @@
 /**
  * The search type between a column and a query.
  */
-export type SearchType = 'contains';
+export type SearchType = 'contains' | 'semantic';
