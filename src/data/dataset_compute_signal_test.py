@@ -8,7 +8,6 @@ from typing_extensions import override
 
 from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schema
 from ..signals.signal import (
-  EMBEDDING_KEY,
   TextEmbeddingSignal,
   TextSignal,
   TextSplitterSignal,
@@ -16,7 +15,13 @@ from ..signals.signal import (
   register_signal,
 )
 from .dataset import Column, DatasetManifest, val
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
+from .dataset_test_utils import (
+  TEST_DATASET_NAME,
+  TEST_NAMESPACE,
+  TestDataMaker,
+  embedding_field,
+  enriched_item,
+)
 from .dataset_utils import lilac_embedding, lilac_span
 
 SIMPLE_ITEMS: list[Item] = [{
@@ -547,8 +552,7 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
       'text': field(
         'string',
         fields={
-          'test_embedding': field(
-            'string_span', signal=embedding_signal.dict(), fields={EMBEDDING_KEY: 'embedding'})
+          'test_embedding': embedding_field(embedding_signal)
         }),
     }),
     num_items=2)

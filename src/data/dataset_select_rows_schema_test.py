@@ -9,7 +9,6 @@ from typing_extensions import override
 from ..embeddings.vector_store import VectorStore
 from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema
 from ..signals.signal import (
-  EMBEDDING_KEY,
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSignal,
@@ -19,7 +18,7 @@ from ..signals.signal import (
 )
 from ..signals.substring_search import SubstringSignal
 from .dataset import Column, SearchType, SelectRowsSchemaResult
-from .dataset_test_utils import TestDataMaker
+from .dataset_test_utils import TestDataMaker, embedding_field
 from .dataset_utils import lilac_embedding, lilac_span
 
 TEST_DATA: list[Item] = [{
@@ -318,14 +317,9 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
             field(
               'string_span',
               fields={
-                'test_embedding': field(
-                  'string_span',
-                  signal=test_embedding.dict(),
-                  fields={
-                    EMBEDDING_KEY: field(
-                      'embedding',
-                      fields={'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
-                  })
+                'test_embedding': embedding_field(
+                  test_embedding,
+                  {'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
               })
           ])
       })
