@@ -536,7 +536,7 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
     'text': 'hello2.',
   }])
 
-  embedding_signal = TestEmbedding(embedding=TestEmbedding.name)
+  embedding_signal = TestEmbedding()
   dataset.compute_signal(embedding_signal, 'text')
 
   assert dataset.manifest() == DatasetManifest(

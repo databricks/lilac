@@ -19,9 +19,9 @@ class SentenceSplitterSpacy(TextSplitterSignal):
 
   _tokenizer: Language
 
-  def __init__(self, language: str = 'en', **kwargs: dict[Any, Any]):
-    super().__init__(language=language, **kwargs)
-    self._tokenizer = spacy.blank(language)
+  def __init__(self, **kwargs: Any):
+    super().__init__(**kwargs)
+    self._tokenizer = spacy.blank(self.language)
     self._tokenizer.add_pipe('sentencizer')
     # Increase the number of characters of the tokenizer as we're not using a parser or NER.
     self._tokenizer.max_length = 10_000_000

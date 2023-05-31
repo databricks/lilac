@@ -1,6 +1,7 @@
 """Test the Substring Search signal."""
 
 import pytest
+from pydantic import ValidationError
 
 from ..schema import field
 from .splitters.text_splitter_test_utils import text_to_expected_spans
@@ -13,8 +14,8 @@ def test_substring_fields() -> None:
 
 
 def test_query_is_required() -> None:
-  with pytest.raises(TypeError):
-    SubstringSignal()  # type: ignore
+  with pytest.raises(ValidationError):
+    SubstringSignal()
 
 
 def test_compute() -> None:

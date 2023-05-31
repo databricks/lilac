@@ -7,6 +7,5 @@
  */
 export type TextEmbeddingSignal = {
     signal_name?: string;
-    split?: 'sentences' | 'chunk';
 };
 

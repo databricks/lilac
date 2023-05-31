@@ -3,7 +3,7 @@
 import abc
 from typing import Any, ClassVar, Iterable, Optional, Type, TypeVar, Union
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Extra, validator
 from pydantic.fields import ModelField
 from typing_extensions import override
 
@@ -34,6 +34,7 @@ class Signal(abc.ABC, BaseModel):
 
   class Config:
     underscore_attrs_are_private = True
+    extra = Extra.forbid
 
     @staticmethod
     def schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
@@ -211,8 +212,8 @@ class TextEmbeddingModelSignal(TextSignal):
   embedding: TextEmbeddingEnum
   _embedding_signal: TextEmbeddingSignal
 
-  def __init__(self, embedding: str, **kwargs: Any):
-    super().__init__(embedding=embedding, **kwargs)
+  def __init__(self, **kwargs: Any):
+    super().__init__(**kwargs)
 
     # Validate the embedding signal is registered and the correct type.
     # TODO(nsthorat): Allow arguments passed to the embedding signal.

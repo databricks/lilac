@@ -24,7 +24,7 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
   _embed_fn: EmbedFn
   _search_text_embedding: Optional[np.ndarray] = None
 
-  def __init__(self, query: Union[str, bytes], embedding: str, **kwargs: dict[Any, Any]):
+  def __init__(self, query: Union[str, bytes], embedding: str, **kwargs: Any):
     if isinstance(query, bytes):
       raise ValueError('Image queries are not yet supported for SemanticSimilarity.')
 

@@ -20,8 +20,8 @@ class SubstringSignal(Signal):
 
   _regex: re.Pattern[str]
 
-  def __init__(self, query: str, **kwargs: dict[Any, Any]):
-    super().__init__(query=query, **kwargs)
+  def __init__(self, **kwargs: Any):
+    super().__init__(**kwargs)
     self._regex = re.compile(self.query, re.IGNORECASE)
 
   @override
