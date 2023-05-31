@@ -162,7 +162,7 @@ class LogisticEmbeddingModel(BaseModel):
     scores = self._model.predict_proba(embeddings)[:, 1]
     negative_scores = [score for label, score in zip(labels, scores) if not label]
     thresholds = np.percentile(negative_scores, [100 - p for p in SENSITIVITY_PERCENTILES.values()])
-    self._thresholds = dict(zip(SENSITIVITY_PERCENTILES.keys(), thresholds))
+    self._thresholds = dict(zip(SENSITIVITY_PERCENTILES.keys(), thresholds))  # type: ignore
 
 
 def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:

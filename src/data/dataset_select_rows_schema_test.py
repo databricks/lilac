@@ -247,15 +247,15 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
       UUID_COLUMN: 'string',
       'people': [{
         'name': field(
-          {
+          'string',
+          fields={
             'add_space_signal': field(
-              {
-                'add_space_signal': field(dtype='string', signal=add_space_signal.dict()),
-              },
-              dtype='string',
-              signal=add_space_signal.dict())
-          },
-          dtype='string')
+              'string',
+              signal=add_space_signal.dict(),
+              fields={
+                'add_space_signal': field('string', add_space_signal.dict()),
+              })
+          })
       }],
     }))
 
@@ -279,14 +279,16 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        {
-          'test_splitter': field([
-            field({'add_space_signal': field(dtype='string', signal=add_space_signal.dict())},
-                  dtype='string_span')
-          ],
-                                 signal=test_splitter.dict())
-        },
-        dtype='string')
+        'string',
+        fields={
+          'test_splitter': field(
+            signal=test_splitter.dict(),
+            fields=[
+              field(
+                'string_span',
+                fields={'add_space_signal': field(dtype='string', signal=add_space_signal.dict())})
+            ])
+        })
     }))
 
 
@@ -311,20 +313,24 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
   expected_schema = schema({
     UUID_COLUMN: 'string',
     'text': field(
-      {
-        'test_splitter': field([
-          field(
-            {
-              'test_embedding': field(
-                {'test_embedding_sum': field(dtype='float32', signal=embedding_sum_signal.dict())},
-                dtype='embedding',
-                signal=test_embedding.dict()),
-            },
-            dtype='string_span')
-        ],
-                               signal=test_splitter.dict())
-      },
-      dtype='string')
+      'string',
+      fields={
+        'test_splitter': field(
+          signal=test_splitter.dict(),
+          fields=[
+            field(
+              'string_span',
+              fields={
+                'test_embedding': field(
+                  'embedding',
+                  signal=test_embedding.dict(),
+                  fields={
+                    'test_embedding_sum': field(
+                      dtype='float32', signal=embedding_sum_signal.dict())
+                  }),
+              })
+          ])
+      })
   })
   assert result == SelectRowsSchemaResult(data_schema=expected_schema, alias_udf_paths={})
 
@@ -360,11 +366,16 @@ def test_search_schema(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        {expected_world_signal.key(): field(['string_span'], signal=expected_world_signal.dict())},
-        dtype='string'),
+        'string', {
+          expected_world_signal.key(): field(
+            signal=expected_world_signal.dict(), fields=['string_span'])
+        }),
       'text2': field(
-        {expected_hello_signal.key(): field(['string_span'], signal=expected_hello_signal.dict())},
-        dtype='string')
+        'string',
+        fields={
+          expected_hello_signal.key(): field(
+            signal=expected_hello_signal.dict(), fields=['string_span'])
+        })
     }),
     search_results_paths=[('text', expected_world_signal.key()),
                           ('text2', expected_hello_signal.key())])

@@ -7,7 +7,7 @@ from .splitters.text_splitter_test_utils import text_to_expected_spans
 
 def test_pii_fields() -> None:
   signal = PIISignal()
-  assert signal.fields() == field({EMAILS_KEY: ['string_span'], NUM_EMAILS_KEY: 'int32'})
+  assert signal.fields() == field(fields={EMAILS_KEY: ['string_span'], NUM_EMAILS_KEY: 'int32'})
 
 
 def test_pii_compute() -> None:

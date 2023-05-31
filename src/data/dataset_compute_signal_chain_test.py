@@ -131,13 +131,13 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        {
+        'string',
+        fields={
           'test_embedding': field(
-            {'test_embedding_sum': field(dtype='float32', signal=embedding_sum_signal.dict())},
-            dtype='embedding',
-            signal=embedding_signal.dict())
-        },
-        dtype='string'),
+            'embedding',
+            signal=embedding_signal.dict(),
+            fields={'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
+        }),
     }),
     num_items=2)
 
@@ -184,13 +184,13 @@ def test_auto_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixt
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        {
+        'string',
+        fields={
           'test_embedding': field(
-            {'test_embedding_sum': field(dtype='float32', signal=embedding_sum_signal.dict())},
-            dtype='embedding',
-            signal=cast(Signal, embedding_sum_signal._embedding_signal).dict())
-        },
-        dtype='string'),
+            'embedding',
+            signal=cast(Signal, embedding_sum_signal._embedding_signal).dict(),
+            fields={'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
+        }),
     }),
     num_items=2)
 
@@ -244,23 +244,21 @@ def test_manual_embedding_signal_splits(make_test_data: TestDataMaker,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        {
-          'test_splitter': field([
-            field(
-              {
-                'test_embedding': field(
-                  {
-                    'test_embedding_sum': field(
-                      dtype='float32', signal=embedding_sum_signal.dict())
-                  },
-                  dtype='embedding',
-                  signal=embedding_signal.dict())
-              },
-              dtype='string_span')
-          ],
-                                 signal=split_signal.dict())
-        },
-        dtype='string'),
+        'string',
+        fields={
+          'test_splitter': field(
+            signal=split_signal.dict(),
+            fields=[
+              field(
+                'string_span',
+                fields={
+                  'test_embedding': field(
+                    'embedding',
+                    signal=embedding_signal.dict(),
+                    fields={'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
+                })
+            ])
+        }),
     }),
     num_items=2)
 
@@ -333,23 +331,20 @@ def test_auto_embedding_signal_splits(make_test_data: TestDataMaker, mocker: Moc
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        {
-          'test_splitter': field([
-            field(
-              {
-                'test_embedding': field(
-                  {
-                    'test_embedding_sum': field(
-                      dtype='float32', signal=embedding_sum_signal.dict())
-                  },
-                  dtype='embedding',
-                  signal=cast(Signal, embedding_sum_signal._embedding_signal).dict())
-              },
-              dtype='string_span')
-          ],
-                                 signal=embedding_sum_signal.dict())
-        },
-        dtype='string'),
+        'string',
+        fields={
+          'test_splitter': field(
+            signal=embedding_sum_signal.dict(),
+            fields=[
+              field(
+                'string_span', {
+                  'test_embedding': field(
+                    'embedding',
+                    signal=cast(Signal, embedding_sum_signal._embedding_signal).dict(),
+                    fields={'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
+                })
+            ])
+        }),
     }),
     num_items=2)
 
@@ -405,7 +400,7 @@ class EntitySignal(TextSignal):
 
   @override
   def fields(self) -> Field:
-    return field(['string_span'])
+    return field(fields=['string_span'])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[List[Item]]]:

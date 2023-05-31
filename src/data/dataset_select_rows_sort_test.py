@@ -14,7 +14,7 @@ class TestSignal(TextSignal):
   name = 'test_signal'
 
   def fields(self) -> Field:
-    return field({'len': 'int32', 'is_all_cap': 'boolean'})
+    return field(fields={'len': 'int32', 'is_all_cap': 'boolean'})
 
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for text_content in data:
@@ -36,7 +36,7 @@ class NestedArraySignal(TextSignal):
   name = 'nested_array'
 
   def fields(self) -> Field:
-    return field([['int32']])
+    return field(fields=[['int32']])
 
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for text_content in data:

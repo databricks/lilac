@@ -68,7 +68,7 @@ class TestSignal(TextSignal):
 
   @override
   def fields(self) -> Field:
-    return field({'len': 'int32', 'flen': 'float32'})
+    return field(fields={'len': 'int32', 'flen': 'float32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -483,14 +483,15 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
       UUID_COLUMN: 'string',
       'texts': [
         field(
-          {
-            'length_signal': field(dtype='int32', signal=length_signal.dict()),
-            'test_signal': field({
+          'string',
+          fields={
+            'length_signal': field('int32', length_signal.dict()),
+            'test_signal': field(
+              signal=test_signal.dict(), fields={
                 'len': 'int32',
                 'flen': 'float32'
-              }, signal=test_signal.dict())
-          },
-          dtype='string')
+              })
+          })
       ],
     }),
     num_items=2)
@@ -703,13 +704,14 @@ def test_source_joined_with_named_signal_column(make_test_data: TestDataMaker) -
     data_schema=schema({
       UUID_COLUMN: 'string',
       'str': field(
-        {
-          'test_signal': field({
+        'string',
+        fields={
+          'test_signal': field(
+            signal=test_signal.dict(), fields={
               'len': 'int32',
               'flen': 'float32'
-            }, signal=test_signal.dict())
-        },
-        dtype='string'),
+            })
+        }),
       'int': 'int32',
       'bool': 'boolean',
       'float': 'float32',

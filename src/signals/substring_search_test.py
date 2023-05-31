@@ -9,7 +9,7 @@ from .substring_search import SubstringSignal
 
 def test_substring_fields() -> None:
   signal = SubstringSignal(query='test')
-  assert signal.fields() == field(['string_span'])
+  assert signal.fields() == field(fields=['string_span'])
 
 
 def test_query_is_required() -> None:

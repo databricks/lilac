@@ -30,7 +30,7 @@ class PIISignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return field({EMAILS_KEY: ['string_span'], NUM_EMAILS_KEY: 'int32'})
+    return field(fields={EMAILS_KEY: ['string_span'], NUM_EMAILS_KEY: 'int32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:

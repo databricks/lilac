@@ -76,7 +76,7 @@ class TestSparseRichSignal(TextSignal):
 
   @override
   def fields(self) -> Field:
-    return field({'emails': ['string']})
+    return field(fields={'emails': ['string']})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -105,7 +105,7 @@ class TestSignal(TextSignal):
 
   @override
   def fields(self) -> Field:
-    return field({'len': 'int32', 'flen': 'float32'})
+    return field(fields={'len': 'int32', 'flen': 'float32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -252,13 +252,14 @@ def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None
     data_schema=schema({
       UUID_COLUMN: 'string',
       'str': field(
-        {
-          'test_signal': field({
-            'len': 'int32',
-            'flen': 'float32'
-          }, signal=test_signal.dict()),
-        },
-        dtype='string'),
+        'string',
+        fields={
+          'test_signal': field(
+            signal=test_signal.dict(), fields={
+              'len': 'int32',
+              'flen': 'float32'
+            }),
+        }),
       'int': 'int32',
       'bool': 'boolean',
       'float': 'float32',
@@ -373,11 +374,11 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        {
-          'param_signal(param=a)': field(dtype='string', signal=test_signal_a.dict()),
-          'param_signal(param=b)': field(dtype='string', signal=test_signal_b.dict()),
-        },
-        dtype='string'),
+        'string',
+        fields={
+          'param_signal(param=a)': field('string', test_signal_a.dict()),
+          'param_signal(param=b)': field('string', test_signal_b.dict()),
+        }),
     }),
     num_items=2)
 
@@ -414,8 +415,8 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
-      'text': field({'test_split': field([field('string_span')], signal=signal.dict())},
-                    dtype='string')
+      'text': field(
+        'string', fields={'test_split': field(signal=signal.dict(), fields=[field('string_span')])})
     }),
     num_items=2)
 
@@ -453,13 +454,16 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
-      'text': field([
+      'text': field(fields=[
         field(
-          {'test_signal': field({
-            'len': 'int32',
-            'flen': 'float32'
-          }, signal=test_signal.dict())},
-          dtype='string')
+          'string',
+          fields={
+            'test_signal': field(
+              signal=test_signal.dict(), fields={
+                'len': 'int32',
+                'flen': 'float32'
+              })
+          })
       ])
     }),
     num_items=2)

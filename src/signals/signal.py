@@ -160,7 +160,7 @@ class TextSplitterSignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return field(['string_span'])
+    return field(fields=['string_span'])
 
 
 class TextSplitterEnum(SignalTypeEnum):
@@ -193,7 +193,7 @@ class TextEmbeddingSignal(TextSignal):
 
     Embeddings should not come with extra metadata.
     """
-    return field({EMBEDDING_KEY: 'embedding'}, dtype='string_span')
+    return field(fields={EMBEDDING_KEY: 'embedding'}, dtype='string_span')
 
 
 class TextEmbeddingEnum(SignalTypeEnum):

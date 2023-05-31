@@ -26,7 +26,7 @@ class SubstringSignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return field(['string_span'])
+    return field(fields=['string_span'])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:

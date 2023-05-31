@@ -57,7 +57,7 @@ class TestSignal(TextSignal):
 
   @override
   def fields(self) -> Field:
-    return field({'len': 'int32', 'flen': 'float32'})
+    return field(fields={'len': 'int32', 'flen': 'float32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:

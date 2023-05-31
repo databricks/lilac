@@ -205,9 +205,11 @@ def schema(schema_like: object) -> Schema:
   return Schema(fields=field.fields)
 
 
-def field(fields: Optional[object] = None,
-          signal: Optional[dict] = None,
-          dtype: Optional[Union[DataType, str]] = None) -> Field:
+def field(
+  dtype: Optional[Union[DataType, str]] = None,
+  signal: Optional[dict] = None,
+  fields: Optional[object] = None,
+) -> Field:
   """Parse a field-like object to a Field object."""
   field = _parse_field_like(fields or {}, dtype)
   if signal:

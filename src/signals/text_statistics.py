@@ -16,7 +16,7 @@ class TextStatisticsSignal(TextSignal):
 
   @override
   def fields(self) -> Field:
-    return field({NUM_CHARS_FEATURE_NAME: 'int32'})
+    return field(fields={NUM_CHARS_FEATURE_NAME: 'int32'})
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
