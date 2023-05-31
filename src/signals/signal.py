@@ -193,7 +193,7 @@ class TextEmbeddingSignal(TextSignal):
 
     Embeddings should not come with extra metadata.
     """
-    return field(fields={EMBEDDING_KEY: 'embedding'}, dtype='string_span')
+    return field('string_span', fields={EMBEDDING_KEY: 'embedding'})
 
 
 class TextEmbeddingEnum(SignalTypeEnum):

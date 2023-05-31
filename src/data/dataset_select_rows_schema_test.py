@@ -224,7 +224,7 @@ def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
       UUID_COLUMN: 'string',
       'people': [{
         'name': {
-          'length_signal': field(dtype='int32', signal=length_signal.dict())
+          'length_signal': field('int32', length_signal.dict())
         },
         'locations': [{
           'city': 'string'
@@ -286,7 +286,7 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
             fields=[
               field(
                 'string_span',
-                fields={'add_space_signal': field(dtype='string', signal=add_space_signal.dict())})
+                fields={'add_space_signal': field('string', add_space_signal.dict())})
             ])
         })
     }))
@@ -324,10 +324,7 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
                 'test_embedding': field(
                   'embedding',
                   signal=test_embedding.dict(),
-                  fields={
-                    'test_embedding_sum': field(
-                      dtype='float32', signal=embedding_sum_signal.dict())
-                  }),
+                  fields={'test_embedding_sum': field('float32', embedding_sum_signal.dict())}),
               })
           ])
       })

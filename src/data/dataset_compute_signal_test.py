@@ -545,12 +545,10 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        dtype='string',
+        'string',
         fields={
           'test_embedding': field(
-            dtype='string_span',
-            signal=embedding_signal.dict(),
-            fields={EMBEDDING_KEY: 'embedding'})
+            'string_span', signal=embedding_signal.dict(), fields={EMBEDDING_KEY: 'embedding'})
         }),
     }),
     num_items=2)
