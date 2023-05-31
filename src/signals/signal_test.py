@@ -134,8 +134,6 @@ def test_get_signals_by_type() -> None:
 def test_signal_type_enum() -> None:
   model_signal = TestTextEmbeddingModelSignal(embedding='test_embedding')
   schema_properties = model_signal.schema()['properties']
-  # Make sure the schema split enum contains the test splitter.
-  assert schema_properties['split']['enum'] == [TestTextSplitter.name]
   assert schema_properties['embedding']['enum'] == [TestTextEmbedding.name]
 
 

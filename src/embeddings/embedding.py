@@ -5,7 +5,7 @@ import numpy as np
 from pydantic import StrictStr
 
 from ..schema import RichData
-from ..signals.signal import TextEmbeddingSignal
+from ..signals.signal import EMBEDDING_KEY, TextEmbeddingSignal
 
 EmbeddingId = Union[StrictStr, TextEmbeddingSignal]
 
@@ -16,10 +16,13 @@ def get_embed_fn(embedding: TextEmbeddingSignal) -> EmbedFn:
   """Return a function that returns the embedding matrix for the given embedding signal."""
 
   def _embed_fn(data: Iterable[RichData]) -> np.ndarray:
-    embeddings = embedding.compute(data)
+    items = embedding.compute(data)
 
     embedding_vectors: list[np.ndarray] = []
-    for embedding_vector in embeddings:
+    for item in items:
+      if not item:
+        raise ValueError('Embedding signal returned None.')
+      embedding_vector = item[EMBEDDING_KEY]
       if not isinstance(embedding_vector, np.ndarray):
         raise ValueError(
           f'Embedding signal returned {type(embedding_vector)} which is not an ndarray.')

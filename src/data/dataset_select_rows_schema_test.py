@@ -9,6 +9,7 @@ from typing_extensions import override
 from ..embeddings.vector_store import VectorStore
 from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema
 from ..signals.signal import (
+  EMBEDDING_KEY,
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSignal,
@@ -272,7 +273,7 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
 
   test_splitter = TestSplitter()
   dataset.compute_signal(test_splitter, ('text'))
-  add_space_signal = AddSpaceSignal(split='test_splitter')
+  add_space_signal = AddSpaceSignal()
   result = dataset.select_rows_schema(
     [('text'), Column(('text'), signal_udf=add_space_signal)], combine_columns=True)
 
@@ -282,13 +283,8 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
       'text': field(
         'string',
         fields={
-          'test_splitter': field(
-            signal=test_splitter.dict(),
-            fields=[
-              field(
-                'string_span',
-                fields={'add_space_signal': field('string', add_space_signal.dict())})
-            ])
+          'add_space_signal': field('string', add_space_signal.dict()),
+          'test_splitter': field(signal=test_splitter.dict(), fields=['string_span'])
         })
     }))
 
@@ -304,12 +300,12 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
 
   test_splitter = TestSplitter()
   dataset.compute_signal(test_splitter, 'text')
-  test_embedding = TestEmbedding(split='test_splitter')
-  dataset.compute_signal(test_embedding, 'text')
+  test_embedding = TestEmbedding()
+  dataset.compute_signal(test_embedding, ('text', 'test_splitter', '*'))
 
-  embedding_sum_signal = TestEmbeddingSumSignal(split='test_splitter', embedding='test_embedding')
-  result = dataset.select_rows_schema(
-    [('text'), Column(('text'), signal_udf=embedding_sum_signal)], combine_columns=True)
+  embedding_sum_signal = TestEmbeddingSumSignal(embedding='test_embedding')
+  udf_col = Column(('text', 'test_splitter', '*'), signal_udf=embedding_sum_signal)
+  result = dataset.select_rows_schema([('text'), udf_col], combine_columns=True)
 
   expected_schema = schema({
     UUID_COLUMN: 'string',
@@ -323,9 +319,13 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
               'string_span',
               fields={
                 'test_embedding': field(
-                  'embedding',
+                  'string_span',
                   signal=test_embedding.dict(),
-                  fields={'test_embedding_sum': field('float32', embedding_sum_signal.dict())}),
+                  fields={
+                    EMBEDDING_KEY: field(
+                      'embedding',
+                      fields={'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
+                  })
               })
           ])
       })
@@ -333,13 +333,12 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
   assert result == SelectRowsSchemaResult(data_schema=expected_schema, alias_udf_paths={})
 
   # Alias the udf.
-  result = dataset.select_rows_schema(
-    [('text'), Column(('text'), signal_udf=embedding_sum_signal, alias='udf1')],
-    combine_columns=True)
+  udf_col.alias = 'udf1'
+  result = dataset.select_rows_schema([('text'), udf_col], combine_columns=True)
   assert result == SelectRowsSchemaResult(
     data_schema=expected_schema,
     alias_udf_paths={
-      'udf1': ('text', 'test_splitter', '*', 'test_embedding', 'test_embedding_sum')
+      'udf1': ('text', 'test_splitter', '*', 'test_embedding', 'embedding', 'test_embedding_sum')
     })
 
 
@@ -364,7 +363,8 @@ def test_search_schema(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
-        'string', {
+        'string',
+        fields={
           expected_world_signal.key(): field(
             signal=expected_world_signal.dict(), fields=['string_span'])
         }),
