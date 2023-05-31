@@ -29,6 +29,10 @@ class SBERT(TextEmbeddingSignal):
   display_name = 'SBERT Embeddings'
   model_name = MINI_LM_MODEL
 
+  class Config:
+    # model_name is required even though it has a default value.
+    schema_extra = {'required': ['model_name']}
+
   _model: SentenceTransformer
   _device: Optional[str] = None
 
