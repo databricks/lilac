@@ -45,7 +45,7 @@ class Cohere(TextEmbeddingSignal):
     # We will yield several spans for each input text.
     for text in data:
       text = cast(str, text)
-      text_chunks = split_text(text, chunk_overlap=0) if self.split else [(text, (0, len(text)))]
+      text_chunks = split_text(text, chunk_overlap=0) if self._split else [(text, (0, len(text)))]
       batches = chunks(text_chunks, COHERE_BATCH_SIZE)
       all_embeddings: list[np.ndarray] = []
       for batch in batches:

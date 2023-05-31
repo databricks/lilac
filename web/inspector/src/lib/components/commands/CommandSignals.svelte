@@ -95,7 +95,9 @@
   };
 
   function setSignalName(name: string) {
-    if (!signalPropertyValues[name]) signalPropertyValues[name] = {};
+    if (!(name in signalPropertyValues)) {
+      signalPropertyValues[name] = {};
+    }
     signalPropertyValues[name].signal_name = name;
   }
 

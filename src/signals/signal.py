@@ -188,7 +188,11 @@ class TextEmbeddingSignal(TextSignal):
   input_type = SignalInputType.TEXT
   compute_type = SignalInputType.TEXT
 
-  split: bool = True
+  _split = True
+
+  def __init__(self, split: bool = True, **kwargs: Any):
+    super().__init__(**kwargs)
+    self._split = split
 
   @override
   def fields(self) -> Field:

@@ -22,7 +22,9 @@
   // Find all existing pre-computed embeddings for the current split from the schema
   $: existingEmbeddings =
     $ctx.path && $schema.data
-      ? listFields(getField($schema.data, $ctx.path)).filter(f => f.dtype === 'embedding')
+      ? listFields(getField($schema.data, $ctx.path)).filter(
+          f => f.signal != null && listFields(f).some(f => f.dtype === 'embedding')
+        )
       : undefined;
 
   // Sort possible embeddings by if they are already computed
@@ -33,6 +35,9 @@
     if (!aComputed && bComputed) return 1;
     return 0;
   });
+
+  // Make the initial selected value by the first computed embedding.
+  $: value = sortedEnum[0]?.toString() || '';
 
   // Check if the current value is computed
   $: computed = existingEmbeddings?.some(f => f.signal?.signal_name === value?.toString()) || false;

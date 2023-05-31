@@ -44,7 +44,7 @@
 
   $: embeddingFields = isSourceField
     ? (Lilac.listFields(field).filter(
-        f => f.dtype === 'embedding'
+        f => f.signal != null && Lilac.listFields(f).some(f => f.dtype === 'embedding')
       ) as Lilac.LilacSchemaField<Lilac.TextEmbeddingSignal>[])
     : [];
 
@@ -167,10 +167,7 @@
   {/if}
   {#each embeddingFields as embeddingField}<Tooltip>
       <Tag type="purple" slot="icon"
-        ><AssemblyCluster class="mr-1 inline-block" />{embeddingField.signal
-          ?.signal_name}{embeddingField.signal?.split
-          ? ` | ${embeddingField.signal?.split}`
-          : ''}</Tag
+        ><AssemblyCluster class="mr-1 inline-block" />{embeddingField.signal?.signal_name}</Tag
       >
       {embeddingField.signal?.signal_name} embeddings computed
     </Tooltip>

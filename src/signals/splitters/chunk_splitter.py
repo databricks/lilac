@@ -42,6 +42,8 @@ from ..signal import TextSplitterSignal
 TextChunk = tuple[str, tuple[int, int]]
 
 DEFAULT_SEPARATORS = ['\n\n', '\n', ' ', '']
+CHUNK_SIZE = 300
+CHUNK_OVERLAP = 0
 
 
 class ChunkSplitter(TextSplitterSignal):
@@ -50,8 +52,8 @@ class ChunkSplitter(TextSplitterSignal):
   name = 'chunk'
   display_name = 'Chunk Splitter'
 
-  chunk_size: int = 200
-  chunk_overlap: int = 50
+  chunk_size: int = CHUNK_SIZE
+  chunk_overlap: int = CHUNK_OVERLAP
   separators: list[str] = DEFAULT_SEPARATORS
 
   _length_function: Callable[[str], int] = len
@@ -111,8 +113,8 @@ def _sep_split(text: str, separator: str) -> list[TextChunk]:
 
 
 def split_text(text: str,
-               chunk_size: int = 200,
-               chunk_overlap: int = 50,
+               chunk_size: int = CHUNK_SIZE,
+               chunk_overlap: int = CHUNK_OVERLAP,
                separators: list[str] = DEFAULT_SEPARATORS,
                length_function: Callable[[str], int] = len) -> list[TextChunk]:
   """Split incoming text and return chunks."""
