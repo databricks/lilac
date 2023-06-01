@@ -1,30 +1,30 @@
 <script lang="ts">
   import {page} from '$app/stores';
   import {
-    computeSignalColumnMutation,
-    queryDatasetSchema,
-    queryManyDatasetStats
+      computeSignalColumnMutation,
+      queryDatasetSchema,
+      queryManyDatasetStats
   } from '$lib/queries/datasetQueries';
 
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {getDatasetViewContext, isPathVisible} from '$lib/stores/datasetViewStore';
   import {
-    deserializePath,
-    getField,
-    listFields,
-    pathIsEqual,
-    serializePath,
-    type Path
+      deserializePath,
+      getField,
+      listFields,
+      pathIsEqual,
+      serializePath,
+      type Path
   } from '$lilac';
   import {
-    Button,
-    InlineLoading,
-    Select,
-    SelectItem,
-    Tab,
-    TabContent,
-    Tabs,
-    TextInput
+      Button,
+      InlineLoading,
+      Select,
+      SelectItem,
+      Tab,
+      TabContent,
+      Tabs,
+      TextInput
   } from 'carbon-components-svelte';
   import {Checkmark, Close} from 'carbon-icons-svelte';
   import {onMount} from 'svelte';
@@ -42,6 +42,7 @@
   };
 
   let selectedTabIndex = 0;
+  $: selectedTab = tabs[selectedTabIndex];
 
   let keywordSearchText: string;
   // Semantic search.
@@ -170,6 +171,10 @@
 
   $: searchEnabled = keywordSearchEnabled || semanticSearchEnabled;
 
+  $: showClearSearch =
+    (selectedTab === 'Keyword' && keywordSearchText != '') ||
+    (selectedTab === 'Semantic' && semanticSearchText != '');
+
   // Copy filters from query options
   onMount(() => {
     const searches = structuredClone($datasetViewStore.queryOptions.searches || []);
@@ -184,13 +189,20 @@
     }
   });
 
+  const clearSearch = () => {
+    if (selectedTab === 'Keyword') {
+      keywordSearchText = '';
+    } else if (selectedTab === 'Semantic') {
+      semanticSearchText = '';
+    }
+  }
   const search = () => {
     if (selectedPath == null) {
       return;
     }
     // TODO(nsthorat): Support multiple searches at the same time. Currently each search overrides
     // the set of searches.
-    if (tabs[selectedTabIndex] === 'Keyword') {
+    if (selectedTab === 'Keyword') {
       if (keywordSearchText == '') {
         $datasetViewStore.queryOptions.searches = [];
         return;
@@ -202,7 +214,7 @@
           query: keywordSearchText
         }
       ];
-    } else if (tabs[selectedTabIndex] === 'Semantic') {
+    } else if (selectedTab === 'Semantic') {
       if (semanticSearchText == '') {
         // TODO: Don't clear this.
         $datasetViewStore.queryOptions.searches = [];
@@ -216,7 +228,7 @@
           query: semanticSearchText
         }
       ];
-    } else if (tabs[selectedTabIndex] === 'Conceptual') {
+    } else if (selectedTab === 'Conceptual') {
       // TODO: Implement concept search.
     }
   };
@@ -262,14 +274,14 @@
         <Tab disabled={false}>{tabs[2]}</Tab>
         <svelte:fragment slot="content">
           <div class="flex flex-row">
-            <div class=" -ml-6 mr-2 flex h-10 items-center">
+            <div class="-ml-6 mr-2 flex h-10 items-center">
               <button
                 class="z-10 opacity-50 hover:opacity-100"
                 class:opacity-20={selectedPath == null}
                 class:hover:opacity-20={selectedPath == null}
-                class:invisible={keywordSearchText == '' || keywordSearchText == null}
+                class:invisible={!showClearSearch}
                 on:click|stopPropagation={() => {
-                  keywordSearchText = '';
+                  clearSearch();
                   search();
                 }}
               >

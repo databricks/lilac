@@ -124,7 +124,7 @@
     {/if}
   </div>
 
-  <div class="grow truncate whitespace-nowrap text-gray-900">
+  <div class="grow truncate whitespace-nowrap pr-2 text-gray-900">
     {fieldName}
   </div>
   {#if isSortedBy}
@@ -190,7 +190,7 @@
         })}>Signal Preview</Tag
     >
   {:else if Lilac.isSignalRootField(field)}
-    <Tag type="blue">Signal</Tag>
+    <Tag type="blue" class="signal-tag whitespace-nowrap">Signal</Tag>
   {/if}
   <div>
     <OverflowMenu light flipped>
@@ -216,3 +216,9 @@
     {/if}
   </div>
 {/if}
+
+<style lang="postcss">
+  :global(.signal-tag span) {
+    @apply px-2;
+  }
+</style>
