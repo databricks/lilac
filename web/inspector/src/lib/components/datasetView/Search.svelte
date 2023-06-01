@@ -34,6 +34,7 @@
   $: datasetName = $page.params.datasetName;
 
   let selectedPath: string | undefined;
+  let defaultEmbedding: string | undefined;
   let selectedEmbedding: string | undefined;
 
   const tabs: {[key: number]: 'Keyword' | 'Semantic' | 'Conceptual'} = {
@@ -142,7 +143,7 @@
 
       sortedEmbeddings =
         existingEmbeddings != null
-          ? ($embeddings.data || []).sort((a, b) => {
+          ? [...($embeddings.data || [])].sort((a, b) => {
               const hasA = existingEmbeddings.has(a.name);
               const hasB = existingEmbeddings.has(b.name);
               if (hasA && hasB) {
@@ -151,25 +152,27 @@
                 return -1;
               } else if (hasB) {
                 return 1;
-              } else {
-                return a.name.localeCompare(b.name);
               }
+              return 0;
             })
           : [];
     }
   }
 
+  $: defaultEmbedding = sortedEmbeddings[0]?.name;
+
   $: {
     // Choose the first embedding if the user hasn't already selected an embedding.
-    if (selectedEmbedding == null && existingEmbeddings != null && sortedEmbeddings.length > 0) {
-      selectedEmbedding = sortedEmbeddings[0].name;
+    if (selectedEmbedding == null) {
+      selectedEmbedding = defaultEmbedding;
     }
   }
 
   $: isEmbeddingComputed =
     existingEmbeddings != null && !!existingEmbeddings.has(selectedEmbedding || '');
-  $: isWaitingForIndexing = false;
-  $: isIndexing = !isEmbeddingComputed && isWaitingForIndexing;
+  let isWaitingForIndexing: {[key: string]: boolean} = {};
+  $: isIndexing =
+    !isEmbeddingComputed && isWaitingForIndexing[`${selectedPath}_${selectedEmbedding}`];
 
   $: keywordSearchEnabled = tabs[selectedTabIndex] === 'Keyword' && selectedPath != null;
   $: semanticSearchEnabled = tabs[selectedTabIndex] === 'Semantic' && isEmbeddingComputed;
@@ -238,8 +241,11 @@
     }
   };
 
+  const selectEmbedding = (e: Event) => {
+    selectedEmbedding = (e.target as HTMLInputElement).value;
+  };
   const computeEmbedding = () => {
-    isWaitingForIndexing = true;
+    isWaitingForIndexing[`${selectedPath}_${selectedEmbedding}`] = true;
     $computeSignalMutation.mutate([
       namespace,
       datasetName,
@@ -315,15 +321,14 @@
                 <div class="embedding-select -ml-8">
                   <Select
                     noLabel={true}
-                    bind:selected={selectedEmbedding}
+                    on:change={selectEmbedding}
+                    selected={selectedEmbedding}
                     name={selectedEmbedding}
                     helperText={'Embedding'}
                   >
-                    {#if sortedEmbeddings != null}
-                      {#each sortedEmbeddings as embedding}
-                        <SelectItem value={embedding.name} text={embedding.name} />
-                      {/each}
-                    {/if}
+                    {#each $embeddings.data || [] as embedding}
+                      <SelectItem value={embedding.name} text={embedding.name} />
+                    {/each}
                   </Select>
                 </div>
                 <div>
