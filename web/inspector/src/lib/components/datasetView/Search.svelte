@@ -1,32 +1,32 @@
 <script lang="ts">
   import {page} from '$app/stores';
   import {
-      computeSignalColumnMutation,
-      queryDatasetSchema,
-      queryManyDatasetStats
+    computeSignalColumnMutation,
+    queryDatasetSchema,
+    queryManyDatasetStats
   } from '$lib/queries/datasetQueries';
 
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {getDatasetViewContext, isPathVisible} from '$lib/stores/datasetViewStore';
   import {
-      deserializePath,
-      getField,
-      listFields,
-      pathIsEqual,
-      serializePath,
-      type Path
+    deserializePath,
+    getField,
+    listFields,
+    pathIsEqual,
+    serializePath,
+    type Path
   } from '$lilac';
   import {
-      Button,
-      InlineLoading,
-      Select,
-      SelectItem,
-      Tab,
-      TabContent,
-      Tabs,
-      TextInput
+    Button,
+    InlineLoading,
+    Select,
+    SelectItem,
+    Tab,
+    TabContent,
+    Tabs,
+    TextInput
   } from 'carbon-components-svelte';
-  import {Checkmark, Close} from 'carbon-icons-svelte';
+  import {Checkmark, Chip, Close} from 'carbon-icons-svelte';
   import {onMount} from 'svelte';
 
   $: namespace = $page.params.namespace;
@@ -195,7 +195,7 @@
     } else if (selectedTab === 'Semantic') {
       semanticSearchText = '';
     }
-  }
+  };
   const search = () => {
     if (selectedPath == null) {
       return;
@@ -324,16 +324,12 @@
                 <div>
                   <Button
                     size="small"
-                    disabled={selectedPath == null || isEmbeddingComputed}
+                    disabled={selectedPath == null || isEmbeddingComputed || isIndexing}
                     on:click={() => {
                       computeEmbedding();
                     }}
+                    icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
                     >Index
-                    {#if isEmbeddingComputed}
-                      <Checkmark class="ml-2" />
-                    {:else if isIndexing}
-                      <InlineLoading class="ml-2" />
-                    {/if}
                   </Button>
                 </div>
               </div>

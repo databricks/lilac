@@ -632,7 +632,7 @@ class DatasetDuckDB(Dataset):
     search_udfs, _, search_sorts = self._search_udfs(searches)
     if search_sorts:
       if not sort_by:
-        # TODO: fix.
+        # Override the sort by by the first search sort order.
         search_sort_by, sort_order = search_sorts[0]
         sort_by = [search_sort_by]
 
@@ -926,7 +926,8 @@ class DatasetDuckDB(Dataset):
       dataset_name=self.dataset_name,
       data_schema=data_schema,
       alias_udf_paths=alias_udf_paths,
-      search_results_paths=search_results_paths)
+      search_results_paths=search_results_paths,
+      sort_results=search_sort_bys)
 
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
@@ -1025,7 +1026,7 @@ class DatasetDuckDB(Dataset):
           path, op, query, embedding = search
         else:
           raise ValueError(f'Invalid search: {search}. Must be a tuple with 4 elements.')
-        search = Search(path=normalize_path(path),  type=op, query=query, embedding=embedding)
+        search = Search(path=normalize_path(path), type=op, query=query, embedding=embedding)
 
       field = self.manifest().data_schema.get_field(search.path)
       if field.dtype != DataType.STRING:
@@ -1054,10 +1055,12 @@ class DatasetDuckDB(Dataset):
 
         signal_path = (*search.path, search.embedding, PATH_WILDCARD, EMBEDDING_KEY)
         similarity_signal = SemanticSimilaritySignal(query=search.query, embedding=search.embedding)
+        alias = similarity_signal.key()
         udf = Column(path=signal_path, signal_udf=similarity_signal, alias=similarity_signal.key())
         search_udfs.append(udf)
+
         output_columns.append(_col_destination_path(udf))
-        sort_bys.append(((similarity_signal.key(),), SortOrder.DESC))
+        sort_bys.append(((alias,), SortOrder.DESC))
       else:
         raise ValueError(f'Unknown search operator {search.type}.')
 

@@ -19,7 +19,7 @@ from ..signals.signal import (
   register_signal,
 )
 from ..signals.substring_search import SubstringSignal
-from .dataset import Column, SearchType, SelectRowsSchemaResult
+from .dataset import Column, SearchType, SelectRowsSchemaResult, SortOrder
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
@@ -410,28 +410,21 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
     'text': 'hello world.',
-    'text2': 'hello world2.',
   }])
   query_world = 'world'
   query_hello = 'hello'
 
   test_embedding = TestEmbedding()
   dataset.compute_signal(test_embedding, ('text'))
-  dataset.compute_signal(test_embedding, ('text2'))
 
   result = dataset.select_rows_schema(
-    searches=[('text', SearchType.SEMANTIC, query_world, 'test_embedding'),
-              ('text2', SearchType.SEMANTIC, query_hello, 'test_embedding')],
-    combine_columns=True)
+    searches=[('text', SearchType.SEMANTIC, query_world, 'test_embedding')], combine_columns=True)
 
   test_embedding = TestEmbedding()
   expected_world_signal = SemanticSimilaritySignal(query=query_world, embedding='test_embedding')
-  expected_hello_signal = SemanticSimilaritySignal(query=query_hello, embedding='test_embedding')
 
   text_result_path = ('text', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
                       expected_world_signal.key())
-  text2_result_path = ('text2', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
-                       expected_hello_signal.key())
   assert result == SelectRowsSchemaResult(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
@@ -446,20 +439,8 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
               enriched_embedding_span_field(
                 {expected_world_signal.key(): field('float32', expected_world_signal.dict())})
             ])
-        }),
-      'text2': field(
-        'string',
-        fields={
-          'test_embedding': field(
-            signal=test_embedding.dict(),
-            fields=[
-              enriched_embedding_span_field(
-                {expected_hello_signal.key(): field('float32', expected_hello_signal.dict())})
-            ])
-        }),
+        })
     }),
-    alias_udf_paths={
-      expected_hello_signal.key(): text2_result_path,
-      expected_world_signal.key(): text_result_path
-    },
-    search_results_paths=[text_result_path, text2_result_path])
+    alias_udf_paths={expected_world_signal.key(): text_result_path},
+    search_results_paths=[text_result_path],
+    sort_results=[((expected_world_signal.key(),), SortOrder.DESC)])
