@@ -14,7 +14,8 @@
     listFields,
     pathIsEqual,
     serializePath,
-    type Path
+    type Path,
+    type SignalInfoWithTypedSchema
   } from '$lilac';
   import {
     Button,
@@ -124,6 +125,7 @@
   // Populate existing embeddings for the selected field.
   let existingEmbeddings: Set<string>;
 
+  let sortedEmbeddings: SignalInfoWithTypedSchema[] = [];
   // Find all existing pre-computed embeddings for the current split from the schema
   $: {
     if (selectedPath != null && $schema.data != null) {
@@ -131,33 +133,36 @@
       const embeddingSignalRoots = listFields(
         getField($schema.data, deserializePath(selectedPath))
       ).filter(f => f.signal != null && listFields(f).some(f => f.dtype === 'embedding'));
+
       for (const field of embeddingSignalRoots) {
         if (field.signal?.signal_name != null) {
           existingEmbeddings.add(field.signal.signal_name);
         }
       }
+
+      sortedEmbeddings =
+        existingEmbeddings != null
+          ? ($embeddings.data || []).sort((a, b) => {
+              const hasA = existingEmbeddings.has(a.name);
+              const hasB = existingEmbeddings.has(b.name);
+              if (hasA && hasB) {
+                return 0;
+              } else if (hasA) {
+                return -1;
+              } else if (hasB) {
+                return 1;
+              } else {
+                return a.name.localeCompare(b.name);
+              }
+            })
+          : [];
     }
   }
 
-  $: sortedEmbeddings =
-    existingEmbeddings != null
-      ? ($embeddings.data || []).sort((a, b) => {
-          const hasA = existingEmbeddings.has(a.name);
-          const hasB = existingEmbeddings.has(b.name);
-          if (hasA && hasB) {
-            return 0;
-          } else if (hasA) {
-            return -1;
-          } else {
-            return 1;
-          }
-        })
-      : [];
-
   $: {
     // Choose the first embedding if the user hasn't already selected an embedding.
-    if (selectedEmbedding == null) {
-      selectedEmbedding = sortedEmbeddings.length > 0 ? sortedEmbeddings[0].name : undefined;
+    if (selectedEmbedding == null && existingEmbeddings != null && sortedEmbeddings.length > 0) {
+      selectedEmbedding = sortedEmbeddings[0].name;
     }
   }
 
