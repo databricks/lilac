@@ -73,9 +73,6 @@
       '/namespace': EmptyComponent,
       '/concept_name': SelectConcept,
       '/embedding': SelectEmbedding
-    },
-    semantic_similarity: {
-      '/embedding': SelectEmbedding
     }
   };
 

@@ -17,10 +17,10 @@
   const ctx = getCommandSignalContext();
 
   // Find the embedding signal json schema field
-  $: embeddingSignalField = $ctx.jsonSchema?.properties?.embedding as JSONSchema7 | undefined;
+  $: embeddingSchema = $ctx.jsonSchema?.properties?.embedding as JSONSchema7 | undefined;
 
   // Find all existing pre-computed embeddings for the current split from the schema
-  $: existingEmbeddings =
+  $: precomputedEmbs =
     $ctx.path && $schema.data
       ? listFields(getField($schema.data, $ctx.path)).filter(
           f => f.signal != null && listFields(f).some(f => f.dtype === 'embedding')
@@ -28,19 +28,27 @@
       : undefined;
 
   // Sort possible embeddings by if they are already computed
-  $: sortedEnum = [...(embeddingSignalField?.enum || [])].sort((a, b) => {
-    const aComputed = existingEmbeddings?.some(f => f.signal?.signal_name === a?.toString());
-    const bComputed = existingEmbeddings?.some(f => f.signal?.signal_name === b?.toString());
+  $: sortedEnum = [...(embeddingSchema?.enum || [])].sort((a, b) => {
+    const aComputed = precomputedEmbs?.some(f => f.signal?.signal_name === a?.toString());
+    const bComputed = precomputedEmbs?.some(f => f.signal?.signal_name === b?.toString());
     if (aComputed && !bComputed) return -1;
     if (!aComputed && bComputed) return 1;
     return 0;
   });
 
-  // Make the initial selected value by the first computed embedding.
-  $: value = sortedEnum[0]?.toString() || '';
+  // The initial selected value should be the first computed embedding by default.
+  $: {
+    if (precomputedEmbs?.length && precomputedEmbs[0].signal?.signal_name) {
+      value = precomputedEmbs[0].signal.signal_name;
+    }
+  }
+
+  function selectionChanged(e: Event) {
+    value = (e.target as HTMLInputElement).value;
+  }
 
   // Check if the current value is computed
-  $: computed = existingEmbeddings?.some(f => f.signal?.signal_name === value?.toString()) || false;
+  $: computed = precomputedEmbs?.some(f => f.signal?.signal_name === value?.toString()) || false;
 
   // Create warn text if the current value is not computed
   $: warnText = !computed ? 'Embedding not pre-computed for this split' : undefined;
@@ -48,16 +56,15 @@
 
 <Select
   labelText="Embedding *"
-  bind:selected={value}
+  on:change={selectionChanged}
+  selected={value}
   warn={!!warnText}
   {warnText}
   {invalid}
   {invalidText}
 >
   {#each sortedEnum as embedding}
-    {@const computed = existingEmbeddings?.some(
-      f => f.signal?.signal_name === embedding?.toString()
-    )}
+    {@const computed = precomputedEmbs?.some(f => f.signal?.signal_name === embedding?.toString())}
     <SelectItem value={embedding?.toString()} text={embedding?.toString()} disabled={!computed} />
   {/each}
 </Select>

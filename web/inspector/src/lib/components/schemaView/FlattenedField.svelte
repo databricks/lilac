@@ -79,6 +79,9 @@
         // Filter out specific types of signals
         .filter(c => {
           if (c.dtype === 'embedding') return false;
+          if (c.signal != null && Lilac.listFields(c).some(f => f.dtype === 'embedding')) {
+            return false;
+          }
           if (c.signal?.signal_name === 'sentences') return false;
           if (c.signal?.signal_name === 'substring_search') return false;
 
