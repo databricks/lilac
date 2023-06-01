@@ -131,7 +131,7 @@
   }
 
   :global(.bx--fieldset) {
-    @apply rounded border border-indigo-200 p-4;
+    @apply rounded border border-gray-300 p-4;
   }
 
   :global(legend.bx--label) {
