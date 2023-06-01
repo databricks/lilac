@@ -36,8 +36,12 @@
     return 0;
   });
 
-  // Make the initial selected value by the first computed embedding.
-  $: value = sortedEnum[0]?.toString() || '';
+  // The initial selected value should be the first computed embedding by default.
+  $: {
+    if (sortedEnum.length > 0 && sortedEnum[0]) {
+      value = sortedEnum[0].toString();
+    }
+  }
 
   // Check if the current value is computed
   $: computed = existingEmbeddings?.some(f => f.signal?.signal_name === value?.toString()) || false;
