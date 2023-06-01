@@ -1,7 +1,6 @@
 """Sentence-BERT embeddings. Open-source models, designed to run on device."""
 from typing import Any, Iterable, Optional, cast
 
-import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
 from typing_extensions import override
@@ -61,8 +60,5 @@ class SBERT(TextEmbeddingSignal):
         # Return a single chunk that spans the entire document.
         return [(doc, (0, len(doc)))]
 
-    def embed_fn(texts: list[str]) -> list[np.ndarray]:
-      return self._model.encode(texts)
-
     docs = cast(Iterable[str], docs)
-    yield from split_and_combine_text_embeddings(docs, batch_size, splitter, embed_fn)
+    yield from split_and_combine_text_embeddings(docs, batch_size, splitter, self._model.encode)
