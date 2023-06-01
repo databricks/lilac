@@ -53,7 +53,7 @@ def split_and_combine_text_embeddings(
   def _flat_split_batch_docs(docs: Iterable[str]) -> Generator[tuple[int, TextChunk], None, None]:
     """Split a batch of documents into chunks and yield them."""
     for i, doc in enumerate(docs):
-      chunks = splitter(doc)
+      chunks = splitter(doc) or [cast(TextChunk, ('', (0, 0)))]
       for chunk in chunks:
         yield (i, chunk)
 
