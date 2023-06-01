@@ -18,6 +18,6 @@
   },
   "workspaces": [
     "web/lib",
-    "web/inspector"
+    "web/blueprint"
   ]
 }

@@ -78,5 +78,5 @@
   "jupyter.notebookFileRoot": "${workspaceFolder}",
   "svelte.enable-ts-plugin": true,
   "coverage-gutters.coverageBaseDir": "web/**",
-  "vitest.commandLine": "npm run test --workspace web/inspector --"
+  "vitest.commandLine": "npm run test --workspace web/blueprint --"
 }

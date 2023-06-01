@@ -27,7 +27,7 @@ Format typescript files:
 
 ```sh
 npm run format --workspace web/lib
-npm run format --workspace web/inspector
+npm run format --workspace web/blueprint
 ```
 
 ### Configuration

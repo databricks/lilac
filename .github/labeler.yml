@@ -2,9 +2,9 @@
 'backend':
   - any: ['src/**/*']
 
-# Add 'frontend' label to any change to inspector folder
+# Add 'frontend' label to any change to blueprint folder
 'frontend':
-  - any: ['web/inspector/**/*']
+  - any: ['web/blueprint/**/*']
 
 # Add 'client lib' label to any change to web lib folders
 'client lib':
