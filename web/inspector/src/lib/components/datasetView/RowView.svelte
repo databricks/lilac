@@ -9,7 +9,7 @@
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import RowItem from './RowItem.svelte';
-  import SearchBox from './SearchBox.svelte';
+  import Search from './Search.svelte';
 
   let datasetViewStore = getDatasetViewContext();
 
@@ -44,7 +44,7 @@
   );
 </script>
 
-<SearchBox />
+<Search />
 
 {#if $rows.isError}
   <InlineNotification

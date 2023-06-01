@@ -116,6 +116,10 @@ class GroupsSortBy(str, enum.Enum):
 
 class SelectRowsSchemaResult(BaseModel):
   """The result of a select rows schema query."""
+  # The dataset info is required so so that the frontend can change local state as a function of the
+  # response.
+  namespace: str
+  dataset_name: str
   data_schema: Schema
   # Maps a udf name to its destination path in the schema.
   alias_udf_paths: dict[str, PathTuple] = {}
@@ -213,15 +217,16 @@ class Filter(BaseModel):
 FilterLike = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListFilterTuple]
 
 SearchValue = StrictStr
-SearchTuple = tuple[Path, EmbeddingId, SearchType, SearchValue]
+SearchTuple = tuple[Path, SearchType, SearchValue, Optional[EmbeddingId]]
 
 
 class Search(BaseModel):
   """A search on a column."""
   path: PathTuple
-  embedding: Optional[str]
   type: SearchType
   query: SearchValue
+  # Defined for semantic and concepts.
+  embedding: Optional[str]
 
 
 SearchLike = Union[Search, SearchTuple]

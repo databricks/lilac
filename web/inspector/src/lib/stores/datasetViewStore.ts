@@ -22,6 +22,12 @@ const LS_KEY = 'datasetViewStore';
 
 export type DatasetViewStore = ReturnType<typeof createDatasetViewStore>;
 
+export const datasetStores: {[key: string]: DatasetViewStore} = {};
+
+export function datasetKey(namespace: string, datasetName: string) {
+  return `${namespace}/${datasetName}`;
+}
+
 export const createDatasetViewStore = (namespace: string, datasetName: string) => {
   const initialState: IDatasetViewStore = {
     namespace,
@@ -39,14 +45,14 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
   };
 
   const {subscribe, set, update} = persisted<IDatasetViewStore>(
-    `${LS_KEY}/${namespace}/${datasetName}`,
+    `${LS_KEY}/${datasetKey(namespace, datasetName)}`,
     initialState,
     {
       storage: 'session'
     }
   );
 
-  return {
+  const store = {
     subscribe,
     set,
     update,
@@ -117,6 +123,9 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         return state;
       })
   };
+
+  datasetStores[datasetKey(namespace, datasetName)] = store;
+  return store;
 };
 
 export function setDatasetViewContext(store: DatasetViewStore) {

@@ -7,3 +7,8 @@ export const querySignals = createApiQuery(
   SignalsService.getSignals as () => Promise<SignalInfoWithTypedSchema[]>,
   SIGNALS_TAG
 );
+
+export const queryEmbeddings = createApiQuery(
+  SignalsService.getEmbeddings as () => Promise<SignalInfoWithTypedSchema[]>,
+  SIGNALS_TAG
+);

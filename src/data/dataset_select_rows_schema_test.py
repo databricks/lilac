@@ -7,8 +7,10 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema
+from ..schema import PATH_WILDCARD, UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema
+from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
+  EMBEDDING_KEY,
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSignal,
@@ -18,7 +20,12 @@ from ..signals.signal import (
 )
 from ..signals.substring_search import SubstringSignal
 from .dataset import Column, SearchType, SelectRowsSchemaResult
-from .dataset_test_utils import TestDataMaker, enriched_embedding_span_field
+from .dataset_test_utils import (
+  TEST_DATASET_NAME,
+  TEST_NAMESPACE,
+  TestDataMaker,
+  enriched_embedding_span_field,
+)
 from .dataset_utils import lilac_embedding, lilac_span
 
 TEST_DATA: list[Item] = [{
@@ -153,6 +160,8 @@ def test_simple_schema(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
   result = dataset.select_rows_schema(combine_columns=True)
   assert result == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'erased': 'boolean',
@@ -174,6 +183,8 @@ def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
                                        ('people', '*', 'locations', '*', 'city')],
                                       combine_columns=True)
   assert result == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -187,6 +198,8 @@ def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows_schema([('people', '*', 'name'), ('people', '*', 'locations')],
                                       combine_columns=True)
   assert result == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -200,6 +213,8 @@ def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows_schema([('people', '*')], combine_columns=True)
   assert result == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -221,6 +236,8 @@ def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
                                        Column(('people', '*', 'name'), signal_udf=length_signal)],
                                       combine_columns=True)
   assert result == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -244,6 +261,8 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
      Column(('people', '*', 'name', 'add_space_signal'), signal_udf=add_space_signal)],
     combine_columns=True)
   assert result == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -277,6 +296,8 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
     [('text'), Column(('text'), signal_udf=add_space_signal)], combine_columns=True)
 
   assert result == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
@@ -327,12 +348,18 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
           ])
       })
   })
-  assert result == SelectRowsSchemaResult(data_schema=expected_schema, alias_udf_paths={})
+  assert result == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=expected_schema,
+    alias_udf_paths={})
 
   # Alias the udf.
   udf_col.alias = 'udf1'
   result = dataset.select_rows_schema([('text'), udf_col], combine_columns=True)
   assert result == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
     data_schema=expected_schema,
     alias_udf_paths={
       'udf1':
@@ -340,7 +367,7 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
     })
 
 
-def test_search_schema(make_test_data: TestDataMaker) -> None:
+def test_search_contains_schema(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
     'text': 'hello world',
@@ -350,14 +377,16 @@ def test_search_schema(make_test_data: TestDataMaker) -> None:
   query_hello = 'hello'
 
   result = dataset.select_rows_schema(
-    searches=[('text', SearchType.CONTAINS, query_world),
-              ('text2', SearchType.CONTAINS, query_hello)],
+    searches=[('text', SearchType.CONTAINS, query_world, None),
+              ('text2', SearchType.CONTAINS, query_hello, None)],
     combine_columns=True)
 
   expected_world_signal = SubstringSignal(query=query_world)
   expected_hello_signal = SubstringSignal(query=query_hello)
 
   assert result == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
@@ -373,5 +402,64 @@ def test_search_schema(make_test_data: TestDataMaker) -> None:
             signal=expected_hello_signal.dict(), fields=['string_span'])
         })
     }),
-    search_results_paths=[('text', expected_world_signal.key()),
-                          ('text2', expected_hello_signal.key())])
+    search_results_paths=[('text', expected_world_signal.key(), PATH_WILDCARD),
+                          ('text2', expected_hello_signal.key(), PATH_WILDCARD)])
+
+
+def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world.',
+    'text2': 'hello world2.',
+  }])
+  query_world = 'world'
+  query_hello = 'hello'
+
+  test_embedding = TestEmbedding()
+  dataset.compute_signal(test_embedding, ('text'))
+  dataset.compute_signal(test_embedding, ('text2'))
+
+  result = dataset.select_rows_schema(
+    searches=[('text', SearchType.SEMANTIC, query_world, 'test_embedding'),
+              ('text2', SearchType.SEMANTIC, query_hello, 'test_embedding')],
+    combine_columns=True)
+
+  test_embedding = TestEmbedding()
+  expected_world_signal = SemanticSimilaritySignal(query=query_world, embedding='test_embedding')
+  expected_hello_signal = SemanticSimilaritySignal(query=query_hello, embedding='test_embedding')
+
+  text_result_path = ('text', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
+                      expected_world_signal.key())
+  text2_result_path = ('text2', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
+                       expected_hello_signal.key())
+  assert result == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'text': field(
+        'string',
+        fields={
+          'test_embedding': field(
+            signal=test_embedding.dict(),
+            fields=[
+              enriched_embedding_span_field(
+                {expected_world_signal.key(): field('float32', expected_world_signal.dict())})
+            ])
+        }),
+      'text2': field(
+        'string',
+        fields={
+          'test_embedding': field(
+            signal=test_embedding.dict(),
+            fields=[
+              enriched_embedding_span_field(
+                {expected_hello_signal.key(): field('float32', expected_hello_signal.dict())})
+            ])
+        }),
+    }),
+    alias_udf_paths={
+      expected_hello_signal.key(): text2_result_path,
+      expected_world_signal.key(): text_result_path
+    },
+    search_results_paths=[text_result_path, text2_result_path])

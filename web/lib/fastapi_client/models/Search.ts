@@ -9,8 +9,8 @@ import type { SearchType } from './SearchType';
  */
 export type Search = {
     path: (Array<string> | string);
-    embedding?: string;
     type: SearchType;
     query: string;
+    embedding?: string;
 };
 

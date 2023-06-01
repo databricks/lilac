@@ -232,6 +232,8 @@ def test_select_rows_schema_star_plus_udf() -> None:
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
   assert SelectRowsSchemaResult.parse_obj(response.json()) == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'erased': 'boolean',
@@ -254,6 +256,8 @@ def test_select_rows_schema_no_cols() -> None:
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
   assert SelectRowsSchemaResult.parse_obj(response.json()) == SelectRowsSchemaResult(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'erased': 'boolean',

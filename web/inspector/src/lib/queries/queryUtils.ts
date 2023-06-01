@@ -29,12 +29,13 @@ export function createApiQuery<
   queryArgs: CreateQueryOptions<TQueryFnData, TError, TData> = {}
 ) {
   tags = Array.isArray(tags) ? tags : [tags];
-  return (...args: Parameters<TQueryFn>) =>
-    createQuery<TQueryFnData, TError, TData>({
+  return (...args: Parameters<TQueryFn>) => {
+    return createQuery<TQueryFnData, TError, TData>({
       queryKey: apiQueryKey(tags as string[], endpoint.name, ...args),
       queryFn: () => endpoint(...args),
       ...queryArgs
     });
+  };
 }
 
 export function createParallelApiQueries<

@@ -629,7 +629,7 @@ class DatasetDuckDB(Dataset):
     self._validate_columns(cols, manifest.data_schema)
 
     searches = self._normalize_searches(searches)
-    search_udfs, search_sorts = self._search_udfs(searches)
+    search_udfs, _, search_sorts = self._search_udfs(searches)
     if search_sorts:
       if not sort_by:
         # TODO: fix.
@@ -696,7 +696,6 @@ class DatasetDuckDB(Dataset):
     sort_cols_after_udf: list[str] = []
 
     for path in sort_by:
-      print('path in sort by', path, udf_aliases)
       # We only allow sorting by nodes with a value.
       first_subpath = str(path[0])
       rest_of_path = path[1:]
@@ -767,10 +766,6 @@ class DatasetDuckDB(Dataset):
           # The input is an embedding.
           vector_store = self._get_vector_store(udf_col.path)
 
-          print(
-            'are we sorting',
-            self._sorting_by_topk_of_signal(limit, sort_order, sort_cols_after_udf, signal_column))
-
           # If we are sorting by the topk of a signal column, we can utilize the vector store
           # via `signal.vector_compute_topk` and then use the topk to filter the dataframe. This
           # is much faster than computing the signal for all rows and then sorting.
@@ -778,7 +773,6 @@ class DatasetDuckDB(Dataset):
             already_sorted = True
             k = (limit or 0) + (offset or 0)
             topk = signal.vector_compute_topk(k, vector_store)
-            print('got topk', topk)
             unique_uuids = list(dict.fromkeys([key[0] for key, _ in topk]))
             df.set_index(UUID_COLUMN, drop=False, inplace=True)
             # Filter the dataframe by uuids that have at least one value in top k.
@@ -910,7 +904,7 @@ class DatasetDuckDB(Dataset):
     self._validate_columns(cols, manifest.data_schema)
 
     searches = self._normalize_searches(searches)
-    search_udfs, search_sort_bys = self._search_udfs(searches)
+    search_udfs, search_results_paths, search_sort_bys = self._search_udfs(searches)
     cols.extend(search_udfs)
 
     alias_udf_paths: dict[str, PathTuple] = {}
@@ -926,12 +920,10 @@ class DatasetDuckDB(Dataset):
         field = self.manifest().data_schema.get_field(dest_path)
       col_schemas.append(_make_schema_from_path(dest_path, field))
 
-    search_results_paths: list[PathTuple] = [
-      _col_destination_path(search) for search in search_udfs
-    ]
-
     data_schema = merge_schemas(col_schemas)
     return SelectRowsSchemaResult(
+      namespace=self.namespace,
+      dataset_name=self.dataset_name,
       data_schema=data_schema,
       alias_udf_paths=alias_udf_paths,
       search_results_paths=search_results_paths)
@@ -1029,11 +1021,11 @@ class DatasetDuckDB(Dataset):
     for search in search_likes:
       # Normalize `FilterLike` to `Filter`.
       if not isinstance(search, Search):
-        if len(search) == 3:
-          path, op, query = search
+        if len(search) == 4:
+          path, op, query, embedding = search
         else:
-          raise ValueError(f'Invalid search: {search}. Must be a tuple with  3 elements.')
-        search = Search(path=normalize_path(path), type=op, query=query)
+          raise ValueError(f'Invalid search: {search}. Must be a tuple with 4 elements.')
+        search = Search(path=normalize_path(path),  type=op, query=query, embedding=embedding)
 
       field = self.manifest().data_schema.get_field(search.path)
       if field.dtype != DataType.STRING:
@@ -1043,28 +1035,33 @@ class DatasetDuckDB(Dataset):
 
     return searches
 
-  def _search_udfs(self,
-                   searches: list[Search]) -> tuple[list[Column], list[tuple[Path, SortOrder]]]:
+  def _search_udfs(
+      self,
+      searches: list[Search]) -> tuple[list[Column], list[PathTuple], list[tuple[Path, SortOrder]]]:
     """Create a UDF for each search for finding the location of the text with spans."""
     search_udfs: list[Column] = []
+    output_columns: list[PathTuple] = []
     sort_bys: list[tuple[Path, SortOrder]] = []
     for i, search in enumerate(searches):
       if search.type == SearchType.CONTAINS:
-        search_udfs.append(Column(path=search.path, signal_udf=SubstringSignal(query=search.query)))
+        udf = Column(path=search.path, signal_udf=SubstringSignal(query=search.query))
+        search_udfs.append(udf)
+        # The output to be selected is an array of results.
+        output_columns.append((*_col_destination_path(udf), PATH_WILDCARD))
       elif search.type == SearchType.SEMANTIC:
         if not search.embedding:
           raise ValueError(f'Please provide an embedding for semantic search. Got search: {search}')
 
-        signal_path = (*search.path, 'sentences', '*', search.embedding)
+        signal_path = (*search.path, search.embedding, PATH_WILDCARD, EMBEDDING_KEY)
         similarity_signal = SemanticSimilaritySignal(query=search.query, embedding=search.embedding)
-        search_udfs.append(
-          Column(path=signal_path, signal_udf=similarity_signal, alias=similarity_signal.key()))
+        udf = Column(path=signal_path, signal_udf=similarity_signal, alias=similarity_signal.key())
+        search_udfs.append(udf)
+        output_columns.append(_col_destination_path(udf))
         sort_bys.append(((similarity_signal.key(),), SortOrder.DESC))
       else:
         raise ValueError(f'Unknown search operator {search.type}.')
 
-    print('sort bys', sort_bys)
-    return search_udfs, sort_bys
+    return search_udfs, output_columns, sort_bys
 
   def _create_where(self, filters: list[Filter], searches: list[Search] = []) -> list[str]:
     if not filters and not searches:

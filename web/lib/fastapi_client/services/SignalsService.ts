@@ -11,7 +11,7 @@ export class SignalsService {
 
     /**
      * Get Signals
-     * List the datasets.
+     * List the signals.
      * @returns SignalInfo Successful Response
      * @throws ApiError
      */
@@ -19,6 +19,19 @@ export class SignalsService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/signals/',
+        });
+    }
+
+    /**
+     * Get Embeddings
+     * List the embeddings.
+     * @returns SignalInfo Successful Response
+     * @throws ApiError
+     */
+    public static getEmbeddings(): CancelablePromise<Array<SignalInfo>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/signals/embeddings',
         });
     }
 

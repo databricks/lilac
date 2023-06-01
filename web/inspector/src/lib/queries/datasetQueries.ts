@@ -1,3 +1,4 @@
+import {datasetKey, datasetStores} from '$lib/stores/datasetViewStore';
 import {
   ApiError,
   DataLoadersService,
@@ -73,6 +74,7 @@ export const querySelectRows = createApiQuery(function selectRows(
   );
 },
 DATASETS_TAG);
+
 export const querySelectRowsSchema = createApiQuery(
   DatasetsService.selectRowsSchema,
   DATASETS_TAG,
@@ -80,8 +82,16 @@ export const querySelectRowsSchema = createApiQuery(
     select: res => {
       return {
         schema: deserializeSchema(res.data_schema, res.alias_udf_paths as Record<string, Path>),
-        searchResultsPaths: res.search_results_paths as Path[]
+        searchResultsPaths: res.search_results_paths as Path[],
+        namespace: res.namespace,
+        datasetName: res.dataset_name
       };
+    },
+    onSuccess: ({namespace, datasetName, searchResultsPaths}) => {
+      for (const searchResultPath of searchResultsPaths) {
+        datasetStores[datasetKey(namespace, datasetName)].addVisibleColumn(searchResultPath);
+      }
+      // TODO(nsthorat): Add sort by to the state.
     }
   }
 );
