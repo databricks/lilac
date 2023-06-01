@@ -21,11 +21,11 @@
   import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
-      SIGNAL_INPUT_TYPE_TO_VALID_DTYPES,
-      type LilacSchemaField,
-      type Path,
-      type Signal,
-      type SignalInfoWithTypedSchema
+    SIGNAL_INPUT_TYPE_TO_VALID_DTYPES,
+    type LilacSchemaField,
+    type Path,
+    type Signal,
+    type SignalInfoWithTypedSchema
   } from '$lilac';
   import {ComposedModal, ModalBody, ModalFooter, ModalHeader} from 'carbon-components-svelte';
   import type {JSONSchema4Type, JSONSchema7} from 'json-schema';
@@ -35,10 +35,10 @@
   import {writable, type Readable} from 'svelte/store';
   import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
   import {
-      Command,
-      type ComputeSignalCommand,
-      type EditPreviewConceptCommand,
-      type PreviewConceptCommand
+    Command,
+    type ComputeSignalCommand,
+    type EditPreviewConceptCommand,
+    type PreviewConceptCommand
   } from './Commands.svelte';
   import EmptyComponent from './customComponents/EmptyComponent.svelte';
   import SelectConcept from './customComponents/SelectConcept.svelte';
