@@ -33,6 +33,7 @@
     const bComputed = precomputedEmbs?.some(f => f.signal?.signal_name === b?.toString());
     if (aComputed && !bComputed) return -1;
     if (!aComputed && bComputed) return 1;
+    return 0;
   });
 
   // The initial selected value should be the first computed embedding by default.

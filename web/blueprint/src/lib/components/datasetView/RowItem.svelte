@@ -8,7 +8,6 @@
 
   export let row: LilacValueNode;
   export let schema: LilacSchema;
-  export let aliasMapping: Record<string, Path> | undefined;
 
   let datasetViewStore = getDatasetViewContext();
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
@@ -42,6 +41,6 @@
 
 <div class="mb-4 flex flex-col gap-y-4 border-b border-gray-300 p-4">
   {#each sortedVisibleColumns as column (column.join('.'))}
-    <RowItemValue {row} path={column} {searchResultsPaths} {schema} {aliasMapping} />
+    <RowItemValue {row} path={column} {searchResultsPaths} {schema} />
   {/each}
 </div>

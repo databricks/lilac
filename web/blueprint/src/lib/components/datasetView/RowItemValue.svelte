@@ -1,11 +1,12 @@
 <script lang="ts">
-  import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
-  import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   /**
    * Component that renders a single value from a row in the dataset row view
    * In the case of strings with string_spans, it will render the derived string spans as well
    */
+  import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
+  import {getDatasetContext} from '$lib/stores/datasetStore';
+  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
+
   import {notEmpty} from '$lib/utils';
   import {getVisibleFields} from '$lib/view_utils';
   import {
@@ -26,7 +27,6 @@
   export let row: LilacValueNode;
   export let searchResultsPaths: Path[];
   export let schema: LilacSchema;
-  export let aliasMapping: Record<string, Path> | undefined;
 
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();

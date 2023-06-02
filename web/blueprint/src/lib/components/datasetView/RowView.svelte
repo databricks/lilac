@@ -73,7 +73,7 @@
   <div class="flex h-full w-full flex-col overflow-scroll">
     {#each $rows.data.pages as page}
       {#each page as row}
-        <RowItem {row} schema={$schema.data} aliasMapping={$selectRowsAliasPaths.data} />
+        <RowItem {row} schema={$schema.data} />
       {/each}
     {/each}
     <InfiniteScroll threshold={100} on:loadMore={() => $rows?.fetchNextPage()} />
