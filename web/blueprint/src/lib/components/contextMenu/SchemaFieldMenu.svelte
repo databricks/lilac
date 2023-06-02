@@ -65,3 +65,9 @@
       path: field?.path
     })}
 />
+
+<style lang="postcss">
+  :global(ul.bx--overflow-menu-options) {
+    @apply w-44;
+  }
+</style>

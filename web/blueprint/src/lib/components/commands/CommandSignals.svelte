@@ -51,7 +51,6 @@
   export let command:
     | ComputeSignalCommand
     | ComputeEmbeddingCommand
-    | ComputeEmbeddingCommand
     | PreviewConceptCommand
     | EditPreviewConceptCommand;
 
