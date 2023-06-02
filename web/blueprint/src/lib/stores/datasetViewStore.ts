@@ -29,7 +29,7 @@ export interface IDatasetViewStore {
   queryOptions: SelectRowsOptions;
 
   // Search.
-  searchTab: typeof SEARCH_TABS[keyof typeof SEARCH_TABS];
+  searchTab: (typeof SEARCH_TABS)[keyof typeof SEARCH_TABS];
   searchPath: string | null;
   searchEmbedding: string | null;
 }
@@ -126,7 +126,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       });
     },
 
-    setSearchTab: (tab: typeof SEARCH_TABS[keyof typeof SEARCH_TABS]) =>
+    setSearchTab: (tab: (typeof SEARCH_TABS)[keyof typeof SEARCH_TABS]) =>
       update(state => {
         state.searchTab = tab;
         return state;
