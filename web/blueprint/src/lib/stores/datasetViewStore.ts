@@ -29,7 +29,7 @@ export interface IDatasetViewStore {
   queryOptions: SelectRowsOptions;
 
   // Search.
-  searchTab: (typeof SEARCH_TABS)[keyof typeof SEARCH_TABS];
+  searchTab: typeof SEARCH_TABS[keyof typeof SEARCH_TABS];
   searchPath: string | null;
   searchEmbedding: string | null;
 }
@@ -126,12 +126,21 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       });
     },
 
-    setSearchTab: (tab: (typeof SEARCH_TABS)[keyof typeof SEARCH_TABS]) =>
+    setSearchTab: (tab: typeof SEARCH_TABS[keyof typeof SEARCH_TABS]) =>
       update(state => {
         state.searchTab = tab;
         return state;
       }),
-
+    setSearchPath: (path: Path | string) =>
+      update(state => {
+        state.searchPath = serializePath(path);
+        return state;
+      }),
+    setSearchEmbedding: (embedding: string) =>
+      update(state => {
+        state.searchEmbedding = embedding;
+        return state;
+      }),
     addSearch: (search: Search) =>
       update(state => {
         if (search.type === 'semantic' || search.type == 'contains') {
@@ -147,6 +156,12 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
 
         return state;
       }),
+    clearSearch: (search: Search) =>
+      update(state => {
+        state.queryOptions.searches = state.queryOptions.searches?.filter(s => s !== search);
+
+        return state;
+      }),
     clearSearchType: (searchType: SearchType) =>
       update(state => {
         // Remove existing searches with this type. Semantic and keyword search only allow a
@@ -155,23 +170,6 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
           s => s.type !== searchType
         );
 
-        return state;
-      }),
-    clearSearch: (search: Search) =>
-      update(state => {
-        state.queryOptions.searches = state.queryOptions.searches?.filter(s => s !== search);
-
-        return state;
-      }),
-
-    setSearchPath: (path: Path | string) =>
-      update(state => {
-        state.searchPath = serializePath(path);
-        return state;
-      }),
-    setSearchEmbedding: (embedding: string) =>
-      update(state => {
-        state.searchEmbedding = embedding;
         return state;
       }),
 

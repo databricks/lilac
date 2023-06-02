@@ -15,7 +15,6 @@
     getValueNodes,
     isOrdinal,
     listFieldParents,
-    pathIncludes,
     pathIsEqual,
     type LilacSchema,
     type LilacValueNode,
@@ -33,7 +32,6 @@
 
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
 
-  // TODO(nsthorat): Move this into the dataset store.
   $: selectRowsSchema = selectOptions
     ? querySelectRowsSchema(
         $datasetViewStore.namespace,
@@ -64,25 +62,19 @@
       ? getVisibleFields($datasetViewStore, $datasetStore, field, 'string_span')
       : [];
 
-  // For string fields, find the derived search span fields.
-  $: keywordSearchSpanFields = visibleFields
-    .filter(field =>
-      // Enables search results to be highlighted.
-      searchResultsPaths.some(searchPath => pathIncludes(field.path, searchPath))
-    )
-    .filter(field => {
-      if ($datasetViewStore == null || $datasetViewStore.queryOptions.searches == null) {
-        return false;
-      }
-      for (const [i, searchResultPath] of $selectRowsSchema?.data?.searchResultsPaths.entries() ||
-        []) {
-        if (pathIsEqual(field.path, searchResultPath)) {
-          const search = $datasetViewStore.queryOptions.searches[i];
-          return search.type === 'contains';
-        }
-      }
-      return false;
-    });
+  // Only find the 'contains' searches for keyword search, since this is displayed differently.
+  $: keywordSearchSpanFields =
+    $datasetViewStore && $datasetViewStore.queryOptions.searches
+      ? visibleFields.filter(field => {
+          const searchResultsPaths = $selectRowsSchema?.data?.searchResultsPaths || [];
+          for (const [i, searchPath] of searchResultsPaths.entries()) {
+            if (pathIsEqual(field.path, searchPath)) {
+              return ($datasetViewStore.queryOptions.searches || [])[i].type === 'contains';
+            }
+          }
+          return false;
+        })
+      : [];
 </script>
 
 {#if showValue}

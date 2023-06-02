@@ -59,6 +59,9 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
                      vector_store: VectorStore) -> Iterable[Optional[Item]]:
     text_embeddings = vector_store.get(keys)
     similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
+    # Clip the similarities since float precision can cause these to be barely outside the range and
+    # throw an exception with interp1d.
+    similarities = np.clip(similarities, -1., 1.)
     return self._interpolate_fn(similarities).tolist()
 
   @override

@@ -32,6 +32,8 @@
   const datasetStore = writable<DatasetStore>({schema: null, stats: null});
   setDatasetContext(datasetStore);
 
+  // Compute the stats for all string fields and write them to the dataset store. This allows us to
+  // share stats about fields with all children.
   $: {
     if (
       $schema.data != null &&

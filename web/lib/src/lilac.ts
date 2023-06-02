@@ -15,7 +15,6 @@ const PATH_KEY = '__path__';
 const SCHEMA_FIELD_KEY = '__field__';
 
 // Cache containing the list of fields and value nodes
-let childFieldsCache = new WeakMap<LilacField, LilacField[]>();
 let listValueNodesCache = new WeakMap<LilacValueNode, LilacValueNode[]>();
 
 export type LilacField<S extends Signal = Signal> = Field & {
@@ -93,18 +92,12 @@ export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacVa
 /** List all fields as a flattened array */
 export function childFields(field: LilacField | LilacSchema | undefined): LilacField[] {
   if (!field) return [];
-  // Return the cached value if it exists.
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  if (childFieldsCache.has(field)) return childFieldsCache.get(field)!;
-
   const result = [
     field,
     ...Object.values(field.fields || {}).flatMap(childFields),
     ...(field.repeated_field ? childFields(field.repeated_field) : [])
   ].filter(f => f.path.length > 0);
 
-  // Cache the result
-  childFieldsCache.set(field, result);
   return result;
 }
 
@@ -291,7 +284,6 @@ function lilacValueNodeFromRawValue(
 }
 
 export function clearCache() {
-  childFieldsCache = new WeakMap();
   listValueNodesCache = new WeakMap();
 }
 

@@ -1,6 +1,8 @@
 <script lang="ts">
   /**
-   * Component that allows picking concept samples from string spans
+   * Component that renders after a click of a string span. This component does both:
+   *   1) Concept-specific accept or reject for each selected concept.
+   *   2) Semantic similarity for computed embeddings.
    */
 
   import {fade} from 'svelte/transition';

@@ -79,6 +79,7 @@
     (selectedTab === 'Semantic' && semanticSearchText != '');
 
   const clearSearch = () => {
+    // TODO(nsthorat): Don't clear from the searchbox, clear from pills.
     if (selectedTab === 'Keyword') {
       keywordSearchText = '';
     } else if (selectedTab === 'Semantic') {
