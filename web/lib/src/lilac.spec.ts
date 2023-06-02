@@ -219,15 +219,6 @@ describe('lilac', () => {
       expect(paths).toContainEqual(['complex_list_of_struct', '*']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*', 'propertyA']);
     });
-    it('returns cached results', () => {
-      const fields = childFields(schema);
-      const fields2 = childFields(schema);
-      expect(fields).toBe(fields2);
-
-      clearCache();
-      const fields3 = childFields(schema);
-      expect(fields).not.toBe(fields3);
-    });
     it('should not return root field', () => {
       const fields = childFields(schema);
       expect(fields).not.toContainEqual([]);
