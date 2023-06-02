@@ -14,10 +14,10 @@ import {persisted} from './persistedStore';
 
 const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
-export const SEARCH_TABS: {[key: number]: 'Keyword' | 'Semantic' | 'Conceptual'} = {
+export const SEARCH_TABS: {[key: number]: 'Keyword' | 'Semantic' | 'Concepts'} = {
   0: 'Keyword',
   1: 'Semantic',
-  2: 'Conceptual'
+  2: 'Concepts'
 };
 
 export interface IDatasetViewStore {
@@ -29,7 +29,7 @@ export interface IDatasetViewStore {
   queryOptions: SelectRowsOptions;
 
   // Search.
-  searchTab: (typeof SEARCH_TABS)[keyof typeof SEARCH_TABS];
+  searchTab: typeof SEARCH_TABS[keyof typeof SEARCH_TABS];
   searchPath: string | null;
   searchEmbedding: string | null;
 }
@@ -126,7 +126,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       });
     },
 
-    setSearchTab: (tab: (typeof SEARCH_TABS)[keyof typeof SEARCH_TABS]) =>
+    setSearchTab: (tab: typeof SEARCH_TABS[keyof typeof SEARCH_TABS]) =>
       update(state => {
         state.searchTab = tab;
         return state;
