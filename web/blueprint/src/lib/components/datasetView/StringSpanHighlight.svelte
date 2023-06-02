@@ -217,12 +217,14 @@
         class:hover:!opacity-40={/* Override the inline style opacity on hover. */ true}
         >{text.slice(span.start, span.end)}
       </span>
-      {#if selectedSpan == span}<StringSpanDetails
+      {#if selectedSpan == span}
+        <StringSpanDetails
           conceptName={(span.concepts || [])[0]?.concept_name}
           conceptNamespace={(span.concepts || [])[0]?.namespace}
           text={text.slice(span.start, span.end)}
           on:close={() => (selectedSpan = undefined)}
-        />{/if}
+        />
+      {/if}
     {/each}
   </div>
 </div>

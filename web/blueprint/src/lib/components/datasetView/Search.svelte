@@ -6,21 +6,21 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {SEARCH_TABS, getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
-      getComputedEmbeddings,
-      getSearchEmbedding,
-      getSearchPath,
-      getVisibleFields
+    getComputedEmbeddings,
+    getSearchEmbedding,
+    getSearchPath,
+    getVisibleFields
   } from '$lib/view_utils';
   import {deserializePath, serializePath} from '$lilac';
   import {
-      Button,
-      InlineLoading,
-      Select,
-      SelectItem,
-      Tab,
-      TabContent,
-      Tabs,
-      TextInput
+    Button,
+    InlineLoading,
+    Select,
+    SelectItem,
+    Tab,
+    TabContent,
+    Tabs,
+    TextInput
   } from 'carbon-components-svelte';
   import {Checkmark, Chip, Close} from 'carbon-icons-svelte';
 

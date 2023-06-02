@@ -182,8 +182,8 @@
     >
       <HoverTooltip size="small" triggerText="Search" hideIcon={true}>
         <div class="mb-3"><Tag>{search.type}</Tag></div>
-        {search.query}</HoverTooltip
-      >
+        {search.query}
+      </HoverTooltip>
     </RemovableTag>
   {/each}
   {#each embeddingFields as embeddingField}
