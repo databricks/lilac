@@ -42,9 +42,11 @@ class RedditDataset(Source):
     if not self.subreddits:
       return items
 
+    lower_subreddits = [subreddit.lower() for subreddit in self.subreddits]
+
     for item in items:
       item_subreddit = item[HF_SUBREDDIT_COL]
-      if item_subreddit.lower() not in self.subreddits:
+      if item_subreddit.lower() not in lower_subreddits:
         # Yield None so that the progress bar is accurate.
         yield None
         continue

@@ -3,6 +3,7 @@ import {afterEach, assertType, describe, expect, it} from 'vitest';
 import type {Schema} from '../fastapi_client';
 import {
   L,
+  childFields,
   clearCache,
   deserializeRow,
   deserializeSchema,
@@ -11,7 +12,6 @@ import {
   getValueNodes,
   isSignalField,
   listFieldParents,
-  listFields,
   listValueNodes
 } from './lilac';
 import {VALUE_KEY, type FieldValue} from './schema';
@@ -209,9 +209,9 @@ describe('lilac', () => {
     });
   });
 
-  describe('listFields', () => {
+  describe('childFields', () => {
     it('should return a list of fields', () => {
-      const fields = listFields(schema);
+      const fields = childFields(schema);
       expect(fields).toBeDefined();
       expect(fields[1].dtype).toEqual('string');
       const paths = fields.map(f => f.path);
@@ -220,16 +220,16 @@ describe('lilac', () => {
       expect(paths).toContainEqual(['complex_list_of_struct', '*', 'propertyA']);
     });
     it('returns cached results', () => {
-      const fields = listFields(schema);
-      const fields2 = listFields(schema);
+      const fields = childFields(schema);
+      const fields2 = childFields(schema);
       expect(fields).toBe(fields2);
 
       clearCache();
-      const fields3 = listFields(schema);
+      const fields3 = childFields(schema);
       expect(fields).not.toBe(fields3);
     });
     it('should not return root field', () => {
-      const fields = listFields(schema);
+      const fields = childFields(schema);
       expect(fields).not.toContainEqual([]);
       expect(fields).not.toContainEqual(null);
     });

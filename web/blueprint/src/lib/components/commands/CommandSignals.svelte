@@ -22,7 +22,7 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     SIGNAL_INPUT_TYPE_TO_VALID_DTYPES,
-    type LilacSchemaField,
+    type LilacField,
     type Path,
     type Signal,
     type SignalInfoWithTypedSchema
@@ -82,7 +82,7 @@
 
   $: signal = signalInfo?.name ? (signalPropertyValues[signalInfo.name] as Signal) : undefined;
 
-  $: filterField = (field: LilacSchemaField) => {
+  $: filterField = (field: LilacField) => {
     if (!field.dtype) return false;
     if (!signalInfo?.input_type) {
       return true;

@@ -2,8 +2,11 @@ import {
   isColumn,
   pathIncludes,
   pathIsEqual,
+  serializePath,
   type Column,
   type Path,
+  type Search,
+  type SearchType,
   type SelectRowsOptions
 } from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
@@ -11,11 +14,24 @@ import {persisted} from './persistedStore';
 
 const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
+export const SEARCH_TABS: {[key: number]: 'Keyword' | 'Semantic' | 'Conceptual'} = {
+  0: 'Keyword',
+  1: 'Semantic',
+  2: 'Conceptual'
+};
+
 export interface IDatasetViewStore {
   namespace: string;
   datasetName: string;
-  visibleColumns: Path[];
+
+  // Explicit user-selected columns.
+  selectedColumns: {[path: string]: boolean};
   queryOptions: SelectRowsOptions;
+
+  // Search.
+  searchTab: (typeof SEARCH_TABS)[keyof typeof SEARCH_TABS];
+  searchPath: string | null;
+  searchEmbedding: string | null;
 }
 
 const LS_KEY = 'datasetViewStore';
@@ -32,7 +48,10 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
   const initialState: IDatasetViewStore = {
     namespace,
     datasetName,
-    visibleColumns: [],
+    searchTab: 'Keyword',
+    searchPath: null,
+    searchEmbedding: null,
+    selectedColumns: {},
     queryOptions: {
       searches: [],
       filters: [],
@@ -59,16 +78,21 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     reset: () => {
       set(initialState);
     },
-    addVisibleColumn: (column: Path) => {
-      return update(state => {
-        if (state.visibleColumns.some(c => pathIsEqual(c, column))) return state;
-        state.visibleColumns.push(column);
-        return state;
-      });
-    },
-    removeVisibleColumn: (column: Path) =>
+
+    addSelectedColumn: (path: Path | string) =>
       update(state => {
-        state.visibleColumns = state.visibleColumns.filter(c => !pathIsEqual(c, column));
+        state.selectedColumns[serializePath(path)] = true;
+        return state;
+      }),
+    removeSelectedColumn: (path: Path | string) =>
+      update(state => {
+        state.selectedColumns[serializePath(path)] = false;
+        // Remove any explicit children.
+        for (const childPath of Object.keys(state.selectedColumns)) {
+          if (pathIncludes(childPath, path) && !pathIsEqual(path, childPath)) {
+            delete state.selectedColumns[childPath];
+          }
+        }
         return state;
       }),
 
@@ -101,6 +125,55 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         return state;
       });
     },
+
+    setSearchTab: (tab: (typeof SEARCH_TABS)[keyof typeof SEARCH_TABS]) =>
+      update(state => {
+        state.searchTab = tab;
+        return state;
+      }),
+
+    addSearch: (search: Search) =>
+      update(state => {
+        if (search.type === 'semantic' || search.type == 'contains') {
+          // Remove existing searches with this type. Semantic and keyword search only allow a
+          // single search.
+          state.queryOptions.searches = state.queryOptions.searches?.filter(
+            s => s.type !== search.type
+          );
+        }
+
+        state.queryOptions.searches = state.queryOptions.searches || [];
+        state.queryOptions.searches.push(search);
+
+        return state;
+      }),
+    clearSearchType: (searchType: SearchType) =>
+      update(state => {
+        // Remove existing searches with this type. Semantic and keyword search only allow a
+        // single search.
+        state.queryOptions.searches = state.queryOptions.searches?.filter(
+          s => s.type !== searchType
+        );
+
+        return state;
+      }),
+    clearSearch: (search: Search) =>
+      update(state => {
+        state.queryOptions.searches = state.queryOptions.searches?.filter(s => s !== search);
+
+        return state;
+      }),
+
+    setSearchPath: (path: Path | string) =>
+      update(state => {
+        state.searchPath = serializePath(path);
+        return state;
+      }),
+    setSearchEmbedding: (embedding: string) =>
+      update(state => {
+        state.searchEmbedding = embedding;
+        return state;
+      }),
 
     addSortBy: (column: Path) =>
       update(state => {
@@ -148,23 +221,4 @@ export function getSelectRowsOptions(datasetViewStore: IDatasetViewStore): Selec
     ...datasetViewStore.queryOptions,
     columns
   };
-}
-
-export function isPathVisible(
-  visibleColumns: IDatasetViewStore['visibleColumns'],
-  path: Path,
-  aliasMapping: Record<string, Path> | undefined
-) {
-  return (
-    visibleColumns
-      // Map aliased columns to their full path
-      .map(c => (aliasMapping?.[c[0]] && [...aliasMapping[c[0]], ...c.slice(1)]) ?? c)
-      .some(c => {
-        // Check if path is in the visible columns array
-        if (pathIsEqual(c, path)) return true;
-        // Check if a child path is in visible rows
-        if (pathIncludes(c, path)) return true;
-        return false;
-      })
-  );
 }

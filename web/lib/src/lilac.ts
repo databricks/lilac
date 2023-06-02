@@ -15,20 +15,20 @@ const PATH_KEY = '__path__';
 const SCHEMA_FIELD_KEY = '__field__';
 
 // Cache containing the list of fields and value nodes
-let listFieldsCache = new WeakMap<LilacSchemaField, LilacSchemaField[]>();
+let childFieldsCache = new WeakMap<LilacField, LilacField[]>();
 let listValueNodesCache = new WeakMap<LilacValueNode, LilacValueNode[]>();
 
-export type LilacSchemaField<S extends Signal = Signal> = Field & {
+export type LilacField<S extends Signal = Signal> = Field & {
   path: Path;
   /** Aliased path to the field, if alias is provided for the field or parent field */
   alias?: Path;
-  // Overwrite the fields and repeated_field properties to be LilacSchemaField
-  repeated_field?: LilacSchemaField;
-  fields?: Record<string, LilacSchemaField>;
+  // Overwrite the fields and repeated_field properties to be LilacField
+  repeated_field?: LilacField;
+  fields?: Record<string, LilacField>;
   // Overwrite signal type from generic
   signal?: S;
 };
-export type LilacSchema = LilacSchemaField;
+export type LilacSchema = LilacField;
 
 export type LilacValueNode = {
   readonly [key: string | number]: LilacValueNode;
@@ -43,7 +43,7 @@ type LilacValueNodeCasted<D extends DataType = DataType> = {
   /** Holds the path property of the node */
   [PATH_KEY]: Path;
   /** Holds a reference to the schema field */
-  [SCHEMA_FIELD_KEY]: LilacSchemaField | undefined;
+  [SCHEMA_FIELD_KEY]: LilacField | undefined;
 };
 
 /**
@@ -56,7 +56,8 @@ function castLilacValueNode<D extends DataType = DataType>(
 }
 
 /**
- * Deserialize a raw schema response to a LilacSchema.
+ * Deserialize a raw schema response to a LilacSchema, a client-side representation of the data
+ * schema.
  */
 export function deserializeSchema(
   rawSchema: Schema,
@@ -68,12 +69,12 @@ export function deserializeSchema(
     return {fields: {}, path: []};
   }
 
-  // Convert the fields to LilacSchemaField
+  // Convert the fields to LilacField
   return {fields: lilacFields.fields, path: []};
 }
 
 export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacValueNode {
-  const fields = listFields(schema);
+  const fields = childFields(schema);
   const rootNode = lilacValueNodeFromRawValue(rawRow, fields, []);
 
   if (Array.isArray(rootNode)) {
@@ -89,22 +90,31 @@ export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacVa
   return rootNode;
 }
 
-/** List all fields as a flattend array */
-export function listFields(field: LilacSchemaField | LilacSchema | undefined): LilacSchemaField[] {
+/** List all fields as a flattened array */
+export function childFields(field: LilacField | LilacSchema | undefined): LilacField[] {
   if (!field) return [];
   // Return the cached value if it exists.
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  if (listFieldsCache.has(field)) return listFieldsCache.get(field)!;
+  if (childFieldsCache.has(field)) return childFieldsCache.get(field)!;
 
   const result = [
     field,
-    ...Object.values(field.fields || {}).flatMap(listFields),
-    ...(field.repeated_field ? listFields(field.repeated_field) : [])
+    ...Object.values(field.fields || {}).flatMap(childFields),
+    ...(field.repeated_field ? childFields(field.repeated_field) : [])
   ].filter(f => f.path.length > 0);
 
   // Cache the result
-  listFieldsCache.set(field, result);
+  childFieldsCache.set(field, result);
   return result;
+}
+
+export function getFieldsByDtype(dtype: DataType, schema?: LilacSchema): LilacField[] {
+  if (schema == null) {
+    return [];
+  }
+
+  const allFields = schema ? childFields(schema) : [];
+  return allFields.filter(f => f.dtype == dtype);
 }
 
 /** List all values as a flattend array */
@@ -132,8 +142,8 @@ export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
 /**
  * List all fields that are parent of the given field
  */
-export function listFieldParents(field: LilacSchemaField, schema: LilacSchema): LilacSchemaField[] {
-  const parents: LilacSchemaField[] = [];
+export function listFieldParents(field: LilacField, schema: LilacSchema): LilacField[] {
+  const parents: LilacField[] = [];
   for (let i = 1; i < field.path.length; i++) {
     const path = field.path.slice(0, i);
     const parent = getField(schema, path);
@@ -145,8 +155,8 @@ export function listFieldParents(field: LilacSchemaField, schema: LilacSchema): 
 /**
  * Get a field in schema by path
  */
-export function getField(schema: LilacSchema, path: Path): LilacSchemaField | undefined {
-  const list = listFields(schema);
+export function getField(schema: LilacSchema, path: Path): LilacField | undefined {
+  const list = childFields(schema);
   return list.find(field => pathIsMatching(field.path, path));
 }
 
@@ -171,8 +181,8 @@ export function getValueNodes(row: LilacValueNode, path: Path): LilacValueNode[]
  * field, and checking if a parent has a signal.
  */
 export function isSignalField(
-  field: LilacSchemaField,
-  schema: LilacSchemaField,
+  field: LilacField,
+  schema: LilacField,
   hasSignalRootParent = false
 ): boolean {
   if (isSignalRootField(schema)) {
@@ -187,7 +197,7 @@ export function isSignalField(
   return false;
 }
 
-export function isSignalRootField(field: LilacSchemaField) {
+export function isSignalRootField(field: LilacField) {
   return !!field.signal;
 }
 
@@ -201,7 +211,7 @@ export const L = {
     if (!value) return undefined;
     return castLilacValueNode(value)[VALUE_KEY] as DataTypeCasted<D>;
   },
-  field: (value: LilacValueNode): LilacSchemaField | undefined => {
+  field: (value: LilacValueNode): LilacField | undefined => {
     if (!value) return undefined;
     return castLilacValueNode(value)[SCHEMA_FIELD_KEY];
   },
@@ -212,16 +222,16 @@ export const L = {
 };
 
 /**
- * Convert raw schema field to LilacSchemaField.
+ * Convert raw schema field to LilacField.
  * Adds path attribute to each field
  */
 function lilacSchemaFieldFromField(
   field: Field,
   aliasUdfPaths: Record<string, Path> | undefined,
   path: Path
-): LilacSchemaField {
+): LilacField {
   const {fields, repeated_field, ...rest} = field;
-  const lilacField: LilacSchemaField = {...rest, path: []};
+  const lilacField: LilacField = {...rest, path: []};
   if (fields != null) {
     lilacField.fields = {};
     for (const [fieldName, field] of Object.entries(fields)) {
@@ -251,7 +261,7 @@ function lilacSchemaFieldFromField(
 
 function lilacValueNodeFromRawValue(
   rawFieldValue: FieldValue,
-  fields: LilacSchemaField[],
+  fields: LilacField[],
   path: Path
 ): LilacValueNode {
   const field = fields.find(field => pathIsMatching(field.path, path));
@@ -281,7 +291,7 @@ function lilacValueNodeFromRawValue(
 }
 
 export function clearCache() {
-  listFieldsCache = new WeakMap();
+  childFieldsCache = new WeakMap();
   listValueNodesCache = new WeakMap();
 }
 

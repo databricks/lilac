@@ -1,13 +1,14 @@
 <script lang="ts">
-  import {queryDatasetSchema, querySelectRowsSchema} from '$lib/queries/datasetQueries';
+  import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
+  import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {
+    childFields,
     getField,
-    listFields,
     pathIsEqual,
     type BinaryFilter,
     type BinaryOp,
-    type LilacSchemaField,
+    type LilacField,
     type ListFilter,
     type ListOp,
     type UnaryFilter,
@@ -32,10 +33,11 @@
   export let command: EditFilterCommand;
 
   const datasetViewStore = getDatasetViewContext();
+  const datasetStore = getDatasetContext();
+
   const dispatch = createEventDispatcher();
 
-  $: datasetSchema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
-  $: selectRowsSchema = $datasetSchema.isSuccess
+  $: selectRowsSchema = $datasetStore?.schema
     ? querySelectRowsSchema(
         command.namespace,
         command.datasetName,
@@ -44,19 +46,20 @@
     : undefined;
 
   // Create list of fields, and include current count of filters
-  $: fields = $selectRowsSchema?.isSuccess
-    ? listFields($selectRowsSchema?.data.schema).map(f => {
-        const filters = stagedFilters.filter(filter => pathIsEqual(filter.path, f.path));
-        return {
-          title: f.path.join('.'),
-          value: f,
-          tag:
-            filters.length > 0
-              ? {value: filters.length.toString(), type: 'blue' as TagProps['type']}
-              : undefined
-        };
-      })
-    : [];
+  $: fields =
+    $selectRowsSchema?.isSuccess && $datasetStore?.schema
+      ? childFields($datasetStore?.schema).map(f => {
+          const filters = stagedFilters.filter(filter => pathIsEqual(filter.path, f.path));
+          return {
+            title: f.path.join('.'),
+            value: f,
+            tag:
+              filters.length > 0
+                ? {value: filters.length.toString(), type: 'blue' as TagProps['type']}
+                : undefined
+          };
+        })
+      : [];
 
   $: defaultField = $selectRowsSchema?.isSuccess
     ? getField($selectRowsSchema.data.schema, command.path)
@@ -81,7 +84,7 @@
     }
   }
 
-  let selectedField: LilacSchemaField | undefined = undefined;
+  let selectedField: LilacField | undefined = undefined;
 
   $: if (!selectedField && defaultField) {
     selectedField = defaultField;

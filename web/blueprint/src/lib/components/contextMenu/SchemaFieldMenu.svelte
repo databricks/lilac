@@ -5,13 +5,13 @@
     isFilterableField,
     isSignalField,
     isSortableField,
-    type LilacSchema,
-    type LilacSchemaField
+    type LilacField,
+    type LilacSchema
   } from '$lilac';
   import {OverflowMenuItem} from 'carbon-components-svelte';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
 
-  export let field: LilacSchemaField;
+  export let field: LilacField;
   export let schema: LilacSchema;
   const datasetViewStore = getDatasetViewContext();
 </script>

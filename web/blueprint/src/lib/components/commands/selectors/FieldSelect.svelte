@@ -2,18 +2,18 @@
   import {queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
+    childFields,
     isSignalField,
-    listFields,
     pathIsEqual,
     serializePath,
-    type LilacSchemaField,
+    type LilacField,
     type Path
   } from '$lilac';
   import {Select, SelectItem, SelectItemGroup, SelectSkeleton} from 'carbon-components-svelte';
 
   export let labelText = 'Field';
   export let helperText: string | undefined = undefined;
-  export let filter: ((field: LilacSchemaField) => boolean) | undefined = undefined;
+  export let filter: ((field: LilacField) => boolean) | undefined = undefined;
 
   export let defaultPath: Path | undefined = undefined;
   export let path: Path | undefined = undefined;
@@ -23,14 +23,14 @@
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: fields = $schema.isSuccess
-    ? listFields($schema.data)
+    ? childFields($schema.data)
         .filter(field => field.path.length > 0)
         .filter(field => (filter ? filter(field) : true))
     : null;
 
   $: sourceFields = fields?.filter(f => $schema.data && !isSignalField(f, $schema.data));
 
-  function formatField(field: LilacSchemaField): string {
+  function formatField(field: LilacField): string {
     return `${field.path.join('.')} (${field.dtype})`;
   }
 

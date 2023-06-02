@@ -5,13 +5,16 @@
     querySelectRowsAliasUdfPaths,
     querySelectRowsSchema
   } from '$lib/queries/datasetQueries';
+  import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
+  import {getVisibleFields} from '$lib/view_utils';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import RowItem from './RowItem.svelte';
   import Search from './Search.svelte';
 
   let datasetViewStore = getDatasetViewContext();
+  let datasetStore = getDatasetContext();
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
@@ -42,6 +45,8 @@
     },
     $selectRowsSchema?.isSuccess ? $selectRowsSchema.data.schema : undefined
   );
+
+  $: visibleFields = getVisibleFields($datasetViewStore, $datasetStore, $schema.data);
 </script>
 
 <Search />
@@ -60,7 +65,7 @@
   />
 {:else if $rows?.isLoading || $schema.isLoading || $selectRowsSchema?.isLoading}
   <SkeletonText paragraph lines={3} />
-{:else if $datasetViewStore.visibleColumns.length === 0}
+{:else if visibleFields.length === 0}
   <div class="mt-12 w-full text-center text-gray-600">Select fields to display</div>
 {:else if $rows?.isSuccess && $rows.data.pages.length === 1 && $rows.data.pages[0].length === 0}
   <div class="mx-4 mt-8 w-full text-gray-600">No results.</div>

@@ -1,32 +1,31 @@
 <script lang="ts">
-  import {isPathVisible} from '$lib/stores/datasetViewStore';
+  import {getDatasetContext} from '$lib/stores/datasetStore';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {notEmpty} from '$lib/utils';
+  import {isPathVisible} from '$lib/view_utils';
   /**
    * Component that renders string spans as an absolute positioned
    * layer, meant to be rendered on top of the source text.
    */
   import {
     L,
+    childFields,
     formatValue,
     getValueNode,
     getValueNodes,
     isConceptScoreSignal,
     isFloat,
-    listFields,
     type ConceptScoreSignal,
-    type LilacSchemaField,
-    type LilacValueNode,
-    type Path
+    type LilacField,
+    type LilacValueNode
   } from '$lilac';
   import {tooltip} from '../common/tootltip';
-  import StringSpanHighlightConceptPicker from './StringSpanHighlightConceptPicker.svelte';
+  import StringSpanDetails from './StringSpanDetails.svelte';
 
   export let text: string;
-  export let stringSpanFields: Array<LilacSchemaField>;
-  export let searchSpanFields: Array<LilacSchemaField>;
+  export let stringSpanFields: Array<LilacField>;
+  export let keywordSearchSpanFields: Array<LilacField>;
   export let row: LilacValueNode;
-  export let visibleColumns: Path[];
-  export let aliasMapping: Record<string, Path> | undefined;
 
   interface AnnotatedStringSpan {
     /** The start character of the span */
@@ -56,13 +55,16 @@
     filler: boolean;
   }
 
+  let datasetViewStore = getDatasetViewContext();
+  let datasetStore = getDatasetContext();
+
   const showScoreThreshold = 0.5;
   const maxScoreBackgroundOpacity = 0.5;
 
   let selectedSpan: AnnotatedStringSpan | undefined;
 
   $: spans = stringSpanFields.flatMap(f => getValueNodes(row, f.path));
-  $: searchSpans = searchSpanFields.flatMap(f => getValueNodes(row, f.path));
+  $: searchSpans = keywordSearchSpanFields.flatMap(f => getValueNodes(row, f.path));
 
   // Fill up the gaps between the spans.
   let filledSpans: Array<AnnotatedStringSpan> = [];
@@ -87,10 +89,10 @@
       }
 
       // Find all sub fields to the span so we can show their value in the tooltip.
-      const children = listFields(L.field(span))
+      const children = childFields(L.field(span))
         .slice(1)
         // Filter out non-visible columns
-        .filter(field => isPathVisible(visibleColumns, field.path, aliasMapping))
+        .filter(field => isPathVisible($datasetViewStore, $datasetStore, field.path))
         // Replace the path with prefix of the path with value path that includes index instead of wildcard.
         .map(field => ({
           ...field,
@@ -199,11 +201,11 @@
         tabindex="0"
         on:keydown={e => {
           if (e.key == 'Enter') {
-            if (!span.filler && span.concepts?.length) selectedSpan = span;
+            if (!span.filler) selectedSpan = span;
           }
         }}
         on:click={() => {
-          if (!span.filler && span.concepts?.length) selectedSpan = span;
+          if (!span.filler) selectedSpan = span;
         }}
         title={tooltipText(span)}
         class="relative bg-yellow-500 text-transparent opacity-0 hover:!opacity-30"
@@ -216,9 +218,9 @@
         class:hover:!opacity-40={/* Override the inline style opacity on hover. */ true}
         >{text.slice(span.start, span.end)}
       </span>
-      {#if selectedSpan == span && span.concepts?.length}<StringSpanHighlightConceptPicker
-          conceptName={span.concepts[0].concept_name}
-          conceptNamespace={span.concepts[0].namespace}
+      {#if selectedSpan == span}<StringSpanDetails
+          conceptName={(span.concepts || [])[0]?.concept_name}
+          conceptNamespace={(span.concepts || [])[0]?.namespace}
           text={text.slice(span.start, span.end)}
           on:close={() => (selectedSpan = undefined)}
         />{/if}

@@ -1,22 +1,17 @@
 <script lang="ts">
   import {page} from '$app/stores';
-  import {
-    computeSignalColumnMutation,
-    queryDatasetSchema,
-    queryManyDatasetStats
-  } from '$lib/queries/datasetQueries';
+  import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
 
   import {queryEmbeddings} from '$lib/queries/signalQueries';
-  import {getDatasetViewContext, isPathVisible} from '$lib/stores/datasetViewStore';
+  import {getDatasetContext} from '$lib/stores/datasetStore';
+  import {SEARCH_TABS, getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
-    deserializePath,
-    getField,
-    listFields,
-    pathIsEqual,
-    serializePath,
-    type Path,
-    type SignalInfoWithTypedSchema
-  } from '$lilac';
+    getComputedEmbeddings,
+    getSearchEmbedding,
+    getSearchPath,
+    getVisibleFields
+  } from '$lib/view_utils';
+  import {deserializePath, serializePath} from '$lilac';
   import {
     Button,
     InlineLoading,
@@ -28,23 +23,14 @@
     TextInput
   } from 'carbon-components-svelte';
   import {Checkmark, Chip, Close} from 'carbon-icons-svelte';
-  import {onMount} from 'svelte';
 
   $: namespace = $page.params.namespace;
   $: datasetName = $page.params.datasetName;
 
-  let selectedPath: string | undefined;
-  let defaultEmbedding: string | undefined;
-  let selectedEmbedding: string | undefined;
+  let datasetViewStore = getDatasetViewContext();
 
-  const tabs: {[key: number]: 'Keyword' | 'Semantic' | 'Conceptual'} = {
-    0: 'Keyword',
-    1: 'Semantic',
-    2: 'Conceptual'
-  };
-
-  let selectedTabIndex = 0;
-  $: selectedTab = tabs[selectedTabIndex];
+  $: selectedTab = $datasetViewStore.searchTab;
+  $: selectedTabIndex = Object.values(SEARCH_TABS).findIndex(v => v === selectedTab);
 
   let keywordSearchText: string;
   // Semantic search.
@@ -52,150 +38,45 @@
   // Concepts.
   let conceptSearchText = 'Not implemented yet.';
 
-  let datasetViewStore = getDatasetViewContext();
   const computeSignalMutation = computeSignalColumnMutation();
 
-  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  let datasetStore = getDatasetContext();
 
   // Only show the visible string fields in the dropdown.
-  let visibleStringFields: Path[] = [];
-  $: {
-    let allFields = $schema?.isSuccess ? listFields($schema.data) : [];
-    visibleStringFields = allFields
-      .filter(f => isPathVisible($datasetViewStore.visibleColumns, f.path, undefined))
-      .filter(f => f.dtype == 'string')
-      .map(f => f.path);
-  }
-
-  // Query stats so we can sort by the length.
-  // TODO(nsthorat): Make this a util.
-  $: statsQueries = queryManyDatasetStats(
-    visibleStringFields.map(path => {
-      return [
-        $datasetViewStore.namespace,
-        $datasetViewStore.datasetName,
-        {
-          leaf_path: path
-        }
-      ];
-    })
+  $: visibleStringPaths = getVisibleFields($datasetViewStore, $datasetStore, null, 'string').map(
+    f => f.path
   );
 
-  // Sort the visible string fields by average length.
-  $: {
-    if ($statsQueries && $statsQueries.length > 0 && $statsQueries.every(q => q.isSuccess)) {
-      const stats = $statsQueries.map(q => q.data);
-      const pathToLength: {[path: string]: number | null} = {};
-      for (const [i, stat] of stats.entries()) {
-        pathToLength[serializePath(visibleStringFields[i])] = stat?.avg_text_length || null;
-      }
-
-      // Sort the visible string fields by average length.
-      visibleStringFields.sort((a, b) => {
-        const aLength = pathToLength[serializePath(a)];
-        const bLength = pathToLength[serializePath(b)];
-        if (aLength == null && bLength == null) {
-          return 0;
-        } else if (aLength == null) {
-          return 1;
-        } else if (bLength == null) {
-          return -1;
-        } else {
-          return bLength - aLength;
-        }
-      });
-    }
-  }
-  $: {
-    if (selectedPath != null) {
-      // If the path is selected, and the user has changed the visible columns, remove the
-      // selected path.
-      let hasSelectedPath = visibleStringFields.some(path => pathIsEqual(path, selectedPath));
-      if (!hasSelectedPath) {
-        selectedPath = undefined;
-      }
-    } else if (selectedPath == null && visibleStringFields.length > 0) {
-      // Choose the longest string on the first render.
-      selectedPath = serializePath(visibleStringFields[0]);
-    }
-  }
+  $: searchPath = getSearchPath($datasetViewStore, $datasetStore);
 
   // Get the embeddings.
   const embeddings = queryEmbeddings();
 
+  $: selectedEmbedding = getSearchEmbedding(
+    $datasetViewStore,
+    $datasetStore,
+    searchPath,
+    ($embeddings.data || []).map(e => e.name)
+  );
+
   // Populate existing embeddings for the selected field.
-  let existingEmbeddings: Set<string>;
-
-  let sortedEmbeddings: SignalInfoWithTypedSchema[] = [];
-  // Find all existing pre-computed embeddings for the current split from the schema
-  $: {
-    if (selectedPath != null && $schema.data != null) {
-      existingEmbeddings = new Set();
-      const embeddingSignalRoots = listFields(
-        getField($schema.data, deserializePath(selectedPath))
-      ).filter(f => f.signal != null && listFields(f).some(f => f.dtype === 'embedding'));
-
-      for (const field of embeddingSignalRoots) {
-        if (field.signal?.signal_name != null) {
-          existingEmbeddings.add(field.signal.signal_name);
-        }
-      }
-
-      sortedEmbeddings =
-        existingEmbeddings != null
-          ? [...($embeddings.data || [])].sort((a, b) => {
-              const hasA = existingEmbeddings.has(a.name);
-              const hasB = existingEmbeddings.has(b.name);
-              if (hasA && hasB) {
-                return 0;
-              } else if (hasA) {
-                return -1;
-              } else if (hasB) {
-                return 1;
-              }
-              return 0;
-            })
-          : [];
-    }
-  }
-
-  $: defaultEmbedding = sortedEmbeddings[0]?.name;
-
-  $: {
-    // Choose the first embedding if the user hasn't already selected an embedding.
-    if (selectedEmbedding == null) {
-      selectedEmbedding = defaultEmbedding;
-    }
-  }
+  $: existingEmbeddings = getComputedEmbeddings($datasetStore, searchPath);
 
   $: isEmbeddingComputed =
-    existingEmbeddings != null && !!existingEmbeddings.has(selectedEmbedding || '');
+    existingEmbeddings != null && !!existingEmbeddings.includes(selectedEmbedding || '');
   let isWaitingForIndexing: {[key: string]: boolean} = {};
   $: isIndexing =
-    !isEmbeddingComputed && isWaitingForIndexing[`${selectedPath}_${selectedEmbedding}`];
+    !isEmbeddingComputed &&
+    isWaitingForIndexing[`${serializePath(searchPath || '')}_${selectedEmbedding}`];
 
-  $: keywordSearchEnabled = tabs[selectedTabIndex] === 'Keyword' && selectedPath != null;
-  $: semanticSearchEnabled = tabs[selectedTabIndex] === 'Semantic' && isEmbeddingComputed;
+  $: keywordSearchEnabled = SEARCH_TABS[selectedTabIndex] === 'Keyword' && searchPath != null;
+  $: semanticSearchEnabled = SEARCH_TABS[selectedTabIndex] === 'Semantic' && isEmbeddingComputed;
 
   $: searchEnabled = keywordSearchEnabled || semanticSearchEnabled;
 
   $: showClearSearch =
     (selectedTab === 'Keyword' && keywordSearchText != '') ||
     (selectedTab === 'Semantic' && semanticSearchText != '');
-
-  // Copy filters from query options
-  onMount(() => {
-    const searches = structuredClone($datasetViewStore.queryOptions.searches || []);
-    // TODO(nsthorat): Support multiple searches.
-    const keywordSearches = searches.filter(s => s.type == 'contains');
-    if (keywordSearches.length > 0) {
-      keywordSearchText = keywordSearches[0].query;
-    }
-    const semanticSearches = searches.filter(s => s.type == 'semantic');
-    if (semanticSearches.length > 0) {
-      semanticSearchText = semanticSearches[0].query;
-    }
-  });
 
   const clearSearch = () => {
     if (selectedTab === 'Keyword') {
@@ -205,37 +86,37 @@
     }
   };
   const search = () => {
-    if (selectedPath == null) {
+    if (searchPath == null) {
       return;
     }
     // TODO(nsthorat): Support multiple searches at the same time. Currently each search overrides
     // the set of searches.
     if (selectedTab === 'Keyword') {
       if (keywordSearchText == '') {
-        $datasetViewStore.queryOptions.searches = [];
+        datasetViewStore.clearSearchType('contains');
         return;
       }
-      $datasetViewStore.queryOptions.searches = [
-        {
-          path: [selectedPath],
-          type: 'contains',
-          query: keywordSearchText
-        }
-      ];
+      datasetViewStore.addSearch({
+        path: [serializePath(searchPath)],
+        type: 'contains',
+        query: keywordSearchText
+      });
+      keywordSearchText = '';
     } else if (selectedTab === 'Semantic') {
-      if (semanticSearchText == '') {
-        // TODO: Don't clear this.
-        $datasetViewStore.queryOptions.searches = [];
+      if (selectedEmbedding == null) {
         return;
       }
-      $datasetViewStore.queryOptions.searches = [
-        {
-          path: [selectedPath],
-          embedding: selectedEmbedding,
-          type: 'semantic',
-          query: semanticSearchText
-        }
-      ];
+      if (semanticSearchText == '') {
+        datasetViewStore.clearSearchType('semantic');
+        return;
+      }
+      datasetViewStore.addSearch({
+        path: [serializePath(searchPath)],
+        type: 'semantic',
+        query: semanticSearchText,
+        embedding: selectedEmbedding
+      });
+      semanticSearchText = '';
     } else if (selectedTab === 'Conceptual') {
       // TODO: Implement concept search.
     }
@@ -243,19 +124,27 @@
 
   const selectEmbedding = (e: Event) => {
     selectedEmbedding = (e.target as HTMLInputElement).value;
+    datasetViewStore.setSearchEmbedding((e.target as HTMLInputElement).value);
   };
   const computeEmbedding = () => {
-    isWaitingForIndexing[`${selectedPath}_${selectedEmbedding}`] = true;
+    if (selectedEmbedding == null) return;
+    isWaitingForIndexing[`${serializePath(searchPath || '')}_${selectedEmbedding}`] = true;
     $computeSignalMutation.mutate([
       namespace,
       datasetName,
       {
-        leaf_path: deserializePath(selectedPath || []),
+        leaf_path: deserializePath(searchPath || []),
         signal: {
           signal_name: selectedEmbedding
         }
       }
     ]);
+  };
+  const selectField = (e: Event) => {
+    datasetViewStore.setSearchPath((e.target as HTMLInputElement).value);
+  };
+  const selectTab = (e: {detail: number}) => {
+    datasetViewStore.setSearchTab(SEARCH_TABS[e.detail]);
   };
 </script>
 
@@ -264,14 +153,14 @@
     <!-- Field select -->
     <Select
       class="field-select"
-      bind:selected={selectedPath}
-      name={selectedPath}
+      selected={searchPath ? serializePath(searchPath) : ''}
+      on:change={selectField}
       labelText={'Search field'}
-      disabled={visibleStringFields.length === 0}
-      warn={visibleStringFields.length === 0}
-      warnText={visibleStringFields.length === 0 ? 'Select a schema field!' : undefined}
+      disabled={visibleStringPaths.length === 0}
+      warn={visibleStringPaths.length === 0}
+      warnText={visibleStringPaths.length === 0 ? 'Select a schema field!' : undefined}
     >
-      {#each visibleStringFields as field}
+      {#each visibleStringPaths as field}
         <SelectItem value={serializePath(field)} text={serializePath(field)} />
       {/each}
     </Select>
@@ -279,17 +168,17 @@
   <!-- Search boxes -->
   <div class="search-container flex flex-row items-end">
     <div class="w-full">
-      <Tabs class="flex flex-row" bind:selected={selectedTabIndex}>
-        <Tab disabled={false}>{tabs[0]}</Tab>
-        <Tab disabled={false}>{tabs[1]}</Tab>
-        <Tab disabled={false}>{tabs[2]}</Tab>
+      <Tabs class="flex flex-row" selected={selectedTabIndex} on:change={selectTab}>
+        <Tab disabled={false}>{SEARCH_TABS[0]}</Tab>
+        <Tab disabled={false}>{SEARCH_TABS[1]}</Tab>
+        <Tab disabled={false}>{SEARCH_TABS[2]}</Tab>
         <svelte:fragment slot="content">
           <div class="flex flex-row">
             <div class="-ml-6 mr-2 flex h-10 items-center">
               <button
                 class="z-10 opacity-50 hover:opacity-100"
-                class:opacity-20={selectedPath == null}
-                class:hover:opacity-20={selectedPath == null}
+                class:opacity-20={searchPath == null}
+                class:hover:opacity-20={searchPath == null}
                 class:invisible={!showClearSearch}
                 on:click|stopPropagation={() => {
                   clearSearch();
@@ -322,8 +211,8 @@
                   <Select
                     noLabel={true}
                     on:change={selectEmbedding}
-                    selected={selectedEmbedding}
-                    name={selectedEmbedding}
+                    selected={selectedEmbedding || ''}
+                    name={selectedEmbedding || ''}
                     helperText={'Embedding'}
                   >
                     {#each $embeddings.data || [] as embedding}
@@ -334,7 +223,7 @@
                 <div>
                   <Button
                     size="small"
-                    disabled={selectedPath == null || isEmbeddingComputed || isIndexing}
+                    disabled={searchPath == null || isEmbeddingComputed || isIndexing}
                     on:click={() => {
                       computeEmbedding();
                     }}
@@ -356,7 +245,7 @@
   </div>
 
   <div class="ml-2 mt-10 flex h-full">
-    <Button disabled={selectedPath == null || !searchEnabled} on:click={() => search()} size="small"
+    <Button disabled={searchPath == null || !searchEnabled} on:click={() => search()} size="small"
       >Search</Button
     >
   </div>

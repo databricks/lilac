@@ -1,5 +1,7 @@
 <script lang="ts">
-  import {getDatasetViewContext, isPathVisible} from '$lib/stores/datasetViewStore';
+  import {getDatasetContext} from '$lib/stores/datasetStore';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {isPathVisible} from '$lib/view_utils';
   import {
     PATH_WILDCARD,
     VALUE_KEY,
@@ -8,8 +10,8 @@
     isSignalRootField,
     pathIsEqual,
     type BinaryOp,
+    type LilacField,
     type LilacSchema,
-    type LilacSchemaField,
     type ListOp,
     type Path,
     type UnaryOp
@@ -24,7 +26,7 @@
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
 
   export let schema: LilacSchema;
-  export let field: LilacSchemaField;
+  export let field: LilacField;
   export let indent = 0;
   export let aliasMapping: Record<string, Path> | undefined;
 
@@ -56,7 +58,9 @@
   $: children = childFields(field);
   $: hasChildren = children.length > 0;
 
-  $: isVisible = isPathVisible($datasetViewStore.visibleColumns, path, aliasMapping);
+  let datasetStore = getDatasetContext();
+
+  $: isVisible = isPathVisible($datasetViewStore, $datasetStore, path);
 
   $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => pathIsEqual(p, alias || path));
   $: sortOrder = $datasetViewStore.queryOptions.sort_order;
@@ -68,7 +72,7 @@
   $: disabled = !field.dtype || field.dtype === 'embedding';
 
   // Find all the child paths for a given field.
-  function childFields(field?: LilacSchemaField): LilacSchemaField[] {
+  function childFields(field?: LilacField): LilacField[] {
     if (!field?.fields) return [];
 
     return (
@@ -103,9 +107,9 @@
         {disabled}
         on:change={() => {
           if (!isVisible) {
-            datasetViewStore.addVisibleColumn(path);
+            datasetViewStore.addSelectedColumn(path);
           } else {
-            datasetViewStore.removeVisibleColumn(path);
+            datasetViewStore.removeSelectedColumn(path);
           }
         }}
       />
