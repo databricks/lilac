@@ -116,11 +116,6 @@ class GroupsSortBy(str, enum.Enum):
 
 class SelectRowsSchemaResult(BaseModel):
   """The result of a select rows schema query."""
-  # The dataset info is required so so that the frontend can change local state as a function of the
-  # response.
-  # TODO(nsthorat): Delete these after https://github.com/lilacai/lilac/issues/329 is fixed.
-  namespace: str
-  dataset_name: str
   data_schema: Schema
   # Maps a udf name to its destination path in the schema.
   alias_udf_paths: dict[str, PathTuple] = {}

@@ -160,8 +160,6 @@ def test_simple_schema(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
   result = dataset.select_rows_schema(combine_columns=True)
   assert result == SelectRowsSchemaResult(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'erased': 'boolean',
@@ -183,8 +181,6 @@ def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
                                        ('people', '*', 'locations', '*', 'city')],
                                       combine_columns=True)
   assert result == SelectRowsSchemaResult(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -198,8 +194,6 @@ def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows_schema([('people', '*', 'name'), ('people', '*', 'locations')],
                                       combine_columns=True)
   assert result == SelectRowsSchemaResult(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -236,8 +230,6 @@ def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
                                        Column(('people', '*', 'name'), signal_udf=length_signal)],
                                       combine_columns=True)
   assert result == SelectRowsSchemaResult(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -261,8 +253,6 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
      Column(('people', '*', 'name', 'add_space_signal'), signal_udf=add_space_signal)],
     combine_columns=True)
   assert result == SelectRowsSchemaResult(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'people': [{
@@ -296,8 +286,6 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
     [('text'), Column(('text'), signal_udf=add_space_signal)], combine_columns=True)
 
   assert result == SelectRowsSchemaResult(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
@@ -348,18 +336,12 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
           ])
       })
   })
-  assert result == SelectRowsSchemaResult(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
-    data_schema=expected_schema,
-    alias_udf_paths={})
+  assert result == SelectRowsSchemaResult(data_schema=expected_schema, alias_udf_paths={})
 
   # Alias the udf.
   udf_col.alias = 'udf1'
   result = dataset.select_rows_schema([('text'), udf_col], combine_columns=True)
   assert result == SelectRowsSchemaResult(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
     data_schema=expected_schema,
     alias_udf_paths={
       'udf1':
@@ -385,8 +367,6 @@ def test_search_contains_schema(make_test_data: TestDataMaker) -> None:
   expected_hello_signal = SubstringSignal(query=query_hello)
 
   assert result == SelectRowsSchemaResult(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(
@@ -426,8 +406,6 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
   text_result_path = ('text', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
                       expected_world_signal.key())
   assert result == SelectRowsSchemaResult(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'text': field(

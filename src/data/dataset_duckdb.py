@@ -922,8 +922,6 @@ class DatasetDuckDB(Dataset):
 
     data_schema = merge_schemas(col_schemas)
     return SelectRowsSchemaResult(
-      namespace=self.namespace,
-      dataset_name=self.dataset_name,
       data_schema=data_schema,
       alias_udf_paths=alias_udf_paths,
       search_results_paths=search_results_paths,
