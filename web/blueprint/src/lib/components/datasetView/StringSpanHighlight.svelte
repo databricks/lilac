@@ -193,6 +193,8 @@
   </div>
   <div class="absolute top-0 w-full">
     {#each filledSpans as span}
+      <!-- Linear scale opacity based on score. -->
+      {@const opacity = Math.max(span.score - showScoreThreshold, 0) * maxScoreBackgroundOpacity}
       <span
         use:tooltip
         role="button"
@@ -209,10 +211,7 @@
         class="relative bg-yellow-500 text-transparent opacity-0 hover:!opacity-30"
         class:bg-green-500={selectedSpan == span}
         class:hover:bg-yellow-600={true}
-        style:opacity={/* Linear scale opacity based on score. */ Math.max(
-          span.score - showScoreThreshold,
-          0
-        ) * maxScoreBackgroundOpacity}
+        style:opacity
         class:hover:!opacity-40={/* Override the inline style opacity on hover. */ true}
         >{text.slice(span.start, span.end)}
       </span>

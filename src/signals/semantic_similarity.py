@@ -2,6 +2,7 @@
 from typing import Any, Iterable, Optional, Union
 
 import numpy as np
+from scipy.interpolate import interp1d
 from typing_extensions import override
 
 from ..embeddings.embedding import EmbedFn, get_embed_fn
@@ -22,6 +23,9 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
   query: str
 
   _embed_fn: EmbedFn
+  # Dot products are in the range [-1, 1]. We want to map this to [0, 1] for the similarity score
+  # with a slight bias towards 1 since dot product of <0.2 is not really relevant.
+  _interpolate_fn = interp1d([-1, 0.2, 1], [0, 0.5, 1])
   _search_text_embedding: Optional[np.ndarray] = None
 
   def __init__(self, query: Union[str, bytes], embedding: str, **kwargs: Any):
@@ -40,8 +44,8 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
   def _get_search_embedding(self) -> np.ndarray:
     """Return the embedding for the search text."""
     if self._search_text_embedding is None:
+      self._search_text_embedding = self._embed_fn([self.query])[0].flatten()
 
-      self._search_text_embedding = list(self._embed_fn([self.query]))[0].flatten()
     return self._search_text_embedding
 
   @override
@@ -55,7 +59,7 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
                      vector_store: VectorStore) -> Iterable[Optional[Item]]:
     text_embeddings = vector_store.get(keys)
     similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
-    return similarities.tolist()
+    return self._interpolate_fn(similarities).tolist()
 
   @override
   def vector_compute_topk(
