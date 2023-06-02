@@ -204,56 +204,42 @@
       semanticSearchText = '';
     }
   };
-
-  function searchKeyword(path: string) {
-    // TODO(nsthorat): Support multiple searches at the same time. Currently each search overrides
-    // the set of searches.
-    if (keywordSearchText == '') {
-      $datasetViewStore.queryOptions.searches = [];
-      return;
-    }
-    $datasetViewStore.queryOptions.searches = [
-      {
-        path: [path],
-        type: 'contains',
-        query: keywordSearchText
-      }
-    ];
-  }
-
-  function searchSemantic(path: string) {
-    if (semanticSearchText == '') {
-      // TODO: Don't clear this.
-      $datasetViewStore.queryOptions.searches = [];
-      return;
-    }
-    $datasetViewStore.queryOptions.searches = [
-      {
-        path: [path],
-        embedding: selectedEmbedding,
-        type: 'semantic',
-        query: semanticSearchText
-      }
-    ];
-  }
-
-  function searchConcept(path: string) {
-    path;
-    // TODO: Implement concept search.
-  }
-
-  function search() {
+  const search = () => {
     if (selectedPath == null) {
       return;
     }
+    // TODO(nsthorat): Support multiple searches at the same time. Currently each search overrides
+    // the set of searches.
     if (selectedTab === 'Keyword') {
-      searchKeyword(selectedPath);
-    } else if (selectedTab == 'Semantic') {
-      searchSemantic(selectedPath);
-    } else if (selectedTab == 'Concepts') {
-      searchConcept(selectedPath);
+      if (keywordSearchText == '') {
+        $datasetViewStore.queryOptions.searches = [];
+        return;
+      }
+      $datasetViewStore.queryOptions.searches = [
+        {
+          path: [selectedPath],
+          type: 'contains',
+          query: keywordSearchText
+        }
+      ];
+    } else if (selectedTab === 'Semantic') {
+      if (semanticSearchText == '') {
+        // TODO: Don't clear this.
+        $datasetViewStore.queryOptions.searches = [];
+        return;
+      }
+      $datasetViewStore.queryOptions.searches = [
+        {
+          path: [selectedPath],
+          embedding: selectedEmbedding,
+          type: 'semantic',
+          query: semanticSearchText
+        }
+      ];
+    } else if (selectedTab === 'Conceptual') {
+      // TODO: Implement concept search.
     }
-  }
+  };
 
   const selectEmbedding = (e: Event) => {
     selectedEmbedding = (e.target as HTMLInputElement).value;
