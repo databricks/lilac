@@ -24,7 +24,6 @@
 
   export let path: Path;
   export let row: LilacValueNode;
-  export let searchResultsPaths: Path[];
   export let schema: LilacSchema;
 
   let datasetViewStore = getDatasetViewContext();

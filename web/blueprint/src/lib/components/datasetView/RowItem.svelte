@@ -22,7 +22,6 @@
     : undefined;
 
   let sortedVisibleColumns: Path[] = [];
-  let searchResultsPaths: Path[] = [];
 
   const datasetStore = getDatasetContext();
 
@@ -32,15 +31,11 @@
       .filter(f => isPathVisible($datasetViewStore, $datasetStore, f.path))
       .map(f => f.path);
     sortedVisibleColumns.sort((a, b) => (a.join('.') > b.join('.') ? 1 : -1));
-
-    searchResultsPaths = $selectRowsSchema?.isSuccess
-      ? $selectRowsSchema.data.searchResultsPaths
-      : [];
   }
 </script>
 
 <div class="mb-4 flex flex-col gap-y-4 border-b border-gray-300 p-4">
   {#each sortedVisibleColumns as column (column.join('.'))}
-    <RowItemValue {row} path={column} {searchResultsPaths} {schema} />
+    <RowItemValue {row} path={column} {schema} />
   {/each}
 </div>
