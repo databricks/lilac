@@ -4,6 +4,8 @@ from typing import Iterable, cast
 
 import numpy as np
 import pytest
+from pytest import approx
+from sklearn.preprocessing import normalize
 from typing_extensions import override
 
 from ..schema import UUID_COLUMN, Item, RichData
@@ -118,7 +120,9 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     for example in data:
-      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
+      embedding = np.array(STR_EMBEDDINGS[cast(str, example)])
+      embedding = normalize([embedding])[0]
+      yield [lilac_embedding(0, len(example), embedding)]
 
 
 def test_semantic_search(make_test_data: TestDataMaker) -> None:
@@ -142,13 +146,17 @@ def test_semantic_search(make_test_data: TestDataMaker) -> None:
     {
       UUID_COLUMN: '2',
       'text': enriched_item(
-        'hello world2.',
-        {test_embedding.key(): [enriched_embedding_span(0, 13, {expected_signal_udf.key(): 3.0})]})
+        'hello world2.', {
+          test_embedding.key():
+            [enriched_embedding_span(0, 13, {expected_signal_udf.key(): approx(0.916, 1e-3)})]
+        })
     },
     {
       UUID_COLUMN: '1',
       'text': enriched_item(
-        'hello world.',
-        {test_embedding.key(): [enriched_embedding_span(0, 12, {expected_signal_udf.key(): 2.0})]})
+        'hello world.', {
+          test_embedding.key():
+            [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.885, 1e-3)})]
+        })
     },
   ]
