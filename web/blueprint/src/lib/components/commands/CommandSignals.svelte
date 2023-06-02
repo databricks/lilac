@@ -36,6 +36,7 @@
   import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
   import {
     Command,
+    type ComputeEmbeddingCommand,
     type ComputeSignalCommand,
     type EditPreviewConceptCommand,
     type PreviewConceptCommand
@@ -43,10 +44,15 @@
   import EmptyComponent from './customComponents/EmptyComponent.svelte';
   import SelectConcept from './customComponents/SelectConcept.svelte';
   import SelectEmbedding from './customComponents/SelectEmbedding.svelte';
+  import EmbeddingList from './selectors/EmbeddingList.svelte';
   import FieldSelect from './selectors/FieldSelect.svelte';
   import SignalList from './selectors/SignalList.svelte';
 
-  export let command: ComputeSignalCommand | PreviewConceptCommand | EditPreviewConceptCommand;
+  export let command:
+    | ComputeSignalCommand
+    | ComputeEmbeddingCommand
+    | PreviewConceptCommand
+    | EditPreviewConceptCommand;
 
   let path = command.path;
   let signalInfo: SignalInfoWithTypedSchema | undefined;
@@ -100,7 +106,7 @@
 
   function submit() {
     if (!signal) return;
-    if (command.command === Command.ComputeSignal) {
+    if (command.command === Command.ComputeSignal || command.command === Command.ComputeEmbedding) {
       $computeSignalMutation.mutate([
         command.namespace,
         command.datasetName,
@@ -131,17 +137,26 @@
   function close() {
     dispatch('close');
   }
+
+  $: title =
+    command.command === Command.ComputeSignal
+      ? 'Compute Signal'
+      : command.command === Command.ComputeEmbedding
+      ? 'Compute Embedding'
+      : 'Preview Signal';
+  $: label = command.command === Command.ComputeSignal ? 'Signals' : 'Embeddings';
 </script>
 
 <ComposedModal open on:submit={submit} on:close={close}>
-  <ModalHeader
-    label="Signals"
-    title={command.command === Command.ComputeSignal ? 'Compute Signal' : 'Preview Signal'}
-  />
+  <ModalHeader {label} {title} />
   <ModalBody hasForm>
     <div class="flex flex-row">
       <div class="-ml-4 mr-4 w-80 grow-0">
-        <SignalList defaultSignal={command.signalName} bind:signal={signalInfo} />
+        {#if command.command === Command.ComputeEmbedding}
+          <EmbeddingList bind:embedding={signalInfo} />
+        {:else}
+          <SignalList defaultSignal={command.signalName} bind:signal={signalInfo} />
+        {/if}
       </div>
 
       <div class="flex w-full flex-col gap-y-6">
@@ -174,7 +189,10 @@
     </div>
   </ModalBody>
   <ModalFooter
-    primaryButtonText={command.command === Command.ComputeSignal ? 'Compute' : 'Preview'}
+    primaryButtonText={command.command === Command.ComputeSignal ||
+    command.command === Command.ComputeEmbedding
+      ? 'Compute'
+      : 'Preview'}
     secondaryButtonText="Cancel"
     primaryButtonDisabled={errors.length > 0 || !path}
     on:click:button--secondary={close}

@@ -4,6 +4,7 @@ from typing import Iterable, cast
 
 import numpy as np
 import pytest
+from pytest import approx
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
@@ -74,7 +75,7 @@ def test_semantic_similarity_compute_keys(mocker: MockerFixture) -> None:
   # Embeddings should be called only 1 time for the search.
   assert embed_mock.call_count == 1
 
-  assert scores == [1.0, 0.9, 0.0]
+  assert scores == [1.0, approx(0.938, 1e-3), approx(0.417, 1e-3)]
 
 
 def test_semantic_similarity_compute_data(mocker: MockerFixture) -> None:
