@@ -32,7 +32,17 @@
       path: field.path
     })}
 />
-
+<OverflowMenuItem
+  text="Compute embedding"
+  disabled={isSignalField(field, schema)}
+  on:click={() =>
+    triggerCommand({
+      command: Command.ComputeEmbedding,
+      namespace: $page.params.namespace,
+      datasetName: $page.params.datasetName,
+      path: field?.path
+    })}
+/>
 <OverflowMenuItem
   text="Preview signal"
   disabled={isSignalField(field, schema)}

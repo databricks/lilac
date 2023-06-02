@@ -6,7 +6,8 @@
     PreviewConcept = 'previewConcept',
     EditPreviewConcept = 'editPreviewConcept',
     EditFilter = 'editFilter',
-    CreateConcept = 'createConcept'
+    CreateConcept = 'createConcept',
+    ComputeEmbedding = 'computeEmbedding'
   }
 
   type NoCommand = {
@@ -40,6 +41,10 @@
     alias: string;
   };
 
+  export type ComputeEmbeddingCommand = SignalCommandBase & {
+    command: Command.ComputeEmbedding;
+  };
+
   export type EditFilterCommand = {
     command: Command.EditFilter;
     namespace: string;
@@ -57,7 +62,8 @@
     | PreviewConceptCommand
     | EditPreviewConceptCommand
     | EditFilterCommand
-    | CreateConceptCommand;
+    | CreateConceptCommand
+    | ComputeEmbeddingCommand;
 
   export function triggerCommand(command: Commands) {
     store.set(command);
@@ -79,7 +85,7 @@
   }
 </script>
 
-{#if currentCommand.command === Command.ComputeSignal || currentCommand.command === Command.PreviewConcept || currentCommand.command === Command.EditPreviewConcept}
+{#if currentCommand.command === Command.ComputeSignal || currentCommand.command === Command.ComputeEmbedding || currentCommand.command === Command.PreviewConcept || currentCommand.command === Command.EditPreviewConcept}
   <CommandSignals command={currentCommand} on:close={close} />
 {:else if currentCommand.command === Command.EditFilter}
   <CommandFilter command={currentCommand} on:close={close} />

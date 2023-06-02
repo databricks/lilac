@@ -28,6 +28,7 @@ def get_signals() -> list[SignalInfo]:
   return [
     SignalInfo(name=s.name, input_type=s.input_type, json_schema=s.schema())
     for s in SIGNAL_REGISTRY.values()
+    if not issubclass(s, TextEmbeddingSignal)
   ]
 
 
