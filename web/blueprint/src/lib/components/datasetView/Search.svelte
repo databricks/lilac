@@ -236,7 +236,7 @@
           query: semanticSearchText
         }
       ];
-    } else if (selectedTab === 'Conceptual') {
+    } else if (selectedTab === 'Concepts') {
       // TODO: Implement concept search.
     }
   };
