@@ -6,23 +6,33 @@
   import type {ApiError} from '$lilac';
   import {QueryClientProvider} from '@tanstack/svelte-query';
   import {ToastNotification} from 'carbon-components-svelte';
-  import router from 'page';
+  import {onMount} from 'svelte';
   // Styles
   import '../tailwind.css';
   // Carbon component must be imported after tailwind.css
+  import {urlHash} from '$lib/stores/urlHashStore';
   import 'carbon-components-svelte/css/white.css';
-  import {onMount} from 'svelte';
   import '../app.css';
 
   let showError: ApiError | undefined = undefined;
 
   onMount(() => {
-    router.start({hashbang: true});
+    urlHash.set(location.hash);
+    history.pushState = function (_state, _unused, url) {
+      if (url instanceof URL) {
+        urlHash.set(url.hash);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return History.prototype.pushState.apply(history, arguments as any);
+    };
   });
 </script>
 
-<!-- Make page.js monitor for hash changes in the URL. -->
-<svelte:window on:hashchange={() => router.replace(location.hash, null, true, true)} />
+<!-- Monitor for hash changes in the URL. -->
+<svelte:window
+  on:hashchange={() => urlHash.set(location.hash)}
+  on:popstate={() => urlHash.set(location.hash)}
+/>
 
 <QueryClientProvider client={queryClient}>
   <main class="flex h-screen flex-col">
