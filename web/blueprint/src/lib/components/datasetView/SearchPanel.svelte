@@ -15,14 +15,14 @@
   import {
     Button,
     InlineLoading,
+    Search,
     Select,
     SelectItem,
     Tab,
     TabContent,
-    Tabs,
-    TextInput
+    Tabs
   } from 'carbon-components-svelte';
-  import {Checkmark, Chip, Close} from 'carbon-icons-svelte';
+  import {Checkmark, Chip} from 'carbon-icons-svelte';
 
   $: namespace = $page.params.namespace;
   $: datasetName = $page.params.datasetName;
@@ -150,7 +150,7 @@
 </script>
 
 <div class="mx-4 my-2 flex h-24 flex-row items-start">
-  <div class="mr-12 mt-4 w-44">
+  <div class="mr-8 mt-4 w-44">
     <!-- Field select -->
     <Select
       class="field-select"
@@ -159,7 +159,7 @@
       labelText={'Search field'}
       disabled={visibleStringPaths.length === 0}
       warn={visibleStringPaths.length === 0}
-      warnText={visibleStringPaths.length === 0 ? 'Select a schema field!' : undefined}
+      warnText={visibleStringPaths.length === 0 ? 'Select a field' : undefined}
     >
       {#each visibleStringPaths as field}
         <SelectItem value={serializePath(field)} text={serializePath(field)} />
@@ -175,23 +175,9 @@
         <Tab>{SEARCH_TABS[2]}</Tab>
         <svelte:fragment slot="content">
           <div class="flex flex-row">
-            <div class="-ml-6 mr-2 flex h-10 items-center">
-              <button
-                class="z-10 opacity-50 hover:opacity-100"
-                class:opacity-20={searchPath == null}
-                class:hover:opacity-20={searchPath == null}
-                class:invisible={!showClearSearch}
-                on:click|stopPropagation={() => {
-                  clearSearch();
-                  search();
-                }}
-              >
-                <Close />
-              </button>
-            </div>
             <!-- Keyword input -->
             <TabContent class="w-full">
-              <TextInput
+              <Search
                 placeholder="Search by keywords"
                 disabled={!keywordSearchEnabled}
                 bind:value={keywordSearchText}
@@ -202,16 +188,15 @@
             <!-- Semantic input -->
             <TabContent class="w-full">
               <div class="flex flex-row items-start justify-items-start">
-                <TextInput
-                  helperText={isEmbeddingComputed
-                    ? ''
+                <Search
+                  placeholder={isEmbeddingComputed
+                    ? 'Search by natural language'
                     : 'No index found. Please run the embedding index.'}
-                  placeholder="Search by natural language"
                   disabled={!semanticSearchEnabled}
                   bind:value={semanticSearchText}
                   on:keydown={e => (e.key == 'Enter' ? search() : null)}
                 />
-                <div class="embedding-select -ml-8">
+                <div class="embedding-select w-40">
                   <Select
                     noLabel={true}
                     on:change={selectEmbedding}
@@ -224,9 +209,8 @@
                     {/each}
                   </Select>
                 </div>
-                <div>
+                <div class="ml-2">
                   <Button
-                    size="small"
                     disabled={searchPath == null || isEmbeddingComputed || isIndexing}
                     on:click={() => {
                       computeEmbedding();
@@ -240,7 +224,7 @@
 
             <!-- Concept input -->
             <TabContent class="w-full">
-              <TextInput
+              <Search
                 class="w-full"
                 placeholder={'Search by concepts'}
                 disabled={true}
@@ -253,8 +237,8 @@
     </div>
   </div>
 
-  <div class="ml-2 mt-10 flex h-full">
-    <Button disabled={searchPath == null || !searchEnabled} on:click={() => search()} size="small">
+  <div class="ml-2 mt-10 flex">
+    <Button disabled={searchPath == null || !searchEnabled} on:click={() => search()}>
       Search
     </Button>
   </div>
@@ -278,5 +262,11 @@
     height: 2.5rem;
     @apply w-24;
     @apply px-3;
+  }
+  :global(.embedding-select .bx--select-input) {
+    @apply h-12;
+  }
+  :global(.field-select .bx--select-input) {
+    @apply h-12;
   }
 </style>

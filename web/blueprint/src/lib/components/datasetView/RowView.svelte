@@ -10,8 +10,9 @@
   import {getVisibleFields} from '$lib/view_utils';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
+  import FilterPanel from './FilterPanel.svelte';
   import RowItem from './RowItem.svelte';
-  import Search from './Search.svelte';
+  import SearchPanel from './SearchPanel.svelte';
 
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();
@@ -49,7 +50,8 @@
   $: visibleFields = getVisibleFields($datasetViewStore, $datasetStore, $schema.data);
 </script>
 
-<Search />
+<SearchPanel />
+<FilterPanel />
 
 {#if $rows.isError}
   <InlineNotification

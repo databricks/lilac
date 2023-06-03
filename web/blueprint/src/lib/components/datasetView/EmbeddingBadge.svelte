@@ -5,6 +5,9 @@
   export let embedding: string | undefined;
 </script>
 
-<Tag {...$$restProps} type="purple" slot="icon"
-  ><AssemblyCluster class="mr-1 inline-block" />{embedding}</Tag
->
+<Tag {...$$restProps} type="purple" slot="icon">
+  <div class="flex flex-row whitespace-nowrap">
+    <AssemblyCluster class="mr-2" />
+    {embedding}
+  </div>
+</Tag>

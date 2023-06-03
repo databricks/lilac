@@ -7,10 +7,10 @@
   import {CaretDown, SortAscending, SortDescending} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
-  import EmbeddingBadge from '../common/EmbeddingBadge.svelte';
-  import HoverTooltip from '../common/HoverTooltip.svelte';
   import RemovableTag from '../common/RemovableTag.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
+  import EmbeddingBadge from '../datasetView/EmbeddingBadge.svelte';
+  import SearchPill from '../datasetView/SearchPill.svelte';
 
   export let schema: Lilac.LilacSchema;
   export let field: Lilac.LilacField;
@@ -32,7 +32,9 @@
     exists: 'exists'
   };
 
-  let datasetViewStore = getDatasetViewContext();
+  const datasetViewStore = getDatasetViewContext();
+  const datasetStore = getDatasetContext();
+
   let expanded = true;
 
   $: path = field.path;
@@ -44,7 +46,6 @@
   $: children = childDisplayFields(field);
   $: hasChildren = children.length > 0;
 
-  let datasetStore = getDatasetContext();
   $: isVisible = isPathVisible($datasetViewStore, $datasetStore, path);
 
   $: embeddingFields = isSourceField
@@ -174,20 +175,12 @@
     </RemovableTag>
   {/if}
   {#each searches as search}
-    <RemovableTag
-      title={'query'}
-      interactive
-      type="outline"
-      on:remove={() => datasetViewStore.clearSearch(search)}
-    >
-      <HoverTooltip size="small" triggerText="Search" hideIcon={true}>
-        <div class="mb-3"><Tag>{search.type}</Tag></div>
-        {search.query}
-      </HoverTooltip>
-    </RemovableTag>
+    <SearchPill {search} />
   {/each}
   {#each embeddingFields as embeddingField}
-    <EmbeddingBadge embedding={embeddingField.signal?.signal_name} />
+    <div class="mx-1">
+      <EmbeddingBadge embedding={embeddingField.signal?.signal_name} />
+    </div>
   {/each}
   {#if Lilac.isSignalRootField(field) && udfColumn}
     <Tag

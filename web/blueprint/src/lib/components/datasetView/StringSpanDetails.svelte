@@ -17,8 +17,8 @@
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
   import {createEventDispatcher} from 'svelte';
-  import EmbeddingBadge from '../common/EmbeddingBadge.svelte';
   import {clickOutside} from '../common/clickOutside';
+  import EmbeddingBadge from './EmbeddingBadge.svelte';
 
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();
