@@ -1,5 +1,4 @@
 <script lang="ts">
-  import {page} from '$app/stores';
   import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
 
   import {queryEmbeddings} from '$lib/queries/signalQueries';
@@ -24,10 +23,10 @@
   } from 'carbon-components-svelte';
   import {Checkmark, Chip} from 'carbon-icons-svelte';
 
-  $: namespace = $page.params.namespace;
-  $: datasetName = $page.params.datasetName;
-
   let datasetViewStore = getDatasetViewContext();
+
+  $: namespace = $datasetViewStore.namespace;
+  $: datasetName = $datasetViewStore.datasetName;
 
   $: selectedTab = $datasetViewStore.searchTab;
   $: selectedTabIndex = Object.values(SEARCH_TABS).findIndex(v => v === selectedTab);

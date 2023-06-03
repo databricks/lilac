@@ -1,10 +1,10 @@
 """Router for the signal registry."""
 
 import math
+from typing import Any
 
 from fastapi import APIRouter
 from pydantic import BaseModel
-from pyparsing import Any
 
 from .router_utils import RouteErrorHandler
 from .schema import SignalInputType
