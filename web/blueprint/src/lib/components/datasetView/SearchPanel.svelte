@@ -12,16 +12,11 @@
     getSearches,
     getVisibleFields
   } from '$lib/view_utils';
-  import {
-    deserializePath,
-    serializePath,
-    type ConceptInfo,
-    type Search as LilacSearch
-  } from '$lilac';
+  import {deserializePath, serializePath} from '$lilac';
   import {
     Button,
+    ComboBox,
     InlineLoading,
-    MultiSelect,
     Search,
     Select,
     SelectItem,
@@ -81,9 +76,12 @@
   $: searchEnabled = keywordSearchEnabled || semanticSearchEnabled;
 
   const concepts = queryConcepts();
-
+  interface ConceptId {
+    namespace: string;
+    name: string;
+  }
   interface ConceptSelectItem {
-    id: {namespace: string; name: string};
+    id: ConceptId;
     text: string;
   }
   let conceptSelectItems: ConceptSelectItem[] = [];
@@ -91,20 +89,15 @@
   $: conceptSelectItems = $concepts?.data
     ? $concepts.data.map(c => ({
         id: {namespace: c.namespace, name: c.name},
-        text: `${c.namespace}/${c.name}`
+        text: `${c.namespace}/${c.name}`,
+        disabled: searches.some(
+          s =>
+            s.query.type === 'concept' &&
+            s.query.concept_namespace === c.namespace &&
+            s.query.concept_name === c.name
+        )
       }))
     : [];
-
-  $: selectedConceptItems = conceptSelectItems
-    .filter(s =>
-      searches.some(
-        search =>
-          search.query.type === 'concept' &&
-          search.query.concept_name === s.id.name &&
-          search.query.concept_namespace === s.id.namespace
-      )
-    )
-    .map(s => s.id);
 
   const search = () => {
     if (searchPath == null) {
@@ -161,43 +154,25 @@
       }
     ]);
   };
-  const conceptSearch = ({
-    namespace,
-    name
-  }: {
-    namespace: string;
-    name: string;
-  }): LilacSearch | null => {
-    if (searchPath == null || selectedEmbedding == null) return null;
-    return {
-      path: [serializePath(searchPath)],
-      query: {
-        type: 'concept',
-        concept_namespace: namespace,
-        concept_name: name,
-        embedding: selectedEmbedding
-      }
-    };
-  };
 
-  const selectConcepts = (
+  let conceptComboBox: ComboBox;
+  const selectConcept = (
     e: CustomEvent<{
-      selectedIds: ConceptInfo[];
-      selected: ConceptSelectItem[];
-      unselected: ConceptSelectItem[];
+      selectedId: ConceptId;
+      selectedItem: ConceptSelectItem;
     }>
   ) => {
     if (searchPath == null || selectedEmbedding == null) return;
-    for (const concept of e.detail.selected) {
-      const search = conceptSearch(concept.id);
-      if (search == null) continue;
-      datasetViewStore.addSearch(search);
-    }
-    for (const concept of e.detail.unselected) {
-      const search = conceptSearch(concept.id);
-      if (search == null) continue;
-      datasetViewStore.clearSearch(search);
-    }
+    datasetViewStore.addSearch({
+      path: [serializePath(searchPath)],
+      query: {
+        type: 'concept',
+        concept_namespace: e.detail.selectedId.namespace,
+        concept_name: e.detail.selectedId.name,
+        embedding: selectedEmbedding
+      }
+    });
+    conceptComboBox.clear();
   };
 
   const selectField = (e: Event) => {
@@ -287,12 +262,13 @@
             <TabContent class="w-full">
               <div class="flex w-full flex-row items-start justify-items-start">
                 <div class="flex-grow">
-                  <MultiSelect
+                  <ComboBox
                     size="xl"
+                    bind:this={conceptComboBox}
                     items={conceptSelectItems}
-                    selectedIds={selectedConceptItems}
-                    on:select={selectConcepts}
-                    filterable
+                    on:select={selectConcept}
+                    shouldFilterItem={(item, value) =>
+                      item.text.toLowerCase().includes(value.toLowerCase())}
                     placeholder="Search by concept"
                   />
                 </div>
