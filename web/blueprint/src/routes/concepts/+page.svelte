@@ -2,7 +2,7 @@
   import Commands, {Command, triggerCommand} from '$lib/components/commands/Commands.svelte';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
-  import {parseHash, urlHash} from '$lib/stores/urlHashStore';
+  import {urlHash} from '$lib/stores/urlHashStore';
   import {conceptLink} from '$lib/utils';
   import {SkeletonText} from 'carbon-components-svelte';
   import AddAlt from 'carbon-icons-svelte/lib/AddAlt.svelte';
@@ -10,7 +10,7 @@
   let namespace: string | undefined;
   let conceptName: string | undefined;
 
-  $: parseHash($urlHash, '/(?<namespace>.+)/(?<conceptName>.+)', ctx => {
+  $: $urlHash.onHashChange('/(?<namespace>.+)/(?<conceptName>.+)', ctx => {
     namespace = ctx.namespace;
     conceptName = ctx.conceptName;
   });
