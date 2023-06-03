@@ -74,18 +74,6 @@
 
   $: searchEnabled = keywordSearchEnabled || semanticSearchEnabled;
 
-  $: showClearSearch =
-    (selectedTab === 'Keyword' && keywordSearchText != '') ||
-    (selectedTab === 'Semantic' && semanticSearchText != '');
-
-  const clearSearch = () => {
-    // TODO(nsthorat): Don't clear from the searchbox, clear from pills.
-    if (selectedTab === 'Keyword') {
-      keywordSearchText = '';
-    } else if (selectedTab === 'Semantic') {
-      semanticSearchText = '';
-    }
-  };
   const search = () => {
     if (searchPath == null) {
       return;
