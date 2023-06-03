@@ -1,13 +1,19 @@
 <script lang="ts">
-  import {page} from '$app/stores';
   import Commands, {Command, triggerCommand} from '$lib/components/commands/Commands.svelte';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
+  import {conceptLink} from '$lib/utils';
   import {SkeletonText} from 'carbon-components-svelte';
   import AddAlt from 'carbon-icons-svelte/lib/AddAlt.svelte';
+  import router from 'page';
 
-  $: namespace = $page.params.namespace;
-  $: conceptName = $page.params.concept;
+  let namespace: string | undefined;
+  let conceptName: string | undefined;
+
+  router('/:namespace/:conceptName', ctx => {
+    namespace = ctx.params.namespace;
+    conceptName = ctx.params.conceptName;
+  });
 
   const concepts = queryConcepts();
 
@@ -21,7 +27,7 @@
     {:else if $concepts.isSuccess}
       {#each $concepts.data as c}
         <a
-          href="/concepts/{c.namespace}/{c.name}"
+          href={conceptLink(c.namespace, c.name)}
           class="flex w-full flex-row items-center whitespace-pre border-b border-gray-200 px-4 py-2 hover:bg-gray-100"
           class:bg-blue-100={c.name === conceptName}
           class:hover:bg-blue-100={c.name === conceptName}

@@ -1,20 +1,28 @@
 <script lang="ts">
-  import {QueryClientProvider} from '@tanstack/svelte-query';
-
   import ApiErrorModal from '$lib/components/ApiErrorModal.svelte';
   import TaskStatus from '$lib/components/TaskStatus.svelte';
   import {apiErrors, queryClient} from '$lib/queries/queryClient';
   import TaskMonitor from '$lib/stores/TaskMonitor.svelte';
   import type {ApiError} from '$lilac';
+  import {QueryClientProvider} from '@tanstack/svelte-query';
   import {ToastNotification} from 'carbon-components-svelte';
+  import router from 'page';
   // Styles
   import '../tailwind.css';
   // Carbon component must be imported after tailwind.css
   import 'carbon-components-svelte/css/white.css';
+  import {onMount} from 'svelte';
   import '../app.css';
 
   let showError: ApiError | undefined = undefined;
+
+  onMount(() => {
+    router.start({hashbang: true});
+  });
 </script>
+
+<!-- Make page.js monitor for hash changes in the URL. -->
+<svelte:window on:hashchange={() => router.replace(location.hash, null, true, true)} />
 
 <QueryClientProvider client={queryClient}>
   <main class="flex h-screen flex-col">

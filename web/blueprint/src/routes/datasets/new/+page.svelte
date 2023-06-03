@@ -5,6 +5,7 @@
   import SplitsInput from '$lib/components/datasets/huggingface/SplitsInput.svelte';
   import {loadDatasetMutation, querySources, querySourcesSchema} from '$lib/queries/datasetQueries';
   import {watchTask} from '$lib/stores/taskMonitoringStore';
+  import {datasetLink} from '$lib/utils';
   import {
     Button,
     Form,
@@ -48,7 +49,7 @@
       {
         onSuccess: resp => {
           watchTask(resp.task_id, () => {
-            goto(`/datasets/${namespace}/${name}`);
+            goto(datasetLink(namespace, name));
           });
         }
       }
