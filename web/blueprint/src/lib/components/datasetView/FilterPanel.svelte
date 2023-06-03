@@ -8,10 +8,11 @@
 
   $: searches = getSearches($datasetViewStore);
 
-  const searchTypeOrder: SearchType[] = ['contains', 'semantic'];
+  const searchTypeOrder: SearchType[] = ['keyword', 'semantic', 'concept'];
   const searchTypeDisplay: {[searchType in SearchType]: string} = {
-    contains: 'Keyword',
-    semantic: 'Semantic'
+    keyword: 'Keyword',
+    semantic: 'Semantic',
+    concept: 'Concepts'
   };
 
   // Separate the searches by type.
@@ -20,10 +21,11 @@
   $: {
     searchesByType = {};
     for (const search of searches) {
-      if (!(search.type in searchesByType)) {
-        searchesByType[search.type] = [];
+      if (!search.query.type) continue;
+      if (!(search.query.type in searchesByType)) {
+        searchesByType[search.query.type] = [];
       }
-      searchesByType[search.type].push(search);
+      searchesByType[search.query.type].push(search);
     }
   }
 </script>
@@ -34,9 +36,11 @@
       <div class="search-type mr-4 rounded bg-slate-50 px-2 py-1 shadow-sm">
         <div class="mb-2 ml-2 text-xs font-light">{searchTypeDisplay[searchType]}</div>
 
-        {#each searchesByType[searchType] as search}
-          <SearchPill {search} />
-        {/each}
+        <div class="flex flex-row">
+          {#each searchesByType[searchType] as search}
+            <SearchPill {search} />
+          {/each}
+        </div>
       </div>
     {/if}
   {/each}

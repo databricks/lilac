@@ -9,6 +9,7 @@ import {
   type SearchType,
   type SelectRowsOptions
 } from '$lilac';
+import deepEqual from 'deep-equal';
 import {getContext, hasContext, setContext} from 'svelte';
 import {persisted} from './persistedStore';
 
@@ -143,23 +144,20 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       }),
     addSearch: (search: Search) =>
       update(state => {
-        if (search.type === 'semantic' || search.type == 'contains') {
-          // Remove existing searches with this type. Semantic and keyword search only allow a
-          // single search.
-          state.queryOptions.searches = state.queryOptions.searches?.filter(
-            s => s.type !== search.type
-          );
+        // Dedupe searches.
+        for (const existingSearch of state.queryOptions.searches || []) {
+          if (deepEqual(existingSearch, search)) return state;
         }
 
         state.queryOptions.searches = state.queryOptions.searches || [];
         state.queryOptions.searches.push(search);
-
         return state;
       }),
     clearSearch: (search: Search) =>
       update(state => {
-        state.queryOptions.searches = state.queryOptions.searches?.filter(s => s !== search);
-
+        state.queryOptions.searches = state.queryOptions.searches?.filter(
+          s => !deepEqual(s, search)
+        );
         return state;
       }),
     clearSearchType: (searchType: SearchType) =>
@@ -167,9 +165,8 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         // Remove existing searches with this type. Semantic and keyword search only allow a
         // single search.
         state.queryOptions.searches = state.queryOptions.searches?.filter(
-          s => s.type !== searchType
+          s => s.query.type !== searchType
         );
-
         return state;
       }),
 

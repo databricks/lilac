@@ -61,14 +61,14 @@
       ? getVisibleFields($datasetViewStore, $datasetStore, field, 'string_span')
       : [];
 
-  // Only find the 'contains' searches for keyword search, since this is displayed differently.
+  // Only find the 'keyword' searches for keyword search, since this is displayed differently.
   $: keywordSearchSpanFields =
     $datasetViewStore && $datasetViewStore.queryOptions.searches
       ? visibleFields.filter(field => {
           const searchResultsPaths = $selectRowsSchema?.data?.searchResultsPaths || [];
           for (const [i, searchPath] of searchResultsPaths.entries()) {
             if (pathIsEqual(field.path, searchPath)) {
-              return ($datasetViewStore.queryOptions.searches || [])[i].type === 'contains';
+              return ($datasetViewStore.queryOptions.searches || [])[i].query.type === 'keyword';
             }
           }
           return false;

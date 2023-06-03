@@ -12,10 +12,17 @@ from .data.dataset import BinaryOp, Bins
 from .data.dataset import Column as DBColumn
 from .data.dataset import DatasetManifest, FeatureListValue, FeatureValue
 from .data.dataset import Filter as PyFilter
-from .data.dataset import GroupsSortBy, ListOp
-from .data.dataset import Search as PySearch
-from .data.dataset import SelectRowsSchemaResult, SortOrder, StatsResult, UnaryOp
-from .db_manager import get_dataset
+from .data.dataset import (
+  GroupsSortBy,
+  ListOp,
+  Search,
+  SelectRowsSchemaResult,
+  SortOrder,
+  StatsResult,
+  UnaryOp,
+)
+from .data.dataset_duckdb import DatasetDuckDB
+from .db_manager import get_dataset, set_default_dataset_cls
 from .router_utils import RouteErrorHandler
 from .schema import Path, normalize_path
 from .signals.concept_scorer import ConceptScoreSignal
@@ -33,6 +40,7 @@ from .utils import DATASETS_DIR_NAME
 router = APIRouter(route_class=RouteErrorHandler)
 
 register_default_signals()
+set_default_dataset_cls(DatasetDuckDB)
 
 
 class DatasetInfo(BaseModel):
@@ -172,11 +180,6 @@ class Column(DBColumn):
   signal_udf: Optional[AllSignalTypes] = None
 
 
-class Search(PySearch):
-  """A search on a column."""
-  path: Path  # type: ignore
-
-
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
   columns: Optional[Sequence[Union[Path, Column]]]
@@ -201,10 +204,6 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   """Select rows from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
 
-  sanitized_searches = [
-    PySearch(path=normalize_path(f.path), embedding=f.embedding, type=f.type, query=f.query)
-    for f in (options.searches or [])
-  ]
   sanitized_filters = [
     PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
   ]
@@ -219,7 +218,7 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
   items = list(
     dataset.select_rows(
       columns=options.columns,
-      searches=sanitized_searches,
+      searches=options.searches or [],
       filters=sanitized_filters,
       sort_by=options.sort_by,
       sort_order=options.sort_order,
@@ -234,13 +233,9 @@ def select_rows_schema(namespace: str, dataset_name: str,
                        options: SelectRowsSchemaOptions) -> SelectRowsSchemaResult:
   """Select rows from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
-  sanitized_searches = [
-    PySearch(path=normalize_path(f.path), embedding=f.embedding, type=f.type, query=f.query)
-    for f in (options.searches or [])
-  ]
   return dataset.select_rows_schema(
     columns=options.columns,
-    searches=sanitized_searches,
+    searches=options.searches or [],
     combine_columns=options.combine_columns or False)
 
 

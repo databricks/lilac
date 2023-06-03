@@ -135,7 +135,7 @@ export function udfByAlias(
 }
 
 /** Gets the search type for a column, if defined. The path is the *input* path to the search. */
-export function getSearches(store: IDatasetViewStore, path?: Path | undefined): Search[] {
+export function getSearches(store: IDatasetViewStore, path?: Path | null): Search[] {
   if (path == null) return store.queryOptions.searches || [];
   return (store.queryOptions.searches || []).filter(s => pathIsEqual(s.path, path));
 }

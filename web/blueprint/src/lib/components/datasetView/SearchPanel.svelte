@@ -1,5 +1,6 @@
 <script lang="ts">
   import {page} from '$app/stores';
+  import {queryConcepts} from '$lib/queries/conceptQueries';
   import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
 
   import {queryEmbeddings} from '$lib/queries/signalQueries';
@@ -9,12 +10,19 @@
     getComputedEmbeddings,
     getSearchEmbedding,
     getSearchPath,
+    getSearches,
     getVisibleFields
   } from '$lib/view_utils';
-  import {deserializePath, serializePath} from '$lilac';
+  import {
+    deserializePath,
+    serializePath,
+    type ConceptInfo,
+    type Search as LilacSearch
+  } from '$lilac';
   import {
     Button,
     InlineLoading,
+    MultiSelect,
     Search,
     Select,
     SelectItem,
@@ -28,26 +36,25 @@
   $: datasetName = $page.params.datasetName;
 
   let datasetViewStore = getDatasetViewContext();
+  let datasetStore = getDatasetContext();
 
   $: selectedTab = $datasetViewStore.searchTab;
   $: selectedTabIndex = Object.values(SEARCH_TABS).findIndex(v => v === selectedTab);
 
+  $: searchPath = getSearchPath($datasetViewStore, $datasetStore);
+
   let keywordSearchText: string;
   // Semantic search.
   let semanticSearchText: string;
-  // Concepts.
-  let conceptSearchText = 'Not implemented yet.';
+
+  $: searches = getSearches($datasetViewStore, searchPath);
 
   const computeSignalMutation = computeSignalColumnMutation();
-
-  let datasetStore = getDatasetContext();
 
   // Only show the visible string fields in the dropdown.
   $: visibleStringPaths = getVisibleFields($datasetViewStore, $datasetStore, null, 'string').map(
     f => f.path
   );
-
-  $: searchPath = getSearchPath($datasetViewStore, $datasetStore);
 
   // Get the embeddings.
   const embeddings = queryEmbeddings();
@@ -74,21 +81,47 @@
 
   $: searchEnabled = keywordSearchEnabled || semanticSearchEnabled;
 
+  const concepts = queryConcepts();
+
+  interface ConceptSelectItem {
+    id: {namespace: string; name: string};
+    text: string;
+  }
+  let conceptSelectItems: ConceptSelectItem[] = [];
+
+  $: conceptSelectItems = $concepts?.data
+    ? $concepts.data.map(c => ({
+        id: {namespace: c.namespace, name: c.name},
+        text: `${c.namespace}/${c.name}`
+      }))
+    : [];
+
+  $: selectedConceptItems = conceptSelectItems
+    .filter(s =>
+      searches.some(
+        search =>
+          search.query.type === 'concept' &&
+          search.query.concept_name === s.id.name &&
+          search.query.concept_namespace === s.id.namespace
+      )
+    )
+    .map(s => s.id);
+
   const search = () => {
     if (searchPath == null) {
       return;
     }
-    // TODO(nsthorat): Support multiple searches at the same time. Currently each search overrides
-    // the set of searches.
     if (selectedTab === 'Keyword') {
       if (keywordSearchText == '') {
-        datasetViewStore.clearSearchType('contains');
+        datasetViewStore.clearSearchType('keyword');
         return;
       }
       datasetViewStore.addSearch({
         path: [serializePath(searchPath)],
-        type: 'contains',
-        query: keywordSearchText
+        query: {
+          type: 'keyword',
+          search: keywordSearchText
+        }
       });
       keywordSearchText = '';
     } else if (selectedTab === 'Semantic') {
@@ -101,13 +134,13 @@
       }
       datasetViewStore.addSearch({
         path: [serializePath(searchPath)],
-        type: 'semantic',
-        query: semanticSearchText,
-        embedding: selectedEmbedding
+        query: {
+          type: 'semantic',
+          search: semanticSearchText,
+          embedding: selectedEmbedding
+        }
       });
       semanticSearchText = '';
-    } else if (selectedTab === 'Concepts') {
-      // TODO: Implement concept search.
     }
   };
 
@@ -129,6 +162,45 @@
       }
     ]);
   };
+  const conceptSearch = ({
+    namespace,
+    name
+  }: {
+    namespace: string;
+    name: string;
+  }): LilacSearch | null => {
+    if (searchPath == null || selectedEmbedding == null) return null;
+    return {
+      path: [serializePath(searchPath)],
+      query: {
+        type: 'concept',
+        concept_namespace: namespace,
+        concept_name: name,
+        embedding: selectedEmbedding
+      }
+    };
+  };
+
+  const selectConcepts = (
+    e: CustomEvent<{
+      selectedIds: ConceptInfo[];
+      selected: ConceptSelectItem[];
+      unselected: ConceptSelectItem[];
+    }>
+  ) => {
+    if (searchPath == null || selectedEmbedding == null) return;
+    for (const concept of e.detail.selected) {
+      const search = conceptSearch(concept.id);
+      if (search == null) continue;
+      datasetViewStore.addSearch(search);
+    }
+    for (const concept of e.detail.unselected) {
+      const search = conceptSearch(concept.id);
+      if (search == null) continue;
+      datasetViewStore.clearSearch(search);
+    }
+  };
+
   const selectField = (e: Event) => {
     datasetViewStore.setSearchPath((e.target as HTMLInputElement).value);
   };
@@ -176,15 +248,17 @@
             <!-- Semantic input -->
             <TabContent class="w-full">
               <div class="flex flex-row items-start justify-items-start">
-                <Search
-                  placeholder={isEmbeddingComputed
-                    ? 'Search by natural language'
-                    : 'No index found. Please run the embedding index.'}
-                  disabled={!semanticSearchEnabled}
-                  bind:value={semanticSearchText}
-                  on:keydown={e => (e.key == 'Enter' ? search() : null)}
-                />
-                <div class="embedding-select w-40">
+                <div class="flex-grow">
+                  <Search
+                    placeholder={isEmbeddingComputed
+                      ? 'Search by natural language'
+                      : 'No index found. Please run the embedding index.'}
+                    disabled={!semanticSearchEnabled}
+                    bind:value={semanticSearchText}
+                    on:keydown={e => (e.key == 'Enter' ? search() : null)}
+                  />
+                </div>
+                <div class="embedding-select w-26">
                   <Select
                     noLabel={true}
                     on:change={selectEmbedding}
@@ -212,12 +286,41 @@
 
             <!-- Concept input -->
             <TabContent class="w-full">
-              <Search
-                class="w-full"
-                placeholder={'Search by concepts'}
-                disabled={true}
-                value={conceptSearchText}
-              />
+              <div class="flex w-full flex-row items-start justify-items-start">
+                <div class="flex-grow">
+                  <MultiSelect
+                    size="xl"
+                    items={conceptSelectItems}
+                    selectedIds={selectedConceptItems}
+                    on:select={selectConcepts}
+                    filterable
+                    placeholder="Search by concept"
+                  />
+                </div>
+                <div class="embedding-select w-26">
+                  <Select
+                    noLabel={true}
+                    on:change={selectEmbedding}
+                    selected={selectedEmbedding || ''}
+                    name={selectedEmbedding || ''}
+                    helperText={'Embedding'}
+                  >
+                    {#each $embeddings.data || [] as embedding}
+                      <SelectItem value={embedding.name} text={embedding.name} />
+                    {/each}
+                  </Select>
+                </div>
+                <div class="ml-2">
+                  <Button
+                    disabled={searchPath == null || isEmbeddingComputed || isIndexing}
+                    on:click={() => {
+                      computeEmbedding();
+                    }}
+                    icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
+                    >Index
+                  </Button>
+                </div>
+              </div>
             </TabContent>
           </div>
         </svelte:fragment>

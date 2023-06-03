@@ -1,5 +1,5 @@
 import type {JSONSchema7} from 'json-schema';
-import type {DataType, Field, Schema, Signal, SignalInfo} from '../fastapi_client';
+import type {DataType, Field, Schema, Search, Signal, SignalInfo} from '../fastapi_client';
 import {
   PATH_WILDCARD,
   VALUE_KEY,
@@ -13,6 +13,7 @@ import {
 
 const PATH_KEY = '__path__';
 const SCHEMA_FIELD_KEY = '__field__';
+export type SearchType = Exclude<Search['query']['type'], undefined>;
 
 // Cache containing the list of fields and value nodes
 let listValueNodesCache = new WeakMap<LilacValueNode, LilacValueNode[]>();

@@ -62,6 +62,8 @@
   const maxScoreBackgroundOpacity = 0.5;
 
   let selectedSpan: AnnotatedStringSpan | undefined;
+  // Store the mouse position after selecting a span so we can keep the details next to the cursor.
+  let mousePosition: {x: number; y: number} | undefined;
 
   $: spans = stringSpanFields.flatMap(f => getValueNodes(row, f.path));
   $: searchSpans = keywordSearchSpanFields.flatMap(f => getValueNodes(row, f.path));
@@ -206,8 +208,9 @@
             if (!span.filler) selectedSpan = span;
           }
         }}
-        on:click={() => {
+        on:click={e => {
           if (!span.filler) selectedSpan = span;
+          mousePosition = {x: e.offsetX, y: e.offsetY};
         }}
         title={tooltipText(span)}
         class="relative bg-yellow-500 text-transparent opacity-0 hover:!opacity-30"
@@ -222,6 +225,7 @@
           conceptName={(span.concepts || [])[0]?.concept_name}
           conceptNamespace={(span.concepts || [])[0]?.namespace}
           text={text.slice(span.start, span.end)}
+          position={mousePosition}
           on:close={() => (selectedSpan = undefined)}
         />
       {/if}

@@ -2,20 +2,13 @@
 import abc
 import datetime
 import enum
-from typing import Any, Iterator, Optional, Sequence, Union
+from typing import Any, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
-from pydantic import (
-  BaseModel,
-  StrictBool,
-  StrictBytes,
-  StrictFloat,
-  StrictInt,
-  StrictStr,
-  validator,
-)
+from pydantic import BaseModel
+from pydantic import Field as PydanticField
+from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
 
-from ..embeddings.embedding import EmbeddingId
 from ..schema import VALUE_KEY, Path, PathTuple, Schema, normalize_path
 from ..signals.signal import Signal, resolve_signal
 from ..tasks import TaskStepId
@@ -82,10 +75,7 @@ class BinaryOp(str, enum.Enum):
   LESS_EQUAL = 'less_equal'
 
 
-class SearchType(str, enum.Enum):
-  """The search type between a column and a query."""
-  CONTAINS = 'contains'
-  SEMANTIC = 'semantic'
+SearchType = Union[Literal['keyword'], Literal['semantic'], Literal['concept']]
 
 
 class UnaryOp(str, enum.Enum):
@@ -213,19 +203,33 @@ class Filter(BaseModel):
 FilterLike = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListFilterTuple]
 
 SearchValue = StrictStr
-SearchTuple = tuple[Path, SearchType, SearchValue, Optional[EmbeddingId]]
+
+
+class KeywordQuery(BaseModel):
+  """A keyword search query on a column."""
+  type: Literal['keyword']
+  search: SearchValue
+
+
+class SemanticQuery(BaseModel):
+  """A semantic search on a column."""
+  type: Literal['semantic']
+  search: SearchValue
+  embedding: str
+
+
+class ConceptQuery(BaseModel):
+  """A concept search query on a column."""
+  type: Literal['concept']
+  concept_namespace: str
+  concept_name: str
+  embedding: str
 
 
 class Search(BaseModel):
   """A search on a column."""
-  path: PathTuple
-  type: SearchType
-  query: SearchValue
-  # Defined for semantic and concepts.
-  embedding: Optional[str]
-
-
-SearchLike = Union[Search, SearchTuple]
+  path: Path
+  query: Union[KeywordQuery, SemanticQuery, ConceptQuery] = PydanticField(discriminator='type')
 
 
 class Dataset(abc.ABC):
@@ -288,7 +292,7 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def select_rows(self,
                   columns: Optional[Sequence[ColumnId]] = None,
-                  searches: Optional[Sequence[SearchLike]] = None,
+                  searches: Optional[Sequence[Search]] = None,
                   filters: Optional[Sequence[FilterLike]] = None,
                   sort_by: Optional[Sequence[Path]] = None,
                   sort_order: Optional[SortOrder] = SortOrder.DESC,
@@ -329,7 +333,7 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def select_rows_schema(self,
                          columns: Optional[Sequence[ColumnId]] = None,
-                         searches: Optional[Sequence[SearchLike]] = None,
+                         searches: Optional[Sequence[Search]] = None,
                          combine_columns: bool = False) -> SelectRowsSchemaResult:
     """Returns the schema of the result of `select_rows` above with the same arguments."""
     pass

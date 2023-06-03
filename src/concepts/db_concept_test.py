@@ -9,7 +9,9 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..config import CONFIG
+from ..data.dataset_duckdb import DatasetDuckDB
 from ..data.dataset_utils import lilac_embedding
+from ..db_manager import set_default_dataset_cls
 from ..schema import Item, RichData, SignalInputType
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .concept import (
@@ -64,6 +66,7 @@ class TestEmbedding(TextEmbeddingSignal):
 
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Generator:
+  set_default_dataset_cls(DatasetDuckDB)
   register_signal(TestEmbedding)
 
   # Unit test runs.

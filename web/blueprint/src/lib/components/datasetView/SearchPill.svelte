@@ -1,6 +1,12 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {serializePath, type Search, type SearchType} from '$lilac';
+  import {
+    serializePath,
+    type KeywordQuery,
+    type Search,
+    type SearchType,
+    type SemanticQuery
+  } from '$lilac';
   import {Tag} from 'carbon-components-svelte';
   import HoverTooltip from '../common/HoverTooltip.svelte';
   import RemovableTag from '../common/RemovableTag.svelte';
@@ -8,35 +14,48 @@
 
   export let search: Search;
 
-  const searchTypeToTagType: {[searchType in SearchType]: Tag['type']} = {
-    contains: 'outline',
-    semantic: 'teal'
+  const searchTypeToTagType: {
+    [searchType in SearchType]: Tag['type'];
+  } = {
+    keyword: 'outline',
+    semantic: 'teal',
+    concept: 'green'
   };
 
   const datasetViewStore = getDatasetViewContext();
+
+  $: pillText =
+    search.query.type === 'concept'
+      ? `${search.query.concept_namespace}/${search.query.concept_name}`
+      : (search.query as KeywordQuery | SemanticQuery).search;
+  $: tagType = search.query.type != null ? searchTypeToTagType[search.query.type] : 'outline';
+  $: searchText =
+    search.query.type === 'concept' ? '' : (search.query as KeywordQuery | SemanticQuery).search;
 </script>
 
 <div class="search-pill mx-1 items-center">
   <RemovableTag
     title={'query'}
     interactive
-    type={searchTypeToTagType[search.type]}
+    type={tagType}
     on:remove={() => datasetViewStore.clearSearch(search)}
   >
-    <HoverTooltip size="small" triggerText={search.query} hideIcon={true}>
-      <div class="mb-3 flex items-center justify-items-center">
+    <HoverTooltip size="small" triggerText={pillText} hideIcon={true}>
+      <div class=" flex items-center justify-items-center">
         <div class="whitespace-nowrap">
-          <Tag type={searchTypeToTagType[search.type]}>
-            {serializePath(search.path)}: {search.type}
+          <Tag type={tagType}>
+            {serializePath(search.path)}: {search.query.type}
           </Tag>
         </div>
-        {#if search.type === 'semantic'}
+        {#if search.query.type === 'semantic'}
           <div class="ml-2">
-            <EmbeddingBadge embedding={search.embedding} />
+            <EmbeddingBadge embedding={search.query.embedding} />
           </div>
         {/if}
       </div>
-      {search.query}
+      {#if searchText}
+        <div class="mt-2">{searchText}</div>
+      {/if}
     </HoverTooltip>
   </RemovableTag>
 </div>

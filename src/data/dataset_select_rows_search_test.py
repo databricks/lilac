@@ -8,11 +8,14 @@ from pytest import approx
 from sklearn.preprocessing import normalize
 from typing_extensions import override
 
-from ..schema import UUID_COLUMN, Item, RichData
+from ..concepts.concept import ExampleIn
+from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
+from ..schema import UUID_COLUMN, Item, RichData, SignalInputType
+from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from ..signals.substring_search import SubstringSignal
-from .dataset import ListOp, SearchType
+from .dataset import ConceptQuery, KeywordQuery, ListOp, Search, SemanticQuery
 from .dataset_test_utils import TestDataMaker, enriched_embedding_span, enriched_item
 from .dataset_utils import lilac_embedding, lilac_span
 
@@ -50,12 +53,14 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()
 
 
-def test_search_like(make_test_data: TestDataMaker) -> None:
+def test_search_keyword(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
   query = 'world'
   result = dataset.select_rows(
-    searches=[('text', SearchType.CONTAINS, 'world', None)], combine_columns=True)
+    searches=[Search(path='text', query=KeywordQuery(type='keyword', search=query))],
+    combine_columns=True)
+
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [{
     UUID_COLUMN: '1',
@@ -69,7 +74,7 @@ def test_search_like(make_test_data: TestDataMaker) -> None:
   }]
 
 
-def test_search_like_multiple(make_test_data: TestDataMaker) -> None:
+def test_search_keyword_multiple(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
   query_world = 'world'
@@ -78,8 +83,10 @@ def test_search_like_multiple(make_test_data: TestDataMaker) -> None:
   expected_again_looking_udf = SubstringSignal(query=query_looking_world)
 
   result = dataset.select_rows(
-    searches=[('text', SearchType.CONTAINS, query_world, None),
-              ('text2', SearchType.CONTAINS, query_looking_world, None)],
+    searches=[
+      Search(path='text', query=KeywordQuery(type='keyword', search=query_world)),
+      Search(path='text2', query=KeywordQuery(type='keyword', search=query_looking_world)),
+    ],
     combine_columns=True)
 
   assert list(result) == [{
@@ -92,13 +99,13 @@ def test_search_like_multiple(make_test_data: TestDataMaker) -> None:
   }]
 
 
-def test_search_like_with_filters(make_test_data: TestDataMaker) -> None:
+def test_search_keyword_with_filters(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
   query = 'world'
   result = dataset.select_rows(
     filters=[(UUID_COLUMN, ListOp.IN, ['1', '3'])],
-    searches=[('text', SearchType.CONTAINS, 'world', None)],
+    searches=[Search(path='text', query=KeywordQuery(type='keyword', search=query))],
     combine_columns=True)
 
   expected_signal_udf = SubstringSignal(query=query)
@@ -139,7 +146,11 @@ def test_semantic_search(make_test_data: TestDataMaker) -> None:
 
   query = 'hello2.'
   result = dataset.select_rows(
-    searches=[('text', SearchType.SEMANTIC, query, 'test_embedding')], combine_columns=True)
+    searches=[
+      Search(
+        path='text', query=SemanticQuery(type='semantic', search=query, embedding='test_embedding'))
+    ],
+    combine_columns=True)
   expected_signal_udf = SemanticSimilaritySignal(query=query, embedding='test_embedding')
   assert list(result) == [
     # Results are sorted by score desc.
@@ -157,6 +168,63 @@ def test_semantic_search(make_test_data: TestDataMaker) -> None:
         'hello world.', {
           test_embedding.key():
             [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.885, 1e-3)})]
+        })
+    },
+  ]
+
+
+def test_concept_search(make_test_data: TestDataMaker) -> None:
+
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello world2.',
+  }])
+
+  test_embedding = TestEmbedding()
+  dataset.compute_signal(test_embedding, ('text'))
+
+  concept_db = DiskConceptDB()
+  concept_db.create(namespace='test_namespace', name='test_concept', type=SignalInputType.TEXT)
+  concept_db.edit(
+    'test_namespace', 'test_concept',
+    ConceptUpdate(insert=[
+      ExampleIn(label=False, text='hello world.'),
+      ExampleIn(label=True, text='hello world2.')
+    ]))
+
+  result = dataset.select_rows(
+    searches=[
+      Search(
+        path='text',
+        query=ConceptQuery(
+          type='concept',
+          concept_namespace='test_namespace',
+          concept_name='test_concept',
+          embedding='test_embedding'))
+    ],
+    combine_columns=True)
+  expected_signal_udf = ConceptScoreSignal(
+    namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
+
+  assert list(result) == [
+    # Results are sorted by score desc.
+    {
+      UUID_COLUMN: '2',
+      'text': enriched_item(
+        'hello world2.', {
+          test_embedding.key():
+            [enriched_embedding_span(0, 13, {expected_signal_udf.key(): approx(0.727, 1e-3)})]
+        })
+    },
+    {
+      UUID_COLUMN: '1',
+      'text': enriched_item(
+        'hello world.', {
+          test_embedding.key():
+            [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.5, 1e-3)})]
         })
     },
   ]

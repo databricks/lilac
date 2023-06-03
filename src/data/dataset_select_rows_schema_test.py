@@ -8,6 +8,7 @@ from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
 from ..schema import PATH_WILDCARD, UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema
+from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
   EMBEDDING_KEY,
@@ -19,7 +20,15 @@ from ..signals.signal import (
   register_signal,
 )
 from ..signals.substring_search import SubstringSignal
-from .dataset import Column, SearchType, SelectRowsSchemaResult, SortOrder
+from .dataset import (
+  Column,
+  ConceptQuery,
+  KeywordQuery,
+  Search,
+  SelectRowsSchemaResult,
+  SemanticQuery,
+  SortOrder,
+)
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
@@ -349,7 +358,7 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
     })
 
 
-def test_search_contains_schema(make_test_data: TestDataMaker) -> None:
+def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
     'text': 'hello world',
@@ -359,8 +368,10 @@ def test_search_contains_schema(make_test_data: TestDataMaker) -> None:
   query_hello = 'hello'
 
   result = dataset.select_rows_schema(
-    searches=[('text', SearchType.CONTAINS, query_world, None),
-              ('text2', SearchType.CONTAINS, query_hello, None)],
+    searches=[
+      Search(path='text', query=KeywordQuery(search=query_world)),
+      Search(path='text2', query=KeywordQuery(search=query_hello)),
+    ],
     combine_columns=True)
 
   expected_world_signal = SubstringSignal(query=query_world)
@@ -392,16 +403,63 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
     'text': 'hello world.',
   }])
   query_world = 'world'
-  query_hello = 'hello'
 
   test_embedding = TestEmbedding()
   dataset.compute_signal(test_embedding, ('text'))
 
   result = dataset.select_rows_schema(
-    searches=[('text', SearchType.SEMANTIC, query_world, 'test_embedding')], combine_columns=True)
+    searches=[
+      Search(path='text', query=SemanticQuery(search=query_world, embedding='test_embedding')),
+    ],
+    combine_columns=True)
 
   test_embedding = TestEmbedding()
   expected_world_signal = SemanticSimilaritySignal(query=query_world, embedding='test_embedding')
+
+  text_result_path = ('text', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
+                      expected_world_signal.key())
+  assert result == SelectRowsSchemaResult(
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'text': field(
+        'string',
+        fields={
+          'test_embedding': field(
+            signal=test_embedding.dict(),
+            fields=[
+              enriched_embedding_span_field(
+                {expected_world_signal.key(): field('float32', expected_world_signal.dict())})
+            ])
+        })
+    }),
+    alias_udf_paths={expected_world_signal.key(): text_result_path},
+    search_results_paths=[text_result_path],
+    sort_results=[((expected_world_signal.key(),), SortOrder.DESC)])
+
+
+def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world.',
+  }])
+
+  test_embedding = TestEmbedding()
+  dataset.compute_signal(test_embedding, ('text'))
+
+  result = dataset.select_rows_schema(
+    searches=[
+      Search(
+        path='text',
+        query=ConceptQuery(
+          concept_namespace='test_namespace',
+          concept_name='test_concept',
+          embedding='test_embedding')),
+    ],
+    combine_columns=True)
+
+  test_embedding = TestEmbedding()
+  expected_world_signal = ConceptScoreSignal(
+    namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
 
   text_result_path = ('text', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
                       expected_world_signal.key())
