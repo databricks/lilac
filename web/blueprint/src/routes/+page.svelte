@@ -1,7 +1,9 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import {queryDatasets} from '$lib/queries/datasetQueries';
+  import {datasetLink} from '$lib/utils';
   import {Button, InlineNotification, SkeletonText, TreeView} from 'carbon-components-svelte';
+  import type {TreeNodeId} from 'carbon-components-svelte/types/TreeView/TreeView.svelte';
 
   const datasets = queryDatasets();
 
@@ -29,6 +31,11 @@
           .sort((a, b) => a.text.localeCompare(b.text))
       : []
   }));
+
+  function treeNodeSelected(id: TreeNodeId) {
+    const [namespace, datasetName] = (id as string).split('/');
+    goto(datasetLink(namespace, datasetName));
+  }
 </script>
 
 <div class="flex flex-col gap-y-4 p-4">
@@ -49,7 +56,7 @@
         {expandedIds}
         on:select={ev => {
           if (ev.detail.leaf) {
-            goto(`/datasets/${ev.detail.id}`);
+            treeNodeSelected(ev.detail.id);
           }
         }}
       />

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import {page} from '$app/stores';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     isFilterableField,
@@ -27,8 +26,8 @@
   on:click={() =>
     triggerCommand({
       command: Command.EditFilter,
-      namespace: $page.params.namespace,
-      datasetName: $page.params.datasetName,
+      namespace: $datasetViewStore.namespace,
+      datasetName: $datasetViewStore.datasetName,
       path: field.path
     })}
 />
@@ -38,8 +37,8 @@
   on:click={() =>
     triggerCommand({
       command: Command.ComputeEmbedding,
-      namespace: $page.params.namespace,
-      datasetName: $page.params.datasetName,
+      namespace: $datasetViewStore.namespace,
+      datasetName: $datasetViewStore.datasetName,
       path: field?.path
     })}
 />
@@ -49,8 +48,8 @@
   on:click={() =>
     triggerCommand({
       command: Command.PreviewConcept,
-      namespace: $page.params.namespace,
-      datasetName: $page.params.datasetName,
+      namespace: $datasetViewStore.namespace,
+      datasetName: $datasetViewStore.datasetName,
       path: field?.path
     })}
 />
@@ -60,8 +59,8 @@
   on:click={() =>
     triggerCommand({
       command: Command.ComputeSignal,
-      namespace: $page.params.namespace,
-      datasetName: $page.params.datasetName,
+      namespace: $datasetViewStore.namespace,
+      datasetName: $datasetViewStore.datasetName,
       path: field?.path
     })}
 />

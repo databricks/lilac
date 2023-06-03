@@ -1,6 +1,7 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import {createConceptMutation} from '$lib/queries/conceptQueries';
+  import {conceptLink} from '$lib/utils';
   import {
     ComposedModal,
     ModalBody,
@@ -20,7 +21,7 @@
   function submit() {
     $conceptCreate.mutate([{namespace, name, type: 'text'}], {
       onSuccess: () => {
-        goto('/concepts/' + namespace + '/' + name);
+        goto(conceptLink(namespace, name));
         close();
       }
     });

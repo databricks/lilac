@@ -1,5 +1,4 @@
 <script lang="ts">
-  import {page} from '$app/stores';
   import Commands from '$lib/components/commands/Commands.svelte';
   import RowView from '$lib/components/datasetView/RowView.svelte';
   import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
@@ -9,8 +8,8 @@
   import {getFieldsByDtype} from '$lilac';
   import {writable} from 'svelte/store';
 
-  $: namespace = $page.params.namespace;
-  $: datasetName = $page.params.datasetName;
+  export let namespace: string;
+  export let datasetName: string;
 
   $: datasetViewStore = createDatasetViewStore(namespace, datasetName);
   $: setDatasetViewContext(datasetViewStore);

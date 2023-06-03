@@ -1,20 +1,38 @@
 <script lang="ts">
-  import {QueryClientProvider} from '@tanstack/svelte-query';
-
   import ApiErrorModal from '$lib/components/ApiErrorModal.svelte';
   import TaskStatus from '$lib/components/TaskStatus.svelte';
   import {apiErrors, queryClient} from '$lib/queries/queryClient';
   import TaskMonitor from '$lib/stores/TaskMonitor.svelte';
   import type {ApiError} from '$lilac';
+  import {QueryClientProvider} from '@tanstack/svelte-query';
   import {ToastNotification} from 'carbon-components-svelte';
+  import {onMount} from 'svelte';
   // Styles
   import '../tailwind.css';
   // Carbon component must be imported after tailwind.css
+  import {urlHash} from '$lib/stores/urlHashStore';
   import 'carbon-components-svelte/css/white.css';
   import '../app.css';
 
   let showError: ApiError | undefined = undefined;
+
+  onMount(() => {
+    urlHash.set(location.hash);
+    history.pushState = function (_state, _unused, url) {
+      if (url instanceof URL) {
+        urlHash.set(url.hash);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return History.prototype.pushState.apply(history, arguments as any);
+    };
+  });
 </script>
+
+<!-- Monitor for hash changes in the URL. -->
+<svelte:window
+  on:hashchange={() => urlHash.set(location.hash)}
+  on:popstate={() => urlHash.set(location.hash)}
+/>
 
 <QueryClientProvider client={queryClient}>
   <main class="flex h-screen flex-col">

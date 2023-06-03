@@ -369,8 +369,8 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows_schema(
     searches=[
-      Search(path='text', query=KeywordQuery(search=query_world)),
-      Search(path='text2', query=KeywordQuery(search=query_hello)),
+      Search(path='text', query=KeywordQuery(type='keyword', search=query_world)),
+      Search(path='text2', query=KeywordQuery(type='keyword', search=query_hello)),
     ],
     combine_columns=True)
 
@@ -409,7 +409,9 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows_schema(
     searches=[
-      Search(path='text', query=SemanticQuery(search=query_world, embedding='test_embedding')),
+      Search(
+        path='text',
+        query=SemanticQuery(type='semantic', search=query_world, embedding='test_embedding')),
     ],
     combine_columns=True)
 
@@ -451,6 +453,7 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
       Search(
         path='text',
         query=ConceptQuery(
+          type='concept',
           concept_namespace='test_namespace',
           concept_name='test_concept',
           embedding='test_embedding')),

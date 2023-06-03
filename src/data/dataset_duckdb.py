@@ -1071,7 +1071,9 @@ class DatasetDuckDB(Dataset):
 
     return search_udfs, output_columns, sort_bys
 
-  def _create_where(self, filters: list[Filter], searches: Sequence[Search] = []) -> list[str]:
+  def _create_where(self,
+                    filters: list[Filter],
+                    searches: Optional[Sequence[Search]] = []) -> list[str]:
     if not filters and not searches:
       return []
     searches = searches or []
