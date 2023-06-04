@@ -144,12 +144,13 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       }),
     addSearch: (search: Search) =>
       update(state => {
+        state.queryOptions.searches = state.queryOptions.searches || [];
+
         // Dedupe searches.
-        for (const existingSearch of state.queryOptions.searches || []) {
+        for (const existingSearch of state.queryOptions.searches) {
           if (deepEqual(existingSearch, search)) return state;
         }
 
-        state.queryOptions.searches = state.queryOptions.searches || [];
         state.queryOptions.searches.push(search);
         return state;
       }),

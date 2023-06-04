@@ -131,6 +131,13 @@ class DuckDBSelectGroupsResult(SelectGroupsResult):
     return self._df
 
 
+class DuckDBSearchUDFs(BaseModel):
+  """The transformation of searches to column UDFs with sorts."""
+  udfs: list[Column]
+  output_paths: list[PathTuple]
+  sorts: list[tuple[PathTuple, SortOrder]]
+
+
 class DatasetDuckDB(Dataset):
   """The DuckDB implementation of the dataset database."""
 
@@ -628,14 +635,14 @@ class DatasetDuckDB(Dataset):
     self._validate_columns(cols, manifest.data_schema)
 
     self._normalize_searches(searches)
-    search_udfs, _, search_sorts = self._search_udfs(searches)
-    if search_sorts:
+    search_udfs = self._search_udfs(searches)
+    if search_udfs.sorts:
       if not sort_by:
-        # Override the sort by by the first search sort order.
-        search_sort_by, sort_order = search_sorts[0]
+        # Override the sort by by the last search sort order.
+        search_sort_by, sort_order = search_udfs.sorts[-1]
         sort_by = [search_sort_by]
 
-    cols.extend(search_udfs)
+    cols.extend(search_udfs.udfs)
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
     columns_to_merge: dict[str, dict[str, Column]] = {}
     temp_column_to_offset_column: dict[str, tuple[str, Field]] = {}
@@ -903,8 +910,8 @@ class DatasetDuckDB(Dataset):
     self._validate_columns(cols, manifest.data_schema)
 
     self._normalize_searches(searches)
-    search_udfs, search_results_paths, search_sort_bys = self._search_udfs(searches)
-    cols.extend(search_udfs)
+    search_udfs = self._search_udfs(searches)
+    cols.extend(search_udfs.udfs)
 
     alias_udf_paths: dict[str, PathTuple] = {}
     col_schemas: list[Schema] = []
@@ -923,8 +930,8 @@ class DatasetDuckDB(Dataset):
     return SelectRowsSchemaResult(
       data_schema=data_schema,
       alias_udf_paths=alias_udf_paths,
-      search_results_paths=search_results_paths,
-      sort_results=search_sort_bys)
+      search_results_paths=search_udfs.output_paths,
+      sort_results=search_udfs.sorts)
 
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
@@ -1023,24 +1030,31 @@ class DatasetDuckDB(Dataset):
         raise ValueError(f'Invalid search path: {search.path}. '
                          f'Must be a string field, got dtype {field.dtype}')
 
-  def _search_udfs(
-    self, searches: Optional[Sequence[Search]]
-  ) -> tuple[list[Column], list[PathTuple], list[tuple[Path, SortOrder]]]:
+  def _search_udfs(self, searches: Optional[Sequence[Search]]) -> DuckDBSearchUDFs:
     searches = searches or []
     """Create a UDF for each search for finding the location of the text with spans."""
-    search_udfs: list[Column] = []
-    output_columns: list[PathTuple] = []
-    sort_bys: list[tuple[Path, SortOrder]] = []
+    udfs: list[Column] = []
+    output_paths: list[PathTuple] = []
+    sorts: list[tuple[PathTuple, SortOrder]] = []
     for i, search in enumerate(searches):
       if search.query.type == 'keyword':
         udf = Column(path=search.path, signal_udf=SubstringSignal(query=search.query.search))
-        search_udfs.append(udf)
+        udfs.append(udf)
         # The output to be selected is an array of results.
-        output_columns.append((*_col_destination_path(udf), PATH_WILDCARD))
+        output_paths.append((*_col_destination_path(udf), PATH_WILDCARD))
       elif search.query.type == 'semantic' or search.query.type == 'concept':
         embedding = search.query.embedding
         if not embedding:
           raise ValueError(f'Please provide an embedding for semantic search. Got search: {search}')
+
+        embedding_path = (*search.path, embedding, PATH_WILDCARD, EMBEDDING_KEY)
+        try:
+          self.manifest().data_schema.get_field(embedding_path)
+        except Exception as e:
+          raise ValueError(
+            f'Embedding {embedding} has not been computed. '
+            f'Please compute the embedding index before issuing a {search.query.type} query.'
+          ) from e
 
         search_signal: Signal
         if search.query.type == 'semantic':
@@ -1052,24 +1066,16 @@ class DatasetDuckDB(Dataset):
             concept_name=search.query.concept_name,
             embedding=search.query.embedding)
 
-        signal_path = (*search.path, embedding, PATH_WILDCARD, EMBEDDING_KEY)
-        try:
-          self.manifest().data_schema.get_field(signal_path)
-        except Exception as e:
-          raise ValueError(
-            f'Embedding {embedding} has not been computed. '
-            'Please compute the embedding index before issuing a semantic query.') from e
-
         alias = search_signal.key()
-        udf = Column(path=signal_path, signal_udf=search_signal, alias=search_signal.key())
-        search_udfs.append(udf)
+        udf = Column(path=embedding_path, signal_udf=search_signal, alias=alias)
+        udfs.append(udf)
 
-        output_columns.append(_col_destination_path(udf))
-        sort_bys.append(((alias,), SortOrder.DESC))
+        output_paths.append(_col_destination_path(udf))
+        sorts.append(((alias,), SortOrder.DESC))
       else:
         raise ValueError(f'Unknown search operator {search.query.type}.')
 
-    return search_udfs, output_columns, sort_bys
+    return DuckDBSearchUDFs(udfs=udfs, output_paths=output_paths, sorts=sorts)
 
   def _create_where(self,
                     filters: list[Filter],
