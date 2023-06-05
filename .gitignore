@@ -29,3 +29,6 @@ data/concept/*
 
 # Typescript.
 tsconfig.tsbuildinfo
+
+# Gmail source settings.
+.gmail/

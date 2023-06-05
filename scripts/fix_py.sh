@@ -11,3 +11,6 @@ ruff --fix src/
 
 echo "Fixing python imports with isort..."
 isort src/
+
+echo "Fixing python formatting with yapf..."
+yapf -i -p -r src/

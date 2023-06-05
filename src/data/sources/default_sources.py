@@ -1,5 +1,6 @@
 """Registers all available default sources."""
 from .csv_source import CSVDataset
+from .gmail_source import Gmail
 from .huggingface_source import HuggingFaceDataset
 from .json_source import JSONDataset
 from .pandas_source import PandasDataset
@@ -14,3 +15,4 @@ def register_default_sources() -> None:
   register_source(RedditDataset)
   register_source(JSONDataset)
   register_source(PandasDataset)
+  register_source(Gmail)
