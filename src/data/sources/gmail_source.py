@@ -1,5 +1,7 @@
 """Gmail source."""
 import os.path
+import random
+from time import sleep
 from typing import Any, Iterable, Optional
 
 from google.auth.transport.requests import Request
@@ -19,6 +21,8 @@ _SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 _GMAIL_CONFIG_DIR = '.gmail'
 _TOKEN_FILENAME = 'token.json'
 _CREDS_FILENAME = 'credentials.json'
+_NUM_RETRIES = 5
+_MAX_NUM_THREADS = 1_000
 
 
 class Gmail(Source):
@@ -55,8 +59,9 @@ class Gmail(Source):
           raise ValueError(
             f'Could not find the OAuth credentials file at "{self.credentials_file}". Make sure to '
             'download it from the Google Cloud Console and save it to the correct location.')
-        flow = InstalledAppFlow.from_client_secrets_file(self.credentials_file, _SCOPES)
-        self._creds = flow.run_local_server(port=0)
+        flow = InstalledAppFlow.from_client_secrets_file(
+          self.credentials_file, _SCOPES, redirect_uri='http://localhost:5432/datasets/new')
+        self._creds = flow.run_local_server()
 
       os.makedirs(os.path.dirname(token_filepath), exist_ok=True)
       # Save the token for the next run.
@@ -71,33 +76,51 @@ class Gmail(Source):
   def process(self) -> Iterable[Item]:
     # Call the Gmail API
     service = build('gmail', 'v1', credentials=self._creds)
+
     # threads.list API
     threads_resource = service.users().threads()
-    # first request
-    thread_list_req = threads_resource.list(userId='me', includeSpamTrash=False) or None
 
     thread_batch: list[Item] = []
+    retry_batch: set[str] = set()
+    num_retries = 0
+    num_threads_fetched = 0
 
     def _thread_fetched(request_id: str, response: Any, exception: Optional[HttpError]) -> None:
       if exception is not None:
-        log('threads.get failed for message id {}: {}'.format(request_id, exception))
+        retry_batch.add(request_id)
       else:
         text = '\n\n'.join([msg['snippet'] for msg in response['messages']])
         thread_batch.append({'text': text})
+        if request_id in retry_batch:
+          retry_batch.remove(request_id)
 
-    while thread_list_req is not None:
-      thread_list = thread_list_req.execute()
+    # First request.
+    thread_list_req = threads_resource.list(userId='me', includeSpamTrash=False) or None
+    thread_list = thread_list_req.execute(num_retries=_NUM_RETRIES) if thread_list_req else None
 
-      # we build the batch request
+    while (num_threads_fetched < _MAX_NUM_THREADS and thread_list and thread_list_req):
       batch = service.new_batch_http_request(callback=_thread_fetched)
+
       for gmail_thread in thread_list['threads']:
-        batch.add(
-          service.users().threads().get(userId='me', id=gmail_thread['id'], format='full'),
-          request_id=gmail_thread['id'])
+        thread_id = gmail_thread['id']
+        if not retry_batch or (thread_id in retry_batch):
+          batch.add(
+            service.users().threads().get(userId='me', id=thread_id, format='full'),
+            request_id=thread_id)
 
       batch.execute()
+      num_threads_fetched += len(thread_batch)
       yield from thread_batch
       thread_batch = []
 
-      # Fetch next page.
-      thread_list_req = threads_resource.list_next(thread_list_req, thread_list)
+      if retry_batch:
+        log(f'Failed to fetch {len(retry_batch)} threads. Retrying...')
+        timeout = 2**(num_retries - 1) + random.uniform(0, 1)
+        sleep(timeout)
+        num_retries += 1
+      else:
+        retry_batch = set()
+        num_retries = 0
+        # Fetch next page.
+        thread_list_req = threads_resource.list_next(thread_list_req, thread_list)
+        thread_list = thread_list_req.execute(num_retries=_NUM_RETRIES) if thread_list_req else None
