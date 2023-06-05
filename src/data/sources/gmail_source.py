@@ -5,6 +5,7 @@ import random
 from time import sleep
 from typing import Any, Iterable, Optional
 
+import html2text
 from email_reply_parser import EmailReplyParser
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -25,6 +26,13 @@ _TOKEN_FILENAME = 'token.json'
 _CREDS_FILENAME = 'credentials.json'
 _NUM_RETRIES = 5
 _MAX_NUM_THREADS = 1_000
+
+text_maker = html2text.HTML2Text()
+text_maker.ignore_links = True
+text_maker.ignore_images = True
+text_maker.ignore_tables = True
+text_maker.ignore_emphasis = True
+text_maker.body_width = 0
 
 
 class Gmail(Source):
@@ -96,14 +104,16 @@ class Gmail(Source):
       if exception is not None:
         retry_batch.add(request_id)
       else:
-        text = '\n\n'.join([
-          EmailReplyParser.parse_reply(
-            base64.urlsafe_b64decode(
-              msg['payload']['body']['data'].encode('ascii')).decode('utf-8'))
-          for msg in response['messages']
-          if 'payload' in msg and 'body' in msg['payload'] and 'data' in msg['payload']['body']
-        ])
-        thread_batch.append({'text': text})
+        replies: list[str] = []
+        for msg in response['messages']:
+          bodies = _get_all_body_parts(msg['payload'])
+          parsed_parts = [
+            EmailReplyParser.parse_reply(
+              text_maker.handle(base64.urlsafe_b64decode(body).decode('utf-8'))) for body in bodies
+          ]
+          replies.extend(parsed_parts)
+        if replies:
+          thread_batch.append({'text': '\n\n'.join(replies)})
         if request_id in retry_batch:
           retry_batch.remove(request_id)
 
@@ -137,3 +147,14 @@ class Gmail(Source):
         # Fetch next page.
         thread_list_req = threads_resource.list_next(thread_list_req, thread_list)
         thread_list = thread_list_req.execute(num_retries=_NUM_RETRIES) if thread_list_req else None
+
+
+def _get_all_body_parts(payload: Any) -> list[bytes]:
+  parts: list[bytes] = []
+  if 'mimeType' in payload and payload['mimeType'] in ['text/plain', 'text/html']:
+    if 'body' in payload and 'data' in payload['body']:
+      parts.append(payload['body']['data'].encode('ascii'))
+  if 'parts' in payload:
+    for part in payload['parts']:
+      parts.extend(_get_all_body_parts(part))
+  return parts
