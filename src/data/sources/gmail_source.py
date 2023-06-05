@@ -1,9 +1,11 @@
 """Gmail source."""
+import base64
 import os.path
 import random
 from time import sleep
 from typing import Any, Iterable, Optional
 
+from email_reply_parser import EmailReplyParser
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -26,9 +28,15 @@ _MAX_NUM_THREADS = 1_000
 
 
 class Gmail(Source):
-  """Gmail data loader.
+  """Connects to your Gmail and loads the text of your emails.
 
-  TODO: write more details.
+  **One time setup**
+
+  Download the OAuth credentials file from the
+  [Google Cloud Console](https://console.cloud.google.com/apis/credentials) and save it to the
+  correct location. See
+  [guide](https://developers.google.com/gmail/api/quickstart/python#authorize_credentials_for_a_desktop_application)
+  for details.
   """
 
   name = 'gmail'
@@ -59,8 +67,7 @@ class Gmail(Source):
           raise ValueError(
             f'Could not find the OAuth credentials file at "{self.credentials_file}". Make sure to '
             'download it from the Google Cloud Console and save it to the correct location.')
-        flow = InstalledAppFlow.from_client_secrets_file(
-          self.credentials_file, _SCOPES, redirect_uri='http://localhost:5432/datasets/new')
+        flow = InstalledAppFlow.from_client_secrets_file(self.credentials_file, _SCOPES)
         self._creds = flow.run_local_server()
 
       os.makedirs(os.path.dirname(token_filepath), exist_ok=True)
@@ -89,7 +96,13 @@ class Gmail(Source):
       if exception is not None:
         retry_batch.add(request_id)
       else:
-        text = '\n\n'.join([msg['snippet'] for msg in response['messages']])
+        text = '\n\n'.join([
+          EmailReplyParser.parse_reply(
+            base64.urlsafe_b64decode(
+              msg['payload']['body']['data'].encode('ascii')).decode('utf-8'))
+          for msg in response['messages']
+          if 'payload' in msg and 'body' in msg['payload'] and 'data' in msg['payload']['body']
+        ])
         thread_batch.append({'text': text})
         if request_id in retry_batch:
           retry_batch.remove(request_id)

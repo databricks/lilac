@@ -138,5 +138,6 @@
 <style lang="postcss">
   :global(.description p) {
     @apply text-sm;
+    margin: 1em 0px;
   }
 </style>
