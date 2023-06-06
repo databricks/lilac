@@ -105,7 +105,7 @@ class GroupsSortBy(str, enum.Enum):
 
 
 class SortResult(BaseModel):
-  """The result of a column sort query."""
+  """The information about what is sorted after combining searches and explicit sorts."""
   # The column that was sorted.
   path: PathTuple
   # The sort order.
@@ -114,11 +114,6 @@ class SortResult(BaseModel):
   alias: Optional[str]
   # The search index if the sort is by a search.
   search_index: Optional[int]
-
-
-class SortResults(BaseModel):
-  """The resulting sort order returned by the select rows schema."""
-  sorts: list[SortResult]
 
 
 class SearchResultInfo(BaseModel):

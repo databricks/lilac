@@ -5,7 +5,7 @@
 import type { SortOrder } from './SortOrder';
 
 /**
- * The result of a column sort query.
+ * The information about what is sorted after combining searches and explicit sorts.
  */
 export type SortResult = {
     path: Array<string>;

@@ -75,7 +75,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     set,
     update,
     reset: () => {
-      set(JSON.parse(JSON.stringify(initialState)));
+      set(initialState);
     },
 
     addSelectedColumn: (path: Path | string) =>
