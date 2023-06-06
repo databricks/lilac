@@ -82,7 +82,7 @@
       {path.join('.')}
     </div>
 
-    <div class="whitespace-pre">
+    <div>
       <StringSpanHighlight
         text={formatValue(values[0])}
         {stringSpanFields}
