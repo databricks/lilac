@@ -5,17 +5,20 @@ from typing import Iterable, cast
 import numpy as np
 import pytest
 from pytest import approx
+from pytest_mock import MockerFixture
 from sklearn.preprocessing import normalize
 from typing_extensions import override
 
-from ..concepts.concept import ExampleIn
+from ..concepts.concept import ExampleIn, LogisticEmbeddingModel
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
+from ..db_manager import set_default_dataset_cls
 from ..schema import UUID_COLUMN, Item, RichData, SignalInputType
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from ..signals.substring_search import SubstringSignal
 from .dataset import ConceptQuery, KeywordQuery, ListOp, Search, SemanticQuery, SortOrder
+from .dataset_duckdb import DatasetDuckDB
 from .dataset_test_utils import TestDataMaker, enriched_embedding_span, enriched_item
 from .dataset_utils import lilac_embedding, lilac_span
 
@@ -44,6 +47,7 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
+  set_default_dataset_cls(DatasetDuckDB)
   register_signal(TestEmbedding)
 
   # Unit test runs.
@@ -206,7 +210,8 @@ def test_semantic_search(make_test_data: TestDataMaker) -> None:
   ]
 
 
-def test_concept_search(make_test_data: TestDataMaker) -> None:
+def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
+  concept_model_mock = mocker.spy(LogisticEmbeddingModel, 'fit')
 
   dataset = make_test_data([{
     UUID_COLUMN: '1',
@@ -249,7 +254,7 @@ def test_concept_search(make_test_data: TestDataMaker) -> None:
       'text': enriched_item(
         'hello world2.', {
           test_embedding.key():
-            [enriched_embedding_span(0, 13, {expected_signal_udf.key(): approx(0.727, 1e-3)})]
+            [enriched_embedding_span(0, 13, {expected_signal_udf.key(): approx(0.523, 1e-3)})]
         })
     },
     {
@@ -257,9 +262,20 @@ def test_concept_search(make_test_data: TestDataMaker) -> None:
       'text': enriched_item(
         'hello world.', {
           test_embedding.key():
-            [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.5, 1e-3)})]
+            [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.247, 1e-3)})]
         })
     },
+  ]
+
+  # Make sure fit was called with negative examples.
+  (_, embeddings, labels) = concept_model_mock.call_args_list[-1].args
+  assert embeddings.shape == (4, 3)
+  assert labels == [
+    False,
+    True,
+    # Negative implicit labels.
+    False,
+    False
   ]
 
 
