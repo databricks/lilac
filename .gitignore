@@ -16,12 +16,11 @@ node_modules/
 dist/
 
 # Data to ignore.
-data/datasets
-data/local_cache
-# Ignore pickled concept models but not the concept's training data.
-data/concept/**/*.pkl
-data/concept/*
+data/
 !data/concept/lilac/
+
+# Ignore pickled concept models.
+data/concept/**/*.pkl
 
 # Env
 .env.local

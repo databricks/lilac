@@ -74,6 +74,39 @@ def test_search_keyword(make_test_data: TestDataMaker) -> None:
   }]
 
 
+def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'This is 100%',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'This has _underscore_',
+  }])
+
+  query = '100%'
+  result = dataset.select_rows(
+    searches=[Search(path='text', query=KeywordQuery(type='keyword', search=query))],
+    combine_columns=True)
+
+  expected_signal_udf = SubstringSignal(query=query)
+  assert list(result) == [{
+    UUID_COLUMN: '1',
+    'text': enriched_item('This is 100%', {expected_signal_udf.key(): [lilac_span(8, 12)]}),
+  }]
+
+  query = '_underscore_'
+  result = dataset.select_rows(
+    searches=[Search(path='text', query=KeywordQuery(type='keyword', search=query))],
+    combine_columns=True)
+
+  expected_signal_udf = SubstringSignal(query=query)
+  assert list(result) == [{
+    UUID_COLUMN: '2',
+    'text': enriched_item('This has _underscore_',
+                          {expected_signal_udf.key(): [lilac_span(9, 21)]}),
+  }]
+
+
 def test_search_keyword_multiple(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 

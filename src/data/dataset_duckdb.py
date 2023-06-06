@@ -170,9 +170,9 @@ class DatasetDuckDB(Dataset):
     self.vector_store_cls = vector_store_cls
     self._manifest_lock = threading.Lock()
 
-  def _create_view(self, view_name: str, parquet_files: list[str]) -> None:
+  def _create_view(self, view_name: str, files: list[str]) -> None:
     self.con.execute(f"""
-      CREATE OR REPLACE VIEW "{view_name}" AS (SELECT * FROM read_parquet({parquet_files}));
+      CREATE OR REPLACE VIEW {_escape_col_name(view_name)} AS (SELECT * FROM read_parquet({files}));
     """)
 
   @functools.cache
@@ -210,12 +210,12 @@ class DatasetDuckDB(Dataset):
     #   FROM source JOIN "parquet_id1" USING (uuid,) JOIN "parquet_id2" USING (uuid,)
     # );
     # NOTE: "root_column" for each signal is defined as the top-level column.
-    select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [
-      f'"{manifest.parquet_id}"."{_root_column(manifest)}" AS "{manifest.parquet_id}"'
-      for manifest in self._signal_manifests
-    ])
+    select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [(
+      f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
+      f'AS {_escape_col_name(manifest.parquet_id)}') for manifest in self._signal_manifests])
     join_sql = ' '.join([SOURCE_VIEW_NAME] + [
-      f'join "{manifest.parquet_id}" using ({UUID_COLUMN},)' for manifest in self._signal_manifests
+      f'join {_escape_col_name(manifest.parquet_id)} using ({UUID_COLUMN},)'
+      for manifest in self._signal_manifests
     ])
 
     sql_cmd = f"""CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})"""
@@ -711,13 +711,14 @@ class DatasetDuckDB(Dataset):
           duckdb_path, flatten=False, unnest=False, empty=empty, span_from=span_from)
         temp_column_name = (
           final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}')
-        select_sqls.append(f'{sql} AS "{temp_column_name}"')
+        select_sqls.append(f'{sql} AS {_escape_string_literal(temp_column_name)}')
         columns_to_merge[final_col_name][temp_column_name] = column
 
         if column.signal_udf and span_from and _schema_has_spans(column.signal_udf.fields()):
           sql = _select_sql(duckdb_path, flatten=False, unnest=False, empty=empty, span_from=None)
           temp_offset_column_name = f'{temp_column_name}/offset'
-          select_sqls.append(f'{sql} AS "{temp_offset_column_name}"')
+          temp_offset_column_name = temp_offset_column_name.replace("'", "\\'")
+          select_sqls.append(f'{sql} AS {_escape_string_literal(temp_offset_column_name)}')
           temp_column_to_offset_column[temp_column_name] = (temp_offset_column_name,
                                                             column.signal_udf.fields())
 
@@ -784,14 +785,17 @@ class DatasetDuckDB(Dataset):
                      f'{cast(SortOrder, sort_order).value}')
 
     con = self.con.cursor()
-    query = con.sql(f"""
+
+    limit_query = ''
+    if limit and not sort_cols_after_udf:
+      limit_query = f'LIMIT {limit} OFFSET {offset or 0}'
+
+    query = con.execute(f"""
       SELECT {', '.join(select_queries)} FROM t
       {where_query}
       {order_query}
+      {limit_query}
     """)
-
-    if limit and not sort_cols_after_udf:
-      query = query.limit(limit, offset or 0)
 
     # Download the data so we can run UDFs on it in Python.
     df = _replace_nan_with_none(query.df())
@@ -875,22 +879,22 @@ class DatasetDuckDB(Dataset):
 
     if udf_filters or sort_cols_after_udf:
       # Re-upload the udf outputs to duckdb so we can filter/sort on them.
-      query = con.from_df(df)
+      rel = con.from_df(df)
 
       if udf_filters:
         udf_filter_queries = self._create_where(udf_filters)
         if udf_filter_queries:
-          query = query.filter(' AND '.join(udf_filter_queries))
+          rel = rel.filter(' AND '.join(udf_filter_queries))
 
       if not already_sorted and sort_cols_after_udf:
         if not sort_order:
           raise ValueError('`sort_order` is required when `sort_by` is specified.')
-        query = query.order(f'{", ".join(sort_cols_after_udf)} {sort_order.value}')
+        rel = rel.order(f'{", ".join(sort_cols_after_udf)} {sort_order.value}')
 
       if limit:
-        query = query.limit(limit, offset or 0)
+        rel = rel.limit(limit, offset or 0)
 
-      df = _replace_nan_with_none(query.df())
+      df = _replace_nan_with_none(rel.df())
 
     if combine_columns:
       all_columns: dict[str, Column] = {}
@@ -1151,7 +1155,7 @@ class DatasetDuckDB(Dataset):
       select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
       if search.query.type == 'keyword':
         sql_op = 'ILIKE'
-        query_val = f"'%{search.query.search}%'"
+        query_val = _escape_like_value(search.query.search)
       elif search.query.type == 'semantic' or search.query.type == 'concept':
         # Semantic search and concepts don't yet filter.
         continue
@@ -1230,7 +1234,24 @@ class DatasetDuckDB(Dataset):
     """Convert a path to a column name."""
     if isinstance(path, str):
       path = (path,)
-    return '.'.join([f'"{path_comp}"' if quote_each_part else str(path_comp) for path_comp in path])
+    return '.'.join([
+      f'{_escape_col_name(path_comp)}' if quote_each_part else str(path_comp) for path_comp in path
+    ])
+
+
+def _escape_string_literal(string: str) -> str:
+  string = string.replace("'", "''")
+  return f"'{string}'"
+
+
+def _escape_col_name(col_name: str) -> str:
+  col_name = col_name.replace('"', '""')
+  return f'"{col_name}"'
+
+
+def _escape_like_value(value: str) -> str:
+  value = value.replace('%', '\\%').replace('_', '\\_')
+  return f"'%{value}%' ESCAPE '\\'"
 
 
 def _inner_select(sub_paths: list[PathTuple],
@@ -1242,7 +1263,7 @@ def _inner_select(sub_paths: list[PathTuple],
   lambda_var = inner_var + 'x' if inner_var else 'x'
   if not inner_var:
     lambda_var = 'x'
-    inner_var = f'"{current_sub_path[0]}"'
+    inner_var = _escape_col_name(current_sub_path[0])
     current_sub_path = current_sub_path[1:]
   # Select the path inside structs. E.g. x['a']['b']['c'] given current_sub_path = [a, b, c].
   path_key = inner_var + ''.join([f"['{p}']" for p in current_sub_path])
