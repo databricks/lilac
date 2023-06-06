@@ -82,7 +82,7 @@ export const querySelectRowsSchema = createApiQuery(
     select: res => {
       return {
         schema: deserializeSchema(res.data_schema, res.alias_udf_paths as Record<string, Path>),
-        searchResultsPaths: res.search_results_paths as Path[]
+        ...res
       };
     }
   }

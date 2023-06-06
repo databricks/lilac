@@ -17,8 +17,10 @@ from ..concepts.db_concept import (
   DiskConceptModelDB,
 )
 from ..config import CONFIG
+from ..data.dataset_duckdb import DatasetDuckDB
 from ..data.dataset_test_utils import TestDataMaker
 from ..data.dataset_utils import lilac_embedding
+from ..db_manager import set_default_dataset_cls
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import UUID_COLUMN, Item, RichData, SignalInputType
 from .concept_scorer import ConceptScoreSignal
@@ -58,6 +60,7 @@ class TestEmbedding(TextEmbeddingSignal):
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Generator:
   # Setup.
+  set_default_dataset_cls(DatasetDuckDB)
   register_signal(TestEmbedding)
 
   # Unit test runs.

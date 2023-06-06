@@ -73,7 +73,7 @@
 >
   {#if conceptName != null && conceptNamespace != null}
     <div class="flex flex-row px-4 pt-2">
-      <span class="pr-4">{conceptName} / {conceptNamespace}</span>
+      <span class="pr-4">{conceptNamespace} / {conceptName}</span>
       <button class="px-2" on:click={() => addLabel(true)}>
         <ThumbsUpFilled />
       </button>

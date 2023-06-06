@@ -2,17 +2,25 @@
   import Commands from '$lib/components/commands/Commands.svelte';
   import RowView from '$lib/components/datasetView/RowView.svelte';
   import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
-  import {queryDatasetSchema, queryManyDatasetStats} from '$lib/queries/datasetQueries';
-  import {setDatasetContext, type DatasetStore} from '$lib/stores/datasetStore';
-  import {createDatasetViewStore, setDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {
+    queryDatasetSchema,
+    queryManyDatasetStats,
+    querySelectRowsSchema
+  } from '$lib/queries/datasetQueries';
+  import {createDatasetStore, setDatasetContext, type StatsInfo} from '$lib/stores/datasetStore';
+  import {
+    createDatasetViewStore,
+    getSelectRowsOptions,
+    setDatasetViewContext
+  } from '$lib/stores/datasetViewStore';
   import {getFieldsByDtype} from '$lilac';
-  import {writable} from 'svelte/store';
 
   export let namespace: string;
   export let datasetName: string;
 
   $: datasetViewStore = createDatasetViewStore(namespace, datasetName);
   $: setDatasetViewContext(datasetViewStore);
+  $: selectOptions = getSelectRowsOptions($datasetViewStore);
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   $: stringFields = getFieldsByDtype('string', $schema.data);
@@ -28,18 +36,28 @@
     })
   );
 
-  const datasetStore = writable<DatasetStore>({schema: null, stats: null});
+  // Get the resulting schema including UDF columns
+  $: selectRowsSchema = selectOptions
+    ? querySelectRowsSchema(
+        $datasetViewStore.namespace,
+        $datasetViewStore.datasetName,
+        selectOptions
+      )
+    : undefined;
+
+  const datasetStore = createDatasetStore();
   setDatasetContext(datasetStore);
 
   // Compute the stats for all string fields and write them to the dataset store. This allows us to
   // share stats about fields with all children.
+  let sortedStats: StatsInfo[] | null = null;
   $: {
     if (
       $schema.data != null &&
       $stats.length > 0 &&
       !$stats.some(stat => stat == null || stat.isLoading)
     ) {
-      const sortedStats = $stats
+      sortedStats = $stats
         .map((stats, i) => ({path: stringFields[i].path, stats}))
         .sort((a, b) => {
           if (a == null || b == null) {
@@ -47,10 +65,22 @@
           }
           return (b.stats.data?.avg_text_length || 0) - (a.stats.data?.avg_text_length || 0);
         });
-      datasetStore.set({
-        schema: $schema.data,
-        stats: sortedStats
-      });
+    }
+  }
+
+  $: {
+    if ($schema.data != null) {
+      datasetStore.setSchema($schema.data);
+    }
+  }
+  $: {
+    if ($selectRowsSchema?.data != null) {
+      datasetStore.setSelectRowsSchema($selectRowsSchema.data);
+    }
+  }
+  $: {
+    if (sortedStats != null) {
+      datasetStore.setStats(sortedStats);
     }
   }
 </script>

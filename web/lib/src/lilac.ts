@@ -1,5 +1,13 @@
 import type {JSONSchema7} from 'json-schema';
-import type {DataType, Field, Schema, Search, Signal, SignalInfo} from '../fastapi_client';
+import type {
+  DataType,
+  Field,
+  Schema,
+  Search,
+  SelectRowsSchemaResult,
+  Signal,
+  SignalInfo
+} from '../fastapi_client';
 import {
   PATH_WILDCARD,
   VALUE_KEY,
@@ -31,6 +39,9 @@ export type LilacField<S extends Signal = Signal> = Field & {
   signal?: S;
 };
 export type LilacSchema = LilacField;
+export type LilacSelectRowsSchema = SelectRowsSchemaResult & {
+  schema: LilacSchema;
+};
 
 export type LilacValueNode = {
   readonly [key: string | number]: LilacValueNode;
@@ -94,7 +105,7 @@ export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacVa
 
 /** List all fields as a flattened array */
 export function childFields(field: LilacField | LilacSchema | undefined): LilacField[] {
-  if (!field) return [];
+  if (field == null) return [];
   const result = [
     field,
     ...Object.values(field.fields || {}).flatMap(childFields),
@@ -102,6 +113,12 @@ export function childFields(field: LilacField | LilacSchema | undefined): LilacF
   ].filter(f => f.path.length > 0);
 
   return result;
+}
+
+/** Get all field petals (nodes with values). */
+export function petals(field: LilacField | LilacSchema | undefined): LilacField[] {
+  if (field == null) return [];
+  return childFields(field).filter(f => f.dtype != null);
 }
 
 export function getFieldsByDtype(dtype: DataType, schema?: LilacSchema): LilacField[] {

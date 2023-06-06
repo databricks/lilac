@@ -65,9 +65,9 @@
   $: keywordSearchSpanFields =
     $datasetViewStore && $datasetViewStore.queryOptions.searches
       ? visibleFields.filter(field => {
-          const searchResultsPaths = $selectRowsSchema?.data?.searchResultsPaths || [];
-          for (const [i, searchPath] of searchResultsPaths.entries()) {
-            if (pathIsEqual(field.path, searchPath)) {
+          const searchResults = $selectRowsSchema?.data?.search_results || [];
+          for (const [i, searchResult] of searchResults.entries()) {
+            if (pathIsEqual(field.path, searchResult.result_path)) {
               return ($datasetViewStore.queryOptions.searches || [])[i].query.type === 'keyword';
             }
           }

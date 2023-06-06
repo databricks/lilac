@@ -196,6 +196,8 @@ class SelectRowsSchemaOptions(BaseModel):
   """The request for the select rows schema endpoint."""
   columns: Optional[Sequence[Union[Path, Column]]]
   searches: Optional[Sequence[Search]]
+  sort_by: Optional[Sequence[Path]]
+  sort_order: Optional[SortOrder] = SortOrder.DESC
   combine_columns: Optional[bool]
 
 
@@ -236,6 +238,8 @@ def select_rows_schema(namespace: str, dataset_name: str,
   return dataset.select_rows_schema(
     columns=options.columns,
     searches=options.searches or [],
+    sort_by=options.sort_by,
+    sort_order=options.sort_order,
     combine_columns=options.combine_columns or False)
 
 

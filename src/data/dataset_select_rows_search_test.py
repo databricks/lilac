@@ -15,7 +15,7 @@ from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from ..signals.substring_search import SubstringSignal
-from .dataset import ConceptQuery, KeywordQuery, ListOp, Search, SemanticQuery
+from .dataset import ConceptQuery, KeywordQuery, ListOp, Search, SemanticQuery, SortOrder
 from .dataset_test_utils import TestDataMaker, enriched_embedding_span, enriched_item
 from .dataset_utils import lilac_embedding, lilac_span
 
@@ -227,4 +227,61 @@ def test_concept_search(make_test_data: TestDataMaker) -> None:
             [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.5, 1e-3)})]
         })
     },
+  ]
+
+
+def test_sort_override_search(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world.',
+    'value': 10
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello world2.',
+    'value': 20
+  }])
+
+  test_embedding = TestEmbedding()
+  dataset.compute_signal(test_embedding, ('text'))
+
+  query = 'hello2.'
+  search = Search(
+    path='text', query=SemanticQuery(type='semantic', search=query, embedding='test_embedding'))
+
+  expected_signal_udf = SemanticSimilaritySignal(query=query, embedding='test_embedding')
+  expected_item_1 = {
+    UUID_COLUMN: '1',
+    'text': enriched_item(
+      'hello world.', {
+        test_embedding.key():
+          [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.885, 1e-3)})]
+      }),
+    'value': 10
+  }
+  expected_item_2 = {
+    UUID_COLUMN: '2',
+    'text': enriched_item(
+      'hello world2.', {
+        test_embedding.key():
+          [enriched_embedding_span(0, 13, {expected_signal_udf.key(): approx(0.916, 1e-3)})]
+      }),
+    'value': 20
+  }
+
+  sort_order = SortOrder.ASC
+  result = dataset.select_rows(
+    searches=[search], sort_by=[('value',)], sort_order=sort_order, combine_columns=True)
+  assert list(result) == [
+    # Results are sorted by score ascending.
+    expected_item_1,
+    expected_item_2
+  ]
+
+  sort_order = SortOrder.DESC
+  result = dataset.select_rows(
+    searches=[search], sort_by=[('text',)], sort_order=sort_order, combine_columns=True)
+  assert list(result) == [
+    # Results are sorted by score descending.
+    expected_item_2,
+    expected_item_1
   ]

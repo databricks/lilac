@@ -10,21 +10,24 @@
     getSearchEmbedding,
     getSearchPath,
     getSearches,
+    getSort,
     getVisibleFields
   } from '$lib/view_utils';
-  import {deserializePath, serializePath} from '$lilac';
+  import {deserializePath, petals, serializePath, type SearchResultInfo} from '$lilac';
   import {
     Button,
     ComboBox,
+    Dropdown,
     InlineLoading,
     Search,
     Select,
     SelectItem,
+    SkeletonText,
     Tab,
     TabContent,
     Tabs
   } from 'carbon-components-svelte';
-  import {Checkmark, Chip} from 'carbon-icons-svelte';
+  import {Checkmark, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
 
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();
@@ -99,13 +102,33 @@
       }))
     : [];
 
+  // Sorts.
+  $: sort = getSort($datasetStore);
+  let pathToSearchResult: {[path: string]: SearchResultInfo} = {};
+  $: {
+    for (const search of $datasetStore?.selectRowsSchema?.search_results || []) {
+      pathToSearchResult[serializePath(search.result_path)] = search;
+    }
+  }
+
+  $: sortItems =
+    $datasetStore?.selectRowsSchema?.data_schema != null
+      ? petals($datasetStore.selectRowsSchema.schema).map(field => {
+          const pathStr = serializePath(field.path);
+          const search = pathToSearchResult[pathStr];
+          return {
+            id: pathStr,
+            text: search?.alias != null ? search.alias : pathStr
+          };
+        })
+      : [];
+
   const search = () => {
     if (searchPath == null) {
       return;
     }
     if (selectedTab === 'Keyword') {
       if (keywordSearchText == '') {
-        datasetViewStore.clearSearchType('keyword');
         return;
       }
       datasetViewStore.addSearch({
@@ -117,11 +140,7 @@
       });
       keywordSearchText = '';
     } else if (selectedTab === 'Semantic') {
-      if (selectedEmbedding == null) {
-        return;
-      }
-      if (semanticSearchText == '') {
-        datasetViewStore.clearSearchType('semantic');
+      if (selectedEmbedding == null || semanticSearchText == '') {
         return;
       }
       datasetViewStore.addSearch({
@@ -181,13 +200,32 @@
   const selectTab = (e: {detail: number}) => {
     datasetViewStore.setSearchTab(SEARCH_TABS[e.detail]);
   };
+  const selectSort = (e: {detail: {selectedId: string}}) => {
+    const alias = pathToSearchResult[e.detail.selectedId]?.alias;
+    if (alias != null) {
+      datasetViewStore.setSortBy([alias]);
+    } else {
+      datasetViewStore.setSortBy(deserializePath(e.detail.selectedId));
+    }
+  };
+  const toggleSortOrder = () => {
+    // Set the sort given by the select rows schema explicitly.
+    if (sort != null) {
+      if (sort.alias != null) {
+        datasetViewStore.setSortBy([sort?.alias]);
+      } else {
+        datasetViewStore.setSortBy(sort.path);
+      }
+    }
+    datasetViewStore.setSortOrder(sort?.order === 'ASC' ? 'DESC' : 'ASC');
+  };
 </script>
 
 <div class="mx-4 my-2 flex h-24 flex-row items-start">
-  <div class="mr-8 mt-4 w-44">
+  <div class=" mr-8 mt-4">
     <!-- Field select -->
     <Select
-      class="field-select"
+      class="field-select w-32"
       selected={searchPath ? serializePath(searchPath) : ''}
       on:change={selectField}
       labelText={'Search field'}
@@ -201,7 +239,7 @@
     </Select>
   </div>
   <!-- Search boxes -->
-  <div class="search-container flex w-full flex-row">
+  <div class="search-container flex w-full flex-grow flex-row">
     <div class="w-full">
       <Tabs class="flex flex-row" selected={selectedTabIndex} on:change={selectTab}>
         <Tab>{SEARCH_TABS[0]}</Tab>
@@ -232,29 +270,6 @@
                     on:keydown={e => (e.key == 'Enter' ? search() : null)}
                   />
                 </div>
-                <div class="embedding-select w-26">
-                  <Select
-                    noLabel={true}
-                    on:change={selectEmbedding}
-                    selected={selectedEmbedding || ''}
-                    name={selectedEmbedding || ''}
-                    helperText={'Embedding'}
-                  >
-                    {#each $embeddings.data || [] as embedding}
-                      <SelectItem value={embedding.name} text={embedding.name} />
-                    {/each}
-                  </Select>
-                </div>
-                <div class="ml-2">
-                  <Button
-                    disabled={searchPath == null || isEmbeddingComputed || isIndexing}
-                    on:click={() => {
-                      computeEmbedding();
-                    }}
-                    icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
-                    >Index
-                  </Button>
-                </div>
               </div>
             </TabContent>
 
@@ -272,40 +287,71 @@
                     placeholder="Search by concept"
                   />
                 </div>
-                <div class="embedding-select w-26">
-                  <Select
-                    noLabel={true}
-                    on:change={selectEmbedding}
-                    selected={selectedEmbedding || ''}
-                    name={selectedEmbedding || ''}
-                    helperText={'Embedding'}
-                  >
-                    {#each $embeddings.data || [] as embedding}
-                      <SelectItem value={embedding.name} text={embedding.name} />
-                    {/each}
-                  </Select>
-                </div>
-                <div class="ml-2">
-                  <Button
-                    disabled={searchPath == null || isEmbeddingComputed || isIndexing}
-                    on:click={() => {
-                      computeEmbedding();
-                    }}
-                    icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
-                    >Index
-                  </Button>
-                </div>
               </div>
             </TabContent>
+            {#if selectedTab === 'Semantic' || selectedTab === 'Concepts'}
+              <div class="embedding-select w-40">
+                <Select
+                  noLabel={true}
+                  on:change={selectEmbedding}
+                  selected={selectedEmbedding || ''}
+                  name={selectedEmbedding || ''}
+                  helperText={'Embedding'}
+                >
+                  {#each $embeddings.data || [] as embedding}
+                    <SelectItem value={embedding.name} text={embedding.name} />
+                  {/each}
+                </Select>
+              </div>
+              <div class="ml-2">
+                <Button
+                  class="w-24"
+                  disabled={searchPath == null || isEmbeddingComputed || isIndexing}
+                  on:click={() => {
+                    computeEmbedding();
+                  }}
+                  icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
+                  >Index
+                </Button>
+              </div>
+            {/if}
           </div>
         </svelte:fragment>
       </Tabs>
     </div>
   </div>
 
-  <div class="ml-2 mt-10 flex">
-    <Button disabled={searchPath == null || !searchEnabled} on:click={() => search()}>
-      Search
+  {#if selectedTab === 'Keyword' || selectedTab === 'Semantic'}
+    <div class="ml-2 mt-10 flex">
+      <Button
+        class="w-10"
+        disabled={searchPath == null || !searchEnabled}
+        on:click={() => search()}
+      >
+        Search
+      </Button>
+    </div>
+  {/if}
+  <div class="ml-8 mt-10 flex flex-row">
+    <Dropdown
+      size="xl"
+      class="w-32"
+      selectedId={sort?.path ? serializePath(sort.path) : null}
+      on:select={selectSort}
+      items={sortItems}
+      helperText={'Sort by'}
+    />
+    <Button class="h-12" kind={'ghost'} on:click={toggleSortOrder}>
+      {#if sort?.order === 'ASC'}
+        <SortAscending size={20} title={'Sorted ascending. Toggle to switch sort to descending.'} />
+      {:else if sort?.order === 'DESC'}
+        <SortDescending
+          size={20}
+          title={'Sorted descending. Toggle to switch sort to ascending.'}
+        />
+      {:else}
+        <SkeletonText />
+      {/if}
     </Button>
   </div>
 </div>
