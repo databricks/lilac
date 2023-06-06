@@ -54,6 +54,9 @@
 
   export type CreateConceptCommand = {
     command: Command.CreateConcept;
+    namespace?: string;
+    conceptName?: string;
+    onCreate?: (e: {detail: {namespace: string; name: string}}) => unknown;
   };
 
   export type Commands =
@@ -90,5 +93,9 @@
 {:else if currentCommand.command === Command.EditFilter}
   <CommandFilter command={currentCommand} on:close={close} />
 {:else if currentCommand.command === Command.CreateConcept}
-  <CommandCreateConcept on:close={close} />
+  <CommandCreateConcept
+    command={currentCommand}
+    on:close={close}
+    on:create={currentCommand.onCreate}
+  />
 {/if}

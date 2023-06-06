@@ -14,6 +14,7 @@ from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, validator
 from typing_extensions import override
 
+from ..concepts.concept import ConceptColumnInfo
 from ..config import CONFIG, data_path
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
@@ -1125,6 +1126,9 @@ class DatasetDuckDB(Dataset):
             namespace=search.query.concept_namespace,
             concept_name=search.query.concept_name,
             embedding=search.query.embedding)
+          # Set the column info for this dataset so the model will negative sample.
+          search_signal.set_column_info(
+            ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=search.path))
 
         alias = search_signal.key()
         udf = Column(path=embedding_path, signal_udf=search_signal, alias=alias)

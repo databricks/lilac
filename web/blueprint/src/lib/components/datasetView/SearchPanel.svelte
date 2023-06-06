@@ -24,9 +24,11 @@
     SelectItem,
     Tab,
     TabContent,
-    Tabs
+    Tabs,
+    Tag
   } from 'carbon-components-svelte';
   import {
+    Add,
     Checkmark,
     Chip,
     Close,
@@ -34,6 +36,7 @@
     SortDescending,
     SortRemove
   } from 'carbon-icons-svelte';
+  import {Command, triggerCommand} from '../commands/Commands.svelte';
 
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();
@@ -90,22 +93,31 @@
     name: string;
   }
   interface ConceptSelectItem {
-    id: ConceptId;
+    id: ConceptId | 'new-concept';
     text: string;
   }
   let conceptSelectItems: ConceptSelectItem[] = [];
 
+  let newConceptItem: ConceptSelectItem;
+  $: newConceptItem = {
+    id: 'new-concept',
+    text: conceptSearchText
+  };
+  let conceptSearchText = '';
   $: conceptSelectItems = $concepts?.data
-    ? $concepts.data.map(c => ({
-        id: {namespace: c.namespace, name: c.name},
-        text: `${c.namespace}/${c.name}`,
-        disabled: searches.some(
-          s =>
-            s.query.type === 'concept' &&
-            s.query.concept_namespace === c.namespace &&
-            s.query.concept_name === c.name
-        )
-      }))
+    ? [
+        newConceptItem,
+        ...$concepts.data.map(c => ({
+          id: {namespace: c.namespace, name: c.name},
+          text: `${c.namespace}/${c.name}`,
+          disabled: searches.some(
+            s =>
+              s.query.type === 'concept' &&
+              s.query.concept_namespace === c.namespace &&
+              s.query.concept_name === c.name
+          )
+        }))
+      ]
     : [];
 
   // Sorts.
@@ -189,23 +201,48 @@
   };
 
   let conceptComboBox: ComboBox;
-  const selectConcept = (
-    e: CustomEvent<{
-      selectedId: ConceptId;
-      selectedItem: ConceptSelectItem;
-    }>
-  ) => {
+  const searchConcept = (namespace: string, name: string) => {
     if (searchPath == null || selectedEmbedding == null) return;
     datasetViewStore.addSearch({
       path: [serializePath(searchPath)],
       query: {
         type: 'concept',
-        concept_namespace: e.detail.selectedId.namespace,
-        concept_name: e.detail.selectedId.name,
+        concept_namespace: namespace,
+        concept_name: name,
         embedding: selectedEmbedding
       }
     });
     conceptComboBox.clear();
+  };
+
+  const selectConcept = (
+    e: CustomEvent<{
+      selectedId: ConceptId | 'new-concept';
+      selectedItem: ConceptSelectItem;
+    }>
+  ) => {
+    if (searchPath == null || selectedEmbedding == null) return;
+    if (e.detail.selectedId === 'new-concept') {
+      if (conceptSearchText === newConceptItem.id) conceptSearchText = '';
+      const conceptSplit = conceptSearchText.split('/', 2);
+      let namespace = '';
+      let conceptName = '';
+      if (conceptSplit.length === 2) {
+        [namespace, conceptName] = conceptSplit;
+      } else {
+        [conceptName] = conceptSplit;
+      }
+
+      triggerCommand({
+        command: Command.CreateConcept,
+        namespace,
+        conceptName,
+        onCreate: e => searchConcept(e.detail.namespace, e.detail.name)
+      });
+      conceptComboBox.clear();
+      return;
+    }
+    searchConcept(e.detail.selectedId.namespace, e.detail.selectedId.name);
   };
 
   const selectField = (e: Event) => {
@@ -302,11 +339,26 @@
                     size="xl"
                     bind:this={conceptComboBox}
                     items={conceptSelectItems}
+                    bind:value={conceptSearchText}
                     on:select={selectConcept}
                     shouldFilterItem={(item, value) =>
-                      item.text.toLowerCase().includes(value.toLowerCase())}
+                      item.text.toLowerCase().includes(value.toLowerCase()) ||
+                      item.id === 'new-concept'}
                     placeholder="Search by concept"
-                  />
+                    let:item
+                  >
+                    {#if item.id === 'new-concept'}
+                      <div class="new-concept flex flex-row items-center justify-items-center">
+                        <Tag><Add /></Tag>
+                        <div class="ml-2">
+                          New concept{conceptSearchText != '' ? ':' : ''}
+                          {conceptSearchText}
+                        </div>
+                      </div>
+                    {:else}
+                      <div>{item.text}</div>
+                    {/if}
+                  </ComboBox>
                 </div>
               </div>
             </TabContent>
@@ -419,5 +471,8 @@
   }
   :global(.field-select .bx--select-input) {
     @apply h-12;
+  }
+  :global(.new-concept .bx--tag) {
+    @apply w-6 min-w-0 px-0;
   }
 </style>
