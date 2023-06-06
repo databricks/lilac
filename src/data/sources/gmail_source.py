@@ -2,6 +2,7 @@
 import base64
 import os.path
 import random
+from datetime import datetime
 from time import sleep
 from typing import Any, Iterable, Optional
 
@@ -77,7 +78,11 @@ class Gmail(Source):
 
   @override
   def source_schema(self) -> SourceSchema:
-    return SourceSchema(fields={'text': field('string')})
+    return SourceSchema(fields={
+      'body': field('string'),
+      'snippet': field('string'),
+      'dates': field(fields=['string'])
+    })
 
   @override
   def process(self) -> Iterable[Item]:
@@ -97,7 +102,15 @@ class Gmail(Source):
         retry_batch.add(request_id)
       else:
         replies: list[str] = []
+        dates: list[str] = []
+        snippets: list[str] = []
+
         for msg in response['messages']:
+          epoch_sec = int(msg['internalDate']) / 1000.
+          date = datetime.fromtimestamp(epoch_sec).strftime('%Y-%m-%d %H:%M:%S')
+          dates.append(date)
+          if 'snippet' in msg:
+            snippets.append(msg['snippet'])
           sender, bodies = _get_all_body_parts(msg['payload'])
           parsed_parts: list[str] = []
           for body in bodies:
@@ -111,8 +124,13 @@ class Gmail(Source):
             parsed_parts = [f'**{sender}**', *parsed_parts]
           if parsed_parts:
             replies.append('\n'.join(parsed_parts))
+
         if replies:
-          thread_batch.append({'text': '\n\n'.join(replies)})
+          thread_batch.append({
+            'body': '\n\n'.join(replies),
+            'snippet': '\n'.join(snippets) if snippets else None,
+            'dates': dates
+          })
         if request_id in retry_batch:
           retry_batch.remove(request_id)
 
