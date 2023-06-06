@@ -668,15 +668,14 @@ class DatasetDuckDB(Dataset):
           duckdb_path, flatten=False, unnest=False, empty=empty, span_from=span_from)
         temp_column_name = (
           final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}')
-        temp_column_name = temp_column_name.replace("'", "\\'")
-        select_sqls.append(f"{sql} AS '{temp_column_name}'")
+        select_sqls.append(f'{sql} AS {_escape_string_literal(temp_column_name)}')
         columns_to_merge[final_col_name][temp_column_name] = column
 
         if column.signal_udf and span_from and _schema_has_spans(column.signal_udf.fields()):
           sql = _select_sql(duckdb_path, flatten=False, unnest=False, empty=empty, span_from=None)
           temp_offset_column_name = f'{temp_column_name}/offset'
           temp_offset_column_name = temp_offset_column_name.replace("'", "\\'")
-          select_sqls.append(f"{sql} AS '{temp_offset_column_name}'")
+          select_sqls.append(f'{sql} AS {_escape_string_literal(temp_offset_column_name)}')
           temp_column_to_offset_column[temp_column_name] = (temp_offset_column_name,
                                                             column.signal_udf.fields())
 
@@ -1178,6 +1177,16 @@ class DatasetDuckDB(Dataset):
     return '.'.join([f'"{path_comp}"' if quote_each_part else str(path_comp) for path_comp in path])
 
 
+def _escape_string_literal(string: str) -> str:
+  string = string.replace("'", "\\'")
+  return f"'{string}'"
+
+
+def _escape_col_name(col_name: str) -> str:
+  col_name = col_name.replace('"', '""')
+  return f'"{col_name}"'
+
+
 def _inner_select(sub_paths: list[PathTuple],
                   inner_var: Optional[str] = None,
                   empty: bool = False,
@@ -1187,8 +1196,7 @@ def _inner_select(sub_paths: list[PathTuple],
   lambda_var = inner_var + 'x' if inner_var else 'x'
   if not inner_var:
     lambda_var = 'x'
-    inner_var = current_sub_path[0].replace('"', '""')
-    inner_var = f'"{inner_var}"'
+    inner_var = _escape_col_name(current_sub_path[0])
     current_sub_path = current_sub_path[1:]
   # Select the path inside structs. E.g. x['a']['b']['c'] given current_sub_path = [a, b, c].
   path_key = inner_var + ''.join([f"['{p}']" for p in current_sub_path])
