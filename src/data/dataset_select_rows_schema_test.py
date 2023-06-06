@@ -182,8 +182,7 @@ def test_simple_schema(make_test_data: TestDataMaker) -> None:
           'state': 'string'
         }]
       }]
-    }),
-    sorts=[SortResult(path=(UUID_COLUMN,), order=SortOrder.ASC)])
+    }))
 
 
 def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -201,8 +200,7 @@ def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
           'city': 'string'
         }]
       }]
-    }),
-    sorts=[SortResult(path=(UUID_COLUMN,), order=SortOrder.ASC)])
+    }))
 
   result = dataset.select_rows_schema([('people', '*', 'name'), ('people', '*', 'locations')],
                                       combine_columns=True)
@@ -216,8 +214,7 @@ def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
           'state': 'string'
         }]
       }]
-    }),
-    sorts=[SortResult(path=(UUID_COLUMN,), order=SortOrder.ASC)])
+    }))
 
   result = dataset.select_rows_schema([('people', '*')], combine_columns=True)
   assert result == SelectRowsSchemaResult(
@@ -233,8 +230,7 @@ def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
           'state': 'string'
         }]
       }]
-    }),
-    sorts=[SortResult(path=(UUID_COLUMN,), order=SortOrder.ASC)])
+    }))
 
 
 def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -255,8 +251,7 @@ def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
           'city': 'string'
         }]
       }],
-    }),
-    sorts=[SortResult(path=(UUID_COLUMN,), order=SortOrder.ASC)])
+    }))
 
 
 def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -283,8 +278,7 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
               })
           })
       }],
-    }),
-    sorts=[SortResult(path=(UUID_COLUMN,), order=SortOrder.ASC)])
+    }))
 
 
 def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -311,8 +305,7 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
           'add_space_signal': field('string', add_space_signal.dict()),
           'test_splitter': field(signal=test_splitter.dict(), fields=['string_span'])
         })
-    }),
-    sorts=[SortResult(path=(UUID_COLUMN,), order=SortOrder.ASC)])
+    }))
 
 
 def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -354,10 +347,7 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
           ])
       })
   })
-  assert result == SelectRowsSchemaResult(
-    data_schema=expected_schema,
-    alias_udf_paths={},
-    sorts=[SortResult(path=(UUID_COLUMN,), order=SortOrder.ASC)])
+  assert result == SelectRowsSchemaResult(data_schema=expected_schema, alias_udf_paths={})
 
   # Alias the udf.
   udf_col.alias = 'udf1'
@@ -367,8 +357,7 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
     alias_udf_paths={
       'udf1':
         ('text', 'test_splitter', '*', 'test_embedding', '*', 'embedding', 'test_embedding_sum')
-    },
-    sorts=[SortResult(path=(UUID_COLUMN,), order=SortOrder.ASC)])
+    })
 
 
 def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
@@ -415,8 +404,7 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
         search_path=('text2',),
         result_path=('text2', expected_hello_signal.key(), PATH_WILDCARD),
       )
-    ],
-    sorts=[SortResult(path=(UUID_COLUMN,), order=SortOrder.ASC)])
+    ])
 
 
 def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
@@ -552,4 +540,4 @@ def test_search_sort_override(make_test_data: TestDataMaker) -> None:
     sort_order=SortOrder.DESC,
     combine_columns=True)
 
-  assert result.sorts == [SortResult(path=('text',),  order=SortOrder.DESC)]
+  assert result.sorts == [SortResult(path=('text',), order=SortOrder.DESC)]

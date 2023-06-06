@@ -22,12 +22,18 @@
     Search,
     Select,
     SelectItem,
-    SkeletonText,
     Tab,
     TabContent,
     Tabs
   } from 'carbon-components-svelte';
-  import {Checkmark, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
+  import {
+    Checkmark,
+    Chip,
+    Close,
+    SortAscending,
+    SortDescending,
+    SortRemove
+  } from 'carbon-icons-svelte';
 
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();
@@ -111,16 +117,24 @@
     }
   }
 
+  // Server sort response.
+  $: sortById = sort?.path ? serializePath(sort.path) : null;
+  // Explicit user selection of sort.
+  $: selectedSortBy = $datasetViewStore.queryOptions.sort_by;
+
   $: sortItems =
     $datasetStore?.selectRowsSchema?.data_schema != null
-      ? petals($datasetStore.selectRowsSchema.schema).map(field => {
-          const pathStr = serializePath(field.path);
-          const search = pathToSearchResult[pathStr];
-          return {
-            id: pathStr,
-            text: search?.alias != null ? search.alias : pathStr
-          };
-        })
+      ? [
+          {id: null, text: 'None', disabled: selectedSortBy == null && sortById != null},
+          ...petals($datasetStore.selectRowsSchema.schema).map(field => {
+            const pathStr = serializePath(field.path);
+            const search = pathToSearchResult[pathStr];
+            return {
+              id: pathStr,
+              text: search?.alias != null ? search.alias : pathStr
+            };
+          })
+        ]
       : [];
 
   const search = () => {
@@ -201,12 +215,19 @@
     datasetViewStore.setSearchTab(SEARCH_TABS[e.detail]);
   };
   const selectSort = (e: {detail: {selectedId: string}}) => {
+    if (e.detail.selectedId == null) {
+      datasetViewStore.setSortBy(null);
+      return;
+    }
     const alias = pathToSearchResult[e.detail.selectedId]?.alias;
     if (alias != null) {
       datasetViewStore.setSortBy([alias]);
     } else {
       datasetViewStore.setSortBy(deserializePath(e.detail.selectedId));
     }
+  };
+  const clearSorts = () => {
+    datasetViewStore.clearSorts();
   };
   const toggleSortOrder = () => {
     // Set the sort given by the select rows schema explicitly.
@@ -222,7 +243,7 @@
 </script>
 
 <div class="mx-4 my-2 flex h-24 flex-row items-start">
-  <div class=" mr-8 mt-4">
+  <div class="mr-8 mt-4">
     <!-- Field select -->
     <Select
       class="field-select w-32"
@@ -332,27 +353,45 @@
       </Button>
     </div>
   {/if}
-  <div class="ml-8 mt-10 flex flex-row">
+  <div class="ml-8 mt-10 flex flex-row rounded">
+    <div class="w-12">
+      {#if selectedSortBy != null}
+        <Button
+          kind="ghost"
+          icon={Close}
+          expressive={true}
+          on:click={clearSorts}
+          disabled={sort == null}
+          iconDescription={sort?.order === 'ASC'
+            ? 'Sorted ascending. Toggle to switch to descending.'
+            : 'Sorted descending. Toggle to switch to ascending.'}
+        />
+      {/if}
+    </div>
     <Dropdown
       size="xl"
       class="w-32"
-      selectedId={sort?.path ? serializePath(sort.path) : null}
+      selectedId={sortById}
       on:select={selectSort}
       items={sortItems}
       helperText={'Sort by'}
     />
-    <Button class="h-12" kind={'ghost'} on:click={toggleSortOrder}>
-      {#if sort?.order === 'ASC'}
-        <SortAscending size={20} title={'Sorted ascending. Toggle to switch sort to descending.'} />
-      {:else if sort?.order === 'DESC'}
-        <SortDescending
-          size={20}
-          title={'Sorted descending. Toggle to switch sort to ascending.'}
-        />
-      {:else}
-        <SkeletonText />
-      {/if}
-    </Button>
+    <div>
+      <Button
+        kind="ghost"
+        expressive={true}
+        icon={sort?.order == null
+          ? SortRemove
+          : sort?.order === 'ASC'
+          ? SortAscending
+          : SortDescending}
+        on:click={toggleSortOrder}
+        disabled={sort == null}
+        iconDescription={sort?.order === 'ASC'
+          ? 'Sorted ascending. Toggle to switch to descending.'
+          : 'Sorted descending. Toggle to switch to ascending.'}
+      />
+    </div>
   </div>
 </div>
 

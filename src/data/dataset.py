@@ -132,7 +132,7 @@ class SelectRowsSchemaResult(BaseModel):
   # Maps a udf name to its destination path in the schema.
   alias_udf_paths: dict[str, PathTuple] = {}
   search_results: list[SearchResultInfo] = []
-  sorts: list[SortResult]
+  sorts: Optional[list[SortResult]]
 
 
 class Column(BaseModel):

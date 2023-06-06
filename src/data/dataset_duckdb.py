@@ -617,7 +617,7 @@ class DatasetDuckDB(Dataset):
     return cols
 
   def _merge_sorts(self, search_udfs: list[DuckDBSearchUDF], sort_by: Optional[Sequence[Path]],
-                   sort_order: Optional[SortOrder]) -> list[SortResult]:
+                   sort_order: Optional[SortOrder]) -> Optional[list[SortResult]]:
     if sort_by and not sort_order:
       raise ValueError('`sort_order` is required when `sort_by` is specified.')
 
@@ -628,12 +628,11 @@ class DatasetDuckDB(Dataset):
     is_explicit_search_sort = any(
       [sort_by[0] in alias_to_udf for sort_by in sort_by or [] if len(sort_by) == 1])
 
-    sort_results: list[SortResult] = []
+    sort_results: Optional[list[SortResult]] = None
     if sort_by and not is_explicit_search_sort:
       # If the user has explicitly set a sort by, and it's not a search UDF alias, override.
       sort_results = [
-        SortResult(path=normalize_path(sort_by) if sort_by else (UUID_COLUMN,), order=sort_order)
-        for sort_by in sort_by
+        SortResult(path=normalize_path(sort_by), order=sort_order) for sort_by in sort_by if sort_by
       ]
     else:
       search_udfs_with_sort = [search_udf for search_udf in search_udfs if search_udf.sort]
@@ -651,9 +650,6 @@ class DatasetDuckDB(Dataset):
             alias=alias,
             search_index=len(search_udfs_with_sort) - 1)
         ]
-      else:
-        # By default, by UUID by default to keep deterministic sort behavior.
-        sort_results = [SortResult(path=(UUID_COLUMN,), order=SortOrder.ASC)]
 
     return sort_results
 
@@ -743,10 +739,10 @@ class DatasetDuckDB(Dataset):
     sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
     order_query = ''
     sort_by = cast(list[PathTuple],
-                   [(sort.alias,) if sort.alias else sort.path for sort in sort_results])
+                   [(sort.alias,) if sort.alias else sort.path for sort in sort_results or []])
     # We only support a single sort order for now. Choose the first one as they must all be the
     # same.
-    sort_order = sort_results[0].order
+    sort_order = sort_results[0].order if sort_results else None
     sort_cols_before_udf: list[str] = []
     sort_cols_after_udf: list[str] = []
 
@@ -785,7 +781,7 @@ class DatasetDuckDB(Dataset):
 
     if sort_cols_before_udf:
       order_query = (f'ORDER BY {", ".join(sort_cols_before_udf)} '
-                     f'{sort_order.value}')
+                     f'{cast(SortOrder, sort_order).value}')
 
     con = self.con.cursor()
     query = con.sql(f"""

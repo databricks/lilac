@@ -75,7 +75,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     set,
     update,
     reset: () => {
-      set(initialState);
+      set(JSON.parse(JSON.stringify(initialState)));
     },
 
     addSelectedColumn: (path: Path | string) =>
@@ -151,11 +151,11 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
 
         // Remove any sorts if the search is semantic or conceptual.
         if (search.query.type === 'semantic' || search.query.type === 'concept') {
-          state.queryOptions.sort_by = [];
+          state.queryOptions.sort_by = undefined;
           state.queryOptions.sort_order = undefined;
         }
 
-        state.queryOptions.searches = [...state.queryOptions.searches, search];
+        state.queryOptions.searches.push(search);
         return state;
       }),
     removeSearch: (search: Search, selectRowsSchema?: LilacSelectRowsSchema | null) =>
@@ -167,14 +167,18 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         if (selectRowsSchema?.sorts != null) {
           state.queryOptions.sort_by = state.queryOptions.sort_by?.filter(sortBy => {
             if (sortBy.length != 1) return false;
-            return selectRowsSchema?.sorts.some(s => s.alias === sortBy[0]);
+            return !(selectRowsSchema?.sorts || []).some(s => s.alias === sortBy[0]);
           });
         }
         return state;
       }),
-    setSortBy: (column: Path) =>
+    setSortBy: (column: Path | null) =>
       update(state => {
-        state.queryOptions.sort_by = [column];
+        if (column == null) {
+          state.queryOptions.sort_by = undefined;
+        } else {
+          state.queryOptions.sort_by = [column];
+        }
         return state;
       }),
     addSortBy: (column: Path) =>
@@ -189,9 +193,15 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         );
         return state;
       }),
-    setSortOrder: (sortOrder: SortOrder) =>
+    clearSorts: () =>
       update(state => {
-        state.queryOptions.sort_order = sortOrder;
+        state.queryOptions.sort_by = undefined;
+        state.queryOptions.sort_order = undefined;
+        return state;
+      }),
+    setSortOrder: (sortOrder: SortOrder | null) =>
+      update(state => {
+        state.queryOptions.sort_order = sortOrder || undefined;
         return state;
       }),
 

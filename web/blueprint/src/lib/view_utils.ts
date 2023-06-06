@@ -151,5 +151,5 @@ export function getDefaultSelectedPath(datasetStore: DatasetStore | null): Path 
 
 export function getSort(datasetStore: DatasetStore | null): SortResult | null {
   // NOTE: We currently only support sorting by a single column from the UI.
-  return datasetStore?.selectRowsSchema?.sorts[0] || null;
+  return (datasetStore?.selectRowsSchema?.sorts || [])[0] || null;
 }

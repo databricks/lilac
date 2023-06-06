@@ -13,6 +13,6 @@ export type SelectRowsSchemaResult = {
     data_schema: Schema;
     alias_udf_paths?: Record<string, Array<string>>;
     search_results?: Array<SearchResultInfo>;
-    sorts: Array<SortResult>;
+    sorts?: Array<SortResult>;
 };
 
