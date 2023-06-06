@@ -3,6 +3,7 @@ import base64
 import dataclasses
 import os.path
 import random
+import re
 from datetime import datetime
 from time import sleep
 from typing import Any, Iterable, Optional
@@ -16,17 +17,20 @@ from googleapiclient.errors import HttpError
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
+from ...config import data_path
 from ...schema import Item, field
 from ...utils import log
 from .source import Source, SourceSchema
 
 # If modifying these scopes, delete the token json file.
 _SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
-_GMAIL_CONFIG_DIR = '.gmail'
+_GMAIL_CONFIG_DIR = os.path.join(data_path(), '.gmail')
 _TOKEN_FILENAME = 'token.json'
 _CREDS_FILENAME = 'credentials.json'
 _NUM_RETRIES = 5
-_MAX_NUM_THREADS = 1_000
+_MAX_NUM_THREADS = 10_000
+
+_UNWRAP_PATTERN = re.compile(r'(\S)\n(\S)')
 
 
 class Gmail(Source):
@@ -122,9 +126,11 @@ class Gmail(Source):
         for body in email_info.parts:
           if not body:
             continue
-          parsed_body = EmailReplyParser.parse_reply(base64.urlsafe_b64decode(body).decode('utf-8'))
-          if parsed_body:
-            parsed_parts.append(parsed_body)
+          text = base64.urlsafe_b64decode(body).decode('utf-8')
+          text = EmailReplyParser.parse_reply(text)
+          unwrapped_text = _UNWRAP_PATTERN.sub('\\1 \\2', text)
+          if unwrapped_text:
+            parsed_parts.append(unwrapped_text)
         if email_info.sender and parsed_parts:
           parsed_parts = [
             f'--------------------{email_info.sender}--------------------', *parsed_parts
