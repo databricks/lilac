@@ -5,7 +5,6 @@ import random
 from time import sleep
 from typing import Any, Iterable, Optional
 
-import html2text
 from email_reply_parser import EmailReplyParser
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -26,13 +25,6 @@ _TOKEN_FILENAME = 'token.json'
 _CREDS_FILENAME = 'credentials.json'
 _NUM_RETRIES = 5
 _MAX_NUM_THREADS = 10_000
-
-text_maker = html2text.HTML2Text()
-text_maker.ignore_links = True
-text_maker.ignore_images = True
-text_maker.ignore_tables = True
-text_maker.ignore_emphasis = True
-text_maker.body_width = 0
 
 
 class Gmail(Source):
