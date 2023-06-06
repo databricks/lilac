@@ -82,6 +82,8 @@ def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(TestSignal)
   register_signal(LengthSignal)
+  register_signal(SignalWithQuoteInIt)
+  register_signal(SignalWithDoubleQuoteInIt)
 
   # Unit test runs.
   yield
@@ -804,3 +806,55 @@ def test_invalid_column_paths(make_test_data: TestDataMaker) -> None:
 
   with pytest.raises(ValueError, match='Selecting a specific index of a repeated field'):
     dataset.select_rows([('text2', '4', 'test_signal')])
+
+
+def test_signal_with_quote(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'world',
+  }])
+  dataset.compute_signal(SignalWithQuoteInIt(), 'text')
+  dataset.compute_signal(SignalWithDoubleQuoteInIt(), 'text')
+  result = dataset.select_rows(['text'])
+  assert list(result) == [{
+    UUID_COLUMN: '1',
+    'text': enriched_item('hello', {
+      "test'signal": True,
+      'test"signal': True
+    })
+  }, {
+    UUID_COLUMN: '2',
+    'text': enriched_item('world', {
+      "test'signal": True,
+      'test"signal': True
+    }),
+  }]
+
+
+class SignalWithQuoteInIt(TextSignal):
+  name = "test'signal"
+
+  @override
+  def fields(self) -> Field:
+    return field('boolean')
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    for d in data:
+      yield True
+
+
+class SignalWithDoubleQuoteInIt(TextSignal):
+  name = 'test"signal'
+
+  @override
+  def fields(self) -> Field:
+    return field('boolean')
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    for d in data:
+      yield True

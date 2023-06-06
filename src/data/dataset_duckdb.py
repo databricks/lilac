@@ -159,9 +159,9 @@ class DatasetDuckDB(Dataset):
     self.vector_store_cls = vector_store_cls
     self._manifest_lock = threading.Lock()
 
-  def _create_view(self, view_name: str, parquet_files: list[str]) -> None:
+  def _create_view(self, view_name: str, files: list[str]) -> None:
     self.con.execute(f"""
-      CREATE OR REPLACE VIEW "{view_name}" AS (SELECT * FROM read_parquet({parquet_files}));
+      CREATE OR REPLACE VIEW {_escape_col_name(view_name)} AS (SELECT * FROM read_parquet({files}));
     """)
 
   @functools.cache
@@ -199,12 +199,12 @@ class DatasetDuckDB(Dataset):
     #   FROM source JOIN "parquet_id1" USING (uuid,) JOIN "parquet_id2" USING (uuid,)
     # );
     # NOTE: "root_column" for each signal is defined as the top-level column.
-    select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [
-      f'"{manifest.parquet_id}"."{_root_column(manifest)}" AS "{manifest.parquet_id}"'
-      for manifest in self._signal_manifests
-    ])
+    select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [(
+      f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
+      f'AS {_escape_col_name(manifest.parquet_id)}') for manifest in self._signal_manifests])
     join_sql = ' '.join([SOURCE_VIEW_NAME] + [
-      f'join "{manifest.parquet_id}" using ({UUID_COLUMN},)' for manifest in self._signal_manifests
+      f'join {_escape_col_name(manifest.parquet_id)} using ({UUID_COLUMN},)'
+      for manifest in self._signal_manifests
     ])
 
     sql_cmd = f"""CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})"""
@@ -1174,11 +1174,13 @@ class DatasetDuckDB(Dataset):
     """Convert a path to a column name."""
     if isinstance(path, str):
       path = (path,)
-    return '.'.join([f'"{path_comp}"' if quote_each_part else str(path_comp) for path_comp in path])
+    return '.'.join([
+      f'{_escape_col_name(path_comp)}' if quote_each_part else str(path_comp) for path_comp in path
+    ])
 
 
 def _escape_string_literal(string: str) -> str:
-  string = string.replace("'", "\\'")
+  string = string.replace("'", "''")
   return f"'{string}'"
 
 
