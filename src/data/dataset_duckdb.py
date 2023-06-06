@@ -1095,7 +1095,7 @@ class DatasetDuckDB(Dataset):
       select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
       if search.query.type == 'keyword':
         sql_op = 'ILIKE'
-        query_val = f"'%{search.query.search}%'"
+        query_val = _escape_like_value(search.query.search)
       elif search.query.type == 'semantic' or search.query.type == 'concept':
         # Semantic search and concepts don't yet filter.
         continue
@@ -1187,6 +1187,11 @@ def _escape_string_literal(string: str) -> str:
 def _escape_col_name(col_name: str) -> str:
   col_name = col_name.replace('"', '""')
   return f'"{col_name}"'
+
+
+def _escape_like_value(value: str) -> str:
+  value = value.replace('%', '\\%').replace('_', '\\_')
+  return f"'%{value}%' ESCAPE '\\'"
 
 
 def _inner_select(sub_paths: list[PathTuple],
