@@ -1,5 +1,6 @@
 """Gmail source."""
 import base64
+import dataclasses
 import os.path
 import random
 from datetime import datetime
@@ -25,7 +26,7 @@ _GMAIL_CONFIG_DIR = '.gmail'
 _TOKEN_FILENAME = 'token.json'
 _CREDS_FILENAME = 'credentials.json'
 _NUM_RETRIES = 5
-_MAX_NUM_THREADS = 10_000
+_MAX_NUM_THREADS = 1_000
 
 
 class Gmail(Source):
@@ -78,11 +79,13 @@ class Gmail(Source):
 
   @override
   def source_schema(self) -> SourceSchema:
-    return SourceSchema(fields={
-      'body': field('string'),
-      'snippet': field('string'),
-      'dates': field(fields=['string'])
-    })
+    return SourceSchema(
+      fields={
+        'body': field('string'),
+        'snippet': field('string'),
+        'dates': field(fields=['string']),
+        'subject': field('string'),
+      })
 
   @override
   def process(self) -> Iterable[Item]:
@@ -100,39 +103,44 @@ class Gmail(Source):
     def _thread_fetched(request_id: str, response: Any, exception: Optional[HttpError]) -> None:
       if exception is not None:
         retry_batch.add(request_id)
-      else:
-        replies: list[str] = []
-        dates: list[str] = []
-        snippets: list[str] = []
+        return
 
-        for msg in response['messages']:
-          epoch_sec = int(msg['internalDate']) / 1000.
-          date = datetime.fromtimestamp(epoch_sec).strftime('%Y-%m-%d %H:%M:%S')
-          dates.append(date)
-          if 'snippet' in msg:
-            snippets.append(msg['snippet'])
-          sender, bodies = _get_all_body_parts(msg['payload'])
-          parsed_parts: list[str] = []
-          for body in bodies:
-            if not body:
-              continue
-            parsed_body = EmailReplyParser.parse_reply(
-              base64.urlsafe_b64decode(body).decode('utf-8'))
-            if parsed_body:
-              parsed_parts.append(parsed_body)
-          if sender and parsed_parts:
-            parsed_parts = [f'**{sender}**', *parsed_parts]
-          if parsed_parts:
-            replies.append('\n'.join(parsed_parts))
+      replies: list[str] = []
+      dates: list[str] = []
+      snippets: list[str] = []
+      subject: Optional[str] = None
 
-        if replies:
-          thread_batch.append({
-            'body': '\n\n'.join(replies),
-            'snippet': '\n'.join(snippets) if snippets else None,
-            'dates': dates
-          })
-        if request_id in retry_batch:
-          retry_batch.remove(request_id)
+      for msg in response['messages']:
+        epoch_sec = int(msg['internalDate']) / 1000.
+        date = datetime.fromtimestamp(epoch_sec).strftime('%Y-%m-%d %H:%M:%S')
+        dates.append(date)
+        if 'snippet' in msg:
+          snippets.append(msg['snippet'])
+        email_info = _parse_payload(msg['payload'])
+        subject = subject or email_info.subject
+        parsed_parts: list[str] = []
+        for body in email_info.parts:
+          if not body:
+            continue
+          parsed_body = EmailReplyParser.parse_reply(base64.urlsafe_b64decode(body).decode('utf-8'))
+          if parsed_body:
+            parsed_parts.append(parsed_body)
+        if email_info.sender and parsed_parts:
+          parsed_parts = [
+            f'--------------------{email_info.sender}--------------------', *parsed_parts
+          ]
+        if parsed_parts:
+          replies.append('\n'.join(parsed_parts))
+
+      if replies:
+        thread_batch.append({
+          'body': '\n\n'.join(replies),
+          'snippet': '\n'.join(snippets) if snippets else None,
+          'dates': dates,
+          'subject': subject,
+        })
+      if request_id in retry_batch:
+        retry_batch.remove(request_id)
 
     # First request.
     thread_list_req = threads_resource.list(userId='me', includeSpamTrash=False) or None
@@ -166,21 +174,36 @@ class Gmail(Source):
         thread_list = thread_list_req.execute(num_retries=_NUM_RETRIES) if thread_list_req else None
 
 
-def _get_all_body_parts(payload: Any) -> tuple[Optional[str], list[bytes]]:
-  parts: list[bytes] = []
+@dataclasses.dataclass
+class EmailInfo:
+  """Stores parsed information about an email."""
   sender: Optional[str] = None
-  if 'headers' in payload:
-    from_value = [h['value'] for h in payload['headers'] if h['name'].lower().strip() == 'from']
-    if from_value:
-      sender = from_value[0]
+  subject: Optional[str] = None
+  parts: list[bytes] = dataclasses.field(default_factory=list)
 
-  if 'mimeType' in payload and payload['mimeType'] in ['text/plain']:
+
+def _get_header(payload: Any, name: str) -> Optional[str]:
+  if 'headers' not in payload:
+    return None
+  values = [h['value'] for h in payload['headers'] if h['name'].lower().strip() == name]
+  return values[0] if values else None
+
+
+def _parse_payload(payload: Any) -> EmailInfo:
+  sender = _get_header(payload, 'from')
+  subject = _get_header(payload, 'subject')
+  parts: list[bytes] = []
+
+  # Process the message body.
+  if 'mimeType' in payload and 'text/plain' in payload['mimeType']:
     if 'body' in payload and 'data' in payload['body']:
       parts.append(payload['body']['data'].encode('ascii'))
-  if 'parts' in payload:
-    for part in payload['parts']:
-      subsender, subparts = _get_all_body_parts(part)
-      if subsender:
-        sender = subsender
-      parts.extend(subparts)
-  return sender, parts
+
+  # Process the message parts.
+  for part in payload.get('parts', []):
+    email_info = _parse_payload(part)
+    sender = sender or email_info.sender
+    subject = subject or email_info.subject
+    parts.extend(email_info.parts)
+
+  return EmailInfo(sender, subject, parts)
