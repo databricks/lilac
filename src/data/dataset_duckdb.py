@@ -599,11 +599,23 @@ class DatasetDuckDB(Dataset):
     """
     return DuckDBSelectGroupsResult(self._query_df(query))
 
-  def _sorting_by_topk_of_signal(self, limit: Optional[int], sort_order: Optional[SortOrder],
-                                 sort_udf_aliases: list[str], signal_column: str) -> bool:
-    """Returns True if the query is sorting by the topk of a signal column."""
-    return bool(limit and sort_order == SortOrder.DESC and sort_udf_aliases and
-                signal_column == sort_udf_aliases[0])
+  def _topk_udf_to_sort_by(
+    self,
+    udf_columns: list[Column],
+    sort_by: list[PathTuple],
+    limit: Optional[int],
+    sort_order: Optional[SortOrder],
+  ) -> Optional[Column]:
+    if (sort_order != SortOrder.DESC) or (not limit) or (not sort_by):
+      return None
+    udf_cols_to_sort_by = [col for col in udf_columns if col.alias == sort_by[0][0]]
+    if not udf_cols_to_sort_by:
+      return None
+    udf_col = udf_cols_to_sort_by[0]
+    if udf_col.signal_udf and (udf_col.signal_udf.compute_type
+                               not in [SignalInputType.TEXT_EMBEDDING]):
+      return None
+    return udf_col
 
   def _normalize_columns(self, columns: Optional[Sequence[ColumnId]],
                          schema: Schema) -> list[Column]:
@@ -618,7 +630,7 @@ class DatasetDuckDB(Dataset):
     return cols
 
   def _merge_sorts(self, search_udfs: list[DuckDBSearchUDF], sort_by: Optional[Sequence[Path]],
-                   sort_order: Optional[SortOrder]) -> Optional[list[SortResult]]:
+                   sort_order: Optional[SortOrder]) -> list[SortResult]:
     if sort_by and not sort_order:
       raise ValueError('`sort_order` is required when `sort_by` is specified.')
 
@@ -629,7 +641,7 @@ class DatasetDuckDB(Dataset):
     is_explicit_search_sort = any(
       [sort_by[0] in alias_to_udf for sort_by in sort_by or [] if len(sort_by) == 1])
 
-    sort_results: Optional[list[SortResult]] = None
+    sort_results: list[SortResult] = []
     if sort_by and not is_explicit_search_sort:
       # If the user has explicitly set a sort by, and it's not a search UDF alias, override.
       sort_results = [
@@ -682,11 +694,29 @@ class DatasetDuckDB(Dataset):
         col.path, _ = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
 
     self._validate_columns(cols, manifest.data_schema)
-
     self._normalize_searches(searches)
     search_udfs = self._search_udfs(searches)
-
     cols.extend([search_udf.udf for search_udf in search_udfs])
+    udf_columns = [col for col in cols if col.signal_udf]
+
+    # Decide on the exact sorting order.
+    sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
+    sort_by = cast(list[PathTuple],
+                   [(sort.alias,) if sort.alias else sort.path for sort in sort_results])
+    # Choose the first sort order as we only support a single sort order for now.
+    sort_order = sort_results[0].order if sort_results else None
+
+    topk_udf_col = self._topk_udf_to_sort_by(udf_columns, sort_by, limit, sort_order)
+    if topk_udf_col:
+      signal = cast(Signal, topk_udf_col.signal_udf)
+      # The input is an embedding.
+      vector_store = self._get_vector_store(topk_udf_col.path)
+      k = (limit or 0) + (offset or 0)
+      topk = signal.vector_compute_topk(k, vector_store)
+      topk_uuids = list(dict.fromkeys([cast(str, key[0]) for key, _ in topk]))
+      uuid_filter = (UUID_COLUMN, ListOp.IN, topk_uuids)
+      filters = [uuid_filter, *(filters or [])]
+
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
     columns_to_merge: dict[str, dict[str, Column]] = {}
     temp_column_to_offset_column: dict[str, tuple[str, Field]] = {}
@@ -726,29 +756,14 @@ class DatasetDuckDB(Dataset):
       select_queries.append(', '.join(select_sqls))
 
     col_aliases: dict[str, PathTuple] = {col.alias: col.path for col in cols if col.alias}
-    udf_aliases: dict[str, PathTuple] = {
-      col.alias: col.path for col in cols if col.signal_udf and col.alias
-    }
 
-    # Filtering and searching.
-    where_query = ''
-    filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases)
-    filter_queries = self._create_where(filters, searches)
-    if filter_queries:
-      where_query = f"WHERE {' AND '.join(filter_queries)}"
-
-    # Sorting.
-    sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
-    order_query = ''
-    sort_by = cast(list[PathTuple],
-                   [(sort.alias,) if sort.alias else sort.path for sort in sort_results or []])
-    # We only support a single sort order for now. Choose the first one as they must all be the
-    # same.
-    sort_order = sort_results[0].order if sort_results else None
     sort_sql_before_udf: list[str] = []
     sort_sql_after_udf: list[str] = []
     sort_udf_aliases: list[str] = []
 
+    udf_aliases: dict[str, PathTuple] = {
+      col.alias: col.path for col in cols if col.signal_udf and col.alias
+    }
     for path in sort_by:
       # We only allow sorting by nodes with a value.
       first_subpath = str(path[0])
@@ -757,11 +772,12 @@ class DatasetDuckDB(Dataset):
       # UDF selection is slightly different than normal selection since the UDF column is already
       # present as a top-level column in the table.
       if udf_path:
-        # If the user selected udf(document.*.text) as "udf" and wanted to sort by "udf.len", we
-        # need to actually sort by "udf.*.len.__value__" where the "*" came from the fact that the
-        # udf was applied to a list of "text" fields.
-        prefix_path = [subpath for subpath in udf_path if subpath == PATH_WILDCARD]
-        path = (first_subpath, *prefix_path, *rest_of_path)
+        if combine_columns:
+          # If the user selected udf(document.*.text) as "udf" and wanted to sort by "udf.len", we
+          # need to actually sort by "udf.*.len.__value__" where the "*" came from the fact that the
+          # udf was applied to a list of "text" fields.
+          prefix_path = [subpath for subpath in udf_path if subpath == PATH_WILDCARD]
+          path = (first_subpath, *prefix_path, *rest_of_path)
       else:
         # Re-route the path if it starts with an alias by pointing it to the actual path.
         if first_subpath in col_aliases:
@@ -783,6 +799,14 @@ class DatasetDuckDB(Dataset):
       else:
         sort_sql_before_udf.append(sort_sql)
 
+    # Filtering and searching.
+    where_query = ''
+    filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases)
+    filter_queries = self._create_where(filters, searches)
+    if filter_queries:
+      where_query = f"WHERE {' AND '.join(filter_queries)}"
+
+    order_query = ''
     if sort_sql_before_udf:
       order_query = (f'ORDER BY {", ".join(sort_sql_before_udf)} '
                      f'{cast(SortOrder, sort_order).value}')
@@ -803,10 +827,7 @@ class DatasetDuckDB(Dataset):
     # Download the data so we can run UDFs on it in Python.
     df = _replace_nan_with_none(df)
 
-    already_sorted = False
-
     # Run UDFs on the transformed columns.
-    udf_columns = [col for col in cols if col.signal_udf]
     for udf_col in udf_columns:
       signal = cast(Signal, udf_col.signal_udf)
       signal_alias = udf_col.alias or _unique_alias(udf_col)
@@ -823,38 +844,16 @@ class DatasetDuckDB(Dataset):
         if signal.compute_type in [SignalInputType.TEXT_EMBEDDING]:
           # The input is an embedding.
           vector_store = self._get_vector_store(udf_col.path)
-
-          # If we are sorting by the topk of a signal column, we can utilize the vector store
-          # via `signal.vector_compute_topk` and then use the topk to filter the dataframe. This
-          # is much faster than computing the signal for all rows and then sorting.
-          if self._sorting_by_topk_of_signal(limit, sort_order, sort_udf_aliases, signal_column):
-            already_sorted = True
-            k = (limit or 0) + (offset or 0)
-            topk = signal.vector_compute_topk(k, vector_store)
-            unique_uuids = list(dict.fromkeys([key[0] for key, _ in topk]))
-            df.set_index(UUID_COLUMN, drop=False, inplace=True)
-            # Filter the dataframe by uuids that have at least one value in top k.
-            df = df.loc[unique_uuids]
-            for key, score in topk:
-              # Walk a deep nested array and put the score at the right location.
-              deep_array = df[signal_column]
-              for key_part in key[:-1]:
-                deep_array = deep_array[key_part]
-              if isinstance(score, np.number):
-                # Unbox the numpy number to a python primitive.
-                score = score.item()
-              deep_array[key[-1]] = score
-          else:
-            flat_keys = flatten_keys(df[UUID_COLUMN], input)
-            signal_out = signal.vector_compute(flat_keys, vector_store)
-            # Add progress.
-            if task_step_id is not None:
-              signal_out = progress(
-                signal_out,
-                task_step_id=task_step_id,
-                estimated_len=len(flat_keys),
-                step_description=f'Computing {signal.key()}...')
-            df[signal_column] = unflatten(signal_out, input)
+          flat_keys = flatten_keys(df[UUID_COLUMN], input)
+          signal_out = signal.vector_compute(flat_keys, vector_store)
+          # Add progress.
+          if task_step_id is not None:
+            signal_out = progress(
+              signal_out,
+              task_step_id=task_step_id,
+              estimated_len=len(flat_keys),
+              step_description=f'Computing {signal.key()}...')
+          df[signal_column] = unflatten(signal_out, input)
         else:
           num_rich_data = count_primitives(input)
           flat_input = cast(Iterable[RichData], flatten(input))
@@ -883,7 +882,7 @@ class DatasetDuckDB(Dataset):
 
           df[signal_column] = unflatten(signal_out, input)
 
-    if udf_filters or (sort_sql_after_udf and not already_sorted):
+    if udf_filters or sort_sql_after_udf:
       # Re-upload the udf outputs to duckdb so we can filter/sort on them.
       rel = con.from_df(df)
 
@@ -892,7 +891,7 @@ class DatasetDuckDB(Dataset):
         if udf_filter_queries:
           rel = rel.filter(' AND '.join(udf_filter_queries))
 
-      if not already_sorted and sort_sql_after_udf:
+      if sort_sql_after_udf:
         if not sort_order:
           raise ValueError('`sort_order` is required when `sort_by` is specified.')
         rel = rel.order(f'{", ".join(sort_sql_after_udf)} {sort_order.value}')
@@ -997,7 +996,7 @@ class DatasetDuckDB(Dataset):
       data_schema=data_schema,
       alias_udf_paths=alias_udf_paths,
       search_results=search_results,
-      sorts=sort_results)
+      sorts=sort_results or None)
 
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
@@ -1100,7 +1099,7 @@ class DatasetDuckDB(Dataset):
     searches = searches or []
     """Create a UDF for each search for finding the location of the text with spans."""
     search_udfs: list[DuckDBSearchUDF] = []
-    for i, search in enumerate(searches):
+    for search in searches:
       if search.query.type == 'keyword':
         udf = Column(path=search.path, signal_udf=SubstringSignal(query=search.query.search))
         search_udfs.append(

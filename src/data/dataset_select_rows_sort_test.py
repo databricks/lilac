@@ -720,8 +720,17 @@ class TopKSignal(TextEmbeddingModelSignal):
   """Compute scores along a given concept for documents."""
   name = 'topk_signal'
 
+  _query = np.array([1])
+
   def fields(self) -> Field:
     return field('float32')
+
+  @override
+  def vector_compute(self, keys: Iterable[VectorKey],
+                     vector_store: VectorStore) -> Iterable[Optional[Item]]:
+    text_embeddings = vector_store.get(keys)
+    dot_products = text_embeddings.dot(self._query).reshape(-1)
+    return dot_products.tolist()
 
   @override
   def vector_compute_topk(
@@ -729,8 +738,7 @@ class TopKSignal(TextEmbeddingModelSignal):
       topk: int,
       vector_store: VectorStore,
       keys: Optional[Iterable[VectorKey]] = None) -> Sequence[tuple[VectorKey, Optional[Item]]]:
-    query = np.array([1])
-    return vector_store.topk(query, topk, keys)
+    return vector_store.topk(self._query, topk, keys)
 
 
 def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
@@ -765,5 +773,5 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
     'scores': enriched_item(
       '8_1', {'topk_embedding': [lilac_embedding(0, 1, None),
                                  lilac_embedding(2, 3, None)]}),
-    'udf': [8.0, None]
+    'udf': [8.0, 1.0]
   }]
