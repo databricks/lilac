@@ -17,7 +17,7 @@ from ..tasks import TaskStepId
 TOO_MANY_DISTINCT = 10_000
 
 
-class SelectRowsResult():
+class SelectRowsResult:
   """The result of a select rows query."""
 
   def __init__(self, df: pd.DataFrame) -> None:

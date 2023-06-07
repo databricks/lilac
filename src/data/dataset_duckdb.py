@@ -176,11 +176,11 @@ class DatasetDuckDB(Dataset):
       CREATE OR REPLACE VIEW {_escape_col_name(view_name)} AS (SELECT * FROM read_parquet({files}));
     """)
 
-  @functools.cache
   # NOTE: This is cached, but when the latest mtime of any file in the dataset directory changes
   # the results are invalidated.
-  def _recompute_joint_table(self, latest_mtime: float) -> DatasetManifest:
-    del latest_mtime  # This is used as the cache key.
+  @functools.cache
+  def _recompute_joint_table(self, latest_mtime_micro_sec: int) -> DatasetManifest:
+    del latest_mtime_micro_sec  # This is used as the cache key.
     merged_schema = self._source_manifest.data_schema.copy(deep=True)
     self._signal_manifests = []
     # Make a joined view of all the column groups.
@@ -239,8 +239,9 @@ class DatasetDuckDB(Dataset):
     # re-computing the manifest and the joined view.
     all_dataset_files = glob.iglob(os.path.join(self.dataset_path, '**'), recursive=True)
     latest_mtime = max(map(os.path.getmtime, all_dataset_files))
+    latest_mtime_micro_sec = int(latest_mtime * 1e6)
     with self._manifest_lock:
-      return self._recompute_joint_table(latest_mtime)
+      return self._recompute_joint_table(latest_mtime_micro_sec)
 
   def count(self, filters: Optional[list[FilterLike]] = None) -> int:
     """Count the number of rows."""
@@ -272,6 +273,7 @@ class DatasetDuckDB(Dataset):
       self,
       signal: Signal,
       source_path: PathTuple,
+      manifest: DatasetManifest,
       compute_dependencies: Optional[bool] = False,
       task_step_id: Optional[TaskStepId] = None) -> tuple[PathTuple, Optional[TaskStepId]]:
     """Run all the signals depedencies required to run this signal.
@@ -297,7 +299,7 @@ class DatasetDuckDB(Dataset):
     if isinstance(signal, TextEmbeddingModelSignal):
       embedding_signal = signal.get_embedding_signal()
       new_path = (*new_path, embedding_signal.key(), PATH_WILDCARD, EMBEDDING_KEY)
-      if new_path not in self.manifest().data_schema.leafs:
+      if new_path not in manifest.data_schema.leafs:
         if not compute_dependencies:
           raise ValueError(f'Embedding signal "{embedding_signal.key()}" is not computed over '
                            f'{source_path}. Please run `dataset.compute_signal` over '
@@ -314,7 +316,7 @@ class DatasetDuckDB(Dataset):
         set_worker_steps(task_id, [TaskStepInfo()] * (new_steps + 1))
 
     for i, (new_path, signal) in enumerate(signals_to_compute):
-      if new_path not in self.manifest().data_schema.leafs:
+      if new_path not in manifest.data_schema.leafs:
         self.compute_signal(
           signal, source_path, task_step_id=(task_id, i) if task_step_id else None)
 
@@ -329,10 +331,11 @@ class DatasetDuckDB(Dataset):
                      column: ColumnId,
                      task_step_id: Optional[TaskStepId] = None) -> None:
     source_path = column_from_identifier(column).path
+    manifest = self.manifest()
 
     # Prepare the dependencies of this signal.
     signal_source_path, task_step_id = self._prepare_signal(
-      signal, source_path, compute_dependencies=True, task_step_id=task_step_id)
+      signal, source_path, manifest, compute_dependencies=True, task_step_id=task_step_id)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
     select_rows_result = self.select_rows([signal_col],
@@ -347,7 +350,7 @@ class DatasetDuckDB(Dataset):
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
     spec = _split_path_into_subpaths_of_lists(enriched_path)
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
-    signal_schema = create_signal_schema(signal, source_path, self.manifest().data_schema)
+    signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
     enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
     for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
       item[UUID_COLUMN] = uuid
@@ -387,8 +390,8 @@ class DatasetDuckDB(Dataset):
       f.write(signal_manifest.json(exclude_none=True, indent=2))
     log(f'Wrote signal manifest to {signal_manifest_filepath}')
 
-  def _validate_filters(self, filters: Sequence[Filter], col_aliases: dict[str, PathTuple]) -> None:
-    manifest = self.manifest()
+  def _validate_filters(self, filters: Sequence[Filter], col_aliases: dict[str, PathTuple],
+                        manifest: DatasetManifest) -> None:
     for filter in filters:
       if filter.path[0] in col_aliases:
         # This is a filter on a column alias, which is always allowed.
@@ -495,15 +498,14 @@ class DatasetDuckDB(Dataset):
       raise ValueError('leaf_path must be provided')
     path = normalize_path(leaf_path)
     manifest = self.manifest()
-    leafs = manifest.data_schema.leafs
     leaf = manifest.data_schema.leafs.get(path)
     if not leaf or not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     value_path = _make_value_path(path)
-    duckdb_path = self._leaf_path_to_duckdb_path(value_path)
+    duckdb_path = self._leaf_path_to_duckdb_path(value_path, manifest)
     inner_select = _select_sql(
-      duckdb_path, flatten=True, unnest=True, span_from=self._get_span_from(path))
+      duckdb_path, flatten=True, unnest=True, span_from=self._get_span_from(path, manifest))
 
     # Compute approximate count by sampling the data to avoid OOM.
     sample_size = SAMPLE_SIZE_DISTINCT_COUNT
@@ -691,11 +693,13 @@ class DatasetDuckDB(Dataset):
     for col in cols:
       if col.signal_udf:
         # Do not auto-compute dependencies, throw an error if they are not computed.
-        col.path, _ = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
+        col.path, _ = self._prepare_signal(
+          col.signal_udf, col.path, manifest, compute_dependencies=False)
 
     self._validate_columns(cols, manifest.data_schema)
-    self._normalize_searches(searches)
-    search_udfs = self._search_udfs(searches)
+
+    self._normalize_searches(searches, manifest)
+    search_udfs = self._search_udfs(searches, manifest)
     cols.extend([search_udf.udf for search_udf in search_udfs])
     udf_columns = [col for col in cols if col.signal_udf]
 
@@ -734,8 +738,8 @@ class DatasetDuckDB(Dataset):
       if final_col_name not in columns_to_merge:
         columns_to_merge[final_col_name] = {}
 
-      duckdb_paths = self._column_to_duckdb_paths(column)
-      span_from = self._get_span_from(path) if resolve_span or column.signal_udf else None
+      duckdb_paths = self._column_to_duckdb_paths(column, manifest)
+      span_from = self._get_span_from(path, manifest) if resolve_span or column.signal_udf else None
 
       for parquet_id, duckdb_path in duckdb_paths:
         sql = _select_sql(
@@ -783,7 +787,7 @@ class DatasetDuckDB(Dataset):
           path = (*col_aliases[first_subpath], *rest_of_path)
 
         self._validate_sort_path(path, manifest.data_schema)
-        path = self._leaf_path_to_duckdb_path(cast(PathTuple, path))
+        path = self._leaf_path_to_duckdb_path(cast(PathTuple, path), manifest)
 
       sort_sql = _select_sql(path, flatten=True, unnest=False)
       has_repeated_field = any(subpath == PATH_WILDCARD for subpath in path)
@@ -800,8 +804,8 @@ class DatasetDuckDB(Dataset):
 
     # Filtering and searching.
     where_query = ''
-    filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases)
-    filter_queries = self._create_where(filters, searches)
+    filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases, manifest)
+    filter_queries = self._create_where(manifest, filters, searches)
     if filter_queries:
       where_query = f"WHERE {' AND '.join(filter_queries)}"
 
@@ -813,8 +817,13 @@ class DatasetDuckDB(Dataset):
     con = self.con.cursor()
 
     limit_query = ''
-    if limit and not sort_sql_after_udf:
-      limit_query = f'LIMIT {limit} OFFSET {offset or 0}'
+    if limit:
+      if topk_udf_col:
+        limit_query = f'LIMIT {limit + (offset or 0)}'
+      elif sort_sql_after_udf:
+        limit_query = ''
+      else:
+        limit_query = f'LIMIT {limit} OFFSET {offset or 0}'
 
     # Fetch the data from DuckDB.
     df = con.execute(f"""
@@ -885,7 +894,7 @@ class DatasetDuckDB(Dataset):
       rel = con.from_df(df)
 
       if udf_filters:
-        udf_filter_queries = self._create_where(udf_filters)
+        udf_filter_queries = self._create_where(manifest, udf_filters)
         if udf_filter_queries:
           rel = rel.filter(' AND '.join(udf_filter_queries))
 
@@ -959,12 +968,13 @@ class DatasetDuckDB(Dataset):
     for col in cols:
       if col.signal_udf:
         # Do not auto-compute dependencies, throw an error if they are not computed.
-        col.path, _ = self._prepare_signal(col.signal_udf, col.path, compute_dependencies=False)
+        col.path, _ = self._prepare_signal(
+          col.signal_udf, col.path, manifest, compute_dependencies=False)
 
     self._validate_columns(cols, manifest.data_schema)
 
-    self._normalize_searches(searches)
-    search_udfs = self._search_udfs(searches)
+    self._normalize_searches(searches, manifest)
+    search_udfs = self._search_udfs(searches, manifest)
     cols.extend([search_udf.udf for search_udf in search_udfs])
 
     alias_udf_paths: dict[str, PathTuple] = {}
@@ -977,7 +987,7 @@ class DatasetDuckDB(Dataset):
         field = col.signal_udf.fields()
         field.signal = col.signal_udf.dict()
       else:
-        field = self.manifest().data_schema.get_field(dest_path)
+        field = manifest.data_schema.get_field(dest_path)
       col_schemas.append(_make_schema_from_path(dest_path, field))
 
     sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
@@ -1000,20 +1010,20 @@ class DatasetDuckDB(Dataset):
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
-  def _get_span_from(self, path: PathTuple) -> Optional[PathTuple]:
-    manifest = self.manifest()
+  def _get_span_from(self, path: PathTuple, manifest: DatasetManifest) -> Optional[PathTuple]:
     leafs = manifest.data_schema.leafs
     # Remove the value key so we can check the dtype from leafs.
     span_path = path[:-1] if path[-1] == VALUE_KEY else path
     is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
     return _derived_from_path(path, manifest.data_schema) if is_span else None
 
-  def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple) -> PathTuple:
+  def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple, manifest: DatasetManifest) -> PathTuple:
     leaf_path = _make_value_path(leaf_path)
-    ((_, duckdb_path),) = self._column_to_duckdb_paths(Column(leaf_path))
+    ((_, duckdb_path),) = self._column_to_duckdb_paths(Column(leaf_path), manifest)
     return duckdb_path
 
-  def _column_to_duckdb_paths(self, column: Column) -> list[tuple[str, PathTuple]]:
+  def _column_to_duckdb_paths(self, column: Column,
+                              manifest: DatasetManifest) -> list[tuple[str, PathTuple]]:
     path = column.path
     parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
       self._source_manifest, *self._signal_manifests
@@ -1049,13 +1059,13 @@ class DatasetDuckDB(Dataset):
 
     if not duckdb_paths:
       raise ValueError(f'Invalid path "{path}": No manifest contains path. Valid paths: '
-                       f'{list(self.manifest().data_schema.leafs.keys())}')
+                       f'{list(manifest.data_schema.leafs.keys())}')
 
     return duckdb_paths
 
   def _normalize_filters(self, filter_likes: Optional[Sequence[FilterLike]],
-                         col_aliases: dict[str, PathTuple],
-                         udf_aliases: dict[str, PathTuple]) -> tuple[list[Filter], list[Filter]]:
+                         col_aliases: dict[str, PathTuple], udf_aliases: dict[str, PathTuple],
+                         manifest: DatasetManifest) -> tuple[list[Filter], list[Filter]]:
     """Normalize `FilterLike` to `Filter` and split into filters on source and filters on UDFs."""
     filter_likes = filter_likes or []
     filters: list[Filter] = []
@@ -1078,22 +1088,24 @@ class DatasetDuckDB(Dataset):
       else:
         filters.append(filter)
 
-    self._validate_filters(filters, col_aliases)
+    self._validate_filters(filters, col_aliases, manifest)
     return filters, udf_filters
 
-  def _normalize_searches(self, searches: Optional[Sequence[Search]]) -> None:
+  def _normalize_searches(self, searches: Optional[Sequence[Search]],
+                          manifest: DatasetManifest) -> None:
     """Validate searches."""
     if not searches:
       return
 
     for search in searches:
       search.path = normalize_path(search.path)
-      field = self.manifest().data_schema.get_field(search.path)
+      field = manifest.data_schema.get_field(search.path)
       if field.dtype != DataType.STRING:
         raise ValueError(f'Invalid search path: {search.path}. '
                          f'Must be a string field, got dtype {field.dtype}')
 
-  def _search_udfs(self, searches: Optional[Sequence[Search]]) -> list[DuckDBSearchUDF]:
+  def _search_udfs(self, searches: Optional[Sequence[Search]],
+                   manifest: DatasetManifest) -> list[DuckDBSearchUDF]:
     searches = searches or []
     """Create a UDF for each search for finding the location of the text with spans."""
     search_udfs: list[DuckDBSearchUDF] = []
@@ -1112,7 +1124,7 @@ class DatasetDuckDB(Dataset):
 
         embedding_path = (*search.path, embedding, PATH_WILDCARD, EMBEDDING_KEY)
         try:
-          self.manifest().data_schema.get_field(embedding_path)
+          manifest.data_schema.get_field(embedding_path)
         except Exception as e:
           raise ValueError(
             f'Embedding {embedding} has not been computed. '
@@ -1148,6 +1160,7 @@ class DatasetDuckDB(Dataset):
     return search_udfs
 
   def _create_where(self,
+                    manifest: DatasetManifest,
                     filters: list[Filter],
                     searches: Optional[Sequence[Search]] = []) -> list[str]:
     if not filters and not searches:
@@ -1157,7 +1170,7 @@ class DatasetDuckDB(Dataset):
 
     # Add search where queries.
     for search in searches:
-      duckdb_path = self._leaf_path_to_duckdb_path(normalize_path(search.path))
+      duckdb_path = self._leaf_path_to_duckdb_path(normalize_path(search.path), manifest)
       select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
       if search.query.type == 'keyword':
         sql_op = 'ILIKE'
@@ -1177,7 +1190,7 @@ class DatasetDuckDB(Dataset):
     unary_ops = set(UnaryOp)
     list_ops = set(ListOp)
     for filter in filters:
-      duckdb_path = self._leaf_path_to_duckdb_path(filter.path)
+      duckdb_path = self._leaf_path_to_duckdb_path(filter.path, manifest)
       select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
 
       if filter.op in binary_ops:
