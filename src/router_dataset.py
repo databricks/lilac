@@ -227,7 +227,7 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
       limit=options.limit,
       offset=options.offset,
       combine_columns=options.combine_columns or False))
-  return cast(list[dict], ORJSONResponse(items))
+  return items
 
 
 @router.post('/{namespace}/{dataset_name}/select_rows_schema', response_model_exclude_none=True)

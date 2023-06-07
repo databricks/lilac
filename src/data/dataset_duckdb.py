@@ -697,7 +697,6 @@ class DatasetDuckDB(Dataset):
           col.signal_udf, col.path, manifest, compute_dependencies=False)
 
     self._validate_columns(cols, manifest.data_schema)
-
     self._normalize_searches(searches, manifest)
     search_udfs = self._search_udfs(searches, manifest)
     cols.extend([search_udf.udf for search_udf in search_udfs])
