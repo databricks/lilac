@@ -215,11 +215,6 @@ export function isSignalRootField(field: LilacField) {
   return field.signal != null;
 }
 
-/** True if the field was the root field produced by a signal. */
-export function isSearch(field: LilacField, selectRowsSchema: LilacSelectRowsSchema) {
-  return field.signal != null;
-}
-
 export const L = {
   path: (value: LilacValueNode): Path | undefined => {
     if (!value) return undefined;
