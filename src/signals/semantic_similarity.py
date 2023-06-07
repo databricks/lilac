@@ -44,21 +44,21 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
   def _get_search_embedding(self) -> np.ndarray:
     """Return the embedding for the search text."""
     if self._search_text_embedding is None:
-      self._search_text_embedding = self._embed_fn([self.query])[0].flatten()
+      self._search_text_embedding = self._embed_fn([self.query])[0].reshape(-1)
 
     return self._search_text_embedding
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     text_embeddings = self._embed_fn(data)
-    similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
+    similarities = text_embeddings.dot(self._get_search_embedding()).reshape(-1)
     return similarities.tolist()
 
   @override
   def vector_compute(self, keys: Iterable[VectorKey],
                      vector_store: VectorStore) -> Iterable[Optional[Item]]:
     text_embeddings = vector_store.get(keys)
-    similarities = text_embeddings.dot(self._get_search_embedding()).flatten()
+    similarities = text_embeddings.dot(self._get_search_embedding()).reshape(-1)
     # Clip the similarities since float precision can cause these to be barely outside the range and
     # throw an exception with interp1d.
     similarities = np.clip(similarities, -1., 1.)

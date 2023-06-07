@@ -37,9 +37,8 @@ class NumpyVectorStore(VectorStore):
     str_keys = list(map(str, keys))
     # np.split makes a shallow copy of each of the embeddings, so the data frame can be a shallow
     # view of the numpy array. This means the dataframe cannot be used to modify the embeddings.
-    self._df = pd.DataFrame(
-      {NP_EMBEDDINGS_KWD: np.split(self._embeddings.flatten(), embeddings.shape[0])},
-      index=str_keys)
+    chunks = np.vsplit(self._embeddings, self._embeddings.shape[0])
+    self._df = pd.DataFrame({NP_EMBEDDINGS_KWD: chunks}, index=str_keys)
 
   @override
   def get(self, keys: Iterable[VectorKey]) -> np.ndarray:
@@ -52,7 +51,7 @@ class NumpyVectorStore(VectorStore):
       The embeddings for the given keys.
     """
     str_keys = list(map(str, keys))
-    return np.stack(self._df.loc[str_keys][NP_EMBEDDINGS_KWD])
+    return np.concatenate(self._df.loc[str_keys][NP_EMBEDDINGS_KWD], axis=0)
 
   @override
   def topk(self,
@@ -67,7 +66,7 @@ class NumpyVectorStore(VectorStore):
       keys = self._keys
 
     query = query.astype(embeddings.dtype)
-    similarities: np.ndarray = np.dot(embeddings, query).flatten()
+    similarities: np.ndarray = np.dot(embeddings, query).reshape(-1)
     k = min(k, len(similarities))
 
     # We do a partition + sort only top K to save time: O(n + klogk) instead of O(nlogn).
