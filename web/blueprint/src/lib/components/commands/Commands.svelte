@@ -29,7 +29,7 @@
   export type ComputeSignalCommand = SignalCommandBase & {
     command: Command.ComputeSignal;
     /** The value of the signal to edit */
-    value: Signal;
+    value?: Signal;
   };
 
   export type PreviewConceptCommand = SignalCommandBase & {
