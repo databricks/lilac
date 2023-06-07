@@ -78,12 +78,11 @@
   $: isEmbeddingComputed =
     existingEmbeddings != null && !!existingEmbeddings.includes(selectedEmbedding || '');
 
-  const indexingKey = (path: Path | null, embedding: string | null, tab: typeof selectedTab) =>
-    `${serializePath(path || '')}_${embedding}_${tab}`;
+  const indexingKey = (path: Path | null, embedding: string | null) =>
+    `${serializePath(path || '')}_${embedding}`;
   let isWaitingForIndexing: {[key: string]: boolean} = {};
   $: isIndexing =
-    !isEmbeddingComputed &&
-    isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding, selectedTab)];
+    !isEmbeddingComputed && isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding)];
 
   $: keywordSearchEnabled = SEARCH_TABS[selectedTabIndex] === 'Keyword' && searchPath != null;
   $: semanticSearchEnabled = SEARCH_TABS[selectedTabIndex] === 'Semantic' && isEmbeddingComputed;
@@ -193,7 +192,7 @@
   };
   const computeEmbedding = () => {
     if (selectedEmbedding == null) return;
-    isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding, selectedTab)] = true;
+    isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding)] = true;
     $computeSignalMutation.mutate([
       namespace,
       datasetName,
@@ -385,7 +384,7 @@
               <div class="ml-2">
                 <Button
                   class="w-24"
-                  disabled={searchButtonDisabled}
+                  disabled={searchButtonDisabled || isIndexing}
                   on:click={() => {
                     if (isEmbeddingComputed) {
                       search();
