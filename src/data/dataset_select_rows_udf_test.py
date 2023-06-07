@@ -81,6 +81,22 @@ class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
       yield embedding_sum
 
 
+class ComputedKeySignal(TextSignal):
+  name = 'computed_key'
+
+  @override
+  def fields(self) -> Field:
+    return field('int64')
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    for text in data:
+      yield 1
+
+  def key(self, is_computed_signal: Optional[bool] = False) -> str:
+    return f'key_{is_computed_signal}'
+
+
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
@@ -89,6 +105,8 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestEmbedding)
   register_signal(TestSignal)
   register_signal(TestEmbeddingSumSignal)
+  register_signal(ComputedKeySignal)
+
   # Unit test runs.
   yield
   # Teardown.
@@ -359,4 +377,28 @@ def test_udf_after_precomputed_split(make_test_data: TestDataMaker) -> None:
       'length_signal': 36,
       'test_splitter': [lilac_span(0, 20), lilac_span(21, 36)]
     })
+  }]
+
+
+def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello2.',
+  }])
+
+  signal_col = Column('text', signal_udf=ComputedKeySignal())
+  # Filter by source feature.
+  filters: list[BinaryFilterTuple] = [('text', BinaryOp.EQUALS, 'everybody')]
+  result = dataset.select_rows(['text', signal_col])
+  assert list(result) == [{
+    UUID_COLUMN: '1',
+    'text': 'hello.',
+    'key_False(text)': 1
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello2.',
+    'key_False(text)': 1
   }]

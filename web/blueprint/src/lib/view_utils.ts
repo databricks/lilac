@@ -5,9 +5,9 @@ import {
   getFieldsByDtype,
   pathIsEqual,
   serializePath,
-  type Column,
   type DataType,
   type LilacField,
+  type LilacSelectRowsSchema,
   type Path,
   type Search,
   type SortResult
@@ -125,14 +125,11 @@ export function getComputedEmbeddings(
 }
 
 export function udfByAlias(
-  store: IDatasetViewStore,
+  selectRowsSchema: LilacSelectRowsSchema | null,
   alias: Path | undefined
-): string | Column | string[] | undefined {
-  return alias
-    ? store.queryOptions.columns?.find(
-        c => typeof c === 'object' && !Array.isArray(c) && c.alias === alias?.[0]
-      )
-    : undefined;
+): Path | null {
+  if (alias == null || selectRowsSchema == null) return null;
+  return (selectRowsSchema?.alias_udf_paths || {})[alias[0]];
 }
 
 /** Gets the search type for a column, if defined. The path is the *input* path to the search. */

@@ -4,9 +4,10 @@
   import {getSearches, isPathVisible, udfByAlias} from '$lib/view_utils';
   import * as Lilac from '$lilac';
   import {Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
-  import {CaretDown, SortAscending, SortDescending} from 'carbon-icons-svelte';
+  import {CaretDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
+  import HoverTooltip from '../common/HoverTooltip.svelte';
   import RemovableTag from '../common/RemovableTag.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
   import EmbeddingBadge from '../datasetView/EmbeddingBadge.svelte';
@@ -82,6 +83,7 @@
           // If any children are signal roots, dont add the field itself.
           return children.some(c => Lilac.isSignalRootField(c)) ? children : [f];
         })
+
         // Filter out specific types of signals
         .filter(c => {
           if (c.dtype === 'embedding') return false;
@@ -97,8 +99,8 @@
     );
   }
 
-  // Check if any query option columns match the alias
-  $: udfColumn = udfByAlias($datasetViewStore, alias);
+  // Check if any query option columns match the alias.
+  $: udfPath = udfByAlias($datasetStore?.selectRowsSchema || null, alias);
 
   // Check if any query option columns match the alias
   $: searches = getSearches($datasetViewStore, path);
@@ -182,7 +184,30 @@
       <EmbeddingBadge embedding={embeddingField.signal?.signal_name} />
     </div>
   {/each}
-  {#if Lilac.isSignalRootField(field) && udfColumn}
+  {#if Lilac.isSignalRootField(field) && udfPath}
+    <div class="mr-2">
+      <Tag
+        type="cyan"
+        on:click={() =>
+          field.signal &&
+          field.alias?.length === 1 &&
+          triggerCommand({
+            command: Command.ComputeSignal,
+            namespace: $datasetViewStore.namespace,
+            datasetName: $datasetViewStore.datasetName,
+            path: sourceField?.path,
+            signalName: field.signal?.signal_name,
+            value: field.signal
+          })}
+      >
+        <HoverTooltip size="small" icon={Chip} class="compute-signal-chip flex">
+          <div class="w-48">
+            <p>Compute signal over the column and save the result.</p>
+            <p class="mt-2">This may be expensive.</p>
+          </div>
+        </HoverTooltip></Tag
+      >
+    </div>
     <Tag
       interactive
       type="green"
@@ -197,8 +222,10 @@
           signalName: field.signal?.signal_name,
           value: field.signal,
           alias: field.alias[0]
-        })}>Signal Preview</Tag
+        })}
     >
+      Preview
+    </Tag>
   {:else if Lilac.isSignalRootField(field)}
     <Tag type="blue" class="signal-tag whitespace-nowrap">Signal</Tag>
   {/if}
@@ -230,5 +257,8 @@
 <style lang="postcss">
   :global(.signal-tag span) {
     @apply px-2;
+  }
+  :global(.compute-signal-chip .bx--tooltip__label .bx--tooltip__trigger) {
+    @apply m-0;
   }
 </style>

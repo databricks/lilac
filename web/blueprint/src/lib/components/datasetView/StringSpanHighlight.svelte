@@ -173,7 +173,13 @@
   function tooltipText(span: AnnotatedStringSpan) {
     if (!span.properties) return '';
     return span.properties
-      .map(p => `${L.path(p)?.at(-1)} = ${formatValue(L.value(p) ?? '')}`)
+      .map(p => {
+        const fieldName = L.path(p)?.at(-1);
+        const value = formatValue(L.value(p) ?? '');
+        if (value == '') return null;
+        return `${fieldName} = ${value}`;
+      })
+      .filter(p => p != null)
       .join('\n');
   }
 </script>

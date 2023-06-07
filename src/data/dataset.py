@@ -385,7 +385,9 @@ class Dataset(abc.ABC):
     pass
 
 
-def make_parquet_id(signal: Signal, source_path: PathTuple) -> str:
+def make_parquet_id(signal: Signal,
+                    source_path: PathTuple,
+                    is_computed_signal: Optional[bool] = False) -> str:
   """Return a unique identifier for this parquet table."""
   # Don't use the VALUE_KEY as part of the parquet id to reduce the size of paths.
   path = source_path[:-1] if source_path[-1] == VALUE_KEY else source_path
@@ -394,7 +396,7 @@ def make_parquet_id(signal: Signal, source_path: PathTuple) -> str:
     # Remove the trailing .* from the column name.
     column_alias = column_alias[:-2]
 
-  return f'{signal.key()}({column_alias})'
+  return f'{signal.key(is_computed_signal=is_computed_signal)}({column_alias})'
 
 
 def val(path: Path) -> PathTuple:

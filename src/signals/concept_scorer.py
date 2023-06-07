@@ -80,7 +80,8 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
     return list(zip(topk_keys, self.vector_compute(topk_keys, vector_store)))
 
   @override
-  def key(self) -> str:
+  def key(self, is_computed_signal: Optional[bool] = False) -> str:
     # NOTE: The embedding is a value so already exists in the path structure. This means we do not
     # need to provide the name as part of the key, which still guarantees uniqueness.
-    return f'{self.namespace}/{self.concept_name}'
+    version = f'/v{self._get_concept_model().version}' if is_computed_signal else ''
+    return f'{self.namespace}/{self.concept_name}{version}'

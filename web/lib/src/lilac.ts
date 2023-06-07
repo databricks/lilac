@@ -166,7 +166,7 @@ export function listFieldParents(field: LilacField, schema: LilacSchema): LilacF
 }
 
 /**
- * Get a field in schema by path
+ * Get a field in schema by path.
  */
 export function getField(schema: LilacSchema, path: Path): LilacField | undefined {
   const list = childFields(schema);
@@ -174,7 +174,7 @@ export function getField(schema: LilacSchema, path: Path): LilacField | undefine
 }
 
 /**
- * Get the first value at the given path in a row
+ * Get the first value at the given path in a row.
  */
 export function getValueNode(row: LilacValueNode, path: Path): LilacValueNode | undefined {
   const list = listValueNodes(row);
@@ -210,8 +210,14 @@ export function isSignalField(
   return false;
 }
 
+/** True if the field was the root field produced by a signal. */
 export function isSignalRootField(field: LilacField) {
-  return !!field.signal;
+  return field.signal != null;
+}
+
+/** True if the field was the root field produced by a signal. */
+export function isSearch(field: LilacField, selectRowsSchema: LilacSelectRowsSchema) {
+  return field.signal != null;
 }
 
 export const L = {

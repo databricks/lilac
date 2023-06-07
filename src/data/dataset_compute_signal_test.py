@@ -156,6 +156,22 @@ class TestEmbedding(TextEmbeddingSignal):
       yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[example]))]
 
 
+class ComputedKeySignal(TextSignal):
+  name = 'computed_key'
+
+  @override
+  def fields(self) -> Field:
+    return field('int64')
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    for text in data:
+      yield 1
+
+  def key(self, is_computed_signal: Optional[bool] = False) -> str:
+    return f'key_{is_computed_signal}'
+
+
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
@@ -165,6 +181,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestSignal)
   register_signal(TestSplitSignal)
   register_signal(TestEmbedding)
+  register_signal(ComputedKeySignal)
   # Unit test runs.
   yield
   # Teardown.
@@ -567,5 +584,39 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
   }, {
     UUID_COLUMN: '2',
     'text': enriched_item('hello2.', {'test_embedding': [lilac_embedding(0, 7, None)]})
+  }]
+  assert list(result) == expected_result
+
+
+def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello2.',
+  }])
+
+  signal = ComputedKeySignal()
+  dataset.compute_signal(signal, 'text')
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema({
+      UUID_COLUMN: 'string',
+      'text': field('string', fields={'key_True': field('int64', signal=signal.dict())}),
+    }),
+    num_items=2)
+
+  result = dataset.select_rows()
+
+  # Embeddings are replaced with "None".
+  expected_result = [{
+    UUID_COLUMN: '1',
+    'text': enriched_item('hello.', {'key_True': 1})
+  }, {
+    UUID_COLUMN: '2',
+    'text': enriched_item('hello2.', {'key_True': 1})
   }]
   assert list(result) == expected_result

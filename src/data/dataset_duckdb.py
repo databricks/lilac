@@ -344,7 +344,7 @@ class DatasetDuckDB(Dataset):
     source_path = signal_source_path
     signal_col.path = source_path
 
-    enriched_path = _col_destination_path(signal_col)
+    enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
     spec = _split_path_into_subpaths_of_lists(enriched_path)
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
     signal_schema = create_signal_schema(signal, source_path, self.manifest().data_schema)
@@ -380,7 +380,7 @@ class DatasetDuckDB(Dataset):
       data_schema=signal_schema,
       signal=signal,
       enriched_path=source_path,
-      parquet_id=make_parquet_id(signal, source_path),
+      parquet_id=make_parquet_id(signal, source_path, is_computed_signal=True),
       embedding_filename=embedding_filename)
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
     with open_file(signal_manifest_filepath, 'w') as f:
@@ -1426,14 +1426,14 @@ def _unique_alias(column: Column) -> str:
   return '.'.join(map(str, column.path))
 
 
-def _col_destination_path(column: Column) -> PathTuple:
+def _col_destination_path(column: Column, is_computed_signal: Optional[bool] = False) -> PathTuple:
   """Get the destination path where the output of this selection column will be stored."""
   source_path = column.path
 
   if not column.signal_udf:
     return source_path
 
-  signal_key = column.signal_udf.key()
+  signal_key = column.signal_udf.key(is_computed_signal=is_computed_signal)
   # If we are enriching a value we should store the signal data in the value's parent.
   if source_path[-1] == VALUE_KEY:
     dest_path = (*source_path[:-1], signal_key)
