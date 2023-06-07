@@ -210,7 +210,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   signal_schema = signal.fields()
   signal_schema.signal = signal.dict()
 
-  enriched_schema = field(fields={signal.key(): signal_schema})
+  enriched_schema = field(fields={signal.key(is_computed_signal=True): signal_schema})
 
   for path_part in reversed(source_path):
     if path_part == PATH_WILDCARD:

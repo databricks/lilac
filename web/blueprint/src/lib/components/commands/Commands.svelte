@@ -7,7 +7,8 @@
     EditPreviewConcept = 'editPreviewConcept',
     EditFilter = 'editFilter',
     CreateConcept = 'createConcept',
-    ComputeEmbedding = 'computeEmbedding'
+    ComputeEmbedding = 'computeEmbedding',
+    ComputeSignalCommand = 'computeSignal'
   }
 
   type NoCommand = {
@@ -27,6 +28,8 @@
 
   export type ComputeSignalCommand = SignalCommandBase & {
     command: Command.ComputeSignal;
+    /** The value of the signal to edit */
+    value?: Signal;
   };
 
   export type PreviewConceptCommand = SignalCommandBase & {

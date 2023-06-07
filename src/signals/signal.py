@@ -113,13 +113,17 @@ class Signal(abc.ABC, BaseModel):
     """
     raise NotImplementedError
 
-  def key(self) -> str:
+  def key(self, is_computed_signal: Optional[bool] = False) -> str:
     """Get the key for a signal.
 
     This is used to make sure signals with multiple arguments do not collide.
 
     NOTE: Overriding this method is sensitive. If you override it, make sure that it is globally
     unique. It will be used as the dictionary key for enriched values.
+
+    Args:
+      is_computed_signal: True when the signal is computed over the column and written to
+        disk. False when the signal is used as a preview UDF.
     """
     args_dict = self.dict(exclude_unset=True, exclude_defaults=True)
     # If a user explicitly defines a signal name for whatever reason, remove it as it's redundant.
@@ -176,7 +180,7 @@ class TextSignal(Signal):
   compute_type = SignalInputType.TEXT
 
   @override
-  def key(self) -> str:
+  def key(self, is_computed_signal: Optional[bool] = False) -> str:
     args_dict = self.dict(exclude_unset=True, exclude_defaults=True)
     if 'signal_name' in args_dict:
       del args_dict['signal_name']
@@ -230,7 +234,7 @@ class TextEmbeddingModelSignal(TextSignal):
     return self._embedding_signal
 
   @override
-  def key(self) -> str:
+  def key(self, is_computed_signal: Optional[bool] = False) -> str:
     # NOTE: The embedding and split already exists in the path structure. This means we do not
     # need to provide the signal names as part of the key, which still guarantees uniqueness.
 
