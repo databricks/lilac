@@ -61,8 +61,9 @@
 
   // Set the signal values if we are editing a signal
   if (
-    command.command === Command.EditPreviewConcept ||
-    (command.command == Command.ComputeSignalCommand && command.signalName)
+    (command.command === Command.EditPreviewConcept ||
+      command.command == Command.ComputeSignalCommand) &&
+    command.signalName
   ) {
     signalPropertyValues = {[command.signalName]: {...command.value}};
   }
