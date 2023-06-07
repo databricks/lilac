@@ -744,32 +744,29 @@ class TopKSignal(TextEmbeddingModelSignal):
 def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
-    'scores': '9_7',
+    'scores': '8_1',
   }, {
     UUID_COLUMN: '2',
     'scores': '3_5'
   }, {
     UUID_COLUMN: '3',
-    'scores': '8_1'
+    'scores': '9_7'
   }])
 
   dataset.compute_signal(TopKEmbedding(), 'scores')
 
   # Equivalent to: SELECT `TopKSignal(scores, embedding='...') AS udf`.
   text_udf = Column('scores', signal_udf=TopKSignal(embedding='topk_embedding'), alias='udf')
-  # Sort by `udf.*`, where `udf` is an alias to `TopKSignal(scores, embedding='...')`.
-  result = dataset.select_rows(['*', text_udf],
-                               sort_by=['udf.*'],
-                               sort_order=SortOrder.DESC,
-                               limit=3)
+  # Sort by `udf`, where `udf` is an alias to `TopKSignal(scores, embedding='...')`.
+  result = dataset.select_rows(['*', text_udf], sort_by=['udf'], sort_order=SortOrder.DESC, limit=3)
   assert list(result) == [{
-    UUID_COLUMN: '1',
+    UUID_COLUMN: '3',
     'scores': enriched_item(
       '9_7', {'topk_embedding': [lilac_embedding(0, 1, None),
                                  lilac_embedding(2, 3, None)]}),
     'udf': [9.0, 7.0]
   }, {
-    UUID_COLUMN: '3',
+    UUID_COLUMN: '1',
     'scores': enriched_item(
       '8_1', {'topk_embedding': [lilac_embedding(0, 1, None),
                                  lilac_embedding(2, 3, None)]}),

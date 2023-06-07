@@ -772,12 +772,11 @@ class DatasetDuckDB(Dataset):
       # UDF selection is slightly different than normal selection since the UDF column is already
       # present as a top-level column in the table.
       if udf_path:
-        if combine_columns:
-          # If the user selected udf(document.*.text) as "udf" and wanted to sort by "udf.len", we
-          # need to actually sort by "udf.*.len.__value__" where the "*" came from the fact that the
-          # udf was applied to a list of "text" fields.
-          prefix_path = [subpath for subpath in udf_path if subpath == PATH_WILDCARD]
-          path = (first_subpath, *prefix_path, *rest_of_path)
+        # If the user selected udf(document.*.text) as "udf" and wanted to sort by "udf.len", we
+        # need to actually sort by "udf.*.len.__value__" where the "*" came from the fact that the
+        # udf was applied to a list of "text" fields.
+        prefix_path = [subpath for subpath in udf_path if subpath == PATH_WILDCARD]
+        path = (first_subpath, *prefix_path, *rest_of_path)
       else:
         # Re-route the path if it starts with an alias by pointing it to the actual path.
         if first_subpath in col_aliases:
@@ -817,14 +816,13 @@ class DatasetDuckDB(Dataset):
     if limit and not sort_sql_after_udf:
       limit_query = f'LIMIT {limit} OFFSET {offset or 0}'
 
+    # Fetch the data from DuckDB.
     df = con.execute(f"""
       SELECT {', '.join(select_queries)} FROM t
       {where_query}
       {order_query}
       {limit_query}
     """).df()
-
-    # Download the data so we can run UDFs on it in Python.
     df = _replace_nan_with_none(df)
 
     # Run UDFs on the transformed columns.
