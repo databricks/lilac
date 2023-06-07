@@ -25,9 +25,11 @@ from .dataset import (
   ConceptQuery,
   KeywordQuery,
   Search,
+  SearchResultInfo,
   SelectRowsSchemaResult,
   SemanticQuery,
   SortOrder,
+  SortResult,
 )
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
@@ -393,8 +395,16 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
             signal=expected_hello_signal.dict(), fields=['string_span'])
         })
     }),
-    search_results_paths=[('text', expected_world_signal.key(), PATH_WILDCARD),
-                          ('text2', expected_hello_signal.key(), PATH_WILDCARD)])
+    search_results=[
+      SearchResultInfo(
+        search_path=('text',),
+        result_path=('text', expected_world_signal.key(), PATH_WILDCARD),
+      ),
+      SearchResultInfo(
+        search_path=('text2',),
+        result_path=('text2', expected_hello_signal.key(), PATH_WILDCARD),
+      )
+    ])
 
 
 def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
@@ -418,8 +428,8 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
   test_embedding = TestEmbedding()
   expected_world_signal = SemanticSimilaritySignal(query=query_world, embedding='test_embedding')
 
-  text_result_path = ('text', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
-                      expected_world_signal.key())
+  similarity_score_path = ('text', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
+                           expected_world_signal.key())
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
       UUID_COLUMN: 'string',
@@ -434,9 +444,21 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
             ])
         })
     }),
-    alias_udf_paths={expected_world_signal.key(): text_result_path},
-    search_results_paths=[text_result_path],
-    sort_results=[((expected_world_signal.key(),), SortOrder.DESC)])
+    alias_udf_paths={expected_world_signal.key(): similarity_score_path},
+    search_results=[
+      SearchResultInfo(
+        search_path=('text',),
+        result_path=similarity_score_path,
+        alias=expected_world_signal.key(),
+      )
+    ],
+    sorts=[
+      SortResult(
+        path=similarity_score_path,
+        alias=expected_world_signal.key(),
+        order=SortOrder.DESC,
+        search_index=0)
+    ])
 
 
 def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
@@ -464,8 +486,8 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
   expected_world_signal = ConceptScoreSignal(
     namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
 
-  text_result_path = ('text', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
-                      expected_world_signal.key())
+  concept_score_path = ('text', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
+                        expected_world_signal.key())
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
       UUID_COLUMN: 'string',
@@ -480,6 +502,42 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
             ])
         })
     }),
-    alias_udf_paths={expected_world_signal.key(): text_result_path},
-    search_results_paths=[text_result_path],
-    sort_results=[((expected_world_signal.key(),), SortOrder.DESC)])
+    alias_udf_paths={expected_world_signal.key(): concept_score_path},
+    search_results=[
+      SearchResultInfo(
+        search_path=('text',),
+        result_path=concept_score_path,
+        alias=expected_world_signal.key(),
+      )
+    ],
+    sorts=[
+      SortResult(
+        path=concept_score_path,
+        alias=expected_world_signal.key(),
+        order=SortOrder.DESC,
+        search_index=0)
+    ])
+
+
+def test_search_sort_override(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world.',
+  }])
+  query_world = 'world'
+
+  test_embedding = TestEmbedding()
+  dataset.compute_signal(test_embedding, ('text'))
+
+  result = dataset.select_rows_schema(
+    searches=[
+      Search(
+        path='text',
+        query=SemanticQuery(type='semantic', search=query_world, embedding='test_embedding')),
+    ],
+    # Explicit sort by overrides the semantic search.
+    sort_by=[('text',)],
+    sort_order=SortOrder.DESC,
+    combine_columns=True)
+
+  assert result.sorts == [SortResult(path=('text',), order=SortOrder.DESC)]

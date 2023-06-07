@@ -10,21 +10,33 @@
     getSearchEmbedding,
     getSearchPath,
     getSearches,
+    getSort,
     getVisibleFields
   } from '$lib/view_utils';
-  import {deserializePath, serializePath} from '$lilac';
+  import {deserializePath, petals, serializePath, type SearchResultInfo} from '$lilac';
   import {
     Button,
     ComboBox,
+    Dropdown,
     InlineLoading,
     Search,
     Select,
     SelectItem,
     Tab,
     TabContent,
-    Tabs
+    Tabs,
+    Tag
   } from 'carbon-components-svelte';
-  import {Checkmark, Chip} from 'carbon-icons-svelte';
+  import {
+    Add,
+    Checkmark,
+    Chip,
+    Close,
+    SortAscending,
+    SortDescending,
+    SortRemove
+  } from 'carbon-icons-svelte';
+  import {Command, triggerCommand} from '../commands/Commands.svelte';
 
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();
@@ -81,23 +93,61 @@
     name: string;
   }
   interface ConceptSelectItem {
-    id: ConceptId;
+    id: ConceptId | 'new-concept';
     text: string;
   }
   let conceptSelectItems: ConceptSelectItem[] = [];
 
+  let newConceptItem: ConceptSelectItem;
+  $: newConceptItem = {
+    id: 'new-concept',
+    text: conceptSearchText
+  };
+  let conceptSearchText = '';
   $: conceptSelectItems = $concepts?.data
-    ? $concepts.data.map(c => ({
-        id: {namespace: c.namespace, name: c.name},
-        text: `${c.namespace}/${c.name}`,
-        disabled: searches.some(
-          s =>
-            s.query.type === 'concept' &&
-            s.query.concept_namespace === c.namespace &&
-            s.query.concept_name === c.name
-        )
-      }))
+    ? [
+        newConceptItem,
+        ...$concepts.data.map(c => ({
+          id: {namespace: c.namespace, name: c.name},
+          text: `${c.namespace}/${c.name}`,
+          disabled: searches.some(
+            s =>
+              s.query.type === 'concept' &&
+              s.query.concept_namespace === c.namespace &&
+              s.query.concept_name === c.name
+          )
+        }))
+      ]
     : [];
+
+  // Sorts.
+  $: sort = getSort($datasetStore);
+  let pathToSearchResult: {[path: string]: SearchResultInfo} = {};
+  $: {
+    for (const search of $datasetStore?.selectRowsSchema?.search_results || []) {
+      pathToSearchResult[serializePath(search.result_path)] = search;
+    }
+  }
+
+  // Server sort response.
+  $: sortById = sort?.path ? serializePath(sort.path) : null;
+  // Explicit user selection of sort.
+  $: selectedSortBy = $datasetViewStore.queryOptions.sort_by;
+
+  $: sortItems =
+    $datasetStore?.selectRowsSchema?.data_schema != null
+      ? [
+          {id: null, text: 'None', disabled: selectedSortBy == null && sortById != null},
+          ...petals($datasetStore.selectRowsSchema.schema).map(field => {
+            const pathStr = serializePath(field.path);
+            const search = pathToSearchResult[pathStr];
+            return {
+              id: pathStr,
+              text: search?.alias != null ? search.alias : pathStr
+            };
+          })
+        ]
+      : [];
 
   const search = () => {
     if (searchPath == null) {
@@ -105,7 +155,6 @@
     }
     if (selectedTab === 'Keyword') {
       if (keywordSearchText == '') {
-        datasetViewStore.clearSearchType('keyword');
         return;
       }
       datasetViewStore.addSearch({
@@ -117,11 +166,7 @@
       });
       keywordSearchText = '';
     } else if (selectedTab === 'Semantic') {
-      if (selectedEmbedding == null) {
-        return;
-      }
-      if (semanticSearchText == '') {
-        datasetViewStore.clearSearchType('semantic');
+      if (selectedEmbedding == null || semanticSearchText == '') {
         return;
       }
       datasetViewStore.addSearch({
@@ -156,23 +201,48 @@
   };
 
   let conceptComboBox: ComboBox;
-  const selectConcept = (
-    e: CustomEvent<{
-      selectedId: ConceptId;
-      selectedItem: ConceptSelectItem;
-    }>
-  ) => {
+  const searchConcept = (namespace: string, name: string) => {
     if (searchPath == null || selectedEmbedding == null) return;
     datasetViewStore.addSearch({
       path: [serializePath(searchPath)],
       query: {
         type: 'concept',
-        concept_namespace: e.detail.selectedId.namespace,
-        concept_name: e.detail.selectedId.name,
+        concept_namespace: namespace,
+        concept_name: name,
         embedding: selectedEmbedding
       }
     });
     conceptComboBox.clear();
+  };
+
+  const selectConcept = (
+    e: CustomEvent<{
+      selectedId: ConceptId | 'new-concept';
+      selectedItem: ConceptSelectItem;
+    }>
+  ) => {
+    if (searchPath == null || selectedEmbedding == null) return;
+    if (e.detail.selectedId === 'new-concept') {
+      if (conceptSearchText === newConceptItem.id) conceptSearchText = '';
+      const conceptSplit = conceptSearchText.split('/', 2);
+      let namespace = '';
+      let conceptName = '';
+      if (conceptSplit.length === 2) {
+        [namespace, conceptName] = conceptSplit;
+      } else {
+        [conceptName] = conceptSplit;
+      }
+
+      triggerCommand({
+        command: Command.CreateConcept,
+        namespace,
+        conceptName,
+        onCreate: e => searchConcept(e.detail.namespace, e.detail.name)
+      });
+      conceptComboBox.clear();
+      return;
+    }
+    searchConcept(e.detail.selectedId.namespace, e.detail.selectedId.name);
   };
 
   const selectField = (e: Event) => {
@@ -181,13 +251,39 @@
   const selectTab = (e: {detail: number}) => {
     datasetViewStore.setSearchTab(SEARCH_TABS[e.detail]);
   };
+  const selectSort = (e: {detail: {selectedId: string}}) => {
+    if (e.detail.selectedId == null) {
+      datasetViewStore.setSortBy(null);
+      return;
+    }
+    const alias = pathToSearchResult[e.detail.selectedId]?.alias;
+    if (alias != null) {
+      datasetViewStore.setSortBy([alias]);
+    } else {
+      datasetViewStore.setSortBy(deserializePath(e.detail.selectedId));
+    }
+  };
+  const clearSorts = () => {
+    datasetViewStore.clearSorts();
+  };
+  const toggleSortOrder = () => {
+    // Set the sort given by the select rows schema explicitly.
+    if (sort != null) {
+      if (sort.alias != null) {
+        datasetViewStore.setSortBy([sort?.alias]);
+      } else {
+        datasetViewStore.setSortBy(sort.path);
+      }
+    }
+    datasetViewStore.setSortOrder(sort?.order === 'ASC' ? 'DESC' : 'ASC');
+  };
 </script>
 
 <div class="mx-4 my-2 flex h-24 flex-row items-start">
-  <div class="mr-8 mt-4 w-44">
+  <div class="mr-8 mt-4">
     <!-- Field select -->
     <Select
-      class="field-select"
+      class="field-select w-32"
       selected={searchPath ? serializePath(searchPath) : ''}
       on:change={selectField}
       labelText={'Search field'}
@@ -201,7 +297,7 @@
     </Select>
   </div>
   <!-- Search boxes -->
-  <div class="search-container flex w-full flex-row">
+  <div class="search-container flex w-full flex-grow flex-row">
     <div class="w-full">
       <Tabs class="flex flex-row" selected={selectedTabIndex} on:change={selectTab}>
         <Tab>{SEARCH_TABS[0]}</Tab>
@@ -232,29 +328,6 @@
                     on:keydown={e => (e.key == 'Enter' ? search() : null)}
                   />
                 </div>
-                <div class="embedding-select w-26">
-                  <Select
-                    noLabel={true}
-                    on:change={selectEmbedding}
-                    selected={selectedEmbedding || ''}
-                    name={selectedEmbedding || ''}
-                    helperText={'Embedding'}
-                  >
-                    {#each $embeddings.data || [] as embedding}
-                      <SelectItem value={embedding.name} text={embedding.name} />
-                    {/each}
-                  </Select>
-                </div>
-                <div class="ml-2">
-                  <Button
-                    disabled={searchPath == null || isEmbeddingComputed || isIndexing}
-                    on:click={() => {
-                      computeEmbedding();
-                    }}
-                    icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
-                    >Index
-                  </Button>
-                </div>
               </div>
             </TabContent>
 
@@ -266,47 +339,111 @@
                     size="xl"
                     bind:this={conceptComboBox}
                     items={conceptSelectItems}
+                    bind:value={conceptSearchText}
                     on:select={selectConcept}
                     shouldFilterItem={(item, value) =>
-                      item.text.toLowerCase().includes(value.toLowerCase())}
+                      item.text.toLowerCase().includes(value.toLowerCase()) ||
+                      item.id === 'new-concept'}
                     placeholder="Search by concept"
-                  />
-                </div>
-                <div class="embedding-select w-26">
-                  <Select
-                    noLabel={true}
-                    on:change={selectEmbedding}
-                    selected={selectedEmbedding || ''}
-                    name={selectedEmbedding || ''}
-                    helperText={'Embedding'}
+                    let:item
                   >
-                    {#each $embeddings.data || [] as embedding}
-                      <SelectItem value={embedding.name} text={embedding.name} />
-                    {/each}
-                  </Select>
-                </div>
-                <div class="ml-2">
-                  <Button
-                    disabled={searchPath == null || isEmbeddingComputed || isIndexing}
-                    on:click={() => {
-                      computeEmbedding();
-                    }}
-                    icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
-                    >Index
-                  </Button>
+                    {#if item.id === 'new-concept'}
+                      <div class="new-concept flex flex-row items-center justify-items-center">
+                        <Tag><Add /></Tag>
+                        <div class="ml-2">
+                          New concept{conceptSearchText != '' ? ':' : ''}
+                          {conceptSearchText}
+                        </div>
+                      </div>
+                    {:else}
+                      <div>{item.text}</div>
+                    {/if}
+                  </ComboBox>
                 </div>
               </div>
             </TabContent>
+            {#if selectedTab === 'Semantic' || selectedTab === 'Concepts'}
+              <div class="embedding-select w-40">
+                <Select
+                  noLabel={true}
+                  on:change={selectEmbedding}
+                  selected={selectedEmbedding || ''}
+                  name={selectedEmbedding || ''}
+                  helperText={'Embedding'}
+                >
+                  {#each $embeddings.data || [] as embedding}
+                    <SelectItem value={embedding.name} text={embedding.name} />
+                  {/each}
+                </Select>
+              </div>
+              <div class="ml-2">
+                <Button
+                  class="w-24"
+                  disabled={searchPath == null || isEmbeddingComputed || isIndexing}
+                  on:click={() => {
+                    computeEmbedding();
+                  }}
+                  icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
+                  >Index
+                </Button>
+              </div>
+            {/if}
           </div>
         </svelte:fragment>
       </Tabs>
     </div>
   </div>
 
-  <div class="ml-2 mt-10 flex">
-    <Button disabled={searchPath == null || !searchEnabled} on:click={() => search()}>
-      Search
-    </Button>
+  {#if selectedTab === 'Keyword' || selectedTab === 'Semantic'}
+    <div class="ml-2 mt-10 flex">
+      <Button
+        class="w-10"
+        disabled={searchPath == null || !searchEnabled}
+        on:click={() => search()}
+      >
+        Search
+      </Button>
+    </div>
+  {/if}
+  <div class="ml-8 mt-10 flex flex-row rounded">
+    <div class="w-12">
+      {#if selectedSortBy != null}
+        <Button
+          kind="ghost"
+          icon={Close}
+          expressive={true}
+          on:click={clearSorts}
+          disabled={sort == null}
+          iconDescription={sort?.order === 'ASC'
+            ? 'Sorted ascending. Toggle to switch to descending.'
+            : 'Sorted descending. Toggle to switch to ascending.'}
+        />
+      {/if}
+    </div>
+    <Dropdown
+      size="xl"
+      class="w-32"
+      selectedId={sortById}
+      on:select={selectSort}
+      items={sortItems}
+      helperText={'Sort by'}
+    />
+    <div>
+      <Button
+        kind="ghost"
+        expressive={true}
+        icon={sort?.order == null
+          ? SortRemove
+          : sort?.order === 'ASC'
+          ? SortAscending
+          : SortDescending}
+        on:click={toggleSortOrder}
+        disabled={sort == null}
+        iconDescription={sort?.order === 'ASC'
+          ? 'Sorted ascending. Toggle to switch to descending.'
+          : 'Sorted descending. Toggle to switch to ascending.'}
+      />
+    </div>
   </div>
 </div>
 
@@ -334,5 +471,8 @@
   }
   :global(.field-select .bx--select-input) {
     @apply h-12;
+  }
+  :global(.new-concept .bx--tag) {
+    @apply w-6 min-w-0 px-0;
   }
 </style>

@@ -14,6 +14,7 @@ from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, validator
 from typing_extensions import override
 
+from ..concepts.concept import ConceptColumnInfo
 from ..config import CONFIG, data_path
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
@@ -69,10 +70,12 @@ from .dataset import (
   MediaResult,
   NamedBins,
   Search,
+  SearchResultInfo,
   SelectGroupsResult,
   SelectRowsResult,
   SelectRowsSchemaResult,
   SortOrder,
+  SortResult,
   StatsResult,
   UnaryOp,
   column_from_identifier,
@@ -129,6 +132,15 @@ class DuckDBSelectGroupsResult(SelectGroupsResult):
   def df(self) -> pd.DataFrame:
     """Convert the result to a pandas DataFrame."""
     return self._df
+
+
+class DuckDBSearchUDF(BaseModel):
+  """The transformation of searches to column UDFs."""
+  udf: Column
+  search_path: PathTuple
+  output_path: PathTuple
+  alias: Optional[str]
+  sort: Optional[tuple[PathTuple, SortOrder]]
 
 
 class DuckDBSearchUDFs(BaseModel):
@@ -605,6 +617,43 @@ class DatasetDuckDB(Dataset):
         cols = [col for col in cols if col.path != ('*',)]
     return cols
 
+  def _merge_sorts(self, search_udfs: list[DuckDBSearchUDF], sort_by: Optional[Sequence[Path]],
+                   sort_order: Optional[SortOrder]) -> Optional[list[SortResult]]:
+    if sort_by and not sort_order:
+      raise ValueError('`sort_order` is required when `sort_by` is specified.')
+
+    alias_to_udf: dict[str, DuckDBSearchUDF] = {
+      search_udf.alias: search_udf for search_udf in search_udfs if search_udf.alias
+    }
+    # True when the user has explicitly sorted by the alias of a search UDF (e.g. in ASC order).
+    is_explicit_search_sort = any(
+      [sort_by[0] in alias_to_udf for sort_by in sort_by or [] if len(sort_by) == 1])
+
+    sort_results: Optional[list[SortResult]] = None
+    if sort_by and not is_explicit_search_sort:
+      # If the user has explicitly set a sort by, and it's not a search UDF alias, override.
+      sort_results = [
+        SortResult(path=normalize_path(sort_by), order=sort_order) for sort_by in sort_by if sort_by
+      ]
+    else:
+      search_udfs_with_sort = [search_udf for search_udf in search_udfs if search_udf.sort]
+      if search_udfs_with_sort:
+        # Override the sort by by the last search sort order when the user hasn't provided an
+        # explicit sort order.
+        last_search_udf = search_udfs_with_sort[-1]
+        if sort_order is None:
+          _, sort_order = cast(tuple[PathTuple, SortOrder], last_search_udf.sort)
+        alias = last_search_udf.alias
+        sort_results = [
+          SortResult(
+            path=last_search_udf.output_path,
+            order=sort_order,
+            alias=alias,
+            search_index=len(search_udfs_with_sort) - 1)
+        ]
+
+    return sort_results
+
   @override
   def select_rows(self,
                   columns: Optional[Sequence[ColumnId]] = None,
@@ -636,13 +685,8 @@ class DatasetDuckDB(Dataset):
 
     self._normalize_searches(searches)
     search_udfs = self._search_udfs(searches)
-    if search_udfs.sorts:
-      if not sort_by:
-        # Override the sort by the last search sort order.
-        search_sort_by, sort_order = search_udfs.sorts[-1]
-        sort_by = [search_sort_by]
 
-    cols.extend(search_udfs.udfs)
+    cols.extend([search_udf.udf for search_udf in search_udfs])
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
     columns_to_merge: dict[str, dict[str, Column]] = {}
     temp_column_to_offset_column: dict[str, tuple[str, Field]] = {}
@@ -694,11 +738,13 @@ class DatasetDuckDB(Dataset):
       where_query = f"WHERE {' AND '.join(filter_queries)}"
 
     # Sorting.
+    sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
     order_query = ''
-    sort_by = cast(list[PathTuple], [normalize_path(path) for path in (sort_by or [])])
-    if sort_by and not sort_order:
-      raise ValueError('`sort_order` is required when `sort_by` is specified.')
-
+    sort_by = cast(list[PathTuple],
+                   [(sort.alias,) if sort.alias else sort.path for sort in sort_results or []])
+    # We only support a single sort order for now. Choose the first one as they must all be the
+    # same.
+    sort_order = sort_results[0].order if sort_results else None
     sort_sql_before_udf: list[str] = []
     sort_sql_after_udf: list[str] = []
     sort_udf_aliases: list[str] = []
@@ -892,6 +938,8 @@ class DatasetDuckDB(Dataset):
   @override
   def select_rows_schema(self,
                          columns: Optional[Sequence[ColumnId]] = None,
+                         sort_by: Optional[Sequence[Path]] = None,
+                         sort_order: Optional[SortOrder] = None,
                          searches: Optional[Sequence[Search]] = None,
                          combine_columns: bool = False) -> SelectRowsSchemaResult:
     """Returns the schema of the result of `select_rows` above with the same arguments."""
@@ -917,7 +965,7 @@ class DatasetDuckDB(Dataset):
 
     self._normalize_searches(searches)
     search_udfs = self._search_udfs(searches)
-    cols.extend(search_udfs.udfs)
+    cols.extend([search_udf.udf for search_udf in search_udfs])
 
     alias_udf_paths: dict[str, PathTuple] = {}
     col_schemas: list[Schema] = []
@@ -932,12 +980,21 @@ class DatasetDuckDB(Dataset):
         field = self.manifest().data_schema.get_field(dest_path)
       col_schemas.append(_make_schema_from_path(dest_path, field))
 
+    sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
+
+    search_results = [
+      SearchResultInfo(
+        search_path=search_udf.search_path,
+        result_path=search_udf.output_path,
+        alias=search_udf.udf.alias) for search_udf in search_udfs
+    ]
+
     data_schema = merge_schemas(col_schemas)
     return SelectRowsSchemaResult(
       data_schema=data_schema,
       alias_udf_paths=alias_udf_paths,
-      search_results_paths=search_udfs.output_paths,
-      sort_results=search_udfs.sorts)
+      search_results=search_results,
+      sorts=sort_results)
 
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
@@ -1036,18 +1093,18 @@ class DatasetDuckDB(Dataset):
         raise ValueError(f'Invalid search path: {search.path}. '
                          f'Must be a string field, got dtype {field.dtype}')
 
-  def _search_udfs(self, searches: Optional[Sequence[Search]]) -> DuckDBSearchUDFs:
+  def _search_udfs(self, searches: Optional[Sequence[Search]]) -> list[DuckDBSearchUDF]:
     searches = searches or []
     """Create a UDF for each search for finding the location of the text with spans."""
-    udfs: list[Column] = []
-    output_paths: list[PathTuple] = []
-    sorts: list[tuple[PathTuple, SortOrder]] = []
+    search_udfs: list[DuckDBSearchUDF] = []
     for i, search in enumerate(searches):
       if search.query.type == 'keyword':
         udf = Column(path=search.path, signal_udf=SubstringSignal(query=search.query.search))
-        udfs.append(udf)
-        # The output to be selected is an array of results.
-        output_paths.append((*_col_destination_path(udf), PATH_WILDCARD))
+        search_udfs.append(
+          DuckDBSearchUDF(
+            udf=udf,
+            search_path=search.path,
+            output_path=(*_col_destination_path(udf), PATH_WILDCARD)))
       elif search.query.type == 'semantic' or search.query.type == 'concept':
         embedding = search.query.embedding
         if not embedding:
@@ -1071,17 +1128,24 @@ class DatasetDuckDB(Dataset):
             namespace=search.query.concept_namespace,
             concept_name=search.query.concept_name,
             embedding=search.query.embedding)
+          # Set the column info for this dataset so the model will negative sample.
+          search_signal.set_column_info(
+            ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=search.path))
 
         alias = search_signal.key()
         udf = Column(path=embedding_path, signal_udf=search_signal, alias=alias)
-        udfs.append(udf)
 
-        output_paths.append(_col_destination_path(udf))
-        sorts.append(((alias,), SortOrder.DESC))
+        search_udfs.append(
+          DuckDBSearchUDF(
+            udf=udf,
+            search_path=search.path,
+            output_path=_col_destination_path(udf),
+            alias=alias,
+            sort=((alias,), SortOrder.DESC)))
       else:
         raise ValueError(f'Unknown search operator {search.query.type}.')
 
-    return DuckDBSearchUDFs(udfs=udfs, output_paths=output_paths, sorts=sorts)
+    return search_udfs
 
   def _create_where(self,
                     filters: list[Filter],

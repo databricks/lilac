@@ -4,10 +4,11 @@ import {
   pathIsEqual,
   serializePath,
   type Column,
+  type LilacSelectRowsSchema,
   type Path,
   type Search,
-  type SearchType,
-  type SelectRowsOptions
+  type SelectRowsOptions,
+  type SortOrder
 } from '$lilac';
 import deepEqual from 'deep-equal';
 import {getContext, hasContext, setContext} from 'svelte';
@@ -54,10 +55,6 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     searchEmbedding: null,
     selectedColumns: {},
     queryOptions: {
-      searches: [],
-      filters: [],
-      sort_by: [],
-      sort_order: 'ASC',
       // Add * as default field when supported here
       columns: [],
       combine_columns: true
@@ -66,7 +63,8 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
 
   const {subscribe, set, update} = persisted<IDatasetViewStore>(
     `${LS_KEY}/${datasetKey(namespace, datasetName)}`,
-    initialState,
+    // Deep copy the initial state so we don't have to worry about mucking the initial state.
+    JSON.parse(JSON.stringify(initialState)),
     {
       storage: 'session'
     }
@@ -77,7 +75,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     set,
     update,
     reset: () => {
-      set(initialState);
+      set(JSON.parse(JSON.stringify(initialState)));
     },
 
     addSelectedColumn: (path: Path | string) =>
@@ -151,29 +149,41 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
           if (deepEqual(existingSearch, search)) return state;
         }
 
+        // Remove any sorts if the search is semantic or conceptual.
+        if (search.query.type === 'semantic' || search.query.type === 'concept') {
+          state.queryOptions.sort_by = undefined;
+          state.queryOptions.sort_order = undefined;
+        }
+
         state.queryOptions.searches.push(search);
         return state;
       }),
-    clearSearch: (search: Search) =>
+    removeSearch: (search: Search, selectRowsSchema?: LilacSelectRowsSchema | null) =>
       update(state => {
         state.queryOptions.searches = state.queryOptions.searches?.filter(
           s => !deepEqual(s, search)
         );
+        // Clear any explicit sorts by this alias as it will be an invalid sort.
+        if (selectRowsSchema?.sorts != null) {
+          state.queryOptions.sort_by = state.queryOptions.sort_by?.filter(sortBy => {
+            if (sortBy.length != 1) return false;
+            return !(selectRowsSchema?.sorts || []).some(s => s.alias === sortBy[0]);
+          });
+        }
         return state;
       }),
-    clearSearchType: (searchType: SearchType) =>
+    setSortBy: (column: Path | null) =>
       update(state => {
-        // Remove existing searches with this type. Semantic and keyword search only allow a
-        // single search.
-        state.queryOptions.searches = state.queryOptions.searches?.filter(
-          s => s.query.type !== searchType
-        );
+        if (column == null) {
+          state.queryOptions.sort_by = undefined;
+        } else {
+          state.queryOptions.sort_by = [column];
+        }
         return state;
       }),
-
     addSortBy: (column: Path) =>
       update(state => {
-        state.queryOptions.sort_by?.push(column);
+        state.queryOptions.sort_by = [...(state.queryOptions.sort_by || []), column];
         return state;
       }),
     removeSortBy: (column: Path) =>
@@ -181,6 +191,17 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         state.queryOptions.sort_by = state.queryOptions.sort_by?.filter(
           c => !pathIsEqual(c, column)
         );
+        return state;
+      }),
+    clearSorts: () =>
+      update(state => {
+        state.queryOptions.sort_by = undefined;
+        state.queryOptions.sort_order = undefined;
+        return state;
+      }),
+    setSortOrder: (sortOrder: SortOrder | null) =>
+      update(state => {
+        state.queryOptions.sort_order = sortOrder || undefined;
         return state;
       }),
 

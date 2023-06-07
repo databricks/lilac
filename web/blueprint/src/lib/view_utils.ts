@@ -9,7 +9,8 @@ import {
   type DataType,
   type LilacField,
   type Path,
-  type Search
+  type Search,
+  type SortResult
 } from '$lilac';
 import type {DatasetStore} from './stores/datasetStore';
 import type {IDatasetViewStore} from './stores/datasetViewStore';
@@ -146,4 +147,9 @@ export function getDefaultSelectedPath(datasetStore: DatasetStore | null): Path 
     return datasetStore?.stats[0].path;
   }
   return null;
+}
+
+export function getSort(datasetStore: DatasetStore | null): SortResult | null {
+  // NOTE: We currently only support sorting by a single column from the UI.
+  return (datasetStore?.selectRowsSchema?.sorts || [])[0] || null;
 }

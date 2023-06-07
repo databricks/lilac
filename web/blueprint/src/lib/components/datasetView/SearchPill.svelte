@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     serializePath,
@@ -23,6 +24,7 @@
   };
 
   const datasetViewStore = getDatasetViewContext();
+  const datasetStore = getDatasetContext();
 
   $: pillText =
     search.query.type === 'concept'
@@ -38,7 +40,7 @@
     title={'query'}
     interactive
     type={tagType}
-    on:remove={() => datasetViewStore.clearSearch(search)}
+    on:remove={() => datasetViewStore.removeSearch(search, $datasetStore?.selectRowsSchema || null)}
   >
     <HoverTooltip size="small" triggerText={pillText} hideIcon={true}>
       <div class=" flex items-center justify-items-center">

@@ -104,16 +104,35 @@ class GroupsSortBy(str, enum.Enum):
   VALUE = 'value'
 
 
+class SortResult(BaseModel):
+  """The information about what is sorted after combining searches and explicit sorts."""
+  # The column that was sorted.
+  path: PathTuple
+  # The sort order.
+  order: SortOrder
+  # The alias of the column if it was aliased.
+  alias: Optional[str]
+  # The search index if the sort is by a search.
+  search_index: Optional[int]
+
+
+class SearchResultInfo(BaseModel):
+  """The resulting sort order returned by the select rows schema."""
+  # The input path to the search.
+  search_path: PathTuple
+  # The resulting column that was searched.
+  result_path: PathTuple
+  # The alias of the UDF.
+  alias: Optional[str]
+
+
 class SelectRowsSchemaResult(BaseModel):
   """The result of a select rows schema query."""
   data_schema: Schema
   # Maps a udf name to its destination path in the schema.
   alias_udf_paths: dict[str, PathTuple] = {}
-  # Maps the list of search queries to their result paths. This lines up with the order given by
-  # the searches.
-  search_results_paths: list[PathTuple] = []
-  # Returns what the results are sorted by.
-  sort_results: list[tuple[Path, SortOrder]] = []
+  search_results: list[SearchResultInfo] = []
+  sorts: Optional[list[SortResult]]
 
 
 class Column(BaseModel):
@@ -333,6 +352,8 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def select_rows_schema(self,
                          columns: Optional[Sequence[ColumnId]] = None,
+                         sort_by: Optional[Sequence[Path]] = None,
+                         sort_order: Optional[SortOrder] = SortOrder.DESC,
                          searches: Optional[Sequence[Search]] = None,
                          combine_columns: bool = False) -> SelectRowsSchemaResult:
     """Returns the schema of the result of `select_rows` above with the same arguments."""

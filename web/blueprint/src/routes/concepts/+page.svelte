@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {goto} from '$app/navigation';
   import Commands, {Command, triggerCommand} from '$lib/components/commands/Commands.svelte';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
@@ -37,7 +38,11 @@
       {/each}
 
       <button
-        on:click={() => triggerCommand({command: Command.CreateConcept})}
+        on:click={() =>
+          triggerCommand({
+            command: Command.CreateConcept,
+            onCreate: e => goto(conceptLink(e.detail.namespace, e.detail.name))
+          })}
         class="mt-4 flex w-full items-center gap-x-1 px-4 py-2 text-left text-sm text-gray-500 hover:text-blue-500"
         ><AddAlt /> Add Concept</button
       >
