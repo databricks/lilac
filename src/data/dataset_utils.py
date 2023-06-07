@@ -237,7 +237,7 @@ def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[obje
   embedding_vectors: list[np.ndarray] = []
   for lilac_embedding in flatten(embeddings, is_primitive_predicate=embedding_predicate):
     # We use squeeze here because embedding functions can return outer dimensions of 1.
-    embedding_vector = lilac_embedding[EMBEDDING_KEY].squeeze()
+    embedding_vector = lilac_embedding[EMBEDDING_KEY].reshape(-1)
     if embedding_vector.ndim != 1:
       raise ValueError(f'Expected embeddings to be 1-dimensional, got {embedding_vector.ndim} '
                        f'with shape {embedding_vector.shape}.')

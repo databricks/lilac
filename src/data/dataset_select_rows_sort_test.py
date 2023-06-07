@@ -1,13 +1,23 @@
 """Tests for dataset.select_rows(sort_by=...)."""
 
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Sequence, cast
 
+import numpy as np
 import pytest
+from typing_extensions import override
 
-from ..schema import UUID_COLUMN, Field, Item, RichData, field
-from ..signals.signal import TextSignal, clear_signal_registry, register_signal
+from ..embeddings.vector_store import VectorStore
+from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field
+from ..signals.signal import (
+  TextEmbeddingModelSignal,
+  TextEmbeddingSignal,
+  TextSignal,
+  clear_signal_registry,
+  register_signal,
+)
 from .dataset import Column, SortOrder
 from .dataset_test_utils import TestDataMaker, enriched_item
+from .dataset_utils import lilac_embedding
 
 
 class TestSignal(TextSignal):
@@ -49,6 +59,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestSignal)
   register_signal(TestPrimitiveSignal)
   register_signal(NestedArraySignal)
+  register_signal(TopKEmbedding)
   # Unit test runs.
   yield
   # Teardown.
@@ -686,4 +697,73 @@ def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
     }, {
       'text': enriched_item('CARS', {'primitive_signal': 5})
     }]
+  }]
+
+
+class TopKEmbedding(TextEmbeddingSignal):
+  """A test embed function."""
+  name = 'topk_embedding'
+
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+    """Call the embedding function."""
+    for example in data:
+      example = cast(str, example)
+      emb_spans: list[Item] = []
+      for i, score in enumerate(example.split('_')):
+        start, end = i * 2, i * 2 + 1
+        vector = np.array([int(score)])
+        emb_spans.append(lilac_embedding(start, end, vector))
+      yield emb_spans
+
+
+class TopKSignal(TextEmbeddingModelSignal):
+  """Compute scores along a given concept for documents."""
+  name = 'topk_signal'
+
+  def fields(self) -> Field:
+    return field('float32')
+
+  @override
+  def vector_compute_topk(
+      self,
+      topk: int,
+      vector_store: VectorStore,
+      keys: Optional[Iterable[VectorKey]] = None) -> Sequence[tuple[VectorKey, Optional[Item]]]:
+    query = np.array([1])
+    return vector_store.topk(query, topk, keys)
+
+
+def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'scores': '9_7',
+  }, {
+    UUID_COLUMN: '2',
+    'scores': '3_5'
+  }, {
+    UUID_COLUMN: '3',
+    'scores': '8_1'
+  }])
+
+  dataset.compute_signal(TopKEmbedding(), 'scores')
+
+  # Equivalent to: SELECT `TopKSignal(scores, embedding='...') AS udf`.
+  text_udf = Column('scores', signal_udf=TopKSignal(embedding='topk_embedding'), alias='udf')
+  # Sort by `udf.*`, where `udf` is an alias to `TopKSignal(scores, embedding='...')`.
+  result = dataset.select_rows(['*', text_udf],
+                               sort_by=['udf.*'],
+                               sort_order=SortOrder.DESC,
+                               limit=3)
+  assert list(result) == [{
+    UUID_COLUMN: '1',
+    'scores': enriched_item(
+      '9_7', {'topk_embedding': [lilac_embedding(0, 1, None),
+                                 lilac_embedding(2, 3, None)]}),
+    'udf': [9.0, 7.0]
+  }, {
+    UUID_COLUMN: '3',
+    'scores': enriched_item(
+      '8_1', {'topk_embedding': [lilac_embedding(0, 1, None),
+                                 lilac_embedding(2, 3, None)]}),
+    'udf': [8.0, None]
   }]

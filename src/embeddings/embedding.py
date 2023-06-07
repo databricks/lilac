@@ -35,7 +35,7 @@ def get_embed_fn(embedding_name: str) -> EmbedFn:
         raise ValueError(
           f'Embedding signal returned {type(embedding_vector)} which is not an ndarray.')
       # We use squeeze here because embedding functions can return outer dimensions of 1.
-      embedding_vector = embedding_vector.squeeze()
+      embedding_vector = embedding_vector.reshape(-1)
       if embedding_vector.ndim != 1:
         raise ValueError(f'Expected embeddings to be 1-dimensional, got {embedding_vector.ndim} '
                          f'with shape {embedding_vector.shape}.')

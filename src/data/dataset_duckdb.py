@@ -840,6 +840,9 @@ class DatasetDuckDB(Dataset):
               deep_array = df[signal_column]
               for key_part in key[:-1]:
                 deep_array = deep_array[key_part]
+              if isinstance(score, np.number):
+                # Unbox the numpy number to a python primitive.
+                score = score.item()
               deep_array[key[-1]] = score
           else:
             flat_keys = flatten_keys(df[UUID_COLUMN], input)
@@ -880,7 +883,7 @@ class DatasetDuckDB(Dataset):
 
           df[signal_column] = unflatten(signal_out, input)
 
-    if udf_filters or sort_sql_after_udf:
+    if udf_filters or (sort_sql_after_udf and not already_sorted):
       # Re-upload the udf outputs to duckdb so we can filter/sort on them.
       rel = con.from_df(df)
 

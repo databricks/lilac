@@ -1,7 +1,7 @@
 """Interface for implementing a signal."""
 
 import abc
-from typing import Any, ClassVar, Iterable, Optional, Type, TypeVar, Union
+from typing import Any, ClassVar, Iterable, Optional, Sequence, Type, TypeVar, Union
 
 from pydantic import BaseModel, Extra, validator
 from pydantic.fields import ModelField
@@ -96,7 +96,7 @@ class Signal(abc.ABC, BaseModel):
       self,
       topk: int,
       vector_store: VectorStore,
-      keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, Optional[Item]]]:
+      keys: Optional[Iterable[VectorKey]] = None) -> Sequence[tuple[VectorKey, Optional[Item]]]:
     """Return signal results only for the top k documents or images.
 
     Signals decide how to rank each document/image in the dataset, usually by a similarity score
