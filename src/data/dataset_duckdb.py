@@ -337,6 +337,9 @@ class DatasetDuckDB(Dataset):
     signal_source_path, task_step_id = self._prepare_signal(
       signal, source_path, manifest, compute_dependencies=True, task_step_id=task_step_id)
 
+    # The manifest may have changed after computing the dependencies.
+    manifest = self.manifest()
+
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
     select_rows_result = self.select_rows([signal_col],
                                           task_step_id=task_step_id,
