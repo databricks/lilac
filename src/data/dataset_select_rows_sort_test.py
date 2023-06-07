@@ -772,3 +772,25 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
                                  lilac_embedding(2, 3, None)]}),
     'udf': [8.0, 1.0]
   }]
+
+  # Same but set limit to 4.
+  result = dataset.select_rows(['*', text_udf], sort_by=['udf'], sort_order=SortOrder.DESC, limit=4)
+  assert list(result) == [{
+    UUID_COLUMN: '3',
+    'scores': enriched_item(
+      '9_7', {'topk_embedding': [lilac_embedding(0, 1, None),
+                                 lilac_embedding(2, 3, None)]}),
+    'udf': [9.0, 7.0]
+  }, {
+    UUID_COLUMN: '1',
+    'scores': enriched_item(
+      '8_1', {'topk_embedding': [lilac_embedding(0, 1, None),
+                                 lilac_embedding(2, 3, None)]}),
+    'udf': [8.0, 1.0]
+  }, {
+    UUID_COLUMN: '2',
+    'scores': enriched_item(
+      '3_5', {'topk_embedding': [lilac_embedding(0, 1, None),
+                                 lilac_embedding(2, 3, None)]}),
+    'udf': [3.0, 5.0]
+  }]
