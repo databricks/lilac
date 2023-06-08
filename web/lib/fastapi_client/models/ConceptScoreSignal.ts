@@ -17,9 +17,3 @@ export type ConceptScoreSignal = {
     num_negative_examples?: number;
 };
 
-
-
-namespace/dataset_name/select_rows?columns=[{path: 'body', signal_udf: {name: concept_scorer}}])
-
-
-namespace/dataset_name/select_rows?columns=[{path: 'body', signal_udf: {name: concept_scorer, column_info:{''}}}])

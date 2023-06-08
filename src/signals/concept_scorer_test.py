@@ -119,7 +119,7 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
   model_db.sync(model, column_info=None)
 
   scores = cast(list[float], list(signal.compute(['a new data point', 'not in concept'])))
-  assert scores[0] > 0.5
+  assert scores[0] > 0 and scores[0] < 1
   assert scores[1] < 0.5
 
 
@@ -161,9 +161,9 @@ def test_concept_model_with_dataset_score(concept_db_cls: Type[ConceptDB],
 
   scores = cast(list[float],
                 list(signal.compute(['a new data point', 'in concept', 'not in concept'])))
-  assert scores[0] < 0.5
-  assert scores[1] > 0.5
-  assert scores[2] < 0.5
+  assert scores[0] > 0 and scores[0] < 1  # 'a new data point' may or may not be in the concept.
+  assert scores[1] > 0.5  # 'in concept' is in the concept.
+  assert scores[2] < 0.5  # 'not in concept' is not in the concept.
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
@@ -191,13 +191,15 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
   model_db.sync(model, column_info=None)
 
   vector_store = NumpyVectorStore()
-  vector_store.add([('1',), ('2',), ('3',)],
-                   np.array([[1.0, 0.0, 0.0], [0.1, 0.9, 0.0], [0.1, 0.2, 0.3]]))
+  embeddings = np.array([
+    EMBEDDING_MAP['in concept'], EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['a new data point']
+  ])
+  vector_store.add([('1',), ('2',), ('3',)], embeddings)
 
   scores = cast(list[float], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_store)))
-  assert scores[0] > 0.5
-  assert scores[1] < 0.5
-  assert scores[2] > 0.5
+  assert scores[0] > 0.5  # '1' is in the concept.
+  assert scores[1] < 0.5  # '2' is not in the concept.
+  assert scores[2] > 0 and scores[2] < 1  # '3' may or may not be in the concept.
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)

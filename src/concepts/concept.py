@@ -5,7 +5,6 @@ from typing import Any, Iterable, Literal, Optional, Union, cast
 
 import numpy as np
 from pydantic import BaseModel
-from scipy.interpolate import interp1d
 from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
 
@@ -28,7 +27,7 @@ LOCAL_CONCEPT_NAMESPACE = 'local'
 
 # Number of randomly sampled negative examples to use for training. This is used to obtain a more
 # balanced model that works with a specific dataset.
-DEFAULT_NUM_NEG_EXAMPLES = 100
+DEFAULT_NUM_NEG_EXAMPLES = 300
 
 
 class ConceptColumnInfo(BaseModel):
@@ -116,16 +115,6 @@ class Sensitivity(str, Enum):
     return self.value
 
 
-# Assuming random text will likely not be in the concept, these percentiles control how likely a
-# random text will be classified as "True".
-SENSITIVITY_PERCENTILES: dict[Sensitivity, float] = {
-  Sensitivity.NOT_SENSITIVE: 1,  # 1% of random negative text will be classified as "True".
-  Sensitivity.BALANCED: 3,  # Likewise, but for 3%.
-  Sensitivity.SENSITIVE: 10,  # Likewise, but for 10%.
-  Sensitivity.VERY_SENSITIVE: 20,  # Likewise, but for 20%.
-}
-
-
 class LogisticEmbeddingModel(BaseModel):
   """A model that uses logistic regression with embeddings."""
 
@@ -139,16 +128,11 @@ class LogisticEmbeddingModel(BaseModel):
   # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
   _model: LogisticRegression = LogisticRegression(
     class_weight='balanced', C=30, tol=1e-5, warm_start=True, max_iter=1_000, n_jobs=-1)
-  _thresholds: dict[Sensitivity, float] = {}
 
   def score_embeddings(self, embeddings: np.ndarray, sensitivity: Sensitivity) -> np.ndarray:
     """Get the scores for the provided embeddings."""
     try:
-      scores = self._model.predict_proba(embeddings)[:, 1]
-      threshold = self._thresholds[sensitivity]
-      # Map [0, threshold, 1] to [0, 0.5, 1].
-      interpolate_fn = interp1d([0, threshold, 1], [0, 0.4999, 1])
-      return interpolate_fn(scores)
+      return self._model.predict_proba(embeddings)[:, 1]
     except NotFittedError:
       return np.random.rand(len(embeddings))
 
@@ -157,10 +141,6 @@ class LogisticEmbeddingModel(BaseModel):
     if len(set(labels)) < 2:
       return
     self._model.fit(embeddings, labels)
-    scores = self._model.predict_proba(embeddings)[:, 1]
-    negative_scores = [score for label, score in zip(labels, scores) if not label]
-    thresholds = np.percentile(negative_scores, [100 - p for p in SENSITIVITY_PERCENTILES.values()])
-    self._thresholds = dict(zip(SENSITIVITY_PERCENTILES.keys(), thresholds))  # type: ignore
 
 
 def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
@@ -254,7 +234,10 @@ class ConceptModel(BaseModel):
       # The model is up to date.
       return False
 
-    self._compute_embeddings(concept)
+    concept_path = (f'{self.namespace}/{self.concept_name}/'
+                    f'{self.embedding_name}')
+    with DebugTimer(f'Computing embeddings for "{concept_path}"'):
+      self._compute_embeddings(concept)
 
     # Fit each of the drafts, sort by draft name for deterministic behavior.
     for draft in concept.drafts():
@@ -267,7 +250,8 @@ class ConceptModel(BaseModel):
         labels = [False] * len(self._negative_vectors) + labels
 
       model = self._get_logistic_model(draft)
-      model.fit(embeddings, labels)
+      with DebugTimer(f'Fitting model for "{concept_path}"'):
+        model.fit(embeddings, labels)
 
       # Synchronize the model version with the concept version.
       model.version = concept.version
@@ -298,9 +282,7 @@ class ConceptModel(BaseModel):
         texts_of_missing_embeddings[id] = example.text or ''
 
     missing_ids = texts_of_missing_embeddings.keys()
-    with DebugTimer('Computing embeddings for examples in concept '
-                    f'"{self.namespace}/{self.concept_name}/{self.embedding_name}"'):
-      missing_embeddings = embed_fn(list(texts_of_missing_embeddings.values()))
+    missing_embeddings = embed_fn(list(texts_of_missing_embeddings.values()))
 
     for id, embedding in zip(missing_ids, missing_embeddings):
       concept_embeddings[id] = embedding

@@ -249,7 +249,9 @@ class DatasetDuckDB(Dataset):
 
   @override
   def get_vector_store(self, path: PathTuple) -> VectorStore:
-    print('get_vector_store',)
+    # Refresh the manifest to make sure we have the latest signal manifests.
+    self.manifest()
+
     if path not in self._col_vector_stores:
       manifest = next(
         m for m in self._signal_manifests if schema_contains_path(m.data_schema, path))
@@ -711,8 +713,6 @@ class DatasetDuckDB(Dataset):
     for udf_col in udf_columns:
       if isinstance(udf_col.signal_udf, ConceptScoreSignal):
         # Set dataset information on the signal.
-        print('-------------- setting column info -------------', self.namespace, self.dataset_name,
-              udf_col.path)
         udf_col.signal_udf.set_column_info(
           ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=udf_col.path))
 

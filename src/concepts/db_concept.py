@@ -14,7 +14,7 @@ from typing_extensions import override
 from ..config import data_path
 from ..schema import PATH_WILDCARD, SignalInputType, normalize_path
 from ..signals.signal import get_signal_cls
-from ..utils import DebugTimer, delete_file, file_exists, get_dataset_output_dir, open_file
+from ..utils import delete_file, file_exists, get_dataset_output_dir, open_file
 from .concept import (
   DRAFT_MAIN,
   Concept,
@@ -128,10 +128,7 @@ class ConceptModelDB(abc.ABC):
     concept = self._concept_db.get(model.namespace, model.concept_name)
     if not concept:
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
-    concept_path = (f'{model.namespace}/{model.concept_name}/'
-                    f'{model.embedding_name}')
-    with DebugTimer(f'Syncing concept model "{concept_path}"'):
-      model_updated = model.sync(concept)
+    model_updated = model.sync(concept)
     self._save(model, column_info)
     return model_updated
 
