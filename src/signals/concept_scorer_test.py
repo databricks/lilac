@@ -114,8 +114,9 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding='test_embedding')
 
   # Explicitly sync the model with the concept.
-  model_db.sync(
-    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+  model = ConceptModel(
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+  model_db.sync(model, column_info=None)
 
   scores = cast(list[float], list(signal.compute(['a new data point', 'not in concept'])))
   assert scores[0] > 0.5
@@ -147,14 +148,16 @@ def test_concept_model_with_dataset_score(concept_db_cls: Type[ConceptDB],
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
+  column_info = ConceptColumnInfo(
+    namespace=dataset.namespace, name=dataset.dataset_name, path='text')
   signal = ConceptScoreSignal(
     namespace='test', concept_name='test_concept', embedding='test_embedding')
-  signal.set_column_info(
-    ConceptColumnInfo(namespace=dataset.namespace, name=dataset.dataset_name, path='text'))
+  signal.set_column_info(column_info)
 
   # Explicitly sync the model with the concept.
-  model_db.sync(
-    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+  model = ConceptModel(
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+  model_db.sync(model, column_info)
 
   scores = cast(list[float],
                 list(signal.compute(['a new data point', 'in concept', 'not in concept'])))
@@ -183,8 +186,9 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding='test_embedding')
 
   # Explicitly sync the model with the concept.
-  model_db.sync(
-    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+  model = ConceptModel(
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+  model_db.sync(model, column_info=None)
 
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
@@ -216,8 +220,9 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding='test_embedding')
 
   # Explicitly sync the model with the concept.
-  model_db.sync(
-    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+  model = ConceptModel(
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+  model_db.sync(model, column_info=None)
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
                    np.array([[0.1, 0.2, 0.3], [0.1, 0.87, 0.0], [1.0, 0.0, 0.0]]))
@@ -264,8 +269,9 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding='test_embedding', draft='test_draft')
 
   # Explicitly sync the model with the concept.
-  model_db.sync(
-    ConceptModel(namespace='test', concept_name='test_concept', embedding_name='test_embedding'))
+  model = ConceptModel(
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
+  model_db.sync(model, column_info=None)
 
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],

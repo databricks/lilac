@@ -31,6 +31,10 @@ class TestVectorStore(VectorStore):
   """A test vector store with fixed embeddings."""
 
   @override
+  def keys(self) -> list[VectorKey]:
+    return []
+
+  @override
   def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
     # We fix the vectors for the test vector store.
     pass

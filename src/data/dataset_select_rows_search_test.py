@@ -271,11 +271,12 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
   (_, embeddings, labels) = concept_model_mock.call_args_list[-1].args
   assert embeddings.shape == (4, 3)
   assert labels == [
-    False,
-    True,
     # Negative implicit labels.
     False,
-    False
+    False,
+    # Explicit labels.
+    False,
+    True
   ]
 
 

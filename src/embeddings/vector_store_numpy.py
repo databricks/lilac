@@ -20,6 +20,10 @@ class NumpyVectorStore(VectorStore):
   _df: pd.DataFrame
 
   @override
+  def keys(self) -> list[VectorKey]:
+    return self._keys
+
+  @override
   def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
     if hasattr(self, '_embeddings') or hasattr(self, '_keys'):
       raise ValueError('Embeddings already exist in this store. Upsert is not yet supported.')

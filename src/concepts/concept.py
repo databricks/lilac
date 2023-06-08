@@ -1,6 +1,5 @@
 """Defines the concept and the concept models."""
 import random
-import uuid
 from enum import Enum
 from typing import Any, Iterable, Literal, Optional, Union, cast
 
@@ -10,17 +9,16 @@ from scipy.interpolate import interp1d
 from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
 
-from ..data.dataset import Column, UnaryOp, val
 from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
 from ..schema import (
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
-  UUID_COLUMN,
   VALUE_KEY,
   Path,
   RichData,
   SignalInputType,
+  normalize_path,
 )
 from ..signals.signal import TextEmbeddingSignal, get_signal_cls
 from ..signals.splitters.text_splitter_spacy import SentenceSplitterSpacy
@@ -200,40 +198,24 @@ class ConceptModel(BaseModel):
   embedding_name: str
   version: int = -1
 
-  column_info: Optional[ConceptColumnInfo] = None
+  # The following fields are excluded from JSON serialization, but still pickleable.
+  # Maps a concept id to the embeddings.
+  _embeddings: dict[str, np.ndarray] = {}
+  _logistic_models: dict[DraftId, LogisticEmbeddingModel] = {}
+  _negative_vectors: Optional[np.ndarray] = None
 
   class Config:
     arbitrary_types_allowed = True
     underscore_attrs_are_private = True
 
-  def __init__(self, **kwargs: Any):
-    super().__init__(**kwargs)
-    self._generate_random_negatives()
-
-  def _generate_random_negatives(self) -> None:
-    if not self.column_info:
-      return
-
-    # Sorting by UUID column will return examples with random order.
-    db = get_dataset(self.column_info.namespace, self.column_info.name)
-    docs = db.select_rows([Column(val(self.column_info.path), alias='text')],
-                          filters=[(self.column_info.path, UnaryOp.EXISTS)],
-                          sort_by=[UUID_COLUMN],
-                          limit=self.column_info.num_negative_examples)
-    docs = docs.df()['text']
-    sentences = _split_docs_into_sentences(docs)
-    # Choose a random unique subset of sentences.
-    num_samples = min(self.column_info.num_negative_examples, len(sentences))
-    negatives = random.sample(sentences, num_samples)
-    for text in negatives:
-      ex = Example(label=False, text=text, id=uuid.uuid4().hex)
-      self._negative_examples[ex.id] = ex
-
-  # The following fields are excluded from JSON serialization, but still pickleable.
-  # Maps a concept id to the embeddings.
-  _embeddings: dict[str, np.ndarray] = {}
-  _logistic_models: dict[DraftId, LogisticEmbeddingModel] = {}
-  _negative_examples: dict[str, Example] = {}
+  def calibrate_on_dataset(self, column_info: ConceptColumnInfo) -> None:
+    """Calibrate the model on the embeddings in the provided vector store."""
+    db = get_dataset(column_info.namespace, column_info.name)
+    vector_store = db.get_vector_store(normalize_path(column_info.path))
+    keys = vector_store.keys()
+    num_samples = min(column_info.num_negative_examples, len(keys))
+    sample_keys = random.sample(keys, num_samples)
+    self._negative_vectors = vector_store.get(sample_keys)
 
   def score_embeddings(self, draft: DraftId, embeddings: np.ndarray,
                        sensitivity: Sensitivity) -> np.ndarray:
@@ -277,9 +259,12 @@ class ConceptModel(BaseModel):
     # Fit each of the drafts, sort by draft name for deterministic behavior.
     for draft in concept.drafts():
       examples = draft_examples(concept, draft)
-      all_examples = {**examples, **self._negative_examples}
-      embeddings = np.array([self._embeddings[id] for id in all_examples.keys()])
-      labels = [example.label for example in all_examples.values()]
+      embeddings = np.array([self._embeddings[id] for id in examples.keys()])
+      labels = [example.label for example in examples.values()]
+
+      if self._negative_vectors is not None:
+        embeddings = np.concatenate([self._negative_vectors, embeddings])
+        labels = [False] * len(self._negative_vectors) + labels
 
       model = self._get_logistic_model(draft)
       model.fit(embeddings, labels)
@@ -303,8 +288,7 @@ class ConceptModel(BaseModel):
 
     # Compute the embeddings for the examples with cache miss.
     texts_of_missing_embeddings: dict[str, str] = {}
-    all_examples = {**concept.data, **self._negative_examples}
-    for id, example in all_examples.items():
+    for id, example in concept.data.items():
       if id in self._embeddings:
         # Cache hit.
         concept_embeddings[id] = self._embeddings[id]
