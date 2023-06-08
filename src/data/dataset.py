@@ -272,6 +272,7 @@ class Dataset(abc.ABC):
 
   @abc.abstractmethod
   def get_vector_store(self, path: PathTuple) -> VectorStore:
+    # TODO: Instead of this, allow selecting vectors via select_rows.
     """Get the vector store for a column."""
     pass
 
