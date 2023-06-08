@@ -218,8 +218,11 @@ class DatasetDuckDB(Dataset):
       f'join {_escape_col_name(manifest.parquet_id)} using ({UUID_COLUMN},)'
       for manifest in self._signal_manifests
     ])
-
-    sql_cmd = f"""CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})"""
+    view_or_table = 'TABLE'
+    use_views = CONFIG.get('DUCKDB_USE_VIEWS', 0) or 0
+    if int(use_views):
+      view_or_table = 'VIEW'
+    sql_cmd = f"""CREATE OR REPLACE {view_or_table} t AS (SELECT {select_sql} FROM {join_sql})"""
     self.con.execute(sql_cmd)
 
     # Get the total size of the table.
@@ -237,10 +240,10 @@ class DatasetDuckDB(Dataset):
   def manifest(self) -> DatasetManifest:
     # Use the latest modification time of all files under the dataset path as the cache key for
     # re-computing the manifest and the joined view.
-    all_dataset_files = glob.iglob(os.path.join(self.dataset_path, '**'), recursive=True)
-    latest_mtime = max(map(os.path.getmtime, all_dataset_files))
-    latest_mtime_micro_sec = int(latest_mtime * 1e6)
     with self._manifest_lock:
+      all_dataset_files = glob.iglob(os.path.join(self.dataset_path, '**'), recursive=True)
+      latest_mtime = max(map(os.path.getmtime, all_dataset_files))
+      latest_mtime_micro_sec = int(latest_mtime * 1e6)
       return self._recompute_joint_table(latest_mtime_micro_sec)
 
   def count(self, filters: Optional[list[FilterLike]] = None) -> int:
