@@ -28,7 +28,7 @@ from ..schema import (
   schema_to_arrow_schema,
 )
 from ..signals.signal import EMBEDDING_KEY, Signal
-from ..utils import DebugTimer, file_exists, log, open_file
+from ..utils import file_exists, log, open_file
 
 _KEYS_SUFFIX = '.keys.pkl'
 _EMBEDDINGS_SUFFIX = '.npy'
@@ -261,12 +261,9 @@ def read_embedding_index(filepath_prefix: str) -> tuple[list[VectorKey], np.ndar
                      'Please run dataset.compute_signal() on the embedding signal first.')
 
   # Read the embedding index from disk.
-  with DebugTimer('reading embeddings'):
-    with open_file(filepath_prefix + _EMBEDDINGS_SUFFIX, 'rb') as f:
-      embeddings = np.load(f, allow_pickle=False)
-  with DebugTimer('reading keys'):
-    with open_file(filepath_prefix + _KEYS_SUFFIX, 'rb') as f:
-      index_keys: list[VectorKey] = pickle.load(f)
+  embeddings = np.load(filepath_prefix + _EMBEDDINGS_SUFFIX, allow_pickle=False)
+  with open_file(filepath_prefix + _KEYS_SUFFIX, 'rb') as f:
+    index_keys: list[VectorKey] = pickle.load(f)
   return index_keys, embeddings
 
 

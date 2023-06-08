@@ -264,8 +264,7 @@ class DatasetDuckDB(Dataset):
       signal_name = cast(str, manifest.signal.signal_name)
       filepath_prefix = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
                                      signal_name, manifest.embedding_filename_prefix)
-      with DebugTimer('Reading emb index'):
-        keys, embeddings = read_embedding_index(filepath_prefix)
+      keys, embeddings = read_embedding_index(filepath_prefix)
       # Get all the embeddings and pass it to the vector store.
       vector_store = self.vector_store_cls()
       vector_store.add(keys, embeddings)
