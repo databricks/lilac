@@ -13,7 +13,7 @@
     getSort,
     getVisibleFields
   } from '$lib/view_utils';
-  import {deserializePath, petals, serializePath, type SearchResultInfo} from '$lilac';
+  import {deserializePath, petals, serializePath, type Path, type SearchResultInfo} from '$lilac';
   import {
     Button,
     ComboBox,
@@ -77,15 +77,20 @@
 
   $: isEmbeddingComputed =
     existingEmbeddings != null && !!existingEmbeddings.includes(selectedEmbedding || '');
+
+  const indexingKey = (path: Path | null, embedding: string | null) =>
+    `${serializePath(path || '')}_${embedding}`;
   let isWaitingForIndexing: {[key: string]: boolean} = {};
   $: isIndexing =
-    !isEmbeddingComputed &&
-    isWaitingForIndexing[`${serializePath(searchPath || '')}_${selectedEmbedding}`];
+    !isEmbeddingComputed && isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding)];
 
   $: keywordSearchEnabled = SEARCH_TABS[selectedTabIndex] === 'Keyword' && searchPath != null;
   $: semanticSearchEnabled = SEARCH_TABS[selectedTabIndex] === 'Semantic' && isEmbeddingComputed;
 
-  $: searchEnabled = keywordSearchEnabled || semanticSearchEnabled;
+  // Don't show the search button the concepts tab since it is a dropdown.
+  $: showSearchButton = isEmbeddingComputed && selectedTab != 'Concepts';
+
+  $: searchButtonDisabled = selectedTab === 'Concepts' && isEmbeddingComputed;
 
   const concepts = queryConcepts();
   interface ConceptId {
@@ -187,7 +192,7 @@
   };
   const computeEmbedding = () => {
     if (selectedEmbedding == null) return;
-    isWaitingForIndexing[`${serializePath(searchPath || '')}_${selectedEmbedding}`] = true;
+    isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding)] = true;
     $computeSignalMutation.mutate([
       namespace,
       datasetName,
@@ -379,12 +384,23 @@
               <div class="ml-2">
                 <Button
                   class="w-24"
-                  disabled={searchPath == null || isEmbeddingComputed || isIndexing}
+                  disabled={searchButtonDisabled || isIndexing}
                   on:click={() => {
-                    computeEmbedding();
+                    if (isEmbeddingComputed) {
+                      search();
+                    } else {
+                      computeEmbedding();
+                    }
                   }}
-                  icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
-                  >Index
+                  icon={isEmbeddingComputed
+                    ? selectedTab === 'Concepts'
+                      ? Checkmark
+                      : undefined
+                    : isIndexing
+                    ? InlineLoading
+                    : Chip}
+                >
+                  {showSearchButton ? 'Search' : 'Index'}
                 </Button>
               </div>
             {/if}
@@ -394,18 +410,7 @@
     </div>
   </div>
 
-  {#if selectedTab === 'Keyword' || selectedTab === 'Semantic'}
-    <div class="ml-2 mt-10 flex">
-      <Button
-        class="w-10"
-        disabled={searchPath == null || !searchEnabled}
-        on:click={() => search()}
-      >
-        Search
-      </Button>
-    </div>
-  {/if}
-  <div class="ml-8 mt-10 flex flex-row rounded">
+  <div class="ml-2 mt-10 flex flex-row rounded">
     <div class="w-12">
       {#if selectedSortBy != null}
         <Button

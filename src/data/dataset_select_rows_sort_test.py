@@ -720,8 +720,17 @@ class TopKSignal(TextEmbeddingModelSignal):
   """Compute scores along a given concept for documents."""
   name = 'topk_signal'
 
+  _query = np.array([1])
+
   def fields(self) -> Field:
     return field('float32')
+
+  @override
+  def vector_compute(self, keys: Iterable[VectorKey],
+                     vector_store: VectorStore) -> Iterable[Optional[Item]]:
+    text_embeddings = vector_store.get(keys)
+    dot_products = text_embeddings.dot(self._query).reshape(-1)
+    return dot_products.tolist()
 
   @override
   def vector_compute_topk(
@@ -729,41 +738,59 @@ class TopKSignal(TextEmbeddingModelSignal):
       topk: int,
       vector_store: VectorStore,
       keys: Optional[Iterable[VectorKey]] = None) -> Sequence[tuple[VectorKey, Optional[Item]]]:
-    query = np.array([1])
-    return vector_store.topk(query, topk, keys)
+    return vector_store.topk(self._query, topk, keys)
 
 
 def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
-    'scores': '9_7',
+    'scores': '8_1',
   }, {
     UUID_COLUMN: '2',
     'scores': '3_5'
   }, {
     UUID_COLUMN: '3',
-    'scores': '8_1'
+    'scores': '9_7'
   }])
 
   dataset.compute_signal(TopKEmbedding(), 'scores')
 
   # Equivalent to: SELECT `TopKSignal(scores, embedding='...') AS udf`.
   text_udf = Column('scores', signal_udf=TopKSignal(embedding='topk_embedding'), alias='udf')
-  # Sort by `udf.*`, where `udf` is an alias to `TopKSignal(scores, embedding='...')`.
-  result = dataset.select_rows(['*', text_udf],
-                               sort_by=['udf.*'],
-                               sort_order=SortOrder.DESC,
-                               limit=3)
+  # Sort by `udf`, where `udf` is an alias to `TopKSignal(scores, embedding='...')`.
+  result = dataset.select_rows(['*', text_udf], sort_by=['udf'], sort_order=SortOrder.DESC, limit=3)
   assert list(result) == [{
-    UUID_COLUMN: '1',
+    UUID_COLUMN: '3',
     'scores': enriched_item(
       '9_7', {'topk_embedding': [lilac_embedding(0, 1, None),
                                  lilac_embedding(2, 3, None)]}),
     'udf': [9.0, 7.0]
   }, {
-    UUID_COLUMN: '3',
+    UUID_COLUMN: '1',
     'scores': enriched_item(
       '8_1', {'topk_embedding': [lilac_embedding(0, 1, None),
                                  lilac_embedding(2, 3, None)]}),
-    'udf': [8.0, None]
+    'udf': [8.0, 1.0]
+  }]
+
+  # Same but set limit to 4.
+  result = dataset.select_rows(['*', text_udf], sort_by=['udf'], sort_order=SortOrder.DESC, limit=4)
+  assert list(result) == [{
+    UUID_COLUMN: '3',
+    'scores': enriched_item(
+      '9_7', {'topk_embedding': [lilac_embedding(0, 1, None),
+                                 lilac_embedding(2, 3, None)]}),
+    'udf': [9.0, 7.0]
+  }, {
+    UUID_COLUMN: '1',
+    'scores': enriched_item(
+      '8_1', {'topk_embedding': [lilac_embedding(0, 1, None),
+                                 lilac_embedding(2, 3, None)]}),
+    'udf': [8.0, 1.0]
+  }, {
+    UUID_COLUMN: '2',
+    'scores': enriched_item(
+      '3_5', {'topk_embedding': [lilac_embedding(0, 1, None),
+                                 lilac_embedding(2, 3, None)]}),
+    'udf': [3.0, 5.0]
   }]
