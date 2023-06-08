@@ -50,13 +50,25 @@ export type LilacValueNode = {
 /**
  * Internal type for a LilacValueNode casted with internal properties.
  */
-type LilacValueNodeCasted<D extends DataType = DataType> = {
+export type LilacValueNodeCasted<D extends DataType = DataType> = {
   /** Holds the actual value of the node */
   [VALUE_KEY]: DataTypeCasted<D>;
   /** Holds the path property of the node */
   [PATH_KEY]: Path;
   /** Holds a reference to the schema field */
   [SCHEMA_FIELD_KEY]: LilacField | undefined;
+  [metadata: string]: unknown;
+};
+
+// A lilac item.
+// TODO(nsthorat): Convert everything to LilacItems.
+export type LilacItem<D extends DataType = DataType> = LilacValueItem<D> | DataTypeCasted<D>;
+
+// A lilac item with a VALUE_KEY.
+export type LilacValueItem<D extends DataType = DataType> = {
+  /** Holds the actual value of the node */
+  [VALUE_KEY]: DataTypeCasted<D>;
+  [metadata: string]: unknown;
 };
 
 /**

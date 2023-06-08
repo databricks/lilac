@@ -66,6 +66,7 @@
   let spanClickMousePosition: {x: number; y: number} | undefined;
 
   $: spans = stringSpanFields.flatMap(f => getValueNodes(row, f.path));
+  $: console.log(spans);
   $: searchSpans = keywordSearchSpanFields.flatMap(f => getValueNodes(row, f.path));
 
   // Fill up the gaps between the spans.
