@@ -257,17 +257,18 @@ class DatasetDuckDB(Dataset):
         m for m in self._signal_manifests if schema_contains_path(m.data_schema, path))
       if not manifest:
         raise ValueError(f'No embedding found for path {path}.')
-      if not manifest.embedding_filename:
+      if not manifest.embedding_filename_prefix:
         raise ValueError(f'Signal manifest for path {path} is not an embedding. '
                          f'Got signal manifest: {manifest}')
 
       signal_name = cast(str, manifest.signal.signal_name)
-      filepath = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path), signal_name,
-                              manifest.embedding_filename)
-      embedding_index = read_embedding_index(filepath)
+      filepath_prefix = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
+                                     signal_name, manifest.embedding_filename_prefix)
+      with DebugTimer('Reading emb index'):
+        keys, embeddings = read_embedding_index(filepath_prefix)
       # Get all the embeddings and pass it to the vector store.
       vector_store = self.vector_store_cls()
-      vector_store.add(embedding_index.keys, embedding_index.embeddings)
+      vector_store.add(keys, embeddings)
       # Cache the vector store.
       self._col_vector_stores[path] = vector_store
 
@@ -363,9 +364,9 @@ class DatasetDuckDB(Dataset):
       item[UUID_COLUMN] = uuid
 
     is_embedding = isinstance(signal, TextEmbeddingSignal)
-    embedding_filename = None
+    embedding_filename_prefix = None
     if is_embedding:
-      embedding_filename = os.path.basename(
+      embedding_filename_prefix = os.path.basename(
         write_item_embeddings_to_disk(
           keys=df[UUID_COLUMN],
           embeddings=values,
@@ -391,7 +392,7 @@ class DatasetDuckDB(Dataset):
       signal=signal,
       enriched_path=source_path,
       parquet_id=make_parquet_id(signal, source_path, is_computed_signal=True),
-      embedding_filename=embedding_filename)
+      embedding_filename_prefix=embedding_filename_prefix)
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.json(exclude_none=True, indent=2))
@@ -1392,8 +1393,8 @@ class SignalManifest(BaseModel):
   # The column path that this signal is derived from.
   enriched_path: PathTuple
 
-  # The filename of the embedding when the signal is an embedding.
-  embedding_filename: Optional[str]
+  # The filename prefix for the embedding. Present when the signal is an embedding.
+  embedding_filename_prefix: Optional[str]
 
   @validator('signal', pre=True)
   def parse_signal(cls, signal: dict) -> Signal:

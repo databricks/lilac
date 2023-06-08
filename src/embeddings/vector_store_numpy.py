@@ -7,6 +7,7 @@ import pandas as pd
 from typing_extensions import override
 
 from ..schema import VectorKey
+from ..utils import DebugTimer
 from .vector_store import VectorStore
 
 NP_INDEX_KEYS_KWD = 'keys'
@@ -35,14 +36,17 @@ class NumpyVectorStore(VectorStore):
     self._keys = keys
     # Cast to float32 since dot product with float32 is 40-50x faster than float16 and 2.5x faster
     # than float64.
-    self._embeddings = embeddings.astype(np.float32)
+    with DebugTimer('Cast to float32'):
+      self._embeddings = embeddings.astype(np.float32)
 
     # Make str keys to index into the pandas dataframe.
     str_keys = list(map(str, keys))
     # np.split makes a shallow copy of each of the embeddings, so the data frame can be a shallow
     # view of the numpy array. This means the dataframe cannot be used to modify the embeddings.
-    chunks = np.vsplit(self._embeddings, self._embeddings.shape[0])
-    self._df = pd.DataFrame({NP_EMBEDDINGS_KWD: chunks}, index=str_keys)
+    with DebugTimer('vsplit'):
+      chunks = np.vsplit(self._embeddings, self._embeddings.shape[0])
+    with DebugTimer('pd.dataframe'):
+      self._df = pd.DataFrame({NP_EMBEDDINGS_KWD: chunks}, index=str_keys)
 
   @override
   def get(self, keys: Iterable[VectorKey]) -> np.ndarray:
