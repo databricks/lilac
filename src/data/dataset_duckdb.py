@@ -247,7 +247,9 @@ class DatasetDuckDB(Dataset):
     """Count the number of rows."""
     raise NotImplementedError('count is not yet implemented for DuckDB.')
 
-  def _get_vector_store(self, path: PathTuple) -> VectorStore:
+  @override
+  def get_vector_store(self, path: PathTuple) -> VectorStore:
+    print('get_vector_store',)
     if path not in self._col_vector_stores:
       manifest = next(
         m for m in self._signal_manifests if schema_contains_path(m.data_schema, path))
@@ -705,6 +707,15 @@ class DatasetDuckDB(Dataset):
     cols.extend([search_udf.udf for search_udf in search_udfs])
     udf_columns = [col for col in cols if col.signal_udf]
 
+    # Set dataset information on any concept signals.
+    for udf_col in udf_columns:
+      if isinstance(udf_col.signal_udf, ConceptScoreSignal):
+        # Set dataset information on the signal.
+        print('-------------- setting column info -------------', self.namespace, self.dataset_name,
+              udf_col.path)
+        udf_col.signal_udf.set_column_info(
+          ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=udf_col.path))
+
     # Decide on the exact sorting order.
     sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
     sort_by = cast(list[PathTuple],
@@ -716,7 +727,7 @@ class DatasetDuckDB(Dataset):
     if topk_udf_col:
       signal = cast(Signal, topk_udf_col.signal_udf)
       # The input is an embedding.
-      vector_store = self._get_vector_store(topk_udf_col.path)
+      vector_store = self.get_vector_store(topk_udf_col.path)
       k = (limit or 0) + (offset or 0)
       topk = signal.vector_compute_topk(k, vector_store)
       topk_uuids = list(dict.fromkeys([cast(str, key[0]) for key, _ in topk]))
@@ -852,7 +863,7 @@ class DatasetDuckDB(Dataset):
       with DebugTimer(f'Computing signal "{signal}"'):
         if signal.compute_type in [SignalInputType.TEXT_EMBEDDING]:
           # The input is an embedding.
-          vector_store = self._get_vector_store(udf_col.path)
+          vector_store = self.get_vector_store(udf_col.path)
           flat_keys = flatten_keys(df[UUID_COLUMN], input)
           signal_out = signal.vector_compute(flat_keys, vector_store)
           # Add progress.
@@ -1142,9 +1153,6 @@ class DatasetDuckDB(Dataset):
             namespace=search.query.concept_namespace,
             concept_name=search.query.concept_name,
             embedding=search.query.embedding)
-          # Set the column info for this dataset so the model will negative sample.
-          search_signal.set_column_info(
-            ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=search.path))
 
         alias = search_signal.key()
         udf = Column(path=embedding_path, signal_udf=search_signal, alias=alias)
