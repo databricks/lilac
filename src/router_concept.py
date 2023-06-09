@@ -117,7 +117,7 @@ def get_concept_model(namespace: str,
     model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name)
 
   if sync_model:
-    model_synced = DISK_CONCEPT_MODEL_DB.sync(model)
+    model_synced = DISK_CONCEPT_MODEL_DB.sync(model, column_info=None)
   else:
     model_synced = DISK_CONCEPT_MODEL_DB.in_sync(model)
   return ConceptModelResponse(model=model, model_synced=model_synced)
@@ -133,7 +133,7 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
   if model is None:
     model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name)
-  models_updated = DISK_CONCEPT_MODEL_DB.sync(model)
+  models_updated = DISK_CONCEPT_MODEL_DB.sync(model, column_info=None)
   # TODO(smilkov): Support images.
   texts = [example.text or '' for example in body.examples]
   return ScoreResponse(

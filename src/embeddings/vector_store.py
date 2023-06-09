@@ -12,6 +12,11 @@ class VectorStore(abc.ABC):
   """Interface for storing and retrieving vectors."""
 
   @abc.abstractmethod
+  def keys(self) -> list[VectorKey]:
+    """Return the keys in the store."""
+    pass
+
+  @abc.abstractmethod
   def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
     """Add or edit the given keyed embeddings to the store.
 

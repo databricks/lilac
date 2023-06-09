@@ -2,6 +2,7 @@
 
 import math
 import os
+import pickle
 import pprint
 import secrets
 from collections.abc import Iterable
@@ -9,7 +10,6 @@ from typing import Any, Callable, Generator, Iterator, Optional, Sequence, TypeV
 
 import numpy as np
 import pyarrow as pa
-from pydantic import BaseModel
 
 from ..parquet_writer import ParquetWriter
 from ..schema import (
@@ -30,8 +30,8 @@ from ..schema import (
 from ..signals.signal import EMBEDDING_KEY, Signal
 from ..utils import file_exists, log, open_file
 
-NP_INDEX_KEYS_KWD = 'keys'
-NP_EMBEDDINGS_KWD = 'embeddings'
+_KEYS_SUFFIX = '.keys.pkl'
+_EMBEDDINGS_SUFFIX = '.npy'
 
 
 def is_primitive(obj: object) -> bool:
@@ -204,8 +204,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   leafs = current_schema.leafs
   # Validate that the enrich fields are actually a valid leaf path.
   if source_path not in leafs:
-    raise ValueError(f'"{source_path}" is not a valid leaf path. '
-                     f'Leaf paths: {leafs.keys()}')
+    raise ValueError(f'"{source_path}" is not a valid leaf path. Leaf paths: {leafs.keys()}')
 
   signal_schema = signal.fields()
   signal_schema.signal = signal.dict()
@@ -227,7 +226,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
 def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object],
                                   output_dir: str, shard_index: int, num_shards: int) -> str:
   """Write a set of embeddings to disk."""
-  output_filepath = embedding_index_filename(output_dir, shard_index, num_shards)
+  output_path_prefix = embedding_index_filename_prefix(output_dir, shard_index, num_shards)
 
   # Restrict the keys to only those that are embeddings.
   def embedding_predicate(input: Any) -> bool:
@@ -246,37 +245,26 @@ def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[obje
   flat_embeddings = np.array(embedding_vectors)
 
   # Write the embedding index and the ordered UUID column to disk so they can be joined later.
-  np_keys = np.empty(len(flat_keys), dtype=object)
-  np_keys[:] = flat_keys
 
-  with open_file(output_filepath, 'wb') as f:
-    np.savez(f, **{NP_INDEX_KEYS_KWD: np_keys, NP_EMBEDDINGS_KWD: flat_embeddings})
+  with open_file(output_path_prefix + _EMBEDDINGS_SUFFIX, 'wb') as f:
+    np.save(f, flat_embeddings, allow_pickle=False)
+  with open_file(output_path_prefix + _KEYS_SUFFIX, 'wb') as f:
+    pickle.dump(flat_keys, f)
 
-  return output_filepath
-
-
-class EmbeddingIndex(BaseModel):
-  """The result of an embedding index query."""
-
-  class Config:
-    arbitrary_types_allowed = True
-
-  keys: list[VectorKey]
-  embeddings: np.ndarray
+  return output_path_prefix
 
 
-def read_embedding_index(index_path: str) -> EmbeddingIndex:
+def read_embedding_index(filepath_prefix: str) -> tuple[list[VectorKey], np.ndarray]:
   """Reads the embedding index for a column from disk."""
-  if not file_exists(index_path):
-    raise ValueError(F'Embedding index does not exist at path {index_path}. '
+  if not file_exists(filepath_prefix + _EMBEDDINGS_SUFFIX):
+    raise ValueError(F'Embedding index does not exist at path {filepath_prefix}. '
                      'Please run dataset.compute_signal() on the embedding signal first.')
 
   # Read the embedding index from disk.
-  with open_file(index_path, 'rb') as f:
-    np_index: dict[str, np.ndarray] = np.load(f, allow_pickle=True)
-    embeddings = np_index[NP_EMBEDDINGS_KWD]
-    index_keys = np_index[NP_INDEX_KEYS_KWD].tolist()
-  return EmbeddingIndex(path=index_path, keys=index_keys, embeddings=embeddings)
+  embeddings = np.load(filepath_prefix + _EMBEDDINGS_SUFFIX, allow_pickle=False)
+  with open_file(filepath_prefix + _KEYS_SUFFIX, 'rb') as f:
+    index_keys: list[VectorKey] = pickle.load(f)
+  return index_keys, embeddings
 
 
 def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schema,
@@ -349,7 +337,7 @@ def flatten_keys(
   return result
 
 
-def embedding_index_filename(output_dir: str, shard_index: int, num_shards: int) -> str:
-  """Return the filename for the embedding index."""
-  npy_filename = f'embeddings-{shard_index:05d}-of-{num_shards:05d}.npy'
+def embedding_index_filename_prefix(output_dir: str, shard_index: int, num_shards: int) -> str:
+  """Return the filename prefix for the embedding index."""
+  npy_filename = f'embeddings-{shard_index:05d}-of-{num_shards:05d}'
   return os.path.join(output_dir, npy_filename)

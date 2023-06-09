@@ -14,7 +14,7 @@ from typing_extensions import override
 from ..config import data_path
 from ..schema import PATH_WILDCARD, SignalInputType, normalize_path
 from ..signals.signal import get_signal_cls
-from ..utils import DebugTimer, delete_file, file_exists, get_dataset_output_dir, open_file
+from ..utils import delete_file, file_exists, get_dataset_output_dir, open_file
 from .concept import (
   DRAFT_MAIN,
   Concept,
@@ -112,7 +112,7 @@ class ConceptModelDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def _save(self, model: ConceptModel) -> None:
+  def _save(self, model: ConceptModel, column_info: Optional[ConceptColumnInfo]) -> None:
     """Save the concept model."""
     pass
 
@@ -123,16 +123,13 @@ class ConceptModelDB(abc.ABC):
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
     return concept.version == model.version
 
-  def sync(self, model: ConceptModel) -> bool:
+  def sync(self, model: ConceptModel, column_info: Optional[ConceptColumnInfo]) -> bool:
     """Sync the concept model. Returns true if the model was updated."""
     concept = self._concept_db.get(model.namespace, model.concept_name)
     if not concept:
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
-    concept_path = (f'{model.namespace}/{model.concept_name}/'
-                    f'{model.embedding_name}')
-    with DebugTimer(f'Syncing concept model "{concept_path}"'):
-      model_updated = model.sync(concept)
-    self._save(model)
+    model_updated = model.sync(concept)
+    self._save(model, column_info)
     return model_updated
 
   @abc.abstractmethod
@@ -186,10 +183,10 @@ class DiskConceptModelDB(ConceptModelDB):
     with open_file(concept_model_path, 'rb') as f:
       return pickle.load(f)
 
-  def _save(self, model: ConceptModel) -> None:
+  def _save(self, model: ConceptModel, column_info: Optional[ConceptColumnInfo]) -> None:
     """Save the concept model."""
     concept_model_path = _concept_model_path(model.namespace, model.concept_name,
-                                             model.embedding_name, model.column_info)
+                                             model.embedding_name, column_info)
     with open_file(concept_model_path, 'wb') as f:
       pickle.dump(model, f)
 

@@ -1,9 +1,10 @@
 """Load environment variables from .env file."""
 import os
+from typing import Optional
 
 from dotenv import dotenv_values
 
-CONFIG = {
+CONFIG: dict[str, Optional[str]] = {
   **dotenv_values('.env'),  # load shared variables
   **dotenv_values('.env.local'),  # load locally set variables
   **os.environ,  # override loaded values with environment variables

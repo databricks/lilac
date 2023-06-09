@@ -36,10 +36,16 @@ TEST_DATA: list[Item] = [{
   'text2': 'again unrelated text'
 }]
 
-EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
-                                             ('hello2.', [1.0, 1.0, 0.0]),
-                                             ('hello world.', [1.0, 1.0, 1.0]),
-                                             ('hello world2.', [2.0, 1.0, 1.0])]
+EMBEDDINGS: list[tuple[str, list[float]]] = [
+  ('hello.', [1.0, 0.0, 0.0]),
+  ('hello2.', [1.0, 1.0, 0.0]),
+  ('hello world.', [1.0, 1.0, 1.0]),
+  ('hello world2.', [2.0, 1.0, 1.0]),
+  ('random negative 1', [0, 0, 0.3]),
+  ('random negative 2', [0, 0, 0.4]),
+  ('random negative 3', [0, 0.1, 0.5]),
+  ('random negative 4', [0.1, 0, 0.4]),
+]
 
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
@@ -219,6 +225,18 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
   }, {
     UUID_COLUMN: '2',
     'text': 'hello world2.',
+  }, {
+    UUID_COLUMN: '3',
+    'text': 'random negative 1',
+  }, {
+    UUID_COLUMN: '4',
+    'text': 'random negative 2',
+  }, {
+    UUID_COLUMN: '5',
+    'text': 'random negative 3',
+  }, {
+    UUID_COLUMN: '6',
+    'text': 'random negative 4',
   }])
 
   test_embedding = TestEmbedding()
@@ -243,6 +261,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
           concept_name='test_concept',
           embedding='test_embedding'))
     ],
+    filters=[(UUID_COLUMN, ListOp.IN, ['1', '2'])],
     combine_columns=True)
   expected_signal_udf = ConceptScoreSignal(
     namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
@@ -254,7 +273,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
       'text': enriched_item(
         'hello world2.', {
           test_embedding.key():
-            [enriched_embedding_span(0, 13, {expected_signal_udf.key(): approx(0.523, 1e-3)})]
+            [enriched_embedding_span(0, 13, {expected_signal_udf.key(): approx(0.75, abs=0.25)})]
         })
     },
     {
@@ -262,20 +281,25 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
       'text': enriched_item(
         'hello world.', {
           test_embedding.key():
-            [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.247, 1e-3)})]
+            [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.25, abs=0.25)})]
         })
     },
   ]
 
   # Make sure fit was called with negative examples.
   (_, embeddings, labels) = concept_model_mock.call_args_list[-1].args
-  assert embeddings.shape == (4, 3)
+  assert embeddings.shape == (8, 3)
   assert labels == [
-    False,
-    True,
     # Negative implicit labels.
     False,
-    False
+    False,
+    False,
+    False,
+    False,
+    False,
+    # Explicit labels.
+    False,
+    True
   ]
 
 

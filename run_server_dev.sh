@@ -17,7 +17,7 @@ pid[1]=$!
 poetry run watchmedo shell-command \
   --patterns="*.py" \
   --recursive \
-  --command='poetry run python -m scripts.make_fastapi_client --api_json_from_server' \
+  --command='poetry run python -m scripts.make_fastapi_client' \
   ./src &
 pid[0]=$!
 

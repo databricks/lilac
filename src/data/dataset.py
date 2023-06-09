@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
 
+from ..embeddings.vector_store import VectorStore
 from ..schema import VALUE_KEY, Path, PathTuple, Schema, normalize_path
 from ..signals.signal import Signal, resolve_signal
 from ..tasks import TaskStepId
@@ -267,6 +268,12 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def manifest(self) -> DatasetManifest:
     """Return the manifest for the dataset."""
+    pass
+
+  @abc.abstractmethod
+  def get_vector_store(self, path: PathTuple) -> VectorStore:
+    # TODO: Instead of this, allow selecting vectors via select_rows.
+    """Get the vector store for a column."""
     pass
 
   @abc.abstractmethod

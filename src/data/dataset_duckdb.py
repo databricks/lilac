@@ -218,8 +218,11 @@ class DatasetDuckDB(Dataset):
       f'join {_escape_col_name(manifest.parquet_id)} using ({UUID_COLUMN},)'
       for manifest in self._signal_manifests
     ])
-
-    sql_cmd = f"""CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})"""
+    view_or_table = 'TABLE'
+    use_views = CONFIG.get('DUCKDB_USE_VIEWS', 0) or 0
+    if int(use_views):
+      view_or_table = 'VIEW'
+    sql_cmd = f"""CREATE OR REPLACE {view_or_table} t AS (SELECT {select_sql} FROM {join_sql})"""
     self.con.execute(sql_cmd)
 
     # Get the total size of the table.
@@ -237,33 +240,37 @@ class DatasetDuckDB(Dataset):
   def manifest(self) -> DatasetManifest:
     # Use the latest modification time of all files under the dataset path as the cache key for
     # re-computing the manifest and the joined view.
-    all_dataset_files = glob.iglob(os.path.join(self.dataset_path, '**'), recursive=True)
-    latest_mtime = max(map(os.path.getmtime, all_dataset_files))
-    latest_mtime_micro_sec = int(latest_mtime * 1e6)
     with self._manifest_lock:
+      all_dataset_files = glob.iglob(os.path.join(self.dataset_path, '**'), recursive=True)
+      latest_mtime = max(map(os.path.getmtime, all_dataset_files))
+      latest_mtime_micro_sec = int(latest_mtime * 1e6)
       return self._recompute_joint_table(latest_mtime_micro_sec)
 
   def count(self, filters: Optional[list[FilterLike]] = None) -> int:
     """Count the number of rows."""
     raise NotImplementedError('count is not yet implemented for DuckDB.')
 
-  def _get_vector_store(self, path: PathTuple) -> VectorStore:
+  @override
+  def get_vector_store(self, path: PathTuple) -> VectorStore:
+    # Refresh the manifest to make sure we have the latest signal manifests.
+    self.manifest()
+
     if path not in self._col_vector_stores:
       manifest = next(
         m for m in self._signal_manifests if schema_contains_path(m.data_schema, path))
       if not manifest:
         raise ValueError(f'No embedding found for path {path}.')
-      if not manifest.embedding_filename:
+      if not manifest.embedding_filename_prefix:
         raise ValueError(f'Signal manifest for path {path} is not an embedding. '
                          f'Got signal manifest: {manifest}')
 
       signal_name = cast(str, manifest.signal.signal_name)
-      filepath = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path), signal_name,
-                              manifest.embedding_filename)
-      embedding_index = read_embedding_index(filepath)
+      filepath_prefix = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
+                                     signal_name, manifest.embedding_filename_prefix)
+      keys, embeddings = read_embedding_index(filepath_prefix)
       # Get all the embeddings and pass it to the vector store.
       vector_store = self.vector_store_cls()
-      vector_store.add(embedding_index.keys, embedding_index.embeddings)
+      vector_store.add(keys, embeddings)
       # Cache the vector store.
       self._col_vector_stores[path] = vector_store
 
@@ -359,9 +366,9 @@ class DatasetDuckDB(Dataset):
       item[UUID_COLUMN] = uuid
 
     is_embedding = isinstance(signal, TextEmbeddingSignal)
-    embedding_filename = None
+    embedding_filename_prefix = None
     if is_embedding:
-      embedding_filename = os.path.basename(
+      embedding_filename_prefix = os.path.basename(
         write_item_embeddings_to_disk(
           keys=df[UUID_COLUMN],
           embeddings=values,
@@ -387,7 +394,7 @@ class DatasetDuckDB(Dataset):
       signal=signal,
       enriched_path=source_path,
       parquet_id=make_parquet_id(signal, source_path, is_computed_signal=True),
-      embedding_filename=embedding_filename)
+      embedding_filename_prefix=embedding_filename_prefix)
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.json(exclude_none=True, indent=2))
@@ -705,6 +712,13 @@ class DatasetDuckDB(Dataset):
     cols.extend([search_udf.udf for search_udf in search_udfs])
     udf_columns = [col for col in cols if col.signal_udf]
 
+    # Set dataset information on any concept signals.
+    for udf_col in udf_columns:
+      if isinstance(udf_col.signal_udf, ConceptScoreSignal):
+        # Set dataset information on the signal.
+        udf_col.signal_udf.set_column_info(
+          ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=udf_col.path))
+
     # Decide on the exact sorting order.
     sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
     sort_by = cast(list[PathTuple],
@@ -716,7 +730,7 @@ class DatasetDuckDB(Dataset):
     if topk_udf_col:
       signal = cast(Signal, topk_udf_col.signal_udf)
       # The input is an embedding.
-      vector_store = self._get_vector_store(topk_udf_col.path)
+      vector_store = self.get_vector_store(topk_udf_col.path)
       k = (limit or 0) + (offset or 0)
       topk = signal.vector_compute_topk(k, vector_store)
       topk_uuids = list(dict.fromkeys([cast(str, key[0]) for key, _ in topk]))
@@ -852,7 +866,7 @@ class DatasetDuckDB(Dataset):
       with DebugTimer(f'Computing signal "{signal}"'):
         if signal.compute_type in [SignalInputType.TEXT_EMBEDDING]:
           # The input is an embedding.
-          vector_store = self._get_vector_store(udf_col.path)
+          vector_store = self.get_vector_store(udf_col.path)
           flat_keys = flatten_keys(df[UUID_COLUMN], input)
           signal_out = signal.vector_compute(flat_keys, vector_store)
           # Add progress.
@@ -1142,9 +1156,6 @@ class DatasetDuckDB(Dataset):
             namespace=search.query.concept_namespace,
             concept_name=search.query.concept_name,
             embedding=search.query.embedding)
-          # Set the column info for this dataset so the model will negative sample.
-          search_signal.set_column_info(
-            ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=search.path))
 
         alias = search_signal.key()
         udf = Column(path=embedding_path, signal_udf=search_signal, alias=alias)
@@ -1384,8 +1395,8 @@ class SignalManifest(BaseModel):
   # The column path that this signal is derived from.
   enriched_path: PathTuple
 
-  # The filename of the embedding when the signal is an embedding.
-  embedding_filename: Optional[str]
+  # The filename prefix for the embedding. Present when the signal is an embedding.
+  embedding_filename_prefix: Optional[str]
 
   @validator('signal', pre=True)
   def parse_signal(cls, signal: dict) -> Signal:
