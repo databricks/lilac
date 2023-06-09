@@ -358,3 +358,42 @@ def test_sort_override_search(make_test_data: TestDataMaker) -> None:
     expected_item_2,
     expected_item_1
   ]
+
+
+def test_search_keyword_and_semantic(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello world2.',
+  }])
+
+  test_embedding = TestEmbedding()
+  dataset.compute_signal(test_embedding, ('text'))
+
+  query = 'hello2.'
+  keyword_query = 'rld2'
+  result = dataset.select_rows(
+    searches=[
+      Search(
+        path='text', query=SemanticQuery(type='semantic', search=query,
+                                         embedding='test_embedding')),
+      Search(path='text', query=KeywordQuery(type='keyword', search=keyword_query))
+    ],
+    combine_columns=True)
+  expected_semantic_signal = SemanticSimilaritySignal(query=query, embedding='test_embedding')
+  expected_keyword_signal = SubstringSignal(query=keyword_query)
+  assert list(result) == [
+    # Results are sorted by score desc.
+    {
+      UUID_COLUMN: '2',
+      'text': enriched_item(
+        'hello world2.', {
+          test_embedding.key():
+            [enriched_embedding_span(0, 13, {expected_semantic_signal.key(): approx(0.916, 1e-3)})],
+          expected_keyword_signal.key(): [lilac_span(8, 12)],
+        })
+    },
+    # UUID '1' is not returned because it does not match the keyword query.
+  ]

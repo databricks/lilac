@@ -1,6 +1,6 @@
 """NumpyVectorStore class for storing vectors in numpy arrays."""
 
-from typing import Iterable, Optional
+from typing import Iterable, Optional, cast
 
 import numpy as np
 import pandas as pd
@@ -57,6 +57,10 @@ class NumpyVectorStore(VectorStore):
            k: int,
            key_prefixes: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
     if key_prefixes is not None:
+      # Cast tuples of length 1 to the element itself to avoid a pandas bug.
+      key_prefixes = cast(
+        list[VectorKey],
+        [k[0] if isinstance(k, tuple) and len(k) == 1 else k for k in key_prefixes])
       # This uses the hierarchical index (MutliIndex) to do a prefix lookup.
       row_indices = self._lookup.loc[key_prefixes]
       keys, embeddings = list(row_indices.index), self._embeddings.take(row_indices, axis=0)
