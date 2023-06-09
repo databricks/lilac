@@ -1,241 +1,226 @@
 <script lang="ts">
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {notEmpty} from '$lib/utils';
-  import {isPathVisible} from '$lib/view_utils';
+  import {
+    getVisibleFields,
+    mergeSpans,
+    type MergedSpan,
+    type SpanHoverNamedValue
+  } from '$lib/view_utils';
   /**
    * Component that renders string spans as an absolute positioned
    * layer, meant to be rendered on top of the source text.
    */
   import {
     L,
-    childFields,
+    deserializePath,
     formatValue,
-    getValueNode,
+    getFieldsByDtype,
     getValueNodes,
     isConceptScoreSignal,
-    isFloat,
-    type ConceptScoreSignal,
+    serializePath,
+    valueAtPath,
     type LilacField,
-    type LilacValueNode
+    type LilacValueNode,
+    type LilacValueNodeCasted
   } from '$lilac';
-  import {tooltip} from '../common/tootltip';
+  import {spanHover} from './SpanHover';
   import StringSpanDetails from './StringSpanDetails.svelte';
 
   export let text: string;
-  export let stringSpanFields: Array<LilacField>;
-  export let keywordSearchSpanFields: Array<LilacField>;
   export let row: LilacValueNode;
 
-  interface AnnotatedStringSpan {
-    /** The start character of the span */
-    start: number;
-    /** The end character of the span */
-    end: number;
-    /** Whether to show the span */
-    show: boolean;
-    /** The score value. */
-    score: number;
-    /** Whether this span is a filler span (no interactions) */
-    filler: boolean;
-    /** The sub-properties of the span */
-    properties?: Array<LilacValueNode>;
-    /** The concepts associated with the span */
-    concepts?: Array<ConceptScoreSignal>;
-  }
-
-  interface AnnotatedSearchSpan {
-    /** The start character of the span */
-    start: number;
-    /** The end character of the span */
-    end: number;
-    /** Whether to show the span */
-    show: boolean;
-    /** Whether this span is a filler span (no interactions) */
-    filler: boolean;
-  }
+  // This color comes from tailwind bg-yellow-500.
+  const highlightColor = (opacity: number) => `rgba(234,179,8, ${opacity})`;
 
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();
 
-  const showScoreThreshold = 0.5;
-  const maxScoreBackgroundOpacity = 0.5;
+  export let field: LilacField;
+  $: visibleFields = getVisibleFields($datasetViewStore, $datasetStore, field);
 
-  let selectedSpan: AnnotatedStringSpan | undefined;
+  // Find the keyword span paths under this field.
+  $: keywordSpanPaths = visibleFields
+    .filter(f => f.signal?.signal_name === 'substring_search')
+    .flatMap(f => getFieldsByDtype('string_span', f))
+    .map(f => serializePath(f.path));
+
+  // Find the non-keyword span fields under this field.
+  $: spanFields = visibleFields
+    .filter(f => f.signal?.signal_name !== 'substring_search')
+    .filter(f => f.dtype === 'string_span');
+
+  // Map the span field paths to their children that are floats.
+  $: spanFloatFields = Object.fromEntries(
+    spanFields.map(f => [serializePath(f.path), getFieldsByDtype('float32', f)])
+  );
+
+  const showScoreThreshold = 0.5;
+  const minScoreBackgroundOpacity = 0.1;
+  const maxScoreBackgroundOpacity = 0.5;
+  const spanHoverOpacity = 0.9;
+
+  $: pathToSpans = Object.fromEntries(
+    spanFields.map(f => [
+      serializePath(f.path),
+      getValueNodes(row, f.path) as LilacValueNodeCasted<'string_span'>[]
+    ])
+  );
+
+  // Merge all the spans for different features into a single span array.
+  $: mergedSpans = mergeSpans(text, pathToSpans);
+
+  interface RenderSpan {
+    backgroundColor: string;
+    isBolded: boolean;
+    hoverInfo: SpanHoverNamedValue[];
+    paths: string[];
+    text: string;
+    mergedSpan: MergedSpan;
+  }
+
+  let selectedSpan: MergedSpan | undefined;
   // Store the mouse position after selecting a span so we can keep the details next to the cursor.
   let spanClickMousePosition: {x: number; y: number} | undefined;
-
-  $: spans = stringSpanFields.flatMap(f => getValueNodes(row, f.path));
-  $: console.log(spans);
-  $: searchSpans = keywordSearchSpanFields.flatMap(f => getValueNodes(row, f.path));
-
-  // Fill up the gaps between the spans.
-  let filledSpans: Array<AnnotatedStringSpan> = [];
-
+  type ConceptTextInfo = {conceptName: string; conceptNamespace: string; text: string};
+  let selectedConceptTextInfo: ConceptTextInfo | undefined;
   $: {
-    filledSpans = [];
-    let spanStart = 0;
-    for (const span of spans) {
-      const spanValue = L.value<'string_span'>(span);
-      const valuePath = L.path(span);
-      if (!spanValue || !valuePath) continue;
-
-      // Add filler.
-      if (spanStart != spanValue.start) {
-        filledSpans.push({
-          start: spanStart,
-          end: spanValue.start,
-          score: 0.0,
-          show: false,
-          filler: true
-        });
-      }
-
-      // Find all sub fields to the span so we can show their value in the tooltip.
-      const children = childFields(L.field(span))
-        .slice(1)
-        // Filter out non-visible columns
-        .filter(field => isPathVisible($datasetViewStore, $datasetStore, field.path))
-        // Replace the path with prefix of the path with value path that includes index instead of wildcard.
-        .map(field => ({
-          ...field,
-          path: [...valuePath, ...field.path.slice(valuePath.length)]
-        }))
-        // Get the value nodes for each child
-        .flatMap(field => getValueNode(span, field.path))
-        .filter(notEmpty);
-
-      let concepts: AnnotatedStringSpan['concepts'] = [];
-      let show = true;
-      let maxScore = 0.0;
-      // If any children are floats, use that to determine if we should show the span.
-      if (children.some(c => c && isFloat(L.dtype(c)))) {
-        show = false;
-        for (const child of children) {
-          if (isFloat(L.dtype(child))) {
-            const score = L.value<'float32'>(child) ?? 0;
-            maxScore = Math.max(score, maxScore);
-            if (maxScore > showScoreThreshold) {
-              show = true;
-            }
+    if (selectedSpan != null) {
+      const concepts: ConceptTextInfo[] = [];
+      // Find the concepts for the selected spans. For now, we select just the first concept.
+      for (const spanPath of Object.keys(selectedSpan.originalSpans)) {
+        const floatFields = spanFloatFields[spanPath];
+        for (const floatField of floatFields) {
+          if (isConceptScoreSignal(floatField.signal)) {
+            concepts.push({
+              conceptName: floatField.signal.concept_name,
+              conceptNamespace: floatField.signal.namespace,
+              // Currently we don't support overlapping spans, so we choose the text given by the
+              // span.
+              text: selectedSpan.text
+            });
           }
+        }
+      }
+      // Only use the first concept. We will later support multiple concepts.
+      selectedConceptTextInfo = concepts[0];
+    }
+  }
 
-          const signal = L.field(child)?.signal;
-          if (isConceptScoreSignal(signal)) {
-            concepts.push(signal);
+  // Map the merged spans to the information needed to render each span.
+  let spanRenderInfos: RenderSpan[];
+  $: {
+    spanRenderInfos = [];
+    for (const mergedSpan of mergedSpans) {
+      const isBolded = keywordSpanPaths.some(
+        keywordPath => mergedSpan.originalSpans[keywordPath] != null
+      );
+
+      const fieldToValue: {[fieldName: string]: string} = {};
+      // Compute the maximum score for all original spans matching this render span to choose the
+      // color.
+      let maxScore = -Infinity;
+      for (const [spanPathStr, originalSpans] of Object.entries(mergedSpan.originalSpans)) {
+        const floatFields = spanFloatFields[spanPathStr];
+        const spanPath = deserializePath(spanPathStr);
+        if (floatFields.length === 0) continue;
+
+        for (const originalSpan of originalSpans) {
+          for (const floatField of floatFields) {
+            const subPath = floatField.path.slice(spanPath.length);
+            const value = L.value<'float32'>(valueAtPath(originalSpan as LilacValueNode, subPath));
+            if (value != null) {
+              maxScore = Math.max(maxScore, value);
+              fieldToValue[floatField.path.at(-1)!] = formatValue(value);
+            }
           }
         }
       }
 
-      filledSpans.push({
-        start: spanValue.start,
-        end: spanValue.end,
-        show,
-        score: maxScore,
-        properties: children,
-        filler: false,
-        concepts
-      });
-      spanStart = spanValue.end;
-    }
-  }
-
-  // Create the search specific spans, filling gaps like we do for regular spans.
-  let filledSearchSpans: Array<AnnotatedSearchSpan> = [];
-
-  $: {
-    filledSearchSpans = [];
-    let spanStart = 0;
-    for (const searchSpan of searchSpans) {
-      const spanValue = L.value<'string_span'>(searchSpan);
-      const valuePath = L.path(searchSpan);
-      if (!spanValue || !valuePath) continue;
-
-      // Add filler.
-      if (spanStart != spanValue.start) {
-        filledSearchSpans.push({
-          start: spanStart,
-          end: spanValue.start,
-          show: false,
-          filler: true
-        });
+      let opacity = 0.0;
+      // If the value has crossed the threshold, lerp the value between (min, max).
+      if (maxScore > showScoreThreshold) {
+        const normalizedScore = (maxScore - showScoreThreshold) / (1.0 - showScoreThreshold);
+        opacity =
+          minScoreBackgroundOpacity +
+          normalizedScore * (maxScoreBackgroundOpacity - minScoreBackgroundOpacity);
       }
 
-      filledSearchSpans.push({
-        start: spanValue.start,
-        end: spanValue.end,
-        show: true,
-        filler: false
+      const hoverInfo: SpanHoverNamedValue[] = Object.entries(fieldToValue).map(
+        ([fieldName, value]) => ({name: fieldName, value})
+      );
+
+      spanRenderInfos.push({
+        backgroundColor: highlightColor(opacity),
+        isBolded,
+        hoverInfo,
+        paths: mergedSpan.paths,
+        text: mergedSpan.text,
+        mergedSpan
       });
-      spanStart = spanValue.end;
     }
   }
 
-  function tooltipText(span: AnnotatedStringSpan) {
-    if (!span.properties) return '';
-    return span.properties
-      .map(p => {
-        const fieldName = L.path(p)?.at(-1);
-        const value = formatValue(L.value(p) ?? '');
-        if (value == '') return null;
-        return `${fieldName} = ${value}`;
-      })
-      .filter(p => p != null)
-      .join('\n');
+  // Map each of the paths to their render spans so we can highlight neighbors on hover when there
+  // is overlap.
+  let pathToRenderSpans: {[pathStr: string]: Array<MergedSpan>} = {};
+  $: {
+    pathToRenderSpans = {};
+    for (const renderSpan of mergedSpans) {
+      for (const path of renderSpan.paths) {
+        pathToRenderSpans[path] = pathToRenderSpans[path] || [];
+        pathToRenderSpans[path].push(renderSpan);
+      }
+    }
   }
+
+  let pathsHovered: Set<string> = new Set();
+  const spanMouseEnter = (renderSpan: RenderSpan) => {
+    renderSpan.paths.forEach(path => pathsHovered.add(path));
+    pathsHovered = pathsHovered;
+  };
+  const spanMouseLeave = (renderSpan: RenderSpan) => {
+    renderSpan.paths.forEach(path => pathsHovered.delete(path));
+    pathsHovered = pathsHovered;
+  };
+  const isHovered = (pathsHovered: Set<string>, renderSpan: RenderSpan): boolean => {
+    return renderSpan.paths.some(path => pathsHovered.has(path));
+  };
 </script>
 
-<div class="relative mb-4 leading-5">
-  <div class="absolute top-0 w-full">
-    {#each filledSearchSpans as span}
-      <span
-        use:tooltip
-        role="button"
-        class="border-b-2 border-b-black text-transparent"
-        tabindex="0"
-        class:border-b-2={span.show}
-      >
-        {text.slice(span.start, span.end)}
-      </span>
-    {/each}
-  </div>
-  <div class="relative top-0 h-full w-full">
-    {text}
-  </div>
-  <div class="absolute top-0 w-full">
-    {#each filledSpans as span}
-      <!-- Linear scale opacity based on score. -->
-      {@const opacity = Math.max(span.score - showScoreThreshold, 0) * maxScoreBackgroundOpacity}
-      <span
-        use:tooltip
-        role="button"
-        tabindex="0"
-        on:keydown={e => {
-          if (e.key == 'Enter') {
-            if (!span.filler) selectedSpan = span;
-          }
-        }}
-        on:click={e => {
-          if (!span.filler) selectedSpan = span;
-          spanClickMousePosition = {x: e.offsetX, y: e.offsetY};
-        }}
-        title={tooltipText(span)}
-        class="relative bg-yellow-500 text-transparent opacity-0 hover:!opacity-30"
-        class:bg-green-500={selectedSpan == span}
-        class:hover:bg-yellow-600={true}
-        style:opacity
-        class:hover:!opacity-40={/* Override the inline style opacity on hover. */ true}
-        >{text.slice(span.start, span.end)}
-      </span>
-      {#if selectedSpan == span}
-        <StringSpanDetails
-          conceptName={(span.concepts || [])[0]?.concept_name}
-          conceptNamespace={(span.concepts || [])[0]?.namespace}
-          text={text.slice(span.start, span.end)}
-          clickPosition={spanClickMousePosition}
-          on:close={() => (selectedSpan = undefined)}
-        />
-      {/if}
-    {/each}
-  </div>
+<div class="relative mb-4 whitespace-pre-wrap">
+  {#each spanRenderInfos as renderSpan}
+    {@const hovered = isHovered(pathsHovered, renderSpan)}
+    <span
+      use:spanHover={renderSpan.hoverInfo}
+      class="relative leading-5 hover:cursor-pointer"
+      class:font-bold={renderSpan.isBolded}
+      style:background-color={!hovered
+        ? renderSpan.backgroundColor
+        : highlightColor(spanHoverOpacity)}
+      on:mouseenter={() => spanMouseEnter(renderSpan)}
+      on:mouseleave={() => spanMouseLeave(renderSpan)}
+      on:keydown={e => {
+        if (e.key == 'Enter') {
+          if (renderSpan.mergedSpan.originalSpans != null) selectedSpan = renderSpan.mergedSpan;
+        }
+      }}
+      on:click={e => {
+        if (renderSpan.mergedSpan.originalSpans != null) selectedSpan = renderSpan.mergedSpan;
+        spanClickMousePosition = {x: e.offsetX, y: e.offsetY};
+      }}>{renderSpan.text}</span
+    >
+  {/each}
+  {#if selectedConceptTextInfo != null}
+    <StringSpanDetails
+      conceptName={selectedConceptTextInfo.conceptName}
+      conceptNamespace={selectedConceptTextInfo.conceptNamespace}
+      text={selectedConceptTextInfo.text}
+      clickPosition={spanClickMousePosition}
+      on:close={() => {
+        selectedSpan = undefined;
+        selectedConceptTextInfo = undefined;
+      }}
+    />
+  {/if}
 </div>

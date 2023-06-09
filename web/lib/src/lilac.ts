@@ -60,16 +60,17 @@ export type LilacValueNodeCasted<D extends DataType = DataType> = {
   [metadata: string]: unknown;
 };
 
-// A lilac item.
-// TODO(nsthorat): Convert everything to LilacItems.
-export type LilacItem<D extends DataType = DataType> = LilacValueItem<D> | DataTypeCasted<D>;
-
-// A lilac item with a VALUE_KEY.
-export type LilacValueItem<D extends DataType = DataType> = {
-  /** Holds the actual value of the node */
-  [VALUE_KEY]: DataTypeCasted<D>;
-  [metadata: string]: unknown;
-};
+export function valueAtPath(item: LilacValueNode, path: Path): LilacValueNode {
+  if (item == null) throw Error('Item is null.');
+  if (path.length === 0) {
+    return item;
+  }
+  const [key, ...rest] = path;
+  if (item[key] == null) {
+    throw Error('Item at path does not exist');
+  }
+  return valueAtPath(item[key], rest);
+}
 
 /**
  * Cast a value node to an internal value node
