@@ -1,28 +1,29 @@
 <script lang="ts">
-  import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {
-      isPathVisible,
-      mergeSpans,
-      type MergedSpan,
-      type SpanHoverNamedValue
-  } from '$lib/view_utils';
-/**
+  /**
    * Component that renders string spans as an absolute positioned
    * layer, meant to be rendered on top of the source text.
    */
+  import {getDatasetContext} from '$lib/stores/datasetStore';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
-      L,
-      deserializePath,
-      getFieldsByDtype,
-      getValueNodes,
-      isConceptScoreSignal,
-      serializePath,
-      valueAtPath,
-      type LilacField,
-      type LilacValueNode,
-      type LilacValueNodeCasted,
-      type Signal
+    isPathVisible,
+    mergeSpans,
+    type MergedSpan,
+    type SpanHoverNamedValue
+  } from '$lib/view_utils';
+
+  import {
+    L,
+    deserializePath,
+    getFieldsByDtype,
+    getValueNodes,
+    isConceptScoreSignal,
+    serializePath,
+    valueAtPath,
+    type LilacField,
+    type LilacValueNode,
+    type LilacValueNodeCasted,
+    type Signal
   } from '$lilac';
   import {spanHover} from './SpanHover';
   import StringSpanDetails, {type SpanDetails} from './StringSpanDetails.svelte';
@@ -157,12 +158,10 @@
   // Span selection via a click.
   let selectedSpan: RenderSpan | undefined;
   let selectedSpanDetails: SpanDetails | undefined;
-  let spanClickMousePosition: {x: number; y: number} | undefined;
   // Store the mouse position after selecting a span so we can keep the details next to the cursor.
-  type ConceptTextInfo = {conceptName: string; conceptNamespace: string; text: string};
+  let spanClickMousePosition: {x: number; y: number} | undefined;
   $: {
     if (selectedSpan != null) {
-      const concepts: ConceptTextInfo[] = [];
       selectedSpanDetails = {
         conceptName: null,
         conceptNamespace: null,

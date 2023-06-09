@@ -1,11 +1,10 @@
 const SHOW_SCORE_THRESHOLD = 0.5;
 const MIN_SCORE_BG_OPACITY = 0.1;
 const MAX_SCORE_BG_OPACITY = 0.5;
-const SPAN_HOVER_OPACITY = 0.9;
 
 // This color comes from tailwind bg-yellow-500.
 export function colorFromOpacity(opacity: number) {
-  return `rgba(234,179,8, ${opacity})`;
+  return `rgba(234,179,8,${opacity})`;
 }
 
 export function colorFromScore(score: number) {

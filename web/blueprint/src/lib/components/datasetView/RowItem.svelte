@@ -1,32 +1,30 @@
 <script lang="ts">
-  import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {isPathVisible} from '$lib/view_utils';
-  import {childFields, type LilacSchema, type LilacValueNode, type Path} from '$lilac';
+  import {
+    childFields,
+    type LilacField,
+    type LilacSchema,
+    type LilacValueNode,
+    type Path
+  } from '$lilac';
   import RowItemValue from './RowItemValue.svelte';
 
   export let row: LilacValueNode;
   export let schema: LilacSchema;
+  export let visibleFields: LilacField[];
 
   let datasetViewStore = getDatasetViewContext();
-  $: selectOptions = getSelectRowsOptions($datasetViewStore);
+  let datasetStore = getDatasetContext();
 
   // Get the resulting schema including UDF columns
-  $: selectRowsSchema = selectOptions
-    ? querySelectRowsSchema(
-        $datasetViewStore.namespace,
-        $datasetViewStore.datasetName,
-        selectOptions
-      )
-    : undefined;
+  $: selectRowsSchema = $datasetStore?.selectRowsSchema;
 
   let sortedVisibleColumns: Path[] = [];
 
-  const datasetStore = getDatasetContext();
-
   $: {
-    let allFields = $selectRowsSchema?.isSuccess ? childFields($selectRowsSchema.data.schema) : [];
+    let allFields = childFields(selectRowsSchema?.schema);
     sortedVisibleColumns = allFields
       .filter(f => isPathVisible($datasetViewStore, $datasetStore, f.path))
       .map(f => f.path);
@@ -36,6 +34,6 @@
 
 <div class="mb-4 flex flex-col gap-y-4 border-b border-gray-300 p-4">
   {#each sortedVisibleColumns as column (column.join('.'))}
-    <RowItemValue {row} path={column} {schema} />
+    <RowItemValue {row} path={column} {schema} {visibleFields} />
   {/each}
 </div>

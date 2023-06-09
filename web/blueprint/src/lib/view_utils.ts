@@ -174,13 +174,17 @@ export interface MergedSpan {
  * the original spans.
  *
  * For example:
- *   spans1: [(0, 2), (3, 4)]
- *   spans2: [(0, 1), (2, 4)]
+ *   {
+ *     spans1: [(0, 2), (3, 4)]
+ *     spans2: [(0, 1), (2, 4)]
+ *   }
  * Transforms into:
- *   spans: [(0, 1, (span1,span2)),
- *           (1, 2, (span1)),
- *           (2, 3, (span2)),
- *           (3, 4, (span4))]
+*   [
+ *     {span: (0, 1),  originalSpans: {spans1: [(0, 2)], spans2: [(0, 1)]}
+ *     {span: (1, 2),  originalSpans: {spans1: [(0, 2)]}}
+ *     {span: (2, 3),  originalSpans: {spans2: [(2, 4)]}}
+ *     {span: (3, 4),  originalSpans: {spans1: [(3, 4)], spans2: [(2, 4)]}
+ *  ]
  */
 export function mergeSpans(
   text: string,
@@ -192,6 +196,15 @@ export function mergeSpans(
   const spanSetIndices: {[spanSet: string]: number} = Object.fromEntries(
     Object.keys(inputSpanSets).map(spanSet => [spanSet, 0])
   );
+
+  // Sort spans by start index.
+  for (const spanSet of Object.keys(inputSpanSets)) {
+    inputSpanSets[spanSet].sort((a, b) => {
+      const aStart = a[VALUE_KEY]?.start || 0;
+      const bStart = b[VALUE_KEY]?.start || 0;
+      return aStart - bStart;
+    });
+  }
 
   let curStartIdx = 0;
   const mergedSpans: MergedSpan[] = [];

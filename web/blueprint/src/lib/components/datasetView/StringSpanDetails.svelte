@@ -28,7 +28,6 @@
   import EmbeddingBadge from './EmbeddingBadge.svelte';
 
   export let details: SpanDetails;
-  $: console.log(details);
   // The coordinates of the click so we can position the popup next to the cursor.
   export let clickPosition: {x: number; y: number} | undefined;
 

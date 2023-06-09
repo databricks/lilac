@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {afterEach, assertType, describe, expect, it} from 'vitest';
 import type {Schema} from '../fastapi_client';
 import {

@@ -146,7 +146,6 @@ export function getFieldsByDtype(dtype: DataType, schema?: LilacSchema): LilacFi
 /** List all values as a flattend array */
 export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
   // Return the cached value if it exists.
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   if (listValueNodesCache.has(row)) return listValueNodesCache.get(row)!;
 
   let result: LilacValueNode[];

@@ -50,7 +50,6 @@
   $: searchPath = getSearchPath($datasetViewStore, $datasetStore);
 
   let keywordSearchText: string;
-  // Semantic search.
   let semanticSearchText: string;
 
   $: searches = getSearches($datasetViewStore, searchPath);
