@@ -49,8 +49,6 @@
     $datasetStore,
     $selectRowsSchema?.data?.schema
   );
-
-  $: console.log(visibleFields);
 </script>
 
 <SearchPanel />
