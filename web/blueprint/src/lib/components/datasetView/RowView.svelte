@@ -40,10 +40,7 @@
   $: rows = infiniteQuerySelectRows(
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
-    {
-      limit: 40,
-      ...selectOptions
-    },
+    selectOptions || {},
     $selectRowsSchema?.isSuccess ? $selectRowsSchema.data.schema : undefined
   );
 

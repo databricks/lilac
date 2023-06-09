@@ -9,15 +9,13 @@ from typing_extensions import override
 from ..schema import VectorKey
 from .vector_store import VectorStore
 
-NP_INDEX_KEYS_KWD = 'keys'
-NP_EMBEDDINGS_KWD = 'embeddings'
-
 
 class NumpyVectorStore(VectorStore):
   """Stores vectors as in-memory np arrays."""
   _embeddings: np.ndarray
   _keys: list[VectorKey]
-  _df: pd.DataFrame
+  # Maps a `VectorKey` to a row index in `_embeddings`.
+  _lookup: pd.Series
 
   @override
   def keys(self) -> list[VectorKey]:
@@ -38,10 +36,8 @@ class NumpyVectorStore(VectorStore):
     self._embeddings = embeddings.astype(np.float32)
 
     index = pd.MultiIndex.from_tuples(keys)
-    # np.split makes a shallow copy of each of the embeddings, so the data frame can be a shallow
-    # view of the numpy array. This means the dataframe cannot be used to modify the embeddings.
-    chunks = np.vsplit(self._embeddings, self._embeddings.shape[0])
-    self._df = pd.DataFrame({NP_EMBEDDINGS_KWD: chunks}, index=index)
+    row_indices = np.arange(len(self._embeddings), dtype=np.uint32)
+    self._lookup = pd.Series(row_indices, index=index)
 
   @override
   def get(self, keys: Iterable[VectorKey]) -> np.ndarray:
@@ -53,7 +49,7 @@ class NumpyVectorStore(VectorStore):
     Returns
       The embeddings for the given keys.
     """
-    return np.concatenate(self._df.loc[keys][NP_EMBEDDINGS_KWD], axis=0)
+    return self._embeddings.take(self._lookup.loc[keys], axis=0)
 
   @override
   def topk(self,
@@ -61,8 +57,9 @@ class NumpyVectorStore(VectorStore):
            k: int,
            key_prefixes: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
     if key_prefixes is not None:
-      df = self._df.loc[key_prefixes]
-      keys, embeddings = list(df.index), np.concatenate(df[NP_EMBEDDINGS_KWD], axis=0)
+      # This uses the hierarchical index (MutliIndex) to do a prefix lookup.
+      row_indices = self._lookup.loc[key_prefixes]
+      keys, embeddings = list(row_indices.index), self._embeddings.take(row_indices, axis=0)
     else:
       keys, embeddings = self._keys, self._embeddings
 
