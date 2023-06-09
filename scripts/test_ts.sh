@@ -4,4 +4,4 @@
 set -e
 
 CI=true npm run test --workspace web/blueprint
-#CI=true npm run test --workspace web/lib
+CI=true npm run test --workspace web/lib

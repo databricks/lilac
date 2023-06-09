@@ -2,27 +2,27 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
-    isPathVisible,
-    mergeSpans,
-    type MergedSpan,
-    type SpanHoverNamedValue
+      isPathVisible,
+      mergeSpans,
+      type MergedSpan,
+      type SpanHoverNamedValue
   } from '$lib/view_utils';
-  /**
+/**
    * Component that renders string spans as an absolute positioned
    * layer, meant to be rendered on top of the source text.
    */
   import {
-    L,
-    deserializePath,
-    getFieldsByDtype,
-    getValueNodes,
-    isConceptScoreSignal,
-    serializePath,
-    valueAtPath,
-    type LilacField,
-    type LilacValueNode,
-    type LilacValueNodeCasted,
-    type Signal
+      L,
+      deserializePath,
+      getFieldsByDtype,
+      getValueNodes,
+      isConceptScoreSignal,
+      serializePath,
+      valueAtPath,
+      type LilacField,
+      type LilacValueNode,
+      type LilacValueNodeCasted,
+      type Signal
   } from '$lilac';
   import {spanHover} from './SpanHover';
   import StringSpanDetails, {type SpanDetails} from './StringSpanDetails.svelte';
@@ -34,7 +34,6 @@
   export let visibleKeywordSpanFields: LilacField[];
   export let visibleSpanFields: LilacField[];
 
-  // Highlight coloring.
   const spanHoverOpacity = 0.9;
 
   let datasetViewStore = getDatasetViewContext();

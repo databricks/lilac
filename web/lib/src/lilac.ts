@@ -19,7 +19,7 @@ import {
   type Path
 } from './schema';
 
-const PATH_KEY = '__path__';
+export const PATH_KEY = '__path__';
 const SCHEMA_FIELD_KEY = '__field__';
 // The search type is not an explicitly exported type so we extract the type from the different
 // search types automatically for type-safety.
