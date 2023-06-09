@@ -27,10 +27,11 @@ _SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 _GMAIL_CONFIG_DIR = os.path.join(data_path(), '.gmail')
 _TOKEN_FILENAME = 'token.json'
 _CREDS_FILENAME = 'credentials.json'
-_NUM_RETRIES = 5
-_MAX_NUM_THREADS = 10_000
+_NUM_RETRIES = 10
+_MAX_NUM_THREADS = 30_000
 
 _UNWRAP_PATTERN = re.compile(r'(\S)\n(\S)')
+HTTP_PATTERN = re.compile(r'https?://[^\s]+')
 
 
 class Gmail(Source):
@@ -128,9 +129,13 @@ class Gmail(Source):
             continue
           text = base64.urlsafe_b64decode(body).decode('utf-8')
           text = EmailReplyParser.parse_reply(text)
-          unwrapped_text = _UNWRAP_PATTERN.sub('\\1 \\2', text)
-          if unwrapped_text:
-            parsed_parts.append(unwrapped_text)
+          # Unwrap text.
+          text = _UNWRAP_PATTERN.sub('\\1 \\2', text)
+          # Remove URLs.
+          text = HTTP_PATTERN.sub('', text)
+
+          if text:
+            parsed_parts.append(text)
         if email_info.sender and parsed_parts:
           parsed_parts = [
             f'--------------------{email_info.sender}--------------------', *parsed_parts

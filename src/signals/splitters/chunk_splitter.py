@@ -42,7 +42,7 @@ from ..signal import TextSplitterSignal
 TextChunk = tuple[str, tuple[int, int]]
 
 DEFAULT_SEPARATORS = ['\n\n', '\n', ' ', '']
-CHUNK_SIZE = 300
+CHUNK_SIZE = 400
 CHUNK_OVERLAP = 0
 
 
