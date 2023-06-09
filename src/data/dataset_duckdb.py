@@ -348,6 +348,11 @@ class DatasetDuckDB(Dataset):
     # The manifest may have changed after computing the dependencies.
     manifest = self.manifest()
 
+    if isinstance(signal, ConceptScoreSignal):
+      # Set dataset information on the signal.
+      signal.set_column_info(
+        ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=source_path))
+
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
     select_rows_result = self.select_rows([signal_col],
                                           task_step_id=task_step_id,
