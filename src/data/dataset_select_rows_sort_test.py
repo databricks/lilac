@@ -15,7 +15,7 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import Column, SortOrder
+from .dataset import BinaryOp, Column, SortOrder
 from .dataset_test_utils import TestDataMaker, enriched_item
 from .dataset_utils import lilac_embedding
 
@@ -789,6 +789,50 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
     'udf': [8.0, 1.0]
   }, {
     UUID_COLUMN: '2',
+    'scores': enriched_item(
+      '3_5', {'topk_embedding': [lilac_embedding(0, 1, None),
+                                 lilac_embedding(2, 3, None)]}),
+    'udf': [3.0, 5.0]
+  }]
+
+
+def test_sort_by_topk_udf_with_filter(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'scores': '8_1',
+    'active': True
+  }, {
+    UUID_COLUMN: '2',
+    'scores': '3_5',
+    'active': True
+  }, {
+    UUID_COLUMN: '3',
+    'scores': '9_7',
+    'active': False
+  }])
+
+  dataset.compute_signal(TopKEmbedding(), 'scores')
+
+  # Equivalent to: SELECT `TopKSignal(scores, embedding='...') AS udf`.
+  text_udf = Column('scores', signal_udf=TopKSignal(embedding='topk_embedding'), alias='udf')
+  # Sort by `udf`, where `udf` is an alias to `TopKSignal(scores, embedding='...')`.
+  result = dataset.select_rows(['*', text_udf],
+                               sort_by=['udf'],
+                               filters=[('active', BinaryOp.EQUALS, True)],
+                               sort_order=SortOrder.DESC,
+                               limit=2)
+  # We make sure that '3' is not in the result, because it is not active, even though it has the
+  # highest topk score.
+  assert list(result) == [{
+    UUID_COLUMN: '1',
+    'active': True,
+    'scores': enriched_item(
+      '8_1', {'topk_embedding': [lilac_embedding(0, 1, None),
+                                 lilac_embedding(2, 3, None)]}),
+    'udf': [8.0, 1.0]
+  }, {
+    UUID_COLUMN: '2',
+    'active': True,
     'scores': enriched_item(
       '3_5', {'topk_embedding': [lilac_embedding(0, 1, None),
                                  lilac_embedding(2, 3, None)]}),

@@ -45,14 +45,14 @@ class VectorStoreSuite:
     query = np.array([0.89, 0.45])
     topk = 3
     store.add([('a',), ('b',), ('c',)], embedding)
-    result = store.topk(query, topk, keys=[('b',), ('a',)])
+    result = store.topk(query, topk, key_prefixes=[('b',), ('a',)])
     assert [key for key, _ in result] == [('b',), ('a',)]
     assert [score for _, score in result] == pytest.approx([0.894, 0.801], 1e-3)
 
-    result = store.topk(query, topk, keys=[('a',), ('b',)])
+    result = store.topk(query, topk, key_prefixes=[('a',), ('b',)])
     assert [key for key, _ in result] == [('b',), ('a',)]
     assert [score for _, score in result] == pytest.approx([0.894, 0.801], 1e-3)
 
-    result = store.topk(query, topk, keys=[('a',), ('c',)])
+    result = store.topk(query, topk, key_prefixes=[('a',), ('c',)])
     assert [key for key, _ in result] == [('c',), ('a',)]
     assert [score for _, score in result] == pytest.approx([0.9161, 0.801], 1e-3)

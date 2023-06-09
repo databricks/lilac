@@ -34,6 +34,7 @@ from ..schema import (
   Schema,
   SignalInputType,
   SourceManifest,
+  VectorKey,
   is_float,
   is_integer,
   is_ordinal,
@@ -726,16 +727,42 @@ class DatasetDuckDB(Dataset):
     # Choose the first sort order as we only support a single sort order for now.
     sort_order = sort_results[0].order if sort_results else None
 
+    col_aliases: dict[str, PathTuple] = {col.alias: col.path for col in cols if col.alias}
+    udf_aliases: dict[str, PathTuple] = {
+      col.alias: col.path for col in cols if col.signal_udf and col.alias
+    }
+
+    # Filtering and searching.
+    where_query = ''
+    filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases, manifest)
+    filter_queries = self._create_where(manifest, filters, searches)
+    if filter_queries:
+      where_query = f"WHERE {' AND '.join(filter_queries)}"
+
+    con = self.con.cursor()
+
     topk_udf_col = self._topk_udf_to_sort_by(udf_columns, sort_by, limit, sort_order)
     if topk_udf_col:
+
+      key_prefixes: Optional[list[VectorKey]] = None
+      if where_query:
+        with DebugTimer('get key prefixes'):
+          # If there are filters, we need to send UUIDs to the topk query.
+          df = con.execute(f'SELECT {UUID_COLUMN} FROM t {where_query}').df()
+          key_prefixes = df[UUID_COLUMN]
+
       signal = cast(Signal, topk_udf_col.signal_udf)
       # The input is an embedding.
       vector_store = self.get_vector_store(topk_udf_col.path)
       k = (limit or 0) + (offset or 0)
-      topk = signal.vector_compute_topk(k, vector_store)
+      with DebugTimer(f'vector_compute_topk with key prefixes: {key_prefixes is not None}'):
+        topk = signal.vector_compute_topk(k, vector_store, key_prefixes)
       topk_uuids = list(dict.fromkeys([cast(str, key[0]) for key, _ in topk]))
-      uuid_filter = (UUID_COLUMN, ListOp.IN, topk_uuids)
-      filters = [uuid_filter, *(filters or [])]
+
+      # Ignore all the other filters and filter DuckDB results only by the topk UUIDs.
+      uuid_filter = Filter(path=(UUID_COLUMN,), op=ListOp.IN, value=topk_uuids)
+      filter_query = self._create_where(manifest, [uuid_filter])[0]
+      where_query = f'WHERE {filter_query}'
 
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
     columns_to_merge: dict[str, dict[str, Column]] = {}
@@ -775,15 +802,10 @@ class DatasetDuckDB(Dataset):
 
       select_queries.append(', '.join(select_sqls))
 
-    col_aliases: dict[str, PathTuple] = {col.alias: col.path for col in cols if col.alias}
-
     sort_sql_before_udf: list[str] = []
     sort_sql_after_udf: list[str] = []
     sort_udf_aliases: list[str] = []
 
-    udf_aliases: dict[str, PathTuple] = {
-      col.alias: col.path for col in cols if col.signal_udf and col.alias
-    }
     for path in sort_by:
       # We only allow sorting by nodes with a value.
       first_subpath = str(path[0])
@@ -818,19 +840,10 @@ class DatasetDuckDB(Dataset):
       else:
         sort_sql_before_udf.append(sort_sql)
 
-    # Filtering and searching.
-    where_query = ''
-    filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases, manifest)
-    filter_queries = self._create_where(manifest, filters, searches)
-    if filter_queries:
-      where_query = f"WHERE {' AND '.join(filter_queries)}"
-
     order_query = ''
     if sort_sql_before_udf:
       order_query = (f'ORDER BY {", ".join(sort_sql_before_udf)} '
                      f'{cast(SortOrder, sort_order).value}')
-
-    con = self.con.cursor()
 
     limit_query = ''
     if limit:

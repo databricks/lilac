@@ -37,12 +37,11 @@ class NumpyVectorStore(VectorStore):
     # than float64.
     self._embeddings = embeddings.astype(np.float32)
 
-    # Make str keys to index into the pandas dataframe.
-    str_keys = list(map(str, keys))
+    index = pd.MultiIndex.from_tuples(keys)
     # np.split makes a shallow copy of each of the embeddings, so the data frame can be a shallow
     # view of the numpy array. This means the dataframe cannot be used to modify the embeddings.
     chunks = np.vsplit(self._embeddings, self._embeddings.shape[0])
-    self._df = pd.DataFrame({NP_EMBEDDINGS_KWD: chunks}, index=str_keys)
+    self._df = pd.DataFrame({NP_EMBEDDINGS_KWD: chunks}, index=index)
 
   @override
   def get(self, keys: Iterable[VectorKey]) -> np.ndarray:
@@ -54,20 +53,18 @@ class NumpyVectorStore(VectorStore):
     Returns
       The embeddings for the given keys.
     """
-    str_keys = list(map(str, keys))
-    return np.concatenate(self._df.loc[str_keys][NP_EMBEDDINGS_KWD], axis=0)
+    return np.concatenate(self._df.loc[keys][NP_EMBEDDINGS_KWD], axis=0)
 
   @override
   def topk(self,
            query: np.ndarray,
            k: int,
-           keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
-    if keys:
-      embeddings = self.get(keys)
-      keys = list(keys)
+           key_prefixes: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
+    if key_prefixes is not None:
+      df = self._df.loc[key_prefixes]
+      keys, embeddings = list(df.index), np.concatenate(df[NP_EMBEDDINGS_KWD], axis=0)
     else:
-      embeddings = self._embeddings
-      keys = self._keys
+      keys, embeddings = self._keys, self._embeddings
 
     query = query.astype(embeddings.dtype)
     similarities: np.ndarray = np.dot(embeddings, query).reshape(-1)
