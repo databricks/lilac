@@ -13,6 +13,7 @@
     getSelectRowsOptions,
     setDatasetViewContext
   } from '$lib/stores/datasetViewStore';
+  import {getVisibleFields} from '$lib/view_utils';
   import {getFieldsByDtype} from '$lilac';
 
   export let namespace: string;
@@ -74,14 +75,22 @@
     }
   }
   $: {
-    if ($selectRowsSchema?.data != null) {
-      datasetStore.setSelectRowsSchema($selectRowsSchema.data);
+    if ($selectRowsSchema != null) {
+      datasetStore.setSelectRowsSchema($selectRowsSchema);
     }
   }
   $: {
     if (sortedStats != null) {
       datasetStore.setStats(sortedStats);
     }
+  }
+  $: {
+    const visibleFields = getVisibleFields(
+      $datasetViewStore.selectedColumns,
+      sortedStats,
+      $selectRowsSchema?.data?.schema || null
+    );
+    datasetStore.setVisibleFields(visibleFields);
   }
 </script>
 

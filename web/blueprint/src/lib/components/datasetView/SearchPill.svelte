@@ -40,7 +40,8 @@
     title={'query'}
     interactive
     type={tagType}
-    on:remove={() => datasetViewStore.removeSearch(search, $datasetStore?.selectRowsSchema || null)}
+    on:remove={() =>
+      datasetViewStore.removeSearch(search, $datasetStore?.selectRowsSchema?.data || null)}
   >
     <HoverTooltip size="small" triggerText={pillText} hideIcon={true}>
       <div class=" flex items-center justify-items-center">

@@ -60,14 +60,14 @@ export type LilacValueNodeCasted<D extends DataType = DataType> = {
   [metadata: string]: unknown;
 };
 
-export function valueAtPath(item: LilacValueNode, path: Path): LilacValueNode {
+export function valueAtPath(item: LilacValueNode, path: Path): LilacValueNode | null {
   if (item == null) throw Error('Item is null.');
   if (path.length === 0) {
     return item;
   }
   const [key, ...rest] = path;
   if (item[key] == null) {
-    throw Error('Item at path does not exist');
+    return null;
   }
   return valueAtPath(item[key], rest);
 }

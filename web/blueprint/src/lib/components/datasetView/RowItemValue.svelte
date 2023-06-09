@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {getDatasetContext} from '$lib/stores/datasetStore';
   /**
    * Component that renders a single value from a row in the dataset row view
    * In the case of strings with string_spans, it will render the derived string spans as well
@@ -12,7 +13,6 @@
     getValueNodes,
     isOrdinal,
     listFieldParents,
-    type LilacField,
     type LilacSchema,
     type LilacValueNode,
     type Path
@@ -22,7 +22,10 @@
   export let path: Path;
   export let row: LilacValueNode;
   export let schema: LilacSchema;
-  export let visibleFields: LilacField[];
+
+  let datasetStore = getDatasetContext();
+
+  $: visibleFields = $datasetStore?.visibleFields || [];
 
   // Find the keyword span paths under this field.
   $: visibleKeywordSpanFields = visibleFields

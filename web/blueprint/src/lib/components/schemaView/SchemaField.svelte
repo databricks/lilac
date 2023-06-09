@@ -1,20 +1,19 @@
 <script lang="ts">
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {isPathVisible} from '$lib/view_utils';
   import {
-    PATH_WILDCARD,
-    VALUE_KEY,
-    getField,
-    isSignalField,
-    isSignalRootField,
-    pathIsEqual,
-    type BinaryOp,
-    type LilacField,
-    type LilacSchema,
-    type ListOp,
-    type Path,
-    type UnaryOp
+      PATH_WILDCARD,
+      VALUE_KEY,
+      getField,
+      isSignalField,
+      isSignalRootField,
+      pathIsEqual,
+      type BinaryOp,
+      type LilacField,
+      type LilacSchema,
+      type ListOp,
+      type Path,
+      type UnaryOp
   } from '$lilac';
   import {Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
@@ -60,7 +59,7 @@
 
   let datasetStore = getDatasetContext();
 
-  $: isVisible = isPathVisible($datasetViewStore, $datasetStore, path);
+  $: isVisible = $datasetStore?.visibleFields?.some(f => pathIsEqual(f.path, path));
 
   $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => pathIsEqual(p, alias || path));
   $: sortOrder = $datasetViewStore.queryOptions.sort_order;

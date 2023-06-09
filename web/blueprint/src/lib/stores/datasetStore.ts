@@ -1,5 +1,12 @@
 /** The store for runtime information about the dataset, like the schema and stats. */
-import type {LilacSchema, LilacSelectRowsSchema, Path, StatsResult} from '$lilac';
+import type {
+  ApiError,
+  LilacField,
+  LilacSchema,
+  LilacSelectRowsSchema,
+  Path,
+  StatsResult
+} from '$lilac';
 import type {QueryObserverResult} from '@tanstack/svelte-query';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable, type Readable, type Writable} from 'svelte/store';
@@ -9,7 +16,8 @@ const DATASET_INFO_CONTEXT = 'DATASET_INFO_CONTEXT';
 export interface DatasetStore {
   schema: LilacSchema | null;
   stats: StatsInfo[] | null;
-  selectRowsSchema: LilacSelectRowsSchema | null;
+  selectRowsSchema: QueryObserverResult<LilacSelectRowsSchema, ApiError> | null;
+  visibleFields: LilacField[] | null;
 }
 export interface StatsInfo {
   path: Path;
@@ -20,7 +28,8 @@ export const createDatasetStore = () => {
   const initialState: DatasetStore = {
     schema: null,
     stats: null,
-    selectRowsSchema: null
+    selectRowsSchema: null,
+    visibleFields: null
   };
 
   const {subscribe, set, update} = writable<DatasetStore>(initialState);
@@ -43,7 +52,14 @@ export const createDatasetStore = () => {
         state.stats = stats;
         return state;
       }),
-    setSelectRowsSchema: (selectRowsSchema: LilacSelectRowsSchema) =>
+    setVisibleFields: (visibleFields: LilacField[]) =>
+      update(state => {
+        state.visibleFields = visibleFields;
+        return state;
+      }),
+    setSelectRowsSchema: (
+      selectRowsSchema: QueryObserverResult<LilacSelectRowsSchema, ApiError> | null
+    ) =>
       update(state => {
         state.selectRowsSchema = selectRowsSchema;
         return state;

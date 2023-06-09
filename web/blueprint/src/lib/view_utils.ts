@@ -10,6 +10,7 @@ import {
   type DataType,
   type DataTypeCasted,
   type LilacField,
+  type LilacSchema,
   type LilacSelectRowsSchema,
   type LilacValueNode,
   type LilacValueNodeCasted,
@@ -17,16 +18,16 @@ import {
   type Search,
   type SortResult
 } from '$lilac';
-import type {DatasetStore} from './stores/datasetStore';
+import type {DatasetStore, StatsInfo} from './stores/datasetStore';
 import type {IDatasetViewStore} from './stores/datasetViewStore';
 
 export function getVisibleFields(
-  store: IDatasetViewStore,
-  datasetStore: DatasetStore | null,
+  selectedColumns: {[path: string]: boolean} | null,
+  stats: StatsInfo[] | null,
+  schema: LilacSchema | null,
   field?: LilacField | null,
   dtype?: DataType
 ): LilacField[] {
-  const schema = datasetStore?.selectRowsSchema?.schema;
   if (schema == null) {
     return [];
   }
@@ -37,32 +38,32 @@ export function getVisibleFields(
   } else {
     fields = getFieldsByDtype(dtype, field || schema);
   }
-  return fields.filter(f => isPathVisible(store, datasetStore || null, f.path));
+  return fields.filter(f => isPathVisible(selectedColumns, stats, f.path));
 }
 
 export function isPathVisible(
-  store: IDatasetViewStore,
-  datasetStore: DatasetStore | null,
+  selectedColumns: {[path: string]: boolean} | null,
+  stats: StatsInfo[] | null,
   path: Path | string
 ): boolean {
-  if (store.selectedColumns == null) return false;
+  if (selectedColumns == null) return false;
   if (typeof path !== 'string') path = serializePath(path);
 
   // If a user has explicitly selected a column, return the value of the selection.
-  if (store.selectedColumns[path] != null) return store.selectedColumns[path];
+  if (selectedColumns[path] != null) return selectedColumns[path];
 
   const pathArray = deserializePath(path);
 
   // If the path is the default, select it.
-  const defaultPath = getDefaultSelectedPath(datasetStore);
+  const defaultPath = getDefaultSelectedPath2(stats);
 
   if (defaultPath != null && pathIsEqual(pathArray, defaultPath)) return true;
 
   if (pathArray.length > 1) {
     // When no explicit selection, children inherit from their parent.
     return isPathVisible(
-      store,
-      datasetStore,
+      selectedColumns,
+      stats,
       serializePath(pathArray.slice(0, pathArray.length - 1))
     );
   }
@@ -152,9 +153,17 @@ export function getDefaultSelectedPath(datasetStore: DatasetStore | null): Path 
   return null;
 }
 
+export function getDefaultSelectedPath2(stats: StatsInfo[] | null): Path | null {
+  // The longest path is auto-selected.
+  if (stats != null && stats.length > 0) {
+    return stats[0].path;
+  }
+  return null;
+}
+
 export function getSort(datasetStore: DatasetStore | null): SortResult | null {
   // NOTE: We currently only support sorting by a single column from the UI.
-  return (datasetStore?.selectRowsSchema?.sorts || [])[0] || null;
+  return (datasetStore?.selectRowsSchema?.data?.sorts || [])[0] || null;
 }
 
 export interface SpanHoverNamedValue {

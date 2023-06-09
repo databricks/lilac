@@ -1,45 +1,28 @@
 <script lang="ts">
+  import {queryDatasetManifest, queryDatasetSchema} from '$lib/queries/datasetQueries';
+  import {getDatasetContext} from '$lib/stores/datasetStore';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
-    queryDatasetManifest,
-    queryDatasetSchema,
-    querySelectRowsAliasUdfPaths,
-    querySelectRowsSchema
-  } from '$lib/queries/datasetQueries';
-  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
-  import {
-    Breadcrumb,
-    BreadcrumbItem,
-    SkeletonText,
-    Tab,
-    TabContent,
-    Tabs
+      Breadcrumb,
+      BreadcrumbItem,
+      SkeletonText,
+      Tab,
+      TabContent,
+      Tabs
   } from 'carbon-components-svelte';
   import QueryBuilder from '../queryBuilder/QueryBuilder.svelte';
   import FlattenedField from './FlattenedField.svelte';
   import SchemaField from './SchemaField.svelte';
 
   const datasetViewStore = getDatasetViewContext();
+  const datasetStore = getDatasetContext();
+
   const schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   const manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: selectOptions = $schema.isSuccess ? getSelectRowsOptions($datasetViewStore) : undefined;
-
   // Get the resulting schmema including UDF columns
-  $: selectRowsSchema = selectOptions
-    ? querySelectRowsSchema(
-        $datasetViewStore.namespace,
-        $datasetViewStore.datasetName,
-        selectOptions
-      )
-    : undefined;
-
-  $: aliasMapping = selectOptions
-    ? querySelectRowsAliasUdfPaths(
-        $datasetViewStore.namespace,
-        $datasetViewStore.datasetName,
-        selectOptions
-      )
-    : undefined;
+  $: selectRowsSchema = $datasetStore?.selectRowsSchema
+  $: aliasMapping = selectRowsSchema?.data?.alias_udf_paths;
 </script>
 
 <div class="flex h-full flex-col pt-4">
@@ -64,27 +47,27 @@
     <Tab label="Raw Query" class="w-1/3" />
     <div class="h-full overflow-y-auto" slot="content">
       <TabContent>
-        {#if $selectRowsSchema?.isLoading}
+        {#if selectRowsSchema?.isLoading}
           <SkeletonText paragraph lines={3} />
-        {:else if $selectRowsSchema?.isSuccess && $selectRowsSchema.data.schema.fields}
-          {#each Object.keys($selectRowsSchema.data.schema.fields) as key (key)}
+        {:else if selectRowsSchema?.isSuccess && selectRowsSchema.data.schema.fields}
+          {#each Object.keys(selectRowsSchema.data.schema.fields) as key (key)}
             <FlattenedField
-              schema={$selectRowsSchema.data.schema}
-              field={$selectRowsSchema.data.schema.fields[key]}
-              aliasMapping={$aliasMapping?.data}
+              schema={selectRowsSchema.data.schema}
+              field={selectRowsSchema.data.schema.fields[key]}
+              {aliasMapping}
             />
           {/each}
         {/if}
       </TabContent>
       <TabContent>
-        {#if $selectRowsSchema?.isLoading}
+        {#if selectRowsSchema?.isLoading}
           <SkeletonText paragraph lines={3} />
-        {:else if $selectRowsSchema?.isSuccess && $selectRowsSchema.data.schema.fields}
-          {#each Object.keys($selectRowsSchema.data.schema.fields) as key (key)}
+        {:else if selectRowsSchema?.isSuccess && selectRowsSchema.data.schema.fields}
+          {#each Object.keys(selectRowsSchema.data.schema.fields) as key (key)}
             <SchemaField
-              schema={$selectRowsSchema.data.schema}
-              field={$selectRowsSchema.data.schema.fields[key]}
-              aliasMapping={$aliasMapping?.data}
+              schema={selectRowsSchema.data.schema}
+              field={selectRowsSchema.data.schema.fields[key]}
+              {aliasMapping}
             />
           {/each}
         {/if}

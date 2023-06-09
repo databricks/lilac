@@ -1,7 +1,7 @@
 <script lang="ts">
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {getSearches, isPathVisible, udfByAlias} from '$lib/view_utils';
+  import {getSearches, udfByAlias} from '$lib/view_utils';
   import * as Lilac from '$lilac';
   import {Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
   import {CaretDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
@@ -47,7 +47,7 @@
   $: children = childDisplayFields(field);
   $: hasChildren = children.length > 0;
 
-  $: isVisible = isPathVisible($datasetViewStore, $datasetStore, path);
+  $: isVisible = $datasetStore?.visibleFields?.some(f => Lilac.pathIsEqual(f.path, path));
 
   $: embeddingFields = isSourceField
     ? (Lilac.childFields(field).filter(
@@ -100,7 +100,7 @@
   }
 
   // Check if any query option columns match the alias.
-  $: udfPath = udfByAlias($datasetStore?.selectRowsSchema || null, alias);
+  $: udfPath = udfByAlias($datasetStore?.selectRowsSchema?.data || null, alias);
 
   // Check if any query option columns match the alias
   $: searches = getSearches($datasetViewStore, path);
