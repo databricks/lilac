@@ -1,7 +1,7 @@
 """Defines the concept and the concept models."""
 import random
 from enum import Enum
-from typing import Any, Iterable, Literal, Optional, Union, cast
+from typing import Iterable, Literal, Optional, Union
 
 import numpy as np
 from pydantic import BaseModel
@@ -10,17 +10,8 @@ from sklearn.linear_model import LogisticRegression
 
 from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
-from ..schema import (
-  TEXT_SPAN_END_FEATURE,
-  TEXT_SPAN_START_FEATURE,
-  VALUE_KEY,
-  Path,
-  RichData,
-  SignalInputType,
-  normalize_path,
-)
+from ..schema import Path, RichData, SignalInputType, normalize_path
 from ..signals.signal import TextEmbeddingSignal, get_signal_cls
-from ..signals.splitters.text_splitter_spacy import SentenceSplitterSpacy
 from ..utils import DebugTimer
 
 LOCAL_CONCEPT_NAMESPACE = 'local'
@@ -287,15 +278,3 @@ class ConceptModel(BaseModel):
     for id, embedding in zip(missing_ids, missing_embeddings):
       concept_embeddings[id] = embedding
     self._embeddings = concept_embeddings
-
-
-def _split_docs_into_sentences(docs: Iterable[str]) -> list[str]:
-  splitter = SentenceSplitterSpacy()
-  doc_spans = list(splitter.compute(docs))
-  sentences: list[str] = []
-  for sentence_spans, text in zip(doc_spans, docs):
-    for span in cast(Iterable[Any], sentence_spans):
-      start = span[VALUE_KEY][TEXT_SPAN_START_FEATURE]
-      end = span[VALUE_KEY][TEXT_SPAN_END_FEATURE]
-      sentences.append(text[start:end])
-  return sentences
