@@ -55,7 +55,7 @@ export function isPathVisible(
   const pathArray = deserializePath(path);
 
   // If the path is the default, select it.
-  const defaultPath = getDefaultSelectedPath2(stats);
+  const defaultPath = stats != null && stats.length > 0 ? stats[0].path : null;
 
   if (defaultPath != null && pathIsEqual(pathArray, defaultPath)) return true;
 
@@ -149,14 +149,6 @@ export function getDefaultSelectedPath(datasetStore: DatasetStore | null): Path 
   // The longest path is auto-selected.
   if (datasetStore?.stats != null && datasetStore?.stats.length > 0) {
     return datasetStore?.stats[0].path;
-  }
-  return null;
-}
-
-export function getDefaultSelectedPath2(stats: StatsInfo[] | null): Path | null {
-  // The longest path is auto-selected.
-  if (stats != null && stats.length > 0) {
-    return stats[0].path;
   }
   return null;
 }

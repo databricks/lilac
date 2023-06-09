@@ -7,18 +7,18 @@
   import {mergeSpans, type MergedSpan, type SpanHoverNamedValue} from '$lib/view_utils';
 
   import {
-      L,
-      deserializePath,
-      getFieldsByDtype,
-      getValueNodes,
-      isConceptScoreSignal,
-      pathIsEqual,
-      serializePath,
-      valueAtPath,
-      type LilacField,
-      type LilacValueNode,
-      type LilacValueNodeCasted,
-      type Signal
+    L,
+    deserializePath,
+    getFieldsByDtype,
+    getValueNodes,
+    isConceptScoreSignal,
+    pathIsEqual,
+    serializePath,
+    valueAtPath,
+    type LilacField,
+    type LilacValueNode,
+    type LilacValueNodeCasted,
+    type Signal
   } from '$lilac';
   import {spanHover} from './SpanHover';
   import StringSpanDetails, {type SpanDetails} from './StringSpanDetails.svelte';

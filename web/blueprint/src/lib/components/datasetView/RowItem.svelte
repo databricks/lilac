@@ -13,7 +13,6 @@
   $: {
     sortedVisibleColumns = ($datasetStore?.visibleFields || []).map(f => f.path);
     sortedVisibleColumns.sort((a, b) => (a.join('.') > b.join('.') ? 1 : -1));
-    sortedVisibleColumns = sortedVisibleColumns;
   }
 </script>
 

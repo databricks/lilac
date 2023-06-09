@@ -3,12 +3,12 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
-      Breadcrumb,
-      BreadcrumbItem,
-      SkeletonText,
-      Tab,
-      TabContent,
-      Tabs
+    Breadcrumb,
+    BreadcrumbItem,
+    SkeletonText,
+    Tab,
+    TabContent,
+    Tabs
   } from 'carbon-components-svelte';
   import QueryBuilder from '../queryBuilder/QueryBuilder.svelte';
   import FlattenedField from './FlattenedField.svelte';
@@ -21,7 +21,7 @@
   const manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   // Get the resulting schmema including UDF columns
-  $: selectRowsSchema = $datasetStore?.selectRowsSchema
+  $: selectRowsSchema = $datasetStore?.selectRowsSchema;
   $: aliasMapping = selectRowsSchema?.data?.alias_udf_paths;
 </script>
 

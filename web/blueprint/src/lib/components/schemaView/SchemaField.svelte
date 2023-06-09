@@ -2,18 +2,18 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
-      PATH_WILDCARD,
-      VALUE_KEY,
-      getField,
-      isSignalField,
-      isSignalRootField,
-      pathIsEqual,
-      type BinaryOp,
-      type LilacField,
-      type LilacSchema,
-      type ListOp,
-      type Path,
-      type UnaryOp
+    PATH_WILDCARD,
+    VALUE_KEY,
+    getField,
+    isSignalField,
+    isSignalRootField,
+    pathIsEqual,
+    type BinaryOp,
+    type LilacField,
+    type LilacSchema,
+    type ListOp,
+    type Path,
+    type UnaryOp
   } from '$lilac';
   import {Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
