@@ -746,17 +746,15 @@ class DatasetDuckDB(Dataset):
 
       key_prefixes: Optional[list[VectorKey]] = None
       if where_query:
-        with DebugTimer('get key prefixes'):
-          # If there are filters, we need to send UUIDs to the topk query.
-          df = con.execute(f'SELECT {UUID_COLUMN} FROM t {where_query}').df()
-          key_prefixes = df[UUID_COLUMN]
+        # If there are filters, we need to send UUIDs to the topk query.
+        df = con.execute(f'SELECT {UUID_COLUMN} FROM t {where_query}').df()
+        key_prefixes = df[UUID_COLUMN]
 
       signal = cast(Signal, topk_udf_col.signal_udf)
       # The input is an embedding.
       vector_store = self.get_vector_store(topk_udf_col.path)
       k = (limit or 0) + (offset or 0)
-      with DebugTimer(f'vector_compute_topk with key prefixes: {key_prefixes is not None}'):
-        topk = signal.vector_compute_topk(k, vector_store, key_prefixes)
+      topk = signal.vector_compute_topk(k, vector_store, key_prefixes)
       topk_uuids = list(dict.fromkeys([cast(str, key[0]) for key, _ in topk]))
 
       # Ignore all the other filters and filter DuckDB results only by the topk UUIDs.
