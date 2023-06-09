@@ -1,10 +1,17 @@
-<script lang="ts">
+<script lang="ts" context="module">
   /**
    * Component that renders after a click of a string span. This component does both:
    *   1) Concept-specific accept or reject for each selected concept.
    *   2) Semantic similarity for computed embeddings.
    */
+  export interface SpanDetails {
+    conceptName: string | null;
+    conceptNamespace: string | null;
+    text: string;
+  }
+</script>
 
+<script lang="ts">
   import {fade} from 'svelte/transition';
 
   import {editConceptMutation} from '$lib/queries/conceptQueries';
@@ -20,23 +27,25 @@
   import {clickOutside} from '../common/clickOutside';
   import EmbeddingBadge from './EmbeddingBadge.svelte';
 
-  let datasetViewStore = getDatasetViewContext();
-  let datasetStore = getDatasetContext();
-
-  export let text: string;
-  export let conceptName: string | null;
-  export let conceptNamespace: string | null;
+  export let details: SpanDetails;
   // The coordinates of the click so we can position the popup next to the cursor.
   export let clickPosition: {x: number; y: number} | undefined;
+
+  let datasetViewStore = getDatasetViewContext();
+  let datasetStore = getDatasetContext();
 
   $: searchPath = getSearchPath($datasetViewStore, $datasetStore);
 
   const conceptEdit = editConceptMutation();
   const dispatch = createEventDispatcher();
   function addLabel(label: boolean) {
-    if (!conceptName || !conceptNamespace)
+    if (!details.conceptName || !details.conceptNamespace)
       throw Error('Label could not be added, no active concept.');
-    $conceptEdit.mutate([conceptNamespace, conceptName, {insert: [{text, label}]}]);
+    $conceptEdit.mutate([
+      details.conceptNamespace,
+      details.conceptName,
+      {insert: [{text: details.text, label}]}
+    ]);
   }
 
   // Get the embeddings.
@@ -58,10 +67,12 @@
       path: [serializePath(searchPath)],
       query: {
         type: 'semantic',
-        search: text,
+        search: details.text,
         embedding
       }
     });
+
+    dispatch('click');
   };
 </script>
 
@@ -71,9 +82,9 @@
   style={clickPosition != null ? `left: ${clickPosition.x}px; top: ${clickPosition.y}px` : ''}
   class="absolute z-10 inline-flex -translate-x-1/2 translate-y-6 flex-col gap-y-4 divide-gray-200 rounded border border-gray-200 bg-white p-1 shadow"
 >
-  {#if conceptName != null && conceptNamespace != null}
+  {#if details.conceptName != null && details.conceptNamespace != null}
     <div class="flex flex-row px-4 pt-2">
-      <span class="pr-4">{conceptNamespace} / {conceptName}</span>
+      <span class="pr-4">{details.conceptNamespace} / {details.conceptName}</span>
       <button class="px-2" on:click={() => addLabel(true)}>
         <ThumbsUpFilled />
       </button>

@@ -2,7 +2,7 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
-    getVisibleFields,
+    isPathVisible,
     mergeSpans,
     type MergedSpan,
     type SpanHoverNamedValue
@@ -14,7 +14,6 @@
   import {
     L,
     deserializePath,
-    formatValue,
     getFieldsByDtype,
     getValueNodes,
     isConceptScoreSignal,
@@ -22,46 +21,49 @@
     valueAtPath,
     type LilacField,
     type LilacValueNode,
-    type LilacValueNodeCasted
+    type LilacValueNodeCasted,
+    type Signal
   } from '$lilac';
   import {spanHover} from './SpanHover';
-  import StringSpanDetails from './StringSpanDetails.svelte';
+  import StringSpanDetails, {type SpanDetails} from './StringSpanDetails.svelte';
+  import {colorFromOpacity, colorFromScore} from './colors';
 
   export let text: string;
+  export let field: LilacField;
   export let row: LilacValueNode;
+  export let visibleKeywordSpanFields: LilacField[];
+  export let visibleSpanFields: LilacField[];
 
-  // This color comes from tailwind bg-yellow-500.
-  const highlightColor = (opacity: number) => `rgba(234,179,8, ${opacity})`;
+  // Highlight coloring.
+  const spanHoverOpacity = 0.9;
 
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();
 
-  export let field: LilacField;
-  $: visibleFields = getVisibleFields($datasetViewStore, $datasetStore, field);
-
   // Find the keyword span paths under this field.
-  $: keywordSpanPaths = visibleFields
-    .filter(f => f.signal?.signal_name === 'substring_search')
-    .flatMap(f => getFieldsByDtype('string_span', f))
-    .map(f => serializePath(f.path));
-
-  // Find the non-keyword span fields under this field.
-  $: spanFields = visibleFields
-    .filter(f => f.signal?.signal_name !== 'substring_search')
-    .filter(f => f.dtype === 'string_span');
+  $: keywordSpanPaths = visibleKeywordSpanFields.map(f => serializePath(f.path));
 
   // Map the span field paths to their children that are floats.
   $: spanFloatFields = Object.fromEntries(
-    spanFields.map(f => [serializePath(f.path), getFieldsByDtype('float32', f)])
+    visibleSpanFields.map(f => [
+      serializePath(f.path),
+      getFieldsByDtype('float32', f).filter(f =>
+        isPathVisible($datasetViewStore, $datasetStore, f.path)
+      )
+    ])
   );
 
-  const showScoreThreshold = 0.5;
-  const minScoreBackgroundOpacity = 0.1;
-  const maxScoreBackgroundOpacity = 0.5;
-  const spanHoverOpacity = 0.9;
+  // Filter the floats to only those that are concept scores.
+  let spanConceptFields: {[fieldName: string]: LilacField<Signal>[]};
+  $: spanConceptFields = Object.fromEntries(
+    Object.entries(spanFloatFields)
+      .map(([path, fields]) => [path, fields.filter(f => isConceptScoreSignal(f.signal))])
+      .filter(([_, fields]) => fields.length > 0)
+  );
 
+  // Map a path to the visible span fields.
   $: pathToSpans = Object.fromEntries(
-    spanFields.map(f => [
+    visibleSpanFields.map(f => [
       serializePath(f.path),
       getValueNodes(row, f.path) as LilacValueNodeCasted<'string_span'>[]
     ])
@@ -76,35 +78,7 @@
     hoverInfo: SpanHoverNamedValue[];
     paths: string[];
     text: string;
-    mergedSpan: MergedSpan;
-  }
-
-  let selectedSpan: MergedSpan | undefined;
-  // Store the mouse position after selecting a span so we can keep the details next to the cursor.
-  let spanClickMousePosition: {x: number; y: number} | undefined;
-  type ConceptTextInfo = {conceptName: string; conceptNamespace: string; text: string};
-  let selectedConceptTextInfo: ConceptTextInfo | undefined;
-  $: {
-    if (selectedSpan != null) {
-      const concepts: ConceptTextInfo[] = [];
-      // Find the concepts for the selected spans. For now, we select just the first concept.
-      for (const spanPath of Object.keys(selectedSpan.originalSpans)) {
-        const floatFields = spanFloatFields[spanPath];
-        for (const floatField of floatFields) {
-          if (isConceptScoreSignal(floatField.signal)) {
-            concepts.push({
-              conceptName: floatField.signal.concept_name,
-              conceptNamespace: floatField.signal.namespace,
-              // Currently we don't support overlapping spans, so we choose the text given by the
-              // span.
-              text: selectedSpan.text
-            });
-          }
-        }
-      }
-      // Only use the first concept. We will later support multiple concepts.
-      selectedConceptTextInfo = concepts[0];
-    }
+    originalSpans: {[spanSet: string]: LilacValueNodeCasted<'string_span'>[]};
   }
 
   // Map the merged spans to the information needed to render each span.
@@ -116,7 +90,8 @@
         keywordPath => mergedSpan.originalSpans[keywordPath] != null
       );
 
-      const fieldToValue: {[fieldName: string]: string} = {};
+      // Map field names to all their values.
+      const fieldToValue: {[fieldName: string]: number} = {};
       // Compute the maximum score for all original spans matching this render span to choose the
       // color.
       let maxScore = -Infinity;
@@ -131,32 +106,24 @@
             const value = L.value<'float32'>(valueAtPath(originalSpan as LilacValueNode, subPath));
             if (value != null) {
               maxScore = Math.max(maxScore, value);
-              fieldToValue[floatField.path.at(-1)!] = formatValue(value);
+              fieldToValue[floatField.path.at(-1)!] = value;
             }
           }
         }
       }
 
-      let opacity = 0.0;
-      // If the value has crossed the threshold, lerp the value between (min, max).
-      if (maxScore > showScoreThreshold) {
-        const normalizedScore = (maxScore - showScoreThreshold) / (1.0 - showScoreThreshold);
-        opacity =
-          minScoreBackgroundOpacity +
-          normalizedScore * (maxScoreBackgroundOpacity - minScoreBackgroundOpacity);
-      }
-
+      // Show all float values in the hover tooltip.
       const hoverInfo: SpanHoverNamedValue[] = Object.entries(fieldToValue).map(
         ([fieldName, value]) => ({name: fieldName, value})
       );
 
       spanRenderInfos.push({
-        backgroundColor: highlightColor(opacity),
+        backgroundColor: colorFromScore(maxScore),
         isBolded,
         hoverInfo,
         paths: mergedSpan.paths,
         text: mergedSpan.text,
-        mergedSpan
+        originalSpans: mergedSpan.originalSpans
       });
     }
   }
@@ -174,6 +141,7 @@
     }
   }
 
+  // Span hover.
   let pathsHovered: Set<string> = new Set();
   const spanMouseEnter = (renderSpan: RenderSpan) => {
     renderSpan.paths.forEach(path => pathsHovered.add(path));
@@ -186,6 +154,34 @@
   const isHovered = (pathsHovered: Set<string>, renderSpan: RenderSpan): boolean => {
     return renderSpan.paths.some(path => pathsHovered.has(path));
   };
+
+  // Span selection via a click.
+  let selectedSpan: RenderSpan | undefined;
+  let selectedSpanDetails: SpanDetails | undefined;
+  let spanClickMousePosition: {x: number; y: number} | undefined;
+  // Store the mouse position after selecting a span so we can keep the details next to the cursor.
+  type ConceptTextInfo = {conceptName: string; conceptNamespace: string; text: string};
+  $: {
+    if (selectedSpan != null) {
+      const concepts: ConceptTextInfo[] = [];
+      selectedSpanDetails = {
+        conceptName: null,
+        conceptNamespace: null,
+        text: selectedSpan.text
+      };
+      // Find the concepts for the selected spans. For now, we select just the first concept.
+      for (const spanPath of Object.keys(selectedSpan.originalSpans)) {
+        for (const conceptField of spanConceptFields[spanPath] || []) {
+          // Only use the first concept. We will later support multiple concepts.
+          selectedSpanDetails.conceptName = conceptField.signal!.concept_name;
+          selectedSpanDetails.conceptNamespace = conceptField.signal!.namespace;
+          break;
+        }
+      }
+    } else {
+      selectedSpanDetails = undefined;
+    }
+  }
 </script>
 
 <div class="relative mb-4 whitespace-pre-wrap">
@@ -193,33 +189,36 @@
     {@const hovered = isHovered(pathsHovered, renderSpan)}
     <span
       use:spanHover={renderSpan.hoverInfo}
-      class="relative leading-5 hover:cursor-pointer"
+      class="hover:cursor-poiner text-sm leading-5"
+      class:hover:cursor-pointer={visibleSpanFields.length > 0}
       class:font-bold={renderSpan.isBolded}
       style:background-color={!hovered
         ? renderSpan.backgroundColor
-        : highlightColor(spanHoverOpacity)}
+        : colorFromOpacity(spanHoverOpacity)}
       on:mouseenter={() => spanMouseEnter(renderSpan)}
       on:mouseleave={() => spanMouseLeave(renderSpan)}
       on:keydown={e => {
         if (e.key == 'Enter') {
-          if (renderSpan.mergedSpan.originalSpans != null) selectedSpan = renderSpan.mergedSpan;
+          if (renderSpan.originalSpans != null && visibleSpanFields.length > 0)
+            selectedSpan = renderSpan;
         }
       }}
       on:click={e => {
-        if (renderSpan.mergedSpan.originalSpans != null) selectedSpan = renderSpan.mergedSpan;
+        if (renderSpan.originalSpans != null && visibleSpanFields.length > 0)
+          selectedSpan = renderSpan;
         spanClickMousePosition = {x: e.offsetX, y: e.offsetY};
       }}>{renderSpan.text}</span
     >
   {/each}
-  {#if selectedConceptTextInfo != null}
+  {#if selectedSpanDetails != null}
     <StringSpanDetails
-      conceptName={selectedConceptTextInfo.conceptName}
-      conceptNamespace={selectedConceptTextInfo.conceptNamespace}
-      text={selectedConceptTextInfo.text}
+      details={selectedSpanDetails}
       clickPosition={spanClickMousePosition}
       on:close={() => {
         selectedSpan = undefined;
-        selectedConceptTextInfo = undefined;
+      }}
+      on:click={() => {
+        selectedSpan = undefined;
       }}
     />
   {/if}

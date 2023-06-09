@@ -158,7 +158,7 @@ export function getSort(datasetStore: DatasetStore | null): SortResult | null {
 
 export interface SpanHoverNamedValue {
   name: string;
-  value: string;
+  value: number;
 }
 
 export interface MergedSpan {

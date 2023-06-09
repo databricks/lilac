@@ -4,8 +4,7 @@ import SpanHoverTooltip from './SpanHoverTooltip.svelte';
 
 export function spanHover(element: HTMLSpanElement, namedValues: SpanHoverNamedValue[]) {
   let tooltipComponent: SvelteComponent | undefined;
-  let curNamedValues: SpanHoverNamedValue[] = [];
-  curNamedValues = namedValues;
+  let curNamedValues = namedValues;
   function mouseOver(event: MouseEvent) {
     const boundingRect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
