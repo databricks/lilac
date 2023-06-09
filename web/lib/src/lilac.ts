@@ -20,7 +20,7 @@ import {
 } from './schema';
 
 export const PATH_KEY = '__path__';
-const SCHEMA_FIELD_KEY = '__field__';
+export const SCHEMA_FIELD_KEY = '__field__';
 // The search type is not an explicitly exported type so we extract the type from the different
 // search types automatically for type-safety.
 export type SearchType = Exclude<Search['query']['type'], undefined>;
@@ -56,7 +56,7 @@ export type LilacValueNodeCasted<D extends DataType = DataType> = {
   /** Holds the path property of the node */
   [PATH_KEY]: Path;
   /** Holds a reference to the schema field */
-  [SCHEMA_FIELD_KEY]: LilacField | undefined;
+  [SCHEMA_FIELD_KEY]?: LilacField | undefined;
   [metadata: string]: unknown;
 };
 

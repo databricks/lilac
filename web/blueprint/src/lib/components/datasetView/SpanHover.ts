@@ -5,7 +5,7 @@ import SpanHoverTooltip from './SpanHoverTooltip.svelte';
 export function spanHover(element: HTMLSpanElement, namedValues: SpanHoverNamedValue[]) {
   let tooltipComponent: SvelteComponent | undefined;
   let curNamedValues = namedValues;
-  function mouseOver(event: MouseEvent) {
+  function mouseOver() {
     const boundingRect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
     const lineHeight = parseInt(style.getPropertyValue('line-height'));

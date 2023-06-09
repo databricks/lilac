@@ -179,7 +179,7 @@ export interface MergedSpan {
  *     spans2: [(0, 1), (2, 4)]
  *   }
  * Transforms into:
-*   [
+ *   [
  *     {span: (0, 1),  originalSpans: {spans1: [(0, 2)], spans2: [(0, 1)]}
  *     {span: (1, 2),  originalSpans: {spans1: [(0, 2)]}}
  *     {span: (2, 3),  originalSpans: {spans2: [(2, 4)]}}

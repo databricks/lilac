@@ -31,10 +31,12 @@ module.exports = {
           {
             argsIgnorePattern: '^_' // Ignore unused arguments that start with an underscore
           }
-        ]
+        ],
+        '@typescript-eslint/no-non-null-assertion': 'off'
       }
     },
     {
+      files: ['*.ts'],
       parser: '@typescript-eslint/parser',
       rules: {
         '@typescript-eslint/no-non-null-assertion': 'off'

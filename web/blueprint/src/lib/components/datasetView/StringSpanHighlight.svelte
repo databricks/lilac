@@ -30,7 +30,6 @@
   import {colorFromOpacity, colorFromScore} from './colors';
 
   export let text: string;
-  export let field: LilacField;
   export let row: LilacValueNode;
   export let visibleKeywordSpanFields: LilacField[];
   export let visibleSpanFields: LilacField[];

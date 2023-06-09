@@ -17,7 +17,7 @@ export interface ImageInfo {
   path: Path;
 }
 
-export type Path = Array<string | number>;
+export type Path = Array<string>;
 
 export const PATH_WILDCARD = '*';
 export const UUID_COLUMN = '__rowid__';
@@ -140,7 +140,7 @@ export function pathIsMatching(path1: Path | string | undefined, path2: Path | s
     if (path1[i] === path2[i]) continue;
     if (path1[i] !== path2[i] && path1[i] !== PATH_WILDCARD) return false;
     if (path1[i] === PATH_WILDCARD) {
-      if (!path2[i].match(/^\d+$/)) return false;
+      if (!path2[i].toString().match(/^\d+$/)) return false;
     }
   }
   return true;

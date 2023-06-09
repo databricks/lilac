@@ -57,7 +57,6 @@
     <div>
       <StringSpanHighlight
         text={formatValue(values[0])}
-        {field}
         {row}
         {visibleKeywordSpanFields}
         {visibleSpanFields}
