@@ -28,6 +28,7 @@
   import EmbeddingBadge from './EmbeddingBadge.svelte';
 
   export let details: SpanDetails;
+  $: console.log(details);
   // The coordinates of the click so we can position the popup next to the cursor.
   export let clickPosition: {x: number; y: number} | undefined;
 
@@ -46,6 +47,7 @@
       details.conceptName,
       {insert: [{text: details.text, label}]}
     ]);
+    dispatch('click');
   }
 
   // Get the embeddings.
@@ -80,6 +82,7 @@
   use:clickOutside={() => dispatch('close')}
   transition:fade={{duration: 60}}
   style={clickPosition != null ? `left: ${clickPosition.x}px; top: ${clickPosition.y}px` : ''}
+  class:hidden={computedEmbeddings.length === 0}
   class="absolute z-10 inline-flex -translate-x-1/2 translate-y-6 flex-col gap-y-4 divide-gray-200 rounded border border-gray-200 bg-white p-1 shadow"
 >
   {#if details.conceptName != null && details.conceptNamespace != null}

@@ -189,7 +189,7 @@
     {@const hovered = isHovered(pathsHovered, renderSpan)}
     <span
       use:spanHover={renderSpan.hoverInfo}
-      class="hover:cursor-poiner text-sm leading-5"
+      class="hover:cursor-poiner highlight-span text-sm leading-5"
       class:hover:cursor-pointer={visibleSpanFields.length > 0}
       class:font-bold={renderSpan.isBolded}
       style:background-color={!hovered
@@ -223,3 +223,10 @@
     />
   {/if}
 </div>
+
+<style>
+  .highlight-span {
+    /** Add a tiny bit of padding so that the hover doesn't flicker between rows. */
+    padding-top: 1px;
+  }
+</style>
