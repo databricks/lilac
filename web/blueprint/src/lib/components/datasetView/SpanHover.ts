@@ -34,6 +34,7 @@ export function spanHover(element: HTMLSpanElement, namedValues: SpanHoverNamedV
 
   return {
     update(namedValues: SpanHoverNamedValue[]) {
+      console.log('update');
       curNamedValues = namedValues;
     },
     destroy() {

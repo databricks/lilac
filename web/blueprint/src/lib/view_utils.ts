@@ -26,15 +26,16 @@ export function getVisibleFields(
   field?: LilacField | null,
   dtype?: DataType
 ): LilacField[] {
-  if (datasetStore?.schema == null) {
+  const schema = datasetStore?.selectRowsSchema?.schema;
+  if (schema == null) {
     return [];
   }
 
   let fields: LilacField[] = [];
   if (dtype == null) {
-    fields = childFields(field || datasetStore.schema);
+    fields = childFields(field || schema);
   } else {
-    fields = getFieldsByDtype(dtype, field || datasetStore.schema);
+    fields = getFieldsByDtype(dtype, field || schema);
   }
   return fields.filter(f => isPathVisible(store, datasetStore || null, f.path));
 }

@@ -44,7 +44,13 @@
     $selectRowsSchema?.isSuccess ? $selectRowsSchema.data.schema : undefined
   );
 
-  $: visibleFields = getVisibleFields($datasetViewStore, $datasetStore, $schema.data);
+  $: visibleFields = getVisibleFields(
+    $datasetViewStore,
+    $datasetStore,
+    $selectRowsSchema?.data?.schema
+  );
+
+  $: console.log(visibleFields);
 </script>
 
 <SearchPanel />
