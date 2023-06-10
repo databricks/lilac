@@ -46,7 +46,7 @@
   $: selectedTab = $datasetViewStore.searchTab;
   $: selectedTabIndex = Object.values(SEARCH_TABS).findIndex(v => v === selectedTab);
 
-  $: searchPath = getSearchPath($datasetViewStore, $datasetStore);
+  $: searchPath = getSearchPath($datasetViewStore, $datasetStore, visibleStringPaths);
 
   let keywordSearchText: string;
   let semanticSearchText: string;
