@@ -73,15 +73,14 @@ export function isPathVisible(
 
 export function getSearchPath(
   store: IDatasetViewStore,
-  datasetStore: DatasetStore | null,
-  visibleStringPaths: string[]
+  datasetStore: DatasetStore | null
 ): Path | null {
   // If the user explicitly chose a search path, use it.
   if (store.searchPath != null && store.selectedColumns[store.searchPath])
     return deserializePath(store.searchPath);
 
   // Without explicit selection, choose the default string path.
-  return getDefaultSearchPath(datasetStore?.stats, visibleStringPaths);
+  return getDefaultSearchPath(datasetStore);
 }
 
 export function getSearchEmbedding(
@@ -146,15 +145,15 @@ export function getSearches(store: IDatasetViewStore, path?: Path | null): Searc
   return (store.queryOptions.searches || []).filter(s => pathIsEqual(s.path, path));
 }
 
-function getDefaultSearchPath(
-  statsInfo: StatsInfo[] | undefined | null,
-  visibleStringPaths: string[]
-): Path | null {
-  if (statsInfo == null || statsInfo.length === 0) {
+function getDefaultSearchPath(datasetStore: DatasetStore | null): Path | null {
+  if (datasetStore?.stats == null || datasetStore.stats.length === 0) {
     return null;
   }
+  const visibleStringPaths = (datasetStore.visibleFields || [])
+    .filter(f => f.dtype === 'string')
+    .map(f => serializePath(f.path));
   // The longest visible path is auto-selected.
-  for (const stat of statsInfo) {
+  for (const stat of datasetStore.stats) {
     const stringPath = serializePath(stat.path);
     if (visibleStringPaths.indexOf(stringPath) >= 0) {
       return stat.path;

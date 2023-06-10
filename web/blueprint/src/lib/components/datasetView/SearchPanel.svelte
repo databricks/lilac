@@ -46,7 +46,7 @@
   $: selectedTab = $datasetViewStore.searchTab;
   $: selectedTabIndex = Object.values(SEARCH_TABS).findIndex(v => v === selectedTab);
 
-  $: searchPath = getSearchPath($datasetViewStore, $datasetStore, visibleStringPaths);
+  $: searchPath = getSearchPath($datasetViewStore, $datasetStore);
 
   let keywordSearchText: string;
   let semanticSearchText: string;
@@ -283,20 +283,22 @@
 
 <div class="mx-4 my-2 flex h-24 flex-row items-start">
   <div class="mr-8 mt-4">
-    <!-- Field select -->
-    <Select
-      class="field-select w-32"
-      selected={searchPath ? serializePath(searchPath) : ''}
-      on:change={selectField}
-      labelText={'Search field'}
-      disabled={visibleStringPaths.length === 0}
-      warn={visibleStringPaths.length === 0}
-      warnText={visibleStringPaths.length === 0 ? 'Select a field' : undefined}
-    >
-      {#each visibleStringPaths as field}
-        <SelectItem value={serializePath(field)} text={serializePath(field)} />
-      {/each}
-    </Select>
+    {#key visibleStringPaths}
+      <!-- Field select -->
+      <Select
+        class="field-select w-32"
+        selected={searchPath ? serializePath(searchPath) : ''}
+        on:change={selectField}
+        labelText={'Search field'}
+        disabled={visibleStringPaths.length === 0}
+        warn={visibleStringPaths.length === 0}
+        warnText={visibleStringPaths.length === 0 ? 'Select a field' : undefined}
+      >
+        {#each visibleStringPaths as field}
+          <SelectItem value={serializePath(field)} text={serializePath(field)} />
+        {/each}
+      </Select>
+    {/key}
   </div>
   <!-- Search boxes -->
   <div class="search-container flex w-full flex-grow flex-row">
