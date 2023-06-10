@@ -83,7 +83,6 @@
     !isEmbeddingComputed && isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding)];
 
   $: keywordSearchEnabled = SEARCH_TABS[selectedTabIndex] === 'Keyword' && searchPath != null;
-  $: semanticSearchEnabled = SEARCH_TABS[selectedTabIndex] === 'Semantic' && isEmbeddingComputed;
 
   // Don't show the search button the concepts tab since it is a dropdown.
   $: showSearchButton = isEmbeddingComputed && selectedTab != 'Concepts';
@@ -326,7 +325,7 @@
                     placeholder={isEmbeddingComputed
                       ? 'Search by natural language'
                       : 'No index found. Please run the embedding index.'}
-                    disabled={!semanticSearchEnabled}
+                    disabled={!isEmbeddingComputed}
                     bind:value={semanticSearchText}
                     on:keydown={e => (e.key == 'Enter' ? search() : null)}
                   />
@@ -343,6 +342,7 @@
                     bind:this={conceptComboBox}
                     items={conceptSelectItems}
                     bind:value={conceptSearchText}
+                    disabled={!isEmbeddingComputed}
                     on:select={selectConcept}
                     shouldFilterItem={(item, value) =>
                       item.text.toLowerCase().includes(value.toLowerCase()) ||
