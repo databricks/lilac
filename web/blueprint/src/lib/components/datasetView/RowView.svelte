@@ -2,6 +2,7 @@
   import {infiniteQuerySelectRows, queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
+  import {L, UUID_COLUMN} from '$lilac';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import FilterPanel from './FilterPanel.svelte';
@@ -15,7 +16,7 @@
 
   $: selectOptions = $schema.isSuccess ? getSelectRowsOptions($datasetViewStore) : undefined;
 
-  $: selectRowsSchema = $datasetStore?.selectRowsSchema;
+  $: selectRowsSchema = $datasetStore.selectRowsSchema;
 
   $: rows = infiniteQuerySelectRows(
     $datasetViewStore.namespace,
@@ -23,6 +24,12 @@
     selectOptions || {},
     selectRowsSchema?.isSuccess ? selectRowsSchema.data.schema : undefined
   );
+
+  $: items = $rows.data?.pages.flat();
+
+  $: visiblePaths = ($datasetStore.visibleFields || [])
+    .map(f => f.path)
+    .sort((a, b) => (a.join('.') > b.join('.') ? 1 : -1));
 </script>
 
 <SearchPanel />
@@ -42,17 +49,19 @@
   />
 {:else if $rows?.isLoading || $schema.isLoading || selectRowsSchema?.isLoading}
   <SkeletonText paragraph lines={3} />
-{:else if $datasetStore?.visibleFields?.length === 0}
+{:else if visiblePaths.length === 0}
   <div class="mt-12 w-full text-center text-gray-600">Select fields to display</div>
-{:else if $rows?.isSuccess && $rows.data.pages.length === 1 && $rows.data.pages[0].length === 0}
+{:else if $rows?.isSuccess && items && items.length === 0}
   <div class="mx-4 mt-8 w-full text-gray-600">No results.</div>
-{:else if $rows?.isSuccess && $rows.data.pages.length && selectRowsSchema?.isSuccess && $schema.isSuccess}
+{/if}
+
+{#if items && visiblePaths.length > 0 && $schema.isSuccess}
   <div class="flex h-full w-full flex-col overflow-scroll">
-    {#each $rows.data.pages as page}
-      {#each page as row}
-        <RowItem {row} schema={$schema.data} />
-      {/each}
+    {#each items as row (L.value(row[UUID_COLUMN]))}
+      <RowItem {visiblePaths} {row} schema={$schema.data} />
     {/each}
-    <InfiniteScroll threshold={100} on:loadMore={() => $rows?.fetchNextPage()} />
+    {#if items.length > 0}
+      <InfiniteScroll threshold={100} on:loadMore={() => $rows?.fetchNextPage()} />
+    {/if}
   </div>
 {/if}

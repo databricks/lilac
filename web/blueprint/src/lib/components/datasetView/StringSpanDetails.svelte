@@ -97,7 +97,7 @@
   {/if}
 
   <div class="more-button flex flex-col">
-    {#each computedEmbeddings as computedEmbedding}
+    {#each computedEmbeddings as computedEmbedding (computedEmbedding)}
       <Button
         kind="ghost"
         class="w-full "

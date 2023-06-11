@@ -13,6 +13,7 @@
     getValueNodes,
     isOrdinal,
     listFieldParents,
+    pathIncludes,
     type LilacSchema,
     type LilacValueNode,
     type Path
@@ -35,7 +36,8 @@
   // Find the non-keyword span fields under this field.
   $: visibleSpanFields = visibleFields
     .filter(f => f.signal?.signal_name !== 'substring_search')
-    .filter(f => f.dtype === 'string_span');
+    .filter(f => f.dtype === 'string_span')
+    .filter(f => pathIncludes(f.path, path));
 
   $: valueNodes = getValueNodes(row, path);
   $: field = L.field(valueNodes[0]);

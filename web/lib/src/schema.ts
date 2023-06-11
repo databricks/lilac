@@ -116,14 +116,14 @@ export function pathIsEqual(
 }
 
 export function pathIncludes(
-  path1: Path | string | undefined,
-  path2: Path | string | undefined
+  child: Path | string | undefined,
+  parent: Path | string | undefined
 ): boolean {
-  if (!path1 || !path2) return false;
-  path1 = deserializePath(path1);
-  path2 = deserializePath(path2);
-  if (path1.length < path2.length) return false;
-  return pathIsEqual(path1.slice(0, path2.length), path2);
+  if (!child || !parent) return false;
+  child = deserializePath(child);
+  parent = deserializePath(parent);
+  if (child.length < parent.length) return false;
+  return pathIsEqual(child.slice(0, parent.length), parent);
 }
 
 /**

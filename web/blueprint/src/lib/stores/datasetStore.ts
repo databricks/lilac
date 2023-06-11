@@ -73,6 +73,6 @@ export function setDatasetContext(stats: Writable<DatasetStore>) {
 }
 
 export function getDatasetContext() {
-  if (!hasContext(DATASET_INFO_CONTEXT)) return null;
+  if (!hasContext(DATASET_INFO_CONTEXT)) throw new Error('DatasetViewContext not found');
   return getContext<Readable<DatasetStore>>(DATASET_INFO_CONTEXT);
 }
