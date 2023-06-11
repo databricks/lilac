@@ -23,6 +23,6 @@
 
 <div class="mb-4 flex flex-col gap-y-4 border-b border-gray-300 p-4">
   {#each valueFields as field (serializePath(field.path))}
-    <RowItemValue {field} {row} path={field.path} />
+    <RowItemValue {field} {visibleFields} {row} path={field.path} />
   {/each}
 </div>

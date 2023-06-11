@@ -11,6 +11,7 @@
     formatValue,
     getFieldsByDtype,
     getValueNodes,
+    pathIsEqual,
     type LilacField,
     type LilacValueNode,
     type Path
@@ -20,16 +21,19 @@
   export let path: Path;
   export let row: LilacValueNode;
   export let field: LilacField;
+  export let visibleFields: LilacField[];
 
-  $: children = childFields(field);
+  $: visibleChildren = childFields(field).filter(child =>
+    visibleFields.find(visible => pathIsEqual(visible.path, child.path))
+  );
 
   // Find the keyword span paths under this field.
-  $: visibleKeywordSpanFields = children
+  $: visibleKeywordSpanFields = visibleChildren
     .filter(f => f.signal?.signal_name === 'substring_search')
     .flatMap(f => getFieldsByDtype('string_span', f));
 
   // Find the non-keyword span fields under this field.
-  $: visibleSpanFields = children
+  $: visibleSpanFields = visibleChildren
     .filter(f => f.signal?.signal_name !== 'substring_search')
     .filter(f => f.dtype === 'string_span');
 
