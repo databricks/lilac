@@ -21,7 +21,7 @@
   const manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   // Get the resulting schmema including UDF columns
-  $: selectRowsSchema = $datasetStore?.selectRowsSchema;
+  $: selectRowsSchema = $datasetStore.selectRowsSchema;
   $: aliasMapping = selectRowsSchema?.data?.alias_udf_paths;
 </script>
 

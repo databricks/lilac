@@ -59,7 +59,7 @@
 
   let datasetStore = getDatasetContext();
 
-  $: isVisible = $datasetStore?.visibleFields?.some(f => pathIsEqual(f.path, path));
+  $: isVisible = $datasetStore.visibleFields?.some(f => pathIsEqual(f.path, path));
 
   $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => pathIsEqual(p, alias || path));
   $: sortOrder = $datasetViewStore.queryOptions.sort_order;

@@ -41,7 +41,7 @@
     visibleSpanFields.map(f => [
       serializePath(f.path),
       getFieldsByDtype('float32', f).filter(f =>
-        $datasetStore?.visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path))
+        $datasetStore.visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path))
       )
     ])
   );

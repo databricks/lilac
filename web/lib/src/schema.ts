@@ -77,7 +77,7 @@ export function isTemporal(dtype: DataType) {
 }
 
 export function isOrdinal(dtype: DataType) {
-  return isFloat(dtype) || isInteger(dtype) || isTemporal(dtype);
+  return isFloat(dtype) || isInteger(dtype) || isTemporal(dtype) || dtype === 'boolean';
 }
 
 export function serializePath(path: Path | string): string {

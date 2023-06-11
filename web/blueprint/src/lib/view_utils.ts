@@ -71,10 +71,7 @@ export function isPathVisible(
   return false;
 }
 
-export function getSearchPath(
-  store: IDatasetViewStore,
-  datasetStore: DatasetStore | null
-): Path | null {
+export function getSearchPath(store: IDatasetViewStore, datasetStore: DatasetStore): Path | null {
   // If the user explicitly chose a search path, use it.
   if (store.searchPath != null && store.selectedColumns[store.searchPath])
     return deserializePath(store.searchPath);
@@ -85,7 +82,7 @@ export function getSearchPath(
 
 export function getSearchEmbedding(
   store: IDatasetViewStore,
-  datasetStore: DatasetStore | null,
+  datasetStore: DatasetStore,
   searchPath: Path | null,
   embeddings: string[]
 ): string | null {
@@ -113,14 +110,11 @@ export function getSearchEmbedding(
 }
 
 /** Get the computed embeddings for a path. */
-export function getComputedEmbeddings(
-  datasetStore: DatasetStore | null,
-  path: Path | null
-): string[] {
-  if (datasetStore?.schema == null || path == null) return [];
+export function getComputedEmbeddings(datasetStore: DatasetStore, path: Path | null): string[] {
+  if (datasetStore.schema == null || path == null) return [];
 
   const existingEmbeddings: Set<string> = new Set();
-  const embeddingSignalRoots = childFields(getField(datasetStore?.schema, path)).filter(
+  const embeddingSignalRoots = childFields(getField(datasetStore.schema, path)).filter(
     f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
   );
   for (const field of embeddingSignalRoots) {
@@ -145,8 +139,8 @@ export function getSearches(store: IDatasetViewStore, path?: Path | null): Searc
   return (store.queryOptions.searches || []).filter(s => pathIsEqual(s.path, path));
 }
 
-function getDefaultSearchPath(datasetStore: DatasetStore | null): Path | null {
-  if (datasetStore?.stats == null || datasetStore.stats.length === 0) {
+function getDefaultSearchPath(datasetStore: DatasetStore): Path | null {
+  if (datasetStore.stats == null || datasetStore.stats.length === 0) {
     return null;
   }
   const visibleStringPaths = (datasetStore.visibleFields || [])
@@ -162,9 +156,9 @@ function getDefaultSearchPath(datasetStore: DatasetStore | null): Path | null {
   return null;
 }
 
-export function getSort(datasetStore: DatasetStore | null): SortResult | null {
+export function getSort(datasetStore: DatasetStore): SortResult | null {
   // NOTE: We currently only support sorting by a single column from the UI.
-  return (datasetStore?.selectRowsSchema?.data?.sorts || [])[0] || null;
+  return (datasetStore.selectRowsSchema?.data?.sorts || [])[0] || null;
 }
 
 export interface SpanHoverNamedValue {

@@ -56,7 +56,7 @@
   const computeSignalMutation = computeSignalColumnMutation();
 
   // Only show the visible string fields in the dropdown.
-  $: visibleStringPaths = ($datasetStore?.visibleFields || [])
+  $: visibleStringPaths = ($datasetStore.visibleFields || [])
     .filter(f => f.dtype === 'string')
     .map(f => serializePath(f.path));
 
@@ -126,7 +126,7 @@
   $: sort = getSort($datasetStore);
   let pathToSearchResult: {[path: string]: SearchResultInfo} = {};
   $: {
-    for (const search of $datasetStore?.selectRowsSchema?.data?.search_results || []) {
+    for (const search of $datasetStore.selectRowsSchema?.data?.search_results || []) {
       pathToSearchResult[serializePath(search.result_path)] = search;
     }
   }
@@ -137,7 +137,7 @@
   $: selectedSortBy = $datasetViewStore.queryOptions.sort_by;
 
   $: sortItems =
-    $datasetStore?.selectRowsSchema?.data?.data_schema != null
+    $datasetStore.selectRowsSchema?.data?.data_schema != null
       ? [
           {id: null, text: 'None', disabled: selectedSortBy == null && sortById != null},
           ...petals($datasetStore.selectRowsSchema.data.schema).map(field => {

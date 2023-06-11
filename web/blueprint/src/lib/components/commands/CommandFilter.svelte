@@ -37,7 +37,7 @@
 
   const dispatch = createEventDispatcher();
 
-  $: selectRowsSchema = $datasetStore?.schema
+  $: selectRowsSchema = $datasetStore.schema
     ? querySelectRowsSchema(
         command.namespace,
         command.datasetName,
@@ -47,8 +47,8 @@
 
   // Create list of fields, and include current count of filters
   $: fields =
-    $selectRowsSchema?.isSuccess && $datasetStore?.schema
-      ? childFields($datasetStore?.schema).map(f => {
+    $selectRowsSchema?.isSuccess && $datasetStore.schema
+      ? childFields($datasetStore.schema).map(f => {
           const filters = stagedFilters.filter(filter => pathIsEqual(filter.path, f.path));
           return {
             title: f.path.join('.'),
