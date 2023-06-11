@@ -38,17 +38,20 @@
     .filter(notEmpty);
 </script>
 
-<div class="flex flex-col">
-  <div class="font-mono text-sm text-gray-600">
-    {path.join('.')}
-  </div>
+{#each values as value, i}
+  {@const suffix = values.length > 1 ? `[${i}]` : ''}
+  <div class="flex flex-col">
+    <div class="font-mono text-sm text-gray-600">
+      {path.join('.') + suffix}
+    </div>
 
-  <div>
-    <StringSpanHighlight
-      text={formatValue(values[0])}
-      {row}
-      {visibleKeywordSpanFields}
-      {visibleSpanFields}
-    />
+    <div>
+      <StringSpanHighlight
+        text={formatValue(value)}
+        {row}
+        {visibleKeywordSpanFields}
+        {visibleSpanFields}
+      />
+    </div>
   </div>
-</div>
+{/each}
