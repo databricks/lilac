@@ -281,7 +281,7 @@
   };
 </script>
 
-<div class="mx-4 my-2 flex h-24 flex-row items-start">
+<div class="border-1 flex flex-row items-start px-4 py-2">
   <div class="mr-8 mt-4">
     {#key visibleStringPaths}
       <!-- Field select -->

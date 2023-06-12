@@ -60,7 +60,8 @@
     'border-strong': 'transparent',
     // Typography
     'label-01-letter-spacing': 'var(--cds-productive-heading-01-letter-spacing)',
-    'helper-text-01-letter-spacing': 'var(--cds-productive-heading-01-letter-spacing)'
+    'helper-text-01-letter-spacing': 'var(--cds-productive-heading-01-letter-spacing)',
+    'productive-heading-01-font-weight': 600
   }}
 />
 

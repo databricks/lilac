@@ -220,6 +220,6 @@
 <style>
   .highlight-span {
     /** Add a tiny bit of padding so that the hover doesn't flicker between rows. */
-    padding-top: 1px;
+    padding-top: 3px;
   }
 </style>

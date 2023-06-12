@@ -45,6 +45,18 @@ body {
   @apply border-neutral-300 bg-slate-200 text-neutral-400;
 }
 
+/** Modals */
+.bx--modal-content.bx--modal-content--with-form {
+  @apply my-0 pb-4 pt-0;
+}
+/** Don't change the buttons for the modal. */
+.bx--modal-footer .bx--btn {
+  @apply rounded-none border-none;
+}
+.bx--modal-header {
+  @apply m-0 border-gray-200 py-4;
+}
+
 /** Navigation tabs */
 .bx--tabs__nav-item,
 .bx--tabs__nav-item--selected:not(.bx--tabs__nav-item--disabled) .bx--tabs__nav-link,
