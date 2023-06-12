@@ -18,6 +18,7 @@
     ComboBox,
     Dropdown,
     InlineLoading,
+    Search,
     Select,
     SelectItem,
     Tab,
@@ -340,6 +341,31 @@
                 </div>
               </div>
             </TabContent>
+            <!-- Semantic input -->
+            <TabContent class="w-full">
+              <div class="flex flex-row items-start justify-items-start">
+                <div class="flex-grow">
+                  <Search
+                    placeholder={isEmbeddingComputed
+                      ? 'Search by natural language'
+                      : 'No index found. Please run the embedding index.'}
+                    disabled={!isEmbeddingComputed}
+                    bind:value={semanticSearchText}
+                    on:keydown={e => (e.key == 'Enter' ? search() : null)}
+                  />
+                </div>
+              </div>
+            </TabContent>
+            <!-- Keyword input -->
+            <TabContent class="w-full">
+              <Search
+                placeholder="Search by keywords"
+                disabled={!keywordSearchEnabled}
+                bind:value={keywordSearchText}
+                on:keydown={e => (e.key == 'Enter' ? search() : null)}
+              />
+            </TabContent>
+
             {#if selectedTab === 'Semantic' || selectedTab === 'Concepts'}
               <div class="embedding-select ml-1 w-40">
                 <Select
