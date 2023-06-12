@@ -44,20 +44,20 @@
       datasetViewStore.removeSearch(search, $datasetStore.selectRowsSchema?.data || null)}
   >
     <HoverTooltip size="small" triggerText={pillText} hideIcon={true}>
-      <div class=" flex items-center justify-items-center">
+      <div class="flex items-center justify-items-center">
         <div class="whitespace-nowrap">
           <Tag type={tagType}>
             {serializePath(search.path)}: {search.query.type}
           </Tag>
         </div>
-        {#if search.query.type === 'semantic'}
+        {#if search.query.type === 'semantic' || search.query.type === 'concept'}
           <div class="ml-2">
             <EmbeddingBadge embedding={search.query.embedding} />
           </div>
         {/if}
       </div>
       {#if searchText}
-        <div class="mt-2">{searchText}</div>
+        <div class="mt-2 whitespace-pre-wrap text-left">{searchText}</div>
       {/if}
     </HoverTooltip>
   </RemovableTag>
