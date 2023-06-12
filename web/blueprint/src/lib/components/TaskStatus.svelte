@@ -7,12 +7,12 @@
   const tasks = queryTaskManifest();
   let showTasks = false;
 
-  $: tasksList = Object.values($tasks.data?.tasks || {}).sort(
-    (a, b) => Date.parse(b.start_timestamp) - Date.parse(a.start_timestamp)
+  $: tasksList = Object.entries($tasks.data?.tasks || {}).sort(
+    ([, task1], [, task2]) => Date.parse(task2.start_timestamp) - Date.parse(task1.start_timestamp)
   );
 
-  $: runningTasks = tasksList.filter(task => task.status === 'pending');
-  $: failedTasks = tasksList.filter(task => task.status === 'error');
+  $: runningTasks = tasksList.filter(([, task]) => task.status === 'pending');
+  $: failedTasks = tasksList.filter(([, task]) => task.status === 'error');
 
   $: progress = $tasks.data?.progress || 0.0;
 
@@ -59,7 +59,7 @@
     open={showTasks}
   >
     <div class="flex flex-col">
-      {#each tasksList as task}
+      {#each tasksList as [id, task] (id)}
         {@const progressValue = task.step_progress == null ? undefined : task.step_progress}
         <div class="relative border-b-2 border-slate-200 p-4 text-left last:border-b-0">
           <div class="text-s flex flex-row">

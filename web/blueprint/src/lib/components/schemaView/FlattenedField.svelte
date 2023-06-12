@@ -47,7 +47,7 @@
   $: children = childDisplayFields(field);
   $: hasChildren = children.length > 0;
 
-  $: isVisible = $datasetStore?.visibleFields?.some(f => Lilac.pathIsEqual(f.path, path));
+  $: isVisible = $datasetStore.visibleFields?.some(f => Lilac.pathIsEqual(f.path, path));
 
   $: embeddingFields = isSourceField
     ? (Lilac.childFields(field).filter(
@@ -100,7 +100,7 @@
   }
 
   // Check if any query option columns match the alias.
-  $: udfPath = udfByAlias($datasetStore?.selectRowsSchema?.data || null, alias);
+  $: udfPath = udfByAlias($datasetStore.selectRowsSchema?.data || null, alias);
 
   // Check if any query option columns match the alias
   $: searches = getSearches($datasetViewStore, path);

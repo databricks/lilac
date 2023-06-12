@@ -18,7 +18,6 @@
     ComboBox,
     Dropdown,
     InlineLoading,
-    Search,
     Select,
     SelectItem,
     Tab,
@@ -56,7 +55,7 @@
   const computeSignalMutation = computeSignalColumnMutation();
 
   // Only show the visible string fields in the dropdown.
-  $: visibleStringPaths = ($datasetStore?.visibleFields || [])
+  $: visibleStringPaths = ($datasetStore.visibleFields || [])
     .filter(f => f.dtype === 'string')
     .map(f => serializePath(f.path));
 
@@ -126,7 +125,7 @@
   $: sort = getSort($datasetStore);
   let pathToSearchResult: {[path: string]: SearchResultInfo} = {};
   $: {
-    for (const search of $datasetStore?.selectRowsSchema?.data?.search_results || []) {
+    for (const search of $datasetStore.selectRowsSchema?.data?.search_results || []) {
       pathToSearchResult[serializePath(search.result_path)] = search;
     }
   }
@@ -137,7 +136,7 @@
   $: selectedSortBy = $datasetViewStore.queryOptions.sort_by;
 
   $: sortItems =
-    $datasetStore?.selectRowsSchema?.data?.data_schema != null
+    $datasetStore.selectRowsSchema?.data?.data_schema != null
       ? [
           {id: null, text: 'None', disabled: selectedSortBy == null && sortById != null},
           ...petals($datasetStore.selectRowsSchema.data.schema).map(field => {
@@ -283,20 +282,22 @@
 
 <div class="mx-4 my-2 flex h-24 flex-row items-start">
   <div class="mr-8 mt-4">
-    <!-- Field select -->
-    <Select
-      class="field-select w-32"
-      selected={searchPath ? serializePath(searchPath) : ''}
-      on:change={selectField}
-      labelText={'Search field'}
-      disabled={visibleStringPaths.length === 0}
-      warn={visibleStringPaths.length === 0}
-      warnText={visibleStringPaths.length === 0 ? 'Select a field' : undefined}
-    >
-      {#each visibleStringPaths as field}
-        <SelectItem value={serializePath(field)} text={serializePath(field)} />
-      {/each}
-    </Select>
+    {#key visibleStringPaths}
+      <!-- Field select -->
+      <Select
+        class="field-select w-32"
+        selected={searchPath ? serializePath(searchPath) : ''}
+        on:change={selectField}
+        labelText={'Search field'}
+        disabled={visibleStringPaths.length === 0}
+        warn={visibleStringPaths.length === 0}
+        warnText={visibleStringPaths.length === 0 ? 'Select a field' : undefined}
+      >
+        {#each visibleStringPaths as field}
+          <SelectItem value={serializePath(field)} text={serializePath(field)} />
+        {/each}
+      </Select>
+    {/key}
   </div>
   <!-- Search boxes -->
   <div class="search-container flex w-full flex-grow flex-row">
@@ -336,30 +337,6 @@
                       <div>{item.text}</div>
                     {/if}
                   </ComboBox>
-                </div>
-              </div>
-            </TabContent>
-            <!-- Keyword input -->
-            <TabContent class="w-full">
-              <Search
-                placeholder="Search by keywords"
-                disabled={!keywordSearchEnabled}
-                bind:value={keywordSearchText}
-                on:keydown={e => (e.key == 'Enter' ? search() : null)}
-              />
-            </TabContent>
-            <!-- Semantic input -->
-            <TabContent class="w-full">
-              <div class="flex flex-row items-start justify-items-start">
-                <div class="flex-grow">
-                  <Search
-                    placeholder={isEmbeddingComputed
-                      ? 'Search by natural language'
-                      : 'No index found. Please run the embedding index.'}
-                    disabled={!isEmbeddingComputed}
-                    bind:value={semanticSearchText}
-                    on:keydown={e => (e.key == 'Enter' ? search() : null)}
-                  />
                 </div>
               </div>
             </TabContent>

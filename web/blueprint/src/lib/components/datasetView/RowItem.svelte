@@ -1,23 +1,28 @@
 <script lang="ts">
-  import {getDatasetContext} from '$lib/stores/datasetStore';
-  import type {LilacSchema, LilacValueNode, Path} from '$lilac';
+  import {
+    isOrdinal,
+    listFieldParents,
+    serializePath,
+    type LilacField,
+    type LilacSchema,
+    type LilacValueNode
+  } from '$lilac';
   import RowItemValue from './RowItemValue.svelte';
 
   export let row: LilacValueNode;
   export let schema: LilacSchema;
 
-  let datasetStore = getDatasetContext();
+  export let visibleFields: LilacField[];
 
-  let sortedVisibleColumns: Path[];
-
-  $: {
-    sortedVisibleColumns = ($datasetStore?.visibleFields || []).map(f => f.path);
-    sortedVisibleColumns.sort((a, b) => (a.join('.') > b.join('.') ? 1 : -1));
-  }
+  $: valueFields = visibleFields
+    // Skip fields that are not strings or ordinals.
+    .filter(f => f.dtype && (isOrdinal(f.dtype) || f.dtype === 'string'))
+    // Skip children of string spans. Those are rendered by RowItemValue.
+    .filter(f => !listFieldParents(f, schema).some(parent => parent.dtype === 'string_span'));
 </script>
 
 <div class="mb-4 flex flex-col gap-y-4 border-b border-gray-300 p-4">
-  {#each sortedVisibleColumns as column (column.join('.'))}
-    <RowItemValue {row} path={column} {schema} />
+  {#each valueFields as field (serializePath(field.path))}
+    <RowItemValue {field} {visibleFields} {row} path={field.path} />
   {/each}
 </div>

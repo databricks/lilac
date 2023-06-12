@@ -27,6 +27,7 @@ export function spanHover(element: HTMLSpanElement, namedValues: SpanHoverNamedV
 
   function mouseLeave() {
     tooltipComponent?.$destroy();
+    tooltipComponent = undefined;
   }
 
   element.addEventListener('mouseover', mouseOver);
@@ -35,9 +36,10 @@ export function spanHover(element: HTMLSpanElement, namedValues: SpanHoverNamedV
   return {
     update(namedValues: SpanHoverNamedValue[]) {
       curNamedValues = namedValues;
+      tooltipComponent?.$set({namedValues});
     },
     destroy() {
-      tooltipComponent?.$destroy();
+      mouseLeave();
       element.removeEventListener('mouseover', mouseOver);
       element.removeEventListener('mouseleave', mouseLeave);
     }
