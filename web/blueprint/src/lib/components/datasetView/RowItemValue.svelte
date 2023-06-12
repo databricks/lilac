@@ -53,11 +53,11 @@
 
 {#if showValue && field}
   <div class="flex flex-col">
-    <div class="font-mono text-sm text-gray-600">
+    <div class="pb-1 font-mono text-sm font-bold text-neutral-600">
       {path.join('.')}
     </div>
 
-    <div>
+    <div class="font-normal">
       <StringSpanHighlight
         text={formatValue(values[0])}
         {row}

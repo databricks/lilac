@@ -41,7 +41,7 @@
     >
   </div>
 
-  <Tabs class="overflow-hidden">
+  <Tabs class="overflow-hidden border-b border-gray-200">
     <Tab label="Schema" class="w-1/3" />
     <Tab label="Tree View" class="w-1/3" />
     <Tab label="Raw Query" class="w-1/3" />
