@@ -78,6 +78,11 @@ a.bx--tabs__nav-link:focus {
   @apply hover:bg-neutral-100;
 }
 
+/** Tooltips */
+.bx--tooltip__label {
+  @apply align-middle;
+}
+
 /** Reset CSS set by carbon components and that clashes with tailwind */
 
 html,
