@@ -1,6 +1,7 @@
 """Router for the dataset database."""
 import os
 from typing import Any, Optional, Sequence, Union, cast
+from urllib.parse import unquote
 
 from fastapi import APIRouter, Response
 from fastapi.responses import ORJSONResponse
@@ -198,6 +199,12 @@ class SelectRowsSchemaOptions(BaseModel):
   sort_by: Optional[Sequence[Path]]
   sort_order: Optional[SortOrder] = SortOrder.DESC
   combine_columns: Optional[bool]
+
+
+@router.get('/{namespace}/{dataset_name}/select_rows_download', response_model=None)
+def select_rows_download(namespace: str, dataset_name: str, options: str) -> list[dict]:
+  """Select rows from the dataset database and downloads them."""
+  return select_rows(namespace, dataset_name, SelectRowsOptions.parse_raw(unquote(options)))
 
 
 @router.post('/{namespace}/{dataset_name}/select_rows', response_model_exclude_none=True)

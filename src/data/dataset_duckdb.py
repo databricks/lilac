@@ -437,26 +437,27 @@ class DatasetDuckDB(Dataset):
       if not current_field.dtype:
         raise ValueError(f'Unable to filter on path {filter.path}. The field has no value.')
 
-  def _validate_columns(self, columns: Sequence[Column], schema: Schema) -> None:
+  def _validate_udfs(self, udf_cols: Sequence[Column], source_schema: Schema) -> None:
+    for col in udf_cols:
+      path = col.path
+
+      # Signal transforms must operate on a leaf field.
+      leaf = source_schema.leafs.get(path)
+      if not leaf or not leaf.dtype:
+        raise ValueError(f'Leaf "{path}" not found in dataset. '
+                         'Signal transforms must operate on a leaf field.')
+
+      # Signal transforms must have the same dtype as the leaf field.
+      signal = cast(Signal, col.signal_udf)
+      compute_type = signal.compute_type
+      if not signal_compute_type_supports_dtype(compute_type, leaf.dtype):
+        raise ValueError(f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
+                         f'by "{signal.key()}" with signal input type "{compute_type}".')
+
+  def _validate_selection(self, columns: Sequence[Column], select_schema: Schema) -> None:
+    # Validate all the columns and make sure they exist in the `select_schema`.
     for column in columns:
-      if column.signal_udf:
-        path = column.path
-
-        # Signal transforms must operate on a leaf field.
-        leaf = schema.leafs.get(path)
-        if not leaf or not leaf.dtype:
-          raise ValueError(f'Leaf "{path}" not found in dataset. '
-                           'Signal transforms must operate on a leaf field.')
-
-        # Signal transforms must have the same dtype as the leaf field.
-        signal = column.signal_udf
-        compute_type = signal.compute_type
-
-        if not signal_compute_type_supports_dtype(compute_type, leaf.dtype):
-          raise ValueError(f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
-                           f'by "{signal.key()}" with signal input type "{compute_type}".')
-
-      current_field = Field(fields=schema.fields)
+      current_field = Field(fields=select_schema.fields)
       path = column.path
       for path_part in path:
         if path_part == VALUE_KEY:
@@ -480,6 +481,12 @@ class DatasetDuckDB(Dataset):
         elif not current_field.dtype:
           raise ValueError(f'Unable to select path {path}. '
                            f'Path part "{path_part}" is not defined on a primitive value.')
+
+  def _validate_columns(self, columns: Sequence[Column], source_schema: Schema,
+                        select_schema: Schema) -> None:
+    udf_cols = [col for col in columns if col.signal_udf]
+    self._validate_udfs(udf_cols, source_schema)
+    self._validate_selection(columns, select_schema)
 
   def _validate_sort_path(self, path: PathTuple, schema: Schema) -> None:
     current_field = Field(fields=schema.fields)
@@ -519,7 +526,7 @@ class DatasetDuckDB(Dataset):
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     value_path = _make_value_path(path)
-    duckdb_path = self._leaf_path_to_duckdb_path(value_path, manifest)
+    duckdb_path = self._leaf_path_to_duckdb_path(value_path, manifest.data_schema)
     inner_select = _select_sql(
       duckdb_path, flatten=True, unnest=True, span_from=self._get_span_from(path, manifest))
 
@@ -712,7 +719,14 @@ class DatasetDuckDB(Dataset):
         col.path, _ = self._prepare_signal(
           col.signal_udf, col.path, manifest, compute_dependencies=False)
 
-    self._validate_columns(cols, manifest.data_schema)
+    schema = manifest.data_schema
+    if combine_columns:
+      res = self.select_rows_schema(columns, sort_by, sort_order, searches, combine_columns=True)
+      schema = res.data_schema
+      print('alias udf paths')
+      print(res.alias_udf_paths)
+
+    self._validate_columns(cols, manifest.data_schema, schema)
     self._normalize_searches(searches, manifest)
     search_udfs = self._search_udfs(searches, manifest)
     cols.extend([search_udf.udf for search_udf in search_udfs])
@@ -776,15 +790,14 @@ class DatasetDuckDB(Dataset):
       path = column.path
       # If the signal is vector-based, we don't need to select the actual data, just the uuids
       # plus an arbitrarily nested array of `None`s`.
-      empty = bool(
-        column.signal_udf and manifest.data_schema.get_field(path).dtype == DataType.EMBEDDING)
+      empty = bool(column.signal_udf and schema.get_field(path).dtype == DataType.EMBEDDING)
 
       select_sqls: list[str] = []
       final_col_name = column.alias or _unique_alias(column)
       if final_col_name not in columns_to_merge:
         columns_to_merge[final_col_name] = {}
 
-      duckdb_paths = self._column_to_duckdb_paths(column, manifest)
+      duckdb_paths = self._column_to_duckdb_paths(column, schema)
       span_from = self._get_span_from(path, manifest) if resolve_span or column.signal_udf else None
 
       for parquet_id, duckdb_path in duckdb_paths:
@@ -803,17 +816,27 @@ class DatasetDuckDB(Dataset):
           temp_column_to_offset_column[temp_column_name] = (temp_offset_column_name,
                                                             column.signal_udf.fields())
 
-      select_queries.append(', '.join(select_sqls))
+      # `select_sqls` can be empty if this column points to a path that will be created by a UDF.
+      if select_sqls:
+        select_queries.append(', '.join(select_sqls))
 
     sort_sql_before_udf: list[str] = []
     sort_sql_after_udf: list[str] = []
     sort_udf_aliases: list[str] = []
 
     for path in sort_by:
+      print(path)
       # We only allow sorting by nodes with a value.
       first_subpath = str(path[0])
       rest_of_path = path[1:]
       udf_path = udf_aliases.get(first_subpath)
+
+      signal_alias = '.'.join(map(str, path))
+      if signal_alias in columns_to_merge:
+        print('!!!!!!!!!!!')
+        print(columns_to_merge[signal_alias])
+        print('!!!!!!!!!!!')
+
       # UDF selection is slightly different than normal selection since the UDF column is already
       # present as a top-level column in the table.
       if udf_path:
@@ -827,8 +850,10 @@ class DatasetDuckDB(Dataset):
         if first_subpath in col_aliases:
           path = (*col_aliases[first_subpath], *rest_of_path)
 
-        self._validate_sort_path(path, manifest.data_schema)
-        path = self._leaf_path_to_duckdb_path(cast(PathTuple, path), manifest)
+        self._validate_sort_path(path, schema)
+        print(path, 'found in')
+        print(schema)
+        path = self._leaf_path_to_duckdb_path(cast(PathTuple, path), schema)
 
       sort_sql = _select_sql(path, flatten=True, unnest=False)
       has_repeated_field = any(subpath == PATH_WILDCARD for subpath in path)
@@ -864,6 +889,8 @@ class DatasetDuckDB(Dataset):
       {order_query}
       {limit_query}
     """).df()
+    print('===========')
+    print(df)
     df = _replace_nan_with_none(df)
 
     # Run UDFs on the transformed columns.
@@ -907,11 +934,11 @@ class DatasetDuckDB(Dataset):
           signal_out = list(signal_out)
 
           if signal_column in temp_column_to_offset_column:
-            offset_column_name, schema = temp_column_to_offset_column[signal_column]
+            offset_column_name, field = temp_column_to_offset_column[signal_column]
             nested_spans: Iterable[Item] = df[offset_column_name]
             flat_spans = list(flatten(nested_spans))
             for span, item in zip(flat_spans, signal_out):
-              _offset_any_span(cast(int, span[VALUE_KEY][TEXT_SPAN_START_FEATURE]), item, schema)
+              _offset_any_span(cast(int, span[VALUE_KEY][TEXT_SPAN_START_FEATURE]), item, field)
 
           if len(signal_out) != num_rich_data:
             raise ValueError(
@@ -1003,8 +1030,6 @@ class DatasetDuckDB(Dataset):
         col.path, _ = self._prepare_signal(
           col.signal_udf, col.path, manifest, compute_dependencies=False)
 
-    self._validate_columns(cols, manifest.data_schema)
-
     self._normalize_searches(searches, manifest)
     search_udfs = self._search_udfs(searches, manifest)
     cols.extend([search_udf.udf for search_udf in search_udfs])
@@ -1014,12 +1039,14 @@ class DatasetDuckDB(Dataset):
     for col in cols:
       dest_path = _col_destination_path(col)
       if col.signal_udf:
-        if col.alias:
-          alias_udf_paths[col.alias] = dest_path
+        alias_udf_paths[col.alias or _unique_alias(col)] = dest_path
         field = col.signal_udf.fields()
         field.signal = col.signal_udf.dict()
-      else:
+      elif manifest.data_schema.has_field(dest_path):
         field = manifest.data_schema.get_field(dest_path)
+      else:
+        # This column might refer to an output of a udf. We postpone validation to later.
+        continue
       col_schemas.append(_make_schema_from_path(dest_path, field))
 
     sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
@@ -1031,9 +1058,13 @@ class DatasetDuckDB(Dataset):
         alias=search_udf.udf.alias) for search_udf in search_udfs
     ]
 
-    data_schema = merge_schemas(col_schemas)
+    new_schema = merge_schemas(col_schemas)
+
+    # Now that we have the new schema, we can validate all the column selections.
+    self._validate_columns(cols, manifest.data_schema, new_schema)
+
     return SelectRowsSchemaResult(
-      data_schema=data_schema,
+      data_schema=new_schema,
       alias_udf_paths=alias_udf_paths,
       search_results=search_results,
       sorts=sort_results or None)
@@ -1049,13 +1080,12 @@ class DatasetDuckDB(Dataset):
     is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
     return _derived_from_path(path, manifest.data_schema) if is_span else None
 
-  def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple, manifest: DatasetManifest) -> PathTuple:
+  def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple, schema: Schema) -> PathTuple:
     leaf_path = _make_value_path(leaf_path)
-    ((_, duckdb_path),) = self._column_to_duckdb_paths(Column(leaf_path), manifest)
+    ((_, duckdb_path),) = self._column_to_duckdb_paths(Column(leaf_path), schema)
     return duckdb_path
 
-  def _column_to_duckdb_paths(self, column: Column,
-                              manifest: DatasetManifest) -> list[tuple[str, PathTuple]]:
+  def _column_to_duckdb_paths(self, column: Column, schema: Schema) -> list[tuple[str, PathTuple]]:
     path = column.path
     parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
       self._source_manifest, *self._signal_manifests
@@ -1090,8 +1120,10 @@ class DatasetDuckDB(Dataset):
       duckdb_paths.append((parquet_id, duckdb_path))
 
     if not duckdb_paths:
-      raise ValueError(f'Invalid path "{path}": No manifest contains path. Valid paths: '
-                       f'{list(manifest.data_schema.leafs.keys())}')
+      # This path is probably a result of a udf. Make sure the result schema contains it.
+      if not schema.has_field(path):
+        raise ValueError(f'Invalid path "{path}": No manifest contains path. Valid paths: '
+                         f'{list(schema.leafs.keys())}')
 
     return duckdb_paths
 
@@ -1199,7 +1231,8 @@ class DatasetDuckDB(Dataset):
 
     # Add search where queries.
     for search in searches:
-      duckdb_path = self._leaf_path_to_duckdb_path(normalize_path(search.path), manifest)
+      duckdb_path = self._leaf_path_to_duckdb_path(
+        normalize_path(search.path), manifest.data_schema)
       select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
       if search.query.type == 'keyword':
         sql_op = 'ILIKE'
@@ -1219,7 +1252,7 @@ class DatasetDuckDB(Dataset):
     unary_ops = set(UnaryOp)
     list_ops = set(ListOp)
     for filter in filters:
-      duckdb_path = self._leaf_path_to_duckdb_path(filter.path, manifest)
+      duckdb_path = self._leaf_path_to_duckdb_path(filter.path, manifest.data_schema)
       select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
 
       if filter.op in binary_ops:

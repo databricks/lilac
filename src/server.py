@@ -5,7 +5,7 @@ import os
 from typing import Any
 
 from fastapi import APIRouter, FastAPI
-from fastapi.responses import HTMLResponse, ORJSONResponse
+from fastapi.responses import ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 
@@ -64,13 +64,6 @@ app.mount(
 async def shutdown_event() -> None:
   """Kill the task manager when FastAPI shuts down."""
   await task_manager().stop()
-
-
-@app.get('/{full_path:path}', response_class=HTMLResponse)
-def read_index() -> str:
-  """Return the index.html file."""
-  with open(os.path.join(DIST_PATH, 'index.html')) as f:
-    return f.read()
 
 
 class GetTasksFilter(logging.Filter):

@@ -178,6 +178,22 @@ class Schema(BaseModel):
     self._leafs = result
     return result
 
+  def has_field(self, path: PathTuple) -> bool:
+    """Returns if the field is found at the given path."""
+    field = cast(Field, self)
+    for path_part in path:
+      if field.fields:
+        field = cast(Field, field.fields.get(path_part))
+        if not field:
+          return False
+      elif field.repeated_field:
+        if path_part != PATH_WILDCARD:
+          return False
+        field = field.repeated_field
+      else:
+        return False
+    return True
+
   def get_field(self, path: PathTuple) -> Field:
     """Returns the field at the given path."""
     field = cast(Field, self)

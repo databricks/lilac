@@ -73,7 +73,7 @@ export function isPathVisible(
 
 export function getSearchPath(store: IDatasetViewStore, datasetStore: DatasetStore): Path | null {
   // If the user explicitly chose a search path, use it.
-  if (store.searchPath != null && store.selectedColumns[store.searchPath])
+  if (store.searchPath != null && store.selectedColumns[store.searchPath] != false)
     return deserializePath(store.searchPath);
 
   // Without explicit selection, choose the default string path.

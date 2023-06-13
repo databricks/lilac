@@ -115,6 +115,36 @@ export class DatasetsService {
     }
 
     /**
+     * Select Rows Download
+     * Select rows from the dataset database and downloads them.
+     * @param namespace
+     * @param datasetName
+     * @param options
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static selectRowsDownload(
+        namespace: string,
+        datasetName: string,
+        options: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/select_rows_download',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            query: {
+                'options': options,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Select Rows
      * Select rows from the dataset database.
      * @param namespace
