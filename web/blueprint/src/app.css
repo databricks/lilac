@@ -46,6 +46,9 @@ body {
 }
 
 /** Modals */
+.bx--modal-container {
+  @apply rounded;
+}
 .bx--modal-content.bx--modal-content--with-form {
   @apply my-0 pb-4 pt-0;
 }
