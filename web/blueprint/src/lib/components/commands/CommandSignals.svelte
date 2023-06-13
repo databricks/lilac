@@ -148,14 +148,13 @@
       : command.command === Command.ComputeEmbedding
       ? 'Compute Embedding'
       : 'Preview Signal';
-  $: label = command.command === Command.ComputeSignal ? 'Signals' : 'Embeddings';
 </script>
 
 <ComposedModal open on:submit={submit} on:close={close}>
-  <ModalHeader {label} {title} />
+  <ModalHeader {title} />
   <ModalBody hasForm>
     <div class="flex flex-row">
-      <div class="-ml-4 mr-4 w-80 grow-0">
+      <div class="-ml-4 mr-4 w-96 grow-0">
         {#if command.command === Command.ComputeEmbedding}
           <EmbeddingList bind:embedding={signalInfo} />
         {:else}
@@ -163,10 +162,10 @@
         {/if}
       </div>
 
-      <div class="flex w-full flex-col gap-y-6">
+      <div class="flex w-full flex-col gap-y-6 rounded border border-gray-300 bg-white p-4">
         {#if signalInfo}
           {#key signalInfo}
-            <div>
+            <div class="whitespace-pre-wrap">
               <SvelteMarkdown source={signalInfo.json_schema.description} />
             </div>
 

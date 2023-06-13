@@ -1,3 +1,91 @@
+body {
+  @apply font-sans;
+}
+/** Dropdowns, text inputs, selects. */
+.bx--select-input,
+.bx--dropdown,
+.bx--text-input,
+.bx--search-input {
+  @apply rounded bg-neutral-50 outline-1 outline-neutral-300;
+}
+.bx--select-input:focus,
+.bx--dropdown:focus,
+.bx--text-input:focus,
+.bx--search-input:focus {
+  @apply outline-1 outline-neutral-500;
+}
+.bx--select-input:hover,
+.bx--dropdown:hover,
+.bx--text-input:hover,
+.bx--search-input:hover {
+  @apply bg-neutral-50 outline-1 outline-neutral-400;
+}
+/** Dropdown items */
+.bx--list-box__menu-item {
+  @apply bg-neutral-50;
+}
+.bx--list-box__menu-item--active.bx--list-box__menu-item--highlighted {
+  @apply bg-neutral-300;
+}
+.bx--list-box__menu {
+  @apply rounded;
+}
+
+/** Buttons */
+.bx--btn {
+  @apply rounded border-neutral-300 text-black;
+}
+.bx--btn.bx--btn--secondary {
+  @apply text-white;
+}
+.bx--btn.bx--btn--ghost {
+  @apply border-transparent bg-transparent text-black;
+}
+.bx--btn.bx--btn--primary.bx--btn--disabled {
+  @apply border-neutral-300 bg-slate-200 text-neutral-400;
+}
+
+/** Modals */
+.bx--modal-container {
+  @apply rounded;
+}
+.bx--modal-content.bx--modal-content--with-form {
+  @apply my-0 pb-4 pt-0;
+}
+/** Don't change the buttons for the modal. */
+.bx--modal-footer .bx--btn {
+  @apply rounded-none border-none;
+}
+.bx--modal-header {
+  @apply m-0 border-gray-200 py-4;
+}
+
+/** Navigation tabs */
+.bx--tabs__nav-item,
+.bx--tabs__nav-item--selected:not(.bx--tabs__nav-item--disabled) .bx--tabs__nav-link,
+a.bx--tabs__nav-link {
+  @apply border-b-0 border-transparent;
+}
+a.bx--tabs__nav-link {
+  @apply rounded border-b-0;
+}
+a.bx--tabs__nav-link:focus {
+  @apply outline-transparent;
+}
+
+/** Expressive buttons */
+.bx--btn--icon-only.bx--btn--expressive {
+  @apply p-1;
+}
+.bx--btn.bx--btn--icon-only.bx--tooltip__trigger {
+  @apply hover:bg-neutral-100;
+}
+
+/** Tooltips */
+.bx--tooltip__label {
+  @apply align-middle;
+}
+
 /** Reset CSS set by carbon components and that clashes with tailwind */
 
 html,

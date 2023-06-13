@@ -16,10 +16,10 @@ import {persisted} from './persistedStore';
 
 const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
-export const SEARCH_TABS: {[key: number]: 'Keyword' | 'Semantic' | 'Concepts'} = {
-  0: 'Keyword',
+export const SEARCH_TABS: {[key: number]: 'Concepts' | 'Semantic' | 'Keyword'} = {
+  0: 'Concepts',
   1: 'Semantic',
-  2: 'Concepts'
+  2: 'Keyword'
 };
 
 export interface IDatasetViewStore {
@@ -50,7 +50,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
   const initialState: IDatasetViewStore = {
     namespace,
     datasetName,
-    searchTab: 'Keyword',
+    searchTab: 'Concepts',
     searchPath: null,
     searchEmbedding: null,
     selectedColumns: {},

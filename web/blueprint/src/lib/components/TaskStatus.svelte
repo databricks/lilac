@@ -24,7 +24,7 @@
 </script>
 
 <button
-  class="task-button relative border p-2 transition"
+  class="task-button relative rounded border p-2 transition"
   on:click|stopPropagation={() => (showTasks = !showTasks)}
   class:bg-white={!runningTasks.length}
   class:bg-blue-200={runningTasks.length}

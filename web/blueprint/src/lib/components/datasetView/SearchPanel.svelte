@@ -281,7 +281,7 @@
   };
 </script>
 
-<div class="mx-4 my-2 flex h-24 flex-row items-start">
+<div class="border-1 flex flex-row items-start px-4 py-2">
   <div class="mr-8 mt-4">
     {#key visibleStringPaths}
       <!-- Field select -->
@@ -309,32 +309,6 @@
         <Tab>{SEARCH_TABS[2]}</Tab>
         <svelte:fragment slot="content">
           <div class="flex flex-row">
-            <!-- Keyword input -->
-            <TabContent class="w-full">
-              <Search
-                placeholder="Search by keywords"
-                disabled={!keywordSearchEnabled}
-                bind:value={keywordSearchText}
-                on:keydown={e => (e.key == 'Enter' ? search() : null)}
-              />
-            </TabContent>
-
-            <!-- Semantic input -->
-            <TabContent class="w-full">
-              <div class="flex flex-row items-start justify-items-start">
-                <div class="flex-grow">
-                  <Search
-                    placeholder={isEmbeddingComputed
-                      ? 'Search by natural language'
-                      : 'No index found. Please run the embedding index.'}
-                    disabled={!isEmbeddingComputed}
-                    bind:value={semanticSearchText}
-                    on:keydown={e => (e.key == 'Enter' ? search() : null)}
-                  />
-                </div>
-              </div>
-            </TabContent>
-
             <!-- Concept input -->
             <TabContent class="w-full">
               <div class="flex w-full flex-row items-start justify-items-start">
@@ -367,8 +341,33 @@
                 </div>
               </div>
             </TabContent>
+            <!-- Semantic input -->
+            <TabContent class="w-full">
+              <div class="flex flex-row items-start justify-items-start">
+                <div class="flex-grow">
+                  <Search
+                    placeholder={isEmbeddingComputed
+                      ? 'Search by natural language'
+                      : 'No index found. Please run the embedding index.'}
+                    disabled={!isEmbeddingComputed}
+                    bind:value={semanticSearchText}
+                    on:keydown={e => (e.key == 'Enter' ? search() : null)}
+                  />
+                </div>
+              </div>
+            </TabContent>
+            <!-- Keyword input -->
+            <TabContent class="w-full">
+              <Search
+                placeholder="Search by keywords"
+                disabled={!keywordSearchEnabled}
+                bind:value={keywordSearchText}
+                on:keydown={e => (e.key == 'Enter' ? search() : null)}
+              />
+            </TabContent>
+
             {#if selectedTab === 'Semantic' || selectedTab === 'Concepts'}
-              <div class="embedding-select w-40">
+              <div class="embedding-select ml-1 w-40">
                 <Select
                   noLabel={true}
                   on:change={selectEmbedding}
@@ -381,7 +380,7 @@
                   {/each}
                 </Select>
               </div>
-              <div class="ml-2">
+              <div class="ml-1">
                 <Button
                   class="w-24"
                   disabled={searchButtonDisabled || isIndexing}
@@ -411,17 +410,15 @@
   </div>
 
   <div class="ml-2 mt-10 flex flex-row rounded">
-    <div class="w-12">
+    <div class="ml-1 w-8">
       {#if selectedSortBy != null}
         <Button
           kind="ghost"
-          icon={Close}
           expressive={true}
+          icon={Close}
           on:click={clearSorts}
           disabled={sort == null}
-          iconDescription={sort?.order === 'ASC'
-            ? 'Sorted ascending. Toggle to switch to descending.'
-            : 'Sorted descending. Toggle to switch to ascending.'}
+          iconDescription={'Clear sort'}
         />
       {/if}
     </div>
@@ -433,7 +430,7 @@
       items={sortItems}
       helperText={'Sort by'}
     />
-    <div>
+    <div class="ml-1">
       <Button
         kind="ghost"
         expressive={true}

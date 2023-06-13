@@ -5,13 +5,14 @@
   import TaskMonitor from '$lib/stores/TaskMonitor.svelte';
   import type {ApiError} from '$lilac';
   import {QueryClientProvider} from '@tanstack/svelte-query';
-  import {ToastNotification} from 'carbon-components-svelte';
+  import {Theme, ToastNotification} from 'carbon-components-svelte';
   import {onMount} from 'svelte';
   // Styles
   import '../tailwind.css';
   // Carbon component must be imported after tailwind.css
   import {urlHash} from '$lib/stores/urlHashStore';
-  import 'carbon-components-svelte/css/white.css';
+  // This import is so we can override the carbon icon theme below.
+  import 'carbon-components-svelte/css/all.css';
   import '../app.css';
 
   let showError: ApiError | undefined = undefined;
@@ -34,10 +35,41 @@
   on:popstate={() => urlHash.set(location.hash)}
 />
 
+<!-- https://carbondesignsystem.com/guidelines/themes/overview#customizing-a-theme -->
+<Theme
+  theme="white"
+  tokens={{
+    // Lilac colors taken from: https://www.color-hex.com/color-palette/5811
+    // lightest: #e6d7ff
+    // lighter: #e7d1ff
+    // medium: #e1c4ff
+    // darker: #d8b9ff
+    // darkest: #d2afff
+
+    // Button background color
+    'interactive-01': '#e6d7ff', // lightest lilac
+    'interactive-04': 'transparent',
+    'hover-primary': '#e1c4ff', // medium lilac
+    'active-primary': '#d8b9ff', // darker lilac
+    'text-primary': 'black',
+    // Hover color of buttons.
+    'text-04': 'black',
+    // Focus.
+    focus: 'transparent',
+    // Controls the bottom border of the searchbox.
+    'ui-04': 'transparent',
+    'border-strong': 'transparent',
+    // Typography
+    'label-01-letter-spacing': 'var(--cds-productive-heading-01-letter-spacing)',
+    'helper-text-01-letter-spacing': 'var(--cds-productive-heading-01-letter-spacing)',
+    'productive-heading-01-font-weight': 600
+  }}
+/>
+
 <QueryClientProvider client={queryClient}>
   <main class="flex h-screen flex-col">
     <div class="flex flex-row items-center gap-x-8 border-b border-gray-200 px-4 py-2">
-      <a class="text-xl normal-case" href="/">Lilac Blueprint</a>
+      <a class="text-xl normal-case" href="/">Lilac <span>Blueprint</span></a>
       <a class="opacity-50 hover:underline" href="/">Datasets</a>
       <a class="opacity-50 hover:underline" href="/concepts">Concepts</a>
       <div class="ml-auto">
