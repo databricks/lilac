@@ -164,7 +164,6 @@
         )
       );
       const fullText = spansUnderClick.map(s => s.text).join('');
-      console.log(fullText);
       selectedSpanDetails = {
         conceptName: null,
         conceptNamespace: null,
