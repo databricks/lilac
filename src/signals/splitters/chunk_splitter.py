@@ -112,14 +112,12 @@ def _sep_split(text: str, separator: str) -> list[TextChunk]:
   return chunks
 
 
-def split_text(text: Optional[str],
+def split_text(text: str,
                chunk_size: int = CHUNK_SIZE,
                chunk_overlap: int = CHUNK_OVERLAP,
                separators: list[str] = DEFAULT_SEPARATORS,
                length_function: Callable[[str], int] = len) -> list[TextChunk]:
   """Split incoming text and return chunks."""
-  if not text:
-    return []
 
   def _merge_splits(splits: Iterable[TextChunk], separator: str) -> list[TextChunk]:
     # We now want to combine these smaller pieces into medium size
