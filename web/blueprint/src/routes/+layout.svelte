@@ -11,6 +11,7 @@
   import '../tailwind.css';
   // Carbon component must be imported after tailwind.css
   import {urlHash} from '$lib/stores/urlHashStore';
+  // This import is so we can override the carbon icon theme below.
   import 'carbon-components-svelte/css/all.css';
   import '../app.css';
 
