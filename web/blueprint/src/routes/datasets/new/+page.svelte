@@ -58,7 +58,7 @@
 </script>
 
 <div class="h-full w-full overflow-y-auto py-8">
-  <div class="mx-auto flex max-w-lg flex-col">
+  <div class="mx-auto flex max-w-xl flex-col">
     <h2>Add dataset</h2>
     <Form class="pt-8">
       <FormGroup legendText="Name">

@@ -55,6 +55,8 @@ class SBERT(TextEmbeddingSignal):
     batch_size = _optimal_batch_size(preferred_device)
 
     def splitter(doc: str) -> list[TextChunk]:
+      if doc is None:
+        return []
       if self._split:
         return split_text(doc, chunk_overlap=0)
       else:
