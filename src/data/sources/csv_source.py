@@ -40,15 +40,15 @@ class CSVDataset(Source):
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     s3_filepaths = [path.replace('gs://', 's3://') for path in filepaths]
 
-    print('executing duckdb')
     # NOTE: We use duckdb here to increase parallelism for multiple files.
+    # NOTE: We turn off the parallel reader because of https://github.com/lilacai/lilac/issues/373.
     self._df = con.execute(f"""
       {duckdb_gcs_setup(con)}
       SELECT * FROM read_csv_auto(
         {s3_filepaths},
         SAMPLE_SIZE=500000,
         HEADER={self.header},
-        NAMES={self.names},
+        {f'NAMES={self.names},' if self.names else ''}
         DELIM='{self.delim or ','}',
         IGNORE_ERRORS=true,
         PARALLEL=false
