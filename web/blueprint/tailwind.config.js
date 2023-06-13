@@ -8,8 +8,8 @@ export default {
         'lilac-light': '#e7d1ff',
         'lilac-medium': '#e1c4ff',
         'lilac-dark': '#d8b9ff',
-        'lilac-darkest': '#d2afff',
-      },
+        'lilac-darkest': '#d2afff'
+      }
     }
   },
   plugins: []
