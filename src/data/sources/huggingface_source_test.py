@@ -107,3 +107,64 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
       'y': ['forty', 'fifty', 'sixty']
     }
   }]
+
+
+def test_hf_list(tmp_path: pathlib.Path) -> None:
+  dataset = Dataset.from_list([{
+    'scalar': 1,
+    'list': [{
+      'x': 1,
+      'y': 'two'
+    }]
+  }, {
+    'scalar': 2,
+    'list': [{
+      'x': 3,
+      'y': 'four'
+    }]
+  }],
+                              features=Features({
+                                'scalar': Value(dtype='int64'),
+                                'list': [{
+                                  'x': Value(dtype='int64'),
+                                  'y': Value(dtype='string')
+                                }]
+                              }))
+
+  dataset_name = os.path.join(tmp_path, 'hf-test-dataset')
+  dataset.save_to_disk(dataset_name)
+
+  source = HuggingFaceDataset(dataset_name=dataset_name, load_from_disk=True)
+
+  items = source.process()
+  source.prepare()
+
+  source_schema = source.source_schema()
+  assert source_schema == SourceSchema(
+    fields=schema({
+      HF_SPLIT_COLUMN: 'string',
+      'scalar': 'int64',
+      'list': [{
+        'x': 'int64',
+        'y': 'string',
+      }],
+    }).fields,
+    num_items=2)
+
+  items = list(source.process())
+
+  assert items == [{
+    HF_SPLIT_COLUMN: 'default',
+    'scalar': 1,
+    'list': [{
+      'x': 1,
+      'y': 'two'
+    }]
+  }, {
+    HF_SPLIT_COLUMN: 'default',
+    'scalar': 2,
+    'list': [{
+      'x': 3,
+      'y': 'four'
+    }]
+  }]
