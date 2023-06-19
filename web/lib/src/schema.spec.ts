@@ -12,6 +12,11 @@ describe('schema', () => {
       'something.with.dots',
       'xyz'
     ]);
+    expect(deserializePath('foo.something/with/slashes.xyz')).toEqual([
+      'foo',
+      'something/with/slashes',
+      'xyz'
+    ]);
   });
 
   it('serialize path', () => {

@@ -1,4 +1,4 @@
-"""A signal to compute a score along a concept."""
+"""A signal to compute span offsets of already labeled concept text."""
 from typing import Iterable, Optional
 
 from typing_extensions import override

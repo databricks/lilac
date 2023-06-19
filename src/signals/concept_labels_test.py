@@ -1,4 +1,4 @@
-"""Test for the concept scorer."""
+"""Test for the concept label signal."""
 
 import pathlib
 from typing import Generator, Type
