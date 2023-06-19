@@ -58,7 +58,7 @@ class SBERT(TextEmbeddingSignal):
       if doc is None:
         return []
       if self._split:
-        return split_text(doc, chunk_overlap=0)
+        return split_text(doc)
       else:
         # Return a single chunk that spans the entire document.
         return [(doc, (0, len(doc)))]
