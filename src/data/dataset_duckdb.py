@@ -720,11 +720,19 @@ class DatasetDuckDB(Dataset):
           col.signal_udf, col.path, manifest, compute_dependencies=False)
 
     schema = manifest.data_schema
+    path_to_udf_col_name: dict[PathTuple, str] = {}
     if combine_columns:
       res = self.select_rows_schema(columns, sort_by, sort_order, searches, combine_columns=True)
       schema = res.data_schema
-      print('alias udf paths')
-      print(res.alias_udf_paths)
+
+    for col in cols:
+      if col.signal_udf:
+        dest_path = _col_destination_path(col)
+        alias = col.alias or _unique_alias(col)
+        path_to_udf_col_name[dest_path] = alias
+
+    print('path to udf col name')
+    print(path_to_udf_col_name)
 
     self._validate_columns(cols, manifest.data_schema, schema)
     self._normalize_searches(searches, manifest)
@@ -825,35 +833,22 @@ class DatasetDuckDB(Dataset):
     sort_udf_aliases: list[str] = []
 
     for path in sort_by:
-      print(path)
       # We only allow sorting by nodes with a value.
       first_subpath = str(path[0])
       rest_of_path = path[1:]
-      udf_path = udf_aliases.get(first_subpath)
-
       signal_alias = '.'.join(map(str, path))
-      if signal_alias in columns_to_merge:
-        print('!!!!!!!!!!!')
-        print(columns_to_merge[signal_alias])
-        print('!!!!!!!!!!!')
 
-      # UDF selection is slightly different than normal selection since the UDF column is already
-      # present as a top-level column in the table.
-      if udf_path:
-        # If the user selected udf(document.*.text) as "udf" and wanted to sort by "udf.len", we
-        # need to actually sort by "udf.*.len.__value__" where the "*" came from the fact that the
-        # udf was applied to a list of "text" fields.
-        prefix_path = [subpath for subpath in udf_path if subpath == PATH_WILDCARD]
-        path = (first_subpath, *prefix_path, *rest_of_path)
-      else:
+      udf_path = _path_to_udf_duckdb_path(path, path_to_udf_col_name)
+      print(path, '-------->', udf_path)
+
+      if not udf_path:
         # Re-route the path if it starts with an alias by pointing it to the actual path.
         if first_subpath in col_aliases:
           path = (*col_aliases[first_subpath], *rest_of_path)
-
         self._validate_sort_path(path, schema)
-        print(path, 'found in')
-        print(schema)
-        path = self._leaf_path_to_duckdb_path(cast(PathTuple, path), schema)
+        path = self._leaf_path_to_duckdb_path(path, schema)
+      else:
+        path = udf_path
 
       sort_sql = _select_sql(path, flatten=True, unnest=False)
       has_repeated_field = any(subpath == PATH_WILDCARD for subpath in path)
@@ -889,8 +884,6 @@ class DatasetDuckDB(Dataset):
       {order_query}
       {limit_query}
     """).df()
-    print('===========')
-    print(df)
     df = _replace_nan_with_none(df)
 
     # Run UDFs on the transformed columns.
@@ -1038,8 +1031,9 @@ class DatasetDuckDB(Dataset):
     col_schemas: list[Schema] = []
     for col in cols:
       dest_path = _col_destination_path(col)
-      if col.signal_udf:
-        alias_udf_paths[col.alias or _unique_alias(col)] = dest_path
+      if col.signal_udf and col.alias:
+        if col.alias:
+          alias_udf_paths[col.alias] = dest_path
         field = col.signal_udf.fields()
         field.signal = col.signal_udf.dict()
       elif manifest.data_schema.has_field(dest_path):
@@ -1501,6 +1495,29 @@ def _unique_alias(column: Column) -> str:
   if column.signal_udf:
     return make_parquet_id(column.signal_udf, column.path)
   return '.'.join(map(str, column.path))
+
+
+def _path_contains(parent_path: PathTuple, child_path: PathTuple) -> bool:
+  """Check if a path contains another path."""
+  if len(parent_path) > len(child_path):
+    return False
+  return all(parent_path[i] == child_path[i] for i in range(len(parent_path)))
+
+
+def _path_to_udf_duckdb_path(path: PathTuple,
+                             path_to_udf_col_name: dict[PathTuple, str]) -> Optional[PathTuple]:
+  first_subpath, *rest_of_path = path
+  for parent_path, udf_col_name in path_to_udf_col_name.items():
+    # If the user selected udf(document.*.text) as "udf" and wanted to sort by "udf.len", we need to
+    # sort by "udf.*.len" where the "*" came from the fact that the udf was applied to a list of
+    # "text" fields.
+    wildcards = [x for x in parent_path if x == PATH_WILDCARD]
+    if _path_contains(parent_path, path):
+      return (udf_col_name, *wildcards, *path[len(parent_path):])
+    elif first_subpath == udf_col_name:
+      return (udf_col_name, *wildcards, *rest_of_path)
+
+  return None
 
 
 def _col_destination_path(column: Column, is_computed_signal: Optional[bool] = False) -> PathTuple:
