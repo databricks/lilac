@@ -1,5 +1,6 @@
 """Embedding registry."""
-from typing import Callable, Generator, Iterable, Union, cast
+from concurrent.futures import ThreadPoolExecutor
+from typing import Callable, Generator, Iterable, Optional, Union, cast
 
 import numpy as np
 from pydantic import StrictStr
@@ -46,15 +47,27 @@ def get_embed_fn(embedding_name: str) -> EmbedFn:
   return _embed_fn
 
 
-def split_and_combine_text_embeddings(
-    docs: Iterable[str], batch_size: int, splitter: Callable[[str], list[TextChunk]],
-    embed_fn: Callable[[list[str]], list[np.ndarray]]) -> Generator[Item, None, None]:
+def compute_split_embeddings(docs: Iterable[str],
+                             batch_size: int,
+                             embed_fn: Callable[[list[str]], list[np.ndarray]],
+                             split_fn: Optional[Callable[[str], list[TextChunk]]] = None,
+                             num_parallel_requests: int = 1) -> Generator[Item, None, None]:
   """Compute text embeddings in batches of chunks, using the provided splitter and embedding fn."""
+  pool = ThreadPoolExecutor()
+
+  def _splitter(doc: str) -> list[TextChunk]:
+    if doc is None:
+      return []
+    if split_fn:
+      return split_fn(doc)
+    else:
+      # Return a single chunk that spans the entire document.
+      return [(doc, (0, len(doc)))]
 
   def _flat_split_batch_docs(docs: Iterable[str]) -> Generator[tuple[int, TextChunk], None, None]:
     """Split a batch of documents into chunks and yield them."""
     for i, doc in enumerate(docs):
-      chunks = splitter(doc) or [cast(TextChunk, ('', (0, 0)))]
+      chunks = _splitter(doc) or [cast(TextChunk, ('', (0, 0)))]
       for chunk in chunks:
         yield (i, chunk)
 
@@ -62,9 +75,14 @@ def split_and_combine_text_embeddings(
   items_to_yield: list[Item] = []
   current_index = 0
 
-  for batch in chunks(doc_chunks, batch_size):
+  mega_batch_size = batch_size * num_parallel_requests
+
+  for batch in chunks(doc_chunks, mega_batch_size):
     texts = [text for _, (text, _) in batch]
-    matrix = normalize(np.array(embed_fn(texts))).astype(np.float16)
+    embeddings: list[np.ndarray] = []
+    for x in list(pool.map(lambda x: embed_fn(x), chunks(texts, batch_size))):
+      embeddings.extend(x)
+    matrix = normalize(np.array(embeddings)).astype(np.float16)
     # np.split returns a shallow copy of each embedding so we don't increase the mem footprint.
     embeddings_batch = cast(list[np.ndarray], np.split(matrix, matrix.shape[0]))
     for (index, (_, (start, end))), embedding in zip(batch, embeddings_batch):

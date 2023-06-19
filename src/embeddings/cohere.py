@@ -9,9 +9,10 @@ from typing_extensions import override
 from ..config import CONFIG
 from ..schema import Item, RichData
 from ..signals.signal import TextEmbeddingSignal
-from ..signals.splitters.chunk_splitter import TextChunk, split_text
-from .embedding import split_and_combine_text_embeddings
+from ..signals.splitters.chunk_splitter import split_text
+from .embedding import compute_split_embeddings
 
+NUM_PARALLEL_REQUESTS = 10
 COHERE_BATCH_SIZE = 96
 
 
@@ -20,7 +21,7 @@ def _cohere() -> cohere.Client:
   api_key = CONFIG['COHERE_API_KEY']
   if not api_key:
     raise ValueError('`COHERE_API_KEY` environment variable not set.')
-  return cohere.Client(api_key)
+  return cohere.Client(api_key, max_retries=10)
 
 
 class Cohere(TextEmbeddingSignal):
@@ -41,17 +42,10 @@ class Cohere(TextEmbeddingSignal):
   def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
     """Compute embeddings for the given documents."""
 
-    def splitter(doc: str) -> list[TextChunk]:
-      if doc is None:
-        return []
-      if self._split:
-        return split_text(doc, chunk_overlap=0)
-      else:
-        # Return a single chunk that spans the entire document.
-        return [(doc, (0, len(doc)))]
-
     def embed_fn(texts: list[str]) -> list[np.ndarray]:
       return _cohere().embed(texts, truncate='END').embeddings
 
     docs = cast(Iterable[str], docs)
-    yield from split_and_combine_text_embeddings(docs, COHERE_BATCH_SIZE, splitter, embed_fn)
+    split_fn = split_text if self._split else None
+    yield from compute_split_embeddings(
+      docs, COHERE_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=NUM_PARALLEL_REQUESTS)

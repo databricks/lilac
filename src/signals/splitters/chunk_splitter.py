@@ -43,7 +43,7 @@ TextChunk = tuple[str, tuple[int, int]]
 
 DEFAULT_SEPARATORS = ['\n\n', '\n', ' ', '']
 CHUNK_SIZE = 400
-CHUNK_OVERLAP = 0
+CHUNK_OVERLAP = 50
 
 
 class ChunkSplitter(TextSplitterSignal):

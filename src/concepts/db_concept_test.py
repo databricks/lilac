@@ -22,7 +22,6 @@ from .concept import (
   Example,
   ExampleIn,
   LogisticEmbeddingModel,
-  Sensitivity,
 )
 from .db_concept import (
   ConceptDB,
@@ -419,7 +418,7 @@ def _make_test_concept_model(
 class TestLogisticModel(LogisticEmbeddingModel):
 
   @override
-  def score_embeddings(self, embeddings: np.ndarray, sensitivity: Sensitivity) -> np.ndarray:
+  def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
     return np.array([.1])
 

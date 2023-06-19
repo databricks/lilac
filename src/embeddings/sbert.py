@@ -8,9 +8,9 @@ from typing_extensions import override
 
 from ..schema import Item, RichData
 from ..signals.signal import TextEmbeddingSignal
-from ..signals.splitters.chunk_splitter import TextChunk, split_text
+from ..signals.splitters.chunk_splitter import split_text
 from ..utils import log
-from .embedding import split_and_combine_text_embeddings
+from .embedding import compute_split_embeddings
 
 # The `all-mpnet-base-v2` model provides the best quality, while `all-MiniLM-L6-v2`` is 5 times
 # faster and still offers good quality. See https://www.sbert.net/docs/pretrained_models.html#sentence-embedding-models/
@@ -54,14 +54,7 @@ class SBERT(TextEmbeddingSignal):
     preferred_device, model = _sbert()
     batch_size = _optimal_batch_size(preferred_device)
 
-    def splitter(doc: str) -> list[TextChunk]:
-      if doc is None:
-        return []
-      if self._split:
-        return split_text(doc, chunk_overlap=0)
-      else:
-        # Return a single chunk that spans the entire document.
-        return [(doc, (0, len(doc)))]
-
+    embed_fn = model.encode
+    split_fn = split_text if self._split else None
     docs = cast(Iterable[str], docs)
-    yield from split_and_combine_text_embeddings(docs, batch_size, splitter, model.encode)
+    yield from compute_split_embeddings(docs, batch_size, embed_fn=embed_fn, split_fn=split_fn)
