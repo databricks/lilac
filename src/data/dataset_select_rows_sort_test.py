@@ -320,7 +320,7 @@ def test_sort_by_udf_alias_no_repeated(make_test_data: TestDataMaker) -> None:
   }]
 
 
-def test_sort_by_udf_no_repeated(make_test_data: TestDataMaker) -> None:
+def test_sort_by_udf_no_alias_no_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
     'text': 'HEY'
@@ -332,36 +332,31 @@ def test_sort_by_udf_no_repeated(make_test_data: TestDataMaker) -> None:
     'text': 'HI'
   }])
 
-  # Equivalent to: SELECT `TestSignal(text) AS udf`.
   text_udf = Column('text', signal_udf=TestSignal())
-  # Sort by `udf.len`, where `udf` is an alias to `TestSignal(text)`.
+  # Sort by `text.test_signal.len`, produced by executing the udf `TestSignal(text)`.
   result = dataset.select_rows(['*', text_udf],
                                sort_by=[('text', 'test_signal', 'len')],
                                sort_order=SortOrder.ASC,
                                combine_columns=True)
-  print(list(result))
-  # assert list(result) == [{
-  #   UUID_COLUMN: '3',
-  #   'text': 'HI',
-  #   'udf': {
-  #     'len': 2,
-  #     'is_all_cap': True
-  #   }
-  # }, {
-  #   UUID_COLUMN: '1',
-  #   'text': 'HEY',
-  #   'udf': {
-  #     'len': 3,
-  #     'is_all_cap': True
-  #   }
-  # }, {
-  #   UUID_COLUMN: '2',
-  #   'text': 'everyone',
-  #   'udf': {
-  #     'len': 8,
-  #     'is_all_cap': False
-  #   }
-  # }]
+  assert list(result) == [{
+    UUID_COLUMN: '3',
+    'text': enriched_item('HI', {'test_signal': {
+      'len': 2,
+      'is_all_cap': True
+    }}),
+  }, {
+    UUID_COLUMN: '1',
+    'text': enriched_item('HEY', {'test_signal': {
+      'len': 3,
+      'is_all_cap': True
+    }}),
+  }, {
+    UUID_COLUMN: '2',
+    'text': enriched_item('everyone', {'test_signal': {
+      'len': 8,
+      'is_all_cap': False
+    }}),
+  }]
 
 
 def test_sort_by_primitive_udf_alias_no_repeated(make_test_data: TestDataMaker) -> None:
