@@ -1,6 +1,6 @@
 """Embedding registry."""
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable, Generator, Iterable, Optional, Union, cast
+from typing import Callable, Generator, Iterable, Union, cast
 
 import numpy as np
 from pydantic import StrictStr
@@ -47,12 +47,11 @@ def get_embed_fn(embedding_name: str) -> EmbedFn:
   return _embed_fn
 
 
-def split_and_combine_text_embeddings(
-    docs: Iterable[str],
-    batch_size: int,
-    embed_fn: Callable[[list[str]], list[np.ndarray]],
-    split_fn: Optional[Callable[[str], list[TextChunk]]] = None,
-    num_parallel_requests: int = 1) -> Generator[Item, None, None]:
+def compute_split_embeddings(docs: Iterable[str],
+                             batch_size: int,
+                             splitter: Callable[[str], list[TextChunk]],
+                             embed_fn: Callable[[list[str]], list[np.ndarray]],
+                             num_parallel_requests: int = 1) -> Generator[Item, None, None]:
   """Compute text embeddings in batches of chunks, using the provided splitter and embedding fn."""
   pool = ThreadPoolExecutor()
 
