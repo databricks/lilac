@@ -23,6 +23,9 @@ class CSVDataset(Source):
 
   filepaths: list[str] = Field(description='A list of filepaths to CSV files.')
   delim: Optional[str] = Field(default=',', description='The CSV file delimiter to use.')
+  header: Optional[bool] = Field(default=True, description='Whether the CSV file has a header row.')
+  names: Optional[list[str]] = Field(
+    default=None, description='Provide header names if the file does not contain a header.')
 
   _source_schema: SourceSchema
   _df: pd.DataFrame
@@ -38,13 +41,17 @@ class CSVDataset(Source):
     s3_filepaths = [path.replace('gs://', 's3://') for path in filepaths]
 
     # NOTE: We use duckdb here to increase parallelism for multiple files.
+    # NOTE: We turn off the parallel reader because of https://github.com/lilacai/lilac/issues/373.
     self._df = con.execute(f"""
       {duckdb_gcs_setup(con)}
       SELECT * FROM read_csv_auto(
         {s3_filepaths},
         SAMPLE_SIZE=500000,
+        HEADER={self.header},
+        {f'NAMES={self.names},' if self.names else ''}
         DELIM='{self.delim or ','}',
-        IGNORE_ERRORS=true
+        IGNORE_ERRORS=true,
+        PARALLEL=false
     )
     """).df()
 

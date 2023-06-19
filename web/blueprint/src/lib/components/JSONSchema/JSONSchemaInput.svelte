@@ -98,7 +98,7 @@
   {:else if property.type == 'boolean'}
     <!-- Boolean Input -->
     <div>
-      <Toggle labelText={label} bind:toggled={value} />
+      <Toggle labelA={'False'} labelB={'True'} labelText={label} bind:toggled={value} />
       <span class="bx--form__helper-text">{property.description}</span>
     </div>
   {:else if property.type == 'array'}

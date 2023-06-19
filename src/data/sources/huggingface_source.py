@@ -44,7 +44,10 @@ def _infer_field(feature_value: Union[Value, dict]) -> Field:
         })
     else:
       return Field(repeated_field=_infer_field(feature_value.feature))
-
+  elif isinstance(feature_value, list):
+    if len(feature_value) > 1:
+      raise ValueError('Field arrays with multiple values are not supported.')
+    return Field(repeated_field=_infer_field(feature_value[0]))
   elif isinstance(feature_value, ClassLabel):
     raise ValueError('Nested ClassLabel is not supported.')
 

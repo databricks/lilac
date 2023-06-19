@@ -157,10 +157,17 @@
   let spanClickMousePosition: {x: number; y: number} | undefined;
   $: {
     if (selectedSpan != null) {
+      // Get all the render spans that include this path so we can join the text.
+      const spansUnderClick = spanRenderInfos.filter(renderSpan =>
+        renderSpan.paths.some(s =>
+          (selectedSpan?.paths || []).some(selectedSpanPath => pathIsEqual(selectedSpanPath, s))
+        )
+      );
+      const fullText = spansUnderClick.map(s => s.text).join('');
       selectedSpanDetails = {
         conceptName: null,
         conceptNamespace: null,
-        text: selectedSpan.text
+        text: fullText
       };
       // Find the concepts for the selected spans. For now, we select just the first concept.
       for (const spanPath of Object.keys(selectedSpan.originalSpans)) {

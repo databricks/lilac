@@ -42,6 +42,8 @@ class Cohere(TextEmbeddingSignal):
     """Compute embeddings for the given documents."""
 
     def splitter(doc: str) -> list[TextChunk]:
+      if doc is None:
+        return []
       if self._split:
         return split_text(doc, chunk_overlap=0)
       else:
