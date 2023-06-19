@@ -880,6 +880,8 @@ class DatasetDuckDB(Dataset):
       input = df[signal_column]
 
       with DebugTimer(f'Computing signal "{signal}"'):
+        signal.setup()
+
         if signal.compute_type in [SignalInputType.TEXT_EMBEDDING]:
           # The input is an embedding.
           vector_store = self.get_vector_store(udf_col.path)
@@ -920,6 +922,8 @@ class DatasetDuckDB(Dataset):
               '"None" for a sparse output, or generated too many items.')
 
           df[signal_column] = unflatten(signal_out, input)
+
+        signal.teardown()
 
     if udf_filters or sort_sql_after_udf:
       # Re-upload the udf outputs to duckdb so we can filter/sort on them.

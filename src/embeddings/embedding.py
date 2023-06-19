@@ -21,6 +21,7 @@ def get_embed_fn(embedding_name: str) -> EmbedFn:
   """Return a function that returns the embedding matrix for the given embedding signal."""
   embedding_cls = get_signal_by_type(embedding_name, TextEmbeddingSignal)
   embedding = embedding_cls(split=False)
+  embedding.setup()
 
   def _embed_fn(data: Iterable[RichData]) -> np.ndarray:
     items = embedding.compute(data)

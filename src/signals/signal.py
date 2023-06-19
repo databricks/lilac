@@ -132,6 +132,14 @@ class Signal(abc.ABC, BaseModel):
 
     return self.name + _args_key_from_dict(args_dict)
 
+  def setup(self) -> None:
+    """Setup the signal."""
+    pass
+
+  def teardown(self) -> None:
+    """Tears down the signal."""
+    pass
+
 
 def _args_key_from_dict(args_dict: dict[str, Any]) -> str:
   args = None

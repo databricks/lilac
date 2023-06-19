@@ -22,6 +22,7 @@ spacy = "^3.5.1"
 tqdm = "^4.65.0"
 typing-extensions = "^4.4.0"
 uvicorn = {extras = ["standard"], version = "^0.20.0"}
+textacy = "^0.13.0"
 
 # For fast JSON serialization: https://fastapi.tiangolo.com/advanced/custom-response/#use-orjsonresponse
 orjson = "^3.8.10"
