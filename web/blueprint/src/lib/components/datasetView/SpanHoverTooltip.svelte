@@ -19,12 +19,19 @@
   bind:clientWidth={width}
 >
   <div class="table border-spacing-y-2">
-    {#each namedValues as namedValue}
+    {#each namedValues as namedValue (namedValue)}
       <div class="table-row">
         <div class="named-value-name table-cell max-w-xs truncate pr-2">{namedValue.name}</div>
         <div class="table-cell rounded text-right">
-          <span style:background-color={colorFromScore(namedValue.value)} class="px-1">
-            {namedValue.value.toFixed(3)}</span
+          <span
+            style:background-color={typeof namedValue.value === 'number'
+              ? colorFromScore(namedValue.value)
+              : ''}
+            class="px-1"
+          >
+            {typeof namedValue.value === 'number'
+              ? namedValue.value.toFixed(3)
+              : namedValue.value}</span
           >
         </div>
       </div>

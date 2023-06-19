@@ -41,6 +41,7 @@ from ..schema import (
   normalize_path,
   signal_compute_type_supports_dtype,
 )
+from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
@@ -748,7 +749,6 @@ class DatasetDuckDB(Dataset):
 
     topk_udf_col = self._topk_udf_to_sort_by(udf_columns, sort_by, limit, sort_order)
     if topk_udf_col:
-
       key_prefixes: Optional[list[VectorKey]] = None
       if where_query:
         # If there are filters, we need to send UUIDs to the topk query.
@@ -1172,6 +1172,19 @@ class DatasetDuckDB(Dataset):
             namespace=search.query.concept_namespace,
             concept_name=search.query.concept_name,
             embedding=search.query.embedding)
+
+          # Add the label UDF.
+          concept_labels_signal = ConceptLabelsSignal(
+            namespace=search.query.concept_namespace, concept_name=search.query.concept_name)
+          concept_labels_udf = Column(
+            path=search.path, signal_udf=concept_labels_signal, alias=concept_labels_signal.key())
+          search_udfs.append(
+            DuckDBSearchUDF(
+              udf=concept_labels_udf,
+              search_path=search.path,
+              output_path=_col_destination_path(concept_labels_udf),
+              alias=concept_labels_udf.alias,
+              sort=None))
 
         alias = search_signal.key()
         udf = Column(path=embedding_path, signal_udf=search_signal, alias=alias)

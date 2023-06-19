@@ -9,12 +9,13 @@
   import {
     L,
     deserializePath,
-    getFieldsByDtype,
     getValueNodes,
     isConceptScoreSignal,
     pathIsEqual,
+    petals,
     serializePath,
     valueAtPath,
+    type DataTypeCasted,
     type LilacField,
     type LilacValueNode,
     type LilacValueNodeCasted,
@@ -26,8 +27,10 @@
 
   export let text: string;
   export let row: LilacValueNode;
+  export let field: LilacField;
   export let visibleKeywordSpanFields: LilacField[];
   export let visibleSpanFields: LilacField[];
+  export let visibleLabelSpanFields: LilacField[];
 
   const spanHoverOpacity = 0.9;
 
@@ -35,21 +38,24 @@
 
   // Find the keyword span paths under this field.
   $: keywordSpanPaths = visibleKeywordSpanFields.map(f => serializePath(f.path));
+  $: labelSpanPaths = visibleLabelSpanFields.map(f => serializePath(f.path));
 
   // Map the span field paths to their children that are floats.
-  $: spanFloatFields = Object.fromEntries(
+  $: spanValueFields = Object.fromEntries(
     visibleSpanFields.map(f => [
       serializePath(f.path),
-      getFieldsByDtype('float32', f).filter(f =>
-        $datasetStore.visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path))
-      )
+      petals(f)
+        .filter(f => f.dtype != 'string_span')
+        .filter(f =>
+          $datasetStore.visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path))
+        )
     ])
   );
 
   // Filter the floats to only those that are concept scores.
   let spanConceptFields: {[fieldName: string]: LilacField<Signal>[]};
   $: spanConceptFields = Object.fromEntries(
-    Object.entries(spanFloatFields)
+    Object.entries(spanValueFields)
       .map(([path, fields]) => [path, fields.filter(f => isConceptScoreSignal(f.signal))])
       .filter(([_, fields]) => fields.length > 0)
   );
@@ -66,12 +72,15 @@
   $: mergedSpans = mergeSpans(text, pathToSpans);
 
   interface RenderSpan {
-    backgroundColor: string;
-    isBolded: boolean;
-    hoverInfo: SpanHoverNamedValue[];
     paths: string[];
     text: string;
     originalSpans: {[spanSet: string]: LilacValueNodeCasted<'string_span'>[]};
+
+    backgroundColor: string;
+    isBolded: boolean;
+    isUnderlined: boolean;
+
+    hoverInfo: SpanHoverNamedValue[];
   }
 
   // Map the merged spans to the information needed to render each span.
@@ -82,26 +91,40 @@
       const isBolded = keywordSpanPaths.some(
         keywordPath => mergedSpan.originalSpans[keywordPath] != null
       );
-
+      const isUnderlined = labelSpanPaths.some(
+        labelPath => mergedSpan.originalSpans[labelPath] != null
+      );
       // Map field names to all their values.
-      const fieldToValue: {[fieldName: string]: number} = {};
+      const fieldToValue: {[fieldName: string]: DataTypeCasted} = {};
       // Compute the maximum score for all original spans matching this render span to choose the
       // color.
       let maxScore = -Infinity;
       for (const [spanPathStr, originalSpans] of Object.entries(mergedSpan.originalSpans)) {
-        const floatFields = spanFloatFields[spanPathStr];
+        const valueFields = spanValueFields[spanPathStr];
         const spanPath = deserializePath(spanPathStr);
-        if (floatFields.length === 0) continue;
+        if (valueFields.length === 0) continue;
 
         for (const originalSpan of originalSpans) {
-          for (const floatField of floatFields) {
-            const subPath = floatField.path.slice(spanPath.length);
-            const value = valueAtPath(originalSpan as LilacValueNode, subPath);
+          for (const valueField of valueFields) {
+            const subPath = valueField.path.slice(spanPath.length);
+            const valueNode = valueAtPath(originalSpan as LilacValueNode, subPath);
+            if (valueNode == null) continue;
+
+            const value = L.value(valueNode);
             if (value == null) continue;
-            const floatValue = L.value<'float32'>(value);
-            if (floatValue != null) {
-              maxScore = Math.max(maxScore, floatValue);
-              fieldToValue[floatField.path.at(-1)!] = floatValue;
+
+            if (valueField.signal?.signal_name === 'concept_score') {
+              fieldToValue[valueField.path.at(-1)!] = value;
+            } else {
+              // Use the path below the displayed field as the field name.
+              fieldToValue[serializePath(valueField.path.slice(field.path.length))] = value;
+            }
+
+            if (valueField.dtype === 'float32') {
+              const floatValue = L.value<'float32'>(valueNode);
+              if (floatValue != null) {
+                maxScore = Math.max(maxScore, floatValue);
+              }
             }
           }
         }
@@ -115,6 +138,7 @@
       spanRenderInfos.push({
         backgroundColor: colorFromScore(maxScore),
         isBolded,
+        isUnderlined,
         hoverInfo,
         paths: mergedSpan.paths,
         text: mergedSpan.text,
@@ -192,6 +216,7 @@
       class="hover:cursor-poiner highlight-span text-sm leading-5"
       class:hover:cursor-pointer={visibleSpanFields.length > 0}
       class:font-bold={renderSpan.isBolded}
+      class:underline={renderSpan.isUnderlined}
       style:background-color={!hovered
         ? renderSpan.backgroundColor
         : colorFromOpacity(spanHoverOpacity)}

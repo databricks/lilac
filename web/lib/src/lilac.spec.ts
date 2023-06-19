@@ -1,9 +1,8 @@
-import {afterEach, assertType, describe, expect, it} from 'vitest';
+import {assertType, describe, expect, it} from 'vitest';
 import type {Schema} from '../fastapi_client';
 import {
   L,
   childFields,
-  clearCache,
   deserializeRow,
   deserializeSchema,
   getField,
@@ -149,10 +148,6 @@ describe('lilac', () => {
   const schema = deserializeSchema(MANIFEST_SCHEMA_FIXTURE, SCHEMA_ALIAS_UDF_PATHS_FIXTURE);
   const row = deserializeRow(SELECT_ROWS_RESPONSE_FIXTURE, schema);
 
-  afterEach(() => {
-    clearCache();
-  });
-
   describe('deserializeSchema', () => {
     it('should deserialize a schema', () => {
       expect(schema).toBeDefined();
@@ -252,15 +247,6 @@ describe('lilac', () => {
       expect(paths).toContainEqual(['title']);
       expect(paths).toContainEqual(['complex_list_of_struct', '0']);
       expect(paths).toContainEqual(['complex_list_of_struct', '0', 'propertyA']);
-    });
-    it('returns cached results', () => {
-      const values = listValueNodes(row);
-      const values2 = listValueNodes(row);
-      expect(values).toBe(values2);
-
-      clearCache();
-      const values3 = listValueNodes(row);
-      expect(values).not.toBe(values3);
     });
   });
 

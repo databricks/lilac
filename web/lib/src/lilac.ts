@@ -25,9 +25,6 @@ export const SCHEMA_FIELD_KEY = '__field__';
 // search types automatically for type-safety.
 export type SearchType = Exclude<Search['query']['type'], undefined>;
 
-// Cache containing the list of fields and value nodes
-let listValueNodesCache = new WeakMap<LilacValueNode, LilacValueNode[]>();
-
 export type LilacField<S extends Signal = Signal> = Field & {
   path: Path;
   /** Aliased path to the field, if alias is provided for the field or parent field */
@@ -145,9 +142,6 @@ export function getFieldsByDtype(dtype: DataType, schema?: LilacSchema): LilacFi
 
 /** List all values as a flattend array */
 export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
-  // Return the cached value if it exists.
-  if (listValueNodesCache.has(row)) return listValueNodesCache.get(row)!;
-
   let result: LilacValueNode[];
   if (Array.isArray(row)) result = [...row, ...row.flatMap(listValueNodes)];
   else {
@@ -159,8 +153,6 @@ export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
     result = [...childProperties, ...childProperties.flatMap(v => listValueNodes(v))];
   }
 
-  // Cache the result
-  listValueNodesCache.set(row, result);
   return result;
 }
 
@@ -314,10 +306,6 @@ function lilacValueNodeFromRawValue(
   castLilacValueNode(ret)[PATH_KEY] = path;
   castLilacValueNode(ret)[SCHEMA_FIELD_KEY] = field;
   return ret;
-}
-
-export function clearCache() {
-  listValueNodesCache = new WeakMap();
 }
 
 /** SignalInfo where `json_schema` is typed as `JSONSchema7`. */

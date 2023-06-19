@@ -8,6 +8,7 @@ from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
 from ..schema import PATH_WILDCARD, UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema
+from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
@@ -485,9 +486,12 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
   test_embedding = TestEmbedding()
   expected_world_signal = ConceptScoreSignal(
     namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
+  expected_labels_signal = ConceptLabelsSignal(
+    namespace='test_namespace', concept_name='test_concept')
 
   concept_score_path = ('text', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
                         expected_world_signal.key())
+  concept_labels_path = ('text', expected_labels_signal.key())
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
       UUID_COLUMN: 'string',
@@ -499,11 +503,25 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
             fields=[
               enriched_embedding_span_field(
                 {expected_world_signal.key(): field('float32', expected_world_signal.dict())})
-            ])
+            ]),
+          'test_namespace/test_concept/labels': field(
+            fields=[field('string_span', fields={
+              'label': 'boolean',
+              'draft': 'string'
+            })],
+            signal=expected_labels_signal.dict())
         })
     }),
-    alias_udf_paths={expected_world_signal.key(): concept_score_path},
+    alias_udf_paths={
+      expected_world_signal.key(): concept_score_path,
+      expected_labels_signal.key(): concept_labels_path,
+    },
     search_results=[
+      SearchResultInfo(
+        search_path=('text',),
+        result_path=concept_labels_path,
+        alias=expected_labels_signal.key(),
+      ),
       SearchResultInfo(
         search_path=('text',),
         result_path=concept_score_path,

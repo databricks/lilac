@@ -37,6 +37,11 @@
     .filter(f => f.signal?.signal_name !== 'substring_search')
     .filter(f => f.dtype === 'string_span');
 
+  // Find the label fields.
+  $: visibleLabelSpanFields = visibleChildren
+    .filter(f => f.signal?.signal_name === 'concept_labels')
+    .flatMap(f => getFieldsByDtype('string_span', f));
+
   $: values = getValueNodes(row, path)
     .map(v => L.value(v))
     .filter(notEmpty);
@@ -52,9 +57,11 @@
     <div class="font-normal">
       <StringSpanHighlight
         text={formatValue(value)}
+        {field}
         {row}
         {visibleKeywordSpanFields}
         {visibleSpanFields}
+        {visibleLabelSpanFields}
       />
     </div>
   </div>

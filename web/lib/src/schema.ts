@@ -98,7 +98,9 @@ export function isFilterableField(field: LilacField) {
 
 export function deserializePath(path: string | Path): Path {
   if (Array.isArray(path)) return path;
-  const matches = path.match(/("[^"]+"|[\w*]+)/g)?.map(match => match.replace(/"/g, ''));
+  // Regex taken from:
+  // https://stackoverflow.com/questions/70059085/javascript-regular-expression-split-string-by-periods-not-in-double-quotes
+  const matches = path.match(/(?:"[^"]*"|[^.])+(?:\.+$)?/g)?.map(match => match.replace(/"/g, ''));
   return matches || [];
 }
 export function pathIsEqual(

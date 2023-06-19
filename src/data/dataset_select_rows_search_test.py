@@ -273,7 +273,8 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
       'text': enriched_item(
         'hello world2.', {
           test_embedding.key():
-            [enriched_embedding_span(0, 13, {expected_signal_udf.key(): approx(0.75, abs=0.25)})]
+            [enriched_embedding_span(0, 13, {expected_signal_udf.key(): approx(0.75, abs=0.25)})],
+          'test_namespace/test_concept/labels': [lilac_span(0, 13, {'label': True})]
         })
     },
     {
@@ -281,7 +282,8 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
       'text': enriched_item(
         'hello world.', {
           test_embedding.key():
-            [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.25, abs=0.25)})]
+            [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.25, abs=0.25)})],
+          'test_namespace/test_concept/labels': [lilac_span(0, 12, {'label': False})]
         })
     },
   ]
