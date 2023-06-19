@@ -31,7 +31,7 @@ class CSVDataset(Source):
   _df: pd.DataFrame
 
   @override
-  def prepare(self) -> None:
+  def setup(self) -> None:
     # Download CSV files to /tmp if they are via HTTP to speed up duckdb.
     filepaths = download_http_files(self.filepaths)
 

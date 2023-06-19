@@ -59,7 +59,7 @@ class Gmail(Source):
     schema_extra = {'required': ['credentials_file']}
 
   @override
-  def prepare(self) -> None:
+  def setup(self) -> None:
     # The token file stores the user's access and refresh tokens, and is created automatically when
     # the authorization flow completes for the first time.
     token_filepath = os.path.join(_GMAIL_CONFIG_DIR, _TOKEN_FILENAME)

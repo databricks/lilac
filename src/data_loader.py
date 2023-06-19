@@ -45,7 +45,7 @@ def process_source(base_dir: Union[str, pathlib.Path],
   """Process a source."""
   output_dir = get_dataset_output_dir(base_dir, namespace, dataset_name)
 
-  source.prepare()
+  source.setup()
   source_schema = source.source_schema()
   items = source.process()
 

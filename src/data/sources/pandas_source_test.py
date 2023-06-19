@@ -20,7 +20,7 @@ def test_simple_dataframe() -> None:
   }])
 
   source = PandasDataset(df)
-  source.prepare()
+  source.setup()
 
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
@@ -62,7 +62,7 @@ def test_simple_dataframe_with_index() -> None:
                                  index=['id1', 'id2', 'id3'])
 
   source = PandasDataset(df)
-  source.prepare()
+  source.setup()
 
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(

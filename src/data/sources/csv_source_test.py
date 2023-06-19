@@ -19,7 +19,7 @@ def test_csv(tmp_path: pathlib.Path) -> None:
     writer.writerows(csv_rows)
 
   source = CSVDataset(filepaths=[filepath])
-  source.prepare()
+  source.setup()
 
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(

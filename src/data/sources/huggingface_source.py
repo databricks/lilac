@@ -112,7 +112,7 @@ class HuggingFaceDataset(Source):
   _schema_info: SchemaInfo
 
   @override
-  def prepare(self) -> None:
+  def setup(self) -> None:
     if self.load_from_disk:
       # Load from disk.
       hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.dataset_name)}

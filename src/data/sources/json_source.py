@@ -29,7 +29,7 @@ class JSONDataset(Source):
   _df: pd.DataFrame
 
   @override
-  def prepare(self) -> None:
+  def setup(self) -> None:
     # Download JSON files to local cache if they are via HTTP to speed up duckdb.
     filepaths = download_http_files(self.filepaths)
 

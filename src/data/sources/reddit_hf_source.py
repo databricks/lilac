@@ -27,9 +27,9 @@ class RedditDataset(Source):
   _hf_dataset: HuggingFaceDataset
 
   @override
-  def prepare(self) -> None:
+  def setup(self) -> None:
     self._hf_dataset = HuggingFaceDataset(dataset_name=HF_REDDIT_DATASET_NAME)
-    self._hf_dataset.prepare()
+    self._hf_dataset.setup()
 
   @override
   def source_schema(self) -> SourceSchema:

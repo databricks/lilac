@@ -25,7 +25,7 @@ class PandasDataset(Source):
     self._df = df
 
   @override
-  def prepare(self) -> None:
+  def setup(self) -> None:
     # Create the source schema in prepare to share it between process and source_schema.
     self._source_schema = schema_from_df(self._df, PANDAS_INDEX_COLUMN)
 

@@ -14,7 +14,7 @@ class TestSource(Source):
   name = 'test_source'
 
   @override
-  def prepare(self) -> None:
+  def setup(self) -> None:
     pass
 
   @override

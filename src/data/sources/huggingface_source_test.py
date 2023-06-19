@@ -19,7 +19,7 @@ def test_hf(tmp_path: pathlib.Path) -> None:
   source = HuggingFaceDataset(dataset_name=dataset_name, load_from_disk=True)
 
   items = source.process()
-  source.prepare()
+  source.setup()
 
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
@@ -73,7 +73,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
   source = HuggingFaceDataset(dataset_name=dataset_name, load_from_disk=True)
 
   items = source.process()
-  source.prepare()
+  source.setup()
 
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
@@ -137,7 +137,7 @@ def test_hf_list(tmp_path: pathlib.Path) -> None:
   source = HuggingFaceDataset(dataset_name=dataset_name, load_from_disk=True)
 
   items = source.process()
-  source.prepare()
+  source.setup()
 
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(

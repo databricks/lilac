@@ -22,7 +22,7 @@ class TestSource(Source):
   name = 'test_source'
 
   @override
-  def prepare(self) -> None:
+  def setup(self) -> None:
     pass
 
   @override
@@ -40,11 +40,11 @@ def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
   mock_uuid.side_effect = [fake_uuid(b'1'), fake_uuid(b'2')]
 
   source = TestSource()
-  prepare_mock = mocker.spy(TestSource, 'prepare')
+  setup_mock = mocker.spy(TestSource, 'setup')
 
   output_dir, num_items = process_source(tmp_path, 'test_namespace', 'test_dataset', source)
 
-  assert prepare_mock.call_count == 1
+  assert setup_mock.call_count == 1
 
   assert output_dir == os.path.join(tmp_path, DATASETS_DIR_NAME, 'test_namespace', 'test_dataset')
   assert num_items == 2

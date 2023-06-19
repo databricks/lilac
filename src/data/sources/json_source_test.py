@@ -17,7 +17,7 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
     f.write(json.dumps(json_records))
 
   source = JSONDataset(filepaths=[filepath])
-  source.prepare()
+  source.setup()
 
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
@@ -50,7 +50,7 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
     f.writelines(json_lines)
 
   source = JSONDataset(dataset_name='test_dataset', filepaths=[filepath])
-  source.prepare()
+  source.setup()
 
   source_schema = source.source_schema()
 
