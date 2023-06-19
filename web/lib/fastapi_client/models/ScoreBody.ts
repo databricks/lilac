@@ -3,7 +3,6 @@
 /* eslint-disable */
 
 import type { ScoreExample } from './ScoreExample';
-import type { Sensitivity } from './Sensitivity';
 
 /**
  * Request body for the score endpoint.
@@ -11,6 +10,5 @@ import type { Sensitivity } from './Sensitivity';
 export type ScoreBody = {
     examples: Array<ScoreExample>;
     draft?: string;
-    sensitivity?: Sensitivity;
 };
 

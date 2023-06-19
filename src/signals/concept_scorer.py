@@ -4,13 +4,7 @@ from typing import Iterable, Optional
 import numpy as np
 from typing_extensions import override
 
-from ..concepts.concept import (
-  DEFAULT_NUM_NEG_EXAMPLES,
-  DRAFT_MAIN,
-  ConceptColumnInfo,
-  ConceptModel,
-  Sensitivity,
-)
+from ..concepts.concept import DEFAULT_NUM_NEG_EXAMPLES, DRAFT_MAIN, ConceptColumnInfo, ConceptModel
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.vector_store import VectorStore
 from ..schema import Field, Item, RichData, VectorKey, field
@@ -27,9 +21,6 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
 
   # The draft version of the concept to use. If not provided, the latest version is used.
   draft: str = DRAFT_MAIN
-
-  # The sensitivity of the concept. See the `Sensitive` enum for more details.
-  sensitivity = Sensitivity.BALANCED
 
   # Number of randomly chosen negative examples to use when training the concept. This is used to
   # obtain a better suited model for the concrete dataset.
@@ -61,14 +52,14 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     concept_model = self._get_concept_model()
-    return concept_model.score(self.draft, data, self.sensitivity)
+    return concept_model.score(self.draft, data)
 
   @override
   def vector_compute(self, keys: Iterable[VectorKey],
                      vector_store: VectorStore) -> Iterable[Optional[Item]]:
     concept_model = self._get_concept_model()
     embeddings = vector_store.get(keys)
-    return concept_model.score_embeddings(self.draft, embeddings, self.sensitivity).tolist()
+    return concept_model.score_embeddings(self.draft, embeddings).tolist()
 
   @override
   def vector_compute_topk(

@@ -1,6 +1,5 @@
 """Defines the concept and the concept models."""
 import random
-from enum import Enum
 from typing import Iterable, Literal, Optional, Union
 
 import numpy as np
@@ -84,28 +83,6 @@ class Concept(BaseModel):
     return list(sorted(drafts))
 
 
-class Sensitivity(str, Enum):
-  """Sensitivity levels of a concept.
-
-  The sensitivity of concept models vary as a function of how powerful the embedding is, and how
-  complicated or subtle the concept is. Therefore, we provide a way to control the sensitivity of
-  the concept model.
-
-  - `VERY_SENSITIVE` will fire "True" more often and therefore introduce more false positives
-  (will add things that don't fit in the concept).
-  - `NOT_SENSITIVE` will fire "True" less often and therefore introduce more false negatives
-  (misses things that fit in the concept).
-
-  """
-  NOT_SENSITIVE = 'not sensitive'
-  BALANCED = 'balanced'
-  SENSITIVE = 'sensitive'
-  VERY_SENSITIVE = 'very sensitive'
-
-  def __repr__(self) -> str:
-    return self.value
-
-
 class LogisticEmbeddingModel(BaseModel):
   """A model that uses logistic regression with embeddings."""
 
@@ -120,7 +97,7 @@ class LogisticEmbeddingModel(BaseModel):
   _model: LogisticRegression = LogisticRegression(
     class_weight='balanced', C=30, tol=1e-5, warm_start=True, max_iter=1_000, n_jobs=-1)
 
-  def score_embeddings(self, embeddings: np.ndarray, sensitivity: Sensitivity) -> np.ndarray:
+  def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
     try:
       return self._model.predict_proba(embeddings)[:, 1]
@@ -188,13 +165,11 @@ class ConceptModel(BaseModel):
     sample_keys = random.sample(keys, num_samples)
     self._negative_vectors = vector_store.get(sample_keys)
 
-  def score_embeddings(self, draft: DraftId, embeddings: np.ndarray,
-                       sensitivity: Sensitivity) -> np.ndarray:
+  def score_embeddings(self, draft: DraftId, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
-    return self._get_logistic_model(draft).score_embeddings(embeddings, sensitivity)
+    return self._get_logistic_model(draft).score_embeddings(embeddings)
 
-  def score(self, draft: DraftId, examples: Iterable[RichData],
-            sensitivity: Sensitivity) -> list[float]:
+  def score(self, draft: DraftId, examples: Iterable[RichData]) -> list[float]:
     """Get the scores for the provided examples."""
     embedding_signal = get_signal_cls(self.embedding_name)()
     if not isinstance(embedding_signal, TextEmbeddingSignal):
@@ -203,7 +178,7 @@ class ConceptModel(BaseModel):
 
     embed_fn = get_embed_fn(self.embedding_name)
     embeddings = np.array(embed_fn(examples))
-    return self._get_logistic_model(draft).score_embeddings(embeddings, sensitivity).tolist()
+    return self._get_logistic_model(draft).score_embeddings(embeddings).tolist()
 
   def coef(self, draft: DraftId) -> np.ndarray:
     """Get the coefficients of the underlying ML model."""
