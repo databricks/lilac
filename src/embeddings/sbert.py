@@ -57,4 +57,4 @@ class SBERT(TextEmbeddingSignal):
     embed_fn = model.encode
     split_fn = split_text if self._split else None
     docs = cast(Iterable[str], docs)
-    yield from compute_split_embeddings(docs, batch_size, splitter, model.encode)
+    yield from compute_split_embeddings(docs, batch_size, embed_fn=embed_fn, split_fn=split_fn)

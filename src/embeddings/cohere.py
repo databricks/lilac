@@ -9,6 +9,7 @@ from typing_extensions import override
 from ..config import CONFIG
 from ..schema import Item, RichData
 from ..signals.signal import TextEmbeddingSignal
+from ..signals.splitters.chunk_splitter import split_text
 from .embedding import compute_split_embeddings
 
 NUM_PARALLEL_REQUESTS = 10
@@ -45,5 +46,6 @@ class Cohere(TextEmbeddingSignal):
       return _cohere().embed(texts, truncate='END').embeddings
 
     docs = cast(Iterable[str], docs)
+    split_fn = split_text if self._split else None
     yield from compute_split_embeddings(
-      docs, COHERE_BATCH_SIZE, splitter, embed_fn, num_parallel_requests=NUM_PARALLEL_REQUESTS)
+      docs, COHERE_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=NUM_PARALLEL_REQUESTS)
