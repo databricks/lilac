@@ -21,7 +21,7 @@ TYPE_TOKEN_RATIO = 'type_token_ratio'
 
 
 class TextStatisticsSignal(TextSignal):
-  """Compute text statistics for a document."""
+  """Compute text statistics for a document such as readability scores, type-token-ratio, etc.."""
   name = 'text_statistics'
   display_name = 'Text Statistics'
 
@@ -50,6 +50,8 @@ class TextStatisticsSignal(TextSignal):
     for batch in chunks(data, SPACY_BATCH_SIZE):
       # Replace None with empty strings to avoid spacy errors.
       batch = [x or '' for x in batch]
+      # See https://textacy.readthedocs.io/en/0.11.0/api_reference/text_stats.html for a list of
+      # available statistics.
       corpus = textacy.Corpus(lang=self._lang, data=batch)
       for doc in cast(Iterable[Doc], corpus):
         if not len(doc):
