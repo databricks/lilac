@@ -720,19 +720,10 @@ class DatasetDuckDB(Dataset):
           col.signal_udf, col.path, manifest, compute_dependencies=False)
 
     schema = manifest.data_schema
-    path_to_udf_col_name: dict[PathTuple, str] = {}
+
     if combine_columns:
-      res = self.select_rows_schema(columns, sort_by, sort_order, searches, combine_columns=True)
-      schema = res.data_schema
-
-    for col in cols:
-      if col.signal_udf:
-        dest_path = _col_destination_path(col)
-        alias = col.alias or _unique_alias(col)
-        path_to_udf_col_name[dest_path] = alias
-
-    print('path to udf col name')
-    print(path_to_udf_col_name)
+      schema = self.select_rows_schema(
+        columns, sort_by, sort_order, searches, combine_columns=True).data_schema
 
     self._validate_columns(cols, manifest.data_schema, schema)
     self._normalize_searches(searches, manifest)
@@ -758,6 +749,12 @@ class DatasetDuckDB(Dataset):
     udf_aliases: dict[str, PathTuple] = {
       col.alias: col.path for col in cols if col.signal_udf and col.alias
     }
+    path_to_udf_col_name: dict[PathTuple, str] = {}
+    for col in cols:
+      if col.signal_udf:
+        alias = col.alias or _unique_alias(col)
+        dest_path = _col_destination_path(col)
+        path_to_udf_col_name[dest_path] = alias
 
     # Filtering and searching.
     where_query = ''
@@ -830,7 +827,6 @@ class DatasetDuckDB(Dataset):
 
     sort_sql_before_udf: list[str] = []
     sort_sql_after_udf: list[str] = []
-    sort_udf_aliases: list[str] = []
 
     for path in sort_by:
       # We only allow sorting by nodes with a value.
@@ -839,8 +835,6 @@ class DatasetDuckDB(Dataset):
       signal_alias = '.'.join(map(str, path))
 
       udf_path = _path_to_udf_duckdb_path(path, path_to_udf_col_name)
-      print(path, '-------->', udf_path)
-
       if not udf_path:
         # Re-route the path if it starts with an alias by pointing it to the actual path.
         if first_subpath in col_aliases:
@@ -859,7 +853,6 @@ class DatasetDuckDB(Dataset):
       # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
       if udf_path:
         sort_sql_after_udf.append(sort_sql)
-        sort_udf_aliases.append(path[0])
       else:
         sort_sql_before_udf.append(sort_sql)
 
@@ -1031,7 +1024,7 @@ class DatasetDuckDB(Dataset):
     col_schemas: list[Schema] = []
     for col in cols:
       dest_path = _col_destination_path(col)
-      if col.signal_udf and col.alias:
+      if col.signal_udf:
         if col.alias:
           alias_udf_paths[col.alias] = dest_path
         field = col.signal_udf.fields()
