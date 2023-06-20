@@ -77,7 +77,7 @@
       </div>
     </div>
 
-    <div class="h-full overflow-y-hidden">
+    <div class="h-full overflow-hidden">
       <slot />
     </div>
   </main>

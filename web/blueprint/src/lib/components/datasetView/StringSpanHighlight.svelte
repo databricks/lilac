@@ -208,7 +208,7 @@
   }
 </script>
 
-<div class="relative mb-4 whitespace-pre-wrap">
+<div class="relative mb-4 mr-2 whitespace-pre-wrap">
   {#each spanRenderInfos as renderSpan}
     {@const hovered = isHovered(pathsHovered, renderSpan)}
     <span
