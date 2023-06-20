@@ -71,9 +71,7 @@
     stagedFilters = structuredClone($datasetViewStore.queryOptions.filters || []);
   });
 
-  $: currentFieldFilters = stagedFilters.filter(f =>
-    pathIsEqual(f.path, selectedField?.alias || selectedField?.path)
-  );
+  $: currentFieldFilters = stagedFilters.filter(f => pathIsEqual(f.path, selectedField?.path));
 
   // Ensure that exists ops have null value
   $: {
@@ -124,7 +122,7 @@
       </div>
       <div class="flex w-full flex-col gap-y-6">
         {#if selectedField}
-          {@const fieldPath = selectedField.alias || selectedField.path}
+          {@const fieldPath = selectedField.path}
           {#each currentFieldFilters as filter}
             <div class="flex items-center gap-x-2">
               <Select bind:selected={filter.op} labelText="Operation">

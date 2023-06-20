@@ -128,10 +128,9 @@
       }
     } else if (command.command === Command.EditPreviewConcept) {
       if (path) {
-        datasetViewStore.editUdfColumn(command.alias, {
+        datasetViewStore.editUdfColumn({
           path: path,
-          signal_udf: signal,
-          alias: command.alias
+          signal_udf: signal
         });
       }
     }

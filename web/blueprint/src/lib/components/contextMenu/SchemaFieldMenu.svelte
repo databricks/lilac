@@ -18,7 +18,7 @@
 <OverflowMenuItem
   text="Sort by"
   disabled={!isSortableField(field)}
-  on:click={() => datasetViewStore.addSortBy(field.alias || field.path)}
+  on:click={() => datasetViewStore.addSortBy(field.path)}
 />
 <OverflowMenuItem
   text="Filter"

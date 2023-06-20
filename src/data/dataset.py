@@ -127,11 +127,16 @@ class SearchResultInfo(BaseModel):
   alias: Optional[str]
 
 
+class SelectRowsSchemaUDF(BaseModel):
+  """The UDF for a select rows schema query."""
+  path: PathTuple
+  alias: Optional[str]
+
+
 class SelectRowsSchemaResult(BaseModel):
   """The result of a select rows schema query."""
   data_schema: Schema
-  # Maps a udf name to its destination path in the schema.
-  alias_udf_paths: dict[str, PathTuple] = {}
+  udfs: list[SelectRowsSchemaUDF] = []
   search_results: list[SearchResultInfo] = []
   sorts: Optional[list[SortResult]]
 

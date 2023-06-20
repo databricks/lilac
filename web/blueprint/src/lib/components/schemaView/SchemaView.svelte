@@ -24,7 +24,6 @@
 
   // Get the resulting schmema including UDF columns
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
-  $: aliasMapping = selectRowsSchema?.data?.alias_udf_paths;
 
   async function downloadSelectRows() {
     const namespace = $datasetViewStore.namespace;
@@ -82,12 +81,11 @@
       <TabContent>
         {#if selectRowsSchema?.isLoading}
           <SkeletonText paragraph lines={3} />
-        {:else if selectRowsSchema?.isSuccess && selectRowsSchema.data.schema.fields}
+        {:else if selectRowsSchema?.isSuccess && selectRowsSchema.data.schema.fields != null}
           {#each Object.keys(selectRowsSchema.data.schema.fields) as key (key)}
             <FlattenedField
               schema={selectRowsSchema.data.schema}
               field={selectRowsSchema.data.schema.fields[key]}
-              {aliasMapping}
             />
           {/each}
         {/if}
@@ -95,12 +93,11 @@
       <TabContent>
         {#if selectRowsSchema?.isLoading}
           <SkeletonText paragraph lines={3} />
-        {:else if selectRowsSchema?.isSuccess && selectRowsSchema.data.schema.fields}
+        {:else if selectRowsSchema?.isSuccess && selectRowsSchema.data.schema.fields != null}
           {#each Object.keys(selectRowsSchema.data.schema.fields) as key (key)}
             <SchemaField
               schema={selectRowsSchema.data.schema}
               field={selectRowsSchema.data.schema.fields[key]}
-              {aliasMapping}
             />
           {/each}
         {/if}
