@@ -136,7 +136,6 @@ class SelectRowsSchemaUDF(BaseModel):
 class SelectRowsSchemaResult(BaseModel):
   """The result of a select rows schema query."""
   data_schema: Schema
-  # Maps a udf name to its destination path in the schema.
   udfs: list[SelectRowsSchemaUDF] = []
   search_results: list[SearchResultInfo] = []
   sorts: Optional[list[SortResult]]
