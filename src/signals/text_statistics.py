@@ -56,7 +56,7 @@ class TextStatisticsSignal(TextSignal):
       for doc in cast(Iterable[Doc], corpus):
         if not len(doc):
           yield None
-          return
+          continue
         readability = text_stats.readability.automated_readability_index(doc)
         ttr = text_stats.diversity.ttr(doc)
         num_chars = text_stats.basics.n_chars(doc)

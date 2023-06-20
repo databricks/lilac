@@ -40,6 +40,14 @@ def test_text_statistics_missing_value() -> None:
   signal = TextStatisticsSignal()
   signal.setup()
 
-  scores = signal.compute(['hello', cast(str, None)])
+  scores = signal.compute(['hello', cast(str, None), 'everybody'])
 
-  assert list(scores) == [{NUM_CHARS: 5, READABILITY: approx(2.62), TYPE_TOKEN_RATIO: 1.0}, None]
+  assert list(scores) == [{
+    NUM_CHARS: 5,
+    READABILITY: approx(2.62),
+    TYPE_TOKEN_RATIO: 1.0
+  }, None, {
+    NUM_CHARS: 9,
+    READABILITY: approx(21.46),
+    TYPE_TOKEN_RATIO: 1.0
+  }]
