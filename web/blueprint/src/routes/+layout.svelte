@@ -5,7 +5,7 @@
   import TaskMonitor from '$lib/stores/TaskMonitor.svelte';
   import type {ApiError} from '$lilac';
   import {QueryClientProvider} from '@tanstack/svelte-query';
-  import {ToastNotification} from 'carbon-components-svelte';
+  import {Theme, ToastNotification} from 'carbon-components-svelte';
   import {onMount} from 'svelte';
   // Styles
   import '../tailwind.css';
@@ -36,7 +36,7 @@
 />
 
 <!-- https://carbondesignsystem.com/guidelines/themes/overview#customizing-a-theme -->
-<!-- <Theme
+<Theme
   theme="white"
   tokens={{
     // Lilac colors taken from: https://www.color-hex.com/color-palette/5811
@@ -61,7 +61,7 @@
     'helper-text-01-letter-spacing': 'var(--cds-productive-heading-01-letter-spacing)',
     'productive-heading-01-font-weight': 600
   }}
-/> -->
+/>
 
 <QueryClientProvider client={queryClient}>
   <main class="flex h-screen flex-col">
