@@ -618,9 +618,10 @@ class DatasetDuckDB(Dataset):
     value_column = 'value'
 
     limit_query = f'LIMIT {limit}' if limit else ''
-    inner_select = _select_sql(path, flatten=True, unnest=True)
+    duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
+    inner_select = _select_sql(duckdb_path, flatten=True, unnest=True)
 
-    filters, _ = self._normalize_filters(filters, {}, {}, manifest)
+    filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
     filter_queries = self._create_where(manifest, filters, searches=[])
     where_query = ''
     if filter_queries:

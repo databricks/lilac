@@ -6,7 +6,10 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, field, schema
+from ..concepts.concept import ExampleIn
+from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
+from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, SignalInputType, field, schema
+from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import (
   TextEmbeddingSignal,
   TextSignal,
@@ -14,7 +17,7 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import Column, DatasetManifest, val
+from .dataset import Column, DatasetManifest, GroupsSortBy, SortOrder, val
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
@@ -136,7 +139,8 @@ class TestSplitSignal(TextSplitterSignal):
 EMBEDDINGS: list[tuple[str, Union[list[float], list[list[float]]]]] = [
   ('hello.', [1.0, 0.0, 0.0]),
   # This embedding has an outer dimension of 1.
-  ('hello2.', [[1.0, 1.0, 0.0]])
+  ('hello2.', [[1.0, 1.0, 0.0]]),
+  ('hello3.', [[0, 0, 1.]])
 ]
 
 STR_EMBEDDINGS: dict[str, Union[list[float], list[list[float]]]] = {
@@ -182,6 +186,8 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestSplitSignal)
   register_signal(TestEmbedding)
   register_signal(ComputedKeySignal)
+  register_signal(ConceptScoreSignal)
+
   # Unit test runs.
   yield
   # Teardown.
@@ -620,3 +626,44 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
     'text': enriched_item('hello2.', {'key_True': 1})
   }]
   assert list(result) == expected_result
+
+
+def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello2.',
+  }, {
+    UUID_COLUMN: '3',
+    'text': 'hello3.',
+  }])
+
+  embedding_signal = TestEmbedding()
+  dataset.compute_signal(embedding_signal, 'text')
+
+  concept_db = DiskConceptDB()
+  concept_db.create(namespace='test_namespace', name='test_concept', type=SignalInputType.TEXT)
+  concept_db.edit(
+    'test_namespace', 'test_concept',
+    ConceptUpdate(insert=[
+      ExampleIn(label=False, text='hello.'),
+      ExampleIn(label=True, text='hello2.'),
+      ExampleIn(label=False, text='hello3.')
+    ]))
+
+  concept_signal = ConceptScoreSignal(
+    namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
+
+  dataset.compute_signal(concept_signal, 'text')
+
+  concept_key = concept_signal.key(is_computed_signal=True)
+  result = dataset.select_groups(f'text.test_embedding.*.embedding.{concept_key}')
+  assert list(result) == [('Not in concept', 2), ('In concept', 1)]
+
+  result = dataset.select_groups(
+    f'text.test_embedding.*.embedding.{concept_key}',
+    sort_by=GroupsSortBy.COUNT,
+    sort_order=SortOrder.ASC)
+  assert list(result) == [('In concept', 1), ('Not in concept', 2)]
