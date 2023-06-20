@@ -27,7 +27,11 @@
   function hasMetadataChildren(field: LilacField): boolean {
     if (field == null) return false;
     return childFields(field).some(
-      f => f.dtype != 'string_span' && f.dtype != 'embedding' && f != field
+      f =>
+        f.dtype != 'string_span' &&
+        f.dtype != 'embedding' &&
+        f != field &&
+        visibleFields.some(vf => pathIsEqual(f.path, vf.path))
     );
   }
   function makeRows(row: LilacValueNode): MetadataRow[] {
