@@ -250,7 +250,7 @@ def test_sparse_rich_signal(make_test_data: TestDataMaker) -> None:
   }]
 
 
-def test_source_joined_with_signal_column(make_test_data: TestDataMaker) -> None:
+def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(SIMPLE_ITEMS)
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,

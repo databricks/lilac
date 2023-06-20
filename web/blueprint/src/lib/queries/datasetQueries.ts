@@ -48,7 +48,7 @@ export const querySourcesSchema = createApiQuery(DataLoadersService.getSourceSch
   select: res => res as JSONSchema7
 });
 export const loadDatasetMutation = createApiMutation(DataLoadersService.load);
-export const computeSignalColumnMutation = createApiMutation(DatasetsService.computeSignalColumn, {
+export const computeSignalMutation = createApiMutation(DatasetsService.computeSignal, {
   onSuccess: resp => {
     queryClient.invalidateQueries([TASKS_TAG]);
 

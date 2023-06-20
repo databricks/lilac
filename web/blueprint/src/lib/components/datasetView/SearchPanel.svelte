@@ -1,7 +1,7 @@
 <script lang="ts">
   import {queryConcepts} from '$lib/queries/conceptQueries';
-  import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
 
+  import {computeSignalMutation} from '$lib/queries/datasetQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {SEARCH_TABS, getDatasetViewContext} from '$lib/stores/datasetViewStore';
@@ -53,7 +53,7 @@
 
   $: searches = getSearches($datasetViewStore, searchPath);
 
-  const computeSignalMutation = computeSignalColumnMutation();
+  const signalMutation = computeSignalMutation();
 
   // Only show the visible string fields in the dropdown.
   $: visibleStringPaths = ($datasetStore.visibleFields || [])
@@ -190,7 +190,7 @@
   const computeEmbedding = () => {
     if (selectedEmbedding == null) return;
     isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding)] = true;
-    $computeSignalMutation.mutate([
+    $signalMutation.mutate([
       namespace,
       datasetName,
       {

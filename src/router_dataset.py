@@ -112,9 +112,9 @@ class ComputeSignalResponse(BaseModel):
   task_id: TaskId
 
 
-@router.post('/{namespace}/{dataset_name}/compute_signal_column')
-def compute_signal_column(namespace: str, dataset_name: str,
-                          options: ComputeSignalOptions) -> ComputeSignalResponse:
+@router.post('/{namespace}/{dataset_name}/compute_signal')
+def compute_signal(namespace: str, dataset_name: str,
+                   options: ComputeSignalOptions) -> ComputeSignalResponse:
   """Compute a signal for a dataset."""
 
   def _task_compute_signal(namespace: str, dataset_name: str, options_dict: dict,

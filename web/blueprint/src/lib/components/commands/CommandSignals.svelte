@@ -18,7 +18,7 @@
 </script>
 
 <script lang="ts">
-  import {computeSignalColumnMutation} from '$lib/queries/datasetQueries';
+  import {computeSignalMutation} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     SIGNAL_INPUT_TYPE_TO_VALID_DTYPES,
@@ -76,7 +76,7 @@
   const datasetViewStore = getDatasetViewContext();
   const dispatch = createEventDispatcher();
 
-  const computeSignalMutation = computeSignalColumnMutation();
+  const signalMutation = computeSignalMutation();
 
   const customComponents: Record<string, Record<string, typeof SvelteComponent>> = {
     concept_score: {
@@ -111,7 +111,7 @@
   function submit() {
     if (!signal) return;
     if (command.command === Command.ComputeSignal || command.command === Command.ComputeEmbedding) {
-      $computeSignalMutation.mutate([
+      $signalMutation.mutate([
         command.namespace,
         command.datasetName,
         {

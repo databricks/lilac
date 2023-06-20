@@ -57,7 +57,7 @@ export class DatasetsService {
     }
 
     /**
-     * Compute Signal Column
+     * Compute Signal
      * Compute a signal for a dataset.
      * @param namespace
      * @param datasetName
@@ -65,14 +65,14 @@ export class DatasetsService {
      * @returns ComputeSignalResponse Successful Response
      * @throws ApiError
      */
-    public static computeSignalColumn(
+    public static computeSignal(
         namespace: string,
         datasetName: string,
         requestBody: ComputeSignalOptions,
     ): CancelablePromise<ComputeSignalResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/v1/datasets/{namespace}/{dataset_name}/compute_signal_column',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/compute_signal',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,
