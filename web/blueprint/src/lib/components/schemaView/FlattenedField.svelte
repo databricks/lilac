@@ -3,8 +3,8 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getSearches, isPreviewSignal} from '$lib/view_utils';
   import * as Lilac from '$lilac';
-  import {Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
-  import {CaretDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
+  import {Button, Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
+  import {CaretDown, Chip, RowExpand, SortAscending, SortDescending} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import HoverTooltip from '../common/HoverTooltip.svelte';
@@ -12,6 +12,7 @@
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
   import EmbeddingBadge from '../datasetView/EmbeddingBadge.svelte';
   import SearchPill from '../datasetView/SearchPill.svelte';
+  import FieldDetails from './FieldDetails.svelte';
 
   export let schema: Lilac.LilacSchema;
   export let field: Lilac.LilacField;
@@ -36,6 +37,7 @@
   const datasetStore = getDatasetContext();
 
   let expanded = true;
+  let expandedDetails = false;
 
   $: path = field.path;
 
@@ -59,6 +61,11 @@
   $: filters =
     $datasetViewStore.queryOptions.filters?.filter(f => Lilac.pathIsEqual(f.path, path)) || [];
   $: isFiltered = filters.length > 0;
+
+  $: hasMenu =
+    Lilac.isSortableField(field) ||
+    Lilac.isFilterableField(field) ||
+    !Lilac.isSignalField(field, schema);
 
   // Find all the child display paths for a given field.
   function childDisplayFields(field?: Lilac.LilacField): Lilac.LilacField[] {
@@ -221,12 +228,31 @@
   {:else if Lilac.isSignalRootField(field)}
     <Tag type="blue" class="signal-tag whitespace-nowrap">Signal</Tag>
   {/if}
+  {#if Lilac.isSortableField(field) && !isPreview}
+    <div class="flex">
+      <Button
+        isSelected={expandedDetails}
+        kind="ghost"
+        iconDescription={expandedDetails ? 'Close details' : 'Expand details'}
+        icon={RowExpand}
+        on:click={() => (expandedDetails = !expandedDetails)}
+      />
+    </div>
+  {/if}
   <div>
-    <OverflowMenu light flipped>
-      <SchemaFieldMenu {field} {schema} />
-    </OverflowMenu>
+    {#if hasMenu}
+      <OverflowMenu light flipped>
+        <SchemaFieldMenu {field} {schema} />
+      </OverflowMenu>
+    {/if}
   </div>
 </div>
+
+{#if expandedDetails}
+  <div transition:slide|local>
+    <FieldDetails {field} />
+  </div>
+{/if}
 
 {#if expanded}
   <div transition:slide|local>
@@ -246,6 +272,12 @@
 {/if}
 
 <style lang="postcss">
+  :global(.bx--btn--selected) {
+    @apply !bg-slate-200;
+  }
+  :global(.bx--btn--selected .bx--btn__icon) {
+    @apply rotate-180 transition;
+  }
   :global(.signal-tag span) {
     @apply px-2;
   }

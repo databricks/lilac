@@ -6,7 +6,7 @@ body {
 .bx--dropdown,
 .bx--text-input,
 .bx--search-input {
-  @apply rounded bg-neutral-50 outline-1 outline-neutral-300;
+  @apply rounded border-0 bg-neutral-50 outline-1 outline-neutral-300;
 }
 .bx--select-input:focus,
 .bx--dropdown:focus,
@@ -21,6 +21,9 @@ body {
   @apply bg-neutral-50 outline-1 outline-neutral-400;
 }
 /** Dropdown items */
+.bx--list-box {
+  @apply border-0;
+}
 .bx--list-box__menu-item {
   @apply bg-neutral-50;
 }

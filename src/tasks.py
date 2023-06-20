@@ -65,7 +65,7 @@ class TaskManifest(BaseModel):
 STEPS_LOG_KEY = 'steps'
 
 
-class TaskManager():
+class TaskManager:
   """Manage FastAPI background tasks."""
   _tasks: dict[str, TaskInfo] = {}
 

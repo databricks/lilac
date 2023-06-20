@@ -1,6 +1,6 @@
 """Router for the dataset database."""
 import os
-from typing import Any, Optional, Sequence, Union, cast
+from typing import Optional, Sequence, Union, cast
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Response
@@ -16,6 +16,7 @@ from .data.dataset import (
   GroupsSortBy,
   ListOp,
   Search,
+  SelectGroupsResult,
   SelectRowsSchemaResult,
   SortOrder,
   StatsResult,
@@ -254,15 +255,14 @@ class SelectGroupsOptions(BaseModel):
 
 @router.post('/{namespace}/{dataset_name}/select_groups')
 def select_groups(namespace: str, dataset_name: str,
-                  options: SelectGroupsOptions) -> list[tuple[Any, int]]:
+                  options: SelectGroupsOptions) -> SelectGroupsResult:
   """Select groups from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
   sanitized_filters = [
     PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
   ]
-  result = dataset.select_groups(options.leaf_path, sanitized_filters, options.sort_by,
-                                 options.sort_order, options.limit, options.bins)
-  return list(result)
+  return dataset.select_groups(options.leaf_path, sanitized_filters, options.sort_by,
+                               options.sort_order, options.limit, options.bins)
 
 
 @router.get('/{namespace}/{dataset_name}/media')

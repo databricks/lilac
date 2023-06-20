@@ -5,7 +5,7 @@ import math
 import os
 import re
 import threading
-from typing import Any, Iterable, Iterator, Optional, Sequence, Type, Union, cast
+from typing import Any, Iterable, Optional, Sequence, Type, Union, cast
 
 import duckdb
 import numpy as np
@@ -107,6 +107,7 @@ SOURCE_VIEW_NAME = 'source'
 
 # Sample size for approximating the distinct count of a column.
 SAMPLE_SIZE_DISTINCT_COUNT = 100_000
+NUM_AUTO_BINS = 15
 
 BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
   BinaryOp.EQUALS: '=',
@@ -118,23 +119,6 @@ BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
 }
 
 SUPPORTED_OPS_ON_REPEATED: set[FilterOp] = set([UnaryOp.EXISTS])
-
-
-class DuckDBSelectGroupsResult(SelectGroupsResult):
-  """The result of a select groups query backed by DuckDB."""
-
-  def __init__(self, df: pd.DataFrame) -> None:
-    """Initialize the result."""
-    self._df = df
-
-  @override
-  def __iter__(self) -> Iterator:
-    return (tuple(row) for _, row in self._df.iterrows())
-
-  @override
-  def df(self) -> pd.DataFrame:
-    """Convert the result to a pandas DataFrame."""
-    return self._df
 
 
 class DuckDBSearchUDF(BaseModel):
@@ -584,18 +568,16 @@ class DatasetDuckDB(Dataset):
     if not leaf or not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
-    stats = self.stats(leaf_path)
-    if not bins and stats.approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
-      raise ValueError(f'Leaf "{path}" has too many unique values: {stats.approx_count_distinct}')
-
     inner_val = 'inner_val'
     outer_select = inner_val
+    # Normalize the bins to be `list[Bin]`.
+    named_bins = _normalize_bins(bins or leaf.bins)
+    stats = self.stats(leaf_path)
+
     if is_float(leaf.dtype) or is_integer(leaf.dtype):
-      bins = bins or leaf.bins
-      if bins is None:
-        raise ValueError(f'"bins" needs to be defined for the int/float leaf "{path}"')
-      # Normalize the bins to be `list[Bin]`.
-      named_bins = _normalize_bins(bins)
+      if named_bins is None:
+        # Auto-bin.
+        named_bins = _auto_bins(stats, NUM_AUTO_BINS)
 
       sql_bounds = []
       for label, start, end in named_bins:
@@ -614,6 +596,10 @@ class DatasetDuckDB(Dataset):
           VALUES {', '.join(sql_bounds)}
         ) WHERE {inner_val}::DOUBLE >= {bin_min_col} AND {inner_val}::DOUBLE < {bin_max_col}
       )"""
+    else:
+      if stats.approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
+        return SelectGroupsResult(too_many_distinct=True, counts=[], bins=named_bins)
+
     count_column = 'count'
     value_column = 'value'
 
@@ -634,7 +620,9 @@ class DatasetDuckDB(Dataset):
       ORDER BY {sort_by} {sort_order}
       {limit_query}
     """
-    return DuckDBSelectGroupsResult(self._query_df(query))
+    df = self._query_df(query)
+    counts = list(df.itertuples(index=False, name=None))
+    return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)
 
   def _topk_udf_to_sort_by(
     self,
@@ -1627,7 +1615,9 @@ def _schema_has_spans(field: Field) -> bool:
   return False
 
 
-def _normalize_bins(bins: Union[Sequence[Bin], Sequence[float]]) -> list[Bin]:
+def _normalize_bins(bins: Optional[Union[Sequence[Bin], Sequence[float]]]) -> Optional[list[Bin]]:
+  if bins is None:
+    return None
   if not isinstance(bins[0], (float, int)):
     return cast(list[Bin], bins)
   named_bins: list[Bin] = []
@@ -1636,3 +1626,15 @@ def _normalize_bins(bins: Union[Sequence[Bin], Sequence[float]]) -> list[Bin]:
     end = cast(float, bins[i]) if i < len(bins) else None
     named_bins.append((str(i), start, end))
   return named_bins
+
+
+def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
+  min_val = cast(float, stats.min_val)
+  max_val = cast(float, stats.max_val)
+  bin_width = (max_val - min_val) / num_bins
+  bins: list[Bin] = []
+  for i in range(num_bins):
+    start = None if i == 0 else min_val + i * bin_width
+    end = None if i == num_bins - 1 else min_val + (i + 1) * bin_width
+    bins.append((str(i), start, end))
+  return bins

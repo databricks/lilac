@@ -33,19 +33,6 @@ class SelectRowsResult:
     return self._df
 
 
-class SelectGroupsResult():
-  """The result of a select groups query."""
-
-  @abc.abstractmethod
-  def __iter__(self) -> Iterator:
-    pass
-
-  @abc.abstractmethod
-  def df(self) -> pd.DataFrame:
-    """Convert the result to a pandas DataFrame."""
-    pass
-
-
 class StatsResult(BaseModel):
   """The result of a stats() query."""
   # The number of leaf values.
@@ -194,6 +181,13 @@ ListFilterTuple = tuple[Path, ListOp, FeatureListValue]
 UnaryFilterTuple = tuple[Path, UnaryOp]
 
 FilterOp = Union[BinaryOp, UnaryOp, ListOp]
+
+
+class SelectGroupsResult(BaseModel):
+  """The result of a select groups query."""
+  too_many_distinct: bool
+  counts: list[tuple[Optional[FeatureValue], int]]
+  bins: Optional[list[Bin]] = None
 
 
 class Filter(BaseModel):

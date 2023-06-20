@@ -660,10 +660,10 @@ def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> Non
 
   concept_key = concept_signal.key(is_computed_signal=True)
   result = dataset.select_groups(f'text.test_embedding.*.embedding.{concept_key}')
-  assert list(result) == [('Not in concept', 2), ('In concept', 1)]
+  assert result.counts == [('Not in concept', 2), ('In concept', 1)]
 
   result = dataset.select_groups(
     f'text.test_embedding.*.embedding.{concept_key}',
     sort_by=GroupsSortBy.COUNT,
     sort_order=SortOrder.ASC)
-  assert list(result) == [('In concept', 1), ('Not in concept', 2)]
+  assert result.counts == [('In concept', 1), ('Not in concept', 2)]
