@@ -145,9 +145,11 @@ class Field(BaseModel):
     """Validate the bins."""
     if len(bins) < 2:
       raise ValueError('Please specify at least two bins.')
-    if bins[0][0] is not None:
+    _, first_start, _ = bins[0]
+    if first_start is not None:
       raise ValueError('The first bin should have a `None` start value.')
-    if bins[-1][1] is not None:
+    _, _, last_end = bins[-1]
+    if last_end is not None:
       raise ValueError('The last bin should have a `None` end value.')
     for i, (_, start, _) in enumerate(bins):
       if i == 0:
@@ -157,6 +159,7 @@ class Field(BaseModel):
       if start != prev_end:
         raise ValueError(
           f'Bin {i} start ({start}) should be equal to the previous bin end {prev_end}.')
+    return bins
 
   def __str__(self) -> str:
     return _str_field(self, indent=0)

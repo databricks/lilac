@@ -591,6 +591,7 @@ class DatasetDuckDB(Dataset):
     inner_val = 'inner_val'
     outer_select = inner_val
     if is_float(leaf.dtype) or is_integer(leaf.dtype):
+      bins = bins or leaf.bins
       if bins is None:
         raise ValueError(f'"bins" needs to be defined for the int/float leaf "{path}"')
       # Normalize the bins to be `list[Bin]`.
@@ -618,9 +619,16 @@ class DatasetDuckDB(Dataset):
 
     limit_query = f'LIMIT {limit}' if limit else ''
     inner_select = _select_sql(path, flatten=True, unnest=True)
+
+    filters, _ = self._normalize_filters(filters, {}, {}, manifest)
+    filter_queries = self._create_where(manifest, filters, searches=[])
+    where_query = ''
+    if filter_queries:
+      where_query = f"WHERE {' AND '.join(filter_queries)}"
+
     query = f"""
       SELECT {outer_select} AS {value_column}, COUNT() AS {count_column}
-      FROM (SELECT {inner_select} AS {inner_val} FROM t)
+      FROM (SELECT {inner_select} AS {inner_val} FROM t {where_query})
       GROUP BY {value_column}
       ORDER BY {sort_by} {sort_order}
       {limit_query}
