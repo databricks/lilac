@@ -69,6 +69,5 @@ export type { WebManifest } from './models/WebManifest';
 export { ConceptsService } from './services/ConceptsService';
 export { DataLoadersService } from './services/DataLoadersService';
 export { DatasetsService } from './services/DatasetsService';
-export { DefaultService } from './services/DefaultService';
 export { SignalsService } from './services/SignalsService';
 export { TasksService } from './services/TasksService';

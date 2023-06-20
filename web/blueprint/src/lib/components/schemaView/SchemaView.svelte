@@ -5,11 +5,13 @@
   import {
     Breadcrumb,
     BreadcrumbItem,
+    Button,
     SkeletonText,
     Tab,
     TabContent,
     Tabs
   } from 'carbon-components-svelte';
+  import {Download, Reset} from 'carbon-icons-svelte';
   import QueryBuilder from '../queryBuilder/QueryBuilder.svelte';
   import FlattenedField from './FlattenedField.svelte';
   import SchemaField from './SchemaField.svelte';
@@ -23,22 +25,53 @@
   // Get the resulting schmema including UDF columns
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
   $: aliasMapping = selectRowsSchema?.data?.alias_udf_paths;
+
+  async function downloadSelectRows() {
+    const namespace = $datasetViewStore.namespace;
+    const datasetName = $datasetViewStore.datasetName;
+    const options = $datasetViewStore.queryOptions;
+    options.columns = Object.keys($datasetViewStore.selectedColumns).filter(
+      k => $datasetViewStore.selectedColumns[k]
+    );
+    const url =
+      `/api/v1/datasets/${namespace}/${datasetName}/select_rows_download` +
+      `?options=${encodeURIComponent(JSON.stringify(options))}`;
+    const link = document.createElement('a');
+    link.download = `${namespace}_${datasetName}.json`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
 </script>
 
 <div class="flex h-full flex-col pt-4">
   <div class="mb-4 flex w-full items-center justify-between gap-x-2 px-4">
-    <Breadcrumb noTrailingSlash skeleton={$schema.isLoading}>
-      <BreadcrumbItem href="/">datasets</BreadcrumbItem>
-      <BreadcrumbItem href="/">{$datasetViewStore.namespace}</BreadcrumbItem>
-      <BreadcrumbItem>{$datasetViewStore.datasetName}</BreadcrumbItem>
-    </Breadcrumb>
+    <div class="flex items-center">
+      <Breadcrumb noTrailingSlash skeleton={$schema.isLoading}>
+        <BreadcrumbItem href="/">datasets</BreadcrumbItem>
+        <BreadcrumbItem href="/">{$datasetViewStore.namespace}</BreadcrumbItem>
+        <BreadcrumbItem>{$datasetViewStore.datasetName}</BreadcrumbItem>
+      </Breadcrumb>
 
-    {#if $manifest.isSuccess}
-      ({$manifest.data.dataset_manifest.num_items.toLocaleString()} rows)
-    {/if}
-    <button class="ml-auto border p-2 hover:bg-gray-100" on:click={datasetViewStore.reset}
-      >Reset View</button
-    >
+      {#if $manifest.isSuccess}
+        ({$manifest.data.dataset_manifest.num_items.toLocaleString()} rows)
+      {/if}
+    </div>
+    <div class="flex">
+      <Button
+        kind="ghost"
+        icon={Reset}
+        iconDescription="Reset View"
+        on:click={datasetViewStore.reset}
+      />
+      <Button
+        kind="ghost"
+        icon={Download}
+        iconDescription="Download selection"
+        on:click={downloadSelectRows}
+      />
+    </div>
   </div>
 
   <Tabs class="overflow-hidden border-b border-gray-200">
