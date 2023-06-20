@@ -35,7 +35,6 @@ export type { ListOp } from './models/ListOp';
 export type { LoadDatasetOptions } from './models/LoadDatasetOptions';
 export type { LoadDatasetResponse } from './models/LoadDatasetResponse';
 export type { MergeConceptDraftOptions } from './models/MergeConceptDraftOptions';
-export type { NamedBins } from './models/NamedBins';
 export type { Schema } from './models/Schema';
 export type { ScoreBody } from './models/ScoreBody';
 export type { ScoreExample } from './models/ScoreExample';

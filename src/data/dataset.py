@@ -10,7 +10,7 @@ from pydantic import Field as PydanticField
 from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import VALUE_KEY, Path, PathTuple, Schema, normalize_path
+from ..schema import VALUE_KEY, Bin, Path, PathTuple, Schema, normalize_path
 from ..signals.signal import Signal, resolve_signal
 from ..tasks import TaskStepId
 
@@ -170,28 +170,6 @@ class Column(BaseModel):
 
 ColumnId = Union[Path, Column]
 
-# A bin can be a float, or a tuple of (label, float).
-
-
-class NamedBins(BaseModel):
-  """Named bins where each boundary has a label."""
-  bins: list[float]
-  # Labels is one more than bins. E.g. given bins [1, 2, 3], we have 4 labels (≤1, 1-2, 2-3, >3).
-  labels: Optional[list[str]]
-
-  @validator('labels')
-  def labels_is_one_more_than_bins(cls, labels: Optional[list[str]],
-                                   values: dict[str, Any]) -> Optional[list[str]]:
-    """Validate that the labels is one more than the bins."""
-    if not labels:
-      return None
-    if len(labels) != len(values['bins']) + 1:
-      raise ValueError('The number of labels must be one more than the number of bins.')
-    return labels
-
-
-Bins = Union[list[float], NamedBins]
-
 
 class DatasetManifest(BaseModel):
   """The manifest for a dataset."""
@@ -297,13 +275,14 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def select_groups(self,
-                    leaf_path: Path,
-                    filters: Optional[Sequence[FilterLike]] = None,
-                    sort_by: Optional[GroupsSortBy] = None,
-                    sort_order: Optional[SortOrder] = SortOrder.DESC,
-                    limit: Optional[int] = None,
-                    bins: Optional[Bins] = None) -> SelectGroupsResult:
+  def select_groups(
+      self,
+      leaf_path: Path,
+      filters: Optional[Sequence[FilterLike]] = None,
+      sort_by: Optional[GroupsSortBy] = None,
+      sort_order: Optional[SortOrder] = SortOrder.DESC,
+      limit: Optional[int] = None,
+      bins: Optional[Union[Sequence[Bin], Sequence[float]]] = None) -> SelectGroupsResult:
     """Select grouped columns to power a histogram.
 
     Args:

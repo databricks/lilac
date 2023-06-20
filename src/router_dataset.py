@@ -8,7 +8,7 @@ from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, validator
 
 from .config import data_path
-from .data.dataset import BinaryOp, Bins
+from .data.dataset import BinaryOp
 from .data.dataset import Column as DBColumn
 from .data.dataset import DatasetManifest, FeatureListValue, FeatureValue
 from .data.dataset import Filter as PyFilter
@@ -24,7 +24,7 @@ from .data.dataset import (
 from .data.dataset_duckdb import DatasetDuckDB
 from .db_manager import get_dataset, set_default_dataset_cls
 from .router_utils import RouteErrorHandler
-from .schema import Path, normalize_path
+from .schema import Bin, Path, normalize_path
 from .signals.concept_scorer import ConceptScoreSignal
 from .signals.default_signals import register_default_signals
 from .signals.signal import (
@@ -249,7 +249,7 @@ class SelectGroupsOptions(BaseModel):
   sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int] = 100
-  bins: Optional[Bins]
+  bins: Optional[list[Bin]]
 
 
 @router.post('/{namespace}/{dataset_name}/select_groups')

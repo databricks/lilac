@@ -8,7 +8,6 @@ from pytest_mock import MockerFixture
 
 from ..schema import UUID_COLUMN, Item, schema
 from . import dataset as dataset_module
-from .dataset import NamedBins
 from .dataset_test_utils import TestDataMaker
 
 
@@ -68,11 +67,11 @@ def test_flat_data(make_test_data: TestDataMaker) -> None:
   result = dataset.select_groups(leaf_path='age', bins=[20, 50, 60]).df()
   expected = pd.DataFrame.from_records([
     {
-      'value': 1,  # age 20-50.
+      'value': '1',  # age 20-50.
       'count': 2
     },
     {
-      'value': 0,  # age < 20.
+      'value': '0',  # age < 20.
       'count': 1
     },
     {
@@ -80,7 +79,7 @@ def test_flat_data(make_test_data: TestDataMaker) -> None:
       'count': 1
     },
     {
-      'value': 2,  # age 50-60.
+      'value': '2',  # age 50-60.
       'count': 1
     }
   ])
@@ -285,7 +284,12 @@ def test_named_bins(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_groups(
     leaf_path='age',
-    bins=NamedBins(bins=[20, 50, 65], labels=['young', 'adult', 'middle-aged', 'senior'])).df()
+    bins=[
+      ('young', None, 20),
+      ('adult', 20, 50),
+      ('middle-aged', 50, 65),
+      ('senior', 65, None),
+    ]).df()
   expected = pd.DataFrame.from_records([
     {
       'value': 'adult',  # age 20-50.

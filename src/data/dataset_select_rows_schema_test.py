@@ -501,8 +501,12 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
           'test_embedding': field(
             signal=test_embedding.dict(),
             fields=[
-              enriched_embedding_span_field(
-                {expected_world_signal.key(): field('float32', expected_world_signal.dict())})
+              enriched_embedding_span_field({
+                expected_world_signal.key(): field(
+                  'float32',
+                  expected_world_signal.dict(),
+                  bins=[('Not in concept', None, 0.5), ('In concept', 0.5, None)])
+              })
             ]),
           'test_namespace/test_concept/labels': field(
             fields=[field('string_span', fields={

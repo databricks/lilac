@@ -31,7 +31,10 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
 
   @override
   def fields(self) -> Field:
-    return field('float32')
+    return field(
+      'float32',
+      bins=[('Not in concept', None, 0.5), ('In concept', 0.5, None)],
+    )
 
   def set_column_info(self, column_info: ConceptColumnInfo) -> None:
     """Set the dataset info for this signal."""
