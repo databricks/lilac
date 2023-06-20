@@ -645,7 +645,13 @@ class DatasetDuckDB(Dataset):
   ) -> Optional[Column]:
     if (sort_order != SortOrder.DESC) or (not limit) or (not sort_by):
       return None
-    udf_cols_to_sort_by = [col for col in udf_columns if col.alias == sort_by[0][0]]
+    if len(sort_by) < 1:
+      return None
+    primary_sort_by = sort_by[0]
+    udf_cols_to_sort_by = [
+      col for col in udf_columns
+      if col.alias == primary_sort_by[0] or _col_destination_path(col) == primary_sort_by
+    ]
     if not udf_cols_to_sort_by:
       return None
     udf_col = udf_cols_to_sort_by[0]
