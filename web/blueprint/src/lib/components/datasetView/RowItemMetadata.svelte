@@ -28,6 +28,7 @@
     if (field == null) return false;
     return childFields(field).some(
       f =>
+        f.dtype != null &&
         f.dtype != 'string_span' &&
         f.dtype != 'embedding' &&
         f != field &&
@@ -51,7 +52,9 @@
 
       if (row == null) continue;
 
-      let rowHasChildren = hasMetadataChildren(L.field(row)!);
+      const field = L.field(row)!;
+      const isMedia = mediaFields.some(mf => pathIsEqual(mf.path, L.path(row)!));
+      let rowHasChildren = hasMetadataChildren(field);
       if (Array.isArray(row)) {
         for (const [i, childRow] of row.entries()) {
           rowsToProcess.push([`${fieldName}[${i}]`, childRow, indentLevel + 1]);
@@ -68,10 +71,10 @@
       let value = L.value(row);
       if (mediaFields.some(mf => pathIsEqual(mf.path, rowPath))) {
         value = undefined;
-        // Ignore media with no children.
-        if (!rowHasChildren) {
-          continue;
-        }
+      }
+      // Ignore items with no children.
+      if ((field.dtype == null || isMedia) && !rowHasChildren) {
+        continue;
       }
       rows.push({indentLevel, fieldName, value, path: rowPath});
     }
