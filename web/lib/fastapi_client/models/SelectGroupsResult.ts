@@ -8,5 +8,6 @@
 export type SelectGroupsResult = {
     too_many_distinct: boolean;
     counts: Array<Array<any>>;
+    bins?: Array<Array<any>>;
 };
 
