@@ -6,7 +6,6 @@ import {
   deserializeSchema,
   type DataType,
   type LilacSchema,
-  type Path,
   type SelectRowsOptions
 } from '$lilac';
 import {createInfiniteQuery, type CreateInfiniteQueryResult} from '@tanstack/svelte-query';
@@ -83,7 +82,7 @@ export const querySelectRowsSchema = createApiQuery(
   {
     select: res => {
       return {
-        schema: deserializeSchema(res.data_schema, res.alias_udf_paths as Record<string, Path>),
+        schema: deserializeSchema(res.data_schema),
         ...res
       };
     }

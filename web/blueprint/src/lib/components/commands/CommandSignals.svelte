@@ -130,8 +130,7 @@
       if (path) {
         datasetViewStore.editUdfColumn(command.alias, {
           path: path,
-          signal_udf: signal,
-          alias: command.alias
+          signal_udf: signal
         });
       }
     }

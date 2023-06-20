@@ -1,6 +1,7 @@
 <script lang="ts">
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {isPreviewSignal} from '$lib/view_utils';
   import {
     PATH_WILDCARD,
     VALUE_KEY,
@@ -12,7 +13,6 @@
     type LilacField,
     type LilacSchema,
     type ListOp,
-    type Path,
     type UnaryOp
   } from '$lilac';
   import {Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
@@ -27,7 +27,6 @@
   export let schema: LilacSchema;
   export let field: LilacField;
   export let indent = 0;
-  export let aliasMapping: Record<string, Path> | undefined;
 
   const FILTER_SHORTHANDS: Record<BinaryOp | UnaryOp | ListOp, string> = {
     equals: '=',
@@ -40,11 +39,12 @@
     exists: 'exists'
   };
 
-  let datasetViewStore = getDatasetViewContext();
+  const datasetViewStore = getDatasetViewContext();
+  const datasetStore = getDatasetContext();
+
   let expanded = true;
 
   $: path = field.path;
-  $: alias = field.alias;
   $: parentField = getField(schema, field.path.slice(0, -1));
 
   $: signalField = isSignalField(field, schema);
@@ -57,15 +57,12 @@
   $: children = childFields(field);
   $: hasChildren = children.length > 0;
 
-  let datasetStore = getDatasetContext();
-
   $: isVisible = $datasetStore.visibleFields?.some(f => pathIsEqual(f.path, path));
 
-  $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => pathIsEqual(p, alias || path));
+  $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => pathIsEqual(p, path));
   $: sortOrder = $datasetViewStore.queryOptions.sort_order;
 
-  $: filters =
-    $datasetViewStore.queryOptions.filters?.filter(f => pathIsEqual(f.path, alias || path)) || [];
+  $: filters = $datasetViewStore.queryOptions.filters?.filter(f => pathIsEqual(f.path, path)) || [];
   $: isFiltered = filters.length > 0;
 
   $: disabled = !field.dtype || field.dtype === 'embedding';
@@ -81,17 +78,12 @@
     );
   }
 
-  // Check if any query option columns match the alias
-  $: udfColumn = alias
-    ? $datasetViewStore.queryOptions.columns?.find(
-        c => typeof c === 'object' && !Array.isArray(c) && c.alias === alias?.[0]
-      )
-    : undefined;
+  $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, path);
 </script>
 
 {#if field.repeated_field}
   <!-- Skip over fields that contain repeated fields -->
-  <svelte:self field={field.repeated_field} {indent} {schema} {aliasMapping} />
+  <svelte:self field={field.repeated_field} {indent} {schema} />
 {:else}
   <div
     class="flex w-full flex-row items-center border-b border-gray-200 px-4 py-2 hover:bg-gray-100"
@@ -133,7 +125,7 @@
           sortOrder === 'ASC'
             ? ($datasetViewStore.queryOptions.sort_order = 'DESC')
             : ($datasetViewStore.queryOptions.sort_order = 'ASC')}
-        on:remove={() => datasetViewStore.removeSortBy(alias || path)}
+        on:remove={() => datasetViewStore.removeSortBy(path)}
       >
         Sorted
         {#if sortOrder == 'ASC'}
@@ -154,7 +146,7 @@
             datasetName: $datasetViewStore.datasetName,
             path
           })}
-        on:remove={() => datasetViewStore.removeFilters(alias || path)}
+        on:remove={() => datasetViewStore.removeFilters(path)}
       >
         {#if filters.length > 1}
           Filtered
@@ -163,7 +155,7 @@
         {/if}
       </RemovableTag>
     {/if}
-    {#if signalRoot && udfColumn}
+    {#if signalRoot && isPreview}
       <Tag type="green" class="whitespace-nowrap">Signal Preview</Tag>
     {:else if signalRoot}
       <Tag type="blue" class="whitespace-nowrap">Signal</Tag>
@@ -183,7 +175,7 @@
     <div transition:slide|local>
       {#if children.length}
         {#each children as childField}
-          <svelte:self {schema} field={childField} indent={indent + 1} {aliasMapping} />
+          <svelte:self {schema} field={childField} indent={indent + 1} />
         {/each}
       {/if}
     </div>

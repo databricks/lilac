@@ -11,7 +11,6 @@ import type {
 import {
   PATH_WILDCARD,
   VALUE_KEY,
-  pathIncludes,
   pathIsMatching,
   type DataTypeCasted,
   type FieldValue,
@@ -27,8 +26,6 @@ export type SearchType = Exclude<Search['query']['type'], undefined>;
 
 export type LilacField<S extends Signal = Signal> = Field & {
   path: Path;
-  /** Aliased path to the field, if alias is provided for the field or parent field */
-  alias?: Path;
   // Overwrite the fields and repeated_field properties to be LilacField
   repeated_field?: LilacField;
   fields?: Record<string, LilacField>;
@@ -82,11 +79,8 @@ function castLilacValueNode<D extends DataType = DataType>(
  * Deserialize a raw schema response to a LilacSchema, a client-side representation of the data
  * schema.
  */
-export function deserializeSchema(
-  rawSchema: Schema,
-  aliasUdfPaths?: Record<string, Path>
-): LilacSchema {
-  const lilacFields = lilacSchemaFieldFromField(rawSchema, aliasUdfPaths, []);
+export function deserializeSchema(rawSchema: Schema): LilacSchema {
+  const lilacFields = lilacSchemaFieldFromField(rawSchema, []);
 
   if (!lilacFields.fields) {
     return {fields: {}, path: []};
@@ -243,36 +237,21 @@ export const L = {
  * Convert raw schema field to LilacField.
  * Adds path attribute to each field
  */
-function lilacSchemaFieldFromField(
-  field: Field,
-  aliasUdfPaths: Record<string, Path> | undefined,
-  path: Path
-): LilacField {
+function lilacSchemaFieldFromField(field: Field, path: Path): LilacField {
   const {fields, repeated_field, ...rest} = field;
   const lilacField: LilacField = {...rest, path: []};
   if (fields != null) {
     lilacField.fields = {};
     for (const [fieldName, field] of Object.entries(fields)) {
-      const lilacChildField = lilacSchemaFieldFromField(field, aliasUdfPaths, [...path, fieldName]);
+      const lilacChildField = lilacSchemaFieldFromField(field, [...path, fieldName]);
       lilacChildField.path = [...path, fieldName];
       lilacField.fields[fieldName] = lilacChildField;
     }
   }
   if (repeated_field != null) {
-    const lilacChildField = lilacSchemaFieldFromField(repeated_field, aliasUdfPaths, [
-      ...path,
-      PATH_WILDCARD
-    ]);
+    const lilacChildField = lilacSchemaFieldFromField(repeated_field, [...path, PATH_WILDCARD]);
     lilacChildField.path = [...path, PATH_WILDCARD];
     lilacField.repeated_field = lilacChildField;
-  }
-  if (aliasUdfPaths != null) {
-    const alias = Object.entries(aliasUdfPaths).find(([, aliasPath]) =>
-      pathIncludes(path, aliasPath)
-    )?.[0];
-    if (alias) {
-      lilacField.alias = [alias, ...path.slice(aliasUdfPaths[alias].length)];
-    }
   }
   return lilacField;
 }

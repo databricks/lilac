@@ -6,7 +6,13 @@ from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
 from .config import CONFIG
-from .data.dataset import Column, Dataset, DatasetManifest, SelectRowsSchemaResult
+from .data.dataset import (
+  Column,
+  Dataset,
+  DatasetManifest,
+  SelectRowsSchemaResult,
+  SelectRowsSchemaUDF,
+)
 from .data.dataset_duckdb import DatasetDuckDB
 from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, enriched_item, make_dataset
 from .router_dataset import SelectRowsOptions, SelectRowsSchemaOptions, WebManifest
@@ -245,7 +251,7 @@ def test_select_rows_schema_star_plus_udf() -> None:
         }]
       }]
     }),
-    alias_udf_paths={'len': ('people', '*', 'name', 'length_signal')})
+    udfs=[SelectRowsSchemaUDF(path=('people', '*', 'name', 'length_signal'), alias='len')])
 
 
 def test_select_rows_schema_no_cols() -> None:

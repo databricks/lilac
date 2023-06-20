@@ -137,15 +137,14 @@
   $: selectedSortBy = $datasetViewStore.queryOptions.sort_by;
 
   $: sortItems =
-    $datasetStore.selectRowsSchema?.data?.data_schema != null
+    $datasetStore.selectRowsSchema?.data?.schema != null
       ? [
           {id: null, text: 'None', disabled: selectedSortBy == null && sortById != null},
           ...petals($datasetStore.selectRowsSchema.data.schema).map(field => {
             const pathStr = serializePath(field.path);
-            const search = pathToSearchResult[pathStr];
             return {
               id: pathStr,
-              text: search?.alias != null ? search.alias : pathStr
+              text: pathStr
             };
           })
         ]
@@ -258,12 +257,7 @@
       datasetViewStore.setSortBy(null);
       return;
     }
-    const alias = pathToSearchResult[e.detail.selectedId]?.alias;
-    if (alias != null) {
-      datasetViewStore.setSortBy([alias]);
-    } else {
-      datasetViewStore.setSortBy(deserializePath(e.detail.selectedId));
-    }
+    datasetViewStore.setSortBy(deserializePath(e.detail.selectedId));
   };
   const clearSorts = () => {
     datasetViewStore.clearSorts();
@@ -271,11 +265,7 @@
   const toggleSortOrder = () => {
     // Set the sort given by the select rows schema explicitly.
     if (sort != null) {
-      if (sort.alias != null) {
-        datasetViewStore.setSortBy([sort?.alias]);
-      } else {
-        datasetViewStore.setSortBy(sort.path);
-      }
+      datasetViewStore.setSortBy(sort.path);
     }
     datasetViewStore.setSortOrder(sort?.order === 'ASC' ? 'DESC' : 'ASC');
   };

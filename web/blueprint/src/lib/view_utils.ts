@@ -125,12 +125,12 @@ export function getComputedEmbeddings(datasetStore: DatasetStore, path: Path | n
   return Array.from(existingEmbeddings);
 }
 
-export function udfByAlias(
+export function isPreviewSignal(
   selectRowsSchema: LilacSelectRowsSchema | null,
-  alias: Path | undefined
-): Path | null {
-  if (alias == null || selectRowsSchema == null) return null;
-  return (selectRowsSchema?.alias_udf_paths || {})[alias[0]];
+  path: Path | undefined
+): boolean {
+  if (path == null || selectRowsSchema == null) return false;
+  return (selectRowsSchema.udfs || []).some(udf => pathIsEqual(udf.path, path));
 }
 
 /** Gets the search type for a column, if defined. The path is the *input* path to the search. */

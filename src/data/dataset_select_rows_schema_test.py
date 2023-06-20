@@ -28,6 +28,7 @@ from .dataset import (
   Search,
   SearchResultInfo,
   SelectRowsSchemaResult,
+  SelectRowsSchemaUDF,
   SemanticQuery,
   SortOrder,
   SortResult,
@@ -252,34 +253,33 @@ def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
           'city': 'string'
         }]
       }],
-    }))
+    }),
+    udfs=[
+      SelectRowsSchemaUDF(path=('people', '*', 'name', length_signal.key())),
+    ],
+  )
 
 
 def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
   add_space_signal = AddSpaceSignal()
-  dataset.compute_signal(add_space_signal, ('people', '*', 'name'))
-  result = dataset.select_rows_schema(
-    [('people', '*', 'name'),
-     Column(('people', '*', 'name', 'add_space_signal'), signal_udf=add_space_signal)],
-    combine_columns=True)
+  path = ('people', '*', 'name')
+  dataset.compute_signal(add_space_signal, path)
+  result = dataset.select_rows_schema([path, Column(path, signal_udf=add_space_signal)],
+                                      combine_columns=True)
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
       UUID_COLUMN: 'string',
       'people': [{
         'name': field(
-          'string',
-          fields={
-            'add_space_signal': field(
-              'string',
-              signal=add_space_signal.dict(),
-              fields={
-                'add_space_signal': field('string', add_space_signal.dict()),
-              })
-          })
+          'string', fields={'add_space_signal': field('string', signal=add_space_signal.dict())})
       }],
-    }))
+    }),
+    udfs=[
+      SelectRowsSchemaUDF(path=(*path, add_space_signal.key())),
+    ],
+  )
 
 
 def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -306,7 +306,11 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
           'add_space_signal': field('string', add_space_signal.dict()),
           'test_splitter': field(signal=test_splitter.dict(), fields=['string_span'])
         })
-    }))
+    }),
+    udfs=[
+      SelectRowsSchemaUDF(path=('text', add_space_signal.key())),
+    ],
+  )
 
 
 def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -348,17 +352,20 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
           ])
       })
   })
-  assert result == SelectRowsSchemaResult(data_schema=expected_schema, alias_udf_paths={})
+  output_path = ('text', 'test_splitter', '*', 'test_embedding', '*', 'embedding',
+                 'test_embedding_sum')
+  assert result == SelectRowsSchemaResult(
+    data_schema=expected_schema,
+    udfs=[SelectRowsSchemaUDF(path=output_path)],
+  )
 
   # Alias the udf.
   udf_col.alias = 'udf1'
   result = dataset.select_rows_schema([('text'), udf_col], combine_columns=True)
   assert result == SelectRowsSchemaResult(
     data_schema=expected_schema,
-    alias_udf_paths={
-      'udf1':
-        ('text', 'test_splitter', '*', 'test_embedding', '*', 'embedding', 'test_embedding_sum')
-    })
+    udfs=[SelectRowsSchemaUDF(path=output_path, alias='udf1')],
+  )
 
 
 def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
@@ -405,7 +412,12 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
         search_path=('text2',),
         result_path=('text2', expected_hello_signal.key(), PATH_WILDCARD),
       )
-    ])
+    ],
+    udfs=[
+      SelectRowsSchemaUDF(path=('text', expected_world_signal.key())),
+      SelectRowsSchemaUDF(path=('text2', expected_hello_signal.key())),
+    ],
+  )
 
 
 def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
@@ -445,21 +457,9 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
             ])
         })
     }),
-    alias_udf_paths={expected_world_signal.key(): similarity_score_path},
-    search_results=[
-      SearchResultInfo(
-        search_path=('text',),
-        result_path=similarity_score_path,
-        alias=expected_world_signal.key(),
-      )
-    ],
-    sorts=[
-      SortResult(
-        path=similarity_score_path,
-        alias=expected_world_signal.key(),
-        order=SortOrder.DESC,
-        search_index=0)
-    ])
+    udfs=[SelectRowsSchemaUDF(path=similarity_score_path)],
+    search_results=[SearchResultInfo(search_path=('text',), result_path=similarity_score_path)],
+    sorts=[SortResult(path=similarity_score_path, order=SortOrder.DESC, search_index=0)])
 
 
 def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
@@ -512,29 +512,15 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
             signal=expected_labels_signal.dict())
         })
     }),
-    alias_udf_paths={
-      expected_world_signal.key(): concept_score_path,
-      expected_labels_signal.key(): concept_labels_path,
-    },
-    search_results=[
-      SearchResultInfo(
-        search_path=('text',),
-        result_path=concept_labels_path,
-        alias=expected_labels_signal.key(),
-      ),
-      SearchResultInfo(
-        search_path=('text',),
-        result_path=concept_score_path,
-        alias=expected_world_signal.key(),
-      )
+    udfs=[
+      SelectRowsSchemaUDF(path=concept_labels_path),
+      SelectRowsSchemaUDF(path=concept_score_path)
     ],
-    sorts=[
-      SortResult(
-        path=concept_score_path,
-        alias=expected_world_signal.key(),
-        order=SortOrder.DESC,
-        search_index=0)
-    ])
+    search_results=[
+      SearchResultInfo(search_path=('text',), result_path=concept_labels_path),
+      SearchResultInfo(search_path=('text',), result_path=concept_score_path)
+    ],
+    sorts=[SortResult(path=concept_score_path, order=SortOrder.DESC, search_index=0)])
 
 
 def test_search_sort_override(make_test_data: TestDataMaker) -> None:

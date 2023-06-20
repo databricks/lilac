@@ -40,8 +40,6 @@
     command: Command.EditPreviewConcept;
     /** The value of the signal to edit */
     value: Signal;
-    /** The alias of the signal to edit */
-    alias: string;
   };
 
   export type ComputeEmbeddingCommand = SignalCommandBase & {

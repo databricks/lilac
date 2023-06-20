@@ -97,16 +97,6 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
 
     addUdfColumn: (column: Column) =>
       update(state => {
-        // Parse out current udf aliases, and make sure the new one is unique
-        let aliasNumbers = state.queryOptions.columns
-          ?.filter(isColumn)
-          .map(c => c.alias?.match(/udf(\d+)/)?.[1])
-          .filter(Boolean)
-          .map(Number);
-        if (!aliasNumbers?.length) aliasNumbers = [0];
-        // Ensure that UDF's have an alias
-        if (!column.alias && column.signal_udf?.signal_name)
-          column.alias = `udf${Math.max(...aliasNumbers) + 1}`;
         state.queryOptions.columns?.push(column);
         return state;
       }),
@@ -115,10 +105,10 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         state.queryOptions.columns = state.queryOptions.columns?.filter(c => c !== column);
         return state;
       }),
-    editUdfColumn: (alias: string, column: Column) => {
+    editUdfColumn: (column: Column) => {
       return update(state => {
         state.queryOptions.columns = state.queryOptions.columns?.map(c => {
-          if (isColumn(c) && c.alias == alias) return column;
+          if (isColumn(c) && pathIsEqual(c.path, column.path)) return column;
           return c;
         });
         return state;
@@ -166,8 +156,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         // Clear any explicit sorts by this alias as it will be an invalid sort.
         if (selectRowsSchema?.sorts != null) {
           state.queryOptions.sort_by = state.queryOptions.sort_by?.filter(sortBy => {
-            if (sortBy.length != 1) return false;
-            return !(selectRowsSchema?.sorts || []).some(s => s.alias === sortBy[0]);
+            return !(selectRowsSchema?.sorts || []).some(s => pathIsEqual(s.path, sortBy));
           });
         }
         return state;

@@ -1,7 +1,7 @@
 <script lang="ts">
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {getSearches, udfByAlias} from '$lib/view_utils';
+  import {getSearches, isPreviewSignal} from '$lib/view_utils';
   import * as Lilac from '$lilac';
   import {Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
   import {CaretDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
@@ -17,7 +17,6 @@
   export let field: Lilac.LilacField;
   export let sourceField: Lilac.LilacField | undefined = undefined;
   export let indent = 0;
-  export let aliasMapping: Record<string, Lilac.Path> | undefined;
 
   $: isSignalField = Lilac.isSignalField(field, schema);
   $: isSourceField = !isSignalField;
@@ -39,7 +38,6 @@
   let expanded = true;
 
   $: path = field.path;
-  $: alias = field.alias;
 
   $: isRepeatedField = field.path.at(-1) === Lilac.PATH_WILDCARD ? true : false;
   $: fieldName = isRepeatedField ? field.path.at(-2) : field.path.at(-1);
@@ -55,14 +53,11 @@
       ) as Lilac.LilacField<Lilac.TextEmbeddingSignal>[])
     : [];
 
-  $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p =>
-    Lilac.pathIsEqual(p, alias || path)
-  );
+  $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => Lilac.pathIsEqual(p, path));
   $: sortOrder = $datasetViewStore.queryOptions.sort_order;
 
   $: filters =
-    $datasetViewStore.queryOptions.filters?.filter(f => Lilac.pathIsEqual(f.path, alias || path)) ||
-    [];
+    $datasetViewStore.queryOptions.filters?.filter(f => Lilac.pathIsEqual(f.path, path)) || [];
   $: isFiltered = filters.length > 0;
 
   // Find all the child display paths for a given field.
@@ -99,10 +94,8 @@
     );
   }
 
-  // Check if any query option columns match the alias.
-  $: udfPath = udfByAlias($datasetStore.selectRowsSchema?.data || null, alias);
+  $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, path);
 
-  // Check if any query option columns match the alias
   $: searches = getSearches($datasetViewStore, path);
 </script>
 
@@ -146,7 +139,7 @@
         sortOrder === 'ASC'
           ? ($datasetViewStore.queryOptions.sort_order = 'DESC')
           : ($datasetViewStore.queryOptions.sort_order = 'ASC')}
-      on:remove={() => datasetViewStore.removeSortBy(alias || path)}
+      on:remove={() => datasetViewStore.removeSortBy(path)}
     >
       Sorted
       {#if sortOrder == 'ASC'}
@@ -167,7 +160,7 @@
           datasetName: $datasetViewStore.datasetName,
           path
         })}
-      on:remove={() => datasetViewStore.removeFilters(alias || path)}
+      on:remove={() => datasetViewStore.removeFilters(path)}
     >
       {#if filters.length > 1}
         Filtered
@@ -184,13 +177,13 @@
       <EmbeddingBadge embedding={embeddingField.signal?.signal_name} />
     </div>
   {/each}
-  {#if Lilac.isSignalRootField(field) && udfPath}
+  {#if Lilac.isSignalRootField(field) && isPreview}
     <div class="mr-2">
       <Tag
         type="cyan"
         on:click={() =>
           field.signal &&
-          field.alias?.length === 1 &&
+          isPreview &&
           triggerCommand({
             command: Command.ComputeSignal,
             namespace: $datasetViewStore.namespace,
@@ -213,15 +206,14 @@
       type="green"
       on:click={() =>
         field.signal &&
-        field.alias?.length === 1 &&
+        isPreview &&
         triggerCommand({
           command: Command.EditPreviewConcept,
           namespace: $datasetViewStore.namespace,
           datasetName: $datasetViewStore.datasetName,
           path: sourceField?.path,
           signalName: field.signal?.signal_name,
-          value: field.signal,
-          alias: field.alias[0]
+          value: field.signal
         })}
     >
       Preview
@@ -244,7 +236,6 @@
           {schema}
           field={childField}
           indent={indent + 1}
-          {aliasMapping}
           sourceField={isSourceField && Lilac.isSignalField(childField, schema)
             ? field
             : sourceField}

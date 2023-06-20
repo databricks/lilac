@@ -4,6 +4,7 @@
 
 import type { Schema } from './Schema';
 import type { SearchResultInfo } from './SearchResultInfo';
+import type { SelectRowsSchemaUDF } from './SelectRowsSchemaUDF';
 import type { SortResult } from './SortResult';
 
 /**
@@ -11,7 +12,7 @@ import type { SortResult } from './SortResult';
  */
 export type SelectRowsSchemaResult = {
     data_schema: Schema;
-    alias_udf_paths?: Record<string, Array<string>>;
+    udfs?: Array<SelectRowsSchemaUDF>;
     search_results?: Array<SearchResultInfo>;
     sorts?: Array<SortResult>;
 };
