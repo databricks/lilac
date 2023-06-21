@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {notEmpty} from '$lib/utils';
   /**
    * Component that renders a single value from a row in the dataset row view
    * In the case of strings with string_spans, it will render the derived string spans as well
@@ -37,13 +38,14 @@
     .filter(f => f.signal?.signal_name === 'concept_labels')
     .flatMap(f => getFieldsByDtype('string_span', f));
 
-  $: items = getValueNodes(row, path);
+  $: values = getValueNodes(row, path)
+    .map(v => L.value(v))
+    .filter(notEmpty);
 </script>
 
-{#each items as item, i}
-  {@const value = L.value(item)}
+{#each values as value, i}
   {#if value != null}
-    {@const suffix = items.length > 1 ? `[${i}]` : ''}
+    {@const suffix = values.length > 1 ? `[${i}]` : ''}
     <div class="flex flex-row">
       <div class="flex flex-col border-gray-900">
         <div class="pb-2 font-mono font-medium text-neutral-500">

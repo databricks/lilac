@@ -62,7 +62,7 @@
   <div class="mx-4 mt-8 w-full text-gray-600">No results.</div>
 {/if}
 
-{#if items && visibleFields.length > 0 && $schema.isSuccess && visibleSchema != null}
+{#if items && visibleFields.length > 0 && $schema.isSuccess && mediaFields != null}
   <div class="flex h-full w-full flex-col overflow-y-scroll">
     {#each items as row (L.value(row[UUID_COLUMN]))}
       <RowItem {visibleFields} {row} {mediaFields} />

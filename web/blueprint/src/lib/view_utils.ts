@@ -49,7 +49,7 @@ export function getVisibleSchema(
   visibleFields: LilacField[]
 ): LilacField | null {
   const fields: {[fieldName: string]: LilacField} = {};
-  let repeated_field: LilacField | undefined = undefined;
+  let repeatedField: LilacField | undefined = undefined;
 
   if (schema.fields != null) {
     for (const [fieldName, field] of Object.entries(schema.fields)) {
@@ -62,17 +62,17 @@ export function getVisibleSchema(
     }
   } else if (schema.repeated_field != null) {
     if (!visibleFields.some(f => pathIsEqual(f.path, schema.repeated_field?.path))) {
-      repeated_field = undefined;
+      repeatedField = undefined;
     } else {
-      repeated_field = schema.repeated_field;
+      repeatedField = schema.repeated_field;
     }
   }
-  if (repeated_field == null && Object.keys(fields).length === 0)
+  if (repeatedField == null && Object.keys(fields).length === 0)
     return {...schema, fields: undefined, repeated_field: undefined};
   const isVisible =
     schema.path.length === 0 || visibleFields.some(f => pathIsEqual(f.path, schema.path));
   if (!isVisible) return null;
-  return {...schema, fields, repeated_field};
+  return {...schema, fields, repeated_field: repeatedField};
 }
 
 export function getMediaFields(schema: LilacField, stats: StatsInfo[]): LilacField[] {
