@@ -3,17 +3,17 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {isPreviewSignal} from '$lib/view_utils';
   import {
-      PATH_WILDCARD,
-      VALUE_KEY,
-      getField,
-      isSignalField,
-      isSignalRootField,
-      pathIsEqual,
-      type BinaryOp,
-      type LilacField,
-      type LilacSchema,
-      type ListOp,
-      type UnaryOp
+    PATH_WILDCARD,
+    VALUE_KEY,
+    getField,
+    isSignalField,
+    isSignalRootField,
+    pathIsEqual,
+    type BinaryOp,
+    type LilacField,
+    type LilacSchema,
+    type ListOp,
+    type UnaryOp
   } from '$lilac';
   import {Checkbox, OverflowMenu} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';

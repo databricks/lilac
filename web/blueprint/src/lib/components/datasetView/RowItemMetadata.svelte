@@ -17,13 +17,10 @@
   import SignalBadge from './SignalBadge.svelte';
 
   export let row: LilacValueNode;
-  export let mediaFields: LilacField[];
   export let visibleFields: LilacField[];
 
   const datasetStore = getDatasetContext();
-  // Get the embeddings.
   const embeddings = queryEmbeddings();
-  $: console.log($embeddings.data);
 
   interface MetadataRow {
     indentLevel: number;

@@ -5,14 +5,14 @@
    */
   import {notEmpty} from '$lib/utils';
   import {
-      childFields,
-      formatValue,
-      getFieldsByDtype,
-      getValueNodes,
-      L,
-      type LilacField,
-      type LilacValueNode,
-      type Path
+    childFields,
+    formatValue,
+    getFieldsByDtype,
+    getValueNodes,
+    L,
+    type LilacField,
+    type LilacValueNode,
+    type Path
   } from '$lilac';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 

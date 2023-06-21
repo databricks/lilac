@@ -195,7 +195,6 @@ export function getValueNode(row: LilacValueNode, path: Path): LilacValueNode | 
  */
 export function getValueNodes(row: LilacValueNode, path: Path): LilacValueNode[] {
   const list = listValueNodes(row);
-  console.log('list', list);
   return list.filter(value => pathIsMatching(path, L.path(value)));
 }
 
