@@ -3,12 +3,15 @@ import {
   pathIncludes,
   pathIsEqual,
   serializePath,
+  type BinaryFilter,
   type Column,
   type LilacSelectRowsSchema,
+  type ListFilter,
   type Path,
   type Search,
   type SelectRowsOptions,
-  type SortOrder
+  type SortOrder,
+  type UnaryFilter
 } from '$lilac';
 import deepEqual from 'deep-equal';
 import {getContext, hasContext, setContext} from 'svelte';
@@ -193,12 +196,16 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         state.queryOptions.sort_order = sortOrder || undefined;
         return state;
       }),
-
-    removeFilters: (column: Path) =>
+    removeFilter: (column: Path) =>
       update(state => {
         state.queryOptions.filters = state.queryOptions.filters?.filter(
           c => !pathIsEqual(c.path, column)
         );
+        return state;
+      }),
+    addFilter: (filter: BinaryFilter | UnaryFilter | ListFilter) =>
+      update(state => {
+        state.queryOptions.filters = [...(state.queryOptions.filters || []), filter];
         return state;
       })
   };

@@ -1,8 +1,8 @@
 <script lang="ts">
   import {queryDatasetStats, querySelectGroups} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {formatValue, type LeafValue, type LilacField} from '$lilac';
-  import {SkeletonText, Tooltip} from 'carbon-components-svelte';
+  import {formatValue, type BinaryFilter, type LeafValue, type LilacField} from '$lilac';
+  import {SkeletonText} from 'carbon-components-svelte';
   import Histogram from './Histogram.svelte';
 
   export let field: LilacField;
@@ -20,6 +20,24 @@
     $groupsQuery.data != null
       ? ($groupsQuery.data.bins as [string, number | null, number | null][])
       : null;
+
+  function rowClicked(value: LeafValue, index: number) {
+    if (value == null) return;
+    if (bins != null) {
+      const [, min, max] = bins[index];
+      if (min != null) {
+        const filter: BinaryFilter = {path: field.path, op: 'greater_equal', value: min};
+        store.addFilter(filter);
+      }
+      if (max != null) {
+        const filter: BinaryFilter = {path: field.path, op: 'less', value: max};
+        store.addFilter(filter);
+      }
+      return;
+    }
+    const filter: BinaryFilter = {path: field.path, op: 'equals', value};
+    store.addFilter(filter);
+  }
 </script>
 
 <div class="p-4">
@@ -34,16 +52,15 @@
         <tr>
           <td>
             <span>Total count</span>
-            <span class="absolute">
-              <Tooltip class="whitespace-normal" direction="right">
-                <p>Total number of rows where the field is defined</p>
-              </Tooltip>
-            </span>
+            <!-- Total number of rows where the value is defined -->
           </td>
           <td>{formatValue(stats.total_count)}</td>
         </tr>
         <tr>
-          <td>Distinct count (approx.)</td>
+          <td>
+            <span>Distinct count (approx.)</span>
+            <!-- Total number of unique values -->
+          </td>
           <td>{formatValue(stats.approx_count_distinct)}</td>
         </tr>
         {#if stats.avg_text_length}
@@ -54,7 +71,10 @@
         {/if}
         {#if stats.min_val && stats.max_val}
           <tr>
-            <td>Range</td>
+            <td>
+              <span>Range</span>
+              <!-- The minimum and maximum value -->
+            </td>
             <td>{formatValue(stats.min_val)} .. {formatValue(stats.max_val)}</td>
           </tr>
         {/if}
@@ -68,7 +88,12 @@
     <!-- Loading... -->
     <SkeletonText paragraph width="50%" />
   {:else}
-    <Histogram {counts} {bins} {field} />
+    <Histogram
+      {counts}
+      {bins}
+      {field}
+      on:row-click={e => rowClicked(e.detail.value, e.detail.index)}
+    />
   {/if}
 </div>
 

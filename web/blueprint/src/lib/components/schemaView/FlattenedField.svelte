@@ -3,6 +3,7 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getSearches, isPreviewSignal} from '$lib/view_utils';
   import * as Lilac from '$lilac';
+  import {formatValue} from '$lilac';
   import {Button, Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
   import {CaretDown, Chip, RowExpand, SortAscending, SortDescending} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
@@ -158,24 +159,23 @@
     </RemovableTag>
   {/if}
   {#if isFiltered}
-    <RemovableTag
-      interactive
-      type="magenta"
-      on:click={() =>
-        triggerCommand({
-          command: Command.EditFilter,
-          namespace: $datasetViewStore.namespace,
-          datasetName: $datasetViewStore.datasetName,
-          path
-        })}
-      on:remove={() => datasetViewStore.removeFilters(path)}
-    >
-      {#if filters.length > 1}
-        Filtered
-      {:else}
-        {FILTER_SHORTHANDS[filters[0].op]} {filters[0].value ?? ''}
-      {/if}
-    </RemovableTag>
+    {#each filters as filter}
+      <RemovableTag
+        interactive
+        type="magenta"
+        on:click={() =>
+          triggerCommand({
+            command: Command.EditFilter,
+            namespace: $datasetViewStore.namespace,
+            datasetName: $datasetViewStore.datasetName,
+            path
+          })}
+        on:remove={() => datasetViewStore.removeFilter(path)}
+      >
+        {FILTER_SHORTHANDS[filter.op]}
+        {formatValue(filter.value) ?? ''}
+      </RemovableTag>
+    {/each}
   {/if}
   {#each searches as search}
     <SearchPill {search} />

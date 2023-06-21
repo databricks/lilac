@@ -1,5 +1,6 @@
 <script lang="ts">
   import {formatValue, type LeafValue, type LilacField} from '$lilac';
+  import {createEventDispatcher} from 'svelte';
 
   export let field: LilacField;
   export let counts: Array<[LeafValue, number]>;
@@ -21,6 +22,7 @@
       return `${formatValue(start)} .. ${formatValue(end)}`;
     }
   }
+  const dispatch = createEventDispatcher();
 </script>
 
 <div class="histogram my-4">
@@ -29,7 +31,10 @@
     {@const barWidth = `${(count / maxCount) * 100}%`}
     {@const formattedCount = formatValue(count)}
 
-    <div class="flex cursor-pointer items-center text-xs text-black hover:bg-gray-200">
+    <button
+      class="flex items-center text-left text-xs text-black hover:bg-gray-200"
+      on:click={() => dispatch('row-click', {value, index: i})}
+    >
       <div title={groupName} class="w-36 flex-none truncate px-2">{groupName}</div>
       <div class="w-36 border-l border-gray-300 pl-2">
         <div
@@ -40,6 +45,6 @@
           {formattedCount}
         </div>
       </div>
-    </div>
+    </button>
   {/each}
 </div>
