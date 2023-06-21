@@ -1,10 +1,9 @@
 <script lang="ts">
-  import {notEmpty} from '$lib/utils';
   /**
    * Component that renders a single value from a row in the dataset row view
    * In the case of strings with string_spans, it will render the derived string spans as well
    */
-
+  import {notEmpty} from '$lib/utils';
   import {
     childFields,
     formatValue,
