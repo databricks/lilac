@@ -1,25 +1,26 @@
 <script lang="ts">
-  import {Tooltip} from 'carbon-components-svelte';
+  import type {SvelteComponent} from 'svelte';
 
-  let isHovered = false;
+  export let tooltipText: string | undefined;
+  export let x: number;
+  export let y: number;
+  export let tooltipBodyComponent: typeof SvelteComponent | undefined;
+  export let tooltipBodyProps: Record<string, unknown> | undefined;
+  const pageWidth = window.innerWidth;
+  let width = 0;
 </script>
 
 <div
-  on:mouseenter={() => (isHovered = true)}
-  on:mouseleave={() => (isHovered = false)}
-  class="hover-tooltip"
+  role="tooltip"
+  class="absolute mt-2 min-w-max max-w-xs -translate-x-1/2 break-words
+    border border-gray-300 bg-white p-2 shadow-md"
+  style:top="{y}px"
+  style:left="{Math.min(x, pageWidth - width / 2 - 20)}px"
+  bind:clientWidth={width}
 >
-  <Tooltip {...$$restProps} open={isHovered}><slot /></Tooltip>
+  {#if tooltipText}
+    <span class="whitespace-pre-wrap">{tooltipText}</span>
+  {:else if tooltipBodyComponent}
+    <svelte:component this={tooltipBodyComponent} {...tooltipBodyProps} />
+  {/if}
 </div>
-
-<style lang="postcss">
-  :global(.hover-tooltip .bx--tooltip) {
-    @apply top-4 w-fit bg-slate-50 text-black;
-  }
-  :global(.hover-tooltip .bx--tooltip__caret) {
-    @apply hidden;
-  }
-  :global(.hover-tooltip div) {
-    @apply cursor-auto;
-  }
-</style>
