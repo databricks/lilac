@@ -43,25 +43,23 @@
 </script>
 
 {#each values as value, i}
-  {#if value != null}
-    {@const suffix = values.length > 1 ? `[${i}]` : ''}
-    <div class="flex flex-row">
-      <div class="flex flex-col border-gray-900">
-        <div class="pb-2 font-mono font-medium text-neutral-500">
-          {path.join('.') + suffix}
-        </div>
+  {@const suffix = values.length > 1 ? `[${i}]` : ''}
+  <div class="flex flex-row">
+    <div class="flex flex-col border-gray-900">
+      <div class="pb-2 font-mono font-medium text-neutral-500">
+        {path.join('.') + suffix}
+      </div>
 
-        <div class="font-normal">
-          <StringSpanHighlight
-            text={formatValue(value)}
-            {field}
-            {row}
-            {visibleKeywordSpanFields}
-            {visibleSpanFields}
-            {visibleLabelSpanFields}
-          />
-        </div>
+      <div class="font-normal">
+        <StringSpanHighlight
+          text={formatValue(value)}
+          {field}
+          {row}
+          {visibleKeywordSpanFields}
+          {visibleSpanFields}
+          {visibleLabelSpanFields}
+        />
       </div>
     </div>
-  {/if}
+  </div>
 {/each}
