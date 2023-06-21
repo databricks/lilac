@@ -2,6 +2,7 @@
   import {queryDatasetManifest, queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {formatValue} from '$lilac';
   import {
     Breadcrumb,
     BreadcrumbItem,
@@ -53,7 +54,7 @@
       </Breadcrumb>
 
       {#if $manifest.isSuccess}
-        ({$manifest.data.dataset_manifest.num_items.toLocaleString()} rows)
+        ({formatValue($manifest.data.dataset_manifest.num_items)} rows)
       {/if}
     </div>
     <div class="flex">

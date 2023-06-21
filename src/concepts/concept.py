@@ -3,7 +3,7 @@ import random
 from typing import Iterable, Literal, Optional, Union
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
 
@@ -56,6 +56,11 @@ class ExampleIn(BaseModel):
   origin: Optional[ExampleOrigin]
   # The name of the draft to put the example in. If None, puts it in the main draft.
   draft: Optional[DraftId] = DRAFT_MAIN
+
+  @validator('text')
+  def parse_text(cls, text: str) -> str:
+    """Fixes surrogate errors in text: https://github.com/ijl/orjson/blob/master/README.md#str ."""
+    return text.encode('utf-8', 'replace').decode('utf-8')
 
 
 class Example(ExampleIn):

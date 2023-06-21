@@ -521,19 +521,23 @@ class DatasetDuckDB(Dataset):
     if leaf.dtype == DataType.STRING:
       avg_length_query = ', avg(length(val)) as avgTextLength'
 
-    approx_count_query = f"""
-      SELECT approx_count_distinct(val) as approxCountDistinct {avg_length_query}
-      FROM (SELECT {inner_select} AS val FROM t LIMIT {sample_size});
-    """
-    row = self._query(approx_count_query)[0]
-    approx_count_distinct = row[0]
+    if leaf.dtype == DataType.BOOLEAN:
+      approx_count_distinct = 2
+    else:
+      approx_count_query = f"""
+        SELECT approx_count_distinct(val) as approxCountDistinct {avg_length_query}
+        FROM (SELECT {inner_select} AS val FROM t LIMIT {sample_size});
+      """
+      row = self._query(approx_count_query)[0]
+      approx_count_distinct = row[0]
 
     total_count_query = f'SELECT count(val) FROM (SELECT {inner_select} as val FROM t)'
     total_count = self._query(total_count_query)[0][0]
 
-    # Adjust the counts for the sample size.
-    factor = max(1, total_count / sample_size)
-    approx_count_distinct = round(approx_count_distinct * factor)
+    if leaf.dtype != DataType.BOOLEAN:
+      # Adjust the counts for the sample size.
+      factor = max(1, total_count / sample_size)
+      approx_count_distinct = round(approx_count_distinct * factor)
 
     result = StatsResult(
       path=path, total_count=total_count, approx_count_distinct=approx_count_distinct)
