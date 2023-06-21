@@ -14,7 +14,7 @@
 
 <style lang="postcss">
   :global(.hover-tooltip .bx--tooltip) {
-    @apply top-4 min-w-0 bg-slate-50 text-black;
+    @apply top-4 w-fit bg-slate-50 text-black;
   }
   :global(.hover-tooltip .bx--tooltip__caret) {
     @apply hidden;

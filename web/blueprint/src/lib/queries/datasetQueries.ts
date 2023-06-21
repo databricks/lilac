@@ -33,7 +33,7 @@ export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
 
 export const DATASETS_TAG = 'datasets';
 
-export const DEFAULT_SELECT_ROWS_LIMIT = 20;
+export const DEFAULT_SELECT_ROWS_LIMIT = 1;
 
 export const queryDatasets = createApiQuery(DatasetsService.getDatasets, DATASETS_TAG);
 export const queryDatasetManifest = createApiQuery(DatasetsService.getManifest, DATASETS_TAG, {});

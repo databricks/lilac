@@ -3,19 +3,19 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {isPreviewSignal} from '$lib/view_utils';
   import {
-    PATH_WILDCARD,
-    VALUE_KEY,
-    getField,
-    isSignalField,
-    isSignalRootField,
-    pathIsEqual,
-    type BinaryOp,
-    type LilacField,
-    type LilacSchema,
-    type ListOp,
-    type UnaryOp
+      PATH_WILDCARD,
+      VALUE_KEY,
+      getField,
+      isSignalField,
+      isSignalRootField,
+      pathIsEqual,
+      type BinaryOp,
+      type LilacField,
+      type LilacSchema,
+      type ListOp,
+      type UnaryOp
   } from '$lilac';
-  import {Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
+  import {Checkbox, OverflowMenu} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
   import SortAscending from 'carbon-icons-svelte/lib/SortAscending.svelte';
   import SortDescending from 'carbon-icons-svelte/lib/SortDescending.svelte';
@@ -23,6 +23,7 @@
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import RemovableTag from '../common/RemovableTag.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
+  import SignalBadge from '../datasetView/SignalBadge.svelte';
 
   export let schema: LilacSchema;
   export let field: LilacField;
@@ -155,10 +156,8 @@
         {/if}
       </RemovableTag>
     {/if}
-    {#if signalRoot && isPreview}
-      <Tag type="green" class="whitespace-nowrap">Signal Preview</Tag>
-    {:else if signalRoot}
-      <Tag type="blue" class="whitespace-nowrap">Signal</Tag>
+    {#if signalRoot}
+      <SignalBadge {isPreview} />
     {/if}
     {#if field?.dtype}
       <div class="w-24 px-2 text-right">{field.dtype}{isRepeatedField ? '[]' : ''}</div>
