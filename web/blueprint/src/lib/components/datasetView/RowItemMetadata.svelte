@@ -59,7 +59,7 @@
         $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) || false;
       const isSignal = isSignalRootField(field);
       let formattedValue: string | null;
-      if (isSignal) {
+      if (isEmbeddingSignal || (isSignal && field.dtype == null) || field.dtype === 'embedding') {
         formattedValue = '';
       } else if (value == null) {
         formattedValue = null;
