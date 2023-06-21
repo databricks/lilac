@@ -1,8 +1,8 @@
 <script lang="ts">
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {type KeywordQuery, type Search, type SearchType, type SemanticQuery} from '$lilac';
-  import {Tag} from 'carbon-components-svelte';
+  import type {KeywordQuery, Search, SearchType, SemanticQuery} from '$lilac';
+  import type {Tag} from 'carbon-components-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import RemovableTag from '../common/RemovableTag.svelte';
   import SearchPillHoverBody from './SearchPillHoverBody.svelte';
