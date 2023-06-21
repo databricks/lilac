@@ -12,5 +12,6 @@ export type Field = {
     fields?: Record<string, Field>;
     dtype?: DataType;
     signal?: Record<string, any>;
+    bins?: Array<Array<any>>;
 };
 

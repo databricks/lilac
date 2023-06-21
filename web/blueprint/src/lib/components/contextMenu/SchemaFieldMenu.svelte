@@ -15,55 +15,57 @@
   const datasetViewStore = getDatasetViewContext();
 </script>
 
-<OverflowMenuItem
-  text="Sort by"
-  disabled={!isSortableField(field)}
-  on:click={() => datasetViewStore.addSortBy(field.path)}
-/>
-<OverflowMenuItem
-  text="Filter"
-  disabled={!isFilterableField(field)}
-  on:click={() =>
-    triggerCommand({
-      command: Command.EditFilter,
-      namespace: $datasetViewStore.namespace,
-      datasetName: $datasetViewStore.datasetName,
-      path: field.path
-    })}
-/>
-<OverflowMenuItem
-  text="Compute embedding"
-  disabled={isSignalField(field, schema)}
-  on:click={() =>
-    triggerCommand({
-      command: Command.ComputeEmbedding,
-      namespace: $datasetViewStore.namespace,
-      datasetName: $datasetViewStore.datasetName,
-      path: field?.path
-    })}
-/>
-<OverflowMenuItem
-  text="Preview signal"
-  disabled={isSignalField(field, schema)}
-  on:click={() =>
-    triggerCommand({
-      command: Command.PreviewConcept,
-      namespace: $datasetViewStore.namespace,
-      datasetName: $datasetViewStore.datasetName,
-      path: field?.path
-    })}
-/>
-<OverflowMenuItem
-  text="Compute signal"
-  disabled={isSignalField(field, schema)}
-  on:click={() =>
-    triggerCommand({
-      command: Command.ComputeSignal,
-      namespace: $datasetViewStore.namespace,
-      datasetName: $datasetViewStore.datasetName,
-      path: field?.path
-    })}
-/>
+{#if isSortableField(field)}
+  <OverflowMenuItem text="Sort by" on:click={() => datasetViewStore.addSortBy(field.path)} />
+{/if}
+{#if isFilterableField(field)}
+  <OverflowMenuItem
+    text="Filter"
+    on:click={() =>
+      triggerCommand({
+        command: Command.EditFilter,
+        namespace: $datasetViewStore.namespace,
+        datasetName: $datasetViewStore.datasetName,
+        path: field.path
+      })}
+  />
+{/if}
+{#if !isSignalField(field, schema)}
+  <OverflowMenuItem
+    text="Compute embedding"
+    on:click={() =>
+      triggerCommand({
+        command: Command.ComputeEmbedding,
+        namespace: $datasetViewStore.namespace,
+        datasetName: $datasetViewStore.datasetName,
+        path: field?.path
+      })}
+  />
+{/if}
+{#if !isSignalField(field, schema)}
+  <OverflowMenuItem
+    text="Preview signal"
+    on:click={() =>
+      triggerCommand({
+        command: Command.PreviewConcept,
+        namespace: $datasetViewStore.namespace,
+        datasetName: $datasetViewStore.datasetName,
+        path: field?.path
+      })}
+  />
+{/if}
+{#if !isSignalField(field, schema)}
+  <OverflowMenuItem
+    text="Compute signal"
+    on:click={() =>
+      triggerCommand({
+        command: Command.ComputeSignal,
+        namespace: $datasetViewStore.namespace,
+        datasetName: $datasetViewStore.datasetName,
+        path: field?.path
+      })}
+  />
+{/if}
 
 <style lang="postcss">
   :global(ul.bx--overflow-menu-options) {

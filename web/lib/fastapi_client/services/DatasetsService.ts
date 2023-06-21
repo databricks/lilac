@@ -6,6 +6,7 @@ import type { ComputeSignalResponse } from '../models/ComputeSignalResponse';
 import type { DatasetInfo } from '../models/DatasetInfo';
 import type { GetStatsOptions } from '../models/GetStatsOptions';
 import type { SelectGroupsOptions } from '../models/SelectGroupsOptions';
+import type { SelectGroupsResult } from '../models/SelectGroupsResult';
 import type { SelectRowsOptions } from '../models/SelectRowsOptions';
 import type { SelectRowsSchemaOptions } from '../models/SelectRowsSchemaOptions';
 import type { SelectRowsSchemaResult } from '../models/SelectRowsSchemaResult';
@@ -208,14 +209,14 @@ export class DatasetsService {
      * @param namespace
      * @param datasetName
      * @param requestBody
-     * @returns any Successful Response
+     * @returns SelectGroupsResult Successful Response
      * @throws ApiError
      */
     public static selectGroups(
         namespace: string,
         datasetName: string,
         requestBody: SelectGroupsOptions,
-    ): CancelablePromise<Array<Array<any>>> {
+    ): CancelablePromise<SelectGroupsResult> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/select_groups',

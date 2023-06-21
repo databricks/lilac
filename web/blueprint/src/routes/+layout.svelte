@@ -54,10 +54,7 @@
     'text-primary': 'black',
     // Hover color of buttons.
     'text-04': 'black',
-    // Focus.
-    focus: 'transparent',
     // Controls the bottom border of the searchbox.
-    'ui-04': 'transparent',
     'border-strong': 'transparent',
     // Typography
     'label-01-letter-spacing': 'var(--cds-productive-heading-01-letter-spacing)',

@@ -5,7 +5,6 @@
 import type { BinaryFilter } from './BinaryFilter';
 import type { GroupsSortBy } from './GroupsSortBy';
 import type { ListFilter } from './ListFilter';
-import type { NamedBins } from './NamedBins';
 import type { SortOrder } from './SortOrder';
 import type { UnaryFilter } from './UnaryFilter';
 
@@ -18,6 +17,6 @@ export type SelectGroupsOptions = {
     sort_by?: GroupsSortBy;
     sort_order?: SortOrder;
     limit?: number;
-    bins?: (Array<number> | NamedBins);
+    bins?: Array<Array<any>>;
 };
 

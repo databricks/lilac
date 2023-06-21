@@ -104,6 +104,9 @@ def signal_compute_type_supports_dtype(input_type: SignalInputType, dtype: DataT
   return dtype in SIGNAL_COMPUTE_TYPE_TO_VALID_DTYPES[input_type]
 
 
+Bin = tuple[str, Optional[Union[float, int]], Optional[Union[float, int]]]
+
+
 class Field(BaseModel):
   """Holds information for a field in the schema."""
   repeated_field: Optional['Field']
@@ -111,6 +114,8 @@ class Field(BaseModel):
   dtype: Optional[DataType]
   # Defined as the serialized signal when this field is the root result of a signal.
   signal: Optional[dict[str, Any]]
+  # Maps a named bin to a tuple of (start, end) values.
+  bins: Optional[list[Bin]]
 
   @validator('fields')
   def either_fields_or_repeated_field_is_defined(
@@ -134,6 +139,27 @@ class Field(BaseModel):
     if not values.get('repeated_field') and not values.get('fields') and not dtype:
       raise ValueError('One of "fields", "repeated_field", or "dtype" should be defined')
     return dtype
+
+  @validator('bins')
+  def validate_bins(cls, bins: list[Bin]) -> list[Bin]:
+    """Validate the bins."""
+    if len(bins) < 2:
+      raise ValueError('Please specify at least two bins.')
+    _, first_start, _ = bins[0]
+    if first_start is not None:
+      raise ValueError('The first bin should have a `None` start value.')
+    _, _, last_end = bins[-1]
+    if last_end is not None:
+      raise ValueError('The last bin should have a `None` end value.')
+    for i, (_, start, _) in enumerate(bins):
+      if i == 0:
+        continue
+      prev_bin = bins[i - 1]
+      _, _, prev_end = prev_bin
+      if start != prev_end:
+        raise ValueError(
+          f'Bin {i} start ({start}) should be equal to the previous bin end {prev_end}.')
+    return bins
 
   def __str__(self) -> str:
     return _str_field(self, indent=0)
@@ -225,6 +251,7 @@ def field(
   dtype: Optional[Union[DataType, str]] = None,
   signal: Optional[dict] = None,
   fields: Optional[object] = None,
+  bins: Optional[list[Bin]] = None,
 ) -> Field:
   """Parse a field-like object to a Field object."""
   field = _parse_field_like(fields or {}, dtype)
@@ -234,6 +261,8 @@ def field(
     if isinstance(dtype, str):
       dtype = DataType(dtype)
     field.dtype = dtype
+  if bins:
+    field.bins = bins
   return field
 
 

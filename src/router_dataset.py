@@ -1,6 +1,6 @@
 """Router for the dataset database."""
 import os
-from typing import Any, Optional, Sequence, Union, cast
+from typing import Optional, Sequence, Union, cast
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Response
@@ -8,7 +8,7 @@ from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, validator
 
 from .config import data_path
-from .data.dataset import BinaryOp, Bins
+from .data.dataset import BinaryOp
 from .data.dataset import Column as DBColumn
 from .data.dataset import DatasetManifest, FeatureListValue, FeatureValue
 from .data.dataset import Filter as PyFilter
@@ -16,6 +16,7 @@ from .data.dataset import (
   GroupsSortBy,
   ListOp,
   Search,
+  SelectGroupsResult,
   SelectRowsSchemaResult,
   SortOrder,
   StatsResult,
@@ -24,7 +25,7 @@ from .data.dataset import (
 from .data.dataset_duckdb import DatasetDuckDB
 from .db_manager import get_dataset, set_default_dataset_cls
 from .router_utils import RouteErrorHandler
-from .schema import Path, normalize_path
+from .schema import Bin, Path, normalize_path
 from .signals.concept_scorer import ConceptScoreSignal
 from .signals.default_signals import register_default_signals
 from .signals.signal import (
@@ -249,20 +250,19 @@ class SelectGroupsOptions(BaseModel):
   sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int] = 100
-  bins: Optional[Bins]
+  bins: Optional[list[Bin]]
 
 
 @router.post('/{namespace}/{dataset_name}/select_groups')
 def select_groups(namespace: str, dataset_name: str,
-                  options: SelectGroupsOptions) -> list[tuple[Any, int]]:
+                  options: SelectGroupsOptions) -> SelectGroupsResult:
   """Select groups from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
   sanitized_filters = [
     PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
   ]
-  result = dataset.select_groups(options.leaf_path, sanitized_filters, options.sort_by,
-                                 options.sort_order, options.limit, options.bins)
-  return list(result)
+  return dataset.select_groups(options.leaf_path, sanitized_filters, options.sort_by,
+                               options.sort_order, options.limit, options.bins)
 
 
 @router.get('/{namespace}/{dataset_name}/media')

@@ -5,7 +5,7 @@ import math
 import os
 import re
 import threading
-from typing import Any, Iterable, Iterator, Optional, Sequence, Type, Union, cast
+from typing import Any, Iterable, Optional, Sequence, Type, Union, cast
 
 import duckdb
 import numpy as np
@@ -25,6 +25,7 @@ from ..schema import (
   TEXT_SPAN_START_FEATURE,
   UUID_COLUMN,
   VALUE_KEY,
+  Bin,
   DataType,
   Field,
   Item,
@@ -58,7 +59,6 @@ from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
 from . import dataset
 from .dataset import (
   BinaryOp,
-  Bins,
   Column,
   ColumnId,
   Dataset,
@@ -71,7 +71,6 @@ from .dataset import (
   GroupsSortBy,
   ListOp,
   MediaResult,
-  NamedBins,
   Search,
   SearchResultInfo,
   SelectGroupsResult,
@@ -108,6 +107,7 @@ SOURCE_VIEW_NAME = 'source'
 
 # Sample size for approximating the distinct count of a column.
 SAMPLE_SIZE_DISTINCT_COUNT = 100_000
+NUM_AUTO_BINS = 15
 
 BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
   BinaryOp.EQUALS: '=',
@@ -119,23 +119,6 @@ BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
 }
 
 SUPPORTED_OPS_ON_REPEATED: set[FilterOp] = set([UnaryOp.EXISTS])
-
-
-class DuckDBSelectGroupsResult(SelectGroupsResult):
-  """The result of a select groups query backed by DuckDB."""
-
-  def __init__(self, df: pd.DataFrame) -> None:
-    """Initialize the result."""
-    self._df = df
-
-  @override
-  def __iter__(self) -> Iterator:
-    return (tuple(row) for _, row in self._df.iterrows())
-
-  @override
-  def df(self) -> pd.DataFrame:
-    """Convert the result to a pandas DataFrame."""
-    return self._df
 
 
 class DuckDBSearchUDF(BaseModel):
@@ -570,13 +553,14 @@ class DatasetDuckDB(Dataset):
     return result
 
   @override
-  def select_groups(self,
-                    leaf_path: Path,
-                    filters: Optional[Sequence[FilterLike]] = None,
-                    sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
-                    sort_order: Optional[SortOrder] = SortOrder.DESC,
-                    limit: Optional[int] = None,
-                    bins: Optional[Bins] = None) -> SelectGroupsResult:
+  def select_groups(
+      self,
+      leaf_path: Path,
+      filters: Optional[Sequence[FilterLike]] = None,
+      sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
+      sort_order: Optional[SortOrder] = SortOrder.DESC,
+      limit: Optional[int] = None,
+      bins: Optional[Union[Sequence[Bin], Sequence[float]]] = None) -> SelectGroupsResult:
     if not leaf_path:
       raise ValueError('leaf_path must be provided')
     path = normalize_path(leaf_path)
@@ -585,47 +569,61 @@ class DatasetDuckDB(Dataset):
     if not leaf or not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
-    stats = self.stats(leaf_path)
-    if not bins and stats.approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
-      raise ValueError(f'Leaf "{path}" has too many unique values: {stats.approx_count_distinct}')
-
     inner_val = 'inner_val'
     outer_select = inner_val
-    if is_float(leaf.dtype) or is_integer(leaf.dtype):
-      if bins is None:
-        raise ValueError(f'"bins" needs to be defined for the int/float leaf "{path}"')
-      # Normalize the bins to be `NamedBins`.
-      named_bins = bins if isinstance(bins, NamedBins) else NamedBins(bins=bins)
-      bounds = []
-      # Normalize the bins to be in the form of (label, bound).
+    # Normalize the bins to be `list[Bin]`.
+    named_bins = _normalize_bins(bins or leaf.bins)
+    stats = self.stats(leaf_path)
 
-      for i in range(len(named_bins.bins) + 1):
-        prev = named_bins.bins[i - 1] if i > 0 else "'-Infinity'"
-        next = named_bins.bins[i] if i < len(named_bins.bins) else "'Infinity'"
-        label = f"'{named_bins.labels[i]}'" if named_bins.labels else i
-        bounds.append(f'({label}, {prev}, {next})')
+    if is_float(leaf.dtype) or is_integer(leaf.dtype):
+      if named_bins is None:
+        # Auto-bin.
+        named_bins = _auto_bins(stats, NUM_AUTO_BINS)
+
+      sql_bounds = []
+      for label, start, end in named_bins:
+        if start is None:
+          start = cast(float, "'-Infinity'")
+        if end is None:
+          end = cast(float, "'Infinity'")
+        sql_bounds.append(f"('{label}', {start}, {end})")
+
       bin_index_col = 'col0'
       bin_min_col = 'col1'
       bin_max_col = 'col2'
       # We cast the field to `double` so bining works for both `float` and `int` fields.
       outer_select = f"""(
         SELECT {bin_index_col} FROM (
-          VALUES {', '.join(bounds)}
+          VALUES {', '.join(sql_bounds)}
         ) WHERE {inner_val}::DOUBLE >= {bin_min_col} AND {inner_val}::DOUBLE < {bin_max_col}
       )"""
+    else:
+      if stats.approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
+        return SelectGroupsResult(too_many_distinct=True, counts=[], bins=named_bins)
+
     count_column = 'count'
     value_column = 'value'
 
     limit_query = f'LIMIT {limit}' if limit else ''
-    inner_select = _select_sql(path, flatten=True, unnest=True)
+    duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
+    inner_select = _select_sql(duckdb_path, flatten=True, unnest=True)
+
+    filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
+    filter_queries = self._create_where(manifest, filters, searches=[])
+    where_query = ''
+    if filter_queries:
+      where_query = f"WHERE {' AND '.join(filter_queries)}"
+
     query = f"""
       SELECT {outer_select} AS {value_column}, COUNT() AS {count_column}
-      FROM (SELECT {inner_select} AS {inner_val} FROM t)
+      FROM (SELECT {inner_select} AS {inner_val} FROM t {where_query})
       GROUP BY {value_column}
       ORDER BY {sort_by} {sort_order}
       {limit_query}
     """
-    return DuckDBSelectGroupsResult(self._query_df(query))
+    df = self._query_df(query)
+    counts = list(df.itertuples(index=False, name=None))
+    return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)
 
   def _topk_udf_to_sort_by(
     self,
@@ -636,7 +634,13 @@ class DatasetDuckDB(Dataset):
   ) -> Optional[Column]:
     if (sort_order != SortOrder.DESC) or (not limit) or (not sort_by):
       return None
-    udf_cols_to_sort_by = [col for col in udf_columns if col.alias == sort_by[0][0]]
+    if len(sort_by) < 1:
+      return None
+    primary_sort_by = sort_by[0]
+    udf_cols_to_sort_by = [
+      col for col in udf_columns
+      if col.alias == primary_sort_by[0] or _col_destination_path(col) == primary_sort_by
+    ]
     if not udf_cols_to_sort_by:
       return None
     udf_col = udf_cols_to_sort_by[0]
@@ -1610,3 +1614,28 @@ def _schema_has_spans(field: Field) -> bool:
   if field.repeated_field:
     return _schema_has_spans(field.repeated_field)
   return False
+
+
+def _normalize_bins(bins: Optional[Union[Sequence[Bin], Sequence[float]]]) -> Optional[list[Bin]]:
+  if bins is None:
+    return None
+  if not isinstance(bins[0], (float, int)):
+    return cast(list[Bin], bins)
+  named_bins: list[Bin] = []
+  for i in range(len(bins) + 1):
+    start = cast(float, bins[i - 1]) if i > 0 else None
+    end = cast(float, bins[i]) if i < len(bins) else None
+    named_bins.append((str(i), start, end))
+  return named_bins
+
+
+def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
+  min_val = cast(float, stats.min_val)
+  max_val = cast(float, stats.max_val)
+  bin_width = (max_val - min_val) / num_bins
+  bins: list[Bin] = []
+  for i in range(num_bins):
+    start = None if i == 0 else min_val + i * bin_width
+    end = None if i == num_bins - 1 else min_val + (i + 1) * bin_width
+    bins.append((str(i), start, end))
+  return bins
