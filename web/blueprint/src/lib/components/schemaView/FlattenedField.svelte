@@ -274,7 +274,7 @@
 
 <style lang="postcss">
   :global(.bx--btn--selected) {
-    @apply !bg-slate-200;
+    @apply !bg-slate-300;
   }
   :global(.bx--btn--selected .bx--btn__icon) {
     @apply rotate-180 transition;

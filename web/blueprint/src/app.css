@@ -42,7 +42,7 @@ body {
   @apply text-white;
 }
 .bx--btn.bx--btn--ghost {
-  @apply border-transparent bg-transparent text-black;
+  @apply border-transparent bg-transparent text-black hover:!bg-gray-200;
 }
 .bx--btn.bx--btn--primary.bx--btn--disabled {
   @apply border-neutral-300 bg-slate-200 text-neutral-400;
