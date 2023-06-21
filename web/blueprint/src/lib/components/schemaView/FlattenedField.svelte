@@ -191,8 +191,7 @@
     <div
       class="compute-signal-preview pointer-events-auto mr-2"
       use:hoverTooltip={{
-        tooltipText:
-          'Compute signal over the column and save the result.\n\nThis may be expensive.'
+        tooltipText: 'Compute signal over the column and save the result.\n\nThis may be expensive.'
       }}
     >
       <Tag
