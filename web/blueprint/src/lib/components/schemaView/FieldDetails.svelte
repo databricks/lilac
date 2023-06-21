@@ -2,7 +2,7 @@
   import {queryDatasetStats, querySelectGroups} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {formatValue, type LeafValue, type LilacField} from '$lilac';
-  import {SkeletonText} from 'carbon-components-svelte';
+  import {SkeletonText, Tooltip} from 'carbon-components-svelte';
   import Histogram from './Histogram.svelte';
 
   export let field: LilacField;
@@ -32,7 +32,14 @@
     <table class="stats-table mb-4">
       <tbody>
         <tr>
-          <td>Total count</td>
+          <td>
+            <span>Total count</span>
+            <span class="absolute">
+              <Tooltip class="whitespace-normal" direction="right">
+                <p>Total number of rows where the field is defined</p>
+              </Tooltip>
+            </span>
+          </td>
           <td>{formatValue(stats.total_count)}</td>
         </tr>
         <tr>
