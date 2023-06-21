@@ -32,7 +32,8 @@
     isPreviewSignal: boolean;
     isEmbeddingSignal: boolean;
     path: Path;
-    value?: DataTypeCasted;
+    value?: DataTypeCasted | null;
+    formattedValue?: string | null;
   }
   function makeRows(row: LilacValueNode): MetadataRow[] {
     const valueNodes = listValueNodes(row).filter(item => isItemVisible(item, visibleFields));
@@ -54,17 +55,28 @@
           }
         }
       }
+      const isEmbeddingSignal =
+        $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) || false;
+      const isSignal = isSignalRootField(field);
+      let formattedValue: string | null;
+      if (isSignal) {
+        formattedValue = '';
+      } else if (value == null) {
+        formattedValue = null;
+      } else {
+        formattedValue = formatValue(value);
+      }
+
       return {
         indentLevel: path.length - 1,
         fieldName: path[path.length - 1],
         field,
         path,
-        isSignal: isSignalRootField(field),
+        isSignal,
         isPreviewSignal: isPreviewSignal($datasetStore.selectRowsSchema?.data || null, path),
-        isEmbeddingSignal:
-          $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) ||
-          false,
-        value
+        isEmbeddingSignal,
+        value,
+        formattedValue
       };
     });
   }
@@ -76,7 +88,6 @@
   <div class="h-full border-l border-gray-300">
     <table class="mx-2 mt-1 table border-collapse">
       {#each rows as row, i (serializePath(row.path))}
-        {@const formattedValue = row.value !== undefined ? formatValue(row.value) : ''}
         <tr class:border-b={i < rows.length - 1} class="border-gray-300">
           <td class="p-2 pl-2 pr-2 font-mono text-xs font-medium text-neutral-500">
             <span style:padding-left={`${row.indentLevel * 12}px`}>{row.fieldName}</span>
@@ -89,11 +100,13 @@
             {/if}
           </td>
           <td class="p-2">
-            {#if row.value !== undefined}
-              <div title={`${row.value}`} class="w-32 truncate pr-2 text-xs">
-                {row.value !== undefined ? `${formattedValue}` : ''}
-              </div>
-            {/if}
+            <div
+              title={`${row.value}`}
+              class="w-32 truncate pr-2 text-xs"
+              class:italic={row.formattedValue === null}
+            >
+              {row.formattedValue}
+            </div>
           </td>
         </tr>
       {/each}
