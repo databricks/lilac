@@ -539,7 +539,8 @@ class DatasetDuckDB(Dataset):
       factor = max(1, total_count / sample_size)
       approx_count_distinct = round(approx_count_distinct * factor)
 
-    result = StatsResult(total_count=total_count, approx_count_distinct=approx_count_distinct)
+    result = StatsResult(
+      path=path, total_count=total_count, approx_count_distinct=approx_count_distinct)
 
     if leaf.dtype == DataType.STRING:
       result.avg_text_length = row[1]

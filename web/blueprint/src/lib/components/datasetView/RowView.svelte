@@ -2,6 +2,7 @@
   import {infiniteQuerySelectRows, queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
+  import {getMediaFields, getVisibleSchema} from '$lib/view_utils';
   import {L, UUID_COLUMN, serializePath} from '$lilac';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
@@ -30,6 +31,12 @@
   $: visibleFields = ($datasetStore.visibleFields || []).sort((a, b) =>
     serializePath(a.path) > serializePath(b.path) ? 1 : -1
   );
+  $: visibleSchema =
+    selectRowsSchema?.data?.schema != null
+      ? getVisibleSchema(selectRowsSchema?.data?.schema, visibleFields)!
+      : null;
+  $: mediaFields =
+    visibleSchema != null ? getMediaFields(visibleSchema, $datasetStore.stats || []) : [];
 </script>
 
 <SearchPanel />
@@ -55,10 +62,10 @@
   <div class="mx-4 mt-8 w-full text-gray-600">No results.</div>
 {/if}
 
-{#if items && visibleFields.length > 0 && $schema.isSuccess}
-  <div class="flex h-full w-full flex-col overflow-scroll">
+{#if items && visibleFields.length > 0 && $schema.isSuccess && mediaFields != null}
+  <div class="flex h-full w-full flex-col overflow-y-scroll">
     {#each items as row (L.value(row[UUID_COLUMN]))}
-      <RowItem {visibleFields} {row} schema={$schema.data} />
+      <RowItem {visibleFields} {row} {mediaFields} />
     {/each}
     {#if items.length > 0}
       <InfiniteScroll threshold={100} on:loadMore={() => $rows?.fetchNextPage()} />

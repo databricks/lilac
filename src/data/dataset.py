@@ -35,6 +35,7 @@ class SelectRowsResult:
 
 class StatsResult(BaseModel):
   """The result of a stats() query."""
+  path: PathTuple
   # The number of leaf values.
   total_count: int
   # The approximate number of distinct leaf values.

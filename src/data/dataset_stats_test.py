@@ -35,16 +35,19 @@ def test_simple_stats(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(SIMPLE_ITEMS)
 
   result = dataset.stats(leaf_path='str')
-  assert result == StatsResult(total_count=3, approx_count_distinct=2, avg_text_length=1)
+  assert result == StatsResult(
+    path=('str',), total_count=3, approx_count_distinct=2, avg_text_length=1)
 
   result = dataset.stats(leaf_path='float')
-  assert result == StatsResult(total_count=3, approx_count_distinct=3, min_val=1.0, max_val=3.0)
+  assert result == StatsResult(
+    path=('float',), total_count=3, approx_count_distinct=3, min_val=1.0, max_val=3.0)
 
   result = dataset.stats(leaf_path='bool')
-  assert result == StatsResult(total_count=3, approx_count_distinct=2)
+  assert result == StatsResult(path=('bool',), total_count=3, approx_count_distinct=2)
 
   result = dataset.stats(leaf_path='int')
-  assert result == StatsResult(total_count=3, approx_count_distinct=2, min_val=1, max_val=2)
+  assert result == StatsResult(
+    path=('int',), total_count=3, approx_count_distinct=2, min_val=1, max_val=2)
 
 
 def test_nested_stats(make_test_data: TestDataMaker) -> None:
@@ -84,10 +87,16 @@ def test_nested_stats(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(nested_items, schema=nested_schema)
 
   result = dataset.stats(leaf_path='name')
-  assert result == StatsResult(total_count=4, approx_count_distinct=2, avg_text_length=5)
+  assert result == StatsResult(
+    path=('name',), total_count=4, approx_count_distinct=2, avg_text_length=5)
 
   result = dataset.stats(leaf_path='addresses.*.zips.*')
-  assert result == StatsResult(total_count=5, approx_count_distinct=4, min_val=3, max_val=11)
+  assert result == StatsResult(
+    path=('addresses', '*', 'zips', '*'),
+    total_count=5,
+    approx_count_distinct=4,
+    min_val=3,
+    max_val=11)
 
 
 def test_stats_approximation(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
@@ -99,7 +108,8 @@ def test_stats_approximation(make_test_data: TestDataMaker, mocker: MockerFixtur
   dataset = make_test_data(nested_items, schema=nested_schema)
 
   result = dataset.stats(leaf_path='feature')
-  assert result == StatsResult(total_count=50, approx_count_distinct=50, avg_text_length=1)
+  assert result == StatsResult(
+    path=('feature',), total_count=50, approx_count_distinct=50, avg_text_length=1)
 
 
 def test_error_handling(make_test_data: TestDataMaker) -> None:

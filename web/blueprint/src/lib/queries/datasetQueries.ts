@@ -33,7 +33,7 @@ export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
 
 export const DATASETS_TAG = 'datasets';
 
-export const DEFAULT_LIMIT_SELECT_ROWS = 20;
+export const DEFAULT_SELECT_ROWS_LIMIT = 20;
 
 export const queryDatasets = createApiQuery(DatasetsService.getDatasets, DATASETS_TAG);
 export const queryDatasetManifest = createApiQuery(DatasetsService.getManifest, DATASETS_TAG, {});
@@ -102,8 +102,8 @@ export const infiniteQuerySelectRows = (
     queryFn: ({pageParam = 0}) =>
       DatasetsService.selectRows(namespace, datasetName, {
         ...selectRowOptions,
-        limit: selectRowOptions.limit || DEFAULT_LIMIT_SELECT_ROWS,
-        offset: pageParam * (selectRowOptions.limit || DEFAULT_LIMIT_SELECT_ROWS)
+        limit: selectRowOptions.limit || DEFAULT_SELECT_ROWS_LIMIT,
+        offset: pageParam * (selectRowOptions.limit || DEFAULT_SELECT_ROWS_LIMIT)
       }),
     select: data => ({
       ...data,

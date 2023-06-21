@@ -6,6 +6,7 @@ import {
   getField,
   getFieldsByDtype,
   pathIsEqual,
+  petals,
   serializePath,
   type DataType,
   type DataTypeCasted,
@@ -20,6 +21,8 @@ import {
 } from '$lilac';
 import type {DatasetStore, StatsInfo} from './stores/datasetStore';
 import type {IDatasetViewStore} from './stores/datasetViewStore';
+
+const MEDIA_TEXT_LENGTH_THRESHOLD = 100;
 
 export function getVisibleFields(
   selectedColumns: {[path: string]: boolean} | null,
@@ -39,6 +42,49 @@ export function getVisibleFields(
     fields = getFieldsByDtype(dtype, field || schema);
   }
   return fields.filter(f => isPathVisible(selectedColumns, stats, f.path));
+}
+
+export function getVisibleSchema(
+  schema: LilacField,
+  visibleFields: LilacField[]
+): LilacField | null {
+  const fields: {[fieldName: string]: LilacField} = {};
+  let repeatedField: LilacField | undefined = undefined;
+
+  if (schema.fields != null) {
+    for (const [fieldName, field] of Object.entries(schema.fields)) {
+      if (visibleFields.some(f => pathIsEqual(f.path, field.path))) {
+        const child = getVisibleSchema(field, visibleFields);
+        if (child != null) {
+          fields[fieldName] = child;
+        }
+      }
+    }
+  } else if (schema.repeated_field != null) {
+    if (!visibleFields.some(f => pathIsEqual(f.path, schema.repeated_field?.path))) {
+      repeatedField = undefined;
+    } else {
+      repeatedField = schema.repeated_field;
+    }
+  }
+  if (repeatedField == null && Object.keys(fields).length === 0)
+    return {...schema, fields: undefined, repeated_field: undefined};
+  const isVisible =
+    schema.path.length === 0 || visibleFields.some(f => pathIsEqual(f.path, schema.path));
+  if (!isVisible) return null;
+  return {...schema, fields, repeated_field: repeatedField};
+}
+
+export function getMediaFields(schema: LilacField, stats: StatsInfo[]): LilacField[] {
+  const fields: LilacField[] = [];
+  for (const petal of petals(schema)) {
+    const stat = stats?.find(s => pathIsEqual(s.path, petal.path));
+    const textLength = stat?.stats?.data?.avg_text_length;
+    if (textLength != null && textLength > MEDIA_TEXT_LENGTH_THRESHOLD) {
+      fields.push(petal);
+    }
+  }
+  return fields;
 }
 
 export function isPathVisible(
