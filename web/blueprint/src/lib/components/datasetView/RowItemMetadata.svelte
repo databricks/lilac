@@ -5,9 +5,11 @@
   import {
     L,
     formatValue,
+    getField,
     isSignalRootField,
     listValueNodes,
     serializePath,
+    valueAtPath,
     type DataTypeCasted,
     type LilacField,
     type LilacValueNode,
@@ -38,6 +40,20 @@
       const field = L.field(valueNode)!;
       const path = L.path(valueNode)!;
       let value = L.value(valueNode);
+      if (field.dtype === 'string_span') {
+        // Walk upwards to find the parent that has dtype text so we can get the values for the
+        // string span.
+        for (let i = path.length - 1; i > 0; i--) {
+          const parentPath = path.slice(0, i);
+          const parentField = getField(L.field(row)!, parentPath);
+          if (parentField?.dtype === 'string') {
+            const text = L.value<'string'>(valueAtPath(row, parentField.path)!);
+            const span = L.value<'string_span'>(valueNode);
+            if (span == null) break;
+            value = text?.substring(span.start, span.end);
+          }
+        }
+      }
       return {
         indentLevel: path.length - 1,
         fieldName: path[path.length - 1],
