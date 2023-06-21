@@ -62,11 +62,6 @@
     $datasetViewStore.queryOptions.filters?.filter(f => Lilac.pathIsEqual(f.path, path)) || [];
   $: isFiltered = filters.length > 0;
 
-  $: hasMenu =
-    Lilac.isSortableField(field) ||
-    Lilac.isFilterableField(field) ||
-    !Lilac.isSignalField(field, schema);
-
   // Find all the child display paths for a given field.
   function childDisplayFields(field?: Lilac.LilacField): Lilac.LilacField[] {
     if (field?.repeated_field) return childDisplayFields(field.repeated_field);
@@ -102,6 +97,12 @@
   }
 
   $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, path);
+
+  $: hasMenu =
+    !isPreview &&
+    (Lilac.isSortableField(field) ||
+      Lilac.isFilterableField(field) ||
+      !Lilac.isSignalField(field, schema));
 
   $: searches = getSearches($datasetViewStore, path);
 </script>
@@ -205,8 +206,8 @@
             <p>Compute signal over the column and save the result.</p>
             <p class="mt-2">This may be expensive.</p>
           </div>
-        </HoverTooltip></Tag
-      >
+        </HoverTooltip>
+      </Tag>
     </div>
     <Tag
       interactive

@@ -1,7 +1,7 @@
 <script lang="ts">
   import {queryDatasetStats, querySelectGroups} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import type {LeafValue, LilacField} from '$lilac';
+  import {formatValue, type LeafValue, type LilacField} from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
   import Histogram from './Histogram.svelte';
 
@@ -15,29 +15,29 @@
   $: counts =
     $groupsQuery.data != null ? ($groupsQuery.data.counts as [LeafValue, number][]) : null;
   $: stats = $statsQuery.data != null ? $statsQuery.data : null;
+
+  $: bins =
+    $groupsQuery.data != null
+      ? ($groupsQuery.data.bins as [string, number | null, number | null][])
+      : null;
 </script>
 
-{#if $groupsQuery.error || $statsQuery.error}
-  {#if $groupsQuery.error}
-    <p>Error: {$groupsQuery.error.message}</p>
-  {/if}
+<div class="p-4">
   {#if $statsQuery.error}
     <p>Error: {$statsQuery.error.message}</p>
-  {/if}
-{:else if counts == null || stats == null}
-  <!-- Loading... -->
-  <SkeletonText paragraph width="50%" />
-{:else}
-  <div class="p-4">
+  {:else if stats == null}
+    <!-- Loading... -->
+    <SkeletonText paragraph width="50%" />
+  {:else}
     <table class="stats-table mb-4">
       <tbody>
         <tr>
           <td>Total count</td>
-          <td>{stats.total_count.toLocaleString()}</td>
+          <td>{formatValue(stats.total_count)}</td>
         </tr>
         <tr>
           <td>Distinct count (approx.)</td>
-          <td>{stats.approx_count_distinct.toLocaleString()}</td>
+          <td>{formatValue(stats.approx_count_distinct)}</td>
         </tr>
         {#if stats.avg_text_length}
           <tr>
@@ -45,23 +45,25 @@
             <td>{stats.avg_text_length}</td>
           </tr>
         {/if}
-        {#if stats.min_val}
+        {#if stats.min_val && stats.max_val}
           <tr>
-            <td>Min. value</td>
-            <td>{stats.min_val}</td>
-          </tr>
-        {/if}
-        {#if stats.max_val}
-          <tr>
-            <td>Max. value</td>
-            <td>{stats.max_val}</td>
+            <td>Range</td>
+            <td>{formatValue(stats.min_val)} .. {formatValue(stats.max_val)}</td>
           </tr>
         {/if}
       </tbody>
     </table>
-    <Histogram {counts} />
-  </div>
-{/if}
+  {/if}
+
+  {#if $groupsQuery.error}
+    <p>Error: {$groupsQuery.error.message}</p>
+  {:else if counts == null}
+    <!-- Loading... -->
+    <SkeletonText paragraph width="50%" />
+  {:else}
+    <Histogram {counts} {bins} {field} />
+  {/if}
+</div>
 
 <style lang="postcss">
   .stats-table td {

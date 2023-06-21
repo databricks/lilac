@@ -1,19 +1,37 @@
 <script lang="ts">
-  import type {LeafValue} from '$lilac';
+  import {formatValue, type LeafValue, type LilacField} from '$lilac';
 
+  export let field: LilacField;
   export let counts: Array<[LeafValue, number]>;
+  export let bins: Array<[string, number | null, number | null]> | null;
 
   $: maxCount = Math.max(...counts.map(([_, count]) => count));
+
+  function formatBin(bin: [string, number | null, number | null]): string {
+    const [binName, start, end] = bin;
+    if (field.bins != null) {
+      return binName;
+    }
+    // If the field didn't have named bins, we need to format the start and end values.
+    if (start == null) {
+      return `.. ${formatValue(end)}`;
+    } else if (end == null) {
+      return `${formatValue(start)} ..`;
+    } else {
+      return `${formatValue(start)} .. ${formatValue(end)}`;
+    }
+  }
 </script>
 
 <div class="histogram my-4">
-  {#each counts as [value, count]}
+  {#each counts as [value, count], i}
+    {@const groupName = bins != null ? formatBin(bins[i]) : value?.toString()}
     {@const barWidth = `${(count / maxCount) * 100}%`}
-    {@const formattedCount = count.toLocaleString()}
+    {@const formattedCount = formatValue(count)}
 
-    <div class="flex cursor-pointer items-center text-sm text-black hover:bg-gray-200">
-      <div title={value?.toString()} class="w-24 flex-none truncate pl-2">{value}</div>
-      <div class="w-24 border-l border-gray-300 pl-2">
+    <div class="flex cursor-pointer items-center text-xs text-black hover:bg-gray-200">
+      <div title={groupName} class="w-36 flex-none truncate px-2">{groupName}</div>
+      <div class="w-36 border-l border-gray-300 pl-2">
         <div
           title={formattedCount}
           style:width={barWidth}
