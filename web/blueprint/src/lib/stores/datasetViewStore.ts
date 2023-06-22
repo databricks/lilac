@@ -18,7 +18,7 @@ const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
 export const SEARCH_TABS: {[key: number]: 'Concepts' | 'Keyword'} = {
   0: 'Concepts',
-  2: 'Keyword'
+  1: 'Keyword'
 };
 
 export interface IDatasetViewStore {

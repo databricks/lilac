@@ -278,7 +278,7 @@
     <div class="w-full">
       <Tabs class="flex flex-row" selected={selectedTabIndex} on:change={selectTab}>
         <Tab>{SEARCH_TABS[0]}</Tab>
-        <Tab>{SEARCH_TABS[2]}</Tab>
+        <Tab>{SEARCH_TABS[1]}</Tab>
         <svelte:fragment slot="content">
           <div class="flex flex-row">
             <!-- Concept input -->
