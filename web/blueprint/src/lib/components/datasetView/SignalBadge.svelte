@@ -11,7 +11,7 @@
   const icon = isPreview ? View : EdgeCluster;
 </script>
 
-<div class="signal-badge" use:hoverTooltip={{tooltipText}}>
+<div class="signal-badge" use:hoverTooltip={{text: tooltipText}}>
   <Tag {...$$restProps} type={isPreview ? 'green' : 'blue'} {icon} />
 </div>
 

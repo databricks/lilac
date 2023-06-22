@@ -25,7 +25,7 @@
   const dispatch = createEventDispatcher();
 </script>
 
-<div class="histogram my-4">
+<div class="histogram">
   {#each counts as [value, count], i}
     {@const groupName = bins != null ? formatBin(bins[i]) : value?.toString()}
     {@const barWidth = `${(count / maxCount) * 100}%`}

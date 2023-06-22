@@ -31,6 +31,7 @@ export interface IDatasetViewStore {
 
   // Explicit user-selected columns.
   selectedColumns: {[path: string]: boolean};
+  expandedColumns: {[path: string]: boolean};
   queryOptions: SelectRowsOptions;
 
   // Search.
@@ -57,6 +58,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     searchPath: null,
     searchEmbedding: null,
     selectedColumns: {},
+    expandedColumns: {},
     queryOptions: {
       // Add * as default field when supported here
       columns: [],
@@ -97,7 +99,18 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         }
         return state;
       }),
-
+    addExpandedColumn(path: Path) {
+      update(state => {
+        state.expandedColumns[serializePath(path)] = true;
+        return state;
+      });
+    },
+    removeExpandedColumn(path: Path) {
+      update(state => {
+        state.expandedColumns[serializePath(path)] = false;
+        return state;
+      });
+    },
     addUdfColumn: (column: Column) =>
       update(state => {
         state.queryOptions.columns?.push(column);

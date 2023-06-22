@@ -3,17 +3,17 @@ import HoverTooltip from './HoverTooltip.svelte';
 
 interface HoverTooltipOptions {
   // The text to show upon hover.
-  tooltipText?: string;
+  text?: string;
   // The component to show upon hover. This can be defined if the body of the hover is complicated
   // HTML.
-  tooltipBodyComponent?: typeof SvelteComponent;
+  component?: typeof SvelteComponent;
   // The props to pass to the body component.
-  tooltipBodyProps?: Record<string, unknown>;
+  props?: Record<string, unknown>;
 }
 
 export function hoverTooltip(
   element: HTMLElement,
-  {tooltipText, tooltipBodyComponent, tooltipBodyProps}: HoverTooltipOptions
+  {text: tooltipText, component: tooltipBodyComponent, props: tooltipBodyProps}: HoverTooltipOptions
 ) {
   let tooltipComponent: SvelteComponent | undefined;
   let curTooltipText = tooltipText;
@@ -44,7 +44,11 @@ export function hoverTooltip(
   element.addEventListener('mouseleave', mouseLeave);
 
   return {
-    update({tooltipText, tooltipBodyComponent, tooltipBodyProps}: HoverTooltipOptions) {
+    update({
+      text: tooltipText,
+      component: tooltipBodyComponent,
+      props: tooltipBodyProps
+    }: HoverTooltipOptions) {
       curTooltipText = tooltipText;
       curTooltipBodyComponent = tooltipBodyComponent;
       curTooltipBodyProps = tooltipBodyProps;

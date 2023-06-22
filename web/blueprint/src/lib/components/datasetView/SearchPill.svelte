@@ -30,8 +30,8 @@
 <div
   class="search-pill mx-1 items-center"
   use:hoverTooltip={{
-    tooltipBodyComponent: SearchPillHoverBody,
-    tooltipBodyProps: {search, tagType}
+    component: SearchPillHoverBody,
+    props: {search, tagType}
   }}
 >
   <RemovableTag

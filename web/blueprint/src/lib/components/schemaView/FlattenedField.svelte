@@ -38,13 +38,13 @@
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
 
-  let expanded = true;
-  let expandedDetails = false;
-
   $: path = field.path;
 
-  $: isRepeatedField = field.path.at(-1) === Lilac.PATH_WILDCARD ? true : false;
-  $: fieldName = isRepeatedField ? field.path.at(-2) : field.path.at(-1);
+  let expanded = true;
+  $: expandedDetails = $datasetViewStore.expandedColumns[Lilac.serializePath(path)] || false;
+
+  $: isRepeatedField = path.at(-1) === Lilac.PATH_WILDCARD ? true : false;
+  $: fieldName = isRepeatedField ? path.at(-2) : path.at(-1);
 
   $: children = childDisplayFields(field);
   $: hasChildren = children.length > 0;
@@ -191,7 +191,7 @@
     <div
       class="compute-signal-preview pointer-events-auto mr-2"
       use:hoverTooltip={{
-        tooltipText: 'Compute signal over the column and save the result.\n\nThis may be expensive.'
+        text: 'Compute signal over the column and save the result.\n\nThis may be expensive.'
       }}
     >
       <Tag
@@ -234,7 +234,13 @@
         kind="ghost"
         iconDescription={expandedDetails ? 'Close details' : 'Expand details'}
         icon={ChevronDown}
-        on:click={() => (expandedDetails = !expandedDetails)}
+        on:click={() => {
+          if (expandedDetails) {
+            datasetViewStore.removeExpandedColumn(path);
+          } else {
+            datasetViewStore.addExpandedColumn(path);
+          }
+        }}
       />
     </div>
   {/if}
