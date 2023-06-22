@@ -15,9 +15,9 @@
     }
     // If the field didn't have named bins, we need to format the start and end values.
     if (start == null) {
-      return `.. ${formatValue(end)}`;
+      return `< ${formatValue(end)}`;
     } else if (end == null) {
-      return `${formatValue(start)} ..`;
+      return `≥ ${formatValue(start)}`;
     } else {
       return `${formatValue(start)} .. ${formatValue(end)}`;
     }
@@ -35,7 +35,7 @@
       class="flex items-center text-left text-xs text-black hover:bg-gray-200"
       on:click={() => dispatch('row-click', {value, index: i})}
     >
-      <div title={groupName} class="w-36 flex-none truncate px-2">{groupName}</div>
+      <div title={groupName} class="w-48 flex-none truncate px-2">{groupName}</div>
       <div class="w-36 border-l border-gray-300 pl-2">
         <div
           title={formattedCount}

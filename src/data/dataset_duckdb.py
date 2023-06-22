@@ -67,7 +67,6 @@ from .dataset import (
   FeatureValue,
   Filter,
   FilterLike,
-  FilterOp,
   GroupsSortBy,
   ListOp,
   MediaResult,
@@ -117,8 +116,6 @@ BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
   BinaryOp.LESS: '<',
   BinaryOp.LESS_EQUAL: '<='
 }
-
-SUPPORTED_OPS_ON_REPEATED: set[FilterOp] = set([UnaryOp.EXISTS])
 
 
 class DuckDBSearchUDF(BaseModel):
@@ -411,9 +408,6 @@ class DatasetDuckDB(Dataset):
           current_field = current_field.fields[str(path_part)]
           continue
         elif current_field.repeated_field:
-          if (filter.op not in SUPPORTED_OPS_ON_REPEATED and not path_part.isdigit()):
-            raise ValueError(f'Unable to filter on path {filter.path}. '
-                             'Filtering must be on a specific index of a repeated field')
           current_field = current_field.repeated_field
           continue
         else:
@@ -1257,7 +1251,8 @@ class DatasetDuckDB(Dataset):
     list_ops = set(ListOp)
     for filter in filters:
       duckdb_path = self._leaf_path_to_duckdb_path(filter.path, manifest.data_schema)
-      select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
+      select_str = _select_sql(duckdb_path, flatten=True, unnest=False)
+      is_array = any(subpath == PATH_WILDCARD for subpath in filter.path)
 
       if filter.op in binary_ops:
         sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
@@ -1268,9 +1263,9 @@ class DatasetDuckDB(Dataset):
           filter_val = _bytes_to_blob_literal(filter_val)
         else:
           filter_val = str(filter_val)
-        filter_query = f'{select_str} {sql_op} {filter_val}'
+        filter_query = (f'len(list_filter({select_str}, x -> x {sql_op} {filter_val})) > 0'
+                        if is_array else f'{select_str} {sql_op} {filter_val}')
       elif filter.op in unary_ops:
-        is_array = any(subpath == PATH_WILDCARD for subpath in filter.path)
         if filter.op == UnaryOp.EXISTS:
           filter_query = f'len({select_str}) > 0' if is_array else f'{select_str} IS NOT NULL'
         else:
@@ -1283,6 +1278,8 @@ class DatasetDuckDB(Dataset):
           wrapped_filter_val = [f"'{part}'" for part in filter_list_val]
           filter_val = f'({", ".join(wrapped_filter_val)})'
           filter_query = f'{select_str} IN {filter_val}'
+        else:
+          raise ValueError(f'List op: {filter.op} is not yet supported')
       else:
         raise ValueError(f'Invalid filter op: {filter.op}')
       sql_filter_queries.append(filter_query)

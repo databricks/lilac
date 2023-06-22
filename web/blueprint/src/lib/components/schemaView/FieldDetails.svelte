@@ -3,6 +3,7 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {formatValue, type BinaryFilter, type LeafValue, type LilacField} from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
+  import {Information} from 'carbon-icons-svelte';
   import Histogram from './Histogram.svelte';
 
   export let field: LilacField;
@@ -51,7 +52,7 @@
       <tbody>
         <tr>
           <td>
-            <span>Total count</span>
+            <span>Total count <Information class="inline" /></span>
             <!-- Total number of rows where the value is defined -->
           </td>
           <td>{formatValue(stats.total_count)}</td>

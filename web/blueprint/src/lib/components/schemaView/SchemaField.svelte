@@ -30,11 +30,11 @@
 
   const FILTER_SHORTHANDS: Record<BinaryOp | UnaryOp | ListOp, string> = {
     equals: '=',
-    not_equal: '!=',
+    not_equal: '≠',
     less: '<',
-    less_equal: '<=',
+    less_equal: '≤',
     greater: '>',
-    greater_equal: '>=',
+    greater_equal: '≥',
     in: 'in',
     exists: 'exists'
   };

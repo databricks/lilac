@@ -5,7 +5,7 @@
   import * as Lilac from '$lilac';
   import {formatValue} from '$lilac';
   import {Button, Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
-  import {CaretDown, Chip, RowExpand, SortAscending, SortDescending} from 'carbon-icons-svelte';
+  import {CaretDown, ChevronDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import HoverTooltip from '../common/HoverTooltip.svelte';
@@ -25,11 +25,11 @@
 
   const FILTER_SHORTHANDS: Record<Lilac.BinaryOp | Lilac.UnaryOp | Lilac.ListOp, string> = {
     equals: '=',
-    not_equal: '!=',
+    not_equal: '≠',
     less: '<',
-    less_equal: '<=',
+    less_equal: '≤',
     greater: '>',
-    greater_equal: '>=',
+    greater_equal: '≥',
     in: 'in',
     exists: 'exists'
   };
@@ -235,7 +235,7 @@
         isSelected={expandedDetails}
         kind="ghost"
         iconDescription={expandedDetails ? 'Close details' : 'Expand details'}
-        icon={RowExpand}
+        icon={ChevronDown}
         on:click={() => (expandedDetails = !expandedDetails)}
       />
     </div>
