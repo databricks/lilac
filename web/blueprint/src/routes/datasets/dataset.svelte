@@ -87,7 +87,6 @@
   $: {
     const visibleFields = getVisibleFields(
       $datasetViewStore.selectedColumns,
-      sortedStats,
       $selectRowsSchema?.data?.schema || null
     );
     datasetStore.setVisibleFields(visibleFields);

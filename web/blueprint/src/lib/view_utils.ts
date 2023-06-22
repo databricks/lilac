@@ -27,7 +27,6 @@ const MEDIA_TEXT_LENGTH_THRESHOLD = 100;
 
 export function getVisibleFields(
   selectedColumns: {[path: string]: boolean} | null,
-  stats: StatsInfo[] | null,
   schema: LilacSchema | null,
   field?: LilacField | null,
   dtype?: DataType
@@ -42,7 +41,7 @@ export function getVisibleFields(
   } else {
     fields = getFieldsByDtype(dtype, field || schema);
   }
-  return fields.filter(f => isPathVisible(selectedColumns, stats, f.path));
+  return fields.filter(f => isPathVisible(selectedColumns, f.path));
 }
 
 export function isFieldVisible(field: LilacField, visibleFields: LilacField[]): boolean {
@@ -100,7 +99,6 @@ export function getMediaFields(schema: LilacField, stats: StatsInfo[]): LilacFie
 
 export function isPathVisible(
   selectedColumns: {[path: string]: boolean} | null,
-  stats: StatsInfo[] | null,
   path: Path | string
 ): boolean {
   if (selectedColumns == null) return false;
@@ -113,11 +111,7 @@ export function isPathVisible(
 
   if (pathArray.length > 1) {
     // When no explicit selection, children inherit from their parent.
-    return isPathVisible(
-      selectedColumns,
-      stats,
-      serializePath(pathArray.slice(0, pathArray.length - 1))
-    );
+    return isPathVisible(selectedColumns, serializePath(pathArray.slice(0, pathArray.length - 1)));
   }
 
   // Columns are visible by default.
