@@ -111,11 +111,6 @@ export function isPathVisible(
 
   const pathArray = deserializePath(path);
 
-  // If the path is the default, select it.
-  const defaultPath = stats != null && stats.length > 0 ? stats[0].path : null;
-
-  if (defaultPath != null && pathIsEqual(pathArray, defaultPath)) return true;
-
   if (pathArray.length > 1) {
     // When no explicit selection, children inherit from their parent.
     return isPathVisible(
@@ -125,7 +120,8 @@ export function isPathVisible(
     );
   }
 
-  return false;
+  // Columns are visible by default.
+  return true;
 }
 
 export function getSearchPath(store: IDatasetViewStore, datasetStore: DatasetStore): Path | null {
