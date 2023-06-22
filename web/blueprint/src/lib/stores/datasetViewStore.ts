@@ -209,10 +209,10 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         state.queryOptions.sort_order = sortOrder || undefined;
         return state;
       }),
-    removeFilter: (column: Path) =>
+    removeFilter: (removedFilter: BinaryFilter | UnaryFilter | ListFilter) =>
       update(state => {
         state.queryOptions.filters = state.queryOptions.filters?.filter(
-          c => !pathIsEqual(c.path, column)
+          f => !deepEqual(f, removedFilter)
         );
         return state;
       }),

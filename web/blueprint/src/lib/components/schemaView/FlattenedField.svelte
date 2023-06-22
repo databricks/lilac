@@ -7,19 +7,15 @@
     PATH_WILDCARD,
     VALUE_KEY,
     childFields,
-    formatValue,
     isFilterableField,
     isSignalField,
     isSignalRootField,
     isSortableField,
     pathIsEqual,
     serializePath,
-    type BinaryOp,
     type LilacField,
     type LilacSchema,
-    type ListOp,
-    type TextEmbeddingSignal,
-    type UnaryOp
+    type TextEmbeddingSignal
   } from '$lilac';
   import {Button, Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
   import {CaretDown, ChevronDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
@@ -29,6 +25,7 @@
   import RemovableTag from '../common/RemovableTag.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
   import EmbeddingBadge from '../datasetView/EmbeddingBadge.svelte';
+  import FilterPill from '../datasetView/FilterPill.svelte';
   import SearchPill from '../datasetView/SearchPill.svelte';
   import SignalBadge from '../datasetView/SignalBadge.svelte';
   import FieldDetails from './FieldDetails.svelte';
@@ -40,17 +37,6 @@
 
   $: isSignal = isSignalField(field, schema);
   $: isSourceField = !isSignal;
-
-  const FILTER_SHORTHANDS: Record<BinaryOp | UnaryOp | ListOp, string> = {
-    equals: '=',
-    not_equal: '≠',
-    less: '<',
-    less_equal: '≤',
-    greater: '>',
-    greater_equal: '≥',
-    in: 'in',
-    exists: 'exists'
-  };
 
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
@@ -174,21 +160,9 @@
   {/if}
   {#if isFiltered}
     {#each filters as filter}
-      <RemovableTag
-        interactive
-        type="magenta"
-        on:click={() =>
-          triggerCommand({
-            command: Command.EditFilter,
-            namespace: $datasetViewStore.namespace,
-            datasetName: $datasetViewStore.datasetName,
-            path
-          })}
-        on:remove={() => datasetViewStore.removeFilter(path)}
-      >
-        {FILTER_SHORTHANDS[filter.op]}
-        {formatValue(filter.value || '')}
-      </RemovableTag>
+      <div class="mx-1">
+        <FilterPill {filter} hidePath />
+      </div>
     {/each}
   {/if}
   {#each searches as search}
@@ -222,22 +196,24 @@
           })}
       />
     </div>
-    <SignalBadge
-      isPreview
-      on:click={() =>
-        field.signal &&
-        isPreview &&
-        triggerCommand({
-          command: Command.EditPreviewConcept,
-          namespace: $datasetViewStore.namespace,
-          datasetName: $datasetViewStore.datasetName,
-          path: sourceField?.path,
-          signalName: field.signal?.signal_name,
-          value: field.signal
-        })}
-    />
+    <div class="mx-1">
+      <SignalBadge
+        isPreview
+        on:click={() =>
+          field.signal &&
+          isPreview &&
+          triggerCommand({
+            command: Command.EditPreviewConcept,
+            namespace: $datasetViewStore.namespace,
+            datasetName: $datasetViewStore.datasetName,
+            path: sourceField?.path,
+            signalName: field.signal?.signal_name,
+            value: field.signal
+          })}
+      />
+    </div>
   {:else if isSignalRootField(field)}
-    <SignalBadge />
+    <div class="mx-1"><SignalBadge /></div>
   {/if}
   {#if isSortableField(field) && !isPreview}
     <div class="flex">

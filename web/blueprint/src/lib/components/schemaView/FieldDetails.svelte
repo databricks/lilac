@@ -12,7 +12,10 @@
   const store = getDatasetViewContext();
 
   $: statsQuery = queryDatasetStats($store.namespace, $store.datasetName, {leaf_path: field.path});
-  $: groupsQuery = querySelectGroups($store.namespace, $store.datasetName, {leaf_path: field.path});
+  $: groupsQuery = querySelectGroups($store.namespace, $store.datasetName, {
+    leaf_path: field.path,
+    filters: $store.queryOptions.filters
+  });
 
   $: counts =
     $groupsQuery.data != null ? ($groupsQuery.data.counts as [LeafValue, number][]) : null;

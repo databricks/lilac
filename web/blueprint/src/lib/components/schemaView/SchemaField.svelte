@@ -9,36 +9,22 @@
     isSignalField,
     isSignalRootField,
     pathIsEqual,
-    type BinaryOp,
     type LilacField,
-    type LilacSchema,
-    type ListOp,
-    type UnaryOp
+    type LilacSchema
   } from '$lilac';
   import {Checkbox, OverflowMenu} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
   import SortAscending from 'carbon-icons-svelte/lib/SortAscending.svelte';
   import SortDescending from 'carbon-icons-svelte/lib/SortDescending.svelte';
   import {slide} from 'svelte/transition';
-  import {Command, triggerCommand} from '../commands/Commands.svelte';
   import RemovableTag from '../common/RemovableTag.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
+  import FilterPill from '../datasetView/FilterPill.svelte';
   import SignalBadge from '../datasetView/SignalBadge.svelte';
 
   export let schema: LilacSchema;
   export let field: LilacField;
   export let indent = 0;
-
-  const FILTER_SHORTHANDS: Record<BinaryOp | UnaryOp | ListOp, string> = {
-    equals: '=',
-    not_equal: '≠',
-    less: '<',
-    less_equal: '≤',
-    greater: '>',
-    greater_equal: '≥',
-    in: 'in',
-    exists: 'exists'
-  };
 
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
@@ -138,21 +124,9 @@
     {/if}
     {#if isFiltered}
       {#each filters as filter}
-        <RemovableTag
-          interactive
-          type="magenta"
-          on:click={() =>
-            triggerCommand({
-              command: Command.EditFilter,
-              namespace: $datasetViewStore.namespace,
-              datasetName: $datasetViewStore.datasetName,
-              path
-            })}
-          on:remove={() => datasetViewStore.removeFilter(path)}
-        >
-          {FILTER_SHORTHANDS[filter.op]}
-          {filter.value ?? ''}
-        </RemovableTag>
+        <div class="mx-1">
+          <FilterPill {filter} hidePath />
+        </div>
       {/each}
     {/if}
     {#if signalRoot}
