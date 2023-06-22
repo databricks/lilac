@@ -18,7 +18,7 @@
     type TextEmbeddingSignal
   } from '$lilac';
   import {Button, Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
-  import {CaretDown, ChevronDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
+  import {ChevronDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
@@ -43,7 +43,7 @@
 
   $: path = field.path;
 
-  let expanded = true;
+  // let expanded = true;
   $: expandedDetails = $datasetViewStore.expandedColumns[serializePath(path)] || false;
 
   $: isRepeatedField = path.at(-1) === PATH_WILDCARD ? true : false;
@@ -108,147 +108,139 @@
   $: searches = getSearches($datasetViewStore, path);
 </script>
 
-<div
-  class="flex w-full flex-row items-center border-b border-gray-200 px-4 py-2 hover:bg-gray-100"
-  class:bg-blue-50={isSignal}
-  class:hover:bg-blue-100={isSignal}
->
-  <div class="w-6">
-    <Checkbox
-      labelText="Show"
-      hideLabel
-      checked={isVisible}
-      on:change={() => {
-        if (!isVisible) {
-          datasetViewStore.addSelectedColumn(path);
-        } else {
-          datasetViewStore.removeSelectedColumn(path);
-        }
-      }}
-    />
-  </div>
-  <div class="w-6" style:margin-left={indent * 24 + 'px'}>
-    {#if hasChildren}
-      <button
-        class="p-2 transition hover:opacity-60"
-        class:rotate-180={!expanded}
-        on:click={() => (expanded = !expanded)}><CaretDown class="w-3" /></button
-      >
-    {/if}
-  </div>
-
-  <div class="grow truncate whitespace-nowrap pr-2 text-gray-900">
-    {fieldName}
-  </div>
-  {#if isSortedBy}
-    <RemovableTag
-      interactive
-      type="green"
-      on:click={() =>
-        sortOrder === 'ASC'
-          ? ($datasetViewStore.queryOptions.sort_order = 'DESC')
-          : ($datasetViewStore.queryOptions.sort_order = 'ASC')}
-      on:remove={() => datasetViewStore.removeSortBy(path)}
-    >
-      Sorted
-      {#if sortOrder == 'ASC'}
-        <SortAscending />
-      {:else}
-        <SortDescending />
-      {/if}
-    </RemovableTag>
-  {/if}
-  {#if isFiltered}
-    {#each filters as filter}
-      <div class="mx-1">
-        <FilterPill {filter} hidePath />
-      </div>
-    {/each}
-  {/if}
-  {#each searches as search}
-    <SearchPill {search} />
-  {/each}
-  {#each embeddingFields as embeddingField}
-    <div class="mx-1">
-      <EmbeddingBadge embedding={embeddingField.signal?.signal_name} />
-    </div>
-  {/each}
-  {#if isSignalRootField(field) && isPreview}
-    <div
-      class="compute-signal-preview pointer-events-auto mr-2"
-      use:hoverTooltip={{
-        text: 'Compute signal over the column and save the result.\n\nThis may be expensive.'
-      }}
-    >
-      <Tag
-        type="cyan"
-        icon={Chip}
-        on:click={() =>
-          field.signal &&
-          isPreview &&
-          triggerCommand({
-            command: Command.ComputeSignal,
-            namespace: $datasetViewStore.namespace,
-            datasetName: $datasetViewStore.datasetName,
-            path: sourceField?.path,
-            signalName: field.signal?.signal_name,
-            value: field.signal
-          })}
-      />
-    </div>
-    <div class="mx-1">
-      <SignalBadge
-        isPreview
-        on:click={() =>
-          field.signal &&
-          isPreview &&
-          triggerCommand({
-            command: Command.EditPreviewConcept,
-            namespace: $datasetViewStore.namespace,
-            datasetName: $datasetViewStore.datasetName,
-            path: sourceField?.path,
-            signalName: field.signal?.signal_name,
-            value: field.signal
-          })}
-      />
-    </div>
-  {:else if isSignalRootField(field)}
-    <div class="mx-1"><SignalBadge /></div>
-  {/if}
-  {#if isSortableField(field) && !isPreview}
-    <div class="flex">
-      <Button
-        isSelected={expandedDetails}
-        kind="ghost"
-        size="field"
-        iconDescription={expandedDetails ? 'Close details' : 'Expand details'}
-        icon={ChevronDown}
-        on:click={() => {
-          if (expandedDetails) {
-            datasetViewStore.removeExpandedColumn(path);
+<div class="border-b border-gray-300">
+  <div
+    class="flex w-full flex-row items-center border-gray-300 px-4 py-2 hover:bg-gray-100"
+    class:bg-blue-50={isSignal}
+    class:hover:bg-blue-100={isSignal}
+    class:border-b={hasChildren}
+  >
+    <div style:margin-left={indent * 2 + 'rem'} class="flex">
+      <Checkbox
+        labelText="Show"
+        hideLabel
+        checked={isVisible}
+        on:change={() => {
+          if (!isVisible) {
+            datasetViewStore.addSelectedColumn(path);
           } else {
-            datasetViewStore.addExpandedColumn(path);
+            datasetViewStore.removeSelectedColumn(path);
           }
         }}
       />
     </div>
-  {/if}
-  <div>
-    {#if hasMenu}
-      <OverflowMenu light flipped>
-        <SchemaFieldMenu {field} {schema} />
-      </OverflowMenu>
+
+    <div class="grow truncate whitespace-nowrap pl-4 pr-2 text-gray-900">
+      {fieldName}
+    </div>
+    {#if isSortedBy}
+      <RemovableTag
+        interactive
+        type="green"
+        on:click={() =>
+          sortOrder === 'ASC'
+            ? ($datasetViewStore.queryOptions.sort_order = 'DESC')
+            : ($datasetViewStore.queryOptions.sort_order = 'ASC')}
+        on:remove={() => datasetViewStore.removeSortBy(path)}
+      >
+        Sorted
+        {#if sortOrder == 'ASC'}
+          <SortAscending />
+        {:else}
+          <SortDescending />
+        {/if}
+      </RemovableTag>
     {/if}
+    {#if isFiltered}
+      {#each filters as filter}
+        <div class="mx-1">
+          <FilterPill {filter} hidePath />
+        </div>
+      {/each}
+    {/if}
+    {#each searches as search}
+      <SearchPill {search} />
+    {/each}
+    {#each embeddingFields as embeddingField}
+      <div class="mx-1">
+        <EmbeddingBadge embedding={embeddingField.signal?.signal_name} />
+      </div>
+    {/each}
+    {#if isSignalRootField(field) && isPreview}
+      <div
+        class="compute-signal-preview pointer-events-auto mr-2"
+        use:hoverTooltip={{
+          text: 'Compute signal over the column and save the result.\n\nThis may be expensive.'
+        }}
+      >
+        <Tag
+          type="cyan"
+          icon={Chip}
+          on:click={() =>
+            field.signal &&
+            isPreview &&
+            triggerCommand({
+              command: Command.ComputeSignal,
+              namespace: $datasetViewStore.namespace,
+              datasetName: $datasetViewStore.datasetName,
+              path: sourceField?.path,
+              signalName: field.signal?.signal_name,
+              value: field.signal
+            })}
+        />
+      </div>
+      <div class="mx-1">
+        <SignalBadge
+          isPreview
+          on:click={() =>
+            field.signal &&
+            isPreview &&
+            triggerCommand({
+              command: Command.EditPreviewConcept,
+              namespace: $datasetViewStore.namespace,
+              datasetName: $datasetViewStore.datasetName,
+              path: sourceField?.path,
+              signalName: field.signal?.signal_name,
+              value: field.signal
+            })}
+        />
+      </div>
+    {:else if isSignalRootField(field)}
+      <div class="mx-1"><SignalBadge /></div>
+    {/if}
+    {#if isSortableField(field) && !isPreview}
+      <div class="flex">
+        <Button
+          isSelected={expandedDetails}
+          kind="ghost"
+          size="field"
+          iconDescription={expandedDetails ? 'Close details' : 'Expand details'}
+          icon={ChevronDown}
+          on:click={() => {
+            if (expandedDetails) {
+              datasetViewStore.removeExpandedColumn(path);
+            } else {
+              datasetViewStore.addExpandedColumn(path);
+            }
+          }}
+        />
+      </div>
+    {/if}
+    <div>
+      {#if hasMenu}
+        <OverflowMenu light flipped>
+          <SchemaFieldMenu {field} {schema} />
+        </OverflowMenu>
+      {/if}
+    </div>
   </div>
-</div>
 
-{#if expandedDetails}
-  <div transition:slide|local>
-    <FieldDetails {field} />
-  </div>
-{/if}
+  {#if expandedDetails}
+    <div transition:slide|local class="px-2">
+      <FieldDetails {field} />
+    </div>
+  {/if}
 
-{#if expanded}
   <div transition:slide|local>
     {#if children.length}
       {#each children as childField}
@@ -261,7 +253,7 @@
       {/each}
     {/if}
   </div>
-{/if}
+</div>
 
 <style lang="postcss">
   :global(.bx--btn--selected) {

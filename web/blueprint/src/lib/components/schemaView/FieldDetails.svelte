@@ -52,7 +52,7 @@
     <!-- Loading... -->
     <SkeletonText paragraph width="50%" />
   {:else}
-    <table class="stats-table">
+    <table class="stats-table w-full">
       <tbody>
         <tr>
           <td>
@@ -128,6 +128,6 @@
     @apply truncate py-2 pl-2;
   }
   .stats-table tbody {
-    @apply border-y border-gray-300;
+    @apply border-b border-gray-300;
   }
 </style>
