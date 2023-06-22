@@ -15,7 +15,7 @@ from ..signals.signal import Signal, resolve_signal
 from ..tasks import TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
-TOO_MANY_DISTINCT = 10_000
+TOO_MANY_DISTINCT = 100_000
 
 
 class SelectRowsResult:
