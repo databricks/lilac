@@ -16,9 +16,8 @@ import {persisted} from './persistedStore';
 
 const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
-export const SEARCH_TABS: {[key: number]: 'Concepts' | 'Semantic' | 'Keyword'} = {
+export const SEARCH_TABS: {[key: number]: 'Concepts' | 'Keyword'} = {
   0: 'Concepts',
-  1: 'Semantic',
   2: 'Keyword'
 };
 
