@@ -86,13 +86,15 @@
 
 {#if rows.length > 0}
   <div class="h-full border-l border-gray-300">
-    <table class="mx-2 mt-1 table border-collapse">
+    <table class="mx-2 mt-1 table w-full table-fixed border-collapse">
       {#each rows as row, i (serializePath(row.path))}
         <tr class:border-b={i < rows.length - 1} class="border-gray-300">
-          <td class="p-2 pl-2 pr-2 font-mono text-xs font-medium text-neutral-500">
-            <span style:padding-left={`${row.indentLevel * 12}px`}>{row.fieldName}</span>
+          <td class="truncate p-2 pl-2 pr-2 font-mono text-xs font-medium text-neutral-500">
+            <span title={row.fieldName} style:padding-left={`${row.indentLevel * 12}px`}
+              >{row.fieldName}</span
+            >
           </td>
-          <td class="px-2">
+          <td class="w-10">
             {#if row.isEmbeddingSignal}
               <EmbeddingBadge hideEmbeddingName={true} embedding={row.field.signal?.signal_name} />
             {:else if row.isSignal}
@@ -102,7 +104,7 @@
           <td class="p-2">
             <div
               title={`${row.value}`}
-              class="w-32 truncate pr-2 text-xs"
+              class="truncate pr-2 text-xs"
               class:italic={row.formattedValue === null}
             >
               {row.formattedValue}
