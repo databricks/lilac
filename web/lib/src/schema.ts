@@ -153,12 +153,18 @@ export function isConceptScoreSignal(
   return (signal as ConceptScoreSignal)?.concept_name != undefined;
 }
 
-export function formatValue(value: DataTypeCasted) {
+export function formatValue(value: DataTypeCasted | string[] | Blob) {
   if (value == null) {
     return 'N/A';
   }
   if (typeof value === 'number') {
     return value.toLocaleString(undefined, {maximumFractionDigits: 3});
+  }
+  if (value instanceof Blob) {
+    return 'blob';
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ');
   }
   if (typeof value === 'object') {
     if (Object.keys(value).length === 2 && value.start != null && value.end != null) {

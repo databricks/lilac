@@ -45,7 +45,7 @@
 </script>
 
 <div class="flex h-full flex-col pt-4">
-  <div class="mb-4 flex w-full items-center justify-between gap-x-2 px-4">
+  <div class="mb-2 flex w-full items-center justify-between gap-x-2 px-4">
     <div class="flex items-center">
       <Breadcrumb noTrailingSlash skeleton={$schema.isLoading}>
         <BreadcrumbItem href="/">datasets</BreadcrumbItem>
@@ -59,12 +59,14 @@
     </div>
     <div class="flex">
       <Button
+        size="field"
         kind="ghost"
         icon={Reset}
         iconDescription="Reset View"
         on:click={datasetViewStore.reset}
       />
       <Button
+        size="field"
         kind="ghost"
         icon={Download}
         iconDescription="Download selection"

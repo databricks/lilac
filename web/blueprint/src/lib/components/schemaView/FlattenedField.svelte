@@ -2,8 +2,25 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getSearches, isPreviewSignal} from '$lib/view_utils';
-  import * as Lilac from '$lilac';
-  import {formatValue} from '$lilac';
+
+  import {
+    PATH_WILDCARD,
+    VALUE_KEY,
+    childFields,
+    formatValue,
+    isFilterableField,
+    isSignalField,
+    isSignalRootField,
+    isSortableField,
+    pathIsEqual,
+    serializePath,
+    type BinaryOp,
+    type LilacField,
+    type LilacSchema,
+    type ListOp,
+    type TextEmbeddingSignal,
+    type UnaryOp
+  } from '$lilac';
   import {Button, Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
   import {CaretDown, ChevronDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
@@ -16,15 +33,15 @@
   import SignalBadge from '../datasetView/SignalBadge.svelte';
   import FieldDetails from './FieldDetails.svelte';
 
-  export let schema: Lilac.LilacSchema;
-  export let field: Lilac.LilacField;
-  export let sourceField: Lilac.LilacField | undefined = undefined;
+  export let schema: LilacSchema;
+  export let field: LilacField;
+  export let sourceField: LilacField | undefined = undefined;
   export let indent = 0;
 
-  $: isSignalField = Lilac.isSignalField(field, schema);
-  $: isSourceField = !isSignalField;
+  $: isSignal = isSignalField(field, schema);
+  $: isSourceField = !isSignal;
 
-  const FILTER_SHORTHANDS: Record<Lilac.BinaryOp | Lilac.UnaryOp | Lilac.ListOp, string> = {
+  const FILTER_SHORTHANDS: Record<BinaryOp | UnaryOp | ListOp, string> = {
     equals: '=',
     not_equal: '≠',
     less: '<',
@@ -41,31 +58,30 @@
   $: path = field.path;
 
   let expanded = true;
-  $: expandedDetails = $datasetViewStore.expandedColumns[Lilac.serializePath(path)] || false;
+  $: expandedDetails = $datasetViewStore.expandedColumns[serializePath(path)] || false;
 
-  $: isRepeatedField = path.at(-1) === Lilac.PATH_WILDCARD ? true : false;
+  $: isRepeatedField = path.at(-1) === PATH_WILDCARD ? true : false;
   $: fieldName = isRepeatedField ? path.at(-2) : path.at(-1);
 
   $: children = childDisplayFields(field);
   $: hasChildren = children.length > 0;
 
-  $: isVisible = $datasetStore.visibleFields?.some(f => Lilac.pathIsEqual(f.path, path));
+  $: isVisible = $datasetStore.visibleFields?.some(f => pathIsEqual(f.path, path));
 
   $: embeddingFields = isSourceField
-    ? (Lilac.childFields(field).filter(
-        f => f.signal != null && Lilac.childFields(f).some(f => f.dtype === 'embedding')
-      ) as Lilac.LilacField<Lilac.TextEmbeddingSignal>[])
+    ? (childFields(field).filter(
+        f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
+      ) as LilacField<TextEmbeddingSignal>[])
     : [];
 
-  $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => Lilac.pathIsEqual(p, path));
+  $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => pathIsEqual(p, path));
   $: sortOrder = $datasetViewStore.queryOptions.sort_order;
 
-  $: filters =
-    $datasetViewStore.queryOptions.filters?.filter(f => Lilac.pathIsEqual(f.path, path)) || [];
+  $: filters = $datasetViewStore.queryOptions.filters?.filter(f => pathIsEqual(f.path, path)) || [];
   $: isFiltered = filters.length > 0;
 
   // Find all the child display paths for a given field.
-  function childDisplayFields(field?: Lilac.LilacField): Lilac.LilacField[] {
+  function childDisplayFields(field?: LilacField): LilacField[] {
     if (field?.repeated_field) return childDisplayFields(field.repeated_field);
     if (!field?.fields) return [];
 
@@ -74,19 +90,19 @@
         // Find all the child source fields
         ...Object.values(field.fields)
           // Filter out the entity field.
-          .filter(f => f.path.at(-1) !== Lilac.VALUE_KEY)
+          .filter(f => f.path.at(-1) !== VALUE_KEY)
       ]
         .flatMap(f => {
           // Recursively find the children without children
           const children = childDisplayFields(f);
           // If any children are signal roots, dont add the field itself.
-          return children.some(c => Lilac.isSignalRootField(c)) ? children : [f];
+          return children.some(c => isSignalRootField(c)) ? children : [f];
         })
 
         // Filter out specific types of signals
         .filter(c => {
           if (c.dtype === 'embedding') return false;
-          if (c.signal != null && Lilac.childFields(c).some(f => f.dtype === 'embedding')) {
+          if (c.signal != null && childFields(c).some(f => f.dtype === 'embedding')) {
             return false;
           }
           if (c.signal?.signal_name === 'sentences') return false;
@@ -101,19 +117,15 @@
 
   $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, path);
 
-  $: hasMenu =
-    !isPreview &&
-    (Lilac.isSortableField(field) ||
-      Lilac.isFilterableField(field) ||
-      !Lilac.isSignalField(field, schema));
+  $: hasMenu = !isPreview && (isSortableField(field) || isFilterableField(field) || !isSignal);
 
   $: searches = getSearches($datasetViewStore, path);
 </script>
 
 <div
   class="flex w-full flex-row items-center border-b border-gray-200 px-4 py-2 hover:bg-gray-100"
-  class:bg-blue-50={isSignalField}
-  class:hover:bg-blue-100={isSignalField}
+  class:bg-blue-50={isSignal}
+  class:hover:bg-blue-100={isSignal}
 >
   <div class="w-6">
     <Checkbox
@@ -175,7 +187,7 @@
         on:remove={() => datasetViewStore.removeFilter(path)}
       >
         {FILTER_SHORTHANDS[filter.op]}
-        {formatValue(filter.value) ?? ''}
+        {formatValue(filter.value || '')}
       </RemovableTag>
     {/each}
   {/if}
@@ -187,7 +199,7 @@
       <EmbeddingBadge embedding={embeddingField.signal?.signal_name} />
     </div>
   {/each}
-  {#if Lilac.isSignalRootField(field) && isPreview}
+  {#if isSignalRootField(field) && isPreview}
     <div
       class="compute-signal-preview pointer-events-auto mr-2"
       use:hoverTooltip={{
@@ -224,14 +236,15 @@
           value: field.signal
         })}
     />
-  {:else if Lilac.isSignalRootField(field)}
+  {:else if isSignalRootField(field)}
     <SignalBadge />
   {/if}
-  {#if Lilac.isSortableField(field) && !isPreview}
+  {#if isSortableField(field) && !isPreview}
     <div class="flex">
       <Button
         isSelected={expandedDetails}
         kind="ghost"
+        size="field"
         iconDescription={expandedDetails ? 'Close details' : 'Expand details'}
         icon={ChevronDown}
         on:click={() => {
@@ -267,9 +280,7 @@
           {schema}
           field={childField}
           indent={indent + 1}
-          sourceField={isSourceField && Lilac.isSignalField(childField, schema)
-            ? field
-            : sourceField}
+          sourceField={isSourceField && isSignalField(childField, schema) ? field : sourceField}
         />
       {/each}
     {/if}
