@@ -1,7 +1,7 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getSearches} from '$lib/view_utils';
-  import {type Search, type SearchType} from '$lilac';
+  import type {Search, SearchType} from '$lilac';
   import FilterPill from './FilterPill.svelte';
   import SearchPill from './SearchPill.svelte';
 
