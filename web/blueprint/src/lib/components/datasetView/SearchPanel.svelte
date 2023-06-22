@@ -49,7 +49,6 @@
   $: searchPath = getSearchPath($datasetViewStore, $datasetStore);
 
   let keywordSearchText: string;
-  let semanticSearchText: string;
 
   $: searches = getSearches($datasetViewStore, searchPath);
 
@@ -83,9 +82,6 @@
     !isEmbeddingComputed && isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding)];
 
   $: keywordSearchEnabled = SEARCH_TABS[selectedTabIndex] === 'Keyword' && searchPath != null;
-
-  // Don't show the search button the concepts tab since it is a dropdown.
-  $: showSearchButton = isEmbeddingComputed && selectedTab != 'Concepts';
 
   $: searchButtonDisabled = selectedTab === 'Concepts' && isEmbeddingComputed;
 
@@ -166,19 +162,6 @@
         }
       });
       keywordSearchText = '';
-    } else if (selectedTab === 'Semantic') {
-      if (selectedEmbedding == null || semanticSearchText == '') {
-        return;
-      }
-      datasetViewStore.addSearch({
-        path: [serializePath(searchPath)],
-        query: {
-          type: 'semantic',
-          search: semanticSearchText,
-          embedding: selectedEmbedding
-        }
-      });
-      semanticSearchText = '';
     }
   };
 
@@ -296,7 +279,6 @@
       <Tabs class="flex flex-row" selected={selectedTabIndex} on:change={selectTab}>
         <Tab>{SEARCH_TABS[0]}</Tab>
         <Tab>{SEARCH_TABS[1]}</Tab>
-        <Tab>{SEARCH_TABS[2]}</Tab>
         <svelte:fragment slot="content">
           <div class="flex flex-row">
             <!-- Concept input -->
@@ -331,21 +313,6 @@
                 </div>
               </div>
             </TabContent>
-            <!-- Semantic input -->
-            <TabContent class="w-full">
-              <div class="flex flex-row items-start justify-items-start">
-                <div class="flex-grow">
-                  <Search
-                    placeholder={isEmbeddingComputed
-                      ? 'Search by natural language'
-                      : 'No index found. Please run the embedding index.'}
-                    disabled={!isEmbeddingComputed}
-                    bind:value={semanticSearchText}
-                    on:keydown={e => (e.key == 'Enter' ? search() : null)}
-                  />
-                </div>
-              </div>
-            </TabContent>
             <!-- Keyword input -->
             <TabContent class="w-full">
               <Search
@@ -356,7 +323,7 @@
               />
             </TabContent>
 
-            {#if selectedTab === 'Semantic' || selectedTab === 'Concepts'}
+            {#if selectedTab === 'Concepts'}
               <div class="embedding-select ml-1 w-40">
                 <Select
                   noLabel={true}
@@ -381,15 +348,9 @@
                       computeEmbedding();
                     }
                   }}
-                  icon={isEmbeddingComputed
-                    ? selectedTab === 'Concepts'
-                      ? Checkmark
-                      : undefined
-                    : isIndexing
-                    ? InlineLoading
-                    : Chip}
+                  icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
                 >
-                  {showSearchButton ? 'Search' : 'Index'}
+                  Index
                 </Button>
               </div>
             {/if}
