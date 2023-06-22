@@ -37,7 +37,7 @@
   <!-- Search groups -->
   {#each searchTypeOrder as searchType}
     {#if searchesByType[searchType]}
-      <div class="search-type mr-4 rounded bg-slate-50 px-2 py-1 shadow-sm">
+      <div class="filter-group mr-4 rounded bg-slate-50 px-2 py-1 shadow-sm">
         <div class="mb-2 ml-2 text-xs font-light">{searchTypeDisplay[searchType]}</div>
 
         <div class="flex flex-row">
@@ -50,7 +50,7 @@
   {/each}
   <!-- Filters group -->
   {#if filters != null && filters.length > 0}
-    <div class="search-type mr-4 rounded bg-slate-50 px-2 py-1 shadow-sm">
+    <div class="filter-group mr-4 rounded bg-slate-50 px-2 py-1 shadow-sm">
       <div class="mb-2 ml-2 text-xs font-light">Filters</div>
       <div class="flex flex-row">
         {#each filters as filter}
@@ -64,7 +64,7 @@
 </div>
 
 <style lang="postcss">
-  .search-type {
+  .filter-group {
     min-width: 6rem;
     @apply border border-gray-200 px-2 py-3 shadow-sm;
   }
