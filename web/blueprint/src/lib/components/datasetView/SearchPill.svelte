@@ -1,17 +1,11 @@
 <script lang="ts">
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {
-    serializePath,
-    type KeywordQuery,
-    type Search,
-    type SearchType,
-    type SemanticQuery
-  } from '$lilac';
-  import {Tag} from 'carbon-components-svelte';
-  import HoverTooltip from '../common/HoverTooltip.svelte';
+  import type {KeywordQuery, Search, SearchType, SemanticQuery} from '$lilac';
+  import type {Tag} from 'carbon-components-svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import RemovableTag from '../common/RemovableTag.svelte';
-  import EmbeddingBadge from './EmbeddingBadge.svelte';
+  import SearchPillHoverBody from './SearchPillHoverBody.svelte';
 
   export let search: Search;
 
@@ -31,35 +25,22 @@
       ? `${search.query.concept_namespace}/${search.query.concept_name}`
       : (search.query as KeywordQuery | SemanticQuery).search;
   $: tagType = search.query.type != null ? searchTypeToTagType[search.query.type] : 'outline';
-  $: searchText =
-    search.query.type === 'concept' ? '' : (search.query as KeywordQuery | SemanticQuery).search;
 </script>
 
-<div class="search-pill mx-1 items-center">
+<div
+  class="search-pill mx-1 items-center"
+  use:hoverTooltip={{
+    tooltipBodyComponent: SearchPillHoverBody,
+    tooltipBodyProps: {search, tagType}
+  }}
+>
   <RemovableTag
     title={'query'}
     interactive
     type={tagType}
     on:remove={() =>
       datasetViewStore.removeSearch(search, $datasetStore.selectRowsSchema?.data || null)}
-  >
-    <HoverTooltip size="small" triggerText={pillText} hideIcon={true}>
-      <div class="flex items-center justify-items-center">
-        <div class="whitespace-nowrap">
-          <Tag type={tagType}>
-            {serializePath(search.path)}: {search.query.type}
-          </Tag>
-        </div>
-        {#if search.query.type === 'semantic' || search.query.type === 'concept'}
-          <div class="ml-2">
-            <EmbeddingBadge embedding={search.query.embedding} />
-          </div>
-        {/if}
-      </div>
-      {#if searchText}
-        <div class="mt-2 whitespace-pre-wrap text-left">{searchText}</div>
-      {/if}
-    </HoverTooltip>
+    >{pillText}
   </RemovableTag>
 </div>
 

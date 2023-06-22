@@ -23,7 +23,6 @@
   const schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   const manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  // Get the resulting schmema including UDF columns
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
 
   async function downloadSelectRows() {

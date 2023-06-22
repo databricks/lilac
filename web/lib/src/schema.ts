@@ -160,6 +160,12 @@ export function formatValue(value: DataTypeCasted) {
   if (typeof value === 'number') {
     return value.toLocaleString(undefined, {maximumFractionDigits: 3});
   }
+  if (typeof value === 'object') {
+    if (Object.keys(value).length === 2 && value.start != null && value.end != null) {
+      return `(${value.start}, ${value.end})`;
+    }
+    return JSON.stringify(value);
+  }
   return value.toString();
 }
 

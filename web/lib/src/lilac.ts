@@ -137,14 +137,25 @@ export function getFieldsByDtype(dtype: DataType, schema?: LilacSchema): LilacFi
 /** List all values as a flattend array */
 export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
   let result: LilacValueNode[];
-  if (Array.isArray(row)) result = [...row, ...row.flatMap(listValueNodes)];
-  else {
+  if (Array.isArray(row)) {
+    result = [...row, ...row.flatMap(listValueNodes)];
+  } else {
     // Strip the internal properties
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const {[VALUE_KEY]: value, [PATH_KEY]: path, [SCHEMA_FIELD_KEY]: field, ...rest} = row;
 
     const childProperties = Object.values(rest || {});
-    result = [...childProperties, ...childProperties.flatMap(v => listValueNodes(v))];
+    result = [];
+    for (const childProperty of childProperties) {
+      if (Array.isArray(childProperty)) {
+        result = [...result, childProperty];
+        for (const el of childProperty) {
+          result = [...result, el, ...listValueNodes(el)];
+        }
+      } else {
+        result = [...result, childProperty, ...listValueNodes(childProperty)];
+      }
+    }
   }
 
   return result;
@@ -216,7 +227,9 @@ export function isSignalRootField(field: LilacField) {
 export const L = {
   path: (value: LilacValueNode): Path | undefined => {
     if (!value) return undefined;
-    return castLilacValueNode(value)[PATH_KEY];
+    const path = castLilacValueNode(value)[PATH_KEY];
+    if (path == null) throw Error(`Item does not have a path defined: ${JSON.stringify(value)}`);
+    return path;
   },
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   value: <D extends DataType>(value: LilacValueNode, dtype?: D): DataTypeCasted<D> | undefined => {
@@ -269,6 +282,8 @@ function lilacValueNodeFromRawValue(
       lilacValueNodeFromRawValue(value, fields, [...path, i.toString()])
     ) as Record<number, LilacValueNode>;
     castLilacValueNode(ret)[VALUE_KEY] = null;
+    castLilacValueNode(ret)[PATH_KEY] = path;
+    castLilacValueNode(ret)[SCHEMA_FIELD_KEY] = field;
     return ret;
   } else if (rawFieldValue != null && typeof rawFieldValue === 'object') {
     const {[VALUE_KEY]: value, ...rest} = rawFieldValue;

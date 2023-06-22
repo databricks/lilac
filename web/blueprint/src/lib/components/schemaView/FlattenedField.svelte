@@ -8,11 +8,12 @@
   import {CaretDown, ChevronDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
-  import HoverTooltip from '../common/HoverTooltip.svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import RemovableTag from '../common/RemovableTag.svelte';
   import SchemaFieldMenu from '../contextMenu/SchemaFieldMenu.svelte';
   import EmbeddingBadge from '../datasetView/EmbeddingBadge.svelte';
   import SearchPill from '../datasetView/SearchPill.svelte';
+  import SignalBadge from '../datasetView/SignalBadge.svelte';
   import FieldDetails from './FieldDetails.svelte';
 
   export let schema: Lilac.LilacSchema;
@@ -91,6 +92,7 @@
           if (c.signal?.signal_name === 'sentences') return false;
           if (c.signal?.signal_name === 'substring_search') return false;
           if (c.signal?.signal_name === 'semantic_similarity') return false;
+          if (c.signal?.signal_name === 'concept_labels') return false;
 
           return true;
         })
@@ -186,9 +188,15 @@
     </div>
   {/each}
   {#if Lilac.isSignalRootField(field) && isPreview}
-    <div class="mr-2">
+    <div
+      class="compute-signal-preview pointer-events-auto mr-2"
+      use:hoverTooltip={{
+        tooltipText: 'Compute signal over the column and save the result.\n\nThis may be expensive.'
+      }}
+    >
       <Tag
         type="cyan"
+        icon={Chip}
         on:click={() =>
           field.signal &&
           isPreview &&
@@ -200,18 +208,10 @@
             signalName: field.signal?.signal_name,
             value: field.signal
           })}
-      >
-        <HoverTooltip size="small" icon={Chip} class="compute-signal-chip flex">
-          <div class="w-48">
-            <p>Compute signal over the column and save the result.</p>
-            <p class="mt-2">This may be expensive.</p>
-          </div>
-        </HoverTooltip>
-      </Tag>
+      />
     </div>
-    <Tag
-      interactive
-      type="green"
+    <SignalBadge
+      isPreview
       on:click={() =>
         field.signal &&
         isPreview &&
@@ -223,11 +223,9 @@
           signalName: field.signal?.signal_name,
           value: field.signal
         })}
-    >
-      Preview
-    </Tag>
+    />
   {:else if Lilac.isSignalRootField(field)}
-    <Tag type="blue" class="signal-tag whitespace-nowrap">Signal</Tag>
+    <SignalBadge />
   {/if}
   {#if Lilac.isSortableField(field) && !isPreview}
     <div class="flex">
@@ -283,6 +281,12 @@
     @apply px-2;
   }
   :global(.compute-signal-chip .bx--tooltip__label .bx--tooltip__trigger) {
+    @apply m-0;
+  }
+  :global(.compute-signal-preview .bx--tag) {
+    @apply cursor-pointer;
+  }
+  :global(.compute-signal-preview .bx--tag__custom-icon) {
     @apply m-0;
   }
 </style>

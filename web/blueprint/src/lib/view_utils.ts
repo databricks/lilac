@@ -5,8 +5,8 @@ import {
   deserializePath,
   getField,
   getFieldsByDtype,
-  pathIncludes,
   pathIsEqual,
+  pathIsMatching,
   petals,
   serializePath,
   type DataType,
@@ -43,6 +43,16 @@ export function getVisibleFields(
     fields = getFieldsByDtype(dtype, field || schema);
   }
   return fields.filter(f => isPathVisible(selectedColumns, stats, f.path));
+}
+
+export function isFieldVisible(field: LilacField, visibleFields: LilacField[]): boolean {
+  return visibleFields.some(f => pathIsEqual(f.path, field.path));
+}
+
+export function isItemVisible(item: LilacValueNode, visibleFields: LilacField[]): boolean {
+  const field = L.field(item);
+  if (field == null) return false;
+  return isFieldVisible(field, visibleFields);
 }
 
 export function getVisibleSchema(
@@ -177,7 +187,7 @@ export function isPreviewSignal(
   path: Path | undefined
 ): boolean {
   if (path == null || selectRowsSchema == null) return false;
-  return (selectRowsSchema.udfs || []).some(udf => pathIncludes(path, udf.path));
+  return (selectRowsSchema.udfs || []).some(udf => pathIsMatching(udf.path, path));
 }
 
 /** Gets the search type for a column, if defined. The path is the *input* path to the search. */

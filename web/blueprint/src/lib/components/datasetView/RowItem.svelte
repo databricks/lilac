@@ -21,7 +21,7 @@
       </div>
     {/if}
     <div>
-      <RowItemMetadata {row} {mediaFields} {visibleFields} />
+      <RowItemMetadata {row} {visibleFields} />
     </div>
   </div>
 </div>

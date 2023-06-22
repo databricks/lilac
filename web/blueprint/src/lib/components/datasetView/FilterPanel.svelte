@@ -30,7 +30,7 @@
   }
 </script>
 
-<div class="flex flex-row border-b border-gray-200 pb-2 pl-4">
+<div class="flex flex-row border-b border-gray-300 pb-2 pl-4">
   {#each searchTypeOrder as searchType}
     {#if searchesByType[searchType]}
       <div class="search-type mr-4 rounded bg-slate-50 px-2 py-1 shadow-sm">
