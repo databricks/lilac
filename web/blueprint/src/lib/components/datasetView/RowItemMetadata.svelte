@@ -59,7 +59,12 @@
         $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) || false;
       const isSignal = isSignalRootField(field);
       let formattedValue: string | null;
-      if (isEmbeddingSignal || (isSignal && field.dtype == null) || field.dtype === 'embedding') {
+      if (
+        isEmbeddingSignal ||
+        (isSignal && field.dtype == null) ||
+        field.dtype === 'embedding' ||
+        field.repeated_field != null
+      ) {
         formattedValue = '';
       } else if (value == null) {
         formattedValue = null;
@@ -85,10 +90,10 @@
 </script>
 
 {#if rows.length > 0}
-  <div class="h-full border-l border-gray-300">
+  <div class="h-full border-b border-l border-t border-gray-300 bg-neutral-50 py-2">
     <table class="table w-full table-fixed border-collapse px-2 pt-1">
       {#each rows as row, i (serializePath(row.path))}
-        <tr class:border-b={i < rows.length} class="border-gray-300">
+        <tr class="border-gray-300">
           <td class="truncate p-2 pl-2 pr-2 font-mono text-xs font-medium text-neutral-500">
             <span title={row.fieldName} style:padding-left={`${row.indentLevel * 12}px`}
               >{row.fieldName}</span
