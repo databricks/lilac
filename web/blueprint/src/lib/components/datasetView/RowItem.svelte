@@ -9,12 +9,12 @@
   export let visibleFields: LilacField[];
 </script>
 
-<div class="w-full pb-2">
+<div class="mx-4 mb-10 w-full rounded border-b border-l border-neutral-200 pb-2 shadow-md">
   <div class="flex w-full flex-row">
     {#if mediaFields.length > 0}
       <div class="w-2/3">
         {#each mediaFields as mediaField, i (serializePath(mediaField.path))}
-          <div class:border-b={i < mediaFields.length - 1} class=" border-gray-100">
+          <div class:border-b={i < mediaFields.length - 1} class="border-gray-100">
             <RowItemMedia {row} path={mediaField.path} field={mediaField} />
           </div>
         {/each}

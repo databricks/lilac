@@ -1,10 +1,10 @@
 const SHOW_SCORE_THRESHOLD = 0.5;
-const MIN_SCORE_BG_OPACITY = 0.1;
-const MAX_SCORE_BG_OPACITY = 0.5;
+const MIN_SCORE_BG_OPACITY = 0.3;
+const MAX_SCORE_BG_OPACITY = 0.8;
 
-// This color comes from tailwind bg-yellow-500.
+// This color comes from the highlight color of text in Chrome.
 export function colorFromOpacity(opacity: number) {
-  return `rgba(234,179,8,${opacity})`;
+  return `rgba(180,215,255,${opacity})`;
 }
 
 export function colorFromScore(score: number) {

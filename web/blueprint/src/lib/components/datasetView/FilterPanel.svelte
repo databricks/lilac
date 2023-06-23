@@ -33,7 +33,7 @@
   }
 </script>
 
-<div class="flex flex-row border-b border-gray-300 pb-2 pl-4">
+<div class="flex flex-row pb-2 pl-4">
   <!-- Search groups -->
   {#each searchTypeOrder as searchType}
     {#if searchesByType[searchType]}

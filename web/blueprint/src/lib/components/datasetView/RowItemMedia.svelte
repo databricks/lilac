@@ -45,10 +45,11 @@
 {#each values as value, i}
   {@const suffix = values.length > 1 ? `[${i}]` : ''}
   <div class="flex flex-row">
-    <div class="flex w-full flex-col border-gray-900">
+    <div class="flex w-full flex-col">
       <div
         class="sticky top-0 z-10 w-full self-start
-        bg-neutral-50 px-2 py-2 pb-2 font-mono font-medium text-neutral-500 shadow backdrop-blur-sm"
+        border-t border-neutral-200 bg-neutral-50 px-2 py-2 pb-2 font-mono font-medium text-neutral-500
+        shadow backdrop-blur-sm"
       >
         {path.join('.') + suffix}
       </div>
