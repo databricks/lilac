@@ -36,7 +36,7 @@
   }
 </script>
 
-<div class="m-4 flex h-20 items-center justify-between">
+<div class="m-4 flex items-center justify-between">
   <div class="flex flex-row gap-x-4">
     <!-- Search groups -->
     {#each searchTypeOrder as searchType}
@@ -66,7 +66,7 @@
   </div>
   <div>
     {#if totalNumRows && manifest}
-      Selected {formatValue(totalNumRows)} of {formatValue(manifest.dataset_manifest.num_items)} rows.
+      {formatValue(totalNumRows)} of {formatValue(manifest.dataset_manifest.num_items)} rows
     {/if}
   </div>
 </div>
