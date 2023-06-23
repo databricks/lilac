@@ -15,7 +15,12 @@ from .data.dataset import (
 )
 from .data.dataset_duckdb import DatasetDuckDB
 from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, enriched_item, make_dataset
-from .router_dataset import SelectRowsOptions, SelectRowsSchemaOptions, WebManifest
+from .router_dataset import (
+  SelectRowsOptions,
+  SelectRowsResponse,
+  SelectRowsSchemaOptions,
+  WebManifest,
+)
 from .schema import UUID_COLUMN, Field, Item, RichData, field, schema
 from .server import app
 from .signals.signal import TextSignal, clear_signal_registry, register_signal
@@ -113,7 +118,8 @@ def test_select_rows_no_options() -> None:
   options = SelectRowsOptions()
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert response.json() == TEST_DATA
+  assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
+    rows=TEST_DATA, total_num_rows=3)
 
 
 def test_select_rows_with_cols_and_limit() -> None:
@@ -124,11 +130,13 @@ def test_select_rows_with_cols_and_limit() -> None:
     offset=1)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert response.json() == [{
-    UUID_COLUMN: '2',
-    'people.*.zipcode': [1, 2],
-    'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']]
-  }]
+  assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
+    rows=[{
+      UUID_COLUMN: '2',
+      'people.*.zipcode': [1, 2],
+      'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']]
+    }],
+    total_num_rows=3)
 
 
 def test_select_rows_with_cols_and_combine() -> None:
@@ -138,37 +146,39 @@ def test_select_rows_with_cols_and_combine() -> None:
     combine_columns=True)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert response.json() == [{
-    UUID_COLUMN: '1',
-    'people': [{
-      'zipcode': 0,
-      'locations': [{
-        'city': 'city1',
-      }, {
-        'city': 'city2',
-      }]
-    }]
-  }, {
-    UUID_COLUMN: '2',
-    'people': [{
-      'zipcode': 1,
-      'locations': [{
-        'city': 'city3',
-      }, {
-        'city': 'city4'
-      }, {
-        'city': 'city5'
+  assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
+    rows=[{
+      UUID_COLUMN: '1',
+      'people': [{
+        'zipcode': 0,
+        'locations': [{
+          'city': 'city1',
+        }, {
+          'city': 'city2',
+        }]
       }]
     }, {
-      'zipcode': 2,
-      'locations': [{
-        'city': 'city1'
+      UUID_COLUMN: '2',
+      'people': [{
+        'zipcode': 1,
+        'locations': [{
+          'city': 'city3',
+        }, {
+          'city': 'city4'
+        }, {
+          'city': 'city5'
+        }]
+      }, {
+        'zipcode': 2,
+        'locations': [{
+          'city': 'city1'
+        }]
       }]
-    }]
-  }, {
-    UUID_COLUMN: '3',
-    'people': None
-  }]
+    }, {
+      UUID_COLUMN: '3',
+      'people': None
+    }],
+    total_num_rows=3)
 
 
 class LengthSignal(TextSignal):
@@ -188,46 +198,48 @@ def test_select_rows_star_plus_udf() -> None:
   options = SelectRowsOptions(columns=['*', udf], combine_columns=True)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
-  assert response.json() == [{
-    UUID_COLUMN: '1',
-    'erased': False,
-    'people': [{
-      'name': enriched_item('A', {'length_signal': 1}),
-      'zipcode': 0,
-      'locations': [{
-        'city': 'city1',
-        'state': 'state1'
-      }, {
-        'city': 'city2',
-        'state': 'state2'
-      }]
-    }]
-  }, {
-    UUID_COLUMN: '2',
-    'erased': True,
-    'people': [{
-      'name': enriched_item('B', {'length_signal': 1}),
-      'zipcode': 1,
-      'locations': [{
-        'city': 'city3',
-        'state': 'state3'
-      }, {
-        'city': 'city4'
-      }, {
-        'city': 'city5'
+  assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
+    rows=[{
+      UUID_COLUMN: '1',
+      'erased': False,
+      'people': [{
+        'name': enriched_item('A', {'length_signal': 1}),
+        'zipcode': 0,
+        'locations': [{
+          'city': 'city1',
+          'state': 'state1'
+        }, {
+          'city': 'city2',
+          'state': 'state2'
+        }]
       }]
     }, {
-      'name': enriched_item('C', {'length_signal': 1}),
-      'zipcode': 2,
-      'locations': [{
-        'city': 'city1',
-        'state': 'state1'
+      UUID_COLUMN: '2',
+      'erased': True,
+      'people': [{
+        'name': enriched_item('B', {'length_signal': 1}),
+        'zipcode': 1,
+        'locations': [{
+          'city': 'city3',
+          'state': 'state3'
+        }, {
+          'city': 'city4'
+        }, {
+          'city': 'city5'
+        }]
+      }, {
+        'name': enriched_item('C', {'length_signal': 1}),
+        'zipcode': 2,
+        'locations': [{
+          'city': 'city1',
+          'state': 'state1'
+        }]
       }]
-    }]
-  }, {
-    UUID_COLUMN: '3',
-    'erased': True,
-  }]
+    }, {
+      UUID_COLUMN: '3',
+      'erased': True,
+    }],
+    total_num_rows=3)
 
 
 def test_select_rows_schema_star_plus_udf() -> None:
