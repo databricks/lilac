@@ -14,8 +14,8 @@
 
 <div
   role="tooltip"
-  class="absolute mt-2 min-w-max max-w-xs -translate-x-1/2 break-words
-    border border-gray-300 bg-white p-2 shadow-md"
+  class="absolute z-50 mt-2 min-w-max max-w-xs
+    -translate-x-1/2 break-words border border-gray-300 bg-white p-2 shadow-md"
   style:top="{y}px"
   style:left="{Math.max(width / 2 + marginPx, Math.min(x, pageWidth - width / 2 - marginPx))}px"
   bind:clientWidth={width}

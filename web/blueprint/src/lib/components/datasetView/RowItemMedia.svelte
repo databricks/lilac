@@ -45,12 +45,15 @@
 {#each values as value, i}
   {@const suffix = values.length > 1 ? `[${i}]` : ''}
   <div class="flex flex-row">
-    <div class="flex flex-col border-gray-900">
-      <div class="pb-2 font-mono font-medium text-neutral-500">
+    <div class="flex w-full flex-col border-gray-900">
+      <div
+        class="sticky top-0 z-10 w-full self-start
+        bg-neutral-50 px-2 py-2 pb-2 font-mono font-medium text-neutral-500 shadow backdrop-blur-sm"
+      >
         {path.join('.') + suffix}
       </div>
 
-      <div class="font-normal">
+      <div class="m-4 font-normal">
         <StringSpanHighlight
           text={formatValue(value)}
           {field}

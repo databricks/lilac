@@ -13,7 +13,7 @@
 <div
   role="tooltip"
   class:hidden={namedValues.length === 0}
-  class="absolute max-w-fit -translate-y-full break-words border border-gray-300 bg-white px-2 shadow-md"
+  class="absolute z-50 max-w-fit -translate-y-full break-words border border-gray-300 bg-white px-2 shadow-md"
   style:top="{y}px"
   style:left="{Math.min(x, pageWidth - width - 20)}px"
   bind:clientWidth={width}
