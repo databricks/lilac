@@ -11,23 +11,23 @@ interface HoverTooltipOptions {
   props?: Record<string, unknown>;
 }
 
-export function hoverTooltip(
-  element: HTMLElement,
-  {text: tooltipText, component: tooltipBodyComponent, props: tooltipBodyProps}: HoverTooltipOptions
-) {
+export function hoverTooltip(element: HTMLElement, {text, component, props}: HoverTooltipOptions) {
+  if (component == null && text == null) {
+    return;
+  }
   let tooltipComponent: SvelteComponent | undefined;
-  let curTooltipText = tooltipText;
-  let curTooltipBodyComponent = tooltipBodyComponent;
-  let curTooltipBodyProps = tooltipBodyProps;
+  let curText = text;
+  let curComponent = component;
+  let curProps = props;
   function mouseOver() {
     if (tooltipComponent != null) return;
     const boundingRect = element.getBoundingClientRect();
 
     tooltipComponent = new HoverTooltip({
       props: {
-        tooltipText: curTooltipText,
-        tooltipBodyComponent: curTooltipBodyComponent,
-        tooltipBodyProps: curTooltipBodyProps,
+        text: curText,
+        component: curComponent,
+        props: curProps,
         x: boundingRect.left + boundingRect.width / 2,
         y: boundingRect.bottom
       },
@@ -49,9 +49,9 @@ export function hoverTooltip(
       component: tooltipBodyComponent,
       props: tooltipBodyProps
     }: HoverTooltipOptions) {
-      curTooltipText = tooltipText;
-      curTooltipBodyComponent = tooltipBodyComponent;
-      curTooltipBodyProps = tooltipBodyProps;
+      curText = tooltipText;
+      curComponent = tooltipBodyComponent;
+      curProps = tooltipBodyProps;
       tooltipComponent?.$set({tooltipText});
     },
     destroy() {

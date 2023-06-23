@@ -1,11 +1,11 @@
 <script lang="ts">
   import type {SvelteComponent} from 'svelte';
 
-  export let tooltipText: string | undefined;
+  export let text: string | undefined;
   export let x: number;
   export let y: number;
-  export let tooltipBodyComponent: typeof SvelteComponent | undefined;
-  export let tooltipBodyProps: Record<string, unknown> | undefined;
+  export let component: typeof SvelteComponent | undefined;
+  export let props: Record<string, unknown> | undefined;
   const pageWidth = window.innerWidth;
   const marginPx = 10;
 
@@ -20,9 +20,9 @@
   style:left="{Math.max(width / 2 + marginPx, Math.min(x, pageWidth - width / 2 - marginPx))}px"
   bind:clientWidth={width}
 >
-  {#if tooltipText}
-    <span class="whitespace-pre-wrap">{tooltipText}</span>
-  {:else if tooltipBodyComponent}
-    <svelte:component this={tooltipBodyComponent} {...tooltipBodyProps} />
+  {#if text}
+    <span class="whitespace-pre-wrap">{text}</span>
+  {:else if component}
+    <svelte:component this={component} {...props} />
   {/if}
 </div>
