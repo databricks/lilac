@@ -13,12 +13,26 @@
     isSortableField,
     pathIsEqual,
     serializePath,
+    type DataType,
     type LilacField,
     type LilacSchema,
     type TextEmbeddingSignal
   } from '$lilac';
   import {Button, Checkbox, OverflowMenu, Tag} from 'carbon-components-svelte';
-  import {ChevronDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
+  import {
+    AssemblyCluster,
+    Boolean,
+    CharacterDecimal,
+    CharacterWholeNumber,
+    ChevronDown,
+    Chip,
+    DataBlob,
+    SortAscending,
+    SortDescending,
+    StringText,
+    Time,
+    type CarbonIcon
+  } from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
@@ -35,7 +49,30 @@
   export let sourceField: LilacField | undefined = undefined;
   export let indent = 0;
 
+  const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
+    string: StringText,
+    string_span: StringText,
+    uint8: CharacterWholeNumber,
+    uint16: CharacterWholeNumber,
+    uint32: CharacterWholeNumber,
+    uint64: CharacterWholeNumber,
+    int8: CharacterWholeNumber,
+    int16: CharacterWholeNumber,
+    int32: CharacterWholeNumber,
+    int64: CharacterWholeNumber,
+    boolean: Boolean,
+    float16: CharacterDecimal,
+    float32: CharacterDecimal,
+    float64: CharacterDecimal,
+    time: Time,
+    date: Time,
+    timestamp: Time,
+    interval: Time,
+    embedding: AssemblyCluster,
+    binary: DataBlob
+  };
   $: isSignal = isSignalField(field, schema);
+  $: isSignalRoot = isSignalRootField(field);
   $: isSourceField = !isSignal;
 
   const datasetViewStore = getDatasetViewContext();
@@ -43,14 +80,12 @@
 
   $: path = field.path;
 
-  // let expanded = true;
   $: expandedDetails = $datasetViewStore.expandedColumns[serializePath(path)] || false;
 
   $: isRepeatedField = path.at(-1) === PATH_WILDCARD ? true : false;
   $: fieldName = isRepeatedField ? path.at(-2) : path.at(-1);
 
   $: children = childDisplayFields(field);
-  $: hasChildren = children.length > 0;
 
   $: isVisible = $datasetStore.visibleFields?.some(f => pathIsEqual(f.path, path));
 
@@ -108,31 +143,40 @@
   $: searches = getSearches($datasetViewStore, path);
 </script>
 
-<div class="border-b border-gray-300">
+<div class="border-gray-300" class:border-b={!isSignal}>
   <div
     class="flex w-full flex-row items-center border-gray-300 px-4 py-2 hover:bg-gray-100"
     class:bg-blue-50={isSignal}
     class:hover:bg-blue-100={isSignal}
-    class:border-b={hasChildren}
   >
-    <div style:margin-left={indent * 2 + 'rem'} class="flex">
-      <Checkbox
-        labelText="Show"
-        hideLabel
-        checked={isVisible}
-        on:change={() => {
-          if (!isVisible) {
-            datasetViewStore.addSelectedColumn(path);
-          } else {
-            datasetViewStore.removeSelectedColumn(path);
-          }
-        }}
-      />
+    <div style:margin-left={indent * 2 + 'rem'} class="flex grow items-center gap-x-2">
+      <div>
+        <Checkbox
+          labelText="Show"
+          hideLabel
+          checked={isVisible}
+          on:change={() => {
+            if (!isVisible) {
+              datasetViewStore.addSelectedColumn(path);
+            } else {
+              datasetViewStore.removeSelectedColumn(path);
+            }
+          }}
+        />
+      </div>
+      {#if field.dtype}
+        <svelte:component this={DTYPE_TO_ICON[field.dtype]} title={field.dtype} />
+      {:else}
+        <span class="font-mono">{'{}'}</span>
+      {/if}
+      {#if isSignal}
+        <SignalBadge />
+      {/if}
+      <div class="ml-2 grow truncate whitespace-nowrap text-gray-900">
+        {fieldName}
+      </div>
     </div>
 
-    <div class="grow truncate whitespace-nowrap pl-4 pr-2 text-gray-900">
-      {fieldName}
-    </div>
     {#if isSortedBy}
       <RemovableTag
         interactive
@@ -166,7 +210,7 @@
         <EmbeddingBadge embedding={embeddingField.signal?.signal_name} />
       </div>
     {/each}
-    {#if isSignalRootField(field) && isPreview}
+    {#if isPreview && isSignalRoot}
       <div
         class="compute-signal-preview pointer-events-auto mr-2"
         use:hoverTooltip={{
@@ -205,8 +249,6 @@
             })}
         />
       </div>
-    {:else if isSignalRootField(field)}
-      <div class="mx-1"><SignalBadge /></div>
     {/if}
     {#if isSortableField(field) && !isPreview}
       <div class="flex">
@@ -214,7 +256,7 @@
           isSelected={expandedDetails}
           kind="ghost"
           size="field"
-          iconDescription={expandedDetails ? 'Close details' : 'Expand details'}
+          iconDescription={expandedDetails ? 'Close statistics' : 'See statistics'}
           icon={ChevronDown}
           on:click={() => {
             if (expandedDetails) {

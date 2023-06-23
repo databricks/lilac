@@ -127,7 +127,4 @@
   .stats-table td:last-child {
     @apply truncate py-2 pl-2;
   }
-  .stats-table tbody {
-    @apply border-b border-gray-300;
-  }
 </style>
