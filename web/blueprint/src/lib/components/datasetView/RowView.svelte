@@ -64,8 +64,11 @@
 
 {#if items && visibleFields.length > 0 && $schema.isSuccess && mediaFields != null}
   <div class="flex h-full w-full flex-col overflow-x-hidden overflow-y-scroll">
-    {#each items as row (L.value(row[UUID_COLUMN]))}
+    {#each items as row, i (L.value(row[UUID_COLUMN]))}
       <RowItem {visibleFields} {row} {mediaFields} />
+      {#if i < items.length - 1}
+        <div class="mt-2 h-1 bg-violet-200">&nbsp;</div>
+      {/if}
     {/each}
     {#if items.length > 0}
       <InfiniteScroll threshold={100} on:loadMore={() => $rows?.fetchNextPage()} />

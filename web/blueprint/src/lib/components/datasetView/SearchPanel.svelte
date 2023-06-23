@@ -255,24 +255,21 @@
 </script>
 
 <div class="border-1 flex flex-row items-start px-4 py-2">
-  <div class="mr-8 mt-4">
-    {#key visibleStringPaths}
-      <!-- Field select -->
-      <Select
-        class="field-select w-32"
-        selected={searchPath ? serializePath(searchPath) : ''}
-        on:change={selectField}
-        labelText={'Search field'}
-        disabled={visibleStringPaths.length === 0}
-        warn={visibleStringPaths.length === 0}
-        warnText={visibleStringPaths.length === 0 ? 'Select a field' : undefined}
-      >
-        {#each visibleStringPaths as field}
-          <SelectItem value={serializePath(field)} text={serializePath(field)} />
-        {/each}
-      </Select>
-    {/key}
+  <div class="mr-1 mt-10">
+    <Button
+      disabled={searchButtonDisabled || isIndexing || selectedTab != 'Concepts'}
+      iconDescription="Compute embedding index. This may be expensive."
+      on:click={() => {
+        if (isEmbeddingComputed) {
+          search();
+        } else {
+          computeEmbedding();
+        }
+      }}
+      icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
+    />
   </div>
+
   <!-- Search boxes -->
   <div class="search-container flex w-full flex-grow flex-row">
     <div class="w-full">
@@ -322,45 +319,45 @@
                 on:keydown={e => (e.key == 'Enter' ? search() : null)}
               />
             </TabContent>
-
-            {#if selectedTab === 'Concepts'}
-              <div class="embedding-select ml-1 w-40">
-                <Select
-                  noLabel={true}
-                  on:change={selectEmbedding}
-                  selected={selectedEmbedding || ''}
-                  name={selectedEmbedding || ''}
-                  helperText={'Embedding'}
-                >
-                  {#each $embeddings.data || [] as embedding}
-                    <SelectItem value={embedding.name} text={embedding.name} />
-                  {/each}
-                </Select>
-              </div>
-              <div class="ml-1">
-                <Button
-                  class="w-24"
-                  disabled={searchButtonDisabled || isIndexing}
-                  on:click={() => {
-                    if (isEmbeddingComputed) {
-                      search();
-                    } else {
-                      computeEmbedding();
-                    }
-                  }}
-                  icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
-                >
-                  Index
-                </Button>
-              </div>
-            {/if}
           </div>
         </svelte:fragment>
       </Tabs>
     </div>
   </div>
-
-  <div class="ml-2 mt-10 flex flex-row rounded">
+  <div class="mx-1 mt-4">
+    {#key visibleStringPaths}
+      <!-- Field select -->
+      <Select
+        class="field-select w-28"
+        selected={searchPath ? serializePath(searchPath) : ''}
+        on:change={selectField}
+        labelText={'Field'}
+        disabled={visibleStringPaths.length === 0}
+        warn={visibleStringPaths.length === 0}
+        warnText={visibleStringPaths.length === 0 ? 'Select a field' : undefined}
+      >
+        {#each visibleStringPaths as field}
+          <SelectItem value={serializePath(field)} text={serializePath(field)} />
+        {/each}
+      </Select>
+    {/key}
+  </div>
+  <div class="embedding-select mr-8 mt-4 flex flex-row">
+    <div class="w-28">
+      <Select
+        disabled={selectedTab !== 'Concepts'}
+        on:change={selectEmbedding}
+        selected={selectedEmbedding || ''}
+        name={selectedEmbedding || ''}
+        labelText={'Embedding'}
+      >
+        {#each $embeddings.data || [] as embedding}
+          <SelectItem value={embedding.name} text={embedding.name} />
+        {/each}
+      </Select>
+    </div>
+  </div>
+  <div class="ml-2 mt-4 flex flex-row rounded">
     <div class="ml-1 w-8">
       {#if selectedSortBy != null}
         <Button
@@ -379,9 +376,9 @@
       selectedId={sortById}
       on:select={selectSort}
       items={sortItems}
-      helperText={'Sort by'}
+      titleText={'Sort by'}
     />
-    <div class="ml-1">
+    <div class="ml-1 mt-6">
       <Button
         kind="ghost"
         expressive={true}

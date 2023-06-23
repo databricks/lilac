@@ -21,7 +21,7 @@
   :global(.embedding-badge-nolabel .bx--tooltip__label .bx--tooltip__trigger) {
     @apply m-0;
   }
-  :global(.embedding-badge .bx--tag__custom-icon) {
+  :global(.embedding-badge-nolabel .bx--tag__custom-icon) {
     @apply mr-0;
   }
 </style>
