@@ -29,12 +29,10 @@
     const namespace = $datasetViewStore.namespace;
     const datasetName = $datasetViewStore.datasetName;
     const options = $datasetViewStore.queryOptions;
-    options.columns = Object.keys($datasetViewStore.selectedColumns).filter(
-      k => $datasetViewStore.selectedColumns[k]
-    );
+    options.columns = $datasetStore.visibleFields?.map(x => x.path);
     const url =
       `/api/v1/datasets/${namespace}/${datasetName}/select_rows_download` +
-      `?options=${encodeURIComponent(JSON.stringify(options))}`;
+      `?url_safe_options=${encodeURIComponent(JSON.stringify(options))}`;
     const link = document.createElement('a');
     link.download = `${namespace}_${datasetName}.json`;
     link.href = url;

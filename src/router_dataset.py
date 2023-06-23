@@ -209,9 +209,10 @@ class SelectRowsResponse(BaseModel):
 
 
 @router.get('/{namespace}/{dataset_name}/select_rows_download', response_model=None)
-def select_rows_download(namespace: str, dataset_name: str, options: str) -> list[dict]:
+def select_rows_download(namespace: str, dataset_name: str, url_safe_options: str) -> list[dict]:
   """Select rows from the dataset database and downloads them."""
-  return select_rows(namespace, dataset_name, SelectRowsOptions.parse_raw(unquote(options))).rows
+  options = SelectRowsOptions.parse_raw(unquote(url_safe_options))
+  return select_rows(namespace, dataset_name, options).rows
 
 
 @router.post('/{namespace}/{dataset_name}/select_rows', response_model_exclude_none=True)

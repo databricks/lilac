@@ -121,14 +121,14 @@ export class DatasetsService {
      * Select rows from the dataset database and downloads them.
      * @param namespace
      * @param datasetName
-     * @param options
+     * @param urlSafeOptions
      * @returns any Successful Response
      * @throws ApiError
      */
     public static selectRowsDownload(
         namespace: string,
         datasetName: string,
-        options: string,
+        urlSafeOptions: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -138,7 +138,7 @@ export class DatasetsService {
                 'dataset_name': datasetName,
             },
             query: {
-                'options': options,
+                'url_safe_options': urlSafeOptions,
             },
             errors: {
                 422: `Validation Error`,
