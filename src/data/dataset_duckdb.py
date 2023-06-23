@@ -873,6 +873,15 @@ class DatasetDuckDB(Dataset):
       else:
         limit_query = f'LIMIT {limit} OFFSET {offset or 0}'
 
+    # Figure out the total number of rows.
+    total_num_rows = cast(
+      tuple,
+      con.execute(f"""
+      SELECT COUNT(*) FROM t
+      {where_query}
+    """).fetchone())[0]
+    print('total_num_rows', total_num_rows)
+
     # Fetch the data from DuckDB.
     df = con.execute(f"""
       SELECT {', '.join(select_queries)} FROM t
@@ -949,6 +958,7 @@ class DatasetDuckDB(Dataset):
         udf_filter_queries = self._create_where(manifest, udf_filters)
         if udf_filter_queries:
           rel = rel.filter(' AND '.join(udf_filter_queries))
+          total_num_rows = cast(tuple, rel.count('*').fetchone())[0]
 
       if sort_sql_after_udf:
         if not sort_order:
@@ -994,7 +1004,7 @@ class DatasetDuckDB(Dataset):
       # elevate the all the columns under '*'.
       df = pd.DataFrame.from_records(df['*'])
 
-    return SelectRowsResult(df)
+    return SelectRowsResult(df, total_num_rows)
 
   @override
   def select_rows_schema(self,

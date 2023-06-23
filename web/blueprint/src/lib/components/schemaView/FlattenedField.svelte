@@ -148,41 +148,39 @@
 
 <div class="border-gray-300" class:border-b={!isSignal}>
   <div
-    class="flex w-full flex-row items-center border-gray-300 px-4 py-2 hover:bg-gray-100"
+    class="flex w-full flex-row items-center gap-x-2 border-gray-300 px-4 py-2 hover:bg-gray-100"
     class:bg-blue-50={isSignal}
+    class:bg-emerald-100={isPreview}
     class:hover:bg-blue-100={isSignal}
   >
-    <div style:margin-left={indent * 2 + 'rem'} class="flex grow items-center gap-x-2">
-      <div>
-        <Checkbox
-          labelText="Show"
-          hideLabel
-          checked={isVisible}
-          on:change={() => {
-            if (!isVisible) {
-              datasetViewStore.addSelectedColumn(path);
-            } else {
-              datasetViewStore.removeSelectedColumn(path);
-            }
-          }}
-        />
-      </div>
-      <div
-        class="rounded-md bg-blue-200 p-0.5"
-        class:bg-blue-200={isSignal}
-        use:hoverTooltip={{text: tooltip}}
-      >
-        {#if field.dtype}
-          <svelte:component this={DTYPE_TO_ICON[field.dtype]} title={field.dtype} />
-        {:else}
-          <span class="font-mono">{'{}'}</span>
-        {/if}
-      </div>
-      <div class="ml-2 grow truncate whitespace-nowrap text-gray-900">
-        {fieldName}
-      </div>
+    <div style:margin-left={indent * 1.5 + 'rem'}>
+      <Checkbox
+        labelText="Show"
+        hideLabel
+        checked={isVisible}
+        on:change={() => {
+          if (!isVisible) {
+            datasetViewStore.addSelectedColumn(path);
+          } else {
+            datasetViewStore.removeSelectedColumn(path);
+          }
+        }}
+      />
     </div>
-
+    <div
+      class="rounded-md bg-blue-200 p-0.5"
+      class:bg-blue-200={isSignal}
+      use:hoverTooltip={{text: tooltip}}
+    >
+      {#if field.dtype}
+        <svelte:component this={DTYPE_TO_ICON[field.dtype]} title={field.dtype} />
+      {:else}
+        <span class="font-mono">{'{}'}</span>
+      {/if}
+    </div>
+    <div class="ml-2 grow truncate whitespace-nowrap text-gray-900">
+      {fieldName}
+    </div>
     {#if isSortedBy}
       <RemovableTag
         interactive
@@ -203,18 +201,14 @@
     {/if}
     {#if isFiltered}
       {#each filters as filter}
-        <div class="mx-1">
-          <FilterPill {filter} hidePath />
-        </div>
+        <FilterPill {filter} hidePath />
       {/each}
     {/if}
     {#each searches as search}
       <SearchPill {search} />
     {/each}
     {#each embeddingFields as embeddingField}
-      <div class="mx-1">
-        <EmbeddingBadge embedding={embeddingField.signal?.signal_name} />
-      </div>
+      <EmbeddingBadge embedding={embeddingField.signal?.signal_name} />
     {/each}
     {#if isPreview && isSignalRoot}
       <div
@@ -239,22 +233,20 @@
             })}
         />
       </div>
-      <div class="mx-1">
-        <SignalBadge
-          isPreview
-          on:click={() =>
-            field.signal &&
-            isPreview &&
-            triggerCommand({
-              command: Command.EditPreviewConcept,
-              namespace: $datasetViewStore.namespace,
-              datasetName: $datasetViewStore.datasetName,
-              path: sourceField?.path,
-              signalName: field.signal?.signal_name,
-              value: field.signal
-            })}
-        />
-      </div>
+      <SignalBadge
+        isPreview
+        on:click={() =>
+          field.signal &&
+          isPreview &&
+          triggerCommand({
+            command: Command.EditPreviewConcept,
+            namespace: $datasetViewStore.namespace,
+            datasetName: $datasetViewStore.datasetName,
+            path: sourceField?.path,
+            signalName: field.signal?.signal_name,
+            value: field.signal
+          })}
+      />
     {/if}
     {#if isSortableField(field) && !isPreview}
       <div class="flex">
@@ -274,13 +266,11 @@
         />
       </div>
     {/if}
-    <div>
-      {#if hasMenu}
-        <OverflowMenu light flipped>
-          <SchemaFieldMenu {field} {schema} />
-        </OverflowMenu>
-      {/if}
-    </div>
+    {#if hasMenu}
+      <OverflowMenu light flipped>
+        <SchemaFieldMenu {field} {schema} />
+      </OverflowMenu>
+    {/if}
   </div>
 
   {#if expandedDetails}

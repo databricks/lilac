@@ -202,6 +202,12 @@ class SelectRowsSchemaOptions(BaseModel):
   combine_columns: Optional[bool]
 
 
+class SelectRowsResponse(BaseModel):
+  """The response for the select rows endpoint."""
+  rows: list[dict]
+  total_num_rows: int
+
+
 @router.get('/{namespace}/{dataset_name}/select_rows_download', response_model=None)
 def select_rows_download(namespace: str, dataset_name: str, options: str) -> list[dict]:
   """Select rows from the dataset database and downloads them."""
@@ -209,7 +215,8 @@ def select_rows_download(namespace: str, dataset_name: str, options: str) -> lis
 
 
 @router.post('/{namespace}/{dataset_name}/select_rows', response_model_exclude_none=True)
-def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -> list[dict]:
+def select_rows(namespace: str, dataset_name: str,
+                options: SelectRowsOptions) -> SelectRowsResponse:
   """Select rows from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
 
@@ -217,17 +224,17 @@ def select_rows(namespace: str, dataset_name: str, options: SelectRowsOptions) -
     PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
   ]
 
-  items = list(
-    dataset.select_rows(
-      columns=options.columns,
-      searches=options.searches or [],
-      filters=sanitized_filters,
-      sort_by=options.sort_by,
-      sort_order=options.sort_order,
-      limit=options.limit,
-      offset=options.offset,
-      combine_columns=options.combine_columns or False))
-  return items
+  res = dataset.select_rows(
+    columns=options.columns,
+    searches=options.searches or [],
+    filters=sanitized_filters,
+    sort_by=options.sort_by,
+    sort_order=options.sort_order,
+    limit=options.limit,
+    offset=options.offset,
+    combine_columns=options.combine_columns or False)
+
+  return SelectRowsResponse(rows=list(res), total_num_rows=res.total_num_rows)
 
 
 @router.post('/{namespace}/{dataset_name}/select_rows_schema', response_model_exclude_none=True)

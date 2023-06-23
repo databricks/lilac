@@ -33,11 +33,11 @@
   }
 </script>
 
-<div class="flex flex-row border-b border-gray-300 pb-2 pl-4">
+<div class="flex flex-row gap-x-4 border-b border-gray-300 pb-2 pl-4">
   <!-- Search groups -->
   {#each searchTypeOrder as searchType}
     {#if searchesByType[searchType]}
-      <div class="filter-group mr-4 rounded bg-slate-50 px-2 py-1 shadow-sm">
+      <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
         <div class="mb-2 ml-2 text-xs font-light">{searchTypeDisplay[searchType]}</div>
 
         <div class="flex flex-row">
@@ -50,13 +50,11 @@
   {/each}
   <!-- Filters group -->
   {#if filters != null && filters.length > 0}
-    <div class="filter-group mr-4 rounded bg-slate-50 px-2 py-1 shadow-sm">
+    <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
       <div class="mb-2 ml-2 text-xs font-light">Filters</div>
-      <div class="flex flex-row">
+      <div class="flex flex-row gap-x-1">
         {#each filters as filter}
-          <div class="mx-1">
-            <FilterPill {filter} />
-          </div>
+          <FilterPill {filter} />
         {/each}
       </div>
     </div>

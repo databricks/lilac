@@ -21,9 +21,10 @@ TOO_MANY_DISTINCT = 100_000
 class SelectRowsResult:
   """The result of a select rows query."""
 
-  def __init__(self, df: pd.DataFrame) -> None:
+  def __init__(self, df: pd.DataFrame, total_num_rows: int) -> None:
     """Initialize the result."""
     self._df = df
+    self.total_num_rows = total_num_rows
 
   def __iter__(self) -> Iterator:
     return (row.to_dict() for _, row in self._df.iterrows())

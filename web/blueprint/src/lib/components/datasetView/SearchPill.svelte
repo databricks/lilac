@@ -28,7 +28,7 @@
 </script>
 
 <div
-  class="search-pill mx-1 items-center"
+  class="search-pill items-center"
   use:hoverTooltip={{
     component: SearchPillHoverBody,
     props: {search, tagType}

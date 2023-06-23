@@ -8,6 +8,7 @@ import type { GetStatsOptions } from '../models/GetStatsOptions';
 import type { SelectGroupsOptions } from '../models/SelectGroupsOptions';
 import type { SelectGroupsResult } from '../models/SelectGroupsResult';
 import type { SelectRowsOptions } from '../models/SelectRowsOptions';
+import type { SelectRowsResponse } from '../models/SelectRowsResponse';
 import type { SelectRowsSchemaOptions } from '../models/SelectRowsSchemaOptions';
 import type { SelectRowsSchemaResult } from '../models/SelectRowsSchemaResult';
 import type { StatsResult } from '../models/StatsResult';
@@ -151,14 +152,14 @@ export class DatasetsService {
      * @param namespace
      * @param datasetName
      * @param requestBody
-     * @returns any Successful Response
+     * @returns SelectRowsResponse Successful Response
      * @throws ApiError
      */
     public static selectRows(
         namespace: string,
         datasetName: string,
         requestBody: SelectRowsOptions,
-    ): CancelablePromise<Array<Record<string, any>>> {
+    ): CancelablePromise<SelectRowsResponse> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/select_rows',

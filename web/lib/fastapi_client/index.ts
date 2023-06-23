@@ -44,6 +44,7 @@ export type { SearchResultInfo } from './models/SearchResultInfo';
 export type { SelectGroupsOptions } from './models/SelectGroupsOptions';
 export type { SelectGroupsResult } from './models/SelectGroupsResult';
 export type { SelectRowsOptions } from './models/SelectRowsOptions';
+export type { SelectRowsResponse } from './models/SelectRowsResponse';
 export type { SelectRowsSchemaOptions } from './models/SelectRowsSchemaOptions';
 export type { SelectRowsSchemaResult } from './models/SelectRowsSchemaResult';
 export type { SelectRowsSchemaUDF } from './models/SelectRowsSchemaUDF';
