@@ -1,5 +1,9 @@
 <script lang="ts">
-  import {infiniteQuerySelectRows, queryDatasetSchema} from '$lib/queries/datasetQueries';
+  import {
+    infiniteQuerySelectRows,
+    queryDatasetManifest,
+    queryDatasetSchema
+  } from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {getMediaFields, getVisibleSchema} from '$lib/view_utils';
@@ -12,6 +16,8 @@
 
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();
+
+  const manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
@@ -26,7 +32,9 @@
     selectRowsSchema?.isSuccess ? selectRowsSchema.data.schema : undefined
   );
 
-  $: items = $rows.data?.pages.flat();
+  $: totalNumRows = $rows.data?.pages[0].total_num_rows;
+
+  $: items = $rows.data?.pages.flatMap(x => x.rows);
 
   $: visibleFields = ($datasetStore.visibleFields || []).sort((a, b) =>
     serializePath(a.path) > serializePath(b.path) ? 1 : -1
@@ -40,7 +48,7 @@
 </script>
 
 <SearchPanel />
-<FilterPanel />
+<FilterPanel {totalNumRows} manifest={$manifest.data} />
 
 {#if $rows.isError}
   <InlineNotification

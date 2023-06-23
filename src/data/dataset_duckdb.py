@@ -767,6 +767,7 @@ class DatasetDuckDB(Dataset):
     if filter_queries:
       where_query = f"WHERE {' AND '.join(filter_queries)}"
 
+    total_num_rows = manifest.num_items
     con = self.con.cursor()
 
     topk_udf_col = self._topk_udf_to_sort_by(udf_columns, sort_by, limit, sort_order)
@@ -775,6 +776,7 @@ class DatasetDuckDB(Dataset):
       if where_query:
         # If there are filters, we need to send UUIDs to the topk query.
         df = con.execute(f'SELECT {UUID_COLUMN} FROM t {where_query}').df()
+        total_num_rows = len(df)
         key_prefixes = df[UUID_COLUMN]
 
       signal = cast(Signal, topk_udf_col.signal_udf)
@@ -873,14 +875,9 @@ class DatasetDuckDB(Dataset):
       else:
         limit_query = f'LIMIT {limit} OFFSET {offset or 0}'
 
-    # Figure out the total number of rows.
-    total_num_rows = cast(
-      tuple,
-      con.execute(f"""
-      SELECT COUNT(*) FROM t
-      {where_query}
-    """).fetchone())[0]
-    print('total_num_rows', total_num_rows)
+    if not topk_udf_col and where_query:
+      total_num_rows = cast(tuple,
+                            con.execute(f'SELECT COUNT(*) FROM t {where_query}').fetchone())[0]
 
     # Fetch the data from DuckDB.
     df = con.execute(f"""

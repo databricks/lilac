@@ -1,9 +1,12 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getSearches} from '$lib/view_utils';
-  import type {Search, SearchType} from '$lilac';
+  import {formatValue, type Search, type SearchType, type WebManifest} from '$lilac';
   import FilterPill from './FilterPill.svelte';
   import SearchPill from './SearchPill.svelte';
+
+  export let totalNumRows: number | undefined;
+  export let manifest: WebManifest | undefined;
 
   let datasetViewStore = getDatasetViewContext();
 
@@ -33,32 +36,39 @@
   }
 </script>
 
-<div class="flex flex-row gap-x-4 border-b border-gray-300 pb-2 pl-4">
-  <!-- Search groups -->
-  {#each searchTypeOrder as searchType}
-    {#if searchesByType[searchType]}
-      <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
-        <div class="mb-2 ml-2 text-xs font-light">{searchTypeDisplay[searchType]}</div>
+<div class="m-4 flex h-20 items-center justify-between">
+  <div class="flex flex-row gap-x-4">
+    <!-- Search groups -->
+    {#each searchTypeOrder as searchType}
+      {#if searchesByType[searchType]}
+        <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
+          <div class="mb-2 ml-2 text-xs font-light">{searchTypeDisplay[searchType]}</div>
 
-        <div class="flex flex-row">
-          {#each searchesByType[searchType] as search}
-            <SearchPill {search} />
+          <div class="flex flex-row gap-x-1">
+            {#each searchesByType[searchType] as search}
+              <SearchPill {search} />
+            {/each}
+          </div>
+        </div>
+      {/if}
+    {/each}
+    <!-- Filters group -->
+    {#if filters != null && filters.length > 0}
+      <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
+        <div class="mb-2 ml-2 text-xs font-light">Filters</div>
+        <div class="flex flex-row gap-x-1">
+          {#each filters as filter}
+            <FilterPill {filter} />
           {/each}
         </div>
       </div>
     {/if}
-  {/each}
-  <!-- Filters group -->
-  {#if filters != null && filters.length > 0}
-    <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
-      <div class="mb-2 ml-2 text-xs font-light">Filters</div>
-      <div class="flex flex-row gap-x-1">
-        {#each filters as filter}
-          <FilterPill {filter} />
-        {/each}
-      </div>
-    </div>
-  {/if}
+  </div>
+  <div>
+    {#if totalNumRows && manifest}
+      Selected {formatValue(totalNumRows)} of {formatValue(manifest.dataset_manifest.num_items)} rows.
+    {/if}
+  </div>
 </div>
 
 <style lang="postcss">

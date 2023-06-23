@@ -70,9 +70,10 @@ export const querySelectRows = createApiQuery(function selectRows(
   requestBody: SelectRowsOptions,
   schema: LilacSchema
 ) {
-  return DatasetsService.selectRows(namespace, datasetName, requestBody).then(res =>
-    res.map(row => deserializeRow(row, schema))
-  );
+  return DatasetsService.selectRows(namespace, datasetName, requestBody).then(res => ({
+    rows: res.rows.map(row => deserializeRow(row, schema)),
+    total_num_rows: res.total_num_rows
+  }));
 },
 DATASETS_TAG);
 
@@ -107,7 +108,10 @@ export const infiniteQuerySelectRows = (
       }),
     select: data => ({
       ...data,
-      pages: data.pages.map(page => page.map(row => deserializeRow(row, schema!)))
+      pages: data.pages.map(page => ({
+        rows: page.rows.map(row => deserializeRow(row, schema!)),
+        total_num_rows: page.total_num_rows
+      }))
     }),
     getNextPageParam: (_, pages) => pages.length,
     enabled: !!schema
