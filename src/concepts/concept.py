@@ -109,11 +109,18 @@ class LogisticEmbeddingModel(BaseModel):
     except NotFittedError:
       return np.random.rand(len(embeddings))
 
-  def fit(self, embeddings: np.ndarray, labels: list[bool]) -> None:
+  def fit(self, embeddings: np.ndarray, labels: list[bool], sample_weights: list[float]) -> None:
     """Fit the model to the provided embeddings and labels."""
     if len(set(labels)) < 2:
       return
-    self._model.fit(embeddings, labels)
+    if len(labels) != len(embeddings):
+      raise ValueError(
+        f'Length of embeddings ({len(embeddings)}) must match length of labels ({len(labels)})')
+    if len(sample_weights) != len(labels):
+      raise ValueError(
+        f'Length of sample_weights ({len(sample_weights)}) must match length of labels '
+        f'({len(labels)})')
+    self._model.fit(embeddings, labels, sample_weights)
 
 
 def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
@@ -215,14 +222,18 @@ class ConceptModel(BaseModel):
       examples = draft_examples(concept, draft)
       embeddings = np.array([self._embeddings[id] for id in examples.keys()])
       labels = [example.label for example in examples.values()]
-
+      num_pos_labels = len([x for x in labels if x])
+      num_neg_labels = len([x for x in labels if not x])
+      sample_weights = [(1.0 / num_pos_labels if x else 1.0 / num_neg_labels) for x in labels]
       if self._negative_vectors is not None:
+        num_implicit_labels = len(self._negative_vectors)
         embeddings = np.concatenate([self._negative_vectors, embeddings])
-        labels = [False] * len(self._negative_vectors) + labels
+        labels = [False] * num_implicit_labels + labels
+        sample_weights = [1.0 / num_implicit_labels] * num_implicit_labels + sample_weights
 
       model = self._get_logistic_model(draft)
       with DebugTimer(f'Fitting model for "{concept_path}"'):
-        model.fit(embeddings, labels)
+        model.fit(embeddings, labels, sample_weights)
 
       # Synchronize the model version with the concept version.
       model.version = concept.version
