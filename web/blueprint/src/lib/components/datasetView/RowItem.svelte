@@ -9,7 +9,7 @@
   export let visibleFields: LilacField[];
 </script>
 
-<div class="mx-4 mb-10 w-full rounded border-b border-l border-neutral-200 pb-2 shadow-md">
+<div class="mx-4 mb-10 rounded border-x border-b border-neutral-200 pb-2 shadow-md">
   <div class="flex w-full flex-row">
     {#if mediaFields.length > 0}
       <div class="w-2/3">

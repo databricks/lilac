@@ -71,7 +71,7 @@
 {/if}
 
 {#if items && visibleFields.length > 0 && $schema.isSuccess && mediaFields != null}
-  <div class="flex h-full w-full flex-col overflow-x-hidden overflow-y-scroll">
+  <div class="flex h-full w-full flex-col overflow-y-scroll">
     {#each items as row (L.value(row[UUID_COLUMN]))}
       <RowItem {visibleFields} {row} {mediaFields} />
     {/each}

@@ -64,7 +64,7 @@
 />
 
 <QueryClientProvider client={queryClient}>
-  <main class="flex h-screen flex-col">
+  <main class="flex h-screen w-full flex-col">
     <div class="flex flex-row items-center gap-x-8 border-b border-gray-200 px-4 py-2">
       <a class="text-xl normal-case" href="/">Lilac <span>Blueprint</span></a>
       <a class="opacity-50 hover:underline" href="/">Datasets</a>

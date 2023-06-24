@@ -389,6 +389,8 @@
           : SortDescending}
         on:click={toggleSortOrder}
         disabled={sort == null}
+        tooltipPosition="bottom"
+        tooltipAlignment="end"
         iconDescription={sort?.order === 'ASC'
           ? 'Sorted ascending. Toggle to switch to descending.'
           : 'Sorted descending. Toggle to switch to ascending.'}
