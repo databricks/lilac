@@ -423,7 +423,7 @@ class TestLogisticModel(LogisticEmbeddingModel):
     return np.array([.1])
 
   @override
-  def fit(self, embeddings: np.ndarray, labels: list[bool]) -> None:
+  def fit(self, embeddings: np.ndarray, labels: list[bool], sample_weights: list[float]) -> None:
     pass
 
 
@@ -478,11 +478,13 @@ class ConceptModelDBSuite:
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 1
 
-    (called_model, called_embeddings, called_labels) = fit_mock.call_args_list[-1].args
+    (called_model, called_embeddings, called_labels,
+     called_weights) = fit_mock.call_args_list[-1].args
     assert called_model == logistic_model
     np.testing.assert_array_equal(
       called_embeddings, np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']]))
     assert called_labels == [False, True]
+    assert called_weights == [1.0, 1.0]
 
     # Edit the concept.
     concept_db.edit('test', 'test_concept',
@@ -498,7 +500,8 @@ class ConceptModelDBSuite:
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 2
     # Fit is called again with new points on main only.
-    (called_model, called_embeddings, called_labels) = fit_mock.call_args_list[-1].args
+    (called_model, called_embeddings, called_labels,
+     called_weights) = fit_mock.call_args_list[-1].args
     assert called_model == logistic_model
     np.testing.assert_array_equal(
       called_embeddings,
@@ -507,6 +510,7 @@ class ConceptModelDBSuite:
         EMBEDDING_MAP['a new data point']
       ]))
     assert called_labels == [False, True, False]
+    assert called_weights == pytest.approx([1 / 2, 1.0, 1 / 2])
 
   def test_out_of_sync_draft_model(self, concept_db_cls: Type[ConceptDB],
                                    model_db_cls: Type[ConceptModelDB],
@@ -549,8 +553,8 @@ class ConceptModelDBSuite:
     assert fit_mock.call_count == 3  # Fit is called on both the draft, and main.
 
     # Fit is called again with the same points.
-    ((called_model, called_embeddings, called_labels),
-     (called_draft_model, called_draft_embeddings, called_draft_labels)) = (
+    ((called_model, called_embeddings, called_labels, called_weights),
+     (called_draft_model, called_draft_embeddings, called_draft_labels, called_draft_weights)) = (
        c.args for c in fit_mock.call_args_list[-2:])
 
     # The draft model is called with the data from main, and the data from draft.
@@ -568,12 +572,14 @@ class ConceptModelDBSuite:
       False,
       False
     ]
+    assert called_draft_weights == pytest.approx([1.0, 1 / 3, 1 / 3, 1 / 3])
 
     # The main model was fit without the data from the draft.
     assert called_model == draft_model
     np.testing.assert_array_equal(
       called_embeddings, np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']]))
     assert called_labels == [False, True]
+    assert called_weights == pytest.approx([1.0, 1.0])
 
   def test_embedding_not_found_in_map(self, concept_db_cls: Type[ConceptDB],
                                       model_db_cls: Type[ConceptModelDB]) -> None:
