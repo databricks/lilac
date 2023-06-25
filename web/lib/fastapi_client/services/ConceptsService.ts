@@ -203,4 +203,26 @@ export class ConceptsService {
         });
     }
 
+    /**
+     * Generate Examples
+     * Generate positive examples for a given concept using an LLM model.
+     * @param description
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static generateExamples(
+        description: string,
+    ): CancelablePromise<Array<string>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/concepts/generate_examples',
+            query: {
+                'description': description,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
 }

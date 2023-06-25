@@ -2,11 +2,14 @@
 
 from typing import Optional
 
+import openai
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from openai_function_call import OpenAISchema
+from pydantic import BaseModel, Field
 
 from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, DraftId, draft_examples
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
+from .config import CONFIG
 from .router_utils import RouteErrorHandler
 from .schema import SignalInputType
 
@@ -129,3 +132,30 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
   # TODO(smilkov): Support images.
   texts = [example.text or '' for example in body.examples]
   return ScoreResponse(scores=model.score(body.draft, texts), model_synced=models_updated)
+
+
+class Examples(OpenAISchema):
+  """Generated text examples."""
+  examples: list[str] = Field(..., description='List of generated examples')
+
+
+@router.get('/generate_examples')
+def generate_examples(description: str) -> list[str]:
+  """Generate positive examples for a given concept using an LLM model."""
+  openai.api_key = CONFIG['OPENAI_API_KEY']
+  completion = openai.ChatCompletion.create(
+    model='gpt-3.5-turbo-0613',
+    functions=[Examples.openai_schema],
+    messages=[
+      {
+        'role': 'system',
+        'content': 'You must call the `Examples` function with the generated sentences.',
+      },
+      {
+        'role': 'user',
+        'content': f'Give me 5 diverse examples of sentences that demonstrate "{description}"',
+      },
+    ],
+  )
+  result = Examples.from_response(completion)
+  return result.examples

@@ -1,8 +1,10 @@
 <script lang="ts">
   import {createConceptMutation, editConceptMutation} from '$lib/queries/conceptQueries';
+  import {ConceptsService} from '$lilac';
   import {
     Button,
     ComposedModal,
+    InlineLoading,
     ModalBody,
     ModalFooter,
     ModalHeader,
@@ -15,6 +17,8 @@
   export let command: CreateConceptCommand;
   let namespace = command.namespace || 'local';
   let name = command.conceptName || '';
+  let conceptDescription: string | undefined;
+  let conceptDescLoading = false;
 
   const conceptCreate = createConceptMutation();
   const conceptEdit = editConceptMutation();
@@ -45,6 +49,18 @@
     });
   }
 
+  async function generateExamples() {
+    if (!conceptDescription) return;
+    conceptDescLoading = true;
+    const examples = await ConceptsService.generateExamples(conceptDescription);
+    conceptDescLoading = false;
+    if (positiveExamples.at(-1) === '') {
+      positiveExamples.pop();
+    }
+    positiveExamples.push(...examples);
+    positiveExamples = positiveExamples;
+  }
+
   function close() {
     dispatch('close');
   }
@@ -57,9 +73,21 @@
       <TextInput labelText="namespace" bind:value={namespace} />
       <TextInput labelText="name" bind:value={name} required />
     </div>
+    <div class="my-4 flex items-center gap-x-2">
+      <TextInput
+        labelText="Concept description"
+        helperText="This will be used by an LLM to generate example sentences."
+        placeholder="Enter the concept description..."
+        bind:value={conceptDescription}
+      />
+      <Button on:click={generateExamples} disabled={!conceptDescription || conceptDescLoading}>
+        Generate
+        <span class="ml-2" class:invisible={!conceptDescLoading}><InlineLoading /></span>
+      </Button>
+    </div>
     <div class="mb-2 mt-8">Add positive examples</div>
     <div>
-      <div class="flex flex-col overflow-hidden">
+      <div class="flex flex-col">
         {#each positiveExamples || [] as _, i}
           <div class="mb-4 flex flex-row">
             <div class="w-8 shrink-0 text-lg">{i + 1}</div>
@@ -71,6 +99,9 @@
                 kind="ghost"
                 icon={Close}
                 expressive={true}
+                iconDescription="Remove example"
+                tooltipPosition="top"
+                tooltipAlignment="end"
                 on:click={() => {
                   positiveExamples.splice(i, 1);
                   positiveExamples = positiveExamples;
@@ -98,3 +129,9 @@
     on:click:button--secondary={close}
   />
 </ComposedModal>
+
+<style lang="postcss">
+  :global(.bx--btn) {
+    @apply h-10 min-h-0 p-2;
+  }
+</style>
