@@ -5,7 +5,8 @@
   import {queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
   import {urlHash} from '$lib/stores/urlHashStore';
   import {conceptLink} from '$lib/utils';
-  import {SkeletonText} from 'carbon-components-svelte';
+  import {Button, SkeletonText} from 'carbon-components-svelte';
+  import {Close} from 'carbon-icons-svelte';
   import AddAlt from 'carbon-icons-svelte/lib/AddAlt.svelte';
 
   let namespace: string | undefined;
@@ -27,14 +28,26 @@
       <SkeletonText />
     {:else if $concepts.isSuccess}
       {#each $concepts.data as c}
-        <a
-          href={conceptLink(c.namespace, c.name)}
-          class="flex w-full flex-row items-center whitespace-pre border-b border-gray-200 px-4 py-2 hover:bg-gray-100"
-          class:bg-blue-100={c.name === conceptName}
-          class:hover:bg-blue-100={c.name === conceptName}
-        >
-          <span class="opacity-50">{c.namespace} / </span><span> {c.name}</span>
-        </a>
+        <div class="flex justify-between border-b border-gray-200 hover:bg-gray-100">
+          <a
+            href={conceptLink(c.namespace, c.name)}
+            class="flex w-full flex-row items-center whitespace-pre px-4 py-2"
+            class:bg-blue-100={c.name === conceptName}
+            class:hover:bg-blue-100={c.name === conceptName}
+          >
+            <span class="opacity-50">{c.namespace} / </span><span> {c.name}</span>
+          </a>
+          <Button
+            kind="ghost"
+            icon={Close}
+            iconDescription="Remove concept"
+            tooltipPosition="right"
+            tooltipAlignment="end"
+            on:click={() => {
+              console.log('removing concept', c);
+            }}
+          />
+        </div>
       {/each}
 
       <button
