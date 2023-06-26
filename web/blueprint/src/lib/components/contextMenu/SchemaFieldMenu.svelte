@@ -8,6 +8,7 @@
     isSignalField,
     isSignalRootField,
     isSortableField,
+    serializePath,
     type LilacField,
     type LilacSchema
   } from '$lilac';
@@ -112,7 +113,8 @@
   on:close
   on:submit={deleteSignalClicked}
 >
-  <p>This is a permanent action and cannot be undone.</p>
+  <p class="!text-lg">Confirm deleting <code>{serializePath(field.path)}</code> ?</p>
+  <p class="mt-2">This is a permanent action and cannot be undone.</p>
 </Modal>
 
 <style lang="postcss">
