@@ -3,6 +3,7 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getSearches, isPreviewSignal} from '$lib/view_utils';
 
+  import {computeSignalMutation} from '$lib/queries/datasetQueries';
   import {
     PATH_WILDCARD,
     VALUE_KEY,
@@ -75,6 +76,7 @@
   $: isSignalRoot = isSignalRootField(field);
   $: isSourceField = !isSignal;
 
+  const signalMutation = computeSignalMutation();
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
 
@@ -237,14 +239,15 @@
           on:click={() =>
             field.signal &&
             isPreview &&
-            triggerCommand({
-              command: Command.ComputeSignal,
-              namespace: $datasetViewStore.namespace,
-              datasetName: $datasetViewStore.datasetName,
-              path: sourceField?.path,
-              signalName: field.signal?.signal_name,
-              value: field.signal
-            })}
+            sourceField &&
+            $signalMutation.mutate([
+              $datasetViewStore.namespace,
+              $datasetViewStore.datasetName,
+              {
+                leaf_path: sourceField.path,
+                signal: field.signal
+              }
+            ])}
         />
       </div>
       <SignalBadge

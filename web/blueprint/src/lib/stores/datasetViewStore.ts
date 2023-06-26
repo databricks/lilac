@@ -10,6 +10,7 @@ import {
   type Path,
   type Search,
   type SelectRowsOptions,
+  type SelectRowsSchemaOptions,
   type SortOrder,
   type UnaryFilter
 } from '$lilac';
@@ -245,5 +246,18 @@ export function getSelectRowsOptions(datasetViewStore: IDatasetViewStore): Selec
   return {
     ...datasetViewStore.queryOptions,
     columns
+  };
+}
+
+export function getSelectRowsSchemaOptions(
+  datasetViewStore: IDatasetViewStore
+): SelectRowsSchemaOptions {
+  const options = getSelectRowsOptions(datasetViewStore);
+  return {
+    columns: options.columns,
+    searches: options.searches,
+    combine_columns: options.combine_columns,
+    sort_by: options.sort_by,
+    sort_order: options.sort_order
   };
 }

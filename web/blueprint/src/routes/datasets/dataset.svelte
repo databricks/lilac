@@ -10,7 +10,7 @@
   import {createDatasetStore, setDatasetContext, type StatsInfo} from '$lib/stores/datasetStore';
   import {
     createDatasetViewStore,
-    getSelectRowsOptions,
+    getSelectRowsSchemaOptions,
     setDatasetViewContext
   } from '$lib/stores/datasetViewStore';
   import {getVisibleFields} from '$lib/view_utils';
@@ -21,7 +21,6 @@
 
   $: datasetViewStore = createDatasetViewStore(namespace, datasetName);
   $: setDatasetViewContext(datasetViewStore);
-  $: selectOptions = getSelectRowsOptions($datasetViewStore);
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   $: stringFields = getFieldsByDtype('string', $schema.data);
@@ -38,13 +37,11 @@
   );
 
   // Get the resulting schema including UDF columns
-  $: selectRowsSchema = selectOptions
-    ? querySelectRowsSchema(
-        $datasetViewStore.namespace,
-        $datasetViewStore.datasetName,
-        selectOptions
-      )
-    : undefined;
+  $: selectRowsSchema = querySelectRowsSchema(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    getSelectRowsSchemaOptions($datasetViewStore)
+  );
 
   const datasetStore = createDatasetStore();
   setDatasetContext(datasetStore);

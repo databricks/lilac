@@ -1,7 +1,7 @@
 <script lang="ts">
   import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
+  import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {
     childFields,
     getField,
@@ -37,13 +37,11 @@
 
   const dispatch = createEventDispatcher();
 
-  $: selectRowsSchema = $datasetStore.schema
-    ? querySelectRowsSchema(
-        command.namespace,
-        command.datasetName,
-        getSelectRowsOptions($datasetViewStore)
-      )
-    : undefined;
+  $: selectRowsSchema = querySelectRowsSchema(
+    command.namespace,
+    command.datasetName,
+    getSelectRowsSchemaOptions($datasetViewStore)
+  );
 
   // Create list of fields, and include current count of filters
   $: fields =
