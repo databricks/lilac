@@ -8,8 +8,7 @@ import {get, writable as internal, type Writable} from 'svelte/store';
 declare type Updater<T> = (value: T) => T;
 declare type StoreDict<T> = {[key: string]: Writable<T>};
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const stores: StoreDict<any> = {};
+const stores: StoreDict<unknown> = {};
 
 interface Serializer<T> {
   parse(text: string): T;

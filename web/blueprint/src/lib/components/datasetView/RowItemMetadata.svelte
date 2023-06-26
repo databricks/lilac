@@ -92,7 +92,7 @@
 {#if rows.length > 0}
   <div class="h-full border-b border-l border-t border-gray-300 bg-neutral-50 py-2">
     <table class="table w-full table-fixed border-collapse px-2 pt-1">
-      {#each rows as row, i (serializePath(row.path))}
+      {#each rows as row (serializePath(row.path))}
         <tr class="border-gray-300">
           <td class="truncate p-2 pl-2 pr-2 font-mono text-xs font-medium text-neutral-500">
             <span title={row.fieldName} style:padding-left={`${row.indentLevel * 12}px`}

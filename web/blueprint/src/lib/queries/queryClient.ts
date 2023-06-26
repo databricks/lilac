@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type {ApiError} from '$lilac';
 import {QueryClient} from '@tanstack/svelte-query';
 import {writable} from 'svelte/store';
