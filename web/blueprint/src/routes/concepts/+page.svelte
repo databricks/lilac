@@ -3,6 +3,7 @@
   import Commands, {Command, triggerCommand} from '$lib/components/commands/Commands.svelte';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
+  import {datasetStores} from '$lib/stores/datasetViewStore';
   import {urlHash} from '$lib/stores/urlHashStore';
   import {conceptLink} from '$lib/utils';
   import {Modal, SkeletonText} from 'carbon-components-svelte';
@@ -30,7 +31,12 @@
     }
     const {namespace, name} = deleteConceptInfo;
     $deleteConcept.mutate([{namespace, name}], {
-      onSuccess: () => (deleteConceptInfo = null)
+      onSuccess: () => {
+        for (const store of Object.values(datasetStores)) {
+          store.deleteConcept(namespace, name);
+        }
+        deleteConceptInfo = null;
+      }
     });
   }
 </script>

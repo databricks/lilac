@@ -5,12 +5,15 @@ import {
   serializePath,
   type BinaryFilter,
   type Column,
+  type ConceptQuery,
+  type KeywordQuery,
   type LilacSelectRowsSchema,
   type ListFilter,
   type Path,
   type Search,
   type SelectRowsOptions,
   type SelectRowsSchemaOptions,
+  type SemanticQuery,
   type SortOrder,
   type UnaryFilter
 } from '$lilac';
@@ -230,7 +233,22 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
           p => !pathIncludes(signalPath, p)
         );
         return state;
-      })
+      }),
+    deleteConcept(namespace: string, name: string) {
+      function matchesConcept(query: KeywordQuery | SemanticQuery | ConceptQuery) {
+        return (
+          query.type === 'concept' &&
+          query.concept_namespace === namespace &&
+          query.concept_name === name
+        );
+      }
+      update(state => {
+        state.queryOptions.searches = state.queryOptions.searches?.filter(
+          s => !matchesConcept(s.query)
+        );
+        return state;
+      });
+    }
   };
 
   datasetStores[datasetKey(namespace, datasetName)] = store;
