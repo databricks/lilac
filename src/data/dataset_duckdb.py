@@ -155,6 +155,12 @@ class DatasetDuckDB(Dataset):
     self.vector_store_cls = vector_store_cls
     self._manifest_lock = threading.Lock()
 
+  @override
+  def delete(self) -> None:
+    """Deletes the dataset."""
+    self.con.close()
+    shutil.rmtree(self.dataset_path, ignore_errors=True)
+
   def _create_view(self, view_name: str, files: list[str]) -> None:
     self.con.execute(f"""
       CREATE OR REPLACE VIEW {_escape_col_name(view_name)} AS (SELECT * FROM read_parquet({files}));

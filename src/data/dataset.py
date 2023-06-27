@@ -245,6 +245,11 @@ class Dataset(abc.ABC):
     self.dataset_name = dataset_name
 
   @abc.abstractmethod
+  def delete(self) -> None:
+    """Deletes the dataset."""
+    pass
+
+  @abc.abstractmethod
   def manifest(self) -> DatasetManifest:
     """Return the manifest for the dataset."""
     pass

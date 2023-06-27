@@ -39,21 +39,6 @@
 <Theme
   theme="white"
   tokens={{
-    // Lilac colors taken from: https://www.color-hex.com/color-palette/5811
-    // lightest: #e6d7ff
-    // lighter: #e7d1ff
-    // medium: #e1c4ff
-    // darker: #d8b9ff
-    // darkest: #d2afff
-
-    // Button background color
-    'interactive-01': '#651cff',
-    // 'interactive-04': 'transparent',
-    'hover-primary': '#4506ca',
-    // 'active-primary': '#d8b9ff', // darker lilac
-    // 'text-primary': 'black',
-    // Hover color of buttons.
-    // 'text-04': 'black',
     // Controls the bottom border of the searchbox.
     'border-strong': 'transparent',
     // Typography

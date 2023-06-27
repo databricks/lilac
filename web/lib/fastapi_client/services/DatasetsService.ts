@@ -61,6 +61,31 @@ export class DatasetsService {
     }
 
     /**
+     * Delete Dataset
+     * Delete a signal from a dataset.
+     * @param namespace
+     * @param datasetName
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deleteDataset(
+        namespace: string,
+        datasetName: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Compute Signal
      * Compute a signal for a dataset.
      * @param namespace
