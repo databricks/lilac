@@ -255,7 +255,7 @@
 </script>
 
 <div class="border-1 flex flex-row items-start px-4 py-2">
-  <div class="mr-1 mt-10">
+  <div class="compute-embedding mr-1 mt-10">
     <Button
       disabled={searchButtonDisabled || isIndexing || selectedTab != 'Concepts'}
       iconDescription="Compute embedding index. This may be expensive."
@@ -413,10 +413,8 @@
   :global(.bx--form__helper-text) {
     padding: 0 0 0 1rem;
   }
-  :global(.bx--btn--sm) {
-    height: 2.5rem;
-    @apply w-24;
-    @apply px-3;
+  :global(.compute-embedding .bx--btn) {
+    @apply h-12;
   }
   :global(.embedding-select .bx--select-input) {
     @apply h-12;

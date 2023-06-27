@@ -48,10 +48,10 @@
 
     // Button background color
     'interactive-01': '#e6d7ff', // lightest lilac
-    'interactive-04': 'transparent',
     'hover-primary': '#e1c4ff', // medium lilac
     'active-primary': '#d8b9ff', // darker lilac
     'text-primary': 'black',
+    'ui-03': 'white', // lightest lilac
     // Hover color of buttons.
     'text-04': 'black',
     // Controls the bottom border of the searchbox.

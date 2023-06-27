@@ -56,42 +56,42 @@
       <tbody>
         <tr>
           <td>
-            <span>Total count</span>
-            <span use:hoverTooltip={{text: 'Total number of rows where the value is defined'}}>
+            <span use:hoverTooltip={{text: 'Total number of rows where the value is defined.'}}>
               <Information class="inline" />
             </span>
+            <span>Total count</span>
           </td>
           <td>{formatValue(stats.total_count)}</td>
         </tr>
         <tr>
           <td>
-            <span>Distinct count (approx.)</span>
             <span
-              use:hoverTooltip={{text: 'An approximation of the total number of unique values'}}
+              use:hoverTooltip={{text: 'An approximation of the total number of unique values.'}}
             >
               <Information class="inline" />
             </span>
+            <span>Unique values</span>
           </td>
-          <td>{formatValue(stats.approx_count_distinct)}</td>
+          <td>~{formatValue(stats.approx_count_distinct)}</td>
         </tr>
         {#if stats.avg_text_length}
           <tr>
             <td>
-              <span>Avg. text length</span>
-              <span use:hoverTooltip={{text: 'The average length of the text'}}>
+              <span use:hoverTooltip={{text: 'The average length of the text in characters.'}}>
                 <Information class="inline" />
               </span>
+              <span>Average text length</span>
             </td>
-            <td>{stats.avg_text_length}</td>
+            <td>{formatValue(stats.avg_text_length)}</td>
           </tr>
         {/if}
         {#if stats.min_val && stats.max_val}
           <tr>
             <td>
-              <span>Range</span>
               <span use:hoverTooltip={{text: 'The minimum and maximum value across the dataset'}}>
                 <Information class="inline" />
               </span>
+              <span>Range</span>
             </td>
             <td>{formatValue(stats.min_val)} .. {formatValue(stats.max_val)}</td>
           </tr>

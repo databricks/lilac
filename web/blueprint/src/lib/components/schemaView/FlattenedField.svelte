@@ -194,7 +194,7 @@
         <span class="font-mono">{'{}'}</span>
       {/if}
     </div>
-    <div class="ml-2 grow truncate whitespace-nowrap text-gray-900">
+    <div class="ml-2 grow truncate whitespace-nowrap leading-6 text-gray-900">
       {fieldName}
     </div>
     {#if isSortedBy}
@@ -266,7 +266,7 @@
       />
     {/if}
     {#if isSortableField(field) && !isPreview}
-      <div class="flex">
+      <div class="stats-button flex">
         <Button
           isSelected={expandedDetails}
           kind="ghost"

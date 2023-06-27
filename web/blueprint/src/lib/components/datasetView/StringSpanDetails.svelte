@@ -111,6 +111,6 @@
 
 <style lang="postcss">
   :global(.more-button .bx--btn) {
-    @apply h-2 w-48;
+    @apply h-6 w-48;
   }
 </style>
