@@ -110,7 +110,7 @@ class ComputeSignalOptions(BaseModel):
 
 @router.delete('/{namespace}/{dataset_name}')
 def delete_dataset(namespace: str, dataset_name: str) -> None:
-  """Delete a signal from a dataset."""
+  """Delete the dataset."""
   dataset = get_dataset(namespace, dataset_name)
   dataset.delete()
   remove_dataset_from_cache(namespace, dataset_name)
@@ -155,7 +155,7 @@ class DeleteSignalResponse(BaseModel):
   completed: bool
 
 
-@router.post('/{namespace}/{dataset_name}/delete_signal')
+@router.delete('/{namespace}/{dataset_name}/delete_signal')
 def delete_signal(namespace: str, dataset_name: str,
                   options: DeleteSignalOptions) -> DeleteSignalResponse:
   """Delete a signal from a dataset."""

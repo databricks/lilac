@@ -62,7 +62,7 @@ export class DatasetsService {
 
     /**
      * Delete Dataset
-     * Delete a signal from a dataset.
+     * Delete the dataset.
      * @param namespace
      * @param datasetName
      * @returns any Successful Response
@@ -129,7 +129,7 @@ export class DatasetsService {
         requestBody: DeleteSignalOptions,
     ): CancelablePromise<DeleteSignalResponse> {
         return __request(OpenAPI, {
-            method: 'POST',
+            method: 'DELETE',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/delete_signal',
             path: {
                 'namespace': namespace,
