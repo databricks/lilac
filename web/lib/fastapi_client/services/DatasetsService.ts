@@ -4,6 +4,8 @@
 import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
 import type { ComputeSignalResponse } from '../models/ComputeSignalResponse';
 import type { DatasetInfo } from '../models/DatasetInfo';
+import type { DeleteSignalOptions } from '../models/DeleteSignalOptions';
+import type { DeleteSignalResponse } from '../models/DeleteSignalResponse';
 import type { GetStatsOptions } from '../models/GetStatsOptions';
 import type { SelectGroupsOptions } from '../models/SelectGroupsOptions';
 import type { SelectGroupsResult } from '../models/SelectGroupsResult';
@@ -75,6 +77,35 @@ export class DatasetsService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/compute_signal',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Delete Signal
+     * Delete a signal from a dataset.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns DeleteSignalResponse Successful Response
+     * @throws ApiError
+     */
+    public static deleteSignal(
+        namespace: string,
+        datasetName: string,
+        requestBody: DeleteSignalOptions,
+    ): CancelablePromise<DeleteSignalResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/delete_signal',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,

@@ -136,6 +136,26 @@ def compute_signal(namespace: str, dataset_name: str,
   return ComputeSignalResponse(task_id=task_id)
 
 
+class DeleteSignalOptions(BaseModel):
+  """The request for the delete signal endpoint."""
+  # The signal path holding the data from the signal.
+  signal_path: Path
+
+
+class DeleteSignalResponse(BaseModel):
+  """Response of the compute signal column endpoint."""
+  completed: bool
+
+
+@router.post('/{namespace}/{dataset_name}/delete_signal')
+def delete_signal(namespace: str, dataset_name: str,
+                  options: DeleteSignalOptions) -> DeleteSignalResponse:
+  """Delete a signal from a dataset."""
+  dataset = get_dataset(namespace, dataset_name)
+  dataset.delete_signal(options.signal_path)
+  return DeleteSignalResponse(completed=True)
+
+
 class GetStatsOptions(BaseModel):
   """The request for the get stats endpoint."""
   leaf_path: Path

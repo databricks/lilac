@@ -4,6 +4,7 @@ import glob
 import math
 import os
 import re
+import shutil
 import threading
 from typing import Any, Iterable, Optional, Sequence, Type, Union, cast
 
@@ -318,9 +319,9 @@ class DatasetDuckDB(Dataset):
   @override
   def compute_signal(self,
                      signal: Signal,
-                     column: ColumnId,
+                     leaf_path: Path,
                      task_step_id: Optional[TaskStepId] = None) -> None:
-    source_path = column_from_identifier(column).path
+    source_path = normalize_path(leaf_path)
     manifest = self.manifest()
 
     # Prepare the dependencies of this signal.
@@ -387,6 +388,16 @@ class DatasetDuckDB(Dataset):
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.json(exclude_none=True, indent=2))
     log(f'Wrote signal manifest to {signal_manifest_filepath}')
+
+  @override
+  def delete_signal(self, signal_path: Path) -> None:
+    signal_path = normalize_path(signal_path)
+    manifest = self.manifest()
+    if not manifest.data_schema.has_field(signal_path):
+      raise ValueError(f'Unknown signal path: {signal_path}')
+
+    output_dir = os.path.join(self.dataset_path, _signal_dir(signal_path))
+    shutil.rmtree(output_dir, ignore_errors=True)
 
   def _validate_filters(self, filters: Sequence[Filter], col_aliases: dict[str, PathTuple],
                         manifest: DatasetManifest) -> None:

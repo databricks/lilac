@@ -36,13 +36,13 @@ body {
 
 /** Buttons */
 .bx--btn {
-  @apply rounded border-neutral-300 text-black;
+  @apply rounded text-white;
 }
 .bx--btn.bx--btn--secondary {
   @apply text-white;
 }
 .bx--btn.bx--btn--ghost {
-  @apply border-transparent bg-transparent text-black hover:!bg-gray-200;
+  @apply border-transparent bg-transparent text-black;
 }
 .bx--btn.bx--btn--primary.bx--btn--disabled {
   @apply border-neutral-300 bg-slate-100 text-neutral-500;
@@ -79,9 +79,6 @@ a.bx--tabs__nav-link:focus {
 /** Expressive buttons */
 .bx--btn--icon-only.bx--btn--expressive {
   @apply p-1;
-}
-.bx--btn.bx--btn--icon-only.bx--tooltip__trigger {
-  @apply hover:bg-neutral-100;
 }
 
 /** Tooltips */

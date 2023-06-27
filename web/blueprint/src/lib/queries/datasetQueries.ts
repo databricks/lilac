@@ -58,6 +58,15 @@ export const computeSignalMutation = createApiMutation(DatasetsService.computeSi
     });
   }
 });
+
+export const deleteSignalMutation = createApiMutation(DatasetsService.deleteSignal, {
+  onSuccess: () => {
+    queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
+    queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
+    queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
+  }
+});
+
 export const queryDatasetStats = createApiQuery(DatasetsService.getStats, DATASETS_TAG);
 export const queryManyDatasetStats = createParallelApiQueries(
   DatasetsService.getStats,
