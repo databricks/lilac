@@ -226,6 +226,9 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         state.queryOptions.filters = state.queryOptions.filters?.filter(
           f => !pathIncludes(signalPath, f.path)
         );
+        state.queryOptions.sort_by = state.queryOptions.sort_by?.filter(
+          p => !pathIncludes(signalPath, p)
+        );
         return state;
       })
   };
