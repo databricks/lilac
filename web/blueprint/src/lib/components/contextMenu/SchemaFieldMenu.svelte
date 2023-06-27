@@ -4,7 +4,6 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {isPreviewSignal} from '$lib/view_utils';
   import {
-    PATH_WILDCARD,
     isFilterableField,
     isSignalField,
     isSignalRootField,
@@ -32,9 +31,6 @@
 
   $: isSignal = isSignalField(field, schema);
   $: isSignalRoot = isSignalRootField(field);
-  $: isRepeatedField = field.path.at(-1) === PATH_WILDCARD ? true : false;
-  $: console.log(isRepeatedField);
-  $: console.log(field.path, isSignalRoot, isRepeatedField);
 
   $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, field.path);
   $: hasMenu =
@@ -44,6 +40,7 @@
     $deleteSignal.mutate([namespace, datasetName, {signal_path: field.path}], {
       onSuccess: () => {
         deleteSignalOpen = false;
+        // Clear any state that referred to the signal.
         datasetViewStore.deleteSignal(field.path);
       }
     });

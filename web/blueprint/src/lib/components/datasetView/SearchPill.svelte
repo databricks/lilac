@@ -43,13 +43,3 @@
     >{pillText}
   </RemovableTag>
 </div>
-
-<style lang="postcss">
-  :global(.search-pill .bx--tooltip__label) {
-    @apply mr-1 inline-block h-full truncate;
-    max-width: 5rem;
-  }
-  :global(.search-pill .bx--tooltip__content) {
-    @apply flex flex-col items-center;
-  }
-</style>

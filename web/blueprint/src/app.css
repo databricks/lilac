@@ -41,11 +41,12 @@ body {
 .bx--btn.bx--btn--secondary {
   @apply text-white;
 }
-.bx--btn.bx--btn--ghost {
+.bx--btn--ghost {
   @apply border-transparent bg-transparent text-black;
 }
+
 .bx--btn.bx--btn--primary.bx--btn--disabled {
-  @apply border-neutral-300 bg-slate-100;
+  @apply border-neutral-300 bg-slate-100 text-neutral-500;
 }
 
 /** Modals */

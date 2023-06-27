@@ -9,13 +9,19 @@
 </script>
 
 <Tag {type} {...$$restProps} on:click>
-  <span class="flex gap-x-1">
+  <div class="removable-tag flex items-center gap-x-1">
     <button
       class="opacity-50 hover:opacity-100"
       on:click|stopPropagation={() => dispatch('remove')}
     >
       <CloseOutline />
     </button>
-    <slot />
-  </span>
+    <span class="truncate"><slot /></span>
+  </div>
 </Tag>
+
+<style lang="postcss">
+  :global(.removable-tag) {
+    max-width: 8rem;
+  }
+</style>

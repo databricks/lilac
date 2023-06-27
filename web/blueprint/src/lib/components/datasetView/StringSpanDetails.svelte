@@ -100,7 +100,7 @@
     {#each computedEmbeddings as computedEmbedding (computedEmbedding)}
       <Button
         kind="ghost"
-        class="w-full "
+        class="w-full"
         size="small"
         on:click={() => findSimilar(computedEmbedding)}
         >Find similar <EmbeddingBadge class="hover:cursor-pointer" embedding={computedEmbedding} />
