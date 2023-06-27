@@ -95,10 +95,15 @@ def makedirs(dir_path: str) -> None:
   os.makedirs(dir_path, exist_ok=True)
 
 
+def get_datasets_dir(base_dir: Union[str, pathlib.Path]) -> str:
+  """Return the output directory that holds all datasets."""
+  return os.path.join(base_dir, DATASETS_DIR_NAME)
+
+
 def get_dataset_output_dir(base_dir: Union[str, pathlib.Path], namespace: str,
                            dataset_name: str) -> str:
   """Return the output directory for a dataset."""
-  return os.path.join(base_dir, DATASETS_DIR_NAME, namespace, dataset_name)
+  return os.path.join(get_datasets_dir(base_dir), namespace, dataset_name)
 
 
 class CopyRequest(BaseModel):

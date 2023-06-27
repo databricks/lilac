@@ -129,9 +129,3 @@
     on:click:button--secondary={close}
   />
 </ComposedModal>
-
-<style lang="postcss">
-  :global(.bx--btn) {
-    @apply h-10 min-h-0 p-2;
-  }
-</style>

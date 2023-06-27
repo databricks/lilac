@@ -25,7 +25,7 @@
 <div class="flex h-full gap-x-4">
   <div class="flex w-1/2 flex-col gap-y-4">
     <span class="flex items-center gap-x-2 text-lg"
-      ><ThumbsUpFilled /> Positive Examples ({positiveExamples.length} examples)</span
+      ><ThumbsUpFilled /> Positive ({positiveExamples.length} examples)</span
     >
     <ConceptExampleList
       data={positiveExamples}
@@ -35,7 +35,7 @@
   </div>
   <div class="flex w-1/2 flex-col gap-y-4">
     <span class="flex items-center gap-x-2 text-lg"
-      ><ThumbsDownFilled />Negative Examples ({negativeExamples.length} examples)</span
+      ><ThumbsDownFilled />Negative ({negativeExamples.length} examples)</span
     >
     <ConceptExampleList
       data={negativeExamples}

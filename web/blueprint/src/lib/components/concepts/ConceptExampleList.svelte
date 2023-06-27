@@ -14,7 +14,7 @@
 <div class="">
   <TextInput
     bind:value={newSampleText}
-    labelText="Add Sample"
+    labelText="Add example"
     on:keydown={ev => {
       if (ev.key === 'Enter') {
         dispatch('add', newSampleText);

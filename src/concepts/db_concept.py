@@ -1,8 +1,10 @@
 """The concept database."""
 
 import abc
+import glob
 import os
 import pickle
+import shutil
 
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
@@ -14,7 +16,7 @@ from typing_extensions import override
 from ..config import data_path
 from ..schema import PATH_WILDCARD, SignalInputType, normalize_path
 from ..signals.signal import get_signal_cls
-from ..utils import delete_file, file_exists, get_dataset_output_dir, open_file
+from ..utils import DATASETS_DIR_NAME, delete_file, file_exists, get_dataset_output_dir, open_file
 from .concept import (
   DRAFT_MAIN,
   Concept,
@@ -25,6 +27,7 @@ from .concept import (
   ExampleIn,
 )
 
+DATASET_CONCEPTS_DIR = '.concepts'
 CONCEPT_JSON_FILENAME = 'concept.json'
 
 
@@ -141,6 +144,11 @@ class ConceptModelDB(abc.ABC):
     """Remove the model of a concept."""
     pass
 
+  @abc.abstractmethod
+  def remove_all(self, namespace: str, concept_name: str) -> None:
+    """Remove all the models associated with a concept."""
+    pass
+
 
 class DiskConceptModelDB(ConceptModelDB):
   """Interface for the concept model database."""
@@ -203,6 +211,19 @@ class DiskConceptModelDB(ConceptModelDB):
 
     delete_file(concept_model_path)
 
+  @override
+  def remove_all(self, namespace: str, concept_name: str) -> None:
+    datasets_path = os.path.join(data_path(), DATASETS_DIR_NAME)
+    # Skip if 'datasets' doesn't exist.
+    if not os.path.isdir(datasets_path):
+      return
+
+    dirs = glob.iglob(
+      os.path.join(datasets_path, '**', DATASET_CONCEPTS_DIR, namespace, concept_name),
+      recursive=True)
+    for dir in dirs:
+      shutil.rmtree(dir, ignore_errors=True)
+
 
 def _concept_output_dir(namespace: str, name: str) -> str:
   """Return the output directory for a given concept."""
@@ -224,7 +245,8 @@ def _concept_model_path(namespace: str,
   path_tuple = normalize_path(column_info.path)
   path_without_wildcards = (p for p in path_tuple if p != PATH_WILDCARD)
   path_dir = os.path.join(dataset_dir, *path_without_wildcards)
-  return os.path.join(path_dir, '.concepts', namespace, concept_name, f'{embedding_name}.pkl')
+  return os.path.join(path_dir, DATASET_CONCEPTS_DIR, namespace, concept_name,
+                      f'{embedding_name}.pkl')
 
 
 class DiskConceptDB(ConceptDB):

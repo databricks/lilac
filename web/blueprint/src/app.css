@@ -36,13 +36,16 @@ body {
 
 /** Buttons */
 .bx--btn {
-  @apply rounded text-white;
+  @apply min-h-0 rounded p-2 text-white;
 }
 .bx--btn.bx--btn--secondary {
   @apply text-white;
 }
 .bx--btn.bx--btn--ghost {
   @apply border-transparent bg-transparent text-black;
+}
+.bx--btn--ghost:hover {
+  @apply bg-gray-200;
 }
 .bx--btn.bx--btn--primary.bx--btn--disabled {
   @apply border-neutral-300 bg-slate-100 text-neutral-500;
