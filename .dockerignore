@@ -1,0 +1,10 @@
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+# Ignore unit tests.
+**/*_test.py
+
+# Mac OS.
+.DS_Store

@@ -1,16 +1,14 @@
 #!/bin/bash
+set -e
 
-export NODE_ENV=production
+# Runs the production server locally, outside a docker image.
+
+./build_server_prod.sh
 
 # Run the node server.
 poetry run uvicorn src.server:app --port 5432 --host 0.0.0.0 &
 pid[0]=$!
 
-# Build the svelte static files and start vite in preview mode.
-npm run build --workspace web/blueprint
-npm run preview --workspace web/blueprint -- --open &
-pid[1]=$!
-
 # When control+c is pressed, kill all process ids.
-trap "kill ${pid[0]} ${pid[1]};  exit 1" INT
+trap "kill ${pid[0]};  exit 1" INT
 wait

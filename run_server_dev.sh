@@ -2,6 +2,8 @@
 
 export NODE_ENV=development
 
+mkdir -p dist/
+
 # Make the web client upon bootup to make sure TypeScript files are in sync.
 poetry run python -m scripts.make_fastapi_client
 

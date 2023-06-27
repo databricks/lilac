@@ -30,6 +30,20 @@ npm run format --workspace web/lib
 npm run format --workspace web/blueprint
 ```
 
+#### Deployment
+
+To build the docker image:
+
+```sh
+./build_docker.sh
+```
+
+To run the docker image locally:
+
+```sh
+docker run -p 5432:5432 lilac_blueprint
+```
+
 ### Configuration
 
 To use various API's, API keys need to be provided. Create a file named `.env.local` in the root, and add variables that are listed in `.env` with your own values.
