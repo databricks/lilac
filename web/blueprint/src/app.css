@@ -45,7 +45,7 @@ body {
   @apply border-transparent bg-transparent text-black;
 }
 .bx--btn.bx--btn--primary.bx--btn--disabled {
-  @apply border-neutral-300 bg-slate-100 text-neutral-500;
+  @apply border-neutral-300 bg-slate-100;
 }
 
 /** Modals */

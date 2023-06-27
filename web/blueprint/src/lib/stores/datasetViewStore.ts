@@ -220,6 +220,13 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       update(state => {
         state.queryOptions.filters = [...(state.queryOptions.filters || []), filter];
         return state;
+      }),
+    deleteSignal: (signalPath: Path) =>
+      update(state => {
+        state.queryOptions.filters = state.queryOptions.filters?.filter(
+          f => !pathIncludes(signalPath, f.path)
+        );
+        return state;
       })
   };
 
