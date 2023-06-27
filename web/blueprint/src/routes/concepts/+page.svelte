@@ -5,8 +5,8 @@
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
   import {urlHash} from '$lib/stores/urlHashStore';
   import {conceptLink} from '$lib/utils';
-  import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
-  import {Close, InProgress} from 'carbon-icons-svelte';
+  import {Modal, SkeletonText} from 'carbon-components-svelte';
+  import {InProgress, TrashCan} from 'carbon-icons-svelte';
   import AddAlt from 'carbon-icons-svelte/lib/AddAlt.svelte';
 
   let namespace: string | undefined;
@@ -51,14 +51,13 @@
           >
             <span class="opacity-50">{c.namespace} / </span><span> {c.name}</span>
           </a>
-          <Button
-            kind="ghost"
-            icon={Close}
-            iconDescription="Remove concept"
-            tooltipPosition="right"
-            tooltipAlignment="end"
+          <button
+            title="Remove concept"
+            class="p-3 opacity-50 hover:text-red-400 hover:opacity-100"
             on:click={() => (deleteConceptInfo = {namespace: c.namespace, name: c.name})}
-          />
+          >
+            <TrashCan size={16} />
+          </button>
         </div>
       {/each}
 

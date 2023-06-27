@@ -26,7 +26,7 @@
 <div class="flex h-full w-full flex-col overflow-y-auto overflow-x-clip border border-gray-200">
   {#each [...data].reverse() as row}
     <div class="flex w-full justify-between gap-x-2 border-b border-gray-200 p-2 hover:bg-gray-50">
-      <span class="shrink break-all">
+      <span class="shrink">
         {row.text}
       </span>
       <button
