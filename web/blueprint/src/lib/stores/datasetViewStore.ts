@@ -28,7 +28,7 @@ export const SEARCH_TABS: {[key: number]: 'Concepts' | 'Keyword'} = {
   1: 'Keyword'
 };
 
-export interface IDatasetViewStore {
+export interface DatasetViewState {
   namespace: string;
   datasetName: string;
 
@@ -47,14 +47,14 @@ const LS_KEY = 'datasetViewStore';
 
 export type DatasetViewStore = ReturnType<typeof createDatasetViewStore>;
 
-export const datasetStores: {[key: string]: DatasetViewStore} = {};
+export const datasetViewStores: {[key: string]: DatasetViewStore} = {};
 
 export function datasetKey(namespace: string, datasetName: string) {
   return `${namespace}/${datasetName}`;
 }
 
 export const createDatasetViewStore = (namespace: string, datasetName: string) => {
-  const initialState: IDatasetViewStore = {
+  const initialState: DatasetViewState = {
     namespace,
     datasetName,
     searchTab: 'Concepts',
@@ -69,7 +69,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     }
   };
 
-  const {subscribe, set, update} = persisted<IDatasetViewStore>(
+  const {subscribe, set, update} = persisted<DatasetViewState>(
     `${LS_KEY}/${datasetKey(namespace, datasetName)}`,
     // Deep copy the initial state so we don't have to worry about mucking the initial state.
     JSON.parse(JSON.stringify(initialState)),
@@ -234,7 +234,11 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         );
         return state;
       }),
-    deleteConcept(namespace: string, name: string) {
+    deleteConcept(
+      namespace: string,
+      name: string,
+      selectRowsSchema?: LilacSelectRowsSchema | null
+    ) {
       function matchesConcept(query: KeywordQuery | SemanticQuery | ConceptQuery) {
         return (
           query.type === 'concept' &&
@@ -243,15 +247,29 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
         );
       }
       update(state => {
-        state.queryOptions.searches = state.queryOptions.searches?.filter(
-          s => !matchesConcept(s.query)
+        const resultPathsToRemove: string[][] = [];
+        state.queryOptions.searches = state.queryOptions.searches?.filter(s => {
+          const keep = !matchesConcept(s.query);
+          if (!keep && selectRowsSchema != null && selectRowsSchema.search_results != null) {
+            const resultPaths = selectRowsSchema.search_results
+              .filter(r => pathIsEqual(r.search_path, s.path))
+              .map(r => r.result_path);
+            resultPathsToRemove.push(...resultPaths);
+          }
+          return keep;
+        });
+        state.queryOptions.sort_by = state.queryOptions.sort_by?.filter(
+          p => !resultPathsToRemove.some(r => pathIsEqual(r, p))
+        );
+        state.queryOptions.filters = state.queryOptions.filters?.filter(
+          f => !resultPathsToRemove.some(r => pathIsEqual(r, f.path))
         );
         return state;
       });
     }
   };
 
-  datasetStores[datasetKey(namespace, datasetName)] = store;
+  datasetViewStores[datasetKey(namespace, datasetName)] = store;
   return store;
 };
 
@@ -268,7 +286,7 @@ export function getDatasetViewContext() {
  * Get the options to pass to the selectRows API call
  * based on the current state of the dataset view store
  */
-export function getSelectRowsOptions(datasetViewStore: IDatasetViewStore): SelectRowsOptions {
+export function getSelectRowsOptions(datasetViewStore: DatasetViewState): SelectRowsOptions {
   const columns = ['*', ...(datasetViewStore.queryOptions.columns ?? [])];
 
   return {
@@ -278,7 +296,7 @@ export function getSelectRowsOptions(datasetViewStore: IDatasetViewStore): Selec
 }
 
 export function getSelectRowsSchemaOptions(
-  datasetViewStore: IDatasetViewStore
+  datasetViewStore: DatasetViewState
 ): SelectRowsSchemaOptions {
   const options = getSelectRowsOptions(datasetViewStore);
   return {

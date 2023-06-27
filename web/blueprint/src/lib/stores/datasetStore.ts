@@ -10,10 +10,12 @@ import type {
 import type {QueryObserverResult} from '@tanstack/svelte-query';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable, type Readable, type Writable} from 'svelte/store';
+import {datasetKey} from './datasetViewStore';
 
 const DATASET_INFO_CONTEXT = 'DATASET_INFO_CONTEXT';
+export const datasetStores: {[key: string]: DatasetStore} = {};
 
-export interface DatasetStore {
+export interface DatasetState {
   schema: LilacSchema | null;
   stats: StatsInfo[] | null;
   selectRowsSchema: QueryObserverResult<LilacSelectRowsSchema, ApiError> | null;
@@ -24,15 +26,17 @@ export interface StatsInfo {
   stats: QueryObserverResult<StatsResult, unknown>;
 }
 
-export const createDatasetStore = () => {
-  const initialState: DatasetStore = {
+export type DatasetStore = ReturnType<typeof createDatasetStore>;
+
+export const createDatasetStore = (namespace: string, datasetName: string) => {
+  const initialState: DatasetState = {
     schema: null,
     stats: null,
     selectRowsSchema: null,
     visibleFields: null
   };
 
-  const {subscribe, set, update} = writable<DatasetStore>(initialState);
+  const {subscribe, set, update} = writable<DatasetState>(initialState);
 
   const store = {
     subscribe,
@@ -65,14 +69,15 @@ export const createDatasetStore = () => {
         return state;
       })
   };
+  datasetStores[datasetKey(namespace, datasetName)] = store;
   return store;
 };
 
-export function setDatasetContext(stats: Writable<DatasetStore>) {
-  setContext(DATASET_INFO_CONTEXT, stats);
+export function setDatasetContext(store: Writable<DatasetState>) {
+  setContext(DATASET_INFO_CONTEXT, store);
 }
 
 export function getDatasetContext() {
   if (!hasContext(DATASET_INFO_CONTEXT)) throw new Error('DatasetViewContext not found');
-  return getContext<Readable<DatasetStore>>(DATASET_INFO_CONTEXT);
+  return getContext<Readable<DatasetState>>(DATASET_INFO_CONTEXT);
 }

@@ -43,7 +43,7 @@
     getSelectRowsSchemaOptions($datasetViewStore)
   );
 
-  const datasetStore = createDatasetStore();
+  const datasetStore = createDatasetStore(namespace, datasetName);
   setDatasetContext(datasetStore);
 
   // Compute the stats for all string fields and write them to the dataset store. This allows us to

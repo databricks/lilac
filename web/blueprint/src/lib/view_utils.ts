@@ -20,8 +20,8 @@ import {
   type Search,
   type SortResult
 } from '$lilac';
-import type {DatasetStore, StatsInfo} from './stores/datasetStore';
-import type {IDatasetViewStore} from './stores/datasetViewStore';
+import type {DatasetState, StatsInfo} from './stores/datasetStore';
+import type {DatasetViewState} from './stores/datasetViewStore';
 
 const MEDIA_TEXT_LENGTH_THRESHOLD = 100;
 
@@ -118,7 +118,7 @@ export function isPathVisible(
   return true;
 }
 
-export function getSearchPath(store: IDatasetViewStore, datasetStore: DatasetStore): Path | null {
+export function getSearchPath(store: DatasetViewState, datasetStore: DatasetState): Path | null {
   // If the user explicitly chose a search path, use it.
   if (store.searchPath != null && store.selectedColumns[store.searchPath] != false)
     return deserializePath(store.searchPath);
@@ -128,8 +128,8 @@ export function getSearchPath(store: IDatasetViewStore, datasetStore: DatasetSto
 }
 
 export function getSearchEmbedding(
-  store: IDatasetViewStore,
-  datasetStore: DatasetStore,
+  store: DatasetViewState,
+  datasetStore: DatasetState,
   searchPath: Path | null,
   embeddings: string[]
 ): string | null {
@@ -157,7 +157,7 @@ export function getSearchEmbedding(
 }
 
 /** Get the computed embeddings for a path. */
-export function getComputedEmbeddings(datasetStore: DatasetStore, path: Path | null): string[] {
+export function getComputedEmbeddings(datasetStore: DatasetState, path: Path | null): string[] {
   if (datasetStore.schema == null || path == null) return [];
 
   const existingEmbeddings: Set<string> = new Set();
@@ -181,12 +181,12 @@ export function isPreviewSignal(
 }
 
 /** Gets the search type for a column, if defined. The path is the *input* path to the search. */
-export function getSearches(store: IDatasetViewStore, path?: Path | null): Search[] {
+export function getSearches(store: DatasetViewState, path?: Path | null): Search[] {
   if (path == null) return store.queryOptions.searches || [];
   return (store.queryOptions.searches || []).filter(s => pathIsEqual(s.path, path));
 }
 
-function getDefaultSearchPath(datasetStore: DatasetStore): Path | null {
+function getDefaultSearchPath(datasetStore: DatasetState): Path | null {
   if (datasetStore.stats == null || datasetStore.stats.length === 0) {
     return null;
   }
@@ -203,7 +203,7 @@ function getDefaultSearchPath(datasetStore: DatasetStore): Path | null {
   return null;
 }
 
-export function getSort(datasetStore: DatasetStore): SortResult | null {
+export function getSort(datasetStore: DatasetState): SortResult | null {
   // NOTE: We currently only support sorting by a single column from the UI.
   return (datasetStore.selectRowsSchema?.data?.sorts || [])[0] || null;
 }

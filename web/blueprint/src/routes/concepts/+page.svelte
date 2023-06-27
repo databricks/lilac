@@ -3,12 +3,14 @@
   import Commands, {Command, triggerCommand} from '$lib/components/commands/Commands.svelte';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
-  import {datasetStores} from '$lib/stores/datasetViewStore';
+  import {datasetStores} from '$lib/stores/datasetStore';
+  import {datasetViewStores} from '$lib/stores/datasetViewStore';
   import {urlHash} from '$lib/stores/urlHashStore';
   import {conceptLink} from '$lib/utils';
   import {Modal, SkeletonText} from 'carbon-components-svelte';
   import {InProgress, TrashCan} from 'carbon-icons-svelte';
   import AddAlt from 'carbon-icons-svelte/lib/AddAlt.svelte';
+  import {get} from 'svelte/store';
 
   let namespace: string | undefined;
   let conceptName: string | undefined;
@@ -32,8 +34,9 @@
     const {namespace, name} = deleteConceptInfo;
     $deleteConcept.mutate([{namespace, name}], {
       onSuccess: () => {
-        for (const store of Object.values(datasetStores)) {
-          store.deleteConcept(namespace, name);
+        for (const [datasetKey, store] of Object.entries(datasetViewStores)) {
+          const selectRowsSchema = get(datasetStores[datasetKey]).selectRowsSchema?.data;
+          store.deleteConcept(namespace, name, selectRowsSchema);
         }
         deleteConceptInfo = null;
       }
