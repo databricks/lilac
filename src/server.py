@@ -50,8 +50,6 @@ v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
 app.include_router(v1_router, prefix='/api/v1')
 
 # Serve static files in production mode.
-# NOTE: We use check_dir=False because the server can start before files exist.
-print('dist path= ', DIST_PATH)
 app.mount('/', StaticFiles(directory=os.path.join(DIST_PATH), html=True))
 
 
