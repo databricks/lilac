@@ -60,20 +60,12 @@ def edit_concept(namespace: str, concept_name: str, change: ConceptUpdate) -> Co
   return DISK_CONCEPT_DB.edit(namespace, concept_name, change)
 
 
-class DeleteConceptOptions(BaseModel):
-  """Options for removing a concept."""
-  # Namespace of the concept.
-  namespace: str
-  # Name of the concept.
-  name: str
-
-
-@router.post('/delete')
-def delete_concept(options: DeleteConceptOptions) -> None:
+@router.delete('/{namespace}/{concept_name}')
+def delete_concept(namespace: str, concept_name: str) -> None:
   """Deletes the concept from the database."""
-  DISK_CONCEPT_DB.remove(options.namespace, options.name)
+  DISK_CONCEPT_DB.remove(namespace, concept_name)
   # Delete concept models from all datasets that are using this concept.
-  DISK_CONCEPT_MODEL_DB.remove_all(options.namespace, options.name)
+  DISK_CONCEPT_MODEL_DB.remove_all(namespace, concept_name)
 
 
 class MergeConceptDraftOptions(BaseModel):

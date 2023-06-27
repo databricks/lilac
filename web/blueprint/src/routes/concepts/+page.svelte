@@ -32,7 +32,7 @@
       return;
     }
     const {namespace, name} = deleteConceptInfo;
-    $deleteConcept.mutate([{namespace, name}], {
+    $deleteConcept.mutate([namespace, name], {
       onSuccess: () => {
         for (const [datasetKey, store] of Object.entries(datasetViewStores)) {
           const selectRowsSchema = get(datasetStores[datasetKey]).selectRowsSchema?.data;
