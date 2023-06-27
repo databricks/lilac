@@ -204,12 +204,16 @@
             : ($datasetViewStore.queryOptions.sort_order = 'ASC')}
         on:remove={() => datasetViewStore.removeSortBy(path)}
       >
-        Sorted
-        {#if sortOrder == 'ASC'}
-          <SortAscending />
-        {:else}
-          <SortDescending />
-        {/if}
+        <div class="flex flex-row">
+          <div class="mr-1">Sorted</div>
+          <span>
+            {#if sortOrder == 'ASC'}
+              <SortAscending />
+            {:else}
+              <SortDescending />
+            {/if}</span
+          >
+        </div>
       </RemovableTag>
     {/if}
     {#if isFiltered}

@@ -357,8 +357,8 @@
       </Select>
     </div>
   </div>
-  <div class="ml-2 mt-4 flex flex-row rounded">
-    <div class="ml-1 w-8">
+  <div class="sort-container ml-2 mt-4 flex flex-row rounded">
+    <div class="ml-1 mt-6 w-8">
       {#if selectedSortBy != null}
         <Button
           kind="ghost"
@@ -413,7 +413,7 @@
   :global(.bx--form__helper-text) {
     padding: 0 0 0 1rem;
   }
-  :global(.compute-embedding .bx--btn) {
+  :global(.compute-embedding .bx--btn, .sort-container .bx--btn) {
     @apply h-12;
   }
   :global(.compute-embedding-indexing .bx--btn.bx--btn--disabled) {
