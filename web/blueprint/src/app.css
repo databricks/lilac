@@ -36,7 +36,7 @@ body {
 
 /** Buttons */
 .bx--btn {
-  @apply min-h-0 rounded p-2 text-white;
+  @apply rounded p-2 text-white;
 }
 .bx--btn.bx--btn--secondary {
   @apply text-white;

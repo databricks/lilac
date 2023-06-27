@@ -73,17 +73,19 @@
       <TextInput labelText="namespace" bind:value={namespace} />
       <TextInput labelText="name" bind:value={name} required />
     </div>
-    <div class="my-4 flex items-center gap-x-2">
+    <div class="my-4 flex gap-x-2">
       <TextInput
         labelText="Concept description"
         helperText="This will be used by an LLM to generate example sentences."
         placeholder="Enter the concept description..."
         bind:value={conceptDescription}
       />
-      <Button on:click={generateExamples} disabled={!conceptDescription || conceptDescLoading}>
-        Generate
-        <span class="ml-2" class:invisible={!conceptDescLoading}><InlineLoading /></span>
-      </Button>
+      <div class="pt-5">
+        <Button on:click={generateExamples} disabled={!conceptDescription || conceptDescLoading}>
+          Generate
+          <span class="ml-2" class:invisible={!conceptDescLoading}><InlineLoading /></span>
+        </Button>
+      </div>
     </div>
     <div class="mb-2 mt-8">Add positive examples</div>
     <div>
