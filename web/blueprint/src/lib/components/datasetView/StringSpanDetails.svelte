@@ -100,7 +100,7 @@
     {#each computedEmbeddings as computedEmbedding (computedEmbedding)}
       <Button
         kind="ghost"
-        class="w-full "
+        class="w-full"
         size="small"
         on:click={() => findSimilar(computedEmbedding)}
         >Find similar <EmbeddingBadge class="hover:cursor-pointer" embedding={computedEmbedding} />
@@ -111,6 +111,6 @@
 
 <style lang="postcss">
   :global(.more-button .bx--btn) {
-    @apply h-2 w-48;
+    @apply h-6 w-48;
   }
 </style>

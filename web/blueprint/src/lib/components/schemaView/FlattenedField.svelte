@@ -191,7 +191,7 @@
         <span class="font-mono">{'{}'}</span>
       {/if}
     </div>
-    <div class="ml-2 grow truncate whitespace-nowrap text-gray-900">
+    <div class="ml-2 grow truncate whitespace-nowrap leading-6 text-gray-900">
       {fieldName}
     </div>
     {#if isSortedBy}
@@ -204,12 +204,16 @@
             : ($datasetViewStore.queryOptions.sort_order = 'ASC')}
         on:remove={() => datasetViewStore.removeSortBy(path)}
       >
-        Sorted
-        {#if sortOrder == 'ASC'}
-          <SortAscending />
-        {:else}
-          <SortDescending />
-        {/if}
+        <div class="flex flex-row">
+          <div class="mr-1">Sorted</div>
+          <span>
+            {#if sortOrder == 'ASC'}
+              <SortAscending />
+            {:else}
+              <SortDescending />
+            {/if}</span
+          >
+        </div>
       </RemovableTag>
     {/if}
     {#if isFiltered}
@@ -263,7 +267,7 @@
       />
     {/if}
     {#if isSortableField(field) && !isPreview}
-      <div class="flex">
+      <div class="stats-button flex">
         <Button
           isSelected={expandedDetails}
           kind="ghost"

@@ -255,7 +255,7 @@
 </script>
 
 <div class="border-1 flex flex-row items-start px-4 py-2">
-  <div class="mr-1 mt-10">
+  <div class="compute-embedding mr-1 mt-10" class:compute-embedding-indexing={isIndexing}>
     <Button
       disabled={searchButtonDisabled || isIndexing || selectedTab != 'Concepts'}
       iconDescription="Compute embedding index. This may be expensive."
@@ -357,8 +357,8 @@
       </Select>
     </div>
   </div>
-  <div class="ml-2 mt-4 flex flex-row rounded">
-    <div class="ml-1 w-8">
+  <div class="sort-container ml-2 mt-4 flex flex-row rounded">
+    <div class="ml-1 mt-6 w-8">
       {#if selectedSortBy != null}
         <Button
           kind="ghost"
@@ -413,10 +413,11 @@
   :global(.bx--form__helper-text) {
     padding: 0 0 0 1rem;
   }
-  :global(.bx--btn--sm) {
-    height: 2.5rem;
-    @apply w-24;
-    @apply px-3;
+  :global(.compute-embedding .bx--btn, .sort-container .bx--btn) {
+    @apply h-12;
+  }
+  :global(.compute-embedding-indexing .bx--btn.bx--btn--disabled) {
+    @apply text-transparent;
   }
   :global(.embedding-select .bx--select-input) {
     @apply h-12;

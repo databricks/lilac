@@ -12,7 +12,7 @@
     type LilacField,
     type LilacSchema
   } from '$lilac';
-  import {Checkbox, OverflowMenu} from 'carbon-components-svelte';
+  import {Checkbox} from 'carbon-components-svelte';
   import CaretDown from 'carbon-icons-svelte/lib/CaretDown.svelte';
   import SortAscending from 'carbon-icons-svelte/lib/SortAscending.svelte';
   import SortDescending from 'carbon-icons-svelte/lib/SortDescending.svelte';
@@ -136,9 +136,7 @@
       <div class="w-24 px-2 text-right">{field.dtype}{isRepeatedField ? '[]' : ''}</div>
     {/if}
     <div>
-      <OverflowMenu light flipped>
-        <SchemaFieldMenu {field} {schema} />
-      </OverflowMenu>
+      <SchemaFieldMenu {field} {schema} />
     </div>
   </div>
 

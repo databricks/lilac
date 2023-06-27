@@ -31,13 +31,18 @@
 
   $: isSignal = isSignalField(field, schema);
   $: isSignalRoot = isSignalRootField(field);
+
   $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, field.path);
   $: hasMenu =
     (isSortableField(field) || isFilterableField(field) || !isSignal || isSignalRoot) && !isPreview;
 
   function deleteSignalClicked() {
     $deleteSignal.mutate([namespace, datasetName, {signal_path: field.path}], {
-      onSuccess: () => (deleteSignalOpen = false)
+      onSuccess: () => {
+        deleteSignalOpen = false;
+        // Clear any state that referred to the signal.
+        datasetViewStore.deleteSignal(field.path);
+      }
     });
   }
 </script>
