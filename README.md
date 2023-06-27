@@ -30,6 +30,36 @@ npm run format --workspace web/lib
 npm run format --workspace web/blueprint
 ```
 
+##### Huggingface
+
+Huggingface spaces are used for PRs and for demos.
+
+Set up HuggingFace CLI to authenticate with HuggingFace:
+
+```sh
+poetry run huggingface-cli login
+```
+
+Add the the huggingface space as a remote:
+
+```sh
+git remote add space https://huggingface.co/spaces/nsthorat-lilac/lilac_demo
+```
+
+#### Deployment
+
+To build the docker image:
+
+```sh
+./build_docker.sh
+```
+
+To run the docker image locally:
+
+```sh
+docker run -p 5432:5432 lilac_blueprint
+```
+
 ### Configuration
 
 To use various API's, API keys need to be provided. Create a file named `.env.local` in the root, and add variables that are listed in `.env` with your own values.
