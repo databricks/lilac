@@ -6,7 +6,6 @@ import type { ConceptInfo } from '../models/ConceptInfo';
 import type { ConceptModelResponse } from '../models/ConceptModelResponse';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
 import type { CreateConceptOptions } from '../models/CreateConceptOptions';
-import type { DeleteConceptOptions } from '../models/DeleteConceptOptions';
 import type { MergeConceptDraftOptions } from '../models/MergeConceptDraftOptions';
 import type { ScoreBody } from '../models/ScoreBody';
 import type { ScoreResponse } from '../models/ScoreResponse';
@@ -90,6 +89,31 @@ export class ConceptsService {
     }
 
     /**
+     * Delete Concept
+     * Deletes the concept from the database.
+     * @param namespace
+     * @param conceptName
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deleteConcept(
+        namespace: string,
+        conceptName: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/concepts/{namespace}/{concept_name}',
+            path: {
+                'namespace': namespace,
+                'concept_name': conceptName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Create Concept
      * Edit a concept in the database.
      * @param requestBody
@@ -102,27 +126,6 @@ export class ConceptsService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/concepts/create',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Delete Concept
-     * Deletes the concept from the database.
-     * @param requestBody
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static deleteConcept(
-        requestBody: DeleteConceptOptions,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/concepts/delete',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

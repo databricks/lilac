@@ -347,12 +347,12 @@ class DiskConceptDB(ConceptDB):
 
   @override
   def remove(self, namespace: str, name: str) -> None:
-    concept_json_path = _concept_json_path(namespace, name)
+    concept_dir = _concept_output_dir(namespace, name)
 
-    if not file_exists(concept_json_path):
+    if not file_exists(concept_dir):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" does not exist.')
 
-    delete_file(concept_json_path)
+    shutil.rmtree(concept_dir, ignore_errors=True)
 
   @override
   def merge_draft(self, namespace: str, name: str, draft: DraftId) -> Concept:

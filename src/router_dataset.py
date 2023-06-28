@@ -23,7 +23,7 @@ from .data.dataset import (
   UnaryOp,
 )
 from .data.dataset_duckdb import DatasetDuckDB
-from .db_manager import get_dataset, set_default_dataset_cls
+from .db_manager import get_dataset, remove_dataset_from_cache, set_default_dataset_cls
 from .router_utils import RouteErrorHandler
 from .schema import Bin, Path, normalize_path
 from .signals.concept_scorer import ConceptScoreSignal
@@ -108,6 +108,14 @@ class ComputeSignalOptions(BaseModel):
     return resolve_signal(signal)
 
 
+@router.delete('/{namespace}/{dataset_name}')
+def delete_dataset(namespace: str, dataset_name: str) -> None:
+  """Delete the dataset."""
+  dataset = get_dataset(namespace, dataset_name)
+  dataset.delete()
+  remove_dataset_from_cache(namespace, dataset_name)
+
+
 class ComputeSignalResponse(BaseModel):
   """Response of the compute signal column endpoint."""
   task_id: TaskId
@@ -147,7 +155,7 @@ class DeleteSignalResponse(BaseModel):
   completed: bool
 
 
-@router.post('/{namespace}/{dataset_name}/delete_signal')
+@router.delete('/{namespace}/{dataset_name}/delete_signal')
 def delete_signal(namespace: str, dataset_name: str,
                   options: DeleteSignalOptions) -> DeleteSignalResponse:
   """Delete a signal from a dataset."""

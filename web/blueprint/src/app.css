@@ -36,10 +36,23 @@ body {
 
 /** Buttons */
 .bx--btn {
-  @apply rounded p-2 text-white;
+  @apply rounded p-2;
+}
+.bx--btn.bx--btn--primary {
+  @apply text-white;
+  background-color: #4550e8;
+}
+.bx--btn.bx--btn--primary:hover {
+  background-color: #1741c1;
 }
 .bx--btn.bx--btn--secondary {
   @apply text-white;
+}
+.bx--btn--tertiary {
+  @apply border-gray-300 text-gray-600;
+}
+.bx--btn--tertiary:hover {
+  @apply bg-gray-600 text-white;
 }
 .bx--btn--ghost {
   @apply border-transparent bg-transparent text-black;

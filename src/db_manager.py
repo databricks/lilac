@@ -26,6 +26,14 @@ def get_dataset(namespace: str, dataset_name: str) -> Dataset:
     return _CACHED_DATASETS[cache_key]
 
 
+def remove_dataset_from_cache(namespace: str, dataset_name: str) -> None:
+  """Remove the dataset from the db manager cache."""
+  cache_key = f'{namespace}/{dataset_name}'
+  with _db_lock:
+    if cache_key in _CACHED_DATASETS:
+      del _CACHED_DATASETS[cache_key]
+
+
 # TODO(nsthorat): Make this a registry once we have multiple dataset implementations. This breaks a
 # circular dependency.
 def set_default_dataset_cls(dataset_cls: Type[Dataset]) -> None:

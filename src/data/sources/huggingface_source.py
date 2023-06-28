@@ -3,12 +3,10 @@ import multiprocessing
 from typing import Iterable, Optional, Union
 
 import numpy as np
+from datasets import ClassLabel, DatasetDict, Sequence, Value, load_dataset, load_from_disk
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from typing_extensions import override
-
-# mypy: disable-error-code="attr-defined"
-from datasets import ClassLabel, DatasetDict, Sequence, Value, load_dataset, load_from_disk
 
 from ...schema import DataType, Field, Item, arrow_dtype_to_dtype
 from .source import Source, SourceSchema

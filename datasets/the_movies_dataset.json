@@ -1,6 +1,0 @@
-{
-  "source_name": "csv",
-  "filepaths": [
-    "gs://lilac-data-us-east1/datasets/csv_datasets/the_movies_dataset/the_movies_dataset.csv"
-  ]
-}

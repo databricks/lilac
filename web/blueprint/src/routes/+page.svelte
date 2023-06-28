@@ -1,45 +1,29 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
-  import {queryDatasets} from '$lib/queries/datasetQueries';
+  import {deleteDatasetMutation, queryDatasets} from '$lib/queries/datasetQueries';
   import {datasetLink} from '$lib/utils';
-  import {Button, InlineNotification, SkeletonText, TreeView} from 'carbon-components-svelte';
-  import type {TreeNodeId} from 'carbon-components-svelte/types/TreeView/TreeView.svelte';
+  import {Button, InlineNotification, Modal, SkeletonText} from 'carbon-components-svelte';
+  import {InProgress, TrashCan} from 'carbon-icons-svelte';
 
   const datasets = queryDatasets();
+  const deleteDataset = deleteDatasetMutation();
 
-  // Unique namespaces
-  $: namespaces = $datasets.isSuccess ? [...new Set($datasets.data.map(row => row.namespace))] : [];
+  let deleteDatasetInfo: {namespace: string; name: string} | null = null;
 
-  let expandedIds: string[] = [];
-  // Expand all root nodes
-  $: {
-    if ($datasets.isSuccess && !expandedIds.length) {
-      expandedIds = namespaces;
+  function deleteDatasetClicked() {
+    if (deleteDatasetInfo == null) {
+      return;
     }
-  }
-
-  $: treeviewChildren = namespaces.map(namespace => ({
-    text: namespace,
-    id: namespace,
-    children: $datasets.isSuccess
-      ? $datasets.data
-          .filter(row => row.namespace === namespace)
-          .map(row => ({
-            id: `${row.namespace}/${row.dataset_name}`,
-            text: row.dataset_name
-          }))
-          .sort((a, b) => a.text.localeCompare(b.text))
-      : []
-  }));
-
-  function treeNodeSelected(id: TreeNodeId) {
-    const [namespace, datasetName] = (id as string).split('/');
-    goto(datasetLink(namespace, datasetName));
+    const {namespace, name} = deleteDatasetInfo;
+    $deleteDataset.mutate([namespace, name], {
+      onSuccess: () => (deleteDatasetInfo = null)
+    });
   }
 </script>
 
 <div class="flex flex-col gap-y-4 p-4">
-  <div>
+  <Button on:click={() => goto('/datasets/new')}>Add Dataset</Button>
+  <div class="flex flex-wrap gap-x-4 gap-y-4">
     {#if $datasets.isLoading}
       <SkeletonText paragraph lines={3} width={'30%'} />
     {:else if $datasets.isError}
@@ -50,23 +34,51 @@
         subtitle={$datasets.error.message}
       />
     {:else if $datasets.isSuccess}
-      <TreeView
-        labelText="Datasets"
-        children={treeviewChildren}
-        {expandedIds}
-        on:select={ev => {
-          if (ev.detail.leaf) {
-            treeNodeSelected(ev.detail.id);
-          }
-        }}
-      />
+      {#each $datasets.data as dataset}
+        <button
+          class="w-80 cursor-pointer rounded-md border border-gray-200 px-3 py-4 text-left hover:border-gray-400"
+          on:click={() => goto(datasetLink(dataset.namespace, dataset.dataset_name))}
+        >
+          <div class="truncate text-xl">{dataset.namespace} / {dataset.dataset_name}</div>
+          {#if dataset.description}
+            <div class="my-4">{dataset.description}</div>
+          {/if}
+          <div class="mt-4 flex gap-x-2">
+            <Button
+              kind="tertiary"
+              on:click={() => goto(datasetLink(dataset.namespace, dataset.dataset_name))}
+              >Open</Button
+            >
+            <button
+              title="Remove sample"
+              class="rounded border border-gray-300 p-2 hover:border-red-400 hover:text-red-400"
+              on:click|stopPropagation={() =>
+                (deleteDatasetInfo = {namespace: dataset.namespace, name: dataset.dataset_name})}
+            >
+              <TrashCan size={16} />
+            </button>
+          </div>
+        </button>
+      {/each}
     {/if}
   </div>
-  <Button on:click={() => goto('/datasets/new')}>Add Dataset</Button>
 </div>
 
-<style lang="postcss">
-  :global(.bx--tree-leaf-node) {
-    @apply cursor-pointer;
-  }
-</style>
+{#if deleteDatasetInfo}
+  <Modal
+    danger
+    open
+    modalHeading="Delete dataset"
+    primaryButtonText="Delete"
+    primaryButtonIcon={$deleteDataset.isLoading ? InProgress : undefined}
+    secondaryButtonText="Cancel"
+    on:click:button--secondary={() => (deleteDatasetInfo = null)}
+    on:close={() => (deleteDatasetInfo = null)}
+    on:submit={() => deleteDatasetClicked()}
+  >
+    <p class="!text-lg">
+      Confirm deleting <code>{deleteDatasetInfo.namespace}/{deleteDatasetInfo.name}</code> ?
+    </p>
+    <p class="mt-2">This is a permanent action and cannot be undone.</p>
+  </Modal>
+{/if}
