@@ -2,13 +2,13 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ConceptModel } from './ConceptModel';
+import type { ConceptModelInfo } from './ConceptModelInfo';
 
 /**
  * Response body for the get_concept_model endpoint.
  */
 export type ConceptModelResponse = {
-    model: ConceptModel;
+    model: ConceptModelInfo;
     model_synced: boolean;
 };
 

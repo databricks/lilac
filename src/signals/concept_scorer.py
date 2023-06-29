@@ -47,9 +47,8 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
     if not model:
       model = self._concept_model_db.create(self.namespace, self.concept_name, self.embedding,
                                             self._column_info)
-      if self._column_info:
-        model.calibrate_on_dataset(self._column_info)
-    self._concept_model_db.sync(model, self._column_info)
+
+    self._concept_model_db.sync(model)
     return model
 
   @override

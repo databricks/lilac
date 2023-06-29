@@ -4,7 +4,6 @@ import abc
 import glob
 import json
 import os
-import pickle
 import shutil
 
 # NOTE: We have to import the module for uuid so it can be mocked.
@@ -12,6 +11,7 @@ import uuid
 from pathlib import Path
 from typing import List, Optional, Union, cast
 
+import joblib
 from pydantic import BaseModel
 from pyparsing import Any
 from typing_extensions import override
@@ -129,7 +129,7 @@ class ConceptModelDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def _save(self, model: ConceptModel, column_info: Optional[ConceptColumnInfo]) -> None:
+  def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
     pass
 
@@ -140,14 +140,23 @@ class ConceptModelDB(abc.ABC):
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
     return concept.version == model.version
 
-  def sync(self, model: ConceptModel, column_info: Optional[ConceptColumnInfo]) -> bool:
+  def sync(self, model: ConceptModel) -> bool:
     """Sync the concept model. Returns true if the model was updated."""
     concept = self._concept_db.get(model.namespace, model.concept_name)
     if not concept:
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
     model_updated = model.sync(concept)
-    self._save(model, column_info)
+    self._save(model)
     return model_updated
+
+  def compute_roc_auc(self, model: ConceptModel) -> float:
+    """Compute the ROC AUC score of the concept model."""
+    if not self.in_sync(model):
+      self.sync(model)
+    concept = self._concept_db.get(model.namespace, model.concept_name)
+    if not concept:
+      raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
+    return model.compute_roc_auc(concept)
 
   @abc.abstractmethod
   def remove(self,
@@ -207,15 +216,14 @@ class DiskConceptModelDB(ConceptModelDB):
     if not file_exists(concept_model_path):
       return None
 
-    with open_file(concept_model_path, 'rb') as f:
-      return pickle.load(f)
+    return joblib.load(concept_model_path)
 
-  def _save(self, model: ConceptModel, column_info: Optional[ConceptColumnInfo]) -> None:
+  def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
     concept_model_path = _concept_model_path(model.namespace, model.concept_name,
-                                             model.embedding_name, column_info)
-    with open_file(concept_model_path, 'wb') as f:
-      pickle.dump(model, f)
+                                             model.embedding_name, model.column_info)
+    os.makedirs(os.path.dirname(concept_model_path), exist_ok=True)
+    joblib.dump(model, concept_model_path)
 
   @override
   def remove(self,

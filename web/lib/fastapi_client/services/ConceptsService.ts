@@ -8,6 +8,7 @@ import type { ConceptModelResponse } from '../models/ConceptModelResponse';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
 import type { CreateConceptOptions } from '../models/CreateConceptOptions';
 import type { MergeConceptDraftOptions } from '../models/MergeConceptDraftOptions';
+import type { ROCAUCBody } from '../models/ROCAUCBody';
 import type { ScoreBody } from '../models/ScoreBody';
 import type { ScoreResponse } from '../models/ScoreResponse';
 
@@ -216,6 +217,38 @@ export class ConceptsService {
             query: {
                 'sync_model': syncModel,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Compute Roc Auc
+     * Compute the ROC AUC score for the concept model.
+     * @param namespace
+     * @param conceptName
+     * @param embeddingName
+     * @param requestBody
+     * @returns number Successful Response
+     * @throws ApiError
+     */
+    public static computeRocAuc(
+        namespace: string,
+        conceptName: string,
+        embeddingName: string,
+        requestBody: ROCAUCBody,
+    ): CancelablePromise<number> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/concepts/{namespace}/{concept_name}/{embedding_name}/compute_roc_auc',
+            path: {
+                'namespace': namespace,
+                'concept_name': conceptName,
+                'embedding_name': embeddingName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

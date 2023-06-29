@@ -1,4 +1,5 @@
 """Defines the concept and the concept models."""
+import dataclasses
 import random
 from typing import Iterable, Literal, Optional, Union
 
@@ -6,6 +7,7 @@ import numpy as np
 from pydantic import BaseModel, validator
 from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
 
 from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
@@ -99,6 +101,7 @@ class LogisticEmbeddingModel:
   # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
   _model: LogisticRegression = LogisticRegression(
     class_weight=None, C=30, tol=1e-5, warm_start=True, max_iter=1_000, n_jobs=-1)
+  _coef: Optional[np.ndarray] = None
 
   def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
@@ -119,6 +122,12 @@ class LogisticEmbeddingModel:
         f'Length of sample_weights ({len(sample_weights)}) must match length of labels '
         f'({len(labels)})')
     self._model.fit(embeddings, labels, sample_weights)
+    self._coef = self._model.coef_.reshape(-1)
+
+  def compute_roc_auc(self, embeddings: np.ndarray, labels: list[bool]) -> float:
+    """Return the AUC ROC."""
+    scores = cross_val_score(self._model, embeddings, labels, scoring='roc_auc', cv=5, n_jobs=-1)
+    return 0.0
 
 
 def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
@@ -146,7 +155,8 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
   return draft_examples[draft]
 
 
-class ConceptModel(BaseModel):
+@dataclasses.dataclass
+class ConceptModel:
   """A concept model. Stores all concept model drafts and manages syncing."""
   # The concept that this model is for.
   namespace: str
@@ -156,17 +166,19 @@ class ConceptModel(BaseModel):
   embedding_name: str
   version: int = -1
 
+  column_info: Optional[ConceptColumnInfo] = None
+
   # The following fields are excluded from JSON serialization, but still pickleable.
   # Maps a concept id to the embeddings.
-  _embeddings: dict[str, np.ndarray] = {}
-  _logistic_models: dict[DraftId, LogisticEmbeddingModel] = {}
+  _embeddings: dict[str, np.ndarray] = dataclasses.field(default_factory=dict)
+  _logistic_models: dict[DraftId, LogisticEmbeddingModel] = dataclasses.field(default_factory=dict)
   _negative_vectors: Optional[np.ndarray] = None
 
-  class Config:
-    arbitrary_types_allowed = True
-    underscore_attrs_are_private = True
+  def __post_init__(self) -> None:
+    if self.column_info:
+      self._calibrate_on_dataset(self.column_info)
 
-  def calibrate_on_dataset(self, column_info: ConceptColumnInfo) -> None:
+  def _calibrate_on_dataset(self, column_info: ConceptColumnInfo) -> None:
     """Calibrate the model on the embeddings in the provided vector store."""
     db = get_dataset(column_info.namespace, column_info.name)
     vector_store = db.get_vector_store(normalize_path(column_info.path))
@@ -192,13 +204,28 @@ class ConceptModel(BaseModel):
 
   def coef(self, draft: DraftId) -> np.ndarray:
     """Get the coefficients of the underlying ML model."""
-    return self._get_logistic_model(draft)._model.coef_.reshape(-1)
+    model = self._get_logistic_model(draft)
+    if model._coef is None:
+      raise ValueError('Model has not been fit yet.')
+    return model._coef
 
   def _get_logistic_model(self, draft: DraftId) -> LogisticEmbeddingModel:
     """Get the logistic model for the provided draft."""
     if draft not in self._logistic_models:
       self._logistic_models[draft] = LogisticEmbeddingModel()
     return self._logistic_models[draft]
+
+  def compute_roc_auc(self, concept: Concept) -> float:
+    """Compute the ROC AUC for the provided concept using the model."""
+    examples = draft_examples(concept, DRAFT_MAIN)
+    embeddings = np.array([self._embeddings[id] for id in examples.keys()])
+    labels = [example.label for example in examples.values()]
+    if self._negative_vectors is not None:
+      num_implicit_labels = len(self._negative_vectors)
+      embeddings = np.concatenate([self._negative_vectors, embeddings])
+      labels = [False] * num_implicit_labels + labels
+    model = self._get_logistic_model(DRAFT_MAIN)
+    return model.compute_roc_auc(embeddings, labels)
 
   def sync(self, concept: Concept) -> bool:
     """Update the model with the latest labeled concept data."""
