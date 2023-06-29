@@ -5,11 +5,9 @@
   import {
     L,
     formatValue,
-    getField,
     isSignalRootField,
     listValueNodes,
     serializePath,
-    valueAtPath,
     type DataTypeCasted,
     type LilacField,
     type LilacValueNode,
@@ -37,64 +35,57 @@
   }
   function makeRows(row: LilacValueNode): MetadataRow[] {
     const valueNodes = listValueNodes(row).filter(item => isItemVisible(item, visibleFields));
-    return valueNodes.map(valueNode => {
-      const field = L.field(valueNode)!;
-      const path = L.path(valueNode)!;
-      let value = L.value(valueNode);
-      if (field.dtype === 'string_span') {
-        // Walk upwards to find the parent that has dtype text so we can get the values for the
-        // string span.
-        for (let i = path.length - 1; i > 0; i--) {
-          const parentPath = path.slice(0, i);
-          const parentField = getField(L.field(row)!, parentPath);
-          if (parentField?.dtype === 'string') {
-            const text = L.value<'string'>(valueAtPath(row, parentField.path)!);
-            const span = L.value<'string_span'>(valueNode);
-            if (span == null) break;
-            value = text?.substring(span.start, span.end);
-          }
+    return valueNodes
+      .map(valueNode => {
+        const field = L.field(valueNode)!;
+        const path = L.path(valueNode)!;
+        let value = L.value(valueNode);
+        if (field.dtype === 'string_span') {
+          // Skip rendering string spans.
+          return null;
         }
-      }
-      const isEmbeddingSignal =
-        $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) || false;
-      const isSignal = isSignalRootField(field);
-      let formattedValue: string | null;
-      if (
-        isEmbeddingSignal ||
-        (isSignal && field.dtype == null) ||
-        field.dtype === 'embedding' ||
-        field.repeated_field != null
-      ) {
-        formattedValue = '';
-      } else if (value == null) {
-        formattedValue = null;
-      } else {
-        formattedValue = formatValue(value);
-      }
+        const isEmbeddingSignal =
+          $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) ||
+          false;
+        const isSignal = isSignalRootField(field);
+        let formattedValue: string | null;
+        if (
+          isEmbeddingSignal ||
+          (isSignal && field.dtype == null) ||
+          field.dtype === 'embedding' ||
+          field.repeated_field != null
+        ) {
+          formattedValue = '';
+        } else if (value == null) {
+          formattedValue = null;
+        } else {
+          formattedValue = formatValue(value);
+        }
 
-      return {
-        indentLevel: path.length - 1,
-        fieldName: path[path.length - 1],
-        field,
-        path,
-        isSignal,
-        isPreviewSignal: isPreviewSignal($datasetStore.selectRowsSchema?.data || null, path),
-        isEmbeddingSignal,
-        value,
-        formattedValue
-      };
-    });
+        return {
+          indentLevel: path.length - 1,
+          fieldName: path[path.length - 1],
+          field,
+          path,
+          isSignal,
+          isPreviewSignal: isPreviewSignal($datasetStore.selectRowsSchema?.data || null, path),
+          isEmbeddingSignal,
+          value,
+          formattedValue
+        };
+      })
+      .filter(x => x != null) as MetadataRow[];
   }
 
   $: rows = makeRows(row);
 </script>
 
 {#if rows.length > 0}
-  <div class="h-full border-l border-gray-300 bg-neutral-50 py-2">
+  <div class="sticky top-0 border-t border-neutral-200 px-2 py-4">
     <table class="table w-full table-fixed border-collapse px-2 pt-1">
       {#each rows as row (serializePath(row.path))}
         <tr class="border-gray-300">
-          <td class="truncate p-2 pl-2 pr-2 font-mono text-xs font-medium text-neutral-500">
+          <td class="truncate p-2 font-mono text-xs font-medium text-neutral-500">
             <span title={row.fieldName} style:padding-left={`${row.indentLevel * 12}px`}
               >{row.fieldName}</span
             >
