@@ -153,7 +153,7 @@
 
 <div class="border-gray-300" class:border-b={!isSignal}>
   <div
-    class="flex w-full flex-row items-center gap-x-2 border-gray-300 px-4 py-2 hover:bg-gray-100"
+    class="flex w-full flex-row items-center gap-x-2 border-gray-300 px-4 hover:bg-gray-100"
     class:bg-blue-50={isSignal}
     class:bg-emerald-100={isPreview}
     class:hover:bg-blue-100={isSignal}
@@ -191,9 +191,19 @@
         <span class="font-mono">{'{}'}</span>
       {/if}
     </div>
-    <div class="ml-2 grow truncate whitespace-nowrap leading-6 text-gray-900">
+    <button
+      class="ml-2 grow cursor-pointer truncate whitespace-nowrap text-left text-gray-900"
+      style:line-height="3rem"
+      on:click={() => {
+        if (expandedDetails) {
+          datasetViewStore.removeExpandedColumn(path);
+        } else {
+          datasetViewStore.addExpandedColumn(path);
+        }
+      }}
+    >
       {fieldName}
-    </div>
+    </button>
     {#if isSortedBy}
       <RemovableTag
         interactive
