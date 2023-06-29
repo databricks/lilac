@@ -9,8 +9,8 @@
   export let visibleFields: LilacField[];
 </script>
 
-<div class="mx-4 mb-10 rounded border-x border-b border-neutral-200 pb-2 shadow-md">
-  <div class="flex w-full flex-row">
+<div class="mx-4 mb-10 rounded border border-neutral-200 shadow-md">
+  <div class="flex h-full w-full flex-row">
     {#if mediaFields.length > 0}
       <div class="w-2/3">
         {#each mediaFields as mediaField, i (serializePath(mediaField.path))}
@@ -20,7 +20,7 @@
         {/each}
       </div>
     {/if}
-    <div class="sticky top-0 w-1/3 self-start">
+    <div class="sticky top-0 h-full w-1/3 self-start">
       <RowItemMetadata {row} {visibleFields} />
     </div>
   </div>

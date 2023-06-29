@@ -79,6 +79,8 @@ class Concept(BaseModel):
   data: dict[str, Example]
   version: int = 0
 
+  description: Optional[str] = None
+
   def drafts(self) -> list[DraftId]:
     """Gets all the drafts for the concept."""
     drafts: set[DraftId] = set([DRAFT_MAIN])  # Always return the main draft.

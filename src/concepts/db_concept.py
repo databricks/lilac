@@ -65,8 +65,16 @@ class ConceptDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def create(self, namespace: str, name: str, type: SignalInputType) -> Concept:
-    """Create a concept."""
+  def create(self, namespace: str, name: str, type: SignalInputType,
+             description: Optional[str]) -> Concept:
+    """Create a concept.
+
+    Args:
+      namespace: The namespace of the concept.
+      name: The name of the concept.
+      type: The input type of the concept.
+      description: The description of the concept.
+    """
     pass
 
   @abc.abstractmethod
@@ -283,13 +291,20 @@ class DiskConceptDB(ConceptDB):
       return Concept.parse_raw(f.read())
 
   @override
-  def create(self, namespace: str, name: str, type: SignalInputType) -> Concept:
+  def create(self, namespace: str, name: str, type: SignalInputType,
+             description: Optional[str]) -> Concept:
     """Create a concept."""
     concept_json_path = _concept_json_path(namespace, name)
     if file_exists(concept_json_path):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" already exists.')
 
-    concept = Concept(namespace=namespace, concept_name=name, type=type, data={}, version=0)
+    concept = Concept(
+      namespace=namespace,
+      concept_name=name,
+      type=type,
+      data={},
+      version=0,
+      description=description)
     self._save(concept)
     return concept
 

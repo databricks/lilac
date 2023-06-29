@@ -28,7 +28,7 @@
   let positiveExamples: string[] = [''];
 
   function submit() {
-    $conceptCreate.mutate([{namespace, name, type: 'text'}], {
+    $conceptCreate.mutate([{namespace, name, type: 'text', description: conceptDescription}], {
       onSuccess: () => {
         $conceptEdit.mutate(
           [

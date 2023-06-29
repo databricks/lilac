@@ -90,7 +90,7 @@
 </script>
 
 {#if rows.length > 0}
-  <div class="h-full border-b border-l border-t border-gray-300 bg-neutral-50 py-2">
+  <div class="h-full border-l border-gray-300 bg-neutral-50 py-2">
     <table class="table w-full table-fixed border-collapse px-2 pt-1">
       {#each rows as row (serializePath(row.path))}
         <tr class="border-gray-300">

@@ -46,12 +46,13 @@ class CreateConceptOptions(BaseModel):
   name: str
   # Input type (modality) of the concept.
   type: SignalInputType
+  description: Optional[str] = None
 
 
 @router.post('/create', response_model_exclude_none=True)
 def create_concept(options: CreateConceptOptions) -> Concept:
   """Edit a concept in the database."""
-  return DISK_CONCEPT_DB.create(options.namespace, options.name, options.type)
+  return DISK_CONCEPT_DB.create(options.namespace, options.name, options.type, options.description)
 
 
 @router.post('/{namespace}/{concept_name}', response_model_exclude_none=True)
