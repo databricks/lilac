@@ -71,7 +71,7 @@ class Example(ExampleIn):
 class Concept(BaseModel):
   """A concept is a collection of examples."""
   # The namespace of the concept.
-  namespace: str = LOCAL_CONCEPT_NAMESPACE
+  namespace: str
   # The name of the concept.
   concept_name: str
   # The type of the data format that this concept represents.

@@ -2,6 +2,7 @@
 
 import abc
 import glob
+import json
 import os
 import pickle
 import shutil
@@ -12,6 +13,7 @@ from pathlib import Path
 from typing import List, Optional, Union, cast
 
 from pydantic import BaseModel
+from pyparsing import Any
 from typing_extensions import override
 
 from ..config import data_path
@@ -317,7 +319,10 @@ class DiskConceptDB(ConceptDB):
       return None
 
     with open_file(concept_json_path) as f:
-      return Concept.parse_raw(f.read())
+      obj: dict[str, Any] = json.load(f)
+      if 'namespace' not in obj:
+        obj['namespace'] = namespace
+      return Concept.parse_obj(obj)
 
   @override
   def create(self,
