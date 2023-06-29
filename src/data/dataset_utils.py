@@ -1,5 +1,6 @@
 """Utilities for working with datasets."""
 
+import json
 import math
 import os
 import pickle
@@ -271,6 +272,7 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
                            filename_prefix: str, shard_index: int,
                            num_shards: int) -> tuple[str, int]:
   """Write a set of items to a parquet file, in columnar format."""
+  print(schema)
   arrow_schema = schema_to_arrow_schema(schema)
   out_filename = parquet_filename(filename_prefix, shard_index, num_shards)
   filepath = os.path.join(output_dir, out_filename)
@@ -283,7 +285,10 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
     if UUID_COLUMN not in item:
       item[UUID_COLUMN] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
     if os.getenv('DEBUG'):
-      _validate(item, arrow_schema)
+      try:
+        _validate(item, arrow_schema)
+      except Exception as e:
+        raise ValueError(f'Item has an error: {json.dumps(item)}') from e
     writer.write(item)
     num_items += 1
   writer.close()

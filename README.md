@@ -34,16 +34,23 @@ npm run format --workspace web/blueprint
 
 Huggingface spaces are used for PRs and for demos.
 
+Details can be found at [Managing Spaces with Github Actions](https://huggingface.co/docs/hub/spaces-github-actions)
+
 Set up HuggingFace CLI to authenticate with HuggingFace:
 
 ```sh
 poetry run huggingface-cli login
 ```
 
-Add the the huggingface space as a remote:
+For
+Add the the huggingface space as a remote to push:
 
 ```sh
-git remote add space https://huggingface.co/spaces/nsthorat-lilac/lilac_demo
+git remote add space https://username@huggingface.co/spaces/HF_USERNAME/SPACE_NAME
+```
+
+```sh
+git push --force space main
 ```
 
 #### Deployment

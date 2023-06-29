@@ -83,8 +83,10 @@ def process_source(base_dir: Union[str, pathlib.Path],
 
 def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
   """Sanitize items by removing NaNs and NaTs."""
-  string_fields = set(
-    [field_name for field_name, field in fields.items() if field.dtype == DataType.STRING])
+  string_fields = set([
+    field_name for field_name, field in fields.items()
+    if field.dtype == DataType.STRING or field.dtype == DataType.NULL
+  ])
   timestamp_fields = set(
     [field_name for field_name, field in fields.items() if field.dtype == DataType.TIMESTAMP])
   for item in items:

@@ -452,6 +452,7 @@ class DatasetDuckDB(Dataset):
 
   def _validate_selection(self, columns: Sequence[Column], select_schema: Schema) -> None:
     # Validate all the columns and make sure they exist in the `select_schema`.
+    print(select_schema)
     for column in columns:
       current_field = Field(fields=select_schema.fields)
       path = column.path
@@ -559,11 +560,13 @@ class DatasetDuckDB(Dataset):
     # Compute min/max values for ordinal leafs, without sampling the data.
     if is_ordinal(leaf.dtype):
       min_max_query = f"""
-        SELECT MIN(val) AS minVal, MAX(val) AS maxVal
-        FROM (SELECT {inner_select} as val FROM t);
+        SELECT MIN(val) AS minVal, MAX(val) AS maxVal, AVG(val) AS avgVal
+        FROM (SELECT {inner_select} as val FROM t)
+        WHERE NOT isnan(val)
       """
       row = self._query(min_max_query)[0]
-      result.min_val, result.max_val = row
+      result.min_val, result.max_val, _ = row
+      print(row)
 
     return result
 
@@ -636,6 +639,7 @@ class DatasetDuckDB(Dataset):
       ORDER BY {sort_by} {sort_order}
       {limit_query}
     """
+    print(query)
     df = self._query_df(query)
     counts = list(df.itertuples(index=False, name=None))
     return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)

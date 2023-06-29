@@ -3,7 +3,7 @@ set -e
 
 # Runs the production server locally, outside a docker image.
 
-./build_server_prod.sh
+./scripts/build_server_prod.sh
 
 # Run the node server.
 poetry run uvicorn src.server:app --port 5432 --host 0.0.0.0 &

@@ -9,7 +9,7 @@ from typing_extensions import override
 from ...schema import Item
 from ...utils import download_http_files
 from ..duckdb_utils import duckdb_gcs_setup
-from .source import Source, SourceSchema, schema_from_df
+from .source import Source, SourceSchema, normalize_column_name, schema_from_df
 
 LINE_NUMBER_COLUMN = '__line_number__'
 
@@ -54,9 +54,13 @@ class CSVDataset(Source):
         PARALLEL=false
     )
     """).df()
+    for column_name in self._df.columns:
+      self._df.rename(columns={column_name: normalize_column_name(column_name)}, inplace=True)
 
     # Create the source schema in prepare to share it between process and source_schema.
     self._source_schema = schema_from_df(self._df, LINE_NUMBER_COLUMN)
+
+    print(self._source_schema)
 
   @override
   def source_schema(self) -> SourceSchema:
