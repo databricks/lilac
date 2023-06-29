@@ -449,7 +449,7 @@ class ConceptModelDBSuite:
 
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    logistic_model = TestLogisticModel(embedding_name='test_embedding')
+    logistic_model = TestLogisticModel()
     score_embeddings_mock = mocker.spy(TestLogisticModel, 'score_embeddings')
     fit_mock = mocker.spy(TestLogisticModel, 'fit')
 
@@ -471,7 +471,7 @@ class ConceptModelDBSuite:
     model_db = model_db_cls(concept_db)
     score_embeddings_mock = mocker.spy(TestLogisticModel, 'score_embeddings')
     fit_mock = mocker.spy(TestLogisticModel, 'fit')
-    logistic_model = TestLogisticModel(embedding_name='test_embedding')
+    logistic_model = TestLogisticModel()
     model = _make_test_concept_model(concept_db, logistic_models={DRAFT_MAIN: logistic_model})
     model_db.sync(model, column_info=None)
     assert model_db.in_sync(model) is True
@@ -519,11 +519,11 @@ class ConceptModelDBSuite:
     model_db = model_db_cls(concept_db)
     score_embeddings_mock = mocker.spy(TestLogisticModel, 'score_embeddings')
     fit_mock = mocker.spy(TestLogisticModel, 'fit')
-    logistic_model = TestLogisticModel(embedding_name='test_embedding')
-    draft_model = TestLogisticModel(embedding_name='test_embedding')
+    main_model = TestLogisticModel()
+    draft_model = TestLogisticModel()
     model = _make_test_concept_model(
       concept_db, logistic_models={
-        DRAFT_MAIN: logistic_model,
+        DRAFT_MAIN: main_model,
         'test_draft': draft_model
       })
     model_db.sync(model, column_info=None)
@@ -575,7 +575,7 @@ class ConceptModelDBSuite:
     assert called_draft_weights == pytest.approx([1.0, 1 / 3, 1 / 3, 1 / 3])
 
     # The main model was fit without the data from the draft.
-    assert called_model == draft_model
+    assert called_model == main_model
     np.testing.assert_array_equal(
       called_embeddings, np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']]))
     assert called_labels == [False, True]

@@ -90,12 +90,8 @@ class Concept(BaseModel):
     return list(sorted(drafts))
 
 
-class LogisticEmbeddingModel(BaseModel):
+class LogisticEmbeddingModel:
   """A model that uses logistic regression with embeddings."""
-
-  class Config:
-    arbitrary_types_allowed = True
-    underscore_attrs_are_private = True
 
   version: int = -1
 
@@ -201,11 +197,7 @@ class ConceptModel(BaseModel):
   def _get_logistic_model(self, draft: DraftId) -> LogisticEmbeddingModel:
     """Get the logistic model for the provided draft."""
     if draft not in self._logistic_models:
-      self._logistic_models[draft] = LogisticEmbeddingModel(
-        namespace=self.namespace,
-        concept_name=self.concept_name,
-        embedding_name=self.embedding_name,
-        version=-1)
+      self._logistic_models[draft] = LogisticEmbeddingModel()
     return self._logistic_models[draft]
 
   def sync(self, concept: Concept) -> bool:
