@@ -1,5 +1,6 @@
 <script lang="ts">
   import {editConceptMutation, queryConceptColumnInfos} from '$lib/queries/conceptQueries';
+  import {datasetLink} from '$lib/utils';
   import {serializePath, type Concept} from '$lilac';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
@@ -24,32 +25,38 @@
   }
 </script>
 
-<div class="flex h-full flex-col gap-y-4">
-  <div class="text-xl">{concept.namespace} / {concept.concept_name}</div>
-  {#if concept.description}
-    <div class="text-lg">Description: {concept.description}</div>
-  {/if}
+<div class="flex h-full flex-col gap-y-8">
   <div>
-    {#if $conceptColumnInfos.isLoading}
-      <SkeletonText />
-    {:else if $conceptColumnInfos.isError}
-      <InlineNotification
-        kind="error"
-        title="Error"
-        subtitle={$conceptColumnInfos.error.message}
-        hideCloseButton
-      />
-    {:else if $conceptColumnInfos.data.length > 0}
-      <div class="text-lg">Used in</div>
+    <div class="text-2xl font-semibold">{concept.namespace} / {concept.concept_name}</div>
+    {#if concept.description}
+      <div class="text text-base text-gray-600">{concept.description}</div>
+    {/if}
+  </div>
+
+  {#if $conceptColumnInfos.isLoading}
+    <SkeletonText />
+  {:else if $conceptColumnInfos.isError}
+    <InlineNotification
+      kind="error"
+      title="Error"
+      subtitle={$conceptColumnInfos.error.message}
+      hideCloseButton
+    />
+  {:else if $conceptColumnInfos.data.length > 0}
+    <div>
+      <div class="text-lg font-semibold">Used on</div>
       <div class="flex flex-col gap-y-2">
         {#each $conceptColumnInfos.data as column}
           <div>
-            {column.namespace} / {column.name} : {serializePath(column.path)}
+            <a href={datasetLink(column.namespace, column.name)}
+              >{column.namespace}/{column.name}
+            </a>
+            on field <code>{serializePath(column.path)}</code>
           </div>
         {/each}
       </div>
-    {/if}
-  </div>
+    </div>
+  {/if}
   <div class="flex w-full gap-x-4">
     <div class="flex w-1/2 flex-col gap-y-4">
       <span class="flex items-center gap-x-2 text-lg"
