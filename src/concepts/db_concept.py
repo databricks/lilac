@@ -256,9 +256,6 @@ class DiskConceptModelDB(ConceptModelDB):
     result: list[ConceptColumnInfo] = []
     for dir in dirs:
       dir = os.path.relpath(dir, datasets_path)
-      print(datasets_path)
-      print(dir)
-      print(Path(dir).parts)
       dataset_namespace, dataset_name, *path, _, _, _ = Path(dir).parts
       result.append(ConceptColumnInfo(namespace=dataset_namespace, name=dataset_name, path=path))
     return result
