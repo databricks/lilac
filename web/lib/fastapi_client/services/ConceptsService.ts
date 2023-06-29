@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { Concept } from '../models/Concept';
+import type { ConceptColumnInfo } from '../models/ConceptColumnInfo';
 import type { ConceptInfo } from '../models/ConceptInfo';
 import type { ConceptModelResponse } from '../models/ConceptModelResponse';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
@@ -103,6 +104,31 @@ export class ConceptsService {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/v1/concepts/{namespace}/{concept_name}',
+            path: {
+                'namespace': namespace,
+                'concept_name': conceptName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Concept Column Infos
+     * Return a list of dataset columns where this concept was applied to.
+     * @param namespace
+     * @param conceptName
+     * @returns ConceptColumnInfo Successful Response
+     * @throws ApiError
+     */
+    public static getConceptColumnInfos(
+        namespace: string,
+        conceptName: string,
+    ): CancelablePromise<Array<ConceptColumnInfo>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/concepts/{namespace}/{concept_name}/column_infos',
             path: {
                 'namespace': namespace,
                 'concept_name': conceptName,

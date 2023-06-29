@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {editConceptMutation} from '$lib/queries/conceptQueries';
+  import {editConceptMutation, queryConceptColumnInfos} from '$lib/queries/conceptQueries';
   import type {Concept} from '$lilac';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
@@ -7,6 +7,7 @@
 
   export let concept: Concept;
   const conceptMutation = editConceptMutation();
+  const conceptColumnInfos = queryConceptColumnInfos(concept.namespace, concept.concept_name);
 
   $: positiveExamples = Object.values(concept.data).filter(v => v.label == true);
   $: negativeExamples = Object.values(concept.data).filter(v => v.label == false);
@@ -22,25 +23,30 @@
   }
 </script>
 
-<div class="flex h-full gap-x-4">
-  <div class="flex w-1/2 flex-col gap-y-4">
-    <span class="flex items-center gap-x-2 text-lg"
-      ><ThumbsUpFilled /> Positive ({positiveExamples.length} examples)</span
-    >
-    <ConceptExampleList
-      data={positiveExamples}
-      on:remove={ev => remove(ev.detail)}
-      on:add={ev => add(ev.detail, true)}
-    />
-  </div>
-  <div class="flex w-1/2 flex-col gap-y-4">
-    <span class="flex items-center gap-x-2 text-lg"
-      ><ThumbsDownFilled />Negative ({negativeExamples.length} examples)</span
-    >
-    <ConceptExampleList
-      data={negativeExamples}
-      on:remove={ev => remove(ev.detail)}
-      on:add={ev => add(ev.detail, false)}
-    />
+<div class="flex h-full flex-col gap-y-4">
+  <div class="text-xl">{concept.namespace} / {concept.concept_name}</div>
+  <div class="text-lg">Description: {concept.description}</div>
+
+  <div class="flex w-full gap-x-4">
+    <div class="flex w-1/2 flex-col gap-y-4">
+      <span class="flex items-center gap-x-2 text-lg"
+        ><ThumbsUpFilled /> Positive ({positiveExamples.length} examples)</span
+      >
+      <ConceptExampleList
+        data={positiveExamples}
+        on:remove={ev => remove(ev.detail)}
+        on:add={ev => add(ev.detail, true)}
+      />
+    </div>
+    <div class="flex w-1/2 flex-col gap-y-4">
+      <span class="flex items-center gap-x-2 text-lg"
+        ><ThumbsDownFilled />Negative ({negativeExamples.length} examples)</span
+      >
+      <ConceptExampleList
+        data={negativeExamples}
+        on:remove={ev => remove(ev.detail)}
+        on:add={ev => add(ev.detail, false)}
+      />
+    </div>
   </div>
 </div>

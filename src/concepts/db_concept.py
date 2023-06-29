@@ -8,6 +8,7 @@ import shutil
 
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
+from pathlib import Path
 from typing import List, Optional, Union, cast
 
 from pydantic import BaseModel
@@ -65,8 +66,11 @@ class ConceptDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def create(self, namespace: str, name: str, type: SignalInputType,
-             description: Optional[str]) -> Concept:
+  def create(self,
+             namespace: str,
+             name: str,
+             type: SignalInputType,
+             description: Optional[str] = None) -> Concept:
     """Create a concept.
 
     Args:
@@ -157,6 +161,11 @@ class ConceptModelDB(abc.ABC):
     """Remove all the models associated with a concept."""
     pass
 
+  @abc.abstractmethod
+  def get_column_infos(self, namespace: str, concept_name: str) -> list[ConceptColumnInfo]:
+    """Get the dataset columns where this concept was applied to."""
+    pass
+
 
 class DiskConceptModelDB(ConceptModelDB):
   """Interface for the concept model database."""
@@ -232,6 +241,26 @@ class DiskConceptModelDB(ConceptModelDB):
     for dir in dirs:
       shutil.rmtree(dir, ignore_errors=True)
 
+  @override
+  def get_column_infos(self, namespace: str, concept_name: str) -> list[ConceptColumnInfo]:
+    datasets_path = os.path.join(data_path(), DATASETS_DIR_NAME)
+    # Skip if 'datasets' doesn't exist.
+    if not os.path.isdir(datasets_path):
+      return []
+
+    dirs = glob.iglob(
+      os.path.join(datasets_path, '**', DATASET_CONCEPTS_DIR, namespace, concept_name),
+      recursive=True)
+    result: list[ConceptColumnInfo] = []
+    for dir in dirs:
+      dir = os.path.relpath(dir, datasets_path)
+      print(datasets_path)
+      print(dir)
+      print(Path(dir).parts)
+      dataset_namespace, dataset_name, *path, _, _, _ = Path(dir).parts
+      result.append(ConceptColumnInfo(namespace=dataset_namespace, name=dataset_name, path=path))
+    return result
+
 
 def _concept_output_dir(namespace: str, name: str) -> str:
   """Return the output directory for a given concept."""
@@ -291,8 +320,11 @@ class DiskConceptDB(ConceptDB):
       return Concept.parse_raw(f.read())
 
   @override
-  def create(self, namespace: str, name: str, type: SignalInputType,
-             description: Optional[str]) -> Concept:
+  def create(self,
+             namespace: str,
+             name: str,
+             type: SignalInputType,
+             description: Optional[str] = None) -> Concept:
     """Create a concept."""
     concept_json_path = _concept_json_path(namespace, name)
     if file_exists(concept_json_path):
