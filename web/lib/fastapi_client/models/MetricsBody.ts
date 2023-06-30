@@ -5,9 +5,9 @@
 import type { ConceptColumnInfo } from './ConceptColumnInfo';
 
 /**
- * Request body for the compute_roc_auc endpoint.
+ * Request body for the compute_metrics endpoint.
  */
-export type ROCAUCBody = {
+export type MetricsBody = {
     column_info?: ConceptColumnInfo;
 };
 

@@ -7,7 +7,14 @@ from fastapi import APIRouter, HTTPException
 from openai_function_call import OpenAISchema
 from pydantic import BaseModel, Field
 
-from .concepts.concept import DRAFT_MAIN, Concept, ConceptColumnInfo, DraftId, draft_examples
+from .concepts.concept import (
+  DRAFT_MAIN,
+  Concept,
+  ConceptColumnInfo,
+  ConceptMetrics,
+  DraftId,
+  draft_examples,
+)
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
 from .config import CONFIG
 from .router_utils import RouteErrorHandler
@@ -152,15 +159,15 @@ def get_concept_model(namespace: str,
   return ConceptModelResponse(model=model_info, model_synced=model_synced)
 
 
-class ROCAUCBody(BaseModel):
-  """Request body for the compute_roc_auc endpoint."""
+class MetricsBody(BaseModel):
+  """Request body for the compute_metrics endpoint."""
   column_info: Optional[ConceptColumnInfo] = None
 
 
-@router.post('/{namespace}/{concept_name}/{embedding_name}/compute_roc_auc')
-def compute_roc_auc(namespace: str, concept_name: str, embedding_name: str,
-                    body: ROCAUCBody) -> float:
-  """Compute the ROC AUC score for the concept model."""
+@router.post('/{namespace}/{concept_name}/{embedding_name}/compute_metrics')
+def compute_metrics(namespace: str, concept_name: str, embedding_name: str,
+                    body: MetricsBody) -> ConceptMetrics:
+  """Compute the metrics for the concept model."""
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
   if not concept:
     raise HTTPException(
@@ -169,9 +176,10 @@ def compute_roc_auc(namespace: str, concept_name: str, embedding_name: str,
   column_info = body.column_info
   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name, column_info)
   if model is None:
+    print('creating the model...')
     model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name, column_info)
   model_updated = DISK_CONCEPT_MODEL_DB.sync(model)
-  return model.compute_roc_auc(concept)
+  return model.compute_metrics(concept)
 
 
 @router.post('/{namespace}/{concept_name}/{embedding_name}/score', response_model_exclude_none=True)

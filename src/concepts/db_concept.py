@@ -150,15 +150,6 @@ class ConceptModelDB(abc.ABC):
       self._save(model)
     return model_updated
 
-  def compute_roc_auc(self, model: ConceptModel) -> float:
-    """Compute the ROC AUC score of the concept model."""
-    if not self.in_sync(model):
-      self.sync(model)
-    concept = self._concept_db.get(model.namespace, model.concept_name)
-    if not concept:
-      raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
-    return model.compute_roc_auc(concept)
-
   @abc.abstractmethod
   def remove(self,
              namespace: str,

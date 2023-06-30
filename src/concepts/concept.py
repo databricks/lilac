@@ -7,7 +7,7 @@ import numpy as np
 from pydantic import BaseModel, validator
 from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import KFold, cross_val_score
 
 from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
@@ -92,6 +92,12 @@ class Concept(BaseModel):
     return list(sorted(drafts))
 
 
+class ConceptMetrics(BaseModel):
+  """Metrics for a concept."""
+  # The average ROC AUC for the concept.
+  avg_roc_auc: float
+
+
 @dataclasses.dataclass
 class LogisticEmbeddingModel:
   """A model that uses logistic regression with embeddings."""
@@ -123,10 +129,11 @@ class LogisticEmbeddingModel:
         f'({len(labels)})')
     self._model.fit(embeddings, labels, sample_weights)
 
-  def compute_roc_auc(self, embeddings: np.ndarray, labels: list[bool]) -> float:
-    """Return the AUC ROC."""
-    scores = cross_val_score(self._model, embeddings, labels, scoring='roc_auc', cv=5, n_jobs=-1)
-    return 0.0
+  def compute_metrics(self, embeddings: np.ndarray, labels: list[bool]) -> ConceptMetrics:
+    """Return the concept metrics."""
+    fold = KFold(n_splits=5, shuffle=True, random_state=42)
+    scores = cross_val_score(self._model, embeddings, labels, scoring='roc_auc', cv=fold, n_jobs=-1)
+    return ConceptMetrics(avg_roc_auc=np.mean(scores))
 
 
 def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
@@ -175,12 +182,13 @@ class ConceptModel:
 
   def __post_init__(self) -> None:
     if self.column_info:
+      self.column_info.path = normalize_path(self.column_info.path)
       self._calibrate_on_dataset(self.column_info)
 
   def _calibrate_on_dataset(self, column_info: ConceptColumnInfo) -> None:
     """Calibrate the model on the embeddings in the provided vector store."""
     db = get_dataset(column_info.namespace, column_info.name)
-    vector_store = db.get_vector_store(normalize_path(column_info.path))
+    vector_store = db.get_vector_store(self.embedding_name, normalize_path(column_info.path))
     keys = vector_store.keys()
     num_samples = min(column_info.num_negative_examples, len(keys))
     sample_keys = random.sample(keys, num_samples)
@@ -211,8 +219,8 @@ class ConceptModel:
       self._logistic_models[draft] = LogisticEmbeddingModel()
     return self._logistic_models[draft]
 
-  def compute_roc_auc(self, concept: Concept) -> float:
-    """Compute the ROC AUC for the provided concept using the model."""
+  def compute_metrics(self, concept: Concept) -> ConceptMetrics:
+    """Compute the metrics for the provided concept using the model."""
     examples = draft_examples(concept, DRAFT_MAIN)
     embeddings = np.array([self._embeddings[id] for id in examples.keys()])
     labels = [example.label for example in examples.values()]
@@ -221,7 +229,7 @@ class ConceptModel:
       embeddings = np.concatenate([self._negative_vectors, embeddings])
       labels = [False] * num_implicit_labels + labels
     model = self._get_logistic_model(DRAFT_MAIN)
-    return model.compute_roc_auc(embeddings, labels)
+    return model.compute_metrics(embeddings, labels)
 
   def sync(self, concept: Concept) -> bool:
     """Update the model with the latest labeled concept data."""

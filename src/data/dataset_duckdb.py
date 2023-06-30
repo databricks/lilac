@@ -241,14 +241,19 @@ class DatasetDuckDB(Dataset):
     raise NotImplementedError('count is not yet implemented for DuckDB.')
 
   @override
-  def get_vector_store(self, path: PathTuple) -> VectorStore:
+  def get_vector_store(self, embedding: str, path: PathTuple) -> VectorStore:
     # Refresh the manifest to make sure we have the latest signal manifests.
     self.manifest()
+
+    if path[-1] != EMBEDDING_KEY:
+      path = (*path, embedding, PATH_WILDCARD, EMBEDDING_KEY)
 
     if path not in self._col_vector_stores:
       manifests = [m for m in self._signal_manifests if schema_contains_path(m.data_schema, path)]
       if not manifests:
         raise ValueError(f'No embedding found for path {path}.')
+      if len(manifests) > 1:
+        raise ValueError(f'Multiple embeddings found for path {path}. Got: {manifests}')
       manifest = manifests[0]
       if not manifest.embedding_filename_prefix:
         raise ValueError(f'Signal manifest for path {path} is not an embedding. '
@@ -796,11 +801,11 @@ class DatasetDuckDB(Dataset):
         total_num_rows = len(df)
         key_prefixes = df[UUID_COLUMN]
 
-      signal = cast(Signal, topk_udf_col.signal_udf)
+      topk_signal = cast(TextEmbeddingModelSignal, topk_udf_col.signal_udf)
       # The input is an embedding.
-      vector_store = self.get_vector_store(topk_udf_col.path)
+      vector_store = self.get_vector_store(topk_signal.embedding, topk_udf_col.path)
       k = (limit or 0) + (offset or 0)
-      topk = signal.vector_compute_topk(k, vector_store, key_prefixes)
+      topk = topk_signal.vector_compute_topk(k, vector_store, key_prefixes)
       topk_uuids = list(dict.fromkeys([cast(str, key[0]) for key, _ in topk]))
 
       # Ignore all the other filters and filter DuckDB results only by the topk UUIDs.
@@ -923,7 +928,8 @@ class DatasetDuckDB(Dataset):
 
         if signal.compute_type in [SignalInputType.TEXT_EMBEDDING]:
           # The input is an embedding.
-          vector_store = self.get_vector_store(udf_col.path)
+          embedding_signal = cast(TextEmbeddingModelSignal, signal)
+          vector_store = self.get_vector_store(embedding_signal.embedding, udf_col.path)
           flat_keys = flatten_keys(df[UUID_COLUMN], input)
           signal_out = signal.vector_compute(flat_keys, vector_store)
           # Add progress.

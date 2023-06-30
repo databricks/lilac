@@ -4,11 +4,12 @@
 import type { Concept } from '../models/Concept';
 import type { ConceptColumnInfo } from '../models/ConceptColumnInfo';
 import type { ConceptInfo } from '../models/ConceptInfo';
+import type { ConceptMetrics } from '../models/ConceptMetrics';
 import type { ConceptModelResponse } from '../models/ConceptModelResponse';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
 import type { CreateConceptOptions } from '../models/CreateConceptOptions';
 import type { MergeConceptDraftOptions } from '../models/MergeConceptDraftOptions';
-import type { ROCAUCBody } from '../models/ROCAUCBody';
+import type { MetricsBody } from '../models/MetricsBody';
 import type { ScoreBody } from '../models/ScoreBody';
 import type { ScoreResponse } from '../models/ScoreResponse';
 
@@ -224,24 +225,24 @@ export class ConceptsService {
     }
 
     /**
-     * Compute Roc Auc
-     * Compute the ROC AUC score for the concept model.
+     * Compute Metrics
+     * Compute the metrics for the concept model.
      * @param namespace
      * @param conceptName
      * @param embeddingName
      * @param requestBody
-     * @returns number Successful Response
+     * @returns ConceptMetrics Successful Response
      * @throws ApiError
      */
-    public static computeRocAuc(
+    public static computeMetrics(
         namespace: string,
         conceptName: string,
         embeddingName: string,
-        requestBody: ROCAUCBody,
-    ): CancelablePromise<number> {
+        requestBody: MetricsBody,
+    ): CancelablePromise<ConceptMetrics> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/v1/concepts/{namespace}/{concept_name}/{embedding_name}/compute_roc_auc',
+            url: '/api/v1/concepts/{namespace}/{concept_name}/{embedding_name}/compute_metrics',
             path: {
                 'namespace': namespace,
                 'concept_name': conceptName,
