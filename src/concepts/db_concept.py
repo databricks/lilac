@@ -439,6 +439,7 @@ class DiskConceptDB(ConceptDB):
         del concept.data[main_text_id]
 
     concept.version += 1
+
     self._save(concept)
 
     return concept

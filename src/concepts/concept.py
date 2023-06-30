@@ -203,8 +203,7 @@ class ConceptModel:
 
   def coef(self, draft: DraftId) -> np.ndarray:
     """Get the coefficients of the underlying ML model."""
-    model = self._get_logistic_model(draft)
-    return model._model.coef_.reshape(-1)
+    return self._get_logistic_model(draft)._model.coef_.reshape(-1)
 
   def _get_logistic_model(self, draft: DraftId) -> LogisticEmbeddingModel:
     """Get the logistic model for the provided draft."""
