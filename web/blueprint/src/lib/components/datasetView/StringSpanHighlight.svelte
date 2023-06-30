@@ -7,24 +7,24 @@
   import {mergeSpans, type MergedSpan} from '$lib/view_utils';
 
   import {
-      L,
-      deserializePath,
-      getField,
-      getValueNodes,
-      isConceptScoreSignal,
-      pathIncludes,
-      pathIsEqual,
-      petals,
-      serializePath,
-      valueAtPath,
-      type ConceptLabelsSignal,
-      type ConceptScoreSignal,
-      type LilacField,
-      type LilacSchema,
-      type LilacValueNode,
-      type LilacValueNodeCasted,
-      type Signal,
-      type SubstringSignal
+    L,
+    deserializePath,
+    getField,
+    getValueNodes,
+    isConceptScoreSignal,
+    pathIncludes,
+    pathIsEqual,
+    petals,
+    serializePath,
+    valueAtPath,
+    type ConceptLabelsSignal,
+    type ConceptScoreSignal,
+    type LilacField,
+    type LilacSchema,
+    type LilacValueNode,
+    type LilacValueNodeCasted,
+    type Signal,
+    type SubstringSignal
   } from '$lilac';
   import {spanHover} from './SpanHover';
   import type {SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
@@ -154,7 +154,6 @@
               continue;
             }
 
-            console.log(valueField.signal?.signal_name);
             if (valueField.signal?.signal_name === 'concept_score') {
               const signal = valueField.signal as ConceptScoreSignal;
               hoverInfo.push({
@@ -164,10 +163,8 @@
               });
             } else {
               // Check if this is a concept label.
-              console.log(valueField);
               let isConceptLabelSignal = false;
               for (const labelSpanPath of labelSpanPaths) {
-                console.log('comparing', labelSpanPath, valueField.path);
                 if (
                   pathIncludes(valueField.path, labelSpanPath) &&
                   selectRowsSchema?.data?.schema != null
@@ -179,7 +176,6 @@
                   if (field?.signal?.signal_name === 'concept_labels') {
                     const signal = field?.signal as ConceptLabelsSignal;
                     isConceptLabelSignal = true;
-                    console.log('got a label', signal);
                     hoverInfo.push({
                       name: `${signal.namespace}/${signal.concept_name} label`,
                       value
@@ -187,6 +183,7 @@
                   }
                 }
               }
+              // Show arbitrary metadata.
               if (!isConceptLabelSignal) {
                 const name = serializePath(valueField.path.slice(field.path.length));
                 hoverInfo.push({
