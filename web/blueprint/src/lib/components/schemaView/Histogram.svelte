@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type {LeafValue, LilacField} from '$lilac';
+  import {formatValue, type LeafValue, type LilacField} from '$lilac';
   import {createEventDispatcher} from 'svelte';
 
   export let field: LilacField;
@@ -7,36 +7,32 @@
   export let bins: Record<string, [number | null, number | null]> | null;
   $: maxCount = Math.max(...counts.map(([_, count]) => count));
 
-  function formatValue(value: LeafValue): string {
+  function formatValueOrBin(value: LeafValue): string {
     if (value == null) {
-      return 'N/A';
+      return formatValue(value);
     }
     // If there are no bins, or there are named bins, we can just format the value.
     if (bins == null || field.bins != null) {
-      return value.toString();
+      return formatValue(value);
     }
     // If the field didn't have named bins, we need to format the start and end values.
     const [start, end] = bins[value.toString()];
     if (start == null) {
-      return `< ${formatNumber(end!)}`;
+      return `< ${formatValue(end!)}`;
     } else if (end == null) {
-      return `≥ ${formatNumber(start)}`;
+      return `≥ ${formatValue(start)}`;
     } else {
-      return `${formatNumber(start)} .. ${formatNumber(end)}`;
+      return `${formatValue(start)} .. ${formatValue(end)}`;
     }
-  }
-
-  function formatNumber(count: number): string {
-    return count.toLocaleString();
   }
   const dispatch = createEventDispatcher();
 </script>
 
 <div class="histogram">
   {#each counts as [value, count]}
-    {@const groupName = formatValue(value)}
+    {@const groupName = formatValueOrBin(value)}
     {@const barWidth = `${(count / maxCount) * 100}%`}
-    {@const formattedCount = formatNumber(count)}
+    {@const formattedCount = formatValue(count)}
 
     <button
       class="flex items-center text-left text-xs text-black hover:bg-gray-200"
