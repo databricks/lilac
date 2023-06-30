@@ -4,6 +4,7 @@ import abc
 import glob
 import json
 import os
+import pickle
 import shutil
 
 # NOTE: We have to import the module for uuid so it can be mocked.
@@ -11,7 +12,6 @@ import uuid
 from pathlib import Path
 from typing import List, Optional, Union, cast
 
-import joblib
 from pydantic import BaseModel
 from pyparsing import Any
 from typing_extensions import override
@@ -217,14 +217,15 @@ class DiskConceptModelDB(ConceptModelDB):
     if not file_exists(concept_model_path):
       return None
 
-    return joblib.load(concept_model_path)
+    with open_file(concept_model_path, 'rb') as f:
+      return pickle.load(f)
 
   def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
     concept_model_path = _concept_model_path(model.namespace, model.concept_name,
                                              model.embedding_name, model.column_info)
-    os.makedirs(os.path.dirname(concept_model_path), exist_ok=True)
-    joblib.dump(model, concept_model_path)
+    with open_file(concept_model_path, 'wb') as f:
+      pickle.dump(model, f)
 
   @override
   def remove(self,
