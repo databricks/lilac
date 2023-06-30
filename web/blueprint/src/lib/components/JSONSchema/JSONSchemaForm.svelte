@@ -50,6 +50,5 @@
     {validationErrors}
     {customComponents}
     rootValue={value}
-    isRoot={true}
   />
 {/if}

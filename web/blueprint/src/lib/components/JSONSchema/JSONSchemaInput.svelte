@@ -52,7 +52,6 @@
   $: {
     if (value === '') value = undefined;
   }
-  $: console.log(property);
 </script>
 
 {#if !hiddenProperties?.includes(path)}
