@@ -2,7 +2,6 @@
 
 import logging
 import os
-import subprocess
 from typing import Any
 
 from fastapi import APIRouter, FastAPI
@@ -52,11 +51,6 @@ app.include_router(v1_router, prefix='/api/v1')
 
 # Serve static files in production mode.
 app.mount('/', StaticFiles(directory=os.path.join(DIST_PATH), html=True, check_dir=False))
-
-
-def run(cmd: str) -> subprocess.CompletedProcess[bytes]:
-  """Run a command and return the result."""
-  return subprocess.run(cmd, shell=True, check=True)
 
 
 @app.on_event('shutdown')
