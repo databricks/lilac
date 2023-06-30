@@ -13,7 +13,6 @@ from typing_extensions import override
 from .concepts.concept import (
   DRAFT_MAIN,
   Concept,
-  ConceptModel,
   Example,
   ExampleIn,
   ExampleOrigin,
@@ -23,6 +22,7 @@ from .concepts.db_concept import ConceptInfo, ConceptUpdate
 from .config import CONFIG
 from .data.dataset_utils import lilac_embedding
 from .router_concept import (
+  ConceptModelInfo,
   ConceptModelResponse,
   CreateConceptOptions,
   MergeConceptDraftOptions,
@@ -344,7 +344,7 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   response = client.get(url)
   assert response.status_code == 200
   assert ConceptModelResponse.parse_obj(response.json()) == ConceptModelResponse(
-    model=ConceptModel(
+    model=ConceptModelInfo(
       namespace='concept_namespace',
       concept_name='concept',
       embedding_name='test_embedding',
@@ -357,7 +357,7 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   response = client.get(url)
   assert response.status_code == 200
   assert ConceptModelResponse.parse_obj(response.json()) == ConceptModelResponse(
-    model=ConceptModel(
+    model=ConceptModelInfo(
       namespace='concept_namespace',
       concept_name='concept',
       embedding_name='test_embedding',

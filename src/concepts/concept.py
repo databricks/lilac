@@ -92,6 +92,7 @@ class Concept(BaseModel):
     return list(sorted(drafts))
 
 
+@dataclasses.dataclass
 class LogisticEmbeddingModel:
   """A model that uses logistic regression with embeddings."""
 
@@ -101,7 +102,6 @@ class LogisticEmbeddingModel:
   # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
   _model: LogisticRegression = LogisticRegression(
     class_weight=None, C=30, tol=1e-5, warm_start=True, max_iter=1_000, n_jobs=-1)
-  _coef: Optional[np.ndarray] = None
 
   def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
@@ -122,7 +122,6 @@ class LogisticEmbeddingModel:
         f'Length of sample_weights ({len(sample_weights)}) must match length of labels '
         f'({len(labels)})')
     self._model.fit(embeddings, labels, sample_weights)
-    self._coef = self._model.coef_.reshape(-1)
 
   def compute_roc_auc(self, embeddings: np.ndarray, labels: list[bool]) -> float:
     """Return the AUC ROC."""
@@ -205,9 +204,7 @@ class ConceptModel:
   def coef(self, draft: DraftId) -> np.ndarray:
     """Get the coefficients of the underlying ML model."""
     model = self._get_logistic_model(draft)
-    if model._coef is None:
-      raise ValueError('Model has not been fit yet.')
-    return model._coef
+    return model._model.coef_.reshape(-1)
 
   def _get_logistic_model(self, draft: DraftId) -> LogisticEmbeddingModel:
     """Get the logistic model for the provided draft."""

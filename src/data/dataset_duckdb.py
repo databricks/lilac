@@ -246,10 +246,10 @@ class DatasetDuckDB(Dataset):
     self.manifest()
 
     if path not in self._col_vector_stores:
-      manifest = next(
-        m for m in self._signal_manifests if schema_contains_path(m.data_schema, path))
-      if not manifest:
+      manifests = [m for m in self._signal_manifests if schema_contains_path(m.data_schema, path)]
+      if not manifests:
         raise ValueError(f'No embedding found for path {path}.')
+      manifest = manifests[0]
       if not manifest.embedding_filename_prefix:
         raise ValueError(f'Signal manifest for path {path} is not an embedding. '
                          f'Got signal manifest: {manifest}')

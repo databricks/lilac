@@ -146,7 +146,8 @@ class ConceptModelDB(abc.ABC):
     if not concept:
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
     model_updated = model.sync(concept)
-    self._save(model)
+    if model_updated:
+      self._save(model)
     return model_updated
 
   def compute_roc_auc(self, model: ConceptModel) -> float:
@@ -437,7 +438,6 @@ class DiskConceptDB(ConceptDB):
         del concept.data[main_text_id]
 
     concept.version += 1
-
     self._save(concept)
 
     return concept

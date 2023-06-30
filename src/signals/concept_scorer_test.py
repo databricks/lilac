@@ -136,6 +136,8 @@ def test_concept_model_with_dataset_score(concept_db_cls: Type[ConceptDB],
     'text': 'hello2.',
   }])
 
+  dataset.compute_signal(TestEmbedding(), 'text')
+
   concept_db = concept_db_cls()
   model_db = model_db_cls(concept_db)
   namespace = 'test'
