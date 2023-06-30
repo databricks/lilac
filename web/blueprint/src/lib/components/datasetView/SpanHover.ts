@@ -1,6 +1,5 @@
-import type {SpanHoverNamedValue} from '$lib/view_utils';
 import type {SvelteComponent} from 'svelte';
-import SpanHoverTooltip from './SpanHoverTooltip.svelte';
+import SpanHoverTooltip, {type SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
 
 export interface SpanHoverInfo {
   namedValues: SpanHoverNamedValue[];
