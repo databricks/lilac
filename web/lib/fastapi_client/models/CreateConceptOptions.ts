@@ -11,5 +11,6 @@ export type CreateConceptOptions = {
     namespace: string;
     name: string;
     type: SignalInputType;
+    description?: string;
 };
 

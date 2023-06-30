@@ -84,12 +84,12 @@ def test_concept_create() -> None:
     namespace='concept_namespace', name='concept', type=SignalInputType.TEXT)
   response = client.post(url, json=create_concept.dict())
   assert response.status_code == 200
-  assert response.json() == Concept(
+  assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
     type=SignalInputType.TEXT,
     data={},
-    version=0).dict()
+    version=0)
 
   # Make sure list shows us the new concept.
   url = '/api/v1/concepts/'

@@ -7,7 +7,14 @@ from fastapi import APIRouter, HTTPException
 from openai_function_call import OpenAISchema
 from pydantic import BaseModel, Field
 
-from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, DraftId, draft_examples
+from .concepts.concept import (
+  DRAFT_MAIN,
+  Concept,
+  ConceptColumnInfo,
+  ConceptModel,
+  DraftId,
+  draft_examples,
+)
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
 from .config import CONFIG
 from .router_utils import RouteErrorHandler
@@ -38,6 +45,16 @@ def get_concept(namespace: str,
   return concept
 
 
+@router.get('/{namespace}/{concept_name}/column_infos')
+def get_concept_column_infos(namespace: str, concept_name: str) -> list[ConceptColumnInfo]:
+  """Return a list of dataset columns where this concept was applied to."""
+  concept = DISK_CONCEPT_DB.get(namespace, concept_name)
+  if not concept:
+    raise HTTPException(
+      status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
+  return DISK_CONCEPT_MODEL_DB.get_column_infos(namespace, concept_name)
+
+
 class CreateConceptOptions(BaseModel):
   """Options for creating a concept."""
   # Namespace of the concept.
@@ -46,12 +63,13 @@ class CreateConceptOptions(BaseModel):
   name: str
   # Input type (modality) of the concept.
   type: SignalInputType
+  description: Optional[str] = None
 
 
 @router.post('/create', response_model_exclude_none=True)
 def create_concept(options: CreateConceptOptions) -> Concept:
   """Edit a concept in the database."""
-  return DISK_CONCEPT_DB.create(options.namespace, options.name, options.type)
+  return DISK_CONCEPT_DB.create(options.namespace, options.name, options.type, options.description)
 
 
 @router.post('/{namespace}/{concept_name}', response_model_exclude_none=True)
