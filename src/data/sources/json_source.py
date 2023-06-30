@@ -8,7 +8,7 @@ from typing_extensions import override
 
 from ...schema import Item
 from ...utils import download_http_files
-from ..duckdb_utils import duckdb_gcs_setup
+from ..duckdb_utils import duckdb_setup
 from .source import Source, SourceSchema, schema_from_df
 
 ROW_ID_COLUMN = '__row_id__'
@@ -40,7 +40,7 @@ class JSONDataset(Source):
 
     # NOTE: We use duckdb here to increase parallelism for multiple files.
     self._df = con.execute(f"""
-      {duckdb_gcs_setup(con)}
+      {duckdb_setup(con)}
       SELECT * FROM read_json_auto(
         {s3_filepaths},
         IGNORE_ERRORS=true

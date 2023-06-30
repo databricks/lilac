@@ -167,6 +167,8 @@ def test_named_bins(make_test_data: TestDataMaker) -> None:
     'age': 80
   }, {
     'age': 55
+  }, {
+    'age': float('nan')
   }]
   dataset = make_test_data(items)
 
@@ -192,11 +194,13 @@ def test_schema_with_bins(make_test_data: TestDataMaker) -> None:
     'age': 80
   }, {
     'age': 55
+  }, {
+    'age': float('nan')
   }]
   data_schema = schema({
     UUID_COLUMN: 'string',
     'age': field(
-      'int32',
+      'float32',
       bins=[
         ('young', None, 20),
         ('adult', 20, 50),
@@ -304,7 +308,7 @@ def test_too_many_distinct(make_test_data: TestDataMaker, mocker: MockerFixture)
 
 
 def test_auto_bins_for_float(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{'feature': float(i)} for i in range(5)]
+  items: list[Item] = [{'feature': float(i)} for i in range(5)] + [{'feature': float('nan')}]
   dataset = make_test_data(items)
 
   res = dataset.select_groups('feature')

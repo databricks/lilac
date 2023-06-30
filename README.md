@@ -36,21 +36,15 @@ Huggingface spaces are used for PRs and for demos.
 
 Details can be found at [Managing Spaces with Github Actions](https://huggingface.co/docs/hub/spaces-github-actions)
 
-Set up HuggingFace CLI to authenticate with HuggingFace:
+We use the HuggingFace git server, [follow the instructions](https://huggingface.co/docs/hub/repositories-getting-started) to use your git SSH keys to talk to HuggingFace.
 
-```sh
-poetry run huggingface-cli login
+To deploy to huggingface:
+
 ```
-
-For
-Add the the huggingface space as a remote to push:
-
-```sh
-git remote add space https://username@huggingface.co/spaces/HF_USERNAME/SPACE_NAME
-```
-
-```sh
-git push --force space main
+poetry run python -m scripts.deploy_hf \
+  --hf_username=$HF_USERNAME \
+  --hf_space=$HF_ORG/$HF_SPACE \
+  --dataset=$DATASET_NAMESPACE/$DATASET_NAME
 ```
 
 #### Deployment

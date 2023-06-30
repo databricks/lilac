@@ -24,6 +24,9 @@ TEST_DATA: list[Item] = [{
   'int': 2,
   'bool': True,
   'float': 1.0
+}, {
+  UUID_COLUMN: '4',
+  'float': float('nan')
 }]
 
 
@@ -44,6 +47,91 @@ def test_filter_by_ids(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == []
+
+
+def test_filter_greater(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(TEST_DATA)
+
+  id_filter: BinaryFilterTuple = ('float', BinaryOp.GREATER, 2.0)
+  result = dataset.select_rows(filters=[id_filter])
+
+  assert list(result) == [{UUID_COLUMN: '1', 'str': 'a', 'int': 1, 'bool': False, 'float': 3.0}]
+
+
+def test_filter_greater_equal(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(TEST_DATA)
+
+  id_filter: BinaryFilterTuple = ('float', BinaryOp.GREATER_EQUAL, 2.0)
+  result = dataset.select_rows(filters=[id_filter])
+
+  assert list(result) == [{
+    UUID_COLUMN: '1',
+    'str': 'a',
+    'int': 1,
+    'bool': False,
+    'float': 3.0
+  }, {
+    UUID_COLUMN: '2',
+    'str': 'b',
+    'int': 2,
+    'bool': True,
+    'float': 2.0
+  }]
+
+
+def test_filter_less(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(TEST_DATA)
+
+  id_filter: BinaryFilterTuple = ('float', BinaryOp.LESS, 2.0)
+  result = dataset.select_rows(filters=[id_filter])
+
+  assert list(result) == [{UUID_COLUMN: '3', 'str': 'b', 'int': 2, 'bool': True, 'float': 1.0}]
+
+
+def test_filter_less_equal(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(TEST_DATA)
+
+  id_filter: BinaryFilterTuple = ('float', BinaryOp.LESS_EQUAL, 2.0)
+  result = dataset.select_rows(filters=[id_filter])
+
+  assert list(result) == [{
+    UUID_COLUMN: '2',
+    'str': 'b',
+    'int': 2,
+    'bool': True,
+    'float': 2.0
+  }, {
+    UUID_COLUMN: '3',
+    'str': 'b',
+    'int': 2,
+    'bool': True,
+    'float': 1.0
+  }]
+
+
+def test_filter_not_equal(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(TEST_DATA)
+
+  id_filter: BinaryFilterTuple = ('float', BinaryOp.NOT_EQUAL, 2.0)
+  result = dataset.select_rows(filters=[id_filter])
+
+  assert list(result) == [
+    {
+      UUID_COLUMN: '1',
+      'str': 'a',
+      'int': 1,
+      'bool': False,
+      'float': 3.0
+    },
+    {
+      UUID_COLUMN: '3',
+      'str': 'b',
+      'int': 2,
+      'bool': True,
+      'float': 1.0
+    },
+    # NaNs are not counted when we are filtering a field.
+  ]
 
 
 def test_filter_by_list_of_ids(make_test_data: TestDataMaker) -> None:

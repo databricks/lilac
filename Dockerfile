@@ -13,7 +13,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the data to /data, the HF persistent storage. We do this after pip install to avoid
-# re-installing dependencies if the data changes.
+# re-installing dependencies if the data changes, which is likely more often.
 WORKDIR /
 COPY /data /data
 WORKDIR /server

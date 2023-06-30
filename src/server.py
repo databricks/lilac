@@ -53,15 +53,6 @@ app.include_router(v1_router, prefix='/api/v1')
 # Serve static files in production mode.
 app.mount('/', StaticFiles(directory=os.path.join(DIST_PATH), html=True, check_dir=False))
 
-# print('curdir:', os.listdir('.'))
-# print('curdir2', list(pathlib.Path('.').rglob('*')))
-# print('curdir up', list(pathlib.Path('..').rglob('*')))
-
-# print('data_path=', data_path(), CONFIG)
-# print('list:', os.listdir(data_path()))
-# print('list 2:', os.listdir(get_datasets_dir(data_path())))
-# print('list 3:', os.listdir(os.path.join(get_datasets_dir(data_path()), 'local')))
-
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:
   """Run a command and return the result."""

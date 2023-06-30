@@ -452,7 +452,6 @@ class DatasetDuckDB(Dataset):
 
   def _validate_selection(self, columns: Sequence[Column], select_schema: Schema) -> None:
     # Validate all the columns and make sure they exist in the `select_schema`.
-    print(select_schema)
     for column in columns:
       current_field = Field(fields=select_schema.fields)
       path = column.path
@@ -560,13 +559,12 @@ class DatasetDuckDB(Dataset):
     # Compute min/max values for ordinal leafs, without sampling the data.
     if is_ordinal(leaf.dtype):
       min_max_query = f"""
-        SELECT MIN(val) AS minVal, MAX(val) AS maxVal, AVG(val) AS avgVal
+        SELECT MIN(val) AS minVal, MAX(val) AS maxVal
         FROM (SELECT {inner_select} as val FROM t)
         WHERE NOT isnan(val)
       """
       row = self._query(min_max_query)[0]
-      result.min_val, result.max_val, _ = row
-      print(row)
+      result.min_val, result.max_val = row
 
     return result
 
@@ -593,7 +591,9 @@ class DatasetDuckDB(Dataset):
     named_bins = _normalize_bins(bins or leaf.bins)
     stats = self.stats(leaf_path)
 
-    if is_float(leaf.dtype) or is_integer(leaf.dtype):
+    leaf_is_float = is_float(leaf.dtype)
+    leaf_is_integer = is_integer(leaf.dtype)
+    if leaf_is_float or leaf_is_integer:
       if named_bins is None:
         # Auto-bin.
         named_bins = _auto_bins(stats, NUM_AUTO_BINS)
@@ -628,6 +628,8 @@ class DatasetDuckDB(Dataset):
 
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
     filter_queries = self._create_where(manifest, filters, searches=[])
+    if leaf_is_float:
+      filter_queries.append(f'NOT isnan({inner_val})')
     where_query = ''
     if filter_queries:
       where_query = f"WHERE {' AND '.join(filter_queries)}"
@@ -639,7 +641,6 @@ class DatasetDuckDB(Dataset):
       ORDER BY {sort_by} {sort_order}
       {limit_query}
     """
-    print(query)
     df = self._query_df(query)
     counts = list(df.itertuples(index=False, name=None))
     return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)
@@ -1282,6 +1283,10 @@ class DatasetDuckDB(Dataset):
       select_str = _select_sql(duckdb_path, flatten=True, unnest=False)
       is_array = any(subpath == PATH_WILDCARD for subpath in filter.path)
 
+      field = manifest.data_schema.get_field(filter.path)
+      if field.dtype and is_float(field.dtype):
+        # Ignore NaN values for float fields.
+        sql_filter_queries.append(f'NOT isnan({select_str})')
       if filter.op in binary_ops:
         sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
         filter_val = cast(FeatureValue, filter.value)
