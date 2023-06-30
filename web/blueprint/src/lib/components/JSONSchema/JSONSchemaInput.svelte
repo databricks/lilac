@@ -81,7 +81,7 @@
     <!-- Error -->
     <div class="text-red-600">{property.message}</div>
   {:else if property.enum}
-    <Select bind:selected={value} name={path}>
+    <Select bind:selected={value} name={path} labelText={label} hideLabel={true}>
       {#if !required}
         <SelectItem value={undefined} text={'None'} />
       {/if}
@@ -96,15 +96,23 @@
       name={path}
       invalid={!!validation.length}
       invalidText={validationText}
+      labelText={label}
+      hideLabel={true}
       placeholder={!required ? '(optional)' : ''}
     />
   {:else if property.type == 'number'}
     <!-- Number Input -->
-    <NumberInput bind:value name={path} {label} invalid={!value && required} />
+    <NumberInput bind:value name={path} {label} hideLabel={true} invalid={!value && required} />
   {:else if property.type == 'boolean'}
     <!-- Boolean Input -->
     <div>
-      <Toggle labelA={'False'} labelB={'True'} bind:toggled={value} />
+      <Toggle
+        labelA={'False'}
+        labelB={'True'}
+        labelText={label}
+        hideLabel={true}
+        bind:toggled={value}
+      />
     </div>
   {:else if property.type == 'array'}
     <!-- List of inputs -->
