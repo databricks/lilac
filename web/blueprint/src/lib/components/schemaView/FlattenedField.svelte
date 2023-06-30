@@ -27,6 +27,7 @@
     ChevronDown,
     Chip,
     DataBlob,
+    NotAvailable,
     SortAscending,
     SortDescending,
     StringText,
@@ -69,7 +70,8 @@
     timestamp: Time,
     interval: Time,
     embedding: AssemblyCluster,
-    binary: DataBlob
+    binary: DataBlob,
+    null: NotAvailable
   };
   $: isSignal = isSignalField(field, schema);
   $: isSignalRoot = isSignalRootField(field);

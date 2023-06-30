@@ -13,9 +13,6 @@
   export let validationErrors: JSONError[] = [];
   export let customComponents: Record<string, typeof SvelteComponent>;
 
-  // Get the schema for the array
-  $: arrayProperty = schema.getSchema(path, value);
-
   // Create a template value that can be pushed into the array
   $: templateValue = schema.getTemplate(undefined, schema.getSchema(path + '/0', value));
 </script>
