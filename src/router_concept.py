@@ -176,7 +176,6 @@ def compute_metrics(namespace: str, concept_name: str, embedding_name: str,
   column_info = body.column_info
   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name, column_info)
   if model is None:
-    print('creating the model...')
     model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name, column_info)
   model_updated = DISK_CONCEPT_MODEL_DB.sync(model)
   return model.compute_metrics(concept)
