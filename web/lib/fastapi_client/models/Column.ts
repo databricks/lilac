@@ -4,6 +4,7 @@
 
 import type { ConceptScoreSignal } from './ConceptScoreSignal';
 import type { Signal } from './Signal';
+import type { SubstringSignal } from './SubstringSignal';
 import type { TextEmbeddingModelSignal } from './TextEmbeddingModelSignal';
 import type { TextEmbeddingSignal } from './TextEmbeddingSignal';
 import type { TextSignal } from './TextSignal';
@@ -14,6 +15,6 @@ import type { TextSignal } from './TextSignal';
 export type Column = {
     path: Array<string>;
     alias?: string;
-    signal_udf?: (ConceptScoreSignal | TextEmbeddingModelSignal | TextEmbeddingSignal | TextSignal | Signal);
+    signal_udf?: (ConceptScoreSignal | SubstringSignal | TextEmbeddingModelSignal | TextEmbeddingSignal | TextSignal | Signal);
 };
 

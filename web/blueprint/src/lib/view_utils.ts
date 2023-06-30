@@ -208,11 +208,6 @@ export function getSort(datasetStore: DatasetState): SortResult | null {
   return (datasetStore.selectRowsSchema?.data?.sorts || [])[0] || null;
 }
 
-export interface SpanHoverNamedValue {
-  name: string;
-  value: DataTypeCasted;
-}
-
 export interface MergedSpan {
   text: string;
   span: DataTypeCasted<'string_span'>;

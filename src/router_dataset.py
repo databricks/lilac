@@ -35,6 +35,7 @@ from .signals.signal import (
   TextSignal,
   resolve_signal,
 )
+from .signals.substring_search import SubstringSignal
 from .tasks import TaskId, task_manager
 from .utils import DATASETS_DIR_NAME
 
@@ -199,8 +200,8 @@ class ListFilter(BaseModel):
 
 Filter = Union[BinaryFilter, UnaryFilter, ListFilter]
 
-AllSignalTypes = Union[ConceptScoreSignal, TextEmbeddingModelSignal, TextEmbeddingSignal,
-                       TextSignal, Signal]
+AllSignalTypes = Union[ConceptScoreSignal, SubstringSignal, TextEmbeddingModelSignal,
+                       TextEmbeddingSignal, TextSignal, Signal]
 
 
 # We override the `Column` class so we can add explicitly all signal types for better OpenAPI spec.

@@ -1,5 +1,14 @@
+<script context="module" lang="ts">
+  export interface SpanHoverNamedValue {
+    name: string;
+    value: DataTypeCasted;
+    isConcept?: boolean;
+    isKeywordSearch?: boolean;
+  }
+</script>
+
 <script lang="ts">
-  import type {SpanHoverNamedValue} from '$lib/view_utils';
+  import type {DataTypeCasted} from '$lilac';
   import {colorFromScore} from './colors';
 
   export let namedValues: SpanHoverNamedValue[];
@@ -24,9 +33,10 @@
         <div class="named-value-name table-cell max-w-xs truncate pr-2">{namedValue.name}</div>
         <div class="table-cell rounded text-right">
           <span
-            style:background-color={typeof namedValue.value === 'number'
+            style:background-color={namedValue.isConcept && typeof namedValue.value === 'number'
               ? colorFromScore(namedValue.value)
               : ''}
+            class:font-bold={namedValue.isKeywordSearch}
             class="px-1"
           >
             {typeof namedValue.value === 'number'

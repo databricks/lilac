@@ -4,26 +4,30 @@
    * layer, meant to be rendered on top of the source text.
    */
   import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {mergeSpans, type MergedSpan, type SpanHoverNamedValue} from '$lib/view_utils';
+  import {mergeSpans, type MergedSpan} from '$lib/view_utils';
 
   import {
     L,
     deserializePath,
+    getField,
     getValueNodes,
     isConceptScoreSignal,
     pathIsEqual,
     petals,
     serializePath,
     valueAtPath,
-    type DataTypeCasted,
+    type ConceptScoreSignal,
     type LilacField,
+    type LilacSchema,
     type LilacValueNode,
     type LilacValueNodeCasted,
-    type Signal
+    type Signal,
+    type SubstringSignal
   } from '$lilac';
   import {spanHover} from './SpanHover';
+  import type {SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
   import StringSpanDetails, {type SpanDetails} from './StringSpanDetails.svelte';
-  import {colorFromOpacity, colorFromScore} from './colors';
+  import {LABELED_TEXT_COLOR, colorFromOpacity, colorFromScore} from './colors';
 
   export let text: string;
   export let row: LilacValueNode;
@@ -35,6 +39,7 @@
   const spanHoverOpacity = 0.9;
 
   const datasetStore = getDatasetContext();
+  $: selectRowsSchema = $datasetStore.selectRowsSchema;
 
   // Find the keyword span paths under this field.
   $: keywordSpanPaths = visibleKeywordSpanFields.map(f => serializePath(f.path));
@@ -81,21 +86,41 @@
     isHighlightBolded: boolean;
 
     hoverInfo: SpanHoverNamedValue[];
+    // Whether the hover matches any path in this render span. Used for highlighting.
+    isHovered: boolean;
+    // Whether this render span is the first matching span for the hovered span. This is used for
+    // showing the tooltip only on the first matching path.
+    isFirstHover: boolean;
   }
+
+  // Span hover tracking.
+  let pathsHovered: Set<string> = new Set();
+  const spanMouseEnter = (renderSpan: RenderSpan) => {
+    renderSpan.paths.forEach(path => pathsHovered.add(path));
+    pathsHovered = pathsHovered;
+  };
+  const spanMouseLeave = (renderSpan: RenderSpan) => {
+    renderSpan.paths.forEach(path => pathsHovered.delete(path));
+    pathsHovered = pathsHovered;
+  };
 
   // Map the merged spans to the information needed to render each span.
   let spanRenderInfos: RenderSpan[];
   $: {
     spanRenderInfos = [];
+    // Keep a list of paths seen so we don't show the same information twice.
+    const pathsProcessed: Set<string> = new Set();
     for (const mergedSpan of mergedSpans) {
-      const isBolded = keywordSpanPaths.some(
-        keywordPath => mergedSpan.originalSpans[keywordPath] != null
-      );
-      const isUnderlined = labelSpanPaths.some(
-        labelPath => mergedSpan.originalSpans[labelPath] != null
-      );
-      // Map field names to all their values.
-      const fieldToValue: {[fieldName: string]: DataTypeCasted} = {};
+      // Keep track of the paths that haven't been seen before. This is where we'll show metadata
+      // and hover info.
+      const newPaths: string[] = [];
+      for (const mergedSpanPath of mergedSpan.paths) {
+        if (pathsProcessed.has(mergedSpanPath)) continue;
+        newPaths.push(mergedSpanPath);
+        pathsProcessed.add(mergedSpanPath);
+      }
+
+      const hoverInfo: SpanHoverNamedValue[] = [];
       // Compute the maximum score for all original spans matching this render span to choose the
       // color.
       let maxScore = -Infinity;
@@ -113,36 +138,76 @@
             const value = L.value(valueNode);
             if (value == null) continue;
 
-            if (valueField.signal?.signal_name === 'concept_score') {
-              fieldToValue[valueField.path.at(-1)!] = value;
-            } else {
-              // Use the path below the displayed field as the field name.
-              fieldToValue[serializePath(valueField.path.slice(field.path.length))] = value;
-            }
-
             if (valueField.dtype === 'float32') {
               const floatValue = L.value<'float32'>(valueNode);
               if (floatValue != null) {
                 maxScore = Math.max(maxScore, floatValue);
               }
             }
+
+            // Add extra metadata. If this is a path that we've already seen before, ignore it as
+            // the value will be rendered alongside the first path.
+            const originalPath = serializePath(L.path(originalSpan as LilacValueNode)!);
+            if (!newPaths.includes(originalPath)) {
+              continue;
+            }
+
+            if (valueField.signal?.signal_name === 'concept_score') {
+              const signal = valueField.signal as ConceptScoreSignal;
+              hoverInfo.push({
+                name: `${signal.namespace}/${signal.concept_name}`,
+                value,
+                isConcept: true
+              });
+            } else {
+              const name = serializePath(valueField.path.slice(field.path.length));
+              hoverInfo.push({
+                name,
+                value
+              });
+            }
           }
         }
       }
 
-      // Show all float values in the hover tooltip.
-      const hoverInfo: SpanHoverNamedValue[] = Object.entries(fieldToValue).map(
-        ([fieldName, value]) => ({name: fieldName, value})
+      // Add keyword hover info.
+      let isKeywordSpan = false;
+      if (selectRowsSchema?.data?.schema != null) {
+        for (const keywordSpanPath of keywordSpanPaths) {
+          if (mergedSpan.originalSpans[keywordSpanPath] != null) {
+            isKeywordSpan = true;
+            const field = getField(
+              selectRowsSchema.data.schema as LilacSchema,
+              deserializePath(keywordSpanPath).slice(0, -1)
+            );
+            const signal = field?.signal as SubstringSignal;
+            hoverInfo.push({name: 'keyword', value: signal.query, isKeywordSearch: true});
+          }
+        }
+      }
+
+      const isLabeled = labelSpanPaths.some(
+        labelPath => mergedSpan.originalSpans[labelPath] != null
       );
+      const isHovered = mergedSpan.paths.some(path => pathsHovered.has(path));
+
+      // The rendered span is a first hover if there is a new path that matches a specific render
+      // span that is hovered.
+      const isFirstHover =
+        isHovered &&
+        newPaths.length > 0 &&
+        Array.from(pathsHovered).some(pathHovered => newPaths.includes(pathHovered));
 
       spanRenderInfos.push({
         backgroundColor: colorFromScore(maxScore),
-        isBlackBolded: isBolded,
-        isHighlightBolded: isUnderlined,
+        isBlackBolded: isKeywordSpan,
+        isHighlightBolded: isLabeled,
         hoverInfo,
         paths: mergedSpan.paths,
         text: mergedSpan.text,
-        originalSpans: mergedSpan.originalSpans
+        originalSpans: mergedSpan.originalSpans,
+        isHovered,
+        isFirstHover
       });
     }
   }
@@ -159,20 +224,6 @@
       }
     }
   }
-
-  // Span hover.
-  let pathsHovered: Set<string> = new Set();
-  const spanMouseEnter = (renderSpan: RenderSpan) => {
-    renderSpan.paths.forEach(path => pathsHovered.add(path));
-    pathsHovered = pathsHovered;
-  };
-  const spanMouseLeave = (renderSpan: RenderSpan) => {
-    renderSpan.paths.forEach(path => pathsHovered.delete(path));
-    pathsHovered = pathsHovered;
-  };
-  const isHovered = (pathsHovered: Set<string>, renderSpan: RenderSpan): boolean => {
-    return renderSpan.paths.some(path => pathsHovered.has(path));
-  };
 
   // Span selection via a click.
   let selectedSpan: RenderSpan | undefined;
@@ -210,14 +261,16 @@
 
 <div class="relative mb-4 mr-2 whitespace-pre-wrap">
   {#each spanRenderInfos as renderSpan}
-    {@const hovered = isHovered(pathsHovered, renderSpan)}
     <span
-      use:spanHover={renderSpan.hoverInfo}
+      use:spanHover={{namedValues: renderSpan.hoverInfo, isHovered: renderSpan.isFirstHover}}
       class="hover:cursor-poiner highlight-span text-sm leading-5"
       class:hover:cursor-pointer={visibleSpanFields.length > 0}
       class:font-bold={renderSpan.isBlackBolded}
-      style:color={renderSpan.isHighlightBolded ? LABELED_TEXT_COLOR : ''}
-      style:background-color={!hovered
+      class:font-medium={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded}
+      style:color={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded
+        ? LABELED_TEXT_COLOR
+        : ''}
+      style:background-color={!renderSpan.isHovered
         ? renderSpan.backgroundColor
         : colorFromOpacity(spanHoverOpacity)}
       on:mouseenter={() => spanMouseEnter(renderSpan)}

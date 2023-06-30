@@ -59,6 +59,7 @@ export type { SortOrder } from './models/SortOrder';
 export type { SortResult } from './models/SortResult';
 export type { SourcesList } from './models/SourcesList';
 export type { StatsResult } from './models/StatsResult';
+export type { SubstringSignal } from './models/SubstringSignal';
 export type { TaskInfo } from './models/TaskInfo';
 export type { TaskManifest } from './models/TaskManifest';
 export type { TaskStatus } from './models/TaskStatus';
