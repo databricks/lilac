@@ -21,15 +21,22 @@
     $groupsQuery.data != null ? ($groupsQuery.data.counts as [LeafValue, number][]) : null;
   $: stats = $statsQuery.data != null ? $statsQuery.data : null;
 
-  $: bins =
-    $groupsQuery.data != null
-      ? ($groupsQuery.data.bins as [string, number | null, number | null][])
-      : null;
+  let bins: Record<string, [number | null, number | null]> | null = null;
+  $: {
+    if ($groupsQuery.data?.bins != null) {
+      bins = {};
+      for (const [binName, start, end] of Object.values($groupsQuery.data.bins)) {
+        bins[binName] = [start, end];
+      }
+    } else {
+      bins = null;
+    }
+  }
 
-  function rowClicked(value: LeafValue, index: number) {
+  function rowClicked(value: LeafValue) {
     if (value == null) return;
     if (bins != null) {
-      const [, min, max] = bins[index];
+      const [min, max] = bins[value.toString()];
       if (min != null) {
         const filter: BinaryFilter = {path: field.path, op: 'greater_equal', value: min};
         store.addFilter(filter);
@@ -107,12 +114,7 @@
     <SkeletonText paragraph width="50%" />
   {:else if counts.length > 0}
     <div class="mt-4">
-      <Histogram
-        {counts}
-        {bins}
-        {field}
-        on:row-click={e => rowClicked(e.detail.value, e.detail.index)}
-      />
+      <Histogram {counts} {bins} {field} on:row-click={e => rowClicked(e.detail.value)} />
     </div>
   {/if}
 </div>

@@ -31,7 +31,7 @@
 
   const datasetViewStore = getDatasetViewContext();
 
-  $: formattedValue = formatValue(filter.value || '');
+  $: formattedValue = formatValue(filter.value || 'false');
   $: path = deserializePath(filter.path);
   $: tooltip = `${serializePath(filter.path)} ${FILTER_SHORTHANDS[filter.op]} ${formattedValue}`;
   $: shortenPath = path.at(-1);
