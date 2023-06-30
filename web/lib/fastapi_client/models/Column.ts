@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { ConceptLabelsSignal } from './ConceptLabelsSignal';
 import type { ConceptScoreSignal } from './ConceptScoreSignal';
 import type { Signal } from './Signal';
 import type { SubstringSignal } from './SubstringSignal';
@@ -15,6 +16,6 @@ import type { TextSignal } from './TextSignal';
 export type Column = {
     path: Array<string>;
     alias?: string;
-    signal_udf?: (ConceptScoreSignal | SubstringSignal | TextEmbeddingModelSignal | TextEmbeddingSignal | TextSignal | Signal);
+    signal_udf?: (ConceptScoreSignal | ConceptLabelsSignal | SubstringSignal | TextEmbeddingModelSignal | TextEmbeddingSignal | TextSignal | Signal);
 };
 

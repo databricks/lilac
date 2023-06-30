@@ -2,6 +2,7 @@ const SHOW_SCORE_THRESHOLD = 0.5;
 const MIN_SCORE_BG_OPACITY = 0.3;
 const MAX_SCORE_BG_OPACITY = 0.8;
 
+// This color was taken from the wikipedia link color.
 export const LABELED_TEXT_COLOR = '#3366cc';
 
 // This color comes from the highlight color of text in Chrome.

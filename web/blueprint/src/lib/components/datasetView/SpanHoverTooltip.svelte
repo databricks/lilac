@@ -17,13 +17,17 @@
 
   const pageWidth = window.innerWidth;
   let width = 0;
+
+  // Leave a single pixel gap between the tooltip and the span to allow the mouse to leave the span
+  // when moving upwards to another span.
+  const top = y - 1;
 </script>
 
 <div
   role="tooltip"
   class:hidden={namedValues.length === 0}
   class="absolute z-50 max-w-fit -translate-y-full break-words border border-gray-300 bg-white px-2 shadow-md"
-  style:top="{y}px"
+  style:top="{top}px"
   style:left="{Math.min(x, pageWidth - width - 20)}px"
   bind:clientWidth={width}
 >

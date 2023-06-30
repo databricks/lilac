@@ -5,7 +5,6 @@ import SpanHoverTooltip from './SpanHoverTooltip.svelte';
 export interface SpanHoverInfo {
   namedValues: SpanHoverNamedValue[];
   isHovered: boolean;
-  isConcept: boolean;
 }
 export function spanHover(element: HTMLSpanElement, spanHoverInfo: SpanHoverInfo) {
   let tooltipComponent: SvelteComponent | undefined;
