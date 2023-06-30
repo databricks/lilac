@@ -241,15 +241,20 @@ class DatasetDuckDB(Dataset):
     raise NotImplementedError('count is not yet implemented for DuckDB.')
 
   @override
-  def get_vector_store(self, path: PathTuple) -> VectorStore:
+  def get_vector_store(self, embedding: str, path: PathTuple) -> VectorStore:
     # Refresh the manifest to make sure we have the latest signal manifests.
     self.manifest()
 
+    if path[-1] != EMBEDDING_KEY:
+      path = (*path, embedding, PATH_WILDCARD, EMBEDDING_KEY)
+
     if path not in self._col_vector_stores:
-      manifest = next(
-        m for m in self._signal_manifests if schema_contains_path(m.data_schema, path))
-      if not manifest:
+      manifests = [m for m in self._signal_manifests if schema_contains_path(m.data_schema, path)]
+      if not manifests:
         raise ValueError(f'No embedding found for path {path}.')
+      if len(manifests) > 1:
+        raise ValueError(f'Multiple embeddings found for path {path}. Got: {manifests}')
+      manifest = manifests[0]
       if not manifest.embedding_filename_prefix:
         raise ValueError(f'Signal manifest for path {path} is not an embedding. '
                          f'Got signal manifest: {manifest}')
@@ -803,11 +808,11 @@ class DatasetDuckDB(Dataset):
         total_num_rows = len(df)
         key_prefixes = df[UUID_COLUMN]
 
-      signal = cast(Signal, topk_udf_col.signal_udf)
+      topk_signal = cast(TextEmbeddingModelSignal, topk_udf_col.signal_udf)
       # The input is an embedding.
-      vector_store = self.get_vector_store(topk_udf_col.path)
+      vector_store = self.get_vector_store(topk_signal.embedding, topk_udf_col.path)
       k = (limit or 0) + (offset or 0)
-      topk = signal.vector_compute_topk(k, vector_store, key_prefixes)
+      topk = topk_signal.vector_compute_topk(k, vector_store, key_prefixes)
       topk_uuids = list(dict.fromkeys([cast(str, key[0]) for key, _ in topk]))
 
       # Ignore all the other filters and filter DuckDB results only by the topk UUIDs.
@@ -930,7 +935,8 @@ class DatasetDuckDB(Dataset):
 
         if signal.compute_type in [SignalInputType.TEXT_EMBEDDING]:
           # The input is an embedding.
-          vector_store = self.get_vector_store(udf_col.path)
+          embedding_signal = cast(TextEmbeddingModelSignal, signal)
+          vector_store = self.get_vector_store(embedding_signal.embedding, udf_col.path)
           flat_keys = flatten_keys(df[UUID_COLUMN], input)
           signal_out = signal.vector_compute(flat_keys, vector_store)
           # Add progress.
@@ -1280,43 +1286,48 @@ class DatasetDuckDB(Dataset):
     binary_ops = set(BinaryOp)
     unary_ops = set(UnaryOp)
     list_ops = set(ListOp)
-    for filter in filters:
-      duckdb_path = self._leaf_path_to_duckdb_path(filter.path, manifest.data_schema)
+    for f in filters:
+      duckdb_path = self._leaf_path_to_duckdb_path(f.path, manifest.data_schema)
       select_str = _select_sql(duckdb_path, flatten=True, unnest=False)
-      is_array = any(subpath == PATH_WILDCARD for subpath in filter.path)
+      is_array = any(subpath == PATH_WILDCARD for subpath in f.path)
 
-      field = manifest.data_schema.get_field(filter.path)
-      if field.dtype and is_float(field.dtype):
-        # Ignore NaN values for float fields.
-        sql_filter_queries.append(f'NOT isnan({select_str})')
-      if filter.op in binary_ops:
-        sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
-        filter_val = cast(FeatureValue, filter.value)
+      nan_filter = ''
+      field = manifest.data_schema.get_field(f.path)
+      filter_nans = field.dtype and is_float(field.dtype)
+
+      if f.op in binary_ops:
+        sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, f.op)]
+        filter_val = cast(FeatureValue, f.value)
         if isinstance(filter_val, str):
           filter_val = f"'{filter_val}'"
         elif isinstance(filter_val, bytes):
           filter_val = _bytes_to_blob_literal(filter_val)
         else:
           filter_val = str(filter_val)
-        filter_query = (f'len(list_filter({select_str}, x -> x {sql_op} {filter_val})) > 0'
-                        if is_array else f'{select_str} {sql_op} {filter_val}')
-      elif filter.op in unary_ops:
-        if filter.op == UnaryOp.EXISTS:
+        if is_array:
+          nan_filter = 'NOT isnan(x) AND' if filter_nans else ''
+          filter_query = (f'len(list_filter({select_str}, '
+                          f'x -> {nan_filter} x {sql_op} {filter_val})) > 0')
+        else:
+          nan_filter = f'NOT isnan({select_str}) AND' if filter_nans else ''
+          filter_query = f'{nan_filter} {select_str} {sql_op} {filter_val}'
+      elif f.op in unary_ops:
+        if f.op == UnaryOp.EXISTS:
           filter_query = f'len({select_str}) > 0' if is_array else f'{select_str} IS NOT NULL'
         else:
-          raise ValueError(f'Unary op: {filter.op} is not yet supported')
-      elif filter.op in list_ops:
-        if filter.op == ListOp.IN:
-          filter_list_val = cast(FeatureListValue, filter.value)
+          raise ValueError(f'Unary op: {f.op} is not yet supported')
+      elif f.op in list_ops:
+        if f.op == ListOp.IN:
+          filter_list_val = cast(FeatureListValue, f.value)
           if not isinstance(filter_list_val, list):
             raise ValueError('filter with array value can only use the IN comparison')
           wrapped_filter_val = [f"'{part}'" for part in filter_list_val]
           filter_val = f'({", ".join(wrapped_filter_val)})'
           filter_query = f'{select_str} IN {filter_val}'
         else:
-          raise ValueError(f'List op: {filter.op} is not yet supported')
+          raise ValueError(f'List op: {f.op} is not yet supported')
       else:
-        raise ValueError(f'Invalid filter op: {filter.op}')
+        raise ValueError(f'Invalid filter op: {f.op}')
       sql_filter_queries.append(filter_query)
     return sql_filter_queries
 

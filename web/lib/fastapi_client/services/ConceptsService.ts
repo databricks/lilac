@@ -4,10 +4,12 @@
 import type { Concept } from '../models/Concept';
 import type { ConceptColumnInfo } from '../models/ConceptColumnInfo';
 import type { ConceptInfo } from '../models/ConceptInfo';
+import type { ConceptMetrics } from '../models/ConceptMetrics';
 import type { ConceptModelResponse } from '../models/ConceptModelResponse';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
 import type { CreateConceptOptions } from '../models/CreateConceptOptions';
 import type { MergeConceptDraftOptions } from '../models/MergeConceptDraftOptions';
+import type { MetricsBody } from '../models/MetricsBody';
 import type { ScoreBody } from '../models/ScoreBody';
 import type { ScoreResponse } from '../models/ScoreResponse';
 
@@ -216,6 +218,38 @@ export class ConceptsService {
             query: {
                 'sync_model': syncModel,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Compute Metrics
+     * Compute the metrics for the concept model.
+     * @param namespace
+     * @param conceptName
+     * @param embeddingName
+     * @param requestBody
+     * @returns ConceptMetrics Successful Response
+     * @throws ApiError
+     */
+    public static computeMetrics(
+        namespace: string,
+        conceptName: string,
+        embeddingName: string,
+        requestBody: MetricsBody,
+    ): CancelablePromise<ConceptMetrics> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/concepts/{namespace}/{concept_name}/{embedding_name}/compute_metrics',
+            path: {
+                'namespace': namespace,
+                'concept_name': conceptName,
+                'embedding_name': embeddingName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

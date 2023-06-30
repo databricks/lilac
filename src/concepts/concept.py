@@ -1,4 +1,5 @@
 """Defines the concept and the concept models."""
+import dataclasses
 import random
 from typing import Iterable, Literal, Optional, Union
 
@@ -6,6 +7,7 @@ import numpy as np
 from pydantic import BaseModel, validator
 from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import KFold, cross_val_score
 
 from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
@@ -90,12 +92,15 @@ class Concept(BaseModel):
     return list(sorted(drafts))
 
 
-class LogisticEmbeddingModel(BaseModel):
-  """A model that uses logistic regression with embeddings."""
+class ConceptMetrics(BaseModel):
+  """Metrics for a concept."""
+  # The average ROC AUC for the concept.
+  avg_roc_auc: float
 
-  class Config:
-    arbitrary_types_allowed = True
-    underscore_attrs_are_private = True
+
+@dataclasses.dataclass
+class LogisticEmbeddingModel:
+  """A model that uses logistic regression with embeddings."""
 
   version: int = -1
 
@@ -124,6 +129,12 @@ class LogisticEmbeddingModel(BaseModel):
         f'({len(labels)})')
     self._model.fit(embeddings, labels, sample_weights)
 
+  def compute_metrics(self, embeddings: np.ndarray, labels: list[bool]) -> ConceptMetrics:
+    """Return the concept metrics."""
+    fold = KFold(n_splits=5, shuffle=True, random_state=42)
+    scores = cross_val_score(self._model, embeddings, labels, scoring='roc_auc', cv=fold, n_jobs=-1)
+    return ConceptMetrics(avg_roc_auc=np.mean(scores))
+
 
 def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
   """Get the examples in the provided draft by overriding the main draft."""
@@ -150,7 +161,8 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
   return draft_examples[draft]
 
 
-class ConceptModel(BaseModel):
+@dataclasses.dataclass
+class ConceptModel:
   """A concept model. Stores all concept model drafts and manages syncing."""
   # The concept that this model is for.
   namespace: str
@@ -160,20 +172,23 @@ class ConceptModel(BaseModel):
   embedding_name: str
   version: int = -1
 
+  column_info: Optional[ConceptColumnInfo] = None
+
   # The following fields are excluded from JSON serialization, but still pickleable.
   # Maps a concept id to the embeddings.
-  _embeddings: dict[str, np.ndarray] = {}
-  _logistic_models: dict[DraftId, LogisticEmbeddingModel] = {}
+  _embeddings: dict[str, np.ndarray] = dataclasses.field(default_factory=dict)
+  _logistic_models: dict[DraftId, LogisticEmbeddingModel] = dataclasses.field(default_factory=dict)
   _negative_vectors: Optional[np.ndarray] = None
 
-  class Config:
-    arbitrary_types_allowed = True
-    underscore_attrs_are_private = True
+  def __post_init__(self) -> None:
+    if self.column_info:
+      self.column_info.path = normalize_path(self.column_info.path)
+      self._calibrate_on_dataset(self.column_info)
 
-  def calibrate_on_dataset(self, column_info: ConceptColumnInfo) -> None:
+  def _calibrate_on_dataset(self, column_info: ConceptColumnInfo) -> None:
     """Calibrate the model on the embeddings in the provided vector store."""
     db = get_dataset(column_info.namespace, column_info.name)
-    vector_store = db.get_vector_store(normalize_path(column_info.path))
+    vector_store = db.get_vector_store(self.embedding_name, normalize_path(column_info.path))
     keys = vector_store.keys()
     num_samples = min(column_info.num_negative_examples, len(keys))
     sample_keys = random.sample(keys, num_samples)
@@ -201,12 +216,20 @@ class ConceptModel(BaseModel):
   def _get_logistic_model(self, draft: DraftId) -> LogisticEmbeddingModel:
     """Get the logistic model for the provided draft."""
     if draft not in self._logistic_models:
-      self._logistic_models[draft] = LogisticEmbeddingModel(
-        namespace=self.namespace,
-        concept_name=self.concept_name,
-        embedding_name=self.embedding_name,
-        version=-1)
+      self._logistic_models[draft] = LogisticEmbeddingModel()
     return self._logistic_models[draft]
+
+  def compute_metrics(self, concept: Concept) -> ConceptMetrics:
+    """Compute the metrics for the provided concept using the model."""
+    examples = draft_examples(concept, DRAFT_MAIN)
+    embeddings = np.array([self._embeddings[id] for id in examples.keys()])
+    labels = [example.label for example in examples.values()]
+    if self._negative_vectors is not None:
+      num_implicit_labels = len(self._negative_vectors)
+      embeddings = np.concatenate([self._negative_vectors, embeddings])
+      labels = [False] * num_implicit_labels + labels
+    model = self._get_logistic_model(DRAFT_MAIN)
+    return model.compute_metrics(embeddings, labels)
 
   def sync(self, concept: Concept) -> bool:
     """Update the model with the latest labeled concept data."""

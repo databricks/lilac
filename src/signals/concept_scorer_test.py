@@ -116,7 +116,7 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
   # Explicitly sync the model with the concept.
   model = ConceptModel(
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-  model_db.sync(model, column_info=None)
+  model_db.sync(model)
 
   scores = cast(list[float], list(signal.compute(['a new data point', 'not in concept'])))
   assert scores[0] > 0 and scores[0] < 1
@@ -135,6 +135,8 @@ def test_concept_model_with_dataset_score(concept_db_cls: Type[ConceptDB],
     UUID_COLUMN: '2',
     'text': 'hello2.',
   }])
+
+  dataset.compute_signal(TestEmbedding(), 'text')
 
   concept_db = concept_db_cls()
   model_db = model_db_cls(concept_db)
@@ -157,7 +159,7 @@ def test_concept_model_with_dataset_score(concept_db_cls: Type[ConceptDB],
   # Explicitly sync the model with the concept.
   model = ConceptModel(
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-  model_db.sync(model, column_info)
+  model_db.sync(model)
 
   scores = cast(list[float],
                 list(signal.compute(['a new data point', 'in concept', 'not in concept'])))
@@ -188,7 +190,7 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
   # Explicitly sync the model with the concept.
   model = ConceptModel(
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-  model_db.sync(model, column_info=None)
+  model_db.sync(model)
 
   vector_store = NumpyVectorStore()
   embeddings = np.array([
@@ -224,7 +226,7 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
   # Explicitly sync the model with the concept.
   model = ConceptModel(
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-  model_db.sync(model, column_info=None)
+  model_db.sync(model)
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],
                    np.array([[0.1, 0.2, 0.3], [0.1, 0.87, 0.0], [1.0, 0.0, 0.0]]))
@@ -273,7 +275,7 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB],
   # Explicitly sync the model with the concept.
   model = ConceptModel(
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-  model_db.sync(model, column_info=None)
+  model_db.sync(model)
 
   vector_store = NumpyVectorStore()
   vector_store.add([('1',), ('2',), ('3',)],

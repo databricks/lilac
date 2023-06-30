@@ -1,7 +1,16 @@
 <script lang="ts">
+  import {queryConcept} from '$lib/queries/conceptQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getSearches} from '$lib/view_utils';
-  import {formatValue, type Search, type SearchType, type WebManifest} from '$lilac';
+  import {
+    formatValue,
+    type ConceptQuery,
+    type Search,
+    type SearchType,
+    type WebManifest
+  } from '$lilac';
+  import {Modal, SkeletonText} from 'carbon-components-svelte';
+  import ConceptView from '../concepts/ConceptView.svelte';
   import FilterPill from './FilterPill.svelte';
   import SearchPill from './SearchPill.svelte';
 
@@ -9,6 +18,10 @@
   export let manifest: WebManifest | undefined;
 
   let datasetViewStore = getDatasetViewContext();
+  let openedConcept: {namespace: string; name: string} | null = null;
+  $: concept = openedConcept
+    ? queryConcept(openedConcept.namespace, openedConcept.name)
+    : undefined;
 
   $: searches = getSearches($datasetViewStore);
 
@@ -34,6 +47,13 @@
       searchesByType[search.query.type].push(search);
     }
   }
+
+  function openSearchPill(search: Search) {
+    if (search.query.type === 'concept') {
+      const conceptQuery = search.query as ConceptQuery;
+      openedConcept = {namespace: conceptQuery.concept_namespace, name: conceptQuery.concept_name};
+    }
+  }
 </script>
 
 <div class="m-4 flex items-center justify-between">
@@ -46,7 +66,7 @@
 
           <div class="flex flex-row gap-x-1">
             {#each searchesByType[searchType] as search}
-              <SearchPill {search} />
+              <SearchPill {search} on:click={() => openSearchPill(search)} />
             {/each}
           </div>
         </div>
@@ -70,6 +90,18 @@
     {/if}
   </div>
 </div>
+
+{#if openedConcept}
+  <Modal open modalHeading="Concept" passiveModal on:close={() => (openedConcept = null)}>
+    {#if $concept?.isLoading}
+      <SkeletonText />
+    {:else if $concept?.isError}
+      <p>{$concept.error.message}</p>
+    {:else if $concept?.isSuccess}
+      <ConceptView concept={$concept.data} />
+    {/if}
+  </Modal>
+{/if}
 
 <style lang="postcss">
   .filter-group {

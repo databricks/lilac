@@ -151,6 +151,8 @@
       ? `${field.repeated_field.dtype}[]`
       : 'object');
   $: tooltip = `Data type: ${dtypeTooltip}${signalTooltip}`;
+
+  $: isExpandable = isSortableField(field) && !isPreview;
 </script>
 
 <div class="border-gray-300" class:border-b={!isSignal}>
@@ -195,12 +197,15 @@
     </div>
     <button
       class="ml-2 grow cursor-pointer truncate whitespace-nowrap text-left text-gray-900"
+      class:cursor-default={!isExpandable}
       style:line-height="3rem"
       on:click={() => {
-        if (expandedDetails) {
-          datasetViewStore.removeExpandedColumn(path);
-        } else {
-          datasetViewStore.addExpandedColumn(path);
+        if (isExpandable) {
+          if (expandedDetails) {
+            datasetViewStore.removeExpandedColumn(path);
+          } else {
+            datasetViewStore.addExpandedColumn(path);
+          }
         }
       }}
     >
@@ -278,7 +283,7 @@
           })}
       />
     {/if}
-    {#if isSortableField(field) && !isPreview}
+    {#if isExpandable}
       <div class="stats-button flex">
         <Button
           isSelected={expandedDetails}

@@ -436,20 +436,24 @@ class ConceptModelDBSuite:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
     model = _make_test_concept_model(concept_db)
-    model_db.sync(model, column_info=None)
+    model_db.sync(model)
     retrieved_model = model_db.get(
       namespace='test', concept_name='test_concept', embedding_name='test_embedding')
     if not retrieved_model:
       retrieved_model = model_db.create(
         namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-    assert retrieved_model == model
+    assert retrieved_model.namespace == model.namespace
+    assert retrieved_model.concept_name == model.concept_name
+    assert retrieved_model.embedding_name == model.embedding_name
+    assert retrieved_model.version == model.version
+    assert retrieved_model.column_info == model.column_info
 
   def test_sync_model(self, concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB],
                       mocker: MockerFixture) -> None:
 
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
-    logistic_model = TestLogisticModel(embedding_name='test_embedding')
+    logistic_model = TestLogisticModel()
     score_embeddings_mock = mocker.spy(TestLogisticModel, 'score_embeddings')
     fit_mock = mocker.spy(TestLogisticModel, 'fit')
 
@@ -459,7 +463,7 @@ class ConceptModelDBSuite:
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 0
 
-    model_db.sync(model, column_info=None)
+    model_db.sync(model)
 
     assert model_db.in_sync(model) is True
     assert score_embeddings_mock.call_count == 0
@@ -471,9 +475,9 @@ class ConceptModelDBSuite:
     model_db = model_db_cls(concept_db)
     score_embeddings_mock = mocker.spy(TestLogisticModel, 'score_embeddings')
     fit_mock = mocker.spy(TestLogisticModel, 'fit')
-    logistic_model = TestLogisticModel(embedding_name='test_embedding')
+    logistic_model = TestLogisticModel()
     model = _make_test_concept_model(concept_db, logistic_models={DRAFT_MAIN: logistic_model})
-    model_db.sync(model, column_info=None)
+    model_db.sync(model)
     assert model_db.in_sync(model) is True
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 1
@@ -495,7 +499,7 @@ class ConceptModelDBSuite:
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 1
 
-    model_db.sync(model, column_info=None)
+    model_db.sync(model)
     assert model_db.in_sync(model) is True
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 2
@@ -519,14 +523,14 @@ class ConceptModelDBSuite:
     model_db = model_db_cls(concept_db)
     score_embeddings_mock = mocker.spy(TestLogisticModel, 'score_embeddings')
     fit_mock = mocker.spy(TestLogisticModel, 'fit')
-    logistic_model = TestLogisticModel(embedding_name='test_embedding')
-    draft_model = TestLogisticModel(embedding_name='test_embedding')
+    main_model = TestLogisticModel()
+    draft_model = TestLogisticModel()
     model = _make_test_concept_model(
       concept_db, logistic_models={
-        DRAFT_MAIN: logistic_model,
+        DRAFT_MAIN: main_model,
         'test_draft': draft_model
       })
-    model_db.sync(model, column_info=None)
+    model_db.sync(model)
     assert model_db.in_sync(model) is True
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 1
@@ -547,7 +551,7 @@ class ConceptModelDBSuite:
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 1
 
-    model_db.sync(model, column_info=None)
+    model_db.sync(model)
     assert model_db.in_sync(model) is True
     assert score_embeddings_mock.call_count == 0
     assert fit_mock.call_count == 3  # Fit is called on both the draft, and main.
@@ -575,7 +579,7 @@ class ConceptModelDBSuite:
     assert called_draft_weights == pytest.approx([1.0, 1 / 3, 1 / 3, 1 / 3])
 
     # The main model was fit without the data from the draft.
-    assert called_model == draft_model
+    assert called_model == main_model
     np.testing.assert_array_equal(
       called_embeddings, np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']]))
     assert called_labels == [False, True]
@@ -586,7 +590,7 @@ class ConceptModelDBSuite:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
     model = _make_test_concept_model(concept_db)
-    model_db.sync(model, column_info=None)
+    model_db.sync(model)
 
     # Edit the concept.
     concept_db.edit('test', 'test_concept',
@@ -596,5 +600,5 @@ class ConceptModelDBSuite:
     assert model_db.in_sync(model) is False
 
     with pytest.raises(ValueError, match='Example "unknown text" not in embedding map'):
-      model_db.sync(model, column_info=None)
-      model_db.sync(model, column_info=None)
+      model_db.sync(model)
+      model_db.sync(model)

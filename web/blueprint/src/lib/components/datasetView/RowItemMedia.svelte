@@ -47,8 +47,8 @@
   <div class="flex flex-row">
     <div class="flex w-full flex-col">
       <div
-        class="sticky top-0 z-10 w-full self-start border-neutral-200 bg-neutral-50 px-2 py-2
-               pb-2 font-mono font-medium text-neutral-500 shadow backdrop-blur-sm"
+        class="sticky top-0 z-10 w-full self-start border-t border-neutral-200 bg-neutral-100 px-2 py-2
+               pb-2 font-mono font-medium text-neutral-500"
       >
         {path.join('.') + suffix}
       </div>

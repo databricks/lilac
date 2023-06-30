@@ -11,7 +11,7 @@ from .concepts.concept import (
   DRAFT_MAIN,
   Concept,
   ConceptColumnInfo,
-  ConceptModel,
+  ConceptMetrics,
   DraftId,
   draft_examples,
 )
@@ -116,9 +116,18 @@ class ScoreResponse(BaseModel):
   model_synced: bool
 
 
+class ConceptModelInfo(BaseModel):
+  """Information about a concept model."""
+  namespace: str
+  concept_name: str
+  embedding_name: str
+  version: int
+  column_info: Optional[ConceptColumnInfo] = None
+
+
 class ConceptModelResponse(BaseModel):
   """Response body for the get_concept_model endpoint."""
-  model: ConceptModel
+  model: ConceptModelInfo
   model_synced: bool
 
 
@@ -138,10 +147,38 @@ def get_concept_model(namespace: str,
     model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name)
 
   if sync_model:
-    model_synced = DISK_CONCEPT_MODEL_DB.sync(model, column_info=None)
+    model_synced = DISK_CONCEPT_MODEL_DB.sync(model)
   else:
     model_synced = DISK_CONCEPT_MODEL_DB.in_sync(model)
-  return ConceptModelResponse(model=model, model_synced=model_synced)
+  model_info = ConceptModelInfo(
+    namespace=model.namespace,
+    concept_name=model.concept_name,
+    embedding_name=model.embedding_name,
+    version=model.version,
+    column_info=model.column_info)
+  return ConceptModelResponse(model=model_info, model_synced=model_synced)
+
+
+class MetricsBody(BaseModel):
+  """Request body for the compute_metrics endpoint."""
+  column_info: Optional[ConceptColumnInfo] = None
+
+
+@router.post('/{namespace}/{concept_name}/{embedding_name}/compute_metrics')
+def compute_metrics(namespace: str, concept_name: str, embedding_name: str,
+                    body: MetricsBody) -> ConceptMetrics:
+  """Compute the metrics for the concept model."""
+  concept = DISK_CONCEPT_DB.get(namespace, concept_name)
+  if not concept:
+    raise HTTPException(
+      status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
+
+  column_info = body.column_info
+  model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name, column_info)
+  if model is None:
+    model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name, column_info)
+  model_updated = DISK_CONCEPT_MODEL_DB.sync(model)
+  return model.compute_metrics(concept)
 
 
 @router.post('/{namespace}/{concept_name}/{embedding_name}/score', response_model_exclude_none=True)
@@ -154,10 +191,10 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
   if model is None:
     model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name)
-  models_updated = DISK_CONCEPT_MODEL_DB.sync(model, column_info=None)
+  model_updated = DISK_CONCEPT_MODEL_DB.sync(model)
   # TODO(smilkov): Support images.
   texts = [example.text or '' for example in body.examples]
-  return ScoreResponse(scores=model.score(body.draft, texts), model_synced=models_updated)
+  return ScoreResponse(scores=model.score(body.draft, texts), model_synced=model_updated)
 
 
 class Examples(OpenAISchema):

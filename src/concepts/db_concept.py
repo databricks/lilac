@@ -129,7 +129,7 @@ class ConceptModelDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def _save(self, model: ConceptModel, column_info: Optional[ConceptColumnInfo]) -> None:
+  def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
     pass
 
@@ -140,13 +140,14 @@ class ConceptModelDB(abc.ABC):
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
     return concept.version == model.version
 
-  def sync(self, model: ConceptModel, column_info: Optional[ConceptColumnInfo]) -> bool:
+  def sync(self, model: ConceptModel) -> bool:
     """Sync the concept model. Returns true if the model was updated."""
     concept = self._concept_db.get(model.namespace, model.concept_name)
     if not concept:
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
     model_updated = model.sync(concept)
-    self._save(model, column_info)
+    if model_updated:
+      self._save(model)
     return model_updated
 
   @abc.abstractmethod
@@ -210,10 +211,10 @@ class DiskConceptModelDB(ConceptModelDB):
     with open_file(concept_model_path, 'rb') as f:
       return pickle.load(f)
 
-  def _save(self, model: ConceptModel, column_info: Optional[ConceptColumnInfo]) -> None:
+  def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
     concept_model_path = _concept_model_path(model.namespace, model.concept_name,
-                                             model.embedding_name, column_info)
+                                             model.embedding_name, model.column_info)
     with open_file(concept_model_path, 'wb') as f:
       pickle.dump(model, f)
 
