@@ -77,8 +77,8 @@
     originalSpans: {[spanSet: string]: LilacValueNodeCasted<'string_span'>[]};
 
     backgroundColor: string;
-    isBolded: boolean;
-    isUnderlined: boolean;
+    isBlackBolded: boolean;
+    isHighlightBolded: boolean;
 
     hoverInfo: SpanHoverNamedValue[];
   }
@@ -137,8 +137,8 @@
 
       spanRenderInfos.push({
         backgroundColor: colorFromScore(maxScore),
-        isBolded,
-        isUnderlined,
+        isBlackBolded: isBolded,
+        isHighlightBolded: isUnderlined,
         hoverInfo,
         paths: mergedSpan.paths,
         text: mergedSpan.text,
@@ -215,8 +215,8 @@
       use:spanHover={renderSpan.hoverInfo}
       class="hover:cursor-poiner highlight-span text-sm leading-5"
       class:hover:cursor-pointer={visibleSpanFields.length > 0}
-      class:font-bold={renderSpan.isBolded}
-      class:underline={renderSpan.isUnderlined}
+      class:font-bold={renderSpan.isBlackBolded}
+      style:color={renderSpan.isHighlightBolded ? LABELED_TEXT_COLOR : ''}
       style:background-color={!hovered
         ? renderSpan.backgroundColor
         : colorFromOpacity(spanHoverOpacity)}

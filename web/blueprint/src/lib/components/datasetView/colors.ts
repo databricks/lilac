@@ -2,6 +2,8 @@ const SHOW_SCORE_THRESHOLD = 0.5;
 const MIN_SCORE_BG_OPACITY = 0.3;
 const MAX_SCORE_BG_OPACITY = 0.8;
 
+export const LABELED_TEXT_COLOR = '#3366cc';
+
 // This color comes from the highlight color of text in Chrome.
 export function colorFromOpacity(opacity: number) {
   return `rgba(180,215,255,${opacity})`;
