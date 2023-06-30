@@ -1,11 +1,15 @@
 """Utils for duckdb."""
 import duckdb
 
-from ..config import CONFIG
+from ..config import CONFIG, data_path
 
 
-def duckdb_gcs_setup(con: duckdb.DuckDBPyConnection) -> str:
-  """Setup DuckDB for GCS."""
+def duckdb_setup(con: duckdb.DuckDBPyConnection) -> str:
+  """Setup DuckDB. This includes setting up the extensions directory and GCS access."""
+  con.execute(f"""
+    SET extension_directory='{data_path()}';
+  """)
+
   con.install_extension('httpfs')
   con.load_extension('httpfs')
 

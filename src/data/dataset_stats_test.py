@@ -15,7 +15,7 @@ SIMPLE_ITEMS: list[Item] = [{
   'str': 'a',
   'int': 1,
   'bool': False,
-  'float': 3.0
+  'float': 3.0,
 }, {
   UUID_COLUMN: '2',
   'str': 'b',
@@ -28,6 +28,9 @@ SIMPLE_ITEMS: list[Item] = [{
   'int': 2,
   'bool': True,
   'float': 1.0
+}, {
+  UUID_COLUMN: '4',
+  'float': float('nan')
 }]
 
 
@@ -40,7 +43,7 @@ def test_simple_stats(make_test_data: TestDataMaker) -> None:
 
   result = dataset.stats(leaf_path='float')
   assert result == StatsResult(
-    path=('float',), total_count=3, approx_count_distinct=3, min_val=1.0, max_val=3.0)
+    path=('float',), total_count=4, approx_count_distinct=4, min_val=1.0, max_val=3.0)
 
   result = dataset.stats(leaf_path='bool')
   assert result == StatsResult(path=('bool',), total_count=3, approx_count_distinct=2)

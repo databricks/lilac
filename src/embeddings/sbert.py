@@ -6,6 +6,7 @@ import torch
 from sentence_transformers import SentenceTransformer
 from typing_extensions import override
 
+from ..config import data_path
 from ..schema import Item, RichData
 from ..signals.signal import TextEmbeddingSignal
 from ..signals.splitters.chunk_splitter import split_text
@@ -32,7 +33,8 @@ def _sbert() -> tuple[Optional[str], SentenceTransformer]:
     preferred_device = 'mps'
   elif not torch.backends.mps.is_built():
     log('MPS not available because the current PyTorch install was not built with MPS enabled.')
-  return preferred_device, SentenceTransformer(MODEL_NAME, device=preferred_device)
+  return preferred_device, SentenceTransformer(
+    MODEL_NAME, device=preferred_device, cache_folder=data_path())
 
 
 def _optimal_batch_size(preferred_device: Optional[str]) -> int:

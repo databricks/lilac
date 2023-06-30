@@ -105,3 +105,9 @@ def schema_from_df(df: pd.DataFrame, index_colname: str) -> SourceSchema:
     fields={
       **schema.fields, index_colname: field(dtype=index_dtype)
     }, num_items=len(df))
+
+
+def normalize_column_name(name: str) -> str:
+  """Normalize a column name."""
+  return name
+  #return name.replace(' ', '_').replace(':', '_').replace('.', '_')

@@ -78,6 +78,8 @@ class DataType(str, Enum):
 
   EMBEDDING = 'embedding'
 
+  NULL = 'null'
+
   def __repr__(self) -> str:
     return self.value
 
@@ -426,6 +428,8 @@ def dtype_to_arrow_schema(dtype: DataType) -> Union[pa.Schema, pa.DataType]:
         TEXT_SPAN_END_FEATURE: pa.int32()
       })
     })
+  elif dtype == DataType.NULL:
+    return pa.null()
   else:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
 
@@ -510,6 +514,8 @@ def arrow_dtype_to_dtype(arrow_dtype: pa.DataType) -> DataType:
     return DataType.BINARY
   elif pa.types.is_boolean(arrow_dtype):
     return DataType.BOOLEAN
+  elif arrow_dtype == pa.null():
+    return DataType.NULL
   else:
     raise ValueError(f'Can not convert arrow dtype "{arrow_dtype}" to our dtype')
 

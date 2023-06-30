@@ -55,6 +55,20 @@
 </script>
 
 {#if !hiddenProperties?.includes(path)}
+  {#if property.type === 'object'}
+    {#if property.description && showDescription}
+      <div class="description mb-4">
+        <SvelteMarkdown source={property.description} />
+      </div>
+    {/if}
+  {:else}
+    <div class="label text-s mb-2 font-medium text-gray-700">{label}</div>
+    {#if property.description && showDescription}
+      <div class="bx--label pb-2 text-xs text-gray-500">
+        {property.description}
+      </div>
+    {/if}
+  {/if}
   {#if customComponents[path]}
     <svelte:component
       this={customComponents[path]}
@@ -67,7 +81,7 @@
     <!-- Error -->
     <div class="text-red-600">{property.message}</div>
   {:else if property.enum}
-    <Select bind:selected={value} name={path} helperText={property.description} labelText={label}>
+    <Select bind:selected={value} name={path} labelText={label} hideLabel={true}>
       {#if !required}
         <SelectItem value={undefined} text={'None'} />
       {/if}
@@ -80,26 +94,25 @@
     <TextInput
       bind:value
       name={path}
-      helperText={property.description}
-      labelText={label}
       invalid={!!validation.length}
       invalidText={validationText}
+      labelText={label}
+      hideLabel={true}
       placeholder={!required ? '(optional)' : ''}
     />
   {:else if property.type == 'number'}
     <!-- Number Input -->
-    <NumberInput
-      bind:value
-      name={path}
-      helperText={property.description}
-      {label}
-      invalid={!value && required}
-    />
+    <NumberInput bind:value name={path} {label} hideLabel={true} invalid={!value && required} />
   {:else if property.type == 'boolean'}
     <!-- Boolean Input -->
     <div>
-      <Toggle labelA={'False'} labelB={'True'} labelText={label} bind:toggled={value} />
-      <span class="bx--form__helper-text">{property.description}</span>
+      <Toggle
+        labelA={'False'}
+        labelB={'True'}
+        labelText={label}
+        hideLabel={true}
+        bind:toggled={value}
+      />
     </div>
   {:else if property.type == 'array'}
     <!-- List of inputs -->
@@ -113,22 +126,20 @@
     />
   {:else if property.type == 'object'}
     <!-- Object -->
-    {#if property.description && showDescription}
-      <div class="description mb-4">
-        <SvelteMarkdown source={property.description} />
+    {@const properties = Object.keys(property.properties ?? {})}
+    {#each properties as key, i}
+      <div class:border-b={i < properties.length - 1} class="mt-4 border-gray-300">
+        <svelte:self
+          bind:value={value[key]}
+          path={path + '/' + key}
+          {schema}
+          {hiddenProperties}
+          {validationErrors}
+          {customComponents}
+          {rootValue}
+          required={property.required?.includes(key)}
+        />
       </div>
-    {/if}
-    {#each Object.keys(property.properties ?? {}) as key}
-      <svelte:self
-        bind:value={value[key]}
-        path={path + '/' + key}
-        {schema}
-        {hiddenProperties}
-        {validationErrors}
-        {customComponents}
-        {rootValue}
-        required={property.required?.includes(key)}
-      />
     {/each}
   {:else}
     Unknown property: {JSON.stringify(property)}
@@ -139,5 +150,8 @@
   :global(.description p) {
     @apply text-sm;
     margin: 1em 0px;
+  }
+  :global(.bx--toggle-input__label .bx--toggle__switch) {
+    @apply mt-0;
   }
 </style>

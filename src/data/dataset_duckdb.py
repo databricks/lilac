@@ -565,7 +565,8 @@ class DatasetDuckDB(Dataset):
     if is_ordinal(leaf.dtype):
       min_max_query = f"""
         SELECT MIN(val) AS minVal, MAX(val) AS maxVal
-        FROM (SELECT {inner_select} as val FROM t);
+        FROM (SELECT {inner_select} as val FROM t)
+        WHERE NOT isnan(val)
       """
       row = self._query(min_max_query)[0]
       result.min_val, result.max_val = row
@@ -595,7 +596,9 @@ class DatasetDuckDB(Dataset):
     named_bins = _normalize_bins(bins or leaf.bins)
     stats = self.stats(leaf_path)
 
-    if is_float(leaf.dtype) or is_integer(leaf.dtype):
+    leaf_is_float = is_float(leaf.dtype)
+    leaf_is_integer = is_integer(leaf.dtype)
+    if leaf_is_float or leaf_is_integer:
       if named_bins is None:
         # Auto-bin.
         named_bins = _auto_bins(stats, NUM_AUTO_BINS)
@@ -611,11 +614,14 @@ class DatasetDuckDB(Dataset):
       bin_index_col = 'col0'
       bin_min_col = 'col1'
       bin_max_col = 'col2'
+      is_nan_filter = f'NOT isnan({inner_val}) AND' if leaf_is_float else ''
+
       # We cast the field to `double` so bining works for both `float` and `int` fields.
       outer_select = f"""(
         SELECT {bin_index_col} FROM (
           VALUES {', '.join(sql_bounds)}
-        ) WHERE {inner_val}::DOUBLE >= {bin_min_col} AND {inner_val}::DOUBLE < {bin_max_col}
+        ) WHERE {is_nan_filter}
+           {inner_val}::DOUBLE >= {bin_min_col} AND {inner_val}::DOUBLE < {bin_max_col}
       )"""
     else:
       if stats.approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
@@ -630,6 +636,7 @@ class DatasetDuckDB(Dataset):
 
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
     filter_queries = self._create_where(manifest, filters, searches=[])
+
     where_query = ''
     if filter_queries:
       where_query = f"WHERE {' AND '.join(filter_queries)}"
@@ -1284,6 +1291,10 @@ class DatasetDuckDB(Dataset):
       select_str = _select_sql(duckdb_path, flatten=True, unnest=False)
       is_array = any(subpath == PATH_WILDCARD for subpath in filter.path)
 
+      field = manifest.data_schema.get_field(filter.path)
+      if field.dtype and is_float(field.dtype):
+        # Ignore NaN values for float fields.
+        sql_filter_queries.append(f'NOT isnan({select_str})')
       if filter.op in binary_ops:
         sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
         filter_val = cast(FeatureValue, filter.value)

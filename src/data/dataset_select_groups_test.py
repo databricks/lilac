@@ -167,6 +167,8 @@ def test_named_bins(make_test_data: TestDataMaker) -> None:
     'age': 80
   }, {
     'age': 55
+  }, {
+    'age': float('nan')
   }]
   dataset = make_test_data(items)
 
@@ -178,7 +180,7 @@ def test_named_bins(make_test_data: TestDataMaker) -> None:
       ('middle-aged', 50, 65),
       ('senior', 65, None),
     ])
-  assert result.counts == [('adult', 2), ('young', 1), ('senior', 1), ('middle-aged', 1)]
+  assert result.counts == [('adult', 2), ('young', 1), ('senior', 1), ('middle-aged', 1), (None, 1)]
 
 
 def test_schema_with_bins(make_test_data: TestDataMaker) -> None:
@@ -192,11 +194,13 @@ def test_schema_with_bins(make_test_data: TestDataMaker) -> None:
     'age': 80
   }, {
     'age': 55
+  }, {
+    'age': float('nan')
   }]
   data_schema = schema({
     UUID_COLUMN: 'string',
     'age': field(
-      'int32',
+      'float32',
       bins=[
         ('young', None, 20),
         ('adult', 20, 50),
@@ -207,7 +211,7 @@ def test_schema_with_bins(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(items, data_schema)
 
   result = dataset.select_groups(leaf_path='age')
-  assert result.counts == [('adult', 2), ('young', 1), ('senior', 1), ('middle-aged', 1)]
+  assert result.counts == [('adult', 2), ('young', 1), ('senior', 1), ('middle-aged', 1), (None, 1)]
 
 
 def test_filters(make_test_data: TestDataMaker) -> None:
@@ -304,10 +308,10 @@ def test_too_many_distinct(make_test_data: TestDataMaker, mocker: MockerFixture)
 
 
 def test_auto_bins_for_float(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{'feature': float(i)} for i in range(5)]
+  items: list[Item] = [{'feature': float(i)} for i in range(5)] + [{'feature': float('nan')}]
   dataset = make_test_data(items)
 
   res = dataset.select_groups('feature')
-  assert res.counts == [('0', 1), ('3', 1), ('7', 1), ('11', 1), ('14', 1)]
+  assert res.counts == [('0', 1), ('3', 1), ('7', 1), ('11', 1), ('14', 1), (None, 1)]
   assert res.too_many_distinct is False
   assert res.bins

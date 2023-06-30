@@ -38,6 +38,9 @@ body {
 .bx--btn {
   @apply rounded p-2;
 }
+button {
+  @apply rounded;
+}
 .bx--btn.bx--btn--primary {
   @apply text-white;
   background-color: #4550e8;

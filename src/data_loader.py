@@ -83,8 +83,10 @@ def process_source(base_dir: Union[str, pathlib.Path],
 
 def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
   """Sanitize items by removing NaNs and NaTs."""
-  string_fields = set(
-    [field_name for field_name, field in fields.items() if field.dtype == DataType.STRING])
+  replace_nan_fields = set([
+    field_name for field_name, field in fields.items()
+    if field.dtype == DataType.STRING or field.dtype == DataType.NULL
+  ])
   timestamp_fields = set(
     [field_name for field_name, field in fields.items() if field.dtype == DataType.TIMESTAMP])
   for item in items:
@@ -97,7 +99,7 @@ def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
       item[UUID_COLUMN] = uuid.uuid4().hex
 
     # Fix NaN string fields.
-    for name in string_fields:
+    for name in replace_nan_fields:
       item_value = item.get(name)
       if item_value and not isinstance(item_value, str):
         if math.isnan(item_value):

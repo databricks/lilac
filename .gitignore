@@ -8,6 +8,8 @@ cloned_repos/
 py_coverage_html/
 *.deps.txt
 requirements.txt
+# Cloned huggingface spaces repos for pushing demos.
+hf_spaces/
 
 # Mac OS.
 .DS_Store

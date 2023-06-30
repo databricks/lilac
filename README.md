@@ -30,6 +30,23 @@ npm run format --workspace web/lib
 npm run format --workspace web/blueprint
 ```
 
+##### Huggingface
+
+Huggingface spaces are used for PRs and for demos.
+
+Details can be found at [Managing Spaces with Github Actions](https://huggingface.co/docs/hub/spaces-github-actions)
+
+We use the HuggingFace git server, [follow the instructions](https://huggingface.co/docs/hub/repositories-getting-started) to use your git SSH keys to talk to HuggingFace.
+
+To deploy to huggingface:
+
+```
+poetry run python -m scripts.deploy_hf \
+  --hf_username=$HF_USERNAME \
+  --hf_space=$HF_ORG/$HF_SPACE \
+  --dataset=$DATASET_NAMESPACE/$DATASET_NAME
+```
+
 #### Deployment
 
 To build the docker image:
