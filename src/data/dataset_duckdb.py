@@ -1286,43 +1286,48 @@ class DatasetDuckDB(Dataset):
     binary_ops = set(BinaryOp)
     unary_ops = set(UnaryOp)
     list_ops = set(ListOp)
-    for filter in filters:
-      duckdb_path = self._leaf_path_to_duckdb_path(filter.path, manifest.data_schema)
+    for f in filters:
+      duckdb_path = self._leaf_path_to_duckdb_path(f.path, manifest.data_schema)
       select_str = _select_sql(duckdb_path, flatten=True, unnest=False)
-      is_array = any(subpath == PATH_WILDCARD for subpath in filter.path)
+      is_array = any(subpath == PATH_WILDCARD for subpath in f.path)
 
-      field = manifest.data_schema.get_field(filter.path)
-      if field.dtype and is_float(field.dtype):
-        # Ignore NaN values for float fields.
-        sql_filter_queries.append(f'NOT isnan({select_str})')
-      if filter.op in binary_ops:
-        sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, filter.op)]
-        filter_val = cast(FeatureValue, filter.value)
+      nan_filter = ''
+      field = manifest.data_schema.get_field(f.path)
+      filter_nans = field.dtype and is_float(field.dtype)
+
+      if f.op in binary_ops:
+        sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, f.op)]
+        filter_val = cast(FeatureValue, f.value)
         if isinstance(filter_val, str):
           filter_val = f"'{filter_val}'"
         elif isinstance(filter_val, bytes):
           filter_val = _bytes_to_blob_literal(filter_val)
         else:
           filter_val = str(filter_val)
-        filter_query = (f'len(list_filter({select_str}, x -> x {sql_op} {filter_val})) > 0'
-                        if is_array else f'{select_str} {sql_op} {filter_val}')
-      elif filter.op in unary_ops:
-        if filter.op == UnaryOp.EXISTS:
+        if is_array:
+          nan_filter = 'NOT isnan(x) AND' if filter_nans else ''
+          filter_query = (f'len(list_filter({select_str}, '
+                          f'x -> {nan_filter} x {sql_op} {filter_val})) > 0')
+        else:
+          nan_filter = f'NOT isnan({select_str}) AND' if filter_nans else ''
+          filter_query = f'{nan_filter} {select_str} {sql_op} {filter_val}'
+      elif f.op in unary_ops:
+        if f.op == UnaryOp.EXISTS:
           filter_query = f'len({select_str}) > 0' if is_array else f'{select_str} IS NOT NULL'
         else:
-          raise ValueError(f'Unary op: {filter.op} is not yet supported')
-      elif filter.op in list_ops:
-        if filter.op == ListOp.IN:
-          filter_list_val = cast(FeatureListValue, filter.value)
+          raise ValueError(f'Unary op: {f.op} is not yet supported')
+      elif f.op in list_ops:
+        if f.op == ListOp.IN:
+          filter_list_val = cast(FeatureListValue, f.value)
           if not isinstance(filter_list_val, list):
             raise ValueError('filter with array value can only use the IN comparison')
           wrapped_filter_val = [f"'{part}'" for part in filter_list_val]
           filter_val = f'({", ".join(wrapped_filter_val)})'
           filter_query = f'{select_str} IN {filter_val}'
         else:
-          raise ValueError(f'List op: {filter.op} is not yet supported')
+          raise ValueError(f'List op: {f.op} is not yet supported')
       else:
-        raise ValueError(f'Invalid filter op: {filter.op}')
+        raise ValueError(f'Invalid filter op: {f.op}')
       sql_filter_queries.append(filter_query)
     return sql_filter_queries
 
