@@ -609,11 +609,14 @@ class DatasetDuckDB(Dataset):
       bin_index_col = 'col0'
       bin_min_col = 'col1'
       bin_max_col = 'col2'
+      is_nan_filter = f'NOT isnan({inner_val}) AND' if leaf_is_float else ''
+
       # We cast the field to `double` so bining works for both `float` and `int` fields.
       outer_select = f"""(
         SELECT {bin_index_col} FROM (
           VALUES {', '.join(sql_bounds)}
-        ) WHERE {inner_val}::DOUBLE >= {bin_min_col} AND {inner_val}::DOUBLE < {bin_max_col}
+        ) WHERE {is_nan_filter}
+           {inner_val}::DOUBLE >= {bin_min_col} AND {inner_val}::DOUBLE < {bin_max_col}
       )"""
     else:
       if stats.approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
@@ -628,8 +631,7 @@ class DatasetDuckDB(Dataset):
 
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
     filter_queries = self._create_where(manifest, filters, searches=[])
-    if leaf_is_float:
-      filter_queries.append(f'NOT isnan({inner_val})')
+
     where_query = ''
     if filter_queries:
       where_query = f"WHERE {' AND '.join(filter_queries)}"
