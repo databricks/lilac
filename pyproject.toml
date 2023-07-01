@@ -82,11 +82,13 @@ build-backend = "poetry.core.masonry.api"
 [tool.pyright]
 include = ["src"]
 exclude = [
+  "**/node_modules",
   "**/__pycache__",
 ]
 
 [tool.ruff]
 line-length = 100
+src = ["src"]
 
 # Enable Pyflakes `F`, pycodestyle "W" and `E`, "Q" quotes, "I" imports.
 select = ["E", "W", "F", "Q", "I", "D"]

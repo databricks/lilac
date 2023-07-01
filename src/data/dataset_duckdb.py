@@ -768,8 +768,9 @@ class DatasetDuckDB(Dataset):
     for udf_col in udf_columns:
       if isinstance(udf_col.signal_udf, ConceptScoreSignal):
         # Set dataset information on the signal.
+        source_path = udf_col.path if udf_col.path[-1] != EMBEDDING_KEY else udf_col.path[:-3]
         udf_col.signal_udf.set_column_info(
-          ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=udf_col.path))
+          ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=source_path))
 
     # Decide on the exact sorting order.
     sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)

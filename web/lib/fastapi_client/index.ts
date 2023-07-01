@@ -41,6 +41,7 @@ export type { LoadDatasetOptions } from './models/LoadDatasetOptions';
 export type { LoadDatasetResponse } from './models/LoadDatasetResponse';
 export type { MergeConceptDraftOptions } from './models/MergeConceptDraftOptions';
 export type { MetricsBody } from './models/MetricsBody';
+export type { OverallScore } from './models/OverallScore';
 export type { Schema } from './models/Schema';
 export type { ScoreBody } from './models/ScoreBody';
 export type { ScoreExample } from './models/ScoreExample';

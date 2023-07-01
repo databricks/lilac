@@ -1,5 +1,6 @@
 """Sentence-BERT embeddings. Open-source models, designed to run on device."""
 import functools
+import os
 from typing import Iterable, Optional, cast
 
 import torch
@@ -34,7 +35,7 @@ def _sbert() -> tuple[Optional[str], SentenceTransformer]:
   elif not torch.backends.mps.is_built():
     log('MPS not available because the current PyTorch install was not built with MPS enabled.')
   return preferred_device, SentenceTransformer(
-    MODEL_NAME, device=preferred_device, cache_folder=data_path())
+    MODEL_NAME, device=preferred_device, cache_folder=os.path.join(data_path(), '.cache'))
 
 
 def _optimal_batch_size(preferred_device: Optional[str]) -> int:

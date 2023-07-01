@@ -108,7 +108,7 @@ class Signal(abc.ABC, BaseModel):
       keys: Optional iterable of row ids to restrict the search to.
 
     Returns
-      A list of (key, signal_output) tuples containing the "topk" items. Sparse signals should
+      A list of (key, signal_output) tuples containing the `topk` items. Sparse signals should
       return "None" for skipped inputs.
     """
     raise NotImplementedError

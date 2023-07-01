@@ -1,6 +1,7 @@
 """Defines the concept and the concept models."""
 import dataclasses
 import random
+from enum import Enum
 from typing import Iterable, Literal, Optional, Union
 
 import numpy as np
@@ -12,7 +13,7 @@ from sklearn.model_selection import KFold, cross_val_score
 from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
 from ..schema import Path, RichData, SignalInputType, normalize_path
-from ..signals.signal import TextEmbeddingSignal, get_signal_cls
+from ..signals.signal import EMBEDDING_KEY, TextEmbeddingSignal, get_signal_cls
 from ..utils import DebugTimer
 
 LOCAL_CONCEPT_NAMESPACE = 'local'
@@ -30,6 +31,13 @@ class ConceptColumnInfo(BaseModel):
   name: str
   # Path holding the text to use for negative examples.
   path: Path
+
+  @validator('path')
+  def _path_points_to_text_field(cls, path: Path) -> Path:
+    if path[-1] == EMBEDDING_KEY:
+      raise ValueError(
+        f'The path should point to the text field, not its embedding field. Provided path: {path}')
+    return path
 
   num_negative_examples = DEFAULT_NUM_NEG_EXAMPLES
 
@@ -92,10 +100,32 @@ class Concept(BaseModel):
     return list(sorted(drafts))
 
 
+class OverallScore(str, Enum):
+  """Enum holding the overall score."""
+  NOT_GOOD = 'not_good'
+  OK = 'ok'
+  GOOD = 'good'
+  VERY_GOOD = 'very_good'
+  GREAT = 'great'
+
+
+def _get_overall_score(f1_score: float) -> OverallScore:
+  if f1_score < 0.5:
+    return OverallScore.NOT_GOOD
+  if f1_score < 0.8:
+    return OverallScore.OK
+  if f1_score < 0.9:
+    return OverallScore.GOOD
+  if f1_score < 0.95:
+    return OverallScore.VERY_GOOD
+  return OverallScore.GREAT
+
+
 class ConceptMetrics(BaseModel):
   """Metrics for a concept."""
-  # The average ROC AUC for the concept.
-  avg_roc_auc: float
+  # The average F1 score for the concept computed using cross validation.
+  avg_f1_score: float
+  overall_score: OverallScore
 
 
 @dataclasses.dataclass
@@ -104,10 +134,10 @@ class LogisticEmbeddingModel:
 
   version: int = -1
 
-  # The following fields are excluded from JSON serialization, but still pickle-able.
-  # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
-  _model: LogisticRegression = LogisticRegression(
-    class_weight=None, C=30, tol=1e-5, warm_start=True, max_iter=1_000, n_jobs=-1)
+  def __post_init__(self) -> None:
+    # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
+    self._model = LogisticRegression(
+      class_weight=None, C=30, tol=1e-5, warm_start=True, max_iter=1_000, n_jobs=-1)
 
   def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
@@ -131,9 +161,10 @@ class LogisticEmbeddingModel:
 
   def compute_metrics(self, embeddings: np.ndarray, labels: list[bool]) -> ConceptMetrics:
     """Return the concept metrics."""
-    fold = KFold(n_splits=5, shuffle=True, random_state=42)
-    scores = cross_val_score(self._model, embeddings, labels, scoring='roc_auc', cv=fold, n_jobs=-1)
-    return ConceptMetrics(avg_roc_auc=np.mean(scores))
+    fold = KFold(n_splits=3, shuffle=True, random_state=42)
+    scores = cross_val_score(self._model, embeddings, labels, scoring='f1', cv=fold, n_jobs=-1)
+    avg_f1_score: float = np.mean(scores).item()
+    return ConceptMetrics(avg_f1_score=avg_f1_score, overall_score=_get_overall_score(avg_f1_score))
 
 
 def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
