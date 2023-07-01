@@ -119,7 +119,7 @@
         .flatMap(f => {
           // Recursively find the children without children
           const children = childDisplayFields(f);
-          // If any children are signal roots, dont add the field itself.
+          // If any children are signal roots, don't add the field itself.
           return children.some(c => isSignalRootField(c)) ? children : [f];
         })
 

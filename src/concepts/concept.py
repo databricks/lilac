@@ -104,7 +104,7 @@ class LogisticEmbeddingModel:
 
   version: int = -1
 
-  # The following fields are excluded from JSON serialization, but still pickleable.
+  # The following fields are excluded from JSON serialization, but still pickle-able.
   # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
   _model: LogisticRegression = LogisticRegression(
     class_weight=None, C=30, tol=1e-5, warm_start=True, max_iter=1_000, n_jobs=-1)
@@ -149,7 +149,7 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
     raise ValueError(
       f'Draft {draft} not found in concept. Found drafts: {list(draft_examples.keys())}')
 
-  # Map the text of the draft to its id so we can dedup with main.
+  # Map the text of the draft to its id so we can dedupe with main.
   draft_text_ids = {example.text: id for id, example in draft_examples[draft].items()}
 
   # Write each of examples from main to the draft examples only if the text does not appear in the
@@ -174,7 +174,7 @@ class ConceptModel:
 
   column_info: Optional[ConceptColumnInfo] = None
 
-  # The following fields are excluded from JSON serialization, but still pickleable.
+  # The following fields are excluded from JSON serialization, but still pickle-able.
   # Maps a concept id to the embeddings.
   _embeddings: dict[str, np.ndarray] = dataclasses.field(default_factory=dict)
   _logistic_models: dict[DraftId, LogisticEmbeddingModel] = dataclasses.field(default_factory=dict)

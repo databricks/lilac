@@ -278,7 +278,7 @@ class DatasetDuckDB(Dataset):
       manifest: DatasetManifest,
       compute_dependencies: Optional[bool] = False,
       task_step_id: Optional[TaskStepId] = None) -> tuple[PathTuple, Optional[TaskStepId]]:
-    """Run all the signals depedencies required to run this signal.
+    """Run all the signals dependencies required to run this signal.
 
     Args:
       signal: The signal to prepare.
@@ -616,7 +616,7 @@ class DatasetDuckDB(Dataset):
       bin_max_col = 'col2'
       is_nan_filter = f'NOT isnan({inner_val}) AND' if leaf_is_float else ''
 
-      # We cast the field to `double` so bining works for both `float` and `int` fields.
+      # We cast the field to `double` so binning works for both `float` and `int` fields.
       outer_select = f"""(
         SELECT {bin_index_col} FROM (
           VALUES {', '.join(sql_bounds)}
@@ -803,7 +803,7 @@ class DatasetDuckDB(Dataset):
     if topk_udf_col:
       key_prefixes: Optional[list[VectorKey]] = None
       if where_query:
-        # If there are filters, we need to send UUIDs to the topk query.
+        # If there are filters, we need to send UUIDs to the top k query.
         df = con.execute(f'SELECT {UUID_COLUMN} FROM t {where_query}').df()
         total_num_rows = len(df)
         key_prefixes = df[UUID_COLUMN]
@@ -815,7 +815,7 @@ class DatasetDuckDB(Dataset):
       topk = topk_signal.vector_compute_topk(k, vector_store, key_prefixes)
       topk_uuids = list(dict.fromkeys([cast(str, key[0]) for key, _ in topk]))
 
-      # Ignore all the other filters and filter DuckDB results only by the topk UUIDs.
+      # Ignore all the other filters and filter DuckDB results only by the top k UUIDs.
       uuid_filter = Filter(path=(UUID_COLUMN,), op=ListOp.IN, value=topk_uuids)
       filter_query = self._create_where(manifest, [uuid_filter])[0]
       where_query = f'WHERE {filter_query}'
@@ -1352,7 +1352,7 @@ class DatasetDuckDB(Dataset):
     return rows
 
   def _query_df(self, query: str) -> pd.DataFrame:
-    """Execute a query that returns a dataframe."""
+    """Execute a query that returns a data frame."""
     result = self._execute(query)
     df = _replace_nan_with_none(result.df())
     result.close()
