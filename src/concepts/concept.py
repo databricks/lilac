@@ -202,17 +202,16 @@ class LogisticEmbeddingModel:
       y_pred = model.predict_proba(X_test)[:, 1]
       return y_test, y_pred
 
-    with DebugTimer('Cross validation'):
-      jobs: list[Callable] = []
-      for (train_index, test_index) in fold.split(embeddings):
-        X_train, y_train = embeddings[train_index], labels[train_index]
-        X_train, y_train, sample_weights = self._setup_training(X_train, y_train,
-                                                                implicit_negatives)
-        X_test, y_test = embeddings[test_index], labels[test_index]
-        model = clone(self._model)
-        jobs.append(
-          delayed(_fit_and_score)(model, X_train, y_train, sample_weights, X_test, y_test))
-      results = Parallel(n_jobs=-1)(jobs)
+    # Compute the metrics for each validation fold in parallel.
+    jobs: list[Callable] = []
+    for (train_index, test_index) in fold.split(embeddings):
+      X_train, y_train = embeddings[train_index], labels[train_index]
+      X_train, y_train, sample_weights = self._setup_training(X_train, y_train, implicit_negatives)
+      X_test, y_test = embeddings[test_index], labels[test_index]
+      model = clone(self._model)
+      jobs.append(delayed(_fit_and_score)(model, X_train, y_train, sample_weights, X_test, y_test))
+    results = Parallel(n_jobs=-1)(jobs)
+
     y_test = np.concatenate([y_test for y_test, _ in results], axis=0)
     y_pred = np.concatenate([y_pred for _, y_pred in results], axis=0)
     y_pred_binary = y_pred >= 0.5
@@ -320,7 +319,9 @@ class ConceptModel:
     implicit_embeddings: Optional[np.ndarray] = None
     implicit_labels: Optional[list[bool]] = None
     model = self._get_logistic_model(DRAFT_MAIN)
-    return model.compute_metrics(embeddings, labels, self._negative_vectors)
+    model_str = f'{self.namespace}/{self.concept_name}/{self.embedding_name}/{self.version}'
+    with DebugTimer(f'Computing metrics for {model_str}'):
+      return model.compute_metrics(embeddings, labels, self._negative_vectors)
 
   def sync(self, concept: Concept) -> bool:
     """Update the model with the latest labeled concept data."""
