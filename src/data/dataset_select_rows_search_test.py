@@ -288,17 +288,9 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
     },
   ]
 
-  # Make sure fit was called with negative examples.
   (_, embeddings, labels, _) = concept_model_mock.call_args_list[-1].args
-  assert embeddings.shape == (8, 3)
+  assert embeddings.shape == (2, 3)
   assert labels == [
-    # Negative implicit labels.
-    False,
-    False,
-    False,
-    False,
-    False,
-    False,
     # Explicit labels.
     False,
     True

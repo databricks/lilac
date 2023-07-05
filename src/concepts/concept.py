@@ -5,7 +5,6 @@ from enum import Enum
 from typing import Callable, Iterable, Literal, Optional, Union
 
 import numpy as np
-import numpy.typing as npt
 from joblib import Parallel, delayed
 from pydantic import BaseModel, validator
 from sklearn.base import BaseEstimator, clone
@@ -24,7 +23,10 @@ LOCAL_CONCEPT_NAMESPACE = 'local'
 
 # Number of randomly sampled negative examples to use for training. This is used to obtain a more
 # balanced model that works with a specific dataset.
-DEFAULT_NUM_NEG_EXAMPLES = 300
+DEFAULT_NUM_NEG_EXAMPLES = 100
+
+# The maximum number of cross-validation models to train.
+MAX_NUM_CROSS_VAL_MODELS = 30
 
 
 class ConceptColumnInfo(BaseModel):
@@ -153,32 +155,49 @@ class LogisticEmbeddingModel:
     except NotFittedError:
       return np.random.rand(len(embeddings))
 
-  def fit(self, embeddings: np.ndarray, labels: list[bool], sample_weights: list[float]) -> None:
+  def _setup_training(
+      self, X_train: np.ndarray, y_train: list[bool],
+      implicit_negatives: Optional[np.ndarray]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    num_pos_labels = len([y for y in y_train if y])
+    num_neg_labels = len([y for y in y_train if not y])
+    sample_weights = [(1.0 / num_pos_labels if y else 1.0 / num_neg_labels) for y in y_train]
+
+    if implicit_negatives is not None:
+      num_implicit_labels = len(implicit_negatives)
+      implicit_labels = [False] * num_implicit_labels
+      X_train = np.concatenate([implicit_negatives, X_train])
+      y_train = np.concatenate([implicit_labels, y_train])
+      sample_weights = [1.0 / num_implicit_labels] * num_implicit_labels + sample_weights
+
+    # Normalize sample weights to sum to the number of training examples.
+    weights = np.array(sample_weights)
+    weights *= (X_train.shape[0] / np.sum(weights))
+    return X_train, np.array(y_train), weights
+
+  def fit(self, embeddings: np.ndarray, labels: list[bool],
+          implicit_negatives: Optional[np.ndarray]) -> None:
     """Fit the model to the provided embeddings and labels."""
-    if len(set(labels)) < 2:
+    label_set = set(labels)
+    if implicit_negatives is not None:
+      label_set.add(False)
+    if len(label_set) < 2:
       return
     if len(labels) != len(embeddings):
       raise ValueError(
         f'Length of embeddings ({len(embeddings)}) must match length of labels ({len(labels)})')
-    if len(sample_weights) != len(labels):
-      raise ValueError(
-        f'Length of sample_weights ({len(sample_weights)}) must match length of labels '
-        f'({len(labels)})')
-    self._model.fit(embeddings, labels, sample_weights)
+    X_train, y_train, sample_weights = self._setup_training(embeddings, labels, implicit_negatives)
+    self._model.fit(X_train, y_train, sample_weights)
 
   def compute_metrics(self, embeddings: np.ndarray, labels: list[bool],
-                      implicit_embeddings: Optional[np.ndarray],
-                      implicit_labels: Optional[list[bool]]) -> ConceptMetrics:
+                      implicit_negatives: Optional[np.ndarray]) -> ConceptMetrics:
     """Return the concept metrics."""
     labels = np.array(labels)
-    fold = KFold(n_splits=min(len(labels), 30), shuffle=True, random_state=42)
+    n_splits = min(len(labels), MAX_NUM_CROSS_VAL_MODELS)
+    fold = KFold(n_splits, shuffle=True, random_state=42)
 
-    def _fit_and_score(
-        model: BaseEstimator, X_train: npt.NDArray[np.float32], y_train: npt.NDArray[np.bool_],
-        sample_weights: list[float], X_test: npt.NDArray[np.float32],
-        y_test: npt.NDArray[np.bool_]) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.float32]]:
-      sample_weights = np.array(sample_weights)
-      sample_weights *= (X_train.shape[0] / np.sum(sample_weights))
+    def _fit_and_score(model: BaseEstimator, X_train: np.ndarray, y_train: np.ndarray,
+                       sample_weights: np.ndarray, X_test: np.ndarray,
+                       y_test: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
       model.fit(X_train, y_train, sample_weights)
       y_pred = model.predict_proba(X_test)[:, 1]
       return y_test, y_pred
@@ -187,16 +206,8 @@ class LogisticEmbeddingModel:
       jobs: list[Callable] = []
       for (train_index, test_index) in fold.split(embeddings):
         X_train, y_train = embeddings[train_index], labels[train_index]
-        num_pos_labels = len([y for y in y_train if y])
-        num_neg_labels = len([y for y in y_train if not y])
-        sample_weights = [(1.0 / num_pos_labels if y else 1.0 / num_neg_labels) for y in y_train]
-
-        if implicit_embeddings is not None and implicit_labels is not None:
-          X_train = np.concatenate([implicit_embeddings, X_train])
-          y_train = np.concatenate([implicit_labels, y_train])
-          num_implicit_labels = len(implicit_labels)
-          sample_weights = [1.0 / num_implicit_labels] * num_implicit_labels + sample_weights
-
+        X_train, y_train, sample_weights = self._setup_training(X_train, y_train,
+                                                                implicit_negatives)
         X_test, y_test = embeddings[test_index], labels[test_index]
         model = clone(self._model)
         jobs.append(
@@ -209,10 +220,6 @@ class LogisticEmbeddingModel:
     precision_val = precision_score(y_test, y_pred_binary)
     recall_val = recall_score(y_test, y_pred_binary)
     roc_auc_val = roc_auc_score(y_test, y_pred)
-    print(f'f1 {f1_val:.3f}')
-    print(f'precision {precision_val:.3f}')
-    print(f'recall {recall_val:.3f}')
-    print(f'roc_auc {roc_auc_val:.3f}')
 
     return ConceptMetrics(
       f1=f1_val,
@@ -312,11 +319,8 @@ class ConceptModel:
     labels = [example.label for example in examples.values()]
     implicit_embeddings: Optional[np.ndarray] = None
     implicit_labels: Optional[list[bool]] = None
-    if self._negative_vectors is not None:
-      implicit_embeddings = self._negative_vectors
-      implicit_labels = [False] * len(self._negative_vectors)
     model = self._get_logistic_model(DRAFT_MAIN)
-    return model.compute_metrics(embeddings, labels, implicit_embeddings, implicit_labels)
+    return model.compute_metrics(embeddings, labels, self._negative_vectors)
 
   def sync(self, concept: Concept) -> bool:
     """Update the model with the latest labeled concept data."""
@@ -334,20 +338,9 @@ class ConceptModel:
       examples = draft_examples(concept, draft)
       embeddings = np.array([self._embeddings[id] for id in examples.keys()])
       labels = [example.label for example in examples.values()]
-      num_pos_labels = len([x for x in labels if x])
-      num_neg_labels = len([x for x in labels if not x])
-      sample_weights = [(1.0 / num_pos_labels if x else 1.0 / num_neg_labels) for x in labels]
-      if self._negative_vectors is not None:
-        num_implicit_labels = len(self._negative_vectors)
-        embeddings = np.concatenate([self._negative_vectors, embeddings])
-        labels = [False] * num_implicit_labels + labels
-        sample_weights = [1.0 / num_implicit_labels] * num_implicit_labels + sample_weights
-
       model = self._get_logistic_model(draft)
-      sample_weights = np.array(sample_weights)
-      sample_weights *= (embeddings.shape[0] / np.sum(sample_weights))
       with DebugTimer(f'Fitting model for "{concept_path}"'):
-        model.fit(embeddings, labels, sample_weights)
+        model.fit(embeddings, labels, self._negative_vectors)
 
       # Synchronize the model version with the concept version.
       model.version = concept.version
