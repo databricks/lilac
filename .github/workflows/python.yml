@@ -26,7 +26,7 @@ jobs:
         run: pipx install poetry
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.9.13'
+          python-version: '3.9'
           cache: 'poetry'
       - name: Install dependencies
         # Re-install pytorch for cpu to avoid errors that cuda was not found
