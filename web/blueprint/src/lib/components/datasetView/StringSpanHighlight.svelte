@@ -84,7 +84,6 @@
 
   // Merge all the spans for different features into a single span array.
   $: mergedSpans = mergeSpans(text, pathToSpans);
-  $: console.log(pathToSpans, mergedSpans);
 
   interface RenderSpan {
     paths: string[];
