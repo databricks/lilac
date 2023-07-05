@@ -53,7 +53,7 @@
         {path.join('.') + suffix}
       </div>
 
-      <div class="m-4 font-normal">
+      <div class="font-normal">
         <StringSpanHighlight
           text={formatValue(value)}
           {field}
