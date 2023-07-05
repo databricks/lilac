@@ -283,7 +283,7 @@ def _concept_model_path(namespace: str,
   path_without_wildcards = (p for p in path_tuple if p != PATH_WILDCARD)
   path_dir = os.path.join(dataset_dir, *path_without_wildcards)
   return os.path.join(path_dir, DATASET_CONCEPTS_DIR, namespace, concept_name,
-                      f'{embedding_name}.pkl')
+                      f'{embedding_name}-{column_info.num_negative_examples}.pkl')
 
 
 class DiskConceptDB(ConceptDB):

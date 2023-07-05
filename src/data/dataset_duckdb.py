@@ -249,7 +249,10 @@ class DatasetDuckDB(Dataset):
       path = (*path, embedding, PATH_WILDCARD, EMBEDDING_KEY)
 
     if path not in self._col_vector_stores:
-      manifests = [m for m in self._signal_manifests if schema_contains_path(m.data_schema, path)]
+      manifests = [
+        m for m in self._signal_manifests
+        if schema_contains_path(m.data_schema, path) and m.embedding_filename_prefix
+      ]
       if not manifests:
         raise ValueError(f'No embedding found for path {path}.')
       if len(manifests) > 1:

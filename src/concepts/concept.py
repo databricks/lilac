@@ -2,13 +2,17 @@
 import dataclasses
 import random
 from enum import Enum
-from typing import Iterable, Literal, Optional, Union
+from typing import Callable, Iterable, Literal, Optional, Union
 
 import numpy as np
+import numpy.typing as npt
+from joblib import Parallel, delayed
 from pydantic import BaseModel, validator
+from sklearn.base import BaseEstimator, clone
 from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import KFold, cross_val_score
+from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.model_selection import KFold
 
 from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
@@ -124,8 +128,11 @@ def _get_overall_score(f1_score: float) -> OverallScore:
 class ConceptMetrics(BaseModel):
   """Metrics for a concept."""
   # The average F1 score for the concept computed using cross validation.
-  avg_f1_score: float
-  overall_score: OverallScore
+  f1: float
+  precision: float
+  recall: float
+  roc_auc: float
+  overall: OverallScore
 
 
 @dataclasses.dataclass
@@ -159,12 +166,60 @@ class LogisticEmbeddingModel:
         f'({len(labels)})')
     self._model.fit(embeddings, labels, sample_weights)
 
-  def compute_metrics(self, embeddings: np.ndarray, labels: list[bool]) -> ConceptMetrics:
+  def compute_metrics(self, embeddings: np.ndarray, labels: list[bool],
+                      implicit_embeddings: Optional[np.ndarray],
+                      implicit_labels: Optional[list[bool]]) -> ConceptMetrics:
     """Return the concept metrics."""
-    fold = KFold(n_splits=3, shuffle=True, random_state=42)
-    scores = cross_val_score(self._model, embeddings, labels, scoring='f1', cv=fold, n_jobs=-1)
-    avg_f1_score: float = np.mean(scores).item()
-    return ConceptMetrics(avg_f1_score=avg_f1_score, overall_score=_get_overall_score(avg_f1_score))
+    labels = np.array(labels)
+    fold = KFold(n_splits=min(len(labels), 30), shuffle=True, random_state=42)
+
+    def _fit_and_score(
+        model: BaseEstimator, X_train: npt.NDArray[np.float32], y_train: npt.NDArray[np.bool_],
+        sample_weights: list[float], X_test: npt.NDArray[np.float32],
+        y_test: npt.NDArray[np.bool_]) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.float32]]:
+      sample_weights = np.array(sample_weights)
+      sample_weights *= (X_train.shape[0] / np.sum(sample_weights))
+      model.fit(X_train, y_train, sample_weights)
+      y_pred = model.predict_proba(X_test)[:, 1]
+      return y_test, y_pred
+
+    with DebugTimer('Cross validation'):
+      jobs: list[Callable] = []
+      for (train_index, test_index) in fold.split(embeddings):
+        X_train, y_train = embeddings[train_index], labels[train_index]
+        num_pos_labels = len([y for y in y_train if y])
+        num_neg_labels = len([y for y in y_train if not y])
+        sample_weights = [(1.0 / num_pos_labels if y else 1.0 / num_neg_labels) for y in y_train]
+
+        if implicit_embeddings is not None and implicit_labels is not None:
+          X_train = np.concatenate([implicit_embeddings, X_train])
+          y_train = np.concatenate([implicit_labels, y_train])
+          num_implicit_labels = len(implicit_labels)
+          sample_weights = [1.0 / num_implicit_labels] * num_implicit_labels + sample_weights
+
+        X_test, y_test = embeddings[test_index], labels[test_index]
+        model = clone(self._model)
+        jobs.append(
+          delayed(_fit_and_score)(model, X_train, y_train, sample_weights, X_test, y_test))
+      results = Parallel(n_jobs=-1)(jobs)
+    y_test = np.concatenate([y_test for y_test, _ in results], axis=0)
+    y_pred = np.concatenate([y_pred for _, y_pred in results], axis=0)
+    y_pred_binary = y_pred >= 0.5
+    f1_val = f1_score(y_test, y_pred_binary)
+    precision_val = precision_score(y_test, y_pred_binary)
+    recall_val = recall_score(y_test, y_pred_binary)
+    roc_auc_val = roc_auc_score(y_test, y_pred)
+    print(f'f1 {f1_val:.3f}')
+    print(f'precision {precision_val:.3f}')
+    print(f'recall {recall_val:.3f}')
+    print(f'roc_auc {roc_auc_val:.3f}')
+
+    return ConceptMetrics(
+      f1=f1_val,
+      precision=precision_val,
+      recall=recall_val,
+      roc_auc=roc_auc_val,
+      overall=_get_overall_score(f1_val))
 
 
 def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
@@ -255,12 +310,13 @@ class ConceptModel:
     examples = draft_examples(concept, DRAFT_MAIN)
     embeddings = np.array([self._embeddings[id] for id in examples.keys()])
     labels = [example.label for example in examples.values()]
+    implicit_embeddings: Optional[np.ndarray] = None
+    implicit_labels: Optional[list[bool]] = None
     if self._negative_vectors is not None:
-      num_implicit_labels = len(self._negative_vectors)
-      embeddings = np.concatenate([self._negative_vectors, embeddings])
-      labels = [False] * num_implicit_labels + labels
+      implicit_embeddings = self._negative_vectors
+      implicit_labels = [False] * len(self._negative_vectors)
     model = self._get_logistic_model(DRAFT_MAIN)
-    return model.compute_metrics(embeddings, labels)
+    return model.compute_metrics(embeddings, labels, implicit_embeddings, implicit_labels)
 
   def sync(self, concept: Concept) -> bool:
     """Update the model with the latest labeled concept data."""
@@ -288,6 +344,8 @@ class ConceptModel:
         sample_weights = [1.0 / num_implicit_labels] * num_implicit_labels + sample_weights
 
       model = self._get_logistic_model(draft)
+      sample_weights = np.array(sample_weights)
+      sample_weights *= (embeddings.shape[0] / np.sum(sample_weights))
       with DebugTimer(f'Fitting model for "{concept_path}"'):
         model.fit(embeddings, labels, sample_weights)
 
