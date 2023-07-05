@@ -15,7 +15,7 @@ openai-function-call = "^0.0.5"
 
 datasets = "^2.12.0"
 duckdb = "^0.8.0"
-fastapi = "^0.99.1"
+fastapi = "^0.98.0"
 google-cloud-storage = "^2.5.0"
 python = "~3.9"
 pyarrow = "^9.0.0"
