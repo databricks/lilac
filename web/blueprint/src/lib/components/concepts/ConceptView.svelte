@@ -27,7 +27,8 @@
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptExampleList from './ConceptExampleList.svelte';
-  import ConceptPillHover from './ConceptPillHover.svelte';
+  import ConceptHoverPill from './ConceptHoverPill.svelte';
+  import {scoreToColor} from './colors';
 
   export let concept: Concept;
   const conceptMutation = editConceptMutation();
@@ -45,14 +46,6 @@
       }
     }
   }
-
-  const scoreToColor: Record<OverallScore, string> = {
-    not_good: 'text-red-600',
-    ok: 'text-yellow-600',
-    good: 'text-green-600',
-    very_good: 'text-blue-600',
-    great: 'text-purple-600'
-  };
 
   const scoreToIcon: Record<OverallScore, typeof CarbonIcon> = {
     not_good: ThumbsDown,
@@ -120,23 +113,29 @@
             $modelMutation.variables &&
             $modelMutation.variables[2] == embedding.name}
           <div
-            class="flex w-36 flex-col items-center gap-y-2 rounded-md border border-gray-200 p-4"
+            class="flex w-36 flex-col items-center gap-y-2 rounded-md border border-gray-300 p-4"
           >
             <div class="text-gray-500">{embedding.name}</div>
             {#if $conceptModels.isLoading}
               <InlineLoading />
             {:else if model && model.metrics}
               <div
-                class="concept-score-pill text-4xl font-light {scoreToColor[model.metrics.overall]}"
+                class="flex cursor-default flex-col items-center"
                 use:hoverTooltip={{
-                  component: ConceptPillHover,
+                  component: ConceptHoverPill,
                   props: {metrics: model.metrics}
                 }}
               >
-                {formatValue(model.metrics.f1)}
-              </div>
-              <div>
-                <svelte:component this={scoreToIcon[model.metrics.overall]} />
+                <div
+                  class="concept-score-pill text-4xl font-light {scoreToColor[
+                    model.metrics.overall
+                  ]}"
+                >
+                  {formatValue(model.metrics.f1)}
+                </div>
+                <div>
+                  <svelte:component this={scoreToIcon[model.metrics.overall]} />
+                </div>
               </div>
             {:else}
               <Button
