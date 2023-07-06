@@ -6,10 +6,12 @@
   } from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
-  import {getMediaFields, getVisibleSchema} from '$lib/view_utils';
+  import {ITEM_SCROLL_CONTAINER_CTX_KEY, getMediaFields, getVisibleSchema} from '$lib/view_utils';
   import {L, UUID_COLUMN, serializePath} from '$lilac';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
+  import {setContext} from 'svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
+  import {writable} from 'svelte/store';
   import FilterPanel from './FilterPanel.svelte';
   import RowItem from './RowItem.svelte';
   import SearchPanel from './SearchPanel.svelte';
@@ -45,6 +47,12 @@
       : null;
   $: mediaFields =
     visibleSchema != null ? getMediaFields(visibleSchema, $datasetStore.stats || []) : [];
+
+  // Pass the item scroll container to children so they can handle scroll events.
+  let itemScrollContainer: HTMLDivElement | null = null;
+  const writableStore = writable<HTMLDivElement | null>(itemScrollContainer);
+  $: setContext(ITEM_SCROLL_CONTAINER_CTX_KEY, writableStore);
+  $: writableStore.set(itemScrollContainer);
 </script>
 
 <SearchPanel />
@@ -71,7 +79,7 @@
 {/if}
 
 {#if items && visibleFields.length > 0 && $schema.isSuccess && mediaFields != null}
-  <div class="flex h-full w-full flex-col overflow-y-scroll">
+  <div class="flex h-full w-full flex-col overflow-y-scroll" bind:this={itemScrollContainer}>
     {#each items as row (L.value(row[UUID_COLUMN]))}
       <RowItem {visibleFields} {row} {mediaFields} />
     {/each}

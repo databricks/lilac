@@ -24,6 +24,7 @@ import type {DatasetState, StatsInfo} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
 
 const MEDIA_TEXT_LENGTH_THRESHOLD = 100;
+export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
 export function getVisibleFields(
   selectedColumns: {[path: string]: boolean} | null,
@@ -237,7 +238,19 @@ export function mergeSpans(
   text: string,
   inputSpanSets: {[spanSet: string]: LilacValueNodeCasted<'string_span'>[]}
 ): MergedSpan[] {
+  const spanSetKeys = Object.keys(inputSpanSets);
+  if (spanSetKeys.length === 0) {
+    // By default, just break into lines. This helps with snippeting when there are no spans
+    // computed for text.
+    return text.split('\n').map(line => ({
+      text: line,
+      span: {start: 0, end: line.length},
+      originalSpans: {},
+      paths: []
+    }));
+  }
   const textLength = text.length;
+
   // Maps a span set to the index of the spans we're currently processing for each span set.
   // The size of this object is the size of the number of span sets we're computing over (small).
   const spanSetIndices: {[spanSet: string]: number} = Object.fromEntries(
@@ -245,7 +258,7 @@ export function mergeSpans(
   );
 
   // Sort spans by start index.
-  for (const spanSet of Object.keys(inputSpanSets)) {
+  for (const spanSet of spanSetKeys) {
     inputSpanSets[spanSet].sort((a, b) => {
       const aStart = a[VALUE_KEY]?.start || 0;
       const bStart = b[VALUE_KEY]?.start || 0;

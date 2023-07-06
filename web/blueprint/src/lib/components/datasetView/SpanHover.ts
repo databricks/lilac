@@ -4,14 +4,19 @@ import SpanHoverTooltip, {type SpanHoverNamedValue} from './SpanHoverTooltip.sve
 export interface SpanHoverInfo {
   namedValues: SpanHoverNamedValue[];
   isHovered: boolean;
+  itemScrollContainer: HTMLDivElement | null;
 }
 export function spanHover(element: HTMLSpanElement, spanHoverInfo: SpanHoverInfo) {
   let tooltipComponent: SvelteComponent | undefined;
   let curSpanHoverInfo = spanHoverInfo;
+  const itemScrollListener = () => destroyHoverElement();
   showSpan();
   function showSpan() {
     if (!curSpanHoverInfo.isHovered) {
       return;
+    }
+    if (curSpanHoverInfo.itemScrollContainer != null) {
+      curSpanHoverInfo.itemScrollContainer.addEventListener('scroll', itemScrollListener);
     }
     const boundingRect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
@@ -35,6 +40,9 @@ export function spanHover(element: HTMLSpanElement, spanHoverInfo: SpanHoverInfo
   function destroyHoverElement() {
     tooltipComponent?.$destroy();
     tooltipComponent = undefined;
+    if (curSpanHoverInfo.itemScrollContainer != null) {
+      curSpanHoverInfo.itemScrollContainer.removeEventListener('scroll', itemScrollListener);
+    }
   }
 
   return {

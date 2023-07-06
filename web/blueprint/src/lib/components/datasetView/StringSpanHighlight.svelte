@@ -4,7 +4,7 @@
    * layer, meant to be rendered on top of the source text.
    */
   import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {mergeSpans, type MergedSpan} from '$lib/view_utils';
+  import {ITEM_SCROLL_CONTAINER_CTX_KEY, mergeSpans, type MergedSpan} from '$lib/view_utils';
 
   import {
     L,
@@ -26,6 +26,11 @@
     type Signal,
     type SubstringSignal
   } from '$lilac';
+  import {Button} from 'carbon-components-svelte';
+  import {ArrowDown, ArrowUp} from 'carbon-icons-svelte';
+  import {getContext} from 'svelte';
+  import type {Writable} from 'svelte/store';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import {spanHover} from './SpanHover';
   import type {SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
   import StringSpanDetails, {type SpanDetails} from './StringSpanDetails.svelte';
@@ -39,6 +44,8 @@
   export let visibleLabelSpanFields: LilacField[];
 
   const spanHoverOpacity = 0.9;
+  // When the text length exceeds this number we start to snippet.
+  const SNIPPET_LEN_BUDGET = 500;
 
   const datasetStore = getDatasetContext();
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
@@ -87,6 +94,12 @@
     isBlackBolded: boolean;
     isHighlightBolded: boolean;
 
+    // Whether this span needs to be shown as a snippet.
+    isShownSnippet: boolean;
+    snippetScore: number;
+    // The text post-processed for snippets.
+    snippetText: string;
+
     hoverInfo: SpanHoverNamedValue[];
     // Whether the hover matches any path in this render span. Used for highlighting.
     isHovered: boolean;
@@ -107,12 +120,13 @@
   };
 
   // Map the merged spans to the information needed to render each span.
-  let spanRenderInfos: RenderSpan[];
+  let renderSpans: RenderSpan[];
   $: {
-    spanRenderInfos = [];
+    renderSpans = [];
     // Keep a list of paths seen so we don't show the same information twice.
     const pathsProcessed: Set<string> = new Set();
     for (const mergedSpan of mergedSpans) {
+      let isShownSnippet = false;
       // Keep track of the paths that haven't been seen before. This is where we'll show metadata
       // and hover info.
       const newPaths: string[] = [];
@@ -150,17 +164,21 @@
             // Add extra metadata. If this is a path that we've already seen before, ignore it as
             // the value will be rendered alongside the first path.
             const originalPath = serializePath(L.path(originalSpan as LilacValueNode)!);
-            if (!newPaths.includes(originalPath)) {
-              continue;
-            }
+            const pathSeen = !newPaths.includes(originalPath);
 
             if (valueField.signal?.signal_name === 'concept_score') {
-              const signal = valueField.signal as ConceptScoreSignal;
-              hoverInfo.push({
-                name: `${signal.namespace}/${signal.concept_name}`,
-                value,
-                isConcept: true
-              });
+              if (!pathSeen) {
+                const signal = valueField.signal as ConceptScoreSignal;
+                hoverInfo.push({
+                  name: `${signal.namespace}/${signal.concept_name}`,
+                  value,
+                  isConcept: true
+                });
+              }
+
+              if ((value as number) > 0.5) {
+                isShownSnippet = true;
+              }
             } else {
               // Check if this is a concept label.
               let isConceptLabelSignal = false;
@@ -174,12 +192,16 @@
                     deserializePath(labelSpanPath).slice(0, -1)
                   );
                   if (field?.signal?.signal_name === 'concept_labels') {
-                    const signal = field?.signal as ConceptLabelsSignal;
-                    isConceptLabelSignal = true;
-                    hoverInfo.push({
-                      name: `${signal.namespace}/${signal.concept_name} label`,
-                      value
-                    });
+                    if (!pathSeen) {
+                      const signal = field?.signal as ConceptLabelsSignal;
+                      isConceptLabelSignal = true;
+                      hoverInfo.push({
+                        name: `${signal.namespace}/${signal.concept_name} label`,
+                        value
+                      });
+                    }
+
+                    isShownSnippet = true;
                   }
                 }
               }
@@ -208,6 +230,7 @@
             );
             const signal = field?.signal as SubstringSignal;
             hoverInfo.push({name: 'keyword', value: signal.query, isKeywordSearch: true});
+            isShownSnippet = true;
           }
         }
       }
@@ -224,13 +247,16 @@
         newPaths.length > 0 &&
         Array.from(pathsHovered).some(pathHovered => newPaths.includes(pathHovered));
 
-      spanRenderInfos.push({
+      renderSpans.push({
         backgroundColor: colorFromScore(maxScore),
         isBlackBolded: isKeywordSpan,
         isHighlightBolded: isLabeled,
+        isShownSnippet,
+        snippetScore: maxScore,
         hoverInfo,
         paths: mergedSpan.paths,
         text: mergedSpan.text,
+        snippetText: mergedSpan.text,
         originalSpans: mergedSpan.originalSpans,
         isHovered,
         isFirstHover
@@ -259,7 +285,7 @@
   $: {
     if (selectedSpan != null) {
       // Get all the render spans that include this path so we can join the text.
-      const spansUnderClick = spanRenderInfos.filter(renderSpan =>
+      const spansUnderClick = renderSpans.filter(renderSpan =>
         renderSpan.paths.some(s =>
           (selectedSpan?.paths || []).some(selectedSpanPath => pathIsEqual(selectedSpanPath, s))
         )
@@ -283,36 +309,119 @@
       selectedSpanDetails = undefined;
     }
   }
+
+  interface SnippetSpan {
+    renderSpan: RenderSpan;
+    isShown: boolean;
+    // When the snippet is hidden, whether it should be replaced with ellipsis. We only do this once
+    // for a contigous set of hidden snippets.
+    isEllipsis?: boolean;
+    // When the snippet is hidden, whether the original text had a new-line so it can be preserved.
+    hasNewline?: boolean;
+  }
+
+  let isExpanded = false;
+  // Snippets.
+  let snippetSpans: SnippetSpan[];
+  let someSnippetsHidden = false;
+
+  $: {
+    // Map the merged spans to the information needed to render each span.
+    snippetSpans = [];
+
+    if (isExpanded) {
+      snippetSpans = renderSpans.map(renderSpan => ({renderSpan, isShown: true}));
+    } else {
+      // Find all the spans that are shown snippets and not shown snippets.
+      let shownSnippetTotalLength = 0;
+      for (const renderSpan of renderSpans) {
+        if (renderSpan.isShownSnippet) {
+          shownSnippetTotalLength += renderSpan.text.length;
+        }
+      }
+
+      // If there is more budget, sort the rest of the spans by the snippet score and add until we
+      // reach the budget.
+      const belowThresholdSpans: RenderSpan[] = renderSpans
+        .filter(renderSpan => !renderSpan.isShownSnippet)
+        .sort((a, b) => b.snippetScore - a.snippetScore);
+      for (const renderSpan of belowThresholdSpans) {
+        renderSpan.isShownSnippet = true;
+        belowThresholdSpans.push(renderSpan);
+        shownSnippetTotalLength += renderSpan.text.length;
+        if (shownSnippetTotalLength > SNIPPET_LEN_BUDGET) {
+          break;
+        }
+      }
+
+      for (const [i, renderSpan] of renderSpans.entries()) {
+        if (renderSpan.isShownSnippet) {
+          snippetSpans.push({
+            renderSpan,
+            isShown: true
+          });
+        } else {
+          const isLeftEllipsis = renderSpans[i + 1]?.isShownSnippet === true;
+          const isRightEllipsis = renderSpans[i - 1]?.isShownSnippet === true;
+          const isPreviousShown = snippetSpans[snippetSpans.length - 1]?.isShown === true;
+          snippetSpans.push({
+            renderSpan,
+            isShown: false,
+            isEllipsis: (isLeftEllipsis || isRightEllipsis) && isPreviousShown,
+            hasNewline: renderSpan.text.includes('\n')
+          });
+          someSnippetsHidden = true;
+        }
+      }
+    }
+  }
+
+  let itemScrollContainer = getContext<Writable<HTMLDivElement | null>>(
+    ITEM_SCROLL_CONTAINER_CTX_KEY
+  );
 </script>
 
-<div class="relative mb-4 mr-2 whitespace-pre-wrap">
-  {#each spanRenderInfos as renderSpan}
-    <span
-      use:spanHover={{namedValues: renderSpan.hoverInfo, isHovered: renderSpan.isFirstHover}}
-      class="hover:cursor-poiner highlight-span text-sm leading-5"
-      class:hover:cursor-pointer={visibleSpanFields.length > 0}
-      class:font-bold={renderSpan.isBlackBolded}
-      class:font-medium={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded}
-      style:color={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded
-        ? LABELED_TEXT_COLOR
-        : ''}
-      style:background-color={!renderSpan.isHovered
-        ? renderSpan.backgroundColor
-        : colorFromOpacity(spanHoverOpacity)}
-      on:mouseenter={() => spanMouseEnter(renderSpan)}
-      on:mouseleave={() => spanMouseLeave(renderSpan)}
-      on:keydown={e => {
-        if (e.key == 'Enter') {
+<div class="relative mx-4 overflow-x-hidden text-ellipsis whitespace-break-spaces py-4">
+  {#each snippetSpans as snippetSpan}
+    {@const renderSpan = snippetSpan.renderSpan}
+    {#if snippetSpan.isShown}
+      <span
+        use:spanHover={{
+          namedValues: renderSpan.hoverInfo,
+          isHovered: renderSpan.isFirstHover,
+          itemScrollContainer: $itemScrollContainer
+        }}
+        class="hover:cursor-poiner highlight-span text-sm leading-5"
+        class:hover:cursor-pointer={visibleSpanFields.length > 0}
+        class:font-bold={renderSpan.isBlackBolded}
+        class:font-medium={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded}
+        style:color={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded
+          ? LABELED_TEXT_COLOR
+          : ''}
+        style:background-color={!renderSpan.isHovered
+          ? renderSpan.backgroundColor
+          : colorFromOpacity(spanHoverOpacity)}
+        on:mouseenter={() => spanMouseEnter(renderSpan)}
+        on:mouseleave={() => spanMouseLeave(renderSpan)}
+        on:keydown={e => {
+          if (e.key == 'Enter') {
+            if (renderSpan.originalSpans != null && visibleSpanFields.length > 0)
+              selectedSpan = renderSpan;
+          }
+        }}
+        on:click={e => {
           if (renderSpan.originalSpans != null && visibleSpanFields.length > 0)
             selectedSpan = renderSpan;
-        }
-      }}
-      on:click={e => {
-        if (renderSpan.originalSpans != null && visibleSpanFields.length > 0)
-          selectedSpan = renderSpan;
-        spanClickMousePosition = {x: e.offsetX, y: e.offsetY};
-      }}>{renderSpan.text}</span
-    >
+          spanClickMousePosition = {x: e.offsetX, y: e.offsetY};
+        }}>{renderSpan.snippetText}</span
+      >
+    {:else if snippetSpan.isEllipsis}<span
+        use:hoverTooltip={{
+          text: 'Some text was hidden to improve readability. \nClick "Show all" to show the entire document.'
+        }}
+        class="highlight-span text-sm leading-5">...</span
+      >{#if snippetSpan.hasNewline}<span><br /></span>{/if}
+    {/if}
   {/each}
   {#if selectedSpanDetails != null}
     <StringSpanDetails
@@ -326,9 +435,36 @@
       }}
     />
   {/if}
+  {#if someSnippetsHidden}
+    <div class="flex flex-row justify-center">
+      <div class="w-30 mt-4 rounded border border-neutral-300 text-center">
+        {#if !isExpanded}
+          <Button
+            size="small"
+            class="w-full"
+            kind="ghost"
+            icon={ArrowDown}
+            on:click={() => (isExpanded = true)}
+          >
+            Show all
+          </Button>
+        {:else}
+          <Button
+            size="small"
+            class="w-full"
+            kind="ghost"
+            icon={ArrowUp}
+            on:click={() => (isExpanded = false)}
+          >
+            Hide excess
+          </Button>
+        {/if}
+      </div>
+    </div>
+  {/if}
 </div>
 
-<style>
+<style lang="postcss">
   .highlight-span {
     /** Add a tiny bit of padding so that the hover doesn't flicker between rows. */
     padding-top: 1.5px;

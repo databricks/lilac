@@ -7,6 +7,7 @@
     formatValue,
     isSignalRootField,
     listValueNodes,
+    pathIncludes,
     serializePath,
     type DataTypeCasted,
     type LilacField,
@@ -35,53 +36,63 @@
   }
   function makeRows(row: LilacValueNode): MetadataRow[] {
     const valueNodes = listValueNodes(row).filter(item => isItemVisible(item, visibleFields));
-    return valueNodes
-      .map(valueNode => {
-        const field = L.field(valueNode)!;
-        const path = L.path(valueNode)!;
-        let value = L.value(valueNode);
-        if (field.dtype === 'string_span') {
-          // Skip rendering string spans.
-          return null;
-        }
-        const isEmbeddingSignal =
-          $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) ||
-          false;
-        const isSignal = isSignalRootField(field);
-        let formattedValue: string | null;
-        if (
-          isEmbeddingSignal ||
-          (isSignal && field.dtype == null) ||
-          field.dtype === 'embedding' ||
-          field.repeated_field != null
-        ) {
-          formattedValue = '';
-        } else if (value == null) {
-          formattedValue = null;
-        } else {
-          formattedValue = formatValue(value);
-        }
+    const spanPaths = valueNodes
+      .filter(valueNode => L.field(valueNode)?.dtype === 'string_span')
+      .map(valueNode => L.path(valueNode)!);
+    return (
+      valueNodes
+        // Filter out any nodes with a span parent. These are rendered with the media.
+        .filter(valueNode => {
+          return !spanPaths.some(path => pathIncludes(L.path(valueNode)!, path));
+        })
+        .map(valueNode => {
+          const field = L.field(valueNode)!;
+          const path = L.path(valueNode)!;
+          let value = L.value(valueNode);
+          if (field.dtype === 'string_span') {
+            // Skip rendering string spans.
+            return null;
+          }
 
-        return {
-          indentLevel: path.length - 1,
-          fieldName: path[path.length - 1],
-          field,
-          path,
-          isSignal,
-          isPreviewSignal: isPreviewSignal($datasetStore.selectRowsSchema?.data || null, path),
-          isEmbeddingSignal,
-          value,
-          formattedValue
-        };
-      })
-      .filter(x => x != null) as MetadataRow[];
+          const isEmbeddingSignal =
+            $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) ||
+            false;
+          const isSignal = isSignalRootField(field);
+          let formattedValue: string | null;
+          if (
+            isEmbeddingSignal ||
+            (isSignal && field.dtype == null) ||
+            field.dtype === 'embedding' ||
+            field.repeated_field != null
+          ) {
+            formattedValue = '';
+          } else if (value == null) {
+            formattedValue = null;
+          } else {
+            formattedValue = formatValue(value);
+          }
+
+          return {
+            indentLevel: path.length - 1,
+            fieldName: path[path.length - 1],
+            field,
+            path,
+            isSignal,
+            isPreviewSignal: isPreviewSignal($datasetStore.selectRowsSchema?.data || null, path),
+            isEmbeddingSignal,
+            value,
+            formattedValue
+          };
+        })
+        .filter(x => x != null) as MetadataRow[]
+    );
   }
 
   $: rows = makeRows(row);
 </script>
 
 {#if rows.length > 0}
-  <div class="sticky top-0 border-t border-neutral-200 px-2 py-4">
+  <div class="border-t border-neutral-200 px-2 py-4">
     <table class="table w-full table-fixed border-collapse px-2 pt-1">
       {#each rows as row (serializePath(row.path))}
         <tr class="border-gray-300">
