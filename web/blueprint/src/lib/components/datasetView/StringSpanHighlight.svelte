@@ -47,6 +47,8 @@
   // When the text length exceeds this number we start to snippet.
   const SNIPPET_LEN_BUDGET = 500;
 
+  $: console.log(text);
+
   const datasetStore = getDatasetContext();
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
 
@@ -437,7 +439,7 @@
   {/if}
   {#if someSnippetsHidden}
     <div class="flex flex-row justify-center">
-      <div class="w-30 mt-4 rounded border border-neutral-300 text-center">
+      <div class="w-30 mt-2 rounded border border-neutral-300 text-center">
         {#if !isExpanded}
           <Button
             size="small"
