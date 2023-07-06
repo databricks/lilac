@@ -7,6 +7,8 @@ from fastapi import APIRouter, Response
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, validator
 
+from .signals.semantic_similarity import SemanticSimilaritySignal
+
 from .config import data_path
 from .data.dataset import BinaryOp
 from .data.dataset import Column as DBColumn
@@ -202,7 +204,8 @@ class ListFilter(BaseModel):
 Filter = Union[BinaryFilter, UnaryFilter, ListFilter]
 
 AllSignalTypes = Union[ConceptScoreSignal, ConceptLabelsSignal, SubstringSignal,
-                       TextEmbeddingModelSignal, TextEmbeddingSignal, TextSignal, Signal]
+                       SemanticSimilaritySignal, TextEmbeddingModelSignal, TextEmbeddingSignal,
+                       TextSignal, Signal]
 
 
 # We override the `Column` class so we can add explicitly all signal types for better OpenAPI spec.

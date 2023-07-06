@@ -1,8 +1,10 @@
+import {deserializePath, pathIsMatching} from '$lilac';
 import type {SvelteComponent} from 'svelte';
 import SpanHoverTooltip, {type SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
 
 export interface SpanHoverInfo {
   namedValues: SpanHoverNamedValue[];
+  spansHovered: string[];
   isHovered: boolean;
   itemScrollContainer: HTMLDivElement | null;
 }
@@ -13,6 +15,14 @@ export function spanHover(element: HTMLSpanElement, spanHoverInfo: SpanHoverInfo
   showSpan();
   function showSpan() {
     if (!curSpanHoverInfo.isHovered) {
+      return;
+    }
+    curSpanHoverInfo.namedValues = spanHoverInfo.namedValues.filter(namedValue =>
+      curSpanHoverInfo.spansHovered.some(path =>
+        pathIsMatching(deserializePath(namedValue.spanPath), deserializePath(path))
+      )
+    );
+    if (curSpanHoverInfo.namedValues.length === 0) {
       return;
     }
     if (curSpanHoverInfo.itemScrollContainer != null) {

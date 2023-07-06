@@ -60,6 +60,9 @@ export type DataTypeCasted<D extends DataType = DataType> =
       : never)
   | null;
 
+export function isNumeric(dtype: DataType) {
+  return isFloat(dtype) || isInteger(dtype);
+}
 export function isFloat(dtype: DataType | undefined): dtype is 'float16' | 'float32' | 'float64' {
   return ['float16', 'float32', 'float64'].indexOf(dtype ?? '') >= 0;
 }

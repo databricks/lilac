@@ -203,7 +203,7 @@ def progress(it: Iterable[TProgress],
              task_step_id: Optional[TaskStepId],
              estimated_len: Optional[int],
              step_description: Optional[str] = None,
-             emit_every_frac: float = .01) -> Iterable[TProgress]:
+             emit_every_s: float = 1.) -> Iterable[TProgress]:
   """An iterable wrapper that emits progress and yields the original iterable."""
   if not task_step_id:
     yield from it
@@ -223,15 +223,15 @@ def progress(it: Iterable[TProgress],
 
   estimated_len = max(1, estimated_len) if estimated_len else None
 
-  emit_every = max(1, int(estimated_len * emit_every_frac)) if estimated_len else None
-
   task_info: TaskInfo = get_worker().state.tasks[task_id].annotations['task_info']
 
   it_idx = 0
   start_time = time.time()
+  last_emit = time.time() - emit_every_s
   with tqdm(it, desc=task_info.name, total=estimated_len) as tq:
     for t in tq:
-      if estimated_len and emit_every and it_idx % emit_every == 0:
+      cur_time = time.time()
+      if estimated_len and cur_time - last_emit > emit_every_s:
         it_per_sec = tq.format_dict['rate'] or 0.0
         set_worker_task_progress(
           task_step_id=task_step_id,
@@ -240,6 +240,7 @@ def progress(it: Iterable[TProgress],
           it_per_sec=it_per_sec or 0.0,
           estimated_total_sec=((estimated_len) / it_per_sec if it_per_sec else 0),
           estimated_len=estimated_len)
+        last_emit = cur_time
       yield t
       it_idx += 1
 

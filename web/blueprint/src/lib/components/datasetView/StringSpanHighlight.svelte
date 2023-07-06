@@ -6,12 +6,16 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {ITEM_SCROLL_CONTAINER_CTX_KEY, mergeSpans, type MergedSpan} from '$lib/view_utils';
 
+  import {editConceptMutation} from '$lib/queries/conceptQueries';
+  import {queryEmbeddings} from '$lib/queries/signalQueries';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     L,
     deserializePath,
     getField,
     getValueNodes,
     isConceptScoreSignal,
+    isNumeric,
     pathIncludes,
     pathIsEqual,
     petals,
@@ -23,6 +27,7 @@
     type LilacSchema,
     type LilacValueNode,
     type LilacValueNodeCasted,
+    type SemanticSimilaritySignal,
     type Signal,
     type SubstringSignal
   } from '$lilac';
@@ -31,9 +36,10 @@
   import {getContext} from 'svelte';
   import type {Writable} from 'svelte/store';
   import {hoverTooltip} from '../common/HoverTooltip';
+  import {spanClick} from './SpanClick';
   import {spanHover} from './SpanHover';
   import type {SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
-  import StringSpanDetails, {type SpanDetails} from './StringSpanDetails.svelte';
+  import {type SpanDetails} from './StringSpanDetails.svelte';
   import {LABELED_TEXT_COLOR, colorFromOpacity, colorFromScore} from './colors';
 
   export let text: string;
@@ -47,8 +53,11 @@
   // When the text length exceeds this number we start to snippet.
   const SNIPPET_LEN_BUDGET = 500;
 
+  const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
+  // Get the embeddings.
+  const embeddings = queryEmbeddings();
 
   // Find the keyword span paths under this field.
   $: keywordSpanPaths = visibleKeywordSpanFields.map(f => serializePath(f.path));
@@ -137,6 +146,7 @@
       }
 
       const hoverInfo: SpanHoverNamedValue[] = [];
+      let hasNonNumericMetadata = false;
       // Compute the maximum score for all original spans matching this render span to choose the
       // color.
       let maxScore = -Infinity;
@@ -172,7 +182,22 @@
                 hoverInfo.push({
                   name: `${signal.namespace}/${signal.concept_name}`,
                   value,
+                  spanPath: spanPathStr,
                   isConcept: true
+                });
+              }
+
+              if ((value as number) > 0.5) {
+                isShownSnippet = true;
+              }
+            } else if (valueField.signal?.signal_name === 'semantic_similarity') {
+              if (!pathSeen) {
+                const signal = valueField.signal as SemanticSimilaritySignal;
+                hoverInfo.push({
+                  name: `similarity: ${signal.query}`,
+                  value,
+                  spanPath: spanPathStr,
+                  isSemanticSearch: true
                 });
               }
 
@@ -194,24 +219,31 @@
                   if (field?.signal?.signal_name === 'concept_labels') {
                     if (!pathSeen) {
                       const signal = field?.signal as ConceptLabelsSignal;
-                      isConceptLabelSignal = true;
                       hoverInfo.push({
                         name: `${signal.namespace}/${signal.concept_name} label`,
-                        value
+                        value,
+                        spanPath: spanPathStr
                       });
                     }
-
+                    isConceptLabelSignal = true;
                     isShownSnippet = true;
                   }
                 }
               }
               // Show arbitrary metadata.
               if (!isConceptLabelSignal) {
-                const name = serializePath(valueField.path.slice(field.path.length));
-                hoverInfo.push({
-                  name,
-                  value
-                });
+                const isNonNumericMetadata = !isNumeric(valueField.dtype!);
+                if (!pathSeen) {
+                  const name = serializePath(valueField.path.slice(field.path.length));
+                  hoverInfo.push({
+                    name,
+                    value,
+                    spanPath: spanPathStr,
+                    isNonNumericMetadata
+                  });
+                }
+                hasNonNumericMetadata = hasNonNumericMetadata || isNonNumericMetadata;
+                isShownSnippet = true;
               }
             }
           }
@@ -229,7 +261,12 @@
               deserializePath(keywordSpanPath).slice(0, -1)
             );
             const signal = field?.signal as SubstringSignal;
-            hoverInfo.push({name: 'keyword', value: signal.query, isKeywordSearch: true});
+            hoverInfo.push({
+              name: 'keyword',
+              value: signal.query,
+              spanPath: keywordSpanPath,
+              isKeywordSearch: true
+            });
             isShownSnippet = true;
           }
         }
@@ -249,7 +286,7 @@
 
       renderSpans.push({
         backgroundColor: colorFromScore(maxScore),
-        isBlackBolded: isKeywordSpan,
+        isBlackBolded: isKeywordSpan || hasNonNumericMetadata,
         isHighlightBolded: isLabeled,
         isShownSnippet,
         snippetScore: maxScore,
@@ -277,38 +314,41 @@
     }
   }
 
-  // Span selection via a click.
-  let selectedSpan: RenderSpan | undefined;
-  let selectedSpanDetails: SpanDetails | undefined;
-  // Store the mouse position after selecting a span so we can keep the details next to the cursor.
-  let spanClickMousePosition: {x: number; y: number} | undefined;
-  $: {
-    if (selectedSpan != null) {
-      // Get all the render spans that include this path so we can join the text.
-      const spansUnderClick = renderSpans.filter(renderSpan =>
-        renderSpan.paths.some(s =>
-          (selectedSpan?.paths || []).some(selectedSpanPath => pathIsEqual(selectedSpanPath, s))
-        )
-      );
-      const fullText = spansUnderClick.map(s => s.text).join('');
-      selectedSpanDetails = {
-        conceptName: null,
-        conceptNamespace: null,
-        text: fullText
-      };
-      // Find the concepts for the selected spans. For now, we select just the first concept.
-      for (const spanPath of Object.keys(selectedSpan.originalSpans)) {
-        for (const conceptField of spanConceptFields[spanPath] || []) {
-          // Only use the first concept. We will later support multiple concepts.
-          selectedSpanDetails.conceptName = conceptField.signal!.concept_name;
-          selectedSpanDetails.conceptNamespace = conceptField.signal!.namespace;
-          break;
-        }
+  const getSpanDetails = (span: RenderSpan): SpanDetails => {
+    // Get all the render spans that include this path so we can join the text.
+    const spansUnderClick = renderSpans.filter(renderSpan =>
+      renderSpan.paths.some(s =>
+        (span?.paths || []).some(selectedSpanPath => pathIsEqual(selectedSpanPath, s))
+      )
+    );
+    const fullText = spansUnderClick.map(s => s.text).join('');
+    const spanDetails: SpanDetails = {
+      conceptName: null,
+      conceptNamespace: null,
+      text: fullText
+    };
+    // Find the concepts for the selected spans. For now, we select just the first concept.
+    for (const spanPath of Object.keys(span.originalSpans)) {
+      for (const conceptField of spanConceptFields[spanPath] || []) {
+        // Only use the first concept. We will later support multiple concepts.
+        spanDetails.conceptName = conceptField.signal!.concept_name;
+        spanDetails.conceptNamespace = conceptField.signal!.namespace;
+        break;
       }
-    } else {
-      selectedSpanDetails = undefined;
     }
-  }
+    return spanDetails;
+  };
+  const conceptEdit = editConceptMutation();
+  const addConceptLabel = (
+    conceptNamespace: string,
+    conceptName: string,
+    text: string,
+    label: boolean
+  ) => {
+    if (!conceptName || !conceptNamespace)
+      throw Error('Label could not be added, no active concept.');
+    $conceptEdit.mutate([conceptNamespace, conceptName, {insert: [{text, label}]}]);
+  };
 
   interface SnippetSpan {
     renderSpan: RenderSpan;
@@ -389,7 +429,15 @@
         use:spanHover={{
           namedValues: renderSpan.hoverInfo,
           isHovered: renderSpan.isFirstHover,
+          spansHovered: Array.from(pathsHovered),
           itemScrollContainer: $itemScrollContainer
+        }}
+        use:spanClick={{
+          details: () => getSpanDetails(renderSpan),
+          datasetViewStore,
+          datasetStore,
+          embeddings: $embeddings.data || [],
+          addConceptLabel
         }}
         class="hover:cursor-poiner highlight-span text-sm leading-5"
         class:hover:cursor-pointer={visibleSpanFields.length > 0}
@@ -402,18 +450,7 @@
           ? renderSpan.backgroundColor
           : colorFromOpacity(spanHoverOpacity)}
         on:mouseenter={() => spanMouseEnter(renderSpan)}
-        on:mouseleave={() => spanMouseLeave(renderSpan)}
-        on:keydown={e => {
-          if (e.key == 'Enter') {
-            if (renderSpan.originalSpans != null && visibleSpanFields.length > 0)
-              selectedSpan = renderSpan;
-          }
-        }}
-        on:click={e => {
-          if (renderSpan.originalSpans != null && visibleSpanFields.length > 0)
-            selectedSpan = renderSpan;
-          spanClickMousePosition = {x: e.offsetX, y: e.offsetY};
-        }}>{renderSpan.snippetText}</span
+        on:mouseleave={() => spanMouseLeave(renderSpan)}>{renderSpan.snippetText}</span
       >
     {:else if snippetSpan.isEllipsis}<span
         use:hoverTooltip={{
@@ -423,18 +460,6 @@
       >{#if snippetSpan.hasNewline}<span><br /></span>{/if}
     {/if}
   {/each}
-  {#if selectedSpanDetails != null}
-    <StringSpanDetails
-      details={selectedSpanDetails}
-      clickPosition={spanClickMousePosition}
-      on:close={() => {
-        selectedSpan = undefined;
-      }}
-      on:click={() => {
-        selectedSpan = undefined;
-      }}
-    />
-  {/if}
   {#if someSnippetsHidden}
     <div class="flex flex-row justify-center">
       <div class="w-30 mt-2 rounded border border-neutral-300 text-center">

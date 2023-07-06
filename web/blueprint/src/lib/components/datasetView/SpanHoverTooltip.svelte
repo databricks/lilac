@@ -2,8 +2,11 @@
   export interface SpanHoverNamedValue {
     name: string;
     value: DataTypeCasted;
+    spanPath: string;
     isConcept?: boolean;
     isKeywordSearch?: boolean;
+    isSemanticSearch?: boolean;
+    isNonNumericMetadata?: boolean;
   }
 </script>
 
@@ -37,10 +40,11 @@
         <div class="named-value-name table-cell max-w-xs truncate pr-2">{namedValue.name}</div>
         <div class="table-cell rounded text-right">
           <span
-            style:background-color={namedValue.isConcept && typeof namedValue.value === 'number'
+            style:background-color={(namedValue.isConcept || namedValue.isSemanticSearch) &&
+            typeof namedValue.value === 'number'
               ? colorFromScore(namedValue.value)
               : ''}
-            class:font-bold={namedValue.isKeywordSearch}
+            class:font-bold={namedValue.isKeywordSearch || namedValue.isNonNumericMetadata}
             class="px-1"
           >
             {typeof namedValue.value === 'number'

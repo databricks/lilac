@@ -1,6 +1,6 @@
 """Utilities for testing text splitters."""
 
-from typing import Optional
+from typing import Optional, Union
 
 from ...data.dataset_utils import lilac_span
 from ...schema import TEXT_SPAN_END_FEATURE, TEXT_SPAN_START_FEATURE, VALUE_KEY, Item
@@ -16,14 +16,20 @@ def spans_to_text(text: str, spans: Optional[list[Item]]) -> list[str]:
   ]
 
 
-def text_to_expected_spans(text: str, splits: list[str]) -> list[Item]:
+def text_to_expected_spans(text: str, splits: list[Union[str, tuple[str, Item]]]) -> list[Item]:
   """Convert text and a list of splits to a list of expected spans."""
   start_offset = 0
   expected_spans: list[Item] = []
   for split in splits:
+    if isinstance(split, str):
+      split, item = split, None
+    elif isinstance(split, tuple):
+      split, item = split
+    else:
+      raise ValueError('Split should be a string or a tuple of (string, item dict).')
     start = text.find(split, start_offset)
     end = start + len(split)
-    expected_spans.append(lilac_span(start=start, end=end))
+    expected_spans.append(lilac_span(start=start, end=end, metadata=item))
     start_offset = end
 
   return expected_spans

@@ -56,6 +56,7 @@ export type { SelectRowsSchemaOptions } from './models/SelectRowsSchemaOptions';
 export type { SelectRowsSchemaResult } from './models/SelectRowsSchemaResult';
 export type { SelectRowsSchemaUDF } from './models/SelectRowsSchemaUDF';
 export type { SemanticQuery } from './models/SemanticQuery';
+export type { SemanticSimilaritySignal } from './models/SemanticSimilaritySignal';
 export type { Signal } from './models/Signal';
 export type { SignalInfo } from './models/SignalInfo';
 export type { SignalInputType } from './models/SignalInputType';

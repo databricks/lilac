@@ -14,16 +14,15 @@
 <script lang="ts">
   import {fade} from 'svelte/transition';
 
-  import {editConceptMutation} from '$lib/queries/conceptQueries';
-  import {queryEmbeddings} from '$lib/queries/signalQueries';
-  import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import type {DatasetState} from '$lib/stores/datasetStore';
+  import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
   import {getComputedEmbeddings, getSearchEmbedding, getSearchPath} from '$lib/view_utils';
-  import {serializePath} from '$lilac';
+  import {serializePath, type SignalInfoWithTypedSchema} from '$lilac';
   import {Button} from 'carbon-components-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
   import {createEventDispatcher} from 'svelte';
+  import type {Readable} from 'svelte/store';
   import {clickOutside} from '../common/clickOutside';
   import EmbeddingBadge from './EmbeddingBadge.svelte';
 
@@ -31,32 +30,35 @@
   // The coordinates of the click so we can position the popup next to the cursor.
   export let clickPosition: {x: number; y: number} | undefined;
 
-  let datasetViewStore = getDatasetViewContext();
-  let datasetStore = getDatasetContext();
+  export let datasetViewStore: DatasetViewStore;
+  export let datasetStore: Readable<DatasetState>;
+
+  export let embeddings: SignalInfoWithTypedSchema[];
+
+  $: console.log(details);
+  // We cant create mutations from this component since it is hoisted so we pass the function in.
+  export let addConceptLabel: (
+    conceptName: string,
+    conceptNamespace: string,
+    text: string,
+    label: boolean
+  ) => void;
 
   $: searchPath = getSearchPath($datasetViewStore, $datasetStore);
 
-  const conceptEdit = editConceptMutation();
   const dispatch = createEventDispatcher();
   function addLabel(label: boolean) {
     if (!details.conceptName || !details.conceptNamespace)
       throw Error('Label could not be added, no active concept.');
-    $conceptEdit.mutate([
-      details.conceptNamespace,
-      details.conceptName,
-      {insert: [{text: details.text, label}]}
-    ]);
+    addConceptLabel(details.conceptNamespace, details.conceptName, details.text, label);
     dispatch('click');
   }
-
-  // Get the embeddings.
-  const embeddings = queryEmbeddings();
 
   $: searchEmbedding = getSearchEmbedding(
     $datasetViewStore,
     $datasetStore,
     searchPath,
-    ($embeddings.data || []).map(e => e.name)
+    embeddings.map(e => e.name)
   );
 
   $: computedEmbeddings = getComputedEmbeddings($datasetStore, searchPath);
@@ -64,6 +66,7 @@
   const findSimilar = (embedding: string) => {
     if (searchPath == null || searchEmbedding == null) return;
 
+    console.log('finding similar', details);
     datasetViewStore.addSearch({
       path: [serializePath(searchPath)],
       query: {
