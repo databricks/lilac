@@ -7,7 +7,7 @@
  */
 export type ConceptScoreSignal = {
     signal_name?: 'concept_score';
-    embedding: 'cohere' | 'sbert';
+    embedding: 'cohere' | 'sbert' | 'openai';
     namespace: string;
     concept_name: string;
     draft?: string;
