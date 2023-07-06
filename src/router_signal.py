@@ -12,7 +12,7 @@ from .signals.signal import SIGNAL_REGISTRY, TextEmbeddingSignal
 
 router = APIRouter(route_class=RouteErrorHandler)
 
-EMBEDDING_SORT_PRIORITIES = ['sbert']
+EMBEDDING_SORT_PRIORITIES = ['sbert', 'openai']
 
 
 class SignalInfo(BaseModel):
