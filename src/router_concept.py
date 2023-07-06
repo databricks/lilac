@@ -123,19 +123,33 @@ class ConceptModelInfo(BaseModel):
   embedding_name: str
   version: int
   column_info: Optional[ConceptColumnInfo] = None
+  metrics: Optional[ConceptMetrics] = None
 
 
-class ConceptModelResponse(BaseModel):
-  """Response body for the get_concept_model endpoint."""
-  model: ConceptModelInfo
-  model_synced: bool
+@router.get('/{namespace}/{concept_name}/model')
+def get_concept_models(namespace: str, concept_name: str) -> list[ConceptModelInfo]:
+  """Get a concept model from a database."""
+  concept = DISK_CONCEPT_DB.get(namespace, concept_name)
+  if not concept:
+    raise HTTPException(
+      status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
+  models = DISK_CONCEPT_MODEL_DB.get_models(namespace, concept_name)
+  return [
+    ConceptModelInfo(
+      namespace=m.namespace,
+      concept_name=m.concept_name,
+      embedding_name=m.embedding_name,
+      version=m.version,
+      column_info=m.column_info,
+      metrics=m.get_metrics(concept)) for m in models
+  ]
 
 
-@router.get('/{namespace}/{concept_name}/{embedding_name}')
+@router.get('/{namespace}/{concept_name}/model/{embedding_name}')
 def get_concept_model(namespace: str,
                       concept_name: str,
                       embedding_name: str,
-                      sync_model: bool = False) -> ConceptModelResponse:
+                      sync_model: bool = False) -> ConceptModelInfo:
   """Get a concept model from a database."""
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
   if not concept:
@@ -145,18 +159,15 @@ def get_concept_model(namespace: str,
   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name)
   if not model:
     model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name)
-
-  if sync_model:
-    model_synced = DISK_CONCEPT_MODEL_DB.sync(model)
-  else:
-    model_synced = DISK_CONCEPT_MODEL_DB.in_sync(model)
+  model_synced = DISK_CONCEPT_MODEL_DB.sync(model)
   model_info = ConceptModelInfo(
     namespace=model.namespace,
     concept_name=model.concept_name,
     embedding_name=model.embedding_name,
     version=model.version,
-    column_info=model.column_info)
-  return ConceptModelResponse(model=model_info, model_synced=model_synced)
+    column_info=model.column_info,
+    metrics=model.get_metrics(concept))
+  return model_info
 
 
 class MetricsBody(BaseModel):
@@ -164,24 +175,25 @@ class MetricsBody(BaseModel):
   column_info: Optional[ConceptColumnInfo] = None
 
 
-@router.post('/{namespace}/{concept_name}/{embedding_name}/compute_metrics')
-def compute_metrics(namespace: str, concept_name: str, embedding_name: str,
-                    body: MetricsBody) -> ConceptMetrics:
-  """Compute the metrics for the concept model."""
-  concept = DISK_CONCEPT_DB.get(namespace, concept_name)
-  if not concept:
-    raise HTTPException(
-      status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
+# @router.post('/{namespace}/{concept_name}/model/{embedding_name}/compute_metrics')
+# def compute_metrics(namespace: str, concept_name: str, embedding_name: str,
+#                     body: MetricsBody) -> ConceptMetrics:
+#   """Compute the metrics for the concept model."""
+#   concept = DISK_CONCEPT_DB.get(namespace, concept_name)
+#   if not concept:
+#     raise HTTPException(
+#       status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
 
-  column_info = body.column_info
-  model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name, column_info)
-  if model is None:
-    model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name, column_info)
-  model_updated = DISK_CONCEPT_MODEL_DB.sync(model)
-  return model.compute_metrics(concept)
+#   column_info = body.column_info
+#   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name, column_info)
+#   if model is None:
+#     model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name, column_info)
+#   model_updated = DISK_CONCEPT_MODEL_DB.sync(model)
+#   return model.compute_metrics(concept)
 
 
-@router.post('/{namespace}/{concept_name}/{embedding_name}/score', response_model_exclude_none=True)
+@router.post(
+  '/{namespace}/{concept_name}/model/{embedding_name}/score', response_model_exclude_none=True)
 def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBody) -> ScoreResponse:
   """Score examples along the specified concept."""
   concept = DISK_CONCEPT_DB.get(namespace, concept_name)

@@ -26,7 +26,7 @@ LOCAL_CONCEPT_NAMESPACE = 'local'
 DEFAULT_NUM_NEG_EXAMPLES = 100
 
 # The maximum number of cross-validation models to train.
-MAX_NUM_CROSS_VAL_MODELS = 30
+MAX_NUM_CROSS_VAL_MODELS = 15
 
 
 class ConceptColumnInfo(BaseModel):
@@ -140,8 +140,6 @@ class ConceptMetrics(BaseModel):
 @dataclasses.dataclass
 class LogisticEmbeddingModel:
   """A model that uses logistic regression with embeddings."""
-
-  version: int = -1
 
   def __post_init__(self) -> None:
     # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
@@ -271,6 +269,11 @@ class ConceptModel:
   _embeddings: dict[str, np.ndarray] = dataclasses.field(default_factory=dict)
   _logistic_models: dict[DraftId, LogisticEmbeddingModel] = dataclasses.field(default_factory=dict)
   _negative_vectors: Optional[np.ndarray] = None
+  _metrics: Optional[ConceptMetrics] = None
+
+  def get_metrics(self, concept: Concept) -> Optional[ConceptMetrics]:
+    """Return the metrics for this model."""
+    return self._metrics
 
   def __post_init__(self) -> None:
     if self.column_info:
@@ -311,7 +314,7 @@ class ConceptModel:
       self._logistic_models[draft] = LogisticEmbeddingModel()
     return self._logistic_models[draft]
 
-  def compute_metrics(self, concept: Concept) -> ConceptMetrics:
+  def _compute_metrics(self, concept: Concept) -> None:
     """Compute the metrics for the provided concept using the model."""
     examples = draft_examples(concept, DRAFT_MAIN)
     embeddings = np.array([self._embeddings[id] for id in examples.keys()])
@@ -319,9 +322,9 @@ class ConceptModel:
     implicit_embeddings: Optional[np.ndarray] = None
     implicit_labels: Optional[list[bool]] = None
     model = self._get_logistic_model(DRAFT_MAIN)
-    model_str = f'{self.namespace}/{self.concept_name}/{self.embedding_name}/{self.version}'
+    model_str = f'{self.namespace}/{self.concept_name}/{self.embedding_name}/{concept.version}'
     with DebugTimer(f'Computing metrics for {model_str}'):
-      return model.compute_metrics(embeddings, labels, self._negative_vectors)
+      self._metrics = model.compute_metrics(embeddings, labels, self._negative_vectors)
 
   def sync(self, concept: Concept) -> bool:
     """Update the model with the latest labeled concept data."""
@@ -343,9 +346,7 @@ class ConceptModel:
       with DebugTimer(f'Fitting model for "{concept_path}"'):
         model.fit(embeddings, labels, self._negative_vectors)
 
-      # Synchronize the model version with the concept version.
-      model.version = concept.version
-
+    self._compute_metrics(concept)
     # Synchronize the model version with the concept version.
     self.version = concept.version
 

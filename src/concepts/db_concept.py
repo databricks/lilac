@@ -30,6 +30,7 @@ from .concept import (
   ExampleIn,
 )
 
+CONCEPTS_DIR = 'concept'
 DATASET_CONCEPTS_DIR = '.concepts'
 CONCEPT_JSON_FILENAME = 'concept.json'
 
@@ -165,6 +166,11 @@ class ConceptModelDB(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def get_models(self, namespace: str, concept_name: str) -> list[ConceptModel]:
+    """List all the models associated with a concept."""
+    pass
+
+  @abc.abstractmethod
   def get_column_infos(self, namespace: str, concept_name: str) -> list[ConceptColumnInfo]:
     """Get the dataset columns where this concept was applied to."""
     pass
@@ -245,6 +251,18 @@ class DiskConceptModelDB(ConceptModelDB):
       shutil.rmtree(dir, ignore_errors=True)
 
   @override
+  def get_models(self, namespace: str, concept_name: str) -> list[ConceptModel]:
+    """List all the models associated with a concept."""
+    model_files = glob.iglob(os.path.join(_concept_output_dir(namespace, concept_name), '*.pkl'))
+    models: list[ConceptModel] = []
+    for model_file in model_files:
+      embedding_name = os.path.basename(model_file)[:-len('.pkl')]
+      model = self.get(namespace, concept_name, embedding_name)
+      if model:
+        models.append(model)
+    return models
+
+  @override
   def get_column_infos(self, namespace: str, concept_name: str) -> list[ConceptColumnInfo]:
     datasets_path = os.path.join(data_path(), DATASETS_DIR_NAME)
     # Skip if 'datasets' doesn't exist.
@@ -264,7 +282,7 @@ class DiskConceptModelDB(ConceptModelDB):
 
 def _concept_output_dir(namespace: str, name: str) -> str:
   """Return the output directory for a given concept."""
-  return os.path.join(data_path(), 'concept', namespace, name)
+  return os.path.join(data_path(), CONCEPTS_DIR, namespace, name)
 
 
 def _concept_json_path(namespace: str, name: str) -> str:

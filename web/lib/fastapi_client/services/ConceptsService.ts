@@ -4,12 +4,10 @@
 import type { Concept } from '../models/Concept';
 import type { ConceptColumnInfo } from '../models/ConceptColumnInfo';
 import type { ConceptInfo } from '../models/ConceptInfo';
-import type { ConceptMetrics } from '../models/ConceptMetrics';
-import type { ConceptModelResponse } from '../models/ConceptModelResponse';
+import type { ConceptModelInfo } from '../models/ConceptModelInfo';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
 import type { CreateConceptOptions } from '../models/CreateConceptOptions';
 import type { MergeConceptDraftOptions } from '../models/MergeConceptDraftOptions';
-import type { MetricsBody } from '../models/MetricsBody';
 import type { ScoreBody } from '../models/ScoreBody';
 import type { ScoreResponse } from '../models/ScoreResponse';
 
@@ -192,31 +190,23 @@ export class ConceptsService {
     }
 
     /**
-     * Get Concept Model
+     * Get Concept Models
      * Get a concept model from a database.
      * @param namespace
      * @param conceptName
-     * @param embeddingName
-     * @param syncModel
-     * @returns ConceptModelResponse Successful Response
+     * @returns ConceptModelInfo Successful Response
      * @throws ApiError
      */
-    public static getConceptModel(
+    public static getConceptModels(
         namespace: string,
         conceptName: string,
-        embeddingName: string,
-        syncModel: boolean = false,
-    ): CancelablePromise<ConceptModelResponse> {
+    ): CancelablePromise<Array<ConceptModelInfo>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/v1/concepts/{namespace}/{concept_name}/{embedding_name}',
+            url: '/api/v1/concepts/{namespace}/{concept_name}/model',
             path: {
                 'namespace': namespace,
                 'concept_name': conceptName,
-                'embedding_name': embeddingName,
-            },
-            query: {
-                'sync_model': syncModel,
             },
             errors: {
                 422: `Validation Error`,
@@ -225,31 +215,32 @@ export class ConceptsService {
     }
 
     /**
-     * Compute Metrics
-     * Compute the metrics for the concept model.
+     * Get Concept Model
+     * Get a concept model from a database.
      * @param namespace
      * @param conceptName
      * @param embeddingName
-     * @param requestBody
-     * @returns ConceptMetrics Successful Response
+     * @param syncModel
+     * @returns ConceptModelInfo Successful Response
      * @throws ApiError
      */
-    public static computeMetrics(
+    public static getConceptModel(
         namespace: string,
         conceptName: string,
         embeddingName: string,
-        requestBody: MetricsBody,
-    ): CancelablePromise<ConceptMetrics> {
+        syncModel: boolean = false,
+    ): CancelablePromise<ConceptModelInfo> {
         return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/concepts/{namespace}/{concept_name}/{embedding_name}/compute_metrics',
+            method: 'GET',
+            url: '/api/v1/concepts/{namespace}/{concept_name}/model/{embedding_name}',
             path: {
                 'namespace': namespace,
                 'concept_name': conceptName,
                 'embedding_name': embeddingName,
             },
-            body: requestBody,
-            mediaType: 'application/json',
+            query: {
+                'sync_model': syncModel,
+            },
             errors: {
                 422: `Validation Error`,
             },
@@ -274,7 +265,7 @@ export class ConceptsService {
     ): CancelablePromise<ScoreResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/v1/concepts/{namespace}/{concept_name}/{embedding_name}/score',
+            url: '/api/v1/concepts/{namespace}/{concept_name}/model/{embedding_name}/score',
             path: {
                 'namespace': namespace,
                 'concept_name': conceptName,
