@@ -35,7 +35,6 @@
 
   export let embeddings: SignalInfoWithTypedSchema[];
 
-  $: console.log(details);
   // We cant create mutations from this component since it is hoisted so we pass the function in.
   export let addConceptLabel: (
     conceptName: string,
@@ -66,7 +65,6 @@
   const findSimilar = (embedding: string) => {
     if (searchPath == null || searchEmbedding == null) return;
 
-    console.log('finding similar', details);
     datasetViewStore.addSearch({
       path: [serializePath(searchPath)],
       query: {

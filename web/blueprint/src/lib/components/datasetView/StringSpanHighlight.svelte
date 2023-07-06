@@ -39,7 +39,7 @@
   import {spanClick} from './SpanClick';
   import {spanHover} from './SpanHover';
   import type {SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
-  import {type SpanDetails} from './StringSpanDetails.svelte';
+  import type {SpanDetails} from './StringSpanDetails.svelte';
   import {LABELED_TEXT_COLOR, colorFromOpacity, colorFromScore} from './colors';
 
   export let text: string;

@@ -1,5 +1,4 @@
-"""Compute text statistics for a document."""
-import re
+"""Compute named entity recognition with SpaCy."""
 from typing import Iterable, Optional
 
 import spacy
@@ -10,26 +9,17 @@ from ..data.dataset_utils import lilac_span
 from ..schema import Field, Item, RichData, SignalInputType, field
 from .signal import TextSignal
 
-EMAILS_KEY = 'emails'
-NUM_EMAILS_KEY = 'num_emails'
-
-# This regex is a fully RFC 5322 regex for email addresses.
-# https://uibakery.io/regex-library/email-regex-python
-EMAIL_REGEX = re.compile(
-  "(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])",
-  re.IGNORECASE)
-
 
 class SpacyNER(TextSignal):
-  """Named entity recognition with spacy
+  """Named entity recognition with SpaCy
 
   For details see: [spacy.io/models](https://spacy.io/models).
   """ # noqa: D415, D400
   name = 'spacy_ner'
-  display_name = 'Spacy Named Entity Recognition'
+  display_name = 'Named Entity Recognition'
 
   model: Optional[str] = PydanticField(
-    title='SpaCy package name or model path.', default='en_core_web_sm', description='')
+    title='SpaCy package name or model path.', default='en_core_web_sm')
 
   input_type = SignalInputType.TEXT
   compute_type = SignalInputType.TEXT
