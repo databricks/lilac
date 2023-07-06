@@ -437,7 +437,7 @@
   {/if}
   {#if someSnippetsHidden}
     <div class="flex flex-row justify-center">
-      <div class="w-30 mt-4 rounded border border-neutral-300 text-center">
+      <div class="w-30 mt-2 rounded border border-neutral-300 text-center">
         {#if !isExpanded}
           <Button
             size="small"
