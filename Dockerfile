@@ -27,4 +27,7 @@ COPY /web/blueprint/build ./web/blueprint/build
 # Copy python files.
 COPY /src ./src/
 
+# Copy the entrypoint file.
+COPY docker_entrypoint.sh .
+
 CMD ["uvicorn", "src.server:app", "--host", "0.0.0.0", "--port", "5432"]

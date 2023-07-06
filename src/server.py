@@ -2,6 +2,7 @@
 
 import logging
 import os
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import APIRouter, FastAPI
@@ -51,6 +52,16 @@ app.include_router(v1_router, prefix='/api/v1')
 
 # Serve static files in production mode.
 app.mount('/', StaticFiles(directory=os.path.join(DIST_PATH), html=True, check_dir=False))
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+  """The lifspan hook for the server."""
+  # Setup.
+
+  yield
+
+  # Teardown.
 
 
 @app.on_event('shutdown')
