@@ -7,8 +7,6 @@ from fastapi import APIRouter, Response
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, validator
 
-from .signals.semantic_similarity import SemanticSimilaritySignal
-
 from .config import data_path
 from .data.dataset import BinaryOp
 from .data.dataset import Column as DBColumn
@@ -31,6 +29,7 @@ from .schema import Bin, Path, normalize_path
 from .signals.concept_labels import ConceptLabelsSignal
 from .signals.concept_scorer import ConceptScoreSignal
 from .signals.default_signals import register_default_signals
+from .signals.semantic_similarity import SemanticSimilaritySignal
 from .signals.signal import (
   Signal,
   TextEmbeddingModelSignal,
