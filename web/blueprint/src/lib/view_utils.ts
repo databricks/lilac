@@ -23,7 +23,7 @@ import {
 import type {DatasetState, StatsInfo} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
 
-const MEDIA_TEXT_LENGTH_THRESHOLD = 100;
+const MEDIA_TEXT_LENGTH_THRESHOLD = 32;
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
 export function getVisibleFields(
