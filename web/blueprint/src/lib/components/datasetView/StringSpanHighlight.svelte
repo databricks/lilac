@@ -47,8 +47,6 @@
   // When the text length exceeds this number we start to snippet.
   const SNIPPET_LEN_BUDGET = 500;
 
-  $: console.log(text);
-
   const datasetStore = getDatasetContext();
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
 
