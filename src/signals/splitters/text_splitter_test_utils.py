@@ -21,8 +21,9 @@ def text_to_expected_spans(text: str, splits: list[Union[str, tuple[str, Item]]]
   start_offset = 0
   expected_spans: list[Item] = []
   for split in splits:
+    item: Item
     if isinstance(split, str):
-      split, item = split, None
+      split, item = split, {}
     elif isinstance(split, tuple):
       split, item = split
     else:
