@@ -4,7 +4,7 @@ import SpanHoverTooltip, {type SpanHoverNamedValue} from './SpanHoverTooltip.sve
 
 export interface SpanHoverInfo {
   namedValues: SpanHoverNamedValue[];
-  spansHovered: string[];
+  spansHovered: Set<string>;
   isHovered: boolean;
   itemScrollContainer: HTMLDivElement | null;
 }
@@ -12,19 +12,15 @@ export function spanHover(element: HTMLSpanElement, spanHoverInfo: SpanHoverInfo
   let tooltipComponent: SvelteComponent | undefined;
   let curSpanHoverInfo = spanHoverInfo;
   const itemScrollListener = () => destroyHoverElement();
-  showSpan();
+  if (curSpanHoverInfo.isHovered) {
+    showSpan();
+  }
   function showSpan() {
-    if (!curSpanHoverInfo.isHovered) {
-      return;
-    }
-    curSpanHoverInfo.namedValues = spanHoverInfo.namedValues.filter(namedValue =>
-      curSpanHoverInfo.spansHovered.some(path =>
+    const namedValues = curSpanHoverInfo.namedValues.filter(namedValue =>
+      Array.from(curSpanHoverInfo.spansHovered).some(path =>
         pathIsMatching(deserializePath(namedValue.spanPath), deserializePath(path))
       )
     );
-    if (curSpanHoverInfo.namedValues.length === 0) {
-      return;
-    }
     if (curSpanHoverInfo.itemScrollContainer != null) {
       curSpanHoverInfo.itemScrollContainer.addEventListener('scroll', itemScrollListener);
     }
@@ -39,7 +35,7 @@ export function spanHover(element: HTMLSpanElement, spanHoverInfo: SpanHoverInfo
 
     tooltipComponent = new SpanHoverTooltip({
       props: {
-        namedValues: curSpanHoverInfo.namedValues,
+        namedValues,
         x,
         y: boundingRect.top
       },
@@ -59,12 +55,11 @@ export function spanHover(element: HTMLSpanElement, spanHoverInfo: SpanHoverInfo
     update(spanHoverInfo: SpanHoverInfo) {
       curSpanHoverInfo = spanHoverInfo;
 
-      if (!spanHoverInfo.isHovered) {
+      if (!curSpanHoverInfo.isHovered) {
         destroyHoverElement();
       } else {
         showSpan();
       }
-      tooltipComponent?.$set({namedValues: curSpanHoverInfo.namedValues});
     },
     destroy() {
       destroyHoverElement();

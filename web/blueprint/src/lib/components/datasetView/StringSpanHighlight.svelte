@@ -429,7 +429,7 @@
         use:spanHover={{
           namedValues: renderSpan.hoverInfo,
           isHovered: renderSpan.isFirstHover,
-          spansHovered: Array.from(pathsHovered),
+          spansHovered: pathsHovered,
           itemScrollContainer: $itemScrollContainer
         }}
         use:spanClick={{
