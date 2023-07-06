@@ -8,7 +8,11 @@ const CONCEPTS_TAG = 'concepts';
 export const queryConcept = createApiQuery(ConceptsService.getConcept, CONCEPTS_TAG);
 export const queryConcepts = createApiQuery(ConceptsService.getConcepts, CONCEPTS_TAG);
 export const queryConceptModels = createApiQuery(ConceptsService.getConceptModels, CONCEPTS_TAG);
-
+export const conceptModelMutation = createApiMutation(ConceptsService.getConceptModel, {
+  onSuccess: () => {
+    queryClient.invalidateQueries([CONCEPTS_TAG]);
+  }
+});
 export const createConceptMutation = createApiMutation(ConceptsService.createConcept, {
   onSuccess: () => {
     queryClient.invalidateQueries([CONCEPTS_TAG]);

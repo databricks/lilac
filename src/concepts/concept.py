@@ -7,10 +7,11 @@ from typing import Callable, Iterable, Literal, Optional, Union
 import numpy as np
 from joblib import Parallel, delayed
 from pydantic import BaseModel, validator
+from scipy.interpolate import interp1d
 from sklearn.base import BaseEstimator, clone
 from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.metrics import precision_recall_curve, roc_auc_score
 from sklearn.model_selection import KFold
 
 from ..db_manager import get_dataset
@@ -27,6 +28,10 @@ DEFAULT_NUM_NEG_EXAMPLES = 100
 
 # The maximum number of cross-validation models to train.
 MAX_NUM_CROSS_VAL_MODELS = 15
+# The β weight to use for the F-beta score: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.fbeta_score.html
+# β = 0.5 means we value precision 2x as much as recall.
+# β = 2 means we value recall 2x as much as precision.
+F_BETA_WEIGHT = 0.5
 
 
 class ConceptColumnInfo(BaseModel):
@@ -141,6 +146,9 @@ class ConceptMetrics(BaseModel):
 class LogisticEmbeddingModel:
   """A model that uses logistic regression with embeddings."""
 
+  _metrics: Optional[ConceptMetrics] = None
+  _threshold: float = 0.5
+
   def __post_init__(self) -> None:
     # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
     self._model = LogisticRegression(
@@ -149,7 +157,10 @@ class LogisticEmbeddingModel:
   def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
     try:
-      return self._model.predict_proba(embeddings)[:, 1]
+      y_probs = self._model.predict_proba(embeddings)[:, 1]
+      # Map [0, threshold, 1] to [0, 0.5, 1].
+      interpolate_fn = interp1d([0, self._threshold, 1], [0, 0.4999, 1])
+      return interpolate_fn(y_probs)
     except NotFittedError:
       return np.random.rand(len(embeddings))
 
@@ -185,9 +196,11 @@ class LogisticEmbeddingModel:
         f'Length of embeddings ({len(embeddings)}) must match length of labels ({len(labels)})')
     X_train, y_train, sample_weights = self._setup_training(embeddings, labels, implicit_negatives)
     self._model.fit(X_train, y_train, sample_weights)
+    self._metrics, self._threshold = self._compute_metrics(embeddings, labels, implicit_negatives)
 
-  def compute_metrics(self, embeddings: np.ndarray, labels: list[bool],
-                      implicit_negatives: Optional[np.ndarray]) -> ConceptMetrics:
+  def _compute_metrics(
+      self, embeddings: np.ndarray, labels: list[bool],
+      implicit_negatives: Optional[np.ndarray]) -> tuple[Optional[ConceptMetrics], float]:
     """Return the concept metrics."""
     labels = np.array(labels)
     n_splits = min(len(labels), MAX_NUM_CROSS_VAL_MODELS)
@@ -196,6 +209,8 @@ class LogisticEmbeddingModel:
     def _fit_and_score(model: BaseEstimator, X_train: np.ndarray, y_train: np.ndarray,
                        sample_weights: np.ndarray, X_test: np.ndarray,
                        y_test: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+      if len(set(y_train)) < 2:
+        return np.array([]), np.array([])
       model.fit(X_train, y_train, sample_weights)
       y_pred = model.predict_proba(X_test)[:, 1]
       return y_test, y_pred
@@ -212,18 +227,25 @@ class LogisticEmbeddingModel:
 
     y_test = np.concatenate([y_test for y_test, _ in results], axis=0)
     y_pred = np.concatenate([y_pred for _, y_pred in results], axis=0)
-    y_pred_binary = y_pred >= 0.5
-    f1_val = f1_score(y_test, y_pred_binary)
-    precision_val = precision_score(y_test, y_pred_binary)
-    recall_val = recall_score(y_test, y_pred_binary)
+    if len(set(y_test)) < 2:
+      return None, 0.5
     roc_auc_val = roc_auc_score(y_test, y_pred)
-
-    return ConceptMetrics(
-      f1=f1_val,
-      precision=precision_val,
-      recall=recall_val,
+    precision, recall, thresholds = precision_recall_curve(y_test, y_pred)
+    numerator = (1 + F_BETA_WEIGHT**2) * precision * recall
+    denom = (F_BETA_WEIGHT**2 * precision) + recall
+    f1_scores = np.divide(numerator, denom, out=np.zeros_like(denom), where=(denom != 0))
+    max_f1: float = np.max(f1_scores)
+    max_f1_index = np.argmax(f1_scores)
+    max_f1_thresh: float = thresholds[max_f1_index]
+    max_f1_prec: float = precision[max_f1_index]
+    max_f1_recall: float = recall[max_f1_index]
+    metrics = ConceptMetrics(
+      f1=max_f1,
+      precision=max_f1_prec,
+      recall=max_f1_recall,
       roc_auc=roc_auc_val,
-      overall=_get_overall_score(f1_val))
+      overall=_get_overall_score(max_f1))
+    return metrics, max_f1_thresh
 
 
 def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
@@ -269,11 +291,10 @@ class ConceptModel:
   _embeddings: dict[str, np.ndarray] = dataclasses.field(default_factory=dict)
   _logistic_models: dict[DraftId, LogisticEmbeddingModel] = dataclasses.field(default_factory=dict)
   _negative_vectors: Optional[np.ndarray] = None
-  _metrics: Optional[ConceptMetrics] = None
 
   def get_metrics(self, concept: Concept) -> Optional[ConceptMetrics]:
     """Return the metrics for this model."""
-    return self._metrics
+    return self._get_logistic_model(DRAFT_MAIN)._metrics
 
   def __post_init__(self) -> None:
     if self.column_info:
@@ -314,18 +335,6 @@ class ConceptModel:
       self._logistic_models[draft] = LogisticEmbeddingModel()
     return self._logistic_models[draft]
 
-  def _compute_metrics(self, concept: Concept) -> None:
-    """Compute the metrics for the provided concept using the model."""
-    examples = draft_examples(concept, DRAFT_MAIN)
-    embeddings = np.array([self._embeddings[id] for id in examples.keys()])
-    labels = [example.label for example in examples.values()]
-    implicit_embeddings: Optional[np.ndarray] = None
-    implicit_labels: Optional[list[bool]] = None
-    model = self._get_logistic_model(DRAFT_MAIN)
-    model_str = f'{self.namespace}/{self.concept_name}/{self.embedding_name}/{concept.version}'
-    with DebugTimer(f'Computing metrics for {model_str}'):
-      self._metrics = model.compute_metrics(embeddings, labels, self._negative_vectors)
-
   def sync(self, concept: Concept) -> bool:
     """Update the model with the latest labeled concept data."""
     if concept.version == self.version:
@@ -346,7 +355,6 @@ class ConceptModel:
       with DebugTimer(f'Fitting model for "{concept_path}"'):
         model.fit(embeddings, labels, self._negative_vectors)
 
-    self._compute_metrics(concept)
     # Synchronize the model version with the concept version.
     self.version = concept.version
 

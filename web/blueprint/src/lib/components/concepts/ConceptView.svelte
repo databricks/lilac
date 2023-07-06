@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    conceptModelMutation,
     editConceptMutation,
     queryConceptColumnInfos,
     queryConceptModels
@@ -13,7 +14,7 @@
     type ConceptModelInfo,
     type OverallScore
   } from '$lilac';
-  import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
+  import {Button, InlineLoading, InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import {
     SkillLevel,
     SkillLevelAdvanced,
@@ -32,6 +33,8 @@
   $: conceptModels = queryConceptModels(concept.namespace, concept.concept_name);
   let embeddingToModel: Record<string, ConceptModelInfo> = {};
 
+  const modelMutation = conceptModelMutation();
+
   $: {
     if ($conceptModels.data) {
       embeddingToModel = {};
@@ -40,6 +43,7 @@
       }
     }
   }
+
   const scoreToColor: Record<OverallScore, string> = {
     not_good: 'text-red-600',
     ok: 'text-yellow-600',
@@ -71,7 +75,7 @@
   }
 </script>
 
-<div class="flex h-full flex-col gap-y-8">
+<div class="flex h-full w-full flex-col gap-y-8">
   <div>
     <div class="text-2xl font-semibold">{concept.namespace} / {concept.concept_name}</div>
     {#if concept.description}
@@ -109,11 +113,17 @@
       <div class="model-metrics flex gap-x-4">
         {#each $embeddings.data as embedding}
           {@const model = embeddingToModel[embedding.name]}
+          {@const scoreIsLoading =
+            $modelMutation.isLoading &&
+            $modelMutation.variables &&
+            $modelMutation.variables[2] == embedding.name}
           <div
-            class="flex flex-col items-center gap-y-2 rounded-md border border-gray-200 px-2 py-4"
+            class="flex w-36 flex-col items-center gap-y-2 rounded-md border border-gray-200 p-4"
           >
             <div class="text-gray-500">{embedding.name}</div>
-            {#if model && model.metrics}
+            {#if $conceptModels.isLoading}
+              <InlineLoading />
+            {:else if model && model.metrics}
               <div class="text-4xl font-light {scoreToColor[model.metrics.overall]}">
                 {formatValue(model.metrics.f1)}
               </div>
@@ -121,15 +131,22 @@
                 <svelte:component this={scoreToIcon[model.metrics.overall]} />
               </div>
             {:else}
-              <button class="text-3xl">Compute</button>
+              <Button
+                on:click={() =>
+                  $modelMutation.mutate([concept.namespace, concept.concept_name, embedding.name])}
+                class="w-28 text-3xl"
+              >
+                Compute
+                <span class="ml-2" class:invisible={!scoreIsLoading}><InlineLoading /></span>
+              </Button>
             {/if}
           </div>
         {/each}
       </div>
     </div>
   {/if}
-  <div class="flex w-full gap-x-4">
-    <div class="flex w-1/2 flex-col gap-y-4">
+  <div class="flex gap-x-4">
+    <div class="flex w-0 flex-grow flex-col gap-y-4">
       <span class="flex items-center gap-x-2 text-lg"
         ><ThumbsUpFilled /> Positive ({positiveExamples.length} examples)</span
       >
@@ -139,7 +156,7 @@
         on:add={ev => add(ev.detail, true)}
       />
     </div>
-    <div class="flex w-1/2 flex-col gap-y-4">
+    <div class="flex w-0 flex-grow flex-col gap-y-4">
       <span class="flex items-center gap-x-2 text-lg"
         ><ThumbsDownFilled />Negative ({negativeExamples.length} examples)</span
       >

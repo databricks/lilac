@@ -220,7 +220,6 @@ export class ConceptsService {
      * @param namespace
      * @param conceptName
      * @param embeddingName
-     * @param syncModel
      * @returns ConceptModelInfo Successful Response
      * @throws ApiError
      */
@@ -228,7 +227,6 @@ export class ConceptsService {
         namespace: string,
         conceptName: string,
         embeddingName: string,
-        syncModel: boolean = false,
     ): CancelablePromise<ConceptModelInfo> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -237,9 +235,6 @@ export class ConceptsService {
                 'namespace': namespace,
                 'concept_name': conceptName,
                 'embedding_name': embeddingName,
-            },
-            query: {
-                'sync_model': syncModel,
             },
             errors: {
                 422: `Validation Error`,

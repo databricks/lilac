@@ -23,7 +23,6 @@ from .config import CONFIG
 from .data.dataset_utils import lilac_embedding
 from .router_concept import (
   ConceptModelInfo,
-  ConceptModelResponse,
   CreateConceptOptions,
   MergeConceptDraftOptions,
   ScoreBody,
@@ -340,35 +339,19 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   assert response.status_code == 200
 
   # Get the concept model.
-  url = '/api/v1/concepts/concept_namespace/concept/test_embedding?sync_model=False'
+  url = '/api/v1/concepts/concept_namespace/concept/model/test_embedding'
   response = client.get(url)
   assert response.status_code == 200
-  assert ConceptModelResponse.parse_obj(response.json()) == ConceptModelResponse(
-    model=ConceptModelInfo(
-      namespace='concept_namespace',
-      concept_name='concept',
-      embedding_name='test_embedding',
-      version=-1),
-    # The model shouldn't yet be synced because we set sync_model=False.
-    model_synced=False)
-
-  # Sync the concept model.
-  url = '/api/v1/concepts/concept_namespace/concept/test_embedding?sync_model=True'
-  response = client.get(url)
-  assert response.status_code == 200
-  assert ConceptModelResponse.parse_obj(response.json()) == ConceptModelResponse(
-    model=ConceptModelInfo(
-      namespace='concept_namespace',
-      concept_name='concept',
-      embedding_name='test_embedding',
-      version=1),
-    # The model should be synced because we set sync_model=True.
-    model_synced=True)
+  assert ConceptModelInfo.parse_obj(response.json()) == ConceptModelInfo(
+    namespace='concept_namespace',
+    concept_name='concept',
+    embedding_name='test_embedding',
+    version=1)
 
   # Score an example.
   mock_score_emb = mocker.patch.object(LogisticEmbeddingModel, 'score_embeddings', autospec=True)
   mock_score_emb.return_value = np.array([0.9, 1.0])
-  url = '/api/v1/concepts/concept_namespace/concept/test_embedding/score'
+  url = '/api/v1/concepts/concept_namespace/concept/model/test_embedding/score'
   score_body = ScoreBody(examples=[ScoreExample(text='hello world'), ScoreExample(text='hello')])
   response = client.post(url, json=score_body.dict())
   assert response.status_code == 200

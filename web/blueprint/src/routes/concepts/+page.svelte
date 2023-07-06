@@ -81,7 +81,7 @@
       >
     {/if}
   </div>
-  <div class="h-full w-full p-4">
+  <div class="flex h-full w-full overflow-y-auto p-4">
     {#if $concept?.isLoading}
       <SkeletonText />
     {:else if $concept?.isError}
