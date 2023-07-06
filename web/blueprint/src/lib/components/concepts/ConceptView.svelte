@@ -7,29 +7,15 @@
   } from '$lib/queries/conceptQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {datasetLink} from '$lib/utils';
-  import {
-    formatValue,
-    serializePath,
-    type Concept,
-    type ConceptModelInfo,
-    type OverallScore
-  } from '$lilac';
+  import {serializePath, type Concept, type ConceptModelInfo} from '$lilac';
   import {Button, InlineLoading, InlineNotification, SkeletonText} from 'carbon-components-svelte';
-  import {
-    Chip,
-    SkillLevel,
-    SkillLevelAdvanced,
-    SkillLevelBasic,
-    SkillLevelIntermediate,
-    ThumbsDown,
-    type CarbonIcon
-  } from 'carbon-icons-svelte';
+  import {Chip} from 'carbon-icons-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptExampleList from './ConceptExampleList.svelte';
   import ConceptHoverPill from './ConceptHoverPill.svelte';
-  import {scoreToColor} from './colors';
+  import {scoreToColor, scoreToText} from './colors';
 
   export let concept: Concept;
   const conceptMutation = editConceptMutation();
@@ -47,14 +33,6 @@
       }
     }
   }
-
-  const scoreToIcon: Record<OverallScore, typeof CarbonIcon> = {
-    not_good: ThumbsDown,
-    ok: SkillLevel,
-    good: SkillLevelBasic,
-    very_good: SkillLevelIntermediate,
-    great: SkillLevelAdvanced
-  };
 
   $: conceptColumnInfos = queryConceptColumnInfos(concept.namespace, concept.concept_name);
   $: positiveExamples = Object.values(concept.data).filter(v => v.label == true);
@@ -128,14 +106,11 @@
                 }}
               >
                 <div
-                  class="concept-score-pill text-4xl font-light {scoreToColor[
+                  class="concept-score-pill text-2xl font-light {scoreToColor[
                     model.metrics.overall
                   ]}"
                 >
-                  {formatValue(model.metrics.f1)}
-                </div>
-                <div>
-                  <svelte:component this={scoreToIcon[model.metrics.overall]} />
+                  {scoreToText[model.metrics.overall]}
                 </div>
               </div>
             {:else}

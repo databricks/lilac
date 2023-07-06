@@ -7,3 +7,11 @@ export const scoreToColor: Record<OverallScore, string> = {
   very_good: 'text-blue-600',
   great: 'text-purple-600'
 };
+
+export const scoreToText: Record<OverallScore, string> = {
+  not_good: 'Not good',
+  ok: 'OK',
+  good: 'Good',
+  very_good: 'Very good',
+  great: 'Great'
+};
