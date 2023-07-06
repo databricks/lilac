@@ -16,7 +16,8 @@ def spans_to_text(text: str, spans: Optional[list[Item]]) -> list[str]:
   ]
 
 
-def text_to_expected_spans(text: str, splits: list[Union[str, tuple[str, Item]]]) -> list[Item]:
+def text_to_expected_spans(text: str, splits: Union[list[str], list[tuple[str,
+                                                                          Item]]]) -> list[Item]:
   """Convert text and a list of splits to a list of expected spans."""
   start_offset = 0
   expected_spans: list[Item] = []
