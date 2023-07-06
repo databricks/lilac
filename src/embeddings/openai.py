@@ -4,6 +4,7 @@ from typing import Iterable, cast
 
 import numpy as np
 import openai
+from tenacity import retry, stop_after_attempt, wait_random_exponential
 from typing_extensions import override
 
 from ..config import CONFIG
@@ -13,7 +14,7 @@ from ..signals.splitters.chunk_splitter import split_text
 from .embedding import compute_split_embeddings
 
 NUM_PARALLEL_REQUESTS = 10
-OPENAI_BATCH_SIZE = 96
+OPENAI_BATCH_SIZE = 256
 EMBEDDING_MODEL = 'text-embedding-ada-002'
 
 
@@ -44,9 +45,10 @@ class OpenAI(TextEmbeddingSignal):
   def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
     """Compute embeddings for the given documents."""
 
+    @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(10))
     def embed_fn(texts: list[str]) -> list[np.ndarray]:
       response = _model().create(input=texts, model=EMBEDDING_MODEL)
-      return [np.array(embedding['embedding'], dtype=np.float32) for embedding in response['data']]
+      return [np.array(embedding['embedding']) for embedding in response['data']]
 
     docs = cast(Iterable[str], docs)
     split_fn = split_text if self._split else None
