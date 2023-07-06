@@ -25,7 +25,9 @@
   } from 'carbon-icons-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptExampleList from './ConceptExampleList.svelte';
+  import ConceptPillHover from './ConceptPillHover.svelte';
 
   export let concept: Concept;
   const conceptMutation = editConceptMutation();
@@ -124,7 +126,13 @@
             {#if $conceptModels.isLoading}
               <InlineLoading />
             {:else if model && model.metrics}
-              <div class="text-4xl font-light {scoreToColor[model.metrics.overall]}">
+              <div
+                class="concept-score-pill text-4xl font-light {scoreToColor[model.metrics.overall]}"
+                use:hoverTooltip={{
+                  component: ConceptPillHover,
+                  props: {metrics: model.metrics}
+                }}
+              >
                 {formatValue(model.metrics.f1)}
               </div>
               <div>
