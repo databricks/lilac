@@ -16,6 +16,7 @@
   } from '$lilac';
   import {Button, InlineLoading, InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import {
+    Chip,
     SkillLevel,
     SkillLevelAdvanced,
     SkillLevelBasic,
@@ -120,7 +121,7 @@
               <InlineLoading />
             {:else if model && model.metrics}
               <div
-                class="flex cursor-default flex-col items-center"
+                class="flex cursor-default flex-col items-center gap-y-2"
                 use:hoverTooltip={{
                   component: ConceptHoverPill,
                   props: {metrics: model.metrics}
@@ -139,12 +140,12 @@
               </div>
             {:else}
               <Button
+                icon={scoreIsLoading ? InlineLoading : Chip}
                 on:click={() =>
                   $modelMutation.mutate([concept.namespace, concept.concept_name, embedding.name])}
                 class="w-28 text-3xl"
               >
                 Compute
-                <span class="ml-2" class:invisible={!scoreIsLoading}><InlineLoading /></span>
               </Button>
             {/if}
           </div>
