@@ -175,13 +175,15 @@ export function getRenderSpans(
           isKeywordSpan = true;
           const field = getField(schema, deserializePath(keywordSpanPath).slice(0, -1));
           const signal = field?.signal as SubstringSignal;
-          hoverInfo.push({
-            name: 'keyword',
-            value: signal.query,
-            spanPath: keywordSpanPath,
-            isKeywordSearch: true
-          });
-          isShownSnippet = true;
+          if (signal?.signal_name === 'substring_search') {
+            hoverInfo.push({
+              name: 'keyword',
+              value: signal.query,
+              spanPath: keywordSpanPath,
+              isKeywordSearch: true
+            });
+            isShownSnippet = true;
+          }
         }
       }
     }

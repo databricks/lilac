@@ -16,7 +16,6 @@
     petals,
     serializePath,
     type LilacField,
-    type LilacSchema,
     type LilacValueNode,
     type LilacValueNodeCasted,
     type Signal
@@ -43,7 +42,8 @@
 
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
-  $: schema = $datasetStore.selectRowsSchema?.data?.data_schema as LilacSchema | undefined;
+
+  $: schema = $datasetStore.selectRowsSchema?.data?.schema;
   // Get the embeddings.
   const embeddings = queryEmbeddings();
 
