@@ -42,8 +42,8 @@
 
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
-
   $: schema = $datasetStore.selectRowsSchema?.data?.schema;
+
   // Get the embeddings.
   const embeddings = queryEmbeddings();
 
