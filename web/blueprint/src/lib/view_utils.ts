@@ -218,11 +218,11 @@ export interface MergedSpan {
 }
 
 // Split a merged span up into smaller chunks to help with snippeting.
-function splitMergedSpan(mergedSpan: MergedSpan): MergedSpan[] {
+function chunkText(text: string): MergedSpan[] {
   const splitBy = '\n';
-  const splits = mergedSpan.text.split(splitBy);
+  const splits = text.split(splitBy);
   const splitSpans: MergedSpan[] = [];
-  let lastEnd = mergedSpan.span?.start || 0;
+  let lastEnd = 0;
   for (let i = 0; i < splits.length; i++) {
     const text = splits[i] + (i < splits.length - 1 ? splitBy : '');
     const end = lastEnd + text.length;
@@ -230,8 +230,8 @@ function splitMergedSpan(mergedSpan: MergedSpan): MergedSpan[] {
     splitSpans.push({
       text,
       span,
-      originalSpans: mergedSpan.originalSpans,
-      paths: mergedSpan.paths
+      originalSpans: {},
+      paths: []
     });
     lastEnd = end;
   }
@@ -260,6 +260,9 @@ export function mergeSpans(
   inputSpanSets: {[spanSet: string]: LilacValueNodeCasted<'string_span'>[]}
 ): MergedSpan[] {
   const spanSetKeys = Object.keys(inputSpanSets);
+  if (spanSetKeys.length === 0) {
+    return chunkText(text);
+  }
   const textLength = text.length;
 
   // Maps a span set to the index of the spans we're currently processing for each span set.
@@ -329,14 +332,12 @@ export function mergeSpans(
       .map(span => L.path(span as LilacValueNode))
       .map(path => serializePath(path!));
 
-    mergedSpans.push(
-      ...splitMergedSpan({
-        text: text.slice(curStartIdx, curEndIndex),
-        span: {start: curStartIdx, end: curEndIndex},
-        originalSpans: spansInRange,
-        paths
-      })
-    );
+    mergedSpans.push({
+      text: text.slice(curStartIdx, curEndIndex),
+      span: {start: curStartIdx, end: curEndIndex},
+      originalSpans: spansInRange,
+      paths
+    });
 
     // Advance the spans that have the span end index.
     for (const spanSet of Object.keys(spanSetIndices)) {
@@ -364,14 +365,12 @@ export function mergeSpans(
 
   // If the text has more characters than spans, emit a final empty span.
   if (curStartIdx < text.length) {
-    mergedSpans.push(
-      ...splitMergedSpan({
-        text: text.slice(curStartIdx, text.length),
-        span: {start: curStartIdx, end: text.length},
-        originalSpans: {},
-        paths: []
-      })
-    );
+    mergedSpans.push({
+      text: text.slice(curStartIdx, text.length),
+      span: {start: curStartIdx, end: text.length},
+      originalSpans: {},
+      paths: []
+    });
   }
 
   return mergedSpans;
