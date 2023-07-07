@@ -1,5 +1,4 @@
 """Cohere embeddings."""
-import functools
 from typing import Iterable, cast
 
 import cohere
@@ -16,14 +15,6 @@ NUM_PARALLEL_REQUESTS = 10
 COHERE_BATCH_SIZE = 96
 
 
-@functools.cache
-def _cohere() -> cohere.Client:
-  api_key = CONFIG['COHERE_API_KEY']
-  if not api_key:
-    raise ValueError('`COHERE_API_KEY` environment variable not set.')
-  return cohere.Client(api_key, max_retries=10)
-
-
 class Cohere(TextEmbeddingSignal):
   """Computes embeddings using Cohere's embedding API.
 
@@ -38,12 +29,21 @@ class Cohere(TextEmbeddingSignal):
   name = 'cohere'
   display_name = 'Cohere Embeddings'
 
+  _model: cohere.Client
+
+  @override
+  def setup(self) -> None:
+    api_key = CONFIG.get('COHERE_API_KEY')
+    if not api_key:
+      raise ValueError('`COHERE_API_KEY` environment variable not set.')
+    self._model = cohere.Client(api_key, max_retries=10)
+
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
     """Compute embeddings for the given documents."""
 
     def embed_fn(texts: list[str]) -> list[np.ndarray]:
-      return _cohere().embed(texts, truncate='END').embeddings
+      return self._model.embed(texts, truncate='END').embeddings
 
     docs = cast(Iterable[str], docs)
     split_fn = split_text if self._split else None

@@ -1,6 +1,7 @@
 """Registers all available default signals."""
 from ..embeddings.cohere import Cohere
 from ..embeddings.openai import OpenAI
+from ..embeddings.palm import PaLM
 from ..embeddings.sbert import SBERT
 from .concept_scorer import ConceptScoreSignal
 from .ner import SpacyNER
@@ -23,3 +24,4 @@ def register_default_signals() -> None:
   register_signal(Cohere)
   register_signal(SBERT)
   register_signal(OpenAI)
+  register_signal(PaLM)
