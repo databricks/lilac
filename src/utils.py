@@ -106,6 +106,43 @@ def get_dataset_output_dir(base_dir: Union[str, pathlib.Path], namespace: str,
   return os.path.join(get_datasets_dir(base_dir), namespace, dataset_name)
 
 
+class DatasetInfo(BaseModel):
+  """Information about a dataset."""
+  namespace: str
+  dataset_name: str
+  description: Optional[str]
+
+
+def list_datasets(base_dir: Union[str, pathlib.Path]) -> list[DatasetInfo]:
+  """List the datasets in a data directory."""
+  datasets_path = get_datasets_dir(base_dir)
+
+  # Skip if 'datasets' doesn't exist.
+  if not os.path.isdir(datasets_path):
+    return []
+
+  dataset_infos: list[DatasetInfo] = []
+  for namespace in os.listdir(datasets_path):
+    dataset_dir = os.path.join(datasets_path, namespace)
+    # Skip if namespace is not a directory.
+    if not os.path.isdir(dataset_dir):
+      continue
+    if namespace.startswith('.'):
+      continue
+
+    for dataset_name in os.listdir(dataset_dir):
+      # Skip if dataset_name is not a directory.
+      dataset_path = os.path.join(dataset_dir, dataset_name)
+      if not os.path.isdir(dataset_path):
+        continue
+      if dataset_name.startswith('.'):
+        continue
+
+      dataset_infos.append(DatasetInfo(namespace=namespace, dataset_name=dataset_name))
+
+  return dataset_infos
+
+
 class CopyRequest(BaseModel):
   """A request to copy a file from source to destination path. Used to copy media files to GCS."""
   from_path: str

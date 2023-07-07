@@ -1,5 +1,4 @@
 """Router for the dataset database."""
-import os
 from typing import Optional, Sequence, Union, cast
 from urllib.parse import unquote
 
@@ -39,7 +38,7 @@ from .signals.signal import (
 )
 from .signals.substring_search import SubstringSignal
 from .tasks import TaskId, task_manager
-from .utils import DATASETS_DIR_NAME
+from .utils import DatasetInfo, list_datasets
 
 router = APIRouter(route_class=RouteErrorHandler)
 
@@ -47,41 +46,10 @@ register_default_signals()
 set_default_dataset_cls(DatasetDuckDB)
 
 
-class DatasetInfo(BaseModel):
-  """Information about a dataset."""
-  namespace: str
-  dataset_name: str
-  description: Optional[str]
-
-
 @router.get('/', response_model_exclude_none=True)
 def get_datasets() -> list[DatasetInfo]:
   """List the datasets."""
-  datasets_path = os.path.join(data_path(), DATASETS_DIR_NAME)
-  # Skip if 'datasets' doesn't exist.
-  if not os.path.isdir(datasets_path):
-    return []
-
-  dataset_infos: list[DatasetInfo] = []
-  for namespace in os.listdir(datasets_path):
-    dataset_dir = os.path.join(datasets_path, namespace)
-    # Skip if namespace is not a directory.
-    if not os.path.isdir(dataset_dir):
-      continue
-    if namespace.startswith('.'):
-      continue
-
-    for dataset_name in os.listdir(dataset_dir):
-      # Skip if dataset_name is not a directory.
-      dataset_path = os.path.join(dataset_dir, dataset_name)
-      if not os.path.isdir(dataset_path):
-        continue
-      if dataset_name.startswith('.'):
-        continue
-
-      dataset_infos.append(DatasetInfo(namespace=namespace, dataset_name=dataset_name))
-
-  return dataset_infos
+  return list_datasets(data_path())
 
 
 class WebManifest(BaseModel):

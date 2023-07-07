@@ -12,12 +12,6 @@ WORKDIR /server
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the data to /data, the HF persistent storage. We do this after pip install to avoid
-# re-installing dependencies if the data changes, which is likely more often.
-WORKDIR /
-COPY /data /data
-WORKDIR /server
-
 COPY .env .
 COPY LICENSE .
 
@@ -26,8 +20,5 @@ COPY /web/blueprint/build ./web/blueprint/build
 
 # Copy python files.
 COPY /src ./src/
-
-# Copy the entrypoint file.
-COPY docker_entrypoint.sh .
 
 CMD ["uvicorn", "src.server:app", "--host", "0.0.0.0", "--port", "5432"]
