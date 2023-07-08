@@ -66,7 +66,7 @@
   }
 </script>
 
-<ComposedModal open on:submit={submit} on:close={close}>
+<ComposedModal open on:submit={submit} on:close={close} size="lg">
   <ModalHeader title="New Concept" />
   <ModalBody hasForm>
     <div class="flex flex-row gap-x-12">
