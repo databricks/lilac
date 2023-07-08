@@ -199,7 +199,7 @@
       >{#if snippetSpan.hasNewline}<span><br /></span>{/if}
     {/if}
   {/each}
-  {#if someSnippetsHidden}
+  {#if someSnippetsHidden || isExpanded}
     <div class="flex flex-row justify-center">
       <div class="w-30 mt-2 rounded border border-neutral-300 text-center">
         {#if !isExpanded}

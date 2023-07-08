@@ -232,7 +232,7 @@ export function getSnippetSpans(
 ): {snippetSpans: SnippetSpan[]; someSnippetsHidden: boolean} {
   // Map the merged spans to the information needed to render each span.
 
-  if (isExpanded || renderSpans.length < 2) {
+  if (isExpanded) {
     return {
       snippetSpans: renderSpans.map(renderSpan => ({renderSpan, isShown: true})),
       someSnippetsHidden: false
@@ -254,7 +254,6 @@ export function getSnippetSpans(
     .sort((a, b) => b.snippetScore - a.snippetScore);
   for (const renderSpan of belowThresholdSpans) {
     renderSpan.isShownSnippet = true;
-    belowThresholdSpans.push(renderSpan);
     shownSnippetTotalLength += renderSpan.text.length;
     if (shownSnippetTotalLength > SNIPPET_LEN_BUDGET) {
       break;
