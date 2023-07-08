@@ -1,5 +1,4 @@
 """OpenAI embeddings."""
-import functools
 from typing import Iterable, cast
 
 import numpy as np
@@ -18,15 +17,6 @@ OPENAI_BATCH_SIZE = 128
 EMBEDDING_MODEL = 'text-embedding-ada-002'
 
 
-@functools.cache
-def _model() -> type[openai.Embedding]:
-  api_key = CONFIG['OPENAI_API_KEY']
-  if not api_key:
-    raise ValueError('`OPENAI_API_KEY` environment variable not set.')
-  openai.api_key = api_key
-  return openai.Embedding
-
-
 class OpenAI(TextEmbeddingSignal):
   """Computes embeddings using OpenAI's embedding API.
 
@@ -42,12 +32,19 @@ class OpenAI(TextEmbeddingSignal):
   display_name = 'OpenAI Embeddings'
 
   @override
+  def setup(self) -> None:
+    api_key = CONFIG.get('OPENAI_API_KEY')
+    if not api_key:
+      raise ValueError('`OPENAI_API_KEY` environment variable not set.')
+    openai.api_key = api_key
+
+  @override
   def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
     """Compute embeddings for the given documents."""
 
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(10))
     def embed_fn(texts: list[str]) -> list[np.ndarray]:
-      response = _model().create(input=texts, model=EMBEDDING_MODEL)
+      response = openai.Embedding.create(input=texts, model=EMBEDDING_MODEL)
       return [np.array(embedding['embedding'], dtype=np.float32) for embedding in response['data']]
 
     docs = cast(Iterable[str], docs)

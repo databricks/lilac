@@ -134,6 +134,10 @@ def get_concept_models(namespace: str, concept_name: str) -> list[ConceptModelIn
     raise HTTPException(
       status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
   models = DISK_CONCEPT_MODEL_DB.get_models(namespace, concept_name)
+
+  for m in models:
+    DISK_CONCEPT_MODEL_DB.sync(m)
+
   return [
     ConceptModelInfo(
       namespace=m.namespace,
