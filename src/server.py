@@ -68,7 +68,6 @@ app.mount('/', StaticFiles(directory=DIST_PATH, html=True, check_dir=False))
 @app.on_event('startup')
 def startup() -> None:
   """Download dataset files from the HF space that was uploaded before building the image."""
-  # Setup.
   repo_id = CONFIG.get('HF_DATA_FROM_SPACE', None)
 
   if repo_id:
@@ -89,6 +88,8 @@ def startup() -> None:
       persistent_output_dir = get_dataset_output_dir(data_path(), dataset.namespace,
                                                      dataset.dataset_name)
 
+      # Huggingface doesn't let you selectively download files so we just copy the data directory
+      # out of the cloned space.
       shutil.rmtree(persistent_output_dir, ignore_errors=True)
       shutil.move(spaces_dataset_output_dir, persistent_output_dir)
 
