@@ -252,6 +252,20 @@
     }
     datasetViewStore.setSortOrder(sort?.order === 'ASC' ? 'DESC' : 'ASC');
   };
+  // const pageClickHandler = () => console.log('clicky');
+  // onMount(() => {
+  //   if (parent) {
+  //     console.log(parent, '=', parent);
+  //     window.parent = window;
+  //     parent.addEventListener('click', pageClickHandler);
+  //   }
+
+  //   return () => {
+  //     if (parent) {
+  //       parent.removeEventListener('click', pageClickHandler);
+  //     }
+  //   };
+  // });
 </script>
 
 <div class="border-1 flex flex-row items-start px-4 py-2">

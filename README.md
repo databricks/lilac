@@ -51,7 +51,8 @@ HF_STAGING_DEMO_REPO='lilacai/your-space'
 HF_USERNAME='your-username'
 ```
 
-Set the variables on the HuggingFace space from the UI to authenticate the binary running on HuggingFace to read private space data:
+Set the environment variables on the HuggingFace space from the HuggingFace Space Settings UI to
+authenticate the binary running on HuggingFace to read private space data:
 
 - `LILAC_DL_HF_SPACE_DATA`: lilacai/your-space
 - `HF_ACCESS_TOKEN`: yourtoken

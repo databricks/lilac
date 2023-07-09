@@ -69,12 +69,12 @@ app.mount('/', StaticFiles(directory=DIST_PATH, html=True, check_dir=False))
 def startup() -> None:
   """Download dataset files from the HF space that was uploaded before building the image."""
   # Setup.
-  repo_id = CONFIG.get('LILAC_DATA_FROM_HF_SPACE', None)
+  repo_id = CONFIG.get('HF_DATA_FROM_SPACE', None)
 
   if repo_id:
     # Download the huggingface space data. This includes code and datasets, so we move the datasets
     # alone to the data directory.
-    spaces_download_dir = os.path.join(data_path(), '.hf-spaces', repo_id)
+    spaces_download_dir = os.path.join(data_path(), '.hf_spaces', repo_id)
     snapshot_download(
       repo_id=repo_id,
       repo_type='space',

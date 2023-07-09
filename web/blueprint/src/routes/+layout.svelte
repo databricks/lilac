@@ -18,6 +18,11 @@
   let showError: ApiError | undefined = undefined;
 
   onMount(() => {
+    // This fixes a cross-origin error when the app is embedding in an iframe. Some carbon
+    // components attach listeners to window.parent, which is not allowed in an iframe, so we set
+    // the parent to window.
+    window.parent = window;
+
     urlHash.set(location.hash);
     history.pushState = function (_state, _unused, url) {
       if (url instanceof URL) {

@@ -9,7 +9,7 @@ from huggingface_hub import HfApi
 from src.config import CONFIG, data_path
 from src.utils import get_dataset_output_dir
 
-HF_SPACE_DIR = 'hf_spaces'
+HF_SPACE_DIR = os.path.join(data_path(), '.hf_spaces')
 
 
 @click.command()
@@ -23,7 +23,7 @@ HF_SPACE_DIR = 'hf_spaces'
 @click.option(
   '--skip_build',
   help='Skip building the web server TypeScript. '
-  'Useful if you are only changing python or are only changing data.',
+  'Useful to speed up the build if you are only changing python or data.',
   type=bool,
   default=False)
 @click.option('--dataset', help='The name of a dataset to upload', type=str, multiple=True)
@@ -53,6 +53,7 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
       # Delete all data on the server.
       delete_patterns='*')
 
+  # Build the web server Svelte & TypeScript.
   if not skip_build:
     run('sh ./scripts/build_server_prod.sh')
 
@@ -63,6 +64,10 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
   run(f'rm -rf {repo_basedir}')
   run(f'git clone https://{hf_username}@huggingface.co/spaces/{hf_space} {repo_basedir}')
 
+  # Clear out the repo.
+  run(f'rm -rf {repo_basedir}/*')
+
+  # Export the requirements file so it can be pip installed in the docker container.
   run(f'poetry export --without-hashes > {repo_basedir}/requirements.txt')
 
   # Copy source code.
