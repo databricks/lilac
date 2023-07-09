@@ -65,15 +65,6 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
 
   run(f'poetry export --without-hashes > {repo_basedir}/requirements.txt')
 
-  # Create a .gitignore to avoid uploading unnecessary files.
-  with open(f'{repo_basedir}/.gitignore', 'w') as f:
-    f.write("""**/__pycache__
-**/*.pyc
-**/*.pyo
-**/*.pyd
-**/*_test.py
-""")
-
   # Copy source code.
   copy_dirs = ['src', 'web/blueprint/build']
   for dir in copy_dirs:
@@ -85,6 +76,15 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
   copy_files = ['.dockerignore', '.env', 'Dockerfile', 'LICENSE']
   for file in copy_files:
     run(f'cp ./{file} {repo_basedir}/{file}')
+
+  # Create a .gitignore to avoid uploading unnecessary files.
+  with open(f'{repo_basedir}/.gitignore', 'w') as f:
+    f.write("""**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*_test.py
+""")
 
   # Create the huggingface README.
   with open(f'{repo_basedir}/README.md', 'w') as f:

@@ -7,7 +7,7 @@ import subprocess
 from typing import Any
 
 from fastapi import APIRouter, FastAPI
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import FileResponse, ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from huggingface_hub import snapshot_download
@@ -54,15 +54,22 @@ v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
 
 app.include_router(v1_router, prefix='/api/v1')
 
+
+@app.api_route('/{path_name}', include_in_schema=False)
+def catch_all() -> FileResponse:
+  """Catch any other requests and serve index for HTML5 history."""
+  return FileResponse(path=os.path.join(DIST_PATH, 'index.html'))
+
+
 # Serve static files in production mode.
-app.mount('/', StaticFiles(directory=os.path.join(DIST_PATH), html=True, check_dir=False))
+app.mount('/', StaticFiles(directory=DIST_PATH, html=True, check_dir=False))
 
 
 @app.on_event('startup')
 def startup() -> None:
-  """Download dataset files from the HF space that is uploaded before building the image."""
+  """Download dataset files from the HF space that was uploaded before building the image."""
   # Setup.
-  repo_id = CONFIG.get('LILAC_DL_DATA_FROM_HF_SPACE', None)
+  repo_id = CONFIG.get('LILAC_DATA_FROM_HF_SPACE', None)
 
   if repo_id:
     # Download the huggingface space data. This includes code and datasets, so we move the datasets
@@ -83,12 +90,7 @@ def startup() -> None:
                                                      dataset.dataset_name)
 
       shutil.rmtree(persistent_output_dir, ignore_errors=True)
-      print('~~~~moving', os.path.join(spaces_download_dir, dataset.namespace,
-                                       dataset.dataset_name), 'to', persistent_output_dir)
       shutil.move(spaces_dataset_output_dir, persistent_output_dir)
-
-    run('ls -al')
-    run(f'ls {data_path()}')
 
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:
