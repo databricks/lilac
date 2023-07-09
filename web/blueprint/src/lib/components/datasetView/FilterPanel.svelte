@@ -92,7 +92,7 @@
 </div>
 
 {#if openedConcept}
-  <Modal open modalHeading="Concept" passiveModal on:close={() => (openedConcept = null)}>
+  <Modal open modalHeading="Concept" passiveModal on:close={() => (openedConcept = null)} size="lg">
     {#if $concept?.isLoading}
       <SkeletonText />
     {:else if $concept?.isError}

@@ -5,19 +5,46 @@
     queryConceptColumnInfos,
     queryConceptModels
   } from '$lib/queries/conceptQueries';
+  import {queryDatasets} from '$lib/queries/datasetQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {datasetLink} from '$lib/utils';
-  import {serializePath, type Concept, type ConceptModelInfo} from '$lilac';
-  import {Button, InlineLoading, InlineNotification, SkeletonText} from 'carbon-components-svelte';
+  import {serializePath, type Concept, type ConceptModelInfo, type LilacSchema} from '$lilac';
+  import {
+    Button,
+    InlineLoading,
+    InlineNotification,
+    Select,
+    SelectItem,
+    SelectSkeleton,
+    SkeletonText
+  } from 'carbon-components-svelte';
   import {Chip} from 'carbon-icons-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptExampleList from './ConceptExampleList.svelte';
   import ConceptHoverPill from './ConceptHoverPill.svelte';
+  import ConceptViewFieldSelect from './ConceptViewFieldSelect.svelte';
+  import ConceptViewLabeler from './ConceptViewLabeler.svelte';
   import {scoreToColor, scoreToText} from './colors';
 
   export let concept: Concept;
+
+  // For training a concept.
+  const datasets = queryDatasets();
+  export let dataset: {namespace: string; name: string} | undefined | null = undefined;
+  export let path: string[] | undefined = undefined;
+  export let schema: LilacSchema | undefined = undefined;
+
+  $: datasetId = dataset ? `${dataset.namespace}/${dataset.name}` : '';
+
+  $: {
+    // Auto-select the first dataset.
+    if ($datasets.data && $datasets.data.length > 0 && dataset === undefined) {
+      dataset = {namespace: $datasets.data[0].namespace, name: $datasets.data[0].dataset_name};
+    }
+  }
+
   const conceptMutation = editConceptMutation();
   const embeddings = queryEmbeddings();
   $: conceptModels = queryConceptModels(concept.namespace, concept.concept_name);
@@ -37,6 +64,16 @@
   $: conceptColumnInfos = queryConceptColumnInfos(concept.namespace, concept.concept_name);
   $: positiveExamples = Object.values(concept.data).filter(v => v.label == true);
   $: negativeExamples = Object.values(concept.data).filter(v => v.label == false);
+
+  function datasetSelected(e: Event) {
+    const val = (e.target as HTMLInputElement).value;
+    if (val === '') {
+      dataset = null;
+    } else {
+      const [namespace, name] = val.split('/');
+      dataset = {namespace, name};
+    }
+  }
 
   function remove(id: string) {
     if (!concept.namespace || !concept.concept_name) return;
@@ -81,6 +118,38 @@
       </div>
     </div>
   {/if}
+  <div>
+    <div class="mb-4 text-lg font-semibold">Collect labels</div>
+    <div class="flex flex-col gap-y-4">
+      <div class="flex max-w-md flex-col gap-y-2">
+        {#if $datasets.isLoading}
+          <SelectSkeleton />
+        {:else if $datasets.isError}
+          <InlineNotification
+            kind="error"
+            title="Error"
+            subtitle={$datasets.error.message}
+            hideCloseButton
+          />
+        {:else if $datasets.data.length > 0}
+          <Select labelText="Dataset" on:change={datasetSelected} selected={datasetId}>
+            <SelectItem value="" text="none" />
+            {#each $datasets.data as dataset}
+              <SelectItem value={`${dataset.namespace}/${dataset.dataset_name}`} />
+            {/each}
+          </Select>
+        {/if}
+        {#if dataset != null}
+          <ConceptViewFieldSelect {dataset} bind:path bind:schema />
+        {/if}
+      </div>
+      {#if dataset != null && path != null && schema != null}
+        <div>
+          <ConceptViewLabeler {dataset} {path} {schema} />
+        </div>
+      {/if}
+    </div>
+  </div>
   {#if $embeddings.data}
     <div class="flex flex-col gap-y-2">
       <div class="text-lg font-semibold">Metrics</div>
