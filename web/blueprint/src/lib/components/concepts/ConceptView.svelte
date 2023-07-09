@@ -35,6 +35,7 @@
   export let dataset: {namespace: string; name: string} | undefined | null = undefined;
   export let path: string[] | undefined = undefined;
   export let schema: LilacSchema | undefined = undefined;
+  export let embedding: string | undefined = undefined;
 
   $: datasetId = dataset ? `${dataset.namespace}/${dataset.name}` : '';
 
@@ -121,7 +122,7 @@
   <div>
     <div class="mb-4 text-lg font-semibold">Collect labels</div>
     <div class="flex flex-col gap-y-4">
-      <div class="flex max-w-md flex-col gap-y-2">
+      <div class="flex flex-row gap-x-2">
         {#if $datasets.isLoading}
           <SelectSkeleton />
         {:else if $datasets.isError}
@@ -140,12 +141,14 @@
           </Select>
         {/if}
         {#if dataset != null}
-          <ConceptViewFieldSelect {dataset} bind:path bind:schema />
+          {#key dataset}
+            <ConceptViewFieldSelect {dataset} bind:path bind:schema bind:embedding />
+          {/key}
         {/if}
       </div>
-      {#if dataset != null && path != null && schema != null}
+      {#if dataset != null && path != null && schema != null && embedding != null}
         <div>
-          <ConceptViewLabeler {dataset} {path} {schema} />
+          <ConceptViewLabeler {concept} {dataset} fieldPath={path} {schema} {embedding} />
         </div>
       {/if}
     </div>
