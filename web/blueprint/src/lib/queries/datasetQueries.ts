@@ -42,6 +42,18 @@ export const queryDatasetSchema = createApiQuery(DatasetsService.getManifest, DA
   select: res => deserializeSchema(res.dataset_manifest.data_schema)
 });
 
+export const maybeQueryDatasetSchema = createApiQuery(
+  function (namespace?: string, datasetName?: string) {
+    return namespace && datasetName
+      ? DatasetsService.getManifest(namespace, datasetName)
+      : Promise.resolve(null);
+  },
+  DATASETS_TAG,
+  {
+    select: res => (res ? deserializeSchema(res.dataset_manifest.data_schema) : null)
+  }
+);
+
 export const querySources = createApiQuery(DataLoadersService.getSources, DATASETS_TAG);
 export const querySourcesSchema = createApiQuery(DataLoadersService.getSourceSchema, DATASETS_TAG, {
   select: res => res as JSONSchema7
