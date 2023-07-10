@@ -40,6 +40,7 @@ We use the HuggingFace git server, [follow the instructions](https://huggingface
 
 ###### Staging demo
 
+Create a HuggingFace space.
 Make sure you have created a HuggingFace space: [huggingface.co/spaces](https://huggingface.co/spaces)
 
 Set .env.local environment variables so you can upload data to the soace:
@@ -51,13 +52,13 @@ HF_STAGING_DEMO_REPO='lilacai/your-space'
 HF_USERNAME='your-username'
 ```
 
-Set the environment variables on the HuggingFace space from the HuggingFace Space Settings UI to
-authenticate the binary running on HuggingFace to read private space data:
+- Generate a read-only token from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) which will be used as `HF_ACCESS_TOKEN` below.
+- Open the HuggingFace space in your browser and click "Settings".
+- Set these two environment variables from the settings UI to
+  authenticate the binary running on HuggingFace to read private space data:
 
 - `LILAC_DL_HF_SPACE_DATA`: lilacai/your-space
 - `HF_ACCESS_TOKEN`: yourtoken
-
-NOTE: `HF_ACCESS_TOKEN` can be generated from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens). Create a read-only token for this step.
 
 To deploy to huggingface:
 
@@ -73,7 +74,7 @@ poetry run python -m scripts.deploy_hf \
 To build the docker image:
 
 ```sh
-./build_docker.sh
+./scripts/build_docker.sh
 ```
 
 To run the docker image locally:

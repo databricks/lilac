@@ -62,7 +62,7 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
   # Clone the HuggingFace spaces repo.
   repo_basedir = os.path.join(HF_SPACE_DIR, hf_space)
   run(f'rm -rf {repo_basedir}')
-  run(f'git clone https://{hf_username}@huggingface.co/spaces/{hf_space} {repo_basedir}')
+  run(f'git clone https://{hf_username}@huggingface.co/spaces/{hf_space} {repo_basedir} --depth 1')
 
   # Clear out the repo.
   run(f'rm -rf {repo_basedir}/*')
@@ -73,7 +73,6 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
   # Copy source code.
   copy_dirs = ['src', 'web/blueprint/build']
   for dir in copy_dirs:
-    run(f'rm -rf {repo_basedir}/{dir}')
     run(f'mkdir -p {repo_basedir}/{dir}')
     run(f'cp -vaR ./{dir}/* {repo_basedir}/{dir}')
 

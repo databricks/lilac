@@ -21,4 +21,8 @@ COPY /web/blueprint/build ./web/blueprint/build
 # Copy python files.
 COPY /src ./src/
 
-CMD ["uvicorn", "src.server:app", "--host", "0.0.0.0", "--port", "5432"]
+CMD [ \
+  "gunicorn", "src.server:app", \
+  "--bind", "0.0.0.0:5432", \
+  "-k", "uvicorn.workers.UvicornWorker" \
+  ]
