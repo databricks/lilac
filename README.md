@@ -40,10 +40,10 @@ We use the HuggingFace git server, [follow the instructions](https://huggingface
 
 ###### Staging demo
 
-Create a HuggingFace space.
-Make sure you have created a HuggingFace space: [huggingface.co/spaces](https://huggingface.co/spaces)
+1. Create a HuggingFace space.
+   Create a huggingface space from your browser: [huggingface.co/spaces](https://huggingface.co/spaces)
 
-Set .env.local environment variables so you can upload data to the soace:
+2. Set .env.local environment variables so you can upload data to the soace:
 
 ```sh
 # The repo to use for the huggingface demo.
@@ -52,15 +52,17 @@ HF_STAGING_DEMO_REPO='lilacai/your-space'
 HF_USERNAME='your-username'
 ```
 
-- Generate a read-only token from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) which will be used as `HF_ACCESS_TOKEN` below.
-- Open the HuggingFace space in your browser and click "Settings".
-- Set these two environment variables from the settings UI to
-  authenticate the binary running on HuggingFace to read private space data:
+3.  Generate a read-only token from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) which will be used as `HF_ACCESS_TOKEN` below.
+
+4.  Open the HuggingFace space in your browser and click "Settings".
+
+5.  Set these two environment variables from the settings UI to
+    authenticate the binary running on HuggingFace to read private space data:
 
 - `LILAC_DL_HF_SPACE_DATA`: lilacai/your-space
 - `HF_ACCESS_TOKEN`: yourtoken
 
-To deploy to huggingface:
+6: Deploy to your HuggingFace Space:
 
 ```
 poetry run python -m scripts.deploy_hf \
