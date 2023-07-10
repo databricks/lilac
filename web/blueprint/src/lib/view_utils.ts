@@ -333,7 +333,7 @@ export function mergeSpans(
       .map(path => serializePath(path!));
 
     mergedSpans.push({
-      text: text.slice(curStartIdx, curEndIndex),
+      text: stringSlice(text, curStartIdx, curEndIndex),
       span: {start: curStartIdx, end: curEndIndex},
       originalSpans: spansInRange,
       paths
@@ -366,7 +366,7 @@ export function mergeSpans(
   // If the text has more characters than spans, emit a final empty span.
   if (curStartIdx < text.length) {
     mergedSpans.push({
-      text: text.slice(curStartIdx, text.length),
+      text: stringSlice(text, curStartIdx, text.length),
       span: {start: curStartIdx, end: text.length},
       originalSpans: {},
       paths: []
@@ -374,4 +374,12 @@ export function mergeSpans(
   }
 
   return mergedSpans;
+}
+
+/** Slices the text by graphemes (like python) instead of by UTF-16 characters. */
+export function stringSlice(text: string, start: number, end: number): string {
+  return [...new Intl.Segmenter().segment(text)]
+    .map(x => x.segment)
+    .slice(start, end)
+    .join('');
 }

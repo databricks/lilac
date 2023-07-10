@@ -1,3 +1,4 @@
+import {stringSlice} from '$lib/view_utils';
 import {
   L,
   UUID_COLUMN,
@@ -62,7 +63,7 @@ export function getCandidates(
         continue;
       }
 
-      const textSpan = text.slice(span.start, span.end);
+      const textSpan = stringSlice(text, span.start, span.end);
       const scoreNode = valueAtPath(embNode, ['embedding', conceptId]);
       if (scoreNode == null) {
         continue;

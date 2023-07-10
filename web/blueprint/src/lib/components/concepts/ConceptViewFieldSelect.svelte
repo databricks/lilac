@@ -20,6 +20,8 @@
   let path: string[] | undefined;
   let embedding: string | undefined = undefined;
 
+  const EMBEDDING_PRIORITY = ['sbert', 'openai'];
+
   const datasets = queryDatasets();
   $: schemaQuery = maybeQueryDatasetSchema(dataset?.namespace, dataset?.name);
 
@@ -47,6 +49,20 @@
           f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
         )
       : [];
+
+  $: embeddingNames = embeddings
+    .map(a => a.signal!.signal_name!)
+    .sort((a, b) => {
+      let aPriority = EMBEDDING_PRIORITY.indexOf(a);
+      let bPriority = EMBEDDING_PRIORITY.indexOf(b);
+      if (aPriority === -1) {
+        aPriority = EMBEDDING_PRIORITY.length;
+      }
+      if (bPriority === -1) {
+        bPriority = EMBEDDING_PRIORITY.length;
+      }
+      return aPriority - bPriority;
+    });
 
   // Clear path if it is not in the list of indexed fields.
   $: {
@@ -127,10 +143,10 @@
         {/each}
       </Select>
     {/if}
-    {#if embeddings.length > 0}
+    {#if embeddingNames.length > 0}
       <Select labelText="Embedding" bind:selected={embedding}>
-        {#each embeddings as emdField}
-          <SelectItem value={emdField.path.at(-1)} />
+        {#each embeddingNames as embeddingName}
+          <SelectItem value={embeddingName} />
         {/each}
       </Select>
     {/if}
