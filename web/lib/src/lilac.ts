@@ -183,14 +183,6 @@ export function getField(schema: LilacSchema, path: Path): LilacField | undefine
 }
 
 /**
- * Get the first value at the given path in a row.
- */
-export function getValueNode(row: LilacValueNode, path: Path): LilacValueNode | undefined {
-  const list = listValueNodes(row);
-  return list.find(value => pathIsMatching(path, L.path(value)));
-}
-
-/**
  * Get all values at the given path in a row
  */
 export function getValueNodes(row: LilacValueNode, path: Path): LilacValueNode[] {
@@ -232,8 +224,8 @@ export const L = {
     return path;
   },
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  value: <D extends DataType>(value: LilacValueNode, dtype?: D): DataTypeCasted<D> | undefined => {
-    if (!value) return undefined;
+  value: <D extends DataType>(value: LilacValueNode, dtype?: D): DataTypeCasted<D> => {
+    if (!value) return null;
     return castLilacValueNode(value)[VALUE_KEY] as DataTypeCasted<D>;
   },
   field: (value: LilacValueNode): LilacField | undefined => {

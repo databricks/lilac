@@ -6,7 +6,6 @@ import {
   deserializeRow,
   deserializeSchema,
   getField,
-  getValueNode,
   getValueNodes,
   isSignalField,
   listFieldParents,
@@ -246,30 +245,6 @@ describe('lilac', () => {
     it('should return a field by path with repeated fields', () => {
       const field = getField(schema, ['complex_list_of_struct', '*', 'propertyA']);
       expect(field?.path).toEqual(['complex_list_of_struct', '*', 'propertyA']);
-    });
-  });
-
-  describe('getValueNode', () => {
-    it('should return simple paths', () => {
-      const value = getValueNode(row, ['title']);
-      expect(L.path(value!)).toEqual(['title']);
-      expect(L.value(value!)).toEqual('title text');
-
-      const value2 = getValueNode(row, ['comment_text', 'pii', 'emails', '*']);
-      expect(L.value(value2!)).toEqual({
-        end: 19,
-        start: 1
-      });
-    });
-
-    it('should return first value by path with repeated fields', () => {
-      const value = getValueNode(row, ['complex_list_of_struct', '*']);
-      expect(L.path(value!)).toEqual(['complex_list_of_struct', '0']);
-    });
-
-    it('should return specific index when no wildcard is given', () => {
-      const value = getValueNode(row, ['complex_list_of_struct', '1']);
-      expect(L.path(value!)).toEqual(['complex_list_of_struct', '1']);
     });
   });
 

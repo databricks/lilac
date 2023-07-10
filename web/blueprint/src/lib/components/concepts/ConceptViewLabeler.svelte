@@ -1,6 +1,9 @@
 <script lang="ts">
-  import {DEFAULT_SELECT_ROWS_LIMIT, querySelectRows} from '$lib/queries/datasetQueries';
+  import {querySelectRows} from '$lib/queries/datasetQueries';
   import type {Concept, LilacSchema} from '$lilac';
+  import {SkeletonText} from 'carbon-components-svelte';
+  import {ThumbsDownFilled, ThumbsUpFilled} from 'carbon-icons-svelte';
+  import {getCandidates} from './labeler_utils';
 
   export let dataset: {namespace: string; name: string};
   export let concept: Concept;
@@ -13,7 +16,7 @@
     dataset.name,
     {
       columns: [fieldPath],
-      limit: DEFAULT_SELECT_ROWS_LIMIT,
+      limit: 100,
       combine_columns: true,
       searches: [
         {
@@ -29,9 +32,29 @@
     },
     schema
   );
-  $: console.log($rows.data);
+  $: candidates = getCandidates($rows.data?.rows, concept, fieldPath, embedding);
+
+  function addLabel(text: string, label: boolean) {
+    console.log(text, label);
+  }
 </script>
 
-{JSON.stringify(dataset, null, 2)}
-{fieldPath}
-{embedding}
+{#if $rows.isLoading}
+  <SkeletonText paragraph />
+{:else}
+  <div class="flex flex-col gap-y-4">
+    {#each candidates as candidate}
+      <div class="flex items-center rounded-md border border-gray-300 p-4 pl-2">
+        <div class="mr-2 flex flex-shrink-0 gap-x-1">
+          <button class="p-2 hover:bg-gray-200" on:click={() => addLabel(candidate.text, true)}>
+            <ThumbsUpFilled />
+          </button>
+          <button class="p-2 hover:bg-gray-200" on:click={() => addLabel(candidate.text, false)}>
+            <ThumbsDownFilled />
+          </button>
+        </div>
+        <div class="flex-grow">{candidate.text}</div>
+      </div>
+    {/each}
+  </div>
+{/if}
