@@ -55,6 +55,5 @@ export function getCandidates(
   if (topNegative != topPositive) {
     res.push(topNegative);
   }
-  console.log(res);
   return res;
 }

@@ -81,14 +81,18 @@
       >
     {/if}
   </div>
-  <div class="flex h-full w-full overflow-y-auto p-4">
-    {#if $concept?.isLoading}
-      <SkeletonText />
-    {:else if $concept?.isError}
-      <p>{$concept.error.message}</p>
-    {:else if $concept?.isSuccess}
-      <ConceptView concept={$concept.data} />
-    {/if}
+  <div class="w-full overflow-y-auto">
+    <div
+      class="container mx-auto mb-16 mt-8 flex w-full rounded-xl border border-gray-200 px-6 py-8"
+    >
+      {#if $concept?.isLoading}
+        <SkeletonText />
+      {:else if $concept?.isError}
+        <p>{$concept.error.message}</p>
+      {:else if $concept?.isSuccess}
+        <ConceptView concept={$concept.data} />
+      {/if}
+    </div>
   </div>
 </div>
 
@@ -112,3 +116,9 @@
     <p class="mt-2">This is a permanent action and cannot be undone.</p>
   </Modal>
 {/if}
+
+<style>
+  .container {
+    max-width: 1536px;
+  }
+</style>

@@ -1,0 +1,21 @@
+<script lang="ts">
+  import {ChevronDown, ChevronUp} from 'carbon-icons-svelte';
+
+  let expanded = false;
+</script>
+
+<div class="rounded-xl border border-gray-200">
+  <button class="w-full p-4 text-left hover:bg-gray-200" on:click={() => (expanded = !expanded)}>
+    <div class="flex items-center justify-between">
+      <slot name="above" />
+      {#if expanded}
+        <ChevronUp />
+      {:else}
+        <ChevronDown />
+      {/if}
+    </div>
+  </button>
+  {#if expanded}
+    <div class="p-4"><slot name="below" /></div>
+  {/if}
+</div>

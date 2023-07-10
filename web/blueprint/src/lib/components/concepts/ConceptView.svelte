@@ -12,6 +12,7 @@
   import {Chip} from 'carbon-icons-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
+  import Expandable from '../Expandable.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptExampleList from './ConceptExampleList.svelte';
   import ConceptHoverPill from './ConceptHoverPill.svelte';
@@ -69,9 +70,10 @@
       hideCloseButton
     />
   {:else if $conceptColumnInfos.data.length > 0}
-    <div>
-      <div class="text-lg font-semibold">Used on</div>
-      <div class="flex flex-col gap-y-2">
+    {@const numDatasets = $conceptColumnInfos.data.length}
+    <Expandable>
+      <div slot="above" class="text-lg font-semibold">Used on {numDatasets} datasets</div>
+      <div slot="below" class="flex flex-col gap-y-3">
         {#each $conceptColumnInfos.data as column}
           <div>
             field <code>{serializePath(column.path)}</code> of dataset
@@ -81,12 +83,12 @@
           </div>
         {/each}
       </div>
-    </div>
+    </Expandable>
   {/if}
-  <div>
-    <div class="mb-4 text-lg font-semibold">Collect labels</div>
-    <ConceptViewFieldSelect {concept} />
-  </div>
+  <Expandable>
+    <div slot="above" class="text-lg font-semibold">Collect labels</div>
+    <ConceptViewFieldSelect {concept} slot="below" />
+  </Expandable>
   {#if $embeddings.data}
     <div class="flex flex-col gap-y-2">
       <div class="text-lg font-semibold">Metrics</div>
