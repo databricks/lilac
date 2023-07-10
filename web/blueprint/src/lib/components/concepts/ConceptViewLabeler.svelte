@@ -1,7 +1,15 @@
 <script lang="ts">
   import {editConceptMutation} from '$lib/queries/conceptQueries';
   import {querySelectRows} from '$lib/queries/datasetQueries';
-  import type {Concept, ExampleIn, LilacSchema} from '$lilac';
+  import {
+    UUID_COLUMN,
+    type Concept,
+    type ConceptLabelsSignal,
+    type ConceptQuery,
+    type ConceptScoreSignal,
+    type ExampleIn,
+    type LilacSchema
+  } from '$lilac';
   import {Button, InlineLoading, SkeletonText} from 'carbon-components-svelte';
   import {ThumbsDownFilled, ThumbsUpFilled} from 'carbon-icons-svelte';
   import {getCandidates} from './labeler_utils';
@@ -18,7 +26,14 @@
 
   let votes: Record<number, boolean> = {};
 
-  $: rows = querySelectRows(
+  $: conceptQuery = {
+    type: 'concept',
+    concept_namespace: concept.namespace,
+    concept_name: concept.concept_name,
+    embedding: embedding
+  } as ConceptQuery;
+
+  $: topRows = querySelectRows(
     dataset.namespace,
     dataset.name,
     {
@@ -28,18 +43,47 @@
       searches: [
         {
           path: fieldPath,
-          query: {
-            type: 'concept',
-            concept_namespace: concept.namespace,
-            concept_name: concept.concept_name,
-            embedding: embedding
-          }
+          query: conceptQuery
         }
       ]
     },
     schema
   );
-  $: candidates = getCandidates($rows.data?.rows, concept, fieldPath, embedding);
+  $: conceptSignal = {
+    signal_name: 'concept_score',
+    namespace: concept.namespace,
+    concept_name: concept.concept_name,
+    embedding
+  } as ConceptScoreSignal;
+  $: labelsSignal = {
+    signal_name: 'concept_labels',
+    namespace: concept.namespace,
+    concept_name: concept.concept_name
+  } as ConceptLabelsSignal;
+
+  $: randomRows = querySelectRows(
+    dataset.namespace,
+    dataset.name,
+    {
+      columns: [
+        fieldPath,
+        {path: fieldPath, signal_udf: conceptSignal},
+        {path: fieldPath, signal_udf: labelsSignal}
+      ],
+      limit: NUM_ROW_CANDIDATES_TO_FETCH,
+      combine_columns: true,
+      sort_by: [UUID_COLUMN] // Sort by UUID to get random rows.
+    },
+    schema
+  );
+
+  $: candidates = getCandidates(
+    $topRows.data?.rows,
+    $randomRows.data?.rows,
+    concept,
+    fieldPath,
+    embedding
+  );
 
   function addLabel(index: number, label: boolean) {
     votes[index] = label;
@@ -56,7 +100,7 @@
   }
 </script>
 
-{#if $rows.isFetching}
+{#if $topRows.isFetching}
   <SkeletonText paragraph />
 {:else}
   <div class="flex flex-col gap-y-4">
