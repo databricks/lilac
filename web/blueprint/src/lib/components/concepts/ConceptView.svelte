@@ -3,12 +3,21 @@
     conceptModelMutation,
     editConceptMutation,
     queryConceptColumnInfos,
-    queryConceptModels
+    queryConceptModels,
+    queryConceptScore
   } from '$lib/queries/conceptQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {datasetLink} from '$lib/utils';
   import {serializePath, type Concept, type ConceptModelInfo} from '$lilac';
-  import {Button, InlineLoading, InlineNotification, SkeletonText} from 'carbon-components-svelte';
+  import {
+    Button,
+    InlineLoading,
+    InlineNotification,
+    Select,
+    SelectItem,
+    SkeletonText,
+    TextArea
+  } from 'carbon-components-svelte';
   import {Chip} from 'carbon-icons-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
@@ -21,6 +30,7 @@
 
   export let concept: Concept;
 
+  const conceptScore = queryConceptScore();
   const conceptMutation = editConceptMutation();
   const embeddings = queryEmbeddings();
   $: conceptModels = queryConceptModels(concept.namespace, concept.concept_name);
@@ -50,6 +60,19 @@
     if (!concept.namespace || !concept.concept_name) return;
     $conceptMutation.mutate([concept.namespace, concept.concept_name, {insert: [{text, label}]}]);
   }
+
+  let previewText: string;
+  let previewEmbedding: string;
+  function computeConcept() {
+    if (previewText == null) return;
+    $conceptScore.mutate([
+      concept.namespace,
+      concept.concept_name,
+      previewEmbedding,
+      {examples: [{text: previewText}]}
+    ]);
+  }
+  $: console.log('score data', $conceptScore.data);
 </script>
 
 <div class="flex h-full w-full flex-col gap-y-8">
@@ -59,6 +82,33 @@
       <div class="text text-base text-gray-600">{concept.description}</div>
     {/if}
   </div>
+
+  {#if $embeddings?.data != null}
+    <div class="flex flex-row gap-x-8">
+      <div class="w-1/2">
+        <div class="mb-2 w-32">
+          <Select labelText="Embedding" bind:selected={previewEmbedding}>
+            {#each $embeddings?.data as emdField}
+              <SelectItem value={emdField.name} />
+            {/each}
+          </Select>
+        </div>
+        <TextArea
+          bind:value={previewText}
+          cols={50}
+          placeholder="Paste text to test the concept."
+          rows={4}
+          class="mb-2"
+        />
+        <div class="flex flex-row">
+          <div>
+            <Button size="small" on:click={() => computeConcept()}>Preview</Button>
+          </div>
+        </div>
+      </div>
+      <div class="w-1/2">spans here</div>
+    </div>
+  {/if}
 
   {#if $conceptColumnInfos.isLoading}
     <SkeletonText />

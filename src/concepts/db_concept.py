@@ -270,12 +270,12 @@ class DiskConceptModelDB(ConceptModelDB):
       return []
 
     dirs = glob.iglob(
-      os.path.join(datasets_path, '**', DATASET_CONCEPTS_DIR, namespace, concept_name),
+      os.path.join(datasets_path, '**', DATASET_CONCEPTS_DIR, namespace, concept_name, '*.pkl'),
       recursive=True)
     result: list[ConceptColumnInfo] = []
     for dir in dirs:
       dir = os.path.relpath(dir, datasets_path)
-      dataset_namespace, dataset_name, *path, _, _, _ = Path(dir).parts
+      dataset_namespace, dataset_name, *path, _, _, _, _ = Path(dir).parts
       result.append(ConceptColumnInfo(namespace=dataset_namespace, name=dataset_name, path=path))
     return result
 
