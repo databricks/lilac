@@ -72,7 +72,7 @@
   {:else if $conceptColumnInfos.data.length > 0}
     {@const numDatasets = $conceptColumnInfos.data.length}
     <Expandable>
-      <div slot="above" class="text-lg font-semibold">Used on {numDatasets} datasets</div>
+      <div slot="above" class="text-md font-semibold">Used on {numDatasets} datasets</div>
       <div slot="below" class="flex flex-col gap-y-3">
         {#each $conceptColumnInfos.data as column}
           <div>
@@ -86,12 +86,12 @@
     </Expandable>
   {/if}
   <Expandable>
-    <div slot="above" class="text-lg font-semibold">Collect labels</div>
+    <div slot="above" class="text-md font-semibold">Collect labels</div>
     <ConceptViewFieldSelect {concept} slot="below" />
   </Expandable>
   {#if $embeddings.data}
     <div class="flex flex-col gap-y-2">
-      <div class="text-lg font-semibold">Metrics</div>
+      <div class="text-md font-semibold">Metrics</div>
       <div class="model-metrics flex gap-x-4">
         {#each $embeddings.data as embedding}
           {@const model = embeddingToModel[embedding.name]}

@@ -1,4 +1,4 @@
-import {L, valueAtPath, type Concept, type LilacValueNode} from '$lilac';
+import {L, valueAtPath, type Concept, type DataTypeCasted, type LilacValueNode} from '$lilac';
 
 export function getCandidates(
   rows: LilacValueNode[] | undefined,
@@ -23,13 +23,29 @@ export function getCandidates(
     if (embNodes == null) {
       continue;
     }
+    const conceptId = `${concept.namespace}/${concept.concept_name}`;
+    const labelNodes = valueAtPath(textNode, [
+      `${conceptId}/labels`
+    ]) as unknown as LilacValueNode[];
+    const labeledSpans: NonNullable<DataTypeCasted<'string_span'>>[] = [];
+    if (labelNodes != null) {
+      for (const labelNode of labelNodes) {
+        const span = L.value(labelNode, 'string_span');
+        if (span != null) {
+          labeledSpans.push(span);
+        }
+      }
+    }
     for (const embNode of embNodes) {
       const span = L.value(embNode, 'string_span');
       if (span == null) {
         continue;
       }
+      if (labeledSpans.some(s => s.start === span.start && s.end === span.end)) {
+        // Skip spans that are already labeled.
+        continue;
+      }
       const textSpan = text.slice(span.start, span.end);
-      const conceptId = `${concept.namespace}/${concept.concept_name}`;
       const scoreNode = valueAtPath(embNode, ['embedding', conceptId]);
       if (scoreNode == null) {
         continue;
