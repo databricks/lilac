@@ -12,6 +12,8 @@
   export let schema: LilacSchema;
   export let embedding: string;
 
+  const NUM_ROW_CANDIDATES_TO_FETCH = 100;
+
   const conceptEdit = editConceptMutation();
 
   let votes: Record<number, boolean> = {};
@@ -21,7 +23,7 @@
     dataset.name,
     {
       columns: [fieldPath],
-      limit: 100,
+      limit: NUM_ROW_CANDIDATES_TO_FETCH,
       combine_columns: true,
       searches: [
         {
