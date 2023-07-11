@@ -11,7 +11,7 @@
     type LilacSchema
   } from '$lilac';
   import {InlineNotification, Select, SelectItem, SelectSkeleton} from 'carbon-components-svelte';
-  import ConceptViewLabeler from './ConceptViewLabeler.svelte';
+  import DataFeeder from './DataFeeder.svelte';
 
   export let concept: Concept;
 
@@ -154,7 +154,7 @@
 
   {#if dataset != null && path != null && schema != null && embedding != null}
     <div>
-      <ConceptViewLabeler {concept} {dataset} fieldPath={path} {schema} {embedding} />
+      <DataFeeder {concept} {dataset} fieldPath={path} {schema} {embedding} />
     </div>
   {/if}
 </div>

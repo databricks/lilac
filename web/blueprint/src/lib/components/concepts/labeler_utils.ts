@@ -1,3 +1,4 @@
+import {stringSlice} from '$lib/view_utils';
 import {
   L,
   UUID_COLUMN,
@@ -7,19 +8,33 @@ import {
   type LilacValueNode
 } from '$lilac';
 
+export interface Candidate {
+  text: string;
+  score: number;
+  label?: boolean;
+}
+
+export interface Candidates {
+  positive?: Candidate;
+  neutral?: Candidate;
+  negative?: Candidate;
+}
+
 export function getCandidates(
+  prevCandidates: Candidates,
   topRows: LilacValueNode[] | undefined,
   randomRows: LilacValueNode[] | undefined,
   concept: Concept,
   fieldPath: string[],
   embedding: string
-) {
+): Candidates {
+  const candidates: Candidates = {...prevCandidates};
   if (topRows == null || randomRows == null) {
-    return [];
+    return candidates;
   }
   const allRows = [...topRows, ...randomRows];
   const uuids = new Set<string>();
-  const candidates: {
+  const spans: {
     text: string;
     score: number;
     span: NonNullable<DataTypeCasted<'string_span'>>;
@@ -75,22 +90,36 @@ export function getCandidates(
       if (score == null) {
         continue;
       }
-      candidates.push({text, span, score});
+      spans.push({text, span, score});
     }
   }
+
+  function spanToCandidate(span: {
+    text: string;
+    score: number;
+    span: NonNullable<DataTypeCasted<'string_span'>>;
+  }): Candidate {
+    return {
+      text: stringSlice(span.text, span.span.start, span.span.end),
+      score: span.score
+    };
+  }
+
   // Sort by score, descending.
-  candidates.sort((a, b) => b.score - a.score);
-  const topPositive = candidates[0];
-  const topNegative = candidates[candidates.length - 1];
+  spans.sort((a, b) => b.score - a.score);
+  const positive = spans[0];
+  const negative = spans[spans.length - 1];
   // Sort by distance from 0.5, ascending.
-  candidates.sort((a, b) => Math.abs(a.score - 0.5) - Math.abs(b.score - 0.5));
-  const res = [topPositive];
-  const topNeutral = candidates.find(c => c != topPositive && c != topNegative);
-  if (topNeutral != null) {
-    res.push(topNeutral);
+  spans.sort((a, b) => Math.abs(a.score - 0.5) - Math.abs(b.score - 0.5));
+  if (candidates.positive == null) {
+    candidates.positive = spanToCandidate(positive);
   }
-  if (topNegative != topPositive) {
-    res.push(topNegative);
+  const neutral = spans.find(c => c != positive && c != negative);
+  if (neutral != null && candidates.neutral == null) {
+    candidates.neutral = spanToCandidate(neutral);
   }
-  return res;
+  if (negative != positive && candidates.negative == null) {
+    candidates.negative = spanToCandidate(negative);
+  }
+  return candidates;
 }

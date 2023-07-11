@@ -1,7 +1,6 @@
 <script lang="ts">
   import {editConceptMutation} from '$lib/queries/conceptQueries';
   import {querySelectRows} from '$lib/queries/datasetQueries';
-  import {stringSlice} from '$lib/view_utils';
   import {
     UUID_COLUMN,
     formatValue,
@@ -12,9 +11,9 @@
     type ExampleIn,
     type LilacSchema
   } from '$lilac';
-  import {Button, InlineLoading, SkeletonText} from 'carbon-components-svelte';
+  import {SkeletonText} from 'carbon-components-svelte';
   import {ThumbsDownFilled, ThumbsUpFilled} from 'carbon-icons-svelte';
-  import {getCandidates} from './labeler_utils';
+  import {getCandidates, type Candidate, type Candidates} from '../labeler_utils';
 
   export let dataset: {namespace: string; name: string};
   export let concept: Concept;
@@ -26,7 +25,8 @@
 
   const conceptEdit = editConceptMutation();
 
-  let votes: Record<number, boolean> = {};
+  let prevCandidates: Candidates = {};
+  let candidates: Candidates = {};
 
   $: conceptQuery = {
     type: 'concept',
@@ -80,25 +80,31 @@
   );
 
   $: candidates = getCandidates(
-    $topRows.data?.rows,
-    $randomRows.data?.rows,
+    prevCandidates,
+    $topRows.isFetching ? undefined : $topRows.data?.rows,
+    $randomRows.isFetching ? undefined : $randomRows.data?.rows,
     concept,
     fieldPath,
     embedding
   );
+  $: candidateList = [candidates.positive, candidates.neutral, candidates.negative];
 
-  function addLabel(index: number, label: boolean) {
-    votes[index] = label;
-  }
-
-  function submit() {
-    const examplesIn: ExampleIn[] = Object.entries(votes).map(([i, label]) => {
-      const candidate = candidates[parseInt(i)];
-      const text = stringSlice(candidate.text, candidate.span.start, candidate.span.end);
-      return {text, label};
-    });
-    $conceptEdit.mutate([concept.namespace, concept.concept_name, {insert: examplesIn}], {
-      onSuccess: () => (votes = {})
+  function addLabel(candidate: Candidate | undefined, label: boolean) {
+    if (candidate == null) {
+      return;
+    }
+    const exampleIn: ExampleIn = {text: candidate.text, label};
+    const key = Object.keys(candidates).find(
+      key => candidates[key as keyof Candidates] === candidate
+    );
+    // Save the old state.
+    prevCandidates = {...candidates};
+    $conceptEdit.mutate([concept.namespace, concept.concept_name, {insert: [exampleIn]}], {
+      onSuccess: () =>
+        (prevCandidates = {
+          ...prevCandidates,
+          [key as keyof Candidates]: undefined
+        })
     });
   }
 
@@ -123,11 +129,11 @@
   }
 </script>
 
-{#if $topRows.isFetching || $randomRows.isFetching}
-  <SkeletonText paragraph />
-{:else}
-  <div class="flex flex-col gap-y-4">
-    {#each candidates as candidate, i}
+<div class="flex flex-col gap-y-4">
+  {#each candidateList as candidate}
+    {#if candidate == null}
+      <SkeletonText paragraph lines={2} />
+    {:else}
       {@const background = getBackground(candidate.score)}
       {@const info = getInfo(candidate.score)}
       <div
@@ -136,27 +142,22 @@
         <div class="mr-2 flex flex-shrink-0 gap-x-1">
           <button
             class="p-2 hover:bg-gray-200"
-            class:text-blue-500={votes[i] === true}
-            on:click={() => addLabel(i, true)}
+            class:text-blue-500={candidate.label === true}
+            on:click={() => addLabel(candidate, true)}
           >
             <ThumbsUpFilled />
           </button>
           <button
             class="p-2 hover:bg-gray-200"
-            class:text-red-500={votes[i] === false}
-            on:click={() => addLabel(i, false)}
+            class:text-red-500={candidate.label === false}
+            on:click={() => addLabel(candidate, false)}
           >
             <ThumbsDownFilled />
           </button>
         </div>
-        <div class="flex-grow">
-          {stringSlice(candidate.text, candidate.span.start, candidate.span.end)}
-        </div>
+        <div class="flex-grow">{candidate.text}</div>
         <div class="w-36 flex-shrink-0 text-right">{info} {formatValue(candidate.score, 2)}</div>
       </div>
-    {/each}
-    <Button icon={$conceptEdit.isLoading ? InlineLoading : undefined} on:click={submit}>
-      Submit
-    </Button>
-  </div>
-{/if}
+    {/if}
+  {/each}
+</div>

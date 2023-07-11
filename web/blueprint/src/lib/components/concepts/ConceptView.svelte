@@ -16,8 +16,8 @@
   import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptExampleList from './ConceptExampleList.svelte';
   import ConceptHoverPill from './ConceptHoverPill.svelte';
-  import ConceptViewFieldSelect from './ConceptViewFieldSelect.svelte';
   import {scoreToColor, scoreToText} from './colors';
+  import Labeler from './labeler/Labeler.svelte';
 
   export let concept: Concept;
 
@@ -104,7 +104,7 @@
   {/if}
   <Expandable>
     <div slot="above" class="text-md font-semibold">Collect labels</div>
-    <ConceptViewFieldSelect {concept} slot="below" />
+    <Labeler slot="below" {concept} />
   </Expandable>
   {#if $conceptColumnInfos.isLoading}
     <SkeletonText />
