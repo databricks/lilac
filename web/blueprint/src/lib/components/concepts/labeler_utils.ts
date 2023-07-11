@@ -1,4 +1,3 @@
-import {stringSlice} from '$lib/view_utils';
 import {
   L,
   UUID_COLUMN,
@@ -20,7 +19,11 @@ export function getCandidates(
   }
   const allRows = [...topRows, ...randomRows];
   const uuids = new Set<string>();
-  const candidates: {text: string; score: number}[] = [];
+  const candidates: {
+    text: string;
+    score: number;
+    span: NonNullable<DataTypeCasted<'string_span'>>;
+  }[] = [];
   for (const row of allRows) {
     const uuid = L.value(valueAtPath(row, [UUID_COLUMN])!, 'string');
     if (uuid == null || uuids.has(uuid)) {
@@ -63,7 +66,6 @@ export function getCandidates(
         continue;
       }
 
-      const textSpan = stringSlice(text, span.start, span.end);
       const scoreNode = valueAtPath(embNode, ['embedding', conceptId]);
       if (scoreNode == null) {
         continue;
@@ -72,7 +74,7 @@ export function getCandidates(
       if (score == null) {
         continue;
       }
-      candidates.push({text: textSpan, score});
+      candidates.push({text, span, score});
     }
   }
   // Sort by score, descending.

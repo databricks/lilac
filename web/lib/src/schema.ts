@@ -156,12 +156,12 @@ export function isConceptScoreSignal(
   return (signal as ConceptScoreSignal)?.concept_name != undefined;
 }
 
-export function formatValue(value: DataTypeCasted | string[] | Blob) {
+export function formatValue(value: DataTypeCasted | string[] | Blob, numDigits = 3) {
   if (value == null) {
     return 'N/A';
   }
   if (typeof value === 'number') {
-    return value.toLocaleString(undefined, {maximumFractionDigits: 3});
+    return value.toLocaleString(undefined, {maximumFractionDigits: numDigits});
   }
   if (value instanceof Blob) {
     return 'blob';

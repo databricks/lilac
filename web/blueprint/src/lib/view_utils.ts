@@ -20,9 +20,9 @@ import {
   type Search,
   type SortResult
 } from '$lilac';
+import GraphemeSplitter from 'grapheme-splitter';
 import type {DatasetState, StatsInfo} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
-
 const MEDIA_TEXT_LENGTH_THRESHOLD = 32;
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
@@ -290,7 +290,7 @@ export function mergeSpans(
     ])
   );
 
-  while (curStartIdx < text.length) {
+  while (curStartIdx < textLength) {
     // Compute the next end index.
     let curEndIndex = textLength;
     for (const spans of Object.values(spanSetWorkingSpans)) {
@@ -333,7 +333,7 @@ export function mergeSpans(
       .map(path => serializePath(path!));
 
     mergedSpans.push({
-      text: stringSlice(text, curStartIdx, curEndIndex),
+      text: text.slice(curStartIdx, curEndIndex),
       span: {start: curStartIdx, end: curEndIndex},
       originalSpans: spansInRange,
       paths
@@ -364,10 +364,10 @@ export function mergeSpans(
   }
 
   // If the text has more characters than spans, emit a final empty span.
-  if (curStartIdx < text.length) {
+  if (curStartIdx < textLength) {
     mergedSpans.push({
-      text: stringSlice(text, curStartIdx, text.length),
-      span: {start: curStartIdx, end: text.length},
+      text: text.slice(curStartIdx),
+      span: {start: curStartIdx, end: textLength},
       originalSpans: {},
       paths: []
     });
@@ -376,10 +376,18 @@ export function mergeSpans(
   return mergedSpans;
 }
 
+const graphemeSplitter = new GraphemeSplitter();
+
 /** Slices the text by graphemes (like python) instead of by UTF-16 characters. */
-export function stringSlice(text: string, start: number, end: number): string {
-  return [...new Intl.Segmenter().segment(text)]
-    .map(x => x.segment)
-    .slice(start, end)
-    .join('');
+export function stringSlice(text: string, start: number, end?: number): string {
+  return getGraphemes(text).slice(start, end).join('');
+}
+
+export function getGraphemes(text: string): string[] {
+  return graphemeSplitter.splitGraphemes(text);
+}
+
+/** Counts each grapheme as 1 character (like python) instead of counting UTF-16 characters. */
+export function stringLength(text: string): number {
+  return getGraphemes(text).length;
 }

@@ -1,8 +1,10 @@
 <script lang="ts">
   import {editConceptMutation} from '$lib/queries/conceptQueries';
   import {querySelectRows} from '$lib/queries/datasetQueries';
+  import {stringSlice} from '$lib/view_utils';
   import {
     UUID_COLUMN,
+    formatValue,
     type Concept,
     type ConceptLabelsSignal,
     type ConceptQuery,
@@ -90,22 +92,47 @@
   }
 
   function submit() {
-    const examplesIn: ExampleIn[] = Object.entries(votes).map(([i, label]) => ({
-      text: candidates[parseInt(i)].text,
-      label
-    }));
+    const examplesIn: ExampleIn[] = Object.entries(votes).map(([i, label]) => {
+      const candidate = candidates[parseInt(i)];
+      const text = stringSlice(candidate.text, candidate.span.start, candidate.span.end);
+      return {text, label};
+    });
     $conceptEdit.mutate([concept.namespace, concept.concept_name, {insert: examplesIn}], {
       onSuccess: () => (votes = {})
     });
   }
+
+  function getBackground(score: number): string {
+    if (score < 0.2) {
+      return 'bg-red-500/10';
+    }
+    if (score < 0.8) {
+      return 'bg-yellow-500/10';
+    }
+    return 'bg-blue-500/10';
+  }
+
+  function getInfo(score: number): string {
+    if (score < 0.2) {
+      return 'Likely negative';
+    }
+    if (score < 0.8) {
+      return 'Uncertain';
+    }
+    return 'Likely positive';
+  }
 </script>
 
-{#if $topRows.isFetching}
+{#if $topRows.isFetching || $randomRows.isFetching}
   <SkeletonText paragraph />
 {:else}
   <div class="flex flex-col gap-y-4">
     {#each candidates as candidate, i}
-      <div class="flex items-center rounded-md border border-gray-300 p-4 pl-2">
+      {@const background = getBackground(candidate.score)}
+      {@const info = getInfo(candidate.score)}
+      <div
+        class={`flex flex-grow items-center rounded-md border border-gray-300 p-4 pl-2 ${background}`}
+      >
         <div class="mr-2 flex flex-shrink-0 gap-x-1">
           <button
             class="p-2 hover:bg-gray-200"
@@ -122,7 +149,10 @@
             <ThumbsDownFilled />
           </button>
         </div>
-        <div class="flex-grow">{candidate.text}</div>
+        <div class="flex-grow">
+          {stringSlice(candidate.text, candidate.span.start, candidate.span.end)}
+        </div>
+        <div class="w-36 flex-shrink-0 text-right">{info} {formatValue(candidate.score, 2)}</div>
       </div>
     {/each}
     <Button icon={$conceptEdit.isLoading ? InlineLoading : undefined} on:click={submit}>

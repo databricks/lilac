@@ -46,6 +46,7 @@
     "carbon-components-svelte": "^0.74.0",
     "carbon-icons-svelte": "^11.4.0",
     "deep-equal": "^2.2.1",
+    "grapheme-splitter": "^1.0.4",
     "json-schema": "^0.4.0",
     "json-schema-library": "^7.4.7",
     "svelte-bootstrap-icons": "^2.3.1",

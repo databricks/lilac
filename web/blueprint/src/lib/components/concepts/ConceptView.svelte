@@ -59,40 +59,10 @@
       <div class="text text-base text-gray-600">{concept.description}</div>
     {/if}
   </div>
-
-  {#if $conceptColumnInfos.isLoading}
-    <SkeletonText />
-  {:else if $conceptColumnInfos.isError}
-    <InlineNotification
-      kind="error"
-      title="Error"
-      subtitle={$conceptColumnInfos.error.message}
-      hideCloseButton
-    />
-  {:else if $conceptColumnInfos.data.length > 0}
-    {@const numDatasets = $conceptColumnInfos.data.length}
-    <Expandable>
-      <div slot="above" class="text-md font-semibold">Used on {numDatasets} datasets</div>
-      <div slot="below" class="flex flex-col gap-y-3">
-        {#each $conceptColumnInfos.data as column}
-          <div>
-            field <code>{serializePath(column.path)}</code> of dataset
-            <a href={datasetLink(column.namespace, column.name)}>
-              {column.namespace}/{column.name}
-            </a>
-          </div>
-        {/each}
-      </div>
-    </Expandable>
-  {/if}
-  <Expandable>
-    <div slot="above" class="text-md font-semibold">Collect labels</div>
-    <ConceptViewFieldSelect {concept} slot="below" />
-  </Expandable>
   {#if $embeddings.data}
-    <div class="flex flex-col gap-y-2">
-      <div class="text-md font-semibold">Metrics</div>
-      <div class="model-metrics flex gap-x-4">
+    <Expandable expanded>
+      <div slot="above" class="text-md font-semibold">Metrics</div>
+      <div slot="below" class="model-metrics flex gap-x-4">
         {#each $embeddings.data as embedding}
           {@const model = embeddingToModel[embedding.name]}
           {@const scoreIsLoading =
@@ -100,7 +70,7 @@
             $modelMutation.variables &&
             $modelMutation.variables[2] == embedding.name}
           <div
-            class="flex w-36 flex-col items-center gap-y-2 rounded-md border border-gray-300 p-4"
+            class="flex w-36 flex-col items-center gap-y-2 rounded-md border border-b-0 border-gray-200 p-4 shadow-md"
           >
             <div class="text-gray-500">{embedding.name}</div>
             {#if $conceptModels.isLoading}
@@ -134,7 +104,36 @@
           </div>
         {/each}
       </div>
-    </div>
+    </Expandable>
+  {/if}
+  <Expandable>
+    <div slot="above" class="text-md font-semibold">Collect labels</div>
+    <ConceptViewFieldSelect {concept} slot="below" />
+  </Expandable>
+  {#if $conceptColumnInfos.isLoading}
+    <SkeletonText />
+  {:else if $conceptColumnInfos.isError}
+    <InlineNotification
+      kind="error"
+      title="Error"
+      subtitle={$conceptColumnInfos.error.message}
+      hideCloseButton
+    />
+  {:else if $conceptColumnInfos.data.length > 0}
+    {@const numDatasets = $conceptColumnInfos.data.length}
+    <Expandable>
+      <div slot="above" class="text-md font-semibold">Used on {numDatasets} datasets</div>
+      <div slot="below" class="flex flex-col gap-y-3">
+        {#each $conceptColumnInfos.data as column}
+          <div>
+            field <code>{serializePath(column.path)}</code> of dataset
+            <a href={datasetLink(column.namespace, column.name)}>
+              {column.namespace}/{column.name}
+            </a>
+          </div>
+        {/each}
+      </div>
+    </Expandable>
   {/if}
   <div class="flex gap-x-4">
     <div class="flex w-0 flex-grow flex-col gap-y-4">
