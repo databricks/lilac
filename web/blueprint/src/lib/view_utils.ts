@@ -20,7 +20,6 @@ import {
   type Search,
   type SortResult
 } from '$lilac';
-import GraphemeSplitter from 'grapheme-splitter';
 import type {DatasetState, StatsInfo} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
 const MEDIA_TEXT_LENGTH_THRESHOLD = 32;
@@ -376,18 +375,16 @@ export function mergeSpans(
   return mergedSpans;
 }
 
-const graphemeSplitter = new GraphemeSplitter();
-
 /** Slices the text by graphemes (like python) instead of by UTF-16 characters. */
 export function stringSlice(text: string, start: number, end?: number): string {
-  return getGraphemes(text).slice(start, end).join('');
+  return getChars(text).slice(start, end).join('');
 }
 
-export function getGraphemes(text: string): string[] {
-  return graphemeSplitter.splitGraphemes(text);
+export function getChars(text: string): string[] {
+  return [...text];
 }
 
 /** Counts each grapheme as 1 character (like python) instead of counting UTF-16 characters. */
 export function stringLength(text: string): number {
-  return getGraphemes(text).length;
+  return getChars(text).length;
 }
