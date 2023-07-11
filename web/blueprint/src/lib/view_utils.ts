@@ -22,7 +22,6 @@ import {
 } from '$lilac';
 import type {DatasetState, StatsInfo} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
-
 const MEDIA_TEXT_LENGTH_THRESHOLD = 32;
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
@@ -225,7 +224,7 @@ function chunkText(text: string): MergedSpan[] {
   let lastEnd = 0;
   for (let i = 0; i < splits.length; i++) {
     const text = splits[i] + (i < splits.length - 1 ? splitBy : '');
-    const end = lastEnd + text.length;
+    const end = lastEnd + stringLength(text);
     const span = {start: lastEnd, end};
     splitSpans.push({
       text,
@@ -263,7 +262,8 @@ export function mergeSpans(
   if (spanSetKeys.length === 0) {
     return chunkText(text);
   }
-  const textLength = text.length;
+  const textChars = getChars(text);
+  const textLength = textChars.length;
 
   // Maps a span set to the index of the spans we're currently processing for each span set.
   // The size of this object is the size of the number of span sets we're computing over (small).
@@ -290,7 +290,7 @@ export function mergeSpans(
     ])
   );
 
-  while (curStartIdx < text.length) {
+  while (curStartIdx < textLength) {
     // Compute the next end index.
     let curEndIndex = textLength;
     for (const spans of Object.values(spanSetWorkingSpans)) {
@@ -333,7 +333,7 @@ export function mergeSpans(
       .map(path => serializePath(path!));
 
     mergedSpans.push({
-      text: text.slice(curStartIdx, curEndIndex),
+      text: textChars.slice(curStartIdx, curEndIndex).join(''),
       span: {start: curStartIdx, end: curEndIndex},
       originalSpans: spansInRange,
       paths
@@ -364,14 +364,28 @@ export function mergeSpans(
   }
 
   // If the text has more characters than spans, emit a final empty span.
-  if (curStartIdx < text.length) {
+  if (curStartIdx < textLength) {
     mergedSpans.push({
-      text: text.slice(curStartIdx, text.length),
-      span: {start: curStartIdx, end: text.length},
+      text: textChars.slice(curStartIdx).join(''),
+      span: {start: curStartIdx, end: textLength},
       originalSpans: {},
       paths: []
     });
   }
 
   return mergedSpans;
+}
+
+/** Slices the text by graphemes (like python) instead of by UTF-16 characters. */
+export function stringSlice(text: string, start: number, end?: number): string {
+  return getChars(text).slice(start, end).join('');
+}
+
+export function getChars(text: string): string[] {
+  return [...text];
+}
+
+/** Counts each grapheme as 1 character (like python) instead of counting UTF-16 characters. */
+export function stringLength(text: string): number {
+  return getChars(text).length;
 }

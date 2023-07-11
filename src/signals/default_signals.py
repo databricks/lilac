@@ -3,6 +3,7 @@ from ..embeddings.cohere import Cohere
 from ..embeddings.openai import OpenAI
 from ..embeddings.palm import PaLM
 from ..embeddings.sbert import SBERT
+from .concept_labels import ConceptLabelsSignal
 from .concept_scorer import ConceptScoreSignal
 from .ner import SpacyNER
 from .pii import PIISignal
@@ -14,6 +15,7 @@ def register_default_signals() -> None:
   """Register all the default signals."""
   # Concepts.
   register_signal(ConceptScoreSignal)
+  register_signal(ConceptLabelsSignal)
 
   # Text.
   register_signal(PIISignal)

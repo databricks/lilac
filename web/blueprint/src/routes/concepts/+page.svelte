@@ -81,10 +81,8 @@
       >
     {/if}
   </div>
-  <div class="w-full overflow-y-auto">
-    <div
-      class="container mx-auto mb-16 mt-8 flex w-full rounded-xl border border-gray-200 px-6 py-8"
-    >
+  <div class="lilac-container">
+    <div class="lilac-page flex">
       {#if $concept?.isLoading}
         <SkeletonText />
       {:else if $concept?.isError}
@@ -116,9 +114,3 @@
     <p class="mt-2">This is a permanent action and cannot be undone.</p>
   </Modal>
 {/if}
-
-<style>
-  .container {
-    max-width: 1536px;
-  }
-</style>

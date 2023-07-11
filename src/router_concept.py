@@ -208,11 +208,11 @@ def generate_examples(description: str) -> list[str]:
     messages=[
       {
         'role': 'system',
-        'content': 'You must call the `Examples` function with the generated sentences.',
+        'content': 'You must call the `Examples` function with the generated examples',
       },
       {
         'role': 'user',
-        'content': f'Give me 5 diverse examples of sentences that demonstrate "{description}"',
+        'content': f'Write 5 diverse, unnumbered, and concise examples of "{description}"',
       },
     ],
   )

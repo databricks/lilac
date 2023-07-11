@@ -1,9 +1,9 @@
 <script lang="ts">
   import {
-    conceptModelMutation,
-    editConceptMutation,
-    queryConceptColumnInfos,
-    queryConceptModels
+      conceptModelMutation,
+      editConceptMutation,
+      queryConceptColumnInfos,
+      queryConceptModels
   } from '$lib/queries/conceptQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {datasetLink} from '$lib/utils';
@@ -16,9 +16,12 @@
   import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptExampleList from './ConceptExampleList.svelte';
   import ConceptHoverPill from './ConceptHoverPill.svelte';
+<<<<<<< HEAD
   import ConceptPreview from './ConceptPreview.svelte';
-  import ConceptViewFieldSelect from './ConceptViewFieldSelect.svelte';
+  =======
+>>>>>>> origin/main
   import {scoreToColor, scoreToText} from './colors';
+  import Labeler from './labeler/Labeler.svelte';
 
   export let concept: Concept;
 
@@ -66,6 +69,53 @@
     <ConceptPreview {concept} slot="below" />
   </Expandable>
 
+  {#if $embeddings.data}
+    <Expandable expanded>
+      <div slot="above" class="text-md font-semibold">Metrics</div>
+      <div slot="below" class="model-metrics flex gap-x-4">
+        {#each $embeddings.data as embedding}
+          {@const model = embeddingToModel[embedding.name]}
+          {@const scoreIsLoading =
+            $modelMutation.isLoading &&
+            $modelMutation.variables &&
+            $modelMutation.variables[2] == embedding.name}
+          <div
+            class="flex w-36 flex-col items-center gap-y-2 rounded-md border border-b-0 border-gray-200 p-4 shadow-md"
+          >
+            <div class="text-gray-500">{embedding.name}</div>
+            {#if $conceptModels.isLoading}
+              <InlineLoading />
+            {:else if model && model.metrics}
+              <div
+                class="concept-score-pill cursor-default text-2xl font-light {scoreToColor[
+                  model.metrics.overall
+                ]}"
+                use:hoverTooltip={{
+                  component: ConceptHoverPill,
+                  props: {metrics: model.metrics}
+                }}
+              >
+                {scoreToText[model.metrics.overall]}
+              </div>
+            {:else}
+              <Button
+                icon={scoreIsLoading ? InlineLoading : Chip}
+                on:click={() =>
+                  $modelMutation.mutate([concept.namespace, concept.concept_name, embedding.name])}
+                class="w-28 text-3xl"
+              >
+                Compute
+              </Button>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </Expandable>
+  {/if}
+  <Expandable>
+    <div slot="above" class="text-md font-semibold">Collect labels</div>
+    <Labeler slot="below" {concept} />
+  </Expandable>
   {#if $conceptColumnInfos.isLoading}
     <SkeletonText />
   {:else if $conceptColumnInfos.isError}
@@ -90,57 +140,6 @@
         {/each}
       </div>
     </Expandable>
-  {/if}
-  <Expandable>
-    <div slot="above" class="text-md font-semibold">Collect labels</div>
-    <ConceptViewFieldSelect {concept} slot="below" />
-  </Expandable>
-  {#if $embeddings.data}
-    <div class="flex flex-col gap-y-2">
-      <div class="text-md font-semibold">Metrics</div>
-      <div class="model-metrics flex gap-x-4">
-        {#each $embeddings.data as embedding}
-          {@const model = embeddingToModel[embedding.name]}
-          {@const scoreIsLoading =
-            $modelMutation.isLoading &&
-            $modelMutation.variables &&
-            $modelMutation.variables[2] == embedding.name}
-          <div
-            class="flex w-36 flex-col items-center gap-y-2 rounded-md border border-gray-300 p-4"
-          >
-            <div class="text-gray-500">{embedding.name}</div>
-            {#if $conceptModels.isLoading}
-              <InlineLoading />
-            {:else if model && model.metrics}
-              <div
-                class="flex cursor-default flex-col items-center gap-y-2"
-                use:hoverTooltip={{
-                  component: ConceptHoverPill,
-                  props: {metrics: model.metrics}
-                }}
-              >
-                <div
-                  class="concept-score-pill text-2xl font-light {scoreToColor[
-                    model.metrics.overall
-                  ]}"
-                >
-                  {scoreToText[model.metrics.overall]}
-                </div>
-              </div>
-            {:else}
-              <Button
-                icon={scoreIsLoading ? InlineLoading : Chip}
-                on:click={() =>
-                  $modelMutation.mutate([concept.namespace, concept.concept_name, embedding.name])}
-                class="w-28 text-3xl"
-              >
-                Compute
-              </Button>
-            {/if}
-          </div>
-        {/each}
-      </div>
-    </div>
   {/if}
   <div class="flex gap-x-4">
     <div class="flex w-0 flex-grow flex-col gap-y-4">

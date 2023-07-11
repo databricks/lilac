@@ -1,7 +1,7 @@
 <script lang="ts">
   import {ChevronDown, ChevronUp} from 'carbon-icons-svelte';
 
-  let expanded = false;
+  export let expanded = false;
 </script>
 
 <div class="rounded-xl border border-gray-200">
