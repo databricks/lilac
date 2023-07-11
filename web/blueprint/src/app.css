@@ -105,6 +105,45 @@ a.bx--tabs__nav-link:focus {
   @apply align-middle;
 }
 
+.lilac-container {
+  container-type: inline-size;
+  @apply flex w-full flex-col overflow-y-auto;
+}
+
+.lilac-page {
+  @apply mx-auto mb-16 mt-8 w-full rounded-xl border border-gray-200 px-6 py-8;
+}
+
+@container (min-width: 640px) {
+  .lilac-page {
+    max-width: 640px;
+  }
+}
+
+@container (min-width: 768px) {
+  .lilac-page {
+    max-width: 768px;
+  }
+}
+
+@container (min-width: 1024px) {
+  .lilac-page {
+    max-width: 1024px;
+  }
+}
+
+@container (min-width: 1280px) {
+  .lilac-page {
+    max-width: 1280px;
+  }
+}
+
+@container (min-width: 1536px) {
+  .lilac-page {
+    max-width: 1536px;
+  }
+}
+
 /** Reset CSS set by carbon components and that clashes with tailwind */
 
 html,
