@@ -14,10 +14,20 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_recall_curve, roc_auc_score
 from sklearn.model_selection import KFold
 
+from ..data.dataset_utils import lilac_span
 from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
-from ..schema import Path, RichData, SignalInputType, normalize_path
-from ..signals.signal import EMBEDDING_KEY, TextEmbeddingSignal, get_signal_cls
+from ..schema import (
+  TEXT_SPAN_END_FEATURE,
+  TEXT_SPAN_START_FEATURE,
+  VALUE_KEY,
+  Item,
+  Path,
+  RichData,
+  SignalInputType,
+  normalize_path,
+)
+from ..signals.signal import EMBEDDING_KEY, TextEmbeddingSignal, get_signal_by_type, get_signal_cls
 from ..utils import DebugTimer
 
 LOCAL_CONCEPT_NAMESPACE = 'local'
@@ -314,16 +324,36 @@ class ConceptModel:
     """Get the scores for the provided embeddings."""
     return self._get_logistic_model(draft).score_embeddings(embeddings)
 
-  def score(self, draft: DraftId, examples: Iterable[RichData]) -> list[float]:
+  def score(self, draft: DraftId, examples: Iterable[RichData]) -> list[Item]:
     """Get the scores for the provided examples."""
     embedding_signal = get_signal_cls(self.embedding_name)()
     if not isinstance(embedding_signal, TextEmbeddingSignal):
       raise ValueError(f'Only text embedding signals are currently supported for concepts. '
                        f'"{self.embedding_name}" is a {type(embedding_signal)}.')
 
-    embed_fn = get_embed_fn(self.embedding_name)
-    embeddings = np.array(embed_fn(examples))
-    return self._get_logistic_model(draft).score_embeddings(embeddings).tolist()
+    embedding_cls = get_signal_by_type(self.embedding_name, TextEmbeddingSignal)
+    embedding = embedding_cls(split=True)
+    embedding.setup()
+
+    embedding_items = list(embedding.compute(examples))
+    embedding_list: list[np.ndarray] = []
+    result_items: list[Item] = []
+    for item in embedding_items:
+      if not isinstance(item, list):
+        raise ValueError('Item from embedding is not a list.')
+      embedding_list.extend([np.squeeze(res[EMBEDDING_KEY]) for res in item])
+
+      embeddings = np.array(embedding_list)
+      scores = self._get_logistic_model(draft).score_embeddings(embeddings).tolist()
+
+      for embedding_item, score in zip(item, scores):
+        result_items.append(
+          lilac_span(
+            start=embedding_item[VALUE_KEY][TEXT_SPAN_START_FEATURE],
+            end=embedding_item[VALUE_KEY][TEXT_SPAN_END_FEATURE],
+            metadata={f'{self.namespace}/{self.concept_name}': score}))
+
+    return result_items
 
   def coef(self, draft: DraftId) -> np.ndarray:
     """Get the coefficients of the underlying ML model."""

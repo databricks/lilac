@@ -1,4 +1,6 @@
 <script lang="ts">
+  import {getDatasetContext} from '$lib/stores/datasetStore';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   /**
    * Component that renders a single value from a row in the dataset row view
    * In the case of strings with string_spans, it will render the derived string spans as well
@@ -37,9 +39,15 @@
     .filter(f => f.signal?.signal_name === 'concept_labels')
     .flatMap(f => getFieldsByDtype('string_span', f));
 
+  const datasetViewStore = getDatasetViewContext();
+  const datasetStore = getDatasetContext();
+  const visibleFields = $datasetStore.visibleFields || [];
+
   $: values = getValueNodes(row, path)
     .map(v => L.value(v))
     .filter(notEmpty);
+
+  $: console.log('path=', path);
 </script>
 
 {#each values as value, i}
@@ -56,11 +64,13 @@
       <div class="font-normal">
         <StringSpanHighlight
           text={formatValue(value)}
-          {field}
           {row}
+          {visibleFields}
           {visibleKeywordSpanFields}
           {visibleSpanFields}
           {visibleLabelSpanFields}
+          {datasetViewStore}
+          datasetStore={$datasetStore}
         />
       </div>
     </div>

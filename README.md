@@ -36,14 +36,17 @@ Huggingface spaces are used for PRs and for demos.
 
 Details can be found at [Managing Spaces with Github Actions](https://huggingface.co/docs/hub/spaces-github-actions)
 
-We use the HuggingFace git server, [follow the instructions](https://huggingface.co/docs/hub/repositories-getting-started) to use your git SSH keys to talk to HuggingFace.
-
 ###### Staging demo
 
-1. Create a HuggingFace space.
-   Create a huggingface space from your browser: [huggingface.co/spaces](https://huggingface.co/spaces)
+1. Login with the HuggingFace to access git.
 
-2. Set .env.local environment variables so you can upload data to the soace:
+`poetry run huggingface-cli login`
+
+[Follow the instructions](https://huggingface.co/docs/hub/repositories-getting-started) to use your git SSH keys to talk to HuggingFace.
+
+2. Create a huggingface space from your browser: [huggingface.co/spaces](https://huggingface.co/spaces)
+
+3. Set .env.local environment variables so you can upload data to the soace:
 
 ```sh
 # The repo to use for the huggingface demo.
@@ -52,17 +55,23 @@ HF_STAGING_DEMO_REPO='lilacai/your-space'
 HF_USERNAME='your-username'
 ```
 
-3.  Generate a read-only token from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) which will be used as `HF_ACCESS_TOKEN` below.
+4.  Generate a read-only token from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) which will be used as `HF_ACCESS_TOKEN` below.
 
-4.  Open the HuggingFace space in your browser and click "Settings".
+5.  Open the HuggingFace space in your browser and click "Settings".
 
-5.  Set these two environment variables from the settings UI to
+6.  Set these two environment variables from the settings UI to
     authenticate the binary running on HuggingFace to read private space data:
 
-- `LILAC_DL_HF_SPACE_DATA`: lilacai/your-space
+- `HF_DATA_FROM_SPACE`: lilacai/your-space
 - `HF_ACCESS_TOKEN`: yourtoken
 
-6: Deploy to your HuggingFace Space:
+For HuggingFace, set the `LILAC_DATA_PATH` to `/data`` explicitly. This is the path to HF persistent storage.
+
+- `LILAC_DATA_PATH`: /data
+
+7. Turn on persistent storage in the Settings UI.
+
+8. Deploy to your HuggingFace Space:
 
 ```
 poetry run python -m scripts.deploy_hf \

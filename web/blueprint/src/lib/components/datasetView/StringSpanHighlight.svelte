@@ -3,12 +3,12 @@
    * Component that renders string spans as an absolute positioned
    * layer, meant to be rendered on top of the source text.
    */
-  import {getDatasetContext} from '$lib/stores/datasetStore';
+  import type {DatasetState} from '$lib/stores/datasetStore';
   import {ITEM_SCROLL_CONTAINER_CTX_KEY, mergeSpans, type MergedSpan} from '$lib/view_utils';
 
   import {editConceptMutation} from '$lib/queries/conceptQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
   import {
     getValueNodes,
     isConceptScoreSignal,
@@ -32,17 +32,18 @@
   import {getRenderSpans, getSnippetSpans, type RenderSpan} from './spanHighlight';
 
   export let text: string;
+  // This is the full row item.
   export let row: LilacValueNode;
-  export let field: LilacField;
+  export let visibleFields: LilacField[];
   export let visibleKeywordSpanFields: LilacField[];
   export let visibleSpanFields: LilacField[];
   export let visibleLabelSpanFields: LilacField[];
+  // When defined, enables clicking on spans.
+  export let datasetViewStore: DatasetViewStore | undefined = undefined;
+  export let datasetStore: DatasetState | undefined = undefined;
 
+  $: console.log(text, row);
   const spanHoverOpacity = 0.9;
-
-  const datasetViewStore = getDatasetViewContext();
-  const datasetStore = getDatasetContext();
-  $: schema = $datasetStore.selectRowsSchema?.data?.schema;
 
   // Get the embeddings.
   const embeddings = queryEmbeddings();
@@ -57,9 +58,7 @@
       serializePath(f.path),
       petals(f)
         .filter(f => f.dtype != 'string_span')
-        .filter(f =>
-          $datasetStore.visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path))
-        )
+        .filter(f => visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path)))
     ])
   );
 
@@ -94,13 +93,13 @@
   };
   $: renderSpans = getRenderSpans(
     mergedSpans,
-    schema,
     spanValueFields,
     keywordSpanPaths,
     labelSpanPaths,
-    field,
     pathsHovered
   );
+
+  $: console.log(visibleFields, spanValueFields);
 
   // Map each of the paths to their render spans so we can highlight neighbors on hover when there
   // is overlap.

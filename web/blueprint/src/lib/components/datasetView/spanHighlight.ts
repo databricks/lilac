@@ -2,19 +2,15 @@ import type {MergedSpan} from '$lib/view_utils';
 import {
   L,
   deserializePath,
-  getField,
   isNumeric,
   pathIncludes,
   serializePath,
   valueAtPath,
-  type ConceptLabelsSignal,
   type ConceptScoreSignal,
   type LilacField,
-  type LilacSchema,
   type LilacValueNode,
   type LilacValueNodeCasted,
-  type SemanticSimilaritySignal,
-  type SubstringSignal
+  type SemanticSimilaritySignal
 } from '$lilac';
 import type {SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
 import {colorFromScore} from './colors';
@@ -47,11 +43,9 @@ export interface RenderSpan {
 
 export function getRenderSpans(
   mergedSpans: MergedSpan[],
-  schema: LilacSchema | undefined,
   spanValueFields: {[k: string]: LilacField[]},
   keywordSpanPaths: string[],
   labelSpanPaths: string[],
-  field: LilacField,
   pathsHovered: Set<string>
 ): RenderSpan[] {
   const renderSpans: RenderSpan[] = [];
@@ -131,27 +125,26 @@ export function getRenderSpans(
             // Check if this is a concept label.
             let isConceptLabelSignal = false;
             for (const labelSpanPath of labelSpanPaths) {
-              if (pathIncludes(valueField.path, labelSpanPath) && schema != null) {
-                const field = getField(schema, deserializePath(labelSpanPath).slice(0, -1));
-                if (field?.signal?.signal_name === 'concept_labels') {
-                  if (!pathSeen) {
-                    const signal = field?.signal as ConceptLabelsSignal;
-                    hoverInfo.push({
-                      name: `${signal.namespace}/${signal.concept_name} label`,
-                      value,
-                      spanPath: spanPathStr
-                    });
-                  }
-                  isConceptLabelSignal = true;
-                  isShownSnippet = true;
+              if (pathIncludes(valueField.path, labelSpanPath)) {
+                const [namespace, conceptName] = deserializePath(labelSpanPath)
+                  .slice(-2, -1)[0]
+                  .split('/');
+                if (!pathSeen) {
+                  hoverInfo.push({
+                    name: `${namespace}/${conceptName} label`,
+                    value,
+                    spanPath: spanPathStr
+                  });
                 }
+                isConceptLabelSignal = true;
+                isShownSnippet = true;
               }
             }
             // Show arbitrary metadata.
             if (!isConceptLabelSignal) {
               const isNonNumericMetadata = !isNumeric(valueField.dtype!);
               if (!pathSeen) {
-                const name = serializePath(valueField.path.slice(field.path.length));
+                const name = serializePath(valueField.path);
                 hoverInfo.push({
                   name,
                   value,
@@ -169,22 +162,18 @@ export function getRenderSpans(
 
     // Add keyword info. Keyword results don't have values so we process them separately.
     let isKeywordSpan = false;
-    if (schema != null) {
-      for (const keywordSpanPath of keywordSpanPaths) {
-        if (mergedSpan.originalSpans[keywordSpanPath] != null) {
-          isKeywordSpan = true;
-          const field = getField(schema, deserializePath(keywordSpanPath).slice(0, -1));
-          const signal = field?.signal as SubstringSignal;
-          if (signal?.signal_name === 'substring_search') {
-            hoverInfo.push({
-              name: 'keyword',
-              value: signal.query,
-              spanPath: keywordSpanPath,
-              isKeywordSearch: true
-            });
-            isShownSnippet = true;
-          }
-        }
+    for (const keywordSpanPath of keywordSpanPaths) {
+      if (mergedSpan.originalSpans[keywordSpanPath] != null) {
+        isKeywordSpan = true;
+        const path = L.path(mergedSpan.originalSpans[keywordSpanPath][0] as LilacValueNode);
+        const keywordSearchQuery = path?.slice(-2, -1)[0] || '';
+        hoverInfo.push({
+          name: 'keyword',
+          value: keywordSearchQuery,
+          spanPath: keywordSpanPath,
+          isKeywordSearch: true
+        });
+        isShownSnippet = true;
       }
     }
 

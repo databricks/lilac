@@ -112,7 +112,7 @@ class ScoreBody(BaseModel):
 
 class ScoreResponse(BaseModel):
   """Response body for the score endpoint."""
-  scores: list[float]
+  scores: list[dict]
   model_synced: bool
 
 

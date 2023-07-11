@@ -8,7 +8,7 @@ import StringSpanDetails from './StringSpanDetails.svelte';
 
 export interface SpanClickInfo {
   details: () => SpanDetails;
-  datasetViewStore: DatasetViewStore;
+  datasetViewStore: DatasetViewStore | undefined;
   datasetStore: Readable<DatasetState>;
   embeddings: SignalInfoWithTypedSchema[];
   addConceptLabel: (
@@ -24,6 +24,7 @@ export function spanClick(element: HTMLSpanElement, clickInfo: SpanClickInfo) {
   let curClickInfo = clickInfo;
   element.addEventListener('click', e => showClickDetails(e));
   function showClickDetails(e: MouseEvent) {
+    if (curClickInfo.datasetViewStore == null) return;
     spanDetailsComponent = new StringSpanDetails({
       props: {
         details: curClickInfo.details(),
