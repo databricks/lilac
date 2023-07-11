@@ -61,8 +61,9 @@ export function getCandidates(
         continue;
       }
 
-      // Skip spans that have labeled pieces.
-      if (labeledSpans.some(s => s.start >= span.start && s.end <= span.end)) {
+      // Skip spans that overlap with labeled pieces.
+      const noOverlap = labeledSpans.every(l => l.start > span.end || l.end < span.start);
+      if (!noOverlap) {
         continue;
       }
 
