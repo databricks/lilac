@@ -77,19 +77,15 @@
               <InlineLoading />
             {:else if model && model.metrics}
               <div
-                class="flex cursor-default flex-col items-center gap-y-2"
+                class="concept-score-pill cursor-default text-2xl font-light {scoreToColor[
+                  model.metrics.overall
+                ]}"
                 use:hoverTooltip={{
                   component: ConceptHoverPill,
                   props: {metrics: model.metrics}
                 }}
               >
-                <div
-                  class="concept-score-pill text-2xl font-light {scoreToColor[
-                    model.metrics.overall
-                  ]}"
-                >
-                  {scoreToText[model.metrics.overall]}
-                </div>
+                {scoreToText[model.metrics.overall]}
               </div>
             {:else}
               <Button
