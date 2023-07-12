@@ -87,6 +87,7 @@ def compute_split_embeddings(docs: Iterable[str],
     # np.split returns a shallow copy of each embedding so we don't increase the mem footprint.
     embeddings_batch = cast(list[np.ndarray], np.split(matrix, matrix.shape[0]))
     for (index, (_, (start, end))), embedding in zip(batch, embeddings_batch):
+      embedding = embedding.reshape(-1)
       if index == current_index:
         items_to_yield.append(lilac_embedding(start, end, embedding))
       else:
