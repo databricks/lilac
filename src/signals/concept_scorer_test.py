@@ -118,7 +118,12 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   model_db.sync(model)
 
-  scores = cast(list[float], list(signal.compute(['a new data point', 'not in concept'])))
+  result_items = list(signal.compute(['a new data point', 'not in concept']))
+  scores = [
+    result_item['test_embedding'][0][f'{namespace}/{concept_name}']
+    for result_item in result_items
+    if result_item
+  ]
   assert scores[0] > 0 and scores[0] < 1
   assert scores[1] < 0.5
 
@@ -161,11 +166,16 @@ def test_concept_model_with_dataset_score(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   model_db.sync(model)
 
-  scores = cast(list[float],
-                list(signal.compute(['a new data point', 'in concept', 'not in concept'])))
+  result_items = list(signal.compute(['a new data point', 'in concept', 'not in concept']))
+  scores = [
+    result_item['test_embedding'][0][f'{namespace}/{concept_name}']
+    for result_item in result_items
+    if result_item
+  ]
   assert scores[0] > 0 and scores[0] < 1  # 'a new data point' may or may not be in the concept.
   assert scores[1] > 0.5  # 'in concept' is in the concept.
   assert scores[2] < 0.5  # 'not in concept' is not in the concept.
+  assert len(scores) == 3
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)

@@ -336,23 +336,21 @@ class ConceptModel:
     embedding.setup()
 
     embedding_items = list(embedding.compute(examples))
-    embedding_list: list[np.ndarray] = []
     result_items: list[Item] = []
     for item in embedding_items:
       if not isinstance(item, list):
         raise ValueError('Item from embedding is not a list.')
-      embedding_list.extend([np.squeeze(res[EMBEDDING_KEY]) for res in item])
-
-      embeddings = np.array(embedding_list)
+      embeddings = np.array([np.squeeze(res[EMBEDDING_KEY]) for res in item])
       scores = self._get_logistic_model(draft).score_embeddings(embeddings).tolist()
 
+      item_result: list[Item] = []
       for embedding_item, score in zip(item, scores):
-        result_items.append(
+        item_result.append(
           lilac_span(
             start=embedding_item[VALUE_KEY][TEXT_SPAN_START_FEATURE],
             end=embedding_item[VALUE_KEY][TEXT_SPAN_END_FEATURE],
             metadata={f'{self.namespace}/{self.concept_name}': score}))
-
+      result_items.append({self.embedding_name: item_result})
     return result_items
 
   def coef(self, draft: DraftId) -> np.ndarray:

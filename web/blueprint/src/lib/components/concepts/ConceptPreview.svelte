@@ -73,12 +73,7 @@
           }
         }
       });
-      previewResultItem = deserializeRow(
-        {
-          [previewEmbedding]: $conceptScore.data.scores
-        },
-        resultSchema
-      );
+      previewResultItem = deserializeRow($conceptScore.data.scores[0], resultSchema);
     }
   }
 </script>

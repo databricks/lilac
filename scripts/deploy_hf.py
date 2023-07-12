@@ -77,6 +77,7 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
     f.write("""LILAC_DATA_PATH='/data'
 HF_HOME='/data/.huggingface'
 HF_DATASETS_CACHE='/data/.cache'
+TRANSFORMERS_CACHE='/data/.cache'
 """)
 
   # Create a .gitignore to avoid uploading unnecessary files.

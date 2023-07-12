@@ -20,7 +20,7 @@ from .concepts.concept import (
 )
 from .concepts.db_concept import ConceptInfo, ConceptUpdate
 from .config import CONFIG
-from .data.dataset_utils import lilac_embedding
+from .data.dataset_utils import lilac_embedding, lilac_span
 from .router_concept import (
   ConceptModelInfo,
   CreateConceptOptions,
@@ -356,7 +356,11 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   response = client.post(url, json=score_body.dict())
   assert response.status_code == 200
   assert ScoreResponse.parse_obj(response.json()) == ScoreResponse(
-    scores=[0.9, 1.0],
+    scores=[{
+      'test_embedding': [lilac_span(0, 11, {'concept_namespace/concept': 0.9})]
+    }, {
+      'test_embedding': [lilac_span(0, 5, {'concept_namespace/concept': 0.9})]
+    }],
     # The model should already be synced.
     model_synced=False)
 
