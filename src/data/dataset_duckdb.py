@@ -89,7 +89,6 @@ from .dataset_utils import (
   create_signal_schema,
   flatten,
   flatten_keys,
-  make_schema_from_path,
   merge_schemas,
   read_embedding_index,
   replace_embeddings_with_none,
@@ -1082,7 +1081,7 @@ class DatasetDuckDB(Dataset):
       else:
         # This column might refer to an output of a udf. We postpone validation to later.
         continue
-      col_schemas.append(make_schema_from_path(dest_path, field))
+      col_schemas.append(_make_schema_from_path(dest_path, field))
 
     sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
 
@@ -1619,6 +1618,16 @@ def _make_value_path(path: PathTuple) -> PathTuple:
   if path[-1] != VALUE_KEY and path[0] != UUID_COLUMN:
     return (*path, VALUE_KEY)
   return path
+
+
+def _make_schema_from_path(path: PathTuple, field: Field) -> Schema:
+  """Returns a schema that contains only the given path."""
+  for sub_path in reversed(path):
+    if sub_path == PATH_WILDCARD:
+      field = Field(repeated_field=field)
+    else:
+      field = Field(fields={sub_path: field})
+  return Schema(fields=field.fields)
 
 
 def _replace_nan_with_none(df: pd.DataFrame) -> pd.DataFrame:

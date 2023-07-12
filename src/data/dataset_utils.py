@@ -200,16 +200,6 @@ def schema_contains_path(schema: Schema, path: PathTuple) -> bool:
   return True
 
 
-def make_schema_from_path(path: PathTuple, field: Field) -> Schema:
-  """Returns a schema that contains only the given path."""
-  for sub_path in reversed(path):
-    if sub_path == PATH_WILDCARD:
-      field = Field(repeated_field=field)
-    else:
-      field = Field(fields={sub_path: field})
-  return Schema(fields=field.fields)
-
-
 def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema: Schema) -> Schema:
   """Create a schema describing the enriched fields added an enrichment."""
   leafs = current_schema.leafs
