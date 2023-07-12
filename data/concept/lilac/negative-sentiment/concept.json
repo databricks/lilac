@@ -1,6 +1,6 @@
 {
   "namespace": "lilac",
-  "concept_name": "negative_sentiment",
+  "concept_name": "negative-sentiment",
   "type": "text",
   "data": {
     "0": {
@@ -502,7 +502,13 @@
       "label": true,
       "text": "confusing internet setup: i wanted a camera that could email photos but this camera will not go out through the router and the manual setup , to punch a hole thru router is confusing.\n",
       "id": "99"
+    },
+    "04c7dfc0f94e4e88968d09b40edbfa14": {
+      "label": true,
+      "text": "The new gaming console is unaffordable.",
+      "id": "04c7dfc0f94e4e88968d09b40edbfa14"
     }
   },
+  "version": 1,
   "description": "Negative sentiment"
 }

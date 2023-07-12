@@ -1,6 +1,6 @@
 {
   "namespace": "lilac",
-  "concept_name": "positive_sentiment",
+  "concept_name": "positive-sentiment",
   "type": "text",
   "data": {
     "0": {

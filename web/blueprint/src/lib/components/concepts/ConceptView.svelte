@@ -134,7 +134,7 @@
   <div class="flex gap-x-4">
     <div class="flex w-0 flex-grow flex-col gap-y-4">
       <span class="flex items-center gap-x-2 text-lg"
-        ><ThumbsUpFilled /> Positive ({positiveExamples.length} examples)</span
+        ><ThumbsUpFilled /> In concept ({positiveExamples.length} examples)</span
       >
       <ConceptExampleList
         data={positiveExamples}
@@ -144,7 +144,7 @@
     </div>
     <div class="flex w-0 flex-grow flex-col gap-y-4">
       <span class="flex items-center gap-x-2 text-lg"
-        ><ThumbsDownFilled />Negative ({negativeExamples.length} examples)</span
+        ><ThumbsDownFilled />Not in concept ({negativeExamples.length} examples)</span
       >
       <ConceptExampleList
         data={negativeExamples}

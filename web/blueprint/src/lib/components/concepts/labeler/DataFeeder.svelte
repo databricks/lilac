@@ -120,12 +120,12 @@
 
   function getInfo(score: number): string {
     if (score < 0.2) {
-      return 'Likely negative';
+      return 'Likely not in concept';
     }
     if (score < 0.8) {
       return 'Uncertain';
     }
-    return 'Likely positive';
+    return 'Likely in concept';
   }
 </script>
 
@@ -156,7 +156,7 @@
           </button>
         </div>
         <div class="flex-grow">{candidate.text}</div>
-        <div class="w-36 flex-shrink-0 text-right">{info} {formatValue(candidate.score, 2)}</div>
+        <div class="w-40 flex-shrink-0 text-right">{info} {formatValue(candidate.score, 2)}</div>
       </div>
     {/if}
   {/each}
