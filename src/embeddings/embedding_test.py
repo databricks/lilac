@@ -75,13 +75,14 @@ def test_split_and_combine_text_embeddings_empty_docs() -> None:
     return [np.ones(1) for _ in batch]
 
   result = list(compute_split_embeddings(docs, batch_size, embed_fn, char_splitter))
-  assert embed_fn_inputs == [['', '', '1'], ['2', '3']]
+  assert embed_fn_inputs == [['1', '2', '3']]
+
   assert result == [
-    [lilac_embedding(0, 0, np.array(1))],  # ''
-    [lilac_embedding(0, 0, np.array(1))],  # ''
+    None,
+    None,
     [
       lilac_embedding(0, 1, np.array(1)),  # 1
       lilac_embedding(1, 2, np.array(1)),  # 2
       lilac_embedding(2, 3, np.array(1)),  # 3
-    ],
+    ]
   ]

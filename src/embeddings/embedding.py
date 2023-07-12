@@ -57,7 +57,7 @@ def compute_split_embeddings(docs: Iterable[str],
   pool = ThreadPoolExecutor()
 
   def _splitter(doc: str) -> list[TextChunk]:
-    if doc is None:
+    if not doc:
       return []
     if split_fn:
       return split_fn(doc)
@@ -68,15 +68,16 @@ def compute_split_embeddings(docs: Iterable[str],
   def _flat_split_batch_docs(docs: Iterable[str]) -> Generator[tuple[int, TextChunk], None, None]:
     """Split a batch of documents into chunks and yield them."""
     for i, doc in enumerate(docs):
-      chunks = _splitter(doc) or [cast(TextChunk, ('', (0, 0)))]
+      chunks = _splitter(doc)
       for chunk in chunks:
         yield (i, chunk)
 
   doc_chunks = _flat_split_batch_docs(docs)
-  items_to_yield: list[Item] = []
+  items_to_yield: Optional[list[Item]] = None
   current_index = 0
 
   mega_batch_size = batch_size * num_parallel_requests
+  something_to_yield = False
 
   for batch in chunks(doc_chunks, mega_batch_size):
     texts = [text for _, (text, _) in batch]
@@ -87,14 +88,20 @@ def compute_split_embeddings(docs: Iterable[str],
     # np.split returns a shallow copy of each embedding so we don't increase the mem footprint.
     embeddings_batch = cast(list[np.ndarray], np.split(matrix, matrix.shape[0]))
     for (index, (_, (start, end))), embedding in zip(batch, embeddings_batch):
+      something_to_yield = True
       embedding = embedding.reshape(-1)
       if index == current_index:
+        if items_to_yield is None:
+          items_to_yield = []
         items_to_yield.append(lilac_embedding(start, end, embedding))
       else:
         yield items_to_yield
+        current_index += 1
+        while current_index < index:
+          yield None
+          current_index += 1
         items_to_yield = [lilac_embedding(start, end, embedding)]
-        current_index = index
 
   # Yield the last batch.
-  if items_to_yield:
+  if something_to_yield:
     yield items_to_yield

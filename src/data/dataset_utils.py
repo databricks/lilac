@@ -234,23 +234,27 @@ def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[obje
     return isinstance(input, np.ndarray)
 
   flat_keys = flatten_keys(keys, embeddings, is_primitive_predicate=embedding_predicate)
-  embedding_vectors: list[np.ndarray] = []
-  for lilac_embedding in flatten(embeddings, is_primitive_predicate=embedding_predicate):
-    # We use squeeze here because embedding functions can return outer dimensions of 1.
-    embedding_vector = lilac_embedding[EMBEDDING_KEY].reshape(-1)
-    if embedding_vector.ndim != 1:
-      raise ValueError(f'Expected embeddings to be 1-dimensional, got {embedding_vector.ndim} '
-                       f'with shape {embedding_vector.shape}.')
-    embedding_vectors.append(embedding_vector)
+  flat_embeddings = flatten(embeddings, is_primitive_predicate=embedding_predicate)
 
-  flat_embeddings = np.array(embedding_vectors)
+  embedding_vectors: list[np.ndarray] = []
+  embedding_keys: list[VectorKey] = []
+  for key, lilac_embedding in zip(flat_keys, flat_embeddings):
+    if not lilac_embedding or EMBEDDING_KEY not in lilac_embedding:
+      # Sparse embeddings may not have an embedding for every key.
+      continue
+
+    # We use squeeze here because embedding functions can return outer dimensions of 1.
+    embedding_vectors.append(lilac_embedding[EMBEDDING_KEY].reshape(-1))
+    embedding_keys.append(key)
+
+  embedding_vectors = np.array(embedding_vectors)
 
   # Write the embedding index and the ordered UUID column to disk so they can be joined later.
 
   with open_file(output_path_prefix + _EMBEDDINGS_SUFFIX, 'wb') as f:
-    np.save(f, flat_embeddings, allow_pickle=False)
+    np.save(f, embedding_vectors, allow_pickle=False)
   with open_file(output_path_prefix + _KEYS_SUFFIX, 'wb') as f:
-    pickle.dump(flat_keys, f)
+    pickle.dump(embedding_keys, f)
 
   return output_path_prefix
 

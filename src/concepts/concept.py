@@ -152,7 +152,7 @@ class LogisticEmbeddingModel:
   def __post_init__(self) -> None:
     # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
     self._model = LogisticRegression(
-      class_weight=None, C=30, tol=1e-5, warm_start=True, max_iter=1_000, n_jobs=-1)
+      class_weight=None, C=30, tol=1e-5, warm_start=True, max_iter=5_000, n_jobs=-1)
 
   def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
@@ -165,11 +165,12 @@ class LogisticEmbeddingModel:
       return np.random.rand(len(embeddings))
 
   def _setup_training(
-      self, X_train: np.ndarray, y_train: list[bool],
+      self, X_train: np.ndarray, labels: list[bool],
       implicit_negatives: Optional[np.ndarray]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    num_pos_labels = len([y for y in y_train if y])
-    num_neg_labels = len([y for y in y_train if not y])
-    sample_weights = [(1.0 / num_pos_labels if y else 1.0 / num_neg_labels) for y in y_train]
+    num_pos_labels = len([y for y in labels if y])
+    num_neg_labels = len([y for y in labels if not y])
+    sample_weights = [(1.0 / num_pos_labels if y else 1.0 / num_neg_labels) for y in labels]
+    y_train = np.array(labels)
 
     if implicit_negatives is not None:
       num_implicit_labels = len(implicit_negatives)
@@ -181,7 +182,14 @@ class LogisticEmbeddingModel:
     # Normalize sample weights to sum to the number of training examples.
     weights = np.array(sample_weights)
     weights *= (X_train.shape[0] / np.sum(weights))
-    return X_train, np.array(y_train), weights
+
+    # Shuffle the data in unison.
+    p = np.random.permutation(len(X_train))
+    X_train = X_train[p]
+    y_train = y_train[p]
+    weights = weights[p]
+
+    return X_train, y_train, weights
 
   def fit(self, embeddings: np.ndarray, labels: list[bool],
           implicit_negatives: Optional[np.ndarray]) -> None:
