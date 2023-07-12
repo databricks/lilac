@@ -17,11 +17,12 @@ node_modules/
 dist/
 
 # Data to ignore.
-/data/
-!/data/concept/lilac/
+data/datasets
+data/.*
+data/concept/local
 
 # Ignore pickled concept models.
-/data/concept/**/*.pkl
+data/concept/**/*.pkl
 
 # Env
 .env.local
