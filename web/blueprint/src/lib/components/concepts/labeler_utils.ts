@@ -108,17 +108,21 @@ export function getCandidates(
   // Sort by score, descending.
   spans.sort((a, b) => b.score - a.score);
   const positive = spans[0];
-  const negative = spans[spans.length - 1];
+  const negative = spans
+    .slice()
+    .reverse()
+    .find(s => s != positive);
   // Sort by distance from 0.5, ascending.
   spans.sort((a, b) => Math.abs(a.score - 0.5) - Math.abs(b.score - 0.5));
-  if (candidates.positive == null) {
+  const neutral = spans.find(s => s != positive && s != negative);
+
+  if (positive != null && candidates.positive == null) {
     candidates.positive = spanToCandidate(positive);
   }
-  const neutral = spans.find(c => c != positive && c != negative);
   if (neutral != null && candidates.neutral == null) {
     candidates.neutral = spanToCandidate(neutral);
   }
-  if (negative != positive && candidates.negative == null) {
+  if (negative != null && candidates.negative == null) {
     candidates.negative = spanToCandidate(negative);
   }
   return candidates;
