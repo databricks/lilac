@@ -46,7 +46,17 @@ Details can be found at [Managing Spaces with Github Actions](https://huggingfac
 
 2. Create a huggingface space from your browser: [huggingface.co/spaces](https://huggingface.co/spaces)
 
-3. Set .env.local environment variables so you can upload data to the soace:
+3. Generate a read-only token from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) which will be used as `HF_ACCESS_TOKEN` below.
+
+4. Open the HuggingFace space in your browser and click "Settings".
+
+5. Set this environment secret from the settings UI to authenticate the binary running on HuggingFace to read private space data:
+
+- `HF_ACCESS_TOKEN`: yourtoken
+
+7. Turn on persistent storage in the Settings UI.
+
+8. Set .env.local environment variables so you can upload data to the soace:
 
 ```sh
 # The repo to use for the huggingface demo.
@@ -55,23 +65,13 @@ HF_STAGING_DEMO_REPO='lilacai/your-space'
 HF_USERNAME='your-username'
 ```
 
-4.  Generate a read-only token from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) which will be used as `HF_ACCESS_TOKEN` below.
-
-5.  Open the HuggingFace space in your browser and click "Settings".
-
-6.  Set this environment secret from the settings UI to
-    authenticate the binary running on HuggingFace to read private space data:
-
-- `HF_ACCESS_TOKEN`: yourtoken
-
-7. Turn on persistent storage in the Settings UI.
-
 8. Deploy to your HuggingFace Space:
 
 ```
 poetry run python -m scripts.deploy_hf \
   --dataset=$DATASET_NAMESPACE/$DATASET_NAME
 
+# --concept is optional. By default all lilac/* concepts are uploaded. This flag enables uploading other concepts from local.
 # --hf_username and --hf_space are optional and can override the ENV for local uploading.
 ```
 

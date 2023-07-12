@@ -3,20 +3,28 @@ import {
   L,
   deserializePath,
   isNumeric,
-  pathIncludes,
   serializePath,
   valueAtPath,
-  type ConceptScoreSignal,
-  type LilacField,
+  type DataType,
   type LilacValueNode,
   type LilacValueNodeCasted,
-  type SemanticSimilaritySignal
+  type Path,
+  type Signal
 } from '$lilac';
 import type {SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
 import {colorFromScore} from './colors';
 
 // When the text length exceeds this number we start to snippet.
 const SNIPPET_LEN_BUDGET = 500;
+
+export interface SpanValueInfo {
+  path: Path;
+  spanPath: Path;
+  name: string;
+  type: 'concept_score' | 'label' | 'semantic_similarity' | 'keyword' | 'metadata';
+  dtype: DataType;
+  signal?: Signal;
+}
 
 export interface RenderSpan {
   paths: string[];
@@ -33,7 +41,7 @@ export interface RenderSpan {
   // The text post-processed for snippets.
   snippetText: string;
 
-  hoverInfo: SpanHoverNamedValue[];
+  namedValues: SpanHoverNamedValue[];
   // Whether the hover matches any path in this render span. Used for highlighting.
   isHovered: boolean;
   // Whether this render span is the first matching span for the hovered span. This is used for
@@ -43,9 +51,7 @@ export interface RenderSpan {
 
 export function getRenderSpans(
   mergedSpans: MergedSpan[],
-  spanValueFields: {[k: string]: LilacField[]},
-  keywordSpanPaths: string[],
-  labelSpanPaths: string[],
+  spanPathToValueInfos: Record<string, SpanValueInfo[]>,
   pathsHovered: Set<string>
 ): RenderSpan[] {
   const renderSpans: RenderSpan[] = [];
@@ -62,26 +68,25 @@ export function getRenderSpans(
       pathsProcessed.add(mergedSpanPath);
     }
 
-    const hoverInfo: SpanHoverNamedValue[] = [];
-    let hasNonNumericMetadata = false;
+    const namedValues: SpanHoverNamedValue[] = [];
     // Compute the maximum score for all original spans matching this render span to choose the
     // color.
     let maxScore = -Infinity;
     for (const [spanPathStr, originalSpans] of Object.entries(mergedSpan.originalSpans)) {
-      const valueFields = spanValueFields[spanPathStr];
+      const valueInfos = spanPathToValueInfos[spanPathStr];
       const spanPath = deserializePath(spanPathStr);
-      if (valueFields.length === 0) continue;
+      if (valueInfos == null || valueInfos.length === 0) continue;
 
       for (const originalSpan of originalSpans) {
-        for (const valueField of valueFields) {
-          const subPath = valueField.path.slice(spanPath.length);
+        for (const valueInfo of valueInfos) {
+          const subPath = valueInfo.path.slice(spanPath.length);
           const valueNode = valueAtPath(originalSpan as LilacValueNode, subPath);
           if (valueNode == null) continue;
 
           const value = L.value(valueNode);
           if (value == null) continue;
 
-          if (valueField.dtype === 'float32') {
+          if (valueInfo.dtype === 'float32') {
             const floatValue = L.value<'float32'>(valueNode);
             if (floatValue != null) {
               maxScore = Math.max(maxScore, floatValue);
@@ -93,91 +98,43 @@ export function getRenderSpans(
           const originalPath = serializePath(L.path(originalSpan as LilacValueNode)!);
           const pathSeen = !newPaths.includes(originalPath);
 
-          if (valueField.signal?.signal_name === 'concept_score') {
-            if (!pathSeen) {
-              const signal = valueField.signal as ConceptScoreSignal;
-              hoverInfo.push({
-                name: `${signal.namespace}/${signal.concept_name}`,
-                value,
-                spanPath: spanPathStr,
-                isConcept: true
-              });
-            }
-
-            if ((value as number) > 0.5) {
-              isShownSnippet = true;
-            }
-          } else if (valueField.signal?.signal_name === 'semantic_similarity') {
-            if (!pathSeen) {
-              const signal = valueField.signal as SemanticSimilaritySignal;
-              hoverInfo.push({
-                name: `similarity: ${signal.query}`,
-                value,
-                spanPath: spanPathStr,
-                isSemanticSearch: true
-              });
-            }
-
+          if (!pathSeen) {
+            namedValues.push({value, info: valueInfo});
+          }
+          if (valueInfo.type === 'concept_score' || valueInfo.type === 'semantic_similarity') {
             if ((value as number) > 0.5) {
               isShownSnippet = true;
             }
           } else {
-            // Check if this is a concept label.
-            let isConceptLabelSignal = false;
-            for (const labelSpanPath of labelSpanPaths) {
-              if (pathIncludes(valueField.path, labelSpanPath)) {
-                const [namespace, conceptName] = deserializePath(labelSpanPath)
-                  .slice(-2, -1)[0]
-                  .split('/');
-                if (!pathSeen) {
-                  hoverInfo.push({
-                    name: `${namespace}/${conceptName} label`,
-                    value,
-                    spanPath: spanPathStr
-                  });
-                }
-                isConceptLabelSignal = true;
-                isShownSnippet = true;
-              }
-            }
-            // Show arbitrary metadata.
-            if (!isConceptLabelSignal) {
-              const isNonNumericMetadata = !isNumeric(valueField.dtype!);
-              if (!pathSeen) {
-                const name = serializePath(valueField.path);
-                hoverInfo.push({
-                  name,
-                  value,
-                  spanPath: spanPathStr,
-                  isNonNumericMetadata
-                });
-              }
-              hasNonNumericMetadata = hasNonNumericMetadata || isNonNumericMetadata;
-              isShownSnippet = true;
-            }
+            isShownSnippet = true;
           }
         }
       }
     }
 
-    // Add keyword info. Keyword results don't have values so we process them separately.
-    let isKeywordSpan = false;
-    for (const keywordSpanPath of keywordSpanPaths) {
-      if (mergedSpan.originalSpans[keywordSpanPath] != null) {
-        isKeywordSpan = true;
-        const path = L.path(mergedSpan.originalSpans[keywordSpanPath][0] as LilacValueNode);
-        const keywordSearchQuery = path?.slice(-2, -1)[0] || '';
-        hoverInfo.push({
-          name: 'keyword',
-          value: keywordSearchQuery,
-          spanPath: keywordSpanPath,
-          isKeywordSearch: true
-        });
-        isShownSnippet = true;
-      }
-    }
+    // TODO(fix keyword search).
+    // // Add keyword info. Keyword results don't have values so we process them separately.
+    // let isKeywordSpan = false;
+    // for (const keywordSpanPath of keywordSpanPaths) {
+    //   if (mergedSpan.originalSpans[keywordSpanPath] != null) {
+    //     isKeywordSpan = true;
+    //     const path = L.path(mergedSpan.originalSpans[keywordSpanPath][0] as LilacValueNode);
+    //     const keywordSearchQuery = path?.slice(-2, -1)[0] || '';
+    //     valueInfos.push({
+    //       name: 'keyword',
+    //       value: keywordSearchQuery,
+    //       spanPath: keywordSpanPath,
+    //       isKeywordSearch: true
+    //     });
+    //     isShownSnippet = true;
+    //   }
+    // }
 
-    const isLabeled = labelSpanPaths.some(labelPath => mergedSpan.originalSpans[labelPath] != null);
+    const isLabeled = namedValues.some(v => v.info.type === 'label');
+    const isKeywordSearch = namedValues.some(v => v.info.type === 'keyword');
+    const hasNonNumericMetadata = namedValues.some(
+      v => v.info.type === 'metadata' && !isNumeric(v.info.dtype)
+    );
     const isHovered = mergedSpan.paths.some(path => pathsHovered.has(path));
 
     // The rendered span is a first hover if there is a new path that matches a specific render
@@ -189,11 +146,11 @@ export function getRenderSpans(
 
     renderSpans.push({
       backgroundColor: colorFromScore(maxScore),
-      isBlackBolded: isKeywordSpan || hasNonNumericMetadata,
+      isBlackBolded: isKeywordSearch || hasNonNumericMetadata,
       isHighlightBolded: isLabeled,
       isShownSnippet,
       snippetScore: maxScore,
-      hoverInfo,
+      namedValues,
       paths: mergedSpan.paths,
       text: mergedSpan.text,
       snippetText: mergedSpan.text,

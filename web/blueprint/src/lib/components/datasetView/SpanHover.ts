@@ -18,7 +18,7 @@ export function spanHover(element: HTMLSpanElement, spanHoverInfo: SpanHoverInfo
   function showSpan() {
     const namedValues = curSpanHoverInfo.namedValues.filter(namedValue =>
       Array.from(curSpanHoverInfo.spansHovered).some(path =>
-        pathIsMatching(deserializePath(namedValue.spanPath), deserializePath(path))
+        pathIsMatching(namedValue.info.spanPath, deserializePath(path))
       )
     );
     if (curSpanHoverInfo.itemScrollContainer != null) {

@@ -2,18 +2,17 @@
   import {queryConceptScore} from '$lib/queries/conceptQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {
-    VALUE_KEY,
-    childFields,
+    PATH_WILDCARD,
     deserializeRow,
     deserializeSchema,
     type Concept,
-    type LilacField,
-    type LilacSchema,
     type LilacValueNode,
+    type Path,
     type Signal
   } from '$lilac';
   import {Button, Select, SelectItem, SkeletonText, TextArea} from 'carbon-components-svelte';
   import StringSpanHighlight from '../datasetView/StringSpanHighlight.svelte';
+  import type {SpanValueInfo} from '../datasetView/spanHighlight';
 
   export let concept: Concept;
 
@@ -34,38 +33,40 @@
     previewText = textareaText;
     previewResultItem = undefined;
   }
-  $: console.log('conceptScore', conceptScore);
 
-  const PREVIEW_TEXT_FIELD = 'text';
-
-  let resultSchema: LilacSchema | undefined = undefined;
   let previewResultItem: LilacValueNode | undefined = undefined;
-  let visibleFields: LilacField<Signal>[] = [];
-  let conceptFields: LilacField<Signal>[] = [];
+  let spanPaths: Path[];
+  let valuePaths: SpanValueInfo[];
+  $: conceptKey = `${concept.namespace}/${concept.concept_name}`;
+  $: {
+    if (previewEmbedding != null) {
+      spanPaths = [[previewEmbedding, PATH_WILDCARD]];
+      valuePaths = [
+        {
+          spanPath: [previewEmbedding, PATH_WILDCARD],
+          path: [previewEmbedding, PATH_WILDCARD, conceptKey],
+          name: conceptKey,
+          type: 'concept_score',
+          dtype: 'float32',
+          signal: {
+            signal_name: 'concept_scorer',
+            concept_name: concept.concept_name,
+            namespace: concept.namespace
+          } as Signal
+        }
+      ];
+    }
+  }
   $: {
     if ($conceptScore?.data != null && previewEmbedding != null) {
-      // Create the schema for the preview result. This is required to match the structure we
-      // we require in the string span highlighter. That component should be refactored to take a
-      // simpler input so we don't have to do this.
-      resultSchema = deserializeSchema({
+      const resultSchema = deserializeSchema({
         fields: {
-          [PREVIEW_TEXT_FIELD]: {
-            dtype: 'string',
-            fields: {
-              [previewEmbedding]: {
-                repeated_field: {
-                  dtype: 'string_span',
-                  fields: {
-                    [`${concept.namespace}/${concept.concept_name}`]: {
-                      dtype: 'float32',
-                      signal: {
-                        signal_name: 'concept_score',
-                        embedding: previewEmbedding,
-                        namespace: concept.namespace,
-                        concept_name: concept.concept_name
-                      }
-                    }
-                  }
+          [previewEmbedding]: {
+            repeated_field: {
+              dtype: 'string_span',
+              fields: {
+                [conceptKey]: {
+                  dtype: 'float32'
                 }
               }
             }
@@ -74,17 +75,10 @@
       });
       previewResultItem = deserializeRow(
         {
-          [PREVIEW_TEXT_FIELD]: {
-            [VALUE_KEY]: textareaText,
-            [previewEmbedding]: $conceptScore.data.scores
-          }
+          [previewEmbedding]: $conceptScore.data.scores
         },
         resultSchema
       );
-      visibleFields = childFields(resultSchema);
-      conceptFields = [
-        resultSchema.fields![PREVIEW_TEXT_FIELD]!.fields![previewEmbedding!].repeated_field!
-      ];
     }
   }
 </script>
@@ -114,15 +108,8 @@
   <div class:border-t={previewText != null} class="mt-4 border-gray-200">
     {#if $conceptScore?.isFetching}
       <SkeletonText />
-    {:else if previewResultItem != null && visibleFields != null && conceptFields != null}
-      <StringSpanHighlight
-        text={previewText}
-        row={previewResultItem}
-        {visibleFields}
-        visibleKeywordSpanFields={[]}
-        visibleSpanFields={conceptFields}
-        visibleLabelSpanFields={[]}
-      />
+    {:else if previewResultItem != null && previewText != null}
+      <StringSpanHighlight text={previewText} row={previewResultItem} {spanPaths} {valuePaths} />
     {/if}
   </div>
 </div>

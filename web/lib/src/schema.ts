@@ -153,7 +153,7 @@ export function pathIsMatching(path1: Path | string | undefined, path2: Path | s
 export function isConceptScoreSignal(
   signal: ConceptScoreSignal | Signal | undefined
 ): signal is ConceptScoreSignal {
-  return (signal as ConceptScoreSignal)?.concept_name != undefined;
+  return (signal as ConceptScoreSignal)?.name === 'concept_score';
 }
 
 export function formatValue(value: DataTypeCasted | string[] | Blob, numDigits = 3) {

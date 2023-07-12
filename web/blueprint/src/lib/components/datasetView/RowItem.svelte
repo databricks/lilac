@@ -5,9 +5,6 @@
 
   export let row: LilacValueNode;
   export let mediaFields: LilacField[];
-
-  $: console.log('media fields:', mediaFields);
-
   export let visibleFields: LilacField[];
 
   const MIN_METADATA_HEIGHT_PX = 320;

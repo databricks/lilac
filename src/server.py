@@ -69,8 +69,6 @@ app.mount('/', StaticFiles(directory=DIST_PATH, html=True, check_dir=False))
 @app.on_event('startup')
 def startup() -> None:
   """Download dataset files from the HF space that was uploaded before building the image."""
-  print('env=', CONFIG)
-
   # SPACE_ID is the HuggingFace Space ID environment variable that is automatically set by HF.
   repo_id = CONFIG.get('SPACE_ID', None)
 
@@ -102,7 +100,6 @@ def startup() -> None:
 
     # Copy concepts.
     concepts = DiskConceptDB(spaces_data_dir).list()
-    print('loading concepts', concepts, spaces_data_dir)
     for concept in concepts:
       spaces_concept_output_dir = get_concept_output_dir(spaces_data_dir, concept.namespace,
                                                          concept.name)

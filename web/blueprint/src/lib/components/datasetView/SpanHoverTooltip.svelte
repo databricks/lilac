@@ -1,18 +1,14 @@
 <script context="module" lang="ts">
   export interface SpanHoverNamedValue {
-    name: string;
+    info: SpanValueInfo;
     value: DataTypeCasted;
-    spanPath: string;
-    isConcept?: boolean;
-    isKeywordSearch?: boolean;
-    isSemanticSearch?: boolean;
-    isNonNumericMetadata?: boolean;
   }
 </script>
 
 <script lang="ts">
-  import type {DataTypeCasted} from '$lilac';
+  import {isNumeric, type DataTypeCasted} from '$lilac';
   import {colorFromScore} from './colors';
+  import type {SpanValueInfo} from './spanHighlight';
 
   export let namedValues: SpanHoverNamedValue[];
   export let x: number;
@@ -24,6 +20,16 @@
   // Leave a single pixel gap between the tooltip and the span to allow the mouse to leave the span
   // when moving upwards to another span.
   const top = y - 1;
+
+  function displayValue(namedValue: SpanHoverNamedValue) {
+    if (typeof namedValue.value === 'number') {
+      return namedValue.value.toFixed(3);
+    }
+    if (namedValue.info.dtype === 'string_span') {
+      return 'true';
+    }
+    return namedValue.value;
+  }
 </script>
 
 <div
@@ -37,19 +43,19 @@
   <div class="table border-spacing-y-2">
     {#each namedValues as namedValue (namedValue)}
       <div class="table-row">
-        <div class="named-value-name table-cell max-w-xs truncate pr-2">{namedValue.name}</div>
+        <div class="named-value-name table-cell max-w-xs truncate pr-2">{namedValue.info.name}</div>
         <div class="table-cell rounded text-right">
           <span
-            style:background-color={(namedValue.isConcept || namedValue.isSemanticSearch) &&
+            style:background-color={(namedValue.info.type === 'concept_score' ||
+              namedValue.info.type === 'semantic_similarity') &&
             typeof namedValue.value === 'number'
               ? colorFromScore(namedValue.value)
               : ''}
-            class:font-bold={namedValue.isKeywordSearch || namedValue.isNonNumericMetadata}
+            class:font-bold={namedValue.info.type === 'keyword' ||
+              (namedValue.info.type === 'metadata' && !isNumeric(namedValue.info.dtype))}
             class="px-1"
           >
-            {typeof namedValue.value === 'number'
-              ? namedValue.value.toFixed(3)
-              : namedValue.value}</span
+            {displayValue(namedValue)}</span
           >
         </div>
       </div>

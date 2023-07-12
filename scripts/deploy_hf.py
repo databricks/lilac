@@ -44,39 +44,6 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
   if not hf_space:
     raise ValueError('Must specify --hf_space or set env.HF_STAGING_DEMO_REPO')
 
-  # Upload datasets to HuggingFace.
-  # NOTE(nsthorat): This currently doesn't write to persistent storage and does not work because of
-  # a bug in HuggingFace.
-  hf_api = HfApi()
-  for d in dataset:
-    namespace, name = d.split('/')
-
-    hf_api.upload_folder(
-      folder_path=get_dataset_output_dir(data_path(), namespace, name),
-      path_in_repo=get_dataset_output_dir('data', namespace, name),
-      repo_id=hf_space,
-      repo_type='space',
-      # Delete all data on the server.
-      delete_patterns='*')
-
-  disk_concepts = [f'{c.namespace}/{c.name}' for c in DiskConceptDB(data_path()).list()]
-  for c in concept:
-    if c not in disk_concepts:
-      raise ValueError(f'Concept "{c}" not found in disk concepts: {disk_concepts}')
-
-  lilac_concepts = [c for c in disk_concepts if c.startswith('lilac/')]
-  concepts = lilac_concepts + list(concept)
-
-  for c in concepts:
-    namespace, name = c.split('/')
-    hf_api.upload_folder(
-      folder_path=get_concept_output_dir(data_path(), namespace, name),
-      path_in_repo=get_concept_output_dir('data', namespace, name),
-      repo_id=hf_space,
-      repo_type='space',
-      # Delete all data on the server.
-      delete_patterns='*')
-
   # Build the web server Svelte & TypeScript.
   if not skip_build:
     run('sh ./scripts/build_server_prod.sh')
@@ -138,6 +105,39 @@ app_port: 5432
       git commit -a -m "Push" && \
       git push && \
       popd""")
+
+  # Upload datasets to HuggingFace. We do this after uploading code to avoid clobbering the data
+  # directory.
+  # NOTE(nsthorat): This currently doesn't write to persistent storage directly.
+  hf_api = HfApi()
+  for d in dataset:
+    namespace, name = d.split('/')
+
+    hf_api.upload_folder(
+      folder_path=get_dataset_output_dir(data_path(), namespace, name),
+      path_in_repo=get_dataset_output_dir('data', namespace, name),
+      repo_id=hf_space,
+      repo_type='space',
+      # Delete all data on the server.
+      delete_patterns='*')
+
+  disk_concepts = [f'{c.namespace}/{c.name}' for c in DiskConceptDB(data_path()).list()]
+  for c in concept:
+    if c not in disk_concepts:
+      raise ValueError(f'Concept "{c}" not found in disk concepts: {disk_concepts}')
+
+  lilac_concepts = [c for c in disk_concepts if c.startswith('lilac/')]
+  concepts = lilac_concepts + list(concept)
+
+  for c in concepts:
+    namespace, name = c.split('/')
+    hf_api.upload_folder(
+      folder_path=get_concept_output_dir(data_path(), namespace, name),
+      path_in_repo=get_concept_output_dir('data', namespace, name),
+      repo_id=hf_space,
+      repo_type='space',
+      # Delete all data on the server.
+      delete_patterns='*')
 
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:

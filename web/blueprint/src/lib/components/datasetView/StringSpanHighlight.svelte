@@ -1,10 +1,3 @@
-<script context="module" lang="ts">
-  export interface SpanHighlightValuePaths {
-    path: Path;
-    type: 'concept_score' | 'label' | 'semantic_similarity' | 'keyword' | 'metadata';
-  }
-</script>
-
 <script lang="ts">
   /**
    * Component that renders string spans as an absolute positioned
@@ -24,15 +17,12 @@
   import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
   import {
     getValueNodes,
-    isConceptScoreSignal,
     pathIsEqual,
-    petals,
     serializePath,
-    type LilacField,
+    type ConceptScoreSignal,
     type LilacValueNode,
     type LilacValueNodeCasted,
-    type Path,
-    type Signal
+    type Path
   } from '$lilac';
   import {Button} from 'carbon-components-svelte';
   import {ArrowDown, ArrowUp} from 'carbon-icons-svelte';
@@ -43,55 +33,46 @@
   import {spanHover} from './SpanHover';
   import type {SpanDetails} from './StringSpanDetails.svelte';
   import {LABELED_TEXT_COLOR, colorFromOpacity} from './colors';
-  import {getRenderSpans, getSnippetSpans, type RenderSpan} from './spanHighlight';
+  import {
+    getRenderSpans,
+    getSnippetSpans,
+    type RenderSpan,
+    type SpanValueInfo
+  } from './spanHighlight';
 
   export let text: string;
-  // This is the full row item.
+  // The full row item.
   export let row: LilacValueNode;
+  // Path of the spans for this item to render.
   export let spanPaths: Path[];
-  export let valuePaths: SpanHighlightValuePaths[];
+  // Information about each value under span paths to render.
+  export let valuePaths: SpanValueInfo[];
 
-  export let visibleFields: LilacField[];
-  export let visibleKeywordSpanFields: LilacField[];
-  export let visibleSpanFields: LilacField[];
-  export let visibleSpanPaths: Path[];
-  export let visibleLabelSpanFields: LilacField[];
   // When defined, enables semantic search on spans.
   export let datasetViewStore: DatasetViewStore | undefined = undefined;
   export let datasetStore: DatasetState | undefined = undefined;
 
-  $: console.log(text, row);
   const spanHoverOpacity = 0.9;
-
-  // Find the keyword span paths under this field.
-  $: keywordSpanPaths = visibleKeywordSpanFields.map(f => serializePath(f.path));
-  $: labelSpanPaths = visibleLabelSpanFields.map(f => serializePath(f.path));
-
-  // Map the span field paths to their children that are floats.
-  $: spanValueFields = Object.fromEntries(
-    visibleSpanPaths.map(p => [
-      serializePath(p),
-      petals(f)
-        .filter(f => f.dtype != 'string_span')
-        .filter(f => visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path)))
-    ])
-  );
-
-  // Filter the floats to only those that are concept scores.
-  let spanConceptFields: {[fieldName: string]: LilacField<Signal>[]};
-  $: spanConceptFields = Object.fromEntries(
-    Object.entries(spanValueFields)
-      .map(([path, fields]) => [path, fields.filter(f => isConceptScoreSignal(f.signal))])
-      .filter(([_, fields]) => fields.length > 0)
-  );
 
   // Map a path to the visible span fields.
   $: pathToSpans = Object.fromEntries(
-    visibleSpanPaths.map(p => [
+    spanPaths.map(p => [
       serializePath(p),
       getValueNodes(row, p) as LilacValueNodeCasted<'string_span'>[]
     ])
   );
+
+  let spanPathToValueInfos: Record<string, SpanValueInfo[]> = {};
+  $: {
+    spanPathToValueInfos = {};
+    for (const valuePath of valuePaths) {
+      const spanPathStr = serializePath(valuePath.spanPath);
+      if (spanPathToValueInfos[spanPathStr] == null) {
+        spanPathToValueInfos[spanPathStr] = [];
+      }
+      spanPathToValueInfos[spanPathStr].push(valuePath);
+    }
+  }
 
   // Merge all the spans for different features into a single span array.
   $: mergedSpans = mergeSpans(text, pathToSpans);
@@ -106,13 +87,7 @@
     renderSpan.paths.forEach(path => pathsHovered.delete(path));
     pathsHovered = pathsHovered;
   };
-  $: renderSpans = getRenderSpans(
-    mergedSpans,
-    spanValueFields,
-    keywordSpanPaths,
-    labelSpanPaths,
-    pathsHovered
-  );
+  $: renderSpans = getRenderSpans(mergedSpans, spanPathToValueInfos, pathsHovered);
 
   // Map each of the paths to their render spans so we can highlight neighbors on hover when there
   // is overlap.
@@ -142,10 +117,14 @@
     };
     // Find the concepts for the selected spans. For now, we select just the first concept.
     for (const spanPath of Object.keys(span.originalSpans)) {
-      for (const conceptField of spanConceptFields[spanPath] || []) {
+      const conceptValues = (spanPathToValueInfos[spanPath] || []).filter(
+        v => v.type === 'concept_score'
+      );
+      for (const conceptValue of conceptValues) {
         // Only use the first concept. We will later support multiple concepts.
-        spanDetails.conceptName = conceptField.signal!.concept_name;
-        spanDetails.conceptNamespace = conceptField.signal!.namespace;
+        const signal = conceptValue.signal as ConceptScoreSignal;
+        spanDetails.conceptName = signal.concept_name;
+        spanDetails.conceptNamespace = signal.namespace;
         break;
       }
     }
@@ -208,7 +187,7 @@
     {#if snippetSpan.isShown}
       <span
         use:spanHover={{
-          namedValues: renderSpan.hoverInfo,
+          namedValues: renderSpan.namedValues,
           isHovered: renderSpan.isFirstHover,
           spansHovered: pathsHovered,
           itemScrollContainer: $itemScrollContainer
@@ -220,7 +199,7 @@
           addConceptLabel
         }}
         class="hover:cursor-poiner highlight-span text-sm leading-5"
-        class:hover:cursor-pointer={visibleSpanFields.length > 0}
+        class:hover:cursor-pointer={spanPaths.length > 0}
         class:font-bold={renderSpan.isBlackBolded}
         class:font-medium={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded}
         style:color={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded
