@@ -1,13 +1,26 @@
+<script context="module" lang="ts">
+  export interface SpanHighlightValuePaths {
+    path: Path;
+    type: 'concept_score' | 'label' | 'semantic_similarity' | 'keyword' | 'metadata';
+  }
+</script>
+
 <script lang="ts">
   /**
    * Component that renders string spans as an absolute positioned
    * layer, meant to be rendered on top of the source text.
    */
   import type {DatasetState} from '$lib/stores/datasetStore';
-  import {ITEM_SCROLL_CONTAINER_CTX_KEY, mergeSpans, type MergedSpan} from '$lib/view_utils';
+  import {
+    ITEM_SCROLL_CONTAINER_CTX_KEY,
+    getComputedEmbeddings,
+    getSearchEmbedding,
+    getSearchPath,
+    mergeSpans,
+    type MergedSpan
+  } from '$lib/view_utils';
 
   import {editConceptMutation} from '$lib/queries/conceptQueries';
-  import {queryEmbeddings} from '$lib/queries/signalQueries';
   import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
   import {
     getValueNodes,
@@ -18,6 +31,7 @@
     type LilacField,
     type LilacValueNode,
     type LilacValueNodeCasted,
+    type Path,
     type Signal
   } from '$lilac';
   import {Button} from 'carbon-components-svelte';
@@ -34,19 +48,20 @@
   export let text: string;
   // This is the full row item.
   export let row: LilacValueNode;
+  export let spanPaths: Path[];
+  export let valuePaths: SpanHighlightValuePaths[];
+
   export let visibleFields: LilacField[];
   export let visibleKeywordSpanFields: LilacField[];
   export let visibleSpanFields: LilacField[];
+  export let visibleSpanPaths: Path[];
   export let visibleLabelSpanFields: LilacField[];
-  // When defined, enables clicking on spans.
+  // When defined, enables semantic search on spans.
   export let datasetViewStore: DatasetViewStore | undefined = undefined;
   export let datasetStore: DatasetState | undefined = undefined;
 
   $: console.log(text, row);
   const spanHoverOpacity = 0.9;
-
-  // Get the embeddings.
-  const embeddings = queryEmbeddings();
 
   // Find the keyword span paths under this field.
   $: keywordSpanPaths = visibleKeywordSpanFields.map(f => serializePath(f.path));
@@ -54,8 +69,8 @@
 
   // Map the span field paths to their children that are floats.
   $: spanValueFields = Object.fromEntries(
-    visibleSpanFields.map(f => [
-      serializePath(f.path),
+    visibleSpanPaths.map(p => [
+      serializePath(p),
       petals(f)
         .filter(f => f.dtype != 'string_span')
         .filter(f => visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path)))
@@ -72,9 +87,9 @@
 
   // Map a path to the visible span fields.
   $: pathToSpans = Object.fromEntries(
-    visibleSpanFields.map(f => [
-      serializePath(f.path),
-      getValueNodes(row, f.path) as LilacValueNodeCasted<'string_span'>[]
+    visibleSpanPaths.map(p => [
+      serializePath(p),
+      getValueNodes(row, p) as LilacValueNodeCasted<'string_span'>[]
     ])
   );
 
@@ -98,8 +113,6 @@
     labelSpanPaths,
     pathsHovered
   );
-
-  $: console.log(visibleFields, spanValueFields);
 
   // Map each of the paths to their render spans so we can highlight neighbors on hover when there
   // is overlap.
@@ -157,6 +170,36 @@
   let itemScrollContainer = getContext<Writable<HTMLDivElement | null>>(
     ITEM_SCROLL_CONTAINER_CTX_KEY
   );
+
+  // Click details.
+  let searchPath: Path | null;
+  let computedEmbeddings: string[] = [];
+  let searchEmbedding: string | null = null;
+  $: {
+    if ($datasetViewStore != null && datasetStore != null) {
+      searchPath = getSearchPath($datasetViewStore, datasetStore);
+      computedEmbeddings = getComputedEmbeddings(datasetStore, searchPath);
+      searchEmbedding = getSearchEmbedding(
+        $datasetViewStore,
+        datasetStore,
+        searchPath,
+        computedEmbeddings
+      );
+    }
+  }
+
+  const findSimilar = (embedding: string, text: string) => {
+    if (datasetViewStore == null || searchPath == null || searchEmbedding == null) return;
+
+    datasetViewStore.addSearch({
+      path: [serializePath(searchPath)],
+      query: {
+        type: 'semantic',
+        search: text,
+        embedding
+      }
+    });
+  };
 </script>
 
 <div class="relative mx-4 overflow-x-hidden text-ellipsis whitespace-break-spaces py-4">
@@ -172,9 +215,8 @@
         }}
         use:spanClick={{
           details: () => getSpanDetails(renderSpan),
-          datasetViewStore,
-          datasetStore,
-          embeddings: $embeddings.data || [],
+          findSimilar,
+          computedEmbeddings,
           addConceptLabel
         }}
         class="hover:cursor-poiner highlight-span text-sm leading-5"

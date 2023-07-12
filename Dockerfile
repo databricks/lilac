@@ -13,6 +13,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY .env .
+COPY .env.demo .
 COPY LICENSE .
 
 # Copy static files.

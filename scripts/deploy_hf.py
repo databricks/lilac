@@ -6,6 +6,7 @@ from typing import Optional
 import click
 from huggingface_hub import HfApi
 
+from src.concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from src.config import CONFIG, data_path
 from src.utils import get_dataset_output_dir
 
@@ -20,15 +21,20 @@ HF_SPACE_DIR = os.path.join(data_path(), '.hf_spaces')
   help='The huggingface space. Defaults to env.HF_STAGING_DEMO_REPO. '
   'Should be formatted like `SPACE_ORG/SPACE_NAME`.',
   type=str)
+@click.option('--dataset', help='The name of a dataset to upload', type=str, multiple=True)
+@click.option(
+  '--concept',
+  help='The name of a concept to upload. By default all lilac/ concepts are uploaded.',
+  type=str,
+  multiple=True)
 @click.option(
   '--skip_build',
   help='Skip building the web server TypeScript. '
   'Useful to speed up the build if you are only changing python or data.',
   type=bool,
   default=False)
-@click.option('--dataset', help='The name of a dataset to upload', type=str, multiple=True)
 def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str],
-         skip_build: bool) -> None:
+         concept: list[str], skip_build: bool) -> None:
   """Generate the huggingface space app."""
   hf_username = hf_username or CONFIG['HF_USERNAME']
   if not hf_username:
@@ -48,6 +54,24 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
     hf_api.upload_folder(
       folder_path=get_dataset_output_dir(data_path(), namespace, name),
       path_in_repo=get_dataset_output_dir('data', namespace, name),
+      repo_id=hf_space,
+      repo_type='space',
+      # Delete all data on the server.
+      delete_patterns='*')
+
+  disk_concepts = [f'{c.namespace}/{c.name}' for c in DiskConceptDB(data_path()).list()]
+  for c in concept:
+    if c not in disk_concepts:
+      raise ValueError(f'Concept "{c}" not found in disk concepts: {disk_concepts}')
+
+  lilac_concepts = [c for c in disk_concepts if c.startswith('lilac/')]
+  concepts = lilac_concepts + list(concept)
+
+  for c in concepts:
+    namespace, name = c.split('/')
+    hf_api.upload_folder(
+      folder_path=get_concept_output_dir(data_path(), namespace, name),
+      path_in_repo=get_concept_output_dir('data', namespace, name),
       repo_id=hf_space,
       repo_type='space',
       # Delete all data on the server.
@@ -80,6 +104,13 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
   copy_files = ['.dockerignore', '.env', 'Dockerfile', 'LICENSE']
   for file in copy_files:
     run(f'cp ./{file} {repo_basedir}/{file}')
+
+  # Create an .env.local to set HF-specific flags.
+  with open(f'{repo_basedir}/.env.demo', 'w') as f:
+    f.write("""LILAC_DATA_PATH='/data'
+HF_HOME='/data/.huggingface'
+HF_DATASETS_CACHE='/data/.cache'
+""")
 
   # Create a .gitignore to avoid uploading unnecessary files.
   with open(f'{repo_basedir}/.gitignore', 'w') as f:

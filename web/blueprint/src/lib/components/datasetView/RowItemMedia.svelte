@@ -7,16 +7,19 @@
    */
   import {notEmpty} from '$lib/utils';
   import {
+    L,
     childFields,
     formatValue,
     getFieldsByDtype,
     getValueNodes,
-    L,
+    pathIncludes,
+    pathIsEqual,
+    petals,
     type LilacField,
     type LilacValueNode,
     type Path
   } from '$lilac';
-  import StringSpanHighlight from './StringSpanHighlight.svelte';
+  import StringSpanHighlight, {type SpanHighlightValuePaths} from './StringSpanHighlight.svelte';
 
   export let path: Path;
   export let row: LilacValueNode;
@@ -24,15 +27,45 @@
 
   $: visibleChildren = childFields(field);
 
+  $: console.log('field=', field);
+
+  // Find the non-keyword span fields under this field.
+  $: visibleSpanFields = visibleChildren.filter(f => f.dtype === 'string_span');
+
+  let valuePaths: SpanHighlightValuePaths[] = [];
+  $: {
+    for (const visibleSpanField of visibleSpanFields) {
+      const children = petals(visibleSpanField)
+        .filter(f => f.dtype != 'string_span')
+        .filter(f => visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path)));
+
+      const conceptSignals = children.filter(f => f.signal?.signal_name === 'concept_score');
+      const conceptLabelSignals = children.filter(f => f.signal?.signal_name === 'concept_labels');
+      const semanticSimilaritySignals = children.filter(
+        f => f.signal?.signal_name === 'semantic_similarity'
+      );
+      const keywordSignals = children.filter(f => f.signal?.signal_name === 'substring_search');
+      for (const child of children) {
+        let type: SpanHighlightValuePaths['type'];
+        if (conceptSignals.some(f => pathIncludes(child.path, f.path))) {
+          type = 'concept_score';
+        } else {
+          type = 'metadata';
+        }
+        valuePaths.push({
+          path: child.path,
+          type
+        });
+      }
+    }
+  }
+
+  $: console.log(visibleSpanFields, valuePaths);
+
   // Find the keyword span paths under this field.
   $: visibleKeywordSpanFields = visibleChildren
     .filter(f => f.signal?.signal_name === 'substring_search')
     .flatMap(f => getFieldsByDtype('string_span', f));
-
-  // Find the non-keyword span fields under this field.
-  $: visibleSpanFields = visibleChildren
-    .filter(f => f.signal?.signal_name !== 'substring_search')
-    .filter(f => f.dtype === 'string_span');
 
   // Find the label fields.
   $: visibleLabelSpanFields = visibleChildren
@@ -47,7 +80,7 @@
     .map(v => L.value(v))
     .filter(notEmpty);
 
-  $: console.log('path=', path);
+  $: console.log('path=', path, values);
 </script>
 
 {#each values as value, i}
@@ -65,10 +98,7 @@
         <StringSpanHighlight
           text={formatValue(value)}
           {row}
-          {visibleFields}
-          {visibleKeywordSpanFields}
-          {visibleSpanFields}
-          {visibleLabelSpanFields}
+          spanPaths={visibleSpanFields}
           {datasetViewStore}
           datasetStore={$datasetStore}
         />

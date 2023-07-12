@@ -7,6 +7,7 @@ from dotenv import dotenv_values
 CONFIG: dict[str, Optional[str]] = {
   **dotenv_values('.env'),  # load shared variables
   **dotenv_values('.env.local'),  # load locally set variables
+  **dotenv_values('.env.demo'),  # load demo-specific environment flags.
   **os.environ,  # override loaded values with environment variables
 }
 

@@ -1,16 +1,11 @@
-import type {DatasetState} from '$lib/stores/datasetStore';
-import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
-import type {SignalInfoWithTypedSchema} from '$lilac';
 import type {SvelteComponent} from 'svelte';
-import type {Readable} from 'svelte/store';
 import type {SpanDetails} from './StringSpanDetails.svelte';
 import StringSpanDetails from './StringSpanDetails.svelte';
 
 export interface SpanClickInfo {
   details: () => SpanDetails;
-  datasetViewStore: DatasetViewStore | undefined;
-  datasetStore: Readable<DatasetState>;
-  embeddings: SignalInfoWithTypedSchema[];
+  findSimilar: (embedding: string, text: string) => unknown;
+  computedEmbeddings: string[];
   addConceptLabel: (
     conceptName: string,
     conceptNamespace: string,
@@ -24,15 +19,13 @@ export function spanClick(element: HTMLSpanElement, clickInfo: SpanClickInfo) {
   let curClickInfo = clickInfo;
   element.addEventListener('click', e => showClickDetails(e));
   function showClickDetails(e: MouseEvent) {
-    if (curClickInfo.datasetViewStore == null) return;
     spanDetailsComponent = new StringSpanDetails({
       props: {
         details: curClickInfo.details(),
         clickPosition: {x: e.clientX, y: e.clientY},
-        datasetViewStore: curClickInfo.datasetViewStore,
-        datasetStore: curClickInfo.datasetStore,
-        embeddings: curClickInfo.embeddings,
-        addConceptLabel: curClickInfo.addConceptLabel
+        computedEmbeddings: curClickInfo.computedEmbeddings,
+        addConceptLabel: curClickInfo.addConceptLabel,
+        findSimilar: curClickInfo.findSimilar
       },
       target: document.body
     });

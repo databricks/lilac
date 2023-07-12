@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from huggingface_hub import snapshot_download
 
 from . import router_concept, router_data_loader, router_dataset, router_signal, router_tasks
+from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from .config import CONFIG, data_path
 from .router_utils import RouteErrorHandler
 from .tasks import task_manager
@@ -68,7 +69,10 @@ app.mount('/', StaticFiles(directory=DIST_PATH, html=True, check_dir=False))
 @app.on_event('startup')
 def startup() -> None:
   """Download dataset files from the HF space that was uploaded before building the image."""
-  repo_id = CONFIG.get('HF_DATA_FROM_SPACE', None)
+  print('env=', CONFIG)
+
+  # SPACE_ID is the HuggingFace Space ID environment variable that is automatically set by HF.
+  repo_id = CONFIG.get('SPACE_ID', None)
 
   if repo_id:
     # Download the huggingface space data. This includes code and datasets, so we move the datasets
@@ -79,12 +83,15 @@ def startup() -> None:
       repo_type='space',
       local_dir=spaces_download_dir,
       local_dir_use_symlinks=False,
+      cache_dir=os.path.join(data_path(), '.hf_cache'),
       token=CONFIG['HF_ACCESS_TOKEN'])
 
-    datasets = list_datasets(os.path.join(spaces_download_dir, 'data'))
+    # Copy datasets.
+    spaces_data_dir = os.path.join(spaces_download_dir, 'data')
+    datasets = list_datasets(spaces_data_dir)
     for dataset in datasets:
-      spaces_dataset_output_dir = get_dataset_output_dir(
-        os.path.join(spaces_download_dir, 'data'), dataset.namespace, dataset.dataset_name)
+      spaces_dataset_output_dir = get_dataset_output_dir(spaces_data_dir, dataset.namespace,
+                                                         dataset.dataset_name)
       persistent_output_dir = get_dataset_output_dir(data_path(), dataset.namespace,
                                                      dataset.dataset_name)
 
@@ -92,6 +99,16 @@ def startup() -> None:
       # out of the cloned space.
       shutil.rmtree(persistent_output_dir, ignore_errors=True)
       shutil.move(spaces_dataset_output_dir, persistent_output_dir)
+
+    # Copy concepts.
+    concepts = DiskConceptDB(spaces_data_dir).list()
+    print('loading concepts', concepts, spaces_data_dir)
+    for concept in concepts:
+      spaces_concept_output_dir = get_concept_output_dir(spaces_data_dir, concept.namespace,
+                                                         concept.name)
+      persistent_output_dir = get_concept_output_dir(data_path(), concept.namespace, concept.name)
+      shutil.rmtree(persistent_output_dir, ignore_errors=True)
+      shutil.move(spaces_concept_output_dir, persistent_output_dir)
 
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:

@@ -1,30 +1,41 @@
 <script lang="ts">
   import {queryConceptScore} from '$lib/queries/conceptQueries';
-  import type {Concept} from '$lilac';
-  import {Select} from 'carbon-components-svelte';
+  import {queryEmbeddings} from '$lib/queries/signalQueries';
+  import {
+    VALUE_KEY,
+    childFields,
+    deserializeRow,
+    deserializeSchema,
+    type Concept,
+    type LilacField,
+    type LilacSchema,
+    type LilacValueNode,
+    type Signal
+  } from '$lilac';
+  import {Button, Select, SelectItem, SkeletonText, TextArea} from 'carbon-components-svelte';
+  import StringSpanHighlight from '../datasetView/StringSpanHighlight.svelte';
 
   export let concept: Concept;
-  const conceptScore = queryConceptScore();
+
+  const embeddings = queryEmbeddings();
 
   // User entered text.
   let textareaText: string;
   // The text show in the highlight preview.
-  let previewText: string;
+  let previewText: string | undefined = undefined;
   let previewEmbedding: string | undefined = undefined;
-  function computeConcept() {
-    if (textareaText == null || previewEmbedding == null) return;
-    $conceptScore.mutate(
-      [
-        concept.namespace,
-        concept.concept_name,
-        previewEmbedding,
-        {examples: [{text: textareaText}]}
-      ],
-      {
-        onSuccess: () => (previewText = textareaText)
-      }
-    );
+  $: conceptScore =
+    previewEmbedding != null && previewText != null
+      ? queryConceptScore(concept.namespace, concept.concept_name, previewEmbedding, {
+          examples: [{text: previewText}]
+        })
+      : null;
+  function computeConceptScore() {
+    previewText = textareaText;
+    previewResultItem = undefined;
   }
+  $: console.log('conceptScore', conceptScore);
+
   const PREVIEW_TEXT_FIELD = 'text';
 
   let resultSchema: LilacSchema | undefined = undefined;
@@ -32,7 +43,7 @@
   let visibleFields: LilacField<Signal>[] = [];
   let conceptFields: LilacField<Signal>[] = [];
   $: {
-    if ($conceptScore.data != null && previewEmbedding != null) {
+    if ($conceptScore?.data != null && previewEmbedding != null) {
       // Create the schema for the preview result. This is required to match the structure we
       // we require in the string span highlighter. That component should be refactored to take a
       // simpler input so we don't have to do this.
@@ -78,30 +89,32 @@
   }
 </script>
 
-<div class="flex flex-row gap-x-8">
-  <div class="w-1/2">
-    <div class="mb-2 w-32">
-      <Select labelText="Embedding" bind:selected={previewEmbedding}>
-        {#each $embeddings?.data as emdField}
-          <SelectItem value={emdField.name} />
-        {/each}
-      </Select>
-    </div>
+<div class="flex flex-col gap-x-8">
+  <div>
     <TextArea
       bind:value={textareaText}
       cols={50}
       placeholder="Paste text to test the concept."
-      rows={4}
+      rows={6}
       class="mb-2"
     />
-    <div class="flex flex-row">
-      <div>
-        <Button size="small" on:click={() => computeConcept()}>Preview</Button>
+    <div class="flex flex-row justify-between">
+      <div class="pt-4">
+        <Button on:click={() => computeConceptScore()}>Compute</Button>
+      </div>
+      <div class="mb-2 w-32">
+        <Select labelText="Embedding" bind:selected={previewEmbedding}>
+          {#each $embeddings?.data || [] as emdField}
+            <SelectItem value={emdField.name} />
+          {/each}
+        </Select>
       </div>
     </div>
   </div>
-  <div class="w-1/2">
-    {#if previewResultItem != null && visibleFields != null && conceptFields != null}
+  <div class:border-t={previewText != null} class="mt-4 border-gray-200">
+    {#if $conceptScore?.isFetching}
+      <SkeletonText />
+    {:else if previewResultItem != null && visibleFields != null && conceptFields != null}
       <StringSpanHighlight
         text={previewText}
         row={previewResultItem}

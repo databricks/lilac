@@ -14,15 +14,10 @@
 <script lang="ts">
   import {fade} from 'svelte/transition';
 
-  import type {DatasetState} from '$lib/stores/datasetStore';
-  import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
-  import {getComputedEmbeddings, getSearchEmbedding, getSearchPath} from '$lib/view_utils';
-  import {serializePath, type SignalInfoWithTypedSchema} from '$lilac';
   import {Button} from 'carbon-components-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
   import {createEventDispatcher} from 'svelte';
-  import type {Readable} from 'svelte/store';
   import {clickOutside} from '../common/clickOutside';
   import EmbeddingBadge from './EmbeddingBadge.svelte';
 
@@ -30,10 +25,7 @@
   // The coordinates of the click so we can position the popup next to the cursor.
   export let clickPosition: {x: number; y: number} | undefined;
 
-  export let datasetViewStore: DatasetViewStore;
-  export let datasetStore: Readable<DatasetState>;
-
-  export let embeddings: SignalInfoWithTypedSchema[];
+  export let computedEmbeddings: string[];
 
   // We cant create mutations from this component since it is hoisted so we pass the function in.
   export let addConceptLabel: (
@@ -42,8 +34,7 @@
     text: string,
     label: boolean
   ) => void;
-
-  $: searchPath = getSearchPath($datasetViewStore, $datasetStore);
+  export let findSimilar: (embedding: string, text: string) => unknown;
 
   const dispatch = createEventDispatcher();
   function addLabel(label: boolean) {
@@ -52,37 +43,12 @@
     addConceptLabel(details.conceptNamespace, details.conceptName, details.text, label);
     dispatch('click');
   }
-
-  $: searchEmbedding = getSearchEmbedding(
-    $datasetViewStore,
-    $datasetStore,
-    searchPath,
-    embeddings.map(e => e.name)
-  );
-
-  $: computedEmbeddings = getComputedEmbeddings($datasetStore, searchPath);
-
-  const findSimilar = (embedding: string) => {
-    if (searchPath == null || searchEmbedding == null) return;
-
-    datasetViewStore.addSearch({
-      path: [serializePath(searchPath)],
-      query: {
-        type: 'semantic',
-        search: details.text,
-        embedding
-      }
-    });
-
-    dispatch('click');
-  };
 </script>
 
 <div
   use:clickOutside={() => dispatch('close')}
   transition:fade={{duration: 60}}
   style={clickPosition != null ? `left: ${clickPosition.x}px; top: ${clickPosition.y}px` : ''}
-  class:hidden={computedEmbeddings.length === 0}
   class="absolute z-10 inline-flex -translate-x-1/2 translate-y-6 flex-col gap-y-4 divide-gray-200 rounded border border-gray-200 bg-white p-1 shadow"
 >
   {#if details.conceptName != null && details.conceptNamespace != null}
@@ -103,7 +69,10 @@
         kind="ghost"
         class="w-full"
         size="small"
-        on:click={() => findSimilar(computedEmbedding)}
+        on:click={() => {
+          findSimilar(computedEmbedding, details.text);
+          dispatch('click');
+        }}
         >Find similar <EmbeddingBadge class="hover:cursor-pointer" embedding={computedEmbedding} />
       </Button>
     {/each}

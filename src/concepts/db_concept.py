@@ -4,6 +4,7 @@ import abc
 import glob
 import json
 import os
+import pathlib
 import pickle
 import shutil
 
@@ -179,6 +180,12 @@ class ConceptModelDB(abc.ABC):
 class DiskConceptModelDB(ConceptModelDB):
   """Interface for the concept model database."""
 
+  def __init__(self,
+               concept_db: ConceptDB,
+               base_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
+    super().__init__(concept_db)
+    self._base_dir = str(base_dir) if base_dir else data_path()
+
   @override
   def create(self,
              namespace: str,
@@ -210,7 +217,8 @@ class DiskConceptModelDB(ConceptModelDB):
     if not get_signal_cls(embedding_name):
       raise ValueError(f'Embedding signal "{embedding_name}" not found in the registry.')
 
-    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name, column_info)
+    concept_model_path = _concept_model_path(self._base_dir, namespace, concept_name,
+                                             embedding_name, column_info)
     if not file_exists(concept_model_path):
       return None
 
@@ -219,7 +227,7 @@ class DiskConceptModelDB(ConceptModelDB):
 
   def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
-    concept_model_path = _concept_model_path(model.namespace, model.concept_name,
+    concept_model_path = _concept_model_path(self._base_dir, model.namespace, model.concept_name,
                                              model.embedding_name, model.column_info)
     with open_file(concept_model_path, 'wb') as f:
       pickle.dump(model, f)
@@ -230,7 +238,8 @@ class DiskConceptModelDB(ConceptModelDB):
              concept_name: str,
              embedding_name: str,
              column_info: Optional[ConceptColumnInfo] = None) -> None:
-    concept_model_path = _concept_model_path(namespace, concept_name, embedding_name, column_info)
+    concept_model_path = _concept_model_path(self._base_dir, namespace, concept_name,
+                                             embedding_name, column_info)
 
     if not file_exists(concept_model_path):
       raise ValueError(f'Concept model {namespace}/{concept_name}/{embedding_name} does not exist.')
@@ -239,7 +248,7 @@ class DiskConceptModelDB(ConceptModelDB):
 
   @override
   def remove_all(self, namespace: str, concept_name: str) -> None:
-    datasets_path = os.path.join(data_path(), DATASETS_DIR_NAME)
+    datasets_path = os.path.join(self._base_dir, DATASETS_DIR_NAME)
     # Skip if 'datasets' doesn't exist.
     if not os.path.isdir(datasets_path):
       return
@@ -253,7 +262,8 @@ class DiskConceptModelDB(ConceptModelDB):
   @override
   def get_models(self, namespace: str, concept_name: str) -> list[ConceptModel]:
     """List all the models associated with a concept."""
-    model_files = glob.iglob(os.path.join(_concept_output_dir(namespace, concept_name), '*.pkl'))
+    model_files = glob.iglob(
+      os.path.join(get_concept_output_dir(self._base_dir, namespace, concept_name), '*.pkl'))
     models: list[ConceptModel] = []
     for model_file in model_files:
       embedding_name = os.path.basename(model_file)[:-len('.pkl')]
@@ -264,7 +274,7 @@ class DiskConceptModelDB(ConceptModelDB):
 
   @override
   def get_column_infos(self, namespace: str, concept_name: str) -> list[ConceptColumnInfo]:
-    datasets_path = os.path.join(data_path(), DATASETS_DIR_NAME)
+    datasets_path = os.path.join(self._base_dir, DATASETS_DIR_NAME)
     # Skip if 'datasets' doesn't exist.
     if not os.path.isdir(datasets_path):
       return []
@@ -280,23 +290,25 @@ class DiskConceptModelDB(ConceptModelDB):
     return result
 
 
-def _concept_output_dir(namespace: str, name: str) -> str:
+def get_concept_output_dir(base_dir: str, namespace: str, name: str) -> str:
   """Return the output directory for a given concept."""
-  return os.path.join(data_path(), CONCEPTS_DIR, namespace, name)
+  return os.path.join(base_dir, CONCEPTS_DIR, namespace, name)
 
 
-def _concept_json_path(namespace: str, name: str) -> str:
-  return os.path.join(_concept_output_dir(namespace, name), CONCEPT_JSON_FILENAME)
+def _concept_json_path(base_dir: str, namespace: str, name: str) -> str:
+  return os.path.join(get_concept_output_dir(base_dir, namespace, name), CONCEPT_JSON_FILENAME)
 
 
-def _concept_model_path(namespace: str,
+def _concept_model_path(base_dir: str,
+                        namespace: str,
                         concept_name: str,
                         embedding_name: str,
                         column_info: Optional[ConceptColumnInfo] = None) -> str:
   if not column_info:
-    return os.path.join(_concept_output_dir(namespace, concept_name), f'{embedding_name}.pkl')
+    return os.path.join(
+      get_concept_output_dir(base_dir, namespace, concept_name), f'{embedding_name}.pkl')
 
-  dataset_dir = get_dataset_output_dir(data_path(), column_info.namespace, column_info.name)
+  dataset_dir = get_dataset_output_dir(base_dir, column_info.namespace, column_info.name)
   path_tuple = normalize_path(column_info.path)
   path_without_wildcards = (p for p in path_tuple if p != PATH_WILDCARD)
   path_dir = os.path.join(dataset_dir, *path_without_wildcards)
@@ -307,11 +319,15 @@ def _concept_model_path(namespace: str,
 class DiskConceptDB(ConceptDB):
   """A concept database."""
 
+  def __init__(self, base_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
+    self._base_dir = str(base_dir) if base_dir else data_path()
+
   @override
   def list(self) -> list[ConceptInfo]:
     # Read the concepts and return a ConceptInfo containing the namespace and name.
     concept_infos = []
-    for root, _, files in os.walk(data_path()):
+    for root, _, files in os.walk(self._base_dir):
+      print(root, files)
       for file in files:
         if file == CONCEPT_JSON_FILENAME:
           namespace, name = root.split('/')[-2:]
@@ -329,7 +345,7 @@ class DiskConceptDB(ConceptDB):
 
   @override
   def get(self, namespace: str, name: str) -> Optional[Concept]:
-    concept_json_path = _concept_json_path(namespace, name)
+    concept_json_path = _concept_json_path(self._base_dir, namespace, name)
 
     if not file_exists(concept_json_path):
       return None
@@ -347,7 +363,7 @@ class DiskConceptDB(ConceptDB):
              type: SignalInputType,
              description: Optional[str] = None) -> Concept:
     """Create a concept."""
-    concept_json_path = _concept_json_path(namespace, name)
+    concept_json_path = _concept_json_path(self._base_dir, namespace, name)
     if file_exists(concept_json_path):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" already exists.')
 
@@ -370,7 +386,7 @@ class DiskConceptDB(ConceptDB):
 
   @override
   def edit(self, namespace: str, name: str, change: ConceptUpdate) -> Concept:
-    concept_json_path = _concept_json_path(namespace, name)
+    concept_json_path = _concept_json_path(self._base_dir, namespace, name)
 
     if not file_exists(concept_json_path):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" does not exist. '
@@ -408,14 +424,14 @@ class DiskConceptDB(ConceptDB):
     return concept
 
   def _save(self, concept: Concept) -> None:
-    concept_json_path = _concept_json_path(concept.namespace, concept.concept_name)
+    concept_json_path = _concept_json_path(self._base_dir, concept.namespace, concept.concept_name)
 
     with open_file(concept_json_path, 'w') as f:
       f.write(concept.json(exclude_none=True, indent=2, exclude_defaults=True))
 
   @override
   def remove(self, namespace: str, name: str) -> None:
-    concept_dir = _concept_output_dir(namespace, name)
+    concept_dir = get_concept_output_dir(self._base_dir, namespace, name)
 
     if not file_exists(concept_dir):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" does not exist.')

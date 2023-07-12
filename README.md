@@ -59,15 +59,10 @@ HF_USERNAME='your-username'
 
 5.  Open the HuggingFace space in your browser and click "Settings".
 
-6.  Set these two environment variables from the settings UI to
+6.  Set this environment secret from the settings UI to
     authenticate the binary running on HuggingFace to read private space data:
 
-- `HF_DATA_FROM_SPACE`: lilacai/your-space
 - `HF_ACCESS_TOKEN`: yourtoken
-
-For HuggingFace, set the `LILAC_DATA_PATH` to `/data`` explicitly. This is the path to HF persistent storage.
-
-- `LILAC_DATA_PATH`: /data
 
 7. Turn on persistent storage in the Settings UI.
 

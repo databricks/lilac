@@ -1,9 +1,9 @@
 <script lang="ts">
   import {
-      conceptModelMutation,
-      editConceptMutation,
-      queryConceptColumnInfos,
-      queryConceptModels
+    conceptModelMutation,
+    editConceptMutation,
+    queryConceptColumnInfos,
+    queryConceptModels
   } from '$lib/queries/conceptQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {datasetLink} from '$lib/utils';
@@ -16,10 +16,7 @@
   import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptExampleList from './ConceptExampleList.svelte';
   import ConceptHoverPill from './ConceptHoverPill.svelte';
-<<<<<<< HEAD
   import ConceptPreview from './ConceptPreview.svelte';
-  =======
->>>>>>> origin/main
   import {scoreToColor, scoreToText} from './colors';
   import Labeler from './labeler/Labeler.svelte';
 
@@ -65,7 +62,7 @@
   </div>
 
   <Expandable expanded>
-    <div slot="above" class="text-md font-semibold">Preview Concept</div>
+    <div slot="above" class="text-md font-semibold">Try it</div>
     <ConceptPreview {concept} slot="below" />
   </Expandable>
 
