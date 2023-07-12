@@ -327,7 +327,6 @@ class DiskConceptDB(ConceptDB):
     # Read the concepts and return a ConceptInfo containing the namespace and name.
     concept_infos = []
     for root, _, files in os.walk(self._base_dir):
-      print(root, files)
       for file in files:
         if file == CONCEPT_JSON_FILENAME:
           namespace, name = root.split('/')[-2:]
