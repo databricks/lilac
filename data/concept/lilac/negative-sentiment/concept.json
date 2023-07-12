@@ -507,8 +507,33 @@
       "label": true,
       "text": "The new gaming console is unaffordable.",
       "id": "04c7dfc0f94e4e88968d09b40edbfa14"
+    },
+    "58f58a1a4cbb4bb699772ed934006ec8": {
+      "label": true,
+      "text": "How can it be sure difficult for @115830 to deliver a package to a University address? Two failed attempts so far ...",
+      "id": "58f58a1a4cbb4bb699772ed934006ec8"
+    },
+    "d4a3cd4877c54aef81c376eff8008df4": {
+      "label": false,
+      "text": "@204780 Glad they showed up! Hope you have a great flight! -Sean",
+      "id": "d4a3cd4877c54aef81c376eff8008df4"
+    },
+    "affe1d6548f84bed84238bac45cc10a1": {
+      "label": false,
+      "text": "@British_Airways Thank you! All looks good then \ud83c\uddec\ud83c\udde7\u2708\ufe0f",
+      "id": "affe1d6548f84bed84238bac45cc10a1"
+    },
+    "e304ea77a94c450a95690c7b605a035f": {
+      "label": false,
+      "text": "@246667 Thank you for reaching out, Andrea. The built in application in Windows 10 are exempted to be uninstalled. However, you can send this suggestion directly to our developers via the Feedback Hub so they can take a look at it: https://t.co/jowrfbgQm6. Keep in touch.",
+      "id": "e304ea77a94c450a95690c7b605a035f"
+    },
+    "76b694b019eb4e6888a422e144030bd0": {
+      "label": true,
+      "text": "@GWRHelp It\u2019s mainly the constant short forming and cancellations due to mechanical faults Phil. As a company, these excuses have been used ad nauseam for years and years. It just gets worse and no amount of rhetoric and IET self promotion can hide that fact.",
+      "id": "76b694b019eb4e6888a422e144030bd0"
     }
   },
-  "version": 1,
+  "version": 6,
   "description": "Negative sentiment"
 }
