@@ -112,24 +112,6 @@ export function getRenderSpans(
       }
     }
 
-    // TODO(fix keyword search).
-    // // Add keyword info. Keyword results don't have values so we process them separately.
-    // let isKeywordSpan = false;
-    // for (const keywordSpanPath of keywordSpanPaths) {
-    //   if (mergedSpan.originalSpans[keywordSpanPath] != null) {
-    //     isKeywordSpan = true;
-    //     const path = L.path(mergedSpan.originalSpans[keywordSpanPath][0] as LilacValueNode);
-    //     const keywordSearchQuery = path?.slice(-2, -1)[0] || '';
-    //     valueInfos.push({
-    //       name: 'keyword',
-    //       value: keywordSearchQuery,
-    //       spanPath: keywordSpanPath,
-    //       isKeywordSearch: true
-    //     });
-    //     isShownSnippet = true;
-    //   }
-    // }
-
     const isLabeled = namedValues.some(v => v.info.type === 'label');
     const isKeywordSearch = namedValues.some(v => v.info.type === 'keyword');
     const hasNonNumericMetadata = namedValues.some(
