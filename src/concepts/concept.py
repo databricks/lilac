@@ -345,11 +345,12 @@ class ConceptModel:
 
     embedding_items = list(embedding.compute(examples))
     result_items: list[Item] = []
+    logistic_model = self._get_logistic_model(draft)
     for item in embedding_items:
       if not isinstance(item, list):
         raise ValueError('Item from embedding is not a list.')
-      embeddings = np.array([np.squeeze(res[EMBEDDING_KEY]) for res in item])
-      scores = self._get_logistic_model(draft).score_embeddings(embeddings).tolist()
+      embeddings = np.array([np.reshape(res[EMBEDDING_KEY], -1) for res in item])
+      scores = logistic_model.score_embeddings(embeddings).tolist()
 
       item_result: list[Item] = []
       for embedding_item, score in zip(item, scores):

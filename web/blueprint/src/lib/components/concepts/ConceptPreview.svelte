@@ -6,6 +6,7 @@
     deserializeRow,
     deserializeSchema,
     type Concept,
+    type Example,
     type LilacValueNode,
     type Path,
     type Signal
@@ -15,11 +16,13 @@
   import type {SpanValueInfo} from '../datasetView/spanHighlight';
 
   export let concept: Concept;
+  export let example: Example;
 
   const embeddings = queryEmbeddings();
 
   // User entered text.
-  let textareaText: string;
+  let textareaText = example.text?.trim();
+
   // The text show in the highlight preview.
   let previewText: string | undefined = undefined;
   let previewEmbedding: string | undefined = undefined;

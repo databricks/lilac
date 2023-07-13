@@ -42,6 +42,8 @@
   $: positiveExamples = Object.values(concept.data).filter(v => v.label == true);
   $: negativeExamples = Object.values(concept.data).filter(v => v.label == false);
 
+  $: randomPositive = positiveExamples[Math.floor(Math.random() * positiveExamples.length)];
+
   function remove(id: string) {
     if (!concept.namespace || !concept.concept_name) return;
     $conceptMutation.mutate([concept.namespace, concept.concept_name, {remove: [id]}]);
@@ -63,7 +65,7 @@
 
   <Expandable expanded>
     <div slot="above" class="text-md font-semibold">Try it</div>
-    <ConceptPreview {concept} slot="below" />
+    <ConceptPreview example={randomPositive} {concept} slot="below" />
   </Expandable>
 
   {#if $embeddings.data}

@@ -40,40 +40,32 @@ Details can be found at [Managing Spaces with Github Actions](https://huggingfac
 
 1. Login with the HuggingFace to access git.
 
-`poetry run huggingface-cli login`
+   `poetry run huggingface-cli login`
 
-[Follow the instructions](https://huggingface.co/docs/hub/repositories-getting-started) to use your git SSH keys to talk to HuggingFace.
+   [Follow the instructions](https://huggingface.co/docs/hub/repositories-getting-started) to use your git SSH keys to talk to HuggingFace.
 
-2. Create a huggingface space from your browser: [huggingface.co/spaces](https://huggingface.co/spaces)
+1. Create a huggingface space from your browser: [huggingface.co/spaces](https://huggingface.co/spaces)
 
-3. Generate a read-only token from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) which will be used as `HF_ACCESS_TOKEN` below.
+1. Turn on persistent storage in the Settings UI.
 
-4. Open the HuggingFace space in your browser and click "Settings".
+1. Set .env.local environment variables so you can upload data to the space:
 
-5. Set this environment secret from the settings UI to authenticate the binary running on HuggingFace to read private space data:
+   ```sh
+     # The repo to use for the huggingface demo.
+     HF_STAGING_DEMO_REPO='lilacai/your-space'
+     # To authenticate with HuggingFace for uploading to the space.
+     HF_USERNAME='your-username'
+   ```
 
-- `HF_ACCESS_TOKEN`: yourtoken
+1. Deploy to your HuggingFace Space:
 
-7. Turn on persistent storage in the Settings UI.
+   ```
+   poetry run python -m scripts.deploy_hf \
+     --dataset=$DATASET_NAMESPACE/$DATASET_NAME
 
-8. Set .env.local environment variables so you can upload data to the soace:
-
-```sh
-# The repo to use for the huggingface demo.
-HF_STAGING_DEMO_REPO='lilacai/your-space'
-# To authenticate with HuggingFace for uploading to the space.
-HF_USERNAME='your-username'
-```
-
-8. Deploy to your HuggingFace Space:
-
-```
-poetry run python -m scripts.deploy_hf \
-  --dataset=$DATASET_NAMESPACE/$DATASET_NAME
-
-# --concept is optional. By default all lilac/* concepts are uploaded. This flag enables uploading other concepts from local.
-# --hf_username and --hf_space are optional and can override the ENV for local uploading.
-```
+   # --concept is optional. By default all lilac/* concepts are uploaded. This flag enables uploading other concepts from local.
+   # --hf_username and --hf_space are optional and can override the ENV for local uploading.
+   ```
 
 #### Deployment
 

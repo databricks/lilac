@@ -5593,11 +5593,6 @@
       "text": "\n\nSnape gets hate.",
       "id": "20798979b4fd4616bd60f95badb9ff9c"
     },
-    "57c634de594a4824a46ddef39d8c16f9": {
-      "label": true,
-      "text": "Fuck this.",
-      "id": "57c634de594a4824a46ddef39d8c16f9"
-    },
     "ae3f118e4f324a0ab27890a856c7826e": {
       "label": false,
       "text": "My dues are paid for by a scholarship my fraternity offers for lower income students.",
@@ -5884,5 +5879,5 @@
       "id": "1e252a08b4a94259ab26eddbbda567cc"
     }
   },
-  "version": 152
+  "version": 155
 }

@@ -32,6 +32,7 @@ HF_SPACE_DIR = os.path.join(data_path(), '.hf_spaces')
   help='Skip building the web server TypeScript. '
   'Useful to speed up the build if you are only changing python or data.',
   type=bool,
+  is_flag=True,
   default=False)
 def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str],
          concept: list[str], skip_build: bool) -> None:
@@ -53,7 +54,8 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
   # Clone the HuggingFace spaces repo.
   repo_basedir = os.path.join(HF_SPACE_DIR, hf_space)
   run(f'rm -rf {repo_basedir}')
-  run(f'git clone https://{hf_username}@huggingface.co/spaces/{hf_space} {repo_basedir} --depth 1')
+  run(f'git clone https://{hf_username}@huggingface.co/spaces/{hf_space} {repo_basedir} '
+      '--depth 1 --quiet')
 
   # Clear out the repo.
   run(f'rm -rf {repo_basedir}/*')
@@ -103,8 +105,8 @@ app_port: 5432
   # Push to the HuggingFace git repo.
   run(f"""pushd {repo_basedir} && \
       git add . && \
-      git commit -a -m "Push" && \
-      git push && \
+      git commit -a -m "Push" --quiet && \
+      git push --quiet && \
       popd""")
 
   # Upload datasets to HuggingFace. We do this after uploading code to avoid clobbering the data

@@ -10,7 +10,6 @@ from fastapi import APIRouter, FastAPI
 from fastapi.responses import FileResponse, ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
-from huggingface_hub import snapshot_download
 
 from . import router_concept, router_data_loader, router_dataset, router_signal, router_tasks
 from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
@@ -73,30 +72,17 @@ def startup() -> None:
   repo_id = CONFIG.get('SPACE_ID', None)
 
   if repo_id:
-    # Download the huggingface space data. This includes code and datasets, so we move the datasets
-    # alone to the data directory.
-    spaces_download_dir = os.path.join(data_path(), '.hf_spaces', repo_id)
-    snapshot_download(
-      repo_id=repo_id,
-      repo_type='space',
-      local_dir=spaces_download_dir,
-      local_dir_use_symlinks=False,
-      cache_dir=os.path.join(data_path(), '.hf_cache'),
-      token=CONFIG['HF_ACCESS_TOKEN'])
-
     # Copy datasets.
-    spaces_data_dir = os.path.join(spaces_download_dir, 'data')
+    spaces_data_dir = os.path.join('data')
     datasets = list_datasets(spaces_data_dir)
     for dataset in datasets:
       spaces_dataset_output_dir = get_dataset_output_dir(spaces_data_dir, dataset.namespace,
                                                          dataset.dataset_name)
       persistent_output_dir = get_dataset_output_dir(data_path(), dataset.namespace,
                                                      dataset.dataset_name)
-
-      # Huggingface doesn't let you selectively download files so we just copy the data directory
-      # out of the cloned space.
       shutil.rmtree(persistent_output_dir, ignore_errors=True)
-      shutil.move(spaces_dataset_output_dir, persistent_output_dir)
+      shutil.copytree(spaces_dataset_output_dir, persistent_output_dir, dirs_exist_ok=True)
+      shutil.rmtree(spaces_dataset_output_dir, ignore_errors=True)
 
     # Copy concepts.
     concepts = DiskConceptDB(spaces_data_dir).list()
@@ -105,7 +91,8 @@ def startup() -> None:
                                                          concept.name)
       persistent_output_dir = get_concept_output_dir(data_path(), concept.namespace, concept.name)
       shutil.rmtree(persistent_output_dir, ignore_errors=True)
-      shutil.move(spaces_concept_output_dir, persistent_output_dir)
+      shutil.copytree(spaces_concept_output_dir, persistent_output_dir, dirs_exist_ok=True)
+      shutil.rmtree(spaces_concept_output_dir, ignore_errors=True)
 
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:
