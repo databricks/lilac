@@ -21,7 +21,20 @@
   const embeddings = queryEmbeddings();
 
   // User entered text.
-  let textareaText = example.text?.trim();
+  let textAreaText = example.text?.trim();
+
+  // Reset the text when the example changes.
+  $: {
+    if (example.text) {
+      textAreaText = example.text.trim();
+      previewText = undefined;
+    }
+  }
+
+  function textChanged(e: Event) {
+    textAreaText = (e.target as HTMLTextAreaElement).value;
+    previewText = undefined;
+  }
 
   // The text show in the highlight preview.
   let previewText: string | undefined = undefined;
@@ -33,7 +46,7 @@
         })
       : null;
   function computeConceptScore() {
-    previewText = textareaText;
+    previewText = textAreaText;
     previewResultItem = undefined;
   }
 
@@ -84,7 +97,8 @@
 <div class="flex flex-col gap-x-8">
   <div>
     <TextArea
-      bind:value={textareaText}
+      value={textAreaText}
+      on:input={textChanged}
       cols={50}
       placeholder="Paste text to test the concept."
       rows={6}
