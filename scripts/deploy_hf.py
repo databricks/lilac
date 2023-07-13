@@ -102,11 +102,11 @@ sdk: docker
 app_port: 5432
 ---""")
 
-  run(f"""pushd {repo_basedir} && \
+  run(f"""pushd {repo_basedir} > /dev/null && \
       git add . && \
       git commit -a -m "Push" --quiet && \
       git push && \
-      popd""")
+      popd > /dev/null""")
 
   # Upload datasets to HuggingFace. We do this after uploading code to avoid clobbering the data
   # directory.
