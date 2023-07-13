@@ -47,8 +47,6 @@
       : null;
   function computeConceptScore() {
     previewText = textAreaText;
-    previewResultItem = undefined;
-    conceptScore = conceptScore;
   }
 
   let previewResultItem: LilacValueNode | undefined = undefined;
