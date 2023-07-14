@@ -12,6 +12,7 @@
   // Carbon component must be imported after tailwind.css
   import {urlHash} from '$lib/stores/urlHashStore';
   // This import is so we can override the carbon icon theme below.
+  import {createSettingsStore, setSettingsContext} from '$lib/stores/settingsStore';
   import 'carbon-components-svelte/css/all.css';
   import '../app.css';
 
@@ -32,6 +33,9 @@
       return History.prototype.pushState.apply(history, arguments as any);
     };
   });
+
+  $: settingsStore = createSettingsStore();
+  $: setSettingsContext(settingsStore);
 </script>
 
 <!-- Monitor for hash changes in the URL. -->
@@ -59,6 +63,7 @@
       <a class="text-xl normal-case" href="/">Lilac <span>Blueprint</span></a>
       <a class="opacity-50 hover:underline" href="/">Datasets</a>
       <a class="opacity-50 hover:underline" href="/concepts">Concepts</a>
+      <a class="opacity-50 hover:underline" href="/settings">Settings</a>
       <div class="ml-auto">
         <TaskStatus />
       </div>

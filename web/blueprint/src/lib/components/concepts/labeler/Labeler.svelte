@@ -1,5 +1,6 @@
 <script lang="ts">
   import {maybeQueryDatasetSchema, queryDatasets} from '$lib/queries/datasetQueries';
+  import {getSettingsContext} from '$lib/stores/settingsStore';
   import {
     childFields,
     deserializePath,
@@ -14,13 +15,14 @@
   import DataFeeder from './DataFeeder.svelte';
 
   export let concept: Concept;
+  const settings = getSettingsContext();
 
   let dataset: {namespace: string; name: string} | undefined | null = undefined;
   let schema: LilacSchema | null | undefined;
   let path: string[] | undefined;
   let embedding: string | undefined = undefined;
 
-  const EMBEDDING_PRIORITY = ['sbert', 'openai'];
+  $: embeddingPriority = [$settings.embedding, 'sbert', 'openai'];
 
   const datasets = queryDatasets();
   $: schemaQuery = maybeQueryDatasetSchema(dataset?.namespace, dataset?.name);
@@ -53,13 +55,13 @@
   $: embeddingNames = embeddings
     .map(a => a.signal!.signal_name!)
     .sort((a, b) => {
-      let aPriority = EMBEDDING_PRIORITY.indexOf(a);
-      let bPriority = EMBEDDING_PRIORITY.indexOf(b);
+      let aPriority = embeddingPriority.indexOf(a);
+      let bPriority = embeddingPriority.indexOf(b);
       if (aPriority === -1) {
-        aPriority = EMBEDDING_PRIORITY.length;
+        aPriority = embeddingPriority.length;
       }
       if (bPriority === -1) {
-        bPriority = EMBEDDING_PRIORITY.length;
+        bPriority = embeddingPriority.length;
       }
       return aPriority - bPriority;
     });

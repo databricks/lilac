@@ -1,6 +1,6 @@
 <script lang="ts">
+  import Dataset from '$lib/components/datasetView/Dataset.svelte';
   import {urlHash} from '$lib/stores/urlHashStore';
-  import Dataset from './dataset.svelte';
 
   let namespace: string | undefined = undefined;
   let datasetName: string | undefined = undefined;
