@@ -319,10 +319,8 @@ def parquet_filename(prefix: str, shard_index: int, num_shards: int) -> str:
 
 def _flatten_keys(uuid: str, nested_input: Iterable, location: list[int],
                   is_primitive_predicate: Callable[[object], bool]) -> list[VectorKey]:
-  if is_primitive_predicate(nested_input):
+  if is_primitive_predicate(nested_input) or is_primitive(nested_input):
     return [(uuid, *location)]
-  elif is_primitive(nested_input):
-    return []
   else:
     result: list[VectorKey] = []
     if isinstance(nested_input, dict):
