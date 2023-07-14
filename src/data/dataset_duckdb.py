@@ -686,7 +686,7 @@ class DatasetDuckDB(Dataset):
     star_in_cols = any(col.path == ('*',) for col in cols)
     if not cols or star_in_cols:
       # Select all columns.
-      cols.extend([Column(name) for name in schema.fields.keys()])
+      cols.extend([Column((name,)) for name in schema.fields.keys()])
       if star_in_cols:
         cols = [col for col in cols if col.path != ('*',)]
     return cols
