@@ -239,7 +239,7 @@ def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[obje
   embedding_vectors: list[np.ndarray] = []
   embedding_keys: list[VectorKey] = []
   for key, lilac_embedding in zip(flat_keys, flat_embeddings):
-    if not lilac_embedding or EMBEDDING_KEY not in lilac_embedding:
+    if not key or not lilac_embedding or EMBEDDING_KEY not in lilac_embedding:
       # Sparse embeddings may not have an embedding for every key.
       continue
 
@@ -332,11 +332,14 @@ def _flatten_keys(uuid: str, nested_input: Iterable, location: list[int],
 def flatten_keys(
     uuids: Iterable[str],
     nested_input: Iterable,
-    is_primitive_predicate: Callable[[object], bool] = is_primitive) -> list[VectorKey]:
+    is_primitive_predicate: Callable[[object], bool] = is_primitive) -> list[Optional[VectorKey]]:
   """Flatten the uuid keys of a nested input."""
-  result: list[VectorKey] = []
+  result: list[Optional[VectorKey]] = []
   for uuid, input in zip(uuids, nested_input):
-    result.extend(_flatten_keys(uuid, input, [], is_primitive_predicate))
+    if input is None:
+      result.append(None)
+    else:
+      result.extend(_flatten_keys(uuid, input, [], is_primitive_predicate))
   return result
 
 

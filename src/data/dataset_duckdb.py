@@ -6,7 +6,7 @@ import os
 import re
 import shutil
 import threading
-from typing import Any, Iterable, Optional, Sequence, Type, Union, cast
+from typing import Any, Callable, Iterable, Optional, Sequence, Type, TypeVar, Union, cast
 
 import duckdb
 import numpy as np
@@ -942,7 +942,9 @@ class DatasetDuckDB(Dataset):
           embedding_signal = cast(TextEmbeddingModelSignal, signal)
           vector_store = self.get_vector_store(embedding_signal.embedding, udf_col.path)
           flat_keys = flatten_keys(df[UUID_COLUMN], input)
-          signal_out = signal.vector_compute(flat_keys, vector_store)
+
+          signal_out = sparse_to_dense_compute(
+            flat_keys, lambda keys: signal.vector_compute(keys, vector_store))
           # Add progress.
           if task_step_id is not None:
             signal_out = progress(
@@ -1690,3 +1692,20 @@ def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
     end = None if i == num_bins - 1 else min_val + (i + 1) * bin_width
     bins.append((str(i), start, end))
   return bins
+
+
+Tin = TypeVar('Tin')
+Tout = TypeVar('Tout')
+
+
+def sparse_to_dense_compute(
+    sparse_input: Iterable[Optional[Tin]],
+    func: Callable[[Iterable[Tin]], Iterable[Tout]]) -> Iterable[Optional[Tout]]:
+  """Converts a sparse input to a dense output."""
+  dense_input: Iterable[Tin] = (x for x in sparse_input if x is not None)
+  dense_output = iter(func(dense_input))
+  for x in sparse_input:
+    if x is None:
+      yield None
+    else:
+      yield next(dense_output)
