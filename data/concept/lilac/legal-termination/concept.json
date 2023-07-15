@@ -167,8 +167,18 @@
       "label": false,
       "text": "the due diligence and using our agreement creator to close the deal successfully. \r",
       "id": "a47d327d0f6e46fc861f86b2e0e54a2f"
+    },
+    "811d0dcc92e14c5c881e903c7d4ff7b6": {
+      "label": false,
+      "text": "in accordance with customary procedures in the relevant markets, but in any event for a settlement period no longer than three months following the date of such commitment.",
+      "id": "811d0dcc92e14c5c881e903c7d4ff7b6"
+    },
+    "907f92e0d5704418944a559a4bfb96c7": {
+      "label": false,
+      "text": "terminate in accordance with Section 2 of the Investors\u2019 Rights Agreement.",
+      "id": "907f92e0d5704418944a559a4bfb96c7"
     }
   },
-  "version": 31,
+  "version": 33,
   "description": "Termination or survival clause in a legal document"
 }
