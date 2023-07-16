@@ -6,7 +6,7 @@ import os
 import re
 import shutil
 import threading
-from typing import Any, Callable, Iterable, Optional, Sequence, Type, TypeVar, Union, cast
+from typing import Any, Iterable, Iterator, Optional, Sequence, Type, Union, cast
 
 import duckdb
 import numpy as np
@@ -93,6 +93,7 @@ from .dataset_utils import (
   read_embedding_index,
   replace_embeddings_with_none,
   schema_contains_path,
+  sparse_to_dense_compute,
   unflatten,
   wrap_in_dicts,
   write_item_embeddings_to_disk,
@@ -941,10 +942,9 @@ class DatasetDuckDB(Dataset):
           # The input is an embedding.
           embedding_signal = cast(TextEmbeddingModelSignal, signal)
           vector_store = self.get_vector_store(embedding_signal.embedding, udf_col.path)
-          flat_keys = flatten_keys(df[UUID_COLUMN], input)
-
+          flat_keys = list(flatten_keys(df[UUID_COLUMN], input))
           signal_out = sparse_to_dense_compute(
-            flat_keys, lambda keys: signal.vector_compute(keys, vector_store))
+            iter(flat_keys), lambda keys: signal.vector_compute(keys, vector_store))
           # Add progress.
           if task_step_id is not None:
             signal_out = progress(
@@ -955,8 +955,9 @@ class DatasetDuckDB(Dataset):
           df[signal_column] = unflatten(signal_out, input)
         else:
           num_rich_data = count_primitives(input)
-          flat_input = cast(Iterable[RichData], flatten(input))
-          signal_out = signal.compute(flat_input)
+          flat_input = cast(Iterator[Optional[RichData]], flatten(input))
+          signal_out = sparse_to_dense_compute(
+            flat_input, lambda x: signal.compute(cast(Iterable[RichData], x)))
           # Add progress.
           if task_step_id is not None:
             signal_out = progress(
@@ -964,22 +965,21 @@ class DatasetDuckDB(Dataset):
               task_step_id=task_step_id,
               estimated_len=num_rich_data,
               step_description=f'Computing {signal.key()}...')
-          signal_out = list(signal_out)
-
+          signal_out_list = list(signal_out)
           if signal_column in temp_column_to_offset_column:
             offset_column_name, field = temp_column_to_offset_column[signal_column]
-            nested_spans: Iterable[Item] = df[offset_column_name]
+            nested_spans: Iterator[Item] = df[offset_column_name]
             flat_spans = list(flatten(nested_spans))
-            for span, item in zip(flat_spans, signal_out):
+            for span, item in zip(flat_spans, signal_out_list):
               _offset_any_span(cast(int, span[VALUE_KEY][TEXT_SPAN_START_FEATURE]), item, field)
 
-          if len(signal_out) != num_rich_data:
+          if len(signal_out_list) != num_rich_data:
             raise ValueError(
-              f'The signal generated {len(signal_out)} values but the input data had '
+              f'The signal generated {len(signal_out_list)} values but the input data had '
               f"{num_rich_data} values. This means the signal either didn't generate a "
               '"None" for a sparse output, or generated too many items.')
 
-          df[signal_column] = unflatten(signal_out, input)
+          df[signal_column] = unflatten(signal_out_list, input)
 
         signal.teardown()
 
@@ -1692,20 +1692,3 @@ def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
     end = None if i == num_bins - 1 else min_val + (i + 1) * bin_width
     bins.append((str(i), start, end))
   return bins
-
-
-Tin = TypeVar('Tin')
-Tout = TypeVar('Tout')
-
-
-def sparse_to_dense_compute(
-    sparse_input: Iterable[Optional[Tin]],
-    func: Callable[[Iterable[Tin]], Iterable[Tout]]) -> Iterable[Optional[Tout]]:
-  """Converts a sparse input to a dense output."""
-  dense_input: Iterable[Tin] = (x for x in sparse_input if x is not None)
-  dense_output = iter(func(dense_input))
-  for x in sparse_input:
-    if x is None:
-      yield None
-    else:
-      yield next(dense_output)

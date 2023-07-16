@@ -73,7 +73,7 @@ def lilac_embedding(start: int, end: int, embedding: Optional[np.ndarray]) -> It
 Tflatten = TypeVar('Tflatten', object, np.ndarray)
 
 
-def _flatten(input: Union[Iterable, object], is_primitive_predicate: Callable[[object],
+def _flatten(input: Union[Iterator, object], is_primitive_predicate: Callable[[object],
                                                                               bool]) -> Generator:
   """Flattens a nested iterable."""
   if is_primitive_predicate(input):
@@ -83,13 +83,13 @@ def _flatten(input: Union[Iterable, object], is_primitive_predicate: Callable[[o
   elif is_primitive(input):
     yield input
   else:
-    for elem in cast(Iterable, input):
+    for elem in cast(Iterator, input):
       yield from _flatten(elem, is_primitive_predicate)
 
 
-def flatten(input: Union[Iterable, Tflatten],
-            is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Iterable[Tflatten]:
-  """Flattens a nested iterable.
+def flatten(input: Union[Iterator, Iterable, Tflatten],
+            is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Iterator[Tflatten]:
+  """Flattens a nested iterator.
 
   Primitives and dictionaries are not flattened. The user can also provide a predicate to determine
   what is a primitive.
@@ -97,7 +97,7 @@ def flatten(input: Union[Iterable, Tflatten],
   return _flatten(input, is_primitive_predicate)
 
 
-def count_primitives(input: Iterable) -> int:
+def count_primitives(input: Union[Iterable, Iterator]) -> int:
   """Iterate through each element of the input, flattening each one, computing a count.
 
   Sum the final set of counts. This is the important iterable not to exhaust.
@@ -128,7 +128,8 @@ def _unflatten(flat_input: Iterator[list[object]],
     return [_unflatten(flat_input, orig_elem) for orig_elem in values]
 
 
-def unflatten(flat_input: Iterable, original_input: Union[Iterable, object]) -> list:
+def unflatten(flat_input: Union[Iterable, Iterator], original_input: Union[Iterable,
+                                                                           object]) -> list:
   """Unflattens a flattened iterable according to the original iterable's structure."""
   return cast(list, _unflatten(iter(flat_input), original_input))
 
@@ -318,32 +319,63 @@ def parquet_filename(prefix: str, shard_index: int, num_shards: int) -> str:
 
 
 def _flatten_keys(uuid: str, nested_input: Iterable, location: list[int],
-                  is_primitive_predicate: Callable[[object], bool]) -> list[VectorKey]:
+                  is_primitive_predicate: Callable[[object], bool]) -> Iterator[VectorKey]:
   if is_primitive_predicate(nested_input) or is_primitive(nested_input) or isinstance(
       nested_input, dict):
-    return [(uuid, *location)]
-  else:
-    result: list[VectorKey] = []
-    for i, input in enumerate(nested_input):
-      result.extend(_flatten_keys(uuid, input, [*location, i], is_primitive_predicate))
-    return result
+    yield (uuid, *location)
+    return
+
+  for i, input in enumerate(nested_input):
+    yield from _flatten_keys(uuid, input, [*location, i], is_primitive_predicate)
 
 
 def flatten_keys(
     uuids: Iterable[str],
     nested_input: Iterable,
-    is_primitive_predicate: Callable[[object], bool] = is_primitive) -> list[Optional[VectorKey]]:
+    is_primitive_predicate: Callable[[object],
+                                     bool] = is_primitive) -> Iterator[Optional[VectorKey]]:
   """Flatten the uuid keys of a nested input."""
-  result: list[Optional[VectorKey]] = []
   for uuid, input in zip(uuids, nested_input):
     if input is None:
-      result.append(None)
-    else:
-      result.extend(_flatten_keys(uuid, input, [], is_primitive_predicate))
-  return result
+      yield None
+      continue
+    yield from _flatten_keys(uuid, input, [], is_primitive_predicate)
 
 
 def embedding_index_filename_prefix(output_dir: str, shard_index: int, num_shards: int) -> str:
   """Return the filename prefix for the embedding index."""
   npy_filename = f'embeddings-{shard_index:05d}-of-{num_shards:05d}'
   return os.path.join(output_dir, npy_filename)
+
+
+Tin = TypeVar('Tin')
+Tout = TypeVar('Tout')
+
+
+def sparse_to_dense_compute(
+    sparse_input: Iterator[Optional[Tin]],
+    func: Callable[[Iterable[Tin]], Iterable[Tout]]) -> Iterator[Optional[Tout]]:
+  """Densifies the input before calling the provided `func` and sparsifies the output."""
+  empty_mask: list[bool] = []
+
+  def densify(x: Iterator[Optional[Tin]]) -> Iterator[Tin]:
+    nonlocal empty_mask
+    for i, value in enumerate(x):
+      empty_mask.append(value is None)
+      if value is not None:
+        yield value
+
+  dense_input = densify(sparse_input)
+  dense_output = iter(func(dense_input))
+  index = 0
+
+  while True:
+    try:
+      out = next(dense_output)
+      yield (None if empty_mask[index] else out)
+      index += 1
+    except StopIteration:
+      while index < len(empty_mask):
+        yield None
+        index += 1
+      return
