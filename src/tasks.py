@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 from .utils import log, pretty_timedelta
 
-# Disable the heartbeats of the dask workers,
+# Disable the heartbeats of the dask workers to avoid dying after computer goes to sleep.
 cfg.set({'distributed.scheduler.worker-ttl': None})
 
 TaskId = str
