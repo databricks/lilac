@@ -356,26 +356,35 @@ def sparse_to_dense_compute(
     sparse_input: Iterator[Optional[Tin]],
     func: Callable[[Iterable[Tin]], Iterable[Tout]]) -> Iterator[Optional[Tout]]:
   """Densifies the input before calling the provided `func` and sparsifies the output."""
-  empty_mask: list[bool] = []
+  locations: list[int] = []
+  total_size: int = 0
 
   def densify(x: Iterator[Optional[Tin]]) -> Iterator[Tin]:
-    nonlocal empty_mask
+    nonlocal locations, total_size
     for i, value in enumerate(x):
-      empty_mask.append(value is None)
+      total_size += 1
       if value is not None:
+        locations.append(i)
         yield value
 
   dense_input = densify(sparse_input)
   dense_output = iter(func(dense_input))
   index = 0
 
+  location_index = 0
+
   while True:
     try:
       out = next(dense_output)
-      yield (None if empty_mask[index] else out)
+      out_index = locations[location_index]
+      while index < out_index:
+        yield None
+        index += 1
+      yield out
+      location_index += 1
       index += 1
     except StopIteration:
-      while index < len(empty_mask):
+      while index < total_size:
         yield None
         index += 1
       return

@@ -1,6 +1,16 @@
 """Tests for dataset utils."""
+
+from typing import Iterable, Iterator
+
 from ..schema import PathTuple
-from .dataset_utils import count_primitives, flatten, unflatten, wrap_in_dicts
+from ..utils import chunks
+from .dataset_utils import (
+  count_primitives,
+  flatten,
+  sparse_to_dense_compute,
+  unflatten,
+  wrap_in_dicts,
+)
 
 
 def test_flatten() -> None:
@@ -112,3 +122,59 @@ def test_unflatten_primitive_list() -> None:
   original = ['hello', 'world']
   result = unflatten(['hello', 'world'], original)
   assert result == ['hello', 'world']
+
+
+def test_sparse_to_dense_compute() -> None:
+  sparse_input = iter([None, 1, 7, None, None, 3, None, 5, None, None])
+
+  def func(xs: Iterable[int]) -> Iterable[int]:
+    for x in xs:
+      yield x + 1
+
+  out = sparse_to_dense_compute(sparse_input, func)
+  assert list(out) == [None, 2, 8, None, None, 4, None, 6, None, None]
+
+def test_sparse_to_dense_compute_batching() -> None:
+  sparse_input = iter([None, 1, 7, None, None, 3, None, 5, None, None])
+
+  def func(xs: Iterable[int]) -> Iterable[int]:
+    for batch in chunks(xs, 2):
+      yield batch[0] + 1
+      if len(batch) > 1:
+        yield batch[1] + 1
+
+  out = sparse_to_dense_compute(sparse_input, func)
+  assert list(out) == [None, 2, 8, None, None, 4, None, 6, None, None]
+
+
+def test_fully_dense() -> None:
+  sparse_input = iter([1, 7, 3, 5])
+
+  def func(xs: Iterable[int]) -> Iterable[int]:
+    for x in xs:
+      yield x + 1
+
+  out = sparse_to_dense_compute(sparse_input, func)
+  assert list(out) == [2, 8, 4, 6]
+
+
+def test_sparse_to_dense_compute_fully_sparse() -> None:
+  sparse_input = iter([None, None, None])
+
+  def func(xs: Iterable[int]) -> Iterable[int]:
+    for x in xs:
+      yield x + 1
+
+  out = sparse_to_dense_compute(sparse_input, func)
+  assert list(out) == [None, None, None]
+
+
+def test_sparse_to_dense_compute_empty() -> None:
+  sparse_input: Iterator[int] = iter([])
+
+  def func(xs: Iterable[int]) -> Iterable[int]:
+    for x in xs:
+      yield x + 1
+
+  out = sparse_to_dense_compute(sparse_input, func)
+  assert list(out) == []
