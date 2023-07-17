@@ -1,5 +1,6 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
+  import Page from '$lib/components/Page.svelte';
   import Commands, {Command, triggerCommand} from '$lib/components/commands/Commands.svelte';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
@@ -7,7 +8,7 @@
   import {datasetViewStores} from '$lib/stores/datasetViewStore';
   import {urlHash} from '$lib/stores/urlHashStore';
   import {conceptLink} from '$lib/utils';
-  import {Modal, SkeletonText} from 'carbon-components-svelte';
+  import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
   import {InProgress, TrashCan} from 'carbon-icons-svelte';
   import AddAlt from 'carbon-icons-svelte/lib/AddAlt.svelte';
   import {get} from 'svelte/store';
@@ -15,10 +16,17 @@
   let namespace: string | undefined;
   let conceptName: string | undefined;
 
-  $: $urlHash.onHashChange('/(?<namespace>.+)/(?<conceptName>.+)', ctx => {
-    namespace = ctx.namespace;
-    conceptName = ctx.conceptName;
-  });
+  $: $urlHash.onHashChange(
+    '/(?<namespace>.+)/(?<conceptName>.+)',
+    ctx => {
+      namespace = ctx.namespace;
+      conceptName = ctx.conceptName;
+    },
+    () => {
+      namespace = undefined;
+      conceptName = undefined;
+    }
+  );
 
   let deleteConceptInfo: {namespace: string; name: string} | null = null;
 
@@ -44,8 +52,17 @@
   }
 </script>
 
-<div class="flex h-full w-full">
-  <div class="flex h-full w-72 flex-col border-r border-gray-200">
+<Page title={'Concepts'} showTasks={false}>
+  <div slot="header-right">
+    <Button
+      on:click={() =>
+        triggerCommand({
+          command: Command.CreateConcept,
+          onCreate: e => goto(conceptLink(e.detail.namespace, e.detail.name))
+        })}>Add Concept</Button
+    >
+  </div>
+  <div class="flex-col border-r border-gray-200">
     {#if $concepts.isLoading}
       <SkeletonText />
     {:else if $concepts.isSuccess}
@@ -81,36 +98,38 @@
       >
     {/if}
   </div>
-  <div class="lilac-container">
-    <div class="lilac-page flex">
-      {#if $concept?.isLoading}
-        <SkeletonText />
-      {:else if $concept?.isError}
-        <p>{$concept.error.message}</p>
-      {:else if $concept?.isSuccess}
-        <ConceptView concept={$concept.data} />
-      {/if}
+  <div class="flex h-full w-full">
+    <div class="lilac-container">
+      <div class="lilac-page flex">
+        {#if $concept?.isLoading}
+          <SkeletonText />
+        {:else if $concept?.isError}
+          <p>{$concept.error.message}</p>
+        {:else if $concept?.isSuccess}
+          <ConceptView concept={$concept.data} />
+        {/if}
+      </div>
     </div>
   </div>
-</div>
 
-<Commands />
+  <Commands />
 
-{#if deleteConceptInfo}
-  <Modal
-    danger
-    open
-    modalHeading="Delete concept"
-    primaryButtonText="Delete"
-    primaryButtonIcon={$deleteConcept.isLoading ? InProgress : undefined}
-    secondaryButtonText="Cancel"
-    on:click:button--secondary={() => (deleteConceptInfo = null)}
-    on:close={() => (deleteConceptInfo = null)}
-    on:submit={() => deleteConceptClicked()}
-  >
-    <p class="!text-lg">
-      Confirm deleting <code>{deleteConceptInfo.namespace}/{deleteConceptInfo.name}</code> ?
-    </p>
-    <p class="mt-2">This is a permanent action and cannot be undone.</p>
-  </Modal>
-{/if}
+  {#if deleteConceptInfo}
+    <Modal
+      danger
+      open
+      modalHeading="Delete concept"
+      primaryButtonText="Delete"
+      primaryButtonIcon={$deleteConcept.isLoading ? InProgress : undefined}
+      secondaryButtonText="Cancel"
+      on:click:button--secondary={() => (deleteConceptInfo = null)}
+      on:close={() => (deleteConceptInfo = null)}
+      on:submit={() => deleteConceptClicked()}
+    >
+      <p class="!text-lg">
+        Confirm deleting <code>{deleteConceptInfo.namespace}/{deleteConceptInfo.name}</code> ?
+      </p>
+      <p class="mt-2">This is a permanent action and cannot be undone.</p>
+    </Modal>
+  {/if}
+</Page>

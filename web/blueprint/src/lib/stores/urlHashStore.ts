@@ -2,10 +2,19 @@ import {writable} from 'svelte/store';
 
 const {subscribe, update} = writable({
   hash: '',
-  onHashChange(pattern: RegExp | string, callback: ParsedCallback) {
+  onHashChange(
+    pattern: RegExp | string,
+    matchedCallback: ParsedCallback,
+    notMatchedCallback?: (hash: string) => unknown
+  ) {
+    console.log(this.hash);
     const match = this.hash.replace(/^#!/, '').match(pattern);
     if (match != null) {
-      callback(match.groups || {});
+      matchedCallback(match.groups || {});
+    } else {
+      if (notMatchedCallback != null) {
+        notMatchedCallback(this.hash);
+      }
     }
   }
 });

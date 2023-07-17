@@ -1,6 +1,5 @@
 <script lang="ts">
   import ApiErrorModal from '$lib/components/ApiErrorModal.svelte';
-  import TaskStatus from '$lib/components/TaskStatus.svelte';
   import {apiErrors, queryClient} from '$lib/queries/queryClient';
   import TaskMonitor from '$lib/stores/TaskMonitor.svelte';
   import type {ApiError} from '$lilac';
@@ -12,6 +11,7 @@
   // Carbon component must be imported after tailwind.css
   import {urlHash} from '$lib/stores/urlHashStore';
   // This import is so we can override the carbon icon theme below.
+  import Navigation from '$lib/components/Navigation.svelte';
   import 'carbon-components-svelte/css/all.css';
   import '../app.css';
 
@@ -54,17 +54,11 @@
 />
 
 <QueryClientProvider client={queryClient}>
-  <main class="flex h-screen w-full flex-col">
-    <div class="flex flex-row items-center gap-x-8 border-b border-gray-200 px-4 py-2">
-      <a class="text-xl normal-case" href="/">Lilac <span>Blueprint</span></a>
-      <a class="opacity-50 hover:underline" href="/">Datasets</a>
-      <a class="opacity-50 hover:underline" href="/concepts">Concepts</a>
-      <div class="ml-auto">
-        <TaskStatus />
-      </div>
+  <main class="flex h-screen w-full flex-row">
+    <div class="w-20 flex-shrink-0 bg-neutral-100">
+      <Navigation />
     </div>
-
-    <div class="h-full overflow-hidden">
+    <div class="h-full w-full overflow-hidden">
       <slot />
     </div>
   </main>

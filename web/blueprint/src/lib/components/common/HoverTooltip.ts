@@ -42,6 +42,7 @@ export function hoverTooltip(element: HTMLElement, {text, component, props}: Hov
 
   element.addEventListener('mouseover', mouseOver);
   element.addEventListener('mouseleave', mouseLeave);
+  element.addEventListener('click', mouseLeave);
 
   return {
     update({
@@ -58,6 +59,7 @@ export function hoverTooltip(element: HTMLElement, {text, component, props}: Hov
       mouseLeave();
       element.removeEventListener('mouseover', mouseOver);
       element.removeEventListener('mouseleave', mouseLeave);
+      element.removeEventListener('click', mouseLeave);
     }
   };
 }

@@ -23,11 +23,6 @@ import {persisted} from './persistedStore';
 
 const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
-export const SEARCH_TABS: {[key: number]: 'Concepts' | 'Keyword'} = {
-  0: 'Concepts',
-  1: 'Keyword'
-};
-
 export interface DatasetViewState {
   namespace: string;
   datasetName: string;
@@ -38,9 +33,11 @@ export interface DatasetViewState {
   queryOptions: SelectRowsOptions;
 
   // Search.
-  searchTab: (typeof SEARCH_TABS)[keyof typeof SEARCH_TABS];
   searchPath: string | null;
   searchEmbedding: string | null;
+
+  // View.
+  schemaCollapsed: boolean;
 }
 
 const LS_KEY = 'datasetViewStore';
@@ -57,7 +54,6 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
   const initialState: DatasetViewState = {
     namespace,
     datasetName,
-    searchTab: 'Concepts',
     searchPath: null,
     searchEmbedding: null,
     selectedColumns: {},
@@ -66,7 +62,8 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       // Add * as default field when supported here
       columns: [],
       combine_columns: true
-    }
+    },
+    schemaCollapsed: false
   };
 
   const {subscribe, set, update} = persisted<DatasetViewState>(

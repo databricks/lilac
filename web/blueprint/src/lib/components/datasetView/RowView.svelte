@@ -14,7 +14,6 @@
   import {writable} from 'svelte/store';
   import FilterPanel from './FilterPanel.svelte';
   import RowItem from './RowItem.svelte';
-  import SearchPanel from './SearchPanel.svelte';
 
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();
@@ -55,7 +54,6 @@
   $: writableStore.set(itemScrollContainer);
 </script>
 
-<SearchPanel />
 <FilterPanel {totalNumRows} manifest={$manifest.data} />
 
 {#if $rows.isError}

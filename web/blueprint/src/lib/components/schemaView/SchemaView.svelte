@@ -2,17 +2,7 @@
   import {queryDatasetManifest, queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {formatValue} from '$lilac';
-  import {
-    Breadcrumb,
-    BreadcrumbItem,
-    Button,
-    SkeletonText,
-    Tab,
-    TabContent,
-    Tabs
-  } from 'carbon-components-svelte';
-  import {Download, Reset} from 'carbon-icons-svelte';
+  import {SkeletonText, Tab, TabContent, Tabs} from 'carbon-components-svelte';
   import QueryBuilder from '../queryBuilder/QueryBuilder.svelte';
   import FlattenedField from './FlattenedField.svelte';
   import SchemaField from './SchemaField.svelte';
@@ -24,55 +14,9 @@
   const manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
-
-  async function downloadSelectRows() {
-    const namespace = $datasetViewStore.namespace;
-    const datasetName = $datasetViewStore.datasetName;
-    const options = $datasetViewStore.queryOptions;
-    options.columns = $datasetStore.visibleFields?.map(x => x.path);
-    const url =
-      `/api/v1/datasets/${namespace}/${datasetName}/select_rows_download` +
-      `?url_safe_options=${encodeURIComponent(JSON.stringify(options))}`;
-    const link = document.createElement('a');
-    link.download = `${namespace}_${datasetName}.json`;
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  }
 </script>
 
 <div class="flex h-full flex-col pt-4">
-  <div class="mb-2 flex w-full items-center justify-between gap-x-2 px-4">
-    <div class="flex items-center">
-      <Breadcrumb noTrailingSlash skeleton={$schema.isLoading}>
-        <BreadcrumbItem href="/">datasets</BreadcrumbItem>
-        <BreadcrumbItem href="/">{$datasetViewStore.namespace}</BreadcrumbItem>
-        <BreadcrumbItem>{$datasetViewStore.datasetName}</BreadcrumbItem>
-      </Breadcrumb>
-
-      {#if $manifest.isSuccess}
-        ({formatValue($manifest.data.dataset_manifest.num_items)} rows)
-      {/if}
-    </div>
-    <div class="flex">
-      <Button
-        size="field"
-        kind="ghost"
-        icon={Reset}
-        iconDescription="Reset View"
-        on:click={datasetViewStore.reset}
-      />
-      <Button
-        size="field"
-        kind="ghost"
-        icon={Download}
-        iconDescription="Download selection"
-        on:click={downloadSelectRows}
-      />
-    </div>
-  </div>
-
   <Tabs class="overflow-hidden border-b border-gray-200">
     <Tab label="Schema" class="w-1/3" />
     <Tab label="Tree View" class="w-1/3" />
