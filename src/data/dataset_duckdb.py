@@ -532,7 +532,7 @@ class DatasetDuckDB(Dataset):
       leaf = leaf.repeated_field
       path = (*path, PATH_WILDCARD)
 
-    if not leaf or not leaf.dtype:
+    if not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     value_path = _make_value_path(path)
@@ -601,7 +601,7 @@ class DatasetDuckDB(Dataset):
       leaf = leaf.repeated_field
       path = (*path, PATH_WILDCARD)
 
-    if not leaf or not leaf.dtype:
+    if not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     inner_val = 'inner_val'

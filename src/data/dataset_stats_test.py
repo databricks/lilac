@@ -121,5 +121,5 @@ def test_error_handling(make_test_data: TestDataMaker) -> None:
   with pytest.raises(ValueError, match='leaf_path must be provided'):
     dataset.stats(cast(Any, None))
 
-  with pytest.raises(ValueError, match='Leaf "\\(\'unknown\',\\)" not found in dataset'):
+  with pytest.raises(ValueError, match="Path \\('unknown',\\) not found in schema"):
     dataset.stats(leaf_path='unknown')

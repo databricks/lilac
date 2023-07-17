@@ -227,7 +227,9 @@ class Schema(BaseModel):
     field = cast(Field, self)
     for name in path:
       if field.fields:
-        field = field.fields[str(name)]
+        if name not in field.fields:
+          raise ValueError(f'Path {path} not found in schema')
+        field = field.fields[name]
       elif field.repeated_field:
         if name != PATH_WILDCARD:
           raise ValueError(f'Invalid path {path}')
