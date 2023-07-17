@@ -52,7 +52,7 @@
   }
 </script>
 
-<Page title={'Concepts'} showTasks={false}>
+<Page title={'Concepts'}>
   <div slot="header-right">
     <Button
       on:click={() =>

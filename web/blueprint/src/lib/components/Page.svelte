@@ -5,7 +5,6 @@
   import TaskStatus from './TaskStatus.svelte';
 
   export let title: string;
-  export let showTasks = true;
 </script>
 
 <div class="flex h-full w-full flex-col">
@@ -27,9 +26,7 @@
     </div>
     <div class="flex flex-row items-center gap-x-2">
       <slot name="header-right" />
-      {#if showTasks}
-        <TaskStatus />
-      {/if}
+      <TaskStatus />
     </div>
   </div>
 

@@ -131,11 +131,6 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       });
     },
 
-    setSearchTab: (tab: (typeof SEARCH_TABS)[keyof typeof SEARCH_TABS]) =>
-      update(state => {
-        state.searchTab = tab;
-        return state;
-      }),
     setSearchPath: (path: Path | string) =>
       update(state => {
         state.searchPath = serializePath(path);
