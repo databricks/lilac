@@ -160,7 +160,6 @@
             />
           {/if}
         </div>
-        <!-- titleText={'Sort by'} -->
         <Dropdown
           size="sm"
           titleText="Sort by"
