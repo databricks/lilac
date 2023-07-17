@@ -291,7 +291,7 @@ def test_invalid_leaf(make_test_data: TestDataMaker) -> None:
 
   with pytest.raises(
       ValueError,
-      match=re.escape("Leaf \"('nested_struct', 'struct', 'wrong_name')\" not found in dataset")):
+      match=re.escape("Path ('nested_struct', 'struct', 'wrong_name') not found in schema")):
     dataset.select_groups(leaf_path='nested_struct.struct.wrong_name')
 
 

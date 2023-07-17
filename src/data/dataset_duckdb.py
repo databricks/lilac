@@ -526,8 +526,13 @@ class DatasetDuckDB(Dataset):
       raise ValueError('leaf_path must be provided')
     path = normalize_path(leaf_path)
     manifest = self.manifest()
-    leaf = manifest.data_schema.leafs.get(path)
-    if not leaf or not leaf.dtype:
+    leaf = manifest.data_schema.get_field(path)
+    # Find the inner-most leaf in case this field is repeated.
+    while leaf.repeated_field:
+      leaf = leaf.repeated_field
+      path = (*path, PATH_WILDCARD)
+
+    if not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     value_path = _make_value_path(path)
@@ -590,8 +595,13 @@ class DatasetDuckDB(Dataset):
       raise ValueError('leaf_path must be provided')
     path = normalize_path(leaf_path)
     manifest = self.manifest()
-    leaf = manifest.data_schema.leafs.get(path)
-    if not leaf or not leaf.dtype:
+    leaf = manifest.data_schema.get_field(path)
+    # Find the inner-most leaf in case this field is repeated.
+    while leaf.repeated_field:
+      leaf = leaf.repeated_field
+      path = (*path, PATH_WILDCARD)
+
+    if not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     inner_val = 'inner_val'
@@ -636,7 +646,8 @@ class DatasetDuckDB(Dataset):
 
     limit_query = f'LIMIT {limit}' if limit else ''
     duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
-    inner_select = _select_sql(duckdb_path, flatten=True, unnest=True)
+    inner_select = _select_sql(
+      duckdb_path, flatten=True, unnest=True, span_from=self._get_span_from(path, manifest))
 
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
     filter_queries = self._create_where(manifest, filters, searches=[])
