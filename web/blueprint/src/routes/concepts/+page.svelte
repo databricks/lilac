@@ -16,17 +16,14 @@
   let namespace: string | undefined;
   let conceptName: string | undefined;
 
-  $: $urlHash.onHashChange(
-    '/(?<namespace>.+)/(?<conceptName>.+)',
-    ctx => {
-      namespace = ctx.namespace;
-      conceptName = ctx.conceptName;
-    },
-    () => {
-      namespace = undefined;
-      conceptName = undefined;
-    }
-  );
+  $: $urlHash.onHashChange('', () => {
+    namespace = undefined;
+    conceptName = undefined;
+  });
+  $: $urlHash.onHashChange('/(?<namespace>.+)/(?<conceptName>.+)', ctx => {
+    namespace = ctx.namespace;
+    conceptName = ctx.conceptName;
+  });
 
   let deleteConceptInfo: {namespace: string; name: string} | null = null;
 

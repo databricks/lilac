@@ -6,18 +6,14 @@
   let namespace: string | undefined = undefined;
   let datasetName: string | undefined = undefined;
 
-  $: $urlHash.onHashChange(
-    '/(?<namespace>.+)/(?<datasetName>.+)',
-    ctx => {
-      console.log(ctx);
-      namespace = ctx.namespace;
-      datasetName = ctx.datasetName;
-    },
-    () => {
-      namespace = undefined;
-      datasetName = undefined;
-    }
-  );
+  $: $urlHash.onHashChange('', () => {
+    namespace = undefined;
+    datasetName = undefined;
+  });
+  $: $urlHash.onHashChange('/(?<namespace>.+)/(?<datasetName>.+)', ctx => {
+    namespace = ctx.namespace;
+    datasetName = ctx.datasetName;
+  });
   $: console.log(namespace, datasetName);
 </script>
 
