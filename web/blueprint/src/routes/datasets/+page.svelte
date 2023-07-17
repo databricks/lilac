@@ -14,7 +14,6 @@
     namespace = ctx.namespace;
     datasetName = ctx.datasetName;
   });
-  $: console.log(namespace, datasetName);
 </script>
 
 {#if namespace && datasetName}
