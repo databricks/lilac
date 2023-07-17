@@ -17,7 +17,8 @@ from ..schema import Item
 # Secrets detection with detect-secrets tool
 
 filters = [
-  # some filters from [original list](https://github.com/Yelp/detect-secrets/blob/master/docs/filters.md#built-in-filters)
+  # some filters from
+  # https://github.com/Yelp/detect-secrets/blob/master/docs/filters.md#built-in-filters
   # were removed based on their targets
   {
     'path': 'detect_secrets.filters.heuristic.is_potential_uuid'
