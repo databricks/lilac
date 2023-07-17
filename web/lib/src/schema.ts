@@ -90,9 +90,10 @@ export function serializePath(path: Path | string): string {
 }
 
 export function isSortableField(field: LilacField) {
-  return (
-    field.dtype && !(['embedding', 'binary', 'string_span'] as DataType[]).includes(field.dtype)
-  );
+  if (field.repeated_field) {
+    return isSortableField(field.repeated_field);
+  }
+  return field.dtype && !(['embedding', 'binary'] as DataType[]).includes(field.dtype);
 }
 
 export function isFilterableField(field: LilacField) {
