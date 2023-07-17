@@ -116,7 +116,7 @@
   }
 </script>
 
-<Page title={'Blueprint'}>
+<Page title={'Datasets'}>
   <div slot="header-subtext">
     <div
       use:hoverTooltip={{

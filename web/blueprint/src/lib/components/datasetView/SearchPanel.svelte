@@ -56,9 +56,6 @@
   $: isIndexing =
     !isEmbeddingComputed && isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding)];
 
-  // TODO: fix this.
-  $: searchButtonDisabled = isEmbeddingComputed;
-
   $: placeholderText = isEmbeddingComputed
     ? 'Search by concept or keyword.'
     : 'Search by keyword. Click index to search by concept.';
@@ -188,7 +185,7 @@
 <div class="border-1 flex w-full flex-row items-center px-4">
   <div class="compute-embedding mr-1" class:compute-embedding-indexing={isIndexing}>
     <Button
-      disabled={searchButtonDisabled || isIndexing}
+      disabled={isEmbeddingComputed || isIndexing}
       iconDescription="Compute embedding index. This may be expensive."
       on:click={() => {
         computeEmbedding();

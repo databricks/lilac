@@ -4,15 +4,15 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getSearches, getSort} from '$lib/view_utils';
   import {
-      deserializePath,
-      formatValue,
-      petals,
-      serializePath,
-      type ConceptQuery,
-      type Search,
-      type SearchResultInfo,
-      type SearchType,
-      type WebManifest
+    deserializePath,
+    formatValue,
+    petals,
+    serializePath,
+    type ConceptQuery,
+    type Search,
+    type SearchResultInfo,
+    type SearchType,
+    type WebManifest
   } from '$lilac';
   import {Button, Dropdown, Modal, SkeletonText} from 'carbon-components-svelte';
   import {Close, SortAscending, SortDescending, SortRemove} from 'carbon-icons-svelte';

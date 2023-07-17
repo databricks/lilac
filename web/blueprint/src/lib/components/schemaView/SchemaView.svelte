@@ -1,18 +1,11 @@
 <script lang="ts">
-  import {queryDatasetManifest, queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {SkeletonText, Tab, TabContent, Tabs} from 'carbon-components-svelte';
   import QueryBuilder from '../queryBuilder/QueryBuilder.svelte';
   import FlattenedField from './FlattenedField.svelte';
   import SchemaField from './SchemaField.svelte';
 
-  const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
-
-  const schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
-  const manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
-
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
 </script>
 

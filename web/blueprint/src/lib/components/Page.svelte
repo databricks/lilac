@@ -1,4 +1,7 @@
 <script lang="ts">
+  /**
+   * The component for a page, including a header with slots for subtext, center, and right.
+   */
   import TaskStatus from './TaskStatus.svelte';
 
   export let title: string;
