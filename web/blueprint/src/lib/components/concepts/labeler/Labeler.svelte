@@ -132,7 +132,6 @@
       }
     });
     goto(datasetLink(dataset.namespace, dataset.name));
-    console.log(datasetViewStore);
   }
 </script>
 
