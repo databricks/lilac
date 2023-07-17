@@ -128,18 +128,18 @@
       </Form>
     </div>
   </div>
-
-  <style lang="postcss">
-    :global(.bx--form-item) {
-      @apply mb-6;
-    }
-
-    :global(.bx--fieldset) {
-      @apply rounded border border-gray-300 p-4;
-    }
-
-    :global(legend.bx--label) {
-      @apply px-2 text-lg;
-    }
-  </style>
 </Page>
+
+<style lang="postcss">
+  :global(.bx--form-item) {
+    @apply mb-6;
+  }
+
+  :global(.bx--fieldset) {
+    @apply rounded border border-gray-300 p-4;
+  }
+
+  :global(legend.bx--label) {
+    @apply px-2 text-lg;
+  }
+</style>
