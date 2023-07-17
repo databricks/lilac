@@ -439,6 +439,11 @@ class DatasetDuckDB(Dataset):
         else:
           raise ValueError(f'Unable to filter on path {filter.path}. '
                            f'Path part "{path_part}" is not defined on a primitive value.')
+
+      while current_field.repeated_field:
+        current_field = current_field.repeated_field
+        filter.path = (*filter.path, PATH_WILDCARD)
+
       if not current_field.dtype:
         raise ValueError(f'Unable to filter on path {filter.path}. The field has no value.')
 
@@ -1305,7 +1310,8 @@ class DatasetDuckDB(Dataset):
     list_ops = set(ListOp)
     for f in filters:
       duckdb_path = self._leaf_path_to_duckdb_path(f.path, manifest.data_schema)
-      select_str = _select_sql(duckdb_path, flatten=True, unnest=False)
+      select_str = _select_sql(
+        duckdb_path, flatten=True, unnest=False, span_from=self._get_span_from(f.path, manifest))
       is_array = any(subpath == PATH_WILDCARD for subpath in f.path)
 
       nan_filter = ''
