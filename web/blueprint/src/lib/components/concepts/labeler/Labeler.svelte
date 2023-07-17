@@ -1,6 +1,9 @@
 <script lang="ts">
+  import {goto} from '$app/navigation';
   import {maybeQueryDatasetSchema, queryDatasets} from '$lib/queries/datasetQueries';
+  import {createDatasetViewStore} from '$lib/stores/datasetViewStore';
   import {getSettingsContext} from '$lib/stores/settingsStore';
+  import {datasetLink} from '$lib/utils';
   import {
     childFields,
     deserializePath,
@@ -11,7 +14,14 @@
     type LilacField,
     type LilacSchema
   } from '$lilac';
-  import {InlineNotification, Select, SelectItem, SelectSkeleton} from 'carbon-components-svelte';
+  import {
+    Button,
+    InlineNotification,
+    Select,
+    SelectItem,
+    SelectSkeleton
+  } from 'carbon-components-svelte';
+  import {ArrowUpRight} from 'carbon-icons-svelte';
   import DataFeeder from './DataFeeder.svelte';
 
   export let concept: Concept;
@@ -107,6 +117,23 @@
     const val = (e.target as HTMLInputElement).value;
     path = deserializePath(val);
   }
+
+  $: datasetViewStore =
+    dataset != null ? createDatasetViewStore(dataset.namespace, dataset.name) : null;
+  function openDataset() {
+    if (datasetViewStore == null || pathId == null || embedding == null || dataset == null) return;
+    datasetViewStore.addSearch({
+      path: [pathId],
+      query: {
+        type: 'concept',
+        concept_namespace: concept.namespace,
+        concept_name: concept.concept_name,
+        embedding
+      }
+    });
+    goto(datasetLink(dataset.namespace, dataset.name));
+    console.log(datasetViewStore);
+  }
 </script>
 
 <div class="flex flex-col gap-y-4">
@@ -152,6 +179,14 @@
         {/each}
       </Select>
     {/if}
+    {#if pathId != null && embedding != null}
+      <Button
+        class="dataset-link top-7 h-8"
+        icon={ArrowUpRight}
+        iconDescription={'Open dataset and apply concept.'}
+        on:click={openDataset}
+      />
+    {/if}
   </div>
 
   {#if dataset != null && path != null && schema != null && embedding != null}
@@ -160,3 +195,9 @@
     </div>
   {/if}
 </div>
+
+<style lang="postcss">
+  :global(.dataset-link.bx--btn) {
+    @apply min-h-0;
+  }
+</style>
