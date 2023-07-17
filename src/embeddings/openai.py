@@ -44,6 +44,11 @@ class OpenAI(TextEmbeddingSignal):
 
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(10))
     def embed_fn(texts: list[str]) -> list[np.ndarray]:
+
+      # Replace newlines, which can negatively affect performance.
+      # See https://github.com/search?q=repo%3Aopenai%2Fopenai-python+replace+newlines&type=code
+      texts = [text.replace('\n', ' ') for text in texts]
+
       response = openai.Embedding.create(input=texts, model=EMBEDDING_MODEL)
       return [np.array(embedding['embedding'], dtype=np.float32) for embedding in response['data']]
 

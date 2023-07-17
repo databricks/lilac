@@ -1,7 +1,7 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import {Button} from 'carbon-components-svelte';
-  import {DataBase, Home, Light} from 'carbon-icons-svelte';
+  import {DataBase, Home, Light, Settings} from 'carbon-icons-svelte';
 </script>
 
 <div class="flex w-full flex-col items-center pt-2">
@@ -37,6 +37,17 @@
       on:click={() => goto('/datasets')}
     />
     <div class="nav-icon-text">Datasets</div>
+  </div>
+  <div class="nav-item-container">
+    <Button
+      icon={Settings}
+      kind="ghost"
+      expressive
+      iconDescription="Datasets"
+      tooltipAlignment={'start'}
+      on:click={() => goto('/settings')}
+    />
+    <div class="nav-icon-text">Settings</div>
   </div>
 </div>
 

@@ -249,7 +249,6 @@
         on:change={selectField}
         disabled={visibleStringPaths.length === 0}
         warn={visibleStringPaths.length === 0}
-        warnText={visibleStringPaths.length === 0 ? 'Select a field' : undefined}
       >
         {#each visibleStringPaths as field}
           <SelectItem value={serializePath(field)} text={serializePath(field)} />

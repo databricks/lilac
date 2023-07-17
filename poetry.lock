@@ -1069,6 +1069,25 @@ files = [
 ]
 
 [[package]]
+name = "detect-secrets"
+version = "1.4.0"
+description = "Tool for detecting secrets in the codebase"
+optional = false
+python-versions = "*"
+files = [
+    {file = "detect_secrets-1.4.0-py3-none-any.whl", hash = "sha256:d08ecabeee8b68c0acb0e8a354fb98d822a653f6ed05e520cead4c6fc1fc02cd"},
+    {file = "detect_secrets-1.4.0.tar.gz", hash = "sha256:d56787e339758cef48c9ccd6692f7a094b9963c979c9813580b0169e41132833"},
+]
+
+[package.dependencies]
+pyyaml = "*"
+requests = "*"
+
+[package.extras]
+gibberish = ["gibberish-detector"]
+word-list = ["pyahocorasick"]
+
+[[package]]
 name = "dill"
 version = "0.3.6"
 description = "serialize all of python"
@@ -5572,6 +5591,17 @@ doc = ["cairosvg (>=2.5.2,<3.0.0)", "mdx-include (>=1.4.1,<2.0.0)", "mkdocs (>=1
 test = ["black (>=22.3.0,<23.0.0)", "coverage (>=6.2,<7.0)", "isort (>=5.0.6,<6.0.0)", "mypy (==0.910)", "pytest (>=4.4.0,<8.0.0)", "pytest-cov (>=2.10.0,<5.0.0)", "pytest-sugar (>=0.9.4,<0.10.0)", "pytest-xdist (>=1.32.0,<4.0.0)", "rich (>=10.11.0,<14.0.0)", "shellingham (>=1.3.0,<2.0.0)"]
 
 [[package]]
+name = "types-cachetools"
+version = "5.3.0.5"
+description = "Typing stubs for cachetools"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-cachetools-5.3.0.5.tar.gz", hash = "sha256:67fa46d51a650896770aee0ba80f0e61dc4a7d1373198eec1bc0622263eaa256"},
+    {file = "types_cachetools-5.3.0.5-py3-none-any.whl", hash = "sha256:c0c5fa00199017d974c935bf043c467d5204e4f835141e489b48765b5ac1d960"},
+]
+
+[[package]]
 name = "types-pillow"
 version = "9.5.0.6"
 description = "Typing stubs for Pillow"
@@ -5591,6 +5621,17 @@ python-versions = "*"
 files = [
     {file = "types-psutil-5.9.5.15.tar.gz", hash = "sha256:943a5f9556c1995097c89f50274330dd8d71d17bd73cbc6b09c61dbf4e114cc6"},
     {file = "types_psutil-5.9.5.15-py3-none-any.whl", hash = "sha256:7f183072d1fdb4e092fd6dd88ea017b957056bf10e58eafcdca26bf4372c0742"},
+]
+
+[[package]]
+name = "types-regex"
+version = "2023.6.3.0"
+description = "Typing stubs for regex"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-regex-2023.6.3.0.tar.gz", hash = "sha256:5826da8557eb4af977b9df9d9b21cf68b10ec63d60454f1f92da7ad49284628b"},
+    {file = "types_regex-2023.6.3.0-py3-none-any.whl", hash = "sha256:ff1a7ede4f449a4bbafd2070c16613b543bf0b070b29351b46af8daeb28fd116"},
 ]
 
 [[package]]
@@ -6231,4 +6272,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.9"
-content-hash = "3a2070f9d45f19db63333a16c0034a3584c07d9c3013728b1f90b27fb87a2cba"
+content-hash = "0fe7011e823632ce13aac8baffc73b672d774cfeb3df9aef817865cebaa1909e"

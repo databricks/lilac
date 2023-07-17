@@ -7,16 +7,20 @@ import traceback
 import uuid
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
+from typing import Any, Awaitable, Callable, Iterable, Iterator, Optional, TypeVar, Union
 
 import dask
 import psutil
+from dask import config as cfg
 from dask.distributed import Client, Variable
 from distributed import Future, get_client, get_worker
 from pydantic import BaseModel, parse_obj_as
 from tqdm import tqdm
 
 from .utils import log, pretty_timedelta
+
+# Disable the heartbeats of the dask workers to avoid dying after computer goes to sleep.
+cfg.set({'distributed.scheduler.worker-ttl': None})
 
 TaskId = str
 # ID for the step of a task.
@@ -199,11 +203,11 @@ def _progress_event_topic(task_id: TaskId) -> Variable:
 TProgress = TypeVar('TProgress')
 
 
-def progress(it: Iterable[TProgress],
+def progress(it: Union[Iterator[TProgress], Iterable[TProgress]],
              task_step_id: Optional[TaskStepId],
              estimated_len: Optional[int],
              step_description: Optional[str] = None,
-             emit_every_s: float = 1.) -> Iterable[TProgress]:
+             emit_every_s: float = 1.) -> Iterator[TProgress]:
   """An iterable wrapper that emits progress and yields the original iterable."""
   if not task_step_id:
     yield from it

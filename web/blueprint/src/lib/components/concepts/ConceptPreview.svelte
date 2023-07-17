@@ -1,6 +1,7 @@
 <script lang="ts">
   import {queryConceptScore} from '$lib/queries/conceptQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
+  import {getSettingsContext} from '$lib/stores/settingsStore';
   import {
     PATH_WILDCARD,
     deserializeRow,
@@ -19,6 +20,7 @@
   export let example: Example;
 
   const embeddings = queryEmbeddings();
+  const settings = getSettingsContext();
 
   // User entered text.
   let textAreaText = example.text?.trim();
@@ -38,7 +40,7 @@
 
   // The text show in the highlight preview.
   let previewText: string | undefined = undefined;
-  let previewEmbedding: string | undefined = undefined;
+  let previewEmbedding = $settings.embedding;
   $: conceptScore =
     previewEmbedding != null && previewText != null
       ? queryConceptScore(concept.namespace, concept.concept_name, previewEmbedding, {

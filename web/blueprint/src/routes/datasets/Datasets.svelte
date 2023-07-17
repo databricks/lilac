@@ -22,7 +22,7 @@
   }
 </script>
 
-<Page title={'Blueprint'}>
+<Page title={'Datasets'}>
   <div slot="header-right">
     <Button on:click={() => goto('/datasets/new')}>Add Dataset</Button>
   </div>
