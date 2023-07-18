@@ -1,8 +1,9 @@
 <script lang="ts">
   import {deleteSignalMutation} from '$lib/queries/datasetQueries';
+  import {queryServerStatus} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {isPreviewSignal} from '$lib/view_utils';
+  import {READONLY_MESSAGE, isPreviewSignal} from '$lib/view_utils';
   import {
     isFilterableField,
     isSignalField,
@@ -15,6 +16,7 @@
   import {Modal, OverflowMenu, OverflowMenuItem} from 'carbon-components-svelte';
   import {InProgress} from 'carbon-icons-svelte';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
 
   export let field: LilacField;
   export let schema: LilacSchema;
@@ -35,6 +37,9 @@
   $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, field.path);
   $: hasMenu =
     (isSortableField(field) || isFilterableField(field) || !isSignal || isSignalRoot) && !isPreview;
+
+  const serverStatus = queryServerStatus();
+  $: isServerReadonly = $serverStatus.data?.read_only ?? true;
 
   function deleteSignalClicked() {
     $deleteSignal.mutate([namespace, datasetName, {signal_path: field.path}], {
@@ -65,16 +70,24 @@
       />
     {/if}
     {#if !isSignal}
-      <OverflowMenuItem
-        text="Compute embedding"
-        on:click={() =>
-          triggerCommand({
-            command: Command.ComputeEmbedding,
-            namespace,
-            datasetName,
-            path: field?.path
-          })}
-      />
+      <div
+        class="w-full"
+        use:hoverTooltip={{
+          text: isServerReadonly ? READONLY_MESSAGE : ''
+        }}
+      >
+        <OverflowMenuItem
+          disabled={isServerReadonly}
+          text="Compute embedding"
+          on:click={() =>
+            triggerCommand({
+              command: Command.ComputeEmbedding,
+              namespace,
+              datasetName,
+              path: field?.path
+            })}
+        />
+      </div>
     {/if}
     {#if !isSignal}
       <OverflowMenuItem
@@ -89,19 +102,38 @@
       />
     {/if}
     {#if !isSignal}
-      <OverflowMenuItem
-        text="Compute signal"
-        on:click={() =>
-          triggerCommand({
-            command: Command.ComputeSignal,
-            namespace,
-            datasetName,
-            path: field?.path
-          })}
-      />
+      <div
+        class="w-full"
+        use:hoverTooltip={{
+          text: isServerReadonly ? READONLY_MESSAGE : ''
+        }}
+      >
+        <OverflowMenuItem
+          text="Compute signal"
+          disabled={isServerReadonly}
+          on:click={() =>
+            triggerCommand({
+              command: Command.ComputeSignal,
+              namespace,
+              datasetName,
+              path: field?.path
+            })}
+        />
+      </div>
     {/if}
     {#if isSignalRoot}
-      <OverflowMenuItem text="Delete signal" on:click={() => (deleteSignalOpen = true)} />
+      <div
+        class="w-full"
+        use:hoverTooltip={{
+          text: isServerReadonly ? READONLY_MESSAGE : ''
+        }}
+      >
+        <OverflowMenuItem
+          disabled={isServerReadonly}
+          text="Delete signal"
+          on:click={() => (deleteSignalOpen = true)}
+        />
+      </div>
     {/if}
   </OverflowMenu>
 {/if}

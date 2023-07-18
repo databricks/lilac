@@ -11,13 +11,14 @@
     querySelectRowsSchema,
     querySettings
   } from '$lib/queries/datasetQueries';
+  import {queryServerStatus} from '$lib/queries/serverQueries';
   import {createDatasetStore, setDatasetContext, type StatsInfo} from '$lib/stores/datasetStore';
   import {
     createDatasetViewStore,
     getSelectRowsSchemaOptions,
     setDatasetViewContext
   } from '$lib/stores/datasetViewStore';
-  import {getVisibleFields} from '$lib/view_utils';
+  import {READONLY_MESSAGE, getVisibleFields} from '$lib/view_utils';
   import {getFieldsByDtype} from '$lilac';
   import {Button, Tag} from 'carbon-components-svelte';
   import {ChevronLeft, ChevronRight, Download, Reset, Settings} from 'carbon-icons-svelte';
@@ -125,6 +126,9 @@
   }
 
   let settingsOpen = false;
+
+  const serverStatus = queryServerStatus();
+  $: isServerReadonly = $serverStatus.data?.read_only ?? true;
 </script>
 
 <Page title={'Datasets'}>
@@ -157,13 +161,21 @@
           iconDescription="Download selection"
           on:click={downloadSelectRows}
         />
-        <Button
-          size="field"
-          kind="ghost"
-          icon={Settings}
-          iconDescription="Dataset settings"
-          on:click={() => (settingsOpen = true)}
-        />
+        <div
+          use:hoverTooltip={{
+            text: isServerReadonly ? READONLY_MESSAGE : ''
+          }}
+          class:opacity-40={isServerReadonly}
+        >
+          <Button
+            disabled={isServerReadonly}
+            size="field"
+            kind="ghost"
+            icon={Settings}
+            iconDescription="Dataset settings"
+            on:click={() => (settingsOpen = true)}
+          />
+        </div>
       </div>
     </div>
   </div>

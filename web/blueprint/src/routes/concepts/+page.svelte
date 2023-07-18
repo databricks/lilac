@@ -2,12 +2,15 @@
   import {goto} from '$app/navigation';
   import Page from '$lib/components/Page.svelte';
   import Commands, {Command, triggerCommand} from '$lib/components/commands/Commands.svelte';
+  import {hoverTooltip} from '$lib/components/common/HoverTooltip';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
+  import {queryServerStatus} from '$lib/queries/serverQueries';
   import {datasetStores} from '$lib/stores/datasetStore';
   import {datasetViewStores} from '$lib/stores/datasetViewStore';
   import {urlHash} from '$lib/stores/urlHashStore';
   import {conceptLink} from '$lib/utils';
+  import {READONLY_MESSAGE} from '$lib/view_utils';
   import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
   import {InProgress, TrashCan} from 'carbon-icons-svelte';
   import AddAlt from 'carbon-icons-svelte/lib/AddAlt.svelte';
@@ -29,6 +32,8 @@
 
   const concepts = queryConcepts();
   const deleteConcept = deleteConceptMutation();
+  const serverStatus = queryServerStatus();
+  $: isServerReadonly = $serverStatus.data?.read_only ?? true;
 
   $: concept = namespace && conceptName ? queryConcept(namespace, conceptName) : undefined;
 
@@ -74,13 +79,21 @@
           >
             <span class="opacity-50">{c.namespace} / </span><span> {c.name}</span>
           </a>
-          <button
-            title="Remove concept"
-            class="p-3 opacity-50 hover:text-red-400 hover:opacity-100"
-            on:click={() => (deleteConceptInfo = {namespace: c.namespace, name: c.name})}
+          <div
+            use:hoverTooltip={{
+              text: isServerReadonly ? READONLY_MESSAGE : ''
+            }}
+            class:opacity-40={isServerReadonly}
           >
-            <TrashCan size={16} />
-          </button>
+            <button
+              title="Remove concept"
+              disabled={isServerReadonly}
+              class="p-3 opacity-50 hover:text-red-400 hover:opacity-100"
+              on:click={() => (deleteConceptInfo = {namespace: c.namespace, name: c.name})}
+            >
+              <TrashCan size={16} />
+            </button>
+          </div>
         </div>
       {/each}
 

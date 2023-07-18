@@ -1,13 +1,18 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import Page from '$lib/components/Page.svelte';
+  import {hoverTooltip} from '$lib/components/common/HoverTooltip';
   import {deleteDatasetMutation, queryDatasets} from '$lib/queries/datasetQueries';
+  import {queryServerStatus} from '$lib/queries/serverQueries';
   import {datasetLink} from '$lib/utils';
+  import {READONLY_MESSAGE} from '$lib/view_utils';
   import {Button, InlineNotification, Modal, SkeletonText} from 'carbon-components-svelte';
   import {InProgress, TrashCan} from 'carbon-icons-svelte';
 
   const datasets = queryDatasets();
   const deleteDataset = deleteDatasetMutation();
+  const serverStatus = queryServerStatus();
+  $: isServerReadonly = $serverStatus.data?.read_only ?? true;
 
   let deleteDatasetInfo: {namespace: string; name: string} | null = null;
 
@@ -53,14 +58,27 @@
                 on:click={() => goto(datasetLink(dataset.namespace, dataset.dataset_name))}
                 >Open</Button
               >
-              <button
-                title="Remove sample"
-                class="rounded border border-gray-300 p-2 hover:border-red-400 hover:text-red-400"
-                on:click|stopPropagation={() =>
-                  (deleteDatasetInfo = {namespace: dataset.namespace, name: dataset.dataset_name})}
+              <div
+                use:hoverTooltip={{
+                  text: isServerReadonly ? READONLY_MESSAGE : ''
+                }}
+                class:opacity-40={isServerReadonly}
               >
-                <TrashCan size={16} />
-              </button>
+                <button
+                  title="Delete dataset"
+                  disabled={isServerReadonly}
+                  class:hover:border-red-400={!isServerReadonly}
+                  class:hover:text-red-400={!isServerReadonly}
+                  class="h-full w-full rounded border border-gray-300 p-2"
+                  on:click|stopPropagation={() =>
+                    (deleteDatasetInfo = {
+                      namespace: dataset.namespace,
+                      name: dataset.dataset_name
+                    })}
+                >
+                  <TrashCan size={16} />
+                </button>
+              </div>
             </div>
           </button>
         {/each}
