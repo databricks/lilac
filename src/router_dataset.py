@@ -136,7 +136,7 @@ class DeleteSignalResponse(BaseModel):
 def delete_signal(namespace: str, dataset_name: str,
                   options: DeleteSignalOptions) -> DeleteSignalResponse:
   """Delete a signal from a dataset."""
-  if not get_user_access().dataset.compute_signals:
+  if not get_user_access().dataset.delete_signals:
     raise HTTPException(401, 'User does not have access to delete this signal.')
 
   dataset = get_dataset(namespace, dataset_name)
