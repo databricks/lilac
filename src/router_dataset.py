@@ -9,7 +9,7 @@ from pydantic import BaseModel, validator
 from .config import data_path
 from .data.dataset import BinaryOp
 from .data.dataset import Column as DBColumn
-from .data.dataset import DatasetManifest, FeatureListValue, FeatureValue
+from .data.dataset import DatasetManifest, DatasetSettings, FeatureListValue, FeatureValue
 from .data.dataset import Filter as PyFilter
 from .data.dataset import (
   GroupsSortBy,
@@ -281,3 +281,18 @@ def get_media(namespace: str, dataset_name: str, item_id: str, leaf_path: str) -
   result = dataset.media(item_id, path)
   # Return the response via HTTP.
   return Response(content=result.data)
+
+
+@router.get('/{namespace}/{dataset_name}/settings')
+def get_settings(namespace: str, dataset_name: str) -> DatasetSettings:
+  """Get the media for the dataset."""
+  dataset = get_dataset(namespace, dataset_name)
+  return dataset.settings()
+
+
+@router.post('/{namespace}/{dataset_name}/settings', response_model_exclude_none=True)
+def update_settings(namespace: str, dataset_name: str, settings: DatasetSettings) -> None:
+  """Get the media for the dataset."""
+  dataset = get_dataset(namespace, dataset_name)
+  dataset.update_settings(settings)
+  return None

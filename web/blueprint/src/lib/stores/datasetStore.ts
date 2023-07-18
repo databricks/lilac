@@ -1,6 +1,7 @@
 /** The store for runtime information about the dataset, like the schema and stats. */
 import type {
   ApiError,
+  DatasetSettings,
   LilacField,
   LilacSchema,
   LilacSelectRowsSchema,
@@ -20,7 +21,9 @@ export interface DatasetState {
   stats: StatsInfo[] | null;
   selectRowsSchema: QueryObserverResult<LilacSelectRowsSchema, ApiError> | null;
   visibleFields: LilacField[] | null;
+  settings: DatasetSettings | null;
 }
+
 export interface StatsInfo {
   path: Path;
   stats: QueryObserverResult<StatsResult, unknown>;
@@ -33,7 +36,8 @@ export const createDatasetStore = (namespace: string, datasetName: string) => {
     schema: null,
     stats: null,
     selectRowsSchema: null,
-    visibleFields: null
+    visibleFields: null,
+    settings: null
   };
 
   const {subscribe, set, update} = writable<DatasetState>(initialState);
@@ -66,6 +70,11 @@ export const createDatasetStore = (namespace: string, datasetName: string) => {
     ) =>
       update(state => {
         state.selectRowsSchema = selectRowsSchema;
+        return state;
+      }),
+    setSettings: (settings: DatasetSettings) =>
+      update(state => {
+        state.settings = settings;
         return state;
       })
   };

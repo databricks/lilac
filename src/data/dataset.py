@@ -2,6 +2,7 @@
 import abc
 import datetime
 import enum
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
@@ -16,6 +17,7 @@ from ..tasks import TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
 TOO_MANY_DISTINCT = 200_000
+MEDIA_TEXT_LENGTH_THRESHOLD = 64
 
 
 class SelectRowsResult:
@@ -160,6 +162,16 @@ class Column(BaseModel):
 ColumnId = Union[Path, Column]
 
 
+class DatasetUISettings(BaseModel):
+  """The UI persistent settings for a dataset."""
+  media_paths: list[PathTuple] = []
+
+
+class DatasetSettings(BaseModel):
+  """The persistent settings for a dataset."""
+  ui: Optional[DatasetUISettings]
+
+
 class DatasetManifest(BaseModel):
   """The manifest for a dataset."""
   namespace: str
@@ -252,6 +264,16 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def manifest(self) -> DatasetManifest:
     """Return the manifest for the dataset."""
+    pass
+
+  @abc.abstractmethod
+  def settings(self) -> DatasetSettings:
+    """Return the persistent settings for the dataset."""
+    pass
+
+  @abc.abstractmethod
+  def update_settings(self, settings: DatasetSettings) -> None:
+    """Update the settings for the dataset."""
     pass
 
   @abc.abstractmethod
@@ -384,6 +406,20 @@ class Dataset(abc.ABC):
       A MediaResult.
     """
     pass
+
+
+def default_settings(dataset: Dataset) -> DatasetSettings:
+  """Gets the default settings for a dataset."""
+  leaf_paths = dataset.manifest().data_schema.leafs.keys()
+  pool = ThreadPoolExecutor()
+  stats: list[StatsResult] = list(pool.map(lambda leaf: dataset.stats(leaf), leaf_paths))
+  default_media_paths = [
+    stat.path
+    for stat in stats
+    if stat.avg_text_length and stat.avg_text_length > MEDIA_TEXT_LENGTH_THRESHOLD
+  ]
+
+  return DatasetSettings(ui=DatasetUISettings(media_paths=default_media_paths))
 
 
 def make_parquet_id(signal: Signal,

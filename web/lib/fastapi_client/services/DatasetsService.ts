@@ -4,6 +4,7 @@
 import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
 import type { ComputeSignalResponse } from '../models/ComputeSignalResponse';
 import type { DatasetInfo } from '../models/DatasetInfo';
+import type { DatasetSettings } from '../models/DatasetSettings';
 import type { DeleteSignalOptions } from '../models/DeleteSignalOptions';
 import type { DeleteSignalResponse } from '../models/DeleteSignalResponse';
 import type { GetStatsOptions } from '../models/GetStatsOptions';
@@ -316,6 +317,60 @@ export class DatasetsService {
                 'item_id': itemId,
                 'leaf_path': leafPath,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Settings
+     * Get the media for the dataset.
+     * @param namespace
+     * @param datasetName
+     * @returns DatasetSettings Successful Response
+     * @throws ApiError
+     */
+    public static getSettings(
+        namespace: string,
+        datasetName: string,
+    ): CancelablePromise<DatasetSettings> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/settings',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Update Settings
+     * Get the media for the dataset.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static updateSettings(
+        namespace: string,
+        datasetName: string,
+        requestBody: DatasetSettings,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/settings',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

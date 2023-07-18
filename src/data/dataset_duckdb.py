@@ -64,6 +64,7 @@ from .dataset import (
   ColumnId,
   Dataset,
   DatasetManifest,
+  DatasetSettings,
   FeatureListValue,
   FeatureValue,
   Filter,
@@ -82,6 +83,7 @@ from .dataset import (
   StatsResult,
   UnaryOp,
   column_from_identifier,
+  default_settings,
   make_parquet_id,
 )
 from .dataset_utils import (
@@ -104,6 +106,7 @@ DEBUG = CONFIG['DEBUG'] == 'true' if 'DEBUG' in CONFIG else False
 UUID_INDEX_FILENAME = 'uuids.npy'
 
 SIGNAL_MANIFEST_FILENAME = 'signal_manifest.json'
+DATASET_SETTINGS_FILENAME = 'settings.json'
 SOURCE_VIEW_NAME = 'source'
 
 # Sample size for approximating the distinct count of a column.
@@ -155,6 +158,9 @@ class DatasetDuckDB(Dataset):
     self._col_vector_stores: dict[PathTuple, VectorStore] = {}
     self.vector_store_cls = vector_store_cls
     self._manifest_lock = threading.Lock()
+
+    # Write the settings to disk to avoid calling stats many times.
+    self.update_settings(default_settings(self))
 
   @override
   def delete(self) -> None:
@@ -236,6 +242,24 @@ class DatasetDuckDB(Dataset):
       latest_mtime = max(map(os.path.getmtime, all_dataset_files))
       latest_mtime_micro_sec = int(latest_mtime * 1e6)
       return self._recompute_joint_table(latest_mtime_micro_sec)
+
+  @override
+  def settings(self) -> DatasetSettings:
+    # Read the settings file from disk.
+    settings_filepath = _settings_filepath(self.namespace, self.dataset_name)
+
+    if not os.path.exists(settings_filepath):
+      self.update_settings(default_settings(self))
+
+    with open(settings_filepath) as f:
+      return DatasetSettings.parse_raw(f.read())
+
+  @override
+  def update_settings(self, settings: DatasetSettings) -> None:
+    # Write the settings file from disk.
+    settings_filepath = _settings_filepath(self.namespace, self.dataset_name)
+    with open(settings_filepath, 'w') as f:
+      f.write(settings.json())
 
   def count(self, filters: Optional[list[FilterLike]] = None) -> int:
     """Count the number of rows."""
@@ -1703,3 +1727,8 @@ def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
     end = None if i == num_bins - 1 else min_val + (i + 1) * bin_width
     bins.append((str(i), start, end))
   return bins
+
+
+def _settings_filepath(namespace: str, dataset_name: str) -> str:
+  return os.path.join(
+    get_dataset_output_dir(data_path(), namespace, dataset_name), DATASET_SETTINGS_FILENAME)

@@ -7,10 +7,10 @@ import {
   getFieldsByDtype,
   pathIsEqual,
   pathIsMatching,
-  petals,
   serializePath,
   type DataType,
   type DataTypeCasted,
+  type DatasetSettings,
   type LilacField,
   type LilacSchema,
   type LilacSelectRowsSchema,
@@ -20,9 +20,8 @@ import {
   type Search,
   type SortResult
 } from '$lilac';
-import type {DatasetState, StatsInfo} from './stores/datasetStore';
+import type {DatasetState} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
-const MEDIA_TEXT_LENGTH_THRESHOLD = 32;
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
 export function getVisibleFields(
@@ -85,16 +84,14 @@ export function getVisibleSchema(
   return {...schema, fields, repeated_field: repeatedField};
 }
 
-export function getMediaFields(schema: LilacField, stats: StatsInfo[]): LilacField[] {
-  const fields: LilacField[] = [];
-  for (const petal of petals(schema)) {
-    const stat = stats?.find(s => pathIsEqual(s.path, petal.path));
-    const textLength = stat?.stats?.data?.avg_text_length;
-    if (textLength != null && textLength > MEDIA_TEXT_LENGTH_THRESHOLD) {
-      fields.push(petal);
-    }
-  }
-  return fields;
+export function getMediaFields(
+  schema: LilacField | null,
+  settings: DatasetSettings | null
+): LilacField[] {
+  if (schema == null) return [];
+  if (settings == null) return [];
+
+  return (settings?.ui?.media_paths || []).map(path => getField(schema!, path)!);
 }
 
 export function isPathVisible(

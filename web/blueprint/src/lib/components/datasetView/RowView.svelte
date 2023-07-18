@@ -44,8 +44,7 @@
     selectRowsSchema?.data?.schema != null
       ? getVisibleSchema(selectRowsSchema?.data?.schema, visibleFields)!
       : null;
-  $: mediaFields =
-    visibleSchema != null ? getMediaFields(visibleSchema, $datasetStore.stats || []) : [];
+  $: mediaFields = getMediaFields(visibleSchema, $datasetStore.settings);
 
   // Pass the item scroll container to children so they can handle scroll events.
   let itemScrollContainer: HTMLDivElement | null = null;

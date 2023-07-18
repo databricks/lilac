@@ -32,6 +32,7 @@ export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
 ];
 
 export const DATASETS_TAG = 'datasets';
+export const DATASETS_SETTINGS_TAG = 'settings';
 
 export const DEFAULT_SELECT_ROWS_LIMIT = 20;
 
@@ -144,3 +145,10 @@ export const infiniteQuerySelectRows = (
     getNextPageParam: (_, pages) => pages.length,
     enabled: !!schema
   });
+
+export const querySettings = createApiQuery(DatasetsService.getSettings, DATASETS_SETTINGS_TAG);
+export const updateSettingsMutation = createApiMutation(DatasetsService.updateSettings, {
+  onSuccess: () => {
+    queryClient.invalidateQueries([DATASETS_SETTINGS_TAG]);
+  }
+});

@@ -23,6 +23,8 @@ export type { ConceptUpdate } from './models/ConceptUpdate';
 export type { CreateConceptOptions } from './models/CreateConceptOptions';
 export type { DatasetInfo } from './models/DatasetInfo';
 export type { DatasetManifest } from './models/DatasetManifest';
+export type { DatasetSettings } from './models/DatasetSettings';
+export type { DatasetUISettings } from './models/DatasetUISettings';
 export type { DataType } from './models/DataType';
 export type { DeleteSignalOptions } from './models/DeleteSignalOptions';
 export type { DeleteSignalResponse } from './models/DeleteSignalResponse';

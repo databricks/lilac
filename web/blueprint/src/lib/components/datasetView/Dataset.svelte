@@ -8,7 +8,8 @@
   import {
     queryDatasetSchema,
     queryManyDatasetStats,
-    querySelectRowsSchema
+    querySelectRowsSchema,
+    querySettings
   } from '$lib/queries/datasetQueries';
   import {createDatasetStore, setDatasetContext, type StatsInfo} from '$lib/stores/datasetStore';
   import {
@@ -19,7 +20,8 @@
   import {getVisibleFields} from '$lib/view_utils';
   import {getFieldsByDtype} from '$lilac';
   import {Button, Tag} from 'carbon-components-svelte';
-  import {ChevronLeft, ChevronRight, Download, Reset} from 'carbon-icons-svelte';
+  import {ChevronLeft, ChevronRight, Download, Reset, Settings} from 'carbon-icons-svelte';
+  import DatasetSettingsModal from './DatasetSettingsModal.svelte';
 
   export let namespace: string;
   export let datasetName: string;
@@ -55,6 +57,8 @@
 
   const datasetStore = createDatasetStore(namespace, datasetName);
   setDatasetContext(datasetStore);
+
+  $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   // Compute the stats for all string fields and write them to the dataset store. This allows us to
   // share stats about fields with all children.
@@ -98,6 +102,11 @@
     );
     datasetStore.setVisibleFields(visibleFields);
   }
+  $: {
+    if ($settings.data != null) {
+      datasetStore.setSettings($settings.data);
+    }
+  }
 
   async function downloadSelectRows() {
     const namespace = $datasetViewStore.namespace;
@@ -114,6 +123,8 @@
     link.click();
     link.remove();
   }
+
+  let settingsOpen = false;
 </script>
 
 <Page title={'Datasets'}>
@@ -146,6 +157,13 @@
           iconDescription="Download selection"
           on:click={downloadSelectRows}
         />
+        <Button
+          size="field"
+          kind="ghost"
+          icon={Settings}
+          iconDescription="Dataset settings"
+          on:click={() => (settingsOpen = true)}
+        />
       </div>
     </div>
   </div>
@@ -177,6 +195,8 @@
     </div>
     <div class="h-full w-2/3 flex-grow"><RowView /></div>
   </div>
+
+  <DatasetSettingsModal bind:settingsOpen />
 </Page>
 <Commands />
 
