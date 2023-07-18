@@ -1,7 +1,7 @@
 """Tests for dataset.settings and dataset.update_settings."""
 
 from ..schema import UUID_COLUMN, Item
-from .dataset import MEDIA_TEXT_LENGTH_THRESHOLD, DatasetSettings, DatasetUISettings
+from .dataset import DatasetSettings, DatasetUISettings
 from .dataset_test_utils import TestDataMaker
 
 SIMPLE_ITEMS: list[Item] = [{
@@ -10,21 +10,21 @@ SIMPLE_ITEMS: list[Item] = [{
   'int': 1,
   'bool': False,
   'float': 3.0,
-  'long_str': 'a' * MEDIA_TEXT_LENGTH_THRESHOLD
+  'long_str': 'a' * 32
 }, {
   UUID_COLUMN: '2',
   'str': 'b',
   'int': 2,
   'bool': True,
   'float': 2.0,
-  'long_str': 'b' * MEDIA_TEXT_LENGTH_THRESHOLD
+  'long_str': 'b' * 32
 }, {
   UUID_COLUMN: '3',
   'str': 'b',
   'int': 2,
   'bool': True,
   'float': 1.0,
-  'long_str': 'c' * MEDIA_TEXT_LENGTH_THRESHOLD
+  'long_str': 'c' * 32
 }]
 
 

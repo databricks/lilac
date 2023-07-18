@@ -24,7 +24,6 @@
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
   $: updateSettings = updateSettingsMutation();
-  $: console.log($settings.data);
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   $: fields = petals($schema.data);
@@ -42,7 +41,6 @@
       )
     )
     .map(fieldItem => fieldItem.id);
-  $: console.log('selected', serverSelectedIds);
 
   let selectedIds: MultiSelectItemId[] = [];
   function submit() {
@@ -71,7 +69,7 @@
   }
 </script>
 
-<ComposedModal open={settingsOpen} on:submit={submit}>
+<ComposedModal open={settingsOpen} on:submit={submit} on:close={() => (settingsOpen = false)}>
   <ModalHeader label="Changes" title="Dataset settings" />
   <ModalBody hasForm>
     {#if $settings.isFetching}

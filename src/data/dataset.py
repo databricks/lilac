@@ -413,13 +413,13 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
   leaf_paths = dataset.manifest().data_schema.leafs.keys()
   pool = ThreadPoolExecutor()
   stats: list[StatsResult] = list(pool.map(lambda leaf: dataset.stats(leaf), leaf_paths))
-  default_media_paths = [
-    stat.path
-    for stat in stats
-    if stat.avg_text_length and stat.avg_text_length >= MEDIA_TEXT_LENGTH_THRESHOLD
-  ]
+  sorted_stats = sorted([stat for stat in stats if stat.avg_text_length],
+                        key=lambda stat: stat.avg_text_length or -1.0)
+  media_paths = []
+  if sorted_stats:
+    media_paths = [sorted_stats[-1].path]
 
-  return DatasetSettings(ui=DatasetUISettings(media_paths=default_media_paths))
+  return DatasetSettings(ui=DatasetUISettings(media_paths=media_paths))
 
 
 def make_parquet_id(signal: Signal,
