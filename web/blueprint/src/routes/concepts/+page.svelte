@@ -56,6 +56,7 @@
 <Page title={'Concepts'}>
   <div slot="header-right">
     <Button
+      size="small"
       on:click={() =>
         triggerCommand({
           command: Command.CreateConcept,

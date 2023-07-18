@@ -9,9 +9,10 @@ poetry run python -m src.datasets.loader \
 """
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from .auth import get_user_access
 from .config import data_path
 from .data.sources.default_sources import register_default_sources
 from .data.sources.source_registry import get_source_cls, registered_sources
@@ -67,6 +68,9 @@ class LoadDatasetResponse(BaseModel):
 async def load(source_name: str, options: LoadDatasetOptions,
                request: Request) -> LoadDatasetResponse:
   """Load a dataset."""
+  if not get_user_access().create_dataset:
+    raise HTTPException(401, 'User does not have access to load a dataset.')
+
   source_cls = get_source_cls(source_name)
   source = source_cls(**options.config)
 

@@ -12,6 +12,7 @@
   const deleteDataset = deleteDatasetMutation();
   const userAcls = queryUserAcls();
   $: canDeleteDataset = $userAcls.data?.dataset.delete_dataset;
+  $: canCreateDataset = $userAcls.data?.create_dataset;
 
   let deleteDatasetInfo: {namespace: string; name: string} | null = null;
 
@@ -28,7 +29,9 @@
 
 <Page title={'Datasets'}>
   <div slot="header-right">
-    <Button on:click={() => goto('/datasets/new')}>Add Dataset</Button>
+    <Button size="small" disabled={!canCreateDataset} on:click={() => goto('/datasets/new')}
+      >Add Dataset</Button
+    >
   </div>
   <div class="flex flex-col gap-y-4 p-4">
     <div class="flex flex-wrap gap-x-4 gap-y-4">
