@@ -14,8 +14,11 @@ CLUSTER_KEY = 'cluster_id'
 class NearDuplicateSignal(TextSignal):
   """Find near duplicate documents in a dataset using n-grams.
 
-  Documents are fingerprinted using n-grams with minhash LSH. Documents are assigned the same
-  cluster id if their Jaccard similarity is above the provided threshold.
+  <br/>
+
+  Documents are fingerprinted using n-grams with
+  [minhash LSH](https://en.wikipedia.org/wiki/MinHash). Documents are assigned the same cluster id
+  if their Jaccard similarity is above the provided threshold.
   """
   name = 'near_dup'
   display_name = 'Near duplicate documents'
