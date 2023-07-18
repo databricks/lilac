@@ -416,7 +416,7 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
   default_media_paths = [
     stat.path
     for stat in stats
-    if stat.avg_text_length and stat.avg_text_length > MEDIA_TEXT_LENGTH_THRESHOLD
+    if stat.avg_text_length and stat.avg_text_length >= MEDIA_TEXT_LENGTH_THRESHOLD
   ]
 
   return DatasetSettings(ui=DatasetUISettings(media_paths=default_media_paths))

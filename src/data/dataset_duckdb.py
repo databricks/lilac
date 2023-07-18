@@ -247,7 +247,6 @@ class DatasetDuckDB(Dataset):
   def settings(self) -> DatasetSettings:
     # Read the settings file from disk.
     settings_filepath = _settings_filepath(self.namespace, self.dataset_name)
-
     if not os.path.exists(settings_filepath):
       self.update_settings(default_settings(self))
 
