@@ -17,7 +17,6 @@ from ..tasks import TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
 TOO_MANY_DISTINCT = 200_000
-MEDIA_TEXT_LENGTH_THRESHOLD = 64
 
 
 class SelectRowsResult:
