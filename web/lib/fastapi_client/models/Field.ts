@@ -13,5 +13,6 @@ export type Field = {
     dtype?: DataType;
     signal?: Record<string, any>;
     bins?: Array<Array<any>>;
+    categorical?: boolean;
 };
 

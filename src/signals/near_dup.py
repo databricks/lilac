@@ -1,0 +1,35 @@
+"""Compute near duplicates for a dataset."""
+from typing import Iterable, Optional, cast
+
+from pydantic import Field as PydanticField
+from typing_extensions import override
+
+from ..schema import Field, Item, RichData, SignalInputType, field
+from .minhash_dup import find_clusters
+from .signal import TextSignal
+
+CLUSTER_KEY = 'cluster_id'
+
+
+class NearDuplicateSignal(TextSignal):
+  """Find near duplicate documents in a dataset."""
+  name = 'near_dup'
+  display_name = 'Near duplicate documents'
+
+  input_type = SignalInputType.TEXT
+  compute_type = SignalInputType.TEXT
+
+  threshold: float = PydanticField(
+    default=0.75,
+    description='The similarity threshold for detecting a near duplicate.',
+  )
+
+  @override
+  def fields(self) -> Field:
+    return field(fields={CLUSTER_KEY: field('uint32', categorical=True)})
+
+  @override
+  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    cluster_ids = find_clusters(cast(Iterable[str], data), threshold=self.threshold)
+    for cluster_id in cluster_ids:
+      yield {CLUSTER_KEY: cluster_id}

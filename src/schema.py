@@ -118,6 +118,7 @@ class Field(BaseModel):
   signal: Optional[dict[str, Any]]
   # Maps a named bin to a tuple of (start, end) values.
   bins: Optional[list[Bin]]
+  categorical: Optional[bool]
 
   @validator('fields')
   def either_fields_or_repeated_field_is_defined(
@@ -162,6 +163,13 @@ class Field(BaseModel):
         raise ValueError(
           f'Bin {i} start ({start}) should be equal to the previous bin end {prev_end}.')
     return bins
+
+  @validator('categorical')
+  def validate_categorical(cls, categorical: bool, values: dict[str, Any]) -> bool:
+    """Validate the categorical field."""
+    if categorical and is_float(values['dtype']):
+      raise ValueError('Categorical fields cannot be float dtypes.')
+    return categorical
 
   def __str__(self) -> str:
     return _str_field(self, indent=0)
@@ -256,6 +264,7 @@ def field(
   signal: Optional[dict] = None,
   fields: Optional[object] = None,
   bins: Optional[list[Bin]] = None,
+  categorical: Optional[bool] = None,
 ) -> Field:
   """Parse a field-like object to a Field object."""
   field = _parse_field_like(fields or {}, dtype)
@@ -267,6 +276,8 @@ def field(
     field.dtype = dtype
   if bins:
     field.bins = bins
+  if categorical is not None:
+    field.categorical = categorical
   return field
 
 

@@ -5,6 +5,7 @@ from ..embeddings.palm import PaLM
 from ..embeddings.sbert import SBERT
 from .concept_labels import ConceptLabelsSignal
 from .concept_scorer import ConceptScoreSignal
+from .near_dup import NearDuplicateSignal
 from .ner import SpacyNER
 from .pii import PIISignal
 from .signal import register_signal
@@ -21,6 +22,7 @@ def register_default_signals() -> None:
   register_signal(PIISignal)
   register_signal(TextStatisticsSignal)
   register_signal(SpacyNER)
+  register_signal(NearDuplicateSignal)
 
   # Embeddings.
   register_signal(Cohere)

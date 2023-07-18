@@ -617,7 +617,7 @@ class DatasetDuckDB(Dataset):
 
     leaf_is_float = is_float(leaf.dtype)
     leaf_is_integer = is_integer(leaf.dtype)
-    if leaf_is_float or leaf_is_integer:
+    if not leaf.categorical and (leaf_is_float or leaf_is_integer):
       if named_bins is None:
         # Auto-bin.
         named_bins = _auto_bins(stats, NUM_AUTO_BINS)
