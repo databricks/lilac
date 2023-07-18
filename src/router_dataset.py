@@ -2,11 +2,12 @@
 from typing import Optional, Sequence, Union, cast
 from urllib.parse import unquote
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, validator
 
-from .config import CONFIG, data_path
+from .auth import get_user_access
+from .config import data_path
 from .data.dataset import BinaryOp
 from .data.dataset import Column as DBColumn
 from .data.dataset import DatasetManifest, DatasetSettings, FeatureListValue, FeatureValue
@@ -82,8 +83,8 @@ class ComputeSignalOptions(BaseModel):
 @router.delete('/{namespace}/{dataset_name}')
 def delete_dataset(namespace: str, dataset_name: str) -> None:
   """Delete the dataset."""
-  if CONFIG.get('LILAC_READONLY', False):
-    raise ValueError('Server is in readonly mode. This disables dataset.delete_dataset.')
+  if not get_user_access().dataset.delete_dataset:
+    raise HTTPException(401, 'User does not have access to delete this dataset.')
 
   dataset = get_dataset(namespace, dataset_name)
   dataset.delete()
@@ -99,8 +100,8 @@ class ComputeSignalResponse(BaseModel):
 def compute_signal(namespace: str, dataset_name: str,
                    options: ComputeSignalOptions) -> ComputeSignalResponse:
   """Compute a signal for a dataset."""
-  if CONFIG.get('LILAC_READONLY', False):
-    raise ValueError('Server is in readonly mode. This disables dataset.compute_signal.')
+  if not get_user_access().dataset.compute_signals:
+    raise HTTPException(401, 'User does not have access to compute signals over this dataset.')
 
   def _task_compute_signal(namespace: str, dataset_name: str, options_dict: dict,
                            task_id: TaskId) -> None:
@@ -135,8 +136,8 @@ class DeleteSignalResponse(BaseModel):
 def delete_signal(namespace: str, dataset_name: str,
                   options: DeleteSignalOptions) -> DeleteSignalResponse:
   """Delete a signal from a dataset."""
-  if CONFIG.get('LILAC_READONLY', False):
-    raise ValueError('Server is in readonly mode. This disables dataset.delete_signal.')
+  if not get_user_access().dataset.compute_signals:
+    raise HTTPException(401, 'User does not have access to delete this signal.')
 
   dataset = get_dataset(namespace, dataset_name)
   dataset.delete_signal(options.signal_path)
@@ -301,8 +302,8 @@ def get_settings(namespace: str, dataset_name: str) -> DatasetSettings:
 @router.post('/{namespace}/{dataset_name}/settings', response_model_exclude_none=True)
 def update_settings(namespace: str, dataset_name: str, settings: DatasetSettings) -> None:
   """Get the media for the dataset."""
-  if CONFIG.get('LILAC_READONLY', False):
-    raise ValueError('Server is in readonly mode. This disables dataset.update_settings.')
+  if not get_user_access().dataset.compute_signals:
+    raise HTTPException(401, 'User does not have access to update the settings of this dataset.')
 
   dataset = get_dataset(namespace, dataset_name)
   dataset.update_settings(settings)

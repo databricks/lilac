@@ -11,14 +11,14 @@
     querySelectRowsSchema,
     querySettings
   } from '$lib/queries/datasetQueries';
-  import {queryServerStatus} from '$lib/queries/serverQueries';
+  import {queryUserAcls} from '$lib/queries/serverQueries';
   import {createDatasetStore, setDatasetContext, type StatsInfo} from '$lib/stores/datasetStore';
   import {
     createDatasetViewStore,
     getSelectRowsSchemaOptions,
     setDatasetViewContext
   } from '$lib/stores/datasetViewStore';
-  import {READONLY_MESSAGE, getVisibleFields} from '$lib/view_utils';
+  import {getVisibleFields} from '$lib/view_utils';
   import {getFieldsByDtype} from '$lilac';
   import {Button, Tag} from 'carbon-components-svelte';
   import {ChevronLeft, ChevronRight, Download, Reset, Settings} from 'carbon-icons-svelte';
@@ -127,8 +127,8 @@
 
   let settingsOpen = false;
 
-  const serverStatus = queryServerStatus();
-  $: isServerReadonly = $serverStatus.data?.read_only ?? true;
+  const userAcls = queryUserAcls();
+  $: canUpdateSettings = $userAcls.data?.dataset.update_settings;
 </script>
 
 <Page title={'Datasets'}>
@@ -163,12 +163,14 @@
         />
         <div
           use:hoverTooltip={{
-            text: isServerReadonly ? READONLY_MESSAGE : ''
+            text: !canUpdateSettings
+              ? 'User does not have access to update settings of this dataset.'
+              : ''
           }}
-          class:opacity-40={isServerReadonly}
+          class:opacity-40={!canUpdateSettings}
         >
           <Button
-            disabled={isServerReadonly}
+            disabled={!canUpdateSettings}
             size="field"
             kind="ghost"
             icon={Settings}

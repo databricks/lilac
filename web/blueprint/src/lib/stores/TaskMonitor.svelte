@@ -1,14 +1,15 @@
 <script lang="ts">
-  import {queryServerStatus} from '$lib/queries/serverQueries';
+  import {queryUserAcls} from '$lib/queries/serverQueries';
   import {queryTaskManifest} from '$lib/queries/taskQueries';
   import {onTasksUpdate} from './taskMonitoringStore';
 
   const tasks = queryTaskManifest();
-  const serverStatus = queryServerStatus();
-  $: isServerReadonly = $serverStatus.data?.read_only ?? true;
+
+  const userAcls = queryUserAcls();
+  $: canRunTasks = $userAcls.data?.dataset.compute_signals || $userAcls.data?.create_dataset;
 
   $: {
-    if ($tasks.isSuccess && !isServerReadonly) {
+    if ($tasks.isSuccess && canRunTasks) {
       onTasksUpdate($tasks.data);
     }
   }

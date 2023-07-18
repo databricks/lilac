@@ -24,7 +24,6 @@ import type {DatasetState} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
-export const READONLY_MESSAGE = `The server is in read-only mode. Set the LILAC_READONLY environment variable to false to enable edits.`;
 export function getVisibleFields(
   selectedColumns: {[path: string]: boolean} | null,
   schema: LilacSchema | null,

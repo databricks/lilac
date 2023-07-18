@@ -1,7 +1,6 @@
 <script lang="ts">
-  import {queryServerStatus} from '$lib/queries/serverQueries';
+  import {queryUserAcls} from '$lib/queries/serverQueries';
   import {queryTaskManifest} from '$lib/queries/taskQueries';
-  import {READONLY_MESSAGE} from '$lib/view_utils';
   import {Loading, Popover, ProgressBar} from 'carbon-components-svelte';
   import type {ProgressBarProps} from 'carbon-components-svelte/types/ProgressBar/ProgressBar.svelte';
   import Checkmark from 'carbon-icons-svelte/lib/Checkmark.svelte';
@@ -25,19 +24,19 @@
     error: 'error'
   };
 
-  const serverStatus = queryServerStatus();
-  $: isServerReadonly = $serverStatus.data?.read_only ?? true;
+  const userAcls = queryUserAcls();
+  $: canRunTasks = $userAcls.data?.dataset.compute_signals || $userAcls.data?.create_dataset;
 </script>
 
 <div
   use:hoverTooltip={{
-    text: isServerReadonly ? READONLY_MESSAGE : ''
+    text: !canRunTasks ? 'User does not have access to run tasks.' : ''
   }}
 >
   <button
-    disabled={isServerReadonly}
+    disabled={!canRunTasks}
     class="task-button relative h-8 rounded border p-2 transition"
-    class:opacity-40={isServerReadonly}
+    class:opacity-40={!canRunTasks}
     on:click|stopPropagation={() => (showTasks = !showTasks)}
     class:bg-white={!runningTasks.length}
     class:bg-blue-200={runningTasks.length}

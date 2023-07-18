@@ -1,9 +1,9 @@
 <script lang="ts">
   import {deleteSignalMutation} from '$lib/queries/datasetQueries';
-  import {queryServerStatus} from '$lib/queries/serverQueries';
+  import {queryUserAcls} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {READONLY_MESSAGE, isPreviewSignal} from '$lib/view_utils';
+  import {isPreviewSignal} from '$lib/view_utils';
   import {
     isFilterableField,
     isSignalField,
@@ -38,8 +38,9 @@
   $: hasMenu =
     (isSortableField(field) || isFilterableField(field) || !isSignal || isSignalRoot) && !isPreview;
 
-  const serverStatus = queryServerStatus();
-  $: isServerReadonly = $serverStatus.data?.read_only ?? true;
+  const userAcls = queryUserAcls();
+  $: canComputeSignals = $userAcls.data?.dataset.compute_signals;
+  $: canDeleteSignals = $userAcls.data?.dataset.delete_signals;
 
   function deleteSignalClicked() {
     $deleteSignal.mutate([namespace, datasetName, {signal_path: field.path}], {
@@ -73,11 +74,13 @@
       <div
         class="w-full"
         use:hoverTooltip={{
-          text: isServerReadonly ? READONLY_MESSAGE : ''
+          text: !canComputeSignals
+            ? 'User does not have access to compute embeddings over this dataset.'
+            : ''
         }}
       >
         <OverflowMenuItem
-          disabled={isServerReadonly}
+          disabled={!canComputeSignals}
           text="Compute embedding"
           on:click={() =>
             triggerCommand({
@@ -105,12 +108,14 @@
       <div
         class="w-full"
         use:hoverTooltip={{
-          text: isServerReadonly ? READONLY_MESSAGE : ''
+          text: !canComputeSignals
+            ? 'User does not have access to compute signals over this dataset.'
+            : ''
         }}
       >
         <OverflowMenuItem
           text="Compute signal"
-          disabled={isServerReadonly}
+          disabled={!canComputeSignals}
           on:click={() =>
             triggerCommand({
               command: Command.ComputeSignal,
@@ -125,11 +130,13 @@
       <div
         class="w-full"
         use:hoverTooltip={{
-          text: isServerReadonly ? READONLY_MESSAGE : ''
+          text: !canDeleteSignals
+            ? 'User does not have access to delete signals for this dataset.'
+            : ''
         }}
       >
         <OverflowMenuItem
-          disabled={isServerReadonly}
+          disabled={!canDeleteSignals}
           text="Delete signal"
           on:click={() => (deleteSignalOpen = true)}
         />

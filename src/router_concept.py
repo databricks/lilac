@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from openai_function_call import OpenAISchema
 from pydantic import BaseModel, Field
 
+from .auth import get_user_access
 from .concepts.concept import (
   DRAFT_MAIN,
   Concept,
@@ -81,8 +82,8 @@ def edit_concept(namespace: str, concept_name: str, change: ConceptUpdate) -> Co
 @router.delete('/{namespace}/{concept_name}')
 def delete_concept(namespace: str, concept_name: str) -> None:
   """Deletes the concept from the database."""
-  if CONFIG.get('LILAC_READONLY', False):
-    raise ValueError('Server is in readonly mode. This disables concept.delete_concept.')
+  if not get_user_access().concept.delete_any_concept:
+    raise HTTPException(401, 'User does not have access to delete this concept.')
 
   DISK_CONCEPT_DB.remove(namespace, concept_name)
   # Delete concept models from all datasets that are using this concept.

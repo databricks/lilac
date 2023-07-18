@@ -3,16 +3,15 @@
   import Page from '$lib/components/Page.svelte';
   import {hoverTooltip} from '$lib/components/common/HoverTooltip';
   import {deleteDatasetMutation, queryDatasets} from '$lib/queries/datasetQueries';
-  import {queryServerStatus} from '$lib/queries/serverQueries';
+  import {queryUserAcls} from '$lib/queries/serverQueries';
   import {datasetLink} from '$lib/utils';
-  import {READONLY_MESSAGE} from '$lib/view_utils';
   import {Button, InlineNotification, Modal, SkeletonText} from 'carbon-components-svelte';
   import {InProgress, TrashCan} from 'carbon-icons-svelte';
 
   const datasets = queryDatasets();
   const deleteDataset = deleteDatasetMutation();
-  const serverStatus = queryServerStatus();
-  $: isServerReadonly = $serverStatus.data?.read_only ?? true;
+  const userAcls = queryUserAcls();
+  $: canDeleteDataset = $userAcls.data?.dataset.delete_dataset;
 
   let deleteDatasetInfo: {namespace: string; name: string} | null = null;
 
@@ -60,15 +59,15 @@
               >
               <div
                 use:hoverTooltip={{
-                  text: isServerReadonly ? READONLY_MESSAGE : ''
+                  text: !canDeleteDataset ? 'User does not have access to delete this dataset.' : ''
                 }}
-                class:opacity-40={isServerReadonly}
+                class:opacity-40={!canDeleteDataset}
               >
                 <button
                   title="Delete dataset"
-                  disabled={isServerReadonly}
-                  class:hover:border-red-400={!isServerReadonly}
-                  class:hover:text-red-400={!isServerReadonly}
+                  disabled={!canDeleteDataset}
+                  class:hover:border-red-400={canDeleteDataset}
+                  class:hover:text-red-400={canDeleteDataset}
                   class="h-full w-full rounded border border-gray-300 p-2"
                   on:click|stopPropagation={() =>
                     (deleteDatasetInfo = {

@@ -10,9 +10,9 @@ from fastapi import APIRouter, FastAPI
 from fastapi.responses import FileResponse, ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 
 from . import router_concept, router_data_loader, router_dataset, router_signal, router_tasks
+from .auth import UserAccess, get_user_access
 from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from .config import CONFIG, data_path
 from .router_utils import RouteErrorHandler
@@ -54,15 +54,13 @@ v1_router.include_router(router_signal.router, prefix='/signals', tags=['signals
 v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
 
 
-class ServerStatusResponse(BaseModel):
-  """Response for the server status."""
-  read_only: bool
+@v1_router.get('/acl')
+def user_acls() -> UserAccess:
+  """Returns the user's ACLs.
 
-
-@v1_router.get('/status')
-def server_status() -> ServerStatusResponse:
-  """Returns the server status."""
-  return ServerStatusResponse(read_only=CONFIG.get('LILAC_READONLY', False) or False)
+  NOTE: Validation happens server-side as well. This is just used for UI treatment.
+  """
+  return get_user_access()
 
 
 app.include_router(v1_router, prefix='/api/v1')
