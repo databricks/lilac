@@ -40,9 +40,6 @@ class LangDetectionSignal(TextSignal):
     split_symbol = '\n\n'
 
     for text in data:
-      if not text:
-        return None
-
       offset = 0
       new_offset = 0
       result: list[Item] = []
