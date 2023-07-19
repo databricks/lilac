@@ -68,7 +68,11 @@ export function getRenderSpans(
       pathsProcessed.add(mergedSpanPath);
     }
 
+    // The named values only when the path is first seen (to power the hover tooltip).
+    const firstNamedValues: SpanHoverNamedValue[] = [];
+    // All named values.
     const namedValues: SpanHoverNamedValue[] = [];
+
     // Compute the maximum score for all original spans matching this render span to choose the
     // color.
     let maxScore = -Infinity;
@@ -98,9 +102,11 @@ export function getRenderSpans(
           const originalPath = serializePath(L.path(originalSpan as LilacValueNode)!);
           const pathSeen = !newPaths.includes(originalPath);
 
+          const namedValue = {value, info: valueInfo, specificPath: L.path(valueNode)!};
           if (!pathSeen) {
-            namedValues.push({value, info: valueInfo});
+            firstNamedValues.push(namedValue);
           }
+          namedValues.push(namedValue);
           if (valueInfo.type === 'concept_score' || valueInfo.type === 'semantic_similarity') {
             if ((value as number) > 0.5) {
               isShownSnippet = true;
@@ -132,7 +138,7 @@ export function getRenderSpans(
       isHighlightBolded: isLabeled,
       isShownSnippet,
       snippetScore: maxScore,
-      namedValues,
+      namedValues: firstNamedValues,
       paths: mergedSpan.paths,
       text: mergedSpan.text,
       snippetText: mergedSpan.text,
