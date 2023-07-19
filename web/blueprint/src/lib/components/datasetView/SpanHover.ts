@@ -1,4 +1,4 @@
-import {deserializePath, pathIsMatching} from '$lilac';
+import {deserializePath, pathIsEqual} from '$lilac';
 import type {SvelteComponent} from 'svelte';
 import SpanHoverTooltip, {type SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
 
@@ -17,9 +17,15 @@ export function spanHover(element: HTMLSpanElement, spanHoverInfo: SpanHoverInfo
   }
   function showSpan() {
     const namedValues = curSpanHoverInfo.namedValues.filter(namedValue =>
-      Array.from(curSpanHoverInfo.spansHovered).some(path =>
-        pathIsMatching(namedValue.info.spanPath, deserializePath(path))
-      )
+      Array.from(curSpanHoverInfo.spansHovered).some(path => {
+        const spanHoveredPath = deserializePath(path);
+        // The specific path may point to metadata under the hovered span, so we cut it to the
+        // length of the hovered span to check if they match.
+        return pathIsEqual(
+          namedValue.specificPath.slice(0, spanHoveredPath.length),
+          spanHoveredPath
+        );
+      })
     );
     if (curSpanHoverInfo.itemScrollContainer != null) {
       curSpanHoverInfo.itemScrollContainer.addEventListener('scroll', itemScrollListener);

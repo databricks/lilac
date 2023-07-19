@@ -27,13 +27,15 @@
         on:change={e => checkboxClicked(field, e)}
       />
     </div>
-    <div class="flex w-8 items-center">
-      {#if field.dtype}
-        <svelte:component this={DTYPE_TO_ICON[field.dtype]} title={field.dtype} />
-      {:else}
-        <span class="font-mono">{'{}'}</span>
-      {/if}
-      {#if field.path.indexOf(PATH_WILDCARD) >= 0}[]{/if}
+    <div class="flex w-10">
+      <div class="inline-flex items-center rounded-md bg-blue-200 p-0.5">
+        {#if field.dtype}
+          <svelte:component this={DTYPE_TO_ICON[field.dtype]} title={field.dtype} />
+        {:else}
+          <span class="font-mono">{'{}'}</span>
+        {/if}
+        {#if field.path.indexOf(PATH_WILDCARD) >= 0}[]{/if}
+      </div>
     </div>
     <div class="flex-grow">{serializePath(field.path)}</div>
   </div>

@@ -1,13 +1,18 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import Page from '$lib/components/Page.svelte';
+  import {hoverTooltip} from '$lib/components/common/HoverTooltip';
   import {deleteDatasetMutation, queryDatasets} from '$lib/queries/datasetQueries';
+  import {queryUserAcls} from '$lib/queries/serverQueries';
   import {datasetLink} from '$lib/utils';
   import {Button, InlineNotification, Modal, SkeletonText} from 'carbon-components-svelte';
   import {InProgress, TrashCan} from 'carbon-icons-svelte';
 
   const datasets = queryDatasets();
   const deleteDataset = deleteDatasetMutation();
+  const userAcls = queryUserAcls();
+  $: canDeleteDataset = $userAcls.data?.dataset.delete_dataset;
+  $: canCreateDataset = $userAcls.data?.create_dataset;
 
   let deleteDatasetInfo: {namespace: string; name: string} | null = null;
 
@@ -24,7 +29,9 @@
 
 <Page title={'Datasets'}>
   <div slot="header-right">
-    <Button on:click={() => goto('/datasets/new')}>Add Dataset</Button>
+    <Button size="small" disabled={!canCreateDataset} on:click={() => goto('/datasets/new')}
+      >Add Dataset</Button
+    >
   </div>
   <div class="flex flex-col gap-y-4 p-4">
     <div class="flex flex-wrap gap-x-4 gap-y-4">
@@ -53,14 +60,27 @@
                 on:click={() => goto(datasetLink(dataset.namespace, dataset.dataset_name))}
                 >Open</Button
               >
-              <button
-                title="Remove sample"
-                class="rounded border border-gray-300 p-2 hover:border-red-400 hover:text-red-400"
-                on:click|stopPropagation={() =>
-                  (deleteDatasetInfo = {namespace: dataset.namespace, name: dataset.dataset_name})}
+              <div
+                use:hoverTooltip={{
+                  text: !canDeleteDataset ? 'User does not have access to delete this dataset.' : ''
+                }}
+                class:opacity-40={!canDeleteDataset}
               >
-                <TrashCan size={16} />
-              </button>
+                <button
+                  title="Delete dataset"
+                  disabled={!canDeleteDataset}
+                  class:hover:border-red-400={canDeleteDataset}
+                  class:hover:text-red-400={canDeleteDataset}
+                  class="h-full w-full rounded border border-gray-300 p-2"
+                  on:click|stopPropagation={() =>
+                    (deleteDatasetInfo = {
+                      namespace: dataset.namespace,
+                      name: dataset.dataset_name
+                    })}
+                >
+                  <TrashCan size={16} />
+                </button>
+              </div>
             </div>
           </button>
         {/each}

@@ -12,6 +12,7 @@ from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 
 from . import router_concept, router_data_loader, router_dataset, router_signal, router_tasks
+from .auth import UserAccess, get_user_access
 from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from .config import CONFIG, data_path
 from .router_utils import RouteErrorHandler
@@ -51,6 +52,16 @@ v1_router.include_router(router_concept.router, prefix='/concepts', tags=['conce
 v1_router.include_router(router_data_loader.router, prefix='/data_loaders', tags=['data_loaders'])
 v1_router.include_router(router_signal.router, prefix='/signals', tags=['signals'])
 v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
+
+
+@v1_router.get('/acl')
+def user_acls() -> UserAccess:
+  """Returns the user's ACLs.
+
+  NOTE: Validation happens server-side as well. This is just used for UI treatment.
+  """
+  return get_user_access()
+
 
 app.include_router(v1_router, prefix='/api/v1')
 

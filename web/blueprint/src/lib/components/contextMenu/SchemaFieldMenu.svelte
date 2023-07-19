@@ -1,5 +1,6 @@
 <script lang="ts">
   import {deleteSignalMutation} from '$lib/queries/datasetQueries';
+  import {queryUserAcls} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {isPreviewSignal} from '$lib/view_utils';
@@ -15,6 +16,7 @@
   import {Modal, OverflowMenu, OverflowMenuItem} from 'carbon-components-svelte';
   import {InProgress} from 'carbon-icons-svelte';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
 
   export let field: LilacField;
   export let schema: LilacSchema;
@@ -35,6 +37,10 @@
   $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, field.path);
   $: hasMenu =
     (isSortableField(field) || isFilterableField(field) || !isSignal || isSignalRoot) && !isPreview;
+
+  const userAcls = queryUserAcls();
+  $: canComputeSignals = $userAcls.data?.dataset.compute_signals;
+  $: canDeleteSignals = $userAcls.data?.dataset.delete_signals;
 
   function deleteSignalClicked() {
     $deleteSignal.mutate([namespace, datasetName, {signal_path: field.path}], {
@@ -65,16 +71,26 @@
       />
     {/if}
     {#if !isSignal}
-      <OverflowMenuItem
-        text="Compute embedding"
-        on:click={() =>
-          triggerCommand({
-            command: Command.ComputeEmbedding,
-            namespace,
-            datasetName,
-            path: field?.path
-          })}
-      />
+      <div
+        class="w-full"
+        use:hoverTooltip={{
+          text: !canComputeSignals
+            ? 'User does not have access to compute embeddings over this dataset.'
+            : ''
+        }}
+      >
+        <OverflowMenuItem
+          disabled={!canComputeSignals}
+          text="Compute embedding"
+          on:click={() =>
+            triggerCommand({
+              command: Command.ComputeEmbedding,
+              namespace,
+              datasetName,
+              path: field?.path
+            })}
+        />
+      </div>
     {/if}
     {#if !isSignal}
       <OverflowMenuItem
@@ -89,19 +105,42 @@
       />
     {/if}
     {#if !isSignal}
-      <OverflowMenuItem
-        text="Compute signal"
-        on:click={() =>
-          triggerCommand({
-            command: Command.ComputeSignal,
-            namespace,
-            datasetName,
-            path: field?.path
-          })}
-      />
+      <div
+        class="w-full"
+        use:hoverTooltip={{
+          text: !canComputeSignals
+            ? 'User does not have access to compute signals over this dataset.'
+            : ''
+        }}
+      >
+        <OverflowMenuItem
+          text="Compute signal"
+          disabled={!canComputeSignals}
+          on:click={() =>
+            triggerCommand({
+              command: Command.ComputeSignal,
+              namespace,
+              datasetName,
+              path: field?.path
+            })}
+        />
+      </div>
     {/if}
     {#if isSignalRoot}
-      <OverflowMenuItem text="Delete signal" on:click={() => (deleteSignalOpen = true)} />
+      <div
+        class="w-full"
+        use:hoverTooltip={{
+          text: !canDeleteSignals
+            ? 'User does not have access to delete signals for this dataset.'
+            : ''
+        }}
+      >
+        <OverflowMenuItem
+          disabled={!canDeleteSignals}
+          text="Delete signal"
+          on:click={() => (deleteSignalOpen = true)}
+        />
+      </div>
     {/if}
   </OverflowMenu>
 {/if}

@@ -2,8 +2,10 @@
   import {goto} from '$app/navigation';
   import Page from '$lib/components/Page.svelte';
   import Commands, {Command, triggerCommand} from '$lib/components/commands/Commands.svelte';
+  import {hoverTooltip} from '$lib/components/common/HoverTooltip';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
+  import {queryUserAcls} from '$lib/queries/serverQueries';
   import {datasetStores} from '$lib/stores/datasetStore';
   import {datasetViewStores} from '$lib/stores/datasetViewStore';
   import {urlHash} from '$lib/stores/urlHashStore';
@@ -29,6 +31,8 @@
 
   const concepts = queryConcepts();
   const deleteConcept = deleteConceptMutation();
+  const userAcls = queryUserAcls();
+  $: canDeleteConcepts = $userAcls.data?.concept.delete_any_concept;
 
   $: concept = namespace && conceptName ? queryConcept(namespace, conceptName) : undefined;
 
@@ -52,6 +56,7 @@
 <Page title={'Concepts'}>
   <div slot="header-right">
     <Button
+      size="small"
       on:click={() =>
         triggerCommand({
           command: Command.CreateConcept,
@@ -74,13 +79,21 @@
           >
             <span class="opacity-50">{c.namespace} / </span><span> {c.name}</span>
           </a>
-          <button
-            title="Remove concept"
-            class="p-3 opacity-50 hover:text-red-400 hover:opacity-100"
-            on:click={() => (deleteConceptInfo = {namespace: c.namespace, name: c.name})}
+          <div
+            use:hoverTooltip={{
+              text: !canDeleteConcepts ? 'User does not have access to delete concepts.' : ''
+            }}
+            class:opacity-40={!canDeleteConcepts}
           >
-            <TrashCan size={16} />
-          </button>
+            <button
+              title="Remove concept"
+              disabled={!canDeleteConcepts}
+              class="p-3 opacity-50 hover:text-red-400 hover:opacity-100"
+              on:click={() => (deleteConceptInfo = {namespace: c.namespace, name: c.name})}
+            >
+              <TrashCan size={16} />
+            </button>
+          </div>
         </div>
       {/each}
 

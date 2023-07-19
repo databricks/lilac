@@ -11,6 +11,7 @@
     querySelectRowsSchema,
     querySettings
   } from '$lib/queries/datasetQueries';
+  import {queryUserAcls} from '$lib/queries/serverQueries';
   import {createDatasetStore, setDatasetContext, type StatsInfo} from '$lib/stores/datasetStore';
   import {
     createDatasetViewStore,
@@ -111,6 +112,9 @@
 
   let settingsOpen = false;
   let downloadOpen = false;
+
+  const userAcls = queryUserAcls();
+  $: canUpdateSettings = $userAcls.data?.dataset.update_settings;
 </script>
 
 <Page title={'Datasets'}>
@@ -143,13 +147,23 @@
           iconDescription="Download data"
           on:click={() => (downloadOpen = true)}
         />
-        <Button
-          size="field"
-          kind="ghost"
-          icon={Settings}
-          iconDescription="Dataset settings"
-          on:click={() => (settingsOpen = true)}
-        />
+        <div
+          use:hoverTooltip={{
+            text: !canUpdateSettings
+              ? 'User does not have access to update settings of this dataset.'
+              : ''
+          }}
+          class:opacity-40={!canUpdateSettings}
+        >
+          <Button
+            disabled={!canUpdateSettings}
+            size="field"
+            kind="ghost"
+            icon={Settings}
+            iconDescription="Dataset settings"
+            on:click={() => (settingsOpen = true)}
+          />
+        </div>
       </div>
     </div>
   </div>

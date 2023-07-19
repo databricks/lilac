@@ -2,11 +2,12 @@
   export interface SpanHoverNamedValue {
     info: SpanValueInfo;
     value: DataTypeCasted;
+    specificPath: Path;
   }
 </script>
 
 <script lang="ts">
-  import {isNumeric, type DataTypeCasted} from '$lilac';
+  import {isNumeric, type DataTypeCasted, type Path} from '$lilac';
   import {colorFromScore} from './colors';
   import type {SpanValueInfo} from './spanHighlight';
 
