@@ -1,8 +1,8 @@
 <script lang="ts">
-  import {queryDatasetSchema} from '$lib/queries/datasetQueries';
+  import {querySelectRows} from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {isSignalField, petals, type LilacField, type LilacSchema} from '$lilac';
+  import {UUID_COLUMN, isSignalField, petals, type LilacField, type LilacSchema} from '$lilac';
   import {
     ComposedModal,
     ModalBody,
@@ -10,22 +10,31 @@
     ModalHeader,
     SkeletonText
   } from 'carbon-components-svelte';
+  import {createEventDispatcher} from 'svelte';
   import DownloadFieldList from './DownloadFieldList.svelte';
 
   export let open = false;
+  export let schema: LilacSchema;
+
+  const dispatch = createEventDispatcher();
 
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
 
-  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
-  $: ({sourceFields, enrichedFields} = getFields($schema.data));
+  $: ({sourceFields, enrichedFields} = getFields(schema));
 
   let checkedSourceFields: LilacField[] = [];
   let checkedEnrichedFields: LilacField[] = [];
 
   $: downloadFields = [...checkedSourceFields, ...checkedEnrichedFields];
 
-  $: console.log(downloadFields);
+  $: previewRows = querySelectRows($datasetViewStore.namespace, $datasetViewStore.datasetName, {
+    columns: downloadFields.map(x => x.path),
+    limit: 3,
+    combine_columns: false
+  });
+
+  $: console.log($previewRows.data);
 
   function getFields(schema: LilacSchema | undefined) {
     if (schema == null) {
@@ -34,7 +43,9 @@
     const petalFields = petals(schema).filter(
       field => ['string_span', 'embedding'].indexOf(field.dtype!) === -1
     );
-    const sourceFields = petalFields.filter(f => !isSignalField(f, schema));
+    const sourceFields = petalFields.filter(
+      f => !isSignalField(f, schema) && f.path.at(-1) !== UUID_COLUMN
+    );
     const enrichedFields = petalFields.filter(f => isSignalField(f, schema));
     return {sourceFields, enrichedFields};
   }
@@ -54,11 +65,23 @@
     link.click();
     link.remove();
   }
+
+  function close() {
+    open = false;
+    dispatch('close');
+  }
 </script>
 
 <ComposedModal {open} on:submit={submit} on:close={() => (open = false)}>
   <ModalHeader title="Download data" />
   <ModalBody hasForm>
+    <section>
+      {#if downloadFields.length === 0}
+        <p class="text-gray-600">
+          No fields selected. Please select at least one field to download.
+        </p>
+      {/if}
+    </section>
     <section>
       <h4>Select source fields</h4>
       {#if sourceFields == null}
@@ -67,16 +90,26 @@
         <DownloadFieldList fields={sourceFields} bind:checkedFields={checkedSourceFields} />
       {/if}
     </section>
+    {#if enrichedFields == null || enrichedFields.length > 0}
+      <section>
+        <h4>Select enriched fields</h4>
+        {#if enrichedFields == null}
+          <SkeletonText />
+        {:else}
+          <DownloadFieldList fields={enrichedFields} bind:checkedFields={checkedEnrichedFields} />
+        {/if}
+      </section>
+    {/if}
     <section>
-      <h4>Select enriched fields</h4>
-      {#if enrichedFields == null}
-        <SkeletonText />
-      {:else}
-        <DownloadFieldList fields={enrichedFields} bind:checkedFields={checkedEnrichedFields} />
-      {/if}
+      <h4>Download preview</h4>
     </section>
   </ModalBody>
-  <ModalFooter primaryButtonText="Save" />
+  <ModalFooter
+    primaryButtonText="Download"
+    primaryButtonDisabled={downloadFields.length === 0}
+    secondaryButtonText="Cancel"
+    on:click:button--secondary={close}
+  />
 </ComposedModal>
 
 <style lang="postcss">

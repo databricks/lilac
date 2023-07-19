@@ -150,7 +150,7 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
     }),
     num_items=2)
 
-  result = dataset.select_rows()
+  result = dataset.select_rows(combine_columns=True)
   expected_result = [{
     UUID_COLUMN: '1',
     'text': enriched_item(
@@ -199,7 +199,7 @@ def test_auto_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixt
     }),
     num_items=2)
 
-  result = dataset.select_rows()
+  result = dataset.select_rows(combine_columns=True)
   expected_result = [{
     UUID_COLUMN: '1',
     'text': enriched_item(
@@ -239,7 +239,7 @@ def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(TestSplitter(), 'text')
   dataset.compute_signal(entity, ('text', 'test_splitter', '*'))
 
-  result = dataset.select_rows(['text'])
+  result = dataset.select_rows(['text'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': enriched_item(

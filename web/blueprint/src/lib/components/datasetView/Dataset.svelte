@@ -183,7 +183,9 @@
   </div>
 
   <DatasetSettingsModal bind:open={settingsOpen} />
-  <DownloadModal bind:open={downloadOpen} />
+  {#if $schema.data}
+    <DownloadModal bind:open={downloadOpen} schema={$schema.data} />
+  {/if}
 </Page>
 <Commands />
 

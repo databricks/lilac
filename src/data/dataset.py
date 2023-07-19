@@ -433,10 +433,3 @@ def make_parquet_id(signal: Signal,
     column_alias = column_alias[:-2]
 
   return f'{signal.key(is_computed_signal=is_computed_signal)}({column_alias})'
-
-
-def val(path: Path) -> PathTuple:
-  """Returns the value at a path."""
-  if path[-1] == VALUE_KEY:
-    raise ValueError(f'Path "{path}" already is a value path.')
-  return (*normalize_path(path), VALUE_KEY)
