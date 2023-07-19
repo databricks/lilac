@@ -19,7 +19,7 @@
     MultiSelectItemId
   } from 'carbon-components-svelte/types/MultiSelect/MultiSelect.svelte';
 
-  export let settingsOpen = false;
+  export let open = false;
   const datasetViewStore = getDatasetViewContext();
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
@@ -53,7 +53,7 @@
       [$datasetViewStore.namespace, $datasetViewStore.datasetName, newSettings],
       {
         onSuccess: () => {
-          settingsOpen = false;
+          open = false;
         }
       }
     );
@@ -69,7 +69,7 @@
   }
 </script>
 
-<ComposedModal open={settingsOpen} on:submit={submit} on:close={() => (settingsOpen = false)}>
+<ComposedModal {open} on:submit={submit} on:close={() => (open = false)}>
   <ModalHeader label="Changes" title="Dataset settings" />
   <ModalBody hasForm>
     {#if $settings.isFetching}
