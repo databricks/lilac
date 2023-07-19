@@ -1,5 +1,6 @@
 <script lang="ts">
-  import {serializePath, type LilacField} from '$lilac';
+  import {DTYPE_TO_ICON} from '$lib/view_utils';
+  import {PATH_WILDCARD, serializePath, type LilacField} from '$lilac';
   import {Checkbox} from 'carbon-components-svelte';
 
   export let fields: LilacField[];
@@ -18,13 +19,21 @@
 
 {#each fields as field}
   <div class="flex items-center">
-    <div class="mr-4">
+    <div class="mr-2">
       <Checkbox
         labelText="Download"
         hideLabel
         checked={checkedFields.indexOf(field) >= 0}
         on:change={e => checkboxClicked(field, e)}
       />
+    </div>
+    <div class="flex w-8 items-center">
+      {#if field.dtype}
+        <svelte:component this={DTYPE_TO_ICON[field.dtype]} title={field.dtype} />
+      {:else}
+        <span class="font-mono">{'{}'}</span>
+      {/if}
+      {#if field.path.indexOf(PATH_WILDCARD) >= 0}[]{/if}
     </div>
     <div class="flex-grow">{serializePath(field.path)}</div>
   </div>

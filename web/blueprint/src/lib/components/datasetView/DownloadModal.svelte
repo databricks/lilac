@@ -1,6 +1,5 @@
 <script lang="ts">
   import {querySelectRows} from '$lib/queries/datasetQueries';
-  import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {UUID_COLUMN, isSignalField, petals, type LilacField, type LilacSchema} from '$lilac';
   import {
@@ -8,7 +7,8 @@
     ModalBody,
     ModalFooter,
     ModalHeader,
-    SkeletonText
+    SkeletonText,
+    TextArea
   } from 'carbon-components-svelte';
   import {createEventDispatcher} from 'svelte';
   import DownloadFieldList from './DownloadFieldList.svelte';
@@ -19,7 +19,6 @@
   const dispatch = createEventDispatcher();
 
   const datasetViewStore = getDatasetViewContext();
-  const datasetStore = getDatasetContext();
 
   $: ({sourceFields, enrichedFields} = getFields(schema));
 
@@ -28,13 +27,14 @@
 
   $: downloadFields = [...checkedSourceFields, ...checkedEnrichedFields];
 
-  $: previewRows = querySelectRows($datasetViewStore.namespace, $datasetViewStore.datasetName, {
-    columns: downloadFields.map(x => x.path),
-    limit: 3,
-    combine_columns: false
-  });
-
-  $: console.log($previewRows.data);
+  $: previewRows =
+    downloadFields.length > 0
+      ? querySelectRows($datasetViewStore.namespace, $datasetViewStore.datasetName, {
+          columns: downloadFields.map(x => x.path),
+          limit: 3,
+          combine_columns: false
+        })
+      : null;
 
   function getFields(schema: LilacSchema | undefined) {
     if (schema == null) {
@@ -53,8 +53,7 @@
   async function submit() {
     const namespace = $datasetViewStore.namespace;
     const datasetName = $datasetViewStore.datasetName;
-    const options = $datasetViewStore.queryOptions;
-    options.columns = $datasetStore.visibleFields?.map(x => x.path);
+    const options = {combine_columns: false, columns: downloadFields.map(x => x.path)};
     const url =
       `/api/v1/datasets/${namespace}/${datasetName}/select_rows_download` +
       `?url_safe_options=${encodeURIComponent(JSON.stringify(options))}`;
@@ -72,16 +71,9 @@
   }
 </script>
 
-<ComposedModal {open} on:submit={submit} on:close={() => (open = false)}>
+<ComposedModal size="lg" {open} on:submit={submit} on:close={() => (open = false)}>
   <ModalHeader title="Download data" />
   <ModalBody hasForm>
-    <section>
-      {#if downloadFields.length === 0}
-        <p class="text-gray-600">
-          No fields selected. Please select at least one field to download.
-        </p>
-      {/if}
-    </section>
     <section>
       <h4>Select source fields</h4>
       {#if sourceFields == null}
@@ -102,6 +94,24 @@
     {/if}
     <section>
       <h4>Download preview</h4>
+      {#if downloadFields.length === 0}
+        <p class="text-gray-600">
+          No fields selected. Please select at least one field to download.
+        </p>
+      {/if}
+      <div class="preview">
+        {#if $previewRows && $previewRows.isFetching}
+          <SkeletonText paragraph />
+        {:else if previewRows && $previewRows}
+          <TextArea
+            value={JSON.stringify($previewRows.data, null, 2)}
+            readonly
+            rows={30}
+            placeholder="3 rows of data for previewing the response"
+            class="mb-2 font-mono"
+          />
+        {/if}
+      </div>
     </section>
   </ModalBody>
   <ModalFooter
@@ -115,5 +125,8 @@
 <style lang="postcss">
   h4 {
     @apply mb-2 mt-6;
+  }
+  .preview {
+    height: 30rem;
   }
 </style>

@@ -1151,11 +1151,14 @@ class DatasetDuckDB(Dataset):
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple, schema: Schema) -> PathTuple:
     ((_, duckdb_path),) = self._column_to_duckdb_paths(
-      Column(leaf_path), schema, combine_columns=False)
+      Column(leaf_path), schema, combine_columns=False, select_leaf=True)
     return duckdb_path
 
-  def _column_to_duckdb_paths(self, column: Column, schema: Schema,
-                              combine_columns: bool) -> list[tuple[str, PathTuple]]:
+  def _column_to_duckdb_paths(self,
+                              column: Column,
+                              schema: Schema,
+                              combine_columns: bool,
+                              select_leaf: bool = False) -> list[tuple[str, PathTuple]]:
     path = column.path
     parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
       self._source_manifest, *self._signal_manifests
@@ -1163,7 +1166,7 @@ class DatasetDuckDB(Dataset):
     duckdb_paths: list[tuple[str, PathTuple]] = []
     source_has_path = False
 
-    select_a_leaf_value = column.signal_udf is not None
+    select_leaf = select_leaf or column.signal_udf is not None
 
     for m in parquet_manifests:
       # Skip this parquet file if it doesn't contain the path.
@@ -1178,7 +1181,7 @@ class DatasetDuckDB(Dataset):
         continue
 
       # Skip this parquet file if the path doesn't have a dtype.
-      if select_a_leaf_value and not m.data_schema.get_field(path).dtype:
+      if select_leaf and not m.data_schema.get_field(path).dtype:
         continue
 
       if isinstance(m, SignalManifest) and path == (UUID_COLUMN,):

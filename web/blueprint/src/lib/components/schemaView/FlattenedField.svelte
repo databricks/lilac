@@ -1,7 +1,7 @@
 <script lang="ts">
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {getSearches, isPreviewSignal} from '$lib/view_utils';
+  import {DTYPE_TO_ICON, getSearches, isPreviewSignal} from '$lib/view_utils';
 
   import {computeSignalMutation} from '$lib/queries/datasetQueries';
   import {
@@ -13,27 +13,12 @@
     isSortableField,
     pathIsEqual,
     serializePath,
-    type DataType,
     type LilacField,
     type LilacSchema,
     type TextEmbeddingSignal
   } from '$lilac';
   import {Button, Checkbox, Tag} from 'carbon-components-svelte';
-  import {
-    AssemblyCluster,
-    Boolean,
-    CharacterDecimal,
-    CharacterWholeNumber,
-    ChevronDown,
-    Chip,
-    DataBlob,
-    NotAvailable,
-    SortAscending,
-    SortDescending,
-    StringText,
-    Time,
-    type CarbonIcon
-  } from 'carbon-icons-svelte';
+  import {ChevronDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
@@ -50,29 +35,6 @@
   export let sourceField: LilacField | undefined = undefined;
   export let indent = 0;
 
-  const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
-    string: StringText,
-    string_span: StringText,
-    uint8: CharacterWholeNumber,
-    uint16: CharacterWholeNumber,
-    uint32: CharacterWholeNumber,
-    uint64: CharacterWholeNumber,
-    int8: CharacterWholeNumber,
-    int16: CharacterWholeNumber,
-    int32: CharacterWholeNumber,
-    int64: CharacterWholeNumber,
-    boolean: Boolean,
-    float16: CharacterDecimal,
-    float32: CharacterDecimal,
-    float64: CharacterDecimal,
-    time: Time,
-    date: Time,
-    timestamp: Time,
-    interval: Time,
-    embedding: AssemblyCluster,
-    binary: DataBlob,
-    null: NotAvailable
-  };
   $: isSignal = isSignalField(field, schema);
   $: isSignalRoot = isSignalRootField(field);
   $: isSourceField = !isSignal;
