@@ -3,16 +3,16 @@
   import Page from '$lib/components/Page.svelte';
   import {hoverTooltip} from '$lib/components/common/HoverTooltip';
   import {deleteDatasetMutation, queryDatasets} from '$lib/queries/datasetQueries';
-  import {queryUserAcls} from '$lib/queries/serverQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {datasetLink} from '$lib/utils';
   import {Button, InlineNotification, Modal, SkeletonText} from 'carbon-components-svelte';
   import {InProgress, TrashCan} from 'carbon-icons-svelte';
 
   const datasets = queryDatasets();
   const deleteDataset = deleteDatasetMutation();
-  const userAcls = queryUserAcls();
-  $: canDeleteDataset = $userAcls.data?.dataset.delete_dataset;
-  $: canCreateDataset = $userAcls.data?.create_dataset;
+  const authInfo = queryAuthInfo();
+  $: canDeleteDataset = $authInfo.data?.access.dataset.delete_dataset;
+  $: canCreateDataset = $authInfo.data?.access.create_dataset;
 
   let deleteDatasetInfo: {namespace: string; name: string} | null = null;
 

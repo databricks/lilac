@@ -6,6 +6,7 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export type { AuthenticationInfo } from './models/AuthenticationInfo';
 export type { BinaryFilter } from './models/BinaryFilter';
 export type { BinaryOp } from './models/BinaryOp';
 export type { Column } from './models/Column';
@@ -77,6 +78,7 @@ export type { TextSignal } from './models/TextSignal';
 export type { UnaryFilter } from './models/UnaryFilter';
 export type { UnaryOp } from './models/UnaryOp';
 export type { UserAccess } from './models/UserAccess';
+export type { UserInfo } from './models/UserInfo';
 export type { ValidationError } from './models/ValidationError';
 export type { WebManifest } from './models/WebManifest';
 
@@ -84,5 +86,6 @@ export { ConceptsService } from './services/ConceptsService';
 export { DataLoadersService } from './services/DataLoadersService';
 export { DatasetsService } from './services/DatasetsService';
 export { DefaultService } from './services/DefaultService';
+export { GoogleLoginService } from './services/GoogleLoginService';
 export { SignalsService } from './services/SignalsService';
 export { TasksService } from './services/TasksService';

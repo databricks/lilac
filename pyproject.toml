@@ -57,6 +57,8 @@ detect-secrets = "^1.4.0"
 
 # For language detection.
 langdetect = "^1.0.9"
+authlib = "^1.2.1"
+itsdangerous = "^2.1.2"
 
 [tool.poetry.group.dev]  # Deps for development.
 optional = true

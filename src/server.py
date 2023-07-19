@@ -4,15 +4,23 @@ import logging
 import os
 import shutil
 import subprocess
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import FileResponse, ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
-from . import router_concept, router_data_loader, router_dataset, router_signal, router_tasks
-from .auth import UserAccess, get_user_access
+from . import (
+  router_concept,
+  router_data_loader,
+  router_dataset,
+  router_google_login,
+  router_signal,
+  router_tasks,
+)
+from .auth import AuthenticationInfo, UserInfo, get_user_access
 from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from .config import CONFIG, data_path
 from .router_utils import RouteErrorHandler
@@ -20,6 +28,9 @@ from .tasks import task_manager
 from .utils import get_dataset_output_dir, list_datasets
 
 DIST_PATH = os.path.abspath(os.path.join('web', 'blueprint', 'build'))
+GOOGLE_CLIENT_ID = CONFIG.get('GOOGLE_CLIENT_ID', None)
+GOOGLE_CLIENT_SECRET = CONFIG.get('GOOGLE_CLIENT_SECRET', None)
+LILAC_AUTH_ENABLED = CONFIG.get('LILAC_AUTH_ENABLED', False)
 
 tags_metadata: list[dict[str, Any]] = [{
   'name': 'datasets',
@@ -45,6 +56,8 @@ app = FastAPI(
   default_response_class=ORJSONResponse,
   generate_unique_id_function=custom_generate_unique_id,
   openapi_tags=tags_metadata)
+app.add_middleware(SessionMiddleware, secret_key=CONFIG.get('LILAC_OAUTH_SECRET_KEY', None))
+app.include_router(router_google_login.router, prefix='/google', tags=['google_login'])
 
 v1_router = APIRouter(route_class=RouteErrorHandler)
 v1_router.include_router(router_dataset.router, prefix='/datasets', tags=['datasets'])
@@ -54,13 +67,24 @@ v1_router.include_router(router_signal.router, prefix='/signals', tags=['signals
 v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
 
 
-@v1_router.get('/acl')
-def user_acls() -> UserAccess:
+@app.get('/auth_info')
+def auth_info(request: Request) -> AuthenticationInfo:
   """Returns the user's ACLs.
 
   NOTE: Validation happens server-side as well. This is just used for UI treatment.
   """
-  return get_user_access()
+  user_info: Optional[UserInfo] = None
+  if LILAC_AUTH_ENABLED:
+    session_user = request.session.get('user', None)
+    if session_user:
+      user_info = UserInfo(
+        email=session_user['email'],
+        name=session_user['name'],
+        given_name=session_user['given_name'],
+        family_name=session_user['family_name'])
+
+  return AuthenticationInfo(
+    user=user_info, access=get_user_access(), auth_enabled=LILAC_AUTH_ENABLED)
 
 
 app.include_router(v1_router, prefix='/api/v1')
