@@ -6,7 +6,7 @@ name = "lilacai"
 repository = "https://github.com/lilacai/lilac"
 packages = [{include = "lilac"}]
 readme = "README.md"
-version = "0.0.5"
+version = "0.0.6"
 
 [tool.poetry.dependencies]
 
