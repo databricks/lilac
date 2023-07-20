@@ -100,6 +100,15 @@ key = ''.join(random.choices(string.ascii_uppercase + string.digits, k=64))
 print(f"LILAC_OAUTH_SECRET_KEY='{key}'")
 ```
 
+### Publishing on pip
+
+To authenticate, add the `PYPI_TOKEN` to your `.env.local` file. You can get the token from
+[pypi.org](https://pypi.org/manage/project/lilacai/settings/). To publish, run:
+
+```sh
+./scripts/publish_pip.sh
+```
+
 ### Configuration
 
 To use various API's, API keys need to be provided. Create a file named `.env.local` in the root, and add variables that are listed in `.env` with your own values.
