@@ -1,6 +1,6 @@
 <script lang="ts">
   import {deleteSignalMutation} from '$lib/queries/datasetQueries';
-  import {queryUserAcls} from '$lib/queries/serverQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {isPreviewSignal} from '$lib/view_utils';
@@ -38,9 +38,9 @@
   $: hasMenu =
     (isSortableField(field) || isFilterableField(field) || !isSignal || isSignalRoot) && !isPreview;
 
-  const userAcls = queryUserAcls();
-  $: canComputeSignals = $userAcls.data?.dataset.compute_signals;
-  $: canDeleteSignals = $userAcls.data?.dataset.delete_signals;
+  const authInfo = queryAuthInfo();
+  $: canComputeSignals = $authInfo.data?.access.dataset.compute_signals;
+  $: canDeleteSignals = $authInfo.data?.access.dataset.delete_signals;
 
   function deleteSignalClicked() {
     $deleteSignal.mutate([namespace, datasetName, {signal_path: field.path}], {

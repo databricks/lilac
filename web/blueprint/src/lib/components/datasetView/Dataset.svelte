@@ -11,7 +11,7 @@
     querySelectRowsSchema,
     querySettings
   } from '$lib/queries/datasetQueries';
-  import {queryUserAcls} from '$lib/queries/serverQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {createDatasetStore, setDatasetContext, type StatsInfo} from '$lib/stores/datasetStore';
   import {
     createDatasetViewStore,
@@ -113,8 +113,8 @@
   let settingsOpen = false;
   let downloadOpen = false;
 
-  const userAcls = queryUserAcls();
-  $: canUpdateSettings = $userAcls.data?.dataset.update_settings;
+  const authInfo = queryAuthInfo();
+  $: canUpdateSettings = $authInfo.data?.access.dataset.update_settings;
 </script>
 
 <Page title={'Datasets'}>

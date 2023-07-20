@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {queryUserAcls} from '$lib/queries/serverQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryTaskManifest} from '$lib/queries/taskQueries';
   import {Loading, Popover, ProgressBar} from 'carbon-components-svelte';
   import type {ProgressBarProps} from 'carbon-components-svelte/types/ProgressBar/ProgressBar.svelte';
@@ -24,75 +24,78 @@
     error: 'error'
   };
 
-  const userAcls = queryUserAcls();
-  $: canRunTasks = $userAcls.data?.dataset.compute_signals || $userAcls.data?.create_dataset;
+  const authInfo = queryAuthInfo();
+  $: canRunTasks =
+    $authInfo.data?.access.dataset.compute_signals || $authInfo.data?.access.create_dataset;
 </script>
 
-<div
-  use:hoverTooltip={{
-    text: !canRunTasks ? 'User does not have access to run tasks.' : ''
-  }}
->
-  <button
-    disabled={!canRunTasks}
-    class="task-button relative h-8 rounded border p-2 transition"
-    class:opacity-40={!canRunTasks}
-    on:click|stopPropagation={() => (showTasks = !showTasks)}
-    class:bg-white={!runningTasks.length}
-    class:bg-blue-200={runningTasks.length}
-    class:border-blue-400={runningTasks.length}
+{#if canRunTasks}
+  <div
+    use:hoverTooltip={{
+      text: !canRunTasks ? 'User does not have access to run tasks.' : ''
+    }}
   >
-    <div class="relative z-10 flex gap-x-2">
-      {#if runningTasks.length}
-        {runningTasks.length} running task{runningTasks.length > 1 ? 's' : ''}... <Loading
-          withOverlay={false}
-          small
-        />
-      {:else if failedTasks.length}
-        {failedTasks.length} failed task{failedTasks.length > 1 ? 's' : ''}
-      {:else}
-        Tasks <Checkmark />
-      {/if}
-    </div>
-    {#if runningTasks.length === 1}
-      <div
-        class="absolute left-0 top-0 z-0 h-full bg-blue-400 transition"
-        style:width="{progress * 100}%"
-      />
-    {/if}
-
-    <Popover
-      on:click:outside={() => {
-        if (showTasks) showTasks = false;
-      }}
-      align="bottom-right"
-      caret
-      closeOnOutsideClick
-      open={showTasks}
+    <button
+      disabled={!canRunTasks}
+      class="task-button relative h-8 rounded border p-2 transition"
+      class:opacity-40={!canRunTasks}
+      on:click|stopPropagation={() => (showTasks = !showTasks)}
+      class:bg-white={!runningTasks.length}
+      class:bg-blue-200={runningTasks.length}
+      class:border-blue-400={runningTasks.length}
     >
-      <div class="flex flex-col">
-        {#each tasksList as [id, task] (id)}
-          {@const progressValue = task.step_progress == null ? undefined : task.step_progress}
-          <div class="relative border-b-2 border-slate-200 p-4 text-left last:border-b-0">
-            <div class="text-s flex flex-row">
-              <div class="mr-2">{task.name}</div>
-            </div>
-            <div class="progress-container mt-3">
-              <ProgressBar
-                labelText={task.message || ''}
-                helperText={task.status != 'completed' ? task.details : ''}
-                value={task.status === 'completed' ? 1.0 : progressValue}
-                max={1.0}
-                size={'sm'}
-                status={taskToProgressStatus[task.status]}
-              />
-            </div>
-          </div>
-        {/each}
+      <div class="relative z-10 flex gap-x-2">
+        {#if runningTasks.length}
+          {runningTasks.length} running task{runningTasks.length > 1 ? 's' : ''}... <Loading
+            withOverlay={false}
+            small
+          />
+        {:else if failedTasks.length}
+          {failedTasks.length} failed task{failedTasks.length > 1 ? 's' : ''}
+        {:else}
+          Tasks <Checkmark />
+        {/if}
       </div>
-    </Popover>
-  </button>
-</div>
+      {#if runningTasks.length === 1}
+        <div
+          class="absolute left-0 top-0 z-0 h-full bg-blue-400 transition"
+          style:width="{progress * 100}%"
+        />
+      {/if}
+
+      <Popover
+        on:click:outside={() => {
+          if (showTasks) showTasks = false;
+        }}
+        align="bottom-right"
+        caret
+        closeOnOutsideClick
+        open={showTasks}
+      >
+        <div class="flex flex-col">
+          {#each tasksList as [id, task] (id)}
+            {@const progressValue = task.step_progress == null ? undefined : task.step_progress}
+            <div class="relative border-b-2 border-slate-200 p-4 text-left last:border-b-0">
+              <div class="text-s flex flex-row">
+                <div class="mr-2">{task.name}</div>
+              </div>
+              <div class="progress-container mt-3">
+                <ProgressBar
+                  labelText={task.message || ''}
+                  helperText={task.status != 'completed' ? task.details : ''}
+                  value={task.status === 'completed' ? 1.0 : progressValue}
+                  max={1.0}
+                  size={'sm'}
+                  status={taskToProgressStatus[task.status]}
+                />
+              </div>
+            </div>
+          {/each}
+        </div>
+      </Popover>
+    </button>
+  </div>
+{/if}
 
 <style lang="postcss">
   :global(.progress-container .bx--progress-bar__label) {

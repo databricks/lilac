@@ -1,5 +1,7 @@
 """Authentication and ACL configuration."""
 
+from typing import Optional
+
 from pydantic import BaseModel
 
 from .config import CONFIG
@@ -30,6 +32,21 @@ class UserAccess(BaseModel):
   # TODO(nsthorat): Make this keyed to each dataset and concept.
   dataset: DatasetUserAccess
   concept: ConceptUserAccess
+
+
+class UserInfo(BaseModel):
+  """User information."""
+  email: str
+  name: str
+  given_name: str
+  family_name: str
+
+
+class AuthenticationInfo(BaseModel):
+  """Authentication information for the user."""
+  user: Optional[UserInfo]
+  access: UserAccess
+  auth_enabled: bool
 
 
 def get_user_access() -> UserAccess:

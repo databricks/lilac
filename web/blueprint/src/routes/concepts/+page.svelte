@@ -5,7 +5,7 @@
   import {hoverTooltip} from '$lib/components/common/HoverTooltip';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
-  import {queryUserAcls} from '$lib/queries/serverQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {datasetStores} from '$lib/stores/datasetStore';
   import {datasetViewStores} from '$lib/stores/datasetViewStore';
   import {urlHash} from '$lib/stores/urlHashStore';
@@ -31,8 +31,8 @@
 
   const concepts = queryConcepts();
   const deleteConcept = deleteConceptMutation();
-  const userAcls = queryUserAcls();
-  $: canDeleteConcepts = $userAcls.data?.concept.delete_any_concept;
+  const authInfo = queryAuthInfo();
+  $: canDeleteConcepts = $authInfo.data?.access.concept.delete_any_concept;
 
   $: concept = namespace && conceptName ? queryConcept(namespace, conceptName) : undefined;
 
