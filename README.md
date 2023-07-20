@@ -81,6 +81,25 @@ To run the docker image locally:
 docker run -p 5432:5432 lilac_blueprint
 ```
 
+#### Authentication
+
+Authentication is done via Google login. A Google Client token should be created
+from the Google API Console. Details can be found [here](https://developers.google.com/identity/protocols/oauth2).
+
+By default, the Lilac google client is used. The secret can be found in Google
+Cloud console, and should be defined under `GOOGLE_CLIENT_SECRET` in .env.local.
+
+For the session middleware, a random string should be created and defined as `LILAC_OAUTH_SECRET_KEY` in .env.local.
+
+You can generate a random secret key with:
+
+```py
+import string
+import random
+key = ''.join(random.choices(string.ascii_uppercase + string.digits, k=64))
+print(f"LILAC_OAUTH_SECRET_KEY='{key}'")
+```
+
 ### Configuration
 
 To use various API's, API keys need to be provided. Create a file named `.env.local` in the root, and add variables that are listed in `.env` with your own values.
