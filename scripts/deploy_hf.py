@@ -62,7 +62,7 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
   run(f'rm -rf {repo_basedir}/*')
 
   # Export the requirements file so it can be pip installed in the docker container.
-  run(f'poetry export --without-hashes > {repo_basedir}/requirements.txt')
+  run(f'poetry export --extras all --without-hashes > {repo_basedir}/requirements.txt')
 
   # Copy source code.
   copy_dirs = ['src', 'web/blueprint/build']
