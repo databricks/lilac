@@ -43,9 +43,8 @@ class Cohere(TextEmbeddingSignal):
       import cohere
       self._model = cohere.Client(api_key, max_retries=10)
     except ImportError:
-      raise ImportError(
-        'Could not import the "cohere" python package. Please install it with `pip install cohere`.'
-      )
+      raise ImportError('Could not import the "cohere" python package. '
+                        'Please install it with `pip install cohere`.')
 
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:

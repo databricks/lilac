@@ -1,10 +1,8 @@
 """Sentence-BERT embeddings. Open-source models, designed to run on device."""
 import functools
 import os
-from typing import Iterable, Optional, cast
+from typing import TYPE_CHECKING, Iterable, Optional, cast
 
-import torch
-from sentence_transformers import SentenceTransformer
 from typing_extensions import override
 
 from ..config import data_path
@@ -13,6 +11,9 @@ from ..signals.signal import TextEmbeddingSignal
 from ..signals.splitters.chunk_splitter import split_text
 from ..utils import log
 from .embedding import compute_split_embeddings
+
+if TYPE_CHECKING:
+  from sentence_transformers import SentenceTransformer
 
 # The `all-mpnet-base-v2` model provides the best quality, while `all-MiniLM-L6-v2`` is 5 times
 # faster and still offers good quality. See https://www.sbert.net/docs/pretrained_models.html#sentence-embedding-models/
@@ -28,7 +29,13 @@ MODEL_NAME = MINI_LM_MODEL
 
 
 @functools.cache
-def _sbert() -> tuple[Optional[str], SentenceTransformer]:
+def _sbert() -> tuple[Optional[str], 'SentenceTransformer']:
+  try:
+    import torch
+    from sentence_transformers import SentenceTransformer
+  except ImportError:
+    raise ImportError('Could not import the "sentence_transformers" python package. '
+                      'Please install it with `pip install sentence-transformers`.')
   preferred_device: Optional[str] = None
   if torch.backends.mps.is_available():
     preferred_device = 'mps'

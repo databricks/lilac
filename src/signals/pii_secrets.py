@@ -8,8 +8,12 @@ import os
 import tempfile
 from typing import Iterator
 
-from detect_secrets import SecretsCollection
-from detect_secrets.settings import transient_settings
+try:
+  from detect_secrets import SecretsCollection
+  from detect_secrets.settings import transient_settings
+except ImportError:
+  raise ImportError('Could not import the "detect_secrets" python package. '
+                    'Please install it as optional dependency via `pip install lilac[pii]`.')
 
 from ..data.dataset_utils import lilac_span
 from ..schema import Item

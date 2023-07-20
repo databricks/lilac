@@ -1,8 +1,7 @@
 """OpenAI embeddings."""
-from typing import Iterable, cast
+from typing import TYPE_CHECKING, Iterable, cast
 
 import numpy as np
-import openai
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 from typing_extensions import override
 
@@ -11,6 +10,9 @@ from ..schema import Item, RichData
 from ..signals.signal import TextEmbeddingSignal
 from ..signals.splitters.chunk_splitter import split_text
 from .embedding import compute_split_embeddings
+
+if TYPE_CHECKING:
+  import openai
 
 NUM_PARALLEL_REQUESTS = 10
 OPENAI_BATCH_SIZE = 128
@@ -31,12 +33,20 @@ class OpenAI(TextEmbeddingSignal):
   name = 'openai'
   display_name = 'OpenAI Embeddings'
 
+  _model: 'openai.Embedding'
+
   @override
   def setup(self) -> None:
     api_key = CONFIG.get('OPENAI_API_KEY')
     if not api_key:
       raise ValueError('`OPENAI_API_KEY` environment variable not set.')
-    openai.api_key = api_key
+    try:
+      import openai
+      openai.api_key = api_key
+      self._model = openai.Embedding
+    except ImportError:
+      raise ImportError('Could not import the "openai" python package. '
+                        'Please install it with `pip install openai`.')
 
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
@@ -49,7 +59,7 @@ class OpenAI(TextEmbeddingSignal):
       # See https://github.com/search?q=repo%3Aopenai%2Fopenai-python+replace+newlines&type=code
       texts = [text.replace('\n', ' ') for text in texts]
 
-      response = openai.Embedding.create(input=texts, model=EMBEDDING_MODEL)
+      response = self._model.create(input=texts, model=EMBEDDING_MODEL)
       return [np.array(embedding['embedding'], dtype=np.float32) for embedding in response['data']]
 
     docs = cast(Iterable[str], docs)
