@@ -6,8 +6,6 @@ from typing_extensions import override
 
 from ..data.dataset_utils import lilac_span
 from ..schema import Field, Item, RichData, SignalInputType, field
-from .pii_ip_address import find_ip_addresses
-from .pii_secrets import find_secrets
 from .signal import TextSignal
 
 EMAILS_KEY = 'emails'
@@ -39,6 +37,12 @@ class PIISignal(TextSignal):
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    try:
+      from .pii_ip_address import find_ip_addresses
+      from .pii_secrets import find_secrets
+    except ImportError:
+      raise ImportError('Could not import dependencies for the "PII" signal. '
+                        'Please install optional dependencies via `pip install lilac[pii]`.')
     for text in data:
       if not isinstance(text, str):
         yield None

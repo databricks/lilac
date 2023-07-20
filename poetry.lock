@@ -4407,7 +4407,7 @@ cffi = {version = "*", markers = "implementation_name == \"pypy\""}
 name = "regex"
 version = "2023.6.3"
 description = "Alternative regular expression module, to replace re."
-optional = true
+optional = false
 python-versions = ">=3.6"
 files = [
     {file = "regex-2023.6.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:824bf3ac11001849aec3fa1d69abcb67aac3e150a933963fb12bda5151fe1bfd"},
@@ -6297,4 +6297,4 @@ text-stats = ["spacy", "textacy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.9"
-content-hash = "1164ce1a6209aa915edbc19eee66ef164ec8890c56e579c9e811bdc35fad030f"
+content-hash = "aad4322f631f6e40a037c9efea62e5221814e8dd67ef13ac59c4a3605c36a526"
