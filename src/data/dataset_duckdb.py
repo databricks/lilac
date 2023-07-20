@@ -41,6 +41,7 @@ from ..schema import (
   is_float,
   is_integer,
   is_ordinal,
+  is_temporal,
   normalize_path,
   signal_compute_type_supports_dtype,
 )
@@ -563,8 +564,7 @@ class DatasetDuckDB(Dataset):
     if not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
-    value_path = _make_value_path(path)
-    duckdb_path = self._leaf_path_to_duckdb_path(value_path, manifest.data_schema)
+    duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
     inner_select = _select_sql(
       duckdb_path, flatten=True, unnest=True, span_from=self._get_span_from(path, manifest))
 
@@ -603,7 +603,7 @@ class DatasetDuckDB(Dataset):
       min_max_query = f"""
         SELECT MIN(val) AS minVal, MAX(val) AS maxVal
         FROM (SELECT {inner_select} as val FROM t)
-        WHERE NOT isnan(val)
+        {'WHERE NOT isnan(val)' if is_float(leaf.dtype) else ''}
       """
       row = self._query(min_max_query)[0]
       result.min_val, result.max_val = row
@@ -693,6 +693,9 @@ class DatasetDuckDB(Dataset):
     """
     df = self._query_df(query)
     counts = list(df.itertuples(index=False, name=None))
+    if is_temporal(leaf.dtype):
+      # Replace any NaT with None and pd.Timestamp to native datetime objects.
+      counts = [(None if pd.isnull(val) else val.to_pydatetime(), count) for val, count in counts]
     return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)
 
   def _topk_udf_to_sort_by(
@@ -880,7 +883,7 @@ class DatasetDuckDB(Dataset):
       if final_col_name not in columns_to_merge:
         columns_to_merge[final_col_name] = {}
 
-      duckdb_paths = self._column_to_duckdb_paths(column, schema)
+      duckdb_paths = self._column_to_duckdb_paths(column, schema, combine_columns)
       span_from = self._get_span_from(path, manifest) if resolve_span or column.signal_udf else None
 
       for parquet_id, duckdb_path in duckdb_paths:
@@ -1151,29 +1154,38 @@ class DatasetDuckDB(Dataset):
     return _derived_from_path(path, manifest.data_schema) if is_span else None
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple, schema: Schema) -> PathTuple:
-    leaf_path = _make_value_path(leaf_path)
-    ((_, duckdb_path),) = self._column_to_duckdb_paths(Column(leaf_path), schema)
+    ((_, duckdb_path),) = self._column_to_duckdb_paths(
+      Column(leaf_path), schema, combine_columns=False, select_leaf=True)
     return duckdb_path
 
-  def _column_to_duckdb_paths(self, column: Column, schema: Schema) -> list[tuple[str, PathTuple]]:
+  def _column_to_duckdb_paths(self,
+                              column: Column,
+                              schema: Schema,
+                              combine_columns: bool,
+                              select_leaf: bool = False) -> list[tuple[str, PathTuple]]:
     path = column.path
     parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
       self._source_manifest, *self._signal_manifests
     ]
     duckdb_paths: list[tuple[str, PathTuple]] = []
+    source_has_path = False
 
-    select_a_leaf_value = column.signal_udf is not None
-    if path[-1] == VALUE_KEY:
-      select_a_leaf_value = True
-      path = path[:-1]
+    select_leaf = select_leaf or column.signal_udf is not None
 
     for m in parquet_manifests:
       # Skip this parquet file if it doesn't contain the path.
       if not schema_contains_path(m.data_schema, path):
         continue
 
+      if isinstance(m, SourceManifest):
+        source_has_path = True
+
+      if isinstance(m, SignalManifest) and source_has_path and not combine_columns:
+        # Skip this signal if the source already has the path and we are not combining columns.
+        continue
+
       # Skip this parquet file if the path doesn't have a dtype.
-      if select_a_leaf_value and not m.data_schema.get_field(path).dtype:
+      if select_leaf and not m.data_schema.get_field(path).dtype:
         continue
 
       if isinstance(m, SignalManifest) and path == (UUID_COLUMN,):
@@ -1440,7 +1452,7 @@ def _inner_select(sub_paths: list[PathTuple],
     inner_var = _escape_col_name(current_sub_path[0])
     current_sub_path = current_sub_path[1:]
   # Select the path inside structs. E.g. x['a']['b']['c'] given current_sub_path = [a, b, c].
-  path_key = inner_var + ''.join([f"['{p}']" for p in current_sub_path])
+  path_key = inner_var + ''.join([f'[{_escape_string_literal(p)}]' for p in current_sub_path])
   if len(sub_paths) == 1:
     if span_from:
       derived_col = _select_sql(span_from, flatten=False, unnest=False)
@@ -1653,13 +1665,6 @@ def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:
       # Skip the signal name at the end to get the source path that was enriched.
       return sub_path[:-1]
   raise ValueError('Cannot find the source path for the enriched path: {path}')
-
-
-def _make_value_path(path: PathTuple) -> PathTuple:
-  """Returns the path to the value field of the given path."""
-  if path[-1] != VALUE_KEY and path[0] != UUID_COLUMN:
-    return (*path, VALUE_KEY)
-  return path
 
 
 def _make_schema_from_path(path: PathTuple, field: Field) -> Schema:

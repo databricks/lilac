@@ -1,13 +1,14 @@
 """Text splitters using spaCy."""
-from typing import Any, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Iterable, Optional
 
-import spacy
-from spacy import Language
 from typing_extensions import override
 
 from ...data.dataset_utils import lilac_span
 from ...schema import Item, RichData
 from ...signals.signal import TextSplitterSignal
+
+if TYPE_CHECKING:
+  from spacy import Language
 
 
 class SentenceSplitterSpacy(TextSplitterSignal):
@@ -17,10 +18,18 @@ class SentenceSplitterSpacy(TextSplitterSignal):
 
   language: str = 'en'
 
-  _tokenizer: Language
+  _tokenizer: 'Language'
 
   def __init__(self, **kwargs: Any):
     super().__init__(**kwargs)
+
+  @override
+  def setup(self) -> None:
+    try:
+      import spacy
+    except ImportError:
+      raise ImportError('Could not import the "spacy" python package. '
+                        'Please install it with `pip install spacy`.')
     self._tokenizer = spacy.blank(self.language)
     self._tokenizer.add_pipe('sentencizer')
     # Increase the number of characters of the tokenizer as we're not using a parser or NER.

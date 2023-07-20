@@ -1,6 +1,7 @@
 """Tests utils of for dataset_test."""
 import os
 import pathlib
+from datetime import datetime
 from typing import Optional, Type, cast
 
 from typing_extensions import Protocol
@@ -36,6 +37,8 @@ def _infer_dtype(value: Item) -> DataType:
     return DataType.FLOAT32
   elif isinstance(value, int):
     return DataType.INT32
+  elif isinstance(value, datetime):
+    return DataType.TIMESTAMP
   else:
     raise ValueError(f'Cannot infer dtype of primitive value: {value}')
 

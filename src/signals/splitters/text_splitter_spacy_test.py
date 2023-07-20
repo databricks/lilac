@@ -8,6 +8,7 @@ from .text_splitter_test_utils import text_to_expected_spans
 
 def test_splitter_spacy() -> None:
   signal = SentenceSplitterSpacy()
+  signal.setup()
   text = 'Hello. This is a test. Final sentence.'
 
   # Compute over the text.
@@ -29,6 +30,7 @@ def test_spacy_non_en_key() -> None:
 
 def test_splitter_spacy_float() -> None:
   signal = SentenceSplitterSpacy()
+  signal.setup()
   text = 1.2
 
   # Compute over the input, make sure it doesn't crash when we pass a non-string value which can

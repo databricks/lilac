@@ -1,18 +1,16 @@
 """Language detection of a document."""
-from typing import Iterable, Optional, cast
+from typing import TYPE_CHECKING, Iterable, Optional, cast
 
-import langdetect
-from langdetect import DetectorFactory, LangDetectException
 from typing_extensions import override
 
 from ..data.dataset_utils import lilac_span
 from ..schema import Field, Item, RichData, SignalInputType, field
 from .signal import TextSignal
 
-# For consistent results.
-DetectorFactory.seed = 42
-
 LANG_CODE = 'lang_code'
+
+if TYPE_CHECKING:
+  import langdetect
 
 
 class LangDetectionSignal(TextSignal):
@@ -28,6 +26,18 @@ class LangDetectionSignal(TextSignal):
 
   input_type = SignalInputType.TEXT
   compute_type = SignalInputType.TEXT
+
+  _model: 'langdetect'
+
+  @override
+  def setup(self) -> None:
+    try:
+      import langdetect
+      langdetect.DetectorFactory.seed = 42  # For consistent results.
+    except ImportError:
+      raise ImportError('Could not import the "langdetect" python package. '
+                        'Please install it with `pip install langdetect`.')
+    self._model = langdetect
 
   @override
   def fields(self) -> Field:
@@ -51,9 +61,9 @@ class LangDetectionSignal(TextSignal):
         text_span = text_span.strip()
         if text_span:
           try:
-            lang_code = langdetect.detect(text_span)
+            lang_code = self._model.detect(text_span)
             result.append(lilac_span(offset, new_offset, {LANG_CODE: lang_code}))
-          except LangDetectException:
+          except self._model.LangDetectException:
             pass
         offset = new_offset + len(split_symbol)
       yield result

@@ -6,6 +6,7 @@ from .lang_detection import LANG_CODE, LangDetectionSignal
 
 def test_lang_detection_sentences() -> None:
   signal = LangDetectionSignal()
+  signal.setup()
   docs = [
     'War doesnt show whos right, just whos left.',
     'Ein, zwei, drei, vier',
@@ -19,6 +20,7 @@ def test_lang_detection_sentences() -> None:
 
 def test_lang_detection_multiple_paragraphs() -> None:
   signal = LangDetectionSignal()
+  signal.setup()
   doc = 'War doesnt show whos right, just whos left.\n\nEin, zwei, drei, vier'
   res = list(signal.compute([doc]))
   assert res == [[

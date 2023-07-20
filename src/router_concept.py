@@ -2,7 +2,6 @@
 
 from typing import Optional
 
-import openai
 from fastapi import APIRouter, HTTPException
 from openai_function_call import OpenAISchema
 from pydantic import BaseModel, Field
@@ -205,6 +204,12 @@ class Examples(OpenAISchema):
 @router.get('/generate_examples')
 def generate_examples(description: str) -> list[str]:
   """Generate positive examples for a given concept using an LLM model."""
+  try:
+    import openai
+  except ImportError:
+    raise ImportError('Could not import the "openai" python package. '
+                      'Please install it with `pip install openai`.')
+
   openai.api_key = CONFIG['OPENAI_API_KEY']
   completion = openai.ChatCompletion.create(
     model='gpt-3.5-turbo-0613',

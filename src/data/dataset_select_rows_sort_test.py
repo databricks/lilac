@@ -9,6 +9,7 @@ from typing_extensions import override
 from ..embeddings.vector_store import VectorStore
 from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field
 from ..signals.signal import (
+  EMBEDDING_KEY,
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSignal,
@@ -17,7 +18,7 @@ from ..signals.signal import (
 )
 from .dataset import BinaryOp, Column, SortOrder
 from .dataset_test_utils import TestDataMaker, enriched_item
-from .dataset_utils import lilac_embedding
+from .dataset_utils import lilac_embedding, lilac_span
 
 
 class TestSignal(TextSignal):
@@ -236,44 +237,51 @@ def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> No
   # Sort by `document.test_signal.is_all_cap` where 'document' is an alias to 'text'.
   text_alias = Column('text', alias='document')
   result = dataset.select_rows(
-    columns=[text_alias], sort_by=['document.test_signal.is_all_cap'], sort_order=SortOrder.ASC)
+    columns=[text_alias],
+    sort_by=['document.test_signal.is_all_cap'],
+    sort_order=SortOrder.ASC,
+    combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '2',
-    'document': enriched_item('everyone', {'test_signal': {
+    'text': enriched_item('everyone', {'test_signal': {
       'len': 8,
       'is_all_cap': False
     }})
   }, {
     UUID_COLUMN: '1',
-    'document': enriched_item('HEY', {'test_signal': {
+    'text': enriched_item('HEY', {'test_signal': {
       'len': 3,
       'is_all_cap': True
     }})
   }, {
     UUID_COLUMN: '3',
-    'document': enriched_item('HI', {'test_signal': {
+    'text': enriched_item('HI', {'test_signal': {
       'len': 2,
       'is_all_cap': True
     }})
   }]
 
   result = dataset.select_rows(
-    columns=[text_alias], sort_by=['document.test_signal.is_all_cap'], sort_order=SortOrder.DESC)
+    columns=[text_alias],
+    sort_by=['document.test_signal.is_all_cap'],
+    sort_order=SortOrder.DESC,
+    combine_columns=True)
+  # Aliases are ignored when combining columns.
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'document': enriched_item('HEY', {'test_signal': {
+    'text': enriched_item('HEY', {'test_signal': {
       'len': 3,
       'is_all_cap': True
     }})
   }, {
     UUID_COLUMN: '3',
-    'document': enriched_item('HI', {'test_signal': {
+    'text': enriched_item('HI', {'test_signal': {
       'len': 2,
       'is_all_cap': True
     }})
   }, {
     UUID_COLUMN: '2',
-    'document': enriched_item('everyone', {'test_signal': {
+    'text': enriched_item('everyone', {'test_signal': {
       'len': 8,
       'is_all_cap': False
     }})
@@ -822,41 +830,84 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   # Equivalent to: SELECT `TopKSignal(scores, embedding='...') AS udf`.
   text_udf = Column('scores', signal_udf=TopKSignal(embedding='topk_embedding'), alias='udf')
   # Sort by `udf`, where `udf` is an alias to `TopKSignal(scores, embedding='...')`.
-  result = dataset.select_rows(['*', text_udf], sort_by=['udf'], sort_order=SortOrder.DESC, limit=3)
+  result = dataset.select_rows(['*', text_udf],
+                               sort_by=['udf'],
+                               sort_order=SortOrder.DESC,
+                               limit=3,
+                               combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '3',
     'scores': enriched_item(
-      '9_7', {'topk_embedding': [lilac_embedding(0, 1, None),
-                                 lilac_embedding(2, 3, None)]}),
-    'udf': [9.0, 7.0]
+      '9_7', {
+        'topk_embedding': [
+          lilac_span(0, 1, {EMBEDDING_KEY: {
+            'topk_signal': 9.0
+          }}),
+          lilac_span(2, 3, {EMBEDDING_KEY: {
+            'topk_signal': 7.0
+          }})
+        ]
+      }),
   }, {
     UUID_COLUMN: '1',
     'scores': enriched_item(
-      '8_1', {'topk_embedding': [lilac_embedding(0, 1, None),
-                                 lilac_embedding(2, 3, None)]}),
-    'udf': [8.0, 1.0]
+      '8_1', {
+        'topk_embedding': [
+          lilac_span(0, 1, {EMBEDDING_KEY: {
+            'topk_signal': 8.0
+          }}),
+          lilac_span(2, 3, {EMBEDDING_KEY: {
+            'topk_signal': 1.0
+          }})
+        ]
+      }),
   }]
 
   # Same but set limit to 4.
-  result = dataset.select_rows(['*', text_udf], sort_by=['udf'], sort_order=SortOrder.DESC, limit=4)
+  result = dataset.select_rows(['*', text_udf],
+                               sort_by=['udf'],
+                               sort_order=SortOrder.DESC,
+                               limit=4,
+                               combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '3',
     'scores': enriched_item(
-      '9_7', {'topk_embedding': [lilac_embedding(0, 1, None),
-                                 lilac_embedding(2, 3, None)]}),
-    'udf': [9.0, 7.0]
+      '9_7', {
+        'topk_embedding': [
+          lilac_span(0, 1, {EMBEDDING_KEY: {
+            'topk_signal': 9.0
+          }}),
+          lilac_span(2, 3, {EMBEDDING_KEY: {
+            'topk_signal': 7.0
+          }})
+        ]
+      }),
   }, {
     UUID_COLUMN: '1',
     'scores': enriched_item(
-      '8_1', {'topk_embedding': [lilac_embedding(0, 1, None),
-                                 lilac_embedding(2, 3, None)]}),
-    'udf': [8.0, 1.0]
+      '8_1', {
+        'topk_embedding': [
+          lilac_span(0, 1, {EMBEDDING_KEY: {
+            'topk_signal': 8.0
+          }}),
+          lilac_span(2, 3, {EMBEDDING_KEY: {
+            'topk_signal': 1.0
+          }})
+        ]
+      }),
   }, {
     UUID_COLUMN: '2',
     'scores': enriched_item(
-      '3_5', {'topk_embedding': [lilac_embedding(0, 1, None),
-                                 lilac_embedding(2, 3, None)]}),
-    'udf': [3.0, 5.0]
+      '3_5', {
+        'topk_embedding': [
+          lilac_span(0, 1, {EMBEDDING_KEY: {
+            'topk_signal': 3.0
+          }}),
+          lilac_span(2, 3, {EMBEDDING_KEY: {
+            'topk_signal': 5.0
+          }})
+        ]
+      }),
   }]
 
 
@@ -884,21 +935,36 @@ def test_sort_by_topk_udf_with_filter(make_test_data: TestDataMaker) -> None:
                                sort_by=['udf'],
                                filters=[('active', BinaryOp.EQUALS, True)],
                                sort_order=SortOrder.DESC,
-                               limit=2)
+                               limit=2,
+                               combine_columns=True)
   # We make sure that '3' is not in the result, because it is not active, even though it has the
   # highest topk score.
   assert list(result) == [{
     UUID_COLUMN: '1',
     'active': True,
     'scores': enriched_item(
-      '8_1', {'topk_embedding': [lilac_embedding(0, 1, None),
-                                 lilac_embedding(2, 3, None)]}),
-    'udf': [8.0, 1.0]
+      '8_1', {
+        'topk_embedding': [
+          lilac_span(0, 1, {EMBEDDING_KEY: {
+            'topk_signal': 8.0
+          }}),
+          lilac_span(2, 3, {EMBEDDING_KEY: {
+            'topk_signal': 1.0
+          }})
+        ]
+      })
   }, {
     UUID_COLUMN: '2',
     'active': True,
     'scores': enriched_item(
-      '3_5', {'topk_embedding': [lilac_embedding(0, 1, None),
-                                 lilac_embedding(2, 3, None)]}),
-    'udf': [3.0, 5.0]
+      '3_5', {
+        'topk_embedding': [
+          lilac_span(0, 1, {EMBEDDING_KEY: {
+            'topk_signal': 3.0
+          }}),
+          lilac_span(2, 3, {EMBEDDING_KEY: {
+            'topk_signal': 5.0
+          }})
+        ]
+      })
   }]

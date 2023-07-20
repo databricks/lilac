@@ -1,7 +1,6 @@
 """PaLM embeddings."""
-from typing import Iterable, cast
+from typing import TYPE_CHECKING, Iterable, cast
 
-import google.generativeai as palm
 import numpy as np
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 from typing_extensions import override
@@ -11,6 +10,9 @@ from ..schema import Item, RichData
 from ..signals.signal import TextEmbeddingSignal
 from ..signals.splitters.chunk_splitter import split_text
 from .embedding import compute_split_embeddings
+
+if TYPE_CHECKING:
+  import google.generativeai as palm
 
 PALM_BATCH_SIZE = 1  # PaLM API only supports batch size 1.
 NUM_PARALLEL_REQUESTS = 256  # Because batch size is 1, we can send many requests in parallel.
@@ -29,12 +31,20 @@ class PaLM(TextEmbeddingSignal):
   name = 'palm'
   display_name = 'PaLM Embeddings'
 
+  _model: 'palm'
+
   @override
   def setup(self) -> None:
     api_key = CONFIG.get('PALM_API_KEY')
     if not api_key:
       raise ValueError('`PALM_API_KEY` environment variable not set.')
-    palm.configure(api_key=api_key)
+    try:
+      import google.generativeai as palm
+      palm.configure(api_key=api_key)
+      self._model = palm
+    except ImportError:
+      raise ImportError('Could not import the "google.generativeai" python package. '
+                        'Please install it with `pip install google-generativeai`.')
 
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
@@ -43,7 +53,7 @@ class PaLM(TextEmbeddingSignal):
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(10))
     def embed_fn(texts: list[str]) -> list[np.ndarray]:
       assert len(texts) == 1, 'PaLM API only supports batch size 1.'
-      response = palm.generate_embeddings(model=EMBEDDING_MODEL, text=texts[0])
+      response = self._model.generate_embeddings(model=EMBEDDING_MODEL, text=texts[0])
       return [np.array(response['embedding'], dtype=np.float32)]
 
     docs = cast(Iterable[str], docs)

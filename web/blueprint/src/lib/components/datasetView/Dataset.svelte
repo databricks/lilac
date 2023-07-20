@@ -23,6 +23,7 @@
   import {Button, Tag} from 'carbon-components-svelte';
   import {ChevronLeft, ChevronRight, Download, Reset, Settings} from 'carbon-icons-svelte';
   import DatasetSettingsModal from './DatasetSettingsModal.svelte';
+  import DownloadModal from './DownloadModal.svelte';
 
   export let namespace: string;
   export let datasetName: string;
@@ -109,23 +110,8 @@
     }
   }
 
-  async function downloadSelectRows() {
-    const namespace = $datasetViewStore.namespace;
-    const datasetName = $datasetViewStore.datasetName;
-    const options = $datasetViewStore.queryOptions;
-    options.columns = $datasetStore.visibleFields?.map(x => x.path);
-    const url =
-      `/api/v1/datasets/${namespace}/${datasetName}/select_rows_download` +
-      `?url_safe_options=${encodeURIComponent(JSON.stringify(options))}`;
-    const link = document.createElement('a');
-    link.download = `${namespace}_${datasetName}.json`;
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  }
-
   let settingsOpen = false;
+  let downloadOpen = false;
 
   const authInfo = queryAuthInfo();
   $: canUpdateSettings = $authInfo.data?.access.dataset.update_settings;
@@ -158,8 +144,8 @@
           size="field"
           kind="ghost"
           icon={Download}
-          iconDescription="Download selection"
-          on:click={downloadSelectRows}
+          iconDescription="Download data"
+          on:click={() => (downloadOpen = true)}
         />
         <div
           use:hoverTooltip={{
@@ -210,7 +196,10 @@
     <div class="h-full w-2/3 flex-grow"><RowView /></div>
   </div>
 
-  <DatasetSettingsModal bind:settingsOpen />
+  <DatasetSettingsModal bind:open={settingsOpen} />
+  {#if $schema.data}
+    <DownloadModal bind:open={downloadOpen} schema={$schema.data} />
+  {/if}
 </Page>
 <Commands />
 

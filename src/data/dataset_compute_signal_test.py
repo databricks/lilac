@@ -8,7 +8,7 @@ from typing_extensions import override
 
 from ..concepts.concept import ExampleIn
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
-from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, SignalInputType, field, schema
+from ..schema import UUID_COLUMN, Field, Item, RichData, SignalInputType, field, schema
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import (
   TextEmbeddingSignal,
@@ -17,7 +17,7 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import Column, DatasetManifest, GroupsSortBy, SortOrder, val
+from .dataset import Column, DatasetManifest, GroupsSortBy, SortOrder
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
@@ -221,7 +221,7 @@ def test_sparse_signal(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestSparseSignal(), 'text')
 
-  result = dataset.select_rows(['text'])
+  result = dataset.select_rows(['text'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': enriched_item('hello', {'test_sparse_signal': None})
@@ -242,7 +242,7 @@ def test_sparse_rich_signal(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestSparseRichSignal(), 'text')
 
-  result = dataset.select_rows(['text'])
+  result = dataset.select_rows(['text'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': enriched_item('hello', {'test_sparse_rich_signal': None})
@@ -294,7 +294,7 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=3)
 
-  result = dataset.select_rows(['str'])
+  result = dataset.select_rows(['str'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'str': enriched_item('a', {'test_signal': {
@@ -315,69 +315,43 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
     }}),
   }]
 
-  # Select a specific signal leaf test_signal.flen with val('str').
-  result = dataset.select_rows([val('str'), ('str', 'test_signal', 'flen')])
-
-  assert list(result) == [{
-    UUID_COLUMN: '1',
-    f'str.{VALUE_KEY}': 'a',
-    'str.test_signal.flen': 1.0
-  }, {
-    UUID_COLUMN: '2',
-    f'str.{VALUE_KEY}': 'b',
-    'str.test_signal.flen': 1.0
-  }, {
-    UUID_COLUMN: '3',
-    f'str.{VALUE_KEY}': 'b',
-    'str.test_signal.flen': 1.0
-  }]
-
-  # Select a specific signal leaf test_signal.flen and the whole 'str' subtree.
+  # Select a specific signal leaf test_signal.flen with 'str'.
   result = dataset.select_rows(['str', ('str', 'test_signal', 'flen')])
 
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'str': enriched_item('a', {'test_signal': {
-      'len': 1,
-      'flen': 1.0
-    }}),
+    'str': 'a',
     'str.test_signal.flen': 1.0
   }, {
     UUID_COLUMN: '2',
-    'str': enriched_item('b', {'test_signal': {
-      'len': 1,
-      'flen': 1.0
-    }}),
+    'str': 'b',
     'str.test_signal.flen': 1.0
   }, {
     UUID_COLUMN: '3',
-    'str': enriched_item('b', {'test_signal': {
-      'len': 1,
-      'flen': 1.0
-    }}),
+    'str': 'b',
     'str.test_signal.flen': 1.0
   }]
 
   # Select multiple signal leafs with aliasing.
   result = dataset.select_rows([
-    val('str'),
+    'str',
     Column(('str', 'test_signal', 'flen'), alias='flen'),
     Column(('str', 'test_signal', 'len'), alias='len')
   ])
 
   assert list(result) == [{
     UUID_COLUMN: '1',
-    f'str.{VALUE_KEY}': 'a',
+    'str': 'a',
     'flen': 1.0,
     'len': 1
   }, {
     UUID_COLUMN: '2',
-    f'str.{VALUE_KEY}': 'b',
+    'str': 'b',
     'flen': 1.0,
     'len': 1
   }, {
     UUID_COLUMN: '3',
-    f'str.{VALUE_KEY}': 'b',
+    'str': 'b',
     'flen': 1.0,
     'len': 1
   }]
@@ -410,7 +384,7 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows(['text'])
+  result = dataset.select_rows(['text'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': enriched_item('hello', {
@@ -448,7 +422,7 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows(['text'])
+  result = dataset.select_rows(['text'], combine_columns=True)
   expected_result = [{
     UUID_COLUMN: '1',
     'text': enriched_item('[1, 1] first sentence. [1, 1] second sentence.',
@@ -496,11 +470,11 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows([('text', '*')])
+  result = dataset.select_rows([('text', '*')], combine_columns=True)
 
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'text.*': [
+    'text': [
       enriched_item('hello', {'test_signal': {
         'len': 5,
         'flen': 5.0
@@ -512,7 +486,7 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
     ]
   }, {
     UUID_COLUMN: '2',
-    'text.*': [
+    'text': [
       enriched_item('hello2', {'test_signal': {
         'len': 6,
         'flen': 6.0
@@ -536,7 +510,7 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestSplitSignal(), 'text')
 
-  result = dataset.select_rows(['text'])
+  result = dataset.select_rows(['text'], combine_columns=True)
   expected_result = [{
     UUID_COLUMN: '1',
     'text': enriched_item('[1, 1] first sentence. [1, 1] second sentence.',
@@ -581,7 +555,7 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows()
+  result = dataset.select_rows(combine_columns=True)
 
   # Embeddings are replaced with "None".
   expected_result = [{
@@ -615,7 +589,7 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows()
+  result = dataset.select_rows(combine_columns=True)
 
   # Embeddings are replaced with "None".
   expected_result = [{

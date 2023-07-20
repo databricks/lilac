@@ -20,9 +20,44 @@ import {
   type Search,
   type SortResult
 } from '$lilac';
+import {
+  AssemblyCluster,
+  Boolean,
+  CharacterDecimal,
+  CharacterWholeNumber,
+  DataBlob,
+  NotAvailable,
+  StringText,
+  Time,
+  type CarbonIcon
+} from 'carbon-icons-svelte';
 import type {DatasetState} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
+
+export const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
+  string: StringText,
+  string_span: StringText,
+  uint8: CharacterWholeNumber,
+  uint16: CharacterWholeNumber,
+  uint32: CharacterWholeNumber,
+  uint64: CharacterWholeNumber,
+  int8: CharacterWholeNumber,
+  int16: CharacterWholeNumber,
+  int32: CharacterWholeNumber,
+  int64: CharacterWholeNumber,
+  boolean: Boolean,
+  float16: CharacterDecimal,
+  float32: CharacterDecimal,
+  float64: CharacterDecimal,
+  time: Time,
+  date: Time,
+  timestamp: Time,
+  interval: Time,
+  embedding: AssemblyCluster,
+  binary: DataBlob,
+  null: NotAvailable
+};
 
 export function getVisibleFields(
   selectedColumns: {[path: string]: boolean} | null,

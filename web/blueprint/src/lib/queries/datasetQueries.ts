@@ -96,11 +96,11 @@ export const querySelectRows = createApiQuery(async function selectRows(
   namespace: string,
   datasetName: string,
   requestBody: SelectRowsOptions,
-  schema: LilacSchema
+  schema?: LilacSchema
 ) {
   const res = await DatasetsService.selectRows(namespace, datasetName, requestBody);
   return {
-    rows: res.rows.map(row => deserializeRow(row, schema)),
+    rows: schema == null ? res.rows : res.rows.map(row => deserializeRow(row, schema)),
     total_num_rows: res.total_num_rows
   };
 },

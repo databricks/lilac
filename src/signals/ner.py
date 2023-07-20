@@ -1,13 +1,15 @@
 """Compute named entity recognition with SpaCy."""
-from typing import Iterable, Optional
+from typing import TYPE_CHECKING, Iterable, Optional
 
-import spacy
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..data.dataset_utils import lilac_span
 from ..schema import Field, Item, RichData, SignalInputType, field
 from .signal import TextSignal
+
+if TYPE_CHECKING:
+  import spacy
 
 
 class SpacyNER(TextSignal):
@@ -24,10 +26,16 @@ class SpacyNER(TextSignal):
   input_type = SignalInputType.TEXT
   compute_type = SignalInputType.TEXT
 
-  _nlp: spacy.language.Language
+  _nlp: 'spacy.language.Language'
 
   @override
   def setup(self) -> None:
+    try:
+      import spacy
+    except ImportError:
+      raise ImportError('Could not import the "spacy" python package. '
+                        'Please install it with `pip install spacy`.')
+
     if not spacy.util.is_package(self.model):
       spacy.cli.download(self.model)
     self._nlp = spacy.load(

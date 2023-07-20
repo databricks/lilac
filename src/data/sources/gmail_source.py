@@ -6,14 +6,8 @@ import random
 import re
 from datetime import datetime
 from time import sleep
-from typing import Any, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Iterable, Optional
 
-from email_reply_parser import EmailReplyParser
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
@@ -21,6 +15,9 @@ from ...config import data_path
 from ...schema import Item, field
 from ...utils import log
 from .source import Source, SourceSchema
+
+if TYPE_CHECKING:
+  from google.oauth2.credentials import Credentials
 
 # If modifying these scopes, delete the token json file.
 _SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
@@ -52,7 +49,7 @@ class Gmail(Source):
     description='Path to the OAuth credentials file.',
     default=os.path.join(_GMAIL_CONFIG_DIR, _CREDS_FILENAME))
 
-  _creds: Optional[Credentials] = None
+  _creds: Optional['Credentials'] = None
 
   class Config:
     # Language is required even though it has a default value.
@@ -60,6 +57,14 @@ class Gmail(Source):
 
   @override
   def setup(self) -> None:
+    try:
+      from google.auth.transport.requests import Request
+      from google.oauth2.credentials import Credentials
+      from google_auth_oauthlib.flow import InstalledAppFlow
+    except ImportError:
+      raise ImportError('Could not import dependencies for the "gmail" source. '
+                        'Please install with pip install lilac[gmail]')
+
     # The token file stores the user's access and refresh tokens, and is created automatically when
     # the authorization flow completes for the first time.
     token_filepath = os.path.join(_GMAIL_CONFIG_DIR, _TOKEN_FILENAME)
@@ -94,6 +99,14 @@ class Gmail(Source):
 
   @override
   def process(self) -> Iterable[Item]:
+    try:
+      from email_reply_parser import EmailReplyParser
+      from googleapiclient.discovery import build
+      from googleapiclient.errors import HttpError
+    except ImportError:
+      raise ImportError('Could not import dependencies for the "gmail" source. '
+                        'Please install with pip install lilac[gmail]')
+
     # Call the Gmail API
     service = build('gmail', 'v1', credentials=self._creds)
 

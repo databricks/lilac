@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e # Fail if any of the commands below fail.
 
-poetry install --with dev
+poetry install --with dev --all-extras

@@ -185,11 +185,6 @@ def schema_contains_path(schema: Schema, path: PathTuple) -> bool:
   """Check if a schema contains a path."""
   current_field = cast(Field, schema)
   for path_part in path:
-    # When we reach a value key, the schema should have a dtype defined on it. If not, it is derived
-    # and this schema does not contain the value.
-    if path_part == VALUE_KEY:
-      return current_field.dtype is not None
-
     if path_part == PATH_WILDCARD:
       if current_field.repeated_field is None:
         return False

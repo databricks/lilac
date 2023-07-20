@@ -7,7 +7,7 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import UUID_COLUMN, VALUE_KEY, Field, Item, RichData, VectorKey, field
+from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field
 from ..signals.signal import (
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
@@ -16,7 +16,7 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import BinaryFilterTuple, BinaryOp, Column, val
+from .dataset import BinaryFilterTuple, BinaryOp, Column
 from .dataset_test_utils import TestDataMaker, enriched_item
 from .dataset_utils import lilac_embedding, lilac_span
 
@@ -266,15 +266,15 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(TestEmbedding(), 'text')
 
   signal_col = Column('text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
-  result = dataset.select_rows([val('text'), signal_col])
+  result = dataset.select_rows(['text', signal_col])
 
   expected_result: list[Item] = [{
     UUID_COLUMN: '1',
-    f'text.{VALUE_KEY}': 'hello.',
+    'text': 'hello.',
     'test_embedding_sum(text.test_embedding.*.embedding)': [1.0]
   }, {
     UUID_COLUMN: '2',
-    f'text.{VALUE_KEY}': 'hello2.',
+    'text': 'hello2.',
     'test_embedding_sum(text.test_embedding.*.embedding)': [2.0]
   }]
   assert list(result) == expected_result
@@ -282,14 +282,14 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   # Select rows with alias.
   signal_col = Column(
     'text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'), alias='emb_sum')
-  result = dataset.select_rows([val('text'), signal_col])
+  result = dataset.select_rows(['text', signal_col])
   expected_result = [{
     UUID_COLUMN: '1',
-    f'text.{VALUE_KEY}': 'hello.',
+    'text': 'hello.',
     'emb_sum': [1.0]
   }, {
     UUID_COLUMN: '2',
-    f'text.{VALUE_KEY}': 'hello2.',
+    'text': 'hello2.',
     'emb_sum': [2.0]
   }]
   assert list(result) == expected_result
@@ -307,14 +307,14 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(TestEmbedding(), ('text', '*'))
 
   signal_col = Column(('text', '*'), signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
-  result = dataset.select_rows([val(('text', '*')), signal_col])
+  result = dataset.select_rows([('text', '*'), signal_col])
   expected_result = [{
     UUID_COLUMN: '1',
-    f'text.*.{VALUE_KEY}': ['hello.', 'hello world.'],
+    'text.*': ['hello.', 'hello world.'],
     'test_embedding_sum(text.*.test_embedding.*.embedding)': [[1.0], [3.0]]
   }, {
     UUID_COLUMN: '2',
-    f'text.*.{VALUE_KEY}': ['hello world2.', 'hello2.'],
+    'text.*': ['hello world2.', 'hello2.'],
     'test_embedding_sum(text.*.test_embedding.*.embedding)': [[4.0], [2.0]]
   }]
   assert list(result) == expected_result
@@ -334,7 +334,7 @@ def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
   signal_col = Column('text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
 
   with pytest.raises(ValueError, match='Embedding signal "test_embedding" is not computed'):
-    dataset.select_rows([val('text'), signal_col])
+    dataset.select_rows(['text', signal_col])
 
 
 class TestSplitter(TextSplitterSignal):

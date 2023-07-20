@@ -1,6 +1,7 @@
 """Tests for dataset.select_groups()."""
 
 import re
+from datetime import datetime
 
 import pytest
 from pytest_mock import MockerFixture
@@ -253,6 +254,35 @@ def test_filters(make_test_data: TestDataMaker) -> None:
   result = dataset.select_groups(
     leaf_path='name', filters=[('age', BinaryOp.LESS, 35), ('active', BinaryOp.EQUALS, True)])
   assert result.counts == [(None, 1)]
+
+
+def test_datetime(make_test_data: TestDataMaker) -> None:
+  items: list[Item] = [
+    {
+      UUID_COLUMN: '1',
+      'date': datetime(2023, 1, 1)
+    },
+    {
+      UUID_COLUMN: '2',
+      'date': datetime(2023, 1, 15)
+    },
+    {
+      UUID_COLUMN: '2',
+      'date': datetime(2023, 2, 1)
+    },
+    {
+      UUID_COLUMN: '4',
+      'date': datetime(2023, 3, 1)
+    },
+    {
+      UUID_COLUMN: '5',
+      # Missing datetime.
+    }
+  ]
+  dataset = make_test_data(items)
+  result = dataset.select_groups('date')
+  assert result.counts == [(datetime(2023, 1, 1), 1), (datetime(2023, 1, 15), 1),
+                           (datetime(2023, 2, 1), 1), (datetime(2023, 3, 1), 1), (None, 1)]
 
 
 def test_invalid_leaf(make_test_data: TestDataMaker) -> None:

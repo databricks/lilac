@@ -271,20 +271,6 @@ tests = ["attrs[tests-no-zope]", "zope-interface"]
 tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=1.1.1)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-xdist[psutil]"]
 
 [[package]]
-name = "authlib"
-version = "1.2.1"
-description = "The ultimate Python library in building OAuth and OpenID Connect servers and clients."
-optional = false
-python-versions = "*"
-files = [
-    {file = "Authlib-1.2.1-py2.py3-none-any.whl", hash = "sha256:c88984ea00149a90e3537c964327da930779afa4564e354edfd98410bea01911"},
-    {file = "Authlib-1.2.1.tar.gz", hash = "sha256:421f7c6b468d907ca2d9afede256f068f87e34d23dd221c07d13d4c234726afb"},
-]
-
-[package.dependencies]
-cryptography = ">=3.2"
-
-[[package]]
 name = "backcall"
 version = "0.2.0"
 description = "Specifications for callback functions passed in to an API"
@@ -335,7 +321,7 @@ css = ["tinycss2 (>=1.1.0,<1.2)"]
 name = "blis"
 version = "0.7.9"
 description = "The Blis BLAS-like linear algebra library, as a self-contained C-extension."
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "blis-0.7.9-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b3ea73707a7938304c08363a0b990600e579bfb52dece7c674eafac4bf2df9f7"},
@@ -406,7 +392,7 @@ files = [
 name = "catalogue"
 version = "2.0.8"
 description = "Super lightweight function registries for your library"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "catalogue-2.0.8-py3-none-any.whl", hash = "sha256:2d786e229d8d202b4f8a2a059858e45a2331201d831e39746732daa704b99f69"},
@@ -613,7 +599,7 @@ files = [
 name = "cohere"
 version = "3.10.0"
 description = "A Python library for the Cohere API"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "cohere-3.10.0.tar.gz", hash = "sha256:8c06a87a47aa9521051eeba130ce391d84ab578148c4ea5b62f6dcc41bd3a274"},
@@ -657,7 +643,7 @@ typing = ["mypy (>=0.990)"]
 name = "confection"
 version = "0.1.0"
 description = "The sweetest config system for Python"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "confection-0.1.0-py3-none-any.whl", hash = "sha256:1d6de16297efe937efaad13f83f45467dedc05acafdb0fb16074299a9c683d85"},
@@ -802,51 +788,6 @@ tomli = {version = "*", optional = true, markers = "python_full_version <= \"3.1
 toml = ["tomli"]
 
 [[package]]
-name = "cryptography"
-version = "41.0.2"
-description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "cryptography-41.0.2-cp37-abi3-macosx_10_12_universal2.whl", hash = "sha256:01f1d9e537f9a15b037d5d9ee442b8c22e3ae11ce65ea1f3316a41c78756b711"},
-    {file = "cryptography-41.0.2-cp37-abi3-macosx_10_12_x86_64.whl", hash = "sha256:079347de771f9282fbfe0e0236c716686950c19dee1b76240ab09ce1624d76d7"},
-    {file = "cryptography-41.0.2-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:439c3cc4c0d42fa999b83ded80a9a1fb54d53c58d6e59234cfe97f241e6c781d"},
-    {file = "cryptography-41.0.2-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f14ad275364c8b4e525d018f6716537ae7b6d369c094805cae45300847e0894f"},
-    {file = "cryptography-41.0.2-cp37-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:84609ade00a6ec59a89729e87a503c6e36af98ddcd566d5f3be52e29ba993182"},
-    {file = "cryptography-41.0.2-cp37-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:49c3222bb8f8e800aead2e376cbef687bc9e3cb9b58b29a261210456a7783d83"},
-    {file = "cryptography-41.0.2-cp37-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:d73f419a56d74fef257955f51b18d046f3506270a5fd2ac5febbfa259d6c0fa5"},
-    {file = "cryptography-41.0.2-cp37-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:2a034bf7d9ca894720f2ec1d8b7b5832d7e363571828037f9e0c4f18c1b58a58"},
-    {file = "cryptography-41.0.2-cp37-abi3-win32.whl", hash = "sha256:d124682c7a23c9764e54ca9ab5b308b14b18eba02722b8659fb238546de83a76"},
-    {file = "cryptography-41.0.2-cp37-abi3-win_amd64.whl", hash = "sha256:9c3fe6534d59d071ee82081ca3d71eed3210f76ebd0361798c74abc2bcf347d4"},
-    {file = "cryptography-41.0.2-pp310-pypy310_pp73-macosx_10_12_x86_64.whl", hash = "sha256:a719399b99377b218dac6cf547b6ec54e6ef20207b6165126a280b0ce97e0d2a"},
-    {file = "cryptography-41.0.2-pp310-pypy310_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:182be4171f9332b6741ee818ec27daff9fb00349f706629f5cbf417bd50e66fd"},
-    {file = "cryptography-41.0.2-pp310-pypy310_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:7a9a3bced53b7f09da251685224d6a260c3cb291768f54954e28f03ef14e3766"},
-    {file = "cryptography-41.0.2-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:f0dc40e6f7aa37af01aba07277d3d64d5a03dc66d682097541ec4da03cc140ee"},
-    {file = "cryptography-41.0.2-pp38-pypy38_pp73-macosx_10_12_x86_64.whl", hash = "sha256:674b669d5daa64206c38e507808aae49904c988fa0a71c935e7006a3e1e83831"},
-    {file = "cryptography-41.0.2-pp38-pypy38_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:7af244b012711a26196450d34f483357e42aeddb04128885d95a69bd8b14b69b"},
-    {file = "cryptography-41.0.2-pp38-pypy38_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:9b6d717393dbae53d4e52684ef4f022444fc1cce3c48c38cb74fca29e1f08eaa"},
-    {file = "cryptography-41.0.2-pp38-pypy38_pp73-win_amd64.whl", hash = "sha256:192255f539d7a89f2102d07d7375b1e0a81f7478925b3bc2e0549ebf739dae0e"},
-    {file = "cryptography-41.0.2-pp39-pypy39_pp73-macosx_10_12_x86_64.whl", hash = "sha256:f772610fe364372de33d76edcd313636a25684edb94cee53fd790195f5989d14"},
-    {file = "cryptography-41.0.2-pp39-pypy39_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:b332cba64d99a70c1e0836902720887fb4529ea49ea7f5462cf6640e095e11d2"},
-    {file = "cryptography-41.0.2-pp39-pypy39_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:9a6673c1828db6270b76b22cc696f40cde9043eb90373da5c2f8f2158957f42f"},
-    {file = "cryptography-41.0.2-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:342f3767e25876751e14f8459ad85e77e660537ca0a066e10e75df9c9e9099f0"},
-    {file = "cryptography-41.0.2.tar.gz", hash = "sha256:7d230bf856164de164ecb615ccc14c7fc6de6906ddd5b491f3af90d3514c925c"},
-]
-
-[package.dependencies]
-cffi = ">=1.12"
-
-[package.extras]
-docs = ["sphinx (>=5.3.0)", "sphinx-rtd-theme (>=1.1.1)"]
-docstest = ["pyenchant (>=1.6.11)", "sphinxcontrib-spelling (>=4.0.1)", "twine (>=1.12.0)"]
-nox = ["nox"]
-pep8test = ["black", "check-sdist", "mypy", "ruff"]
-sdist = ["build"]
-ssh = ["bcrypt (>=3.1.5)"]
-test = ["pretend", "pytest (>=6.2.0)", "pytest-benchmark", "pytest-cov", "pytest-xdist"]
-test-randomorder = ["pytest-randomly"]
-
-[[package]]
 name = "cycler"
 version = "0.11.0"
 description = "Composable style cycles"
@@ -861,7 +802,7 @@ files = [
 name = "cymem"
 version = "2.0.7"
 description = "Manage calls to calloc/free through Cython"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "cymem-2.0.7-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:4981fc9182cc1fe54bfedf5f73bfec3ce0c27582d9be71e130c46e35958beef0"},
@@ -898,7 +839,7 @@ files = [
 name = "cytoolz"
 version = "0.12.1"
 description = "Cython implementation of Toolz: High performance functional utilities"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "cytoolz-0.12.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:5c59bb4ca88e1c69931468bf21f91c8f64d8bf1999eb163b7a2df336f60c304a"},
@@ -1131,7 +1072,7 @@ files = [
 name = "detect-secrets"
 version = "1.4.0"
 description = "Tool for detecting secrets in the codebase"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "detect_secrets-1.4.0-py3-none-any.whl", hash = "sha256:d08ecabeee8b68c0acb0e8a354fb98d822a653f6ed05e520cead4c6fc1fc02cd"},
@@ -1253,7 +1194,7 @@ files = [
 name = "email-reply-parser"
 version = "0.5.12"
 description = "Email reply parser"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "email_reply_parser-0.5.12-py2-none-any.whl", hash = "sha256:d051cfa8f54046f7399553aae57f17f62bf1652f83e3e9970fd109c0f24a880c"},
@@ -1340,7 +1281,7 @@ testing = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "diff-cover (>=7.5)", "p
 name = "floret"
 version = "0.10.3"
 description = "floret Python bindings"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "floret-0.10.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:d2d7d85041adf8aafb8308a8e837360907f5292206627dbcb631c057fc22293e"},
@@ -1594,7 +1535,7 @@ gcsfuse = ["fusepy"]
 name = "google-ai-generativelanguage"
 version = "0.2.0"
 description = "Google Ai Generativelanguage API client library"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "google-ai-generativelanguage-0.2.0.tar.gz", hash = "sha256:4d5440a7df7f495f016e5ccd4d9903514264392b240c40d40d28a1356bd9fad3"},
@@ -1845,7 +1786,7 @@ testing = ["pytest"]
 name = "google-generativeai"
 version = "0.1.0"
 description = "Google Generative AI High level API client library and tools."
-optional = false
+optional = true
 python-versions = ">=3.9"
 files = [
     {file = "google_generativeai-0.1.0-py3-none-any.whl", hash = "sha256:1cdfbef1bfc280a56172c48f480b71665122796f9f98f464e7918b840cc80c07"},
@@ -1896,7 +1837,7 @@ grpc = ["grpcio (>=1.44.0,<2.0.0.dev0)"]
 name = "grpcio"
 version = "1.56.0"
 description = "HTTP/2-based RPC framework"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "grpcio-1.56.0-cp310-cp310-linux_armv7l.whl", hash = "sha256:fb34ace11419f1ae321c36ccaa18d81cd3f20728cd191250be42949d6845bb2d"},
@@ -1953,7 +1894,7 @@ protobuf = ["grpcio-tools (>=1.56.0)"]
 name = "grpcio-status"
 version = "1.56.0"
 description = "Status proto mapping for gRPC"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "grpcio-status-1.56.0.tar.gz", hash = "sha256:9eca0b2dcda0782d3702df225918efd6d820f75f93cd5c51c7fb6a4ffbfea12c"},
@@ -2312,17 +2253,6 @@ plugins = ["setuptools"]
 requirements-deprecated-finder = ["pip-api", "pipreqs"]
 
 [[package]]
-name = "itsdangerous"
-version = "2.1.2"
-description = "Safely pass data to untrusted environments and back."
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "itsdangerous-2.1.2-py3-none-any.whl", hash = "sha256:2c2349112351b88699d8d4b6b075022c0808887cb7ad10069318a8b0bc88db44"},
-    {file = "itsdangerous-2.1.2.tar.gz", hash = "sha256:5dbbc68b317e5e42f327f9021763545dc3fc3bfe22e6deb96aaf1fc38874156a"},
-]
-
-[[package]]
 name = "jedi"
 version = "0.18.2"
 description = "An autocompletion tool for Python that can be used for text editors."
@@ -2345,7 +2275,7 @@ testing = ["Django (<3.1)", "attrs", "colorama", "docopt", "pytest (<7.0.0)"]
 name = "jellyfish"
 version = "1.0.0"
 description = "Approximate and phonetic matching of strings."
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "jellyfish-1.0.0-cp310-cp310-macosx_10_7_x86_64.whl", hash = "sha256:26f8fbcc112e6f61c03446860e649b2341acfdda80d1fd53dd67887a409b6785"},
@@ -2687,7 +2617,7 @@ files = [
 name = "langcodes"
 version = "3.3.0"
 description = "Tools for labeling human languages with IETF language tags"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "langcodes-3.3.0-py3-none-any.whl", hash = "sha256:4d89fc9acb6e9c8fdef70bcdf376113a3db09b67285d9e1d534de6d8818e7e69"},
@@ -2701,7 +2631,7 @@ data = ["language-data (>=1.1,<2.0)"]
 name = "langdetect"
 version = "1.0.9"
 description = "Language detection library ported from Google's language-detection."
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "langdetect-1.0.9-py2-none-any.whl", hash = "sha256:7cbc0746252f19e76f77c0b1690aadf01963be835ef0cd4b56dddf2a8f1dfc2a"},
@@ -2872,7 +2802,7 @@ files = [
 name = "mpmath"
 version = "1.3.0"
 description = "Python library for arbitrary-precision floating-point arithmetic"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "mpmath-1.3.0-py3-none-any.whl", hash = "sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c"},
@@ -3070,7 +3000,7 @@ dill = ">=0.3.6"
 name = "murmurhash"
 version = "1.0.9"
 description = "Cython bindings for MurmurHash"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "murmurhash-1.0.9-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:697ed01454d92681c7ae26eb1adcdc654b54062bcc59db38ed03cad71b23d449"},
@@ -3291,7 +3221,7 @@ files = [
 name = "networkx"
 version = "3.1"
 description = "Python package for creating and manipulating graphs and networks"
-optional = false
+optional = true
 python-versions = ">=3.8"
 files = [
     {file = "networkx-3.1-py3-none-any.whl", hash = "sha256:4f33f68cb2afcf86f28a45f43efc27a9386b535d567d2127f8f61d51dec58d36"},
@@ -3309,7 +3239,7 @@ test = ["codecov (>=2.1)", "pytest (>=7.2)", "pytest-cov (>=4.0)"]
 name = "nltk"
 version = "3.8.1"
 description = "Natural Language Toolkit"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "nltk-3.8.1-py3-none-any.whl", hash = "sha256:fd5c9109f976fa86bcadba8f91e47f5e9293bd034474752e92a520f81c93dda5"},
@@ -3656,7 +3586,7 @@ complete = ["blosc", "numpy (>=1.9.0)", "pandas (>=0.19.0)", "pyzmq"]
 name = "pathy"
 version = "0.10.2"
 description = "pathlib.Path subclasses for local and cloud bucket storage"
-optional = false
+optional = true
 python-versions = ">= 3.6"
 files = [
     {file = "pathy-0.10.2-py3-none-any.whl", hash = "sha256:681bc98dbff28e7de3e50efa8246910f727e8ac254c4318c47ce341f7c1ce21d"},
@@ -3812,7 +3742,7 @@ testing = ["pytest", "pytest-benchmark"]
 name = "preshed"
 version = "3.0.8"
 description = "Cython hash table that trusts the keys are pre-hashed"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "preshed-3.0.8-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:ea4b6df8ef7af38e864235256793bc3056e9699d991afcf6256fa298858582fc"},
@@ -3881,7 +3811,7 @@ wcwidth = "*"
 name = "proto-plus"
 version = "1.22.3"
 description = "Beautiful, Pythonic protocol buffers."
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "proto-plus-1.22.3.tar.gz", hash = "sha256:fdcd09713cbd42480740d2fe29c990f7fbd885a67efc328aa8be6ee3e9f76a6b"},
@@ -4125,7 +4055,7 @@ diagrams = ["jinja2", "railroad-diagrams"]
 name = "pyphen"
 version = "0.14.0"
 description = "Pure Python module to hyphenate text"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "pyphen-0.14.0-py3-none-any.whl", hash = "sha256:414c9355958ca3c6a3ff233f65678c245b8ecb56418fb291e2b93499d61cd510"},
@@ -4677,7 +4607,7 @@ files = [
 name = "safetensors"
 version = "0.3.1"
 description = "Fast and Safe Tensor serialization"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "safetensors-0.3.1-cp310-cp310-macosx_10_11_x86_64.whl", hash = "sha256:2ae9b7dd268b4bae6624729dac86deb82104820e9786429b0583e5168db2f770"},
@@ -4831,7 +4761,7 @@ win32 = ["pywin32"]
 name = "sentence-transformers"
 version = "2.2.2"
 description = "Multilingual text embeddings"
-optional = false
+optional = true
 python-versions = ">=3.6.0"
 files = [
     {file = "sentence-transformers-2.2.2.tar.gz", hash = "sha256:dbc60163b27de21076c9a30d24b5b7b6fa05141d68cf2553fa9a77bf79a29136"},
@@ -4853,7 +4783,7 @@ transformers = ">=4.6.0,<5.0.0"
 name = "sentencepiece"
 version = "0.1.99"
 description = "SentencePiece python wrapper"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "sentencepiece-0.1.99-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:0eb528e70571b7c02723e5804322469b82fe7ea418c96051d0286c0fa028db73"},
@@ -4934,7 +4864,7 @@ files = [
 name = "smart-open"
 version = "6.3.0"
 description = "Utils for streaming large files (S3, HDFS, GCS, Azure Blob Storage, gzip, bz2...)"
-optional = false
+optional = true
 python-versions = ">=3.6,<4.0"
 files = [
     {file = "smart_open-6.3.0-py3-none-any.whl", hash = "sha256:b4c9ae193ad6d3e7add50944b86afa0d150bd821ab8ec21edb26d9a06b66f6a8"},
@@ -4988,7 +4918,7 @@ files = [
 name = "spacy"
 version = "3.5.4"
 description = "Industrial-strength Natural Language Processing (NLP) in Python"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "spacy-3.5.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:39209f73508027a99ddf2a615ae99ceb6db84f9f10c0050c7dc0c78cd8d662e9"},
@@ -5074,7 +5004,7 @@ transformers = ["spacy-transformers (>=1.1.2,<1.3.0)"]
 name = "spacy-legacy"
 version = "3.0.12"
 description = "Legacy registered functions for spaCy backwards compatibility"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "spacy-legacy-3.0.12.tar.gz", hash = "sha256:b37d6e0c9b6e1d7ca1cf5bc7152ab64a4c4671f59c85adaf7a3fcb870357a774"},
@@ -5085,7 +5015,7 @@ files = [
 name = "spacy-loggers"
 version = "1.0.4"
 description = "Logging utilities for SpaCy"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "spacy-loggers-1.0.4.tar.gz", hash = "sha256:e6f983bf71230091d5bb7b11bf64bd54415eca839108d5f83d9155d0ba93bf28"},
@@ -5096,7 +5026,7 @@ files = [
 name = "srsly"
 version = "2.4.6"
 description = "Modern high-performance serialization utilities for Python"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "srsly-2.4.6-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:9b96569976420be2ac3716db9ac05b06bf4cd7a358953879ba34f03c9533c123"},
@@ -5173,7 +5103,7 @@ full = ["httpx (>=0.22.0)", "itsdangerous", "jinja2", "python-multipart", "pyyam
 name = "sympy"
 version = "1.12"
 description = "Computer algebra system (CAS) in Python"
-optional = false
+optional = true
 python-versions = ">=3.8"
 files = [
     {file = "sympy-1.12-py3-none-any.whl", hash = "sha256:c3588cd4295d0c0f603d0f2ae780587e64e2efeedb3521e46b9bb1d08d184fa5"},
@@ -5232,7 +5162,7 @@ test = ["pre-commit", "pytest (>=7.0)", "pytest-timeout"]
 name = "textacy"
 version = "0.13.0"
 description = "NLP, before and after spaCy"
-optional = false
+optional = true
 python-versions = ">=3.9"
 files = [
     {file = "textacy-0.13.0-py3-none-any.whl", hash = "sha256:0e150ce52c8366ccd26650ac310478bbe19604a16fd35a97659973f9d172573c"},
@@ -5265,7 +5195,7 @@ viz = ["matplotlib (>=3.0,<4.0)"]
 name = "thinc"
 version = "8.1.10"
 description = "A refreshing functional take on deep learning, compatible with your favorite libraries"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "thinc-8.1.10-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:dbd1dc4394352d80af22131e1a238238eded59de19b55f77e6237436f4865b2c"},
@@ -5369,7 +5299,7 @@ test = ["flake8", "isort", "pytest"]
 name = "tokenizers"
 version = "0.13.3"
 description = "Fast and Customizable Tokenizers"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "tokenizers-0.13.3-cp310-cp310-macosx_10_11_x86_64.whl", hash = "sha256:f3835c5be51de8c0a092058a4d4380cb9244fb34681fd0a295fbf0a52a5fdf33"},
@@ -5456,7 +5386,7 @@ files = [
 name = "torch"
 version = "2.0.1"
 description = "Tensors and Dynamic neural networks in Python with strong GPU acceleration"
-optional = false
+optional = true
 python-versions = ">=3.8.0"
 files = [
     {file = "torch-2.0.1-cp310-cp310-manylinux1_x86_64.whl", hash = "sha256:8ced00b3ba471856b993822508f77c98f48a458623596a4c43136158781e306a"},
@@ -5495,7 +5425,7 @@ opt-einsum = ["opt-einsum (>=3.3)"]
 name = "torchvision"
 version = "0.15.2"
 description = "image and video datasets and models for torch deep learning"
-optional = false
+optional = true
 python-versions = ">=3.8"
 files = [
     {file = "torchvision-0.15.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:7754088774e810c5672b142a45dcf20b1bd986a5a7da90f8660c43dc43fb850c"},
@@ -5588,7 +5518,7 @@ test = ["argcomplete (>=2.0)", "pre-commit", "pytest", "pytest-mock"]
 name = "transformers"
 version = "4.30.2"
 description = "State-of-the-art Machine Learning for JAX, PyTorch and TensorFlow"
-optional = false
+optional = true
 python-versions = ">=3.7.0"
 files = [
     {file = "transformers-4.30.2-py3-none-any.whl", hash = "sha256:c332e3a3097f9ed89ce556b403251235931c00237b8bc2d7adaa19d226c13f1d"},
@@ -5657,7 +5587,7 @@ vision = ["Pillow"]
 name = "typer"
 version = "0.9.0"
 description = "Typer, build great CLIs. Easy to code. Based on Python type hints."
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "typer-0.9.0-py3-none-any.whl", hash = "sha256:5d96d986a21493606a358cae4461bd8cdf83cbf33a5aa950ae629ca3b51467ee"},
@@ -5890,7 +5820,7 @@ test = ["Cython (>=0.29.32,<0.30.0)", "aiohttp", "flake8 (>=3.9.2,<3.10.0)", "my
 name = "wasabi"
 version = "1.1.2"
 description = "A lightweight console printing and formatting toolkit"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "wasabi-1.1.2-py3-none-any.whl", hash = "sha256:0a3f933c4bf0ed3f93071132c1b87549733256d6c8de6473c5f7ed2e171b5cf9"},
@@ -6353,7 +6283,18 @@ files = [
 docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-lint"]
 testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)"]
 
+[extras]
+all = ["cohere", "detect-secrets", "email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "google-generativeai", "langdetect", "openai", "sentence-transformers", "spacy", "textacy"]
+embeddings = ["cohere", "google-generativeai", "openai", "sentence-transformers"]
+gmail = ["email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib"]
+lang-detection = ["langdetect"]
+llms = ["openai"]
+ner = ["spacy"]
+pii = ["detect-secrets"]
+signals = ["detect-secrets", "langdetect", "spacy", "textacy"]
+text-stats = ["spacy", "textacy"]
+
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.9"
-content-hash = "37925a3a84ded2eb46daa9cdc8e3c7cfa81d2a383357dbd96da36860245975e6"
+content-hash = "aad4322f631f6e40a037c9efea62e5221814e8dd67ef13ac59c4a3605c36a526"
