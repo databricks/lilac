@@ -4,7 +4,6 @@
   /**
    * The component for a page, including a header with slots for subtext, center, and right.
    */
-  import {goto} from '$app/navigation';
   import {googleLogoutMutation} from '$lib/queries/googleAuthQueries';
   import TaskStatus from './TaskStatus.svelte';
   import {hoverTooltip} from './common/HoverTooltip';
@@ -19,6 +18,10 @@
   function logout() {
     $logoutMutation.mutate([]);
   }
+  // When in an iframe, boot the user out to a new tab with the login URL since we cannot set the
+  // session cookie in the iframe.
+  const inIframe = window.self !== window.top;
+  const loginTarget = inIframe ? '_blank' : '';
 </script>
 
 <div class="flex h-full w-full flex-col">
@@ -59,7 +62,7 @@
             </div>
           </div>
         {:else}
-          <Button size="small" on:click={() => goto(loginUrl)}>Login</Button>
+          <Button size="small" href={loginUrl} target={loginTarget}>Login</Button>
         {/if}
       {/if}
     </div>

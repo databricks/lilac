@@ -1,10 +1,9 @@
 """Router for tasks."""
 
-from typing import Union
 from urllib.parse import urlparse, urlunparse
 
 from authlib.integrations.starlette_client import OAuth, OAuthError
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse
 from starlette.config import Config
 from starlette.responses import RedirectResponse
@@ -46,12 +45,12 @@ async def login(request: Request, origin_url: str) -> RedirectResponse:
 
 
 @router.get('/auth')
-async def auth(request: Request) -> Union[RedirectResponse, HTMLResponse]:
+async def auth(request: Request) -> Response:
   """Handles the Google OAuth callback."""
   try:
     token = await oauth.google.authorize_access_token(request)
   except OAuthError as error:
-    return HTMLResponse(f'<h1>{error.error}</h1>')
+    return HTMLResponse(f'<h1>{error}</h1>')
   request.session['user'] = token['userinfo']
   return RedirectResponse(url='/')
 
