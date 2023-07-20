@@ -1,8 +1,8 @@
 """The interface for the database."""
 import abc
-import datetime
 import enum
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from typing import Any, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
@@ -11,7 +11,7 @@ from pydantic import Field as PydanticField
 from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
 
 from ..embeddings.vector_store import VectorStore
-from ..schema import VALUE_KEY, Bin, Path, PathTuple, Schema, normalize_path
+from ..schema import VALUE_KEY, Bin, DataType, Path, PathTuple, Schema, normalize_path
 from ..signals.signal import Signal, resolve_signal
 from ..tasks import TaskStepId
 
@@ -44,8 +44,8 @@ class StatsResult(BaseModel):
   approx_count_distinct: int
 
   # Defined for ordinal features.
-  min_val: Optional[Union[float, datetime.date, datetime.datetime]]
-  max_val: Optional[Union[float, datetime.date, datetime.datetime]]
+  min_val: Optional[Union[float, datetime]]
+  max_val: Optional[Union[float, datetime]]
 
   # Defined for text features.
   avg_text_length: Optional[float]
@@ -187,7 +187,7 @@ def column_from_identifier(column: ColumnId) -> Column:
   return Column(path=column)
 
 
-FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes]
+FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes, datetime]
 FeatureListValue = list[StrictStr]
 BinaryFilterTuple = tuple[Path, BinaryOp, FeatureValue]
 ListFilterTuple = tuple[Path, ListOp, FeatureListValue]
@@ -409,7 +409,8 @@ class Dataset(abc.ABC):
 
 def default_settings(dataset: Dataset) -> DatasetSettings:
   """Gets the default settings for a dataset."""
-  leaf_paths = dataset.manifest().data_schema.leafs.keys()
+  schema = dataset.manifest().data_schema
+  leaf_paths = [path for path, field in schema.leafs.items() if field.dtype == DataType.STRING]
   pool = ThreadPoolExecutor()
   stats: list[StatsResult] = list(pool.map(lambda leaf: dataset.stats(leaf), leaf_paths))
   sorted_stats = sorted([stat for stat in stats if stat.avg_text_length],

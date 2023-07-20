@@ -41,6 +41,7 @@ from ..schema import (
   is_float,
   is_integer,
   is_ordinal,
+  is_temporal,
   normalize_path,
   signal_compute_type_supports_dtype,
 )
@@ -602,7 +603,7 @@ class DatasetDuckDB(Dataset):
       min_max_query = f"""
         SELECT MIN(val) AS minVal, MAX(val) AS maxVal
         FROM (SELECT {inner_select} as val FROM t)
-        WHERE NOT isnan(val)
+        {'WHERE NOT isnan(val)' if is_float(leaf.dtype) else ''}
       """
       row = self._query(min_max_query)[0]
       result.min_val, result.max_val = row
@@ -692,6 +693,9 @@ class DatasetDuckDB(Dataset):
     """
     df = self._query_df(query)
     counts = list(df.itertuples(index=False, name=None))
+    if is_temporal(leaf.dtype):
+      # Replace any NaT with None and pd.Timestamp to native datetime objects.
+      counts = [(None if pd.isnull(val) else val.to_pydatetime(), count) for val, count in counts]
     return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)
 
   def _topk_udf_to_sort_by(

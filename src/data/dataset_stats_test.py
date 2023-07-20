@@ -1,5 +1,6 @@
 """Tests for dataset.stats()."""
 
+from datetime import datetime
 from typing import Any, cast
 
 import pytest
@@ -123,3 +124,36 @@ def test_error_handling(make_test_data: TestDataMaker) -> None:
 
   with pytest.raises(ValueError, match="Path \\('unknown',\\) not found in schema"):
     dataset.stats(leaf_path='unknown')
+
+
+def test_datetime(make_test_data: TestDataMaker) -> None:
+  items: list[Item] = [
+    {
+      UUID_COLUMN: '1',
+      'date': datetime(2023, 1, 1)
+    },
+    {
+      UUID_COLUMN: '2',
+      'date': datetime(2023, 1, 15)
+    },
+    {
+      UUID_COLUMN: '2',
+      'date': datetime(2023, 2, 1)
+    },
+    {
+      UUID_COLUMN: '4',
+      'date': datetime(2023, 3, 1)
+    },
+    {
+      UUID_COLUMN: '5',
+      # Missing datetime.
+    }
+  ]
+  dataset = make_test_data(items)
+  result = dataset.stats('date')
+  assert result == StatsResult(
+    path=('date',),
+    total_count=4,
+    approx_count_distinct=4,
+    min_val=datetime(2023, 1, 1),
+    max_val=datetime(2023, 3, 1))
