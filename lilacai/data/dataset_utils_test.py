@@ -134,6 +134,7 @@ def test_sparse_to_dense_compute() -> None:
   out = sparse_to_dense_compute(sparse_input, func)
   assert list(out) == [None, 2, 8, None, None, 4, None, 6, None, None]
 
+
 def test_sparse_to_dense_compute_batching() -> None:
   sparse_input = iter([None, 1, 7, None, None, 3, None, 5, None, None])
 
