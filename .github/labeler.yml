@@ -1,6 +1,6 @@
-# Add 'backend' label to any change within src/ but not web* folders
+# Add 'backend' label to any change within lilacai/ but not web* folders
 'backend':
-  - any: ['src/**/*']
+  - any: ['lilacai/**/*']
 
 # Add 'frontend' label to any change to blueprint folder
 'frontend':

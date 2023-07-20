@@ -2,7 +2,7 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
     paths:
-      - 'src/**'
+      - 'lilacai/**'
       - '**/*.py'
       - 'poetry.lock'
       - 'poetry.toml'

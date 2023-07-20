@@ -1,6 +1,6 @@
 """Writes the openapi.json file to the specified output.
 
-This is meant to run as a standalone script. It lives in src/ so that we can import the FastAPI app.
+This is meant to run as a standalone script. It lives in lilacai/ so we can import the FastAPI app.
 """
 import json
 

@@ -7,9 +7,9 @@ from typing import Optional
 import click
 from huggingface_hub import HfApi
 
-from src.concepts.db_concept import DiskConceptDB, get_concept_output_dir
-from src.config import CONFIG, data_path
-from src.utils import get_dataset_output_dir
+from lilacai.concepts.db_concept import DiskConceptDB, get_concept_output_dir
+from lilacai.config import CONFIG, data_path
+from lilacai.utils import get_dataset_output_dir
 
 HF_SPACE_DIR = os.path.join(data_path(), '.hf_spaces')
 
@@ -65,7 +65,7 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
   run(f'poetry export --extras all --without-hashes > {repo_basedir}/requirements.txt')
 
   # Copy source code.
-  copy_dirs = ['src', 'web/blueprint/build']
+  copy_dirs = ['lilacai', 'web/blueprint/build']
   for copy_dir in copy_dirs:
     shutil.copytree(copy_dir, os.path.join(repo_basedir, copy_dir), dirs_exist_ok=True)
 

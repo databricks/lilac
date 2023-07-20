@@ -1,5 +1,5 @@
 [run]
-source = src
+source = lilacai
 omit =
   *_test.py
   */__init__.py

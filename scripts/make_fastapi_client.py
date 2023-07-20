@@ -23,7 +23,7 @@ def main(api_json_from_server: bool) -> None:
   else:
     openapi_input = '/tmp/openapi.json'
     # Call the make_openapi script to generate the openapi.json file.
-    run(f'poetry run python -m src.make_openapi --output={openapi_input}')
+    run(f'poetry run python -m lilacai.make_openapi --output={openapi_input}')
 
   # Generate the web client.
   run(f"""

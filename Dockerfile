@@ -20,13 +20,13 @@ COPY LICENSE .
 COPY /web/blueprint/build ./web/blueprint/build
 
 # Copy python files.
-COPY /src ./src/
+COPY /lilacai ./lilacai/
 
 # Copy the data files. We use glob so docker copy won't fail if the directory doesn't exist.
 COPY /dat[a] ./data/
 
 CMD [ \
-  "gunicorn", "src.server:app", \
+  "gunicorn", "lilacai.server:app", \
   "--bind", "0.0.0.0:5432", \
   "-k", "uvicorn.workers.UvicornWorker" \
   ]
