@@ -599,7 +599,7 @@ files = [
 name = "cohere"
 version = "3.10.0"
 description = "A Python library for the Cohere API"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "cohere-3.10.0.tar.gz", hash = "sha256:8c06a87a47aa9521051eeba130ce391d84ab578148c4ea5b62f6dcc41bd3a274"},
@@ -839,7 +839,7 @@ files = [
 name = "cytoolz"
 version = "0.12.1"
 description = "Cython implementation of Toolz: High performance functional utilities"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "cytoolz-0.12.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:5c59bb4ca88e1c69931468bf21f91c8f64d8bf1999eb163b7a2df336f60c304a"},
@@ -1072,7 +1072,7 @@ files = [
 name = "detect-secrets"
 version = "1.4.0"
 description = "Tool for detecting secrets in the codebase"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "detect_secrets-1.4.0-py3-none-any.whl", hash = "sha256:d08ecabeee8b68c0acb0e8a354fb98d822a653f6ed05e520cead4c6fc1fc02cd"},
@@ -1194,7 +1194,7 @@ files = [
 name = "email-reply-parser"
 version = "0.5.12"
 description = "Email reply parser"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "email_reply_parser-0.5.12-py2-none-any.whl", hash = "sha256:d051cfa8f54046f7399553aae57f17f62bf1652f83e3e9970fd109c0f24a880c"},
@@ -1281,7 +1281,7 @@ testing = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "diff-cover (>=7.5)", "p
 name = "floret"
 version = "0.10.3"
 description = "floret Python bindings"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "floret-0.10.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:d2d7d85041adf8aafb8308a8e837360907f5292206627dbcb631c057fc22293e"},
@@ -1535,7 +1535,7 @@ gcsfuse = ["fusepy"]
 name = "google-ai-generativelanguage"
 version = "0.2.0"
 description = "Google Ai Generativelanguage API client library"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "google-ai-generativelanguage-0.2.0.tar.gz", hash = "sha256:4d5440a7df7f495f016e5ccd4d9903514264392b240c40d40d28a1356bd9fad3"},
@@ -1786,7 +1786,7 @@ testing = ["pytest"]
 name = "google-generativeai"
 version = "0.1.0"
 description = "Google Generative AI High level API client library and tools."
-optional = false
+optional = true
 python-versions = ">=3.9"
 files = [
     {file = "google_generativeai-0.1.0-py3-none-any.whl", hash = "sha256:1cdfbef1bfc280a56172c48f480b71665122796f9f98f464e7918b840cc80c07"},
@@ -1837,7 +1837,7 @@ grpc = ["grpcio (>=1.44.0,<2.0.0.dev0)"]
 name = "grpcio"
 version = "1.56.0"
 description = "HTTP/2-based RPC framework"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "grpcio-1.56.0-cp310-cp310-linux_armv7l.whl", hash = "sha256:fb34ace11419f1ae321c36ccaa18d81cd3f20728cd191250be42949d6845bb2d"},
@@ -1894,7 +1894,7 @@ protobuf = ["grpcio-tools (>=1.56.0)"]
 name = "grpcio-status"
 version = "1.56.0"
 description = "Status proto mapping for gRPC"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "grpcio-status-1.56.0.tar.gz", hash = "sha256:9eca0b2dcda0782d3702df225918efd6d820f75f93cd5c51c7fb6a4ffbfea12c"},
@@ -2275,7 +2275,7 @@ testing = ["Django (<3.1)", "attrs", "colorama", "docopt", "pytest (<7.0.0)"]
 name = "jellyfish"
 version = "1.0.0"
 description = "Approximate and phonetic matching of strings."
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "jellyfish-1.0.0-cp310-cp310-macosx_10_7_x86_64.whl", hash = "sha256:26f8fbcc112e6f61c03446860e649b2341acfdda80d1fd53dd67887a409b6785"},
@@ -2631,7 +2631,7 @@ data = ["language-data (>=1.1,<2.0)"]
 name = "langdetect"
 version = "1.0.9"
 description = "Language detection library ported from Google's language-detection."
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "langdetect-1.0.9-py2-none-any.whl", hash = "sha256:7cbc0746252f19e76f77c0b1690aadf01963be835ef0cd4b56dddf2a8f1dfc2a"},
@@ -2802,7 +2802,7 @@ files = [
 name = "mpmath"
 version = "1.3.0"
 description = "Python library for arbitrary-precision floating-point arithmetic"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "mpmath-1.3.0-py3-none-any.whl", hash = "sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c"},
@@ -3221,7 +3221,7 @@ files = [
 name = "networkx"
 version = "3.1"
 description = "Python package for creating and manipulating graphs and networks"
-optional = false
+optional = true
 python-versions = ">=3.8"
 files = [
     {file = "networkx-3.1-py3-none-any.whl", hash = "sha256:4f33f68cb2afcf86f28a45f43efc27a9386b535d567d2127f8f61d51dec58d36"},
@@ -3239,7 +3239,7 @@ test = ["codecov (>=2.1)", "pytest (>=7.2)", "pytest-cov (>=4.0)"]
 name = "nltk"
 version = "3.8.1"
 description = "Natural Language Toolkit"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "nltk-3.8.1-py3-none-any.whl", hash = "sha256:fd5c9109f976fa86bcadba8f91e47f5e9293bd034474752e92a520f81c93dda5"},
@@ -3811,7 +3811,7 @@ wcwidth = "*"
 name = "proto-plus"
 version = "1.22.3"
 description = "Beautiful, Pythonic protocol buffers."
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "proto-plus-1.22.3.tar.gz", hash = "sha256:fdcd09713cbd42480740d2fe29c990f7fbd885a67efc328aa8be6ee3e9f76a6b"},
@@ -4055,7 +4055,7 @@ diagrams = ["jinja2", "railroad-diagrams"]
 name = "pyphen"
 version = "0.14.0"
 description = "Pure Python module to hyphenate text"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "pyphen-0.14.0-py3-none-any.whl", hash = "sha256:414c9355958ca3c6a3ff233f65678c245b8ecb56418fb291e2b93499d61cd510"},
@@ -4407,7 +4407,7 @@ cffi = {version = "*", markers = "implementation_name == \"pypy\""}
 name = "regex"
 version = "2023.6.3"
 description = "Alternative regular expression module, to replace re."
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "regex-2023.6.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:824bf3ac11001849aec3fa1d69abcb67aac3e150a933963fb12bda5151fe1bfd"},
@@ -4607,7 +4607,7 @@ files = [
 name = "safetensors"
 version = "0.3.1"
 description = "Fast and Safe Tensor serialization"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "safetensors-0.3.1-cp310-cp310-macosx_10_11_x86_64.whl", hash = "sha256:2ae9b7dd268b4bae6624729dac86deb82104820e9786429b0583e5168db2f770"},
@@ -4761,7 +4761,7 @@ win32 = ["pywin32"]
 name = "sentence-transformers"
 version = "2.2.2"
 description = "Multilingual text embeddings"
-optional = false
+optional = true
 python-versions = ">=3.6.0"
 files = [
     {file = "sentence-transformers-2.2.2.tar.gz", hash = "sha256:dbc60163b27de21076c9a30d24b5b7b6fa05141d68cf2553fa9a77bf79a29136"},
@@ -4783,7 +4783,7 @@ transformers = ">=4.6.0,<5.0.0"
 name = "sentencepiece"
 version = "0.1.99"
 description = "SentencePiece python wrapper"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "sentencepiece-0.1.99-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:0eb528e70571b7c02723e5804322469b82fe7ea418c96051d0286c0fa028db73"},
@@ -5103,7 +5103,7 @@ full = ["httpx (>=0.22.0)", "itsdangerous", "jinja2", "python-multipart", "pyyam
 name = "sympy"
 version = "1.12"
 description = "Computer algebra system (CAS) in Python"
-optional = false
+optional = true
 python-versions = ">=3.8"
 files = [
     {file = "sympy-1.12-py3-none-any.whl", hash = "sha256:c3588cd4295d0c0f603d0f2ae780587e64e2efeedb3521e46b9bb1d08d184fa5"},
@@ -5162,7 +5162,7 @@ test = ["pre-commit", "pytest (>=7.0)", "pytest-timeout"]
 name = "textacy"
 version = "0.13.0"
 description = "NLP, before and after spaCy"
-optional = false
+optional = true
 python-versions = ">=3.9"
 files = [
     {file = "textacy-0.13.0-py3-none-any.whl", hash = "sha256:0e150ce52c8366ccd26650ac310478bbe19604a16fd35a97659973f9d172573c"},
@@ -5299,7 +5299,7 @@ test = ["flake8", "isort", "pytest"]
 name = "tokenizers"
 version = "0.13.3"
 description = "Fast and Customizable Tokenizers"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "tokenizers-0.13.3-cp310-cp310-macosx_10_11_x86_64.whl", hash = "sha256:f3835c5be51de8c0a092058a4d4380cb9244fb34681fd0a295fbf0a52a5fdf33"},
@@ -5386,7 +5386,7 @@ files = [
 name = "torch"
 version = "2.0.1"
 description = "Tensors and Dynamic neural networks in Python with strong GPU acceleration"
-optional = false
+optional = true
 python-versions = ">=3.8.0"
 files = [
     {file = "torch-2.0.1-cp310-cp310-manylinux1_x86_64.whl", hash = "sha256:8ced00b3ba471856b993822508f77c98f48a458623596a4c43136158781e306a"},
@@ -5425,7 +5425,7 @@ opt-einsum = ["opt-einsum (>=3.3)"]
 name = "torchvision"
 version = "0.15.2"
 description = "image and video datasets and models for torch deep learning"
-optional = false
+optional = true
 python-versions = ">=3.8"
 files = [
     {file = "torchvision-0.15.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:7754088774e810c5672b142a45dcf20b1bd986a5a7da90f8660c43dc43fb850c"},
@@ -5518,7 +5518,7 @@ test = ["argcomplete (>=2.0)", "pre-commit", "pytest", "pytest-mock"]
 name = "transformers"
 version = "4.30.2"
 description = "State-of-the-art Machine Learning for JAX, PyTorch and TensorFlow"
-optional = false
+optional = true
 python-versions = ">=3.7.0"
 files = [
     {file = "transformers-4.30.2-py3-none-any.whl", hash = "sha256:c332e3a3097f9ed89ce556b403251235931c00237b8bc2d7adaa19d226c13f1d"},
@@ -6283,7 +6283,14 @@ files = [
 docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-lint"]
 testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)"]
 
+[extras]
+all = ["cohere", "detect-secrets", "email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "google-generativeai", "langdetect", "openai", "sentence-transformers", "textacy"]
+embeddings = ["cohere", "google-generativeai", "openai", "sentence-transformers"]
+gmail = ["email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib"]
+llms = ["openai"]
+signals = ["detect-secrets", "langdetect", "textacy"]
+
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.9"
-content-hash = "edce308e1dd973099aa851bd460c8a64bd9b0f579e426df1452baf22e507726a"
+content-hash = "bc91cda9ea554f289701cb1a70802338ca157a7aff292527b932be35a2880edd"

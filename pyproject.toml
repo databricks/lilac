@@ -1,112 +1,131 @@
 [tool.poetry]
-name = "lilac"
-version = "0.0.1"
-description = "Index your dataset"
 authors = ["Lilac AI Inc. <info@lilacml.com>"]
-readme = "README.md"
+description = "Index your dataset"
+name = "lilac"
 packages = [{include = "src"}]
+readme = "README.md"
+version = "0.0.1"
 
 [tool.poetry.dependencies]
 
-# LLM providers.
-cohere = "^3.7.0"
-openai = "^0.27.8"
+### Required dependencies. ###
+dask = "^2023.3.2" 
+datasets = "^2.12.0" 
+distributed = "^2023.3.2.1" 
+duckdb = "^0.8.1" 
+fastapi = "^0.98.0" 
+gcsfs = "^2023.4.0" 
+google-cloud-storage = "^2.5.0" 
+gunicorn = "^20.1.0" 
+joblib = "^1.3.1" 
 openai-function-call = "^0.0.5" # Wraps OpenAI functions with Pydantic models.
-google-generativeai = "^0.1.0" # PaLM / MakerSuite.
+orjson = "^3.8.10" # Fast JSON serialization: https://fastapi.tiangolo.com/advanced/custom-response/#use-orjsonresponse
+pillow = "^9.3.0" # Image processing.
+psutil = "^5.9.5" 
+pyarrow = "^9.0.0" 
+pydantic = "^1.10.11" 
+python = "~3.9" 
+python-dotenv = "^1.0.0" 
+requests = "^2.28.1" 
+scikit-learn = "^1.3.0" 
+spacy = "^3.5.1" 
+tenacity = "^8.2.2" 
+tqdm = "^4.65.0" 
+types-psutil = "^5.9.5.12" 
+typing-extensions = "^4.7.1" 
+uvicorn = {extras = ["standard"], version = "^0.22.0"} 
 
-datasets = "^2.12.0"
-duckdb = "^0.8.1"
-fastapi = "^0.98.0"
-google-cloud-storage = "^2.5.0"
-python = "~3.9"
-pyarrow = "^9.0.0"
-pydantic = "^1.10.11"
-pillow = "^9.3.0"
-requests = "^2.28.1"
-scikit-learn = "^1.3.0"
-spacy = "^3.5.1"
-tqdm = "^4.65.0"
-typing-extensions = "^4.7.1"
-uvicorn = {extras = ["standard"], version = "^0.22.0"}
-joblib = "^1.3.1"
-tenacity = "^8.2.2"
-gunicorn = "^20.1.0"
+### Optional dependencies. ###
 
-# For fast JSON serialization: https://fastapi.tiangolo.com/advanced/custom-response/#use-orjsonresponse
-orjson = "^3.8.10"
+# LLM providers.
+cohere = {version = "^3.7.0", optional = true}
+google-generativeai = {version = "^0.1.0", optional = true}# PaLM / MakerSuite.
+openai = {version = "^0.27.8", optional = true}
+sentence-transformers = {version = "^2.2.2", optional = true}# SBERT on-device embeddings.
 
-dask = "^2023.3.2"
-distributed = "^2023.3.2.1"
-gcsfs = "^2023.4.0"
-python-dotenv = "^1.0.0"
-psutil = "^5.9.5"
-types-psutil = "^5.9.5.12"
-sentence-transformers = "^2.2.2"
+# Gmail source.
+email-reply-parser = {version = "^0.5.12", optional = true}
+google-api-python-client = {version = "^2.88.0", optional = true}
+google-auth-httplib2 = {version = "^0.1.0", optional = true}
+google-auth-oauthlib = {version = "^1.0.0", optional = true}
 
-# For Gmail.
-google-api-python-client = "^2.88.0"
-google-auth-httplib2 = "^0.1.0"
-google-auth-oauthlib = "^1.0.0"
-email-reply-parser = "^0.5.12"
-
-# For text statistics.
-textacy = "^0.13.0"
+# Text statistics.
+textacy = {version = "^0.13.0", optional = true}
 
 # For PII and secrets.
-detect-secrets = "^1.4.0"
+detect-secrets = {version = "^1.4.0", optional = true}
 
 # For language detection.
-langdetect = "^1.0.9"
+langdetect = {version = "^1.0.9", optional = true}
 
-[tool.poetry.group.dev]  # Deps for development.
+[tool.poetry.extras]
+all = [
+  "cohere",
+  "google-generativeai",
+  "openai",
+  "sentence-transformers",
+  "email-reply-parser",
+  "google-api-python-client",
+  "google-auth-httplib2",
+  "google-auth-oauthlib",
+  "textacy",
+  "detect-secrets",
+  "langdetect",
+]
+embeddings = ["cohere", "google-generativeai", "openai", "sentence-transformers"]
+gmail = ["email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib"]
+llms = ["openai"]
+signals = ["textacy", "detect-secrets", "langdetect"]
+
+[tool.poetry.group.dev] # Deps for development.
 optional = true
 
 [tool.poetry.group.dev.dependencies]
 bokeh = ">=2.4.2,<3" # Required for Dask monitoring.
-click = "^8.1.3"
-mypy = "^1.0.0"
-pytest = "^7.1.3"
-pytest-cov = "^4.0.0"
-pytest-mock = "^3.10.0"
-ruff = "^0.0.219"
-yapf = "^0.32.0"
-setuptools = "^65.5.0"
-wheel = "^0.37.1"
-google-api-python-client-stubs = "^1.13.0"
-types-requests = "^2.28.11.5"
-pytest-asyncio = "^0.20.2"
-types-Pillow = "^9.3.0.4"
-types-tqdm = "^4.65.0.0"
-watchdog = {extras = ["watchmedo"], version = "^3.0.0"}
-notebook = "^6.5.4"
-matplotlib = "^3.7.1"
-isort = "^5.12.0"
-httpx = "^0.24.0"
-toml = "^0.10.2"
-huggingface-hub = "^0.15.1"
-types-cachetools = "^5.3.0.5"
-types-regex = "^2023.6.3.0"
+click = "^8.1.3" 
+google-api-python-client-stubs = "^1.13.0" 
+httpx = "^0.24.0" 
+huggingface-hub = "^0.15.1" 
+isort = "^5.12.0" 
+matplotlib = "^3.7.1" 
+mypy = "^1.0.0" 
+notebook = "^6.5.4" 
+pytest = "^7.1.3" 
+pytest-asyncio = "^0.20.2" 
+pytest-cov = "^4.0.0" 
+pytest-mock = "^3.10.0" 
+ruff = "^0.0.219" 
+setuptools = "^65.5.0" 
+toml = "^0.10.2" 
+types-Pillow = "^9.3.0.4" 
+types-cachetools = "^5.3.0.5" 
+types-regex = "^2023.6.3.0" 
+types-requests = "^2.28.11.5" 
+types-tqdm = "^4.65.0.0" 
+watchdog = {extras = ["watchmedo"], version = "^3.0.0"} 
+wheel = "^0.37.1" 
+yapf = "^0.32.0" 
 
 [tool.poetry.scripts]
 deploy-hf = "scripts.deploy_hf:main"
 
 [build-system]
-requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core"]
 
 [tool.pyright]
-include = ["src"]
 exclude = [
   "**/node_modules",
   "**/__pycache__",
 ]
+include = ["src"]
 
 [tool.ruff]
 line-length = 100
 src = ["src"]
 
 # Enable Pyflakes `F`, pycodestyle "W" and `E`, "Q" quotes, "I" imports.
-select = ["E", "W", "F", "Q", "I", "D"]
+fix = true
 ignore = [
   "D105", # Missing docstring in magic method.
   "D106", # Missing docstring in a public nested class.
@@ -116,32 +135,32 @@ ignore = [
   "D213", # Multi-line docstring summary should start at the second line.
   "D407", # Missing dashed underline after section.
   "F841", # Unused variable rules.
-  "I001" # Delegate sorting to isort.
+  "I001", # Delegate sorting to isort.
 ]
-fix = true
+select = ["E", "W", "F", "Q", "I", "D"]
 unfixable = ["I"] # Delegate import organization to isort.
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".hg",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "venv",
 ]
 
 # Allow unused variables when underscore-prefixed.
@@ -159,8 +178,8 @@ inline-quotes = "single"
 
 [tool.isort]
 indent = "  "
-profile = "black"
 line_length = 100
+profile = "black"
 
 [tool.ruff.per-file-ignores]
 "*_test.py" = ["D101", "D102", "D103", "D104"]
@@ -171,13 +190,13 @@ line_length = 100
 classmethod-decorators = ["classmethod", "pydantic.validator"]
 
 [tool.yapf]
-based_on_style = "google"
-column_limit = 100
-indent_width = 2
 allow_split_before_dict_value = false
+based_on_style = "google"
 coalesce_brackets = true
-split_before_expression_after_opening_paren = true
+column_limit = 100
 continuation_indent_width = 2
+indent_width = 2
+split_before_expression_after_opening_paren = true
 
 # Consider enabling these options for more compact code.
 # split_before_named_assigns = false
