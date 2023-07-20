@@ -28,9 +28,10 @@ from .tasks import task_manager
 from .utils import get_dataset_output_dir, list_datasets
 
 DIST_PATH = os.path.abspath(os.path.join('web', 'blueprint', 'build'))
-GOOGLE_CLIENT_ID = CONFIG.get('GOOGLE_CLIENT_ID', None)
-GOOGLE_CLIENT_SECRET = CONFIG.get('GOOGLE_CLIENT_SECRET', None)
 LILAC_AUTH_ENABLED = CONFIG.get('LILAC_AUTH_ENABLED', False)
+LILAC_OAUTH_SECRET_KEY = CONFIG.get('LILAC_OAUTH_SECRET_KEY', None)
+if LILAC_AUTH_ENABLED and not LILAC_OAUTH_SECRET_KEY:
+  raise ValueError('`LILAC_OAUTH_SECRET_KEY` must be set if `LILAC_AUTH_ENABLED` is True.')
 
 tags_metadata: list[dict[str, Any]] = [{
   'name': 'datasets',
@@ -56,7 +57,7 @@ app = FastAPI(
   default_response_class=ORJSONResponse,
   generate_unique_id_function=custom_generate_unique_id,
   openapi_tags=tags_metadata)
-app.add_middleware(SessionMiddleware, secret_key=CONFIG.get('LILAC_OAUTH_SECRET_KEY', None))
+app.add_middleware(SessionMiddleware, secret_key=LILAC_OAUTH_SECRET_KEY)
 app.include_router(router_google_login.router, prefix='/google', tags=['google_login'])
 
 v1_router = APIRouter(route_class=RouteErrorHandler)
