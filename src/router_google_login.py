@@ -1,4 +1,4 @@
-"""Router for tasks."""
+"""Router for Google OAuth2 login."""
 
 from urllib.parse import urlparse, urlunparse
 
