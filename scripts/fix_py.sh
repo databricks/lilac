@@ -7,10 +7,10 @@ set -e
 source $(poetry env info --path)/bin/activate
 
 echo "Fixing python with ruff..."
-ruff --fix lilacai/
+ruff --fix lilac/
 
 echo "Fixing python imports with isort..."
-isort lilacai/
+isort lilac/
 
 echo "Fixing python formatting with yapf..."
-yapf -i -p -r lilacai/
+yapf -i -p -r lilac/

@@ -138,7 +138,7 @@ Test JavaScript:
 Datasets can be ingested entirely from the UI, however if you prefer to use the CLI you can ingest data with the following command:
 
 ```sh
-poetry run python -m lilacai.data_loader \
+poetry run python -m lilac.data_loader \
   --dataset_name=$DATASET \
   --output_dir=./data/ \
   --config_path=./datasets/the_movies_dataset.json

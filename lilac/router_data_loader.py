@@ -2,7 +2,7 @@
 
 To run the source loader as a binary directly:
 
-poetry run python -m lilacai.datasets.loader \
+poetry run python -m lilac.datasets.loader \
   --dataset_name=$DATASET \
   --output_dir=./data/ \
   --config_path=./datasets/the_movies_dataset.json

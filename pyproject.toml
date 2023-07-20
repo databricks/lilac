@@ -3,7 +3,8 @@ authors = ["Lilac AI Inc. <info@lilacml.com>"]
 description = "Organize unstructured data"
 license = "Apache-2.0"
 name = "lilacai"
-packages = [{include = "lilacai"}]
+repository = "https://github.com/lilacai/lilac"
+packages = [{include = "lilac"}]
 readme = "README.md"
 version = "0.0.5"
 
@@ -137,11 +138,11 @@ exclude = [
   "**/node_modules",
   "**/__pycache__",
 ]
-include = ["lilacai"]
+include = ["lilac"]
 
 [tool.ruff]
 line-length = 100
-src = ["lilacai"]
+src = ["lilac"]
 
 # Enable Pyflakes `F`, pycodestyle "W" and `E`, "Q" quotes, "I" imports.
 fix = true

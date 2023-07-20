@@ -7,9 +7,9 @@ set -e
 source $(poetry env info --path)/bin/activate
 
 echo "Linting python with ruff..."
-ruff lilacai
+ruff lilac
 
-isort --check lilacai/
+isort --check lilac/
 
 echo "Checking python types with mypy..."
-mypy lilacai
+mypy lilac
