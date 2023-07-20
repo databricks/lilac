@@ -10,13 +10,22 @@ export class GoogleLoginService {
     /**
      * Login
      * Redirects to Google OAuth login page.
+     * @param originUrl
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static login(): CancelablePromise<any> {
+    public static login(
+        originUrl: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/google/login',
+            query: {
+                'origin_url': originUrl,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
         });
     }
 

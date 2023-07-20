@@ -12,14 +12,12 @@
   export let title: string;
 
   const authInfo = queryAuthInfo();
+
+  const origin = location.origin;
+  const loginUrl = `${origin}/google/login?origin_url=${origin}`;
   const logoutMutation = googleLogoutMutation();
   function logout() {
-    console.log('logging out.');
-    $logoutMutation.mutate([], {
-      onSuccess: () => {
-        console.log('logged out.');
-      }
-    });
+    $logoutMutation.mutate([]);
   }
 </script>
 
@@ -61,7 +59,7 @@
             </div>
           </div>
         {:else}
-          <Button size="small" on:click={() => goto('/datasets/new')}>Login</Button>
+          <Button size="small" on:click={() => goto(loginUrl)}>Login</Button>
         {/if}
       {/if}
     </div>

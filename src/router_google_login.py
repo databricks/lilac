@@ -1,7 +1,11 @@
 """Router for tasks."""
 
-from authlib.integrations.starlette_client import OAuth
+from typing import Union
+from urllib.parse import urlparse, urlunparse
+
+from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
 from starlette.config import Config
 from starlette.responses import RedirectResponse
 
@@ -35,20 +39,21 @@ if LILAC_AUTH_ENABLED:
 
 
 @router.get('/login')
-async def login(request: Request) -> RedirectResponse:
+async def login(request: Request, origin_url: str) -> RedirectResponse:
   """Redirects to Google OAuth login page."""
-  redirect_uri = request.url_for('auth')
-  return await oauth.google.authorize_redirect(request, redirect_uri)
+  auth_path = urlunparse(urlparse(origin_url)._replace(path='/google/auth'))
+  return await oauth.google.authorize_redirect(request, auth_path)
 
 
 @router.get('/auth')
-async def auth(request: Request) -> RedirectResponse:
+async def auth(request: Request) -> Union[RedirectResponse, HTMLResponse]:
   """Handles the Google OAuth callback."""
-  if 'user' in request.session:
-    token = oauth.google.authorize_access_token()
-  token = await oauth.google.authorize_access_token(request)
+  try:
+    token = await oauth.google.authorize_access_token(request)
+  except OAuthError as error:
+    return HTMLResponse(f'<h1>{error.error}</h1>')
   request.session['user'] = token['userinfo']
-  return RedirectResponse('/')
+  return RedirectResponse(url='/')
 
 
 @router.get('/logout')
