@@ -16,6 +16,7 @@ import {colorFromScore} from './colors';
 
 // When the text length exceeds this number we start to snippet.
 const SNIPPET_LEN_BUDGET = 500;
+const MAX_RENDER_SPAN_LENGTH = 100;
 
 export interface SpanValueInfo {
   path: Path;
@@ -164,8 +165,30 @@ export function getSnippetSpans(
   renderSpans: RenderSpan[],
   isExpanded: boolean
 ): {snippetSpans: SnippetSpan[]; someSnippetsHidden: boolean} {
+  // First, cut any snippet shown render spans that are too long.
+  renderSpans = renderSpans
+    .map(renderSpan => {
+      if (renderSpan.isShownSnippet && renderSpan.text.length > MAX_RENDER_SPAN_LENGTH) {
+        const shownRenderSpan = {
+          ...renderSpan,
+          text: renderSpan.text.slice(0, MAX_RENDER_SPAN_LENGTH),
+          snippetText: renderSpan.snippetText.slice(0, MAX_RENDER_SPAN_LENGTH)
+        };
+        const hiddenRenderSpan = {
+          ...renderSpan,
+          text: renderSpan.text.slice(MAX_RENDER_SPAN_LENGTH),
+          snippetText: renderSpan.snippetText.slice(MAX_RENDER_SPAN_LENGTH),
+          isShownSnippet: false,
+          // The hover metadata is already displayed in the shown span.
+          namedValues: []
+        };
+        return [shownRenderSpan, hiddenRenderSpan];
+      } else {
+        return [renderSpan];
+      }
+    })
+    .flat();
   // Map the merged spans to the information needed to render each span.
-
   if (isExpanded) {
     return {
       snippetSpans: renderSpans.map(renderSpan => ({renderSpan, isShown: true})),
