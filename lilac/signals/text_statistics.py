@@ -69,7 +69,7 @@ class TextStatisticsSignal(TextSignal):
           yield None
           continue
         readability = text_stats.readability.automated_readability_index(doc)
-        ttr = text_stats.diversity.ttr(doc)
+        ttr = text_stats.diversity.log_ttr(doc)
         num_chars = text_stats.basics.n_chars(doc)
 
         yield {
