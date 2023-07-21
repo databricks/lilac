@@ -12,7 +12,7 @@ SPACY_BATCH_SIZE = 128
 
 NUM_CHARS = 'num_characters'
 READABILITY = 'readability'
-TYPE_TOKEN_RATIO = 'type_token_ratio'
+TYPE_TOKEN_RATIO = 'log(type_token_ratio)'
 
 if TYPE_CHECKING:
   from spacy import Language
