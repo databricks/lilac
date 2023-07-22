@@ -1,10 +1,31 @@
 """Authentication and ACL configuration."""
 
-from typing import Optional
+from typing import Any, Optional
 
+from fastapi import HTTPException, Request, Response
 from pydantic import BaseModel
 
 from .config import CONFIG
+
+LILAC_AUTH_ENABLED = CONFIG.get('LILAC_AUTH_ENABLED', False)
+
+
+class AuthenticationMiddleware:
+  """Middleware that catches the py authentication errors and returns a 401."""
+
+  async def __call__(self, request: Request, call_next: Any) -> Response:
+    """Call the middleware."""
+    try:
+      response = await call_next(request)
+    except ConceptAuthorizationException as e:
+      raise HTTPException(status_code=401, detail='User does not have access.') from e
+
+    return response
+
+
+class ConceptAuthorizationException(Exception):
+  """Authorization exceptions thrown by the concept database."""
+  pass
 
 
 class DatasetUserAccess(BaseModel):
@@ -36,6 +57,7 @@ class UserAccess(BaseModel):
 
 class UserInfo(BaseModel):
   """User information."""
+  id: str
   email: str
   name: str
   given_name: str
@@ -47,6 +69,16 @@ class AuthenticationInfo(BaseModel):
   user: Optional[UserInfo]
   access: UserAccess
   auth_enabled: bool
+
+
+def get_session_user(request: Request) -> Optional[UserInfo]:
+  """Get the user from the session."""
+  if not LILAC_AUTH_ENABLED:
+    return None
+  user_info_dict = request.session.get('user', None)
+  if user_info_dict:
+    return UserInfo.parse_obj(user_info_dict)
+  return None
 
 
 def get_user_access() -> UserAccess:

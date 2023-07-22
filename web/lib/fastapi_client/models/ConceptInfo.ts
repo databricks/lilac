@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { ConceptACLs } from './ConceptACLs';
 import type { SignalInputType } from './SignalInputType';
 
 /**
@@ -12,5 +13,6 @@ export type ConceptInfo = {
     name: string;
     type: SignalInputType;
     drafts: Array<('main' | string)>;
+    acls: ConceptACLs;
 };
 

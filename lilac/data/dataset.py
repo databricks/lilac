@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
 
+from ..auth import UserInfo
 from ..embeddings.vector_store import VectorStore
 from ..schema import VALUE_KEY, Bin, DataType, Path, PathTuple, Schema, normalize_path
 from ..signals.signal import Signal, resolve_signal
@@ -341,7 +342,8 @@ class Dataset(abc.ABC):
                   offset: Optional[int] = 0,
                   task_step_id: Optional[TaskStepId] = None,
                   resolve_span: bool = False,
-                  combine_columns: bool = False) -> SelectRowsResult:
+                  combine_columns: bool = False,
+                  user: Optional[UserInfo] = None) -> SelectRowsResult:
     """Select grouped columns to power a histogram.
 
     Args:

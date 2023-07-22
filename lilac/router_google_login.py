@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse
 from starlette.config import Config
 from starlette.responses import RedirectResponse
 
+from .auth import UserInfo
 from .config import CONFIG
 from .router_utils import RouteErrorHandler
 
@@ -51,7 +52,14 @@ async def auth(request: Request) -> Response:
     token = await oauth.google.authorize_access_token(request)
   except OAuthError as error:
     return HTMLResponse(f'<h1>{error}</h1>')
-  request.session['user'] = token['userinfo']
+  userinfo = token['userinfo']
+  request.session['user'] = UserInfo(
+    id=str(userinfo['sub']),
+    email=userinfo['email'],
+    name=userinfo['name'],
+    given_name=userinfo['given_name'],
+    family_name=userinfo['family_name']).dict()
+
   return RedirectResponse(url='/')
 
 

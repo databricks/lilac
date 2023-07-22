@@ -20,7 +20,7 @@ from . import (
   router_signal,
   router_tasks,
 )
-from .auth import AuthenticationInfo, UserInfo, get_user_access
+from .auth import AuthenticationInfo, UserInfo, get_session_user, get_user_access
 from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from .config import CONFIG, data_path
 from .router_utils import RouteErrorHandler
@@ -74,16 +74,7 @@ def auth_info(request: Request) -> AuthenticationInfo:
 
   NOTE: Validation happens server-side as well. This is just used for UI treatment.
   """
-  user_info: Optional[UserInfo] = None
-  if LILAC_AUTH_ENABLED:
-    session_user = request.session.get('user', None)
-    if session_user:
-      user_info = UserInfo(
-        email=session_user['email'],
-        name=session_user['name'],
-        given_name=session_user['given_name'],
-        family_name=session_user['family_name'])
-
+  user_info: Optional[UserInfo] = get_session_user(request)
   return AuthenticationInfo(
     user=user_info, access=get_user_access(), auth_enabled=LILAC_AUTH_ENABLED)
 

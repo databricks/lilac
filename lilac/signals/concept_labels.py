@@ -3,6 +3,7 @@ from typing import Iterable, Optional
 
 from typing_extensions import override
 
+from ..auth import UserInfo
 from ..concepts.concept import DRAFT_MAIN, draft_examples
 from ..concepts.db_concept import DISK_CONCEPT_DB, ConceptDB
 from ..data.dataset_utils import lilac_span
@@ -22,6 +23,7 @@ class ConceptLabelsSignal(TextSignal):
   draft: str = DRAFT_MAIN
 
   _concept_db: ConceptDB = DISK_CONCEPT_DB
+  _user: Optional[UserInfo] = None
 
   @override
   def fields(self) -> Field:
@@ -29,7 +31,7 @@ class ConceptLabelsSignal(TextSignal):
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    concept = self._concept_db.get(self.namespace, self.concept_name)
+    concept = self._concept_db.get(self.namespace, self.concept_name, self._user)
     if not concept:
       raise ValueError(f'Concept "{self.namespace}/{self.concept_name}" does not exist.')
 
@@ -66,6 +68,10 @@ class ConceptLabelsSignal(TextSignal):
         yield label_spans
       else:
         yield None
+
+  def set_user(self, user: Optional[UserInfo]) -> None:
+    """Set the user for this signal."""
+    self._user = user
 
   @override
   def key(self, is_computed_signal: Optional[bool] = False) -> str:

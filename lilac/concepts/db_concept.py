@@ -17,7 +17,8 @@ from pydantic import BaseModel
 from pyparsing import Any
 from typing_extensions import override
 
-from ..config import data_path
+from ..auth import ConceptAuthorizationException, UserInfo
+from ..config import CONFIG, data_path
 from ..schema import PATH_WILDCARD, SignalInputType, normalize_path
 from ..signals.signal import get_signal_cls
 from ..utils import DATASETS_DIR_NAME, delete_file, file_exists, get_dataset_output_dir, open_file
@@ -31,9 +32,28 @@ from .concept import (
   ExampleIn,
 )
 
+LILAC_AUTH_ENABLED = CONFIG.get('LILAC_AUTH_ENABLED', False)
+
 CONCEPTS_DIR = 'concept'
 DATASET_CONCEPTS_DIR = '.concepts'
 CONCEPT_JSON_FILENAME = 'concept.json'
+
+
+class ConceptNamespaceACLs(BaseModel):
+  """The access control list for a namespace."""
+  # Whether the current user can read concepts in the namespace.
+  read: bool
+  # Whether the current user can add concepts to the namespace.
+  write: bool
+
+
+class ConceptACLs(BaseModel):
+  """The access control list for an individual concept."""
+  # Whether the current user can read the concept.
+  read: bool
+  # Whether the current user can edit the concept, including adding examples or deleting the
+  # concept.
+  write: bool
 
 
 class ConceptInfo(BaseModel):
@@ -42,6 +62,8 @@ class ConceptInfo(BaseModel):
   name: str
   type: SignalInputType
   drafts: list[DraftId]
+
+  acls: ConceptACLs
 
 
 class ConceptUpdate(BaseModel):
@@ -60,12 +82,22 @@ class ConceptDB(abc.ABC):
   """Interface for the concept database."""
 
   @abc.abstractmethod
-  def list(self) -> list[ConceptInfo]:
+  def list(self, user: Optional[UserInfo] = None) -> list[ConceptInfo]:
     """List all the concepts."""
     pass
 
   @abc.abstractmethod
-  def get(self, namespace: str, name: str) -> Optional[Concept]:
+  def namespace_acls(self, namespace: str, user: Optional[UserInfo] = None) -> ConceptNamespaceACLs:
+    """Return the ACLs for a namespace."""
+    pass
+
+  @abc.abstractmethod
+  def concept_acls(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> ConceptACLs:
+    """Return the ACLs for a concept."""
+    pass
+
+  @abc.abstractmethod
+  def get(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> Optional[Concept]:
     """Return a concept or None if there isn't one."""
     pass
 
@@ -74,7 +106,8 @@ class ConceptDB(abc.ABC):
              namespace: str,
              name: str,
              type: SignalInputType,
-             description: Optional[str] = None) -> Concept:
+             description: Optional[str] = None,
+             user: Optional[UserInfo] = None) -> Concept:
     """Create a concept.
 
     Args:
@@ -82,21 +115,30 @@ class ConceptDB(abc.ABC):
       name: The name of the concept.
       type: The input type of the concept.
       description: The description of the concept.
+      user: The user creating the concept, if authentication is enabled.
     """
     pass
 
   @abc.abstractmethod
-  def edit(self, namespace: str, name: str, change: ConceptUpdate) -> Concept:
+  def edit(self,
+           namespace: str,
+           name: str,
+           change: ConceptUpdate,
+           user: Optional[UserInfo] = None) -> Concept:
     """Edit a concept. If the concept doesn't exist, throw an error."""
     pass
 
   @abc.abstractmethod
-  def remove(self, namespace: str, name: str) -> None:
+  def remove(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> None:
     """Remove a concept."""
     pass
 
   @abc.abstractmethod
-  def merge_draft(self, namespace: str, name: str, draft: DraftId) -> Concept:
+  def merge_draft(self,
+                  namespace: str,
+                  name: str,
+                  draft: DraftId,
+                  user: Optional[UserInfo] = None) -> Concept:
     """Merge a draft concept.."""
     pass
 
@@ -114,7 +156,8 @@ class ConceptModelDB(abc.ABC):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             column_info: Optional[ConceptColumnInfo] = None) -> ConceptModel:
+             column_info: Optional[ConceptColumnInfo] = None,
+             user: Optional[UserInfo] = None) -> ConceptModel:
     """Create the concept model."""
     pass
 
@@ -123,7 +166,8 @@ class ConceptModelDB(abc.ABC):
           namespace: str,
           concept_name: str,
           embedding_name: str,
-          column_info: Optional[ConceptColumnInfo] = None) -> Optional[ConceptModel]:
+          column_info: Optional[ConceptColumnInfo] = None,
+          user: Optional[UserInfo] = None) -> Optional[ConceptModel]:
     """Get the model associated with the provided concept the embedding.
 
     Returns None if the model does not exist.
@@ -135,16 +179,16 @@ class ConceptModelDB(abc.ABC):
     """Save the concept model."""
     pass
 
-  def in_sync(self, model: ConceptModel) -> bool:
+  def in_sync(self, model: ConceptModel, user: Optional[UserInfo] = None) -> bool:
     """Return True if the model is up to date with the concept."""
-    concept = self._concept_db.get(model.namespace, model.concept_name)
+    concept = self._concept_db.get(model.namespace, model.concept_name, user)
     if not concept:
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
     return concept.version == model.version
 
-  def sync(self, model: ConceptModel) -> bool:
+  def sync(self, model: ConceptModel, user: Optional[UserInfo] = None) -> bool:
     """Sync the concept model. Returns true if the model was updated."""
-    concept = self._concept_db.get(model.namespace, model.concept_name)
+    concept = self._concept_db.get(model.namespace, model.concept_name, user)
     if not concept:
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
     model_updated = model.sync(concept)
@@ -194,8 +238,9 @@ class DiskConceptModelDB(ConceptModelDB):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             column_info: Optional[ConceptColumnInfo] = None) -> ConceptModel:
-    if self.get(namespace, concept_name, embedding_name, column_info):
+             column_info: Optional[ConceptColumnInfo] = None,
+             user: Optional[UserInfo] = None) -> ConceptModel:
+    if self.get(namespace, concept_name, embedding_name, column_info, user):
       raise ValueError('Concept model already exists.')
 
     return ConceptModel(
@@ -210,9 +255,10 @@ class DiskConceptModelDB(ConceptModelDB):
           namespace: str,
           concept_name: str,
           embedding_name: str,
-          column_info: Optional[ConceptColumnInfo] = None) -> Optional[ConceptModel]:
+          column_info: Optional[ConceptColumnInfo] = None,
+          user: Optional[UserInfo] = None) -> Optional[ConceptModel]:
     # Make sure the concept exists.
-    concept = self._concept_db.get(namespace, concept_name)
+    concept = self._concept_db.get(namespace, concept_name, user)
     if not concept:
       raise ValueError(f'Concept "{namespace}/{concept_name}" does not exist.')
 
@@ -241,7 +287,8 @@ class DiskConceptModelDB(ConceptModelDB):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             column_info: Optional[ConceptColumnInfo] = None) -> None:
+             column_info: Optional[ConceptColumnInfo] = None,
+             user: Optional[UserInfo] = None) -> None:
     concept_model_path = _concept_model_path(self._get_base_dir(), namespace, concept_name,
                                              embedding_name, column_info)
 
@@ -251,7 +298,7 @@ class DiskConceptModelDB(ConceptModelDB):
     delete_file(concept_model_path)
 
   @override
-  def remove_all(self, namespace: str, concept_name: str) -> None:
+  def remove_all(self, namespace: str, concept_name: str, user: Optional[UserInfo] = None) -> None:
     datasets_path = os.path.join(self._get_base_dir(), DATASETS_DIR_NAME)
     # Skip if 'datasets' doesn't exist.
     if not os.path.isdir(datasets_path):
@@ -264,14 +311,17 @@ class DiskConceptModelDB(ConceptModelDB):
       shutil.rmtree(dir, ignore_errors=True)
 
   @override
-  def get_models(self, namespace: str, concept_name: str) -> list[ConceptModel]:
+  def get_models(self,
+                 namespace: str,
+                 concept_name: str,
+                 user: Optional[UserInfo] = None) -> list[ConceptModel]:
     """List all the models associated with a concept."""
     model_files = glob.iglob(
       os.path.join(get_concept_output_dir(self._get_base_dir(), namespace, concept_name), '*.pkl'))
     models: list[ConceptModel] = []
     for model_file in model_files:
       embedding_name = os.path.basename(model_file)[:-len('.pkl')]
-      model = self.get(namespace, concept_name, embedding_name)
+      model = self.get(namespace, concept_name, embedding_name, user=user)
       if model:
         models.append(model)
     return models
@@ -330,27 +380,61 @@ class DiskConceptDB(ConceptDB):
     return str(self._base_dir) if self._base_dir else data_path()
 
   @override
-  def list(self) -> list[ConceptInfo]:
+  def namespace_acls(self, namespace: str, user: Optional[UserInfo] = None) -> ConceptNamespaceACLs:
+    if not LILAC_AUTH_ENABLED:
+      return ConceptNamespaceACLs(read=True, write=True)
+
+    if namespace == 'lilac':
+      return ConceptNamespaceACLs(read=True, write=False)
+    if user and user.id == namespace:
+      return ConceptNamespaceACLs(read=True, write=True)
+
+    return ConceptNamespaceACLs(read=False, write=False)
+
+  @override
+  def concept_acls(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> ConceptACLs:
+    namespace_acls = self.namespace_acls(namespace, user)
+    # Concept ACLs inherit from the namespace ACLs. We currently don't have concept-specific
+    #  ACLs.
+    return ConceptACLs(read=namespace_acls.read, write=namespace_acls.write)
+
+  @override
+  def list(self, user: Optional[UserInfo] = None) -> list[ConceptInfo]:
+    namespaces: Optional[list[str]] = None
+    if LILAC_AUTH_ENABLED:
+      namespaces = ['lilac']
+      if user:
+        namespaces += [user.id]
+
     # Read the concepts and return a ConceptInfo containing the namespace and name.
     concept_infos = []
     for root, _, files in os.walk(self._get_base_dir()):
       for file in files:
         if file == CONCEPT_JSON_FILENAME:
           namespace, name = root.split('/')[-2:]
-          concept = cast(Concept, self.get(namespace, name))
+          if namespaces and namespace not in namespaces:
+            # Ignore concepts that are not in the namespace, if provided.
+            continue
 
+          concept = cast(Concept, self.get(namespace, name, user))
           concept_infos.append(
             ConceptInfo(
               namespace=namespace,
               name=name,
-              # TODO(nsthorat): Generalize this to images.
               type=SignalInputType.TEXT,
-              drafts=concept.drafts()))
+              drafts=concept.drafts(),
+              acls=self.concept_acls(namespace, name, user)))
 
     return concept_infos
 
   @override
-  def get(self, namespace: str, name: str) -> Optional[Concept]:
+  def get(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> Optional[Concept]:
+    # If the user does not have access to the concept, return None.
+    acls = self.concept_acls(namespace, name, user)
+    if not acls.read:
+      raise ConceptAuthorizationException(
+        f'Concept "{namespace}/{name}" does not exist or user does not have access.')
+
     concept_json_path = _concept_json_path(self._get_base_dir(), namespace, name)
     if not file_exists(concept_json_path):
       return None
@@ -366,8 +450,15 @@ class DiskConceptDB(ConceptDB):
              namespace: str,
              name: str,
              type: SignalInputType,
-             description: Optional[str] = None) -> Concept:
+             description: Optional[str] = None,
+             user: Optional[UserInfo] = None) -> Concept:
     """Create a concept."""
+    # If the user does not have access to the write to the concept namespace, throw.
+    acls = self.namespace_acls(namespace, user)
+    if not acls.write:
+      raise ConceptAuthorizationException(
+        f'Concept namespace "{namespace}" does not exist or user does not have access.')
+
     concept_json_path = _concept_json_path(self._get_base_dir(), namespace, name)
     if file_exists(concept_json_path):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" already exists.')
@@ -390,7 +481,17 @@ class DiskConceptDB(ConceptDB):
         raise ValueError(f'Example type "{inferred_type}" does not match concept type "{type}".')
 
   @override
-  def edit(self, namespace: str, name: str, change: ConceptUpdate) -> Concept:
+  def edit(self,
+           namespace: str,
+           name: str,
+           change: ConceptUpdate,
+           user: Optional[UserInfo] = None) -> Concept:
+    # If the user does not have access to the concept, return None.
+    acls = self.concept_acls(namespace, name, user)
+    if not acls.write:
+      raise ConceptAuthorizationException(
+        f'Concept "{namespace}/{name}" does not exist or user does not have access.')
+
     concept_json_path = _concept_json_path(self._get_base_dir(), namespace, name)
 
     if not file_exists(concept_json_path):
@@ -401,7 +502,7 @@ class DiskConceptDB(ConceptDB):
     updated_points = change.update or []
     removed_points = change.remove or []
 
-    concept = cast(Concept, self.get(namespace, name))
+    concept = cast(Concept, self.get(namespace, name, user))
 
     self._validate_examples([*inserted_points, *updated_points], concept.type)
 
@@ -435,7 +536,13 @@ class DiskConceptDB(ConceptDB):
       f.write(concept.json(exclude_none=True, indent=2, exclude_defaults=True))
 
   @override
-  def remove(self, namespace: str, name: str) -> None:
+  def remove(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> None:
+    # If the user does not have access to the concept, return None.
+    acls = self.concept_acls(namespace, name, user)
+    if not acls.write:
+      raise ConceptAuthorizationException(
+        f'Concept "{namespace}/{name}" does not exist or user does not have access.')
+
     concept_dir = get_concept_output_dir(self._get_base_dir(), namespace, name)
 
     if not file_exists(concept_dir):
@@ -444,9 +551,19 @@ class DiskConceptDB(ConceptDB):
     shutil.rmtree(concept_dir, ignore_errors=True)
 
   @override
-  def merge_draft(self, namespace: str, name: str, draft: DraftId) -> Concept:
-    """Merge a draft concept.."""
-    concept = self.get(namespace, name)
+  def merge_draft(self,
+                  namespace: str,
+                  name: str,
+                  draft: DraftId,
+                  user: Optional[UserInfo] = None) -> Concept:
+    """Merge a draft concept."""
+    # If the user does not have access to the concept, return None.
+    acls = self.concept_acls(namespace, name, user)
+    if not acls.write:
+      raise ConceptAuthorizationException(
+        f'Concept "{namespace}/{name}" does not exist or user does not have access.')
+
+    concept = self.get(namespace, name, user)
     if not concept:
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" does not exist.')
 
@@ -464,7 +581,7 @@ class DiskConceptDB(ConceptDB):
     for example in draft_examples.values():
       example.draft = DRAFT_MAIN
       # Remove duplicates in main.
-      main_text_id = main_text_ids.get(example.text)
+      main_text_id = main_text_ids.get(example.text, user)
       if main_text_id:
         del concept.data[main_text_id]
 

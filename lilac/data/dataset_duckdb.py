@@ -15,6 +15,7 @@ from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, validator
 from typing_extensions import override
 
+from ..auth import UserInfo
 from ..concepts.concept import ConceptColumnInfo
 from ..config import CONFIG, data_path
 from ..embeddings.vector_store import VectorStore
@@ -781,7 +782,8 @@ class DatasetDuckDB(Dataset):
                   offset: Optional[int] = 0,
                   task_step_id: Optional[TaskStepId] = None,
                   resolve_span: bool = False,
-                  combine_columns: bool = False) -> SelectRowsResult:
+                  combine_columns: bool = False,
+                  user: Optional[UserInfo] = None) -> SelectRowsResult:
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema)
 
@@ -817,6 +819,10 @@ class DatasetDuckDB(Dataset):
         source_path = udf_col.path if udf_col.path[-1] != EMBEDDING_KEY else udf_col.path[:-3]
         udf_col.signal_udf.set_column_info(
           ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=source_path))
+
+      if isinstance(udf_col.signal_udf, (ConceptScoreSignal, ConceptLabelsSignal)):
+        # Concept are access controlled so we tell it about the user.
+        udf_col.signal_udf.set_user(user)
 
     # Decide on the exact sorting order.
     sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
