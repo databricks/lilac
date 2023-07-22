@@ -1,22 +1,22 @@
 <script lang="ts">
   import {
-    queryDatasetSchema,
-    querySettings,
-    updateSettingsMutation
+      queryDatasetSchema,
+      querySettings,
+      updateSettingsMutation
   } from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {petals, serializePath, type DatasetSettings} from '$lilac';
   import {
-    ComposedModal,
-    ModalBody,
-    ModalFooter,
-    ModalHeader,
-    MultiSelect,
-    SkeletonText
+      ComposedModal,
+      ModalBody,
+      ModalFooter,
+      ModalHeader,
+      MultiSelect,
+      SkeletonText
   } from 'carbon-components-svelte';
   import type {
-    MultiSelectItem,
-    MultiSelectItemId
+      MultiSelectItem,
+      MultiSelectItemId
   } from 'carbon-components-svelte/types/MultiSelect/MultiSelect.svelte';
 
   export let open = false;
@@ -26,7 +26,7 @@
   $: updateSettings = updateSettingsMutation();
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
-  $: fields = petals($schema.data);
+  $: fields = petals($schema.data).filter(f => f.dtype === 'string');
 
   $: fieldItems = fields.map(field => ({
     id: serializePath(field.path),
