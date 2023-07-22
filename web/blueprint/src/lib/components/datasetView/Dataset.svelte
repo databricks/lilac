@@ -12,7 +12,7 @@
     querySettings
   } from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
-  import {createDatasetStore, setDatasetContext, type StatsInfo} from '$lib/stores/datasetStore';
+  import {createDatasetStore, setDatasetContext} from '$lib/stores/datasetStore';
   import {
     createDatasetViewStore,
     getSelectRowsSchemaOptions,
@@ -39,15 +39,9 @@
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   $: stringFields = getFieldsByDtype('string', $schema.data);
   $: stats = queryManyDatasetStats(
-    stringFields.map(f => {
-      return [
-        $datasetViewStore.namespace,
-        $datasetViewStore.datasetName,
-        {
-          leaf_path: f.path
-        }
-      ];
-    })
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    stringFields.map(f => f.path)
   );
 
   // Get the resulting schema including UDF columns
@@ -61,24 +55,9 @@
   setDatasetContext(datasetStore);
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
-
-  // Compute the stats for all string fields and write them to the dataset store. This allows us to
-  // share stats about fields with all children.
-  let sortedStats: StatsInfo[] | null = null;
   $: {
-    if (
-      $schema.data != null &&
-      $stats.length > 0 &&
-      !$stats.some(stat => stat == null || stat.isLoading)
-    ) {
-      sortedStats = $stats
-        .map((stats, i) => ({path: stringFields[i].path, stats}))
-        .sort((a, b) => {
-          if (a == null || b == null) {
-            return 0;
-          }
-          return (b.stats.data?.avg_text_length || 0) - (a.stats.data?.avg_text_length || 0);
-        });
+    if ($schema.data != null && $stats.data && !$stats.isFetching) {
+      datasetStore.setStats($stats.data);
     }
   }
 
@@ -90,11 +69,6 @@
   $: {
     if ($selectRowsSchema != null) {
       datasetStore.setSelectRowsSchema($selectRowsSchema);
-    }
-  }
-  $: {
-    if (sortedStats != null) {
-      datasetStore.setStats(sortedStats);
     }
   }
   $: {

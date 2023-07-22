@@ -58,7 +58,7 @@
 
   $: placeholderText = isEmbeddingComputed
     ? 'Search by concept or keyword.'
-    : 'Search by keyword. Click index to search by concept.';
+    : 'Search by keyword. Click "compute embedding" to search by concept.';
 
   const concepts = queryConcepts();
   interface ConceptId {

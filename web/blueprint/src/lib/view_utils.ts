@@ -225,14 +225,31 @@ function getDefaultSearchPath(datasetStore: DatasetState): Path | null {
   const visibleStringPaths = (datasetStore.visibleFields || [])
     .filter(f => f.dtype === 'string')
     .map(f => serializePath(f.path));
-  // The longest visible path is auto-selected.
-  for (const stat of datasetStore.stats) {
-    const stringPath = serializePath(stat.path);
-    if (visibleStringPaths.indexOf(stringPath) >= 0) {
-      return stat.path;
+  // The longest visible path that has an embedding is auto-selected.
+  let paths = datasetStore.stats.map(stat => {
+    return {
+      path: stat.path,
+      embeddings: getComputedEmbeddings(datasetStore, stat.path),
+      avgTextLength: stat.avg_text_length,
+      isVisible: visibleStringPaths.indexOf(serializePath(stat.path)) >= 0
+    };
+  });
+  paths = paths.sort((a, b) => {
+    if (!a.isVisible && b.isVisible) {
+      return 1;
+    } else if (a.isVisible && !b.isVisible) {
+      return -1;
+    } else if (a.embeddings.length > 0 && b.embeddings.length === 0) {
+      return -1;
+    } else if (a.embeddings.length === 0 && b.embeddings.length > 0) {
+      return 1;
+    } else if (a.avgTextLength != null && b.avgTextLength != null) {
+      return b.avgTextLength - a.avgTextLength;
+    } else {
+      return b.embeddings.length - a.embeddings.length;
     }
-  }
-  return null;
+  });
+  return paths[0].path;
 }
 
 export function getSort(datasetStore: DatasetState): SortResult | null {
