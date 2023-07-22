@@ -23,9 +23,7 @@
 
   $: defaultNamespace = (authEnabled ? userId : null) || 'local';
 
-  $: console.log(defaultNamespace, command.namespace);
   $: namespace = command.namespace || defaultNamespace;
-  $: console.log(namespace, typeof namespace);
   let name = command.conceptName || '';
   let conceptDescription: string | undefined;
   let conceptDescLoading = false;
@@ -81,12 +79,12 @@
   <ModalBody hasForm>
     <div class="flex flex-row gap-x-12">
       {#if authEnabled}
-        <TextInput labelText="namespace" disabled />
-      {:else}
         <!--
           When authentication is enabled, the namespace is the user id so we don't show it
           to the user.
         -->
+        <TextInput labelText="namespace" disabled />
+      {:else}
         <TextInput labelText="namespace" bind:value={namespace} />
       {/if}
       <TextInput labelText="name" bind:value={name} required />
