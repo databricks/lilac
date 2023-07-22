@@ -10,7 +10,7 @@
       <h3>Getting started</h3>
       <div class="mt-2 text-gray-700">Import, configure and analyze your dataset</div>
     </div>
-    <div class="flex flex-col gap-y-6 rounded-lg border border-gray-200 p-9">
+    <div class="flex flex-col gap-y-8 rounded-lg border border-gray-200 p-9">
       <GettingStartedStep
         stepNumber={1}
         title="Import your dataset"
