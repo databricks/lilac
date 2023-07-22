@@ -88,7 +88,7 @@ export const deleteSignalMutation = createApiMutation(DatasetsService.deleteSign
 });
 
 export const queryDatasetStats = createApiQuery(DatasetsService.getStats, DATASETS_TAG);
-export const queryManyDatasetStats = createApiQuery(function (
+export const queryManyDatasetStats = createApiQuery(function getStats(
   namespace: string,
   datasetName: string,
   leafs: Path[]
