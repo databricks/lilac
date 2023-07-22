@@ -3,7 +3,7 @@
 from typing import Any, Optional
 
 from fastapi import HTTPException, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from .config import CONFIG
 
@@ -77,7 +77,10 @@ def get_session_user(request: Request) -> Optional[UserInfo]:
     return None
   user_info_dict = request.session.get('user', None)
   if user_info_dict:
-    return UserInfo.parse_obj(user_info_dict)
+    try:
+      return UserInfo.parse_obj(user_info_dict)
+    except ValidationError:
+      return None
   return None
 
 
