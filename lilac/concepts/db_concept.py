@@ -18,7 +18,7 @@ from pyparsing import Any
 from typing_extensions import override
 
 from ..auth import ConceptAuthorizationException, UserInfo
-from ..config import CONFIG, data_path
+from ..config import data_path, env
 from ..schema import PATH_WILDCARD, SignalInputType, normalize_path
 from ..signals.signal import get_signal_cls
 from ..utils import DATASETS_DIR_NAME, delete_file, file_exists, get_dataset_output_dir, open_file
@@ -31,8 +31,6 @@ from .concept import (
   Example,
   ExampleIn,
 )
-
-LILAC_AUTH_ENABLED = CONFIG.get('LILAC_AUTH_ENABLED', False)
 
 CONCEPTS_DIR = 'concept'
 DATASET_CONCEPTS_DIR = '.concepts'
@@ -381,7 +379,7 @@ class DiskConceptDB(ConceptDB):
 
   @override
   def namespace_acls(self, namespace: str, user: Optional[UserInfo] = None) -> ConceptNamespaceACLs:
-    if not LILAC_AUTH_ENABLED:
+    if not env('LILAC_AUTH_ENABLED'):
       return ConceptNamespaceACLs(read=True, write=True)
 
     if namespace == 'lilac':
@@ -401,7 +399,7 @@ class DiskConceptDB(ConceptDB):
   @override
   def list(self, user: Optional[UserInfo] = None) -> list[ConceptInfo]:
     namespaces: Optional[list[str]] = None
-    if LILAC_AUTH_ENABLED:
+    if env('LILAC_AUTH_ENABLED'):
       namespaces = ['lilac']
       if user:
         namespaces += [user.id]

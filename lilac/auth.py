@@ -5,9 +5,7 @@ from typing import Any, Optional
 from fastapi import HTTPException, Request, Response
 from pydantic import BaseModel, ValidationError
 
-from .config import CONFIG
-
-LILAC_AUTH_ENABLED = CONFIG.get('LILAC_AUTH_ENABLED', False)
+from .config import env
 
 
 class AuthenticationMiddleware:
@@ -73,7 +71,7 @@ class AuthenticationInfo(BaseModel):
 
 def get_session_user(request: Request) -> Optional[UserInfo]:
   """Get the user from the session."""
-  if not LILAC_AUTH_ENABLED:
+  if not env('LILAC_AUTH_ENABLED'):
     return None
   user_info_dict = request.session.get('user', None)
   if user_info_dict:
@@ -86,7 +84,7 @@ def get_session_user(request: Request) -> Optional[UserInfo]:
 
 def get_user_access() -> UserAccess:
   """Get the user access."""
-  auth_enabled = CONFIG.get('LILAC_AUTH_ENABLED', False)
+  auth_enabled = env('LILAC_AUTH_ENABLED')
   if isinstance(auth_enabled, str):
     auth_enabled = auth_enabled.lower() == 'true'
   if auth_enabled:

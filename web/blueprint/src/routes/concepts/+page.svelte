@@ -10,7 +10,7 @@
   import {datasetViewStores} from '$lib/stores/datasetViewStore';
   import {urlHash} from '$lib/stores/urlHashStore';
   import {conceptLink} from '$lib/utils';
-  import type {ConceptInfo} from '$lilac';
+  import {getSortedConcepts} from '$lib/view_utils';
   import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
   import {InProgress, TrashCan, ViewOff} from 'carbon-icons-svelte';
   import {get} from 'svelte/store';
@@ -33,33 +33,10 @@
   const deleteConcept = deleteConceptMutation();
 
   const authInfo = queryAuthInfo();
-  let namespaceConcepts: Record<string, ConceptInfo[]>;
-  let sortedNamespaces: string[];
   $: userId = $authInfo.data?.user?.id;
+
+  $: namespaceConcepts = getSortedConcepts($concepts.data || [], userId);
   $: username = $authInfo.data?.user?.given_name;
-
-  $: {
-    if ($concepts.data != null) {
-      sortedNamespaces = [];
-      namespaceConcepts = {};
-      for (const c of $concepts.data || []) {
-        if (namespaceConcepts[c.namespace] == null) {
-          namespaceConcepts[c.namespace] = [];
-        }
-        namespaceConcepts[c.namespace].push(c);
-      }
-
-      // Sort concepts by name within a namespace.
-      for (const namespace of Object.keys(namespaceConcepts)) {
-        namespaceConcepts[namespace].sort((a, b) => a.name.localeCompare(b.name));
-      }
-      // Sort by keys but prioritize the users id, and then 'lilac' concepts, and then alphabetically.
-      const sortPriorities = [userId, 'lilac'];
-      sortedNamespaces = Object.keys(namespaceConcepts).sort(
-        (a, b) => sortPriorities.indexOf(a) - sortPriorities.indexOf(b) || a.localeCompare(b)
-      );
-    }
-  }
 
   $: concept = namespace && conceptName ? queryConcept(namespace, conceptName) : undefined;
 
@@ -95,7 +72,7 @@
     {#if $concepts.isLoading}
       <SkeletonText />
     {:else if $concepts.isSuccess}
-      {#each sortedNamespaces as namespace}
+      {#each namespaceConcepts as { namespace, concepts }}
         <div
           class="flex flex-row justify-between border-b border-gray-200 bg-neutral-50 p-3 text-sm opacity-80 hover:bg-gray-100"
         >
@@ -103,7 +80,7 @@
             {#if namespace === userId}
               {username}'s concepts
             {:else}
-              {namespace} concepts
+              {namespace}
             {/if}
           </div>
           <div
@@ -117,7 +94,7 @@
             {/if}
           </div>
         </div>
-        {#each namespaceConcepts[namespace] as c}
+        {#each concepts as c}
           {@const canDeleteConcept = c.acls.write}
           <div
             class="flex justify-between border-b border-gray-200 hover:bg-gray-100"

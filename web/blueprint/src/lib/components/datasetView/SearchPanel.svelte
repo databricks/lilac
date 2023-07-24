@@ -2,14 +2,17 @@
   import {queryConcepts} from '$lib/queries/conceptQueries';
 
   import {computeSignalMutation} from '$lib/queries/datasetQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
+    conceptDisplayName,
     getComputedEmbeddings,
     getSearchEmbedding,
     getSearchPath,
-    getSearches
+    getSearches,
+    getSortedConcepts
   } from '$lib/view_utils';
   import {deserializePath, serializePath, type Path} from '$lilac';
   import {Button, ComboBox, InlineLoading, Select, SelectItem, Tag} from 'carbon-components-svelte';
@@ -61,6 +64,10 @@
     : 'Search by keyword. Click index to search by concept.';
 
   const concepts = queryConcepts();
+  const authInfo = queryAuthInfo();
+  $: userId = $authInfo.data?.user?.id;
+
+  $: namespaceConcepts = getSortedConcepts($concepts.data || [], userId);
   interface ConceptId {
     namespace: string;
     name: string;
@@ -86,18 +93,20 @@
     ? [
         newConceptItem,
         ...(searchText != '' ? [keywordSearchItem] : []),
-        ...$concepts.data.map(c => ({
-          id: {namespace: c.namespace, name: c.name},
-          text: `${c.namespace}/${c.name}`,
-          disabled:
-            !isEmbeddingComputed ||
-            searches.some(
-              s =>
-                s.query.type === 'concept' &&
-                s.query.concept_namespace === c.namespace &&
-                s.query.concept_name === c.name
-            )
-        }))
+        ...namespaceConcepts.flatMap(namespaceConcept =>
+          namespaceConcept.concepts.map(c => ({
+            id: {namespace: c.namespace, name: c.name},
+            text: conceptDisplayName(c.namespace, c.name, $authInfo.data),
+            disabled:
+              !isEmbeddingComputed ||
+              searches.some(
+                s =>
+                  s.query.type === 'concept' &&
+                  s.query.concept_namespace === c.namespace &&
+                  s.query.concept_name === c.name
+              )
+          }))
+        )
       ]
     : [];
 

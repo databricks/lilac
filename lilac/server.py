@@ -22,16 +22,12 @@ from . import (
 )
 from .auth import AuthenticationInfo, UserInfo, get_session_user, get_user_access
 from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
-from .config import CONFIG, data_path
+from .config import data_path, env
 from .router_utils import RouteErrorHandler
 from .tasks import task_manager
 from .utils import get_dataset_output_dir, list_datasets
 
 DIST_PATH = os.path.abspath(os.path.join('web', 'blueprint', 'build'))
-LILAC_AUTH_ENABLED = CONFIG.get('LILAC_AUTH_ENABLED', False)
-LILAC_OAUTH_SECRET_KEY = CONFIG.get('LILAC_OAUTH_SECRET_KEY', None)
-if LILAC_AUTH_ENABLED and not LILAC_OAUTH_SECRET_KEY:
-  raise ValueError('`LILAC_OAUTH_SECRET_KEY` must be set if `LILAC_AUTH_ENABLED` is True.')
 
 tags_metadata: list[dict[str, Any]] = [{
   'name': 'datasets',
@@ -57,7 +53,7 @@ app = FastAPI(
   default_response_class=ORJSONResponse,
   generate_unique_id_function=custom_generate_unique_id,
   openapi_tags=tags_metadata)
-app.add_middleware(SessionMiddleware, secret_key=LILAC_OAUTH_SECRET_KEY)
+app.add_middleware(SessionMiddleware, secret_key=env('LILAC_OAUTH_SECRET_KEY'))
 app.include_router(router_google_login.router, prefix='/google', tags=['google_login'])
 
 v1_router = APIRouter(route_class=RouteErrorHandler)
@@ -76,7 +72,7 @@ def auth_info(request: Request) -> AuthenticationInfo:
   """
   user_info: Optional[UserInfo] = get_session_user(request)
   return AuthenticationInfo(
-    user=user_info, access=get_user_access(), auth_enabled=LILAC_AUTH_ENABLED)
+    user=user_info, access=get_user_access(), auth_enabled=env('LILAC_AUTH_ENABLED'))
 
 
 app.include_router(v1_router, prefix='/api/v1')
@@ -96,7 +92,7 @@ app.mount('/', StaticFiles(directory=DIST_PATH, html=True, check_dir=False))
 def startup() -> None:
   """Download dataset files from the HF space that was uploaded before building the image."""
   # SPACE_ID is the HuggingFace Space ID environment variable that is automatically set by HF.
-  repo_id = CONFIG.get('SPACE_ID', None)
+  repo_id = env('SPACE_ID', None)
 
   if repo_id:
     # Copy datasets.

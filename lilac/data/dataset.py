@@ -367,6 +367,8 @@ class Dataset(abc.ABC):
       resolve_span: Whether to resolve the span of the row.
       combine_columns: Whether to combine columns into a single object. The object will be pruned
         to only include sub-fields that correspond to the requested columns.
+      user: The authenticated user, if auth is enabled and the user is logged in. This is used to
+        apply ACLs to the query, especially for concepts.
 
     Returns
       A SelectRowsResult iterator with rows of `Item`s.

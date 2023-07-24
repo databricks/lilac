@@ -7,6 +7,7 @@ from typing import Union
 
 import pyarrow.parquet as pq
 
+from .config import env
 from .schema import Item, Schema, schema_to_arrow_schema
 
 
@@ -24,3 +25,7 @@ def read_items(data_dir: Union[str, pathlib.Path], filepaths: list[str],
 def fake_uuid(id: bytes) -> uuid.UUID:
   """Create a test UUID."""
   return uuid.UUID((id * 16).hex())
+
+
+# This needs to happen at module init time so we mock the right object.
+_env_name = env.__name__

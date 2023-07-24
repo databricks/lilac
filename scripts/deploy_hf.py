@@ -8,7 +8,7 @@ import click
 from huggingface_hub import HfApi
 
 from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
-from lilac.config import CONFIG, data_path
+from lilac.config import data_path, env
 from lilac.utils import get_dataset_output_dir
 
 HF_SPACE_DIR = os.path.join(data_path(), '.hf_spaces')
@@ -38,11 +38,11 @@ HF_SPACE_DIR = os.path.join(data_path(), '.hf_spaces')
 def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str],
          concept: list[str], skip_build: bool) -> None:
   """Generate the huggingface space app."""
-  hf_username = hf_username or CONFIG['HF_USERNAME']
+  hf_username = hf_username or env('HF_USERNAME')
   if not hf_username:
     raise ValueError('Must specify --hf_username or set env.HF_USERNAME')
 
-  hf_space = hf_space or CONFIG['HF_STAGING_DEMO_REPO']
+  hf_space = hf_space or env('HF_STAGING_DEMO_REPO')
   if not hf_space:
     raise ValueError('Must specify --hf_space or set env.HF_STAGING_DEMO_REPO')
 

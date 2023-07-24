@@ -1,5 +1,6 @@
 """Test for the concept scorer."""
 
+import os
 import pathlib
 from typing import Generator, Iterable, Type, cast
 
@@ -16,7 +17,6 @@ from ..concepts.db_concept import (
   DiskConceptDB,
   DiskConceptModelDB,
 )
-from ..config import CONFIG
 from ..data.dataset_duckdb import DatasetDuckDB
 from ..data.dataset_test_utils import TestDataMaker
 from ..data.dataset_utils import lilac_embedding
@@ -32,7 +32,7 @@ ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
 
 @pytest.fixture(autouse=True)
 def set_data_path(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
-  mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
+  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {

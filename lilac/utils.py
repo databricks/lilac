@@ -20,7 +20,7 @@ import requests
 from google.cloud.storage import Blob, Client
 from pydantic import BaseModel
 
-from .config import data_path
+from .config import data_path, env
 from .schema import Path
 
 GCS_PROTOCOL = 'gs://'
@@ -258,13 +258,9 @@ def chunks(iterable: Iterable[Tchunk], size: int) -> Iterable[list[Tchunk]]:
     chunk = list(itertools.islice(it, size))
 
 
-# TODO(nsthorat): Centralize environment flags.
-DISABLE_LOGS = os.getenv('DISABLE_LOGS', False)
-
-
 def log(log_str: str) -> None:
   """Print and logs a message so it shows up in the logs on cloud."""
-  if DISABLE_LOGS:
+  if env('DISABLE_LOGS'):
     return
 
   print(log_str)

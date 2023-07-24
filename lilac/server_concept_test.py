@@ -1,4 +1,5 @@
 """Test the public REST API for concepts."""
+import os
 import uuid
 from pathlib import Path
 from typing import Iterable, cast
@@ -18,8 +19,7 @@ from .concepts.concept import (
   ExampleOrigin,
   LogisticEmbeddingModel,
 )
-from .concepts.db_concept import ConceptInfo, ConceptUpdate
-from .config import CONFIG
+from .concepts.db_concept import ConceptACLs, ConceptInfo, ConceptUpdate
 from .data.dataset_utils import lilac_embedding, lilac_span
 from .router_concept import (
   ConceptModelInfo,
@@ -67,7 +67,7 @@ def setup_teardown() -> Iterable[None]:
 
 @pytest.fixture(scope='function', autouse=True)
 def setup_data_dir(tmp_path: Path, mocker: MockerFixture) -> None:
-  mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
+  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
 
 
 def test_concept_create() -> None:
@@ -96,7 +96,11 @@ def test_concept_create() -> None:
   assert response.status_code == 200
   assert parse_obj_as(list[ConceptInfo], response.json()) == [
     ConceptInfo(
-      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT, drafts=[DRAFT_MAIN])
+      namespace='concept_namespace',
+      name='concept',
+      type=SignalInputType.TEXT,
+      drafts=[DRAFT_MAIN],
+      acls=ConceptACLs(read=True, write=True))
   ]
 
 
@@ -119,8 +123,6 @@ def test_concept_delete() -> None:
 
 
 def test_concept_delete_auth(mocker: MockerFixture) -> None:
-  mocker.patch.dict(CONFIG, {'LILAC_AUTH_ENABLED': True})
-
   # Create a concept.
   response = client.post(
     '/api/v1/concepts/create',
@@ -178,7 +180,11 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   assert response.status_code == 200
   assert parse_obj_as(list[ConceptInfo], response.json()) == [
     ConceptInfo(
-      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT, drafts=[DRAFT_MAIN])
+      namespace='concept_namespace',
+      name='concept',
+      type=SignalInputType.TEXT,
+      drafts=[DRAFT_MAIN],
+      acls=ConceptACLs(read=True, write=True))
   ]
 
   # Add another example.
@@ -252,7 +258,11 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   assert response.status_code == 200
   assert parse_obj_as(list[ConceptInfo], response.json()) == [
     ConceptInfo(
-      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT, drafts=[DRAFT_MAIN])
+      namespace='concept_namespace',
+      name='concept',
+      type=SignalInputType.TEXT,
+      drafts=[DRAFT_MAIN],
+      acls=ConceptACLs(read=True, write=True))
   ]
 
 
@@ -286,7 +296,8 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
       namespace='concept_namespace',
       name='concept',
       type=SignalInputType.TEXT,
-      drafts=[DRAFT_MAIN, 'test_draft'])
+      drafts=[DRAFT_MAIN, 'test_draft'],
+      acls=ConceptACLs(read=True, write=True))
   ]
 
   # Make sure when we request main, we only get data in main.

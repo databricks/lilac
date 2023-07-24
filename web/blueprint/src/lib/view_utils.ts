@@ -8,6 +8,8 @@ import {
   pathIsEqual,
   pathIsMatching,
   serializePath,
+  type AuthenticationInfo,
+  type ConceptInfo,
   type DataType,
   type DataTypeCasted,
   type DatasetSettings,
@@ -233,6 +235,37 @@ function getDefaultSearchPath(datasetStore: DatasetState): Path | null {
     }
   }
   return null;
+}
+
+export function getSortedConcepts(
+  concepts: ConceptInfo[],
+  userId?: string | null
+): {namespace: string; concepts: ConceptInfo[]}[] {
+  const namespaceConcepts: Record<string, ConceptInfo[]> = {};
+  for (const c of concepts) {
+    if (namespaceConcepts[c.namespace] == null) {
+      namespaceConcepts[c.namespace] = [];
+    }
+    namespaceConcepts[c.namespace].push(c);
+  }
+  const sortPriorities = [userId, 'lilac'];
+  return Object.keys(namespaceConcepts)
+    .sort((a, b) => sortPriorities.indexOf(a) - sortPriorities.indexOf(b) || a.localeCompare(b))
+    .map(namespace => ({
+      namespace,
+      concepts: namespaceConcepts[namespace].sort((a, b) => a.name.localeCompare(b.name))
+    }));
+}
+
+export function conceptDisplayName(
+  conceptNamespace: string,
+  conceptName: string,
+  authInfo?: AuthenticationInfo
+): string {
+  if (authInfo?.auth_enabled && authInfo.user?.id === conceptNamespace) {
+    return conceptName;
+  }
+  return `${conceptNamespace}/${conceptName}`;
 }
 
 export function getSort(datasetStore: DatasetState): SortResult | null {

@@ -17,11 +17,9 @@ from .concepts.concept import (
   draft_examples,
 )
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
-from .config import CONFIG
+from .config import env
 from .router_utils import RouteErrorHandler
 from .schema import SignalInputType
-
-LILAC_AUTH_ENABLED = CONFIG.get('LILAC_AUTH_ENABLED', False)
 
 router = APIRouter(route_class=RouteErrorHandler)
 
@@ -230,7 +228,7 @@ def generate_examples(description: str) -> list[str]:
     raise ImportError('Could not import the "openai" python package. '
                       'Please install it with `pip install openai`.')
 
-  openai.api_key = CONFIG['OPENAI_API_KEY']
+  openai.api_key = env('OPENAI_API_KEY')
   completion = openai.ChatCompletion.create(
     model='gpt-3.5-turbo-0613',
     functions=[Examples.openai_schema],

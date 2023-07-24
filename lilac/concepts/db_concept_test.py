@@ -1,5 +1,6 @@
 """Tests for the the database concept."""
 
+import os
 from pathlib import Path
 from typing import Generator, Iterable, Optional, Type, cast
 
@@ -8,7 +9,6 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..config import CONFIG
 from ..data.dataset_duckdb import DatasetDuckDB
 from ..data.dataset_utils import lilac_embedding
 from ..db_manager import set_default_dataset_cls
@@ -39,7 +39,7 @@ ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
 
 @pytest.fixture(autouse=True)
 def set_data_path(tmp_path: Path, mocker: MockerFixture) -> None:
-  mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
+  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {

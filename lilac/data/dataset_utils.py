@@ -12,6 +12,7 @@ from typing import Any, Callable, Generator, Iterator, Optional, Sequence, TypeV
 import numpy as np
 import pyarrow as pa
 
+from ..config import env
 from ..parquet_writer import ParquetWriter
 from ..schema import (
   PATH_WILDCARD,
@@ -283,7 +284,7 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
     # Add a UUID column.
     if UUID_COLUMN not in item:
       item[UUID_COLUMN] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
-    if os.getenv('DEBUG'):
+    if env('DEBUG'):
       try:
         _validate(item, arrow_schema)
       except Exception as e:

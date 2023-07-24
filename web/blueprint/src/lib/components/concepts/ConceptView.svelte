@@ -8,6 +8,7 @@
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {datasetLink} from '$lib/utils';
+  import {conceptDisplayName} from '$lib/view_utils';
   import {serializePath, type Concept, type ConceptModelInfo} from '$lilac';
   import {Button, InlineLoading, InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import {Chip, ViewOff} from 'carbon-icons-svelte';
@@ -26,6 +27,7 @@
   const authInfo = queryAuthInfo();
   $: userId = $authInfo.data?.user?.id;
   $: username = $authInfo.data?.user?.given_name;
+  $: displayName = conceptDisplayName(concept.namespace, concept.concept_name, $authInfo.data);
 
   const conceptMutation = editConceptMutation();
   const embeddings = queryEmbeddings();
@@ -63,8 +65,8 @@
 <div class="flex h-full w-full flex-col gap-y-8">
   <div>
     <div class="flex flex-row items-center text-2xl font-semibold">
+      {displayName}
       {#if userId == concept.namespace}
-        {concept.concept_name}
         <div
           use:hoverTooltip={{
             text: 'Your concepts are only visible to you when logged in with Google.'
@@ -72,8 +74,6 @@
         >
           <ViewOff class="ml-2" />
         </div>
-      {:else}
-        {concept.namespace} / {concept.concept_name}
       {/if}
     </div>
     {#if concept.description}
