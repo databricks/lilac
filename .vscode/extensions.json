@@ -11,7 +11,7 @@
     "dbaeumer.vscode-eslint",
     "clinyong.vscode-css-modules",
     "csstools.postcss",
-    "bungcip.better-toml",
+    "tamasfe.even-better-toml",
     "breadnaught.vscode-ignore",
     "MS-vsliveshare.vsliveshare",
     "charliermarsh.ruff",

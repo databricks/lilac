@@ -1,6 +1,6 @@
 """Load environment variables from .env file."""
 import os
-from typing import Optional
+from typing import Optional, cast
 
 from dotenv import dotenv_values
 
@@ -14,6 +14,4 @@ CONFIG: dict[str, Optional[str]] = {
 
 def data_path() -> str:
   """Return the base path for data."""
-  if CONFIG['LILAC_DATA_PATH']:
-    return CONFIG['LILAC_DATA_PATH']
-  return './data'
+  return cast(str, CONFIG.get('LILAC_DATA_PATH', './data'))

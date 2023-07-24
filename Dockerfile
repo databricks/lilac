@@ -16,9 +16,6 @@ COPY .env .
 COPY .env.demo .
 COPY LICENSE .
 
-# Copy static files.
-COPY /web/blueprint/build ./web/blueprint/build
-
 # Copy python files.
 COPY /lilac ./lilac/
 

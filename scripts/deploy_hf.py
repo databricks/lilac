@@ -65,7 +65,7 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
   run(f'poetry export --extras all --without-hashes > {repo_basedir}/requirements.txt')
 
   # Copy source code.
-  copy_dirs = ['lilac', 'web/blueprint/build']
+  copy_dirs = ['lilac']
   for copy_dir in copy_dirs:
     shutil.copytree(copy_dir, os.path.join(repo_basedir, copy_dir), dirs_exist_ok=True)
 

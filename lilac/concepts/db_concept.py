@@ -11,10 +11,9 @@ import shutil
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
 from pathlib import Path
-from typing import List, Optional, Union, cast
+from typing import Any, List, Optional, Union, cast
 
 from pydantic import BaseModel
-from pyparsing import Any
 from typing_extensions import override
 
 from ..config import data_path
