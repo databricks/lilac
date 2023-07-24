@@ -1,10 +1,11 @@
 <script lang="ts">
   import {queryConcepts} from '$lib/queries/conceptQueries';
 
-  import {computeSignalMutation} from '$lib/queries/datasetQueries';
+  import {computeSignalMutation, querySettings} from '$lib/queries/datasetQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {getSettingsContext} from '$lib/stores/settingsStore';
   import {
     getComputedEmbeddings,
     getSearchEmbedding,
@@ -17,8 +18,10 @@
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
 
-  let datasetViewStore = getDatasetViewContext();
-  let datasetStore = getDatasetContext();
+  const datasetViewStore = getDatasetViewContext();
+  const datasetStore = getDatasetContext();
+  const appSettings = getSettingsContext();
+  $: datasetSettings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: namespace = $datasetViewStore.namespace;
   $: datasetName = $datasetViewStore.datasetName;
@@ -38,6 +41,8 @@
   const embeddings = queryEmbeddings();
 
   $: selectedEmbedding = getSearchEmbedding(
+    $appSettings,
+    $datasetSettings.data,
     $datasetViewStore,
     $datasetStore,
     searchPath,

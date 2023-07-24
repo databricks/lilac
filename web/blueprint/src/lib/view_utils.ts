@@ -33,6 +33,7 @@ import {
 } from 'carbon-icons-svelte';
 import type {DatasetState} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
+import type {SettingsState} from './stores/settingsStore';
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
 export const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
@@ -160,13 +161,23 @@ export function getSearchPath(store: DatasetViewState, datasetStore: DatasetStat
 }
 
 export function getSearchEmbedding(
+  appSettings: SettingsState,
+  datasetSettings: DatasetSettings | undefined,
   store: DatasetViewState,
   datasetStore: DatasetState,
   searchPath: Path | null,
   embeddings: string[]
 ): string | null {
+  if (store.searchEmbedding != null) {
+    return store.searchEmbedding;
+  }
+  if (datasetSettings != null && datasetSettings.preferred_embedding != null) {
+    return datasetSettings.preferred_embedding;
+  }
+  if (appSettings.embedding != null) {
+    return appSettings.embedding;
+  }
   if (searchPath == null) return null;
-  if (store.searchEmbedding != null) return store.searchEmbedding;
 
   const existingEmbeddings = getComputedEmbeddings(datasetStore, searchPath);
   // Sort embeddings by what have already been precomputed first.
