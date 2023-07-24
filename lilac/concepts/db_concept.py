@@ -179,14 +179,14 @@ class ConceptModelDB(abc.ABC):
 
   def in_sync(self, model: ConceptModel, user: Optional[UserInfo] = None) -> bool:
     """Return True if the model is up to date with the concept."""
-    concept = self._concept_db.get(model.namespace, model.concept_name, user)
+    concept = self._concept_db.get(model.namespace, model.concept_name, user=user)
     if not concept:
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
     return concept.version == model.version
 
   def sync(self, model: ConceptModel, user: Optional[UserInfo] = None) -> bool:
     """Sync the concept model. Returns true if the model was updated."""
-    concept = self._concept_db.get(model.namespace, model.concept_name, user)
+    concept = self._concept_db.get(model.namespace, model.concept_name, user=user)
     if not concept:
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
     model_updated = model.sync(concept)
@@ -238,8 +238,11 @@ class DiskConceptModelDB(ConceptModelDB):
              embedding_name: str,
              column_info: Optional[ConceptColumnInfo] = None,
              user: Optional[UserInfo] = None) -> ConceptModel:
-    if self.get(namespace, concept_name, embedding_name, column_info, user):
+    if self.get(namespace, concept_name, embedding_name, column_info, user=user):
       raise ValueError('Concept model already exists.')
+    concept = self._concept_db.get(namespace, concept_name, user=user)
+    if not concept:
+      raise ValueError(f'Concept "{namespace}/{concept_name}" does not exist.')
 
     return ConceptModel(
       namespace=namespace,
@@ -256,7 +259,7 @@ class DiskConceptModelDB(ConceptModelDB):
           column_info: Optional[ConceptColumnInfo] = None,
           user: Optional[UserInfo] = None) -> Optional[ConceptModel]:
     # Make sure the concept exists.
-    concept = self._concept_db.get(namespace, concept_name, user)
+    concept = self._concept_db.get(namespace, concept_name, user=user)
     if not concept:
       raise ValueError(f'Concept "{namespace}/{concept_name}" does not exist.')
 
@@ -391,7 +394,7 @@ class DiskConceptDB(ConceptDB):
 
   @override
   def concept_acls(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> ConceptACLs:
-    namespace_acls = self.namespace_acls(namespace, user)
+    namespace_acls = self.namespace_acls(namespace, user=user)
     # Concept ACLs inherit from the namespace ACLs. We currently don't have concept-specific
     #  ACLs.
     return ConceptACLs(read=namespace_acls.read, write=namespace_acls.write)
@@ -414,21 +417,21 @@ class DiskConceptDB(ConceptDB):
             # Ignore concepts that are not in the namespace, if provided.
             continue
 
-          concept = cast(Concept, self.get(namespace, name, user))
+          concept = cast(Concept, self.get(namespace, name, user=user))
           concept_infos.append(
             ConceptInfo(
               namespace=namespace,
               name=name,
               type=SignalInputType.TEXT,
               drafts=concept.drafts(),
-              acls=self.concept_acls(namespace, name, user)))
+              acls=self.concept_acls(namespace, name, user=user)))
 
     return concept_infos
 
   @override
   def get(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> Optional[Concept]:
     # If the user does not have access to the concept, return None.
-    acls = self.concept_acls(namespace, name, user)
+    acls = self.concept_acls(namespace, name, user=user)
     if not acls.read:
       raise ConceptAuthorizationException(
         f'Concept "{namespace}/{name}" does not exist or user does not have access.')
@@ -452,7 +455,7 @@ class DiskConceptDB(ConceptDB):
              user: Optional[UserInfo] = None) -> Concept:
     """Create a concept."""
     # If the user does not have access to the write to the concept namespace, throw.
-    acls = self.namespace_acls(namespace, user)
+    acls = self.namespace_acls(namespace, user=user)
     if not acls.write:
       raise ConceptAuthorizationException(
         f'Concept namespace "{namespace}" does not exist or user does not have access.')
@@ -485,7 +488,7 @@ class DiskConceptDB(ConceptDB):
            change: ConceptUpdate,
            user: Optional[UserInfo] = None) -> Concept:
     # If the user does not have access to the concept, return None.
-    acls = self.concept_acls(namespace, name, user)
+    acls = self.concept_acls(namespace, name, user=user)
     if not acls.write:
       raise ConceptAuthorizationException(
         f'Concept "{namespace}/{name}" does not exist or user does not have access.')
@@ -500,7 +503,7 @@ class DiskConceptDB(ConceptDB):
     updated_points = change.update or []
     removed_points = change.remove or []
 
-    concept = cast(Concept, self.get(namespace, name, user))
+    concept = cast(Concept, self.get(namespace, name, user=user))
 
     self._validate_examples([*inserted_points, *updated_points], concept.type)
 
@@ -536,7 +539,7 @@ class DiskConceptDB(ConceptDB):
   @override
   def remove(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> None:
     # If the user does not have access to the concept, return None.
-    acls = self.concept_acls(namespace, name, user)
+    acls = self.concept_acls(namespace, name, user=user)
     if not acls.write:
       raise ConceptAuthorizationException(
         f'Concept "{namespace}/{name}" does not exist or user does not have access.')
@@ -556,12 +559,12 @@ class DiskConceptDB(ConceptDB):
                   user: Optional[UserInfo] = None) -> Concept:
     """Merge a draft concept."""
     # If the user does not have access to the concept, return None.
-    acls = self.concept_acls(namespace, name, user)
+    acls = self.concept_acls(namespace, name, user=user)
     if not acls.write:
       raise ConceptAuthorizationException(
         f'Concept "{namespace}/{name}" does not exist or user does not have access.')
 
-    concept = self.get(namespace, name, user)
+    concept = self.get(namespace, name, user=user)
     if not concept:
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" does not exist.')
 
@@ -579,7 +582,7 @@ class DiskConceptDB(ConceptDB):
     for example in draft_examples.values():
       example.draft = DRAFT_MAIN
       # Remove duplicates in main.
-      main_text_id = main_text_ids.get(example.text, user)
+      main_text_id = main_text_ids.get(example.text)
       if main_text_id:
         del concept.data[main_text_id]
 

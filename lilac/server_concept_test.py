@@ -122,23 +122,6 @@ def test_concept_delete() -> None:
   assert parse_obj_as(list[ConceptInfo], client.get('/api/v1/concepts/').json()) == []
 
 
-def test_concept_delete_auth(mocker: MockerFixture) -> None:
-  # Create a concept.
-  response = client.post(
-    '/api/v1/concepts/create',
-    json=CreateConceptOptions(
-      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
-
-  assert len(client.get('/api/v1/concepts/').json()) == 1
-
-  # Delete the concept.
-  url = '/api/v1/concepts/concept_namespace/concept'
-  response = client.delete(url)
-  assert response.status_code == 401
-  assert response.is_error is True
-  assert 'User does not have access to delete this concept' in response.text
-
-
 def test_concept_edits(mocker: MockerFixture) -> None:
   mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
 

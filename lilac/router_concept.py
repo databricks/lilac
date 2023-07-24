@@ -181,6 +181,7 @@ def get_concept_model(
   model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name, user=user)
   if not model:
     model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name, user=user)
+  DISK_CONCEPT_MODEL_DB.sync(model)
   model_info = ConceptModelInfo(
     namespace=model.namespace,
     concept_name=model.concept_name,

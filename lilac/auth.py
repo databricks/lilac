@@ -1,24 +1,11 @@
 """Authentication and ACL configuration."""
 
-from typing import Any, Optional
+from typing import Optional
 
-from fastapi import HTTPException, Request, Response
+from fastapi import Request
 from pydantic import BaseModel, ValidationError
 
 from .config import env
-
-
-class AuthenticationMiddleware:
-  """Middleware that catches the py authentication errors and returns a 401."""
-
-  async def __call__(self, request: Request, call_next: Any) -> Response:
-    """Call the middleware."""
-    try:
-      response = await call_next(request)
-    except ConceptAuthorizationException as e:
-      raise HTTPException(status_code=401, detail='User does not have access.') from e
-
-    return response
 
 
 class ConceptAuthorizationException(Exception):

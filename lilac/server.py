@@ -7,7 +7,7 @@ import subprocess
 from typing import Any, Optional
 
 from fastapi import APIRouter, FastAPI, Request
-from fastapi.responses import FileResponse, ORJSONResponse
+from fastapi.responses import FileResponse, JSONResponse, ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -20,7 +20,13 @@ from . import (
   router_signal,
   router_tasks,
 )
-from .auth import AuthenticationInfo, UserInfo, get_session_user, get_user_access
+from .auth import (
+  AuthenticationInfo,
+  ConceptAuthorizationException,
+  UserInfo,
+  get_session_user,
+  get_user_access,
+)
 from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from .config import data_path, env
 from .router_utils import RouteErrorHandler
@@ -53,7 +59,19 @@ app = FastAPI(
   default_response_class=ORJSONResponse,
   generate_unique_id_function=custom_generate_unique_id,
   openapi_tags=tags_metadata)
+
+
+@app.exception_handler(ConceptAuthorizationException)
+def concept_authorization_exception(request: Request, exc: ConceptAuthorizationException):
+  """Return a 401 JSON response when an authorization exception is thrown."""
+  return JSONResponse(
+    status_code=401,
+    content={'message"': 'Oops! You are not authorized to do this.'},
+  )
+
+
 app.add_middleware(SessionMiddleware, secret_key=env('LILAC_OAUTH_SECRET_KEY'))
+
 app.include_router(router_google_login.router, prefix='/google', tags=['google_login'])
 
 v1_router = APIRouter(route_class=RouteErrorHandler)

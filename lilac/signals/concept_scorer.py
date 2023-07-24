@@ -48,11 +48,12 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
     self._user = user
 
   def _get_concept_model(self) -> ConceptModel:
-    model = self._concept_model_db.get(self.namespace, self.concept_name, self.embedding,
-                                       self._column_info, self._user)
+    model = self._concept_model_db.get(
+      self.namespace, self.concept_name, self.embedding, self._column_info, user=self._user)
     if not model:
-      model = self._concept_model_db.create(self.namespace, self.concept_name, self.embedding,
-                                            self._column_info, self._user)
+      print('creating model...')
+      model = self._concept_model_db.create(
+        self.namespace, self.concept_name, self.embedding, self._column_info, user=self._user)
 
     self._concept_model_db.sync(model, self._user)
     return model
@@ -67,6 +68,7 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
                      vector_store: VectorStore) -> Iterable[Optional[Item]]:
     concept_model = self._get_concept_model()
     embeddings = vector_store.get(keys)
+    print('MODEL=', concept_model.version)
     return concept_model.score_embeddings(self.draft, embeddings).tolist()
 
   @override
