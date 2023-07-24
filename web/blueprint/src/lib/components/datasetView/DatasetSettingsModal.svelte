@@ -49,6 +49,9 @@
   function embeddingChanged(e: Event) {
     const embedding = (e.target as HTMLSelectElement).value;
     preferredEmbedding = embedding;
+    if (preferredEmbedding === '') {
+      preferredEmbedding = undefined;
+    }
   }
 
   function submit() {
@@ -97,6 +100,7 @@
               <SelectSkeleton />
             {:else}
               <Select selected={$settings.data?.preferred_embedding} on:change={embeddingChanged}>
+                <SelectItem value={undefined} text="None" />
                 {#each $embeddings.data || [] as emdField}
                   <SelectItem value={emdField.name} />
                 {/each}
