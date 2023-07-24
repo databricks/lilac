@@ -62,7 +62,8 @@ app = FastAPI(
 
 
 @app.exception_handler(ConceptAuthorizationException)
-def concept_authorization_exception(request: Request, exc: ConceptAuthorizationException):
+def concept_authorization_exception(request: Request,
+                                    exc: ConceptAuthorizationException) -> JSONResponse:
   """Return a 401 JSON response when an authorization exception is thrown."""
   return JSONResponse(
     status_code=401,

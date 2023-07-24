@@ -14,38 +14,30 @@ from .router_utils import RouteErrorHandler
 
 router = APIRouter(route_class=RouteErrorHandler)
 
-_OAUTH: OAuth = None
-
-
-def _oauth() -> OAuth:
-  global _OAUTH
-  if not _OAUTH:
-    _OAUTH = OAuth(
-      Config(
-        environ={
-          'GOOGLE_CLIENT_ID': env('GOOGLE_CLIENT_ID'),
-          'GOOGLE_CLIENT_SECRET': env('GOOGLE_CLIENT_SECRET')
-        }))
-    _OAUTH.register(
-      name='google',
-      server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-      client_kwargs={'scope': 'openid email profile'},
-    )
-  return _OAUTH
+_OAUTH: OAuth = OAuth(
+  Config(environ={
+    'GOOGLE_CLIENT_ID': env('GOOGLE_CLIENT_ID'),
+    'GOOGLE_CLIENT_SECRET': env('GOOGLE_CLIENT_SECRET')
+  }))
+_OAUTH.register(
+  name='google',
+  server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+  client_kwargs={'scope': 'openid email profile'},
+)
 
 
 @router.get('/login')
 async def login(request: Request, origin_url: str) -> RedirectResponse:
   """Redirects to Google OAuth login page."""
   auth_path = urlunparse(urlparse(origin_url)._replace(path='/google/auth'))
-  return await _oauth().google.authorize_redirect(request, auth_path)
+  return await _OAUTH.google.authorize_redirect(request, auth_path)
 
 
 @router.get('/auth')
 async def auth(request: Request) -> Response:
   """Handles the Google OAuth callback."""
   try:
-    token = await _oauth().google.authorize_access_token(request)
+    token = await _OAUTH.google.authorize_access_token(request)
   except OAuthError as error:
     return HTMLResponse(f'<h1>{error}</h1>')
   userinfo = token['userinfo']

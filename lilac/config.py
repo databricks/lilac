@@ -14,7 +14,12 @@ EnvironmentKeys = Union[Literal['LILAC_DATA_PATH'],
                         Literal['OPENAI_API_KEY'], Literal['COHERE_API_KEY'],
                         Literal['PALM_API_KEY'],
                         # HuggingFace demos.
-                        Literal['HF_USERNAME'], Literal['HF_STAGING_DEMO_REPO'], Literal['DEBUG']]
+                        Literal['HF_USERNAME'], Literal['HF_STAGING_DEMO_REPO'],
+                        Literal['SPACE_ID'],
+                        # DuckDB
+                        Literal['DUCKDB_USE_VIEWS'],
+                        # Debugging
+                        Literal['DEBUG'], Literal['DISABLE_LOGS']]
 _ENV: dict[str, Optional[str]] = {}
 # Private config variables. Saved separately to remove private env variables from tests.
 _ENV_LOCAL: dict[str, Optional[str]] = {}
