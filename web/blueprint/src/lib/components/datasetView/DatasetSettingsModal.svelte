@@ -4,6 +4,8 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getSettingsContext} from '$lib/stores/settingsStore';
   import {
+    UUID_COLUMN,
+    isSignalField,
     pathIsEqual,
     petals,
     type DatasetSettings,
@@ -35,7 +37,9 @@
   let selectedMediaFields: LilacField[] | null = null;
   let preferredEmbedding: string | undefined = $appSettings.embedding;
 
-  $: mediaFields = petals(schema).filter(f => f.dtype === 'string');
+  $: mediaFields = petals(schema).filter(
+    f => f.dtype === 'string' && !pathIsEqual(f.path, [UUID_COLUMN]) && !isSignalField(f, schema)
+  );
 
   $: {
     if (selectedMediaFields == null) {
@@ -73,7 +77,7 @@
   }
 </script>
 
-<ComposedModal size="lg" {open} on:submit={submit} on:close={() => (open = false)}>
+<ComposedModal {open} on:submit={submit} on:close={() => (open = false)}>
   <ModalHeader label="Changes" title="Dataset settings" />
   <ModalBody hasForm>
     {#if $settings.isFetching}
