@@ -26,7 +26,6 @@
 
   const authInfo = queryAuthInfo();
   $: userId = $authInfo.data?.user?.id;
-  $: username = $authInfo.data?.user?.given_name;
   $: displayName = conceptDisplayName(concept.namespace, concept.concept_name, $authInfo.data);
 
   const conceptMutation = editConceptMutation();

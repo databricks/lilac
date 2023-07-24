@@ -18,18 +18,20 @@ _OAUTH: OAuth = None
 
 
 def _oauth() -> OAuth:
+  global _OAUTH
   if not _OAUTH:
-    oauth = OAuth(
+    _OAUTH = OAuth(
       Config(
         environ={
           'GOOGLE_CLIENT_ID': env('GOOGLE_CLIENT_ID'),
           'GOOGLE_CLIENT_SECRET': env('GOOGLE_CLIENT_SECRET')
         }))
-    oauth.register(
+    _OAUTH.register(
       name='google',
       server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
       client_kwargs={'scope': 'openid email profile'},
     )
+  return _OAUTH
 
 
 @router.get('/login')
