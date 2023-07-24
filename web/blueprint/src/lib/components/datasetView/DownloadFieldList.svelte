@@ -4,7 +4,7 @@
   import {Checkbox} from 'carbon-components-svelte';
 
   export let fields: LilacField[];
-  export let checkedFields: LilacField[] = [];
+  export let checkedFields: LilacField[];
 
   function checkboxClicked(field: LilacField, event: Event) {
     const checked = (event.target as HTMLInputElement).checked;

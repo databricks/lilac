@@ -30,7 +30,7 @@
 <Page title={'Datasets'}>
   <div slot="header-right">
     <Button size="small" disabled={!canCreateDataset} on:click={() => goto('/datasets/new')}
-      >Add Dataset</Button
+      >+ Add Dataset</Button
     >
   </div>
   <div class="flex flex-col gap-y-4 p-4">

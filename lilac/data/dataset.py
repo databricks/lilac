@@ -169,6 +169,7 @@ class DatasetUISettings(BaseModel):
 class DatasetSettings(BaseModel):
   """The persistent settings for a dataset."""
   ui: Optional[DatasetUISettings]
+  preferred_embedding: Optional[str] = None
 
 
 class DatasetManifest(BaseModel):

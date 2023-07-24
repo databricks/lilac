@@ -120,7 +120,7 @@ export function childFields(field: LilacField | LilacSchema | undefined): LilacF
 }
 
 /** Get all field petals (nodes with values). */
-export function petals(field: LilacField | LilacSchema | undefined): LilacField[] {
+export function petals(field: LilacField | LilacSchema | undefined | null): LilacField[] {
   if (field == null) return [];
   return childFields(field).filter(f => f.dtype != null);
 }

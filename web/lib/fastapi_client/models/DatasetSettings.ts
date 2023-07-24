@@ -9,5 +9,6 @@ import type { DatasetUISettings } from './DatasetUISettings';
  */
 export type DatasetSettings = {
     ui?: DatasetUISettings;
+    preferred_embedding?: string;
 };
 

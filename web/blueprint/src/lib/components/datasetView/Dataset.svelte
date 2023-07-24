@@ -170,8 +170,8 @@
     <div class="h-full w-2/3 flex-grow"><RowView /></div>
   </div>
 
-  <DatasetSettingsModal bind:open={settingsOpen} />
   {#if $schema.data}
+    <DatasetSettingsModal bind:open={settingsOpen} schema={$schema.data} />
     <DownloadModal bind:open={downloadOpen} schema={$schema.data} />
   {/if}
 </Page>
