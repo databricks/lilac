@@ -31,10 +31,11 @@ def env(key: EnvironmentKeys, default: Optional[Any] = None) -> Any:
   # 'PYTEST_CURRENT_TEST' environment variable is only set after module initialization by pytest.
 
   if _ENV is None:
+    in_test = os.environ.get('LILAC_TEST', None)
     _ENV = {
       **dotenv_values('.env'),  # load shared variables
       **dotenv_values('.env.demo'),  # load demo-specific environment flags.
-      **(dotenv_values('.env.local') if 'PYTEST_CURRENT_TEST' not in os.environ else {})
+      **(dotenv_values('.env.local') if not in_test else {})
     }
     first_load = True
 

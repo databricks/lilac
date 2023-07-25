@@ -28,4 +28,4 @@ if [ "$1" ]; then
 else
   TEST_PATH="lilac/"
 fi
-pytest -vv --capture=tee-sys -m "$PYTEST_MARKS" "$TEST_PATH"
+LILAC_TEST=1 pytest -vv --capture=tee-sys -m "$PYTEST_MARKS" "$TEST_PATH"
