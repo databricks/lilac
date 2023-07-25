@@ -13,7 +13,7 @@ from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr,
 from ..auth import UserInfo
 from ..embeddings.vector_store import VectorStore
 from ..schema import VALUE_KEY, Bin, DataType, Path, PathTuple, Schema, normalize_path
-from ..signals.signal import Signal, resolve_signal
+from ..signals.signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
 from ..tasks import TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -300,6 +300,11 @@ class Dataset(abc.ABC):
         progress of the task.
     """
     pass
+
+  def compute_embedding(self, embedding_name: str, path: Path) -> None:
+    """Compute an embedding for a given field path."""
+    signal = get_signal_by_type(embedding_name, TextEmbeddingSignal)()
+    self.compute_signal(signal, path)
 
   @abc.abstractmethod
   def delete_signal(self, signal_path: Path) -> None:

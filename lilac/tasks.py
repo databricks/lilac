@@ -222,7 +222,7 @@ def progress(it: Union[Iterator[TProgress], Iterable[TProgress]],
              step_description: Optional[str] = None,
              emit_every_s: float = 1.) -> Iterator[TProgress]:
   """An iterable wrapper that emits progress and yields the original iterable."""
-  if not task_step_id:
+  if not task_step_id or task_step_id[0] == '':
     yield from tqdm(it, desc=step_description, total=estimated_len)
     return
 

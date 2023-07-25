@@ -343,18 +343,22 @@ class DatasetDuckDB(Dataset):
     step_id: Optional[int] = None
     if task_step_id:
       (task_id, step_id) = task_step_id
-      if new_steps:
+      if task_id != '' and new_steps:
         # Make a step for the parent.
         set_worker_steps(task_id, [TaskStepInfo()] * (new_steps + 1))
 
     for i, (new_path, signal) in enumerate(signals_to_compute):
       if new_path not in manifest.data_schema.leafs:
-        self.compute_signal(signal, source_path, task_step_id=(task_id, i) if task_id else None)
+        self.compute_signal(
+          signal, source_path, task_step_id=(task_id, i) if task_id is not None else None)
 
     if is_value_path:
       new_path = (*new_path, VALUE_KEY)
 
-    return (new_path, (task_id, step_id + new_steps) if task_id and step_id else None)
+    new_task_id: Optional[TaskStepId] = None
+    if task_id is not None and step_id is not None:
+      new_task_id = (task_id, step_id + new_steps)
+    return (new_path, new_task_id)
 
   @override
   def compute_signal(self,
@@ -363,6 +367,10 @@ class DatasetDuckDB(Dataset):
                      task_step_id: Optional[TaskStepId] = None) -> None:
     source_path = normalize_path(leaf_path)
     manifest = self.manifest()
+
+    if task_step_id is None:
+      # Make a dummy task step so we report progress via tqdm.
+      task_step_id = ('', 0)
 
     # Prepare the dependencies of this signal.
     signal_source_path, task_step_id = self._prepare_signal(
