@@ -23,13 +23,11 @@ from .data.dataset import (
   StatsResult,
   UnaryOp,
 )
-from .data.dataset_duckdb import DatasetDuckDB
-from .db_manager import get_dataset, remove_dataset_from_cache, set_default_dataset_cls
+from .db_manager import get_dataset, remove_dataset_from_cache
 from .router_utils import RouteErrorHandler
 from .schema import Bin, Path, normalize_path
 from .signals.concept_labels import ConceptLabelsSignal
 from .signals.concept_scorer import ConceptScoreSignal
-from .signals.default_signals import register_default_signals
 from .signals.semantic_similarity import SemanticSimilaritySignal
 from .signals.signal import (
   Signal,
@@ -43,9 +41,6 @@ from .tasks import TaskId, task_manager
 from .utils import DatasetInfo, list_datasets
 
 router = APIRouter(route_class=RouteErrorHandler)
-
-register_default_signals()
-set_default_dataset_cls(DatasetDuckDB)
 
 
 @router.get('/', response_model_exclude_none=True)

@@ -163,7 +163,7 @@ def start_server(host: str = '0.0.0.0', port: int = 5432) -> None:
   if SERVER:
     raise ValueError('Server is already running')
 
-  config = uvicorn.Config(app, host='0.0.0.0', port=5432)
+  config = uvicorn.Config(app, host='0.0.0.0', port=5432, access_log=False)
   SERVER = uvicorn.Server(config)
   try:
     loop = asyncio.get_running_loop()

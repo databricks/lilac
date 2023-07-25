@@ -14,15 +14,12 @@ from pydantic import BaseModel
 
 from .auth import get_user_access
 from .config import data_path
-from .data.sources.default_sources import register_default_sources
 from .data.sources.source_registry import get_source_cls, registered_sources
 from .data_loader import process_source
 from .router_utils import RouteErrorHandler
 from .tasks import TaskId, task_manager
 
 REQUEST_TIMEOUT_SEC = 30 * 60  # 30 mins.
-
-register_default_sources()
 
 router = APIRouter(route_class=RouteErrorHandler)
 
