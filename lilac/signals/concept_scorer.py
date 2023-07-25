@@ -4,6 +4,7 @@ from typing import Iterable, Optional
 import numpy as np
 from typing_extensions import override
 
+from ..auth import UserInfo
 from ..concepts.concept import DEFAULT_NUM_NEG_EXAMPLES, DRAFT_MAIN, ConceptColumnInfo, ConceptModel
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.vector_store import VectorStore
@@ -28,6 +29,7 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
 
   _column_info: Optional[ConceptColumnInfo] = None
   _concept_model_db: ConceptModelDB = DISK_CONCEPT_MODEL_DB
+  _user: Optional[UserInfo] = None
 
   @override
   def fields(self) -> Field:
@@ -41,14 +43,19 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
     self._column_info = column_info
     self._column_info.num_negative_examples = self.num_negative_examples
 
-  def _get_concept_model(self) -> ConceptModel:
-    model = self._concept_model_db.get(self.namespace, self.concept_name, self.embedding,
-                                       self._column_info)
-    if not model:
-      model = self._concept_model_db.create(self.namespace, self.concept_name, self.embedding,
-                                            self._column_info)
+  def set_user(self, user: Optional[UserInfo]) -> None:
+    """Set the user for this signal."""
+    self._user = user
 
-    self._concept_model_db.sync(model)
+  def _get_concept_model(self) -> ConceptModel:
+    model = self._concept_model_db.get(
+      self.namespace, self.concept_name, self.embedding, self._column_info, user=self._user)
+    if not model:
+      print('creating model...')
+      model = self._concept_model_db.create(
+        self.namespace, self.concept_name, self.embedding, self._column_info, user=self._user)
+
+    self._concept_model_db.sync(model, self._user)
     return model
 
   @override
@@ -61,6 +68,7 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
                      vector_store: VectorStore) -> Iterable[Optional[Item]]:
     concept_model = self._get_concept_model()
     embeddings = vector_store.get(keys)
+    print('MODEL=', concept_model.version)
     return concept_model.score_embeddings(self.draft, embeddings).tolist()
 
   @override

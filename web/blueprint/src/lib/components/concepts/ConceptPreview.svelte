@@ -13,6 +13,7 @@
     type Signal
   } from '$lilac';
   import {Button, Select, SelectItem, SkeletonText, TextArea} from 'carbon-components-svelte';
+  import {onMount} from 'svelte';
   import StringSpanHighlight from '../datasetView/StringSpanHighlight.svelte';
   import type {SpanValueInfo} from '../datasetView/spanHighlight';
 
@@ -24,6 +25,11 @@
 
   // User entered text.
   let textAreaText = example.text?.trim();
+
+  // Auto-compute the first positive example.
+  onMount(() => {
+    computeConceptScore();
+  });
 
   // Reset the text when the example changes.
   $: {

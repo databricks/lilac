@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Iterable, cast
 import numpy as np
 from typing_extensions import override
 
-from ..config import CONFIG
+from ..config import env
 from ..schema import Item, RichData
 from ..signals.signal import TextEmbeddingSignal
 from ..signals.splitters.chunk_splitter import split_text
@@ -36,7 +36,7 @@ class Cohere(TextEmbeddingSignal):
   @override
   def setup(self) -> None:
     """Validate that the api key and python package exists in environment."""
-    api_key = CONFIG.get('COHERE_API_KEY')
+    api_key = env('COHERE_API_KEY')
     if not api_key:
       raise ValueError('`COHERE_API_KEY` environment variable not set.')
     try:

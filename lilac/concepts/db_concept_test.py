@@ -1,5 +1,6 @@
 """Tests for the the database concept."""
 
+import os
 from pathlib import Path
 from typing import Generator, Iterable, Optional, Type, cast
 
@@ -8,7 +9,6 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..config import CONFIG
 from ..data.dataset_duckdb import DatasetDuckDB
 from ..data.dataset_utils import lilac_embedding
 from ..db_manager import set_default_dataset_cls
@@ -24,6 +24,7 @@ from .concept import (
   LogisticEmbeddingModel,
 )
 from .db_concept import (
+  ConceptACL,
   ConceptDB,
   ConceptInfo,
   ConceptModelDB,
@@ -38,7 +39,7 @@ ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
 
 @pytest.fixture(autouse=True)
 def set_data_path(tmp_path: Path, mocker: MockerFixture) -> None:
-  mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
+  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {
@@ -84,7 +85,11 @@ class ConceptDBSuite:
 
     assert db.list() == [
       ConceptInfo(
-        namespace='test', name='test_concept', type=SignalInputType.TEXT, drafts=[DRAFT_MAIN])
+        namespace='test',
+        name='test_concept',
+        type=SignalInputType.TEXT,
+        drafts=[DRAFT_MAIN],
+        acls=ConceptACL(read=True, write=True))
     ]
 
     # Make sure list with drafts relects the drafts.
@@ -99,7 +104,8 @@ class ConceptDBSuite:
         namespace='test',
         name='test_concept',
         type=SignalInputType.TEXT,
-        drafts=[DRAFT_MAIN, 'test_draft'])
+        drafts=[DRAFT_MAIN, 'test_draft'],
+        acls=ConceptACL(read=True, write=True))
     ]
 
   def test_add_example(self, db_cls: Type[ConceptDB]) -> None:

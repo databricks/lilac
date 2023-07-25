@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
 
+from ..auth import UserInfo
 from ..embeddings.vector_store import VectorStore
 from ..schema import VALUE_KEY, Bin, DataType, Path, PathTuple, Schema, normalize_path
 from ..signals.signal import Signal, resolve_signal
@@ -345,7 +346,8 @@ class Dataset(abc.ABC):
                   offset: Optional[int] = 0,
                   task_step_id: Optional[TaskStepId] = None,
                   resolve_span: bool = False,
-                  combine_columns: bool = False) -> SelectRowsResult:
+                  combine_columns: bool = False,
+                  user: Optional[UserInfo] = None) -> SelectRowsResult:
     """Select grouped columns to power a histogram.
 
     Args:
@@ -369,6 +371,8 @@ class Dataset(abc.ABC):
       resolve_span: Whether to resolve the span of the row.
       combine_columns: Whether to combine columns into a single object. The object will be pruned
         to only include sub-fields that correspond to the requested columns.
+      user: The authenticated user, if auth is enabled and the user is logged in. This is used to
+        apply ACL to the query, especially for concepts.
 
     Returns
       A SelectRowsResult iterator with rows of `Item`s.

@@ -10,9 +10,9 @@
   import {datasetViewStores} from '$lib/stores/datasetViewStore';
   import {urlHash} from '$lib/stores/urlHashStore';
   import {conceptLink} from '$lib/utils';
+  import {getSortedConcepts} from '$lib/view_utils';
   import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
-  import {InProgress, TrashCan} from 'carbon-icons-svelte';
-  import AddAlt from 'carbon-icons-svelte/lib/AddAlt.svelte';
+  import {InProgress, TrashCan, ViewOff} from 'carbon-icons-svelte';
   import {get} from 'svelte/store';
 
   let namespace: string | undefined;
@@ -31,8 +31,12 @@
 
   const concepts = queryConcepts();
   const deleteConcept = deleteConceptMutation();
+
   const authInfo = queryAuthInfo();
-  $: canDeleteConcepts = $authInfo.data?.access.concept.delete_any_concept;
+  $: userId = $authInfo.data?.user?.id;
+
+  $: namespaceConcepts = getSortedConcepts($concepts.data || [], userId);
+  $: username = $authInfo.data?.user?.given_name;
 
   $: concept = namespace && conceptName ? queryConcept(namespace, conceptName) : undefined;
 
@@ -68,44 +72,58 @@
     {#if $concepts.isLoading}
       <SkeletonText />
     {:else if $concepts.isSuccess}
-      {#each $concepts.data as c}
+      {#each namespaceConcepts as { namespace, concepts }}
         <div
-          class="flex justify-between border-b border-gray-200 hover:bg-gray-100"
-          class:bg-blue-100={c.name === conceptName}
+          class="flex flex-row justify-between border-b border-gray-200 bg-neutral-50 p-3 text-sm opacity-80 hover:bg-gray-100"
         >
-          <a
-            href={conceptLink(c.namespace, c.name)}
-            class="flex w-full flex-row items-center whitespace-pre px-4 py-2"
-          >
-            <span class="opacity-50">{c.namespace} / </span><span> {c.name}</span>
-          </a>
+          <div>
+            {#if namespace === userId}
+              {username}'s concepts
+            {:else}
+              {namespace}
+            {/if}
+          </div>
           <div
+            class="opacity-70"
             use:hoverTooltip={{
-              text: !canDeleteConcepts ? 'User does not have access to delete concepts.' : ''
+              text: 'Your concepts are only visible to you when logged in with Google.'
             }}
-            class:opacity-40={!canDeleteConcepts}
           >
-            <button
-              title="Remove concept"
-              disabled={!canDeleteConcepts}
-              class="p-3 opacity-50 hover:text-red-400 hover:opacity-100"
-              on:click={() => (deleteConceptInfo = {namespace: c.namespace, name: c.name})}
-            >
-              <TrashCan size={16} />
-            </button>
+            {#if namespace === userId}
+              <ViewOff />
+            {/if}
           </div>
         </div>
+        {#each concepts as c}
+          {@const canDeleteConcept = c.acls.write}
+          <div
+            class="flex justify-between border-b border-gray-200 hover:bg-gray-100"
+            class:bg-blue-100={c.name === conceptName}
+          >
+            <a
+              href={conceptLink(c.namespace, c.name)}
+              class="flex w-full flex-row items-center whitespace-pre px-8 py-2"
+            >
+              <span> {c.name}</span>
+            </a>
+            <div
+              use:hoverTooltip={{
+                text: !canDeleteConcept ? 'User does not have access to delete this concept.' : ''
+              }}
+              class:opacity-40={!canDeleteConcept}
+            >
+              <button
+                title="Remove concept"
+                disabled={!canDeleteConcept}
+                class="p-3 opacity-50 hover:text-red-400 hover:opacity-100"
+                on:click={() => (deleteConceptInfo = {namespace: c.namespace, name: c.name})}
+              >
+                <TrashCan size={16} />
+              </button>
+            </div>
+          </div>
+        {/each}
       {/each}
-
-      <button
-        on:click={() =>
-          triggerCommand({
-            command: Command.CreateConcept,
-            onCreate: e => goto(conceptLink(e.detail.namespace, e.detail.name))
-          })}
-        class="mt-4 flex w-full items-center gap-x-1 px-4 py-2 text-left text-sm text-gray-500 hover:text-blue-500"
-        ><AddAlt /> Add Concept</button
-      >
     {/if}
   </div>
   <div class="flex h-full w-full">
@@ -114,7 +132,7 @@
         {#if $concept?.isLoading}
           <SkeletonText />
         {:else if $concept?.isError}
-          <p>{$concept.error.message}</p>
+          <p>{$concept.error}</p>
         {:else if $concept?.isSuccess}
           <ConceptView concept={$concept.data} />
         {/if}

@@ -15,8 +15,9 @@ from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, validator
 from typing_extensions import override
 
+from ..auth import UserInfo
 from ..concepts.concept import ConceptColumnInfo
-from ..config import CONFIG, data_path
+from ..config import data_path, env
 from ..embeddings.vector_store import VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import (
@@ -103,7 +104,6 @@ from .dataset_utils import (
   write_items_to_parquet,
 )
 
-DEBUG = CONFIG['DEBUG'] == 'true' if 'DEBUG' in CONFIG else False
 UUID_INDEX_FILENAME = 'uuids.npy'
 
 SIGNAL_MANIFEST_FILENAME = 'signal_manifest.json'
@@ -217,7 +217,7 @@ class DatasetDuckDB(Dataset):
       for manifest in self._signal_manifests
     ])
     view_or_table = 'TABLE'
-    use_views = CONFIG.get('DUCKDB_USE_VIEWS', 0) or 0
+    use_views = env('DUCKDB_USE_VIEWS', 0) or 0
     if int(use_views):
       view_or_table = 'VIEW'
     sql_cmd = f"""CREATE OR REPLACE {view_or_table} t AS (SELECT {select_sql} FROM {join_sql})"""
@@ -782,7 +782,8 @@ class DatasetDuckDB(Dataset):
                   offset: Optional[int] = 0,
                   task_step_id: Optional[TaskStepId] = None,
                   resolve_span: bool = False,
-                  combine_columns: bool = False) -> SelectRowsResult:
+                  combine_columns: bool = False,
+                  user: Optional[UserInfo] = None) -> SelectRowsResult:
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema)
 
@@ -818,6 +819,10 @@ class DatasetDuckDB(Dataset):
         source_path = udf_col.path if udf_col.path[-1] != EMBEDDING_KEY else udf_col.path[:-3]
         udf_col.signal_udf.set_column_info(
           ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=source_path))
+
+      if isinstance(udf_col.signal_udf, (ConceptScoreSignal, ConceptLabelsSignal)):
+        # Concept are access controlled so we tell it about the user.
+        udf_col.signal_udf.set_user(user)
 
     # Decide on the exact sorting order.
     sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
@@ -1395,7 +1400,7 @@ class DatasetDuckDB(Dataset):
     # FastAPI is multi-threaded so we have to create a thread-specific connection cursor to allow
     # these queries to be thread-safe.
     local_con = self.con.cursor()
-    if not DEBUG:
+    if not env('DEBUG', False):
       return local_con.execute(query)
 
     # Debug mode.

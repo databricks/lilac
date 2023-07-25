@@ -10,6 +10,11 @@
     search.query.type === 'concept' ? '' : (search.query as KeywordQuery | SemanticQuery).search;
 </script>
 
+{#if search.query.type === 'concept'}
+  <div class="mb-2 w-full text-center text-xs">
+    {search.query.concept_namespace} / {search.query.concept_name}
+  </div>
+{/if}
 <div class="flex items-center justify-items-center">
   <div class="whitespace-nowrap">
     <Tag type={tagType}>

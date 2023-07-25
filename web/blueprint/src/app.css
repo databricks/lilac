@@ -111,7 +111,7 @@ a.bx--tabs__nav-link:focus {
 }
 
 .lilac-page {
-  @apply mx-auto mb-16 mt-8 w-full rounded-xl border border-gray-200 px-6 py-8;
+  @apply mx-auto w-full py-8;
 }
 
 @container (min-width: 640px) {

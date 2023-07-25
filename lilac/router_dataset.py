@@ -1,12 +1,13 @@
 """Router for the dataset database."""
-from typing import Optional, Sequence, Union, cast
+from typing import Annotated, Optional, Sequence, Union, cast
 from urllib.parse import unquote
 
 from fastapi import APIRouter, HTTPException, Response
+from fastapi.params import Depends
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, validator
 
-from .auth import get_user_access
+from .auth import UserInfo, get_session_user, get_user_access
 from .config import data_path
 from .data.dataset import BinaryOp
 from .data.dataset import Column as DBColumn
@@ -218,15 +219,18 @@ class SelectRowsResponse(BaseModel):
 
 
 @router.get('/{namespace}/{dataset_name}/select_rows_download', response_model=None)
-def select_rows_download(namespace: str, dataset_name: str, url_safe_options: str) -> list[dict]:
+def select_rows_download(
+    namespace: str, dataset_name: str, url_safe_options: str,
+    user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> list[dict]:
   """Select rows from the dataset database and downloads them."""
   options = SelectRowsOptions.parse_raw(unquote(url_safe_options))
-  return select_rows(namespace, dataset_name, options).rows
+  return select_rows(namespace, dataset_name, options, user).rows
 
 
 @router.post('/{namespace}/{dataset_name}/select_rows', response_model_exclude_none=True)
-def select_rows(namespace: str, dataset_name: str,
-                options: SelectRowsOptions) -> SelectRowsResponse:
+def select_rows(
+    namespace: str, dataset_name: str, options: SelectRowsOptions,
+    user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> SelectRowsResponse:
   """Select rows from the dataset database."""
   dataset = get_dataset(namespace, dataset_name)
 
@@ -242,7 +246,8 @@ def select_rows(namespace: str, dataset_name: str,
     sort_order=options.sort_order,
     limit=options.limit,
     offset=options.offset,
-    combine_columns=options.combine_columns or False)
+    combine_columns=options.combine_columns or False,
+    user=user)
 
   return SelectRowsResponse(rows=list(res), total_num_rows=res.total_num_rows)
 

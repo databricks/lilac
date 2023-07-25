@@ -1,5 +1,6 @@
 """Test for the concept label signal."""
 
+import os
 import pathlib
 from typing import Generator, Type
 
@@ -8,7 +9,6 @@ from pytest_mock import MockerFixture
 
 from ..concepts.concept import ExampleIn
 from ..concepts.db_concept import ConceptDB, ConceptUpdate, DiskConceptDB, DiskConceptModelDB
-from ..config import CONFIG
 from ..data.dataset_duckdb import DatasetDuckDB
 from ..data.dataset_utils import lilac_span
 from ..db_manager import set_default_dataset_cls
@@ -22,7 +22,7 @@ ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
 
 @pytest.fixture(autouse=True)
 def set_data_path(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
-  mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
+  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
 
 
 @pytest.fixture(scope='module', autouse=True)

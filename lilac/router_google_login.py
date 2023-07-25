@@ -8,28 +8,19 @@ from fastapi.responses import HTMLResponse
 from starlette.config import Config
 from starlette.responses import RedirectResponse
 
-from .config import CONFIG
+from .auth import UserInfo
+from .config import env
 from .router_utils import RouteErrorHandler
 
 router = APIRouter(route_class=RouteErrorHandler)
 
-GOOGLE_CLIENT_ID = CONFIG.get('GOOGLE_CLIENT_ID', None)
-GOOGLE_CLIENT_SECRET = CONFIG.get('GOOGLE_CLIENT_SECRET', None)
-LILAC_AUTH_ENABLED = CONFIG.get('LILAC_AUTH_ENABLED', False)
-if LILAC_AUTH_ENABLED:
-  if GOOGLE_CLIENT_ID is None or GOOGLE_CLIENT_SECRET is None:
-    raise ValueError(
-      'Missing `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` when `LILAC_AUTH_ENABLED=true`')
-  SECRET_KEY = CONFIG.get('LILAC_OAUTH_SECRET_KEY', None)
-  if not SECRET_KEY:
-    raise ValueError('Missing `LILAC_OAUTH_SECRET_KEY` when `LILAC_AUTH_ENABLED=true`')
-
-  # Set up oauth
+if env('LILAC_AUTH_ENABLED'):
   oauth = OAuth(
-    Config(environ={
-      'GOOGLE_CLIENT_ID': GOOGLE_CLIENT_ID,
-      'GOOGLE_CLIENT_SECRET': GOOGLE_CLIENT_SECRET
-    }))
+    Config(
+      environ={
+        'GOOGLE_CLIENT_ID': env('GOOGLE_CLIENT_ID'),
+        'GOOGLE_CLIENT_SECRET': env('GOOGLE_CLIENT_SECRET')
+      }))
   oauth.register(
     name='google',
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
@@ -51,7 +42,14 @@ async def auth(request: Request) -> Response:
     token = await oauth.google.authorize_access_token(request)
   except OAuthError as error:
     return HTMLResponse(f'<h1>{error}</h1>')
-  request.session['user'] = token['userinfo']
+  userinfo = token['userinfo']
+  request.session['user'] = UserInfo(
+    id=str(userinfo['sub']),
+    email=userinfo['email'],
+    name=userinfo['name'],
+    given_name=userinfo['given_name'],
+    family_name=userinfo['family_name']).dict()
+
   return RedirectResponse(url='/')
 
 

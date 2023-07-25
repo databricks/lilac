@@ -1,11 +1,11 @@
 """Fixtures for dataset tests."""
+import os
 import pathlib
 from typing import Generator, Optional, Type
 
 import pytest
 from pytest_mock import MockerFixture
 
-from .config import CONFIG
 from .data.dataset import Dataset
 from .data.dataset_duckdb import DatasetDuckDB
 from .data.dataset_test_utils import make_dataset
@@ -17,7 +17,7 @@ from .schema import Item, Schema
 def make_test_data(tmp_path: pathlib.Path, mocker: MockerFixture,
                    request: pytest.FixtureRequest) -> Generator:
   """A pytest fixture for creating temporary test datasets."""
-  mocker.patch.dict(CONFIG, {'LILAC_DATA_PATH': str(tmp_path)})
+  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
   dataset_cls: Type[Dataset] = request.param
   set_default_dataset_cls(dataset_cls)
 

@@ -2,9 +2,15 @@
 
 from typing import Optional
 
-from pydantic import BaseModel
+from fastapi import Request
+from pydantic import BaseModel, ValidationError
 
-from .config import CONFIG
+from .config import env
+
+
+class ConceptAuthorizationException(Exception):
+  """Authorization exceptions thrown by the concept database."""
+  pass
 
 
 class DatasetUserAccess(BaseModel):
@@ -36,6 +42,7 @@ class UserAccess(BaseModel):
 
 class UserInfo(BaseModel):
   """User information."""
+  id: str
   email: str
   name: str
   given_name: str
@@ -49,9 +56,22 @@ class AuthenticationInfo(BaseModel):
   auth_enabled: bool
 
 
+def get_session_user(request: Request) -> Optional[UserInfo]:
+  """Get the user from the session."""
+  if not env('LILAC_AUTH_ENABLED'):
+    return None
+  user_info_dict = request.session.get('user', None)
+  if user_info_dict:
+    try:
+      return UserInfo.parse_obj(user_info_dict)
+    except ValidationError:
+      return None
+  return None
+
+
 def get_user_access() -> UserAccess:
   """Get the user access."""
-  auth_enabled = CONFIG.get('LILAC_AUTH_ENABLED', False)
+  auth_enabled = env('LILAC_AUTH_ENABLED')
   if isinstance(auth_enabled, str):
     auth_enabled = auth_enabled.lower() == 'true'
   if auth_enabled:

@@ -8,7 +8,7 @@ from typing import Any, Optional
 
 import uvicorn
 from fastapi import APIRouter, FastAPI, Request
-from fastapi.responses import FileResponse, ORJSONResponse
+from fastapi.responses import FileResponse, JSONResponse, ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -21,18 +21,20 @@ from . import (
   router_signal,
   router_tasks,
 )
-from .auth import AuthenticationInfo, UserInfo, get_user_access
+from .auth import (
+  AuthenticationInfo,
+  ConceptAuthorizationException,
+  UserInfo,
+  get_session_user,
+  get_user_access,
+)
 from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
-from .config import CONFIG, data_path
+from .config import data_path, env
 from .router_utils import RouteErrorHandler
 from .tasks import task_manager
 from .utils import get_dataset_output_dir, list_datasets
 
 DIST_PATH = os.path.join(os.path.dirname(__file__), 'web')
-LILAC_AUTH_ENABLED = CONFIG.get('LILAC_AUTH_ENABLED', False)
-LILAC_OAUTH_SECRET_KEY = CONFIG.get('LILAC_OAUTH_SECRET_KEY', None)
-if LILAC_AUTH_ENABLED and not LILAC_OAUTH_SECRET_KEY:
-  raise ValueError('`LILAC_OAUTH_SECRET_KEY` must be set if `LILAC_AUTH_ENABLED` is True.')
 
 tags_metadata: list[dict[str, Any]] = [{
   'name': 'datasets',
@@ -58,7 +60,20 @@ app = FastAPI(
   default_response_class=ORJSONResponse,
   generate_unique_id_function=custom_generate_unique_id,
   openapi_tags=tags_metadata)
-app.add_middleware(SessionMiddleware, secret_key=LILAC_OAUTH_SECRET_KEY)
+
+
+@app.exception_handler(ConceptAuthorizationException)
+def concept_authorization_exception(request: Request,
+                                    exc: ConceptAuthorizationException) -> JSONResponse:
+  """Return a 401 JSON response when an authorization exception is thrown."""
+  return JSONResponse(
+    status_code=401,
+    content={'message"': 'Oops! You are not authorized to do this.'},
+  )
+
+
+app.add_middleware(SessionMiddleware, secret_key=env('LILAC_OAUTH_SECRET_KEY'))
+
 app.include_router(router_google_login.router, prefix='/google', tags=['google_login'])
 
 v1_router = APIRouter(route_class=RouteErrorHandler)
@@ -71,22 +86,13 @@ v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
 
 @app.get('/auth_info')
 def auth_info(request: Request) -> AuthenticationInfo:
-  """Returns the user's ACLs.
+  """Returns the user's ACL.
 
   NOTE: Validation happens server-side as well. This is just used for UI treatment.
   """
-  user_info: Optional[UserInfo] = None
-  if LILAC_AUTH_ENABLED:
-    session_user = request.session.get('user', None)
-    if session_user:
-      user_info = UserInfo(
-        email=session_user['email'],
-        name=session_user['name'],
-        given_name=session_user['given_name'],
-        family_name=session_user['family_name'])
-
+  user_info: Optional[UserInfo] = get_session_user(request)
   return AuthenticationInfo(
-    user=user_info, access=get_user_access(), auth_enabled=LILAC_AUTH_ENABLED)
+    user=user_info, access=get_user_access(), auth_enabled=env('LILAC_AUTH_ENABLED'))
 
 
 app.include_router(v1_router, prefix='/api/v1')
@@ -106,7 +112,7 @@ app.mount('/', StaticFiles(directory=DIST_PATH, html=True, check_dir=False))
 def startup() -> None:
   """Download dataset files from the HF space that was uploaded before building the image."""
   # SPACE_ID is the HuggingFace Space ID environment variable that is automatically set by HF.
-  repo_id = CONFIG.get('SPACE_ID', None)
+  repo_id = env('SPACE_ID', None)
 
   if repo_id:
     # Copy datasets.

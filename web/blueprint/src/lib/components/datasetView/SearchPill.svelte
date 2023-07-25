@@ -22,7 +22,7 @@
 
   $: pillText =
     search.query.type === 'concept'
-      ? `${search.query.concept_namespace}/${search.query.concept_name}`
+      ? search.query.concept_name
       : (search.query as KeywordQuery | SemanticQuery).search;
   $: tagType = search.query.type != null ? searchTypeToTagType[search.query.type] : 'outline';
 </script>

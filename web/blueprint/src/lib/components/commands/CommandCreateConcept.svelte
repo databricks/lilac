@@ -1,5 +1,6 @@
 <script lang="ts">
   import {createConceptMutation, editConceptMutation} from '$lib/queries/conceptQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {ConceptsService} from '$lilac';
   import {
     Button,
@@ -15,7 +16,14 @@
   import type {CreateConceptCommand} from './Commands.svelte';
 
   export let command: CreateConceptCommand;
-  let namespace = command.namespace || 'local';
+
+  const authInfo = queryAuthInfo();
+  $: authEnabled = $authInfo.data?.auth_enabled;
+  $: userId = $authInfo.data?.user?.id;
+
+  $: defaultNamespace = (authEnabled ? userId : null) || 'local';
+
+  $: namespace = command.namespace || defaultNamespace;
   let name = command.conceptName || '';
   let conceptDescription: string | undefined;
   let conceptDescLoading = false;
@@ -70,9 +78,22 @@
   <ModalHeader title="New Concept" />
   <ModalBody hasForm>
     <div class="flex flex-row gap-x-12">
-      <TextInput labelText="namespace" bind:value={namespace} />
+      {#if authEnabled}
+        <!--
+          When authentication is enabled, the namespace is the user id so we don't show it
+          to the user.
+        -->
+        <TextInput labelText="namespace" disabled />
+      {:else}
+        <TextInput labelText="namespace" bind:value={namespace} />
+      {/if}
       <TextInput labelText="name" bind:value={name} required />
     </div>
+    {#if authEnabled}
+      <div class="mb-8 text-xs text-neutral-700">
+        This concept will be created under your namespace, so only will be visible to you.
+      </div>
+    {/if}
     <div class="my-4 flex gap-x-2">
       <TextInput
         labelText="Concept description"

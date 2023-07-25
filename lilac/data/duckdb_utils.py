@@ -3,7 +3,7 @@ import os
 
 import duckdb
 
-from ..config import CONFIG, data_path
+from ..config import data_path, env
 
 
 def duckdb_setup(con: duckdb.DuckDBPyConnection) -> str:
@@ -15,11 +15,11 @@ def duckdb_setup(con: duckdb.DuckDBPyConnection) -> str:
   con.install_extension('httpfs')
   con.load_extension('httpfs')
 
-  if 'GCS_REGION' in CONFIG:
+  if env('GCS_REGION'):
     return f"""
-        SET s3_region='{CONFIG['GCS_REGION']}';
-        SET s3_access_key_id='{CONFIG['GCS_ACCESS_KEY']}';
-        SET s3_secret_access_key='{CONFIG['GCS_SECRET_KEY']}';
+        SET s3_region='{env('GCS_REGION')}';
+        SET s3_access_key_id='{env('GCS_ACCESS_KEY')}';
+        SET s3_secret_access_key='{env('GCS_SECRET_KEY')}';
         SET s3_endpoint='storage.googleapis.com';
       """
   return ''
