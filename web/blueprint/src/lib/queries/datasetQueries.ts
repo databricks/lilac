@@ -6,13 +6,14 @@ import {
   deserializeSchema,
   type DataType,
   type LilacSchema,
+  type Path,
   type SelectRowsOptions
 } from '$lilac';
 import {createInfiniteQuery, type CreateInfiniteQueryResult} from '@tanstack/svelte-query';
 import type {JSONSchema7} from 'json-schema';
 import {watchTask} from '../stores/taskMonitoringStore';
 import {queryClient} from './queryClient';
-import {createApiMutation, createApiQuery, createParallelApiQueries} from './queryUtils';
+import {createApiMutation, createApiQuery} from './queryUtils';
 import {TASKS_TAG} from './taskQueries';
 
 export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
@@ -87,10 +88,15 @@ export const deleteSignalMutation = createApiMutation(DatasetsService.deleteSign
 });
 
 export const queryDatasetStats = createApiQuery(DatasetsService.getStats, DATASETS_TAG);
-export const queryManyDatasetStats = createParallelApiQueries(
-  DatasetsService.getStats,
-  DATASETS_TAG
-);
+export const queryManyDatasetStats = createApiQuery(function getStats(
+  namespace: string,
+  datasetName: string,
+  leafs: Path[]
+) {
+  const ps = leafs.map(leaf => DatasetsService.getStats(namespace, datasetName, {leaf_path: leaf}));
+  return Promise.all(ps);
+},
+DATASETS_TAG);
 
 export const querySelectRows = createApiQuery(async function selectRows(
   namespace: string,

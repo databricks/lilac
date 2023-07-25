@@ -1,6 +1,6 @@
 """Load environment variables from .env file."""
 import os
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Optional, Union, cast
 
 from dotenv import dotenv_values
 
@@ -65,4 +65,4 @@ def env(key: EnvironmentKeys, default: Optional[Any] = None) -> Any:
 
 def data_path() -> str:
   """Return the base path for data."""
-  return env('LILAC_DATA_PATH', './data')
+  return cast(str, env('LILAC_DATA_PATH', './data'))

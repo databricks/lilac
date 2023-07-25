@@ -65,9 +65,7 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
   run(f'poetry export --extras all --without-hashes > {repo_basedir}/requirements.txt')
 
   # Copy source code.
-  copy_dirs = ['lilac', 'web/blueprint/build']
-  for copy_dir in copy_dirs:
-    shutil.copytree(copy_dir, os.path.join(repo_basedir, copy_dir), dirs_exist_ok=True)
+  shutil.copytree('lilac', os.path.join(repo_basedir, 'lilac'), dirs_exist_ok=True)
 
   # Copy a subset of root files.
   copy_files = ['.dockerignore', '.env', 'Dockerfile', 'LICENSE']
@@ -103,7 +101,7 @@ app_port: 5432
 ---""")
 
   run(f"""pushd {repo_basedir} > /dev/null && \
-      git add . && \
+      git add . && git add -f lilac/web && \
       git commit -a -m "Push" --quiet && \
       git push && \
       popd > /dev/null""")

@@ -4,7 +4,8 @@ description = "Organize unstructured data"
 license = "Apache-2.0"
 name = "lilacai"
 repository = "https://github.com/lilacai/lilac"
-packages = [{include = "lilac"}]
+packages = [{ include = "lilac" }]
+include = ["lilac/web/**/*"]                    # Include the web app assets.
 readme = "README.md"
 version = "0.0.6"
 
@@ -23,9 +24,9 @@ gunicorn = "^20.1.0"
 httpx = "^0.24.1"
 itsdangerous = "^2.1.2"
 joblib = "^1.3.1"
-openai-function-call = "^0.0.5" # Wraps OpenAI functions with Pydantic models.
-orjson = "^3.8.10" # Fast JSON serialization: https://fastapi.tiangolo.com/advanced/custom-response/#use-orjsonresponse
-pillow = "^9.3.0" # Image processing.
+openai-function-call = "^0.0.5"                          # Wraps OpenAI functions with Pydantic models.
+orjson = "^3.8.10"                                       # Fast JSON serialization: https://fastapi.tiangolo.com/advanced/custom-response/#use-orjsonresponse
+pillow = "^9.3.0"                                        # Image processing.
 psutil = "^5.9.5"
 pyarrow = "^9.0.0"
 pydantic = "^1.10.11"
@@ -37,34 +38,34 @@ tenacity = "^8.2.2"
 tqdm = "^4.65.0"
 types-psutil = "^5.9.5.12"
 typing-extensions = "^4.7.1"
-uvicorn = {extras = ["standard"], version = "^0.22.0"}
+uvicorn = { extras = ["standard"], version = "^0.22.0" }
 
 ### Optional dependencies. ###
 
 # LLM providers.
-cohere = {version = "^3.7.0", optional = true}
-google-generativeai = {version = "^0.1.0", optional = true}# PaLM / MakerSuite.
-openai = {version = "^0.27.8", optional = true}
-sentence-transformers = {version = "^2.2.2", optional = true}# SBERT on-device embeddings.
+cohere = { version = "^3.7.0", optional = true }
+google-generativeai = { version = "^0.1.0", optional = true }   # PaLM / MakerSuite.
+openai = { version = "^0.27.8", optional = true }
+sentence-transformers = { version = "^2.2.2", optional = true } # SBERT on-device embeddings.
 
 # Gmail source.
-email-reply-parser = {version = "^0.5.12", optional = true}
-google-api-python-client = {version = "^2.88.0", optional = true}
-google-auth-httplib2 = {version = "^0.1.0", optional = true}
-google-auth-oauthlib = {version = "^1.0.0", optional = true}
+email-reply-parser = { version = "^0.5.12", optional = true }
+google-api-python-client = { version = "^2.88.0", optional = true }
+google-auth-httplib2 = { version = "^0.1.0", optional = true }
+google-auth-oauthlib = { version = "^1.0.0", optional = true }
 
 # Text statistics.
-textacy = {version = "^0.13.0", optional = true}
+textacy = { version = "^0.13.0", optional = true }
 
 # Named entity recognition.
-spacy = {version = "^3.5.1", optional = true}
+spacy = { version = "^3.5.1", optional = true }
 
 # For PII and secrets.
-detect-secrets = {version = "^1.4.0", optional = true}
+detect-secrets = { version = "^1.4.0", optional = true }
 regex = "^2023.6.3"
 
 # For language detection.
-langdetect = {version = "^1.0.9", optional = true}
+langdetect = { version = "^1.0.9", optional = true }
 
 [tool.poetry.extras]
 all = [
@@ -82,18 +83,28 @@ all = [
   "spacy",
 ]
 
-embeddings = ["cohere", "google-generativeai", "openai", "sentence-transformers"]
+embeddings = [
+  "cohere",
+  "google-generativeai",
+  "openai",
+  "sentence-transformers",
+]
 llms = ["openai"]
 
 # Sources.
-gmail = ["email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib"]
+gmail = [
+  "email-reply-parser",
+  "google-api-python-client",
+  "google-auth-httplib2",
+  "google-auth-oauthlib",
+]
 
 # Signals.
 signals = ["textacy", "detect-secrets", "langdetect", "spacy"]
 
 # Individual signals.
-lang_detection = ["langdetect"] # Language detection.
-ner = ["spacy"] # Named entity recognition.
+lang_detection = ["langdetect"]   # Language detection.
+ner = ["spacy"]                   # Named entity recognition.
 pii = ["detect-secrets", "regex"] # PII.
 text_stats = ["textacy", "spacy"] # Text statistics.
 
@@ -101,7 +112,7 @@ text_stats = ["textacy", "spacy"] # Text statistics.
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-bokeh = ">=2.4.2,<3" # Required for Dask monitoring.
+bokeh = ">=2.4.2,<3"                                      # Required for Dask monitoring.
 click = "^8.1.3"
 google-api-python-client-stubs = "^1.13.0"
 httpx = "^0.24.0"
@@ -122,7 +133,7 @@ types-cachetools = "^5.3.0.5"
 types-regex = "^2023.6.3.0"
 types-requests = "^2.28.11.5"
 types-tqdm = "^4.65.0.0"
-watchdog = {extras = ["watchmedo"], version = "^3.0.0"}
+watchdog = { extras = ["watchmedo"], version = "^3.0.0" }
 wheel = "^0.37.1"
 yapf = "^0.32.0"
 
@@ -134,10 +145,6 @@ build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core"]
 
 [tool.pyright]
-exclude = [
-  "**/node_modules",
-  "**/__pycache__",
-]
 include = ["lilac"]
 
 [tool.ruff]
@@ -162,6 +169,7 @@ unfixable = ["I"] # Delegate import organization to isort.
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
+  "__pycache__",
   ".bzr",
   ".direnv",
   ".eggs",

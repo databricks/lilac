@@ -5,7 +5,6 @@ import type {
   LilacField,
   LilacSchema,
   LilacSelectRowsSchema,
-  Path,
   StatsResult
 } from '$lilac';
 import type {QueryObserverResult} from '@tanstack/svelte-query';
@@ -18,15 +17,10 @@ export const datasetStores: {[key: string]: DatasetStore} = {};
 
 export interface DatasetState {
   schema: LilacSchema | null;
-  stats: StatsInfo[] | null;
+  stats: StatsResult[] | null;
   selectRowsSchema: QueryObserverResult<LilacSelectRowsSchema, ApiError> | null;
   visibleFields: LilacField[] | null;
   settings: DatasetSettings | null;
-}
-
-export interface StatsInfo {
-  path: Path;
-  stats: QueryObserverResult<StatsResult, unknown>;
 }
 
 export type DatasetStore = ReturnType<typeof createDatasetStore>;
@@ -55,7 +49,7 @@ export const createDatasetStore = (namespace: string, datasetName: string) => {
         state.schema = schema;
         return state;
       }),
-    setStats: (stats: StatsInfo[]) =>
+    setStats: (stats: StatsResult[]) =>
       update(state => {
         state.stats = stats;
         return state;

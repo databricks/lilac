@@ -1,11 +1,12 @@
 """Serves the Lilac server."""
 
+import asyncio
 import logging
 import os
 import shutil
-import subprocess
 from typing import Any, Optional
 
+import uvicorn
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, ORJSONResponse
 from fastapi.routing import APIRoute
@@ -33,7 +34,7 @@ from .router_utils import RouteErrorHandler
 from .tasks import task_manager
 from .utils import get_dataset_output_dir, list_datasets
 
-DIST_PATH = os.path.abspath(os.path.join('web', 'blueprint', 'build'))
+DIST_PATH = os.path.join(os.path.dirname(__file__), 'web')
 
 tags_metadata: list[dict[str, Any]] = [{
   'name': 'datasets',
@@ -137,11 +138,6 @@ def startup() -> None:
       shutil.rmtree(spaces_concept_output_dir, ignore_errors=True)
 
 
-def run(cmd: str) -> subprocess.CompletedProcess[bytes]:
-  """Run a command and return the result."""
-  return subprocess.run(cmd, shell=True, check=True)
-
-
 @app.on_event('shutdown')
 async def shutdown_event() -> None:
   """Kill the task manager when FastAPI shuts down."""
@@ -157,3 +153,29 @@ class GetTasksFilter(logging.Filter):
 
 
 logging.getLogger('uvicorn.access').addFilter(GetTasksFilter())
+
+SERVER: Optional[uvicorn.Server] = None
+
+
+def start_server(host: str = '0.0.0.0', port: int = 5432) -> None:
+  """Starts the Lilac web server."""
+  global SERVER
+  if SERVER:
+    raise ValueError('Server is already running')
+
+  config = uvicorn.Config(app, host='0.0.0.0', port=5432)
+  SERVER = uvicorn.Server(config)
+  try:
+    loop = asyncio.get_running_loop()
+    loop.create_task(SERVER.serve())
+  except RuntimeError:
+    SERVER.run()
+
+
+async def stop_server() -> None:
+  """Stops the Lilac web server."""
+  global SERVER
+  if SERVER is None:
+    raise ValueError('Server is not running')
+  await SERVER.shutdown()
+  SERVER = None

@@ -622,8 +622,13 @@
       "label": false,
       "text": "Friends on a weekend excursion take a path into a forest that leads to death and destruction.",
       "id": "e61a3251720d425c9f4770cb4b11d2d9"
+    },
+    "5471008376cf44518f2ff1f67f057c08": {
+      "label": false,
+      "text": "Mr Bournelis suggested all 30 lineal metres of blockwork should be removed and replaced, which would require removing and reinstalling the fence. The total cost of his suggested method of rectification was said to be $14,650 for each unit, giving a total cost of rectification of $29,300.",
+      "id": "5471008376cf44518f2ff1f67f057c08"
     }
   },
-  "version": 26,
+  "version": 27,
   "description": "Negative sentiment"
 }

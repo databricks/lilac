@@ -7,7 +7,6 @@
   import {
     ITEM_SCROLL_CONTAINER_CTX_KEY,
     getComputedEmbeddings,
-    getSearchEmbedding,
     getSearchPath,
     mergeSpans,
     type MergedSpan
@@ -153,22 +152,15 @@
   // Click details.
   let searchPath: Path | null;
   let computedEmbeddings: string[] = [];
-  let searchEmbedding: string | null = null;
   $: {
     if ($datasetViewStore != null && datasetStore != null) {
       searchPath = getSearchPath($datasetViewStore, datasetStore);
       computedEmbeddings = getComputedEmbeddings(datasetStore, searchPath);
-      searchEmbedding = getSearchEmbedding(
-        $datasetViewStore,
-        datasetStore,
-        searchPath,
-        computedEmbeddings
-      );
     }
   }
 
   const findSimilar = (embedding: string, text: string) => {
-    if (datasetViewStore == null || searchPath == null || searchEmbedding == null) return;
+    if (datasetViewStore == null || searchPath == null) return;
 
     datasetViewStore.addSearch({
       path: [serializePath(searchPath)],
@@ -198,7 +190,7 @@
           computedEmbeddings,
           addConceptLabel
         }}
-        class="hover:cursor-poiner highlight-span text-sm leading-5"
+        class="hover:cursor-poiner highlight-span break-words text-sm leading-5"
         class:hover:cursor-pointer={spanPaths.length > 0}
         class:font-bold={renderSpan.isBlackBolded}
         class:font-medium={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded}

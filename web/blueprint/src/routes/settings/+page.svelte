@@ -21,7 +21,7 @@
           <SelectSkeleton />
         {:else}
           <Select
-            labelText="Default embedding"
+            labelText="Preferred embedding"
             selected={$settings.embedding}
             on:change={embeddingChanged}
           >

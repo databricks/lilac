@@ -1,53 +1,70 @@
 <script lang="ts">
-  import {
-    queryDatasetSchema,
-    querySettings,
-    updateSettingsMutation
-  } from '$lib/queries/datasetQueries';
+  import {querySettings, updateSettingsMutation} from '$lib/queries/datasetQueries';
+  import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {petals, serializePath, type DatasetSettings} from '$lilac';
+  import {getSettingsContext} from '$lib/stores/settingsStore';
+  import {
+    UUID_COLUMN,
+    isSignalField,
+    pathIsEqual,
+    petals,
+    type DatasetSettings,
+    type LilacField,
+    type LilacSchema
+  } from '$lilac';
   import {
     ComposedModal,
     ModalBody,
     ModalFooter,
     ModalHeader,
-    MultiSelect,
+    Select,
+    SelectItem,
+    SelectSkeleton,
     SkeletonText
   } from 'carbon-components-svelte';
-  import type {
-    MultiSelectItem,
-    MultiSelectItemId
-  } from 'carbon-components-svelte/types/MultiSelect/MultiSelect.svelte';
+  import DownloadFieldList from './DownloadFieldList.svelte';
 
   export let open = false;
+  export let schema: LilacSchema;
+
   const datasetViewStore = getDatasetViewContext();
+  const appSettings = getSettingsContext();
+  const embeddings = queryEmbeddings();
+  const updateSettings = updateSettingsMutation();
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
-  $: updateSettings = updateSettingsMutation();
 
-  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
-  $: fields = petals($schema.data);
+  let selectedMediaFields: LilacField[] | null = null;
+  let preferredEmbedding: string | undefined = $appSettings.embedding;
 
-  $: fieldItems = fields.map(field => ({
-    id: serializePath(field.path),
-    text: serializePath(field.path)
-  }));
+  $: mediaFields = petals(schema).filter(
+    f => f.dtype === 'string' && !pathIsEqual(f.path, [UUID_COLUMN]) && !isSignalField(f, schema)
+  );
 
-  // Add the default media here if there is nothing.
-  $: serverSelectedIds = fieldItems
-    .filter(fieldItem =>
-      ($settings.data?.ui?.media_paths || []).some(
-        mediaPath => serializePath(mediaPath) === fieldItem.id
-      )
-    )
-    .map(fieldItem => fieldItem.id);
+  $: {
+    if (selectedMediaFields == null) {
+      const selectedMediaPaths = $settings.data?.ui?.media_paths || [];
+      selectedMediaFields = mediaFields.filter(f =>
+        selectedMediaPaths.some(path => pathIsEqual(f.path, path))
+      );
+    }
+  }
 
-  let selectedIds: MultiSelectItemId[] = [];
+  function embeddingChanged(e: Event) {
+    const embedding = (e.target as HTMLSelectElement).value;
+    preferredEmbedding = embedding;
+    if (preferredEmbedding === '') {
+      preferredEmbedding = undefined;
+    }
+  }
+
   function submit() {
+    if (selectedMediaFields == null) return;
     const newSettings: DatasetSettings = {
       ui: {
-        media_paths: selectedIds.map(id => id.split('.'))
-      }
+        media_paths: selectedMediaFields.map(f => f.path)
+      },
+      preferred_embedding: preferredEmbedding
     };
     $updateSettings.mutate(
       [$datasetViewStore.namespace, $datasetViewStore.datasetName, newSettings],
@@ -58,15 +75,6 @@
       }
     );
   }
-  function select(
-    e: CustomEvent<{
-      selectedIds: MultiSelectItemId[];
-      selected: MultiSelectItem[];
-      unselected: MultiSelectItem[];
-    }>
-  ) {
-    selectedIds = e.detail.selectedIds;
-  }
 </script>
 
 <ComposedModal {open} on:submit={submit} on:close={() => (open = false)}>
@@ -75,15 +83,35 @@
     {#if $settings.isFetching}
       <SkeletonText />
     {:else}
-      <div class="h-96">
-        <MultiSelect
-          on:select={select}
-          titleText="Media fields"
-          filterable
-          items={fieldItems}
-          selectedIds={serverSelectedIds}
-          placeholder={'Select media fields'}
-        />
+      <div class="flex flex-col gap-y-6">
+        <section class="flex flex-col gap-y-1">
+          <div class="text-lg text-gray-700">Media fields</div>
+          <div class="text-sm text-gray-500">
+            These fields will be presented differently from the rest of the metadata fields.
+          </div>
+          {#if selectedMediaFields != null}
+            <DownloadFieldList fields={mediaFields} bind:checkedFields={selectedMediaFields} />
+          {/if}
+        </section>
+
+        <section class="flex flex-col gap-y-1">
+          <div class="text-lg text-gray-700">Preferred embedding</div>
+          <div class="text-sm text-gray-500">
+            This embedding will be used by default when indexing and querying the data.
+          </div>
+          <div class="w-60">
+            {#if $embeddings.isFetching}
+              <SelectSkeleton />
+            {:else}
+              <Select selected={$settings.data?.preferred_embedding} on:change={embeddingChanged}>
+                <SelectItem value={undefined} text="None" />
+                {#each $embeddings.data || [] as emdField}
+                  <SelectItem value={emdField.name} />
+                {/each}
+              </Select>
+            {/if}
+          </div>
+        </section>
       </div>
     {/if}
   </ModalBody>

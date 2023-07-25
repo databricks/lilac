@@ -12,14 +12,11 @@ def test_lang_detection_sentences() -> None:
     'Ein, zwei, drei, vier',
   ]
   res = list(signal.compute(docs))
-  assert res == [
-    [lilac_span(0, 43, {LANG_CODE: 'en'})],
-    [lilac_span(0, 21, {LANG_CODE: 'de'})],
-  ]
+  assert res == ['en', 'de']
 
 
 def test_lang_detection_multiple_paragraphs() -> None:
-  signal = LangDetectionSignal()
+  signal = LangDetectionSignal(split_by_paragraph=True)
   signal.setup()
   doc = 'War doesnt show whos right, just whos left.\n\nEin, zwei, drei, vier'
   res = list(signal.compute([doc]))

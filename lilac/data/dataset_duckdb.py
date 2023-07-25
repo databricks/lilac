@@ -160,8 +160,8 @@ class DatasetDuckDB(Dataset):
     self.vector_store_cls = vector_store_cls
     self._manifest_lock = threading.Lock()
 
-    # Write the settings to disk to avoid calling stats many times.
-    self.update_settings(default_settings(self))
+    # Calling settings creates the default settings JSON file if it doesn't exist.
+    self.settings()
 
   @override
   def delete(self) -> None:

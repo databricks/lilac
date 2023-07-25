@@ -35,6 +35,7 @@ import {
 } from 'carbon-icons-svelte';
 import type {DatasetState} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
+import type {SettingsState} from './stores/settingsStore';
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
 export const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
@@ -162,13 +163,23 @@ export function getSearchPath(store: DatasetViewState, datasetStore: DatasetStat
 }
 
 export function getSearchEmbedding(
+  appSettings: SettingsState,
+  datasetSettings: DatasetSettings | undefined,
   store: DatasetViewState,
   datasetStore: DatasetState,
   searchPath: Path | null,
   embeddings: string[]
 ): string | null {
+  if (store.searchEmbedding != null) {
+    return store.searchEmbedding;
+  }
+  if (datasetSettings != null && datasetSettings.preferred_embedding != null) {
+    return datasetSettings.preferred_embedding;
+  }
+  if (appSettings.embedding != null) {
+    return appSettings.embedding;
+  }
   if (searchPath == null) return null;
-  if (store.searchEmbedding != null) return store.searchEmbedding;
 
   const existingEmbeddings = getComputedEmbeddings(datasetStore, searchPath);
   // Sort embeddings by what have already been precomputed first.
@@ -227,14 +238,31 @@ function getDefaultSearchPath(datasetStore: DatasetState): Path | null {
   const visibleStringPaths = (datasetStore.visibleFields || [])
     .filter(f => f.dtype === 'string')
     .map(f => serializePath(f.path));
-  // The longest visible path is auto-selected.
-  for (const stat of datasetStore.stats) {
-    const stringPath = serializePath(stat.path);
-    if (visibleStringPaths.indexOf(stringPath) >= 0) {
-      return stat.path;
+  // The longest visible path that has an embedding is auto-selected.
+  let paths = datasetStore.stats.map(stat => {
+    return {
+      path: stat.path,
+      embeddings: getComputedEmbeddings(datasetStore, stat.path),
+      avgTextLength: stat.avg_text_length,
+      isVisible: visibleStringPaths.indexOf(serializePath(stat.path)) >= 0
+    };
+  });
+  paths = paths.sort((a, b) => {
+    if (!a.isVisible && b.isVisible) {
+      return 1;
+    } else if (a.isVisible && !b.isVisible) {
+      return -1;
+    } else if (a.embeddings.length > 0 && b.embeddings.length === 0) {
+      return -1;
+    } else if (a.embeddings.length === 0 && b.embeddings.length > 0) {
+      return 1;
+    } else if (a.avgTextLength != null && b.avgTextLength != null) {
+      return b.avgTextLength - a.avgTextLength;
+    } else {
+      return b.embeddings.length - a.embeddings.length;
     }
-  }
-  return null;
+  });
+  return paths[0].path;
 }
 
 export function getSortedConcepts(
