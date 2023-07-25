@@ -12,7 +12,7 @@ import math
 import os
 import pathlib
 import uuid
-from typing import Iterable, Optional, Union, cast
+from typing import Iterable, Optional, Union
 
 import click
 import pandas as pd
@@ -66,15 +66,14 @@ def process_source(base_dir: Union[str, pathlib.Path],
   items = normalize_items(items, source_schema.fields)
 
   # Add progress.
-  if task_step_id is not None:
-    items = progress(
-      items,
-      task_step_id=task_step_id,
-      estimated_len=source_schema.num_items,
-      step_description=f'Reading from source {source.name}...')
+  items = progress(
+    items,
+    task_step_id=task_step_id,
+    estimated_len=source_schema.num_items,
+    step_description=f'Reading from source {source.name}...')
 
   # Filter out the `None`s after progress.
-  items = cast(Iterable[Item], (item for item in items if item is not None))
+  items = (item for item in items if item is not None)
 
   data_schema = Schema(fields={**source_schema.fields, UUID_COLUMN: field('string')})
   filepath, num_items = write_items_to_parquet(

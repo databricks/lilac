@@ -277,12 +277,13 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
   f = open_file(filepath, mode='wb')
   writer = ParquetWriter(schema)
   writer.open(f)
+  debug = env('DEBUG', False)
   num_items = 0
   for item in items:
     # Add a UUID column.
     if UUID_COLUMN not in item:
       item[UUID_COLUMN] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
-    if env('DEBUG'):
+    if debug:
       try:
         _validate(item, arrow_schema)
       except Exception as e:
