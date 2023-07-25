@@ -24,7 +24,7 @@ from .concept import (
   LogisticEmbeddingModel,
 )
 from .db_concept import (
-  ConceptACLs,
+  ConceptACL,
   ConceptDB,
   ConceptInfo,
   ConceptModelDB,
@@ -89,7 +89,7 @@ class ConceptDBSuite:
         name='test_concept',
         type=SignalInputType.TEXT,
         drafts=[DRAFT_MAIN],
-        acls=ConceptACLs(read=True, write=True))
+        acls=ConceptACL(read=True, write=True))
     ]
 
     # Make sure list with drafts relects the drafts.
@@ -105,7 +105,7 @@ class ConceptDBSuite:
         name='test_concept',
         type=SignalInputType.TEXT,
         drafts=[DRAFT_MAIN, 'test_draft'],
-        acls=ConceptACLs(read=True, write=True))
+        acls=ConceptACL(read=True, write=True))
     ]
 
   def test_add_example(self, db_cls: Type[ConceptDB]) -> None:

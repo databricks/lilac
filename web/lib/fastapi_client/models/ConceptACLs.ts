@@ -5,8 +5,7 @@
 /**
  * The access control list for an individual concept.
  */
-export type ConceptACLs = {
-    read: boolean;
-    write: boolean;
+export type ConceptACL = {
+  read: boolean;
+  write: boolean;
 };
-

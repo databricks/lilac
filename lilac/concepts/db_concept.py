@@ -37,7 +37,7 @@ DATASET_CONCEPTS_DIR = '.concepts'
 CONCEPT_JSON_FILENAME = 'concept.json'
 
 
-class ConceptNamespaceACLs(BaseModel):
+class ConceptNamespaceACL(BaseModel):
   """The access control list for a namespace."""
   # Whether the current user can read concepts in the namespace.
   read: bool
@@ -45,7 +45,7 @@ class ConceptNamespaceACLs(BaseModel):
   write: bool
 
 
-class ConceptACLs(BaseModel):
+class ConceptACL(BaseModel):
   """The access control list for an individual concept."""
   # Whether the current user can read the concept.
   read: bool
@@ -61,7 +61,7 @@ class ConceptInfo(BaseModel):
   type: SignalInputType
   drafts: list[DraftId]
 
-  acls: ConceptACLs
+  acls: ConceptACL
 
 
 class ConceptUpdate(BaseModel):
@@ -85,13 +85,13 @@ class ConceptDB(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def namespace_acls(self, namespace: str, user: Optional[UserInfo] = None) -> ConceptNamespaceACLs:
-    """Return the ACLs for a namespace."""
+  def namespace_acls(self, namespace: str, user: Optional[UserInfo] = None) -> ConceptNamespaceACL:
+    """Return the ACL for a namespace."""
     pass
 
   @abc.abstractmethod
-  def concept_acls(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> ConceptACLs:
-    """Return the ACLs for a concept."""
+  def concept_acls(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> ConceptACL:
+    """Return the ACL for a concept."""
     pass
 
   @abc.abstractmethod
@@ -381,23 +381,23 @@ class DiskConceptDB(ConceptDB):
     return str(self._base_dir) if self._base_dir else data_path()
 
   @override
-  def namespace_acls(self, namespace: str, user: Optional[UserInfo] = None) -> ConceptNamespaceACLs:
+  def namespace_acls(self, namespace: str, user: Optional[UserInfo] = None) -> ConceptNamespaceACL:
     if not env('LILAC_AUTH_ENABLED'):
-      return ConceptNamespaceACLs(read=True, write=True)
+      return ConceptNamespaceACL(read=True, write=True)
 
     if namespace == 'lilac':
-      return ConceptNamespaceACLs(read=True, write=False)
+      return ConceptNamespaceACL(read=True, write=False)
     if user and user.id == namespace:
-      return ConceptNamespaceACLs(read=True, write=True)
+      return ConceptNamespaceACL(read=True, write=True)
 
-    return ConceptNamespaceACLs(read=False, write=False)
+    return ConceptNamespaceACL(read=False, write=False)
 
   @override
-  def concept_acls(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> ConceptACLs:
+  def concept_acls(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> ConceptACL:
     namespace_acls = self.namespace_acls(namespace, user=user)
-    # Concept ACLs inherit from the namespace ACLs. We currently don't have concept-specific
-    #  ACLs.
-    return ConceptACLs(read=namespace_acls.read, write=namespace_acls.write)
+    # Concept ACL inherit from the namespace ACL. We currently don't have concept-specific
+    #  ACL.
+    return ConceptACL(read=namespace_acls.read, write=namespace_acls.write)
 
   @override
   def list(self, user: Optional[UserInfo] = None) -> list[ConceptInfo]:

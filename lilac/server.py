@@ -85,7 +85,7 @@ v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
 
 @app.get('/auth_info')
 def auth_info(request: Request) -> AuthenticationInfo:
-  """Returns the user's ACLs.
+  """Returns the user's ACL.
 
   NOTE: Validation happens server-side as well. This is just used for UI treatment.
   """

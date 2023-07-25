@@ -19,7 +19,7 @@ from .concepts.concept import (
   ExampleOrigin,
   LogisticEmbeddingModel,
 )
-from .concepts.db_concept import ConceptACLs, ConceptInfo, ConceptUpdate
+from .concepts.db_concept import ConceptACL, ConceptInfo, ConceptUpdate
 from .data.dataset_utils import lilac_embedding, lilac_span
 from .router_concept import (
   ConceptModelInfo,
@@ -100,7 +100,7 @@ def test_concept_create() -> None:
       name='concept',
       type=SignalInputType.TEXT,
       drafts=[DRAFT_MAIN],
-      acls=ConceptACLs(read=True, write=True))
+      acls=ConceptACL(read=True, write=True))
   ]
 
 
@@ -167,7 +167,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
       name='concept',
       type=SignalInputType.TEXT,
       drafts=[DRAFT_MAIN],
-      acls=ConceptACLs(read=True, write=True))
+      acls=ConceptACL(read=True, write=True))
   ]
 
   # Add another example.
@@ -245,7 +245,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
       name='concept',
       type=SignalInputType.TEXT,
       drafts=[DRAFT_MAIN],
-      acls=ConceptACLs(read=True, write=True))
+      acls=ConceptACL(read=True, write=True))
   ]
 
 
@@ -280,7 +280,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
       name='concept',
       type=SignalInputType.TEXT,
       drafts=[DRAFT_MAIN, 'test_draft'],
-      acls=ConceptACLs(read=True, write=True))
+      acls=ConceptACL(read=True, write=True))
   ]
 
   # Make sure when we request main, we only get data in main.
