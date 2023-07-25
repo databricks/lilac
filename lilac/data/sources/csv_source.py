@@ -27,8 +27,8 @@ class CSVDataset(Source):
   names: Optional[list[str]] = Field(
     default=None, description='Provide header names if the file does not contain a header.')
 
-  _source_schema: SourceSchema
-  _df: pd.DataFrame
+  _source_schema: Optional[SourceSchema] = None
+  _df: Optional[pd.DataFrame] = None
 
   @override
   def setup(self) -> None:
@@ -63,11 +63,15 @@ class CSVDataset(Source):
   @override
   def source_schema(self) -> SourceSchema:
     """Return the source schema."""
+    assert self._source_schema is not None
     return self._source_schema
 
   @override
   def process(self) -> Iterable[Item]:
     """Process the source upload request."""
+    if self._df is None:
+      raise RuntimeError('CSV source is not initialized.')
+
     cols = self._df.columns.tolist()
     yield from ({
       LINE_NUMBER_COLUMN: idx,

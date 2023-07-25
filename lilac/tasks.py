@@ -12,7 +12,7 @@ from typing import Any, Awaitable, Callable, Iterable, Iterator, Optional, TypeV
 import dask
 import psutil
 from dask import config as cfg
-from dask.distributed import Client, Variable
+from dask.distributed import Client
 from distributed import Future, get_client, get_worker
 from pydantic import BaseModel, parse_obj_as
 from tqdm import tqdm
@@ -37,33 +37,33 @@ class TaskStatus(str, Enum):
 
 class TaskStepInfo(BaseModel):
   """Information about a step of the task.."""
-  progress: Optional[float]
-  description: Optional[str]
-  details: Optional[str]
+  progress: Optional[float] = None
+  description: Optional[str] = None
+  details: Optional[str] = None
 
 
 class TaskInfo(BaseModel):
   """Metadata about a task."""
   name: str
   status: TaskStatus
-  progress: Optional[float]
-  message: Optional[str]
-  details: Optional[str]
+  progress: Optional[float] = None
+  message: Optional[str] = None
+  details: Optional[str] = None
   # The current step's progress.
-  step_progress: Optional[float]
+  step_progress: Optional[float] = None
 
   # A task may have multiple progress indicators, e.g. for chained signals that compute 3 signals.
-  steps: Optional[list[TaskStepInfo]]
-  description: Optional[str]
+  steps: Optional[list[TaskStepInfo]] = None
+  description: Optional[str] = None
   start_timestamp: str
-  end_timestamp: Optional[str]
-  error: Optional[str]
+  end_timestamp: Optional[str] = None
+  error: Optional[str] = None
 
 
 class TaskManifest(BaseModel):
   """Information for tasks that are running or completed."""
   tasks: dict[str, TaskInfo]
-  progress: Optional[float]
+  progress: Optional[float] = None
 
 
 STEPS_LOG_KEY = 'steps'
@@ -196,7 +196,7 @@ def _execute_task(task: Task, task_info: TaskInfo, task_id: str, *args: Any) -> 
   task(*args)
 
 
-def _progress_event_topic(task_id: TaskId) -> Variable:
+def _progress_event_topic(task_id: TaskId) -> str:
   return f'{task_id}_progress'
 
 

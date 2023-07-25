@@ -44,7 +44,8 @@
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.organizeImports": true,
-      "source.fixAll": true
+      "source.fixAll": true,
+      "source.fixAll.pylance": true
     }
   },
   "[svelte]": {
@@ -66,11 +67,20 @@
   "python.testing.pytestArgs": ["lilac"],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-  "python.analysis.importFormat": "relative",
+
+  // Pylance.
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.inlayHints.pytestParameters": true,
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.enablePytestSupport": true,
+  "python.analysis.diagnosticMode": "workspace",
   "python.analysis.indexing": true,
-  "python.analysis.useLibraryCodeForTypes": true,
-  "python.analysis.extraPaths": ["lilac"],
+  "python.analysis.useLibraryCodeForTypes": false,
   "python.analysis.include": ["lilac"],
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportPrivateImportUsage": "none"
+  },
+
   "notebook.output.textLineLimit": 200,
   "notebook.output.scrolling": true,
   "notebook.lineNumbers": "on",

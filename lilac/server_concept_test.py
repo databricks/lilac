@@ -29,7 +29,7 @@ from .router_concept import (
   ScoreExample,
   ScoreResponse,
 )
-from .schema import Item, RichData, SignalInputType
+from .schema import Item, SignalInputType
 from .server import app
 from .signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .test_utils import fake_uuid
@@ -49,7 +49,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[str]) -> Iterable[Item]:
     """Call the embedding function."""
     for example in data:
       yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
@@ -161,7 +161,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type='text',
+    type=SignalInputType.TEXT,
     data={
       fake_uuid(b'1').hex: Example(
         id=fake_uuid(b'1').hex,
@@ -196,7 +196,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type='text',
+    type=SignalInputType.TEXT,
     data={
       fake_uuid(b'1').hex: Example(
         id=fake_uuid(b'1').hex,
@@ -226,7 +226,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type='text',
+    type=SignalInputType.TEXT,
     data={
       fake_uuid(b'1').hex: Example(id=fake_uuid(b'1').hex, label=False, text='hello'),
       fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=True, text='hello world')
@@ -241,7 +241,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type='text',
+    type=SignalInputType.TEXT,
     data={fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=True, text='hello world')},
     version=4)
 
@@ -296,7 +296,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type='text',
+    type=SignalInputType.TEXT,
     data={
       # Only main are returned.
       fake_uuid(b'1').hex: Example(id=fake_uuid(b'1').hex, label=True, text='in concept'),
@@ -311,7 +311,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type='text',
+    type=SignalInputType.TEXT,
     data={
       # b'1' is deduped with b'3'.
       fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=False, text='out of concept'),
@@ -336,7 +336,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()).dict() == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type='text',
+    type=SignalInputType.TEXT,
     data={
       # b'1' is deduped with b'3'.
       fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=False, text='out of concept'),

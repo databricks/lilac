@@ -129,7 +129,7 @@ class DuckDBSearchUDF(BaseModel):
   udf: Column
   search_path: PathTuple
   output_path: PathTuple
-  sort: Optional[tuple[PathTuple, SortOrder]]
+  sort: Optional[tuple[PathTuple, SortOrder]] = None
 
 
 class DuckDBSearchUDFs(BaseModel):
@@ -339,6 +339,8 @@ class DatasetDuckDB(Dataset):
     new_steps = len(signals_to_compute)
     # Setup the task steps so the task progress indicator knows the number of steps before they are
     # computed.
+    task_id: Optional[str] = None
+    step_id: Optional[int] = None
     if task_step_id:
       (task_id, step_id) = task_step_id
       if new_steps:
@@ -347,13 +349,12 @@ class DatasetDuckDB(Dataset):
 
     for i, (new_path, signal) in enumerate(signals_to_compute):
       if new_path not in manifest.data_schema.leafs:
-        self.compute_signal(
-          signal, source_path, task_step_id=(task_id, i) if task_step_id else None)
+        self.compute_signal(signal, source_path, task_step_id=(task_id, i) if task_id else None)
 
     if is_value_path:
       new_path = (*new_path, VALUE_KEY)
 
-    return (new_path, (task_id, step_id + new_steps) if task_step_id else None)
+    return (new_path, (task_id, step_id + new_steps) if task_id and step_id else None)
 
   @override
   def compute_signal(self,
@@ -574,6 +575,7 @@ class DatasetDuckDB(Dataset):
     if leaf.dtype == DataType.STRING:
       avg_length_query = ', avg(length(val)) as avgTextLength'
 
+    row: Optional[tuple[int, ...]] = None
     if leaf.dtype == DataType.BOOLEAN:
       approx_count_distinct = 2
     else:
@@ -595,7 +597,7 @@ class DatasetDuckDB(Dataset):
     result = StatsResult(
       path=path, total_count=total_count, approx_count_distinct=approx_count_distinct)
 
-    if leaf.dtype == DataType.STRING:
+    if leaf.dtype == DataType.STRING and row:
       result.avg_text_length = row[1]
 
     # Compute min/max values for ordinal leafs, without sampling the data.
@@ -736,9 +738,6 @@ class DatasetDuckDB(Dataset):
 
   def _merge_sorts(self, search_udfs: list[DuckDBSearchUDF], sort_by: Optional[Sequence[Path]],
                    sort_order: Optional[SortOrder]) -> list[SortResult]:
-    if sort_by and not sort_order:
-      raise ValueError('`sort_order` is required when `sort_by` is specified.')
-
     # True when the user has explicitly sorted by the alias of a search UDF (e.g. in ASC order).
     is_explicit_search_sort = False
     for sort_by_path in sort_by or []:
@@ -749,6 +748,8 @@ class DatasetDuckDB(Dataset):
 
     sort_results: list[SortResult] = []
     if sort_by and not is_explicit_search_sort:
+      if not sort_order:
+        raise ValueError('`sort_order` is required when `sort_by` is specified.')
       # If the user has explicitly set a sort by, and it's not a search UDF alias, override.
       sort_results = [
         SortResult(path=normalize_path(sort_by), order=sort_order) for sort_by in sort_by if sort_by
@@ -848,7 +849,7 @@ class DatasetDuckDB(Dataset):
 
     topk_udf_col = self._topk_udf_to_sort_by(udf_columns, sort_by, limit, sort_order)
     if topk_udf_col:
-      key_prefixes: Optional[list[VectorKey]] = None
+      key_prefixes: Optional[Iterable[VectorKey]] = None
       if where_query:
         # If there are filters, we need to send UUIDs to the top k query.
         df = con.execute(f'SELECT {UUID_COLUMN} FROM t {where_query}').df()
@@ -1010,8 +1011,8 @@ class DatasetDuckDB(Dataset):
           signal_out_list = list(signal_out)
           if signal_column in temp_column_to_offset_column:
             offset_column_name, field = temp_column_to_offset_column[signal_column]
-            nested_spans: Iterator[Item] = df[offset_column_name]
-            flat_spans = list(flatten(nested_spans))
+            nested_spans: Iterable[Item] = df[offset_column_name]
+            flat_spans = flatten(nested_spans)
             for span, item in zip(flat_spans, signal_out_list):
               _offset_any_span(cast(int, span[VALUE_KEY][TEXT_SPAN_START_FEATURE]), item, field)
 
@@ -1550,7 +1551,7 @@ class SignalManifest(BaseModel):
   enriched_path: PathTuple
 
   # The filename prefix for the embedding. Present when the signal is an embedding.
-  embedding_filename_prefix: Optional[str]
+  embedding_filename_prefix: Optional[str] = None
 
   @validator('signal', pre=True)
   def parse_signal(cls, signal: dict) -> Signal:

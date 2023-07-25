@@ -106,8 +106,8 @@ class HuggingFaceDataset(Source):
   load_from_disk: Optional[bool] = PydanticField(
     description='Load from local disk instead of the hub.', default=False)
 
-  _dataset_dict: DatasetDict
-  _schema_info: SchemaInfo
+  _dataset_dict: Optional[DatasetDict] = None
+  _schema_info: Optional[SchemaInfo] = None
 
   @override
   def setup(self) -> None:
@@ -122,10 +122,15 @@ class HuggingFaceDataset(Source):
 
   @override
   def source_schema(self) -> SourceSchema:
+    if not self._schema_info:
+      raise ValueError('`setup()` must be called before `source_schema`.')
     return SourceSchema(fields=self._schema_info.fields, num_items=self._schema_info.num_items)
 
   @override
   def process(self) -> Iterable[Item]:
+    if not self._schema_info or not self._dataset_dict:
+      raise ValueError('`setup()` must be called before `process`.')
+
     if self.split:
       split_names = [self.split]
     else:

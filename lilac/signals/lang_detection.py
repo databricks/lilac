@@ -29,10 +29,10 @@ class LangDetectionSignal(TextSignal):
   input_type = SignalInputType.TEXT
   compute_type = SignalInputType.TEXT
 
-  split_by_paragraph = PydanticField(
-    False, description='Compute language scores for each paragraph.')
+  split_by_paragraph: bool = PydanticField(
+    default=False, description='Compute language scores for each paragraph.')
 
-  _model: 'langdetect'
+  _model: Optional['langdetect.detect'] = None
 
   @override
   def setup(self) -> None:
@@ -42,7 +42,7 @@ class LangDetectionSignal(TextSignal):
     except ImportError:
       raise ImportError('Could not import the "langdetect" python package. '
                         'Please install it with `pip install langdetect`.')
-    self._model = langdetect
+    self._model = langdetect.detect
 
   @override
   def fields(self) -> Field:
@@ -52,6 +52,10 @@ class LangDetectionSignal(TextSignal):
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    if not self._model:
+      raise RuntimeError('Language detection model is not initialized.')
+
+    import langdetect
     data = cast(Iterable[str], data)
     # Split on paragraphs.
     split_symbol = re.compile('(\r?\n){2,}')
@@ -59,8 +63,8 @@ class LangDetectionSignal(TextSignal):
     for text in data:
       if not self.split_by_paragraph:
         try:
-          yield self._model.detect(text)
-        except self._model.LangDetectException:
+          yield self._model(text)
+        except langdetect.LangDetectException:
           yield None
         continue
 
@@ -72,9 +76,9 @@ class LangDetectionSignal(TextSignal):
         text_span = text_span.strip()
         if text_span:
           try:
-            lang_code = self._model.detect(text_span)
+            lang_code = self._model(text_span)
             result.append(lilac_span(prev_end, start, {LANG_CODE: lang_code}))
-          except self._model.LangDetectException:
+          except langdetect.LangDetectException:
             pass
         prev_end = end
 
@@ -82,9 +86,9 @@ class LangDetectionSignal(TextSignal):
       text_span = text[prev_end:]
       if text_span.strip():
         try:
-          lang_code = self._model.detect(text_span)
+          lang_code = self._model(text_span)
           result.append(lilac_span(prev_end, len(text), {LANG_CODE: lang_code}))
-        except self._model.LangDetectException:
+        except langdetect.LangDetectException:
           pass
 
       yield result

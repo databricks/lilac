@@ -78,7 +78,7 @@ NESTED_TEST_ITEM: Item = {
 def test_field_ctor_validation() -> None:
   with pytest.raises(
       ValueError, match='One of "fields", "repeated_field", or "dtype" should be defined'):
-    Field()
+    Field()  # type: ignore
 
   with pytest.raises(ValueError, match='Both "fields" and "repeated_field" should not be defined'):
     Field(

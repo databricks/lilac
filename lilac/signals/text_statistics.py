@@ -38,6 +38,8 @@ class TextStatisticsSignal(TextSignal):
   def setup(self) -> None:
     try:
       import spacy
+      import spacy.cli
+      import spacy.util
     except ImportError:
       raise ImportError('Could not import the "spacy" python package. '
                         'Please install it with `pip install spacy`.')
@@ -53,17 +55,21 @@ class TextStatisticsSignal(TextSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     try:
-      import textacy
+      import textacy.corpus
       from textacy import text_stats
     except ImportError:
       raise ImportError('Could not import the "textacy" python package. '
                         'Please install it with `pip install textacy`.')
+    if not self._lang:
+      raise RuntimeError('Language model was not loaded.')
+
+    data = cast(Iterable[str], data)
     for batch in chunks(data, SPACY_BATCH_SIZE):
       # Replace None with empty strings to avoid spacy errors.
       batch = [x or '' for x in batch]
       # See https://textacy.readthedocs.io/en/0.11.0/api_reference/text_stats.html for a list of
       # available statistics.
-      corpus = textacy.Corpus(lang=self._lang, data=batch)
+      corpus = textacy.corpus.Corpus(lang=self._lang, data=batch)
       for doc in cast(Iterable['Doc'], corpus):
         if not len(doc):
           yield None

@@ -45,7 +45,7 @@ class Gmail(Source):
 
   name = 'gmail'
 
-  credentials_file = PydanticField(
+  credentials_file: str = PydanticField(
     description='Path to the OAuth credentials file.',
     default=os.path.join(_GMAIL_CONFIG_DIR, _CREDS_FILENAME))
 
@@ -173,8 +173,11 @@ class Gmail(Source):
     while (num_threads_fetched < _MAX_NUM_THREADS and thread_list and thread_list_req):
       batch = service.new_batch_http_request(callback=_thread_fetched)
 
-      for gmail_thread in thread_list['threads']:
-        thread_id = gmail_thread['id']
+      threads = thread_list['threads'] if 'threads' in thread_list else []
+      for gmail_thread in threads:
+        thread_id = gmail_thread['id'] if 'id' in gmail_thread else None
+        if not thread_id:
+          continue
         if not retry_batch or (thread_id in retry_batch):
           batch.add(
             service.users().threads().get(userId='me', id=thread_id, format='full'),

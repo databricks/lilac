@@ -33,12 +33,7 @@ from .dataset import (
   SortOrder,
   SortResult,
 )
-from .dataset_test_utils import (
-  TEST_DATASET_NAME,
-  TEST_NAMESPACE,
-  TestDataMaker,
-  enriched_embedding_span_field,
-)
+from .dataset_test_utils import TestDataMaker, enriched_embedding_span_field
 from .dataset_utils import lilac_embedding, lilac_span
 
 TEST_DATA: list[Item] = [{
@@ -220,8 +215,6 @@ def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows_schema([('people', '*')], combine_columns=True)
   assert result == SelectRowsSchemaResult(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       UUID_COLUMN: 'string',
       'people': [{

@@ -44,11 +44,11 @@ class StatsResult(BaseModel):
   approx_count_distinct: int
 
   # Defined for ordinal features.
-  min_val: Optional[Union[float, datetime]]
-  max_val: Optional[Union[float, datetime]]
+  min_val: Optional[Union[float, datetime]] = None
+  max_val: Optional[Union[float, datetime]] = None
 
   # Defined for text features.
-  avg_text_length: Optional[float]
+  avg_text_length: Optional[float] = None
 
 
 class MediaResult(BaseModel):
@@ -102,9 +102,9 @@ class SortResult(BaseModel):
   # The sort order.
   order: SortOrder
   # The alias of the column if it was aliased.
-  alias: Optional[str]
+  alias: Optional[str] = None
   # The search index if the sort is by a search.
-  search_index: Optional[int]
+  search_index: Optional[int] = None
 
 
 class SearchResultInfo(BaseModel):
@@ -114,13 +114,13 @@ class SearchResultInfo(BaseModel):
   # The resulting column that was searched.
   result_path: PathTuple
   # The alias of the UDF.
-  alias: Optional[str]
+  alias: Optional[str] = None
 
 
 class SelectRowsSchemaUDF(BaseModel):
   """The UDF for a select rows schema query."""
   path: PathTuple
-  alias: Optional[str]
+  alias: Optional[str] = None
 
 
 class SelectRowsSchemaResult(BaseModel):
@@ -128,13 +128,13 @@ class SelectRowsSchemaResult(BaseModel):
   data_schema: Schema
   udfs: list[SelectRowsSchemaUDF] = []
   search_results: list[SearchResultInfo] = []
-  sorts: Optional[list[SortResult]]
+  sorts: Optional[list[SortResult]] = None
 
 
 class Column(BaseModel):
   """A column in the dataset."""
   path: PathTuple
-  alias: Optional[str]  # This is the renamed column during querying and response.
+  alias: Optional[str] = None  # This is the renamed column during querying and response.
 
   # Defined when the feature is another column.
   signal_udf: Optional[Signal] = None
@@ -168,7 +168,7 @@ class DatasetUISettings(BaseModel):
 
 class DatasetSettings(BaseModel):
   """The persistent settings for a dataset."""
-  ui: Optional[DatasetUISettings]
+  ui: Optional[DatasetUISettings] = None
   preferred_embedding: Optional[str] = None
 
 
@@ -245,6 +245,9 @@ class Search(BaseModel):
 
 class Dataset(abc.ABC):
   """The database implementation to query a dataset."""
+
+  namespace: str
+  dataset_name: str
 
   def __init__(self, namespace: str, dataset_name: str):
     """Initialize a dataset.

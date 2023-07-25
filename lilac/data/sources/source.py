@@ -22,15 +22,15 @@ from ...schema import (
 class SourceSchema(BaseModel):
   """The schema of a source."""
   fields: dict[str, Field]
-  num_items: Optional[int]
+  num_items: Optional[int] = None
 
 
 class SourceProcessResult(BaseModel):
   """The result after processing all the shards of a source dataset."""
   filepaths: list[str]
   data_schema: Schema
-  images: Optional[list[ImageInfo]]
   num_items: int
+  images: Optional[list[ImageInfo]] = None
 
 
 class Source(abc.ABC, BaseModel):
@@ -40,7 +40,7 @@ class Source(abc.ABC, BaseModel):
 
   # The source_name will get populated in init automatically from the class name so it gets
   # serialized and the source author doesn't have to define both the static property and the field.
-  source_name: Optional[str]
+  source_name: Optional[str] = None
 
   class Config:
     underscore_attrs_are_private = True

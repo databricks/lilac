@@ -192,23 +192,23 @@ class Column(DBColumn):
 
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
-  columns: Optional[Sequence[Union[Path, Column]]]
-  searches: Optional[Sequence[Search]]
-  filters: Optional[Sequence[Filter]]
-  sort_by: Optional[Sequence[Path]]
+  columns: Optional[Sequence[Union[Path, Column]]] = None
+  searches: Optional[Sequence[Search]] = None
+  filters: Optional[Sequence[Filter]] = None
+  sort_by: Optional[Sequence[Path]] = None
   sort_order: Optional[SortOrder] = SortOrder.DESC
-  limit: Optional[int]
-  offset: Optional[int]
-  combine_columns: Optional[bool]
+  limit: Optional[int] = None
+  offset: Optional[int] = None
+  combine_columns: Optional[bool] = None
 
 
 class SelectRowsSchemaOptions(BaseModel):
   """The request for the select rows schema endpoint."""
-  columns: Optional[Sequence[Union[Path, Column]]]
-  searches: Optional[Sequence[Search]]
-  sort_by: Optional[Sequence[Path]]
+  columns: Optional[Sequence[Union[Path, Column]]] = None
+  searches: Optional[Sequence[Search]] = None
+  sort_by: Optional[Sequence[Path]] = None
   sort_order: Optional[SortOrder] = SortOrder.DESC
-  combine_columns: Optional[bool]
+  combine_columns: Optional[bool] = None
 
 
 class SelectRowsResponse(BaseModel):
@@ -263,11 +263,11 @@ def select_rows_schema(namespace: str, dataset_name: str,
 class SelectGroupsOptions(BaseModel):
   """The request for the select groups endpoint."""
   leaf_path: Path
-  filters: Optional[Sequence[Filter]]
+  filters: Optional[Sequence[Filter]] = None
   sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int] = 100
-  bins: Optional[list[Bin]]
+  bins: Optional[list[Bin]] = None
 
 
 @router.post('/{namespace}/{dataset_name}/select_groups')

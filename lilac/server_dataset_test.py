@@ -7,7 +7,6 @@ from pytest_mock import MockerFixture
 
 from .config import CONFIG
 from .data.dataset import (
-  Column,
   Dataset,
   DatasetManifest,
   DatasetSettings,
@@ -17,6 +16,7 @@ from .data.dataset import (
 from .data.dataset_duckdb import DatasetDuckDB
 from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, enriched_item, make_dataset
 from .router_dataset import (
+  Column,
   ComputeSignalOptions,
   DeleteSignalOptions,
   SelectRowsOptions,
@@ -197,7 +197,7 @@ class LengthSignal(TextSignal):
 
 def test_select_rows_star_plus_udf() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
-  udf = Column('people.*.name', alias='len', signal_udf=LengthSignal())
+  udf = Column(path=('people', '*', 'name'), alias='len', signal_udf=LengthSignal())
   options = SelectRowsOptions(columns=['*', udf], combine_columns=True)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
@@ -248,7 +248,7 @@ def test_select_rows_star_plus_udf() -> None:
 def test_select_rows_schema_star_plus_udf() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows_schema'
   signal = LengthSignal()
-  udf = Column('people.*.name', alias='len', signal_udf=signal)
+  udf = Column(path=('people', '*', 'name'), alias='len', signal_udf=signal)
   options = SelectRowsSchemaOptions(columns=['*', udf], combine_columns=True)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
@@ -294,7 +294,7 @@ def test_compute_signal_auth(mocker: MockerFixture) -> None:
 
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/compute_signal'
   response = client.post(
-    url, json=ComputeSignalOptions(signal=LengthSignal(), leaf_path=['people', 'name']).dict())
+    url, json=ComputeSignalOptions(signal=LengthSignal(), leaf_path=('people', 'name')).dict())
   assert response.status_code == 401
   assert response.is_error is True
   assert 'User does not have access to compute signals over this dataset.' in response.text
@@ -305,7 +305,7 @@ def test_delete_signal_auth(mocker: MockerFixture) -> None:
 
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/delete_signal'
   response = client.request(
-    'DELETE', url, json=DeleteSignalOptions(signal_path=['doesnt', 'matter']).dict())
+    'DELETE', url, json=DeleteSignalOptions(signal_path=('doesnt', 'matter')).dict())
   assert response.status_code == 401
   assert response.is_error is True
   assert 'User does not have access to delete this signal.' in response.text
