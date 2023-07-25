@@ -92,7 +92,7 @@ def auth_info(request: Request) -> AuthenticationInfo:
   """
   user_info: Optional[UserInfo] = get_session_user(request)
   return AuthenticationInfo(
-    user=user_info, access=get_user_access(), auth_enabled=env('LILAC_AUTH_ENABLED'))
+    user=user_info, access=get_user_access(), auth_enabled=env('LILAC_AUTH_ENABLED', False))
 
 
 app.include_router(v1_router, prefix='/api/v1')

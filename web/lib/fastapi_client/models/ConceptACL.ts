@@ -6,6 +6,7 @@
  * The access control list for an individual concept.
  */
 export type ConceptACL = {
-  read: boolean;
-  write: boolean;
+    read: boolean;
+    write: boolean;
 };
+

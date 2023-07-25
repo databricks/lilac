@@ -29,7 +29,7 @@ from .router_concept import (
   ScoreExample,
   ScoreResponse,
 )
-from .schema import Item, SignalInputType
+from .schema import Item, RichData, SignalInputType
 from .server import app
 from .signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .test_utils import fake_uuid
@@ -49,7 +49,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[str]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     for example in data:
       yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]

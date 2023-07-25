@@ -44,8 +44,7 @@
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.organizeImports": true,
-      "source.fixAll": true,
-      "source.fixAll.pylance": true
+      "source.fixAll": true
     }
   },
   "[svelte]": {
@@ -69,7 +68,7 @@
   "python.testing.pytestEnabled": true,
 
   // Pylance.
-  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.typeCheckingMode": "off",
   "python.analysis.inlayHints.pytestParameters": true,
   "python.analysis.autoImportCompletions": true,
   "python.analysis.enablePytestSupport": true,

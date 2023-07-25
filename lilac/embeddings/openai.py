@@ -33,7 +33,7 @@ class OpenAI(TextEmbeddingSignal):
   name = 'openai'
   display_name = 'OpenAI Embeddings'
 
-  _model: 'openai.Embedding'
+  _model: type['openai.Embedding']
 
   @override
   def setup(self) -> None:

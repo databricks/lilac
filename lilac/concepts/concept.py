@@ -184,7 +184,7 @@ class LogisticEmbeddingModel:
 
     if implicit_negatives is not None:
       num_implicit_labels = len(implicit_negatives)
-      implicit_labels = [False] * num_implicit_labels
+      implicit_labels = np.array([False] * num_implicit_labels)
       X_train = np.concatenate([implicit_negatives, X_train])
       y_train = np.concatenate([implicit_labels, y_train])
       sample_weights = [1.0 / num_implicit_labels] * num_implicit_labels + sample_weights

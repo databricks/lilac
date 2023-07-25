@@ -221,8 +221,8 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   return schema({UUID_COLUMN: 'string', **cast(dict, enriched_schema.fields)})
 
 
-def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[object],
-                                  output_dir: str, shard_index: int, num_shards: int) -> str:
+def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[Item], output_dir: str,
+                                  shard_index: int, num_shards: int) -> str:
   """Write a set of embeddings to disk."""
   output_path_prefix = embedding_index_filename_prefix(output_dir, shard_index, num_shards)
 
@@ -231,7 +231,8 @@ def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[obje
     return isinstance(input, np.ndarray)
 
   flat_keys = flatten_keys(keys, embeddings, is_primitive_predicate=embedding_predicate)
-  flat_embeddings = flatten(embeddings, is_primitive_predicate=embedding_predicate)
+  flat_embeddings = cast(Iterable[Item],
+                         flatten(embeddings, is_primitive_predicate=embedding_predicate))
 
   embedding_vectors: list[np.ndarray] = []
   embedding_keys: list[VectorKey] = []
@@ -244,12 +245,12 @@ def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[obje
     embedding_vectors.append(lilac_embedding[EMBEDDING_KEY].reshape(-1))
     embedding_keys.append(key)
 
-  embedding_vectors = np.array(embedding_vectors)
+  embedding_matrix = np.array(embedding_vectors)
 
   # Write the embedding index and the ordered UUID column to disk so they can be joined later.
 
   with open_file(output_path_prefix + _EMBEDDINGS_SUFFIX, 'wb') as f:
-    np.save(f, embedding_vectors, allow_pickle=False)
+    np.save(cast(str, f), embedding_matrix, allow_pickle=False)
   with open_file(output_path_prefix + _KEYS_SUFFIX, 'wb') as f:
     pickle.dump(embedding_keys, f)
 
