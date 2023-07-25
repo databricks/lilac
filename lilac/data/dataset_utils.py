@@ -71,9 +71,6 @@ def lilac_embedding(start: int, end: int, embedding: Optional[np.ndarray]) -> It
   return lilac_span(start, end, {EMBEDDING_KEY: embedding})
 
 
-Tflatten = TypeVar('Tflatten', object, np.ndarray)
-
-
 def _flatten(input: Union[Iterator, object], is_primitive_predicate: Callable[[object],
                                                                               bool]) -> Generator:
   """Flattens a nested iterable."""
@@ -88,8 +85,8 @@ def _flatten(input: Union[Iterator, object], is_primitive_predicate: Callable[[o
       yield from _flatten(elem, is_primitive_predicate)
 
 
-def flatten(input: Union[Iterator, Iterable, Tflatten],
-            is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Iterator[Tflatten]:
+def flatten(input: Union[Iterator, Iterable],
+            is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Iterator:
   """Flattens a nested iterator.
 
   Primitives and dictionaries are not flattened. The user can also provide a predicate to determine

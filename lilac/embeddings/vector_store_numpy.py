@@ -49,7 +49,8 @@ class NumpyVectorStore(VectorStore):
     Returns
       The embeddings for the given keys.
     """
-    return self._embeddings.take(self._lookup.loc[keys], axis=0)
+    locs = self._lookup.loc[cast(list[str], keys)]
+    return self._embeddings.take(locs, axis=0)
 
   @override
   def topk(self,
@@ -62,7 +63,7 @@ class NumpyVectorStore(VectorStore):
         list[VectorKey],
         [k[0] if isinstance(k, tuple) and len(k) == 1 else k for k in key_prefixes])
       # This uses the hierarchical index (MutliIndex) to do a prefix lookup.
-      row_indices = self._lookup.loc[key_prefixes]
+      row_indices = self._lookup.loc[cast(list[str], key_prefixes)]
       keys, embeddings = list(row_indices.index), self._embeddings.take(row_indices, axis=0)
     else:
       keys, embeddings = self._keys, self._embeddings

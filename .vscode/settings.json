@@ -68,9 +68,8 @@
   "python.testing.pytestEnabled": true,
 
   // Pylance.
-  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.typeCheckingMode": "basic",
   "python.analysis.inlayHints.pytestParameters": true,
-  "python.analysis.autoImportCompletions": true,
   "python.analysis.enablePytestSupport": true,
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.indexing": true,

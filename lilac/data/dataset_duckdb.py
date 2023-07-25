@@ -1262,19 +1262,20 @@ class DatasetDuckDB(Dataset):
     """Create a UDF for each search for finding the location of the text with spans."""
     search_udfs: list[DuckDBSearchUDF] = []
     for search in searches:
+      search_path = normalize_path(search.path)
       if search.query.type == 'keyword':
-        udf = Column(path=search.path, signal_udf=SubstringSignal(query=search.query.search))
+        udf = Column(path=search_path, signal_udf=SubstringSignal(query=search.query.search))
         search_udfs.append(
           DuckDBSearchUDF(
             udf=udf,
-            search_path=search.path,
+            search_path=search_path,
             output_path=(*_col_destination_path(udf), PATH_WILDCARD)))
       elif search.query.type == 'semantic' or search.query.type == 'concept':
         embedding = search.query.embedding
         if not embedding:
           raise ValueError(f'Please provide an embedding for semantic search. Got search: {search}')
 
-        embedding_path = (*search.path, embedding, PATH_WILDCARD, EMBEDDING_KEY)
+        embedding_path = (*search_path, embedding, PATH_WILDCARD, EMBEDDING_KEY)
         try:
           manifest.data_schema.get_field(embedding_path)
         except Exception as e:
@@ -1283,7 +1284,7 @@ class DatasetDuckDB(Dataset):
             f'Please compute the embedding index before issuing a {search.query.type} query.'
           ) from e
 
-        search_signal: Signal
+        search_signal: Optional[Signal] = None
         if search.query.type == 'semantic':
           search_signal = SemanticSimilaritySignal(
             query=search.query.search, embedding=search.query.embedding)
@@ -1296,11 +1297,11 @@ class DatasetDuckDB(Dataset):
           # Add the label UDF.
           concept_labels_signal = ConceptLabelsSignal(
             namespace=search.query.concept_namespace, concept_name=search.query.concept_name)
-          concept_labels_udf = Column(path=search.path, signal_udf=concept_labels_signal)
+          concept_labels_udf = Column(path=search_path, signal_udf=concept_labels_signal)
           search_udfs.append(
             DuckDBSearchUDF(
               udf=concept_labels_udf,
-              search_path=search.path,
+              search_path=search_path,
               output_path=_col_destination_path(concept_labels_udf),
               sort=None))
 
@@ -1310,7 +1311,7 @@ class DatasetDuckDB(Dataset):
         search_udfs.append(
           DuckDBSearchUDF(
             udf=udf,
-            search_path=search.path,
+            search_path=search_path,
             output_path=_col_destination_path(udf),
             sort=(output_path, SortOrder.DESC)))
       else:
@@ -1680,6 +1681,8 @@ def _make_schema_from_path(path: PathTuple, field: Field) -> Schema:
       field = Field(repeated_field=field)
     else:
       field = Field(fields={sub_path: field})
+  if not field.fields:
+    raise ValueError(f'Invalid path: {path}. Must contain at least one field name.')
   return Schema(fields=field.fields)
 
 

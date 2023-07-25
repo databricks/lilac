@@ -1,5 +1,5 @@
 """OpenAI embeddings."""
-from typing import TYPE_CHECKING, Iterable, cast
+from typing import TYPE_CHECKING, Any, Iterable, cast
 
 import numpy as np
 from tenacity import retry, stop_after_attempt, wait_random_exponential
@@ -59,7 +59,7 @@ class OpenAI(TextEmbeddingSignal):
       # See https://github.com/search?q=repo%3Aopenai%2Fopenai-python+replace+newlines&type=code
       texts = [text.replace('\n', ' ') for text in texts]
 
-      response = self._model.create(input=texts, model=EMBEDDING_MODEL)
+      response: Any = self._model.create(input=texts, model=EMBEDDING_MODEL)
       return [np.array(embedding['embedding'], dtype=np.float32) for embedding in response['data']]
 
     docs = cast(Iterable[str], docs)
