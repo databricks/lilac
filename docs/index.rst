@@ -11,21 +11,21 @@ Welcome to Lilac's documentation!
    :caption: Contents:
 
 :mod:`lilac`: Lilac
------------------------------
+----------------------------------------
 .. automodule:: lilac
    :members:
 
 :mod:`lilac.sources`: Ingestion
------------------------------
+----------------------------------------
 .. automodule:: lilac.sources
    :members:
 
 :mod:`lilac.signals`: Enrichment
------------------------------
+----------------------------------------
 .. automodule:: lilac.signals
    :members:
 
 :mod:`lilac.data`: Querying
------------------------------
+----------------------------------------
 .. automodule:: lilac.data
    :members:

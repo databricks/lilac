@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class LangDetectionSignal(TextSignal):
   """Detects the language code in text.
 
-  <br>
+  \
 
   Supports 55 languages returning their
   [ISO 639-1 codes](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes).

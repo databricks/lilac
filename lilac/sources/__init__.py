@@ -1,3 +1,5 @@
+"""Sources for ingesting data into Lilac."""
+
 from .csv_source import CSVDataset
 from .gmail_source import Gmail
 from .huggingface_source import HuggingFaceDataset
