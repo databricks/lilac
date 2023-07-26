@@ -8,7 +8,6 @@ poetry run python -m lilac.data_loader \
   --config_path=./datasets/the_movies_dataset.json
 """
 import json
-import math
 import os
 import pathlib
 import uuid
