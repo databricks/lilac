@@ -419,6 +419,39 @@ class Dataset(abc.ABC):
     """
     pass
 
+  @abc.abstractmethod
+  def to_json(self, filepath: str, jsonl: bool = True) -> None:
+    """Export the dataset to a JSON file.
+
+    Args:
+      filepath: The path to the file to export to.
+      jsonl: Whether to export to JSONL or JSON.
+    """
+    pass
+
+  @abc.abstractmethod
+  def to_pandas(self) -> pd.DataFrame:
+    """Export the dataset to a pandas DataFrame."""
+    pass
+
+  @abc.abstractmethod
+  def to_parquet(self, filepath: str) -> None:
+    """Export the dataset to a parquet file.
+
+    Args:
+      filepath: The path to the file to export to.
+    """
+    pass
+
+  @abc.abstractmethod
+  def to_csv(self, filepath: str) -> None:
+    """Export the dataset to a csv file.
+
+    Args:
+      filepath: The path to the file to export to.
+    """
+    pass
+
 
 def default_settings(dataset: Dataset) -> DatasetSettings:
   """Gets the default settings for a dataset."""

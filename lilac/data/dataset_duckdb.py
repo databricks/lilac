@@ -1439,6 +1439,25 @@ class DatasetDuckDB(Dataset):
       f'{_escape_col_name(path_comp)}' if quote_each_part else str(path_comp) for path_comp in path
     ])
 
+  @override
+  def to_json(self, filepath: str, jsonl: bool = True) -> None:
+    self._execute(f"COPY t TO '{filepath}' (FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})")
+    log(f'Dataset exported to {filepath}')
+
+  @override
+  def to_pandas(self) -> pd.DataFrame:
+    return self._query_df('SELECT * FROM t')
+
+  @override
+  def to_csv(self, filepath: str) -> None:
+    self._execute(f"COPY t TO '{filepath}' (FORMAT CSV, HEADER)")
+    log(f'Dataset exported to {filepath}')
+
+  @override
+  def to_parquet(self, filepath: str) -> None:
+    self._execute(f"COPY t TO '{filepath}' (FORMAT PARQUET)")
+    log(f'Dataset exported to {filepath}')
+
 
 def _escape_string_literal(string: str) -> str:
   string = string.replace("'", "''")
