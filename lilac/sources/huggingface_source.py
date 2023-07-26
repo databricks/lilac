@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ...schema import DataType, Field, Item, arrow_dtype_to_dtype
+from ..schema import DataType, Field, Item, arrow_dtype_to_dtype
 from .source import Source, SourceSchema
 
 HF_SPLIT_COLUMN = '__hfsplit__'

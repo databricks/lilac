@@ -6,9 +6,9 @@ import pandas as pd
 from pydantic import Field
 from typing_extensions import override
 
-from ...schema import Item
-from ...utils import download_http_files
-from ..duckdb_utils import duckdb_setup
+from ..data.duckdb_utils import duckdb_setup
+from ..schema import Item
+from ..utils import download_http_files
 from .source import Source, SourceSchema, normalize_column_name, schema_from_df
 
 LINE_NUMBER_COLUMN = '__line_number__'

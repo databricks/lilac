@@ -20,9 +20,6 @@ from distributed import Client
 from .config import data_path
 from .data.dataset import Dataset
 from .data.dataset_utils import write_items_to_parquet
-from .data.sources.default_sources import register_default_sources
-from .data.sources.source import Source
-from .data.sources.source_registry import resolve_source
 from .db_manager import get_dataset
 from .schema import (
   MANIFEST_FILENAME,
@@ -35,6 +32,9 @@ from .schema import (
   field,
   is_float,
 )
+from .sources.default_sources import register_default_sources
+from .sources.source import Source
+from .sources.source_registry import resolve_source
 from .tasks import TaskStepId, progress
 from .utils import get_dataset_output_dir, log, open_file
 

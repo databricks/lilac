@@ -8,7 +8,7 @@ import pandas as pd
 import pyarrow as pa
 from pydantic import BaseModel, validator
 
-from ...schema import (
+from ..schema import (
   Field,
   ImageInfo,
   Item,

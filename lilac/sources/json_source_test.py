@@ -3,7 +3,7 @@ import json
 import os
 import pathlib
 
-from ...schema import schema
+from ..schema import schema
 from .json_source import ROW_ID_COLUMN, JSONDataset
 from .source import SourceSchema
 

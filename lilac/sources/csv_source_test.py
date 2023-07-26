@@ -3,7 +3,7 @@ import csv
 import os
 import pathlib
 
-from ...schema import schema
+from ..schema import schema
 from .csv_source import LINE_NUMBER_COLUMN, CSVDataset
 from .source import SourceSchema
 
