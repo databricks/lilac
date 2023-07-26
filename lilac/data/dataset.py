@@ -1,6 +1,7 @@
 """The interface for the database."""
 import abc
 import enum
+import pathlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Iterator, Literal, Optional, Sequence, Union
@@ -420,7 +421,7 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def to_json(self, filepath: str, jsonl: bool = True) -> None:
+  def to_json(self, filepath: Union[str, pathlib.Path], jsonl: bool = True) -> None:
     """Export the dataset to a JSON file.
 
     Args:
@@ -435,7 +436,7 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def to_parquet(self, filepath: str) -> None:
+  def to_parquet(self, filepath: Union[str, pathlib.Path]) -> None:
     """Export the dataset to a parquet file.
 
     Args:
@@ -444,7 +445,7 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def to_csv(self, filepath: str) -> None:
+  def to_csv(self, filepath: Union[str, pathlib.Path]) -> None:
     """Export the dataset to a csv file.
 
     Args:

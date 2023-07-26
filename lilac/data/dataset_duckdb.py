@@ -3,6 +3,7 @@ import functools
 import glob
 import math
 import os
+import pathlib
 import re
 import shutil
 import threading
@@ -1440,7 +1441,7 @@ class DatasetDuckDB(Dataset):
     ])
 
   @override
-  def to_json(self, filepath: str, jsonl: bool = True) -> None:
+  def to_json(self, filepath: Union[str, pathlib.Path], jsonl: bool = True) -> None:
     self._execute(f"COPY t TO '{filepath}' (FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})")
     log(f'Dataset exported to {filepath}')
 
@@ -1449,12 +1450,12 @@ class DatasetDuckDB(Dataset):
     return self._query_df('SELECT * FROM t')
 
   @override
-  def to_csv(self, filepath: str) -> None:
+  def to_csv(self, filepath: Union[str, pathlib.Path]) -> None:
     self._execute(f"COPY t TO '{filepath}' (FORMAT CSV, HEADER)")
     log(f'Dataset exported to {filepath}')
 
   @override
-  def to_parquet(self, filepath: str) -> None:
+  def to_parquet(self, filepath: Union[str, pathlib.Path]) -> None:
     self._execute(f"COPY t TO '{filepath}' (FORMAT PARQUET)")
     log(f'Dataset exported to {filepath}')
 

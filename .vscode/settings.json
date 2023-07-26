@@ -44,7 +44,7 @@
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.organizeImports": true,
-      "source.fixAll": true
+      "source.fixAll.ruff": true
     }
   },
   "[svelte]": {
