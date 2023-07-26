@@ -19,7 +19,6 @@ class Signal(abc.ABC, BaseModel):
   # The display name is just used for rendering in the UI.
   display_name: ClassVar[Optional[str]]
 
-  signal_type: ClassVar[Type['Signal']]
   # The input type is used to populate the UI for signals that require other signals. For example,
   # if a signal is an TextEmbeddingModelSignal, it computes over embeddings, but it's input type
   # will be text.

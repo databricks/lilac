@@ -24,6 +24,7 @@ Welcome to Lilac's documentation!
 ----------------------------------------
 .. automodule:: lilac.signals
    :members:
+   :exclude-members: signal_name
 
 :mod:`lilac.data`: Querying
 ----------------------------------------
