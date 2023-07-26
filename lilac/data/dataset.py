@@ -219,20 +219,20 @@ SearchValue = StrictStr
 
 class KeywordQuery(BaseModel):
   """A keyword search query on a column."""
-  type: Literal['keyword']
+  type: Literal['keyword'] = 'keyword'
   search: SearchValue
 
 
 class SemanticQuery(BaseModel):
   """A semantic search on a column."""
-  type: Literal['semantic']
+  type: Literal['semantic'] = 'semantic'
   search: SearchValue
   embedding: str
 
 
 class ConceptQuery(BaseModel):
   """A concept search query on a column."""
-  type: Literal['concept']
+  type: Literal['concept'] = 'concept'
   concept_namespace: str
   concept_name: str
   embedding: str

@@ -435,7 +435,7 @@ class DatasetDuckDB(Dataset):
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.json(exclude_none=True, indent=2))
-    log(f'Wrote signal manifest to {signal_manifest_filepath}')
+    log(f'Wrote signal output to {output_dir}')
 
   @override
   def delete_signal(self, signal_path: Path) -> None:
@@ -991,7 +991,7 @@ class DatasetDuckDB(Dataset):
       signal_column = list(temp_signal_cols.keys())[0]
       input = df[signal_column]
 
-      with DebugTimer(f'Computing signal "{signal}"'):
+      with DebugTimer(f'Computing signal "{signal.signal_name}"'):
         signal.setup()
 
         if signal.compute_type in [SignalInputType.TEXT_EMBEDDING]:
@@ -1007,7 +1007,7 @@ class DatasetDuckDB(Dataset):
               signal_out,
               task_step_id=task_step_id,
               estimated_len=len(flat_keys),
-              step_description=f'Computing {signal.key()}...')
+              step_description=f'Computing {signal.key()}')
           df[signal_column] = unflatten(signal_out, input)
         else:
           num_rich_data = count_primitives(input)
@@ -1020,7 +1020,7 @@ class DatasetDuckDB(Dataset):
               signal_out,
               task_step_id=task_step_id,
               estimated_len=num_rich_data,
-              step_description=f'Computing {signal.key()}...')
+              step_description=f'Computing {signal.key()}')
           signal_out_list = list(signal_out)
           if signal_column in temp_column_to_offset_column:
             offset_column_name, field = temp_column_to_offset_column[signal_column]

@@ -16,6 +16,7 @@ fi
 
 # Disables log() statements.
 export DISABLE_LOGS=True
+export LILAC_TEST=True
 
 # -vv enables verbose outputs.
 # --capture=tee-sys enables printing for passing tests.
@@ -28,4 +29,4 @@ if [ "$1" ]; then
 else
   TEST_PATH="lilac/"
 fi
-LILAC_TEST=1 pytest -vv --capture=tee-sys -m "$PYTEST_MARKS" "$TEST_PATH"
+pytest -vv --capture=tee-sys -m "$PYTEST_MARKS" "$TEST_PATH"

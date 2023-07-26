@@ -88,7 +88,7 @@ def process_source(base_dir: Union[str, pathlib.Path],
   manifest = SourceManifest(files=filenames, data_schema=data_schema, images=None)
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.json(indent=2, exclude_none=True))
-  log(f'Manifest for dataset "{dataset_name}" written to {output_dir}')
+  log(f'Dataset "{dataset_name}" written to {output_dir}')
 
   return output_dir, num_items
 
