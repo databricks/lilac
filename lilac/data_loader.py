@@ -29,12 +29,12 @@ from .schema import (
   MANIFEST_FILENAME,
   PARQUET_FILENAME_PREFIX,
   UUID_COLUMN,
-  DataType,
   Field,
   Item,
   Schema,
   SourceManifest,
   field,
+  is_float,
 )
 from .tasks import TaskStepId, progress
 from .utils import get_dataset_output_dir, log, open_file
@@ -95,12 +95,9 @@ def process_source(base_dir: Union[str, pathlib.Path],
 
 def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
   """Sanitize items by removing NaNs and NaTs."""
-  replace_nan_fields = set([
-    field_name for field_name, field in fields.items()
-    if field.dtype == DataType.STRING or field.dtype == DataType.NULL
-  ])
-  timestamp_fields = set(
-    [field_name for field_name, field in fields.items() if field.dtype == DataType.TIMESTAMP])
+  replace_nan_fields = [
+    field_name for field_name, field in fields.items() if field.dtype and not is_float(field.dtype)
+  ]
   for item in items:
     if item is None:
       yield item
@@ -110,20 +107,11 @@ def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
     if UUID_COLUMN not in item:
       item[UUID_COLUMN] = uuid.uuid4().hex
 
-    # Fix NaN string fields.
-    for name in replace_nan_fields:
-      item_value = item.get(name)
-      if item_value and not isinstance(item_value, str):
-        if math.isnan(item_value):
-          item[name] = None
-        else:
-          item[name] = str(item_value)
-
-    # Fix NaT (not a time) timestamp fields.
-    for name in timestamp_fields:
-      item_value = item.get(name)
-      if item_value and pd.isnull(item_value):
-        item[name] = None
+    # Fix NaN values.
+    for field_name in replace_nan_fields:
+      item_value = item.get(field_name)
+      if item_value and pd.isna(item_value):
+        item[field_name] = None
 
     yield item
 
