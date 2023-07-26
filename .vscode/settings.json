@@ -74,6 +74,18 @@
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.indexing": true,
   "python.analysis.useLibraryCodeForTypes": false,
+
+  "python.analysis.ignore": [
+    "**/node_modules",
+    "**/.venv",
+    "**/.mypy_cache",
+    "**/.ruff_cache",
+    "**/.git",
+    "**/.pytest_cache",
+    "**/dist",
+    "**/.pyenv"
+  ],
+
   "python.analysis.include": ["lilac"],
   "python.analysis.diagnosticSeverityOverrides": {
     "reportPrivateImportUsage": "none"
