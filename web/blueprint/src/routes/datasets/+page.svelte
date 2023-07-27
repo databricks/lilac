@@ -7,8 +7,7 @@
   let datasetName: string | undefined = undefined;
   const appStore = getAppStoreContext();
 
-  $: $appStore.onUrlChange('datasets', null, {}, (identifier, hashState) => {
-    console.log('onUrlChange:datasetglobal', identifier);
+  $: $appStore.onUrlChange('datasets', identifier => {
     if (identifier == '') {
       namespace = undefined;
       datasetName = undefined;
@@ -17,7 +16,6 @@
       if (namespace != newNamespace || datasetName != newDataset) {
         namespace = newNamespace;
         datasetName = newDataset;
-        // initialState = stateFromHash(hashState, defaultDatasetViewState(namespace, datasetName));
       }
     }
   });

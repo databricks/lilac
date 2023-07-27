@@ -33,9 +33,6 @@
   $: datasetViewStore = createDatasetViewStore(appStore, namespace, datasetName);
   $: setDatasetViewContext(datasetViewStore);
 
-  $: console.log('query options: ', $datasetViewStore.query);
-  $: console.log('open stuff', $datasetViewStore.expandedColumns);
-
   $: schemaCollapsed = $datasetViewStore.schemaCollapsed;
   function toggleSchemaCollapsed() {
     $datasetViewStore.schemaCollapsed = !$datasetViewStore.schemaCollapsed;

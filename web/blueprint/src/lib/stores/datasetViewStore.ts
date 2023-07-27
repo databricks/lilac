@@ -19,8 +19,13 @@ import {
 } from '$lilac';
 import deepEqual from 'deep-equal';
 import {getContext, hasContext, setContext} from 'svelte';
-import {writable, type Updater} from 'svelte/store';
-import {createURLStore, deserializeState, serializeState, type AppStateStore} from './urlHashStore';
+import {writable} from 'svelte/store';
+import {
+  deserializeState,
+  persistedHashStore,
+  serializeState,
+  type AppStateStore
+} from './urlHashStore';
 
 const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
@@ -66,44 +71,32 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
   };
 }
 
-export function stateFromHash(stateHash: string, defaultState: DatasetViewState): DatasetViewState {
-  console.log('default state = ', defaultState);
+export function stateFromHash(
+  stateHash: string | null,
+  defaultState: DatasetViewState
+): DatasetViewState {
+  if (stateHash == null || stateHash == '') return JSON.parse(JSON.stringify(defaultState));
   return deserializeState(stateHash, defaultState);
 }
 
 export const createDatasetViewStore = (
   appStore: AppStateStore,
   namespace: string,
-  datasetName: string,
-  initialState?: DatasetViewState | null
+  datasetName: string
 ) => {
   const defaultState = defaultDatasetViewState(namespace, datasetName);
-  initialState = initialState || defaultState;
 
-  const {
-    subscribe,
-    set,
-    update: originalUpdate
-  } = writable<DatasetViewState>(
+  const {subscribe, set, update} = writable<DatasetViewState>(
     // Deep copy the initial state so we don't have to worry about mucking the initial state.
-    JSON.parse(JSON.stringify(initialState))
+    JSON.parse(JSON.stringify(defaultState))
   );
-
-  function update(updater: Updater<DatasetViewState>) {
-    return originalUpdate((state: DatasetViewState) => {
-      const newState = updater(state);
-      console.log('-----------newUpdate', state, newState);
-      // newState.updateURL = true;
-      return newState;
-    });
-  }
 
   const store = {
     subscribe,
     set,
     update,
     reset: () => {
-      set(JSON.parse(JSON.stringify(initialState)));
+      set(JSON.parse(JSON.stringify(defaultState)));
     },
     addSelectedColumn: (path: Path | string) =>
       update(state => {
@@ -129,7 +122,6 @@ export const createDatasetViewStore = (
     },
     removeExpandedColumn(path: Path) {
       update(state => {
-        console.log('removing expande col', path);
         delete state.expandedColumns[serializePath(path)];
         return state;
       });
@@ -184,7 +176,6 @@ export const createDatasetViewStore = (
       }),
     removeSearch: (search: Search, selectRowsSchema?: LilacSelectRowsSchema | null) =>
       update(state => {
-        console.log('removing search, old state:', state);
         state.query.searches = state.query.searches?.filter(s => !deepEqual(s, search));
         // Clear any explicit sorts by this alias as it will be an invalid sort.
         if (selectRowsSchema?.sorts != null) {
@@ -192,7 +183,6 @@ export const createDatasetViewStore = (
             return !(selectRowsSchema?.sorts || []).some(s => pathIsEqual(s.path, sortBy));
           });
         }
-        console.log('removing search, new state:', state);
         return state;
       }),
     setSortBy: (column: Path | null) =>
@@ -276,7 +266,7 @@ export const createDatasetViewStore = (
     }
   };
 
-  const urlStore = createURLStore<DatasetViewState>(
+  persistedHashStore<DatasetViewState>(
     'datasets',
     `${namespace}/${datasetName}`,
     store,
@@ -285,8 +275,8 @@ export const createDatasetViewStore = (
     state => serializeState(state, defaultState)
   );
 
-  datasetViewStores[datasetKey(namespace, datasetName)] = urlStore;
-  return urlStore;
+  datasetViewStores[datasetKey(namespace, datasetName)] = store;
+  return store;
 };
 
 export function setDatasetViewContext(store: DatasetViewStore) {

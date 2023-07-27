@@ -20,14 +20,18 @@
 
   const appStore = getAppStoreContext();
 
-  $: $appStore.onUrlChange('concepts', null, {}, () => {
-    namespace = undefined;
-    conceptName = undefined;
+  $: $appStore.onUrlChange('concepts', identifier => {
+    if (identifier == '') {
+      namespace = undefined;
+      conceptName = undefined;
+    } else {
+      const [newNamespace, newConceptName] = identifier.split('/');
+      if (namespace != newNamespace || conceptName != newConceptName) {
+        namespace = newNamespace;
+        conceptName = newConceptName;
+      }
+    }
   });
-  // $: $appStore.onUrlChange('concepts', '/(?<namespace>.+)/(?<conceptName>.+)', ctx => {
-  //   namespace = ctx.namespace;
-  //   conceptName = ctx.conceptName;
-  // });
 
   let deleteConceptInfo: {namespace: string; name: string} | null = null;
 
