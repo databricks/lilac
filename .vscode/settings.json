@@ -44,8 +44,7 @@
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.fixAll": false,
-      "source.organizeImports": false,
-      "source.organizeImports.ruff": true,
+      "source.organizeImports": true,
       "source.fixAll.ruff": true
     }
   },

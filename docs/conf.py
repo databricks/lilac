@@ -20,7 +20,7 @@ extensions = [
   'sphinx.ext.autodoc.typehints',
   'sphinx.ext.autosummary',
   'sphinxcontrib.autodoc_pydantic',
-  'm2r2',
+  'myst_parser',
 ]
 
 autodoc_pydantic_model_show_json = False
@@ -42,4 +42,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv', 'README.md']
 
 html_theme = 'furo'
 html_static_path = ['_static']
-source_suffix = ['.rst', '.md']
+html_css_files = [
+  'styles/custom.css',
+]

@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import shutil
+import webbrowser
 from typing import Any, Optional
 
 import uvicorn
@@ -157,17 +158,38 @@ logging.getLogger('uvicorn.access').addFilter(GetTasksFilter())
 SERVER: Optional[uvicorn.Server] = None
 
 
-def start_server(host: str = '0.0.0.0', port: int = 5432) -> None:
-  """Starts the Lilac web server."""
+def start_server(host: str = '0.0.0.0', port: int = 5432, open: bool = False) -> None:
+  """Starts the Lilac web server.
+
+  Args:
+    host: The host to run the server on.
+    port: The port to run the server on.
+    open: Whether to open a browser tab upon startup.
+  """
   global SERVER
   if SERVER:
     raise ValueError('Server is already running')
 
-  config = uvicorn.Config(app, host='0.0.0.0', port=5432, access_log=False)
+  config = uvicorn.Config(
+    app,
+    host=host,
+    port=port,
+    access_log=False,
+  )
   SERVER = uvicorn.Server(config)
+
+  if open:
+
+    @app.on_event('startup')
+    def open_browser() -> None:
+      webbrowser.open(f'http://{host}:{port}')
+
   try:
-    loop = asyncio.get_running_loop()
-    loop.create_task(SERVER.serve())
+    loop = asyncio.get_event_loop()
+    if loop.is_running():
+      loop.create_task(SERVER.serve())
+    else:
+      SERVER.run()
   except RuntimeError:
     SERVER.run()
 

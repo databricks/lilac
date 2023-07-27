@@ -2,6 +2,15 @@ Welcome to Lilac
 =================
 
 .. toctree::
+   :caption: Getting Started
+   :hidden:
+   :maxdepth: 1
+
+   getting_started/installation.md
+   getting_started/quickstart.md
+
+
+.. toctree::
    :caption: API Reference
    :hidden:
 
