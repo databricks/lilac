@@ -1,16 +1,13 @@
 import {mergeDeep} from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable, type Writable} from 'svelte/store';
-import type {DatasetViewState} from './datasetViewStore';
 
 export type AppPage = 'home' | 'concepts' | 'datasets' | 'settings';
 interface AppState {
   hash: string;
-  // updateSubscribers: boolean;
   page: AppPage | null;
   identifier: string | null;
   hashState: string | null;
-  datasetViewState: DatasetViewState | null;
   onUrlChange: (page: AppPage, callback: ParsedCallback) => void;
 }
 
@@ -24,11 +21,9 @@ export type ParsedCallback = (identifier: string, hashState: string) => void;
 export function createAppStore() {
   const {subscribe, update} = writable<AppState>({
     hash: '',
-    // updateSubscribers: false,
     page: null,
     identifier: null,
     hashState: null,
-    datasetViewState: null,
     onUrlChange(page: AppPage, callback: ParsedCallback) {
       if (this.page != page) return;
       // Remove the '#'.
