@@ -1,8 +1,16 @@
-## Lilac documentation generator
+## Lilac documentation
 
 We use Sphinx to auto-generate the API reference.
 
-To generate documentation, run this from the project root:
+**_NOTE:_** Run all scripts from the project root.
+
+For development, start a local server with auto-refresh:
+
+```bash
+./scripts/watch_docs.sh
+```
+
+To build the docs:
 
 ```bash
 ./scripts/build_docs.sh

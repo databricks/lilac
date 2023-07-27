@@ -16,8 +16,11 @@ author = 'Lilac AI Inc.'
 
 extensions = [
   'sphinx.ext.autodoc',
+  'sphinx.ext.coverage',
   'sphinx.ext.autodoc.typehints',
+  'sphinx.ext.autosummary',
   'sphinxcontrib.autodoc_pydantic',
+  'm2r2',
 ]
 
 autodoc_pydantic_model_show_json = False
@@ -32,10 +35,11 @@ autodoc_pydantic_field_signature_prefix = 'param'
 autodoc_typehints_format = 'short'
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv', 'README.md']
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'furo'
 html_static_path = ['_static']
+source_suffix = ['.rst', '.md']

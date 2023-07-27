@@ -10,3 +10,5 @@ autodoc-pydantic = "^1.9.0"
 sphinx = "^7.1.0"
 furo = "^2023.5.20"
 lilacai = { path = "..", develop = true }
+sphinx-autobuild = "^2021.3.14"
+m2r2 = "^0.3.3.post2"
