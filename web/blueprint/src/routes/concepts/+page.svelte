@@ -135,12 +135,14 @@
   <div class="flex h-full w-full">
     <div class="lilac-container">
       <div class="lilac-page flex">
-        {#if $concept?.isLoading}
-          <SkeletonText />
-        {:else if $concept?.isError}
-          <p>{$concept.error}</p>
-        {:else if $concept?.isSuccess}
-          <ConceptView concept={$concept.data} />
+        {#if namespace != null && conceptName != null}
+          {#if $concept?.isLoading}
+            <SkeletonText />
+          {:else if $concept?.isError}
+            <p>{$concept.error}</p>
+          {:else if $concept?.isSuccess}
+            <ConceptView concept={$concept.data} />
+          {/if}
         {/if}
       </div>
     </div>

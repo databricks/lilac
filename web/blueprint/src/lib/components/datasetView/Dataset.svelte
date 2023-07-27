@@ -22,7 +22,8 @@
   import {getVisibleFields} from '$lib/view_utils';
   import {getFieldsByDtype} from '$lilac';
   import {Button, Tag} from 'carbon-components-svelte';
-  import {ChevronLeft, ChevronRight, Download, Reset, Settings} from 'carbon-icons-svelte';
+  import {ChevronLeft, ChevronRight, Download, Settings, Share} from 'carbon-icons-svelte';
+  import {fade} from 'svelte/transition';
   import DatasetSettingsModal from './DatasetSettingsModal.svelte';
   import DownloadModal from './DownloadModal.svelte';
 
@@ -91,6 +92,8 @@
 
   const authInfo = queryAuthInfo();
   $: canUpdateSettings = $authInfo.data?.access.dataset.update_settings;
+
+  let showCopyToast = false;
 </script>
 
 <Page title={'Datasets'}>
@@ -109,13 +112,33 @@
   <div slot="header-right">
     <div class="flex h-full flex-col">
       <div class="flex">
-        <Button
-          size="field"
-          kind="ghost"
-          icon={Reset}
-          iconDescription="Reset View"
-          on:click={datasetViewStore.reset}
-        />
+        <div class="relative">
+          {#if showCopyToast}
+            <div
+              out:fade
+              class="absolute right-12 z-50 mt-2 rounded border border-neutral-300 bg-neutral-50 px-4 py-1 text-xs"
+            >
+              Copied!
+            </div>
+          {/if}
+          <Button
+            size="field"
+            kind="ghost"
+            icon={Share}
+            iconDescription="Copy the URL"
+            on:click={() =>
+              navigator.clipboard.writeText(location.href).then(
+                () => {
+                  showCopyToast = true;
+                  setTimeout(() => (showCopyToast = false), 2000);
+                },
+                () => {
+                  throw Error('Error copying link to clipboard.');
+                }
+              )}
+          />
+        </div>
+
         <Button
           size="field"
           kind="ghost"
