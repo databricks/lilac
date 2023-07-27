@@ -2,8 +2,8 @@
 
 import click
 
-from lilac import __version__
-from lilac.server import start_server
+from . import __version__
+from .server import start_server
 
 
 @click.command()
@@ -19,13 +19,13 @@ def start(host: str, port: int) -> None:
 
 
 @click.command()
-def version():
+def version() -> None:
   """Prints the version of Lilac."""
   print(__version__)
 
 
 @click.group()
-def cli():
+def cli() -> None:
   """Lilac CLI."""
   pass
 
