@@ -1373,7 +1373,7 @@ class DatasetDuckDB(Dataset):
         sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, f.op)]
         filter_val = cast(FeatureValue, f.value)
         if isinstance(filter_val, str):
-          filter_val = f"'{filter_val}'"
+          filter_val = _escape_string_literal(filter_val)
         elif isinstance(filter_val, bytes):
           filter_val = _bytes_to_blob_literal(filter_val)
         else:

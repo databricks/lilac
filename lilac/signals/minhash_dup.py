@@ -17,7 +17,7 @@ from scipy.integrate import quad as integrate
 from tqdm import tqdm
 
 SEED = 42
-NON_ALPHA = re.compile('[^A-Za-z_0-9]')
+WHITESPACE = re.compile(r'\s+')
 RNG = np.random.RandomState(SEED)
 MAX_HASH = np.uint64((1 << 32) - 1)
 MERSENNE_PRIME = np.uint64((1 << 61) - 1)
@@ -72,7 +72,7 @@ def _embed_func(
     The hash values in each range and the index.
   """
   hashvalues = np.ones(num_perm, dtype=np.uint64) * MAX_HASH
-  tokens = {' '.join(t) for t in _ngrams(NON_ALPHA.split(content), ngram_size, min_ngram_size)}
+  tokens = {' '.join(t) for t in _ngrams(WHITESPACE.split(content), ngram_size, min_ngram_size)}
   hv = np.array([_sha1_hash32(token.encode('utf-8')) for token in tokens],
                 dtype=np.uint64)  # noqa: E501
   a, b = permutations
