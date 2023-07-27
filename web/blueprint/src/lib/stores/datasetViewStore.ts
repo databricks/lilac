@@ -66,14 +66,6 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
   };
 }
 
-export function stateFromHash(
-  stateHash: string | null,
-  defaultState: DatasetViewState
-): DatasetViewState {
-  if (stateHash == null || stateHash == '') return JSON.parse(JSON.stringify(defaultState));
-  return deserializeState(stateHash, defaultState);
-}
-
 export const createDatasetViewStore = (
   appStore: AppStateStore,
   namespace: string,
@@ -272,7 +264,7 @@ export const createDatasetViewStore = (
     `${namespace}/${datasetName}`,
     store,
     appStore,
-    hashState => stateFromHash(hashState, defaultState),
+    hashState => deserializeState(hashState, defaultState),
     state => serializeState(state, defaultState)
   );
 

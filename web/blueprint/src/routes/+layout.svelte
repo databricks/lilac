@@ -64,14 +64,8 @@
 
 <!-- Monitor for hash changes in the URL. -->
 <svelte:window
-  on:hashchange={e => {
-    console.log('on:hashchange', e.newURL);
-    urlChange(e.newURL);
-  }}
-  on:popstate={() => {
-    console.log('on:popstate', location.href);
-    urlChange(location.href);
-  }}
+  on:hashchange={e => urlChange(e.newURL)}
+  on:popstate={() => urlChange(location.href)}
 />
 
 <!-- https://carbondesignsystem.com/guidelines/themes/overview#customizing-a-theme -->

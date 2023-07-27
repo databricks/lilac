@@ -119,8 +119,9 @@ export function deserializeState(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultState: any | null
 ) {
-  defaultState = defaultState != null ? JSON.parse(JSON.stringify(defaultState)) : {};
-  if (stateString == null) return defaultState;
+  // Deep copy the default state as we modify this object and return it.
+  defaultState = JSON.parse(JSON.stringify(defaultState));
+  if (stateString == null || stateString == '') return defaultState;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const urlState: Record<string, any> = {};
   const params = (decodeURIComponent(stateString) || '').split('&');
@@ -130,10 +131,12 @@ export function deserializeState(
     const [key, value] = param.split('=');
     urlState[key] = JSON.parse(value);
   }
-  const merged = mergeDeep(defaultState, urlState);
-  return merged;
+  return mergeDeep(defaultState, urlState);
 }
 
+/**
+ * Subscribes to the store and serializes it to the URL.
+ */
 export function persistedHashStore<T extends object>(
   page: string,
   identifier: string,

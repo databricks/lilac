@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {goto} from '$app/navigation';
   import Page from '$lib/components/Page.svelte';
   import Commands from '$lib/components/commands/Commands.svelte';
   import {hoverTooltip} from '$lib/components/common/HoverTooltip';
@@ -19,6 +20,7 @@
     getSelectRowsSchemaOptions,
     setDatasetViewContext
   } from '$lib/stores/datasetViewStore';
+  import {datasetLink} from '$lib/utils';
   import {getVisibleFields} from '$lib/view_utils';
   import {getFieldsByDtype} from '$lilac';
   import {Button, Tag} from 'carbon-components-svelte';
@@ -103,7 +105,17 @@
         text: `${$datasetViewStore.namespace}/${$datasetViewStore.datasetName}`
       }}
     >
-      <Tag type="outline">{$datasetViewStore.datasetName}</Tag>
+      <Tag
+        type="outline"
+        class="!cursor-pointer"
+        on:click={() => {
+          const link = datasetLink(namespace, datasetName);
+          // Don't push a new state if the link matches.
+          if (link != location.pathname + location.hash) {
+            goto(link);
+          }
+        }}>{$datasetViewStore.datasetName}</Tag
+      >
     </div>
   </div>
   <div slot="header-center" class="flex w-full items-center">
