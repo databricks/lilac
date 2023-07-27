@@ -8,7 +8,6 @@ interface AppState {
   page: AppPage | null;
   identifier: string | null;
   hashState: string | null;
-  onUrlChange: (page: AppPage, callback: ParsedCallback) => void;
 }
 
 export type AppStateStore = ReturnType<typeof createAppStore>;
@@ -16,22 +15,12 @@ export type PageStateCallback = (page: AppPage) => void;
 
 const APP_CONTEXT = 'APP_CONTEXT';
 
-export type ParsedCallback = (identifier: string, hashState: string) => void;
-
 export function createAppStore() {
   const {subscribe, update} = writable<AppState>({
     hash: '',
     page: null,
     identifier: null,
-    hashState: null,
-    onUrlChange(page: AppPage, callback: ParsedCallback) {
-      if (this.page != page) return;
-      // Remove the '#'.
-      const hash = this.hash.slice(1);
-      const [hashIdentifier, hashState] = hash.split('&', 2);
-
-      callback(hashIdentifier, hashState);
-    }
+    hashState: null
   });
 
   return {

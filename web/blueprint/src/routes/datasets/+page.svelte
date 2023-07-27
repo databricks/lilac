@@ -7,18 +7,20 @@
   let datasetName: string | undefined = undefined;
   const appStore = getAppStoreContext();
 
-  $: $appStore.onUrlChange('datasets', identifier => {
-    if (identifier == '') {
-      namespace = undefined;
-      datasetName = undefined;
-    } else {
-      const [newNamespace, newDataset] = identifier.split('/');
-      if (namespace != newNamespace || datasetName != newDataset) {
-        namespace = newNamespace;
-        datasetName = newDataset;
+  $: {
+    if ($appStore.page === 'datasets') {
+      if ($appStore.identifier == '' || $appStore.identifier == null) {
+        namespace = undefined;
+        datasetName = undefined;
+      } else {
+        const [newNamespace, newDataset] = $appStore.identifier.split('/');
+        if (namespace != newNamespace || datasetName != newDataset) {
+          namespace = newNamespace;
+          datasetName = newDataset;
+        }
       }
     }
-  });
+  }
 </script>
 
 {#if namespace != null && datasetName != null}

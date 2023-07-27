@@ -31,7 +31,7 @@
   setAppStoreContext(appStore);
 
   onMount(() => {
-    // Set the page on load. Potentially create the whole app store too.
+    // Initialize the page from the hash.
     appStore.setHash(currentPage, $page.url.hash);
   });
 
