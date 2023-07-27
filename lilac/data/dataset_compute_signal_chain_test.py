@@ -190,7 +190,7 @@ def test_auto_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixt
         'string',
         fields={
           'test_embedding': field(
-            signal=embedding_sum_signal._embedding_signal.dict(),
+            signal=embedding_sum_signal.get_embedding_signal().dict(),
             fields=[
               enriched_embedding_span_field(
                 {'test_embedding_sum': field('float32', embedding_sum_signal.dict())})

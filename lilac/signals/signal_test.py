@@ -131,12 +131,6 @@ def test_get_signals_by_type() -> None:
   assert get_signals_by_type(TextEmbeddingSignal) == [TestTextEmbedding]
 
 
-def test_signal_type_enum() -> None:
-  model_signal = TestTextEmbeddingModelSignal(embedding='test_embedding')
-  schema_properties = model_signal.schema()['properties']
-  assert schema_properties['embedding']['enum'] == [TestTextEmbedding.name]
-
-
 class TestSignalNoDisplayName(Signal):
   name = 'signal_no_name'
 

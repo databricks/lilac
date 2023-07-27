@@ -31,7 +31,7 @@ class PaLM(TextEmbeddingSignal):
   name = 'palm'
   display_name = 'PaLM Embeddings'
 
-  _model: 'palm'
+  _model: 'palm.generate_embeddings'
 
   @override
   def setup(self) -> None:
@@ -41,7 +41,7 @@ class PaLM(TextEmbeddingSignal):
     try:
       import google.generativeai as palm
       palm.configure(api_key=api_key)
-      self._model = palm
+      self._model = palm.generate_embeddings
     except ImportError:
       raise ImportError('Could not import the "google.generativeai" python package. '
                         'Please install it with `pip install google-generativeai`.')
@@ -53,7 +53,7 @@ class PaLM(TextEmbeddingSignal):
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(10))
     def embed_fn(texts: list[str]) -> list[np.ndarray]:
       assert len(texts) == 1, 'PaLM API only supports batch size 1.'
-      response = self._model.generate_embeddings(model=EMBEDDING_MODEL, text=texts[0])
+      response = self._model(model=EMBEDDING_MODEL, text=texts[0])
       return [np.array(response['embedding'], dtype=np.float32)]
 
     docs = cast(Iterable[str], docs)

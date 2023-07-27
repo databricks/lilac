@@ -8,7 +8,7 @@ from ...schema import Item, RichData
 from ...signals.signal import TextSplitterSignal
 
 if TYPE_CHECKING:
-  from spacy import Language
+  from spacy.language import Language
 
 
 class SentenceSplitterSpacy(TextSplitterSignal):

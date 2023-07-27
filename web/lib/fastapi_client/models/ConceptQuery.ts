@@ -6,7 +6,7 @@
  * A concept search query on a column.
  */
 export type ConceptQuery = {
-    type: 'concept';
+    type?: 'concept';
     concept_namespace: string;
     concept_name: string;
     embedding: string;

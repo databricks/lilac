@@ -111,14 +111,14 @@ Bin = tuple[str, Optional[Union[float, int]], Optional[Union[float, int]]]
 
 class Field(BaseModel):
   """Holds information for a field in the schema."""
-  repeated_field: Optional['Field']
-  fields: Optional[dict[str, 'Field']]
-  dtype: Optional[DataType]
+  repeated_field: Optional['Field'] = None
+  fields: Optional[dict[str, 'Field']] = None
+  dtype: Optional[DataType] = None
   # Defined as the serialized signal when this field is the root result of a signal.
-  signal: Optional[dict[str, Any]]
+  signal: Optional[dict[str, Any]] = None
   # Maps a named bin to a tuple of (start, end) values.
-  bins: Optional[list[Bin]]
-  categorical: Optional[bool]
+  bins: Optional[list[Bin]] = None
+  categorical: Optional[bool] = None
 
   @validator('fields')
   def either_fields_or_repeated_field_is_defined(
@@ -256,6 +256,8 @@ class Schema(BaseModel):
 def schema(schema_like: object) -> Schema:
   """Parse a schema-like object to a Schema object."""
   field = _parse_field_like(schema_like)
+  if not field.fields:
+    raise ValueError('Schema must have fields')
   return Schema(fields=field.fields)
 
 
@@ -371,7 +373,7 @@ class SourceManifest(BaseModel):
   data_schema: Schema
 
   # Image information for the dataset.
-  images: Optional[list[ImageInfo]]
+  images: Optional[list[ImageInfo]] = None
 
 
 def _str_fields(fields: dict[str, Field], indent: int) -> str:

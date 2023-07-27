@@ -20,35 +20,27 @@ EnvironmentKeys = Union[Literal['LILAC_DATA_PATH'],
                         Literal['DUCKDB_USE_VIEWS'],
                         # Debugging
                         Literal['DEBUG'], Literal['DISABLE_LOGS']]
-_ENV: dict[str, Optional[str]] = {}
-# Private config variables. Saved separately to remove private env variables from tests.
-_ENV_LOCAL: dict[str, Optional[str]] = {}
+_ENV: Optional[dict[str, Optional[str]]] = None
 
 
 def env(key: EnvironmentKeys, default: Optional[Any] = None) -> Any:
   """Return the value of an environment variable."""
   global _ENV
-  global _ENV_LOCAL
   first_load = False
   # This is done lazily so we can prevent loading local environment variables when testing. The
   # 'PYTEST_CURRENT_TEST' environment variable is only set after module initialization by pytest.
-  if not _ENV or _ENV_LOCAL:
+
+  if _ENV is None:
+    in_test = os.environ.get('LILAC_TEST', None)
     _ENV = {
       **dotenv_values('.env'),  # load shared variables
       **dotenv_values('.env.demo'),  # load demo-specific environment flags.
-    }
-    _ENV_LOCAL = {
-      # Load locally set variables when not in a testing environment.
-      **(dotenv_values('.env.local') if 'PYTEST_CURRENT_TEST' not in os.environ else {}),
+      **(dotenv_values('.env.local') if not in_test else {})
     }
     first_load = True
 
   # Override the file based configs with the current environment, in case flags have changed.
-  environment = {
-    **_ENV,
-    **(_ENV_LOCAL if 'PYTEST_CURRENT_TEST' not in os.environ else {}),
-    **os.environ
-  }
+  environment = {**_ENV, **os.environ}
 
   if first_load:
     if environment.get('LILAC_AUTH_ENABLED', None):

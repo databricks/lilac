@@ -1,14 +1,14 @@
 """CSV source."""
-from typing import Iterable
+from typing import Iterable, Optional
 
 import duckdb
 import pandas as pd
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ...schema import Item
-from ...utils import download_http_files
-from ..duckdb_utils import duckdb_setup
+from ..data.duckdb_utils import duckdb_setup
+from ..schema import Item
+from ..utils import download_http_files
 from .source import Source, SourceSchema, schema_from_df
 
 ROW_ID_COLUMN = '__row_id__'
@@ -25,8 +25,8 @@ class JSONDataset(Source):
 
   filepaths: list[str] = PydanticField(description='A list of filepaths to JSON files.')
 
-  _source_schema: SourceSchema
-  _df: pd.DataFrame
+  _source_schema: Optional[SourceSchema] = None
+  _df: Optional[pd.DataFrame] = None
 
   @override
   def setup(self) -> None:
@@ -53,11 +53,15 @@ class JSONDataset(Source):
   @override
   def source_schema(self) -> SourceSchema:
     """Return the source schema."""
+    assert self._source_schema is not None
     return self._source_schema
 
   @override
   def process(self) -> Iterable[Item]:
     """Process the source upload request."""
+    if self._df is None:
+      raise RuntimeError('JSON source is not setup.')
+
     cols = self._df.columns.tolist()
     yield from ({
       ROW_ID_COLUMN: idx,

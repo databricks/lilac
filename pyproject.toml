@@ -39,6 +39,7 @@ tqdm = "^4.65.0"
 types-psutil = "^5.9.5.12"
 typing-extensions = "^4.7.1"
 uvicorn = { extras = ["standard"], version = "^0.22.0" }
+click = "^8.1.3"
 
 ### Optional dependencies. ###
 
@@ -113,7 +114,6 @@ optional = true
 
 [tool.poetry.group.dev.dependencies]
 bokeh = ">=2.4.2,<3"                                      # Required for Dask monitoring.
-click = "^8.1.3"
 google-api-python-client-stubs = "^1.13.0"
 httpx = "^0.24.0"
 huggingface-hub = "^0.15.1"
@@ -139,6 +139,7 @@ yapf = "^0.32.0"
 
 [tool.poetry.scripts]
 deploy-hf = "scripts.deploy_hf:main"
+lilac = "lilac.cli:cli"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"

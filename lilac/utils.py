@@ -110,7 +110,7 @@ class DatasetInfo(BaseModel):
   """Information about a dataset."""
   namespace: str
   dataset_name: str
-  description: Optional[str]
+  description: Optional[str] = None
 
 
 def list_datasets(base_dir: Union[str, pathlib.Path]) -> list[DatasetInfo]:
@@ -168,6 +168,10 @@ def copy_batch(copy_requests: list[CopyRequest]) -> None:
         shutil.copyfile(copy_request.from_path, copy_request.to_path)
         continue
 
+      from_bucket: Any = None
+      to_bucket: Any = None
+      from_gcs_blob: Any = None
+      to_object_name: Optional[str] = None
       if from_gcs:
         from_bucket_name, from_object_name = _parse_gcs_path(copy_request.from_path)
         from_bucket = storage_client.bucket(from_bucket_name)

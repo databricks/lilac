@@ -8,7 +8,7 @@ import numpy as np
 from joblib import Parallel, delayed
 from pydantic import BaseModel, validator
 from scipy.interpolate import interp1d
-from sklearn.base import BaseEstimator, clone
+from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_recall_curve, roc_auc_score
@@ -82,9 +82,9 @@ DRAFT_MAIN = 'main'
 class ExampleIn(BaseModel):
   """An example in a concept without the id (used for adding new examples)."""
   label: bool
-  text: Optional[str]
-  img: Optional[bytes]
-  origin: Optional[ExampleOrigin]
+  text: Optional[str] = None
+  img: Optional[bytes] = None
+  origin: Optional[ExampleOrigin] = None
   # The name of the draft to put the example in. If None, puts it in the main draft.
   draft: Optional[DraftId] = DRAFT_MAIN
 
@@ -175,7 +175,7 @@ class LogisticEmbeddingModel:
       return np.random.rand(len(embeddings))
 
   def _setup_training(
-      self, X_train: np.ndarray, labels: list[bool],
+      self, X_train: np.ndarray, labels: Union[list[bool], np.ndarray],
       implicit_negatives: Optional[np.ndarray]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     num_pos_labels = len([y for y in labels if y])
     num_neg_labels = len([y for y in labels if not y])
@@ -184,7 +184,7 @@ class LogisticEmbeddingModel:
 
     if implicit_negatives is not None:
       num_implicit_labels = len(implicit_negatives)
-      implicit_labels = [False] * num_implicit_labels
+      implicit_labels = np.array([False] * num_implicit_labels)
       X_train = np.concatenate([implicit_negatives, X_train])
       y_train = np.concatenate([implicit_labels, y_train])
       sample_weights = [1.0 / num_implicit_labels] * num_implicit_labels + sample_weights
@@ -220,11 +220,11 @@ class LogisticEmbeddingModel:
       self, embeddings: np.ndarray, labels: list[bool],
       implicit_negatives: Optional[np.ndarray]) -> tuple[Optional[ConceptMetrics], float]:
     """Return the concept metrics."""
-    labels = np.array(labels)
-    n_splits = min(len(labels), MAX_NUM_CROSS_VAL_MODELS)
+    labels_np = np.array(labels)
+    n_splits = min(len(labels_np), MAX_NUM_CROSS_VAL_MODELS)
     fold = KFold(n_splits, shuffle=True, random_state=42)
 
-    def _fit_and_score(model: BaseEstimator, X_train: np.ndarray, y_train: np.ndarray,
+    def _fit_and_score(model: LogisticRegression, X_train: np.ndarray, y_train: np.ndarray,
                        sample_weights: np.ndarray, X_test: np.ndarray,
                        y_test: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
       if len(set(y_train)) < 2:
@@ -236,9 +236,9 @@ class LogisticEmbeddingModel:
     # Compute the metrics for each validation fold in parallel.
     jobs: list[Callable] = []
     for (train_index, test_index) in fold.split(embeddings):
-      X_train, y_train = embeddings[train_index], labels[train_index]
+      X_train, y_train = embeddings[train_index], labels_np[train_index]
       X_train, y_train, sample_weights = self._setup_training(X_train, y_train, implicit_negatives)
-      X_test, y_test = embeddings[test_index], labels[test_index]
+      X_test, y_test = embeddings[test_index], labels_np[test_index]
       model = clone(self._model)
       jobs.append(delayed(_fit_and_score)(model, X_train, y_train, sample_weights, X_test, y_test))
     results = Parallel(n_jobs=-1)(jobs)
@@ -261,7 +261,7 @@ class LogisticEmbeddingModel:
       f1=max_f1,
       precision=max_f1_prec,
       recall=max_f1_recall,
-      roc_auc=roc_auc_val,
+      roc_auc=float(roc_auc_val),
       overall=_get_overall_score(max_f1))
     return metrics, max_f1_thresh
 

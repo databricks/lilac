@@ -7,12 +7,24 @@ import traceback
 import uuid
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Awaitable, Callable, Iterable, Iterator, Optional, TypeVar, Union
+from types import TracebackType
+from typing import (
+  Any,
+  Awaitable,
+  Callable,
+  Coroutine,
+  Iterable,
+  Iterator,
+  Optional,
+  TypeVar,
+  Union,
+  cast,
+)
 
 import dask
 import psutil
 from dask import config as cfg
-from dask.distributed import Client, Variable
+from dask.distributed import Client
 from distributed import Future, get_client, get_worker
 from pydantic import BaseModel, parse_obj_as
 from tqdm import tqdm
@@ -37,33 +49,33 @@ class TaskStatus(str, Enum):
 
 class TaskStepInfo(BaseModel):
   """Information about a step of the task.."""
-  progress: Optional[float]
-  description: Optional[str]
-  details: Optional[str]
+  progress: Optional[float] = None
+  description: Optional[str] = None
+  details: Optional[str] = None
 
 
 class TaskInfo(BaseModel):
   """Metadata about a task."""
   name: str
   status: TaskStatus
-  progress: Optional[float]
-  message: Optional[str]
-  details: Optional[str]
+  progress: Optional[float] = None
+  message: Optional[str] = None
+  details: Optional[str] = None
   # The current step's progress.
-  step_progress: Optional[float]
+  step_progress: Optional[float] = None
 
   # A task may have multiple progress indicators, e.g. for chained signals that compute 3 signals.
-  steps: Optional[list[TaskStepInfo]]
-  description: Optional[str]
+  steps: Optional[list[TaskStepInfo]] = None
+  description: Optional[str] = None
   start_timestamp: str
-  end_timestamp: Optional[str]
-  error: Optional[str]
+  end_timestamp: Optional[str] = None
+  error: Optional[str] = None
 
 
 class TaskManifest(BaseModel):
   """Information for tasks that are running or completed."""
   tasks: dict[str, TaskInfo]
-  progress: Optional[float]
+  progress: Optional[float] = None
 
 
 STEPS_LOG_KEY = 'steps'
@@ -91,7 +103,7 @@ class TaskManager:
       if task.status == TaskStatus.COMPLETED:
         continue
 
-      step_events = self._dask_client.get_events(_progress_event_topic(task_id))
+      step_events = cast(Any, self._dask_client.get_events(_progress_event_topic(task_id)))
       # This allows us to work with both sync and async clients.
       if not isinstance(step_events, tuple):
         step_events = await step_events
@@ -152,8 +164,8 @@ class TaskManager:
 
     if task_future.status == 'error':
       self._tasks[task_id].status = TaskStatus.ERROR
-      tb = traceback.format_tb(task_future.traceback())
-      e = task_future.exception()
+      tb = traceback.format_tb(cast(TracebackType, task_future.traceback()))
+      e = cast(Exception, task_future.exception())
       self._tasks[task_id].error = f'{e}: \n{tb}'
       raise e
     else:
@@ -182,7 +194,7 @@ class TaskManager:
 
   async def stop(self) -> None:
     """Stop the task manager and close the dask client."""
-    await self._dask_client.close()
+    await cast(Coroutine, self._dask_client.close())
 
 
 @functools.cache
@@ -192,11 +204,12 @@ def task_manager() -> TaskManager:
 
 
 def _execute_task(task: Task, task_info: TaskInfo, task_id: str, *args: Any) -> None:
-  get_worker().state.tasks[task_id].annotations['task_info'] = task_info
+  annotations = cast(dict, get_worker().state.tasks[task_id].annotations)
+  annotations['task_info'] = task_info
   task(*args)
 
 
-def _progress_event_topic(task_id: TaskId) -> Variable:
+def _progress_event_topic(task_id: TaskId) -> str:
   return f'{task_id}_progress'
 
 
@@ -209,8 +222,8 @@ def progress(it: Union[Iterator[TProgress], Iterable[TProgress]],
              step_description: Optional[str] = None,
              emit_every_s: float = 1.) -> Iterator[TProgress]:
   """An iterable wrapper that emits progress and yields the original iterable."""
-  if not task_step_id:
-    yield from it
+  if not task_step_id or task_step_id[0] == '':
+    yield from tqdm(it, desc=step_description, total=estimated_len)
     return
 
   task_id, step_id = task_step_id
@@ -227,7 +240,8 @@ def progress(it: Union[Iterator[TProgress], Iterable[TProgress]],
 
   estimated_len = max(1, estimated_len) if estimated_len else None
 
-  task_info: TaskInfo = get_worker().state.tasks[task_id].annotations['task_info']
+  annotations = cast(dict, get_worker().state.tasks[task_id].annotations)
+  task_info: TaskInfo = annotations['task_info']
 
   it_idx = 0
   start_time = time.time()
@@ -266,7 +280,7 @@ def set_worker_steps(task_id: TaskId, steps: list[TaskStepInfo]) -> None:
 
 def get_worker_steps(task_id: TaskId) -> list[TaskStepInfo]:
   """Gets the last worker steps."""
-  events = get_client().get_events(_progress_event_topic(task_id))
+  events = cast(Any, get_client().get_events(_progress_event_topic(task_id)))
   if not events or not events[-1]:
     return []
 

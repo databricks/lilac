@@ -340,7 +340,8 @@ class DiskConceptModelDB(ConceptModelDB):
     for dir in dirs:
       dir = os.path.relpath(dir, datasets_path)
       dataset_namespace, dataset_name, *path, _, _, _, _ = Path(dir).parts
-      result.append(ConceptColumnInfo(namespace=dataset_namespace, name=dataset_name, path=path))
+      result.append(
+        ConceptColumnInfo(namespace=dataset_namespace, name=dataset_name, path=tuple(path)))
     return result
 
 

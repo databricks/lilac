@@ -4,7 +4,6 @@ import abc
 from typing import Any, ClassVar, Iterable, Optional, Sequence, Type, TypeVar, Union
 
 from pydantic import BaseModel, Extra, validator
-from pydantic.fields import ModelField
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorStore
@@ -20,7 +19,6 @@ class Signal(abc.ABC, BaseModel):
   # The display name is just used for rendering in the UI.
   display_name: ClassVar[Optional[str]]
 
-  signal_type: ClassVar[Type['Signal']]
   # The input type is used to populate the UI for signals that require other signals. For example,
   # if a signal is an TextEmbeddingModelSignal, it computes over embeddings, but it's input type
   # will be text.
@@ -30,7 +28,7 @@ class Signal(abc.ABC, BaseModel):
 
   # The signal_name will get populated in init automatically from the class name so it gets
   # serialized and the signal author doesn't have to define both the static property and the field.
-  signal_name: Optional[str]
+  signal_name: Optional[str] = None
 
   class Config:
     underscore_attrs_are_private = True
@@ -74,7 +72,7 @@ class Signal(abc.ABC, BaseModel):
     Args:
       data: An iterable of rich data to compute the signal over.
       user: User information, if the user is logged in. This is useful if signals are access
-        controlled, like concepts.
+      controlled, like concepts.
 
     Returns
       An iterable of items. Sparse signals should return "None" for skipped inputs.
@@ -154,20 +152,6 @@ def _args_key_from_dict(args_dict: dict[str, Any]) -> str:
   return '' if not args_list else f'({args})'
 
 
-class SignalTypeEnum(str):
-  """A class that represents a string enum for a signal type.
-
-  This allows us to populate the JSON schema enum field in the UI.
-  """
-  signal_type: ClassVar[Type[Signal]]
-
-  @classmethod
-  def __modify_schema__(cls, field_schema: dict[str, Any], field: Optional[ModelField]) -> None:
-    if field:
-      field_schema['enum'] = [x.name for x in get_signals_by_type(cls.signal_type)]
-    return None
-
-
 class TextSplitterSignal(Signal):
   """An interface for signals that compute over text."""
   input_type = SignalInputType.TEXT
@@ -176,11 +160,6 @@ class TextSplitterSignal(Signal):
   @override
   def fields(self) -> Field:
     return field(fields=['string_span'])
-
-
-class TextSplitterEnum(SignalTypeEnum):
-  """A string enum that represents a text splitter signal."""
-  signal_type = TextSplitterSignal
 
 
 # Signal base classes, used for inferring the dependency chain required for computing a signal.
@@ -217,11 +196,6 @@ class TextEmbeddingSignal(TextSignal):
     return field(fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
 
 
-class TextEmbeddingEnum(SignalTypeEnum):
-  """A string enum that represents a text embedding signal."""
-  signal_type = TextEmbeddingSignal
-
-
 class TextEmbeddingModelSignal(TextSignal):
   """An interface for signals that take embeddings and produce items."""
   input_type = SignalInputType.TEXT
@@ -229,8 +203,8 @@ class TextEmbeddingModelSignal(TextSignal):
   # and embeddings.
   compute_type = SignalInputType.TEXT_EMBEDDING
 
-  embedding: TextEmbeddingEnum
-  _embedding_signal: TextEmbeddingSignal
+  embedding: str
+  _embedding_signal: Optional[TextEmbeddingSignal] = None
 
   def __init__(self, **kwargs: Any):
     super().__init__(**kwargs)
@@ -241,6 +215,7 @@ class TextEmbeddingModelSignal(TextSignal):
 
   def get_embedding_signal(self) -> TextEmbeddingSignal:
     """Return the embedding signal."""
+    assert self._embedding_signal is not None
     return self._embedding_signal
 
   @override

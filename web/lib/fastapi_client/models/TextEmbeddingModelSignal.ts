@@ -7,6 +7,6 @@
  */
 export type TextEmbeddingModelSignal = {
     signal_name?: string;
-    embedding: 'cohere' | 'sbert' | 'openai' | 'palm';
+    embedding: string;
 };
 

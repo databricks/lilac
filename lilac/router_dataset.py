@@ -23,13 +23,11 @@ from .data.dataset import (
   StatsResult,
   UnaryOp,
 )
-from .data.dataset_duckdb import DatasetDuckDB
-from .db_manager import get_dataset, remove_dataset_from_cache, set_default_dataset_cls
+from .db_manager import get_dataset, remove_dataset_from_cache
 from .router_utils import RouteErrorHandler
 from .schema import Bin, Path, normalize_path
 from .signals.concept_labels import ConceptLabelsSignal
 from .signals.concept_scorer import ConceptScoreSignal
-from .signals.default_signals import register_default_signals
 from .signals.semantic_similarity import SemanticSimilaritySignal
 from .signals.signal import (
   Signal,
@@ -43,9 +41,6 @@ from .tasks import TaskId, task_manager
 from .utils import DatasetInfo, list_datasets
 
 router = APIRouter(route_class=RouteErrorHandler)
-
-register_default_signals()
-set_default_dataset_cls(DatasetDuckDB)
 
 
 @router.get('/', response_model_exclude_none=True)
@@ -193,23 +188,23 @@ class Column(DBColumn):
 
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
-  columns: Optional[Sequence[Union[Path, Column]]]
-  searches: Optional[Sequence[Search]]
-  filters: Optional[Sequence[Filter]]
-  sort_by: Optional[Sequence[Path]]
+  columns: Optional[Sequence[Union[Path, Column]]] = None
+  searches: Optional[Sequence[Search]] = None
+  filters: Optional[Sequence[Filter]] = None
+  sort_by: Optional[Sequence[Path]] = None
   sort_order: Optional[SortOrder] = SortOrder.DESC
-  limit: Optional[int]
-  offset: Optional[int]
-  combine_columns: Optional[bool]
+  limit: Optional[int] = None
+  offset: Optional[int] = None
+  combine_columns: Optional[bool] = None
 
 
 class SelectRowsSchemaOptions(BaseModel):
   """The request for the select rows schema endpoint."""
-  columns: Optional[Sequence[Union[Path, Column]]]
-  searches: Optional[Sequence[Search]]
-  sort_by: Optional[Sequence[Path]]
+  columns: Optional[Sequence[Union[Path, Column]]] = None
+  searches: Optional[Sequence[Search]] = None
+  sort_by: Optional[Sequence[Path]] = None
   sort_order: Optional[SortOrder] = SortOrder.DESC
-  combine_columns: Optional[bool]
+  combine_columns: Optional[bool] = None
 
 
 class SelectRowsResponse(BaseModel):
@@ -268,11 +263,11 @@ def select_rows_schema(namespace: str, dataset_name: str,
 class SelectGroupsOptions(BaseModel):
   """The request for the select groups endpoint."""
   leaf_path: Path
-  filters: Optional[Sequence[Filter]]
+  filters: Optional[Sequence[Filter]] = None
   sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int] = 100
-  bins: Optional[list[Bin]]
+  bins: Optional[list[Bin]] = None
 
 
 @router.post('/{namespace}/{dataset_name}/select_groups')

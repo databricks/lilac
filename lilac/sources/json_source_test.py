@@ -3,7 +3,7 @@ import json
 import os
 import pathlib
 
-from ...schema import schema
+from ..schema import schema
 from .json_source import ROW_ID_COLUMN, JSONDataset
 from .source import SourceSchema
 
@@ -49,7 +49,7 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
   with open(filepath, 'w') as f:
     f.writelines(json_lines)
 
-  source = JSONDataset(dataset_name='test_dataset', filepaths=[filepath])
+  source = JSONDataset(filepaths=[filepath])
   source.setup()
 
   source_schema = source.source_schema()

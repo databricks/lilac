@@ -4,7 +4,7 @@ from typing import Iterable, Optional
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ...schema import Item
+from ..schema import Item
 from .huggingface_source import HuggingFaceDataset
 from .source import Source, SourceSchema
 

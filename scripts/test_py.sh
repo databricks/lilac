@@ -16,6 +16,7 @@ fi
 
 # Disables log() statements.
 export DISABLE_LOGS=True
+export LILAC_TEST=True
 
 # -vv enables verbose outputs.
 # --capture=tee-sys enables printing for passing tests.

@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from ...schema import schema
+from ..schema import schema
 from .pandas_source import PANDAS_INDEX_COLUMN, PandasDataset
 from .source import SourceSchema
 

@@ -5,7 +5,7 @@ import pathlib
 # mypy: disable-error-code="attr-defined"
 from datasets import Dataset, Features, Sequence, Value
 
-from ...schema import schema
+from ..schema import schema
 from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceDataset
 from .source import SourceSchema
 

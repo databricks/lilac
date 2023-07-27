@@ -31,7 +31,7 @@ MODEL_NAME = MINI_LM_MODEL
 @functools.cache
 def _sbert() -> tuple[Optional[str], 'SentenceTransformer']:
   try:
-    import torch
+    import torch.backends.mps
     from sentence_transformers import SentenceTransformer
   except ImportError:
     raise ImportError('Could not import the "sentence_transformers" python package. '

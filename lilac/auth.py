@@ -51,7 +51,7 @@ class UserInfo(BaseModel):
 
 class AuthenticationInfo(BaseModel):
   """Authentication information for the user."""
-  user: Optional[UserInfo]
+  user: Optional[UserInfo] = None
   access: UserAccess
   auth_enabled: bool
 

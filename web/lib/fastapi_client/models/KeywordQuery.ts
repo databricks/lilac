@@ -6,7 +6,7 @@
  * A keyword search query on a column.
  */
 export type KeywordQuery = {
-    type: 'keyword';
+    type?: 'keyword';
     search: string;
 };
 

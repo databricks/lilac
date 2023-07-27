@@ -4,7 +4,7 @@ from typing import Any, Iterable
 import pandas as pd
 from typing_extensions import override
 
-from ...schema import Item
+from ..schema import Item
 from .source import Source, SourceSchema, schema_from_df
 
 PANDAS_INDEX_COLUMN = '__pd_index__'

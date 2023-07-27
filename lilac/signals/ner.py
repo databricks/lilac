@@ -20,18 +20,18 @@ class SpacyNER(TextSignal):
   name = 'spacy_ner'
   display_name = 'Named Entity Recognition'
 
-  model: Optional[str] = PydanticField(
-    title='SpaCy package name or model path.', default='en_core_web_sm')
+  model: str = PydanticField(title='SpaCy package name or model path.', default='en_core_web_sm')
 
   input_type = SignalInputType.TEXT
   compute_type = SignalInputType.TEXT
 
-  _nlp: 'spacy.language.Language'
+  _nlp: Optional['spacy.language.Language'] = None
 
   @override
   def setup(self) -> None:
     try:
       import spacy
+      import spacy.cli
     except ImportError:
       raise ImportError('Could not import the "spacy" python package. '
                         'Please install it with `pip install spacy`.')
@@ -49,6 +49,9 @@ class SpacyNER(TextSignal):
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    if not self._nlp:
+      raise RuntimeError('SpaCy model is not initialized.')
+
     text_data = (row if isinstance(row, str) else '' for row in data)
 
     for doc in self._nlp.pipe(text_data):

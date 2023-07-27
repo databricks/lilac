@@ -8,33 +8,45 @@ poetry run python -m lilac.data_loader \
   --config_path=./datasets/the_movies_dataset.json
 """
 import json
-import math
 import os
 import pathlib
 import uuid
-from typing import Iterable, Optional, Union, cast
+from typing import Iterable, Optional, Union
 
 import click
 import pandas as pd
 from distributed import Client
 
+from .config import data_path
+from .data.dataset import Dataset
 from .data.dataset_utils import write_items_to_parquet
-from .data.sources.default_sources import register_default_sources
-from .data.sources.source import Source
-from .data.sources.source_registry import resolve_source
+from .db_manager import get_dataset
 from .schema import (
   MANIFEST_FILENAME,
   PARQUET_FILENAME_PREFIX,
   UUID_COLUMN,
-  DataType,
   Field,
   Item,
   Schema,
   SourceManifest,
   field,
+  is_float,
 )
+from .sources.default_sources import register_default_sources
+from .sources.source import Source
+from .sources.source_registry import resolve_source
 from .tasks import TaskStepId, progress
 from .utils import get_dataset_output_dir, log, open_file
+
+
+def create_dataset(
+  namespace: str,
+  dataset_name: str,
+  source_config: Source,
+) -> Dataset:
+  """Load a dataset from a given source configuration."""
+  process_source(data_path(), namespace, dataset_name, source_config)
+  return get_dataset(namespace, dataset_name)
 
 
 def process_source(base_dir: Union[str, pathlib.Path],
@@ -53,15 +65,14 @@ def process_source(base_dir: Union[str, pathlib.Path],
   items = normalize_items(items, source_schema.fields)
 
   # Add progress.
-  if task_step_id is not None:
-    items = progress(
-      items,
-      task_step_id=task_step_id,
-      estimated_len=source_schema.num_items,
-      step_description=f'Reading from source {source.name}...')
+  items = progress(
+    items,
+    task_step_id=task_step_id,
+    estimated_len=source_schema.num_items,
+    step_description=f'Reading from source {source.name}...')
 
   # Filter out the `None`s after progress.
-  items = cast(Iterable[Item], (item for item in items if item is not None))
+  items = (item for item in items if item is not None)
 
   data_schema = Schema(fields={**source_schema.fields, UUID_COLUMN: field('string')})
   filepath, num_items = write_items_to_parquet(
@@ -76,19 +87,16 @@ def process_source(base_dir: Union[str, pathlib.Path],
   manifest = SourceManifest(files=filenames, data_schema=data_schema, images=None)
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.json(indent=2, exclude_none=True))
-  log(f'Manifest for dataset "{dataset_name}" written to {output_dir}')
+  log(f'Dataset "{dataset_name}" written to {output_dir}')
 
   return output_dir, num_items
 
 
 def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
   """Sanitize items by removing NaNs and NaTs."""
-  replace_nan_fields = set([
-    field_name for field_name, field in fields.items()
-    if field.dtype == DataType.STRING or field.dtype == DataType.NULL
-  ])
-  timestamp_fields = set(
-    [field_name for field_name, field in fields.items() if field.dtype == DataType.TIMESTAMP])
+  replace_nan_fields = [
+    field_name for field_name, field in fields.items() if field.dtype and not is_float(field.dtype)
+  ]
   for item in items:
     if item is None:
       yield item
@@ -98,20 +106,11 @@ def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
     if UUID_COLUMN not in item:
       item[UUID_COLUMN] = uuid.uuid4().hex
 
-    # Fix NaN string fields.
-    for name in replace_nan_fields:
-      item_value = item.get(name)
-      if item_value and not isinstance(item_value, str):
-        if math.isnan(item_value):
-          item[name] = None
-        else:
-          item[name] = str(item_value)
-
-    # Fix NaT (not a time) timestamp fields.
-    for name in timestamp_fields:
-      item_value = item.get(name)
-      if item_value and pd.isnull(item_value):
-        item[name] = None
+    # Fix NaN values.
+    for field_name in replace_nan_fields:
+      item_value = item.get(field_name)
+      if item_value and pd.isna(item_value):
+        item[field_name] = None
 
     yield item
 

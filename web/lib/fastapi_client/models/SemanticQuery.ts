@@ -6,7 +6,7 @@
  * A semantic search on a column.
  */
 export type SemanticQuery = {
-    type: 'semantic';
+    type?: 'semantic';
     search: string;
     embedding: string;
 };

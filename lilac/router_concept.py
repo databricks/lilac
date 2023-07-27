@@ -113,8 +113,8 @@ def merge_concept_draft(namespace: str, concept_name: str, options: MergeConcept
 
 class ScoreExample(BaseModel):
   """Example to score along a specific concept."""
-  text: Optional[str]
-  img: Optional[bytes]
+  text: Optional[str] = None
+  img: Optional[bytes] = None
 
 
 class ScoreBody(BaseModel):
