@@ -6,7 +6,9 @@ export type AppPage = 'home' | 'concepts' | 'datasets' | 'settings';
 interface AppState {
   hash: string;
   page: AppPage | null;
+  // The sub-page identifier, e.g. local/movies.
   identifier: string | null;
+  // The sub-page serialized state.
   hashState: string | null;
 }
 
