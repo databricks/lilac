@@ -1,6 +1,6 @@
 <script lang="ts">
   import Dataset from '$lib/components/datasetView/Dataset.svelte';
-  import {getAppStoreContext} from '$lib/stores/urlHashStore';
+  import {getAppStoreContext} from '$lib/stores/appStore';
   import Datasets from './Datasets.svelte';
 
   let namespace: string | undefined = undefined;

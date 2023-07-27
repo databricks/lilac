@@ -9,7 +9,7 @@
   // Styles
   import '../tailwind.css';
   // Carbon component must be imported after tailwind.css
-  import {createAppStore, setAppStoreContext, type AppPage} from '$lib/stores/urlHashStore';
+  import {createAppStore, setAppStoreContext, type AppPage} from '$lib/stores/appStore';
   // This import is so we can override the carbon icon theme below.
   import {page} from '$app/stores';
   import Navigation from '$lib/components/Navigation.svelte';

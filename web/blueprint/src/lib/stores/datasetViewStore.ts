@@ -20,12 +20,7 @@ import {
 import deepEqual from 'deep-equal';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable} from 'svelte/store';
-import {
-  deserializeState,
-  persistedHashStore,
-  serializeState,
-  type AppStateStore
-} from './urlHashStore';
+import {deserializeState, persistedHashStore, serializeState, type AppStateStore} from './appStore';
 
 const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
@@ -177,6 +172,9 @@ export const createDatasetViewStore = (
     removeSearch: (search: Search, selectRowsSchema?: LilacSelectRowsSchema | null) =>
       update(state => {
         state.query.searches = state.query.searches?.filter(s => !deepEqual(s, search));
+        if ((state.query.searches || []).length === 0) {
+          state.query.searches = undefined;
+        }
         // Clear any explicit sorts by this alias as it will be an invalid sort.
         if (selectRowsSchema?.sorts != null) {
           state.query.sort_by = state.query.sort_by?.filter(sortBy => {
@@ -218,6 +216,9 @@ export const createDatasetViewStore = (
     removeFilter: (removedFilter: BinaryFilter | UnaryFilter | ListFilter) =>
       update(state => {
         state.query.filters = state.query.filters?.filter(f => !deepEqual(f, removedFilter));
+        if ((state.query.filters || []).length === 0) {
+          state.query.filters = undefined;
+        }
         return state;
       }),
     addFilter: (filter: BinaryFilter | UnaryFilter | ListFilter) =>

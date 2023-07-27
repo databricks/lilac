@@ -108,7 +108,7 @@ export function serializeState(
     const jsonValue = JSON.stringify(state[stateKey]);
     flatFields.push([stateKey, jsonValue]);
   }
-  return flatFields.map(([key, value]) => `${key}=${value}`).join('&');
+  return flatFields.map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&');
 }
 
 /**
@@ -141,7 +141,7 @@ export function persistedHashStore<T extends object>(
   appStore: AppStateStore,
   stateFromHash: (hashState: string) => T,
   hashFromState: (state: T) => string
-): Writable<T> {
+) {
   let skipUpdate = false;
   appStore.subscribe(appState => {
     if (appState.page === page && appState.identifier === identifier) {
@@ -159,7 +159,4 @@ export function persistedHashStore<T extends object>(
     }
     skipUpdate = false;
   });
-
-  // Return the derived store.
-  return store;
 }

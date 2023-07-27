@@ -6,9 +6,9 @@
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
+  import {getAppStoreContext} from '$lib/stores/appStore';
   import {datasetStores} from '$lib/stores/datasetStore';
   import {datasetViewStores} from '$lib/stores/datasetViewStore';
-  import {getAppStoreContext} from '$lib/stores/urlHashStore';
   import {conceptLink} from '$lib/utils';
   import {getSortedConcepts} from '$lib/view_utils';
   import {Button, Modal, SkeletonText} from 'carbon-components-svelte';

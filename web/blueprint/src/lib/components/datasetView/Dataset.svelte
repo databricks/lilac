@@ -12,13 +12,13 @@
     querySettings
   } from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
+  import {getAppStoreContext} from '$lib/stores/appStore';
   import {createDatasetStore, setDatasetContext} from '$lib/stores/datasetStore';
   import {
     createDatasetViewStore,
     getSelectRowsSchemaOptions,
     setDatasetViewContext
   } from '$lib/stores/datasetViewStore';
-  import {getAppStoreContext} from '$lib/stores/urlHashStore';
   import {getVisibleFields} from '$lib/view_utils';
   import {getFieldsByDtype} from '$lilac';
   import {Button, Tag} from 'carbon-components-svelte';
