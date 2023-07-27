@@ -9,8 +9,9 @@
   // Styles
   import '../tailwind.css';
   // Carbon component must be imported after tailwind.css
-  import {urlHash} from '$lib/stores/urlHashStore';
+  import {createAppStore, setAppStoreContext, type AppPage} from '$lib/stores/urlHashStore';
   // This import is so we can override the carbon icon theme below.
+  import {page} from '$app/stores';
   import Navigation from '$lib/components/Navigation.svelte';
   import {createSettingsStore, setSettingsContext} from '$lib/stores/settingsStore';
   import 'carbon-components-svelte/css/all.css';
@@ -18,16 +19,54 @@
 
   let showError: ApiError | undefined = undefined;
 
+  const routeToPage: Record<string, AppPage> = {
+    '/': 'home',
+    '/datasets': 'datasets',
+    '/concepts': 'concepts',
+    '/settings': 'settings'
+  };
+
+  $: currentPage = $page.route.id != null ? routeToPage[$page.route.id] : 'home';
+  let appStore = createAppStore();
+  onMount(() => {
+    // Set the page on load. Potentially create the whole app store too.
+    appStore.setHash(currentPage, $page.url.hash);
+  });
+
+  // When the hash changes (back button, click on a link, etc) read the state from the URL and set
+  // the dataset state on the global app store.
+  // let lastHash = $page.url.hash;
+  function urlChange(url: string | URL) {
+    const newURL = new URL(url);
+
+    console.log(`urlChange(${url})`, $appStore.hash, newURL.hash, $appStore.hash != newURL.hash);
+    // if ($appStore.hash != newURL.hash) {
+    console.log('urlChange new hash', newURL.hash);
+    appStore.setHash(currentPage, newURL.hash);
+    // }
+  }
+
+  let originalUrl = $page.url;
+  // When the hash changes from a goto, call hash change.
+  $: if ($page.url != originalUrl) {
+    // urlChange($page.url);
+  }
+
+  setAppStoreContext(appStore);
+  // $: console.log($page.route);
+
   onMount(() => {
     // This fixes a cross-origin error when the app is embedding in an iframe. Some carbon
     // components attach listeners to window.parent, which is not allowed in an iframe, so we set
     // the parent to window.
     window.parent = window;
 
-    urlHash.set(location.hash);
+    // appStore.set(location.hash);
+    // Handle goto links.
     history.pushState = function (_state, _unused, url) {
       if (url instanceof URL) {
-        urlHash.set(url.hash);
+        console.log('pushState change', url);
+        urlChange(url);
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return History.prototype.pushState.apply(history, arguments as any);
@@ -40,8 +79,14 @@
 
 <!-- Monitor for hash changes in the URL. -->
 <svelte:window
-  on:hashchange={() => urlHash.set(location.hash)}
-  on:popstate={() => urlHash.set(location.hash)}
+  on:hashchange={e => {
+    console.log('on:hashchange', e.newURL);
+    urlChange(e.newURL);
+  }}
+  on:popstate={() => {
+    console.log('on:popstate', location.href);
+    urlChange(location.href);
+  }}
 />
 
 <!-- https://carbondesignsystem.com/guidelines/themes/overview#customizing-a-theme -->

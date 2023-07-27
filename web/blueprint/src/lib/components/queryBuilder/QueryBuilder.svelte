@@ -5,7 +5,7 @@
   import {Button} from 'carbon-components-svelte';
 
   const datasetViewStore = getDatasetViewContext();
-  $: options = $datasetViewStore.queryOptions;
+  $: options = $datasetViewStore.query;
   $: formattedOptions = options ? JSON.stringify(options, null, 2) : '';
 
   $: editedSchema = formattedOptions;
@@ -23,7 +23,7 @@
   $: isChanged = isValid && !equal(JSON.parse(editedSchema), options);
 
   function apply() {
-    $datasetViewStore.queryOptions = JSON.parse(editedSchema);
+    $datasetViewStore.query = JSON.parse(editedSchema);
   }
 </script>
 

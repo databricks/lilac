@@ -227,8 +227,8 @@ export function isPreviewSignal(
 
 /** Gets the search type for a column, if defined. The path is the *input* path to the search. */
 export function getSearches(store: DatasetViewState, path?: Path | null): Search[] {
-  if (path == null) return store.queryOptions.searches || [];
-  return (store.queryOptions.searches || []).filter(s => pathIsEqual(s.path, path));
+  if (path == null) return store.query.searches || [];
+  return (store.query.searches || []).filter(s => pathIsEqual(s.path, path));
 }
 
 function getDefaultSearchPath(datasetStore: DatasetState): Path | null {

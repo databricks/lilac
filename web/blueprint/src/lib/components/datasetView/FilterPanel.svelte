@@ -33,7 +33,7 @@
 
   $: searches = getSearches($datasetViewStore);
 
-  $: filters = $datasetViewStore.queryOptions.filters;
+  $: filters = $datasetViewStore.query.filters;
 
   const searchTypeOrder: SearchType[] = ['keyword', 'semantic', 'concept'];
   const searchTypeDisplay: {[searchType in SearchType]: string} = {
@@ -75,7 +75,7 @@
   // Server sort response.
   $: sortById = sort?.path ? serializePath(sort.path) : null;
   // Explicit user selection of sort.
-  $: selectedSortBy = $datasetViewStore.queryOptions.sort_by;
+  $: selectedSortBy = $datasetViewStore.query.sort_by;
 
   $: sortItems =
     $datasetStore.selectRowsSchema?.data?.schema != null

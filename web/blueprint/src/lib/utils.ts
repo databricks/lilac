@@ -3,9 +3,9 @@ export function notEmpty<TValue>(value: TValue | null | undefined): value is TVa
 }
 
 export function conceptLink(namespace: string, conceptName: string) {
-  return `/concepts#!/${namespace}/${conceptName}`;
+  return `/concepts#${namespace}/${conceptName}`;
 }
 
 export function datasetLink(namespace: string, datasetName: string) {
-  return `/datasets#!/${namespace}/${datasetName}`;
+  return `/datasets#${namespace}/${datasetName}`;
 }

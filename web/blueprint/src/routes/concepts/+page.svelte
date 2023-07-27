@@ -8,7 +8,7 @@
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {datasetStores} from '$lib/stores/datasetStore';
   import {datasetViewStores} from '$lib/stores/datasetViewStore';
-  import {urlHash} from '$lib/stores/urlHashStore';
+  import {getAppStoreContext} from '$lib/stores/urlHashStore';
   import {conceptLink} from '$lib/utils';
   import {getSortedConcepts} from '$lib/view_utils';
   import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
@@ -18,14 +18,16 @@
   let namespace: string | undefined;
   let conceptName: string | undefined;
 
-  $: $urlHash.onHashChange('', () => {
+  const appStore = getAppStoreContext();
+
+  $: $appStore.onUrlChange('concepts', null, {}, () => {
     namespace = undefined;
     conceptName = undefined;
   });
-  $: $urlHash.onHashChange('/(?<namespace>.+)/(?<conceptName>.+)', ctx => {
-    namespace = ctx.namespace;
-    conceptName = ctx.conceptName;
-  });
+  // $: $appStore.onUrlChange('concepts', '/(?<namespace>.+)/(?<conceptName>.+)', ctx => {
+  //   namespace = ctx.namespace;
+  //   conceptName = ctx.conceptName;
+  // });
 
   let deleteConceptInfo: {namespace: string; name: string} | null = null;
 

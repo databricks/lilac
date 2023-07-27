@@ -66,7 +66,7 @@
   // Copy filters from query options
   let stagedFilters: (UnaryFilter | ListFilter | BinaryFilter)[] = [];
   onMount(() => {
-    stagedFilters = structuredClone($datasetViewStore.queryOptions.filters || []);
+    stagedFilters = structuredClone($datasetViewStore.query.filters || []);
   });
 
   $: currentFieldFilters = stagedFilters.filter(f => pathIsEqual(f.path, selectedField?.path));
@@ -102,7 +102,7 @@
   }
 
   function submit() {
-    $datasetViewStore.queryOptions.filters = stagedFilters;
+    $datasetViewStore.query.filters = stagedFilters;
     close();
   }
 </script>

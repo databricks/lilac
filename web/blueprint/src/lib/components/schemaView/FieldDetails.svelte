@@ -14,7 +14,7 @@
   $: statsQuery = queryDatasetStats($store.namespace, $store.datasetName, {leaf_path: field.path});
   $: groupsQuery = querySelectGroups($store.namespace, $store.datasetName, {
     leaf_path: field.path,
-    filters: $store.queryOptions.filters
+    filters: $store.query.filters
   });
 
   $: counts =

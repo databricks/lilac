@@ -18,6 +18,7 @@
     getSelectRowsSchemaOptions,
     setDatasetViewContext
   } from '$lib/stores/datasetViewStore';
+  import {getAppStoreContext} from '$lib/stores/urlHashStore';
   import {getVisibleFields} from '$lib/view_utils';
   import {getFieldsByDtype} from '$lilac';
   import {Button, Tag} from 'carbon-components-svelte';
@@ -28,8 +29,12 @@
   export let namespace: string;
   export let datasetName: string;
 
-  $: datasetViewStore = createDatasetViewStore(namespace, datasetName);
+  $: appStore = getAppStoreContext();
+  $: datasetViewStore = createDatasetViewStore(appStore, namespace, datasetName);
   $: setDatasetViewContext(datasetViewStore);
+
+  $: console.log('query options: ', $datasetViewStore.query);
+  $: console.log('open stuff', $datasetViewStore.expandedColumns);
 
   $: schemaCollapsed = $datasetViewStore.schemaCollapsed;
   function toggleSchemaCollapsed() {

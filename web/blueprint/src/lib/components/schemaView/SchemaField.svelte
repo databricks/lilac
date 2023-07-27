@@ -46,10 +46,10 @@
 
   $: isVisible = $datasetStore.visibleFields?.some(f => pathIsEqual(f.path, path));
 
-  $: isSortedBy = $datasetViewStore.queryOptions.sort_by?.some(p => pathIsEqual(p, path));
-  $: sortOrder = $datasetViewStore.queryOptions.sort_order;
+  $: isSortedBy = $datasetViewStore.query.sort_by?.some(p => pathIsEqual(p, path));
+  $: sortOrder = $datasetViewStore.query.sort_order;
 
-  $: filters = $datasetViewStore.queryOptions.filters?.filter(f => pathIsEqual(f.path, path)) || [];
+  $: filters = $datasetViewStore.query.filters?.filter(f => pathIsEqual(f.path, path)) || [];
   $: isFiltered = filters.length > 0;
 
   $: disabled = !field.dtype || field.dtype === 'embedding';
@@ -110,8 +110,8 @@
         type="green"
         on:click={() =>
           sortOrder === 'ASC'
-            ? ($datasetViewStore.queryOptions.sort_order = 'DESC')
-            : ($datasetViewStore.queryOptions.sort_order = 'ASC')}
+            ? ($datasetViewStore.query.sort_order = 'DESC')
+            : ($datasetViewStore.query.sort_order = 'ASC')}
         on:remove={() => datasetViewStore.removeSortBy(path)}
       >
         Sorted

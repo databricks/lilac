@@ -19,7 +19,8 @@ import {
 } from '$lilac';
 import deepEqual from 'deep-equal';
 import {getContext, hasContext, setContext} from 'svelte';
-import {persisted} from './persistedStore';
+import {writable, type Updater} from 'svelte/store';
+import {createURLStore, deserializeState, serializeState, type AppStateStore} from './urlHashStore';
 
 const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
@@ -30,7 +31,7 @@ export interface DatasetViewState {
   // Explicit user-selected columns.
   selectedColumns: {[path: string]: boolean};
   expandedColumns: {[path: string]: boolean};
-  queryOptions: SelectRowsOptions;
+  query: SelectRowsOptions;
 
   // Search.
   searchPath: string | null;
@@ -40,8 +41,6 @@ export interface DatasetViewState {
   schemaCollapsed: boolean;
 }
 
-const LS_KEY = 'datasetViewStore';
-
 export type DatasetViewStore = ReturnType<typeof createDatasetViewStore>;
 
 export const datasetViewStores: {[key: string]: DatasetViewStore} = {};
@@ -50,30 +49,54 @@ export function datasetKey(namespace: string, datasetName: string) {
   return `${namespace}/${datasetName}`;
 }
 
-export const createDatasetViewStore = (namespace: string, datasetName: string) => {
-  const initialState: DatasetViewState = {
+export function defaultDatasetViewState(namespace: string, datasetName: string): DatasetViewState {
+  return {
     namespace,
     datasetName,
     searchPath: null,
     searchEmbedding: null,
     selectedColumns: {},
     expandedColumns: {},
-    queryOptions: {
+    query: {
       // Add * as default field when supported here
       columns: [],
       combine_columns: true
     },
     schemaCollapsed: false
   };
+}
 
-  const {subscribe, set, update} = persisted<DatasetViewState>(
-    `${LS_KEY}/${datasetKey(namespace, datasetName)}`,
+export function stateFromHash(stateHash: string, defaultState: DatasetViewState): DatasetViewState {
+  console.log('default state = ', defaultState);
+  return deserializeState(stateHash, defaultState);
+}
+
+export const createDatasetViewStore = (
+  appStore: AppStateStore,
+  namespace: string,
+  datasetName: string,
+  initialState?: DatasetViewState | null
+) => {
+  const defaultState = defaultDatasetViewState(namespace, datasetName);
+  initialState = initialState || defaultState;
+
+  const {
+    subscribe,
+    set,
+    update: originalUpdate
+  } = writable<DatasetViewState>(
     // Deep copy the initial state so we don't have to worry about mucking the initial state.
-    JSON.parse(JSON.stringify(initialState)),
-    {
-      storage: 'session'
-    }
+    JSON.parse(JSON.stringify(initialState))
   );
+
+  function update(updater: Updater<DatasetViewState>) {
+    return originalUpdate((state: DatasetViewState) => {
+      const newState = updater(state);
+      console.log('-----------newUpdate', state, newState);
+      // newState.updateURL = true;
+      return newState;
+    });
+  }
 
   const store = {
     subscribe,
@@ -82,7 +105,6 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     reset: () => {
       set(JSON.parse(JSON.stringify(initialState)));
     },
-
     addSelectedColumn: (path: Path | string) =>
       update(state => {
         state.selectedColumns[serializePath(path)] = true;
@@ -107,23 +129,24 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     },
     removeExpandedColumn(path: Path) {
       update(state => {
-        state.expandedColumns[serializePath(path)] = false;
+        console.log('removing expande col', path);
+        delete state.expandedColumns[serializePath(path)];
         return state;
       });
     },
     addUdfColumn: (column: Column) =>
       update(state => {
-        state.queryOptions.columns?.push(column);
+        state.query.columns?.push(column);
         return state;
       }),
     removeUdfColumn: (column: Column) =>
       update(state => {
-        state.queryOptions.columns = state.queryOptions.columns?.filter(c => c !== column);
+        state.query.columns = state.query.columns?.filter(c => c !== column);
         return state;
       }),
     editUdfColumn: (column: Column) => {
       return update(state => {
-        state.queryOptions.columns = state.queryOptions.columns?.map(c => {
+        state.query.columns = state.query.columns?.map(c => {
           if (isColumn(c) && pathIsEqual(c.path, column.path)) return column;
           return c;
         });
@@ -143,87 +166,79 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       }),
     addSearch: (search: Search) =>
       update(state => {
-        state.queryOptions.searches = state.queryOptions.searches || [];
+        state.query.searches = state.query.searches || [];
 
         // Dedupe searches.
-        for (const existingSearch of state.queryOptions.searches) {
+        for (const existingSearch of state.query.searches) {
           if (deepEqual(existingSearch, search)) return state;
         }
 
         // Remove any sorts if the search is semantic or conceptual.
         if (search.query.type === 'semantic' || search.query.type === 'concept') {
-          state.queryOptions.sort_by = undefined;
-          state.queryOptions.sort_order = undefined;
+          state.query.sort_by = undefined;
+          state.query.sort_order = undefined;
         }
 
-        state.queryOptions.searches.push(search);
+        state.query.searches.push(search);
         return state;
       }),
     removeSearch: (search: Search, selectRowsSchema?: LilacSelectRowsSchema | null) =>
       update(state => {
-        state.queryOptions.searches = state.queryOptions.searches?.filter(
-          s => !deepEqual(s, search)
-        );
+        console.log('removing search, old state:', state);
+        state.query.searches = state.query.searches?.filter(s => !deepEqual(s, search));
         // Clear any explicit sorts by this alias as it will be an invalid sort.
         if (selectRowsSchema?.sorts != null) {
-          state.queryOptions.sort_by = state.queryOptions.sort_by?.filter(sortBy => {
+          state.query.sort_by = state.query.sort_by?.filter(sortBy => {
             return !(selectRowsSchema?.sorts || []).some(s => pathIsEqual(s.path, sortBy));
           });
         }
+        console.log('removing search, new state:', state);
         return state;
       }),
     setSortBy: (column: Path | null) =>
       update(state => {
         if (column == null) {
-          state.queryOptions.sort_by = undefined;
+          state.query.sort_by = undefined;
         } else {
-          state.queryOptions.sort_by = [column];
+          state.query.sort_by = [column];
         }
         return state;
       }),
     addSortBy: (column: Path) =>
       update(state => {
-        state.queryOptions.sort_by = [...(state.queryOptions.sort_by || []), column];
+        state.query.sort_by = [...(state.query.sort_by || []), column];
         return state;
       }),
     removeSortBy: (column: Path) =>
       update(state => {
-        state.queryOptions.sort_by = state.queryOptions.sort_by?.filter(
-          c => !pathIsEqual(c, column)
-        );
+        state.query.sort_by = state.query.sort_by?.filter(c => !pathIsEqual(c, column));
         return state;
       }),
     clearSorts: () =>
       update(state => {
-        state.queryOptions.sort_by = undefined;
-        state.queryOptions.sort_order = undefined;
+        state.query.sort_by = undefined;
+        state.query.sort_order = undefined;
         return state;
       }),
     setSortOrder: (sortOrder: SortOrder | null) =>
       update(state => {
-        state.queryOptions.sort_order = sortOrder || undefined;
+        state.query.sort_order = sortOrder || undefined;
         return state;
       }),
     removeFilter: (removedFilter: BinaryFilter | UnaryFilter | ListFilter) =>
       update(state => {
-        state.queryOptions.filters = state.queryOptions.filters?.filter(
-          f => !deepEqual(f, removedFilter)
-        );
+        state.query.filters = state.query.filters?.filter(f => !deepEqual(f, removedFilter));
         return state;
       }),
     addFilter: (filter: BinaryFilter | UnaryFilter | ListFilter) =>
       update(state => {
-        state.queryOptions.filters = [...(state.queryOptions.filters || []), filter];
+        state.query.filters = [...(state.query.filters || []), filter];
         return state;
       }),
     deleteSignal: (signalPath: Path) =>
       update(state => {
-        state.queryOptions.filters = state.queryOptions.filters?.filter(
-          f => !pathIncludes(signalPath, f.path)
-        );
-        state.queryOptions.sort_by = state.queryOptions.sort_by?.filter(
-          p => !pathIncludes(signalPath, p)
-        );
+        state.query.filters = state.query.filters?.filter(f => !pathIncludes(signalPath, f.path));
+        state.query.sort_by = state.query.sort_by?.filter(p => !pathIncludes(signalPath, p));
         return state;
       }),
     deleteConcept(
@@ -240,7 +255,7 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
       }
       update(state => {
         const resultPathsToRemove: string[][] = [];
-        state.queryOptions.searches = state.queryOptions.searches?.filter(s => {
+        state.query.searches = state.query.searches?.filter(s => {
           const keep = !matchesConcept(s.query);
           if (!keep && selectRowsSchema != null && selectRowsSchema.search_results != null) {
             const resultPaths = selectRowsSchema.search_results
@@ -250,10 +265,10 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
           }
           return keep;
         });
-        state.queryOptions.sort_by = state.queryOptions.sort_by?.filter(
+        state.query.sort_by = state.query.sort_by?.filter(
           p => !resultPathsToRemove.some(r => pathIsEqual(r, p))
         );
-        state.queryOptions.filters = state.queryOptions.filters?.filter(
+        state.query.filters = state.query.filters?.filter(
           f => !resultPathsToRemove.some(r => pathIsEqual(r, f.path))
         );
         return state;
@@ -261,8 +276,17 @@ export const createDatasetViewStore = (namespace: string, datasetName: string) =
     }
   };
 
-  datasetViewStores[datasetKey(namespace, datasetName)] = store;
-  return store;
+  const urlStore = createURLStore<DatasetViewState>(
+    'datasets',
+    `${namespace}/${datasetName}`,
+    store,
+    appStore,
+    hashState => stateFromHash(hashState, defaultState),
+    state => serializeState(state, defaultState)
+  );
+
+  datasetViewStores[datasetKey(namespace, datasetName)] = urlStore;
+  return urlStore;
 };
 
 export function setDatasetViewContext(store: DatasetViewStore) {
@@ -279,10 +303,10 @@ export function getDatasetViewContext() {
  * based on the current state of the dataset view store
  */
 export function getSelectRowsOptions(datasetViewStore: DatasetViewState): SelectRowsOptions {
-  const columns = ['*', ...(datasetViewStore.queryOptions.columns ?? [])];
+  const columns = ['*', ...(datasetViewStore.query.columns ?? [])];
 
   return {
-    ...datasetViewStore.queryOptions,
+    ...datasetViewStore.query,
     columns
   };
 }
