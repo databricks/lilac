@@ -39,5 +39,35 @@ def test_serialization() -> None:
     'signal_name': 'chunk',
     'chunk_size': 12,
     'chunk_overlap': 5,
-    'separators': ['\n\n', '\n', ' ', '']
+    'separators': ['```', '\n\n', '\n', ' ', '']
   }
+
+
+def test_split_code() -> None:
+  signal = ChunkSplitter(chunk_size=60, chunk_overlap=0)
+  text = """
+    We expected the entire code to be one span.
+
+    ```python
+    def hello():
+      echo('hello')
+    ```
+
+    This is the rest of the text.
+  """
+  spans = list(signal.compute([text]))[0]
+  expected_chunks = [
+    """
+    We expected the entire code to be one span.
+
+    """,
+    """```python
+    def hello():
+      echo('hello')
+    ```""",
+    """
+
+    This is the rest of the text.
+  """,
+  ]
+  assert spans_to_text(text, spans) == expected_chunks

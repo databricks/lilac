@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {querySettings} from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   /**
@@ -122,6 +123,8 @@
   const datasetStore = getDatasetContext();
   const visibleFields = $datasetStore.visibleFields || [];
 
+  $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
+
   $: values = getValueNodes(row, path)
     .map(v => L.value(v))
     .filter(notEmpty);
@@ -129,6 +132,7 @@
 
 {#each values as value, i}
   {@const suffix = values.length > 1 ? `[${i}]` : ''}
+  {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
   <div class="flex flex-row">
     <div class="flex w-full flex-col">
       <div
@@ -142,6 +146,7 @@
         <StringSpanHighlight
           text={formatValue(value)}
           {row}
+          {markdown}
           spanPaths={visibleSpanPaths}
           {valuePaths}
           {datasetViewStore}

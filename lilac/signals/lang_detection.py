@@ -1,6 +1,6 @@
 """Language detection of a document."""
 import re
-from typing import TYPE_CHECKING, Iterable, Optional, cast
+from typing import Any, Iterable, Optional, cast
 
 from pydantic import Field as PydanticField
 from typing_extensions import override
@@ -10,9 +10,7 @@ from ..schema import Field, Item, RichData, SignalInputType, field
 from .signal import TextSignal
 
 LANG_CODE = 'lang_code'
-
-if TYPE_CHECKING:
-  import langdetect
+TEXT_LEN_THRESHOLD = 25
 
 
 class LangDetectionSignal(TextSignal):
@@ -32,9 +30,9 @@ class LangDetectionSignal(TextSignal):
   split_by_paragraph: bool = PydanticField(
     default=False, description='Compute language scores for each paragraph.')
 
-  def _detect(self, text: str, langdetect: 'langdetect') -> Optional[str]:
+  def _detect(self, text: str, langdetect: Any) -> Optional[str]:
 
-    if len(text) < 25:
+    if len(text) < TEXT_LEN_THRESHOLD:
       return 'TOO_SHORT'
     try:
       return langdetect.detect(text)

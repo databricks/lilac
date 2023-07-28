@@ -26,6 +26,7 @@
   import {Button} from 'carbon-components-svelte';
   import {ArrowDown, ArrowUp} from 'carbon-icons-svelte';
   import {getContext} from 'svelte';
+  import SvelteMarkdown from 'svelte-markdown';
   import type {Writable} from 'svelte/store';
   import {hoverTooltip} from '../common/HoverTooltip';
   import {spanClick} from './SpanClick';
@@ -46,10 +47,11 @@
   export let spanPaths: Path[];
   // Information about each value under span paths to render.
   export let valuePaths: SpanValueInfo[];
+  export let markdown = false;
 
   // When defined, enables semantic search on spans.
-  export let datasetViewStore: DatasetViewStore | undefined = undefined;
-  export let datasetStore: DatasetState | undefined = undefined;
+  export let datasetViewStore: DatasetViewStore;
+  export let datasetStore: DatasetState;
 
   const spanHoverOpacity = 0.9;
 
@@ -153,10 +155,8 @@
   let searchPath: Path | null;
   let computedEmbeddings: string[] = [];
   $: {
-    if ($datasetViewStore != null && datasetStore != null) {
-      searchPath = getSearchPath($datasetViewStore, datasetStore);
-      computedEmbeddings = getComputedEmbeddings(datasetStore, searchPath);
-    }
+    searchPath = getSearchPath($datasetViewStore, datasetStore);
+    computedEmbeddings = getComputedEmbeddings(datasetStore, searchPath);
   }
 
   const findSimilar = (embedding: string, text: string) => {
@@ -201,8 +201,14 @@
           ? renderSpan.backgroundColor
           : colorFromOpacity(spanHoverOpacity)}
         on:mouseenter={() => spanMouseEnter(renderSpan)}
-        on:mouseleave={() => spanMouseLeave(renderSpan)}>{renderSpan.snippetText}</span
+        on:mouseleave={() => spanMouseLeave(renderSpan)}
       >
+        {#if markdown}
+          <SvelteMarkdown source={renderSpan.snippetText} />
+        {:else}
+          {renderSpan.snippetText}
+        {/if}
+      </span>
     {:else if snippetSpan.isEllipsis}<span
         use:hoverTooltip={{
           text: 'Some text was hidden to improve readability. \nClick "Show all" to show the entire document.'
@@ -245,5 +251,25 @@
     /** Add a tiny bit of padding so that the hover doesn't flicker between rows. */
     padding-top: 1.5px;
     padding-bottom: 1.5px;
+  }
+  :global(.highlight-span pre) {
+    @apply bg-slate-200;
+    @apply text-sm;
+  }
+  :global(.highlight-span p, pre) {
+    @apply my-3;
+  }
+  :global(.highlight-span p:first-child) {
+    @apply !inline;
+  }
+  :global(.highlight-span p:last-child) {
+    @apply !inline;
+  }
+  :global(.highlight-span p, h1) {
+    background-color: inherit;
+  }
+  :global(.highlight-span p) {
+    @apply text-sm;
+    font-weight: inherit;
   }
 </style>

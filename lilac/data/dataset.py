@@ -165,7 +165,8 @@ ColumnId = Union[Path, Column]
 
 class DatasetUISettings(BaseModel):
   """The UI persistent settings for a dataset."""
-  media_paths: list[PathTuple] = []
+  media_paths: set[PathTuple] = set()
+  markdown_paths: set[PathTuple] = set()
 
 
 class DatasetSettings(BaseModel):
@@ -462,9 +463,9 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
   stats: list[StatsResult] = list(pool.map(lambda leaf: dataset.stats(leaf), leaf_paths))
   sorted_stats = sorted([stat for stat in stats if stat.avg_text_length],
                         key=lambda stat: stat.avg_text_length or -1.0)
-  media_paths = []
+  media_paths: set[PathTuple] = set()
   if sorted_stats:
-    media_paths = [sorted_stats[-1].path]
+    media_paths = set([sorted_stats[-1].path])
 
   return DatasetSettings(ui=DatasetUISettings(media_paths=media_paths))
 

@@ -35,6 +35,7 @@
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   let selectedMediaFields: LilacField[] | null = null;
+  let markdownMediaFields: LilacField[] | null = null;
   let preferredEmbedding: string | undefined = $appSettings.embedding;
 
   $: mediaFields = petals(schema).filter(
@@ -43,10 +44,23 @@
 
   $: {
     if (selectedMediaFields == null) {
-      const selectedMediaPaths = $settings.data?.ui?.media_paths || [];
-      selectedMediaFields = mediaFields.filter(f =>
-        selectedMediaPaths.some(path => pathIsEqual(f.path, path))
-      );
+      const mediaPathsFromSettings = $settings.data?.ui?.media_paths;
+      if (mediaPathsFromSettings != null) {
+        selectedMediaFields = mediaFields.filter(f =>
+          mediaPathsFromSettings.some(path => pathIsEqual(f.path, path))
+        );
+      }
+    }
+  }
+
+  $: {
+    if (markdownMediaFields == null) {
+      const mardownPathsFromSettings = $settings.data?.ui?.markdown_paths;
+      if (mardownPathsFromSettings != null) {
+        markdownMediaFields = mediaFields.filter(f =>
+          mardownPathsFromSettings.some(path => pathIsEqual(f.path, path))
+        );
+      }
     }
   }
 
@@ -62,7 +76,8 @@
     if (selectedMediaFields == null) return;
     const newSettings: DatasetSettings = {
       ui: {
-        media_paths: selectedMediaFields.map(f => f.path)
+        media_paths: selectedMediaFields.map(f => f.path),
+        markdown_paths: markdownMediaFields?.map(f => f.path)
       },
       preferred_embedding: preferredEmbedding
     };
@@ -111,6 +126,16 @@
               </Select>
             {/if}
           </div>
+        </section>
+
+        <section class="flex flex-col gap-y-1">
+          <div class="text-lg text-gray-700">Render as markdown</div>
+          {#if selectedMediaFields != null && markdownMediaFields != null}
+            <DownloadFieldList
+              fields={selectedMediaFields}
+              bind:checkedFields={markdownMediaFields}
+            />
+          {/if}
         </section>
       </div>
     {/if}

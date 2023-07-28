@@ -41,7 +41,7 @@ from ..signal import TextSplitterSignal
 
 TextChunk = tuple[str, tuple[int, int]]
 
-DEFAULT_SEPARATORS = ['\n\n', '\n', ' ', '']
+DEFAULT_SEPARATORS = ['```', '\n\n', '\n', ' ', '']
 CHUNK_SIZE = 400
 CHUNK_OVERLAP = 50
 
@@ -99,10 +99,24 @@ def _sep_split(text: str, separator: str) -> list[TextChunk]:
 
   offset = 0
   chunks: list[TextChunk] = []
+  open_code_block = False
   end_index = text.find(separator, offset)
 
   while end_index >= 0:
-    chunks.append((text[offset:end_index], (offset, end_index)))
+    if separator == '```':
+      # We want to keep the code block seperators as part of the text chunk.
+      start = max(0, offset - len(separator))
+      if open_code_block:
+        end = end_index + len(separator)
+        open_code_block = False
+      else:
+        end = end_index
+        open_code_block = True
+    else:
+      start = offset
+      end = end_index
+
+    chunks.append((text[start:end], (start, end)))
     offset = end_index + len(separator)
     end_index = text.find(separator, offset)
 
@@ -120,9 +134,8 @@ def split_text(text: str,
   """Split incoming text and return chunks."""
 
   def _merge_splits(splits: Iterable[TextChunk], separator: str) -> list[TextChunk]:
-    # We now want to combine these smaller pieces into medium size
-    # chunks to send to the LLM.
-    separator_len = length_function(separator)
+    # We now want to combine these smaller pieces into medium size chunks to send to the LLM.
+    separator_len = 0 if separator == '```' else length_function(separator)
 
     docs: list[TextChunk] = []
     current_doc: list[TextChunk] = []
@@ -157,12 +170,14 @@ def split_text(text: str,
   final_chunks: list[TextChunk] = []
   # Get appropriate separator to use
   separator = separators[-1]
-  for _s in separators:
+  new_separators: list[str] = []
+  for i, _s in enumerate(separators):
     if _s == '':
       separator = _s
       break
     if _s in text:
       separator = _s
+      new_separators = separators[i + 1:]
       break
   # Now that we have the separator, split the text.
   splits = _sep_split(text, separator)
@@ -177,7 +192,8 @@ def split_text(text: str,
         merged_text = _merge_splits(good_splits, separator)
         final_chunks.extend(merged_text)
         good_splits = []
-      other_chunks = split_text(text_chunk, chunk_size, chunk_overlap, separators, length_function)
+      other_chunks = split_text(text_chunk, chunk_size, chunk_overlap, new_separators,
+                                length_function)
       # Adjust the offsets of the other chunks.
       other_chunks = [(t, (s + start, e + start)) for t, (s, e) in other_chunks]
       final_chunks.extend(other_chunks)
@@ -188,6 +204,9 @@ def split_text(text: str,
 
 
 def _join_chunks(chunks: list[TextChunk], separator: str) -> Optional[TextChunk]:
+  if separator == '```':
+    # Code blocks already have the separator.
+    separator = ''
   text = separator.join([text for text, _ in chunks])
   text = text.strip()
   if text == '':
