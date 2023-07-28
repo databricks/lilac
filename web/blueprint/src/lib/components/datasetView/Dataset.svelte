@@ -32,8 +32,8 @@
   export let namespace: string;
   export let datasetName: string;
 
-  $: appStore = getUrlHashContext();
-  $: datasetViewStore = createDatasetViewStore(appStore, namespace, datasetName);
+  $: urlHashContext = getUrlHashContext();
+  $: datasetViewStore = createDatasetViewStore(urlHashContext, namespace, datasetName);
   $: setDatasetViewContext(datasetViewStore);
 
   $: schemaCollapsed = $datasetViewStore.schemaCollapsed;
