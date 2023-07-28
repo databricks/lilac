@@ -3,7 +3,7 @@ import {getContext, hasContext, setContext} from 'svelte';
 import {writable, type Writable} from 'svelte/store';
 
 export type AppPage = 'home' | 'concepts' | 'datasets' | 'settings';
-interface AppState {
+interface UrlHashState {
   hash: string;
   page: AppPage | null;
   // The sub-page identifier, e.g. local/movies.
@@ -12,13 +12,13 @@ interface AppState {
   hashState: string | null;
 }
 
-export type AppStateStore = ReturnType<typeof createAppStore>;
+export type UrlHashStateStore = ReturnType<typeof createUrlHashStore>;
 export type PageStateCallback = (page: AppPage) => void;
 
-const APP_CONTEXT = 'APP_CONTEXT';
+const URL_HASH_CONTEXT = 'URL_HASH_CONTEXT';
 
-export function createAppStore() {
-  const {subscribe, update} = writable<AppState>({
+export function createUrlHashStore() {
+  const {subscribe, update} = writable<UrlHashState>({
     hash: '',
     page: null,
     identifier: null,
@@ -51,13 +51,13 @@ export function pushState(identifier: string, hashState: string) {
   }
 }
 
-export function setAppStoreContext(store: AppStateStore) {
-  setContext(APP_CONTEXT, store);
+export function setUrlHashContext(store: UrlHashStateStore) {
+  setContext(URL_HASH_CONTEXT, store);
 }
 
-export function getAppStoreContext() {
-  if (!hasContext(APP_CONTEXT)) throw new Error('AppStateContext not found');
-  return getContext<AppStateStore>(APP_CONTEXT);
+export function getUrlHashContext() {
+  if (!hasContext(URL_HASH_CONTEXT)) throw new Error('UrlHashStoreContext not found');
+  return getContext<UrlHashStateStore>(URL_HASH_CONTEXT);
 }
 
 function removeDefaultValues(
@@ -132,17 +132,17 @@ export function persistedHashStore<T extends object>(
   page: string,
   identifier: string,
   store: Writable<T>,
-  appStore: AppStateStore,
+  urlHashStore: UrlHashStateStore,
   stateFromHash: (hashState: string) => T,
   hashFromState: (state: T) => string
 ) {
   let skipUpdate = false;
-  appStore.subscribe(appState => {
-    if (appState.page === page && appState.identifier === identifier) {
+  urlHashStore.subscribe(urlHashState => {
+    if (urlHashState.page === page && urlHashState.identifier === identifier) {
       // Skip the URL update when the state change came from the URL.
       skipUpdate = true;
       // The original store needs to be updated so it reflects the changes from the URL.
-      store.set(stateFromHash(appState.hashState!));
+      store.set(stateFromHash(urlHashState.hashState!));
     }
   });
 

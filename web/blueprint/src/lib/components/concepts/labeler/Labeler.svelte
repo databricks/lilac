@@ -1,33 +1,33 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import {maybeQueryDatasetSchema, queryDatasets} from '$lib/queries/datasetQueries';
-  import {getAppStoreContext} from '$lib/stores/appStore';
   import {createDatasetViewStore} from '$lib/stores/datasetViewStore';
   import {getSettingsContext} from '$lib/stores/settingsStore';
   import {datasetLink} from '$lib/utils';
   import {
-    childFields,
-    deserializePath,
-    getField,
-    isSignalField,
-    serializePath,
-    type Concept,
-    type LilacField,
-    type LilacSchema
+      childFields,
+      deserializePath,
+      getField,
+      isSignalField,
+      serializePath,
+      type Concept,
+      type LilacField,
+      type LilacSchema
   } from '$lilac';
   import {
-    Button,
-    InlineNotification,
-    Select,
-    SelectItem,
-    SelectSkeleton
+      Button,
+      InlineNotification,
+      Select,
+      SelectItem,
+      SelectSkeleton
   } from 'carbon-components-svelte';
   import {ArrowUpRight} from 'carbon-icons-svelte';
   import DataFeeder from './DataFeeder.svelte';
+  import {getAppStoreContext as getUrlHashContext} from ();
 
   export let concept: Concept;
 
-  $: appStore = getAppStoreContext();
+  $: urlHashStore = getUrlHashContext();
   const settings = getSettingsContext();
 
   let dataset: {namespace: string; name: string} | undefined | null = undefined;
@@ -122,7 +122,7 @@
   }
 
   $: datasetViewStore =
-    dataset != null ? createDatasetViewStore(appStore, dataset.namespace, dataset.name) : null;
+    dataset != null ? createDatasetViewStore(urlHashStore, dataset.namespace, dataset.name) : null;
   function openDataset() {
     if (datasetViewStore == null || pathId == null || embedding == null || dataset == null) return;
     datasetViewStore.addSearch({

@@ -13,13 +13,13 @@
     querySettings
   } from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
-  import {getAppStoreContext} from '$lib/stores/appStore';
   import {createDatasetStore, setDatasetContext} from '$lib/stores/datasetStore';
   import {
     createDatasetViewStore,
     getSelectRowsSchemaOptions,
     setDatasetViewContext
   } from '$lib/stores/datasetViewStore';
+  import {getUrlHashContext} from '$lib/stores/urlHashStore';
   import {datasetLink} from '$lib/utils';
   import {getVisibleFields} from '$lib/view_utils';
   import {getFieldsByDtype} from '$lilac';
@@ -32,7 +32,7 @@
   export let namespace: string;
   export let datasetName: string;
 
-  $: appStore = getAppStoreContext();
+  $: appStore = getUrlHashContext();
   $: datasetViewStore = createDatasetViewStore(appStore, namespace, datasetName);
   $: setDatasetViewContext(datasetViewStore);
 

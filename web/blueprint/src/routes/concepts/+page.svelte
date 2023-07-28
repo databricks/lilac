@@ -6,9 +6,9 @@
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
-  import {getAppStoreContext} from '$lib/stores/appStore';
   import {datasetStores} from '$lib/stores/datasetStore';
   import {datasetViewStores} from '$lib/stores/datasetViewStore';
+  import {getUrlHashContext} from '$lib/stores/urlHashStore';
   import {conceptLink} from '$lib/utils';
   import {getSortedConcepts} from '$lib/view_utils';
   import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
@@ -18,15 +18,15 @@
   let namespace: string | undefined;
   let conceptName: string | undefined;
 
-  const appStore = getAppStoreContext();
+  const urlHashStore = getUrlHashContext();
 
   $: {
-    if ($appStore.page === 'concepts') {
-      if ($appStore.identifier == '' || $appStore.identifier == null) {
+    if ($urlHashStore.page === 'concepts') {
+      if ($urlHashStore.identifier == '' || $urlHashStore.identifier == null) {
         namespace = undefined;
         conceptName = undefined;
       } else {
-        const [newNamespace, newConceptName] = $appStore.identifier.split('/');
+        const [newNamespace, newConceptName] = $urlHashStore.identifier.split('/');
         if (namespace != newNamespace || conceptName != newConceptName) {
           namespace = newNamespace;
           conceptName = newConceptName;

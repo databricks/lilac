@@ -1,19 +1,19 @@
 <script lang="ts">
   import Dataset from '$lib/components/datasetView/Dataset.svelte';
-  import {getAppStoreContext} from '$lib/stores/appStore';
+  import {getUrlHashContext} from '$lib/stores/urlHashStore';
   import Datasets from './Datasets.svelte';
 
   let namespace: string | undefined = undefined;
   let datasetName: string | undefined = undefined;
-  const appStore = getAppStoreContext();
+  const urlHashStore = getUrlHashContext();
 
   $: {
-    if ($appStore.page === 'datasets') {
-      if ($appStore.identifier == '' || $appStore.identifier == null) {
+    if ($urlHashStore.page === 'datasets') {
+      if ($urlHashStore.identifier == '' || $urlHashStore.identifier == null) {
         namespace = undefined;
         datasetName = undefined;
       } else {
-        const [newNamespace, newDataset] = $appStore.identifier.split('/');
+        const [newNamespace, newDataset] = $urlHashStore.identifier.split('/');
         if (namespace != newNamespace || datasetName != newDataset) {
           namespace = newNamespace;
           datasetName = newDataset;

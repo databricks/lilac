@@ -9,7 +9,7 @@
   // Styles
   import '../tailwind.css';
   // Carbon component must be imported after tailwind.css
-  import {createAppStore, setAppStoreContext, type AppPage} from '$lib/stores/appStore';
+  import {createUrlHashStore, setUrlHashContext, type AppPage} from '$lib/stores/urlHashStore';
   // This import is so we can override the carbon icon theme below.
   import {page} from '$app/stores';
   import Navigation from '$lib/components/Navigation.svelte';
@@ -27,19 +27,19 @@
   };
 
   $: currentPage = $page.route.id != null ? routeToPage[$page.route.id] : 'home';
-  let appStore = createAppStore();
-  setAppStoreContext(appStore);
+  let urlHashStore = createUrlHashStore();
+  setUrlHashContext(urlHashStore);
 
   onMount(() => {
     // Initialize the page from the hash.
-    appStore.setHash(currentPage, $page.url.hash);
+    urlHashStore.setHash(currentPage, $page.url.hash);
   });
 
   // When the hash changes (back button, click on a link, etc) read the state from the URL and set
   // the dataset state on the global app store.
   function urlChange(url: string | URL) {
     const newURL = new URL(url);
-    appStore.setHash(currentPage, newURL.hash);
+    urlHashStore.setHash(currentPage, newURL.hash);
   }
 
   onMount(() => {
