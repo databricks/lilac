@@ -50,8 +50,8 @@
   export let markdown = false;
 
   // When defined, enables semantic search on spans.
-  export let datasetViewStore: DatasetViewStore;
-  export let datasetStore: DatasetState;
+  export let datasetViewStore: DatasetViewStore | undefined = undefined;
+  export let datasetStore: DatasetState | undefined = undefined;
 
   const spanHoverOpacity = 0.9;
 
@@ -155,8 +155,10 @@
   let searchPath: Path | null;
   let computedEmbeddings: string[] = [];
   $: {
-    searchPath = getSearchPath($datasetViewStore, datasetStore);
-    computedEmbeddings = getComputedEmbeddings(datasetStore, searchPath);
+    if ($datasetViewStore != null && datasetStore != null) {
+      searchPath = getSearchPath($datasetViewStore, datasetStore);
+      computedEmbeddings = getComputedEmbeddings(datasetStore, searchPath);
+    }
   }
 
   const findSimilar = (embedding: string, text: string) => {
