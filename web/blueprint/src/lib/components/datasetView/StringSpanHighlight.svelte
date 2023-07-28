@@ -258,7 +258,8 @@
     @apply bg-slate-200;
     @apply text-sm;
   }
-  :global(.highlight-span p, pre) {
+  :global(.highlight-span p),
+  :global(.highlight-span pre) {
     @apply my-3;
   }
   :global(.highlight-span p:first-child) {
@@ -267,7 +268,8 @@
   :global(.highlight-span p:last-child) {
     @apply !inline;
   }
-  :global(.highlight-span p, h1) {
+  :global(.highlight-span p),
+  :global(.highlight-span h1) {
     background-color: inherit;
   }
   :global(.highlight-span p) {
