@@ -29,13 +29,7 @@ from .schema import Bin, Path, normalize_path
 from .signals.concept_labels import ConceptLabelsSignal
 from .signals.concept_scorer import ConceptScoreSignal
 from .signals.semantic_similarity import SemanticSimilaritySignal
-from .signals.signal import (
-  Signal,
-  TextEmbeddingModelSignal,
-  TextEmbeddingSignal,
-  TextSignal,
-  resolve_signal,
-)
+from .signals.signal import Signal, TextEmbeddingSignal, TextSignal, resolve_signal
 from .signals.substring_search import SubstringSignal
 from .tasks import TaskId, task_manager
 from .utils import DatasetInfo, list_datasets
@@ -176,8 +170,7 @@ class ListFilter(BaseModel):
 Filter = Union[BinaryFilter, UnaryFilter, ListFilter]
 
 AllSignalTypes = Union[ConceptScoreSignal, ConceptLabelsSignal, SubstringSignal,
-                       SemanticSimilaritySignal, TextEmbeddingModelSignal, TextEmbeddingSignal,
-                       TextSignal, Signal]
+                       SemanticSimilaritySignal, TextEmbeddingSignal, TextSignal, Signal]
 
 
 # We override the `Column` class so we can add explicitly all signal types for better OpenAPI spec.

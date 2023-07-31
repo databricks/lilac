@@ -7,12 +7,12 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field
+from ..schema import UUID_COLUMN, Field, Item, RichData, SignalInputType, VectorKey, field
 from ..signals.signal import (
-  TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSignal,
   TextSplitterSignal,
+  VectorSignal,
   clear_signal_registry,
   register_signal,
 )
@@ -65,9 +65,10 @@ class TestSignal(TextSignal):
     return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
 
 
-class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
+class TestEmbeddingSumSignal(VectorSignal):
   """Sums the embeddings to return a single floating point value."""
   name = 'test_embedding_sum'
+  input_type = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:

@@ -51,8 +51,8 @@ from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
   Signal,
-  TextEmbeddingModelSignal,
   TextEmbeddingSignal,
+  VectorSignal,
   get_signal_by_type,
   resolve_signal,
 )
@@ -688,7 +688,7 @@ class DatasetDuckDB(Dataset):
     if not udf_cols_to_sort_by:
       return None
     udf_col = udf_cols_to_sort_by[0]
-    if udf_col.signal_udf and not udf_col.signal_udf.supports_vector_index:
+    if udf_col.signal_udf and not isinstance(udf_col.signal_udf, VectorSignal):
       return None
     return udf_col
 
@@ -821,7 +821,7 @@ class DatasetDuckDB(Dataset):
         # Convert UUIDs to path keys.
         path_keys = [(uuid,) for uuid in df[UUID_COLUMN]]
 
-      topk_signal = cast(TextEmbeddingModelSignal, topk_udf_col.signal_udf)
+      topk_signal = cast(VectorSignal, topk_udf_col.signal_udf)
       # The input is an embedding.
       vector_index = self.get_vector_db_index(topk_signal.embedding, topk_udf_col.path)
       k = (limit or 0) + (offset or 0)
@@ -946,12 +946,12 @@ class DatasetDuckDB(Dataset):
       with DebugTimer(f'Computing signal "{signal.signal_name}"'):
         signal.setup()
 
-        if signal.supports_vector_index:
-          embedding_signal = cast(TextEmbeddingModelSignal, signal)
+        if isinstance(signal, VectorSignal):
+          embedding_signal = signal
           vector_store = self.get_vector_db_index(embedding_signal.embedding, udf_col.path)
           flat_keys = list(flatten_keys(df[UUID_COLUMN], input))
           signal_out = sparse_to_dense_compute(
-            iter(flat_keys), lambda keys: signal.vector_compute(keys, vector_store))
+            iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store))
           # Add progress.
           if task_step_id is not None:
             signal_out = progress(

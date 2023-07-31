@@ -9,13 +9,15 @@ from ..concepts.concept import DEFAULT_NUM_NEG_EXAMPLES, DRAFT_MAIN, ConceptColu
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..data.dataset_utils import lilac_span
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import Field, Item, PathKey, RichData, field
-from .signal import TextEmbeddingModelSignal
+from ..schema import Field, Item, PathKey, RichData, SignalInputType, field
+from ..signals.signal import VectorSignal
 
 
-class ConceptScoreSignal(TextEmbeddingModelSignal):
+class ConceptScoreSignal(VectorSignal):
   """Compute scores along a given concept for documents."""
   name = 'concept_score'
+  input_type = SignalInputType.TEXT
+
   display_name = 'Concept'
 
   namespace: str

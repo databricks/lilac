@@ -73,7 +73,6 @@ export type { TaskInfo } from './models/TaskInfo';
 export type { TaskManifest } from './models/TaskManifest';
 export type { TaskStatus } from './models/TaskStatus';
 export type { TaskStepInfo } from './models/TaskStepInfo';
-export type { TextEmbeddingModelSignal } from './models/TextEmbeddingModelSignal';
 export type { TextEmbeddingSignal } from './models/TextEmbeddingSignal';
 export type { TextSignal } from './models/TextSignal';
 export type { UnaryFilter } from './models/UnaryFilter';

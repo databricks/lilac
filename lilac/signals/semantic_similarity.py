@@ -8,11 +8,11 @@ from typing_extensions import override
 from ..data.dataset_utils import lilac_span
 from ..embeddings.embedding import EmbedFn, get_embed_fn
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import Field, Item, PathKey, RichData, field
-from .signal import TextEmbeddingModelSignal
+from ..schema import Field, Item, PathKey, RichData, SignalInputType, field
+from .signal import VectorSignal
 
 
-class SemanticSimilaritySignal(TextEmbeddingModelSignal):
+class SemanticSimilaritySignal(VectorSignal):
   """Compute semantic similarity for a query and a document.
 
   \
@@ -21,6 +21,7 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
   """
   name = 'semantic_similarity'
   display_name = 'Semantic Similarity'
+  input_type = SignalInputType.TEXT
 
   query: str
 

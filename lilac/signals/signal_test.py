@@ -4,11 +4,9 @@ from typing import Iterable, Optional
 import pytest
 from typing_extensions import override
 
-from ..embeddings.vector_store import VectorDBIndex
-from ..schema import Field, Item, RichData, SignalInputType, VectorKey, field
+from ..schema import Field, Item, RichData, SignalInputType, field
 from .signal import (
   Signal,
-  TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSplitterSignal,
   clear_signal_registry,
@@ -59,28 +57,12 @@ class TestTextEmbedding(TextEmbeddingSignal):
     return []
 
 
-class TestTextEmbeddingModelSignal(TextEmbeddingModelSignal):
-  """A test text embedding model."""
-  name = 'test_embedding_model'
-
-  @override
-  def fields(self) -> Field:
-    return field('float32')
-
-  @override
-  def vector_compute(self, keys: Iterable[VectorKey],
-                     vector_index: VectorDBIndex) -> Iterable[Item]:
-    del keys, vector_index
-    return []
-
-
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(TestSignal)
   register_signal(TestTextSplitter)
   register_signal(TestTextEmbedding)
-  register_signal(TestTextEmbeddingModelSignal)
 
   # Unit test runs.
   yield
