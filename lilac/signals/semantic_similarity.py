@@ -33,9 +33,7 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
   def __init__(self, query: Union[str, bytes], embedding: str, **kwargs: Any):
     if isinstance(query, bytes):
       raise ValueError('Image queries are not yet supported for SemanticSimilarity.')
-
-    super().__init__(query=query, embedding=embedding, **kwargs)
-
+    super().__init__(query=query, embedding=embedding, **kwargs)  # type: ignore
     # TODO(nsthorat): The embedding cls might have arguments. This needs to be resolved.
     self._embed_fn = get_embed_fn(embedding)
 
