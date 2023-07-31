@@ -117,7 +117,7 @@ def startup() -> None:
 
   if repo_id:
     # Copy datasets.
-    spaces_data_dir = os.path.join('data')
+    spaces_data_dir = 'data'
     datasets = list_datasets(spaces_data_dir)
     for dataset in datasets:
       spaces_dataset_output_dir = get_dataset_output_dir(spaces_data_dir, dataset.namespace,
