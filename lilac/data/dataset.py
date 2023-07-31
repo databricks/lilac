@@ -284,8 +284,7 @@ class Dataset(abc.ABC):
 
   @abc.abstractmethod
   def get_vector_db_index(self, embedding: str, path: PathTuple) -> VectorDBIndex:
-    # TODO: Instead of this, allow selecting vectors via select_rows.
-    """Get the vector store for a column."""
+    """Get the vector index for a path and an embedding."""
     pass
 
   @abc.abstractmethod

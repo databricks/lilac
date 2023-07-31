@@ -85,7 +85,7 @@ class Signal(abc.ABC, BaseModel):
 
     Args:
       keys: An iterable of value ids (at row-level or lower) to lookup precomputed embeddings.
-      vector_index: The vector store to lookup pre-computed embeddings.
+      vector_index: The vector index to lookup pre-computed embeddings.
 
     Returns
       An iterable of items. Sparse signals should return "None" for skipped inputs.
@@ -104,7 +104,7 @@ class Signal(abc.ABC, BaseModel):
 
     Args:
       topk: The number of items to return, ranked by the signal.
-      vector_index: The vector store to lookup pre-computed embeddings.
+      vector_index: The vector index to lookup pre-computed embeddings.
       keys: Optional iterable of row ids to restrict the search to.
 
     Returns

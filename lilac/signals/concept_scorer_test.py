@@ -309,7 +309,7 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB],
 def test_concept_score_key() -> None:
   signal = ConceptScoreSignal(
     namespace='test', concept_name='test_concept', embedding=TestEmbedding.name)
-  assert signal.key() == 'test/test_concept(embedding=test_embedding)'
+  assert signal.key() == 'test/test_concept/test_embedding'
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
@@ -321,4 +321,4 @@ def test_concept_score_compute_signal_key(concept_db_cls: Type[ConceptDB]) -> No
 
   signal = ConceptScoreSignal(
     namespace='test', concept_name='test_concept', embedding=TestEmbedding.name)
-  assert signal.key(is_computed_signal=True) == 'test/test_concept(embedding=test_embedding)/v0'
+  assert signal.key(is_computed_signal=True) == 'test/test_concept/test_embedding/v0'

@@ -10,7 +10,7 @@ from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..data.dataset_utils import lilac_span
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import Field, Item, PathKey, RichData, field
-from .signal import TextEmbeddingModelSignal, _args_key_from_dict
+from .signal import TextEmbeddingModelSignal
 
 
 class ConceptScoreSignal(TextEmbeddingModelSignal):
@@ -100,9 +100,4 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
     # NOTE: The embedding is a value so already exists in the path structure. This means we do not
     # need to provide the name as part of the key, which still guarantees uniqueness.
     version = f'/v{self._get_concept_model().version}' if is_computed_signal else ''
-    args_dict = self.dict(exclude_unset=True, exclude_defaults=True)
-    if 'signal_name' in args_dict:
-      del args_dict['signal_name']
-    del args_dict['namespace']
-    del args_dict['concept_name']
-    return f'{self.namespace}/{self.concept_name}{_args_key_from_dict(args_dict)}{version}'
+    return f'{self.namespace}/{self.concept_name}/{self.embedding}{version}'

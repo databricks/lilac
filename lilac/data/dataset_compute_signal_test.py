@@ -553,8 +553,6 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
     num_items=2)
 
   result = dataset.select_rows(combine_columns=True)
-
-  # Embeddings are replaced with "None".
   expected_result = [{UUID_COLUMN: '1', 'text': 'hello.'}, {UUID_COLUMN: '2', 'text': 'hello2.'}]
   assert list(result) == expected_result
 
@@ -582,7 +580,6 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows(combine_columns=True)
 
-  # Embeddings are replaced with "None".
   expected_result = [{
     UUID_COLUMN: '1',
     'text': enriched_item('hello.', {'key_True': 1})

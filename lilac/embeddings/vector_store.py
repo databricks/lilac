@@ -68,7 +68,11 @@ PathKey = VectorKey
 
 
 class VectorDBIndex:
-  """Interface for storing and retrieving span vectors."""
+  """Stores and retrives span vectors.
+
+  This wraps a regular vector store by adding a mapping from path keys, such as (uuid1, 0),
+  to span keys, such as (uuid1, 0, 0), which denotes the first span in the (uuid1, 0) text document.
+  """
 
   def __init__(self, vector_store_cls: Type[VectorStore],
                spans: list[tuple[PathKey, list[tuple[int, int]]]], embeddings: np.ndarray) -> None:

@@ -154,7 +154,7 @@ class DatasetDuckDB(Dataset):
     self._signal_manifests: list[SignalManifest] = []
     self.con = duckdb.connect(database=':memory:')
 
-    # Maps a path and embedding to the vector store. This is lazily generated as needed.
+    # Maps a path and embedding to the vector index. This is lazily generated as needed.
     self._vector_indices: dict[tuple[PathKey, str], VectorDBIndex] = {}
     self.vector_store_cls = vector_store_cls
     self._manifest_lock = threading.Lock()
@@ -293,10 +293,10 @@ class DatasetDuckDB(Dataset):
     filepath_prefix = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
                                    signal_name, manifest.embedding_filename_prefix)
     spans, embeddings = read_embeddings_from_disk(filepath_prefix)
-    span_vector_store = VectorDBIndex(self.vector_store_cls, spans, embeddings)
-    # Cache the vector store.
-    self._vector_indices[index_key] = span_vector_store
-    return span_vector_store
+    vector_index = VectorDBIndex(self.vector_store_cls, spans, embeddings)
+    # Cache the vector index.
+    self._vector_indices[index_key] = vector_index
+    return vector_index
 
   @override
   def compute_signal(self,
