@@ -21,35 +21,43 @@ EnvironmentKeys = Union[Literal['LILAC_DATA_PATH'],
                         # Debugging
                         Literal['DEBUG'], Literal['DISABLE_LOGS']]
 
-first_load = True
+
+def _init_env() -> None:
+  in_test = os.environ.get('LILAC_TEST', None)
+  # Load the .env files into the environment in order of highest to lowest priority.
+
+  if not in_test:  # Skip local environment variables when testing.
+    load_dotenv('.env.local')
+  load_dotenv('.env.demo')
+  load_dotenv('.env')
+
+  if os.environ.get('LILAC_AUTH_ENABLED', None):
+    if not os.environ.get('GOOGLE_CLIENT_ID', None) or not os.environ.get(
+        'GOOGLE_CLIENT_SECRET', None):
+      raise ValueError(
+        'Missing `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` when `LILAC_AUTH_ENABLED=true`')
+    SECRET_KEY = os.environ.get('LILAC_OAUTH_SECRET_KEY', None)
+    if not SECRET_KEY:
+      raise ValueError('Missing `LILAC_OAUTH_SECRET_KEY` when `LILAC_AUTH_ENABLED=true`')
+  if os.environ.get('LILAC_AUTH_ENABLED', None):
+    if not os.environ.get('GOOGLE_CLIENT_ID', None) or not os.environ.get(
+        'GOOGLE_CLIENT_SECRET', None):
+      raise ValueError(
+        'Missing `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` when `LILAC_AUTH_ENABLED=true`')
+    SECRET_KEY = os.environ.get('LILAC_OAUTH_SECRET_KEY', None)
+    if not SECRET_KEY:
+      raise ValueError('Missing `LILAC_OAUTH_SECRET_KEY` when `LILAC_AUTH_ENABLED=true`')
 
 
 def env(key: EnvironmentKeys, default: Optional[Any] = None) -> Any:
   """Return the value of an environment variable."""
-  global first_load
-
-  if first_load:
-    first_load = False
-    in_test = os.environ.get('LILAC_TEST', None)
-    # Load the .env files into the environment in order of highest to lowest priority.
-
-    if not in_test:  # Skip local environment variables when testing.
-      load_dotenv('.env.local')
-    load_dotenv('.env.demo')
-    load_dotenv('.env')
-
-    if os.environ.get('LILAC_AUTH_ENABLED', None):
-      if not os.environ.get('GOOGLE_CLIENT_ID', None) or not os.environ.get(
-          'GOOGLE_CLIENT_SECRET', None):
-        raise ValueError(
-          'Missing `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` when `LILAC_AUTH_ENABLED=true`')
-      SECRET_KEY = os.environ.get('LILAC_OAUTH_SECRET_KEY', None)
-      if not SECRET_KEY:
-        raise ValueError('Missing `LILAC_OAUTH_SECRET_KEY` when `LILAC_AUTH_ENABLED=true`')
-
   return os.environ.get(key, default)
 
 
 def data_path() -> str:
   """Return the base path for data."""
   return cast(str, env('LILAC_DATA_PATH', './data'))
+
+
+# Initialize the environment at import time.
+_init_env()
