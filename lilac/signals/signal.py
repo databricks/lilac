@@ -159,6 +159,7 @@ class VectorSignal(Signal, abc.ABC):
   """An interface for signals that can compute items given vector inputs."""
   embedding: str
 
+  @abc.abstractmethod
   def vector_compute(self, keys: Iterable[PathKey],
                      vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
     """Compute the signal for an iterable of keys that point to documents or images.
