@@ -40,6 +40,7 @@ PathKeyedItem = tuple[Path, Item]
 # These fields are for for python only and not written to a schema.
 RichData = Union[str, bytes]
 VectorKey = tuple[Union[StrictStr, StrictInt], ...]
+PathKey = VectorKey
 
 
 class DataType(str, Enum):
@@ -94,16 +95,15 @@ class SignalInputType(str, Enum):
     return self.value
 
 
-SIGNAL_COMPUTE_TYPE_TO_VALID_DTYPES: dict[SignalInputType, list[DataType]] = {
+SIGNAL_TYPE_TO_VALID_DTYPES: dict[SignalInputType, list[DataType]] = {
   SignalInputType.TEXT: [DataType.STRING, DataType.STRING_SPAN],
-  SignalInputType.TEXT_EMBEDDING: [DataType.EMBEDDING],
   SignalInputType.IMAGE: [DataType.BINARY],
 }
 
 
-def signal_compute_type_supports_dtype(input_type: SignalInputType, dtype: DataType) -> bool:
+def signal_type_supports_dtype(input_type: SignalInputType, dtype: DataType) -> bool:
   """Returns True if the signal compute type supports the dtype."""
-  return dtype in SIGNAL_COMPUTE_TYPE_TO_VALID_DTYPES[input_type]
+  return dtype in SIGNAL_TYPE_TO_VALID_DTYPES[input_type]
 
 
 Bin = tuple[str, Optional[Union[float, int]], Optional[Union[float, int]]]

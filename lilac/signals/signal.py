@@ -6,8 +6,8 @@ from typing import Any, ClassVar, Iterable, Optional, Sequence, Type, TypeVar, U
 from pydantic import BaseModel, Extra, validator
 from typing_extensions import override
 
-from ..embeddings.vector_store import VectorStore
-from ..schema import Field, Item, RichData, SignalInputType, VectorKey, field
+from ..embeddings.vector_store import VectorDBIndex
+from ..schema import Field, Item, PathKey, RichData, SignalInputType, field
 
 EMBEDDING_KEY = 'embedding'
 
@@ -23,8 +23,8 @@ class Signal(abc.ABC, BaseModel):
   # if a signal is an TextEmbeddingModelSignal, it computes over embeddings, but it's input type
   # will be text.
   input_type: ClassVar[SignalInputType]
-  # The compute type defines what should be passed to compute().
-  compute_type: ClassVar[SignalInputType]
+
+  supports_vector_index: ClassVar[bool] = False
 
   # The signal_name will get populated in init automatically from the class name so it gets
   # serialized and the signal author doesn't have to define both the static property and the field.
@@ -79,13 +79,13 @@ class Signal(abc.ABC, BaseModel):
     """
     raise NotImplementedError
 
-  def vector_compute(self, keys: Iterable[VectorKey],
-                     vector_store: VectorStore) -> Iterable[Optional[Item]]:
+  def vector_compute(self, keys: Iterable[PathKey],
+                     vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
     """Compute the signal for an iterable of keys that point to documents or images.
 
     Args:
       keys: An iterable of value ids (at row-level or lower) to lookup precomputed embeddings.
-      vector_store: The vector store to lookup pre-computed embeddings.
+      vector_index: The vector store to lookup pre-computed embeddings.
 
     Returns
       An iterable of items. Sparse signals should return "None" for skipped inputs.
@@ -95,8 +95,8 @@ class Signal(abc.ABC, BaseModel):
   def vector_compute_topk(
       self,
       topk: int,
-      vector_store: VectorStore,
-      keys: Optional[Iterable[VectorKey]] = None) -> Sequence[tuple[VectorKey, Optional[Item]]]:
+      vector_index: VectorDBIndex,
+      keys: Optional[Iterable[PathKey]] = None) -> Sequence[tuple[PathKey, Optional[Item]]]:
     """Return signal results only for the top k documents or images.
 
     Signals decide how to rank each document/image in the dataset, usually by a similarity score
@@ -104,7 +104,7 @@ class Signal(abc.ABC, BaseModel):
 
     Args:
       topk: The number of items to return, ranked by the signal.
-      vector_store: The vector store to lookup pre-computed embeddings.
+      vector_index: The vector store to lookup pre-computed embeddings.
       keys: Optional iterable of row ids to restrict the search to.
 
     Returns
@@ -155,7 +155,6 @@ def _args_key_from_dict(args_dict: dict[str, Any]) -> str:
 class TextSplitterSignal(Signal):
   """An interface for signals that compute over text."""
   input_type = SignalInputType.TEXT
-  compute_type = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -166,7 +165,6 @@ class TextSplitterSignal(Signal):
 class TextSignal(Signal):
   """An interface for signals that compute over text."""
   input_type = SignalInputType.TEXT
-  compute_type = SignalInputType.TEXT
 
   @override
   def key(self, is_computed_signal: Optional[bool] = False) -> str:
@@ -179,7 +177,6 @@ class TextSignal(Signal):
 class TextEmbeddingSignal(TextSignal):
   """An interface for signals that compute embeddings for text."""
   input_type = SignalInputType.TEXT
-  compute_type = SignalInputType.TEXT
 
   _split = True
 
@@ -201,32 +198,15 @@ class TextEmbeddingModelSignal(TextSignal):
   input_type = SignalInputType.TEXT
   # compute() takes embeddings, while it operates over text fields by transitively computing splits
   # and embeddings.
-  compute_type = SignalInputType.TEXT_EMBEDDING
+  supports_vector_index = True
 
   embedding: str
-  _embedding_signal: Optional[TextEmbeddingSignal] = None
-
-  def __init__(self, **kwargs: Any):
-    super().__init__(**kwargs)
-
-    # Validate the embedding signal is registered and the correct type.
-    # TODO(nsthorat): Allow arguments passed to the embedding signal.
-    self._embedding_signal = get_signal_by_type(self.embedding, TextEmbeddingSignal)()
-
-  def get_embedding_signal(self) -> TextEmbeddingSignal:
-    """Return the embedding signal."""
-    assert self._embedding_signal is not None
-    return self._embedding_signal
 
   @override
   def key(self, is_computed_signal: Optional[bool] = False) -> str:
-    # NOTE: The embedding and split already exists in the path structure. This means we do not
-    # need to provide the signal names as part of the key, which still guarantees uniqueness.
-
     args_dict = self.dict(exclude_unset=True)
     if 'signal_name' in args_dict:
       del args_dict['signal_name']
-    del args_dict['embedding']
     return self.name + _args_key_from_dict(args_dict)
 
 

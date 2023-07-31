@@ -387,11 +387,7 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   response = client.post(url, json=score_body.dict())
   assert response.status_code == 200
   assert ScoreResponse.parse_obj(response.json()) == ScoreResponse(
-    scores=[{
-      'test_embedding': [lilac_span(0, 11, {'concept_namespace/concept': 0.9})]
-    }, {
-      'test_embedding': [lilac_span(0, 5, {'concept_namespace/concept': 0.9})]
-    }],
+    scored_spans=[[lilac_span(0, 11, {'score': 0.9})], [lilac_span(0, 5, {'score': 0.9})]],
     # The model should already be synced.
     model_synced=False)
 

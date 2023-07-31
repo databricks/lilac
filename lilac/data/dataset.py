@@ -12,7 +12,7 @@ from pydantic import Field as PydanticField
 from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
 
 from ..auth import UserInfo
-from ..embeddings.vector_store import VectorStore
+from ..embeddings.vector_store import VectorDBIndex
 from ..schema import VALUE_KEY, Bin, DataType, Path, PathTuple, Schema, normalize_path
 from ..signals.signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
 from ..tasks import TaskStepId
@@ -283,7 +283,7 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def get_vector_store(self, embedding: str, path: PathTuple) -> VectorStore:
+  def get_vector_db_index(self, embedding: str, path: PathTuple) -> VectorDBIndex:
     # TODO: Instead of this, allow selecting vectors via select_rows.
     """Get the vector store for a column."""
     pass

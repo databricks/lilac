@@ -7,9 +7,10 @@ from typing_extensions import override
 from ..auth import UserInfo
 from ..concepts.concept import DEFAULT_NUM_NEG_EXAMPLES, DRAFT_MAIN, ConceptColumnInfo, ConceptModel
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
-from ..embeddings.vector_store import VectorStore
-from ..schema import Field, Item, RichData, VectorKey, field
-from .signal import TextEmbeddingModelSignal
+from ..data.dataset_utils import lilac_span
+from ..embeddings.vector_store import VectorDBIndex
+from ..schema import Field, Item, PathKey, RichData, field
+from .signal import TextEmbeddingModelSignal, _args_key_from_dict
 
 
 class ConceptScoreSignal(TextEmbeddingModelSignal):
@@ -33,10 +34,16 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
 
   @override
   def fields(self) -> Field:
-    return field(
-      'float32',
-      bins=[('Not in concept', None, 0.5), ('In concept', 0.5, None)],
-    )
+    return field(fields=[
+      field(
+        dtype='string_span',
+        fields={
+          'score': field(
+            'float32',
+            bins=[('Not in concept', None, 0.5), ('In concept', 0.5, None)],
+          )
+        })
+    ])
 
   def set_column_info(self, column_info: ConceptColumnInfo) -> None:
     """Set the dataset info for this signal."""
@@ -63,26 +70,39 @@ class ConceptScoreSignal(TextEmbeddingModelSignal):
     return concept_model.score(self.draft, data)
 
   @override
-  def vector_compute(self, keys: Iterable[VectorKey],
-                     vector_store: VectorStore) -> Iterable[Optional[Item]]:
+  def vector_compute(self, keys: Iterable[PathKey],
+                     vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
     concept_model = self._get_concept_model()
-    embeddings = vector_store.get(keys)
-    return concept_model.score_embeddings(self.draft, embeddings).tolist()
+    all_vector_spans = vector_index.get(keys)
+    # TODO(smilkov): Do this with batched computation.
+    for vector_spans in all_vector_spans:
+      embeddings = np.array([vector_span['vector'] for vector_span in vector_spans])
+      scores = concept_model.score_embeddings(self.draft, embeddings)
+      res: Item = []
+      for vector_span, score in zip(vector_spans, scores):
+        start, end = vector_span['span']
+        res.append(lilac_span(start, end, {'score': score}))
+      yield res
 
   @override
   def vector_compute_topk(
       self,
       topk: int,
-      vector_store: VectorStore,
-      keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, Optional[Item]]]:
+      vector_index: VectorDBIndex,
+      keys: Optional[Iterable[PathKey]] = None) -> list[tuple[PathKey, Optional[Item]]]:
     concept_model = self._get_concept_model()
     query: np.ndarray = concept_model.coef(self.draft)
-    topk_keys = [key for key, _ in vector_store.topk(query, topk, keys)]
-    return list(zip(topk_keys, self.vector_compute(topk_keys, vector_store)))
+    topk_keys = [key for key, _ in vector_index.topk(query, topk, keys)]
+    return list(zip(topk_keys, self.vector_compute(topk_keys, vector_index)))
 
   @override
   def key(self, is_computed_signal: Optional[bool] = False) -> str:
     # NOTE: The embedding is a value so already exists in the path structure. This means we do not
     # need to provide the name as part of the key, which still guarantees uniqueness.
     version = f'/v{self._get_concept_model().version}' if is_computed_signal else ''
-    return f'{self.namespace}/{self.concept_name}{version}'
+    args_dict = self.dict(exclude_unset=True, exclude_defaults=True)
+    if 'signal_name' in args_dict:
+      del args_dict['signal_name']
+    del args_dict['namespace']
+    del args_dict['concept_name']
+    return f'{self.namespace}/{self.concept_name}{_args_key_from_dict(args_dict)}{version}'

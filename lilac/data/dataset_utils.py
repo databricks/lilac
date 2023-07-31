@@ -22,6 +22,7 @@ from ..schema import (
   VALUE_KEY,
   Field,
   Item,
+  PathKey,
   PathTuple,
   Schema,
   VectorKey,
@@ -33,6 +34,7 @@ from ..signals.signal import EMBEDDING_KEY, Signal
 from ..utils import file_exists, log, open_file
 
 _KEYS_SUFFIX = '.keys.pkl'
+_SPANS_SUFFIX = '.spans.pkl'
 _EMBEDDINGS_SUFFIX = '.npy'
 
 
@@ -254,6 +256,47 @@ def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[Item
   return output_path_prefix
 
 
+def write_embeddings_to_disk(uuids: Iterable[str], signal_items: Iterable[Item], output_dir: str,
+                             shard_index: int, num_shards: int) -> str:
+  """Write a set of embeddings to disk."""
+  output_path_prefix = embedding_index_filename_prefix(output_dir, shard_index, num_shards)
+
+  # For each item, we have a list of embedding spans.
+  def embedding_predicate(input: Any) -> bool:
+    return (isinstance(input, list) and len(input) > 0 and isinstance(input[0], dict) and
+            EMBEDDING_KEY in input[0])
+
+  path_keys = flatten_keys(uuids, signal_items, is_primitive_predicate=embedding_predicate)
+  all_embeddings = cast(Iterable[Item],
+                        flatten(signal_items, is_primitive_predicate=embedding_predicate))
+
+  embedding_vectors: list[np.ndarray] = []
+  all_spans: list[tuple[PathKey, list[tuple[int, int]]]] = []
+  for path_key, embeddings in zip(path_keys, all_embeddings):
+    if not path_key or not embeddings:
+      # Sparse embeddings may not have an embedding for every key.
+      continue
+
+    spans: list[tuple[int, int]] = []
+    for e in embeddings:
+      span = e[VALUE_KEY]
+      vector = e[EMBEDDING_KEY]
+      # We squeeze here because embedding functions can return outer dimensions of 1.
+      embedding_vectors.append(vector.reshape(-1))
+      spans.append((span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]))
+    all_spans.append((path_key, spans))
+
+  embedding_matrix = np.array(embedding_vectors)
+  # Write the embedding index and the ordered UUID column to disk so they can be joined later.
+
+  with open_file(output_path_prefix + _EMBEDDINGS_SUFFIX, 'wb') as f:
+    np.save(cast(str, f), embedding_matrix, allow_pickle=False)
+  with open_file(output_path_prefix + _SPANS_SUFFIX, 'wb') as f:
+    pickle.dump(all_spans, f)
+
+  return output_path_prefix
+
+
 def read_embedding_index(filepath_prefix: str) -> tuple[list[VectorKey], np.ndarray]:
   """Reads the embedding index for a column from disk."""
   if not file_exists(filepath_prefix + _EMBEDDINGS_SUFFIX):
@@ -265,6 +308,19 @@ def read_embedding_index(filepath_prefix: str) -> tuple[list[VectorKey], np.ndar
   with open_file(filepath_prefix + _KEYS_SUFFIX, 'rb') as f:
     index_keys: list[VectorKey] = pickle.load(f)
   return index_keys, embeddings
+
+
+def read_embeddings_from_disk(
+    filepath_prefix: str) -> tuple[list[tuple[PathKey, list[tuple[int, int]]]], np.ndarray]:
+  """Reads the embeddings from disk."""
+  if not file_exists(filepath_prefix + _EMBEDDINGS_SUFFIX):
+    raise ValueError(F'Embedding index does not exist at path {filepath_prefix}. '
+                     'Please run dataset.compute_signal() on the embedding signal first.')
+  # Read the embedding index from disk.
+  embeddings = np.load(filepath_prefix + _EMBEDDINGS_SUFFIX, allow_pickle=False)
+  with open_file(filepath_prefix + _SPANS_SUFFIX, 'rb') as f:
+    spans: list[tuple[PathKey, list[tuple[int, int]]]] = pickle.load(f)
+  return spans, embeddings
 
 
 def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schema,

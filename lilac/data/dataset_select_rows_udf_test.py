@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..embeddings.vector_store import VectorStore
+from ..embeddings.vector_store import VectorDBIndex
 from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field
 from ..signals.signal import (
   TextEmbeddingModelSignal,
@@ -74,11 +74,12 @@ class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
     return field('float32')
 
   @override
-  def vector_compute(self, keys: Iterable[VectorKey], vector_store: VectorStore) -> Iterable[Item]:
+  def vector_compute(self, keys: Iterable[VectorKey],
+                     vector_index: VectorDBIndex) -> Iterable[Item]:
     # The signal just sums the values of the embedding.
-    embedding_sums = vector_store.get(keys).sum(axis=1)
-    for embedding_sum in embedding_sums.tolist():
-      yield embedding_sum
+    all_vector_spans = vector_index.get(keys)
+    for vector_spans in all_vector_spans:
+      yield vector_spans[0]['vector'].sum()
 
 
 class ComputedKeySignal(TextSignal):
@@ -271,11 +272,11 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   expected_result: list[Item] = [{
     UUID_COLUMN: '1',
     'text': 'hello.',
-    'test_embedding_sum(text.test_embedding.*.embedding)': [1.0]
+    'test_embedding_sum(embedding=test_embedding)(text)': 1.0
   }, {
     UUID_COLUMN: '2',
     'text': 'hello2.',
-    'test_embedding_sum(text.test_embedding.*.embedding)': [2.0]
+    'test_embedding_sum(embedding=test_embedding)(text)': 2.0
   }]
   assert list(result) == expected_result
 
@@ -286,11 +287,11 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   expected_result = [{
     UUID_COLUMN: '1',
     'text': 'hello.',
-    'emb_sum': [1.0]
+    'emb_sum': 1.0
   }, {
     UUID_COLUMN: '2',
     'text': 'hello2.',
-    'emb_sum': [2.0]
+    'emb_sum': 2.0
   }]
   assert list(result) == expected_result
 
@@ -311,11 +312,11 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
   expected_result = [{
     UUID_COLUMN: '1',
     'text.*': ['hello.', 'hello world.'],
-    'test_embedding_sum(text.*.test_embedding.*.embedding)': [[1.0], [3.0]]
+    'test_embedding_sum(embedding=test_embedding)(text)': [1.0, 3.0]
   }, {
     UUID_COLUMN: '2',
     'text.*': ['hello world2.', 'hello2.'],
-    'test_embedding_sum(text.*.test_embedding.*.embedding)': [[4.0], [2.0]]
+    'test_embedding_sum(embedding=test_embedding)(text)': [4.0, 2.0]
   }]
   assert list(result) == expected_result
 
@@ -333,7 +334,7 @@ def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
 
   signal_col = Column('text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
 
-  with pytest.raises(ValueError, match='Embedding signal "test_embedding" is not computed'):
+  with pytest.raises(ValueError, match="No embedding found for path \\('text',\\)"):
     dataset.select_rows(['text', signal_col])
 
 

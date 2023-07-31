@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 from pytest import approx
 from pytest_mock import MockerFixture
-from sklearn.preprocessing import normalize
 from typing_extensions import override
 
 from ..concepts.concept import ExampleIn, LogisticEmbeddingModel
@@ -19,7 +18,7 @@ from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, registe
 from ..signals.substring_search import SubstringSignal
 from .dataset import ConceptQuery, KeywordQuery, ListOp, Search, SemanticQuery, SortOrder
 from .dataset_duckdb import DatasetDuckDB
-from .dataset_test_utils import TestDataMaker, enriched_embedding_span, enriched_item
+from .dataset_test_utils import TestDataMaker, enriched_item
 from .dataset_utils import lilac_embedding, lilac_span
 
 TEST_DATA: list[Item] = [{
@@ -171,7 +170,6 @@ class TestEmbedding(TextEmbeddingSignal):
     """Call the embedding function."""
     for example in data:
       embedding = np.array(STR_EMBEDDINGS[cast(str, example)])
-      embedding = normalize([embedding])[0]
       yield [lilac_embedding(0, len(example), embedding)]
 
 
@@ -199,19 +197,13 @@ def test_semantic_search(make_test_data: TestDataMaker) -> None:
     # Results are sorted by score desc.
     {
       UUID_COLUMN: '2',
-      'text': enriched_item(
-        'hello world2.', {
-          test_embedding.key():
-            [enriched_embedding_span(0, 13, {expected_signal_udf.key(): approx(0.916, 1e-3)})]
-        })
+      'text': enriched_item('hello world2.',
+                            {expected_signal_udf.key(): [lilac_span(0, 13, {'score': 3})]})
     },
     {
       UUID_COLUMN: '1',
-      'text': enriched_item(
-        'hello world.', {
-          test_embedding.key():
-            [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.885, 1e-3)})]
-        })
+      'text': enriched_item('hello world.',
+                            {expected_signal_udf.key(): [lilac_span(0, 12, {'score': 2})]})
     },
   ]
 
@@ -272,8 +264,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
       UUID_COLUMN: '2',
       'text': enriched_item(
         'hello world2.', {
-          test_embedding.key():
-            [enriched_embedding_span(0, 13, {expected_signal_udf.key(): approx(0.75, abs=0.25)})],
+          expected_signal_udf.key(): [lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})],
           'test_namespace/test_concept/labels': [lilac_span(0, 13, {'label': True})]
         })
     },
@@ -281,8 +272,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
       UUID_COLUMN: '1',
       'text': enriched_item(
         'hello world.', {
-          test_embedding.key():
-            [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.25, abs=0.25)})],
+          expected_signal_udf.key(): [lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})],
           'test_namespace/test_concept/labels': [lilac_span(0, 12, {'label': False})]
         })
     },
@@ -318,20 +308,14 @@ def test_sort_override_search(make_test_data: TestDataMaker) -> None:
   expected_signal_udf = SemanticSimilaritySignal(query=query, embedding='test_embedding')
   expected_item_1 = {
     UUID_COLUMN: '1',
-    'text': enriched_item(
-      'hello world.', {
-        test_embedding.key():
-          [enriched_embedding_span(0, 12, {expected_signal_udf.key(): approx(0.885, 1e-3)})]
-      }),
+    'text': enriched_item('hello world.',
+                          {expected_signal_udf.key(): [lilac_span(0, 12, {'score': 2.0})]}),
     'value': 10
   }
   expected_item_2 = {
     UUID_COLUMN: '2',
-    'text': enriched_item(
-      'hello world2.', {
-        test_embedding.key():
-          [enriched_embedding_span(0, 13, {expected_signal_udf.key(): approx(0.916, 1e-3)})]
-      }),
+    'text': enriched_item('hello world2.',
+                          {expected_signal_udf.key(): [lilac_span(0, 13, {'score': 3.0})]}),
     'value': 20
   }
 
@@ -384,8 +368,7 @@ def test_search_keyword_and_semantic(make_test_data: TestDataMaker) -> None:
       UUID_COLUMN: '2',
       'text': enriched_item(
         'hello world2.', {
-          test_embedding.key():
-            [enriched_embedding_span(0, 13, {expected_semantic_signal.key(): approx(0.916, 1e-3)})],
+          expected_semantic_signal.key(): [lilac_span(0, 13, {'score': 3})],
           expected_keyword_signal.key(): [lilac_span(8, 12)],
         })
     },

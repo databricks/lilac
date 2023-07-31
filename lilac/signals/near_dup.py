@@ -24,7 +24,6 @@ class NearDuplicateSignal(TextSignal):
   display_name = 'Near duplicate documents'
 
   input_type = SignalInputType.TEXT
-  compute_type = SignalInputType.TEXT
 
   threshold: float = PydanticField(
     default=0.75,

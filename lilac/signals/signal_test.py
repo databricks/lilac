@@ -4,7 +4,7 @@ from typing import Iterable, Optional
 import pytest
 from typing_extensions import override
 
-from ..embeddings.vector_store import VectorStore
+from ..embeddings.vector_store import VectorDBIndex
 from ..schema import Field, Item, RichData, SignalInputType, VectorKey, field
 from .signal import (
   Signal,
@@ -68,9 +68,9 @@ class TestTextEmbeddingModelSignal(TextEmbeddingModelSignal):
     return field('float32')
 
   @override
-  def vector_compute(self, keys: Iterable[VectorKey], vector_store: VectorStore) -> Iterable[Item]:
-    # The signal just sums the values of the embedding.
-    del keys, vector_store
+  def vector_compute(self, keys: Iterable[VectorKey],
+                     vector_index: VectorDBIndex) -> Iterable[Item]:
+    del keys, vector_index
     return []
 
 

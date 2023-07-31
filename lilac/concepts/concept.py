@@ -322,7 +322,8 @@ class ConceptModel:
   def _calibrate_on_dataset(self, column_info: ConceptColumnInfo) -> None:
     """Calibrate the model on the embeddings in the provided vector store."""
     db = get_dataset(column_info.namespace, column_info.name)
-    vector_store = db.get_vector_store(self.embedding_name, normalize_path(column_info.path))
+    vector_index = db.get_vector_db_index(self.embedding_name, normalize_path(column_info.path))
+    vector_store = vector_index.get_vector_store()
     keys = vector_store.keys()
     num_samples = min(column_info.num_negative_examples, len(keys))
     sample_keys = random.sample(keys, num_samples)
@@ -354,12 +355,10 @@ class ConceptModel:
 
       item_result: list[Item] = []
       for embedding_item, score in zip(item, scores):
-        item_result.append(
-          lilac_span(
-            start=embedding_item[VALUE_KEY][TEXT_SPAN_START_FEATURE],
-            end=embedding_item[VALUE_KEY][TEXT_SPAN_END_FEATURE],
-            metadata={f'{self.namespace}/{self.concept_name}': score}))
-      result_items.append({self.embedding_name: item_result})
+        span = embedding_item[VALUE_KEY]
+        start, end = span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]
+        item_result.append(lilac_span(start, end, {'score': score}))
+      result_items.append(item_result)
     return result_items
 
   def coef(self, draft: DraftId) -> np.ndarray:

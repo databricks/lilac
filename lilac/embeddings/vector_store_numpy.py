@@ -34,13 +34,11 @@ class NumpyVectorStore(VectorStore):
     # Cast to float32 since dot product with float32 is 40-50x faster than float16 and 2.5x faster
     # than float64.
     self._embeddings = embeddings.astype(np.float32)
-
-    index = pd.MultiIndex.from_tuples(keys)
     row_indices = np.arange(len(self._embeddings), dtype=np.uint32)
-    self._lookup = pd.Series(row_indices, index=index)
+    self._lookup = pd.Series(row_indices, index=keys)
 
   @override
-  def get(self, keys: Iterable[VectorKey]) -> np.ndarray:
+  def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:
     """Return the embeddings for given keys.
 
     Args:
@@ -49,6 +47,8 @@ class NumpyVectorStore(VectorStore):
     Returns
       The embeddings for the given keys.
     """
+    if not keys:
+      return self._embeddings
     locs = self._lookup.loc[cast(list[str], keys)]
     return self._embeddings.take(locs, axis=0)
 
@@ -56,14 +56,10 @@ class NumpyVectorStore(VectorStore):
   def topk(self,
            query: np.ndarray,
            k: int,
-           key_prefixes: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
-    if key_prefixes is not None:
-      # Cast tuples of length 1 to the element itself to avoid a pandas bug.
-      key_prefixes = cast(
-        list[VectorKey],
-        [k[0] if isinstance(k, tuple) and len(k) == 1 else k for k in key_prefixes])
+           keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
+    if keys is not None:
       # This uses the hierarchical index (MutliIndex) to do a prefix lookup.
-      row_indices = self._lookup.loc[cast(list[str], key_prefixes)]
+      row_indices = self._lookup.loc[cast(list[str], keys)]
       keys, embeddings = list(row_indices.index), self._embeddings.take(row_indices, axis=0)
     else:
       keys, embeddings = self._keys, self._embeddings

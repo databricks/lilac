@@ -4,8 +4,10 @@ import pathlib
 from datetime import datetime
 from typing import Optional, Type, cast
 
+import numpy as np
 from typing_extensions import Protocol
 
+from ..embeddings.vector_store import VectorDBIndex, VectorStore
 from ..schema import (
   MANIFEST_FILENAME,
   PARQUET_FILENAME_PREFIX,
@@ -13,14 +15,13 @@ from ..schema import (
   DataType,
   Field,
   Item,
+  PathKey,
   Schema,
   SourceManifest,
-  field,
 )
-from ..signals.signal import EMBEDDING_KEY
 from ..utils import get_dataset_output_dir, open_file
 from .dataset import Dataset
-from .dataset_utils import is_primitive, lilac_span, write_items_to_parquet
+from .dataset_utils import is_primitive, write_items_to_parquet
 
 TEST_NAMESPACE = 'test_namespace'
 TEST_DATASET_NAME = 'test_dataset'
@@ -109,11 +110,16 @@ def enriched_item(value: Optional[Item] = None, metadata: dict[str, Item] = {}) 
   return {VALUE_KEY: value, **metadata}
 
 
-def enriched_embedding_span(start: int, end: int, metadata: dict[str, Item] = {}) -> Item:
-  """Makes an item that represents an embedding span that was enriched with metadata."""
-  return lilac_span(start, end, {EMBEDDING_KEY: {VALUE_KEY: None, **metadata}})
+def make_vector_index(vector_store_cls: Type[VectorStore],
+                      vector_dict: dict[PathKey, list[list[float]]]) -> VectorDBIndex:
+  """Make a vector index from a dictionary of vector keys to vectors."""
+  embeddings: list[np.ndarray] = []
+  spans: list[tuple[PathKey, list[tuple[int, int]]]] = []
+  for path_key, vectors in vector_dict.items():
+    vector_spans: list[tuple[int, int]] = []
+    for i, vector in enumerate(vectors):
+      embeddings.append(np.array(vector))
+      vector_spans.append((0, 0))
+    spans.append((path_key, vector_spans))
 
-
-def enriched_embedding_span_field(metadata: Optional[object] = {}) -> Field:
-  """Makes a field that represents an embedding span that was enriched with metadata."""
-  return field('string_span', fields={EMBEDDING_KEY: field('embedding', fields=metadata)})
+  return VectorDBIndex(vector_store_cls, spans, np.array(embeddings))

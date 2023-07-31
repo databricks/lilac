@@ -45,25 +45,25 @@ class VectorStoreSuite:
     query = np.array([0.89, 0.45])
     topk = 3
     store.add([('a',), ('b',), ('c',)], embedding)
-    result = store.topk(query, topk, key_prefixes=[('b',), ('a',)])
+    result = store.topk(query, topk, keys=[('b',), ('a',)])
     assert [key for key, _ in result] == [('b',), ('a',)]
     assert [score for _, score in result] == pytest.approx([0.894, 0.801], 1e-3)
 
-    result = store.topk(query, topk, key_prefixes=[('a',), ('b',)])
+    result = store.topk(query, topk, keys=[('a',), ('b',)])
     assert [key for key, _ in result] == [('b',), ('a',)]
     assert [score for _, score in result] == pytest.approx([0.894, 0.801], 1e-3)
 
-    result = store.topk(query, topk, key_prefixes=[('a',), ('c',)])
+    result = store.topk(query, topk, keys=[('a',), ('c',)])
     assert [key for key, _ in result] == [('c',), ('a',)]
     assert [score for _, score in result] == pytest.approx([0.9161, 0.801], 1e-3)
 
-  def test_topk_with_key_prefixes(self, store_cls: Type[VectorStore]) -> None:
+  def test_topk_with_keys(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()
     embedding = np.array([[8], [9], [3], [10]])
     store.add([('a', 0), ('a', 1), ('b', 0), ('c', 0)], embedding)
     query = np.array([1])
-    result = store.topk(query, k=2, key_prefixes=[('b',), ('c',)])
+    result = store.topk(query, k=2, keys=[('b', 0), ('c', 0)])
     assert result == [(('c', 0), 10.0), (('b', 0), 3.0)]
 
-    result = store.topk(query, k=10, key_prefixes=[('b',), ('a',)])
+    result = store.topk(query, k=10, keys=[('b', 0), ('a', 1), ('a', 0)])
     assert result == [(('a', 1), 9.0), (('a', 0), 8.0), (('b', 0), 3.0)]

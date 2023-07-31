@@ -1,23 +1,23 @@
 """Test the semantic search signal."""
 
-from typing import Iterable, cast
+from typing import Iterable, Optional, cast
 
 import numpy as np
 import pytest
-from pytest import approx
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..data.dataset_utils import lilac_embedding
+from ..data.dataset_test_utils import make_vector_index
+from ..data.dataset_utils import lilac_embedding, lilac_span
 from ..embeddings.vector_store import VectorStore
 from ..schema import Item, RichData, VectorKey
 from .semantic_similarity import SemanticSimilaritySignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
-EMBEDDINGS: dict[VectorKey, list[float]] = {
-  ('1',): [1.0, 0.0, 0.0],
-  ('2',): [0.9, 0.1, 0.0],
-  ('3',): [0.0, 0.0, 1.0]
+EMBEDDINGS: dict[VectorKey, list[list[float]]] = {
+  ('1',): [[1.0, 0.0, 0.0]],
+  ('2',): [[0.9, 0.1, 0.0]],
+  ('3',): [[0.0, 0.0, 1.0]]
 }
 
 STR_EMBEDDINGS: dict[str, list[float]] = {
@@ -40,9 +40,9 @@ class TestVectorStore(VectorStore):
     pass
 
   @override
-  def get(self, keys: Iterable[VectorKey]) -> np.ndarray:
+  def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:
     keys = keys or []
-    return np.array([EMBEDDINGS[row_id] for row_id in keys])
+    return np.array([EMBEDDINGS[tuple(path_key)][cast(int, index)] for *path_key, index in keys])
 
 
 class TestEmbedding(TextEmbeddingSignal):
@@ -69,17 +69,21 @@ def setup_teardown() -> Iterable[None]:
 
 
 def test_semantic_similarity_compute_keys(mocker: MockerFixture) -> None:
-  vector_store = TestVectorStore()
+  vector_index = make_vector_index(TestVectorStore, EMBEDDINGS)
 
   embed_mock = mocker.spy(TestEmbedding, 'compute')
 
   signal = SemanticSimilaritySignal(query='hello', embedding=TestEmbedding.name)
-  scores = list(signal.vector_compute([('1',), ('2',), ('3',)], vector_store))
+  scores = list(signal.vector_compute([('1',), ('2',), ('3',)], vector_index))
 
   # Embeddings should be called only 1 time for the search.
   assert embed_mock.call_count == 1
 
-  assert scores == [1.0, approx(0.938, 1e-3), approx(0.417, 1e-3)]
+  assert scores == [
+    [lilac_span(0, 0, {'score': 1})],
+    [lilac_span(0, 0, {'score': 0.9})],
+    [lilac_span(0, 0, {'score': 0})],
+  ]
 
 
 def test_semantic_similarity_compute_data(mocker: MockerFixture) -> None:
@@ -92,4 +96,8 @@ def test_semantic_similarity_compute_data(mocker: MockerFixture) -> None:
   # Embeddings should be called only 2 times, once for the search, once for the query itself.
   assert embed_mock.call_count == 2
 
-  assert scores == [1.0, 0.9, 0.0]
+  assert scores == [
+    [lilac_span(0, 5, {'score': 1})],
+    [lilac_span(0, 11, {'score': 0.9})],
+    [lilac_span(0, 3, {'score': 0})],
+  ]

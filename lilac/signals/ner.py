@@ -23,7 +23,6 @@ class SpacyNER(TextSignal):
   model: str = PydanticField(title='SpaCy package name or model path.', default='en_core_web_sm')
 
   input_type = SignalInputType.TEXT
-  compute_type = SignalInputType.TEXT
 
   _nlp: Optional['spacy.language.Language'] = None
 

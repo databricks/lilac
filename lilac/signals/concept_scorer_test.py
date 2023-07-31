@@ -18,7 +18,7 @@ from ..concepts.db_concept import (
   DiskConceptModelDB,
 )
 from ..data.dataset_duckdb import DatasetDuckDB
-from ..data.dataset_test_utils import TestDataMaker
+from ..data.dataset_test_utils import TestDataMaker, make_vector_index
 from ..data.dataset_utils import lilac_embedding
 from ..db_manager import set_default_dataset_cls
 from ..embeddings.vector_store_numpy import NumpyVectorStore
@@ -83,8 +83,10 @@ def test_embedding_does_not_exist(db_cls: Type[ConceptDB]) -> None:
   ]
   db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
+  signal = ConceptScoreSignal(
+    namespace='test', concept_name='test_concept', embedding='unknown_embedding')
   with pytest.raises(ValueError, match='Signal "unknown_embedding" not found in the registry'):
-    ConceptScoreSignal(namespace='test', concept_name='test_concept', embedding='unknown_embedding')
+    signal.compute(['a new data point'])
 
 
 def test_concept_does_not_exist() -> None:
@@ -119,11 +121,7 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
   model_db.sync(model)
 
   result_items = list(signal.compute(['a new data point', 'not in concept']))
-  scores = [
-    result_item['test_embedding'][0][f'{namespace}/{concept_name}']
-    for result_item in result_items
-    if result_item
-  ]
+  scores = [result_item[0]['score'] for result_item in result_items if result_item]
   assert scores[0] > 0 and scores[0] < 1
   assert scores[1] < 0.5
 
@@ -167,11 +165,7 @@ def test_concept_model_with_dataset_score(concept_db_cls: Type[ConceptDB],
   model_db.sync(model)
 
   result_items = list(signal.compute(['a new data point', 'in concept', 'not in concept']))
-  scores = [
-    result_item['test_embedding'][0][f'{namespace}/{concept_name}']
-    for result_item in result_items
-    if result_item
-  ]
+  scores = [result_item[0]['score'] for result_item in result_items if result_item]
   assert scores[0] > 0 and scores[0] < 1  # 'a new data point' may or may not be in the concept.
   assert scores[1] > 0.5  # 'in concept' is in the concept.
   assert scores[2] < 0.5  # 'not in concept' is not in the concept.
@@ -202,16 +196,18 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   model_db.sync(model)
 
-  vector_store = NumpyVectorStore()
-  embeddings = np.array([
-    EMBEDDING_MAP['in concept'], EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['a new data point']
-  ])
-  vector_store.add([('1',), ('2',), ('3',)], embeddings)
+  vector_index = make_vector_index(
+    NumpyVectorStore, {
+      ('1',): [EMBEDDING_MAP['in concept']],
+      ('2',): [EMBEDDING_MAP['not in concept']],
+      ('3',): [EMBEDDING_MAP['a new data point']],
+    })
 
-  scores = cast(list[float], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_store)))
-  assert scores[0] > 0.5  # '1' is in the concept.
-  assert scores[1] < 0.5  # '2' is not in the concept.
-  assert scores[2] > 0 and scores[2] < 1  # '3' may or may not be in the concept.
+  scores = cast(list[Item], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_index)))
+  assert scores[0][0]['score'] > 0.5  # '1' is in the concept.
+  assert scores[1][0]['score'] < 0.5  # '2' is not in the concept.
+  assert scores[2][0]['score'] > 0 and scores[2][0][
+    'score'] < 1  # '3' may or may not be in the concept.
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
@@ -237,24 +233,26 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
   model = ConceptModel(
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   model_db.sync(model)
-  vector_store = NumpyVectorStore()
-  vector_store.add([('1',), ('2',), ('3',)],
-                   np.array([[0.1, 0.2, 0.3], [0.1, 0.87, 0.0], [1.0, 0.0, 0.0]]))
+  vector_index = make_vector_index(NumpyVectorStore, {
+    ('1',): [[0.1, 0.2, 0.3]],
+    ('2',): [[0.1, 0.87, 0.0]],
+    ('3',): [[1.0, 0.0, 0.0]],
+  })
 
   # Compute topk without id restriction.
-  topk_result = signal.vector_compute_topk(3, vector_store)
+  topk_result = signal.vector_compute_topk(3, vector_index)
   expected_result = [('3',), ('1',), ('2',)]
   for (id, _), expected_id in zip(topk_result, expected_result):
     assert id == expected_id
 
   # Compute top 1.
-  topk_result = signal.vector_compute_topk(1, vector_store)
+  topk_result = signal.vector_compute_topk(1, vector_index)
   expected_result = [('3',)]
   for (id, _), expected_id in zip(topk_result, expected_result):
     assert id == expected_id
 
   # Compute topk with id restriction.
-  topk_result = signal.vector_compute_topk(3, vector_store, keys=[('1',), ('2',)])
+  topk_result = signal.vector_compute_topk(3, vector_index, keys=[('1',), ('2',)])
   expected_result = [('1',), ('2',)]
   for (id, _), expected_id in zip(topk_result, expected_result):
     assert id == expected_id
@@ -287,28 +285,31 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   model_db.sync(model)
 
-  vector_store = NumpyVectorStore()
-  vector_store.add([('1',), ('2',), ('3',)],
-                   np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.9, 0.0]]))
+  vector_index = make_vector_index(NumpyVectorStore, {
+    ('1',): [[1.0, 0.0, 0.0]],
+    ('2',): [[0.9, 0.1, 0.0]],
+    ('3',): [[0.1, 0.9, 0.0]],
+  })
 
-  scores = cast(list[float], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_store)))
-  assert scores[0] > 0.5
-  assert scores[1] > 0.5
-  assert scores[2] < 0.5
+  scores = cast(list[Item], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_index)))
+  assert scores[0][0]['score'] > 0.5
+  assert scores[1][0]['score'] > 0.5
+  assert scores[2][0]['score'] < 0.5
 
   # Make sure the draft signal works. It has different values than the original signal.
-  vector_store = NumpyVectorStore()
-  vector_store.add([('1',), ('2',), ('3',)],
-                   np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0], [0.1, 0.2, 0.3]]))
-
-  draft_scores = draft_signal.vector_compute([('1',), ('2',), ('3',)], vector_store)
+  vector_index = make_vector_index(NumpyVectorStore, {
+    ('1',): [[1.0, 0.0, 0.0]],
+    ('2',): [[0.9, 0.1, 0.0]],
+    ('3',): [[0.1, 0.2, 0.3]],
+  })
+  draft_scores = draft_signal.vector_compute([('1',), ('2',), ('3',)], vector_index)
   assert draft_scores != scores
 
 
 def test_concept_score_key() -> None:
   signal = ConceptScoreSignal(
     namespace='test', concept_name='test_concept', embedding=TestEmbedding.name)
-  assert signal.key() == 'test/test_concept'
+  assert signal.key() == 'test/test_concept(embedding=test_embedding)'
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
@@ -320,4 +321,4 @@ def test_concept_score_compute_signal_key(concept_db_cls: Type[ConceptDB]) -> No
 
   signal = ConceptScoreSignal(
     namespace='test', concept_name='test_concept', embedding=TestEmbedding.name)
-  assert signal.key(is_computed_signal=True) == 'test/test_concept/v0'
+  assert signal.key(is_computed_signal=True) == 'test/test_concept(embedding=test_embedding)/v0'

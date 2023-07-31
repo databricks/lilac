@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..embeddings.vector_store import VectorStore
+from ..embeddings.vector_store import VectorDBIndex
 from ..schema import PATH_WILDCARD, UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema
 from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptScoreSignal
@@ -33,7 +33,7 @@ from .dataset import (
   SortOrder,
   SortResult,
 )
-from .dataset_test_utils import TestDataMaker, enriched_embedding_span_field
+from .dataset_test_utils import TestDataMaker
 from .dataset_utils import lilac_embedding, lilac_span
 
 TEST_DATA: list[Item] = [{
@@ -119,11 +119,12 @@ class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
     return field('float32')
 
   @override
-  def vector_compute(self, keys: Iterable[VectorKey], vector_store: VectorStore) -> Iterable[Item]:
+  def vector_compute(self, keys: Iterable[VectorKey],
+                     vector_index: VectorDBIndex) -> Iterable[Item]:
     # The signal just sums the values of the embedding.
-    embedding_sums = vector_store.get(keys).sum(axis=1)
-    for embedding_sum in embedding_sums.tolist():
-      yield embedding_sum
+    all_vector_spans = vector_index.get(keys)
+    for vector_spans in all_vector_spans:
+      yield vector_spans[0]['vector'].sum()
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -337,16 +338,13 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
               fields={
                 'test_embedding': field(
                   signal=test_embedding.dict(),
-                  fields=[
-                    enriched_embedding_span_field(
-                      {'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
-                  ])
+                  fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
+                embedding_sum_signal.key(): field('float32', signal=embedding_sum_signal.dict())
               })
           ])
       })
   })
-  output_path = ('text', 'test_splitter', '*', 'test_embedding', '*', 'embedding',
-                 'test_embedding_sum')
+  output_path = ('text', 'test_splitter', '*', embedding_sum_signal.key())
   assert result == SelectRowsSchemaResult(
     data_schema=expected_schema,
     udfs=[SelectRowsSchemaUDF(path=output_path)],
@@ -434,8 +432,7 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
   test_embedding = TestEmbedding()
   expected_world_signal = SemanticSimilaritySignal(query=query_world, embedding='test_embedding')
 
-  similarity_score_path = ('text', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
-                           expected_world_signal.key())
+  similarity_score_path = ('text', expected_world_signal.key())
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
       UUID_COLUMN: 'string',
@@ -444,10 +441,10 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
         fields={
           'test_embedding': field(
             signal=test_embedding.dict(),
-            fields=[
-              enriched_embedding_span_field(
-                {expected_world_signal.key(): field('float32', expected_world_signal.dict())})
-            ])
+            fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
+          expected_world_signal.key(): field(
+            signal=expected_world_signal.dict(),
+            fields=[field('string_span', fields={'score': 'float32'})])
         })
     }),
     udfs=[SelectRowsSchemaUDF(path=similarity_score_path)],
@@ -476,14 +473,12 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
     ],
     combine_columns=True)
 
-  test_embedding = TestEmbedding()
   expected_world_signal = ConceptScoreSignal(
     namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
   expected_labels_signal = ConceptLabelsSignal(
     namespace='test_namespace', concept_name='test_concept')
 
-  concept_score_path = ('text', 'test_embedding', PATH_WILDCARD, EMBEDDING_KEY,
-                        expected_world_signal.key())
+  concept_score_path = ('text', expected_world_signal.key())
   concept_labels_path = ('text', expected_labels_signal.key())
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
@@ -493,13 +488,18 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
         fields={
           'test_embedding': field(
             signal=test_embedding.dict(),
+            fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
+          expected_world_signal.key(): field(
+            signal=expected_world_signal.dict(),
             fields=[
-              enriched_embedding_span_field({
-                expected_world_signal.key(): field(
-                  'float32',
-                  expected_world_signal.dict(),
-                  bins=[('Not in concept', None, 0.5), ('In concept', 0.5, None)])
-              })
+              field(
+                dtype='string_span',
+                fields={
+                  'score': field(
+                    'float32',
+                    bins=[('Not in concept', None, 0.5), ('In concept', 0.5, None)],
+                  )
+                })
             ]),
           'test_namespace/test_concept/labels': field(
             fields=[field('string_span', fields={

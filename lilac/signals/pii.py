@@ -25,7 +25,6 @@ class PIISignal(TextSignal):
   display_name = 'Personal Information (PII)'
 
   input_type = SignalInputType.TEXT
-  compute_type = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:

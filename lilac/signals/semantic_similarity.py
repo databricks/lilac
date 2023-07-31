@@ -5,9 +5,10 @@ import numpy as np
 from scipy.interpolate import interp1d
 from typing_extensions import override
 
+from ..data.dataset_utils import lilac_span
 from ..embeddings.embedding import EmbedFn, get_embed_fn
-from ..embeddings.vector_store import VectorStore
-from ..schema import Field, Item, RichData, VectorKey, field
+from ..embeddings.vector_store import VectorDBIndex
+from ..schema import Field, Item, PathKey, RichData, field
 from .signal import TextEmbeddingModelSignal
 
 
@@ -40,7 +41,7 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
 
   @override
   def fields(self) -> Field:
-    return field('float32')
+    return field(fields=[field(dtype='string_span', fields={'score': 'float32'})])
 
   def _get_search_embedding(self) -> np.ndarray:
     """Return the embedding for the search text."""
@@ -51,26 +52,32 @@ class SemanticSimilaritySignal(TextEmbeddingModelSignal):
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    text_embeddings = self._embed_fn(data)
-    similarities = text_embeddings.dot(self._get_search_embedding()).reshape(-1)
-    return similarities.tolist()
+    embeddings = self._embed_fn(data)
+    scores = embeddings.dot(self._get_search_embedding()).reshape(-1)
+    for text, score in zip(data, scores):
+      yield [lilac_span(0, len(text), {'score': score})]
 
   @override
-  def vector_compute(self, keys: Iterable[VectorKey],
-                     vector_store: VectorStore) -> Iterable[Optional[Item]]:
-    text_embeddings = vector_store.get(keys)
-    similarities = text_embeddings.dot(self._get_search_embedding()).reshape(-1)
-    # Clip the similarities since float precision can cause these to be barely outside the range and
-    # throw an exception with interp1d.
-    similarities = np.clip(similarities, -1., 1.)
-    return self._interpolate_fn(similarities).tolist()
+  def vector_compute(self, keys: Iterable[PathKey],
+                     vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
+    all_vector_spans = vector_index.get(keys)
+    query = self._get_search_embedding()
+    # TODO(smilkov): Do this with batched computation.
+    for vector_spans in all_vector_spans:
+      embeddings = np.array([vector_span['vector'] for vector_span in vector_spans])
+      scores = embeddings.dot(query).reshape(-1)
+      res: Item = []
+      for vector_span, score in zip(vector_spans, scores):
+        start, end = vector_span['span']
+        res.append(lilac_span(start, end, {'score': score}))
+      yield res
 
   @override
   def vector_compute_topk(
       self,
       topk: int,
-      vector_store: VectorStore,
-      keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, Optional[Item]]]:
+      vector_index: VectorDBIndex,
+      keys: Optional[Iterable[PathKey]] = None) -> list[tuple[PathKey, Optional[Item]]]:
     query = self._get_search_embedding()
-    topk_keys = [key for key, _ in vector_store.topk(query, topk, keys)]
-    return list(zip(topk_keys, self.vector_compute(topk_keys, vector_store)))
+    topk_keys = [key for key, _ in vector_index.topk(query, topk, keys)]
+    return list(zip(topk_keys, self.vector_compute(topk_keys, vector_index)))

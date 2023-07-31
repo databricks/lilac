@@ -11,6 +11,7 @@ from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..schema import UUID_COLUMN, Field, Item, RichData, SignalInputType, field, schema
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import (
+  EMBEDDING_KEY,
   TextEmbeddingSignal,
   TextSignal,
   TextSplitterSignal,
@@ -18,13 +19,7 @@ from ..signals.signal import (
   register_signal,
 )
 from .dataset import Column, DatasetManifest, GroupsSortBy, SortOrder
-from .dataset_test_utils import (
-  TEST_DATASET_NAME,
-  TEST_NAMESPACE,
-  TestDataMaker,
-  enriched_embedding_span_field,
-  enriched_item,
-)
+from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
 from .dataset_utils import lilac_embedding, lilac_span
 
 SIMPLE_ITEMS: list[Item] = [{
@@ -179,6 +174,7 @@ class ComputedKeySignal(TextSignal):
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
+  clear_signal_registry()
   register_signal(TestSparseSignal)
   register_signal(TestSparseRichSignal)
   register_signal(TestParamSignal)
@@ -550,7 +546,8 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_embedding': field(
-            signal=embedding_signal.dict(), fields=[enriched_embedding_span_field()])
+            signal=embedding_signal.dict(),
+            fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
         }),
     }),
     num_items=2)
@@ -558,13 +555,7 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(combine_columns=True)
 
   # Embeddings are replaced with "None".
-  expected_result = [{
-    UUID_COLUMN: '1',
-    'text': enriched_item('hello.', {'test_embedding': [lilac_embedding(0, 6, None)]})
-  }, {
-    UUID_COLUMN: '2',
-    'text': enriched_item('hello2.', {'test_embedding': [lilac_embedding(0, 7, None)]})
-  }]
+  expected_result = [{UUID_COLUMN: '1', 'text': 'hello.'}, {UUID_COLUMN: '2', 'text': 'hello2.'}]
   assert list(result) == expected_result
 
 
@@ -633,11 +624,9 @@ def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> Non
   dataset.compute_signal(concept_signal, 'text')
 
   concept_key = concept_signal.key(is_computed_signal=True)
-  result = dataset.select_groups(f'text.test_embedding.*.embedding.{concept_key}')
+  result = dataset.select_groups(f'text.{concept_key}.*.score')
   assert result.counts == [('Not in concept', 2), ('In concept', 1)]
 
   result = dataset.select_groups(
-    f'text.test_embedding.*.embedding.{concept_key}',
-    sort_by=GroupsSortBy.COUNT,
-    sort_order=SortOrder.ASC)
+    f'text.{concept_key}.*.score', sort_by=GroupsSortBy.COUNT, sort_order=SortOrder.ASC)
   assert result.counts == [('In concept', 1), ('Not in concept', 2)]

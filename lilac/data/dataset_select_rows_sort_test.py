@@ -6,10 +6,9 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..embeddings.vector_store import VectorStore
-from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field
+from ..embeddings.vector_store import VectorDBIndex
+from ..schema import UUID_COLUMN, Field, Item, PathKey, RichData, VectorKey, field
 from ..signals.signal import (
-  EMBEDDING_KEY,
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSignal,
@@ -795,22 +794,28 @@ class TopKSignal(TextEmbeddingModelSignal):
   _query = np.array([1])
 
   def fields(self) -> Field:
-    return field('float32')
+    return field(fields=[field('string_span', {'score': 'float32'})])
 
   @override
-  def vector_compute(self, keys: Iterable[VectorKey],
-                     vector_store: VectorStore) -> Iterable[Optional[Item]]:
-    text_embeddings = vector_store.get(keys)
-    dot_products = text_embeddings.dot(self._query).reshape(-1)
-    return dot_products.tolist()
+  def vector_compute(self, keys: Iterable[PathKey],
+                     vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
+    all_vector_spans = vector_index.get(keys)
+    for vector_spans in all_vector_spans:
+      embeddings = np.array([vector_span['vector'] for vector_span in vector_spans])
+      scores = embeddings.dot(self._query).reshape(-1)
+      res: Item = []
+      for vector_span, score in zip(vector_spans, scores):
+        start, end = vector_span['span']
+        res.append(lilac_span(start, end, {'score': score}))
+      yield res
 
   @override
   def vector_compute_topk(
       self,
       topk: int,
-      vector_store: VectorStore,
+      vector_index: VectorDBIndex,
       keys: Optional[Iterable[VectorKey]] = None) -> Sequence[tuple[VectorKey, Optional[Item]]]:
-    return vector_store.topk(self._query, topk, keys)
+    return vector_index.topk(self._query, topk, keys)
 
 
 def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
@@ -828,7 +833,8 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(TopKEmbedding(), 'scores')
 
   # Equivalent to: SELECT `TopKSignal(scores, embedding='...') AS udf`.
-  text_udf = Column('scores', signal_udf=TopKSignal(embedding='topk_embedding'), alias='udf')
+  signal = TopKSignal(embedding='topk_embedding')
+  text_udf = Column('scores', signal_udf=signal, alias='udf')
   # Sort by `udf`, where `udf` is an alias to `TopKSignal(scores, embedding='...')`.
   result = dataset.select_rows(['*', text_udf],
                                sort_by=['udf'],
@@ -838,29 +844,13 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '3',
     'scores': enriched_item(
-      '9_7', {
-        'topk_embedding': [
-          lilac_span(0, 1, {EMBEDDING_KEY: {
-            'topk_signal': 9.0
-          }}),
-          lilac_span(2, 3, {EMBEDDING_KEY: {
-            'topk_signal': 7.0
-          }})
-        ]
-      }),
+      '9_7', {signal.key(): [lilac_span(0, 1, {'score': 9.0}),
+                             lilac_span(2, 3, {'score': 7.0})]}),
   }, {
     UUID_COLUMN: '1',
     'scores': enriched_item(
-      '8_1', {
-        'topk_embedding': [
-          lilac_span(0, 1, {EMBEDDING_KEY: {
-            'topk_signal': 8.0
-          }}),
-          lilac_span(2, 3, {EMBEDDING_KEY: {
-            'topk_signal': 1.0
-          }})
-        ]
-      }),
+      '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}),
+                             lilac_span(2, 3, {'score': 1.0})]}),
   }]
 
   # Same but set limit to 4.
@@ -872,42 +862,18 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '3',
     'scores': enriched_item(
-      '9_7', {
-        'topk_embedding': [
-          lilac_span(0, 1, {EMBEDDING_KEY: {
-            'topk_signal': 9.0
-          }}),
-          lilac_span(2, 3, {EMBEDDING_KEY: {
-            'topk_signal': 7.0
-          }})
-        ]
-      }),
+      '9_7', {signal.key(): [lilac_span(0, 1, {'score': 9.0}),
+                             lilac_span(2, 3, {'score': 7.0})]}),
   }, {
     UUID_COLUMN: '1',
     'scores': enriched_item(
-      '8_1', {
-        'topk_embedding': [
-          lilac_span(0, 1, {EMBEDDING_KEY: {
-            'topk_signal': 8.0
-          }}),
-          lilac_span(2, 3, {EMBEDDING_KEY: {
-            'topk_signal': 1.0
-          }})
-        ]
-      }),
+      '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}),
+                             lilac_span(2, 3, {'score': 1.0})]}),
   }, {
     UUID_COLUMN: '2',
     'scores': enriched_item(
-      '3_5', {
-        'topk_embedding': [
-          lilac_span(0, 1, {EMBEDDING_KEY: {
-            'topk_signal': 3.0
-          }}),
-          lilac_span(2, 3, {EMBEDDING_KEY: {
-            'topk_signal': 5.0
-          }})
-        ]
-      }),
+      '3_5', {signal.key(): [lilac_span(0, 1, {'score': 3.0}),
+                             lilac_span(2, 3, {'score': 5.0})]}),
   }]
 
 
@@ -929,7 +895,8 @@ def test_sort_by_topk_udf_with_filter(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(TopKEmbedding(), 'scores')
 
   # Equivalent to: SELECT `TopKSignal(scores, embedding='...') AS udf`.
-  text_udf = Column('scores', signal_udf=TopKSignal(embedding='topk_embedding'), alias='udf')
+  signal = TopKSignal(embedding='topk_embedding')
+  text_udf = Column('scores', signal_udf=signal, alias='udf')
   # Sort by `udf`, where `udf` is an alias to `TopKSignal(scores, embedding='...')`.
   result = dataset.select_rows(['*', text_udf],
                                sort_by=['udf'],
@@ -943,28 +910,12 @@ def test_sort_by_topk_udf_with_filter(make_test_data: TestDataMaker) -> None:
     UUID_COLUMN: '1',
     'active': True,
     'scores': enriched_item(
-      '8_1', {
-        'topk_embedding': [
-          lilac_span(0, 1, {EMBEDDING_KEY: {
-            'topk_signal': 8.0
-          }}),
-          lilac_span(2, 3, {EMBEDDING_KEY: {
-            'topk_signal': 1.0
-          }})
-        ]
-      })
+      '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}),
+                             lilac_span(2, 3, {'score': 1.0})]})
   }, {
     UUID_COLUMN: '2',
     'active': True,
     'scores': enriched_item(
-      '3_5', {
-        'topk_embedding': [
-          lilac_span(0, 1, {EMBEDDING_KEY: {
-            'topk_signal': 3.0
-          }}),
-          lilac_span(2, 3, {EMBEDDING_KEY: {
-            'topk_signal': 5.0
-          }})
-        ]
-      })
+      '3_5', {signal.key(): [lilac_span(0, 1, {'score': 3.0}),
+                             lilac_span(2, 3, {'score': 5.0})]})
   }]

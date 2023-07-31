@@ -125,7 +125,7 @@ class ScoreBody(BaseModel):
 
 class ScoreResponse(BaseModel):
   """Response body for the score endpoint."""
-  scores: list[dict]
+  scored_spans: list[list[dict]]
   model_synced: bool
 
 
@@ -212,7 +212,7 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
   model_updated = DISK_CONCEPT_MODEL_DB.sync(model, user)
   # TODO(smilkov): Support images.
   texts = [example.text or '' for example in body.examples]
-  return ScoreResponse(scores=model.score(body.draft, texts), model_synced=model_updated)
+  return ScoreResponse(scored_spans=model.score(body.draft, texts), model_synced=model_updated)
 
 
 class Examples(OpenAISchema):

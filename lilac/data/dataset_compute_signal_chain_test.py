@@ -8,9 +8,10 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..embeddings.vector_store import VectorStore
-from ..schema import UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema
+from ..embeddings.vector_store import VectorDBIndex
+from ..schema import UUID_COLUMN, Field, Item, PathKey, RichData, field, schema
 from ..signals.signal import (
+  EMBEDDING_KEY,
   TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSignal,
@@ -19,14 +20,7 @@ from ..signals.signal import (
   register_signal,
 )
 from .dataset import DatasetManifest
-from .dataset_test_utils import (
-  TEST_DATASET_NAME,
-  TEST_NAMESPACE,
-  TestDataMaker,
-  enriched_embedding_span,
-  enriched_embedding_span_field,
-  enriched_item,
-)
+from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
 from .dataset_utils import lilac_embedding, lilac_span
 
 SIMPLE_ITEMS: list[Item] = [{
@@ -93,11 +87,11 @@ class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
     return field('float32')
 
   @override
-  def vector_compute(self, keys: Iterable[VectorKey], vector_store: VectorStore) -> Iterable[Item]:
+  def vector_compute(self, keys: Iterable[PathKey], vector_index: VectorDBIndex) -> Iterable[Item]:
     # The signal just sums the values of the embedding.
-    embedding_sums = vector_store.get(keys).sum(axis=1)
-    for embedding_sum in embedding_sums.tolist():
-      yield embedding_sum
+    all_vector_spans = vector_index.get(keys)
+    for vector_spans in all_vector_spans:
+      yield vector_spans[0]['vector'].sum()
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -123,10 +117,8 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
   }])
 
   embed_mock = mocker.spy(TestEmbedding, 'compute')
-
-  embedding_signal = TestEmbedding()
-  dataset.compute_signal(embedding_signal, 'text')
-  embedding_sum_signal = TestEmbeddingSumSignal(embedding=TestEmbedding.name)
+  dataset.compute_embedding('test_embedding', 'text')
+  embedding_sum_signal = TestEmbeddingSumSignal(embedding='test_embedding')
   dataset.compute_signal(embedding_sum_signal, 'text')
 
   # Make sure the embedding signal is not called twice.
@@ -140,12 +132,11 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
       'text': field(
         'string',
         fields={
+          'test_embedding_sum(embedding=test_embedding)': field(
+            'float32', signal=embedding_sum_signal.dict()),
           'test_embedding': field(
-            signal=embedding_signal.dict(),
-            fields=[
-              enriched_embedding_span_field(
-                {'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
-            ])
+            signal=TestEmbedding().dict(),
+            fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
         }),
     }),
     num_items=2)
@@ -153,17 +144,15 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
   result = dataset.select_rows(combine_columns=True)
   expected_result = [{
     UUID_COLUMN: '1',
-    'text': enriched_item(
-      'hello.', {'test_embedding': [enriched_embedding_span(0, 6, {'test_embedding_sum': 1.0})]})
+    'text': enriched_item('hello.', {'test_embedding_sum(embedding=test_embedding)': 1.0})
   }, {
     UUID_COLUMN: '2',
-    'text': enriched_item(
-      'hello2.', {'test_embedding': [enriched_embedding_span(0, 7, {'test_embedding_sum': 2.0})]})
+    'text': enriched_item('hello2.', {'test_embedding_sum(embedding=test_embedding)': 2.0})
   }]
   assert list(result) == expected_result
 
 
-def test_auto_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
+def test_missing_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
     'text': 'hello.',
@@ -172,44 +161,10 @@ def test_auto_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixt
     'text': 'hello2.',
   }])
 
-  embed_mock = mocker.spy(TestEmbedding, 'compute')
-
-  # The embedding is automatically computed from the TestEmbeddingSumSignal.
+  # The embedding is missing for 'text'.
   embedding_sum_signal = TestEmbeddingSumSignal(embedding=TestEmbedding.name)
-  dataset.compute_signal(embedding_sum_signal, 'text')
-
-  # Make sure the embedding signal is not called twice.
-  assert embed_mock.call_count == 1
-
-  assert dataset.manifest() == DatasetManifest(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      UUID_COLUMN: 'string',
-      'text': field(
-        'string',
-        fields={
-          'test_embedding': field(
-            signal=embedding_sum_signal.get_embedding_signal().dict(),
-            fields=[
-              enriched_embedding_span_field(
-                {'test_embedding_sum': field('float32', embedding_sum_signal.dict())})
-            ])
-        }),
-    }),
-    num_items=2)
-
-  result = dataset.select_rows(combine_columns=True)
-  expected_result = [{
-    UUID_COLUMN: '1',
-    'text': enriched_item(
-      'hello.', {'test_embedding': [enriched_embedding_span(0, 6, {'test_embedding_sum': 1.0})]})
-  }, {
-    UUID_COLUMN: '2',
-    'text': enriched_item(
-      'hello2.', {'test_embedding': [enriched_embedding_span(0, 7, {'test_embedding_sum': 2.0})]})
-  }]
-  assert list(result) == expected_result
+  with pytest.raises(ValueError, match="No embedding found for path \\('text',\\)"):
+    dataset.compute_signal(embedding_sum_signal, 'text')
 
 
 ENTITY_REGEX = r'[A-Za-z]+@[A-Za-z]+'

@@ -25,7 +25,6 @@ class LangDetectionSignal(TextSignal):
   display_name = 'Language detection'
 
   input_type = SignalInputType.TEXT
-  compute_type = SignalInputType.TEXT
 
   split_by_paragraph: bool = PydanticField(
     default=False, description='Compute language scores for each paragraph.')

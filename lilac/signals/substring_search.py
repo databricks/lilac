@@ -14,7 +14,6 @@ class SubstringSignal(Signal):
   name = 'substring_search'
   display_name = 'Substring Search'
   input_type = SignalInputType.TEXT
-  compute_type = SignalInputType.TEXT
 
   query: str
 
