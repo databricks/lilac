@@ -4,12 +4,11 @@
   import {getSettingsContext} from '$lib/stores/settingsStore';
   import {
     PATH_WILDCARD,
+    deserializeField,
     deserializeRow,
-    deserializeSchema,
     type Concept,
     type Example,
     type LilacValueNode,
-    type Path,
     type Signal
   } from '$lilac';
   import {Button, Select, SelectItem, SkeletonText, TextArea} from 'carbon-components-svelte';
@@ -58,16 +57,14 @@
   }
 
   let previewResultItem: LilacValueNode | undefined = undefined;
-  let spanPaths: Path[];
   let valuePaths: SpanValueInfo[];
   $: conceptKey = `${concept.namespace}/${concept.concept_name}`;
   $: {
     if (previewEmbedding != null) {
-      spanPaths = [[previewEmbedding, PATH_WILDCARD]];
       valuePaths = [
         {
-          spanPath: [previewEmbedding, PATH_WILDCARD],
-          path: [previewEmbedding, PATH_WILDCARD, conceptKey],
+          spanPath: [PATH_WILDCARD],
+          path: [PATH_WILDCARD, 'score'],
           name: conceptKey,
           type: 'concept_score',
           dtype: 'float32',
@@ -82,21 +79,13 @@
   }
   $: {
     if ($conceptScore?.data != null && previewEmbedding != null) {
-      const resultSchema = deserializeSchema({
-        fields: {
-          [previewEmbedding]: {
-            repeated_field: {
-              dtype: 'string_span',
-              fields: {
-                [conceptKey]: {
-                  dtype: 'float32'
-                }
-              }
-            }
-          }
+      const resultSchema = deserializeField({
+        repeated_field: {
+          dtype: 'string_span',
+          fields: {score: {dtype: 'float32'}}
         }
       });
-      previewResultItem = deserializeRow($conceptScore.data.scores[0], resultSchema);
+      previewResultItem = deserializeRow($conceptScore.data.scored_spans[0], resultSchema);
     }
   }
 </script>
@@ -128,7 +117,12 @@
     {#if $conceptScore?.isFetching}
       <SkeletonText />
     {:else if previewResultItem != null && previewText != null}
-      <StringSpanHighlight text={previewText} row={previewResultItem} {spanPaths} {valuePaths} />
+      <StringSpanHighlight
+        text={previewText}
+        row={previewResultItem}
+        spanPaths={[[PATH_WILDCARD]]}
+        {valuePaths}
+      />
     {/if}
   </div>
 </div>

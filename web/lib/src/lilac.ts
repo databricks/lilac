@@ -80,7 +80,7 @@ function castLilacValueNode<D extends DataType = DataType>(
  * schema.
  */
 export function deserializeSchema(rawSchema: Schema): LilacSchema {
-  const lilacFields = lilacSchemaFieldFromField(rawSchema, []);
+  const lilacFields = deserializeField(rawSchema);
 
   if (!lilacFields.fields) {
     return {fields: {}, path: []};
@@ -94,11 +94,12 @@ export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacVa
   const fields = childFields(schema);
   const rootNode = lilacValueNodeFromRawValue(rawRow, fields, []);
 
-  if (Array.isArray(rootNode)) {
-    throw new Error('Expected row to have a single root node');
-  }
   if (!rootNode) {
     throw new Error('Expected row to have children');
+  }
+
+  if (Array.isArray(rootNode)) {
+    return rootNode;
   }
 
   castLilacValueNode(rootNode)[VALUE_KEY] = null;
@@ -242,19 +243,19 @@ export const L = {
  * Convert raw schema field to LilacField.
  * Adds path attribute to each field
  */
-function lilacSchemaFieldFromField(field: Field, path: Path): LilacField {
+export function deserializeField(field: Field, path: Path = []): LilacField {
   const {fields, repeated_field, ...rest} = field;
   const lilacField: LilacField = {...rest, path: []};
   if (fields != null) {
     lilacField.fields = {};
     for (const [fieldName, field] of Object.entries(fields)) {
-      const lilacChildField = lilacSchemaFieldFromField(field, [...path, fieldName]);
+      const lilacChildField = deserializeField(field, [...path, fieldName]);
       lilacChildField.path = [...path, fieldName];
       lilacField.fields[fieldName] = lilacChildField;
     }
   }
   if (repeated_field != null) {
-    const lilacChildField = lilacSchemaFieldFromField(repeated_field, [...path, PATH_WILDCARD]);
+    const lilacChildField = deserializeField(repeated_field, [...path, PATH_WILDCARD]);
     lilacChildField.path = [...path, PATH_WILDCARD];
     lilacField.repeated_field = lilacChildField;
   }

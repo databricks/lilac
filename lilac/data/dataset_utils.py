@@ -220,42 +220,6 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   return schema({UUID_COLUMN: 'string', **cast(dict, enriched_schema.fields)})
 
 
-def write_item_embeddings_to_disk(keys: Iterable[str], embeddings: Iterable[Item], output_dir: str,
-                                  shard_index: int, num_shards: int) -> str:
-  """Write a set of embeddings to disk."""
-  output_path_prefix = embedding_index_filename_prefix(output_dir, shard_index, num_shards)
-
-  # Restrict the keys to only those that are embeddings.
-  def embedding_predicate(input: Any) -> bool:
-    return isinstance(input, np.ndarray)
-
-  flat_keys = flatten_keys(keys, embeddings, is_primitive_predicate=embedding_predicate)
-  flat_embeddings = cast(Iterable[Item],
-                         flatten(embeddings, is_primitive_predicate=embedding_predicate))
-
-  embedding_vectors: list[np.ndarray] = []
-  embedding_keys: list[VectorKey] = []
-  for key, lilac_embedding in zip(flat_keys, flat_embeddings):
-    if not key or not lilac_embedding or EMBEDDING_KEY not in lilac_embedding:
-      # Sparse embeddings may not have an embedding for every key.
-      continue
-
-    # We use squeeze here because embedding functions can return outer dimensions of 1.
-    embedding_vectors.append(lilac_embedding[EMBEDDING_KEY].reshape(-1))
-    embedding_keys.append(key)
-
-  embedding_matrix = np.array(embedding_vectors)
-
-  # Write the embedding index and the ordered UUID column to disk so they can be joined later.
-
-  with open_file(output_path_prefix + _EMBEDDINGS_SUFFIX, 'wb') as f:
-    np.save(cast(str, f), embedding_matrix, allow_pickle=False)
-  with open_file(output_path_prefix + _KEYS_SUFFIX, 'wb') as f:
-    pickle.dump(embedding_keys, f)
-
-  return output_path_prefix
-
-
 def write_embeddings_to_disk(uuids: Iterable[str], signal_items: Iterable[Item], output_dir: str,
                              shard_index: int, num_shards: int) -> str:
   """Write a set of embeddings to disk."""
@@ -295,19 +259,6 @@ def write_embeddings_to_disk(uuids: Iterable[str], signal_items: Iterable[Item],
     pickle.dump(all_spans, f)
 
   return output_path_prefix
-
-
-def read_embedding_index(filepath_prefix: str) -> tuple[list[VectorKey], np.ndarray]:
-  """Reads the embedding index for a column from disk."""
-  if not file_exists(filepath_prefix + _EMBEDDINGS_SUFFIX):
-    raise ValueError(F'Embedding index does not exist at path {filepath_prefix}. '
-                     'Please run dataset.compute_signal() on the embedding signal first.')
-
-  # Read the embedding index from disk.
-  embeddings = np.load(filepath_prefix + _EMBEDDINGS_SUFFIX, allow_pickle=False)
-  with open_file(filepath_prefix + _KEYS_SUFFIX, 'rb') as f:
-    index_keys: list[VectorKey] = pickle.load(f)
-  return index_keys, embeddings
 
 
 def read_embeddings_from_disk(

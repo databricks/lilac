@@ -8,16 +8,20 @@
 
   const signals = querySignals();
 
+  $: shownSignals = $signals.data?.filter(
+    s => s.name != 'concept_score' && s.name != 'concept_labels'
+  );
+
   $: {
-    if ($signals.isSuccess && !signal) {
-      signal = $signals.data?.find(s => s.name === defaultSignal) || $signals.data?.[0];
+    if (shownSignals && !signal) {
+      signal = shownSignals.find(s => s.name === defaultSignal) || shownSignals[0];
     }
   }
 </script>
 
-{#if $signals.isSuccess}
+{#if shownSignals}
   <CommandSelectList
-    items={$signals.data.map(signal => ({
+    items={shownSignals.map(signal => ({
       title: signal.json_schema.title || 'Unnamed signal',
       value: signal
     }))}

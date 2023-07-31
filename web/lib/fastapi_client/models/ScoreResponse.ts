@@ -6,7 +6,7 @@
  * Response body for the score endpoint.
  */
 export type ScoreResponse = {
-    scores: Array<Record<string, any>>;
+    scored_spans: Array<Array<Record<string, any>>>;
     model_synced: boolean;
 };
 
