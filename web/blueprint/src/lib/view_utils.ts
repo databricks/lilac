@@ -210,7 +210,7 @@ export function getComputedEmbeddings(datasetStore: DatasetState, path: Path | n
     f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
   );
   for (const field of embeddingSignalRoots) {
-    if (field.signal?.signal_name != null) {
+    if (field.signal != null) {
       existingEmbeddings.add(field.signal.signal_name);
     }
   }

@@ -66,7 +66,7 @@
       : [];
 
   $: embeddingNames = embeddings
-    .map(a => a.signal!.signal_name!)
+    .map(a => a.signal!.signal_name)
     .sort((a, b) => {
       let aPriority = embeddingPriority.indexOf(a);
       let bPriority = embeddingPriority.indexOf(b);

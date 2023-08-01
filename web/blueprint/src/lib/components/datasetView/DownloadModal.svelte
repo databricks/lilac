@@ -52,7 +52,9 @@
     const sourceFields = petalFields.filter(
       f => !isSignalField(f, schema) && f.path.at(-1) !== UUID_COLUMN
     );
-    const enrichedFields = childFields(schema).filter(f => isSignalRootField(f));
+    const enrichedFields = childFields(schema)
+      .filter(f => isSignalRootField(f))
+      .filter(f => !childFields(f).some(f => f.dtype === 'embedding'));
     return {sourceFields, enrichedFields};
   }
 
