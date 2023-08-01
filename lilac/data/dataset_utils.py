@@ -7,11 +7,12 @@ import pickle
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Any, Callable, Generator, Iterator, Optional, Sequence, TypeVar, Union, cast
+from typing import Any, Callable, Iterator, Optional, Sequence, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
 
+from ..batch_utils import flatten
 from ..config import env
 from ..parquet_writer import ParquetWriter
 from ..schema import (
@@ -31,20 +32,11 @@ from ..schema import (
   schema_to_arrow_schema,
 )
 from ..signals.signal import EMBEDDING_KEY, Signal
-from ..utils import file_exists, log, open_file
+from ..utils import file_exists, is_primitive, log, open_file
 
 _KEYS_SUFFIX = '.keys.pkl'
 _SPANS_SUFFIX = '.spans.pkl'
 _EMBEDDINGS_SUFFIX = '.npy'
-
-
-def is_primitive(obj: object) -> bool:
-  """Returns True if the object is a primitive."""
-  if isinstance(obj, (str, bytes, np.ndarray, int, float)):
-    return True
-  if isinstance(obj, Iterable):
-    return False
-  return True
 
 
 def _replace_embeddings_with_none(input: Union[Item, Item]) -> Union[Item, Item]:
@@ -73,30 +65,6 @@ def lilac_embedding(start: int, end: int, embedding: Optional[np.ndarray]) -> It
   return lilac_span(start, end, {EMBEDDING_KEY: embedding})
 
 
-def _flatten(input: Union[Iterator, object], is_primitive_predicate: Callable[[object],
-                                                                              bool]) -> Generator:
-  """Flattens a nested iterable."""
-  if is_primitive_predicate(input):
-    yield input
-  elif isinstance(input, dict):
-    yield input
-  elif is_primitive(input):
-    yield input
-  else:
-    for elem in cast(Iterator, input):
-      yield from _flatten(elem, is_primitive_predicate)
-
-
-def flatten(input: Union[Iterator, Iterable],
-            is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Iterator:
-  """Flattens a nested iterator.
-
-  Primitives and dictionaries are not flattened. The user can also provide a predicate to determine
-  what is a primitive.
-  """
-  return _flatten(input, is_primitive_predicate)
-
-
 def count_primitives(input: Union[Iterable, Iterator]) -> int:
   """Iterate through each element of the input, flattening each one, computing a count.
 
@@ -112,26 +80,6 @@ def _wrap_value_in_dict(input: Union[object, dict], props: PathTuple) -> Union[o
   for prop in reversed(props):
     input = {prop: input}
   return input
-
-
-def _unflatten(flat_input: Iterator[list[object]],
-               original_input: Union[Iterable, object]) -> Union[list, dict]:
-  """Unflattens a flattened iterable according to the original iterable's structure."""
-  if is_primitive(original_input):
-    return next(flat_input)
-  else:
-    values: Iterable
-    if isinstance(original_input, dict):
-      values = original_input.values()
-    else:
-      values = cast(Iterable, original_input)
-    return [_unflatten(flat_input, orig_elem) for orig_elem in values]
-
-
-def unflatten(flat_input: Union[Iterable, Iterator], original_input: Union[Iterable,
-                                                                           object]) -> list:
-  """Unflattens a flattened iterable according to the original iterable's structure."""
-  return cast(list, _unflatten(iter(flat_input), original_input))
 
 
 def _wrap_in_dicts(input: Union[object, Iterable[object]],

@@ -2,33 +2,9 @@
 
 from typing import Iterable, Iterator
 
+from ..batch_utils import chunks
 from ..schema import PathTuple
-from ..utils import chunks
-from .dataset_utils import (
-  count_primitives,
-  flatten,
-  sparse_to_dense_compute,
-  unflatten,
-  wrap_in_dicts,
-)
-
-
-def test_flatten() -> None:
-  a = [[1, 2], [[3]], [4, 5, 5]]
-  result = list(flatten(a))
-  assert result == [1, 2, 3, 4, 5, 5]
-
-
-def test_flatten_primitive() -> None:
-  result = list(flatten('hello'))
-  assert result == ['hello']
-
-
-def test_unflatten() -> None:
-  a = [[1, 2], [[3]], [4, 5, 5]]
-  flat_a = list(flatten(a))
-  result = unflatten(flat_a, a)
-  assert result == [[1, 2], [[3]], [4, 5, 5]]
+from .dataset_utils import count_primitives, sparse_to_dense_compute, wrap_in_dicts
 
 
 def test_count_nested() -> None:
@@ -112,16 +88,6 @@ def test_wrap_in_dicts_with_spec_of_double_repeated() -> None:
   }]
 
 
-def test_unflatten_primitive() -> None:
-  original = 'hello'
-  result = unflatten(['hello'], original)
-  assert result == 'hello'
-
-
-def test_unflatten_primitive_list() -> None:
-  original = ['hello', 'world']
-  result = unflatten(['hello', 'world'], original)
-  assert result == ['hello', 'world']
 
 
 def test_sparse_to_dense_compute() -> None:

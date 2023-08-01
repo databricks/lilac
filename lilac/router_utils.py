@@ -1,10 +1,15 @@
 """Utils for routers."""
 
 import traceback
-from typing import Callable
+from typing import Callable, Iterable, Optional
 
 from fastapi import HTTPException, Request, Response
 from fastapi.routing import APIRoute
+
+from .auth import UserInfo
+from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB
+from .schema import Item, RichData
+from .signals.concept_scorer import ConceptScoreSignal
 
 
 class RouteErrorHandler(APIRoute):
@@ -29,3 +34,20 @@ class RouteErrorHandler(APIRoute):
         raise HTTPException(status_code=500, detail=traceback.format_exc()) from ex
 
     return custom_route_handler
+
+
+def server_compute_concept(signal: ConceptScoreSignal, examples: Iterable[RichData],
+                           user: Optional[UserInfo]) -> list[Optional[Item]]:
+  """Compute a concept from the REST endpoints."""
+  concept = DISK_CONCEPT_DB.get(signal.namespace, signal.concept_name, user)
+  if not concept:
+    raise HTTPException(
+      status_code=404, detail=f'Concept "{signal.namespace}/{signal.concept_name}" was not found')
+  model = DISK_CONCEPT_MODEL_DB.get(
+    signal.namespace, signal.concept_name, signal.embedding, user=user)
+  if model is None:
+    model = DISK_CONCEPT_MODEL_DB.create(
+      signal.namespace, signal.concept_name, signal.embedding, user=user)
+  DISK_CONCEPT_MODEL_DB.sync(model, user)
+  texts = [example or '' for example in examples]
+  return list(signal.compute(texts))

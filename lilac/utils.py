@@ -1,7 +1,6 @@
 """Utils for the python server."""
 import asyncio
 import functools
-import itertools
 import logging
 import os
 import pathlib
@@ -16,6 +15,7 @@ from datetime import timedelta
 from functools import partial, wraps
 from typing import IO, Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
 
+import numpy as np
 import requests
 from google.cloud.storage import Blob, Client
 from pydantic import BaseModel
@@ -250,16 +250,16 @@ def async_wrap(func: Callable[..., Tout],
   return run
 
 
+def is_primitive(obj: object) -> bool:
+  """Returns True if the object is a primitive."""
+  if isinstance(obj, (str, bytes, np.ndarray, int, float)):
+    return True
+  if isinstance(obj, Iterable):
+    return False
+  return True
+
+
 Tchunk = TypeVar('Tchunk')
-
-
-def chunks(iterable: Iterable[Tchunk], size: int) -> Iterable[list[Tchunk]]:
-  """Split a list of items into equal-sized chunks. The last chunk might be smaller."""
-  it = iter(iterable)
-  chunk = list(itertools.islice(it, size))
-  while chunk:
-    yield chunk
-    chunk = list(itertools.islice(it, size))
 
 
 def log(log_str: str) -> None:

@@ -17,6 +17,7 @@ from pydantic import BaseModel, validator
 from typing_extensions import override
 
 from ..auth import UserInfo
+from ..batch_utils import flatten, unflatten
 from ..concepts.concept import ConceptColumnInfo
 from ..config import data_path, env
 from ..embeddings.vector_store import VectorDBIndex, VectorStore
@@ -91,13 +92,11 @@ from .dataset import (
 from .dataset_utils import (
   count_primitives,
   create_signal_schema,
-  flatten,
   flatten_keys,
   merge_schemas,
   read_embeddings_from_disk,
   schema_contains_path,
   sparse_to_dense_compute,
-  unflatten,
   wrap_in_dicts,
   write_embeddings_to_disk,
   write_items_to_parquet,

@@ -1,6 +1,6 @@
 """Router for the concept database."""
 
-from typing import Annotated, Optional
+from typing import Annotated, Iterable, Optional, cast
 
 from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
@@ -18,8 +18,9 @@ from .concepts.concept import (
 )
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
 from .config import env
-from .router_utils import RouteErrorHandler
-from .schema import SignalInputType
+from .router_utils import RouteErrorHandler, server_compute_concept
+from .schema import RichData, SignalInputType
+from .signals.concept_scorer import ConceptScoreSignal
 
 router = APIRouter(route_class=RouteErrorHandler)
 
@@ -123,12 +124,6 @@ class ScoreBody(BaseModel):
   draft: str = DRAFT_MAIN
 
 
-class ScoreResponse(BaseModel):
-  """Response body for the score endpoint."""
-  scored_spans: list[list[dict]]
-  model_synced: bool
-
-
 class ConceptModelInfo(BaseModel):
   """Information about a concept model."""
   namespace: str
@@ -200,19 +195,14 @@ class MetricsBody(BaseModel):
 @router.post(
   '/{namespace}/{concept_name}/model/{embedding_name}/score', response_model_exclude_none=True)
 def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBody,
-          user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> ScoreResponse:
+          user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> list[list[dict]]:
   """Score examples along the specified concept."""
-  concept = DISK_CONCEPT_DB.get(namespace, concept_name, user)
-  if not concept:
-    raise HTTPException(
-      status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
-  model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name, user=user)
-  if model is None:
-    model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name, user=user)
-  model_updated = DISK_CONCEPT_MODEL_DB.sync(model, user)
-  # TODO(smilkov): Support images.
-  texts = [example.text or '' for example in body.examples]
-  return ScoreResponse(scored_spans=model.score(body.draft, texts), model_synced=model_updated)
+  concept_scorer = ConceptScoreSignal(
+    namespace=namespace, concept_name=concept_name, embedding=embedding_name)
+  return cast(
+    list[list[dict]],
+    server_compute_concept(concept_scorer, cast(Iterable[RichData],
+                                                [e.text for e in body.examples]), user))
 
 
 class Examples(OpenAISchema):

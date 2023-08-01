@@ -9,7 +9,6 @@ import type { ConceptUpdate } from '../models/ConceptUpdate';
 import type { CreateConceptOptions } from '../models/CreateConceptOptions';
 import type { MergeConceptDraftOptions } from '../models/MergeConceptDraftOptions';
 import type { ScoreBody } from '../models/ScoreBody';
-import type { ScoreResponse } from '../models/ScoreResponse';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -249,7 +248,7 @@ export class ConceptsService {
      * @param conceptName
      * @param embeddingName
      * @param requestBody
-     * @returns ScoreResponse Successful Response
+     * @returns any Successful Response
      * @throws ApiError
      */
     public static score(
@@ -257,7 +256,7 @@ export class ConceptsService {
         conceptName: string,
         embeddingName: string,
         requestBody: ScoreBody,
-    ): CancelablePromise<ScoreResponse> {
+    ): CancelablePromise<Array<Array<Record<string, any>>>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/concepts/{namespace}/{concept_name}/model/{embedding_name}/score',

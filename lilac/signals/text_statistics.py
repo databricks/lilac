@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, Iterable, Optional, cast
 
 from typing_extensions import override
 
+from ..batch_utils import chunks
 from ..schema import Field, Item, RichData, field
-from ..utils import chunks
 from .signal import TextSignal
 
 SPACY_LANG_MODEL = 'en_core_web_sm'

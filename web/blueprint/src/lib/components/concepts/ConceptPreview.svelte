@@ -85,7 +85,7 @@
           fields: {score: {dtype: 'float32'}}
         }
       });
-      previewResultItem = deserializeRow($conceptScore.data.scored_spans[0], resultSchema);
+      previewResultItem = deserializeRow($conceptScore.data[0], resultSchema);
     }
   }
 </script>

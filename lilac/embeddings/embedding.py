@@ -6,11 +6,11 @@ import numpy as np
 from pydantic import StrictStr
 from sklearn.preprocessing import normalize
 
+from ..batch_utils import chunks
 from ..data.dataset_utils import lilac_embedding
 from ..schema import Item, RichData
 from ..signals.signal import EMBEDDING_KEY, TextEmbeddingSignal, get_signal_by_type
 from ..signals.splitters.chunk_splitter import TextChunk
-from ..utils import chunks
 
 EmbeddingId = Union[StrictStr, TextEmbeddingSignal]
 
