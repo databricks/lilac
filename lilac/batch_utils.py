@@ -3,18 +3,7 @@ import itertools
 from typing import Any, Callable, Generator, Iterable, Iterator, TypeVar, Union, cast
 
 from .schema import Item
-from .utils import is_primitive
-
-Tchunk = TypeVar('Tchunk')
-
-
-def chunks(iterable: Iterable[Tchunk], size: int) -> Iterable[list[Tchunk]]:
-  """Split a list of items into equal-sized chunks. The last chunk might be smaller."""
-  it = iter(iterable)
-  chunk = list(itertools.islice(it, size))
-  while chunk:
-    yield chunk
-    chunk = list(itertools.islice(it, size))
+from .utils import chunks, is_primitive
 
 
 def _deep_flatten(input: Union[Iterator, object],

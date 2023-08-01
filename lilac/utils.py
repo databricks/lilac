@@ -1,6 +1,7 @@
 """Utils for the python server."""
 import asyncio
 import functools
+import itertools
 import logging
 import os
 import pathlib
@@ -209,6 +210,18 @@ def copy_files(copy_requests: Iterable[CopyRequest], input_gcs: bool, output_gcs
   log(f'Copy took {time.time() - start_time} seconds.')
 
 
+Tchunk = TypeVar('Tchunk')
+
+
+def chunks(iterable: Iterable[Tchunk], size: int) -> Iterable[list[Tchunk]]:
+  """Split a list of items into equal-sized chunks. The last chunk might be smaller."""
+  it = iter(iterable)
+  chunk = list(itertools.islice(it, size))
+  while chunk:
+    yield chunk
+    chunk = list(itertools.islice(it, size))
+
+
 def delete_file(filepath: str) -> None:
   """Delete a file. It works for both GCS and local paths."""
   if filepath.startswith(GCS_PROTOCOL):
@@ -257,9 +270,6 @@ def is_primitive(obj: object) -> bool:
   if isinstance(obj, Iterable):
     return False
   return True
-
-
-Tchunk = TypeVar('Tchunk')
 
 
 def log(log_str: str) -> None:

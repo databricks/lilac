@@ -2,8 +2,8 @@
 
 from typing import Iterable, Iterator
 
-from ..batch_utils import chunks
 from ..schema import PathTuple
+from ..utils import chunks
 from .dataset_utils import count_primitives, sparse_to_dense_compute, wrap_in_dicts
 
 
@@ -86,8 +86,6 @@ def test_wrap_in_dicts_with_spec_of_double_repeated() -> None:
       }]]
     }
   }]
-
-
 
 
 def test_sparse_to_dense_compute() -> None:

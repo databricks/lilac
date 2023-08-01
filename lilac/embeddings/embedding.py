@@ -6,7 +6,6 @@ import numpy as np
 from pydantic import StrictStr
 from sklearn.preprocessing import normalize
 
-from ..batch_utils import chunks
 from ..schema import (
   EMBEDDING_KEY,
   TEXT_SPAN_END_FEATURE,
@@ -19,6 +18,7 @@ from ..schema import (
 )
 from ..signals.signal import TextEmbeddingSignal, get_signal_by_type
 from ..signals.splitters.chunk_splitter import TextChunk
+from ..utils import chunks
 
 EmbeddingId = Union[StrictStr, TextEmbeddingSignal]
 
