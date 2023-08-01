@@ -245,7 +245,7 @@ export const L = {
  */
 export function deserializeField(field: Field, path: Path = []): LilacField {
   const {fields, repeated_field, ...rest} = field;
-  const lilacField: LilacField = {...rest, path: []};
+  const lilacField: LilacField = {...rest, path: []} as LilacField;
   if (fields != null) {
     lilacField.fields = {};
     for (const [fieldName, field] of Object.entries(fields)) {
