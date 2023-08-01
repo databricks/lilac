@@ -69,6 +69,9 @@ class SignalComputeResponse(BaseModel):
   items: list[Optional[dict]]
 
 
+# TODO(nsthorat): Add a field method to get the field for a signal.
+
+
 @router.get('/compute', response_model_exclude_none=True)
 def compute(
     options: SignalComputeOptions,
