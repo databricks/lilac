@@ -277,8 +277,8 @@ class DatasetDuckDB(Dataset):
       return self._vector_indices[index_key]
 
     manifests = [
-      m for m in self._signal_manifests
-      if schema_contains_path(m.data_schema, path) and m.embedding_filename_prefix
+      m for m in self._signal_manifests if schema_contains_path(m.data_schema, path) and
+      m.embedding_filename_prefix and m.signal.name == embedding
     ]
     if not manifests:
       raise ValueError(f'No embedding found for path {path}.')

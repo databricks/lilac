@@ -1,6 +1,6 @@
 <script lang="ts">
   import {DTYPE_TO_ICON} from '$lib/view_utils';
-  import {PATH_WILDCARD, serializePath, type LilacField} from '$lilac';
+  import {PATH_WILDCARD, pathIsEqual, serializePath, type LilacField} from '$lilac';
   import {Checkbox} from 'carbon-components-svelte';
 
   export let fields: LilacField[];
@@ -23,7 +23,7 @@
       <Checkbox
         labelText="Download"
         hideLabel
-        checked={checkedFields.indexOf(field) >= 0}
+        checked={checkedFields.find(f => pathIsEqual(f.path, field.path)) != null}
         on:change={e => checkboxClicked(field, e)}
       />
     </div>
