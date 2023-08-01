@@ -16,8 +16,8 @@ from sklearn.model_selection import KFold
 
 from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
-from ..schema import Path, SignalInputType, normalize_path
-from ..signals.signal import EMBEDDING_KEY, TextEmbeddingSignal, get_signal_cls
+from ..schema import EMBEDDING_KEY, Path, SignalInputType, normalize_path
+from ..signals.signal import TextEmbeddingSignal, get_signal_cls
 from ..utils import DebugTimer
 
 LOCAL_CONCEPT_NAMESPACE = 'local'
@@ -323,7 +323,6 @@ class ConceptModel:
 
   def score_embeddings(self, draft: DraftId, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
-    print('scoring embeddings')
     return self._get_logistic_model(draft).score_embeddings(embeddings)
 
   def coef(self, draft: DraftId) -> np.ndarray:
@@ -367,7 +366,7 @@ class ConceptModel:
       raise ValueError(f'Only text embedding signals are currently supported for concepts. '
                        f'"{self.embedding_name}" is a {type(embedding_signal)}.')
 
-    embed_fn = get_embed_fn(self.embedding_name)
+    embed_fn = get_embed_fn(self.embedding_name, split=False)
     concept_embeddings: dict[str, np.ndarray] = {}
 
     # Compute the embeddings for the examples with cache miss.
@@ -384,6 +383,6 @@ class ConceptModel:
     missing_ids = texts_of_missing_embeddings.keys()
     missing_embeddings = embed_fn(list(texts_of_missing_embeddings.values()))
 
-    for id, embedding in zip(missing_ids, missing_embeddings):
-      concept_embeddings[id] = embedding
+    for id, (embedding,) in zip(missing_ids, missing_embeddings):
+      concept_embeddings[id] = embedding['vector']
     self._embeddings = concept_embeddings

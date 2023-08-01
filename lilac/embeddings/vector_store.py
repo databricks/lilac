@@ -4,9 +4,8 @@ import abc
 from typing import Iterable, Optional, Type
 
 import numpy as np
-from typing_extensions import TypedDict
 
-from ..schema import VectorKey
+from ..schema import SpanVector, VectorKey
 
 
 class VectorStore(abc.ABC):
@@ -56,12 +55,6 @@ class VectorStore(abc.ABC):
       A list of (key, score) tuples.
     """
     raise NotImplementedError
-
-
-class SpanVector(TypedDict):
-  """A span with a vector."""
-  span: tuple[int, int]
-  vector: np.ndarray
 
 
 PathKey = VectorKey

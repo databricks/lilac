@@ -8,9 +8,8 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..data.dataset_test_utils import make_vector_index
-from ..data.dataset_utils import lilac_embedding, lilac_span
 from ..embeddings.vector_store import VectorStore
-from ..schema import Item, RichData, VectorKey
+from ..schema import Item, RichData, VectorKey, lilac_embedding, lilac_span
 from .semantic_similarity import SemanticSimilaritySignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 

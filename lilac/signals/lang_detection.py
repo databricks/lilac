@@ -5,8 +5,7 @@ from typing import Any, Iterable, Optional, cast
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ..data.dataset_utils import lilac_span
-from ..schema import Field, Item, RichData, SignalInputType, field
+from ..schema import Field, Item, RichData, SignalInputType, field, lilac_span
 from .signal import TextSignal
 
 LANG_CODE = 'lang_code'

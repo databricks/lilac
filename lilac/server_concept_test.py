@@ -13,7 +13,6 @@ from typing_extensions import override
 
 from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, Example, ExampleIn, ExampleOrigin
 from .concepts.db_concept import ConceptACL, ConceptInfo, ConceptUpdate
-from .data.dataset_utils import lilac_embedding, lilac_span
 from .router_concept import (
   ConceptModelInfo,
   CreateConceptOptions,
@@ -21,7 +20,7 @@ from .router_concept import (
   ScoreBody,
   ScoreExample,
 )
-from .schema import Item, RichData, SignalInputType
+from .schema import Item, RichData, SignalInputType, lilac_embedding, lilac_span
 from .server import app
 from .signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .test_utils import fake_uuid

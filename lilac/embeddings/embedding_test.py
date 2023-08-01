@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from ..data.dataset_utils import lilac_embedding
+from ..schema import lilac_embedding
 from ..signals.splitters.chunk_splitter import TextChunk
 from .embedding import compute_split_embeddings
 

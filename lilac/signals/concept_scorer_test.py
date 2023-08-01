@@ -19,10 +19,9 @@ from ..concepts.db_concept import (
 )
 from ..data.dataset_duckdb import DatasetDuckDB
 from ..data.dataset_test_utils import TestDataMaker, make_vector_index
-from ..data.dataset_utils import lilac_embedding
 from ..db_manager import set_default_dataset_cls
 from ..embeddings.vector_store_numpy import NumpyVectorStore
-from ..schema import UUID_COLUMN, Item, RichData, SignalInputType
+from ..schema import UUID_COLUMN, Item, RichData, SignalInputType, lilac_embedding
 from .concept_scorer import ConceptScoreSignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 

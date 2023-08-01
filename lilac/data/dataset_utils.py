@@ -16,6 +16,7 @@ from ..batch_utils import deep_flatten
 from ..config import env
 from ..parquet_writer import ParquetWriter
 from ..schema import (
+  EMBEDDING_KEY,
   PATH_WILDCARD,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
@@ -31,10 +32,9 @@ from ..schema import (
   schema,
   schema_to_arrow_schema,
 )
-from ..signals.signal import EMBEDDING_KEY, Signal
+from ..signals.signal import Signal
 from ..utils import file_exists, is_primitive, log, open_file
 
-_KEYS_SUFFIX = '.keys.pkl'
 _SPANS_SUFFIX = '.spans.pkl'
 _EMBEDDINGS_SUFFIX = '.npy'
 
@@ -55,14 +55,6 @@ def replace_embeddings_with_none(input: Union[Item, Item]) -> Item:
   return cast(Item, _replace_embeddings_with_none(input))
 
 
-def lilac_span(start: int, end: int, metadata: dict[str, Any] = {}) -> Item:
-  """Creates a lilac span item, representing a pointer to a slice of text."""
-  return {VALUE_KEY: {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}, **metadata}
-
-
-def lilac_embedding(start: int, end: int, embedding: Optional[np.ndarray]) -> Item:
-  """Creates a lilac embedding item, representing a vector with a pointer to a slice of text."""
-  return lilac_span(start, end, {EMBEDDING_KEY: embedding})
 
 
 def count_primitives(input: Union[Iterable, Iterator]) -> int:

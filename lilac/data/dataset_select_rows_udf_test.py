@@ -7,7 +7,17 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import UUID_COLUMN, Field, Item, RichData, SignalInputType, VectorKey, field
+from ..schema import (
+  UUID_COLUMN,
+  Field,
+  Item,
+  RichData,
+  SignalInputType,
+  VectorKey,
+  field,
+  lilac_embedding,
+  lilac_span,
+)
 from ..signals.signal import (
   TextEmbeddingSignal,
   TextSignal,
@@ -18,7 +28,6 @@ from ..signals.signal import (
 )
 from .dataset import BinaryFilterTuple, BinaryOp, Column
 from .dataset_test_utils import TestDataMaker, enriched_item
-from .dataset_utils import lilac_embedding, lilac_span
 
 EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
                                              ('hello2.', [1.0, 1.0, 0.0]),

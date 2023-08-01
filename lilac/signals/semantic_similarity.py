@@ -5,11 +5,13 @@ import numpy as np
 from scipy.interpolate import interp1d
 from typing_extensions import override
 
-from ..data.dataset_utils import lilac_span
+from ..batch_utils import flat_batched_compute
 from ..embeddings.embedding import EmbedFn, get_embed_fn
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import Field, Item, PathKey, RichData, SignalInputType, field
+from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, lilac_span
 from .signal import VectorSignal
+
+_BATCH_SIZE = 4096
 
 
 class SemanticSimilaritySignal(VectorSignal):
@@ -35,8 +37,7 @@ class SemanticSimilaritySignal(VectorSignal):
     if isinstance(query, bytes):
       raise ValueError('Image queries are not yet supported for SemanticSimilarity.')
     super().__init__(query=query, embedding=embedding, **kwargs)  # type: ignore
-    # TODO(nsthorat): The embedding cls might have arguments. This needs to be resolved.
-    self._embed_fn = get_embed_fn(embedding)
+    self._embed_fn = get_embed_fn(embedding, split=False)
 
   @override
   def fields(self) -> Field:
@@ -45,31 +46,35 @@ class SemanticSimilaritySignal(VectorSignal):
   def _get_search_embedding(self) -> np.ndarray:
     """Return the embedding for the search text."""
     if self._search_text_embedding is None:
-      self._search_text_embedding = self._embed_fn([self.query])[0].reshape(-1)
+      span_vector = list(self._embed_fn([self.query]))[0][0]
+      self._search_text_embedding = span_vector['vector'].reshape(-1)
 
     return self._search_text_embedding
 
+  def _score_span_vectors(self,
+                          span_vectors: Iterable[Iterable[SpanVector]]) -> Iterable[Optional[Item]]:
+
+    return flat_batched_compute(
+      span_vectors,
+      f=lambda vectors: self._compute_span_vector_batch(vectors),
+      batch_size=_BATCH_SIZE)
+
+  def _compute_span_vector_batch(self, span_vectors: Iterable[SpanVector]) -> list[Item]:
+    batch_matrix = np.array([sv['vector'] for sv in span_vectors])
+    spans = [sv['span'] for sv in span_vectors]
+    scores = batch_matrix.dot(self._get_search_embedding()).reshape(-1)
+    return [lilac_span(start, end, {'score': score}) for score, (start, end) in zip(scores, spans)]
+
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    embeddings = self._embed_fn(data)
-    scores = embeddings.dot(self._get_search_embedding()).reshape(-1)
-    for text, score in zip(data, scores):
-      yield [lilac_span(0, len(text), {'score': score})]
+    span_vectors = self._embed_fn(data)
+    return self._score_span_vectors(span_vectors)
 
   @override
   def vector_compute(self, keys: Iterable[PathKey],
                      vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
-    all_vector_spans = vector_index.get(keys)
-    query = self._get_search_embedding()
-    # TODO(smilkov): Do this with batched computation.
-    for vector_spans in all_vector_spans:
-      embeddings = np.array([vector_span['vector'] for vector_span in vector_spans])
-      scores = embeddings.dot(query).reshape(-1)
-      res: Item = []
-      for vector_span, score in zip(vector_spans, scores):
-        start, end = vector_span['span']
-        res.append(lilac_span(start, end, {'score': score}))
-      yield res
+    span_vectors = vector_index.get(keys)
+    return self._score_span_vectors(span_vectors)
 
   @override
   def vector_compute_topk(

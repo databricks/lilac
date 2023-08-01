@@ -1,49 +1,48 @@
 """Embedding registry."""
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable, Generator, Iterable, Optional, Union, cast
+from typing import Callable, Generator, Iterable, Iterator, Optional, Union, cast
 
 import numpy as np
 from pydantic import StrictStr
 from sklearn.preprocessing import normalize
 
 from ..batch_utils import chunks
-from ..data.dataset_utils import lilac_embedding
-from ..schema import Item, RichData
-from ..signals.signal import EMBEDDING_KEY, TextEmbeddingSignal, get_signal_by_type
+from ..schema import (
+  EMBEDDING_KEY,
+  TEXT_SPAN_END_FEATURE,
+  TEXT_SPAN_START_FEATURE,
+  VALUE_KEY,
+  Item,
+  RichData,
+  SpanVector,
+  lilac_embedding,
+)
+from ..signals.signal import TextEmbeddingSignal, get_signal_by_type
 from ..signals.splitters.chunk_splitter import TextChunk
 
 EmbeddingId = Union[StrictStr, TextEmbeddingSignal]
 
-EmbedFn = Callable[[Iterable[RichData]], np.ndarray]
+EmbedFn = Callable[[Iterable[RichData]], Iterator[list[SpanVector]]]
 
 
-def get_embed_fn(embedding_name: str) -> EmbedFn:
+def get_embed_fn(embedding_name: str, split: bool) -> EmbedFn:
   """Return a function that returns the embedding matrix for the given embedding signal."""
   embedding_cls = get_signal_by_type(embedding_name, TextEmbeddingSignal)
-  embedding = embedding_cls(split=False)
+  embedding = embedding_cls(split=split)
   embedding.setup()
 
-  def _embed_fn(data: Iterable[RichData]) -> np.ndarray:
+  def _embed_fn(data: Iterable[RichData]) -> Iterator[list[SpanVector]]:
     items = embedding.compute(data)
 
-    embedding_vectors: list[np.ndarray] = []
     for item in items:
       if not item:
         raise ValueError('Embedding signal returned None.')
-      if len(item) != 1:
-        raise ValueError(
-          f'Embedding signal returned {len(item)} items, but expected 1 since split was False')
-      embedding_vector = item[0][EMBEDDING_KEY]
-      if not isinstance(embedding_vector, np.ndarray):
-        raise ValueError(
-          f'Embedding signal returned {type(embedding_vector)} which is not an ndarray.')
-      # We use squeeze here because embedding functions can return outer dimensions of 1.
-      embedding_vector = embedding_vector.reshape(-1)
-      if embedding_vector.ndim != 1:
-        raise ValueError(f'Expected embeddings to be 1-dimensional, got {embedding_vector.ndim} '
-                         f'with shape {embedding_vector.shape}.')
-      embedding_vectors.append(embedding_vector)
-    return np.array(embedding_vectors)
+
+      yield [{
+        'vector': item_val[EMBEDDING_KEY].reshape(-1),
+        'span':
+          (item_val[VALUE_KEY][TEXT_SPAN_START_FEATURE], item_val[VALUE_KEY][TEXT_SPAN_END_FEATURE])
+      } for item_val in item]
 
   return _embed_fn
 

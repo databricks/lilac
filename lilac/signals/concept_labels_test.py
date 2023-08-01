@@ -10,9 +10,8 @@ from pytest_mock import MockerFixture
 from ..concepts.concept import ExampleIn
 from ..concepts.db_concept import ConceptDB, ConceptUpdate, DiskConceptDB, DiskConceptModelDB
 from ..data.dataset_duckdb import DatasetDuckDB
-from ..data.dataset_utils import lilac_span
 from ..db_manager import set_default_dataset_cls
-from ..schema import SignalInputType
+from ..schema import SignalInputType, lilac_span
 from .concept_labels import ConceptLabelsSignal
 from .signal import clear_signal_registry
 

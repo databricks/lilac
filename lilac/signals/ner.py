@@ -4,8 +4,7 @@ from typing import TYPE_CHECKING, Iterable, Optional
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ..data.dataset_utils import lilac_span
-from ..schema import Field, Item, RichData, SignalInputType, field
+from ..schema import Field, Item, RichData, SignalInputType, field, lilac_span
 from .signal import TextSignal
 
 if TYPE_CHECKING:

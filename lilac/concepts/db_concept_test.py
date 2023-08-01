@@ -10,9 +10,8 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..data.dataset_duckdb import DatasetDuckDB
-from ..data.dataset_utils import lilac_embedding
 from ..db_manager import set_default_dataset_cls
-from ..schema import Item, RichData, SignalInputType
+from ..schema import Item, RichData, SignalInputType, lilac_embedding
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .concept import (
   DRAFT_MAIN,

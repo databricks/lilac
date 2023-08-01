@@ -11,8 +11,7 @@ from typing import Iterator
 from detect_secrets import SecretsCollection
 from detect_secrets.settings import transient_settings
 
-from ..data.dataset_utils import lilac_span
-from ..schema import Item
+from ..schema import Item, lilac_span
 
 # Secrets detection with detect-secrets tool
 

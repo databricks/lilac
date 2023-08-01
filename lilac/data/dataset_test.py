@@ -6,11 +6,10 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..schema import UUID_COLUMN, Field, Item, RichData, field, schema
+from ..schema import UUID_COLUMN, Field, Item, RichData, field, lilac_embedding, schema
 from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset import Column, DatasetManifest
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
-from .dataset_utils import lilac_embedding
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',

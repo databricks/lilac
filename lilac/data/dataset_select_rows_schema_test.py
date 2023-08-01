@@ -8,6 +8,7 @@ from typing_extensions import override
 
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
+  EMBEDDING_KEY,
   PATH_WILDCARD,
   UUID_COLUMN,
   Field,
@@ -16,13 +17,14 @@ from ..schema import (
   SignalInputType,
   VectorKey,
   field,
+  lilac_embedding,
+  lilac_span,
   schema,
 )
 from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
-  EMBEDDING_KEY,
   TextEmbeddingSignal,
   TextSignal,
   TextSplitterSignal,
@@ -44,7 +46,6 @@ from .dataset import (
   SortResult,
 )
 from .dataset_test_utils import TestDataMaker
-from .dataset_utils import lilac_embedding, lilac_span
 
 TEST_DATA: list[Item] = [{
   UUID_COLUMN: '1',

@@ -8,10 +8,20 @@ from typing_extensions import override
 
 from ..concepts.concept import ExampleIn
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
-from ..schema import UUID_COLUMN, Field, Item, RichData, SignalInputType, field, schema
+from ..schema import (
+  EMBEDDING_KEY,
+  UUID_COLUMN,
+  Field,
+  Item,
+  RichData,
+  SignalInputType,
+  field,
+  lilac_embedding,
+  lilac_span,
+  schema,
+)
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.signal import (
-  EMBEDDING_KEY,
   TextEmbeddingSignal,
   TextSignal,
   TextSplitterSignal,
@@ -20,7 +30,6 @@ from ..signals.signal import (
 )
 from .dataset import Column, DatasetManifest, GroupsSortBy, SortOrder
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
-from .dataset_utils import lilac_embedding, lilac_span
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',

@@ -7,7 +7,18 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import UUID_COLUMN, Field, Item, PathKey, RichData, SignalInputType, VectorKey, field
+from ..schema import (
+  UUID_COLUMN,
+  Field,
+  Item,
+  PathKey,
+  RichData,
+  SignalInputType,
+  VectorKey,
+  field,
+  lilac_embedding,
+  lilac_span,
+)
 from ..signals.signal import (
   TextEmbeddingSignal,
   TextSignal,
@@ -17,7 +28,6 @@ from ..signals.signal import (
 )
 from .dataset import BinaryOp, Column, SortOrder
 from .dataset_test_utils import TestDataMaker, enriched_item
-from .dataset_utils import lilac_embedding, lilac_span
 
 
 class TestSignal(TextSignal):

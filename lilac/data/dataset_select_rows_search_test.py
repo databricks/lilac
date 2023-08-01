@@ -11,7 +11,7 @@ from typing_extensions import override
 from ..concepts.concept import ExampleIn, LogisticEmbeddingModel
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..db_manager import set_default_dataset_cls
-from ..schema import UUID_COLUMN, Item, RichData, SignalInputType
+from ..schema import UUID_COLUMN, Item, RichData, SignalInputType, lilac_embedding, lilac_span
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
@@ -19,7 +19,6 @@ from ..signals.substring_search import SubstringSignal
 from .dataset import ConceptQuery, KeywordQuery, ListOp, Search, SemanticQuery, SortOrder
 from .dataset_duckdb import DatasetDuckDB
 from .dataset_test_utils import TestDataMaker, enriched_item
-from .dataset_utils import lilac_embedding, lilac_span
 
 TEST_DATA: list[Item] = [{
   UUID_COLUMN: '1',

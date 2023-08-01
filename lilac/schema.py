@@ -7,8 +7,10 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional, Union, cast
 
+import numpy as np
 import pyarrow as pa
 from pydantic import BaseModel, StrictInt, StrictStr, validator
+from typing_extensions import TypedDict
 
 MANIFEST_FILENAME = 'manifest.json'
 PARQUET_FILENAME_PREFIX = 'data'
@@ -21,6 +23,8 @@ VALUE_KEY = '__value__'
 SIGNAL_METADATA_KEY = '__metadata__'
 TEXT_SPAN_START_FEATURE = 'start'
 TEXT_SPAN_END_FEATURE = 'end'
+
+EMBEDDING_KEY = 'embedding'
 
 # Python doesn't work with recursive types. These types provide some notion of type-safety.
 Scalar = Union[bool, datetime, int, float, str, bytes]
@@ -281,6 +285,22 @@ def field(
   if categorical is not None:
     field.categorical = categorical
   return field
+
+
+class SpanVector(TypedDict):
+  """A span with a vector."""
+  span: tuple[int, int]
+  vector: np.ndarray
+
+
+def lilac_span(start: int, end: int, metadata: dict[str, Any] = {}) -> Item:
+  """Creates a lilac span item, representing a pointer to a slice of text."""
+  return {VALUE_KEY: {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}, **metadata}
+
+
+def lilac_embedding(start: int, end: int, embedding: Optional[np.ndarray]) -> Item:
+  """Creates a lilac embedding item, representing a vector with a pointer to a slice of text."""
+  return lilac_span(start, end, {EMBEDDING_KEY: embedding})
 
 
 def _parse_field_like(field_like: object, dtype: Optional[Union[DataType, str]] = None) -> Field:

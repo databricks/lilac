@@ -9,9 +9,20 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import UUID_COLUMN, Field, Item, PathKey, RichData, SignalInputType, field, schema
-from ..signals.signal import (
+from ..schema import (
   EMBEDDING_KEY,
+  UUID_COLUMN,
+  Field,
+  Item,
+  PathKey,
+  RichData,
+  SignalInputType,
+  field,
+  lilac_embedding,
+  lilac_span,
+  schema,
+)
+from ..signals.signal import (
   TextEmbeddingSignal,
   TextSignal,
   TextSplitterSignal,
@@ -21,7 +32,6 @@ from ..signals.signal import (
 )
 from .dataset import DatasetManifest
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
-from .dataset_utils import lilac_embedding, lilac_span
 
 SIMPLE_ITEMS: list[Item] = [{
   UUID_COLUMN: '1',

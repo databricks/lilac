@@ -34,8 +34,7 @@ from typing import Any, Callable, Iterable, Optional
 from pydantic import validator
 from typing_extensions import override
 
-from ...data.dataset_utils import lilac_span
-from ...schema import Item, RichData
+from ...schema import Item, RichData, lilac_span
 from ...utils import log
 from ..signal import TextSplitterSignal
 

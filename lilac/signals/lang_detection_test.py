@@ -2,7 +2,7 @@
 
 from pytest_mock import MockerFixture
 
-from ..data.dataset_utils import lilac_span
+from ..schema import lilac_span
 from . import lang_detection
 from .lang_detection import LANG_CODE, LangDetectionSignal
 
