@@ -8,7 +8,7 @@ from pydantic import BaseModel, validator
 
 from .auth import UserInfo, get_session_user
 from .router_utils import RouteErrorHandler, server_compute_concept
-from .schema import SignalInputType
+from .schema import Field, SignalInputType
 from .signals.concept_scorer import ConceptScoreSignal
 from .signals.signal import SIGNAL_REGISTRY, Signal, TextEmbeddingSignal, resolve_signal
 
@@ -66,13 +66,10 @@ class SignalComputeOptions(BaseModel):
 
 class SignalComputeResponse(BaseModel):
   """The response for the standalone compute signal endpoint."""
-  items: list[Optional[dict]]
+  items: list[Optional[Any]]
 
 
-# TODO(nsthorat): Add a field method to get the field for a signal.
-
-
-@router.get('/compute', response_model_exclude_none=True)
+@router.post('/compute', response_model_exclude_none=True)
 def compute(
     options: SignalComputeOptions,
     user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> SignalComputeResponse:
@@ -83,3 +80,25 @@ def compute(
   else:
     result = list(signal.compute(options.inputs))
   return SignalComputeResponse(items=result)
+
+
+class SignalSchemaOptions(BaseModel):
+  """The request for the signal schema endpoint."""
+  signal: Signal
+
+  @validator('signal', pre=True)
+  def parse_signal(cls, signal: dict) -> Signal:
+    """Parse a signal to its specific subclass instance."""
+    return resolve_signal(signal)
+
+
+class SignalSchemaResponse(BaseModel):
+  """The response for the signal schema endpoint."""
+  fields: Field
+
+
+@router.post('/schema', response_model_exclude_none=True)
+def schema(options: SignalSchemaOptions) -> SignalSchemaResponse:
+  """Get the schema for a signal."""
+  signal = options.signal
+  return SignalSchemaResponse(fields=signal.fields())

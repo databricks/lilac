@@ -109,6 +109,5 @@ def batched_span_vector_compute(
     for score, span in zip(scores, spans):
       start, end = span
       res.append(get_item((start, end), score))
-      # res.append(lilac_span(start, end, {'score': score}))
 
     yield res

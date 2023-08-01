@@ -65,6 +65,8 @@ export type { SignalComputeOptions } from './models/SignalComputeOptions';
 export type { SignalComputeResponse } from './models/SignalComputeResponse';
 export type { SignalInfo } from './models/SignalInfo';
 export type { SignalInputType } from './models/SignalInputType';
+export type { SignalSchemaOptions } from './models/SignalSchemaOptions';
+export type { SignalSchemaResponse } from './models/SignalSchemaResponse';
 export type { SortOrder } from './models/SortOrder';
 export type { SortResult } from './models/SortResult';
 export type { SourcesList } from './models/SourcesList';
