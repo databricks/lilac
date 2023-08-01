@@ -186,6 +186,7 @@
           search: searchText
         }
       });
+      conceptComboBox.clear();
       return;
     }
     searchConcept(e.detail.selectedId.namespace, e.detail.selectedId.name);

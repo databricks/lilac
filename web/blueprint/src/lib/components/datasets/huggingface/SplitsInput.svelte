@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {queryHFDatasets, queryHFSplits} from '$lib/queries/huggingfaceQueries';
+  import {queryHFDatasetExists, queryHFSplits} from '$lib/queries/huggingfaceQueries';
   import {ComboBox, TextInput} from 'carbon-components-svelte';
 
   export let value: string;
@@ -8,8 +8,8 @@
   export let rootValue: {dataset_name: string};
 
   $: datasetName = rootValue['dataset_name'];
-  const datasets = queryHFDatasets();
-  $: datasetExists = $datasets.data?.includes(datasetName);
+  $: datasetExistsQuery = queryHFDatasetExists(datasetName);
+  $: datasetExists = $datasetExistsQuery.data === true;
   $: splits = datasetExists ? queryHFSplits(datasetName) : undefined;
 </script>
 
