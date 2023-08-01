@@ -92,7 +92,7 @@ def batched_span_vector_compute(
   f: Callable[[list[np.ndarray]], Iterable[TBatchSpanVectorOutput]],
   get_item: Callable[[tuple[int, int], float], Item],
   batch_size: int,
-) -> Iterable[Iterable[TBatchSpanVectorOutput]]:
+) -> Iterable[Iterable[Item]]:
   """Batch compute an iterable of span vectors."""
   # NOTE: We use tee() here so we can iterate the input twice to zip the output of the batched
   # compute call to the span offsets instead of allowing the SpanVector and the resulting Item to

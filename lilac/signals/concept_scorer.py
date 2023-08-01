@@ -1,12 +1,11 @@
 """A signal to compute a score along a concept."""
-import itertools
 from typing import Iterable, Optional, cast
 
 import numpy as np
 from typing_extensions import override
 
 from ..auth import UserInfo
-from ..batch_utils import batched_span_vector_compute, flat_batched_compute
+from ..batch_utils import batched_span_vector_compute
 from ..concepts.concept import DEFAULT_NUM_NEG_EXAMPLES, DRAFT_MAIN, ConceptColumnInfo, ConceptModel
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..data.dataset_utils import lilac_span
@@ -105,31 +104,19 @@ class ConceptScoreSignal(VectorSignal):
 
     return self._score_span_vectors(span_vectors)
 
+  def _get_item(self, span: tuple[int, int], score: float) -> Item:
+    start, end = span
+    return lilac_span(start, end, {'score': score})
+
   def _score_span_vectors(self,
                           span_vectors: Iterable[Iterable[SpanVector]]) -> Iterable[Optional[Item]]:
     concept_model = self._get_concept_model()
 
-    return batched_span_vector_compute(span_vectors)
-
-    # NOTE: We use tee() here so we can iterate the input twice to zip the output of the batched
-    # compute call to the span offsets instead of allowing the SpanVector and the resulting Item to
-    # be a primitive value and avoid boxing the span vectors.
-    (vectors_it, spans_it) = itertools.tee(span_vectors, 2)
-    all_vectors = (
-      [vector_span['vector'] for vector_span in vector_spans] for vector_spans in vectors_it)
-    all_spans = ([vector_span['span'] for vector_span in vector_spans] for vector_spans in spans_it)
-
-    all_scores = flat_batched_compute(
-      input=all_vectors,
+    return batched_span_vector_compute(
+      span_vectors,
       f=lambda vectors: concept_model.score_embeddings(self.draft, np.array(vectors)).tolist(),
+      get_item=self._get_item,
       batch_size=concept_model.batch_size)
-
-    for scores, spans in zip(all_scores, all_spans):
-      res: Item = []
-      for score, span in zip(scores, spans):
-        start, end = span
-        res.append(lilac_span(start, end, {'score': score}))
-      yield res
 
   @override
   def vector_compute(self, keys: Iterable[PathKey],
