@@ -1,4 +1,4 @@
-"""Test utils.py."""
+"""Test batch_utils.py."""
 from typing import Iterable
 
 import numpy as np

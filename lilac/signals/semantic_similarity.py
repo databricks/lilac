@@ -55,9 +55,7 @@ class SemanticSimilaritySignal(VectorSignal):
                           span_vectors: Iterable[Iterable[SpanVector]]) -> Iterable[Optional[Item]]:
 
     return flat_batched_compute(
-      span_vectors,
-      f=lambda vectors: self._compute_span_vector_batch(vectors),
-      batch_size=_BATCH_SIZE)
+      span_vectors, f=self._compute_span_vector_batch, batch_size=_BATCH_SIZE)
 
   def _compute_span_vector_batch(self, span_vectors: Iterable[SpanVector]) -> list[Item]:
     batch_matrix = np.array([sv['vector'] for sv in span_vectors])

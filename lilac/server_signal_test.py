@@ -1,4 +1,4 @@
-"""Test the public REST API for concepts."""
+"""Test the public REST API for signals."""
 import os
 from pathlib import Path
 from typing import Iterable, Optional
