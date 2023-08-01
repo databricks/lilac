@@ -23,12 +23,8 @@ class Signal(abc.ABC, BaseModel):
   # The display name is just used for rendering in the UI.
   display_name: ClassVar[Optional[str]]
 
-  # The input type is used to populate the UI for signals that require other signals. For example,
-  # if a signal is an TextEmbeddingModelSignal, it computes over embeddings, but it's input type
-  # will be text.
+  # The input type is used to populate the UI to determine what the signal accepts as input.
   input_type: ClassVar[SignalInputType]
-
-  supports_vector_index: ClassVar[bool] = False
 
   def dict(
     self,
@@ -95,40 +91,6 @@ class Signal(abc.ABC, BaseModel):
 
     Returns
       An iterable of items. Sparse signals should return "None" for skipped inputs.
-    """
-    raise NotImplementedError
-
-  def vector_compute(self, keys: Iterable[PathKey],
-                     vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
-    """Compute the signal for an iterable of keys that point to documents or images.
-
-    Args:
-      keys: An iterable of value ids (at row-level or lower) to lookup precomputed embeddings.
-      vector_index: The vector index to lookup pre-computed embeddings.
-
-    Returns
-      An iterable of items. Sparse signals should return "None" for skipped inputs.
-    """
-    raise NotImplementedError
-
-  def vector_compute_topk(
-      self,
-      topk: int,
-      vector_index: VectorDBIndex,
-      keys: Optional[Iterable[PathKey]] = None) -> Sequence[tuple[PathKey, Optional[Item]]]:
-    """Return signal results only for the top k documents or images.
-
-    Signals decide how to rank each document/image in the dataset, usually by a similarity score
-    obtained via the vector store.
-
-    Args:
-      topk: The number of items to return, ranked by the signal.
-      vector_index: The vector index to lookup pre-computed embeddings.
-      keys: Optional iterable of row ids to restrict the search to.
-
-    Returns
-      A list of (key, signal_output) tuples containing the `topk` items. Sparse signals should
-      return "None" for skipped inputs.
     """
     raise NotImplementedError
 
@@ -212,21 +174,44 @@ class TextEmbeddingSignal(TextSignal):
     return field(fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
 
 
-class TextEmbeddingModelSignal(TextSignal):
-  """An interface for signals that take embeddings and produce items."""
-  input_type = SignalInputType.TEXT
-  # compute() takes embeddings, while it operates over text fields by transitively computing splits
-  # and embeddings.
-  supports_vector_index = True
-
+class VectorSignal(Signal, abc.ABC):
+  """An interface for signals that can compute items given vector inputs."""
   embedding: str
 
-  @override
-  def key(self, is_computed_signal: Optional[bool] = False) -> str:
-    args_dict = self.dict(exclude_unset=True)
-    if 'signal_name' in args_dict:
-      del args_dict['signal_name']
-    return self.name + _args_key_from_dict(args_dict)
+  @abc.abstractmethod
+  def vector_compute(self, keys: Iterable[PathKey],
+                     vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
+    """Compute the signal for an iterable of keys that point to documents or images.
+
+    Args:
+      keys: An iterable of value ids (at row-level or lower) to lookup precomputed embeddings.
+      vector_index: The vector index to lookup pre-computed embeddings.
+
+    Returns
+      An iterable of items. Sparse signals should return "None" for skipped inputs.
+    """
+    raise NotImplementedError
+
+  def vector_compute_topk(
+      self,
+      topk: int,
+      vector_index: VectorDBIndex,
+      keys: Optional[Iterable[PathKey]] = None) -> Sequence[tuple[PathKey, Optional[Item]]]:
+    """Return signal results only for the top k documents or images.
+
+    Signals decide how to rank each document/image in the dataset, usually by a similarity score
+    obtained via the vector store.
+
+    Args:
+      topk: The number of items to return, ranked by the signal.
+      vector_index: The vector index to lookup pre-computed embeddings.
+      keys: Optional iterable of row ids to restrict the search to.
+
+    Returns
+      A list of (key, signal_output) tuples containing the `topk` items. Sparse signals should
+      return "None" for skipped inputs.
+    """
+    raise NotImplementedError
 
 
 Tsignal = TypeVar('Tsignal', bound=Signal)

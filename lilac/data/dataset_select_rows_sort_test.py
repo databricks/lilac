@@ -7,11 +7,11 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import UUID_COLUMN, Field, Item, PathKey, RichData, VectorKey, field
+from ..schema import UUID_COLUMN, Field, Item, PathKey, RichData, SignalInputType, VectorKey, field
 from ..signals.signal import (
-  TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSignal,
+  VectorSignal,
   clear_signal_registry,
   register_signal,
 )
@@ -787,9 +787,10 @@ class TopKEmbedding(TextEmbeddingSignal):
       yield emb_spans
 
 
-class TopKSignal(TextEmbeddingModelSignal):
+class TopKSignal(VectorSignal):
   """Compute scores along a given concept for documents."""
   name = 'topk_signal'
+  input_type = SignalInputType.TEXT
 
   _query = np.array([1])
 

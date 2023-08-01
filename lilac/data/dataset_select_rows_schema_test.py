@@ -7,16 +7,26 @@ import pytest
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import PATH_WILDCARD, UUID_COLUMN, Field, Item, RichData, VectorKey, field, schema
+from ..schema import (
+  PATH_WILDCARD,
+  UUID_COLUMN,
+  Field,
+  Item,
+  RichData,
+  SignalInputType,
+  VectorKey,
+  field,
+  schema,
+)
 from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptScoreSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
   EMBEDDING_KEY,
-  TextEmbeddingModelSignal,
   TextEmbeddingSignal,
   TextSignal,
   TextSplitterSignal,
+  VectorSignal,
   clear_signal_registry,
   register_signal,
 )
@@ -110,9 +120,10 @@ class TestEmbedding(TextEmbeddingSignal):
       yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
-class TestEmbeddingSumSignal(TextEmbeddingModelSignal):
+class TestEmbeddingSumSignal(VectorSignal):
   """Sums the embeddings to return a single floating point value."""
   name = 'test_embedding_sum'
+  input_type = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:
