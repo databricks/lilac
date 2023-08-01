@@ -1,9 +1,13 @@
 """Interface for implementing a signal."""
 
 import abc
-from typing import Any, ClassVar, Iterable, Optional, Sequence, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Iterable, Optional, Sequence, Type, TypeVar, Union
 
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, Extra
+
+if TYPE_CHECKING:
+  from pydantic.typing import AbstractSetIntStr, MappingIntStrAny
+
 from typing_extensions import override
 
 from ..embeddings.vector_store import VectorDBIndex
@@ -26,9 +30,28 @@ class Signal(abc.ABC, BaseModel):
 
   supports_vector_index: ClassVar[bool] = False
 
-  # The signal_name will get populated in init automatically from the class name so it gets
-  # serialized and the signal author doesn't have to define both the static property and the field.
-  signal_name: Optional[str] = None
+  def dict(
+    self,
+    *,
+    include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+    exclude: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+    by_alias: bool = False,
+    skip_defaults: Optional[bool] = None,
+    exclude_unset: bool = False,
+    exclude_defaults: bool = False,
+    exclude_none: bool = False,
+  ) -> dict[str, Any]:
+    """Override the default dict method to add `signal_name`."""
+    res = super().dict(
+      include=include,
+      exclude=exclude,
+      by_alias=by_alias,
+      skip_defaults=skip_defaults,
+      exclude_unset=exclude_unset,
+      exclude_defaults=exclude_defaults,
+      exclude_none=exclude_none)
+    res['signal_name'] = self.name
+    return res
 
   class Config:
     underscore_attrs_are_private = True
@@ -42,20 +65,16 @@ class Signal(abc.ABC, BaseModel):
       """
       if hasattr(signal, 'display_name'):
         schema['title'] = signal.display_name
+
+      signal_prop: dict[str, Any]
       if hasattr(signal, 'name'):
-        schema['properties']['signal_name']['enum'] = [signal.name]
-
-  @validator('signal_name', pre=True, always=True)
-  def validate_signal_name(cls, signal_name: str) -> str:
-    """Return the static name when the signal name hasn't yet been set."""
-    # When it's already been set from JSON, just return it.
-    if signal_name:
-      return signal_name
-
-    if 'name' not in cls.__dict__:
-      raise ValueError('Signal attribute "name" must be defined.')
-
-    return cls.name
+        signal_prop = {'enum': [signal.name]}
+      else:
+        signal_prop = {'type': 'string'}
+      schema['properties'] = {'signal_name': signal_prop, **schema['properties']}
+      if 'required' not in schema:
+        schema['required'] = []
+      schema['required'].append('signal_name')
 
   @abc.abstractmethod
   def fields(self) -> Field:
@@ -259,7 +278,7 @@ def resolve_signal(signal: Union[dict, Signal]) -> Signal:
     # The signal config is already parsed.
     return signal
 
-  signal_name = signal.get('signal_name')
+  signal_name = signal.pop('signal_name')
   if not signal_name:
     raise ValueError('"signal_name" needs to be defined in the json dict.')
 

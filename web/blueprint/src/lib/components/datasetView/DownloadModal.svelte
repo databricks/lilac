@@ -1,7 +1,15 @@
 <script lang="ts">
   import {querySelectRows} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {UUID_COLUMN, isSignalField, petals, type LilacField, type LilacSchema} from '$lilac';
+  import {
+    UUID_COLUMN,
+    childFields,
+    isSignalField,
+    isSignalRootField,
+    petals,
+    type LilacField,
+    type LilacSchema
+  } from '$lilac';
   import {
     ComposedModal,
     ModalBody,
@@ -40,13 +48,11 @@
     if (schema == null) {
       return {sourceFields: null, enrichedFields: null};
     }
-    const petalFields = petals(schema).filter(
-      field => ['string_span', 'embedding'].indexOf(field.dtype!) === -1
-    );
+    const petalFields = petals(schema).filter(field => ['embedding'].indexOf(field.dtype!) === -1);
     const sourceFields = petalFields.filter(
       f => !isSignalField(f, schema) && f.path.at(-1) !== UUID_COLUMN
     );
-    const enrichedFields = petalFields.filter(f => isSignalField(f, schema));
+    const enrichedFields = childFields(schema).filter(f => isSignalRootField(f));
     return {sourceFields, enrichedFields};
   }
 

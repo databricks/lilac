@@ -6,7 +6,7 @@
  * An interface for signals that take embeddings and produce items.
  */
 export type TextEmbeddingModelSignal = {
-    signal_name?: string;
+    signal_name: string;
     embedding: string;
 };
 

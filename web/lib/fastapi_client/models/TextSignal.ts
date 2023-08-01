@@ -6,6 +6,6 @@
  * An interface for signals that compute over text.
  */
 export type TextSignal = {
-    signal_name?: string;
+    signal_name: string;
 };
 

@@ -9,7 +9,7 @@
  * a similarity score between them.
  */
 export type SemanticSimilaritySignal = {
-    signal_name?: 'semantic_similarity';
+    signal_name: 'semantic_similarity';
     embedding: string;
     query: string;
 };

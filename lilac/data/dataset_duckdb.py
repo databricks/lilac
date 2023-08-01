@@ -289,9 +289,8 @@ class DatasetDuckDB(Dataset):
       raise ValueError(f'Signal manifest for path {path} is not an embedding. '
                        f'Got signal manifest: {manifest}')
 
-    signal_name = cast(str, manifest.signal.signal_name)
     filepath_prefix = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
-                                   signal_name, manifest.embedding_filename_prefix)
+                                   manifest.signal.name, manifest.embedding_filename_prefix)
     spans, embeddings = read_embeddings_from_disk(filepath_prefix)
     vector_index = VectorDBIndex(self.vector_store_cls, spans, embeddings)
     # Cache the vector index.
@@ -943,7 +942,7 @@ class DatasetDuckDB(Dataset):
       signal_column = list(temp_signal_cols.keys())[0]
       input = df[signal_column]
 
-      with DebugTimer(f'Computing signal "{signal.signal_name}"'):
+      with DebugTimer(f'Computing signal "{signal.name}"'):
         signal.setup()
 
         if signal.supports_vector_index:
