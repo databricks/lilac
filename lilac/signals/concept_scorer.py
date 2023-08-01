@@ -6,7 +6,7 @@ import numpy as np
 from typing_extensions import override
 
 from ..auth import UserInfo
-from ..batch_utils import flat_batched_compute
+from ..batch_utils import batched_span_vector_compute, flat_batched_compute
 from ..concepts.concept import DEFAULT_NUM_NEG_EXAMPLES, DRAFT_MAIN, ConceptColumnInfo, ConceptModel
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..data.dataset_utils import lilac_span
@@ -108,6 +108,8 @@ class ConceptScoreSignal(VectorSignal):
   def _score_span_vectors(self,
                           span_vectors: Iterable[Iterable[SpanVector]]) -> Iterable[Optional[Item]]:
     concept_model = self._get_concept_model()
+
+    return batched_span_vector_compute(span_vectors)
 
     # NOTE: We use tee() here so we can iterate the input twice to zip the output of the batched
     # compute call to the span offsets instead of allowing the SpanVector and the resulting Item to

@@ -17,7 +17,7 @@ from pydantic import BaseModel, validator
 from typing_extensions import override
 
 from ..auth import UserInfo
-from ..batch_utils import flatten, unflatten
+from ..batch_utils import deep_flatten, deep_unflatten
 from ..concepts.concept import ConceptColumnInfo
 from ..config import data_path, env
 from ..embeddings.vector_store import VectorDBIndex, VectorStore
@@ -958,10 +958,10 @@ class DatasetDuckDB(Dataset):
               task_step_id=task_step_id,
               estimated_len=len(flat_keys),
               step_description=f'Computing {signal.key()}')
-          df[signal_column] = unflatten(signal_out, input)
+          df[signal_column] = deep_unflatten(signal_out, input)
         else:
           num_rich_data = count_primitives(input)
-          flat_input = cast(Iterator[Optional[RichData]], flatten(input))
+          flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input))
           signal_out = sparse_to_dense_compute(
             flat_input, lambda x: signal.compute(cast(Iterable[RichData], x)))
           # Add progress.
@@ -975,7 +975,7 @@ class DatasetDuckDB(Dataset):
           if signal_column in temp_column_to_offset_column:
             offset_column_name, field = temp_column_to_offset_column[signal_column]
             nested_spans: Iterable[Item] = df[offset_column_name]
-            flat_spans = flatten(nested_spans)
+            flat_spans = deep_flatten(nested_spans)
             for span, item in zip(flat_spans, signal_out_list):
               _offset_any_span(cast(int, span[VALUE_KEY][TEXT_SPAN_START_FEATURE]), item, field)
 
@@ -985,7 +985,7 @@ class DatasetDuckDB(Dataset):
               f"{num_rich_data} values. This means the signal either didn't generate a "
               '"None" for a sparse output, or generated too many items.')
 
-          df[signal_column] = unflatten(signal_out_list, input)
+          df[signal_column] = deep_unflatten(signal_out_list, input)
 
         signal.teardown()
 
