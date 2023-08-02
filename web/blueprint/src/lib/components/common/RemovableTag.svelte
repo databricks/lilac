@@ -22,6 +22,6 @@
 
 <style lang="postcss">
   :global(.removable-tag) {
-    max-width: 8rem;
+    max-width: 12rem;
   }
 </style>

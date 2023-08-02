@@ -50,7 +50,7 @@
       })}
     on:remove={() => datasetViewStore.removeFilter(filter)}
   >
-    {hidePath ? '' : shortenPath}
+    <span class="font-mono">{hidePath ? '' : shortenPath}</span>
     {FILTER_SHORTHANDS[filter.op]}
     {formattedValue}
   </RemovableTag>
