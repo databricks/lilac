@@ -9,12 +9,20 @@
     petals,
     serializePath,
     type ConceptQuery,
+    type Path,
     type Search,
     type SearchResultInfo,
     type SearchType,
     type WebManifest
   } from '$lilac';
-  import {Button, Dropdown, Modal, SkeletonText} from 'carbon-components-svelte';
+  import {
+    Button,
+    Modal,
+    Select,
+    SelectItem,
+    SelectItemGroup,
+    SkeletonText
+  } from 'carbon-components-svelte';
   import {Close, SortAscending, SortDescending, SortRemove} from 'carbon-icons-svelte';
   import ConceptView from '../concepts/ConceptView.svelte';
   import FilterPill from './FilterPill.svelte';
@@ -73,29 +81,38 @@
   }
 
   // Server sort response.
-  $: sortById = sort?.path ? serializePath(sort.path) : null;
+  $: sortById = sort?.path ? serializePath(sort.path) : '';
   // Explicit user selection of sort.
   $: selectedSortBy = $datasetViewStore.query.sort_by;
 
   $: sortItems =
     $datasetStore.selectRowsSchema?.data?.schema != null
       ? [
-          {id: null, text: 'None', disabled: selectedSortBy == null && sortById != null},
-          ...petals($datasetStore.selectRowsSchema.data.schema).map(field => {
-            const pathStr = serializePath(field.path);
-            return {
-              id: pathStr,
-              text: pathStr
-            };
-          })
+          {path: [''], text: 'None', disabled: selectedSortBy == null && sortById !== ''},
+          ...petals($datasetStore.selectRowsSchema.data.schema)
+            .filter(f => f.dtype != 'embedding' && f.dtype != 'string_span')
+            .map(field => {
+              return {
+                path: field.path,
+                text: serializePath(field.path.slice(1)),
+                disabled: false
+              };
+            })
         ]
       : [];
-  const selectSort = (e: {detail: {selectedId: string}}) => {
-    if (e.detail.selectedId == null) {
+  $: sortGroups = sortItems.reduce((groups, item) => {
+    const group = item.path[0];
+    (groups[group] = groups[group] || []).push(item);
+    return groups;
+  }, {} as {[key: string]: {path?: Path; text: string; disabled: boolean}[]});
+
+  const selectSort = (ev: CustomEvent<string | number>) => {
+    const selected = ev.detail as string;
+    if (selected === '') {
       datasetViewStore.setSortBy(null);
       return;
     }
-    datasetViewStore.setSortBy(deserializePath(e.detail.selectedId));
+    datasetViewStore.setSortBy(deserializePath(selected));
   };
   const toggleSortOrder = () => {
     // Set the sort given by the select rows schema explicitly.
@@ -160,14 +177,25 @@
             />
           {/if}
         </div>
-        <Dropdown
+        <Select
           size="sm"
-          titleText="Sort by"
-          class="w-36"
-          selectedId={sortById}
-          on:select={selectSort}
-          items={sortItems}
-        />
+          labelText="Sort by"
+          class="w-60"
+          selected={sortById}
+          on:update={selectSort}
+        >
+          {#each Object.entries(sortGroups) as [groupName, items]}
+            <SelectItemGroup label={groupName}>
+              {#each items as item}
+                <SelectItem
+                  value={item.path != null ? serializePath(item.path) : undefined}
+                  text={item.text}
+                  disabled={item.disabled}
+                />
+              {/each}
+            </SelectItemGroup>
+          {/each}
+        </Select>
         <div class="ml-1">
           <Button
             class="top-2"
