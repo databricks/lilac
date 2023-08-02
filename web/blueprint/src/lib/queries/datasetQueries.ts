@@ -60,7 +60,15 @@ export const querySources = createApiQuery(DataLoadersService.getSources, DATASE
 export const querySourcesSchema = createApiQuery(DataLoadersService.getSourceSchema, DATASETS_TAG, {
   select: res => res as JSONSchema7
 });
-export const loadDatasetMutation = createApiMutation(DataLoadersService.load);
+export const loadDatasetMutation = createApiMutation(DataLoadersService.load, {
+  onSuccess: resp => {
+    queryClient.invalidateQueries([TASKS_TAG]);
+
+    watchTask(resp.task_id, () => {
+      queryClient.invalidateQueries([DATASETS_TAG, 'getDatasets']);
+    });
+  }
+});
 export const computeSignalMutation = createApiMutation(DatasetsService.computeSignal, {
   onSuccess: resp => {
     queryClient.invalidateQueries([TASKS_TAG]);

@@ -30,7 +30,6 @@ export function createUrlHashStore() {
     setHash(page: AppPage, hash: string) {
       update(state => {
         const [identifier, ...hashStateValues] = hash.slice(1).split('&');
-
         state.page = page;
         state.hash = hash;
         state.identifier = identifier;

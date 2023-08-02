@@ -22,7 +22,7 @@
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: selectOptions = $schema.isSuccess ? getSelectRowsOptions($datasetViewStore) : undefined;
+  $: selectOptions = getSelectRowsOptions($datasetViewStore);
 
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
 

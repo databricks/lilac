@@ -135,7 +135,7 @@
     {/if}
   </div>
   <div class="flex h-full w-full">
-    <div class="lilac-container">
+    <div class="lilac-container px-4">
       <div class="lilac-page flex">
         {#if namespace != null && conceptName != null}
           {#if $concept?.isLoading}

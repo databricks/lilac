@@ -60,10 +60,10 @@
 </script>
 
 <Page title="Datasets">
-  <div class="h-full w-full overflow-y-auto py-8">
+  <div class="flex w-full gap-y-4 p-4">
     <div class="mx-auto flex max-w-xl flex-col">
       <h2>Add dataset</h2>
-      <Form class="pt-8">
+      <Form class="py-8">
         <FormGroup legendText="Name">
           <!-- Input field for namespace and name -->
           <div class="flex flex-row content-start">

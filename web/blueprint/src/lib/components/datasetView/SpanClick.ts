@@ -15,6 +15,10 @@ export interface SpanClickInfo {
 }
 
 export function spanClick(element: HTMLSpanElement, clickInfo: SpanClickInfo) {
+  // Span clicks do nothing when there are no computed embeddings.
+  if (clickInfo.computedEmbeddings.length === 0) {
+    return;
+  }
   let spanDetailsComponent: SvelteComponent | undefined;
   let curClickInfo = clickInfo;
   element.addEventListener('click', e => showClickDetails(e));

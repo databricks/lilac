@@ -193,7 +193,7 @@
           addConceptLabel
         }}
         class="hover:cursor-poiner highlight-span break-words text-sm leading-5"
-        class:hover:cursor-pointer={spanPaths.length > 0}
+        class:hover:cursor-pointer={spanPaths.length > 0 && computedEmbeddings.length}
         class:font-bold={renderSpan.isBlackBolded}
         class:font-medium={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded}
         style:color={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded
