@@ -2,7 +2,7 @@
   import {goto} from '$app/navigation';
   import JsonSchemaForm from '$lib/components/JSONSchema/JSONSchemaForm.svelte';
   import Page from '$lib/components/Page.svelte';
-  import DatasetNameInput from '$lib/components/datasets/huggingface/DatasetNameInput.svelte';
+  import HFNameInput from '$lib/components/datasets/huggingface/HFNameInput.svelte';
   import SplitsInput from '$lib/components/datasets/huggingface/SplitsInput.svelte';
   import {loadDatasetMutation, querySources, querySourcesSchema} from '$lib/queries/datasetQueries';
   import {watchTask} from '$lib/stores/taskMonitoringStore';
@@ -28,7 +28,28 @@
   let namespace = 'local';
   let name = '';
   let selectedSource = 'huggingface';
-  let errors: JSONError[] = [];
+  let jsonValidationErrors: JSONError[] = [];
+
+  let namespaceError: string | undefined = undefined;
+  let nameError: string | undefined = undefined;
+  $: {
+    if (namespace == null || namespace == '') {
+      namespaceError = 'Enter a namespace';
+    } else if (namespace.includes('/')) {
+      namespaceError = 'Namespace cannot contain "/"';
+    } else {
+      namespaceError = undefined;
+    }
+  }
+  $: {
+    if (name == null || name == '') {
+      nameError = 'Enter a name';
+    } else if (name.includes('/')) {
+      nameError = 'Name cannot contain "/"';
+    } else {
+      nameError = undefined;
+    }
+  }
 
   $: sourcesSchema = querySourcesSchema(selectedSource);
 
@@ -38,7 +59,7 @@
   $: sourceSchemaValues['source_name'] = `${namespace}/${name}`;
 
   function submit() {
-    if (errors.length) return;
+    if (jsonValidationErrors.length) return;
     $loadDataset.mutate(
       [
         selectedSource,
@@ -67,9 +88,19 @@
         <FormGroup legendText="Name">
           <!-- Input field for namespace and name -->
           <div class="flex flex-row content-start">
-            <TextInput labelText="namespace" bind:value={namespace} invalid={!namespace} />
+            <TextInput
+              labelText="namespace"
+              bind:value={namespace}
+              invalid={namespaceError != null}
+              invalidText={namespaceError}
+            />
             <span class="mx-4 mt-6 text-lg">/</span>
-            <TextInput labelText="name" bind:value={name} invalid={!name} />
+            <TextInput
+              labelText="name"
+              bind:value={name}
+              invalid={nameError != null}
+              invalidText={nameError}
+            />
           </div>
         </FormGroup>
         <FormGroup legendText="Data Loader">
@@ -101,10 +132,10 @@
                 {schema}
                 hiddenProperties={['/source_name']}
                 bind:value={sourceSchemaValues}
-                bind:validationErrors={errors}
+                bind:validationErrors={jsonValidationErrors}
                 customComponents={selectedSource === 'huggingface'
                   ? {
-                      '/dataset_name': DatasetNameInput,
+                      '/dataset_name': HFNameInput,
                       '/split': SplitsInput
                     }
                   : {}}
@@ -124,7 +155,11 @@
             </div>
           {/if}
         </FormGroup>
-        <Button on:click={submit} disabled={errors?.length > 0 || !name || !namespace}>Add</Button>
+        <Button
+          on:click={submit}
+          disabled={jsonValidationErrors?.length > 0 || nameError != null || namespaceError != null}
+          >Add</Button
+        >
       </Form>
     </div>
   </div>
