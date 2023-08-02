@@ -102,7 +102,7 @@ app_port: 5432
 
   run(f"""pushd {repo_basedir} > /dev/null && \
       git add . && git add -f lilac/web && \
-      git commit -a -m "Push" --quiet && \
+      git commit -a -m "Push" --quiet --allow-empty && \
       git push && \
       popd > /dev/null""")
 
@@ -118,8 +118,6 @@ app_port: 5432
       path_in_repo=get_dataset_output_dir('data', namespace, name),
       repo_id=hf_space,
       repo_type='space',
-      # Data files might be large, so we upload in chunks.
-      multi_commits=True,
       # Delete all data on the server.
       delete_patterns='*')
 

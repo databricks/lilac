@@ -15,7 +15,7 @@ EnvironmentKeys = Union[Literal['LILAC_DATA_PATH'],
                         Literal['PALM_API_KEY'],
                         # HuggingFace demos.
                         Literal['HF_USERNAME'], Literal['HF_STAGING_DEMO_REPO'],
-                        Literal['SPACE_ID'],
+                        Literal['SPACE_ID'], Literal['HF_ACCESS_TOKEN'],
                         # DuckDB
                         Literal['DUCKDB_USE_VIEWS'],
                         # Debugging
