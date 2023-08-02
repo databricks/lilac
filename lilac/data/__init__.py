@@ -1,6 +1,7 @@
-from .dataset import ConceptQuery, KeywordQuery, Search, SemanticQuery
+from .dataset import Column, ConceptQuery, KeywordQuery, Search, SemanticQuery
 
 __all__ = [
+  'Column',
   'Search',
   'KeywordQuery',
   'ConceptQuery',

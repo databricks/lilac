@@ -5,8 +5,8 @@ import {
   deserializePath,
   getField,
   getFieldsByDtype,
+  pathIncludes,
   pathIsEqual,
-  pathIsMatching,
   serializePath,
   type AuthenticationInfo,
   type ConceptInfo,
@@ -222,7 +222,7 @@ export function isPreviewSignal(
   path: Path | undefined
 ): boolean {
   if (path == null || selectRowsSchema == null) return false;
-  return (selectRowsSchema.udfs || []).some(udf => pathIsMatching(udf.path, path));
+  return (selectRowsSchema.udfs || []).some(udf => pathIncludes(path, udf.path));
 }
 
 /** Gets the search type for a column, if defined. The path is the *input* path to the search. */
