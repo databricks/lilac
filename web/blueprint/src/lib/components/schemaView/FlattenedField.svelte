@@ -159,8 +159,8 @@
     </div>
     <button
       class="ml-2 grow cursor-pointer truncate whitespace-nowrap text-left text-gray-900"
-      style:line-height="2.5rem"
       class:cursor-default={!isExpandable}
+      style:line-height="2.5rem"
       on:click={() => {
         if (isExpandable) {
           if (expandedDetails) {
