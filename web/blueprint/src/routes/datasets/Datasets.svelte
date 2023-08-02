@@ -33,7 +33,7 @@
       >+ Add Dataset</Button
     >
   </div>
-  <div class="flex w-full flex-col items-center gap-y-4 p-4">
+  <div class="flex w-full flex-col items-center gap-y-4 overflow-y-scroll p-4">
     <div class="flex flex-wrap gap-x-4 gap-y-4 pb-4">
       {#if $datasets.isLoading}
         <SkeletonText paragraph lines={3} width={'30%'} />
