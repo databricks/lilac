@@ -352,9 +352,7 @@ export function mergeSpans(
   inputSpanSets: {[spanSet: string]: LilacValueNodeCasted<'string_span'>[]}
 ): MergedSpan[] {
   // Remove empty span arrays as they don't contribute to the final spans.
-  inputSpanSets = Object.fromEntries(
-    Object.entries(inputSpanSets).filter(([_, v]) => v.length > 0)
-  );
+  inputSpanSets = Object.fromEntries(Object.entries(inputSpanSets).filter(([, v]) => v.length > 0));
 
   const spanSetKeys = Object.keys(inputSpanSets);
   if (spanSetKeys.length === 0) {
