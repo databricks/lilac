@@ -102,8 +102,9 @@ app_port: 5432
 
   run(f"""pushd {repo_basedir} > /dev/null && \
       git add . && git add -f lilac/web && \
-      git commit -a -m "Push" --quiet --allow-empty && \
-      git push && \
+      git diff-index --quiet --cached HEAD ||
+        (git commit -a -m "Push" --quiet && \
+        git push) && \
       popd > /dev/null""")
 
   # Upload datasets to HuggingFace. We do this after uploading code to avoid clobbering the data
