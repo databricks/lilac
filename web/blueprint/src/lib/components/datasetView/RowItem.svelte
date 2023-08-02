@@ -11,7 +11,7 @@
   let mediaHeight = 0;
 </script>
 
-<div class="mx-5 mb-10 rounded border-x border-b border-neutral-200 shadow-md">
+<div class="rounded border-x border-b border-neutral-200 shadow-md">
   <div class="flex h-full w-full flex-row">
     {#if mediaFields.length > 0}
       <div class="w-2/3 overflow-hidden" bind:clientHeight={mediaHeight}>

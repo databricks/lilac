@@ -160,7 +160,6 @@
     <button
       class="ml-2 grow cursor-pointer truncate whitespace-nowrap text-left text-gray-900"
       class:cursor-default={!isExpandable}
-      style:line-height="3rem"
       on:click={() => {
         if (isExpandable) {
           if (expandedDetails) {
@@ -246,12 +245,14 @@
       />
     {/if}
     {#if isExpandable}
-      <div class="stats-button flex">
+      <div
+        use:hoverTooltip={{text: expandedDetails ? 'Close statistics' : 'See statistics'}}
+        class="stats-button flex"
+      >
         <Button
           isSelected={expandedDetails}
           kind="ghost"
           size="field"
-          iconDescription={expandedDetails ? 'Close statistics' : 'See statistics'}
           icon={ChevronDown}
           on:click={() => {
             if (expandedDetails) {
@@ -293,6 +294,15 @@
   :global(.bx--btn--selected .bx--btn__icon) {
     @apply rotate-180 transition;
   }
+
+  /* Hide carbon tooltips for icon-only buttons. */
+  :global(.bx--btn.bx--btn--icon-only.bx--tooltip__trigger .bx--assistive-text) {
+    clip: rect(0, 0, 0, 0) !important;
+  }
+  :global(.bx--btn.bx--btn--icon-only.bx--tooltip__trigger::before) {
+    clip: rect(0, 0, 0, 0) !important;
+  }
+
   :global(.signal-tag span) {
     @apply px-2;
   }
