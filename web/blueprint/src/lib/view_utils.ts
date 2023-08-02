@@ -351,7 +351,7 @@ export function mergeSpans(
   text: string,
   inputSpanSets: {[spanSet: string]: LilacValueNodeCasted<'string_span'>[]}
 ): MergedSpan[] {
-  // Remove empty span arrays. This happens when the value is an empty array.
+  // Remove empty span arrays as they don't contribute to the final spans.
   inputSpanSets = Object.fromEntries(
     Object.entries(inputSpanSets).filter(([_, v]) => v.length > 0)
   );
