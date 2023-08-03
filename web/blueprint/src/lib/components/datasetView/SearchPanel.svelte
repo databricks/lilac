@@ -256,7 +256,7 @@
     {#key visibleStringPaths}
       <Select
         size="xl"
-        class="field-select w-28"
+        class="field-select w-48"
         selected={searchPath ? serializePath(searchPath) : ''}
         on:change={selectField}
         disabled={visibleStringPaths.length === 0}
