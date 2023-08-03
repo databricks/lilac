@@ -17,7 +17,7 @@
     type LilacSchema,
     type TextEmbeddingSignal
   } from '$lilac';
-  import {Button, Checkbox, Tag} from 'carbon-components-svelte';
+  import {Checkbox, Tag} from 'carbon-components-svelte';
   import {ChevronDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
@@ -160,7 +160,7 @@
     <button
       class="ml-2 grow cursor-pointer truncate whitespace-nowrap text-left text-gray-900"
       class:cursor-default={!isExpandable}
-      style:line-height="2.5rem"
+      disabled={!isExpandable}
       on:click={() => {
         if (isExpandable) {
           if (expandedDetails) {
@@ -246,24 +246,19 @@
       />
     {/if}
     {#if isExpandable}
-      <div
+      <button
         use:hoverTooltip={{text: expandedDetails ? 'Close statistics' : 'See statistics'}}
-        class="stats-button flex"
+        class:bg-slate-300={expandedDetails}
+        on:click={() => {
+          if (expandedDetails) {
+            datasetViewStore.removeExpandedColumn(path);
+          } else {
+            datasetViewStore.addExpandedColumn(path);
+          }
+        }}
       >
-        <Button
-          isSelected={expandedDetails}
-          kind="ghost"
-          size="field"
-          icon={ChevronDown}
-          on:click={() => {
-            if (expandedDetails) {
-              datasetViewStore.removeExpandedColumn(path);
-            } else {
-              datasetViewStore.addExpandedColumn(path);
-            }
-          }}
-        />
-      </div>
+        <div class="transition" class:rotate-180={expandedDetails}><ChevronDown /></div>
+      </button>
     {/if}
     <SchemaFieldMenu {field} {schema} />
   </div>
@@ -289,21 +284,6 @@
 </div>
 
 <style lang="postcss">
-  :global(.bx--btn--selected) {
-    @apply !bg-slate-300;
-  }
-  :global(.bx--btn--selected .bx--btn__icon) {
-    @apply rotate-180 transition;
-  }
-
-  /* Hide carbon tooltips for icon-only buttons. */
-  :global(.bx--btn.bx--btn--icon-only.bx--tooltip__trigger .bx--assistive-text) {
-    clip: rect(0, 0, 0, 0) !important;
-  }
-  :global(.bx--btn.bx--btn--icon-only.bx--tooltip__trigger::before) {
-    clip: rect(0, 0, 0, 0) !important;
-  }
-
   :global(.signal-tag span) {
     @apply px-2;
   }

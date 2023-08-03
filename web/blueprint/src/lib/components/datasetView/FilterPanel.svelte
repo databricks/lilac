@@ -125,7 +125,7 @@
       <!-- Search groups -->
       {#each searchTypeOrder as searchType}
         {#if searchesByType[searchType]}
-          <div class="filter-group items-center rounded bg-slate-50 px-2 py-1 shadow-sm">
+          <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
             <div class="text-xs font-light">{searchTypeDisplay[searchType]}</div>
             <div class="flex flex-row gap-x-1">
               {#each searchesByType[searchType] as search}
@@ -216,9 +216,6 @@
 <style lang="postcss">
   .filter-group {
     min-width: 6rem;
-    @apply flex flex-row gap-x-2 border border-gray-200 px-2 py-2 shadow-sm;
-  }
-  button {
-    @apply border border-transparent p-2 hover:bg-gray-200 focus:border focus:border-blue-700 active:bg-gray-300;
+    @apply flex flex-row items-center gap-x-2 border border-gray-200 px-2 py-2 shadow-sm;
   }
 </style>

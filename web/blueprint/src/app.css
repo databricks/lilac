@@ -34,12 +34,26 @@ body {
   @apply rounded;
 }
 
-/** Buttons */
+/** Button. */
+button {
+  @apply box-border rounded p-2;
+}
+button:hover {
+  @apply bg-gray-200;
+}
+button:focus {
+  @apply outline-1 outline-blue-700;
+}
+button:active {
+  @apply bg-gray-300 outline outline-1 outline-blue-700;
+}
+button:disabled {
+  @apply pointer-events-none bg-transparent;
+}
+
+/** Carbon Svelte button. */
 .bx--btn {
   @apply rounded p-2;
-}
-button {
-  @apply rounded;
 }
 .bx--btn.bx--btn--primary {
   @apply text-white;

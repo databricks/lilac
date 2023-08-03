@@ -35,7 +35,7 @@
     {@const formattedCount = formatValue(count)}
 
     <button
-      class="flex items-center text-left text-xs text-black hover:bg-gray-200"
+      class="flex items-center p-0 text-left text-xs text-black hover:bg-gray-200"
       on:click={() => dispatch('row-click', {value})}
     >
       <div title={groupName} class="w-48 flex-none truncate px-2">{groupName}</div>

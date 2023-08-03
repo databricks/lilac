@@ -33,20 +33,20 @@
   $: tagType = search.query.type != null ? searchTypeToTagType[search.query.type] : 'outline';
 </script>
 
-<button
+<div
   class="search-pill items-center text-left"
   use:hoverTooltip={{
     component: SearchPillHoverBody,
     props: {search, tagType}
   }}
-  on:click
 >
   <RemovableTag
     title={'query'}
     interactive
     type={tagType}
+    on:click
     on:remove={() =>
       datasetViewStore.removeSearch(search, $datasetStore.selectRowsSchema?.data || null)}
     ><span class="font-mono">{serializePath(search.path)}</span> has "{pillText}"
   </RemovableTag>
-</button>
+</div>

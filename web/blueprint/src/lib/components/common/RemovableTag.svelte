@@ -11,7 +11,7 @@
 <Tag {type} {...$$restProps} on:click>
   <div class="removable-tag flex items-center gap-x-1">
     <button
-      class="opacity-50 hover:opacity-100"
+      class="p-0 opacity-50 hover:opacity-100"
       on:click|stopPropagation={() => dispatch('remove')}
     >
       <CloseOutline />
