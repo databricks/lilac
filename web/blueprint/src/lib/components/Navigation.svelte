@@ -2,14 +2,13 @@
   import {goto} from '$app/navigation';
   import logo_50x50 from '$lib/assets/logo_50x50.png';
   import {queryConcepts} from '$lib/queries/conceptQueries';
-  import {deleteDatasetMutation, queryDatasets} from '$lib/queries/datasetQueries';
+  import {queryDatasets} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getNavigationContext} from '$lib/stores/navigationStore';
   import {getUrlHashContext} from '$lib/stores/urlHashStore';
   import {conceptIdentifier, conceptLink, datasetIdentifier, datasetLink} from '$lib/utils';
   import {getSortedConcepts, getSortedDatasets} from '$lib/view_utils';
-  import {Modal} from 'carbon-components-svelte';
-  import {AddAlt, InProgress, Settings, SidePanelClose} from 'carbon-icons-svelte';
+  import {AddAlt, Settings, SidePanelClose} from 'carbon-icons-svelte';
   import type {NavigationGroupItem} from './NavigationGroup.svelte';
   import NavigationGroup from './NavigationGroup.svelte';
   import {Command, triggerCommand} from './commands/Commands.svelte';
@@ -27,8 +26,6 @@
   const datasets = queryDatasets();
   $: namespaceDatasets = getSortedDatasets($datasets.data || []);
   let datasetNavGroups: NavigationGroupItem[];
-  let deleteDatasetInfo: {namespace: string; name: string} | null = null;
-
   $: {
     datasetNavGroups = namespaceDatasets.map(({namespace, datasets}) => ({
       group: namespace,
@@ -40,16 +37,6 @@
           $urlHashContext.identifier === datasetIdentifier(c.namespace, c.dataset_name)
       }))
     }));
-  }
-  const deleteDataset = deleteDatasetMutation();
-  function deleteDatasetClicked() {
-    if (deleteDatasetInfo == null) {
-      return;
-    }
-    const {namespace, name} = deleteDatasetInfo;
-    $deleteDataset.mutate([namespace, name], {
-      onSuccess: () => (deleteDatasetInfo = null)
-    });
   }
 
   // Concepts.
@@ -72,13 +59,13 @@
 
 <div class="nav-container flex h-full w-56 flex-col items-center overflow-y-scroll pb-2">
   <div class="w-full border-b border-gray-200">
-    <div class="header flex flex-row items-center justify-between pl-4">
+    <div class="header flex flex-row items-center justify-between px-1 pl-4">
       <a class="flex flex-row items-center text-xl normal-case" href="/">
         <img class="logo-img mr-2 rounded opacity-90" src={logo_50x50} alt="Logo" />
         Lilac
       </a>
       <button
-        class="mr-1 h-8 px-1 opacity-60 hover:bg-gray-200"
+        class="mr-1 p-0.5 opacity-60 hover:bg-gray-200"
         use:hoverTooltip={{text: 'Close sidebar'}}
         on:click={() => ($navStore.open = false)}><SidePanelClose /></button
       >
@@ -113,25 +100,6 @@
     </div>
   </button>
 </div>
-
-{#if deleteDatasetInfo}
-  <Modal
-    danger
-    open
-    modalHeading="Delete dataset"
-    primaryButtonText="Delete"
-    primaryButtonIcon={$deleteDataset.isLoading ? InProgress : undefined}
-    secondaryButtonText="Cancel"
-    on:click:button--secondary={() => (deleteDatasetInfo = null)}
-    on:close={() => (deleteDatasetInfo = null)}
-    on:submit={() => deleteDatasetClicked()}
-  >
-    <p class="!text-lg">
-      Confirm deleting <code>{deleteDatasetInfo.namespace}/{deleteDatasetInfo.name}</code> ?
-    </p>
-    <p class="mt-2">This is a permanent action and cannot be undone.</p>
-  </Modal>
-{/if}
 
 <style lang="postcss">
   .logo-img {
