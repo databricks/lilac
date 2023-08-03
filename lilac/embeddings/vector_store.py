@@ -118,7 +118,7 @@ class VectorDBIndex:
       A list of (key, score) tuples.
     """
     vector_keys: Optional[list[VectorKey]] = None
-    if path_keys:
+    if path_keys is not None:
       vector_keys = [
         (*path_key, i) for path_key in path_keys for i in range(len(self._id_to_spans[path_key]))
       ]

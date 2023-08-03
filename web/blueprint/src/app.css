@@ -27,19 +27,38 @@ body {
 .bx--list-box__menu-item {
   @apply bg-neutral-50;
 }
-.bx--list-box__menu-item--active.bx--list-box__menu-item--highlighted {
+.bx--list-box__menu-item--highlighted {
   @apply bg-neutral-300;
 }
 .bx--list-box__menu {
   @apply rounded;
 }
 
-/** Buttons */
+/** Tooltips */
+[role='tooltip'] {
+  z-index: 10000;
+}
+
+/** Button. */
+button {
+  @apply box-border rounded p-2;
+}
+button:hover {
+  @apply bg-gray-200;
+}
+button:focus {
+  @apply outline outline-2 outline-blue-700;
+}
+button:active {
+  @apply bg-gray-300 outline outline-1 outline-blue-700;
+}
+button:disabled {
+  @apply pointer-events-none bg-transparent;
+}
+
+/** Carbon Svelte button. */
 .bx--btn {
   @apply rounded p-2;
-}
-button {
-  @apply rounded;
 }
 .bx--btn.bx--btn--primary {
   @apply text-white;

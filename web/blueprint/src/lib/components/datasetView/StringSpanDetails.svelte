@@ -14,7 +14,6 @@
 <script lang="ts">
   import {fade} from 'svelte/transition';
 
-  import {Button} from 'carbon-components-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
   import {createEventDispatcher} from 'svelte';
@@ -49,38 +48,33 @@
   use:clickOutside={() => dispatch('close')}
   transition:fade={{duration: 60}}
   style={clickPosition != null ? `left: ${clickPosition.x}px; top: ${clickPosition.y}px` : ''}
-  class="absolute z-10 inline-flex -translate-x-1/2 translate-y-6 flex-col gap-y-4 divide-gray-200 rounded border border-gray-200 bg-white p-1 shadow"
+  class="absolute z-10 inline-flex -translate-x-1/2 translate-y-6 flex-col divide-y divide-gray-200 rounded border border-gray-200 bg-white shadow"
 >
   {#if details.conceptName != null && details.conceptNamespace != null}
-    <div class="flex flex-row px-4 pt-2">
-      <span class="pr-4">{details.conceptNamespace} / {details.conceptName}</span>
-      <button class="px-2" on:click={() => addLabel(true)}>
-        <ThumbsUpFilled />
-      </button>
-      <button class="px-2" on:click={() => addLabel(false)}>
-        <ThumbsDownFilled />
-      </button>
+    <div class="flex flex-row items-center justify-between gap-x-4 p-2">
+      <div class="flex-grow">{details.conceptNamespace} / {details.conceptName}</div>
+      <div class="shrink-0">
+        <button class="p-1" on:click={() => addLabel(true)}>
+          <ThumbsUpFilled />
+        </button>
+        <button class="p-1" on:click={() => addLabel(false)}>
+          <ThumbsDownFilled />
+        </button>
+      </div>
     </div>
   {/if}
 
   <div class="more-button flex flex-col">
     {#each computedEmbeddings as computedEmbedding (computedEmbedding)}
-      <Button
-        kind="ghost"
-        class="w-full"
-        size="small"
+      <button
+        class="flex w-full items-center justify-between"
         on:click={() => {
           findSimilar(computedEmbedding, details.text);
           dispatch('click');
         }}
-        >Find similar <EmbeddingBadge class="hover:cursor-pointer" embedding={computedEmbedding} />
-      </Button>
+        ><div>Find similar</div>
+        <EmbeddingBadge class="hover:cursor-pointer" embedding={computedEmbedding} />
+      </button>
     {/each}
   </div>
 </div>
-
-<style lang="postcss">
-  :global(.more-button .bx--btn) {
-    @apply h-6 w-48;
-  }
-</style>
