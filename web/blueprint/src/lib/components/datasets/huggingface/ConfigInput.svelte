@@ -8,27 +8,25 @@
   export let rootValue: {dataset_name: string; config_name?: string};
 
   $: datasetName = rootValue['dataset_name'];
-  $: configName = rootValue['config_name'];
   $: datasetExistsQuery = queryHFDatasetExists(datasetName);
   $: datasetExists = $datasetExistsQuery.data === true;
-  $: splits = datasetExists ? queryHFSplits(datasetName, configName) : undefined;
-  $: items = $splits?.data?.map(s => ({
-    id: `${s.config}/${s.split}`,
-    text: `${s.config}/${s.split}`
-  }));
+  $: configsQuery = datasetExists ? queryHFSplits(datasetName) : undefined;
+  $: configs = $configsQuery?.data ? new Set($configsQuery.data.map(c => c.config)) : undefined;
+  $: items = configs ? [...configs].map(c => ({id: c, text: c})) : undefined;
 </script>
 
 {#if items && datasetExists}
   <ComboBox
-    on:select={e => (value = e.detail.selectedId.split('/')[1])}
+    value={value || ''}
+    on:select={e => (value = e.detail.selectedItem?.id)}
     {invalid}
     {invalidText}
     warn={!datasetExists}
     warnText={"Dataset doesn't exist"}
-    titleText="Split"
+    titleText="Config"
     placeholder="(optional)"
     {items}
   />
 {:else}
-  <TextInput bind:value {invalid} {invalidText} labelText="Split" placeholder="(optional)" />
+  <TextInput bind:value {invalid} {invalidText} labelText="Config" placeholder="(optional)" />
 {/if}

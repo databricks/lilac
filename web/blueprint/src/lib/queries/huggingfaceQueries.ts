@@ -9,12 +9,12 @@ export const queryHFDatasetExists = (dataset: string) =>
       ),
     queryKey: [TAG, 'isValid', dataset]
   });
-export const queryHFSplits = (dataset: string) =>
+export const queryHFSplits = (dataset: string, config?: string) =>
   createQuery({
     queryFn: () =>
-      fetch(`https://datasets-server.huggingface.co/splits?dataset=${dataset}`).then(res =>
-        res.json()
-      ),
-    queryKey: [TAG, 'getSplits', dataset],
+      fetch(
+        `https://datasets-server.huggingface.co/splits?dataset=${dataset}&config=${config || ''}`
+      ).then(res => res.json()),
+    queryKey: [TAG, 'getSplits', dataset, config],
     select: res => res.splits as {dataset: string; config: string; split: string}[]
   });

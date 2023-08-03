@@ -2,6 +2,7 @@
   import {goto} from '$app/navigation';
   import JsonSchemaForm from '$lib/components/JSONSchema/JSONSchemaForm.svelte';
   import Page from '$lib/components/Page.svelte';
+  import ConfigInput from '$lib/components/datasets/huggingface/ConfigInput.svelte';
   import HFNameInput from '$lib/components/datasets/huggingface/HFNameInput.svelte';
   import SplitsInput from '$lib/components/datasets/huggingface/SplitsInput.svelte';
   import {loadDatasetMutation, querySources, querySourcesSchema} from '$lib/queries/datasetQueries';
@@ -136,7 +137,8 @@
                 customComponents={selectedSource === 'huggingface'
                   ? {
                       '/dataset_name': HFNameInput,
-                      '/split': SplitsInput
+                      '/split': SplitsInput,
+                      '/config_name': ConfigInput
                     }
                   : {}}
               />
