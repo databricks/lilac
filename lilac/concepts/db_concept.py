@@ -57,6 +57,7 @@ class ConceptInfo(BaseModel):
   """Information about a concept."""
   namespace: str
   name: str
+  description: Optional[str] = None
   type: SignalInputType
   drafts: list[DraftId]
 
@@ -422,6 +423,7 @@ class DiskConceptDB(ConceptDB):
             ConceptInfo(
               namespace=namespace,
               name=name,
+              description=concept.description,
               type=SignalInputType.TEXT,
               drafts=concept.drafts(),
               acls=self.concept_acls(namespace, name, user=user)))

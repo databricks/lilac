@@ -11,6 +11,7 @@ import type { SignalInputType } from './SignalInputType';
 export type ConceptInfo = {
     namespace: string;
     name: string;
+    description?: string;
     type: SignalInputType;
     drafts: Array<('main' | string)>;
     acls: ConceptACL;

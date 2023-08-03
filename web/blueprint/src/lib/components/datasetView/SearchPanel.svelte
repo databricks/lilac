@@ -78,8 +78,9 @@
     name: string;
   }
   interface SearchSelectItem {
-    id: ConceptId | 'new-concept' | 'keyword-search';
+    id: ConceptId | 'new-concept' | 'keyword-search' | 'semantic-search';
     text: string;
+    description?: string;
   }
   let conceptSelectItems: SearchSelectItem[] = [];
 
@@ -94,14 +95,21 @@
     id: 'keyword-search',
     text: searchText
   } as SearchSelectItem;
+  $: semanticSearchItem = {
+    id: 'semantic-search',
+    text: searchText,
+    disabled: !isEmbeddingComputed
+  } as SearchSelectItem;
   $: conceptSelectItems = $concepts?.data
     ? [
         newConceptItem,
         ...(searchText != '' ? [keywordSearchItem] : []),
+        ...(searchText != '' && selectedEmbedding ? [semanticSearchItem] : []),
         ...namespaceConcepts.flatMap(namespaceConcept =>
           namespaceConcept.concepts.map(c => ({
             id: {namespace: c.namespace, name: c.name},
             text: conceptDisplayName(c.namespace, c.name, $authInfo.data),
+            description: c.description,
             disabled:
               !isEmbeddingComputed ||
               searches.some(
@@ -188,6 +196,20 @@
       });
       conceptComboBox.clear();
       return;
+    } else if (e.detail.selectedId == 'semantic-search') {
+      if (searchText == '') {
+        return;
+      }
+      datasetViewStore.addSearch({
+        path: [serializePath(searchPath)],
+        query: {
+          type: 'semantic',
+          search: searchText,
+          embedding: selectedEmbedding
+        }
+      });
+      conceptComboBox.clear();
+      return;
     }
     searchConcept(e.detail.selectedId.namespace, e.detail.selectedId.name);
   };
@@ -225,8 +247,9 @@
               shouldFilterItem={(item, value) =>
                 item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-concept'}
               placeholder={placeholderText}
-              let:item
+              let:index
             >
+              {@const item = conceptSelectItems[index]}
               {#if item.id === 'new-concept'}
                 <div class="new-concept flex flex-row items-center justify-items-center">
                   <Tag><Add /></Tag>
@@ -243,8 +266,21 @@
                     {searchText}
                   </div>
                 </div>
+              {:else if item.id === 'semantic-search'}
+                <div class="new-keyword flex flex-row items-center justify-items-center">
+                  <Tag><SearchAdvanced /></Tag>
+                  <div class="ml-2">
+                    Semantic search:
+                    {searchText}
+                  </div>
+                </div>
               {:else}
-                <div>{item.text}</div>
+                <div class="flex justify-between gap-x-4">
+                  <div>{item.text}</div>
+                  {#if item.description}
+                    <div class="truncate text-xs text-gray-500">{item.description}</div>
+                  {/if}
+                </div>
               {/if}
             </ComboBox>
           </div>
