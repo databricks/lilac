@@ -17,5 +17,7 @@
   </button>
   {#if expanded}
     <div class="p-4"><slot name="below" /></div>
+  {:else}
+    <div class="invisible mx-4 h-0"><slot name="below" /></div>
   {/if}
 </div>

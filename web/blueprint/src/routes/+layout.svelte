@@ -84,7 +84,7 @@
 
 <QueryClientProvider client={queryClient}>
   <main class="flex h-screen w-full flex-row">
-    <div class="w-20 flex-shrink-0 bg-neutral-100">
+    <div class=" flex-shrink-0">
       <Navigation />
     </div>
     <div class="h-full w-full overflow-hidden">

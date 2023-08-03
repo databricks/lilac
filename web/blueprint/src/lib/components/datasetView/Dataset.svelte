@@ -1,5 +1,4 @@
 <script lang="ts">
-  import {goto} from '$app/navigation';
   import Page from '$lib/components/Page.svelte';
   import Commands from '$lib/components/commands/Commands.svelte';
   import {hoverTooltip} from '$lib/components/common/HoverTooltip';
@@ -35,6 +34,8 @@
   $: urlHashContext = getUrlHashContext();
   $: datasetViewStore = createDatasetViewStore(urlHashContext, namespace, datasetName);
   $: setDatasetViewContext(datasetViewStore);
+
+  $: console.log(namespace, datasetName);
 
   $: schemaCollapsed = $datasetViewStore.schemaCollapsed;
   function toggleSchemaCollapsed() {
@@ -100,23 +101,11 @@
 
 <Page title={'Datasets'}>
   <div slot="header-subtext">
-    <div
-      use:hoverTooltip={{
-        text: `${$datasetViewStore.namespace}/${$datasetViewStore.datasetName}`
-      }}
-    >
-      <Tag
-        type="outline"
-        class="!cursor-pointer"
-        on:click={() => {
-          const link = datasetLink(namespace, datasetName);
-          // Don't push a new state if the link matches.
-          if (link != location.pathname + location.hash) {
-            goto(link);
-          }
-        }}>{$datasetViewStore.datasetName}</Tag
-      >
-    </div>
+    <Tag type="outline">
+      <a class="font-semibold text-black" href={datasetLink(namespace, datasetName)}
+        >{$datasetViewStore.namespace}/{$datasetViewStore.datasetName}
+      </a>
+    </Tag>
   </div>
   <div slot="header-center" class="flex w-full items-center">
     <SearchPanel />
@@ -208,7 +197,12 @@
   </div>
 
   {#if $schema.data}
-    <DatasetSettingsModal bind:open={settingsOpen} schema={$schema.data} />
+    <DatasetSettingsModal
+      bind:open={settingsOpen}
+      schema={$schema.data}
+      {namespace}
+      name={datasetName}
+    />
     <DownloadModal bind:open={downloadOpen} schema={$schema.data} />
   {/if}
 </Page>

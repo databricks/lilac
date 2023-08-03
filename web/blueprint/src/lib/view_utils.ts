@@ -12,6 +12,7 @@ import {
   type ConceptInfo,
   type DataType,
   type DataTypeCasted,
+  type DatasetInfo,
   type DatasetSettings,
   type LilacField,
   type LilacSchema,
@@ -263,6 +264,27 @@ function getDefaultSearchPath(datasetStore: DatasetState): Path | null {
     }
   });
   return paths[0].path;
+}
+
+export function getSortedDatasets(
+  datasets: DatasetInfo[]
+): {namespace: string; datasets: DatasetInfo[]}[] {
+  const namespaceDatasets: Record<string, DatasetInfo[]> = {};
+  for (const c of datasets) {
+    if (namespaceDatasets[c.namespace] == null) {
+      namespaceDatasets[c.namespace] = [];
+    }
+    namespaceDatasets[c.namespace].push(c);
+  }
+  const sortPriorities = ['lilac'];
+  return Object.keys(namespaceDatasets)
+    .sort((a, b) => sortPriorities.indexOf(a) - sortPriorities.indexOf(b) || a.localeCompare(b))
+    .map(namespace => ({
+      namespace,
+      datasets: namespaceDatasets[namespace].sort((a, b) =>
+        a.dataset_name.localeCompare(b.dataset_name)
+      )
+    }));
 }
 
 export function getSortedConcepts(

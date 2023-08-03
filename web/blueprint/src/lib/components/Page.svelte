@@ -30,8 +30,7 @@
     class="flex flex-row items-center justify-between justify-items-center gap-x-12 border-b border-gray-200 px-4 py-2"
   >
     <div class="mr-4 flex flex-row items-center">
-      <a class="text-xl normal-case" href="/">Lilac <span>{title}</span></a>
-      <div class="mt-1 pl-4">
+      <div class="mt-1">
         <slot name="header-subtext" />
       </div>
     </div>
