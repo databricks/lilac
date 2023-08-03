@@ -811,7 +811,7 @@ class DatasetDuckDB(Dataset):
 
     topk_udf_col = self._topk_udf_to_sort_by(udf_columns, sort_by, limit, sort_order)
     if topk_udf_col:
-      path_keys: Optional[Iterable[PathKey]] = None
+      path_keys: Optional[list[PathKey]] = None
       if where_query:
         # If there are filters, we need to send UUIDs to the top k query.
         df = con.execute(f'SELECT {UUID_COLUMN} FROM t {where_query}').df()
@@ -819,17 +819,20 @@ class DatasetDuckDB(Dataset):
         # Convert UUIDs to path keys.
         path_keys = [(uuid,) for uuid in df[UUID_COLUMN]]
 
-      topk_signal = cast(VectorSignal, topk_udf_col.signal_udf)
-      # The input is an embedding.
-      vector_index = self.get_vector_db_index(topk_signal.embedding, topk_udf_col.path)
-      k = (limit or 0) + (offset or 0)
-      topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
-      topk_uuids = list(dict.fromkeys([cast(str, path_key[0]) for path_key, _ in topk]))
+      if path_keys is not None and len(path_keys) == 0:
+        where_query = 'WHERE false'
+      else:
+        topk_signal = cast(VectorSignal, topk_udf_col.signal_udf)
+        # The input is an embedding.
+        vector_index = self.get_vector_db_index(topk_signal.embedding, topk_udf_col.path)
+        k = (limit or 0) + (offset or 0)
+        topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
+        topk_uuids = list(dict.fromkeys([cast(str, path_key[0]) for path_key, _ in topk]))
 
-      # Ignore all the other filters and filter DuckDB results only by the top k UUIDs.
-      uuid_filter = Filter(path=(UUID_COLUMN,), op=ListOp.IN, value=topk_uuids)
-      filter_query = self._create_where(manifest, [uuid_filter])[0]
-      where_query = f'WHERE {filter_query}'
+        # Ignore all the other filters and filter DuckDB results only by the top k UUIDs.
+        uuid_filter = Filter(path=(UUID_COLUMN,), op=ListOp.IN, value=topk_uuids)
+        filter_query = self._create_where(manifest, [uuid_filter])[0]
+        where_query = f'WHERE {filter_query}'
 
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
     columns_to_merge: dict[str, dict[str, Column]] = {}
@@ -987,8 +990,7 @@ class DatasetDuckDB(Dataset):
           df[signal_column] = deep_unflatten(signal_out_list, input)
 
         signal.teardown()
-
-    if udf_filters or sort_sql_after_udf:
+    if not df.empty and (udf_filters or sort_sql_after_udf):
       # Re-upload the udf outputs to duckdb so we can filter/sort on them.
       rel = con.from_df(df)
 
