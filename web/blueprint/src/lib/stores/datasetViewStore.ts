@@ -27,7 +27,7 @@ import {
   type UrlHashStateStore
 } from './urlHashStore';
 
-export const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
+const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
 export interface DatasetViewState {
   namespace: string;

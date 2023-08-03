@@ -74,8 +74,6 @@
     }
   }
 
-  $: console.log('sortById', sortById);
-
   // Server sort response.
   $: sortById = sort?.path ? serializePath(sort.path) : '';
   // Explicit user selection of sort.
@@ -107,16 +105,13 @@
     if (selected === sortById) {
       return;
     }
-    console.log('setting sort by to', selected === '' ? null : deserializePath(selected));
     datasetViewStore.setSortBy(selected === '' ? null : deserializePath(selected));
   };
   const toggleSortOrder = () => {
     // Set the sort given by the select rows schema explicitly.
     if (sort != null) {
-      console.log('setting sort by to', sort.path);
       datasetViewStore.setSortBy(sort.path);
     }
-    console.log('setting sort order to', sort?.order === 'ASC' ? 'DESC' : 'ASC');
     datasetViewStore.setSortOrder(sort?.order === 'ASC' ? 'DESC' : 'ASC');
   };
   const clearSorts = () => {

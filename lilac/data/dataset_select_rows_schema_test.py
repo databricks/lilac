@@ -461,7 +461,10 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
     }),
     udfs=[SelectRowsSchemaUDF(path=similarity_score_path)],
     search_results=[SearchResultInfo(search_path=('text',), result_path=similarity_score_path)],
-    sorts=[SortResult(path=similarity_score_path, order=SortOrder.DESC, search_index=0)])
+    sorts=[
+      SortResult(
+        path=(*similarity_score_path, PATH_WILDCARD, 'score'), order=SortOrder.DESC, search_index=0)
+    ])
 
 
 def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
@@ -529,7 +532,10 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
       SearchResultInfo(search_path=('text',), result_path=concept_labels_path),
       SearchResultInfo(search_path=('text',), result_path=concept_score_path)
     ],
-    sorts=[SortResult(path=concept_score_path, order=SortOrder.DESC, search_index=0)])
+    sorts=[
+      SortResult(
+        path=(*concept_score_path, PATH_WILDCARD, 'score'), order=SortOrder.DESC, search_index=0)
+    ])
 
 
 def test_search_sort_override(make_test_data: TestDataMaker) -> None:
