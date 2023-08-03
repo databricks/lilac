@@ -2,7 +2,7 @@
   import {queryHFDatasetExists, queryHFSplits} from '$lib/queries/huggingfaceQueries';
   import {ComboBox, TextInput} from 'carbon-components-svelte';
 
-  export let value: string;
+  export let value: string | undefined;
   export let invalid: boolean;
   export let invalidText: string;
   export let rootValue: {dataset_name: string; config_name?: string};
@@ -21,6 +21,7 @@
 {#if items && datasetExists}
   <ComboBox
     on:select={e => (value = e.detail.selectedId.split('/')[1])}
+    on:clear={() => (value = undefined)}
     {invalid}
     {invalidText}
     warn={!datasetExists}
