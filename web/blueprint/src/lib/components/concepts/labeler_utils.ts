@@ -53,11 +53,14 @@ export function getCandidates(
     if (text == null) {
       continue;
     }
-    const embNodes = valueAtPath(textNode, [embedding]) as unknown as LilacValueNode[];
-    if (embNodes == null) {
+    const conceptId = `${concept.namespace}/${concept.concept_name}`;
+    const spanNodes = valueAtPath(textNode, [
+      `${conceptId}/${embedding}`
+    ]) as unknown as LilacValueNode[];
+    if (spanNodes == null) {
       continue;
     }
-    const conceptId = `${concept.namespace}/${concept.concept_name}`;
+
     const labelNodes = valueAtPath(textNode, [
       `${conceptId}/labels`
     ]) as unknown as LilacValueNode[];
@@ -70,8 +73,8 @@ export function getCandidates(
         }
       }
     }
-    for (const embNode of embNodes) {
-      const span = L.value(embNode, 'string_span');
+    for (const spanNode of spanNodes) {
+      const span = L.value(spanNode, 'string_span');
       if (span == null) {
         continue;
       }
@@ -82,7 +85,7 @@ export function getCandidates(
         continue;
       }
 
-      const scoreNode = valueAtPath(embNode, ['embedding', conceptId]);
+      const scoreNode = valueAtPath(spanNode, ['score']);
       if (scoreNode == null) {
         continue;
       }

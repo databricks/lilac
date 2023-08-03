@@ -112,7 +112,9 @@
       datasetViewStore.setSortBy(null);
       return;
     }
-    datasetViewStore.setSortBy(deserializePath(selected));
+    if (selected != sortById) {
+      datasetViewStore.setSortBy(deserializePath(selected));
+    }
   };
   const toggleSortOrder = () => {
     // Set the sort given by the select rows schema explicitly.

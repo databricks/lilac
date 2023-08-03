@@ -680,8 +680,8 @@ class DatasetDuckDB(Dataset):
       return None
     primary_sort_by = sort_by[0]
     udf_cols_to_sort_by = [
-      col for col in udf_columns
-      if col.alias == primary_sort_by[0] or _col_destination_path(col) == primary_sort_by
+      udf_col for udf_col in udf_columns if udf_col.alias == primary_sort_by[0] or
+      _path_contains(_col_destination_path(udf_col), primary_sort_by)
     ]
     if not udf_cols_to_sort_by:
       return None
@@ -723,15 +723,15 @@ class DatasetDuckDB(Dataset):
     else:
       search_udfs_with_sort = [search_udf for search_udf in search_udfs if search_udf.sort]
       if search_udfs_with_sort:
-        # Override the sort by by the last search sort order when the user hasn't provided an
+        # Override the sort by the last search sort order when the user hasn't provided an
         # explicit sort order.
         last_search_udf = search_udfs_with_sort[-1]
-        if sort_order is None:
-          _, sort_order = cast(tuple[PathTuple, SortOrder], last_search_udf.sort)
+        assert last_search_udf.sort, 'Expected search UDFs with sort to have a sort.'
+        udf_sort_path, udf_sort_order = last_search_udf.sort
         sort_results = [
           SortResult(
-            path=last_search_udf.output_path,
-            order=sort_order,
+            path=udf_sort_path,
+            order=sort_order or udf_sort_order,
             search_index=len(search_udfs_with_sort) - 1)
         ]
 
@@ -1263,7 +1263,7 @@ class DatasetDuckDB(Dataset):
             udf=udf,
             search_path=search_path,
             output_path=_col_destination_path(udf),
-            sort=(output_path, SortOrder.DESC)))
+            sort=((*output_path, PATH_WILDCARD, 'score'), SortOrder.DESC)))
       else:
         raise ValueError(f'Unknown search operator {search.query.type}.')
 

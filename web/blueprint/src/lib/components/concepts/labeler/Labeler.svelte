@@ -121,10 +121,9 @@
     path = deserializePath(val);
   }
 
-  $: datasetViewStore =
-    dataset != null ? createDatasetViewStore(urlHashStore, dataset.namespace, dataset.name) : null;
   function openDataset() {
-    if (datasetViewStore == null || pathId == null || embedding == null || dataset == null) return;
+    if (pathId == null || embedding == null || dataset == null) return;
+    const datasetViewStore = createDatasetViewStore(urlHashStore, dataset.namespace, dataset.name);
     datasetViewStore.addSearch({
       path: [pathId],
       query: {

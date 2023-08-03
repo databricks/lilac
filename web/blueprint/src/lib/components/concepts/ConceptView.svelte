@@ -144,7 +144,9 @@
   {:else if $conceptColumnInfos.data.length > 0}
     {@const numDatasets = $conceptColumnInfos.data.length}
     <Expandable>
-      <div slot="above" class="text-md font-semibold">Used on {numDatasets} datasets</div>
+      <div slot="above" class="text-md font-semibold">
+        Used on {numDatasets} dataset{numDatasets > 1 ? 's' : ''}
+      </div>
       <div slot="below" class="flex flex-col gap-y-3">
         {#each $conceptColumnInfos.data as column}
           <div>
