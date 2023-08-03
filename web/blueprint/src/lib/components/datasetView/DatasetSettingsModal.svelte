@@ -206,5 +206,9 @@
       </div>
     </div></ModalBody
   >
-  <ModalFooter primaryButtonText="Save" />
+  <ModalFooter
+    primaryButtonText="Save"
+    secondaryButtonText="Cancel"
+    on:click:button--secondary={close}
+  />
 </ComposedModal>

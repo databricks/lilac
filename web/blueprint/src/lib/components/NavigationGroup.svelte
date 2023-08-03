@@ -35,13 +35,14 @@
       {/if}
     </div>
   </button>
-  <div class={expanded ? `ml-4` : `invisible ml-4 h-0`}>
+
+  <div class={!expanded ? `invisible h-0` : ''}>
     {#if isLoading}
       <SkeletonText />
     {:else}
       {#each groups as { group, items }}
         <div
-          class="ml-2 flex flex-row justify-between border-b border-gray-200
+          class="flex flex-row justify-between border-b border-gray-200 pl-6
                   text-sm opacity-80"
         >
           <div class="py-1 text-xs">
@@ -59,7 +60,7 @@
               href={item.link}
               class:text-black={item.isSelected}
               class:font-semibold={item.isSelected}
-              class="flex w-full flex-row items-center whitespace-pre px-4 py-1 text-xs text-black"
+              class="flex w-full flex-row items-center whitespace-pre py-1 pl-8 pr-4 text-xs text-black"
             >
               <span>{item.name}</span>
             </a>
@@ -67,5 +68,8 @@
         {/each}
       {/each}
     {/if}
+  </div>
+  <div class="flex w-full flex-row items-center whitespace-pre py-1 pl-2 text-xs text-black">
+    <slot name="add" />
   </div>
 </div>

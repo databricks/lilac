@@ -15,10 +15,10 @@
   import FilterPanel from './FilterPanel.svelte';
   import RowItem from './RowItem.svelte';
 
-  let datasetViewStore = getDatasetViewContext();
-  let datasetStore = getDatasetContext();
+  const datasetViewStore = getDatasetViewContext();
+  const datasetStore = getDatasetContext();
 
-  const manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  $: manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 

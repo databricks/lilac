@@ -27,7 +27,7 @@
   }
 </script>
 
-<Page title={'Datasets'}>
+<Page>
   <div slot="header-right">
     <Button size="small" disabled={!canCreateDataset} on:click={() => goto('/datasets/new')}
       >+ Add Dataset</Button

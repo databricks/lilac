@@ -6,6 +6,7 @@
   import SchemaField from './SchemaField.svelte';
 
   const datasetStore = getDatasetContext();
+
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
 </script>
 
