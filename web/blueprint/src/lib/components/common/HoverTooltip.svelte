@@ -36,7 +36,4 @@
     min-width: 4rem;
     max-width: 16rem;
   }
-  [role='tooltip'] {
-    z-index: 10000;
-  }
 </style>

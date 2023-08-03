@@ -34,6 +34,11 @@ body {
   @apply rounded;
 }
 
+/** Tooltips */
+[role='tooltip'] {
+  z-index: 10000;
+}
+
 /** Button. */
 button {
   @apply box-border rounded p-2;
@@ -42,7 +47,7 @@ button:hover {
   @apply bg-gray-200;
 }
 button:focus {
-  @apply outline-1 outline-blue-700;
+  @apply outline outline-2 outline-blue-700;
 }
 button:active {
   @apply bg-gray-300 outline outline-1 outline-blue-700;
