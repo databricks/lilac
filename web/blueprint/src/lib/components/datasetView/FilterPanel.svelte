@@ -15,15 +15,9 @@
     type SearchType,
     type WebManifest
   } from '$lilac';
-  import {
-    Button,
-    Modal,
-    Select,
-    SelectItem,
-    SelectItemGroup,
-    SkeletonText
-  } from 'carbon-components-svelte';
+  import {Modal, Select, SelectItem, SelectItemGroup, SkeletonText} from 'carbon-components-svelte';
   import {Close, SortAscending, SortDescending, SortRemove} from 'carbon-icons-svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptView from '../concepts/ConceptView.svelte';
   import FilterPill from './FilterPill.svelte';
   import SearchPill from './SearchPill.svelte';
@@ -80,6 +74,8 @@
     }
   }
 
+  $: console.log('sortById', sortById);
+
   // Server sort response.
   $: sortById = sort?.path ? serializePath(sort.path) : '';
   // Explicit user selection of sort.
@@ -108,19 +104,19 @@
 
   const selectSort = (ev: CustomEvent<string | number>) => {
     const selected = ev.detail as string;
-    if (selected === '') {
-      datasetViewStore.setSortBy(null);
+    if (selected === sortById) {
       return;
     }
-    if (selected != sortById) {
-      datasetViewStore.setSortBy(deserializePath(selected));
-    }
+    console.log('setting sort by to', selected === '' ? null : deserializePath(selected));
+    datasetViewStore.setSortBy(selected === '' ? null : deserializePath(selected));
   };
   const toggleSortOrder = () => {
     // Set the sort given by the select rows schema explicitly.
     if (sort != null) {
+      console.log('setting sort by to', sort.path);
       datasetViewStore.setSortBy(sort.path);
     }
+    console.log('setting sort order to', sort?.order === 'ASC' ? 'DESC' : 'ASC');
     datasetViewStore.setSortOrder(sort?.order === 'ASC' ? 'DESC' : 'ASC');
   };
   const clearSorts = () => {
@@ -128,96 +124,84 @@
   };
 </script>
 
-<div class="mx-5 my-2 flex items-center justify-between">
-  <div class="flex w-full flex-col">
-    {#if searchTypeOrder.length > 0}
-      <div class="flex w-full flex-row gap-x-4">
-        <!-- Search groups -->
-        {#each searchTypeOrder as searchType}
-          {#if searchesByType[searchType]}
-            <div class="filter-group items-center rounded bg-slate-50 px-2 py-1 shadow-sm">
-              <div class="text-xs font-light">{searchTypeDisplay[searchType]}</div>
-              <div class="flex flex-row gap-x-1">
-                {#each searchesByType[searchType] as search}
-                  <SearchPill {search} on:click={() => openSearchPill(search)} />
-                {/each}
-              </div>
-            </div>
-          {/if}
-        {/each}
-        <!-- Filters group -->
-        {#if filters != null && filters.length > 0}
-          <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
-            <div class="text-xs font-light">Filters</div>
+<div class="mx-5 my-2 flex flex-col gap-y-2">
+  {#if searchTypeOrder.length > 0}
+    <div class="flex w-full flex-row gap-x-4">
+      <!-- Search groups -->
+      {#each searchTypeOrder as searchType}
+        {#if searchesByType[searchType]}
+          <div class="filter-group items-center rounded bg-slate-50 px-2 py-1 shadow-sm">
+            <div class="text-xs font-light">{searchTypeDisplay[searchType]}</div>
             <div class="flex flex-row gap-x-1">
-              {#each filters as filter}
-                <FilterPill {filter} />
+              {#each searchesByType[searchType] as search}
+                <SearchPill {search} on:click={() => openSearchPill(search)} />
               {/each}
             </div>
           </div>
         {/if}
-      </div>
-    {/if}
-    <!-- Number of rows and sort. -->
-    <div class="flex w-full flex-row items-end justify-between">
-      <div class="self-end py-1">
-        {#if totalNumRows && manifest}
-          {formatValue(totalNumRows)} of {formatValue(manifest.dataset_manifest.num_items)} rows
-        {/if}
-      </div>
-      <div class="sort-container flex flex-row items-center">
-        <div class="ml-1 w-8">
-          {#if selectedSortBy != null}
-            <Button
-              class="top-2"
-              kind="ghost"
-              expressive={true}
-              icon={Close}
-              on:click={clearSorts}
-              disabled={sort == null}
-              iconDescription={'Clear sort'}
-            />
-          {/if}
+      {/each}
+      <!-- Filters group -->
+      {#if filters != null && filters.length > 0}
+        <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
+          <div class="text-xs font-light">Filters</div>
+          <div class="flex flex-row gap-x-1">
+            {#each filters as filter}
+              <FilterPill {filter} />
+            {/each}
+          </div>
         </div>
-        <Select
-          size="sm"
-          labelText="Sort by"
-          class="w-60"
-          selected={sortById}
-          on:update={selectSort}
+      {/if}
+    </div>
+  {/if}
+  <!-- Number of rows and sort. -->
+  <div class="flex w-full flex-row items-center justify-between">
+    <div class="py-1">
+      {#if totalNumRows && manifest}
+        {formatValue(totalNumRows)} of {formatValue(manifest.dataset_manifest.num_items)} rows
+      {/if}
+    </div>
+    <div class="sort-container flex flex-row items-center gap-x-1">
+      <div class="mr-1">Sort by</div>
+      <Select noLabel size="sm" class="w-60" selected={sortById} on:update={selectSort}>
+        {#each Object.entries(sortGroups) as [groupName, items]}
+          <SelectItemGroup label={groupName}>
+            {#each items as item}
+              <SelectItem
+                value={item.path != null ? serializePath(item.path) : undefined}
+                text={item.text}
+                disabled={item.disabled}
+              />
+            {/each}
+          </SelectItemGroup>
+        {/each}
+      </Select>
+      {#if selectedSortBy != null}
+        <button
+          use:hoverTooltip={{text: 'Clear sort'}}
+          disabled={sort == null}
+          on:click={clearSorts}
         >
-          {#each Object.entries(sortGroups) as [groupName, items]}
-            <SelectItemGroup label={groupName}>
-              {#each items as item}
-                <SelectItem
-                  value={item.path != null ? serializePath(item.path) : undefined}
-                  text={item.text}
-                  disabled={item.disabled}
-                />
-              {/each}
-            </SelectItemGroup>
-          {/each}
-        </Select>
-        <div class="ml-1">
-          <Button
-            class="top-2"
-            kind="ghost"
-            expressive={true}
-            icon={sort?.order == null
-              ? SortRemove
-              : sort?.order === 'ASC'
-              ? SortAscending
-              : SortDescending}
-            on:click={toggleSortOrder}
-            disabled={sort == null}
-            tooltipPosition="bottom"
-            tooltipAlignment="end"
-            iconDescription={sort?.order === 'ASC'
+          <Close />
+        </button>
+      {/if}
+      <button
+        use:hoverTooltip={{
+          text:
+            sort?.order === 'ASC'
               ? 'Sorted ascending. Toggle to switch to descending.'
-              : 'Sorted descending. Toggle to switch to ascending.'}
-          />
-        </div>
-      </div>
+              : 'Sorted descending. Toggle to switch to ascending.'
+        }}
+        disabled={sort == null}
+        on:click={toggleSortOrder}
+      >
+        {#if sort?.order == null}
+          <SortRemove />
+        {:else if sort?.order === 'ASC'}
+          <SortAscending />
+        {:else if sort?.order === 'DESC'}
+          <SortDescending />
+        {/if}
+      </button>
     </div>
   </div>
 </div>
@@ -239,7 +223,7 @@
     min-width: 6rem;
     @apply flex flex-row gap-x-2 border border-gray-200 px-2 py-2 shadow-sm;
   }
-  :global(.sort-container .bx--label) {
-    @apply mb-1;
+  button {
+    @apply border border-transparent p-2 hover:bg-gray-200 focus:border focus:border-blue-700 active:bg-gray-300;
   }
 </style>
