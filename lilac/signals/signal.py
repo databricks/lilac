@@ -262,7 +262,6 @@ def resolve_signal(signal: Union[dict, Signal]) -> Signal:
     raise ValueError('"signal_name" needs to be defined in the json dict.')
 
   signal_cls = get_signal_cls(signal_name)
-  signal_name = 'gte-base'
   if not signal_cls:
     # Make a metaclass so we get a valid `Signal` class.
     signal_cls = type(f'Signal_{signal_name}', (Signal,), {'name': signal_name})
