@@ -2,7 +2,8 @@
   import {
     infiniteQuerySelectRows,
     queryDatasetManifest,
-    queryDatasetSchema
+    queryDatasetSchema,
+    querySettings
   } from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
@@ -15,14 +16,16 @@
   import FilterPanel from './FilterPanel.svelte';
   import RowItem from './RowItem.svelte';
 
-  let datasetViewStore = getDatasetViewContext();
-  let datasetStore = getDatasetContext();
+  const datasetViewStore = getDatasetViewContext();
+  const datasetStore = getDatasetContext();
 
-  const manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  $: manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
+
+  $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
 
@@ -44,7 +47,7 @@
     selectRowsSchema?.data?.schema != null
       ? getVisibleSchema(selectRowsSchema?.data?.schema, visibleFields)!
       : null;
-  $: mediaFields = getMediaFields(visibleSchema, $datasetStore.settings);
+  $: mediaFields = $settings.data ? getMediaFields(visibleSchema, $settings.data) : [];
 
   // Pass the item scroll container to children so they can handle scroll events.
   let itemScrollContainer: HTMLDivElement | null = null;
@@ -67,7 +70,7 @@
     title="Could not fetch schema:"
     subtitle={selectRowsSchema.error.body?.detail || selectRowsSchema?.error.message}
   />
-{:else if $rows?.isLoading || $schema.isLoading || selectRowsSchema?.isLoading}
+{:else if $rows?.isFetching || $schema.isFetching || selectRowsSchema?.isFetching || $settings.isFetching}
   <SkeletonText paragraph lines={3} />
 {:else if visibleFields.length === 0}
   <div class="mt-12 w-full text-center text-gray-600">Select fields to display</div>

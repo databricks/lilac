@@ -13,24 +13,31 @@
   }
 </script>
 
-<Page title={'Settings'}>
-  <div class="lilac-container">
-    <div class="lilac-page flex">
-      <div class="w-60">
-        {#if $embeddings.isFetching}
-          <SelectSkeleton />
-        {:else}
-          <Select
-            labelText="Preferred embedding"
-            selected={$settings.embedding}
-            on:change={embeddingChanged}
-          >
-            {#each $embeddings.data || [] as emdField}
-              <SelectItem value={emdField.name} />
-            {/each}
-          </Select>
-        {/if}
-      </div>
+<Page>
+  <div class="lilac-page flex p-8">
+    <div class="flex flex-col gap-y-6">
+      <section class="flex flex-col gap-y-1">
+        <div class="text-lg text-gray-700">Settings</div>
+        <div class="mb-4 text-sm text-gray-500">
+          Changes will apply to all datasets for your session. These settings are not saved
+          server-side.
+        </div>
+        <div class="w-60">
+          {#if $embeddings.isFetching}
+            <SelectSkeleton />
+          {:else}
+            <Select
+              labelText="Preferred embedding"
+              selected={$settings.embedding}
+              on:change={embeddingChanged}
+            >
+              {#each $embeddings.data || [] as emdField}
+                <SelectItem value={emdField.name} />
+              {/each}
+            </Select>
+          {/if}
+        </div>
+      </section>
     </div>
   </div>
 </Page>

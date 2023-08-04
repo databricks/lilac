@@ -81,7 +81,7 @@
   }
 </script>
 
-<Page title="Datasets">
+<Page>
   <div class="flex h-full w-full gap-y-4 overflow-y-scroll p-4">
     <div class="mx-auto flex h-full max-w-xl flex-col">
       <h2>Add dataset</h2>

@@ -1,11 +1,118 @@
 <script lang="ts">
-  import {DataBase, Home, Light, Settings} from 'carbon-icons-svelte';
-  import NavigationButton from './NavigationButton.svelte';
+  import {goto} from '$app/navigation';
+  import logo_50x50 from '$lib/assets/logo_50x50.png';
+  import {queryConcepts} from '$lib/queries/conceptQueries';
+  import {queryDatasets} from '$lib/queries/datasetQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
+  import {getNavigationContext} from '$lib/stores/navigationStore';
+  import {getUrlHashContext} from '$lib/stores/urlHashStore';
+  import {conceptIdentifier, conceptLink, datasetIdentifier, datasetLink} from '$lib/utils';
+  import {getSortedConcepts, getSortedDatasets} from '$lib/view_utils';
+  import {AddAlt, Settings, SidePanelClose} from 'carbon-icons-svelte';
+  import type {NavigationGroupItem} from './NavigationGroup.svelte';
+  import NavigationGroup from './NavigationGroup.svelte';
+  import {Command, triggerCommand} from './commands/Commands.svelte';
+  import {hoverTooltip} from './common/HoverTooltip';
+
+  const authInfo = queryAuthInfo();
+  $: userId = $authInfo.data?.user?.id;
+  $: username = $authInfo.data?.user?.given_name;
+  $: canCreateDataset = $authInfo.data?.access.create_dataset;
+
+  const urlHashContext = getUrlHashContext();
+  const navStore = getNavigationContext();
+
+  // Datasets.
+  const datasets = queryDatasets();
+  $: namespaceDatasets = getSortedDatasets($datasets.data || []);
+  let datasetNavGroups: NavigationGroupItem[];
+  $: {
+    datasetNavGroups = namespaceDatasets.map(({namespace, datasets}) => ({
+      group: namespace,
+      items: datasets.map(c => ({
+        name: c.dataset_name,
+        link: datasetLink(c.namespace, c.dataset_name),
+        isSelected:
+          $urlHashContext.page === 'datasets' &&
+          $urlHashContext.identifier === datasetIdentifier(c.namespace, c.dataset_name)
+      }))
+    }));
+  }
+
+  // Concepts.
+  const concepts = queryConcepts();
+  $: namespaceConcepts = getSortedConcepts($concepts.data || [], userId);
+  let conceptNavGroups: NavigationGroupItem[];
+  $: {
+    conceptNavGroups = namespaceConcepts.map(({namespace, concepts}) => ({
+      group: namespace === userId ? `${username}'s concepts` : namespace,
+      items: concepts.map(c => ({
+        name: c.name,
+        link: conceptLink(c.namespace, c.name),
+        isSelected:
+          $urlHashContext.page === 'concepts' &&
+          $urlHashContext.identifier === conceptIdentifier(c.namespace, c.name)
+      }))
+    }));
+  }
+
+  // Settings.
+  $: settingsSelected = $urlHashContext.page === 'settings';
 </script>
 
-<div class="flex w-full flex-col items-center pt-2">
-  <NavigationButton href="/" title="Home" icon={Home} />
-  <NavigationButton href="/concepts" title="Concepts" icon={Light} />
-  <NavigationButton href="/datasets" title="Datasets" icon={DataBase} />
-  <NavigationButton href="/settings" title="Settings" icon={Settings} />
+<div class="nav-container flex h-full w-56 flex-col items-center overflow-y-scroll pb-2">
+  <div class="w-full border-b border-gray-200">
+    <div class="header flex flex-row items-center justify-between px-1 pl-4">
+      <a class="flex flex-row items-center text-xl normal-case" href="/">
+        <img class="logo-img mr-2 rounded opacity-90" src={logo_50x50} alt="Logo" />
+        Lilac
+      </a>
+      <button
+        class="mr-1 opacity-60 hover:bg-gray-200"
+        use:hoverTooltip={{text: 'Close sidebar'}}
+        on:click={() => ($navStore.open = false)}><SidePanelClose /></button
+      >
+    </div>
+  </div>
+  <NavigationGroup title="Datasets" groups={datasetNavGroups} isFetching={$concepts.isFetching}>
+    <div slot="add" class="w-full">
+      {#if canCreateDataset}
+        <button
+          class="mr-1 flex w-full flex-row px-1 py-1 text-black hover:bg-gray-200"
+          on:click={() => goto('/datasets/new')}><AddAlt class="mr-1" />Add dataset</button
+        >
+      {/if}
+    </div>
+  </NavigationGroup>
+  <NavigationGroup title="Concepts" groups={conceptNavGroups} isFetching={$datasets.isFetching}>
+    <div slot="add" class="w-full">
+      <button
+        class="mr-1 flex w-full flex-row px-1 py-1 text-black hover:bg-gray-200"
+        on:click={() =>
+          triggerCommand({
+            command: Command.CreateConcept,
+            onCreate: e => goto(conceptLink(e.detail.namespace, e.detail.name))
+          })}><AddAlt class="mr-1" />Add concept</button
+      >
+    </div>
+  </NavigationGroup>
+  <div class="w-full px-1">
+    <button
+      class={`w-full px-4 py-2 text-left  ${!settingsSelected ? 'hover:bg-gray-100' : ''}`}
+      class:bg-neutral-200={settingsSelected}
+      on:click={() => goto('/settings')}
+    >
+      <div class="flex items-center justify-between">
+        <div class="text-sm font-medium">Settings</div>
+        <div><Settings /></div>
+      </div>
+    </button>
+  </div>
 </div>
+
+<style lang="postcss">
+  .logo-img {
+    width: 20px;
+    height: 20px;
+  }
+</style>

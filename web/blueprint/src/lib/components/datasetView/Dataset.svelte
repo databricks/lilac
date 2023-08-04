@@ -6,23 +6,10 @@
   import RowView from '$lib/components/datasetView/RowView.svelte';
   import SearchPanel from '$lib/components/datasetView/SearchPanel.svelte';
   import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
-  import {
-    queryDatasetSchema,
-    queryManyDatasetStats,
-    querySelectRowsSchema,
-    querySettings
-  } from '$lib/queries/datasetQueries';
+  import {queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
-  import {createDatasetStore, setDatasetContext} from '$lib/stores/datasetStore';
-  import {
-    createDatasetViewStore,
-    getSelectRowsSchemaOptions,
-    setDatasetViewContext
-  } from '$lib/stores/datasetViewStore';
-  import {getUrlHashContext} from '$lib/stores/urlHashStore';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
-  import {getVisibleFields} from '$lib/view_utils';
-  import {getFieldsByDtype} from '$lilac';
   import {Button, Tag} from 'carbon-components-svelte';
   import {ChevronLeft, ChevronRight, Download, Settings, Share} from 'carbon-icons-svelte';
   import {fade} from 'svelte/transition';
@@ -32,9 +19,7 @@
   export let namespace: string;
   export let datasetName: string;
 
-  $: urlHashContext = getUrlHashContext();
-  $: datasetViewStore = createDatasetViewStore(urlHashContext, namespace, datasetName);
-  $: setDatasetViewContext(datasetViewStore);
+  const datasetViewStore = getDatasetViewContext();
 
   $: schemaCollapsed = $datasetViewStore.schemaCollapsed;
   function toggleSchemaCollapsed() {
@@ -42,52 +27,6 @@
   }
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
-  $: stringFields = getFieldsByDtype('string', $schema.data);
-  $: stats = queryManyDatasetStats(
-    $datasetViewStore.namespace,
-    $datasetViewStore.datasetName,
-    stringFields.map(f => f.path)
-  );
-
-  // Get the resulting schema including UDF columns
-  $: selectRowsSchema = querySelectRowsSchema(
-    $datasetViewStore.namespace,
-    $datasetViewStore.datasetName,
-    getSelectRowsSchemaOptions($datasetViewStore)
-  );
-
-  const datasetStore = createDatasetStore(namespace, datasetName);
-  setDatasetContext(datasetStore);
-
-  $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
-  $: {
-    if ($schema.data != null && $stats.data && !$stats.isFetching) {
-      datasetStore.setStats($stats.data);
-    }
-  }
-
-  $: {
-    if ($schema.data != null) {
-      datasetStore.setSchema($schema.data);
-    }
-  }
-  $: {
-    if ($selectRowsSchema != null) {
-      datasetStore.setSelectRowsSchema($selectRowsSchema);
-    }
-  }
-  $: {
-    const visibleFields = getVisibleFields(
-      $datasetViewStore.selectedColumns,
-      $selectRowsSchema?.data?.schema || null
-    );
-    datasetStore.setVisibleFields(visibleFields);
-  }
-  $: {
-    if ($settings.data != null) {
-      datasetStore.setSettings($settings.data);
-    }
-  }
 
   let settingsOpen = false;
   let downloadOpen = false;
@@ -96,27 +35,17 @@
   $: canUpdateSettings = $authInfo.data?.access.dataset.update_settings;
 
   let showCopyToast = false;
+
+  $: link = datasetLink(namespace, datasetName);
 </script>
 
-<Page title={'Datasets'}>
+<Page>
   <div slot="header-subtext">
-    <div
-      use:hoverTooltip={{
-        text: `${$datasetViewStore.namespace}/${$datasetViewStore.datasetName}`
-      }}
-    >
-      <Tag
-        type="outline"
-        class="!cursor-pointer"
-        on:click={() => {
-          const link = datasetLink(namespace, datasetName);
-          // Don't push a new state if the link matches.
-          if (link != location.pathname + location.hash) {
-            goto(link);
-          }
-        }}>{$datasetViewStore.datasetName}</Tag
-      >
-    </div>
+    <Tag type="outline">
+      <a class="font-semibold text-black" href={link} on:click={() => goto(link)}
+        >{$datasetViewStore.namespace}/{$datasetViewStore.datasetName}
+      </a>
+    </Tag>
   </div>
   <div slot="header-center" class="flex w-full items-center">
     <SearchPanel />
@@ -208,7 +137,12 @@
   </div>
 
   {#if $schema.data}
-    <DatasetSettingsModal bind:open={settingsOpen} schema={$schema.data} />
+    <DatasetSettingsModal
+      bind:open={settingsOpen}
+      schema={$schema.data}
+      {namespace}
+      name={datasetName}
+    />
     <DownloadModal bind:open={downloadOpen} schema={$schema.data} />
   {/if}
 </Page>

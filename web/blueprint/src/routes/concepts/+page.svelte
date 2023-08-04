@@ -1,36 +1,29 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import Page from '$lib/components/Page.svelte';
-  import Commands, {Command, triggerCommand} from '$lib/components/commands/Commands.svelte';
+  import Commands from '$lib/components/commands/Commands.svelte';
   import {hoverTooltip} from '$lib/components/common/HoverTooltip';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
-  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {datasetStores} from '$lib/stores/datasetStore';
   import {datasetViewStores} from '$lib/stores/datasetViewStore';
   import {getUrlHashContext} from '$lib/stores/urlHashStore';
-  import {conceptLink} from '$lib/utils';
-  import {getSortedConcepts} from '$lib/view_utils';
-  import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
-  import {InProgress, TrashCan, ViewOff} from 'carbon-icons-svelte';
+  import {conceptIdentifier, conceptLink} from '$lib/utils';
+  import {Modal, SkeletonText, Tag} from 'carbon-components-svelte';
+  import {InProgress, TrashCan} from 'carbon-icons-svelte';
   import {get} from 'svelte/store';
 
-  let namespace: string | undefined;
-  let conceptName: string | undefined;
+  let namespace: string;
+  let conceptName: string;
 
   const urlHashStore = getUrlHashContext();
 
   $: {
-    if ($urlHashStore.page === 'concepts') {
-      if ($urlHashStore.identifier == '' || $urlHashStore.identifier == null) {
-        namespace = undefined;
-        conceptName = undefined;
-      } else {
-        const [newNamespace, newConceptName] = $urlHashStore.identifier.split('/');
-        if (namespace != newNamespace || conceptName != newConceptName) {
-          namespace = newNamespace;
-          conceptName = newConceptName;
-        }
+    if ($urlHashStore.page === 'concepts' && $urlHashStore.identifier != null) {
+      const [newNamespace, newConceptName] = $urlHashStore.identifier.split('/');
+      if (namespace != newNamespace || conceptName != newConceptName) {
+        namespace = newNamespace;
+        conceptName = newConceptName;
       }
     }
   }
@@ -40,13 +33,9 @@
   const concepts = queryConcepts();
   const deleteConcept = deleteConceptMutation();
 
-  const authInfo = queryAuthInfo();
-  $: userId = $authInfo.data?.user?.id;
-
-  $: namespaceConcepts = getSortedConcepts($concepts.data || [], userId);
-  $: username = $authInfo.data?.user?.given_name;
-
   $: concept = namespace && conceptName ? queryConcept(namespace, conceptName) : undefined;
+  $: conceptInfo = $concepts.data?.find(c => c.namespace === namespace && c.name === conceptName);
+  $: canDeleteConcept = conceptInfo?.acls.write;
 
   function deleteConceptClicked() {
     if (deleteConceptInfo == null) {
@@ -60,93 +49,53 @@
           store.deleteConcept(namespace, name, selectRowsSchema);
         }
         deleteConceptInfo = null;
+        goto('/');
       }
     });
   }
+
+  $: link = conceptLink(namespace, conceptName);
 </script>
 
-<Page title={'Concepts'}>
+<Page>
+  <div slot="header-subtext">
+    <Tag type="green">
+      <a class="font-semibold text-black" on:click={() => goto(link)} href={link}
+        >{conceptIdentifier(namespace, conceptName)}
+      </a>
+    </Tag>
+  </div>
   <div slot="header-right">
-    <Button
-      size="small"
-      on:click={() =>
-        triggerCommand({
-          command: Command.CreateConcept,
-          onCreate: e => goto(conceptLink(e.detail.namespace, e.detail.name))
-        })}>Add Concept</Button
+    <div
+      use:hoverTooltip={{
+        text: !canDeleteConcept ? 'User does not have access to delete this concept.' : ''
+      }}
+      class:opacity-40={!canDeleteConcept}
     >
+      <button
+        title="Remove concept"
+        disabled={!canDeleteConcept}
+        class="p-3 hover:text-red-400 hover:opacity-100"
+        on:click={() => (deleteConceptInfo = {namespace: namespace, name: conceptName})}
+      >
+        <TrashCan size={16} />
+      </button>
+    </div>
   </div>
-  <div class="flex-col border-r border-gray-200">
-    {#if $concepts.isLoading}
-      <SkeletonText />
-    {:else if $concepts.isSuccess}
-      {#each namespaceConcepts as { namespace, concepts }}
-        <div
-          class="flex flex-row justify-between border-b border-gray-200 bg-neutral-50 p-3 text-sm opacity-80 hover:bg-gray-100"
-        >
-          <div>
-            {#if namespace === userId}
-              {username}'s concepts
-            {:else}
-              {namespace}
-            {/if}
-          </div>
-          <div
-            class="opacity-70"
-            use:hoverTooltip={{
-              text: 'Your concepts are only visible to you when logged in with Google.'
-            }}
-          >
-            {#if namespace === userId}
-              <ViewOff />
-            {/if}
-          </div>
-        </div>
-        {#each concepts as c}
-          {@const canDeleteConcept = c.acls.write}
-          <div
-            class="flex justify-between border-b border-gray-200 hover:bg-gray-100"
-            class:bg-blue-100={c.name === conceptName}
-          >
-            <a
-              href={conceptLink(c.namespace, c.name)}
-              class="flex w-full flex-row items-center whitespace-pre px-8 py-2"
-            >
-              <span> {c.name}</span>
-            </a>
-            <div
-              use:hoverTooltip={{
-                text: !canDeleteConcept ? 'User does not have access to delete this concept.' : ''
-              }}
-              class:opacity-40={!canDeleteConcept}
-            >
-              <button
-                title="Remove concept"
-                disabled={!canDeleteConcept}
-                class="p-3 opacity-50 hover:text-red-400 hover:opacity-100"
-                on:click={() => (deleteConceptInfo = {namespace: c.namespace, name: c.name})}
-              >
-                <TrashCan size={16} />
-              </button>
-            </div>
-          </div>
-        {/each}
-      {/each}
-    {/if}
-  </div>
-  <div class="flex h-full w-full">
-    <div class="lilac-container px-4">
-      <div class="lilac-page flex">
-        {#if namespace != null && conceptName != null}
-          {#if $concept?.isLoading}
-            <SkeletonText />
-          {:else if $concept?.isError}
-            <p>{$concept.error}</p>
-          {:else if $concept?.isSuccess}
+
+  <div class="flex h-full w-full overflow-x-hidden overflow-y-scroll">
+    <div class="lilac-page flex w-full">
+      {#if namespace != null && conceptName != null}
+        {#if $concept?.isLoading}
+          <SkeletonText />
+        {:else if $concept?.isError}
+          <p>{$concept.error}</p>
+        {:else if $concept?.isSuccess}
+          {#key $concept.data}
             <ConceptView concept={$concept.data} />
-          {/if}
+          {/key}
         {/if}
-      </div>
+      {/if}
     </div>
   </div>
 

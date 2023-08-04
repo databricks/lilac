@@ -2,10 +2,18 @@ export function notEmpty<TValue>(value: TValue | null | undefined): value is TVa
   return value !== null && value !== undefined;
 }
 
+export function conceptIdentifier(namespace: string, conceptName: string) {
+  return `${namespace}/${conceptName}`;
+}
+
 export function conceptLink(namespace: string, conceptName: string) {
-  return `/concepts#${namespace}/${conceptName}`;
+  return `/concepts#${conceptIdentifier(namespace, conceptName)}`;
+}
+
+export function datasetIdentifier(namespace: string, datasetName: string) {
+  return `${namespace}/${datasetName}`;
 }
 
 export function datasetLink(namespace: string, datasetName: string) {
-  return `/datasets#${namespace}/${datasetName}`;
+  return `/datasets#${datasetIdentifier(namespace, datasetName)}`;
 }

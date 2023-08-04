@@ -13,8 +13,10 @@
   // This import is so we can override the carbon icon theme below.
   import {page} from '$app/stores';
   import Navigation from '$lib/components/Navigation.svelte';
+  import {createNavigationStore, setNavigationContext} from '$lib/stores/navigationStore';
   import {createSettingsStore, setSettingsContext} from '$lib/stores/settingsStore';
   import 'carbon-components-svelte/css/all.css';
+  import {slide} from 'svelte/transition';
   import '../app.css';
 
   let showError: ApiError | undefined = undefined;
@@ -61,6 +63,9 @@
 
   $: settingsStore = createSettingsStore();
   $: setSettingsContext(settingsStore);
+
+  const navStore = createNavigationStore();
+  setNavigationContext(navStore);
 </script>
 
 <!-- Monitor for hash changes in the URL. -->
@@ -84,9 +89,11 @@
 
 <QueryClientProvider client={queryClient}>
   <main class="flex h-screen w-full flex-row">
-    <div class="w-20 flex-shrink-0 bg-neutral-100">
-      <Navigation />
-    </div>
+    {#if $navStore.open}
+      <div class="flex-shrink-0" transition:slide={{axis: 'x'}}>
+        <Navigation />
+      </div>
+    {/if}
     <div class="h-full w-full overflow-hidden">
       <slot />
     </div>

@@ -8,7 +8,6 @@
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {datasetLink} from '$lib/utils';
-  import {conceptDisplayName} from '$lib/view_utils';
   import {serializePath, type Concept, type ConceptModelInfo} from '$lilac';
   import {Button, InlineLoading, InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import {Chip, ViewOff} from 'carbon-icons-svelte';
@@ -26,7 +25,6 @@
 
   const authInfo = queryAuthInfo();
   $: userId = $authInfo.data?.user?.id;
-  $: displayName = conceptDisplayName(concept.namespace, concept.concept_name, $authInfo.data);
 
   const conceptMutation = editConceptMutation();
   const embeddings = queryEmbeddings();
@@ -61,10 +59,10 @@
   }
 </script>
 
-<div class="flex h-full w-full flex-col gap-y-8">
+<div class="flex h-full w-full flex-col gap-y-8 px-10">
   <div>
     <div class="flex flex-row items-center text-2xl font-semibold">
-      {displayName}
+      {concept.concept_name}
       {#if userId == concept.namespace}
         <div
           use:hoverTooltip={{

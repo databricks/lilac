@@ -124,6 +124,10 @@ a.bx--tabs__nav-link:focus {
   @apply align-middle;
 }
 
+.header {
+  @apply h-16 flex-shrink-0;
+}
+
 .lilac-container {
   container-type: inline-size;
   @apply flex w-full flex-col overflow-y-auto;
