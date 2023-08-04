@@ -78,7 +78,8 @@
             field,
             path,
             isSignal,
-            isPreviewSignal: isPreviewSignal(selectRowsSchema, path),
+            isPreviewSignal:
+              selectRowsSchema != null ? isPreviewSignal(selectRowsSchema, path) : false,
             isEmbeddingSignal,
             value,
             formattedValue

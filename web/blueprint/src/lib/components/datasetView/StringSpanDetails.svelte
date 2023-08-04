@@ -64,13 +64,13 @@
     </div>
   {/if}
 
-  {#if findSimilar}
+  {#if findSimilar != null}
     <div class="more-button flex flex-col">
       {#each embeddings as computedEmbedding (computedEmbedding)}
         <button
           class="flex w-full items-center justify-between"
           on:click={() => {
-            findSimilar(computedEmbedding, details.text);
+            if (findSimilar) findSimilar(computedEmbedding, details.text);
             dispatch('click');
           }}
           ><div>Find similar</div>
