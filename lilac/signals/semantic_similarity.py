@@ -60,7 +60,7 @@ class SemanticSimilaritySignal(VectorSignal):
   def _compute_span_vector_batch(self, span_vectors: Iterable[SpanVector]) -> list[Item]:
     batch_matrix = np.array([sv['vector'] for sv in span_vectors])
     spans = [sv['span'] for sv in span_vectors]
-    scores = batch_matrix.dot(self._get_search_embedding()).reshape(-1)
+    scores = batch_matrix.dot(self._get_search_embedding()).reshape(-1).tolist()
     return [lilac_span(start, end, {'score': score}) for score, (start, end) in zip(scores, spans)]
 
   @override
