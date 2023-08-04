@@ -899,15 +899,9 @@ class DatasetDuckDB(Dataset):
         sort_sql = (f'list_min({sort_sql})'
                     if sort_order == SortOrder.ASC else f'list_max({sort_sql})')
 
-      # Make sure we don't sort by output of a UDF that was already sorted via topk.
-      already_sorted = False
-      if topk_udf_col:
-        already_sorted = _path_contains(_col_destination_path(topk_udf_col), sort_path)
-
       # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
       if udf_path:
-        if not already_sorted:
-          sort_sql_after_udf.append(sort_sql)
+        sort_sql_after_udf.append(sort_sql)
       else:
         sort_sql_before_udf.append(sort_sql)
 
