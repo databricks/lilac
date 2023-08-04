@@ -157,7 +157,7 @@
     </div>
     <div class="sort-container flex flex-row items-center gap-x-1">
       <div class="mr-1">Sort by</div>
-      <Select noLabel size="sm" class="w-60" selected={sortById} on:update={selectSort}>
+      <Select noLabel size="sm" class="w-80" selected={sortById} on:update={selectSort}>
         {#each Object.entries(sortGroups) as [groupName, items]}
           <SelectItemGroup label={groupName}>
             {#each items as item}
