@@ -5,23 +5,23 @@
    */
   import type {DatasetState} from '$lib/stores/datasetStore';
   import {
-      ITEM_SCROLL_CONTAINER_CTX_KEY,
-      getComputedEmbeddings,
-      getSearchPath,
-      mergeSpans,
-      type MergedSpan
+    ITEM_SCROLL_CONTAINER_CTX_KEY,
+    getComputedEmbeddings,
+    getSearchPath,
+    mergeSpans,
+    type MergedSpan
   } from '$lib/view_utils';
 
   import {editConceptMutation} from '$lib/queries/conceptQueries';
   import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
   import {
-      getValueNodes,
-      pathIsEqual,
-      serializePath,
-      type ConceptScoreSignal,
-      type LilacValueNode,
-      type LilacValueNodeCasted,
-      type Path
+    getValueNodes,
+    pathIsEqual,
+    serializePath,
+    type ConceptScoreSignal,
+    type LilacValueNode,
+    type LilacValueNodeCasted,
+    type Path
   } from '$lilac';
   import {Button} from 'carbon-components-svelte';
   import {ArrowDown, ArrowUp} from 'carbon-icons-svelte';
@@ -34,10 +34,10 @@
   import type {SpanDetails} from './StringSpanDetails.svelte';
   import {LABELED_TEXT_COLOR, colorFromOpacity} from './colors';
   import {
-      getRenderSpans,
-      getSnippetSpans,
-      type RenderSpan,
-      type SpanValueInfo
+    getRenderSpans,
+    getSnippetSpans,
+    type RenderSpan,
+    type SpanValueInfo
   } from './spanHighlight';
 
   export let text: string;

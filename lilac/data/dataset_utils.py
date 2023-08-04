@@ -55,8 +55,6 @@ def replace_embeddings_with_none(input: Union[Item, Item]) -> Item:
   return cast(Item, _replace_embeddings_with_none(input))
 
 
-
-
 def count_primitives(input: Union[Iterable, Iterator]) -> int:
   """Iterate through each element of the input, flattening each one, computing a count.
 
