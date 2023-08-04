@@ -10,7 +10,7 @@
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
 </script>
 
-<div class="flex h-full flex-col pt-4">
+<div class="schema flex h-full flex-col pt-4">
   <Tabs class="overflow-hidden border-b border-gray-200">
     <Tab label="Schema" class="w-1/3" />
     <Tab label="Tree View" class="w-1/3" />
@@ -48,7 +48,7 @@
 </div>
 
 <style>
-  :global(.bx--tab-content) {
+  :global(.schema .bx--tab-content) {
     padding: 0 !important;
   }
 </style>

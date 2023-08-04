@@ -78,6 +78,7 @@ def compute(
   if isinstance(signal, ConceptScoreSignal):
     result = server_compute_concept(signal, options.inputs, user)
   else:
+    signal.setup()
     result = list(signal.compute(options.inputs))
   return SignalComputeResponse(items=result)
 

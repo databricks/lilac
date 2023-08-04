@@ -101,19 +101,6 @@ button:disabled {
   @apply m-0 border-gray-200 py-4;
 }
 
-/** Navigation tabs */
-.bx--tabs__nav-item,
-.bx--tabs__nav-item--selected:not(.bx--tabs__nav-item--disabled) .bx--tabs__nav-link,
-a.bx--tabs__nav-link {
-  @apply border-b-0 border-transparent;
-}
-a.bx--tabs__nav-link {
-  @apply rounded border-b-0;
-}
-a.bx--tabs__nav-link:focus {
-  @apply outline-transparent;
-}
-
 /** Expressive buttons */
 .bx--btn--icon-only.bx--btn--expressive {
   @apply p-1;

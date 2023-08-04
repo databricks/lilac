@@ -285,16 +285,6 @@
 </div>
 
 <style lang="postcss">
-  :global(.bx--tabs__nav) {
-    @apply flex w-full flex-row;
-  }
-  :global(.bx--tabs__nav-item) {
-    @apply w-28;
-  }
-  :global(.bx--tabs__nav-item .bx--tabs__nav-link) {
-    @apply w-28;
-  }
-
   :global(.bx--form__helper-text) {
     padding: 0 0 0 1rem;
   }

@@ -25,6 +25,7 @@
     '/': 'home',
     '/datasets': 'datasets',
     '/concepts': 'concepts',
+    '/signals': 'signals',
     '/settings': 'settings'
   };
 

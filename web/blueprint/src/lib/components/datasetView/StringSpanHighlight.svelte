@@ -6,7 +6,6 @@
   import type {DatasetState} from '$lib/stores/datasetStore';
   import {
     ITEM_SCROLL_CONTAINER_CTX_KEY,
-    getComputedEmbeddings,
     getSearchPath,
     mergeSpans,
     type MergedSpan
@@ -48,6 +47,7 @@
   // Information about each value under span paths to render.
   export let valuePaths: SpanValueInfo[];
   export let markdown = false;
+  export let embeddings: string[];
 
   // When defined, enables semantic search on spans.
   export let datasetViewStore: DatasetViewStore | undefined = undefined;
@@ -153,11 +153,9 @@
 
   // Click details.
   let searchPath: Path | null;
-  let computedEmbeddings: string[] = [];
   $: {
     if ($datasetViewStore != null && datasetStore != null) {
       searchPath = getSearchPath($datasetViewStore, datasetStore);
-      computedEmbeddings = getComputedEmbeddings(datasetStore, searchPath);
     }
   }
 
@@ -175,7 +173,7 @@
   };
 </script>
 
-<div class="relative mx-4 overflow-x-hidden text-ellipsis whitespace-break-spaces py-4">
+<div class="relative overflow-x-hidden text-ellipsis whitespace-break-spaces py-4">
   {#each snippetSpans as snippetSpan}
     {@const renderSpan = snippetSpan.renderSpan}
     {#if snippetSpan.isShown}
@@ -188,9 +186,11 @@
         }}
         use:spanClick={{
           details: () => getSpanDetails(renderSpan),
-          findSimilar,
-          computedEmbeddings,
-          addConceptLabel
+          // Disable similarity search when there's no dataset store.
+          findSimilar: datasetStore != null ? findSimilar : null,
+          embeddings,
+          addConceptLabel,
+          disabled: renderSpan.paths.length === 0 || embeddings.length === 0
         }}
         class="hover:cursor-poiner highlight-span break-words text-sm leading-5"
         class:hover:cursor-pointer={spanPaths.length > 0}

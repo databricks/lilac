@@ -17,3 +17,7 @@ export function datasetIdentifier(namespace: string, datasetName: string) {
 export function datasetLink(namespace: string, datasetName: string) {
   return `/datasets#${datasetIdentifier(namespace, datasetName)}`;
 }
+
+export function signalLink(name: string) {
+  return `/signals#${name}`;
+}

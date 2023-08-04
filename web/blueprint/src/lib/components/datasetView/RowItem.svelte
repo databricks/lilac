@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {getDatasetContext} from '$lib/stores/datasetStore';
   import {serializePath, type LilacField, type LilacValueNode} from '$lilac';
   import RowItemMedia from './RowItemMedia.svelte';
   import RowItemMetadata from './RowItemMetadata.svelte';
@@ -7,8 +8,12 @@
   export let mediaFields: LilacField[];
   export let visibleFields: LilacField[];
 
+  const datasetStore = getDatasetContext();
+
   const MIN_METADATA_HEIGHT_PX = 320;
   let mediaHeight = 0;
+
+  $: selectRowsSchema = $datasetStore.selectRowsSchema?.data;
 </script>
 
 <div class="rounded border-x border-b border-neutral-200 shadow-md">
@@ -28,7 +33,7 @@
           style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
           class="overflow-y-auto"
         >
-          <RowItemMetadata {row} {visibleFields} />
+          <RowItemMetadata {row} {visibleFields} {selectRowsSchema} />
         </div>
       </div>
     </div>

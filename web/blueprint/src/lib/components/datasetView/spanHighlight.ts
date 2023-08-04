@@ -22,7 +22,7 @@ export interface SpanValueInfo {
   path: Path;
   spanPath: Path;
   name: string;
-  type: 'concept_score' | 'label' | 'semantic_similarity' | 'keyword' | 'metadata';
+  type: 'concept_score' | 'label' | 'semantic_similarity' | 'keyword' | 'metadata' | 'leaf_span';
   dtype: DataType;
   signal?: Signal;
 }
@@ -120,6 +120,7 @@ export function getRenderSpans(
     }
 
     const isLabeled = namedValues.some(v => v.info.type === 'label');
+    const isLeafSpan = namedValues.some(v => v.info.type === 'leaf_span');
     const isKeywordSearch = namedValues.some(v => v.info.type === 'keyword');
     const hasNonNumericMetadata = namedValues.some(
       v => v.info.type === 'metadata' && !isNumeric(v.info.dtype)
@@ -135,7 +136,7 @@ export function getRenderSpans(
 
     renderSpans.push({
       backgroundColor: colorFromScore(maxScore),
-      isBlackBolded: isKeywordSearch || hasNonNumericMetadata,
+      isBlackBolded: isKeywordSearch || hasNonNumericMetadata || isLeafSpan,
       isHighlightBolded: isLabeled,
       isShownSnippet,
       snippetScore: maxScore,

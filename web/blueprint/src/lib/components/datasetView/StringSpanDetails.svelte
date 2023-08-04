@@ -24,7 +24,7 @@
   // The coordinates of the click so we can position the popup next to the cursor.
   export let clickPosition: {x: number; y: number} | undefined;
 
-  export let computedEmbeddings: string[];
+  export let embeddings: string[];
 
   // We cant create mutations from this component since it is hoisted so we pass the function in.
   export let addConceptLabel: (
@@ -33,7 +33,7 @@
     text: string,
     label: boolean
   ) => void;
-  export let findSimilar: (embedding: string, text: string) => unknown;
+  export let findSimilar: ((embedding: string, text: string) => unknown) | null;
 
   const dispatch = createEventDispatcher();
   function addLabel(label: boolean) {
@@ -64,17 +64,19 @@
     </div>
   {/if}
 
-  <div class="more-button flex flex-col">
-    {#each computedEmbeddings as computedEmbedding (computedEmbedding)}
-      <button
-        class="flex w-full items-center justify-between"
-        on:click={() => {
-          findSimilar(computedEmbedding, details.text);
-          dispatch('click');
-        }}
-        ><div>Find similar</div>
-        <EmbeddingBadge class="hover:cursor-pointer" embedding={computedEmbedding} />
-      </button>
-    {/each}
-  </div>
+  {#if findSimilar}
+    <div class="more-button flex flex-col">
+      {#each embeddings as computedEmbedding (computedEmbedding)}
+        <button
+          class="flex w-full items-center justify-between"
+          on:click={() => {
+            findSimilar(computedEmbedding, details.text);
+            dispatch('click');
+          }}
+          ><div>Find similar</div>
+          <EmbeddingBadge class="hover:cursor-pointer" embedding={computedEmbedding} />
+        </button>
+      {/each}
+    </div>
+  {/if}
 </div>

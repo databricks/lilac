@@ -39,6 +39,7 @@ class RouteErrorHandler(APIRoute):
 def server_compute_concept(signal: ConceptScoreSignal, examples: Iterable[RichData],
                            user: Optional[UserInfo]) -> list[Optional[Item]]:
   """Compute a concept from the REST endpoints."""
+  # TODO(nsthorat): Move this to the setup() method in the concept_scorer.
   concept = DISK_CONCEPT_DB.get(signal.namespace, signal.concept_name, user)
   if not concept:
     raise HTTPException(

@@ -5,11 +5,14 @@ import {
   deserializePath,
   getField,
   getFieldsByDtype,
+  isConceptScoreSignal,
   pathIncludes,
   pathIsEqual,
   serializePath,
   type AuthenticationInfo,
   type ConceptInfo,
+  type ConceptLabelsSignal,
+  type ConceptScoreSignal,
   type DataType,
   type DataTypeCasted,
   type DatasetInfo,
@@ -21,7 +24,9 @@ import {
   type LilacValueNodeCasted,
   type Path,
   type Search,
-  type SortResult
+  type SemanticSimilaritySignal,
+  type SortResult,
+  type SubstringSignal
 } from '$lilac';
 import {
   AssemblyCluster,
@@ -34,6 +39,7 @@ import {
   Time,
   type CarbonIcon
 } from 'carbon-icons-svelte';
+import type {SpanValueInfo} from './components/datasetView/spanHighlight';
 import type {DatasetState} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
 import type {SettingsState} from './stores/settingsStore';
@@ -321,6 +327,113 @@ export function conceptDisplayName(
 export function getSort(datasetStore: DatasetState): SortResult | null {
   // NOTE: We currently only support sorting by a single column from the UI.
   return (datasetStore.selectRowsSchema?.data?.sorts || [])[0] || null;
+}
+
+export function getSpanValuePaths(
+  field: LilacField,
+  visibleFields?: LilacField[]
+): {spanPaths: Path[]; valuePaths: SpanValueInfo[]} {
+  const children = childFields(field);
+  // Find the non-keyword span fields under this field.
+  const conceptSignals = children.filter(f => isConceptScoreSignal(f.signal));
+  const conceptLabelSignals = children.filter(f => f.signal?.signal_name === 'concept_labels');
+  const semanticSimilaritySignals = children.filter(
+    f => f.signal?.signal_name === 'semantic_similarity'
+  );
+  const keywordSignals = children.filter(f => f.signal?.signal_name === 'substring_search');
+
+  // Find the non-keyword span fields under this field.
+  const spanFields = children
+    .filter(f => f.dtype === 'string_span')
+    .filter(f => !childFields(f).some(c => c.dtype === 'embedding'));
+  const spanPaths = spanFields.map(f => f.path);
+
+  const valuePaths: SpanValueInfo[] = [];
+  for (const spanField of spanFields) {
+    const spanChildren = childFields(spanField)
+      .filter(f => f.dtype != 'string_span')
+      .filter(
+        f =>
+          visibleFields == null ||
+          visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path))
+      );
+    const spanPetalChildren = spanChildren.filter(f => f.dtype != null && f.dtype != 'embedding');
+    const spanPath = spanField.path;
+
+    const keywordSearch = keywordSignals.find(f => pathIncludes(spanField.path, f.path));
+
+    // Keyword spans don't have values.
+    if (keywordSearch != null) {
+      const signal = keywordSearch.signal as SubstringSignal;
+
+      valuePaths.push({
+        path: spanField.path,
+        spanPath,
+        type: 'keyword',
+        name: signal.query,
+        dtype: spanField.dtype!,
+        signal
+      });
+    } else if (spanPetalChildren.length === 0) {
+      // If the span is a leaf, we still show it highlighted.
+      valuePaths.push({
+        path: spanField.path,
+        spanPath,
+        type: 'leaf_span',
+        // Remove the '*'.
+        name: serializePath(spanField.path.slice(0, -1)),
+        dtype: spanField.dtype!
+      });
+    }
+
+    for (const spanPetalChild of spanPetalChildren) {
+      const concept = conceptSignals.find(f => pathIncludes(spanPetalChild.path, f.path));
+      const conceptLabel = conceptLabelSignals.find(f => pathIncludes(spanPetalChild.path, f.path));
+      const semanticSimilarity = semanticSimilaritySignals.find(f =>
+        pathIncludes(spanPetalChild.path, f.path)
+      );
+      if (concept != null) {
+        const signal = concept.signal as ConceptScoreSignal;
+        valuePaths.push({
+          path: spanPetalChild.path,
+          spanPath,
+          type: 'concept_score',
+          name: `${signal.namespace}/${signal.concept_name}`,
+          dtype: spanPetalChild.dtype!,
+          signal
+        });
+      } else if (conceptLabel != null) {
+        const signal = conceptLabel.signal as ConceptLabelsSignal;
+        valuePaths.push({
+          path: spanPetalChild.path,
+          spanPath,
+          type: 'label',
+          name: `${signal.namespace}/${signal.concept_name} label`,
+          dtype: spanPetalChild.dtype!,
+          signal
+        });
+      } else if (semanticSimilarity != null) {
+        const signal = semanticSimilarity.signal as SemanticSimilaritySignal;
+        valuePaths.push({
+          path: spanPetalChild.path,
+          spanPath,
+          type: 'semantic_similarity',
+          name: `similarity: ${signal.query}`,
+          dtype: spanPetalChild.dtype!,
+          signal
+        });
+      } else {
+        valuePaths.push({
+          path: spanPetalChild.path,
+          spanPath,
+          type: 'metadata',
+          name: spanPetalChild.path[spanPetalChild.path.length - 1],
+          dtype: spanPetalChild.dtype!
+        });
+      }
+    }
+  }
+  return {spanPaths, valuePaths};
 }
 
 export interface MergedSpan {

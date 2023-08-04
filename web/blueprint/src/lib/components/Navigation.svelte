@@ -4,10 +4,18 @@
   import {queryConcepts} from '$lib/queries/conceptQueries';
   import {queryDatasets} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
+  import {querySignals} from '$lib/queries/signalQueries';
   import {getNavigationContext} from '$lib/stores/navigationStore';
   import {getUrlHashContext} from '$lib/stores/urlHashStore';
-  import {conceptIdentifier, conceptLink, datasetIdentifier, datasetLink} from '$lib/utils';
+  import {
+    conceptIdentifier,
+    conceptLink,
+    datasetIdentifier,
+    datasetLink,
+    signalLink
+  } from '$lib/utils';
   import {getSortedConcepts, getSortedDatasets} from '$lib/view_utils';
+  import type {SignalInfoWithTypedSchema} from '$lilac';
   import {AddAlt, Settings, SidePanelClose} from 'carbon-icons-svelte';
   import type {NavigationGroupItem} from './NavigationGroup.svelte';
   import NavigationGroup from './NavigationGroup.svelte';
@@ -56,6 +64,37 @@
     }));
   }
 
+  // Signals.
+  const signals = querySignals();
+  const SIGNAL_EXCLUDE_LIST = [
+    'concept_labels',
+    'concept_score',
+    // Near dup is disabled until we have multi-inputs.
+    'near_dup'
+  ];
+
+  let sortedSignals: SignalInfoWithTypedSchema[];
+  $: {
+    if ($signals.data != null) {
+      sortedSignals = $signals.data
+        .filter(s => !SIGNAL_EXCLUDE_LIST.includes(s.name))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+  }
+  let signalNavGroups: NavigationGroupItem[];
+  $: {
+    signalNavGroups = [
+      {
+        group: 'lilac',
+        items: (sortedSignals || []).map(s => ({
+          name: s.name,
+          link: signalLink(s.name),
+          isSelected: $urlHashContext.page === 'signals' && $urlHashContext.identifier === s.name
+        }))
+      }
+    ];
+  }
+
   // Settings.
   $: settingsSelected = $urlHashContext.page === 'settings';
 </script>
@@ -96,6 +135,7 @@
       >
     </div>
   </NavigationGroup>
+  <NavigationGroup title="Signals" groups={signalNavGroups} isFetching={$signals.isFetching} />
   <div class="w-full px-1">
     <button
       class={`w-full px-4 py-2 text-left  ${!settingsSelected ? 'hover:bg-gray-100' : ''}`}

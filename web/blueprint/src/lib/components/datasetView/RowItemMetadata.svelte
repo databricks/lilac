@@ -1,6 +1,5 @@
 <script lang="ts">
   import {queryEmbeddings} from '$lib/queries/signalQueries';
-  import {getDatasetContext} from '$lib/stores/datasetStore';
   import {isItemVisible, isPreviewSignal} from '$lib/view_utils';
   import {
     L,
@@ -11,6 +10,7 @@
     serializePath,
     type DataTypeCasted,
     type LilacField,
+    type LilacSelectRowsSchema,
     type LilacValueNode,
     type Path
   } from '$lilac';
@@ -19,8 +19,8 @@
 
   export let row: LilacValueNode;
   export let visibleFields: LilacField[];
+  export let selectRowsSchema: LilacSelectRowsSchema | undefined = undefined;
 
-  const datasetStore = getDatasetContext();
   const embeddings = queryEmbeddings();
 
   interface MetadataRow {
@@ -78,7 +78,7 @@
             field,
             path,
             isSignal,
-            isPreviewSignal: isPreviewSignal($datasetStore.selectRowsSchema?.data || null, path),
+            isPreviewSignal: isPreviewSignal(selectRowsSchema, path),
             isEmbeddingSignal,
             value,
             formattedValue

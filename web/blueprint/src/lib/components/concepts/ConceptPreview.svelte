@@ -1,15 +1,15 @@
 <script lang="ts">
   import {queryConceptScore} from '$lib/queries/conceptQueries';
-  import {queryEmbeddings} from '$lib/queries/signalQueries';
+  import {queryEmbeddings, querySignalSchema} from '$lib/queries/signalQueries';
   import {getSettingsContext} from '$lib/stores/settingsStore';
+  import {getSpanValuePaths} from '$lib/view_utils';
   import {
-    PATH_WILDCARD,
     deserializeField,
     deserializeRow,
     type Concept,
     type Example,
     type LilacValueNode,
-    type Signal
+    type Path
   } from '$lilac';
   import {Button, Select, SelectItem, SkeletonText, TextArea} from 'carbon-components-svelte';
   import {onMount} from 'svelte';
@@ -43,9 +43,17 @@
     previewText = undefined;
   }
 
-  // The text show in the highlight preview.
+  // The text shown in the highlight preview.
   let previewText: string | undefined = undefined;
   let previewEmbedding = $settings.embedding;
+  $: signal = {
+    signal_name: 'concept_score',
+    concept_name: concept.concept_name,
+    namespace: concept.namespace,
+    embedding: previewEmbedding
+  };
+  $: signalSchema = querySignalSchema({signal});
+
   $: conceptScore =
     previewEmbedding != null && previewText != null
       ? queryConceptScore(concept.namespace, concept.concept_name, previewEmbedding, {
@@ -58,34 +66,18 @@
 
   let previewResultItem: LilacValueNode | undefined = undefined;
   let valuePaths: SpanValueInfo[];
-  $: conceptKey = `${concept.namespace}/${concept.concept_name}`;
+  let spanPaths: Path[];
   $: {
-    if (previewEmbedding != null) {
-      valuePaths = [
-        {
-          spanPath: [PATH_WILDCARD],
-          path: [PATH_WILDCARD, 'score'],
-          name: conceptKey,
-          type: 'concept_score',
-          dtype: 'float32',
-          signal: {
-            signal_name: 'concept_scorer',
-            concept_name: concept.concept_name,
-            namespace: concept.namespace
-          } as Signal
-        }
-      ];
-    }
-  }
-  $: {
-    if ($conceptScore?.data != null && previewEmbedding != null) {
-      const resultSchema = deserializeField({
-        repeated_field: {
-          dtype: 'string_span',
-          fields: {score: {dtype: 'float32'}}
-        }
-      });
+    if (
+      $conceptScore?.data != null &&
+      previewEmbedding != null &&
+      $signalSchema.data?.fields != null
+    ) {
+      const resultSchema = deserializeField($signalSchema.data.fields);
       previewResultItem = deserializeRow($conceptScore.data[0], resultSchema);
+      const spanValuePaths = getSpanValuePaths(resultSchema);
+      spanPaths = spanValuePaths.spanPaths;
+      valuePaths = spanValuePaths.valuePaths;
     }
   }
 </script>
@@ -96,7 +88,7 @@
       value={textAreaText}
       on:input={textChanged}
       cols={50}
-      placeholder="Paste text to test the concept."
+      placeholder="Paste text to try the concept."
       rows={6}
       class="mb-2"
     />
@@ -120,8 +112,9 @@
       <StringSpanHighlight
         text={previewText}
         row={previewResultItem}
-        spanPaths={[[PATH_WILDCARD]]}
+        {spanPaths}
         {valuePaths}
+        embeddings={previewEmbedding ? [previewEmbedding] : []}
       />
     {/if}
   </div>

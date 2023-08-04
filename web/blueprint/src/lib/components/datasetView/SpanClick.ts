@@ -4,14 +4,15 @@ import StringSpanDetails from './StringSpanDetails.svelte';
 
 export interface SpanClickInfo {
   details: () => SpanDetails;
-  findSimilar: (embedding: string, text: string) => unknown;
-  computedEmbeddings: string[];
+  findSimilar: ((embedding: string, text: string) => unknown) | null;
+  embeddings: string[];
   addConceptLabel: (
     conceptName: string,
     conceptNamespace: string,
     text: string,
     label: boolean
   ) => void;
+  disabled: boolean;
 }
 
 export function spanClick(element: HTMLSpanElement, clickInfo: SpanClickInfo) {
@@ -19,11 +20,14 @@ export function spanClick(element: HTMLSpanElement, clickInfo: SpanClickInfo) {
   let curClickInfo = clickInfo;
   element.addEventListener('click', e => showClickDetails(e));
   function showClickDetails(e: MouseEvent) {
+    if (curClickInfo.disabled) {
+      return;
+    }
     spanDetailsComponent = new StringSpanDetails({
       props: {
         details: curClickInfo.details(),
         clickPosition: {x: e.clientX, y: e.clientY},
-        computedEmbeddings: curClickInfo.computedEmbeddings,
+        embeddings: curClickInfo.embeddings,
         addConceptLabel: curClickInfo.addConceptLabel,
         findSimilar: curClickInfo.findSimilar
       },
