@@ -361,7 +361,10 @@ class ConceptModel:
     return True
 
   def _compute_embeddings(self, concept: Concept) -> None:
-    embedding_signal = get_signal_cls(self.embedding_name)()
+    signal_cls = get_signal_cls(self.embedding_name)
+    if not signal_cls:
+      raise ValueError(f'Embedding signal "{self.embedding_name}" not found in the registry.')
+    embedding_signal = signal_cls()
     if not isinstance(embedding_signal, TextEmbeddingSignal):
       raise ValueError(f'Only text embedding signals are currently supported for concepts. '
                        f'"{self.embedding_name}" is a {type(embedding_signal)}.')

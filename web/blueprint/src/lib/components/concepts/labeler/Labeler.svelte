@@ -35,7 +35,7 @@
   let path: string[] | undefined;
   let embedding: string | undefined = undefined;
 
-  $: embeddingPriority = [$settings.embedding, 'sbert', 'openai'];
+  $: embeddingPriority = [$settings.embedding, 'gte-small', 'gte-base', 'openai', 'sbert'];
 
   const datasets = queryDatasets();
   $: schemaQuery = maybeQueryDatasetSchema(dataset?.namespace, dataset?.name);

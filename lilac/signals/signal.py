@@ -14,7 +14,7 @@ from ..embeddings.vector_store import VectorDBIndex
 from ..schema import EMBEDDING_KEY, Field, Item, PathKey, RichData, SignalInputType, field
 
 
-class Signal(abc.ABC, BaseModel):
+class Signal(BaseModel):
   """Interface for signals to implement. A signal can score documents and a dataset column."""
   # ClassVars do not get serialized with pydantic.
   name: ClassVar[str]
@@ -70,14 +70,13 @@ class Signal(abc.ABC, BaseModel):
         schema['required'] = []
       schema['required'].append('signal_name')
 
-  @abc.abstractmethod
   def fields(self) -> Field:
     """Return the fields schema for this signal.
 
     Returns
       A Field object that describes the schema of the signal.
     """
-    pass
+    raise NotImplementedError
 
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     """Compute the signal for an iterable of documents or images.
@@ -247,12 +246,9 @@ def register_signal(signal_cls: Type[Signal]) -> None:
   SIGNAL_REGISTRY[signal_cls.name] = signal_cls
 
 
-def get_signal_cls(signal_name: str) -> Type[Signal]:
+def get_signal_cls(signal_name: str) -> Optional[Type[Signal]]:
   """Return a registered signal given the name in the registry."""
-  if signal_name not in SIGNAL_REGISTRY:
-    raise ValueError(f'Signal "{signal_name}" not found in the registry')
-
-  return SIGNAL_REGISTRY[signal_name]
+  return SIGNAL_REGISTRY.get(signal_name)
 
 
 def resolve_signal(signal: Union[dict, Signal]) -> Signal:
@@ -266,6 +262,10 @@ def resolve_signal(signal: Union[dict, Signal]) -> Signal:
     raise ValueError('"signal_name" needs to be defined in the json dict.')
 
   signal_cls = get_signal_cls(signal_name)
+  signal_name = 'gte-base'
+  if not signal_cls:
+    # Make a metaclass so we get a valid `Signal` class.
+    signal_cls = type(f'Signal_{signal_name}', (Signal,), {'name': signal_name})
   return signal_cls(**signal)
 
 

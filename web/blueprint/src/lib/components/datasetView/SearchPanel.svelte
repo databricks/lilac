@@ -305,7 +305,7 @@
     {/key}
   </div>
   <div class="embedding-select mr-8 flex flex-row">
-    <div class="w-28" use:hoverTooltip={{text: 'Select the embedding to use.'}}>
+    <div class="w-32" use:hoverTooltip={{text: 'Select the embedding to use.'}}>
       <Select
         size="xl"
         on:change={selectEmbedding}

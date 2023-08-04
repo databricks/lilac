@@ -14,7 +14,7 @@ from .signals.signal import SIGNAL_REGISTRY, Signal, TextEmbeddingSignal, resolv
 
 router = APIRouter(route_class=RouteErrorHandler)
 
-EMBEDDING_SORT_PRIORITIES = ['sbert', 'openai']
+EMBEDDING_SORT_PRIORITIES = ['gte-small', 'gte-base', 'openai', 'sbert']
 
 
 class SignalInfo(BaseModel):
