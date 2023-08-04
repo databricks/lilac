@@ -1,16 +1,16 @@
 <script lang="ts">
   import Dataset from '$lib/components/datasetView/Dataset.svelte';
   import {
-    queryDatasetSchema,
-    queryManyDatasetStats,
-    querySelectRowsSchema,
-    querySettings
+      queryDatasetSchema,
+      queryManyDatasetStats,
+      querySelectRowsSchema,
+      querySettings
   } from '$lib/queries/datasetQueries';
   import {createDatasetStore, setDatasetContext} from '$lib/stores/datasetStore';
   import {
-    createDatasetViewStore,
-    getSelectRowsSchemaOptions,
-    setDatasetViewContext
+      createDatasetViewStore,
+      getSelectRowsSchemaOptions,
+      setDatasetViewContext
   } from '$lib/stores/datasetViewStore';
   import {getUrlHashContext} from '$lib/stores/urlHashStore';
   import {getVisibleFields} from '$lib/view_utils';
