@@ -1,7 +1,20 @@
 <script lang="ts">
   import Dataset from '$lib/components/datasetView/Dataset.svelte';
+  import {
+    queryDatasetSchema,
+    queryManyDatasetStats,
+    querySelectRowsSchema,
+    querySettings
+  } from '$lib/queries/datasetQueries';
+  import {createDatasetStore, setDatasetContext} from '$lib/stores/datasetStore';
+  import {
+    createDatasetViewStore,
+    getSelectRowsSchemaOptions,
+    setDatasetViewContext
+  } from '$lib/stores/datasetViewStore';
   import {getUrlHashContext} from '$lib/stores/urlHashStore';
-  import Datasets from './Datasets.svelte';
+  import {getVisibleFields} from '$lib/view_utils';
+  import {getFieldsByDtype} from '$lilac';
 
   let namespace: string | undefined = undefined;
   let datasetName: string | undefined = undefined;
@@ -21,10 +34,79 @@
       }
     }
   }
+
+  $: datasetViewStore =
+    namespace && datasetName ? createDatasetViewStore(urlHashStore, namespace, datasetName) : null;
+  $: {
+    if (datasetViewStore != null) {
+      setDatasetViewContext(datasetViewStore);
+    }
+  }
+
+  $: datasetStore = namespace && datasetName ? createDatasetStore(namespace, datasetName) : null;
+  $: {
+    if (datasetStore != null) {
+      setDatasetContext(datasetStore);
+    }
+  }
+
+  // Settings.
+  $: settings = namespace && datasetName ? querySettings(namespace, datasetName) : null;
+  $: {
+    if (datasetStore && $settings?.data) {
+      datasetStore.setSettings($settings.data);
+    }
+  }
+
+  // Schema.
+  $: schema = namespace && datasetName ? queryDatasetSchema(namespace, datasetName) : null;
+  $: {
+    if (datasetStore && $schema?.data) {
+      datasetStore.setSchema($schema.data);
+    }
+  }
+
+  $: stringFields = $schema?.data ? getFieldsByDtype('string', $schema.data) : null;
+  $: stats =
+    namespace && datasetName && stringFields
+      ? queryManyDatasetStats(
+          namespace,
+          datasetName,
+          stringFields.map(f => f.path)
+        )
+      : null;
+  $: {
+    if (datasetStore && $stats?.data && !$stats.isFetching) {
+      datasetStore.setStats($stats.data);
+    }
+  }
+
+  // Get the resulting schema including UDF columns.
+  $: selectRowsSchema =
+    namespace && datasetName && $datasetViewStore
+      ? querySelectRowsSchema(namespace, datasetName, getSelectRowsSchemaOptions($datasetViewStore))
+      : null;
+  $: {
+    if (datasetStore && $selectRowsSchema?.data) {
+      datasetStore.setSelectRowsSchema($selectRowsSchema);
+    }
+  }
+
+  $: {
+    if (datasetStore && $datasetViewStore && $selectRowsSchema?.data?.schema) {
+      const visibleFields = getVisibleFields(
+        $datasetViewStore.selectedColumns || {},
+        $selectRowsSchema.data?.schema || null
+      );
+      datasetStore.setVisibleFields(visibleFields);
+    }
+  }
 </script>
 
-{#if namespace != null && datasetName != null}
-  <Dataset {namespace} {datasetName} />
+{#if datasetViewStore && namespace && datasetName}
+  {#key datasetViewStore}
+    <Dataset {namespace} {datasetName} />
+  {/key}
 {:else}
-  <Datasets />
+  Page not found! Please specify a dataset.
 {/if}

@@ -59,7 +59,7 @@
   }
 </script>
 
-<div class="flex h-full w-full flex-col gap-y-8 px-8">
+<div class="flex h-full w-full flex-col gap-y-8 px-10">
   <div>
     <div class="flex flex-row items-center text-2xl font-semibold">
       {concept.concept_name}

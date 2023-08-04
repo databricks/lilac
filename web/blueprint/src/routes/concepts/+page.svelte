@@ -16,7 +16,6 @@
   let namespace: string;
   let conceptName: string;
 
-  $: identifier = conceptIdentifier(namespace, conceptName);
   const urlHashStore = getUrlHashContext();
 
   $: {
@@ -92,7 +91,7 @@
         {:else if $concept?.isError}
           <p>{$concept.error}</p>
         {:else if $concept?.isSuccess}
-          {#key identifier}
+          {#key $concept.data}
             <ConceptView concept={$concept.data} />
           {/key}
         {/if}

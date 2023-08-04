@@ -19,8 +19,8 @@
   $: username = $authInfo.data?.user?.given_name;
   $: canCreateDataset = $authInfo.data?.access.create_dataset;
 
-  $: urlHashContext = getUrlHashContext();
-  $: navStore = getNavigationContext();
+  const urlHashContext = getUrlHashContext();
+  const navStore = getNavigationContext();
 
   // Datasets.
   const datasets = queryDatasets();
@@ -55,6 +55,9 @@
       }))
     }));
   }
+
+  // Settings.
+  $: settingsSelected = $urlHashContext.page === 'settings';
 </script>
 
 <div class="nav-container flex h-full w-56 flex-col items-center overflow-y-scroll pb-2">
@@ -65,13 +68,13 @@
         Lilac
       </a>
       <button
-        class="mr-1 p-0.5 opacity-60 hover:bg-gray-200"
+        class="mr-1 opacity-60 hover:bg-gray-200"
         use:hoverTooltip={{text: 'Close sidebar'}}
         on:click={() => ($navStore.open = false)}><SidePanelClose /></button
       >
     </div>
   </div>
-  <NavigationGroup title="Datasets" groups={datasetNavGroups} isLoading={$concepts.isLoading}>
+  <NavigationGroup title="Datasets" groups={datasetNavGroups} isFetching={$concepts.isFetching}>
     <div slot="add" class="w-full">
       {#if canCreateDataset}
         <button
@@ -81,7 +84,7 @@
       {/if}
     </div>
   </NavigationGroup>
-  <NavigationGroup title="Concepts" groups={conceptNavGroups} isLoading={$datasets.isLoading}>
+  <NavigationGroup title="Concepts" groups={conceptNavGroups} isFetching={$datasets.isFetching}>
     <div slot="add" class="w-full">
       <button
         class="mr-1 flex w-full flex-row px-1 py-1 text-black hover:bg-gray-200"
@@ -93,12 +96,18 @@
       >
     </div>
   </NavigationGroup>
-  <button class="w-full px-4 py-2 text-left hover:bg-gray-200" on:click={() => goto('/settings')}>
-    <div class="flex items-center justify-between">
-      <div class="text-sm font-medium">Settings</div>
-      <div><Settings /></div>
-    </div>
-  </button>
+  <div class="w-full px-1">
+    <button
+      class={`w-full px-4 py-2 text-left  ${!settingsSelected ? 'hover:bg-gray-100' : ''}`}
+      class:bg-neutral-200={settingsSelected}
+      on:click={() => goto('/settings')}
+    >
+      <div class="flex items-center justify-between">
+        <div class="text-sm font-medium">Settings</div>
+        <div><Settings /></div>
+      </div>
+    </button>
+  </div>
 </div>
 
 <style lang="postcss">

@@ -32,7 +32,7 @@
   >
     <button
       class:invisible={$navStore.open}
-      class="ml-1 p-0.5 opacity-60 hover:bg-gray-200"
+      class="ml-1 opacity-60 hover:bg-gray-200"
       use:hoverTooltip={{text: 'Open sidebar'}}
       on:click={() => ($navStore.open = true)}><SidePanelOpen /></button
     >

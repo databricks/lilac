@@ -17,7 +17,7 @@
   import {slide} from 'svelte/transition';
 
   export let title: string;
-  export let isLoading: boolean;
+  export let isFetching: boolean;
   export let groups: NavigationGroupItem[];
   export let expanded = true;
 </script>
@@ -39,7 +39,7 @@
 
   {#if expanded}
     <div transition:slide>
-      {#if isLoading}
+      {#if isFetching}
         <SkeletonText />
       {:else}
         <div class="mt-1">
@@ -54,7 +54,7 @@
             </div>
             {#each items as item}
               <div
-                class={`flex w-full flex-row justify-between  ${
+                class={`flex w-full flex-row justify-between ${
                   !item.isSelected ? 'hover:bg-gray-100' : ''
                 }`}
                 class:bg-neutral-100={item.isSelected}
@@ -63,9 +63,9 @@
                   href={item.link}
                   class:text-black={item.isSelected}
                   class:font-semibold={item.isSelected}
-                  class="flex w-full flex-row items-center whitespace-pre py-1 pl-8 pr-4 text-xs text-black"
+                  class=" flex w-full flex-row items-center whitespace-pre py-1 pl-8 pr-4 text-xs text-black"
                 >
-                  <span>{item.name}</span>
+                  <span class="ellipsis truncate">{item.name}</span>
                 </a>
               </div>
             {/each}
