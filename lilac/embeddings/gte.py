@@ -30,7 +30,11 @@ _OPTIMAL_BATCH_SIZES: dict[str, dict[str, int]] = {
 
 
 class GTESmall(TextEmbeddingSignal):
-  """Computes Gegeral Text Embeddings (GTE)."""
+  """Computes Gegeral Text Embeddings (GTE).
+
+  <br>This embedding runs on-device. See the [model card](https://huggingface.co/thenlper/gte-small)
+  for details.
+  """
 
   name = 'gte-small'
   display_name = 'Gegeral Text Embeddings (small)'
@@ -48,7 +52,11 @@ class GTESmall(TextEmbeddingSignal):
 
 
 class GTEBase(GTESmall):
-  """Computes Gegeral Text Embeddings (GTE)."""
+  """Computes Gegeral Text Embeddings (GTE).
+
+  <br>This embedding runs on-device. See the [model card](https://huggingface.co/thenlper/gte-base)
+  for details.
+  """
   name = 'gte-base'
   display_name = 'Gegeral Text Embeddings (base)'
 
