@@ -827,7 +827,9 @@ class DatasetDuckDB(Dataset):
         vector_index = self.get_vector_db_index(topk_signal.embedding, topk_udf_col.path)
         k = (limit or 0) + (offset or 0)
         topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
-        topk_uuids = list(dict.fromkeys([cast(str, path_key[0]) for path_key, _ in topk]))
+        topk_uuids = list(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk]))
+        # Update the offset to account for the number of unique UUIDs.
+        offset = len(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk[:offset]]))
 
         # Ignore all the other filters and filter DuckDB results only by the top k UUIDs.
         uuid_filter = Filter(path=(UUID_COLUMN,), op=ListOp.IN, value=topk_uuids)

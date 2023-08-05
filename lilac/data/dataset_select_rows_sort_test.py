@@ -850,7 +850,7 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['*', text_udf],
                                sort_by=['udf'],
                                sort_order=SortOrder.DESC,
-                               limit=3,
+                               limit=2,
                                combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '3',
@@ -864,11 +864,11 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
                              lilac_span(2, 3, {'score': 1.0})]}),
   }]
 
-  # Same but set limit to 4.
+  # Same but set limit to 3.
   result = dataset.select_rows(['*', text_udf],
                                sort_by=['udf'],
                                sort_order=SortOrder.DESC,
-                               limit=4,
+                               limit=3,
                                combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '3',
