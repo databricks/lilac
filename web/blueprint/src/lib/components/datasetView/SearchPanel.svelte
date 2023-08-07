@@ -8,12 +8,12 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getSettingsContext} from '$lib/stores/settingsStore';
   import {
-      conceptDisplayName,
-      getComputedEmbeddings,
-      getSearchEmbedding,
-      getSearchPath,
-      getSearches,
-      getSortedConcepts
+    conceptDisplayName,
+    getComputedEmbeddings,
+    getSearchEmbedding,
+    getSearchPath,
+    getSearches,
+    getSortedConcepts
   } from '$lib/view_utils';
   import {deserializePath, serializePath, type Path} from '$lilac';
   import {Button, ComboBox, InlineLoading, Select, SelectItem, Tag} from 'carbon-components-svelte';

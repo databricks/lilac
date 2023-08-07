@@ -60,10 +60,9 @@ def main(output_dir: str, config_path: str, overwrite: bool) -> None:
   else:
     raise ValueError(f'Unsupported config file extension: {config_ext}')
 
-  print(config_dict)
-
   config = Config(**config_dict)
-  print(config)
+
+  # Explicitly create a dask client in sync mode.
   dask.config.set({'distributed.worker.daemon': False})
   total_memory_gb = psutil.virtual_memory().total / (1024**3)
   task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB'))
@@ -109,7 +108,6 @@ def main(output_dir: str, config_path: str, overwrite: bool) -> None:
   for d in config.datasets:
     if d.settings:
       dataset = get_dataset(d.namespace, d.name)
-      print(d.settings)
       dataset.update_settings(d.settings)
 
   print()
