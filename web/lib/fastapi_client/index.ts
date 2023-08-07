@@ -14,7 +14,6 @@ export type { ComputeSignalOptions } from './models/ComputeSignalOptions';
 export type { ComputeSignalResponse } from './models/ComputeSignalResponse';
 export type { Concept } from './models/Concept';
 export type { ConceptACL } from './models/ConceptACL';
-export type { ConceptColumnInfo } from './models/ConceptColumnInfo';
 export type { ConceptInfo } from './models/ConceptInfo';
 export type { ConceptLabelsSignal } from './models/ConceptLabelsSignal';
 export type { ConceptMetrics } from './models/ConceptMetrics';

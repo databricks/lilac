@@ -32,8 +32,3 @@ export const deleteConceptMutation = createApiMutation(ConceptsService.deleteCon
 });
 
 export const queryConceptScore = createApiQuery(ConceptsService.score, CONCEPTS_TAG);
-
-export const queryConceptColumnInfos = createApiQuery(
-  ConceptsService.getConceptColumnInfos,
-  CONCEPTS_TAG
-);

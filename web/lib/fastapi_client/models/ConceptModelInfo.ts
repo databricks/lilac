@@ -2,7 +2,6 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ConceptColumnInfo } from './ConceptColumnInfo';
 import type { ConceptMetrics } from './ConceptMetrics';
 
 /**
@@ -13,7 +12,6 @@ export type ConceptModelInfo = {
     concept_name: string;
     embedding_name: string;
     version: number;
-    column_info?: ConceptColumnInfo;
     metrics?: ConceptMetrics;
 };
 
