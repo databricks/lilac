@@ -40,8 +40,6 @@
 
   $: items = $rows.data?.pages.flatMap(x => x.rows);
 
-  $: console.log(items?.length);
-
   $: visibleFields = ($datasetStore.visibleFields || []).sort((a, b) =>
     serializePath(a.path) > serializePath(b.path) ? 1 : -1
   );

@@ -1,5 +1,6 @@
 """The DuckDB implementation of the dataset database."""
 import functools
+import gc
 import glob
 import math
 import os
@@ -377,6 +378,9 @@ class DatasetDuckDB(Dataset):
       uuids=df[UUID_COLUMN],
       signal_items=values,
       output_dir=output_dir)
+
+    del select_rows_result, df, values
+    gc.collect()
 
     signal_manifest = SignalManifest(
       files=[],

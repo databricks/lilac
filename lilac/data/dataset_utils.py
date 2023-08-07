@@ -1,5 +1,6 @@
 """Utilities for working with datasets."""
 
+import gc
 import json
 import math
 import os
@@ -183,11 +184,16 @@ def write_embeddings_to_disk(vector_store: str, uuids: Iterable[str], signal_ite
       spans.append((span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]))
     all_spans.append((path_key, spans))
   embedding_matrix = np.array(embedding_vectors)
+  del path_keys, all_embeddings, embedding_vectors
+  gc.collect()
 
   # Write to disk.
   vector_index = VectorDBIndex(vector_store)
   vector_index.add(all_spans, embedding_matrix)
   vector_index.save(output_dir)
+
+  del vector_index
+  gc.collect()
 
 
 def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schema,

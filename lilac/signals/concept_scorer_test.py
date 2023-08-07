@@ -26,6 +26,7 @@ from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
 ALL_CONCEPT_DBS = [DiskConceptDB]
 ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
+ALL_VECTOR_STORES = ['numpy', 'hnsw']
 
 
 @pytest.fixture(autouse=True)
@@ -172,8 +173,9 @@ def test_concept_model_with_dataset_score(concept_db_cls: Type[ConceptDB],
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
 @pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
+@pytest.mark.parametrize('vector_store', ALL_VECTOR_STORES)
 def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
-                                    model_db_cls: Type[ConceptModelDB]) -> None:
+                                    model_db_cls: Type[ConceptModelDB], vector_store: str) -> None:
   concept_db = concept_db_cls()
   model_db = model_db_cls(concept_db)
   namespace = 'test'
@@ -195,7 +197,7 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
   model_db.sync(model)
 
   vector_index = make_vector_index(
-    'numpy', {
+    vector_store, {
       ('1',): [EMBEDDING_MAP['in concept']],
       ('2',): [EMBEDDING_MAP['not in concept']],
       ('3',): [EMBEDDING_MAP['a new data point']],
@@ -210,8 +212,9 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
 @pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
+@pytest.mark.parametrize('vector_store', ALL_VECTOR_STORES)
 def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
-                                  model_db_cls: Type[ConceptModelDB]) -> None:
+                                  model_db_cls: Type[ConceptModelDB], vector_store: str) -> None:
   concept_db = concept_db_cls()
   model_db = model_db_cls(concept_db)
   namespace = 'test'
@@ -231,7 +234,7 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
   model = ConceptModel(
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   model_db.sync(model)
-  vector_index = make_vector_index('numpy', {
+  vector_index = make_vector_index(vector_store, {
     ('1',): [[0.1, 0.2, 0.3]],
     ('2',): [[0.1, 0.87, 0.0]],
     ('3',): [[1.0, 0.0, 0.0]],
@@ -258,8 +261,9 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
 @pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
-def test_concept_model_draft(concept_db_cls: Type[ConceptDB],
-                             model_db_cls: Type[ConceptModelDB]) -> None:
+@pytest.mark.parametrize('vector_store', ALL_VECTOR_STORES)
+def test_concept_model_draft(concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB],
+                             vector_store: str) -> None:
   concept_db = concept_db_cls()
   model_db = model_db_cls(concept_db)
   namespace = 'test'
@@ -283,7 +287,7 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   model_db.sync(model)
 
-  vector_index = make_vector_index('numpy', {
+  vector_index = make_vector_index(vector_store, {
     ('1',): [[1.0, 0.0, 0.0]],
     ('2',): [[0.9, 0.1, 0.0]],
     ('3',): [[0.1, 0.9, 0.0]],
@@ -295,7 +299,7 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB],
   assert scores[2][0]['score'] < 0.5
 
   # Make sure the draft signal works. It has different values than the original signal.
-  vector_index = make_vector_index('numpy', {
+  vector_index = make_vector_index(vector_store, {
     ('1',): [[1.0, 0.0, 0.0]],
     ('2',): [[0.9, 0.1, 0.0]],
     ('3',): [[0.1, 0.2, 0.3]],
