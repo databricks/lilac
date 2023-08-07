@@ -52,7 +52,7 @@
     namespace: concept.namespace,
     embedding: previewEmbedding
   };
-  $: signalSchema = querySignalSchema({signal});
+  $: signalSchema = signal.embedding ? querySignalSchema({signal}) : undefined;
 
   $: conceptScore =
     previewEmbedding != null && previewText != null
@@ -71,7 +71,7 @@
     if (
       $conceptScore?.data != null &&
       previewEmbedding != null &&
-      $signalSchema.data?.fields != null
+      $signalSchema?.data?.fields != null
     ) {
       const resultSchema = deserializeField($signalSchema.data.fields);
       previewResultItem = deserializeRow($conceptScore.data[0], resultSchema);

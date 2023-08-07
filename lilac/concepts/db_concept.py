@@ -218,7 +218,7 @@ class DiskConceptModelDB(ConceptModelDB):
       raise ValueError(f'Concept "{namespace}/{concept_name}" does not exist.')
 
     return ConceptModel(
-      namespace=namespace, concept_name=concept_name, embedding_name=embedding_name, version=-1)
+      namespace=namespace, concept_name=concept_name, embedding_name=embedding_name)
 
   @override
   def get(self,
@@ -392,12 +392,7 @@ class DiskConceptDB(ConceptDB):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" already exists.')
 
     concept = Concept(
-      namespace=namespace,
-      concept_name=name,
-      type=type,
-      data={},
-      version=0,
-      description=description)
+      namespace=namespace, concept_name=name, type=type, data={}, description=description)
     self._save(concept)
     return concept
 
