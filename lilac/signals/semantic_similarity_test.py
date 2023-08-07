@@ -32,16 +32,16 @@ class TestVectorStore(VectorStore):
   name = 'test_vector_store'
 
   @override
+  def size(self) -> int:
+    return len(EMBEDDINGS)
+
+  @override
   def load(self, base_path: str) -> None:
     raise NotImplementedError
 
   @override
   def save(self, base_path: str) -> None:
     raise NotImplementedError
-
-  @override
-  def keys(self) -> list[VectorKey]:
-    return []
 
   @override
   def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:

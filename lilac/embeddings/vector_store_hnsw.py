@@ -44,9 +44,10 @@ class HNSWVectorStore(VectorStore):
     self._index = index
 
   @override
-  def keys(self) -> list[VectorKey]:
-    assert self._key_to_label is not None, 'No embeddings exist in this store.'
-    return self._key_to_label.index.tolist()
+  def size(self) -> int:
+    assert self._index is not None, (
+      'The vector store has no embeddings. Call load() or add() first.')
+    return self._index.get_current_count()
 
   @override
   def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:

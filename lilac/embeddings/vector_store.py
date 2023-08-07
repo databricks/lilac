@@ -28,6 +28,11 @@ class VectorStore(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def size(self) -> int:
+    """Return the number of vectors in the store."""
+    pass
+
+  @abc.abstractmethod
   def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
     """Add or edit the given keyed embeddings to the store.
 
@@ -161,7 +166,7 @@ class VectorDBIndex:
       ]
     span_k = k
     path_key_scores: dict[PathKey, float] = {}
-    total_num_span_keys = len(self._vector_store.keys())
+    total_num_span_keys = self._vector_store.size()
     while (len(path_key_scores) < k and span_k < total_num_span_keys and
            (not span_keys or span_k < len(span_keys))):
       span_k += k

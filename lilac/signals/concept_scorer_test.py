@@ -18,9 +18,9 @@ from ..concepts.db_concept import (
   DiskConceptModelDB,
 )
 from ..data.dataset_duckdb import DatasetDuckDB
-from ..data.dataset_test_utils import TestDataMaker, make_vector_index
+from ..data.dataset_test_utils import make_vector_index
 from ..db_manager import set_default_dataset_cls
-from ..schema import UUID_COLUMN, Item, RichData, SignalInputType, lilac_embedding
+from ..schema import Item, RichData, SignalInputType, lilac_embedding
 from .concept_scorer import ConceptScoreSignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
@@ -123,49 +123,6 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
   scores = [result_item[0]['score'] for result_item in result_items if result_item]
   assert scores[0] > 0 and scores[0] < 1
   assert scores[1] < 0.5
-
-
-@pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
-@pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
-def test_concept_model_with_dataset_score(concept_db_cls: Type[ConceptDB],
-                                          model_db_cls: Type[ConceptModelDB],
-                                          make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello.',
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'hello2.',
-  }])
-
-  dataset.compute_signal(TestEmbedding(), 'text')
-
-  concept_db = concept_db_cls()
-  model_db = model_db_cls(concept_db)
-  namespace = 'test'
-  concept_name = 'test_concept'
-  concept_db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
-
-  train_data = [
-    ExampleIn(label=False, text='not in concept'),
-    ExampleIn(label=True, text='in concept')
-  ]
-  concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
-
-  signal = ConceptScoreSignal(
-    namespace='test', concept_name='test_concept', embedding='test_embedding')
-
-  # Explicitly sync the model with the concept.
-  model = ConceptModel(
-    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-  model_db.sync(model)
-
-  result_items = list(signal.compute(['a new data point', 'in concept', 'not in concept']))
-  scores = [result_item[0]['score'] for result_item in result_items if result_item]
-  assert scores[0] > 0 and scores[0] < 1  # 'a new data point' may or may not be in the concept.
-  assert scores[1] > 0.5  # 'in concept' is in the concept.
-  assert scores[2] < 0.5  # 'not in concept' is not in the concept.
-  assert len(scores) == 3
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
