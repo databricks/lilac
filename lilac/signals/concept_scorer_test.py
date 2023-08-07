@@ -20,7 +20,6 @@ from ..concepts.db_concept import (
 from ..data.dataset_duckdb import DatasetDuckDB
 from ..data.dataset_test_utils import TestDataMaker, make_vector_index
 from ..db_manager import set_default_dataset_cls
-from ..embeddings.vector_store_numpy import NumpyVectorStore
 from ..schema import UUID_COLUMN, Item, RichData, SignalInputType, lilac_embedding
 from .concept_scorer import ConceptScoreSignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
@@ -196,7 +195,7 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
   model_db.sync(model)
 
   vector_index = make_vector_index(
-    NumpyVectorStore, {
+    'numpy', {
       ('1',): [EMBEDDING_MAP['in concept']],
       ('2',): [EMBEDDING_MAP['not in concept']],
       ('3',): [EMBEDDING_MAP['a new data point']],
@@ -232,7 +231,7 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
   model = ConceptModel(
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   model_db.sync(model)
-  vector_index = make_vector_index(NumpyVectorStore, {
+  vector_index = make_vector_index('numpy', {
     ('1',): [[0.1, 0.2, 0.3]],
     ('2',): [[0.1, 0.87, 0.0]],
     ('3',): [[1.0, 0.0, 0.0]],
@@ -284,7 +283,7 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding_name='test_embedding')
   model_db.sync(model)
 
-  vector_index = make_vector_index(NumpyVectorStore, {
+  vector_index = make_vector_index('numpy', {
     ('1',): [[1.0, 0.0, 0.0]],
     ('2',): [[0.9, 0.1, 0.0]],
     ('3',): [[0.1, 0.9, 0.0]],
@@ -296,7 +295,7 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB],
   assert scores[2][0]['score'] < 0.5
 
   # Make sure the draft signal works. It has different values than the original signal.
-  vector_index = make_vector_index(NumpyVectorStore, {
+  vector_index = make_vector_index('numpy', {
     ('1',): [[1.0, 0.0, 0.0]],
     ('2',): [[0.9, 0.1, 0.0]],
     ('3',): [[0.1, 0.2, 0.3]],
