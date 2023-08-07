@@ -40,6 +40,7 @@ types-psutil = "^5.9.5.12"
 typing-extensions = "^4.7.1"
 uvicorn = { extras = ["standard"], version = "^0.22.0" }
 click = "^8.1.3"
+hnswlib = "^0.7.0"                                       # Fast KNN vector store.
 
 ### Optional dependencies. ###
 

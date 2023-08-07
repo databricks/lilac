@@ -11,6 +11,5 @@ export type ConceptScoreSignal = {
     namespace: string;
     concept_name: string;
     draft?: string;
-    num_negative_examples?: number;
 };
 

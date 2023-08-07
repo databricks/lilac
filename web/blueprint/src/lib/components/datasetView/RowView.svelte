@@ -8,7 +8,7 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {ITEM_SCROLL_CONTAINER_CTX_KEY, getMediaFields, getVisibleSchema} from '$lib/view_utils';
-  import {L, UUID_COLUMN, serializePath} from '$lilac';
+  import {serializePath} from '$lilac';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import {setContext} from 'svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
@@ -83,7 +83,7 @@
     class="flex h-full w-full flex-col gap-y-10 overflow-y-scroll px-5 pb-32"
     bind:this={itemScrollContainer}
   >
-    {#each items as row (L.value(row[UUID_COLUMN]))}
+    {#each items as row}
       <RowItem {visibleFields} {row} {mediaFields} />
     {/each}
     {#if items.length > 0}

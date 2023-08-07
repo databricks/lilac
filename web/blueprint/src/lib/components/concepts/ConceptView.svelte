@@ -2,14 +2,12 @@
   import {
     conceptModelMutation,
     editConceptMutation,
-    queryConceptColumnInfos,
     queryConceptModels
   } from '$lib/queries/conceptQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
-  import {datasetLink} from '$lib/utils';
-  import {serializePath, type Concept, type ConceptModelInfo} from '$lilac';
-  import {Button, InlineLoading, InlineNotification, SkeletonText} from 'carbon-components-svelte';
+  import type {Concept, ConceptModelInfo} from '$lilac';
+  import {Button, InlineLoading} from 'carbon-components-svelte';
   import {Chip, ViewOff} from 'carbon-icons-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
@@ -42,7 +40,6 @@
     }
   }
 
-  $: conceptColumnInfos = queryConceptColumnInfos(concept.namespace, concept.concept_name);
   $: positiveExamples = Object.values(concept.data).filter(v => v.label == true);
   $: negativeExamples = Object.values(concept.data).filter(v => v.label == false);
 
@@ -130,33 +127,6 @@
     <div slot="above" class="text-md font-semibold">Collect labels</div>
     <Labeler slot="below" {concept} />
   </Expandable>
-  {#if $conceptColumnInfos.isLoading}
-    <SkeletonText />
-  {:else if $conceptColumnInfos.isError}
-    <InlineNotification
-      kind="error"
-      title="Error"
-      subtitle={$conceptColumnInfos.error.message}
-      hideCloseButton
-    />
-  {:else if $conceptColumnInfos.data.length > 0}
-    {@const numDatasets = $conceptColumnInfos.data.length}
-    <Expandable>
-      <div slot="above" class="text-md font-semibold">
-        Used on {numDatasets} dataset{numDatasets > 1 ? 's' : ''}
-      </div>
-      <div slot="below" class="flex flex-col gap-y-3">
-        {#each $conceptColumnInfos.data as column}
-          <div>
-            field <code>{serializePath(column.path)}</code> of dataset
-            <a href={datasetLink(column.namespace, column.name)}>
-              {column.namespace}/{column.name}
-            </a>
-          </div>
-        {/each}
-      </div>
-    </Expandable>
-  {/if}
   <div class="flex gap-x-4">
     <div class="flex w-0 flex-grow flex-col gap-y-4">
       <span class="flex items-center gap-x-2 text-lg"

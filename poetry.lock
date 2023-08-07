@@ -2006,6 +2006,19 @@ files = [
 ]
 
 [[package]]
+name = "hnswlib"
+version = "0.7.0"
+description = "hnswlib"
+optional = false
+python-versions = "*"
+files = [
+    {file = "hnswlib-0.7.0.tar.gz", hash = "sha256:bc459668e7e44bb7454b256b90c98c5af750653919d9a91698dafcf416cf64c4"},
+]
+
+[package.dependencies]
+numpy = "*"
+
+[[package]]
 name = "httpcore"
 version = "0.17.3"
 description = "A minimal low-level HTTP client."
@@ -6382,4 +6395,4 @@ text-stats = ["spacy", "textacy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "23134c19a350f465edecc78cac8f0a644d405ba854763c50062d1a90dd4139c5"
+content-hash = "de9b5176125853b94fd4fa94d3cbd59e735ee0ac9fafec050d382fdbe73711a1"

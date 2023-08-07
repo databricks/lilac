@@ -48,11 +48,11 @@ export const maybeQueryDatasetSchema = createApiQuery(
   function getManifest(namespace?: string, datasetName?: string) {
     return namespace && datasetName
       ? DatasetsService.getManifest(namespace, datasetName)
-      : Promise.resolve(null);
+      : Promise.resolve(undefined);
   },
   DATASETS_TAG,
   {
-    select: res => (res ? deserializeSchema(res.dataset_manifest.data_schema) : null)
+    select: res => (res ? deserializeSchema(res.dataset_manifest.data_schema) : undefined)
   }
 );
 
