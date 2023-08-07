@@ -15,3 +15,11 @@ To build the docs:
 ```bash
 ./scripts/build_docs.sh
 ```
+
+To deploy the website:
+
+One time setup: `npm install -g firebase-tools`
+
+```bash
+./scripts/deploy_website.sh
+```
