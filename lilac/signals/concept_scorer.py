@@ -6,7 +6,7 @@ from typing_extensions import override
 
 from ..auth import UserInfo
 from ..batch_utils import flat_batched_compute
-from ..concepts.concept import DEFAULT_NUM_NEG_EXAMPLES, DRAFT_MAIN, ConceptColumnInfo, ConceptModel
+from ..concepts.concept import DRAFT_MAIN, ConceptModel
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.embedding import get_embed_fn
 from ..embeddings.vector_store import VectorDBIndex
@@ -27,11 +27,6 @@ class ConceptScoreSignal(VectorSignal):
   # The draft version of the concept to use. If not provided, the latest version is used.
   draft: str = DRAFT_MAIN
 
-  # Number of randomly chosen negative examples to use when training the concept. This is used to
-  # obtain a better suited model for the concrete dataset.
-  num_negative_examples = DEFAULT_NUM_NEG_EXAMPLES
-
-  _column_info: Optional[ConceptColumnInfo] = None
   _concept_model_db: ConceptModelDB = DISK_CONCEPT_MODEL_DB
   _user: Optional[UserInfo] = None
 
@@ -48,21 +43,16 @@ class ConceptScoreSignal(VectorSignal):
         })
     ])
 
-  def set_column_info(self, column_info: ConceptColumnInfo) -> None:
-    """Set the dataset info for this signal."""
-    self._column_info = column_info
-    self._column_info.num_negative_examples = self.num_negative_examples
-
   def set_user(self, user: Optional[UserInfo]) -> None:
     """Set the user for this signal."""
     self._user = user
 
   def _get_concept_model(self) -> ConceptModel:
     model = self._concept_model_db.get(
-      self.namespace, self.concept_name, self.embedding, self._column_info, user=self._user)
+      self.namespace, self.concept_name, self.embedding, user=self._user)
     if not model:
       model = self._concept_model_db.create(
-        self.namespace, self.concept_name, self.embedding, self._column_info, user=self._user)
+        self.namespace, self.concept_name, self.embedding, user=self._user)
 
     self._concept_model_db.sync(model, self._user)
     return model

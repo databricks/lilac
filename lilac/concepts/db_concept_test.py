@@ -452,7 +452,6 @@ class ConceptModelDBSuite:
     assert retrieved_model.concept_name == model.concept_name
     assert retrieved_model.embedding_name == model.embedding_name
     assert retrieved_model.version == model.version
-    assert retrieved_model.column_info == model.column_info
 
   def test_sync_model(self, concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB],
                       mocker: MockerFixture) -> None:

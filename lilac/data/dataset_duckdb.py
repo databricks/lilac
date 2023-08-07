@@ -18,7 +18,6 @@ from typing_extensions import override
 
 from ..auth import UserInfo
 from ..batch_utils import deep_flatten, deep_unflatten
-from ..concepts.concept import ConceptColumnInfo
 from ..config import data_path, env
 from ..embeddings.vector_store import VectorDBIndex, VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
@@ -267,8 +266,7 @@ class DatasetDuckDB(Dataset):
     """Count the number of rows."""
     raise NotImplementedError('count is not yet implemented for DuckDB.')
 
-  @override
-  def get_vector_db_index(self, embedding: str, path: PathTuple) -> VectorDBIndex:
+  def _get_vector_db_index(self, embedding: str, path: PathTuple) -> VectorDBIndex:
     # Refresh the manifest to make sure we have the latest signal manifests.
     self.manifest()
     index_key = (path, embedding)
@@ -312,11 +310,6 @@ class DatasetDuckDB(Dataset):
 
     # The manifest may have changed after computing the dependencies.
     manifest = self.manifest()
-
-    if isinstance(signal, ConceptScoreSignal):
-      # Set dataset information on the signal.
-      signal.set_column_info(
-        ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=source_path))
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
     select_rows_result = self.select_rows([signal_col],
@@ -770,13 +763,8 @@ class DatasetDuckDB(Dataset):
     cols.extend([search_udf.udf for search_udf in search_udfs])
     udf_columns = [col for col in cols if col.signal_udf]
 
-    # Set dataset information on any concept signals.
+    # Set extra information on any concept signals.
     for udf_col in udf_columns:
-      if isinstance(udf_col.signal_udf, ConceptScoreSignal):
-        # Set dataset information on the signal.
-        udf_col.signal_udf.set_column_info(
-          ConceptColumnInfo(namespace=self.namespace, name=self.dataset_name, path=udf_col.path))
-
       if isinstance(udf_col.signal_udf, (ConceptScoreSignal, ConceptLabelsSignal)):
         # Concept are access controlled so we tell it about the user.
         udf_col.signal_udf.set_user(user)
@@ -824,7 +812,7 @@ class DatasetDuckDB(Dataset):
       else:
         topk_signal = cast(VectorSignal, topk_udf_col.signal_udf)
         # The input is an embedding.
-        vector_index = self.get_vector_db_index(topk_signal.embedding, topk_udf_col.path)
+        vector_index = self._get_vector_db_index(topk_signal.embedding, topk_udf_col.path)
         k = (limit or 0) + (offset or 0)
         topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
         topk_uuids = list(dict.fromkeys([cast(str, path_key[0]) for path_key, _ in topk]))
@@ -950,7 +938,7 @@ class DatasetDuckDB(Dataset):
 
         if isinstance(signal, VectorSignal):
           embedding_signal = signal
-          vector_store = self.get_vector_db_index(embedding_signal.embedding, udf_col.path)
+          vector_store = self._get_vector_db_index(embedding_signal.embedding, udf_col.path)
           flat_keys = list(flatten_keys(df[UUID_COLUMN], input))
           signal_out = sparse_to_dense_compute(
             iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store))

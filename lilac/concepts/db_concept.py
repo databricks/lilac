@@ -10,7 +10,6 @@ import shutil
 
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
-from pathlib import Path
 from typing import Any, List, Optional, Union, cast
 
 from pydantic import BaseModel
@@ -18,21 +17,12 @@ from typing_extensions import override
 
 from ..auth import ConceptAuthorizationException, UserInfo
 from ..config import data_path, env
-from ..schema import PATH_WILDCARD, SignalInputType, normalize_path
+from ..schema import SignalInputType
 from ..signals.signal import get_signal_cls
-from ..utils import DATASETS_DIR_NAME, delete_file, file_exists, get_dataset_output_dir, open_file
-from .concept import (
-  DRAFT_MAIN,
-  Concept,
-  ConceptColumnInfo,
-  ConceptModel,
-  DraftId,
-  Example,
-  ExampleIn,
-)
+from ..utils import delete_file, file_exists, open_file
+from .concept import DRAFT_MAIN, Concept, ConceptModel, DraftId, Example, ExampleIn
 
 CONCEPTS_DIR = 'concept'
-DATASET_CONCEPTS_DIR = '.concepts'
 CONCEPT_JSON_FILENAME = 'concept.json'
 
 
@@ -154,7 +144,6 @@ class ConceptModelDB(abc.ABC):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             column_info: Optional[ConceptColumnInfo] = None,
              user: Optional[UserInfo] = None) -> ConceptModel:
     """Create the concept model."""
     pass
@@ -164,7 +153,6 @@ class ConceptModelDB(abc.ABC):
           namespace: str,
           concept_name: str,
           embedding_name: str,
-          column_info: Optional[ConceptColumnInfo] = None,
           user: Optional[UserInfo] = None) -> Optional[ConceptModel]:
     """Get the model associated with the provided concept the embedding.
 
@@ -195,27 +183,13 @@ class ConceptModelDB(abc.ABC):
     return model_updated
 
   @abc.abstractmethod
-  def remove(self,
-             namespace: str,
-             concept_name: str,
-             embedding_name: str,
-             column_info: Optional[ConceptColumnInfo] = None) -> None:
+  def remove(self, namespace: str, concept_name: str, embedding_name: str) -> None:
     """Remove the model of a concept."""
-    pass
-
-  @abc.abstractmethod
-  def remove_all(self, namespace: str, concept_name: str) -> None:
-    """Remove all the models associated with a concept."""
     pass
 
   @abc.abstractmethod
   def get_models(self, namespace: str, concept_name: str) -> list[ConceptModel]:
     """List all the models associated with a concept."""
-    pass
-
-  @abc.abstractmethod
-  def get_column_infos(self, namespace: str, concept_name: str) -> list[ConceptColumnInfo]:
-    """Get the dataset columns where this concept was applied to."""
     pass
 
 
@@ -236,27 +210,21 @@ class DiskConceptModelDB(ConceptModelDB):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             column_info: Optional[ConceptColumnInfo] = None,
              user: Optional[UserInfo] = None) -> ConceptModel:
-    if self.get(namespace, concept_name, embedding_name, column_info, user=user):
+    if self.get(namespace, concept_name, embedding_name, user=user):
       raise ValueError('Concept model already exists.')
     concept = self._concept_db.get(namespace, concept_name, user=user)
     if not concept:
       raise ValueError(f'Concept "{namespace}/{concept_name}" does not exist.')
 
     return ConceptModel(
-      namespace=namespace,
-      concept_name=concept_name,
-      embedding_name=embedding_name,
-      version=-1,
-      column_info=column_info)
+      namespace=namespace, concept_name=concept_name, embedding_name=embedding_name, version=-1)
 
   @override
   def get(self,
           namespace: str,
           concept_name: str,
           embedding_name: str,
-          column_info: Optional[ConceptColumnInfo] = None,
           user: Optional[UserInfo] = None) -> Optional[ConceptModel]:
     # Make sure the concept exists.
     concept = self._concept_db.get(namespace, concept_name, user=user)
@@ -268,7 +236,7 @@ class DiskConceptModelDB(ConceptModelDB):
       raise ValueError(f'Embedding signal "{embedding_name}" not found in the registry.')
 
     concept_model_path = _concept_model_path(self._get_base_dir(), namespace, concept_name,
-                                             embedding_name, column_info)
+                                             embedding_name)
     if not file_exists(concept_model_path):
       return None
 
@@ -278,8 +246,7 @@ class DiskConceptModelDB(ConceptModelDB):
   def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
     concept_model_path = _concept_model_path(self._get_base_dir(), model.namespace,
-                                             model.concept_name, model.embedding_name,
-                                             model.column_info)
+                                             model.concept_name, model.embedding_name)
     with open_file(concept_model_path, 'wb') as f:
       pickle.dump(model, f)
 
@@ -288,28 +255,14 @@ class DiskConceptModelDB(ConceptModelDB):
              namespace: str,
              concept_name: str,
              embedding_name: str,
-             column_info: Optional[ConceptColumnInfo] = None,
              user: Optional[UserInfo] = None) -> None:
     concept_model_path = _concept_model_path(self._get_base_dir(), namespace, concept_name,
-                                             embedding_name, column_info)
+                                             embedding_name)
 
     if not file_exists(concept_model_path):
       raise ValueError(f'Concept model {namespace}/{concept_name}/{embedding_name} does not exist.')
 
     delete_file(concept_model_path)
-
-  @override
-  def remove_all(self, namespace: str, concept_name: str, user: Optional[UserInfo] = None) -> None:
-    datasets_path = os.path.join(self._get_base_dir(), DATASETS_DIR_NAME)
-    # Skip if 'datasets' doesn't exist.
-    if not os.path.isdir(datasets_path):
-      return
-
-    dirs = glob.iglob(
-      os.path.join(datasets_path, '**', DATASET_CONCEPTS_DIR, namespace, concept_name),
-      recursive=True)
-    for dir in dirs:
-      shutil.rmtree(dir, ignore_errors=True)
 
   @override
   def get_models(self,
@@ -327,24 +280,6 @@ class DiskConceptModelDB(ConceptModelDB):
         models.append(model)
     return models
 
-  @override
-  def get_column_infos(self, namespace: str, concept_name: str) -> list[ConceptColumnInfo]:
-    datasets_path = os.path.join(self._get_base_dir(), DATASETS_DIR_NAME)
-    # Skip if 'datasets' doesn't exist.
-    if not os.path.isdir(datasets_path):
-      return []
-
-    dirs = glob.iglob(
-      os.path.join(datasets_path, '**', DATASET_CONCEPTS_DIR, namespace, concept_name, '*.pkl'),
-      recursive=True)
-    result: list[ConceptColumnInfo] = []
-    for dir in dirs:
-      dir = os.path.relpath(dir, datasets_path)
-      dataset_namespace, dataset_name, *path, _, _, _, _ = Path(dir).parts
-      result.append(
-        ConceptColumnInfo(namespace=dataset_namespace, name=dataset_name, path=tuple(path)))
-    return result
-
 
 def get_concept_output_dir(base_dir: str, namespace: str, name: str) -> str:
   """Return the output directory for a given concept."""
@@ -355,21 +290,11 @@ def _concept_json_path(base_dir: str, namespace: str, name: str) -> str:
   return os.path.join(get_concept_output_dir(base_dir, namespace, name), CONCEPT_JSON_FILENAME)
 
 
-def _concept_model_path(base_dir: str,
-                        namespace: str,
-                        concept_name: str,
-                        embedding_name: str,
-                        column_info: Optional[ConceptColumnInfo] = None) -> str:
-  if not column_info:
-    return os.path.join(
-      get_concept_output_dir(base_dir, namespace, concept_name), f'{embedding_name}.pkl')
+def _concept_model_path(base_dir: str, namespace: str, concept_name: str,
+                        embedding_name: str) -> str:
 
-  dataset_dir = get_dataset_output_dir(base_dir, column_info.namespace, column_info.name)
-  path_tuple = normalize_path(column_info.path)
-  path_without_wildcards = (p for p in path_tuple if p != PATH_WILDCARD)
-  path_dir = os.path.join(dataset_dir, *path_without_wildcards)
-  return os.path.join(path_dir, DATASET_CONCEPTS_DIR, namespace, concept_name,
-                      f'{embedding_name}-neg-{column_info.num_negative_examples}.pkl')
+  return os.path.join(
+    get_concept_output_dir(base_dir, namespace, concept_name), f'{embedding_name}.pkl')
 
 
 class DiskConceptDB(ConceptDB):

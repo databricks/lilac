@@ -12,7 +12,6 @@ from pydantic import Field as PydanticField
 from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
 
 from ..auth import UserInfo
-from ..embeddings.vector_store import VectorDBIndex
 from ..schema import VALUE_KEY, Bin, DataType, Path, PathTuple, Schema, normalize_path
 from ..signals.signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
 from ..tasks import TaskStepId
@@ -280,11 +279,6 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def update_settings(self, settings: DatasetSettings) -> None:
     """Update the settings for the dataset."""
-    pass
-
-  @abc.abstractmethod
-  def get_vector_db_index(self, embedding: str, path: PathTuple) -> VectorDBIndex:
-    """Get the vector index for a path and an embedding."""
     pass
 
   @abc.abstractmethod

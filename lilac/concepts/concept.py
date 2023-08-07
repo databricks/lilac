@@ -1,6 +1,5 @@
 """Defines the concept and the concept models."""
 import dataclasses
-import random
 from enum import Enum
 from typing import Callable, Literal, Optional, Union
 
@@ -14,17 +13,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_recall_curve, roc_auc_score
 from sklearn.model_selection import KFold
 
-from ..db_manager import get_dataset
 from ..embeddings.embedding import get_embed_fn
-from ..schema import EMBEDDING_KEY, Path, SignalInputType, normalize_path
+from ..schema import SignalInputType
 from ..signals.signal import TextEmbeddingSignal, get_signal_cls
 from ..utils import DebugTimer
 
 LOCAL_CONCEPT_NAMESPACE = 'local'
-
-# Number of randomly sampled negative examples to use for training. This is used to obtain a more
-# balanced model that works with a specific dataset.
-DEFAULT_NUM_NEG_EXAMPLES = 100
 
 # The maximum number of cross-validation models to train.
 MAX_NUM_CROSS_VAL_MODELS = 15
@@ -32,25 +26,6 @@ MAX_NUM_CROSS_VAL_MODELS = 15
 # β = 0.5 means we value precision 2x as much as recall.
 # β = 2 means we value recall 2x as much as precision.
 F_BETA_WEIGHT = 0.5
-
-
-class ConceptColumnInfo(BaseModel):
-  """Information about a dataset associated with a concept."""
-  # Namespace of the dataset.
-  namespace: str
-  # Name of the dataset.
-  name: str
-  # Path holding the text to use for negative examples.
-  path: Path
-
-  @validator('path')
-  def _path_points_to_text_field(cls, path: Path) -> Path:
-    if path[-1] == EMBEDDING_KEY:
-      raise ValueError(
-        f'The path should point to the text field, not its embedding field. Provided path: {path}')
-    return path
-
-  num_negative_examples = DEFAULT_NUM_NEG_EXAMPLES
 
 
 class ExampleOrigin(BaseModel):
@@ -294,8 +269,6 @@ class ConceptModel:
 
   batch_size = 4096
 
-  column_info: Optional[ConceptColumnInfo] = None
-
   # The following fields are excluded from JSON serialization, but still pickle-able.
   # Maps a concept id to the embeddings.
   _embeddings: dict[str, np.ndarray] = dataclasses.field(default_factory=dict)
@@ -305,21 +278,6 @@ class ConceptModel:
   def get_metrics(self, concept: Concept) -> Optional[ConceptMetrics]:
     """Return the metrics for this model."""
     return self._get_logistic_model(DRAFT_MAIN)._metrics
-
-  def __post_init__(self) -> None:
-    if self.column_info:
-      self.column_info.path = normalize_path(self.column_info.path)
-      self._calibrate_on_dataset(self.column_info)
-
-  def _calibrate_on_dataset(self, column_info: ConceptColumnInfo) -> None:
-    """Calibrate the model on the embeddings in the provided vector store."""
-    db = get_dataset(column_info.namespace, column_info.name)
-    vector_index = db.get_vector_db_index(self.embedding_name, normalize_path(column_info.path))
-    vector_store = vector_index.get_vector_store()
-    keys = vector_store.keys()
-    num_samples = min(column_info.num_negative_examples, len(keys))
-    sample_keys = random.sample(keys, num_samples)
-    self._negative_vectors = vector_store.get(sample_keys)
 
   def score_embeddings(self, draft: DraftId, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""

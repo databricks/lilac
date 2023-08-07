@@ -8,14 +8,7 @@ from openai_function_call import OpenAISchema
 from pydantic import BaseModel, Field
 
 from .auth import UserInfo, get_session_user
-from .concepts.concept import (
-  DRAFT_MAIN,
-  Concept,
-  ConceptColumnInfo,
-  ConceptMetrics,
-  DraftId,
-  draft_examples,
-)
+from .concepts.concept import DRAFT_MAIN, Concept, ConceptMetrics, DraftId, draft_examples
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
 from .config import env
 from .router_utils import RouteErrorHandler, server_compute_concept
@@ -48,18 +41,6 @@ def get_concept(namespace: str,
   concept.data = draft_examples(concept, draft or DRAFT_MAIN)
 
   return concept
-
-
-@router.get('/{namespace}/{concept_name}/column_infos')
-def get_concept_column_infos(
-    namespace: str, concept_name: str,
-    user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> list[ConceptColumnInfo]:
-  """Return a list of dataset columns where this concept was applied to."""
-  concept = DISK_CONCEPT_DB.get(namespace, concept_name, user)
-  if not concept:
-    raise HTTPException(
-      status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found.')
-  return DISK_CONCEPT_MODEL_DB.get_column_infos(namespace, concept_name)
 
 
 class CreateConceptOptions(BaseModel):
@@ -95,8 +76,6 @@ def delete_concept(namespace: str, concept_name: str,
                                    Depends(get_session_user)]) -> None:
   """Deletes the concept from the database."""
   DISK_CONCEPT_DB.remove(namespace, concept_name, user)
-  # Delete concept models from all datasets that are using this concept.
-  DISK_CONCEPT_MODEL_DB.remove_all(namespace, concept_name)
 
 
 class MergeConceptDraftOptions(BaseModel):
@@ -130,7 +109,6 @@ class ConceptModelInfo(BaseModel):
   concept_name: str
   embedding_name: str
   version: int
-  column_info: Optional[ConceptColumnInfo] = None
   metrics: Optional[ConceptMetrics] = None
 
 
@@ -156,7 +134,6 @@ def get_concept_models(
       concept_name=m.concept_name,
       embedding_name=m.embedding_name,
       version=m.version,
-      column_info=m.column_info,
       metrics=m.get_metrics(concept)) for m in models
   ]
 
@@ -182,14 +159,8 @@ def get_concept_model(
     concept_name=model.concept_name,
     embedding_name=model.embedding_name,
     version=model.version,
-    column_info=model.column_info,
     metrics=model.get_metrics(concept))
   return model_info
-
-
-class MetricsBody(BaseModel):
-  """Request body for the compute_metrics endpoint."""
-  column_info: Optional[ConceptColumnInfo] = None
 
 
 @router.post(
