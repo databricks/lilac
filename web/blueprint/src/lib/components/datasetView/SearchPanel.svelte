@@ -167,18 +167,20 @@
     if (e.detail.selectedId === 'new-concept') {
       if (searchText === newConceptItem.id) searchText = '';
       const conceptSplit = searchText.split('/', 2);
-      let namespace = '';
+      let conceptNamespace = '';
       let conceptName = '';
       if (conceptSplit.length === 2) {
-        [namespace, conceptName] = conceptSplit;
+        [conceptNamespace, conceptName] = conceptSplit;
       } else {
         [conceptName] = conceptSplit;
       }
 
       triggerCommand({
         command: Command.CreateConcept,
-        namespace,
+        namespace: conceptNamespace,
         conceptName,
+        dataset: {namespace, name: datasetName},
+        path: searchPath,
         onCreate: e => searchConcept(e.detail.namespace, e.detail.name)
       });
       conceptComboBox.clear();

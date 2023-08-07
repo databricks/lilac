@@ -57,6 +57,8 @@
     command: Command.CreateConcept;
     namespace?: string;
     conceptName?: string;
+    dataset?: {namespace: string; name: string};
+    path?: string[];
     onCreate?: (e: {detail: {namespace: string; name: string}}) => unknown;
   };
 

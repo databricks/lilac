@@ -106,7 +106,7 @@
     </div>
   </div>
   <div class:border-t={previewText != null} class="mt-4 border-gray-200">
-    {#if $conceptScore?.isFetching}
+    {#if conceptScore && $conceptScore?.isFetching}
       <SkeletonText />
     {:else if previewResultItem != null && previewText != null}
       <StringSpanHighlight
