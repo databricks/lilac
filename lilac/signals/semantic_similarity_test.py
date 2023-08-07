@@ -8,7 +8,7 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..data.dataset_test_utils import make_vector_index
-from ..embeddings.vector_store import VectorStore
+from ..embeddings.vector_store import VectorStore, register_vector_store
 from ..schema import Item, RichData, VectorKey, lilac_embedding, lilac_span
 from .semantic_similarity import SemanticSimilaritySignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
@@ -28,6 +28,16 @@ STR_EMBEDDINGS: dict[str, list[float]] = {
 
 class TestVectorStore(VectorStore):
   """A test vector store with fixed embeddings."""
+
+  name = 'test_vector_store'
+
+  @override
+  def load(self, base_path: str) -> None:
+    raise NotImplementedError
+
+  @override
+  def save(self, base_path: str) -> None:
+    raise NotImplementedError
 
   @override
   def keys(self) -> list[VectorKey]:
@@ -59,6 +69,7 @@ class TestEmbedding(TextEmbeddingSignal):
 def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(TestEmbedding)
+  register_vector_store(TestVectorStore)
 
   # Unit test runs.
   yield
@@ -68,7 +79,7 @@ def setup_teardown() -> Iterable[None]:
 
 
 def test_semantic_similarity_compute_keys(mocker: MockerFixture) -> None:
-  vector_index = make_vector_index(TestVectorStore, EMBEDDINGS)
+  vector_index = make_vector_index('test_vector_store', EMBEDDINGS)
 
   embed_mock = mocker.spy(TestEmbedding, 'compute')
 

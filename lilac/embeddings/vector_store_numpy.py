@@ -9,43 +9,53 @@ from typing_extensions import override
 from ..schema import VectorKey
 from .vector_store import VectorStore
 
+_EMBEDDINGS_SUFFIX = '.matrix.npy'
+_LOOKUP_SUFFIX = '.lookup.pkl'
+
 
 class NumpyVectorStore(VectorStore):
   """Stores vectors as in-memory np arrays."""
-  _embeddings: np.ndarray
-  _keys: list[VectorKey]
-  # Maps a `VectorKey` to a row index in `_embeddings`.
-  _lookup: pd.Series
+  name = 'numpy'
+
+  def __init__(self) -> None:
+    self._embeddings: Optional[np.ndarray] = None
+    # Maps a `VectorKey` to a row index in `_embeddings`.
+    self._key_to_index: Optional[pd.Series] = None
+
+  @override
+  def save(self, base_path: str) -> None:
+    assert self._embeddings is not None and self._key_to_index is not None, (
+      'The vector store has no embeddings. Call load() or add() first.')
+    np.save(base_path + _EMBEDDINGS_SUFFIX, self._embeddings, allow_pickle=False)
+    self._key_to_index.to_pickle(base_path + _LOOKUP_SUFFIX)
+
+  @override
+  def load(self, base_path: str) -> None:
+    self._embeddings = np.load(base_path + _EMBEDDINGS_SUFFIX, allow_pickle=False)
+    self._key_to_index = pd.read_pickle(base_path + _LOOKUP_SUFFIX)
 
   @override
   def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
-    if hasattr(self, '_embeddings') or hasattr(self, '_keys'):
+    if self._embeddings or self._key_to_index:
       raise ValueError('Embeddings already exist in this store. Upsert is not yet supported.')
 
     if len(keys) != embeddings.shape[0]:
       raise ValueError(
         f'Length of keys ({len(keys)}) does not match number of embeddings {embeddings.shape[0]}.')
 
-    self._keys = keys
     # Cast to float32 since dot product with float32 is 40-50x faster than float16 and 2.5x faster
     # than float64.
     self._embeddings = embeddings.astype(np.float32)
-    row_indices = np.arange(len(self._embeddings), dtype=np.uint32)
-    self._lookup = pd.Series(row_indices, index=keys)
+    row_indices = np.arange(len(embeddings), dtype=np.uint32)
+    self._key_to_index = pd.Series(row_indices, index=keys, dtype=np.uint32)
 
   @override
   def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:
-    """Return the embeddings for given keys.
-
-    Args:
-      keys: The keys to return the embeddings for.
-
-    Returns
-      The embeddings for the given keys.
-    """
+    assert self._embeddings is not None and self._key_to_index is not None, (
+      'The vector store has no embeddings. Call load() or add() first.')
     if not keys:
       return self._embeddings
-    locs = self._lookup.loc[cast(list[str], keys)]
+    locs = self._key_to_index.loc[cast(list[str], keys)]
     return self._embeddings.take(locs, axis=0)
 
   @override
@@ -53,12 +63,14 @@ class NumpyVectorStore(VectorStore):
            query: np.ndarray,
            k: int,
            keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
+    assert self._embeddings is not None and self._key_to_index is not None, (
+      'The vector store has no embeddings. Call load() or add() first.')
     if keys is not None:
-      # This uses the hierarchical index (MutliIndex) to do a prefix lookup.
-      row_indices = self._lookup.loc[cast(list[str], keys)]
-      keys, embeddings = list(row_indices.index), self._embeddings.take(row_indices, axis=0)
+      row_indices = self._key_to_index.loc[cast(list[str], keys)]
+      embeddings = self._embeddings.take(row_indices, axis=0)
+      keys = list(keys)
     else:
-      keys, embeddings = self._keys, self._embeddings
+      keys, embeddings = cast(list[VectorKey], self._key_to_index.index.tolist()), self._embeddings
 
     query = query.astype(embeddings.dtype)
     similarities: np.ndarray = np.dot(embeddings, query).reshape(-1)

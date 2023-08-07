@@ -1,14 +1,16 @@
 """Tests the vector store interface."""
 
-from typing import Type
+from typing import Type, cast
 
 import numpy as np
 import pytest
+from sklearn.preprocessing import normalize
 
 from .vector_store import VectorStore
+from .vector_store_hnsw import HNSWVectorStore
 from .vector_store_numpy import NumpyVectorStore
 
-ALL_STORES = [NumpyVectorStore]
+ALL_STORES = [NumpyVectorStore, HNSWVectorStore]
 
 
 @pytest.mark.parametrize('store_cls', ALL_STORES)
@@ -31,13 +33,14 @@ class VectorStoreSuite:
 
   def test_topk(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()
-    embedding = np.array([[0.45, 0.89], [0.6, 0.8], [0.64, 0.77]])
-    query = np.array([0.89, 0.45])
+    embedding = cast(np.ndarray, normalize(np.array([[1, 0], [0, 1], [1, 1]])))
+    query = np.array([0.9, 1])
+    query /= np.linalg.norm(query)
     topk = 3
     store.add([('a',), ('b',), ('c',)], embedding)
     result = store.topk(query, topk)
     assert [key for key, _ in result] == [('c',), ('b',), ('a',)]
-    assert [score for _, score in result] == pytest.approx([0.9161, 0.894, 0.801], 1e-3)
+    assert [score for _, score in result] == pytest.approx([0.999, 0.743, 0.669], abs=1e-3)
 
   def test_topk_with_restricted_keys(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()

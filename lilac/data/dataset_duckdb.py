@@ -1,5 +1,6 @@
 """The DuckDB implementation of the dataset database."""
 import functools
+import gc
 import glob
 import math
 import os
@@ -7,7 +8,7 @@ import pathlib
 import re
 import shutil
 import threading
-from typing import Any, Iterable, Iterator, Optional, Sequence, Type, Union, cast
+from typing import Any, Iterable, Iterator, Optional, Sequence, Union, cast
 
 import duckdb
 import numpy as np
@@ -19,8 +20,7 @@ from typing_extensions import override
 from ..auth import UserInfo
 from ..batch_utils import deep_flatten, deep_unflatten
 from ..config import data_path, env
-from ..embeddings.vector_store import VectorDBIndex, VectorStore
-from ..embeddings.vector_store_numpy import NumpyVectorStore
+from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   MANIFEST_FILENAME,
   PATH_WILDCARD,
@@ -93,7 +93,6 @@ from .dataset_utils import (
   create_signal_schema,
   flatten_keys,
   merge_schemas,
-  read_embeddings_from_disk,
   schema_contains_path,
   sparse_to_dense_compute,
   wrap_in_dicts,
@@ -139,10 +138,7 @@ class DuckDBSearchUDFs(BaseModel):
 class DatasetDuckDB(Dataset):
   """The DuckDB implementation of the dataset database."""
 
-  def __init__(self,
-               namespace: str,
-               dataset_name: str,
-               vector_store_cls: Type[VectorStore] = NumpyVectorStore):
+  def __init__(self, namespace: str, dataset_name: str, vector_store: str = 'hnsw'):
     super().__init__(namespace, dataset_name)
 
     self.dataset_path = get_dataset_output_dir(data_path(), namespace, dataset_name)
@@ -154,7 +150,7 @@ class DatasetDuckDB(Dataset):
 
     # Maps a path and embedding to the vector index. This is lazily generated as needed.
     self._vector_indices: dict[tuple[PathKey, str], VectorDBIndex] = {}
-    self.vector_store_cls = vector_store_cls
+    self.vector_store = vector_store
     self._manifest_lock = threading.Lock()
 
     # Calling settings creates the default settings JSON file if it doesn't exist.
@@ -274,22 +270,24 @@ class DatasetDuckDB(Dataset):
       return self._vector_indices[index_key]
 
     manifests = [
-      m for m in self._signal_manifests if schema_contains_path(m.data_schema, path) and
-      m.embedding_filename_prefix and m.signal.name == embedding
+      m for m in self._signal_manifests
+      if schema_contains_path(m.data_schema, path) and m.vector_store and m.signal.name == embedding
     ]
     if not manifests:
       raise ValueError(f'No embedding found for path {path}.')
     if len(manifests) > 1:
       raise ValueError(f'Multiple embeddings found for path {path}. Got: {manifests}')
     manifest = manifests[0]
-    if not manifest.embedding_filename_prefix:
+    if not manifest.vector_store:
       raise ValueError(f'Signal manifest for path {path} is not an embedding. '
                        f'Got signal manifest: {manifest}')
 
-    filepath_prefix = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
-                                   manifest.signal.name, manifest.embedding_filename_prefix)
-    spans, embeddings = read_embeddings_from_disk(filepath_prefix)
-    vector_index = VectorDBIndex(self.vector_store_cls, spans, embeddings)
+    base_path = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
+                             manifest.signal.name)
+    with DebugTimer(f'Loading vector store "{manifest.vector_store}" for "{path}"'
+                    f' with embedding "{embedding}"'):
+      vector_index = VectorDBIndex(manifest.vector_store)
+      vector_index.load(base_path)
     # Cache the vector index.
     self._vector_indices[index_key] = vector_index
     return vector_index
@@ -369,13 +367,15 @@ class DatasetDuckDB(Dataset):
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
-    embedding_filename_prefix = os.path.basename(
-      write_embeddings_to_disk(
-        uuids=df[UUID_COLUMN],
-        signal_items=values,
-        output_dir=output_dir,
-        shard_index=0,
-        num_shards=1))
+
+    write_embeddings_to_disk(
+      vector_store=self.vector_store,
+      uuids=df[UUID_COLUMN],
+      signal_items=values,
+      output_dir=output_dir)
+
+    del select_rows_result, df, values
+    gc.collect()
 
     signal_manifest = SignalManifest(
       files=[],
@@ -383,7 +383,7 @@ class DatasetDuckDB(Dataset):
       signal=signal,
       enriched_path=source_path,
       parquet_id=make_parquet_id(signal, source_path, is_computed_signal=True),
-      embedding_filename_prefix=embedding_filename_prefix)
+      vector_store=self.vector_store)
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
 
     with open_file(signal_manifest_filepath, 'w') as f:
@@ -814,8 +814,12 @@ class DatasetDuckDB(Dataset):
         # The input is an embedding.
         vector_index = self._get_vector_db_index(topk_signal.embedding, topk_udf_col.path)
         k = (limit or 0) + (offset or 0)
-        topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
-        topk_uuids = list(dict.fromkeys([cast(str, path_key[0]) for path_key, _ in topk]))
+        with DebugTimer(f'Compute topk on "{topk_udf_col.path}" using embedding '
+                        f'"{topk_signal.embedding}" with vector store "{self.vector_store}"'):
+          topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
+        topk_uuids = list(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk]))
+        # Update the offset to account for the number of unique UUIDs.
+        offset = len(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk[:offset]]))
 
         # Ignore all the other filters and filter DuckDB results only by the top k UUIDs.
         uuid_filter = Filter(path=(UUID_COLUMN,), op=ListOp.IN, value=topk_uuids)
@@ -1516,8 +1520,8 @@ class SignalManifest(BaseModel):
   # The column path that this signal is derived from.
   enriched_path: PathTuple
 
-  # The filename prefix for the embedding. Present when the signal is an embedding.
-  embedding_filename_prefix: Optional[str] = None
+  # The name of the vector store. Present when the signal is an embedding.
+  vector_store: Optional[str] = None
 
   @validator('signal', pre=True)
   def parse_signal(cls, signal: dict) -> Signal:

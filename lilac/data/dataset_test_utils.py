@@ -7,7 +7,7 @@ from typing import Optional, Type, cast
 import numpy as np
 from typing_extensions import Protocol
 
-from ..embeddings.vector_store import VectorDBIndex, VectorStore
+from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   MANIFEST_FILENAME,
   PARQUET_FILENAME_PREFIX,
@@ -110,8 +110,8 @@ def enriched_item(value: Optional[Item] = None, metadata: dict[str, Item] = {}) 
   return {VALUE_KEY: value, **metadata}
 
 
-def make_vector_index(vector_store_cls: Type[VectorStore],
-                      vector_dict: dict[PathKey, list[list[float]]]) -> VectorDBIndex:
+def make_vector_index(vector_store: str, vector_dict: dict[PathKey,
+                                                           list[list[float]]]) -> VectorDBIndex:
   """Make a vector index from a dictionary of vector keys to vectors."""
   embeddings: list[np.ndarray] = []
   spans: list[tuple[PathKey, list[tuple[int, int]]]] = []
@@ -122,4 +122,6 @@ def make_vector_index(vector_store_cls: Type[VectorStore],
       vector_spans.append((0, 0))
     spans.append((path_key, vector_spans))
 
-  return VectorDBIndex(vector_store_cls, spans, np.array(embeddings))
+  vector_index = VectorDBIndex(vector_store)
+  vector_index.add(spans, np.array(embeddings))
+  return vector_index

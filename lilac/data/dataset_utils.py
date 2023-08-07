@@ -1,9 +1,9 @@
 """Utilities for working with datasets."""
 
+import gc
 import json
 import math
 import os
-import pickle
 import pprint
 import secrets
 from collections.abc import Iterable
@@ -14,6 +14,7 @@ import pyarrow as pa
 
 from ..batch_utils import deep_flatten
 from ..config import env
+from ..embeddings.vector_store import VectorDBIndex
 from ..parquet_writer import ParquetWriter
 from ..schema import (
   EMBEDDING_KEY,
@@ -33,10 +34,7 @@ from ..schema import (
   schema_to_arrow_schema,
 )
 from ..signals.signal import Signal
-from ..utils import file_exists, is_primitive, log, open_file
-
-_SPANS_SUFFIX = '.spans.pkl'
-_EMBEDDINGS_SUFFIX = '.npy'
+from ..utils import is_primitive, log, open_file
 
 
 def _replace_embeddings_with_none(input: Union[Item, Item]) -> Union[Item, Item]:
@@ -158,12 +156,10 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   return schema({UUID_COLUMN: 'string', **cast(dict, enriched_schema.fields)})
 
 
-def write_embeddings_to_disk(uuids: Iterable[str], signal_items: Iterable[Item], output_dir: str,
-                             shard_index: int, num_shards: int) -> str:
+def write_embeddings_to_disk(vector_store: str, uuids: Iterable[str], signal_items: Iterable[Item],
+                             output_dir: str) -> None:
   """Write a set of embeddings to disk."""
-  output_path_prefix = embedding_index_filename_prefix(output_dir, shard_index, num_shards)
 
-  # For each item, we have a list of embedding spans.
   def embedding_predicate(input: Any) -> bool:
     return (isinstance(input, list) and len(input) > 0 and isinstance(input[0], dict) and
             EMBEDDING_KEY in input[0])
@@ -187,29 +183,17 @@ def write_embeddings_to_disk(uuids: Iterable[str], signal_items: Iterable[Item],
       embedding_vectors.append(vector.reshape(-1))
       spans.append((span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]))
     all_spans.append((path_key, spans))
-
   embedding_matrix = np.array(embedding_vectors)
-  # Write the embedding index and the ordered UUID column to disk so they can be joined later.
+  del path_keys, all_embeddings, embedding_vectors
+  gc.collect()
 
-  with open_file(output_path_prefix + _EMBEDDINGS_SUFFIX, 'wb') as f:
-    np.save(cast(str, f), embedding_matrix, allow_pickle=False)
-  with open_file(output_path_prefix + _SPANS_SUFFIX, 'wb') as f:
-    pickle.dump(all_spans, f)
+  # Write to disk.
+  vector_index = VectorDBIndex(vector_store)
+  vector_index.add(all_spans, embedding_matrix)
+  vector_index.save(output_dir)
 
-  return output_path_prefix
-
-
-def read_embeddings_from_disk(
-    filepath_prefix: str) -> tuple[list[tuple[PathKey, list[tuple[int, int]]]], np.ndarray]:
-  """Reads the embeddings from disk."""
-  if not file_exists(filepath_prefix + _EMBEDDINGS_SUFFIX):
-    raise ValueError(F'Embedding index does not exist at path {filepath_prefix}. '
-                     'Please run dataset.compute_signal() on the embedding signal first.')
-  # Read the embedding index from disk.
-  embeddings = np.load(filepath_prefix + _EMBEDDINGS_SUFFIX, allow_pickle=False)
-  with open_file(filepath_prefix + _SPANS_SUFFIX, 'rb') as f:
-    spans: list[tuple[PathKey, list[tuple[int, int]]]] = pickle.load(f)
-  return spans, embeddings
+  del vector_index
+  gc.collect()
 
 
 def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schema,
@@ -280,12 +264,6 @@ def flatten_keys(
       yield None
       continue
     yield from _flatten_keys(uuid, input, [], is_primitive_predicate)
-
-
-def embedding_index_filename_prefix(output_dir: str, shard_index: int, num_shards: int) -> str:
-  """Return the filename prefix for the embedding index."""
-  npy_filename = f'embeddings-{shard_index:05d}-of-{num_shards:05d}'
-  return os.path.join(output_dir, npy_filename)
 
 
 Tin = TypeVar('Tin')
