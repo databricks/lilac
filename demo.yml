@@ -1,0 +1,27 @@
+signals:
+  - signal_name: pii
+  - signal_name: text_statistics
+  - signal_name: spacy_ner
+  - signal_name: near_dup
+  - signal_name: lang_detection
+    split_by_paragraph: true
+datasets:
+  - name: imdb
+    namespace: local
+    settings:
+      ui:
+        media_paths: ['text']
+        preferred_embedding: 'gte-small'
+    source:
+      source_name: huggingface
+      dataset_name: imdb
+
+  - name: open-asssistant-conversations
+    namespace: local
+    settings:
+      ui:
+        media_paths: ['text']
+        preferred_embedding: 'gte-small'
+    source:
+      source_name: huggingface
+      dataset_name: OpenAssistant/oasst1

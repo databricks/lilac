@@ -3,7 +3,7 @@ import os
 
 import duckdb
 
-from ..config import data_path, env
+from ..env import data_path, env
 
 
 def duckdb_setup(con: duckdb.DuckDBPyConnection) -> str:

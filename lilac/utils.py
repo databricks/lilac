@@ -21,7 +21,7 @@ import requests
 from google.cloud.storage import Blob, Client
 from pydantic import BaseModel
 
-from .config import data_path, env
+from .env import data_path, env
 from .schema import Path
 
 GCS_PROTOCOL = 'gs://'

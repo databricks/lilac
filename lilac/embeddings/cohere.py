@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Iterable, cast
 import numpy as np
 from typing_extensions import override
 
-from ..config import env
+from ..env import env
 from ..schema import Item, RichData
 from ..signals.signal import TextEmbeddingSignal
 from ..signals.splitters.chunk_splitter import split_text

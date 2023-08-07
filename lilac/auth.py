@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import Request
 from pydantic import BaseModel, ValidationError
 
-from .config import env
+from .env import env
 
 
 class ConceptAuthorizationException(Exception):

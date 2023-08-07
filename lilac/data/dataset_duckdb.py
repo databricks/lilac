@@ -19,9 +19,9 @@ from typing_extensions import override
 from ..auth import UserInfo
 from ..batch_utils import deep_flatten, deep_unflatten
 from ..concepts.concept import ConceptColumnInfo
-from ..config import data_path, env
 from ..embeddings.vector_store import VectorDBIndex, VectorStore
 from ..embeddings.vector_store_numpy import NumpyVectorStore
+from ..env import data_path, env
 from ..schema import (
   MANIFEST_FILENAME,
   PATH_WILDCARD,
@@ -356,9 +356,9 @@ class DatasetDuckDB(Dataset):
   @override
   def compute_embedding(self,
                         embedding: str,
-                        leaf_path: Path,
+                        path: Path,
                         task_step_id: Optional[TaskStepId] = None) -> None:
-    source_path = normalize_path(leaf_path)
+    source_path = normalize_path(path)
     manifest = self.manifest()
 
     if task_step_id is None:

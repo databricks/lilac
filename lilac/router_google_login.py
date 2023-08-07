@@ -9,7 +9,7 @@ from starlette.config import Config
 from starlette.responses import RedirectResponse
 
 from .auth import UserInfo
-from .config import env
+from .env import env
 from .router_utils import RouteErrorHandler
 
 router = APIRouter(route_class=RouteErrorHandler)

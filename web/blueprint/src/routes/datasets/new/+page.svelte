@@ -83,7 +83,7 @@
 
 <Page>
   <div class="flex h-full w-full gap-y-4 overflow-y-scroll p-4">
-    <div class="mx-auto flex h-full max-w-xl flex-col">
+    <div class="new-form mx-auto flex h-full max-w-xl flex-col">
       <h2>Add dataset</h2>
       <Form class="py-8">
         <FormGroup legendText="Name">
@@ -168,7 +168,7 @@
 </Page>
 
 <style lang="postcss">
-  :global(.bx--form-item) {
+  :global(.new-form .bx--form-item) {
     @apply mb-6;
   }
 

@@ -4,7 +4,7 @@ import functools
 import os
 from typing import TYPE_CHECKING, Optional
 
-from ..config import data_path
+from ..env import data_path
 from ..utils import log
 
 if TYPE_CHECKING:

@@ -25,7 +25,7 @@ import dask
 import psutil
 from dask import config as cfg
 from dask.distributed import Client
-from distributed import Future, get_client, get_worker
+from distributed import Future, get_client, get_worker, wait
 from pydantic import BaseModel, parse_obj_as
 from tqdm import tqdm
 
@@ -84,6 +84,7 @@ STEPS_LOG_KEY = 'steps'
 class TaskManager:
   """Manage FastAPI background tasks."""
   _tasks: dict[str, TaskInfo] = {}
+  _futures: list[Future] = []
 
   def __init__(self, dask_client: Optional[Client] = None) -> None:
     """By default, use a dask multi-processing client.
@@ -143,6 +144,10 @@ class TaskManager:
       tasks=self._tasks,
       progress=sum(tasks_with_progress) / len(tasks_with_progress) if tasks_with_progress else None)
 
+  def wait(self) -> None:
+    """Wait until all tasks are completed."""
+    wait(self._futures)
+
   def task_id(self, name: str, description: Optional[str] = None) -> TaskId:
     """Create a unique ID for a task."""
     task_id = uuid.uuid4().hex
@@ -183,7 +188,7 @@ class TaskManager:
         f'{elapsed_formatted}.')
 
   def execute(self, task_id: str, task: Task, *args: Any) -> None:
-    """Create a unique ID for a task."""
+    """Execute a task."""
     log(f'Scheduling task "{task_id}": "{self._tasks[task_id].name}".')
 
     task_info = self._tasks[task_id]
@@ -191,6 +196,8 @@ class TaskManager:
       functools.partial(_execute_task, task, task_info, task_id), *args, key=task_id)
     task_future.add_done_callback(
       lambda task_future: self._set_task_completed(task_id, task_future))
+
+    self._futures.append(task_future)
 
   async def stop(self) -> None:
     """Stop the task manager and close the dask client."""

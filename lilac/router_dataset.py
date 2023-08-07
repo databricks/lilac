@@ -8,7 +8,6 @@ from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, validator
 
 from .auth import UserInfo, get_session_user, get_user_access
-from .config import data_path
 from .data.dataset import BinaryOp
 from .data.dataset import Column as DBColumn
 from .data.dataset import DatasetManifest, DatasetSettings, FeatureListValue, FeatureValue
@@ -24,6 +23,7 @@ from .data.dataset import (
   UnaryOp,
 )
 from .db_manager import get_dataset, remove_dataset_from_cache
+from .env import data_path
 from .router_utils import RouteErrorHandler
 from .schema import Bin, Path, normalize_path
 from .signals.concept_labels import ConceptLabelsSignal

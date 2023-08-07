@@ -165,8 +165,13 @@ ColumnId = Union[Path, Column]
 
 class DatasetUISettings(BaseModel):
   """The UI persistent settings for a dataset."""
-  media_paths: set[PathTuple] = set()
-  markdown_paths: set[PathTuple] = set()
+  media_paths: list[PathTuple] = []
+  markdown_paths: list[PathTuple] = []
+
+  @validator('media_paths', pre=True)
+  def parse_media_paths(cls, media_paths: list) -> list:
+    """Parse a path, ensuring it is a tuple."""
+    return [normalize_path(path) for path in media_paths]
 
 
 class DatasetSettings(BaseModel):
@@ -302,9 +307,12 @@ class Dataset(abc.ABC):
     """
     pass
 
-  def compute_embedding(self, embedding_name: str, path: Path) -> None:
+  def compute_embedding(self,
+                        embedding: str,
+                        path: Path,
+                        task_step_id: Optional[TaskStepId] = None) -> None:
     """Compute an embedding for a given field path."""
-    signal = get_signal_by_type(embedding_name, TextEmbeddingSignal)()
+    signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
     self.compute_signal(signal, path)
 
   @abc.abstractmethod

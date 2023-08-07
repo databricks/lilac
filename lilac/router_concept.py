@@ -17,7 +17,7 @@ from .concepts.concept import (
   draft_examples,
 )
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
-from .config import env
+from .env import env
 from .router_utils import RouteErrorHandler, server_compute_concept
 from .schema import RichData, SignalInputType
 from .signals.concept_scorer import ConceptScoreSignal

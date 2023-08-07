@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Optional
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ..config import data_path
+from ..env import data_path
 from ..schema import Item, field
 from ..utils import log
 from .source import Source, SourceSchema

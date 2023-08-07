@@ -8,7 +8,7 @@ import click
 from huggingface_hub import HfApi
 
 from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
-from lilac.config import data_path, env
+from lilac.env import data_path, env
 from lilac.utils import get_dataset_output_dir
 
 HF_SPACE_DIR = os.path.join(data_path(), '.hf_spaces')

@@ -30,7 +30,7 @@ from .auth import (
   get_user_access,
 )
 from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
-from .config import data_path, env
+from .env import data_path, env
 from .router_utils import RouteErrorHandler
 from .tasks import task_manager
 from .utils import get_dataset_output_dir, list_datasets

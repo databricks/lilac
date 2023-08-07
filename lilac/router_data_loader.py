@@ -13,8 +13,8 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from .auth import get_user_access
-from .config import data_path
 from .data_loader import process_source
+from .env import data_path
 from .router_utils import RouteErrorHandler
 from .sources.source_registry import get_source_cls, registered_sources
 from .tasks import TaskId, task_manager

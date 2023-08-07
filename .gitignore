@@ -21,6 +21,7 @@ data/datasets
 data/.*
 data/concept/*
 !data/concept/lilac
+demo_data/
 
 # Ignore pickled concept models.
 data/concept/**/*.pkl

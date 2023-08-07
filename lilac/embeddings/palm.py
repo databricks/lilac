@@ -5,7 +5,7 @@ import numpy as np
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 from typing_extensions import override
 
-from ..config import env
+from ..env import env
 from ..schema import Item, RichData
 from ..signals.signal import TextEmbeddingSignal
 from ..signals.splitters.chunk_splitter import split_text

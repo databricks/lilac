@@ -147,14 +147,13 @@ Test JavaScript:
 Datasets can be ingested entirely from the UI, however if you prefer to use the CLI you can ingest data with the following command:
 
 ```sh
-poetry run python -m lilac.data_loader \
-  --dataset_name=$DATASET \
-  --output_dir=./data/ \
-  --config_path=./datasets/the_movies_dataset.json
+poetry run python -m lilac.load \
+  --output_dir=demo_data \
+  --config_path=demo.yml
 ```
 
-NOTE: You have to have a JSON file that represents your sour configuration, in this case
-"the_movies_dataset.json".
+NOTE: You must have a config JSON or YAML file that represents your dataset configuration. The config
+should be an instance of the pydantic class `lilac.Config`.
 
 ### Tips
 
