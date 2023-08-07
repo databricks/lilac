@@ -286,8 +286,10 @@ class DatasetDuckDB(Dataset):
 
     base_path = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
                              manifest.signal.name)
-    vector_index = VectorDBIndex(manifest.vector_store)
-    vector_index.load(base_path)
+    with DebugTimer(f'Loading vector store "{manifest.vector_store}" for "{path}"'
+                    f' with embedding "{embedding}"'):
+      vector_index = VectorDBIndex(manifest.vector_store)
+      vector_index.load(base_path)
     # Cache the vector index.
     self._vector_indices[index_key] = vector_index
     return vector_index
@@ -824,7 +826,9 @@ class DatasetDuckDB(Dataset):
         # The input is an embedding.
         vector_index = self.get_vector_db_index(topk_signal.embedding, topk_udf_col.path)
         k = (limit or 0) + (offset or 0)
-        topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
+        with DebugTimer(f'Compute topk on "{topk_udf_col.path}" using embedding '
+                        f'"{topk_signal.embedding}" with vector store "{self.vector_store}"'):
+          topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
         topk_uuids = list(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk]))
         # Update the offset to account for the number of unique UUIDs.
         offset = len(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk[:offset]]))

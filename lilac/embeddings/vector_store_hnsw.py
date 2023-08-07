@@ -37,11 +37,10 @@ class HNSWVectorStore(VectorStore):
   def load(self, base_path: str) -> None:
     self._lookup = pd.read_pickle(base_path + _LOOKUP_SUFFIX)
     dim = int(self._lookup.name)
-    with DebugTimer('Loading hnswlib index'):
-      index = hnswlib.Index(space='ip', dim=dim)
-      index.set_ef(10)
-      index.set_num_threads(multiprocessing.cpu_count())
-      index.load_index(base_path + _HNSW_SUFFIX)
+    index = hnswlib.Index(space='ip', dim=dim)
+    index.set_ef(10)
+    index.set_num_threads(multiprocessing.cpu_count())
+    index.load_index(base_path + _HNSW_SUFFIX)
     self._index = index
 
   @override
