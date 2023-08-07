@@ -20,29 +20,29 @@ class NumpyVectorStore(VectorStore):
   def __init__(self) -> None:
     self._embeddings: Optional[np.ndarray] = None
     # Maps a `VectorKey` to a row index in `_embeddings`.
-    self._lookup: Optional[pd.Series] = None
+    self._key_to_index: Optional[pd.Series] = None
 
   @override
   def keys(self) -> list[VectorKey]:
-    assert self._lookup is not None, (
+    assert self._key_to_index is not None, (
       'The vector store has no embeddings. Call load() or add() first.')
-    return self._lookup.index.tolist()
+    return self._key_to_index.index.tolist()
 
   @override
   def save(self, base_path: str) -> None:
-    assert self._embeddings is not None and self._lookup is not None, (
+    assert self._embeddings is not None and self._key_to_index is not None, (
       'The vector store has no embeddings. Call load() or add() first.')
     np.save(base_path + _EMBEDDINGS_SUFFIX, self._embeddings, allow_pickle=False)
-    self._lookup.to_pickle(base_path + _LOOKUP_SUFFIX)
+    self._key_to_index.to_pickle(base_path + _LOOKUP_SUFFIX)
 
   @override
   def load(self, base_path: str) -> None:
     self._embeddings = np.load(base_path + _EMBEDDINGS_SUFFIX, allow_pickle=False)
-    self._lookup = pd.read_pickle(base_path + _LOOKUP_SUFFIX)
+    self._key_to_index = pd.read_pickle(base_path + _LOOKUP_SUFFIX)
 
   @override
   def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
-    if self._embeddings or self._lookup:
+    if self._embeddings or self._key_to_index:
       raise ValueError('Embeddings already exist in this store. Upsert is not yet supported.')
 
     if len(keys) != embeddings.shape[0]:
@@ -53,15 +53,15 @@ class NumpyVectorStore(VectorStore):
     # than float64.
     self._embeddings = embeddings.astype(np.float32)
     row_indices = np.arange(len(embeddings), dtype=np.uint32)
-    self._lookup = pd.Series(row_indices, index=keys, dtype=np.uint32)
+    self._key_to_index = pd.Series(row_indices, index=keys, dtype=np.uint32)
 
   @override
   def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:
-    assert self._embeddings is not None and self._lookup is not None, (
+    assert self._embeddings is not None and self._key_to_index is not None, (
       'The vector store has no embeddings. Call load() or add() first.')
     if not keys:
       return self._embeddings
-    locs = self._lookup.loc[cast(list[str], keys)]
+    locs = self._key_to_index.loc[cast(list[str], keys)]
     return self._embeddings.take(locs, axis=0)
 
   @override
@@ -69,14 +69,14 @@ class NumpyVectorStore(VectorStore):
            query: np.ndarray,
            k: int,
            keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
-    assert self._embeddings is not None and self._lookup is not None, (
+    assert self._embeddings is not None and self._key_to_index is not None, (
       'The vector store has no embeddings. Call load() or add() first.')
     if keys is not None:
-      row_indices = self._lookup.loc[cast(list[str], keys)]
+      row_indices = self._key_to_index.loc[cast(list[str], keys)]
       embeddings = self._embeddings.take(row_indices, axis=0)
       keys = list(keys)
     else:
-      keys, embeddings = cast(list[VectorKey], self._lookup.index.tolist()), self._embeddings
+      keys, embeddings = cast(list[VectorKey], self._key_to_index.index.tolist()), self._embeddings
 
     query = query.astype(embeddings.dtype)
     similarities: np.ndarray = np.dot(embeddings, query).reshape(-1)
