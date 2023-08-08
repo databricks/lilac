@@ -168,5 +168,6 @@ export const querySettings = createApiQuery(DatasetsService.getSettings, DATASET
 export const updateSettingsMutation = createApiMutation(DatasetsService.updateSettings, {
   onSuccess: () => {
     queryClient.invalidateQueries([DATASETS_SETTINGS_TAG]);
+    queryClient.invalidateQueries([DATASETS_CONFIG_TAG]);
   }
 });
