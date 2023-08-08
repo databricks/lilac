@@ -5267,8 +5267,33 @@
       "label": false,
       "text": "0A0C0A0D0E0M0I00P0R00G0R0A00M",
       "id": "31d01675b70049dc9f8e60c20204af8c"
+    },
+    "51740cced2b149ddb5be308ccbc40bbe": {
+      "label": false,
+      "text": "horrible, abysmal, appalling.",
+      "id": "51740cced2b149ddb5be308ccbc40bbe"
+    },
+    "03d09c96106b457b96b7a8707a430e28": {
+      "label": false,
+      "text": "Vamos empezar. (Spanish)",
+      "id": "03d09c96106b457b96b7a8707a430e28"
+    },
+    "16e0f59625a84ed6b350de7d5067c946": {
+      "label": false,
+      "text": "He is an incredibly dishonest person.",
+      "id": "16e0f59625a84ed6b350de7d5067c946"
+    },
+    "bbe4d96e27a94037b9f9ca981473ba6f": {
+      "label": false,
+      "text": "The synonym of \"angry\" is \"furious\".",
+      "id": "bbe4d96e27a94037b9f9ca981473ba6f"
+    },
+    "0e4484fa362a4559a4050e8ef0718684": {
+      "label": false,
+      "text": "It's not right to defy the laws of the country.",
+      "id": "0e4484fa362a4559a4050e8ef0718684"
     }
   },
-  "version": 29,
+  "version": 34,
   "description": "Profane or obscene language"
 }
