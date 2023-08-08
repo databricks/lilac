@@ -210,4 +210,4 @@ def _compute_embedding(namespace: str, name: str, embedding_config: EmbeddingCon
 
 
 if __name__ == '__main__':
-  load()
+  load_command()
