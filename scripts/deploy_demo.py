@@ -4,7 +4,10 @@ This script will, in order:
 1) Sync from the HuggingFace space data (only datasets). (--skip_sync to skip syncing)
 2) Load the data from the demo.yml config. (--skip_load to skip loading)
 3) Build the web server TypeScript. (--skip_build to skip building)
-4) Push the data to the HuggingFace space.
+4) Push code & data to the HuggingFace space.
+
+Usage:
+poetry run python -m scripts.deploy_demo
 """
 import os
 import shutil
