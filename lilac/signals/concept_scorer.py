@@ -48,14 +48,8 @@ class ConceptScoreSignal(VectorSignal):
     self._user = user
 
   def _get_concept_model(self) -> ConceptModel:
-    model = self._concept_model_db.get(
-      self.namespace, self.concept_name, self.embedding, user=self._user)
-    if not model:
-      model = self._concept_model_db.create(
-        self.namespace, self.concept_name, self.embedding, user=self._user)
-
-    self._concept_model_db.sync(model, self._user)
-    return model
+    return self._concept_model_db.sync(
+      self.namespace, self.concept_name, self.embedding, self._user, create=True)
 
   def _score_span_vectors(self,
                           span_vectors: Iterable[Iterable[SpanVector]]) -> Iterable[Optional[Item]]:

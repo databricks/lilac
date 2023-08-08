@@ -9,7 +9,7 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..concepts.concept import ConceptModel, ExampleIn
+from ..concepts.concept import ExampleIn
 from ..concepts.db_concept import (
   ConceptDB,
   ConceptModelDB,
@@ -115,9 +115,8 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding='test_embedding')
 
   # Explicitly sync the model with the concept.
-  model = ConceptModel(
-    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-  model_db.sync(model)
+  model_db.sync(
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True)
 
   result_items = list(signal.compute(['a new data point', 'not in concept']))
   scores = [result_item[0]['score'] for result_item in result_items if result_item]
@@ -146,9 +145,8 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding='test_embedding')
 
   # Explicitly sync the model with the concept.
-  model = ConceptModel(
-    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-  model_db.sync(model)
+  model_db.sync(
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True)
 
   vector_index = make_vector_index(
     vector_store, {
@@ -185,9 +183,8 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
     namespace='test', concept_name='test_concept', embedding='test_embedding')
 
   # Explicitly sync the model with the concept.
-  model = ConceptModel(
-    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-  model_db.sync(model)
+  model_db.sync(
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True)
   vector_index = make_vector_index(vector_store, {
     ('1',): [[0.1, 0.2, 0.3]],
     ('2',): [[0.1, 0.87, 0.0]],
@@ -237,9 +234,8 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB], model_db_cls: Type
     namespace='test', concept_name='test_concept', embedding='test_embedding', draft='test_draft')
 
   # Explicitly sync the model with the concept.
-  model = ConceptModel(
-    namespace='test', concept_name='test_concept', embedding_name='test_embedding')
-  model_db.sync(model)
+  model_db.sync(
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True)
 
   vector_index = make_vector_index(vector_store, {
     ('1',): [[1.0, 0.0, 0.0]],

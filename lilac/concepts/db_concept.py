@@ -7,6 +7,7 @@ import os
 import pathlib
 import pickle
 import shutil
+import threading
 
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
@@ -135,6 +136,7 @@ class ConceptModelDB(abc.ABC):
   """Interface for the concept model database."""
 
   _concept_db: ConceptDB
+  _sync_lock = threading.Lock()
 
   def __init__(self, concept_db: ConceptDB) -> None:
     self._concept_db = concept_db
@@ -172,15 +174,28 @@ class ConceptModelDB(abc.ABC):
       raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
     return concept.version == model.version
 
-  def sync(self, model: ConceptModel, user: Optional[UserInfo] = None) -> bool:
+  def sync(self,
+           namespace: str,
+           concept_name: str,
+           embedding_name: str,
+           user: Optional[UserInfo] = None,
+           create: bool = False) -> ConceptModel:
     """Sync the concept model. Returns true if the model was updated."""
-    concept = self._concept_db.get(model.namespace, model.concept_name, user=user)
-    if not concept:
-      raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
-    model_updated = model.sync(concept)
-    if model_updated:
-      self._save(model)
-    return model_updated
+    with self._sync_lock:
+      model = self.get(namespace, concept_name, embedding_name, user=user)
+      if not model:
+        if create:
+          model = self.create(namespace, concept_name, embedding_name, user=user)
+        else:
+          raise ValueError(f'Model "{namespace}/{concept_name}/{embedding_name}" does not exist.')
+
+      concept = self._concept_db.get(model.namespace, model.concept_name, user=user)
+      if not concept:
+        raise ValueError(f'Concept "{model.namespace}/{model.concept_name}" does not exist.')
+      model_updated = model.sync(concept)
+      if model_updated:
+        self._save(model)
+      return model
 
   @abc.abstractmethod
   def remove(self, namespace: str, concept_name: str, embedding_name: str) -> None:
@@ -216,9 +231,10 @@ class DiskConceptModelDB(ConceptModelDB):
     concept = self._concept_db.get(namespace, concept_name, user=user)
     if not concept:
       raise ValueError(f'Concept "{namespace}/{concept_name}" does not exist.')
-
-    return ConceptModel(
+    model = ConceptModel(
       namespace=namespace, concept_name=concept_name, embedding_name=embedding_name)
+    self._save(model)
+    return model
 
   @override
   def get(self,
@@ -335,7 +351,7 @@ class DiskConceptDB(ConceptDB):
 
     # Read the concepts and return a ConceptInfo containing the namespace and name.
     concept_infos = []
-    for root, _, files in os.walk(self._get_base_dir()):
+    for root, _, files in os.walk(os.path.join(self._get_base_dir(), CONCEPTS_DIR)):
       for file in files:
         if file == CONCEPT_JSON_FILENAME:
           namespace, name = root.split('/')[-2:]
