@@ -1,4 +1,11 @@
-"""Deploys the public HuggingFace demo to https://huggingface.co/spaces/lilacai/lilac."""
+"""Deploys the public HuggingFace demo to https://huggingface.co/spaces/lilacai/lilac.
+
+This script will, in order:
+1) Sync from the HuggingFace space data (only datasets). (--skip_sync to skip syncing)
+2) Load the data from the demo.yml config. (--skip_load to skip loading)
+3) Build the web server TypeScript. (--skip_build to skip building)
+4) Push the data to the HuggingFace space.
+"""
 import os
 import shutil
 import subprocess
@@ -6,9 +13,9 @@ import subprocess
 import click
 
 from lilac.concepts.db_concept import CONCEPTS_DIR
-from lilac.env import data_path
+from lilac.env import data_path, env
 from lilac.load import load
-from lilac.utils import list_datasets
+from lilac.utils import get_datasets_dir, list_datasets
 
 from .deploy_hf import deploy_hf
 
@@ -25,6 +32,12 @@ DEMO_HF_SPACE = 'lilacai/lilac'
   type=bool,
   is_flag=True,
   default=False)
+@click.option(
+  '--skip_sync',
+  help='Skip syncing data from the HuggingFace space data.',
+  type=bool,
+  is_flag=True,
+  default=False)
 @click.option('--skip_load', help='Skip loading the data.', type=bool, is_flag=True, default=False)
 @click.option(
   '--skip_build',
@@ -33,8 +46,19 @@ DEMO_HF_SPACE = 'lilacai/lilac'
   type=bool,
   is_flag=True,
   default=False)
-def deploy_demo(overwrite: bool, skip_load: bool, skip_build: bool) -> None:
+def deploy_demo(overwrite: bool, skip_sync: bool, skip_load: bool, skip_build: bool) -> None:
   """Deploys the public demo."""
+  if not skip_sync:
+    hf_username = env('HF_USERNAME')
+    repo_basedir = os.path.join(DEMO_DATA_DIR, '.hf_sync')
+    shutil.rmtree(repo_basedir, ignore_errors=True)
+
+    run(f'git clone https://{hf_username}@huggingface.co/spaces/{DEMO_HF_SPACE} {repo_basedir} '
+        '--depth 1 --quiet')
+
+    shutil.rmtree(get_datasets_dir(DEMO_DATA_DIR), ignore_errors=True)
+    shutil.move(get_datasets_dir(os.path.join(repo_basedir, 'data')), DEMO_DATA_DIR)
+
   if not skip_load:
     load(DEMO_DATA_DIR, DEMO_CONFIG_PATH, overwrite)
 
