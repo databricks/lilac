@@ -1,8 +1,5 @@
 """Deploys the public HuggingFace demo to https://huggingface.co/spaces/lilacai/lilac.
 
-NOTE: You must have `git-lfs` installed to sync data locally. This is required to download LFS files
-from HuggingFace. On Mac OS: `brew install git-lfs`.
-
 This script will, in order:
 1) Sync from the HuggingFace space data (only datasets). (--skip_sync to skip syncing)
 2) Load the data from the demo.yml config. (--skip_load to skip loading)
@@ -17,9 +14,9 @@ import shutil
 import subprocess
 
 import click
+import huggingface_hub
 
 from lilac.concepts.db_concept import CONCEPTS_DIR
-from lilac.env import data_path, env
 from lilac.load import load
 from lilac.utils import get_datasets_dir, list_datasets
 
@@ -55,17 +52,14 @@ DEMO_HF_SPACE = 'lilacai/lilac'
 def deploy_demo(overwrite: bool, skip_sync: bool, skip_load: bool, skip_build: bool) -> None:
   """Deploys the public demo."""
   if not skip_sync:
-    hf_username = env('HF_USERNAME')
     repo_basedir = os.path.join(DEMO_DATA_DIR, '.hf_sync')
     shutil.rmtree(repo_basedir, ignore_errors=True)
 
-    run(f'git clone https://{hf_username}@huggingface.co/spaces/{DEMO_HF_SPACE} {repo_basedir} '
-        '--depth 1 --quiet')
-    run(f"""
-        pushd {repo_basedir} > /dev/null && \
-        git lfs install && \
-        git lfs fetch && \
-        popd > /dev/null""")
+    huggingface_hub.snapshot_download(
+      repo_id=DEMO_HF_SPACE,
+      repo_type='space',
+      local_dir=repo_basedir,
+      local_dir_use_symlinks=False)
 
     shutil.rmtree(get_datasets_dir(DEMO_DATA_DIR), ignore_errors=True)
     shutil.move(get_datasets_dir(os.path.join(repo_basedir, 'data')), DEMO_DATA_DIR)
@@ -74,10 +68,9 @@ def deploy_demo(overwrite: bool, skip_sync: bool, skip_load: bool, skip_build: b
     load(DEMO_DATA_DIR, DEMO_CONFIG_PATH, overwrite)
 
   # Copy lilac concepts to the demo data dir from the default data_path: 'data'.
+  concepts_target_dir = os.path.join(DEMO_DATA_DIR, CONCEPTS_DIR, 'lilac')
   shutil.copytree(
-    os.path.join(data_path(), CONCEPTS_DIR, 'lilac'),
-    os.path.join(DEMO_DATA_DIR, CONCEPTS_DIR, 'lilac'),
-    dirs_exist_ok=True)
+    os.path.join('data', CONCEPTS_DIR, 'lilac'), concepts_target_dir, dirs_exist_ok=True)
 
   datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(DEMO_DATA_DIR)]
   deploy_hf(
