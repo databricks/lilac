@@ -11,6 +11,8 @@
 </script>
 
 <script lang="ts">
+  import {goto} from '$app/navigation';
+
   import {SkeletonText} from 'carbon-components-svelte';
 
   import {ChevronDown, ChevronUp} from 'carbon-icons-svelte';
@@ -24,7 +26,7 @@
 
 <div class="my-1 w-full px-1">
   <button
-    class="w-full px-4 py-2 text-left hover:bg-gray-200"
+    class="w-full py-2 pl-4 pr-2 text-left hover:bg-gray-200"
     on:click={() => (expanded = !expanded)}
   >
     <div class="flex items-center justify-between">
@@ -54,18 +56,17 @@
             </div>
             {#each items as item}
               <div
-                class={`flex w-full flex-row justify-between ${
-                  !item.isSelected ? 'hover:bg-gray-100' : ''
-                }`}
+                class={`flex w-full ${!item.isSelected ? 'hover:bg-gray-100' : ''}`}
                 class:bg-neutral-100={item.isSelected}
               >
                 <a
                   href={item.link}
+                  on:click={() => goto(item.link)}
                   class:text-black={item.isSelected}
                   class:font-semibold={item.isSelected}
-                  class=" flex w-full flex-row items-center whitespace-pre py-1 pl-8 pr-4 text-xs text-black"
+                  class="w-full truncate py-1 pl-8 text-xs text-black"
                 >
-                  <span class="ellipsis truncate">{item.name}</span>
+                  {item.name}
                 </a>
               </div>
             {/each}
