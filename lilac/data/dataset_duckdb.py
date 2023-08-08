@@ -300,9 +300,10 @@ class DatasetDuckDB(Dataset):
 
   @override
   def config(self) -> DatasetConfig:
-    config_filepath = _config_filepath(self.namespace, self.dataset_name)
-    with open(config_filepath) as f:
-      return DatasetConfig(**yaml.safe_load(f))
+    with self._config_lock:
+      config_filepath = _config_filepath(self.namespace, self.dataset_name)
+      with open(config_filepath) as f:
+        return DatasetConfig(**yaml.safe_load(f))
 
   @override
   def settings(self) -> DatasetSettings:
