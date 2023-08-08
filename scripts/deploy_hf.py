@@ -11,7 +11,7 @@ from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from lilac.env import data_path, env
 from lilac.utils import get_dataset_output_dir
 
-HF_SPACE_DIR = os.path.join(data_path(), '.hf_spaces')
+HF_SPACE_DIR = '.hf_spaces'
 
 
 @click.command()
@@ -35,9 +35,21 @@ HF_SPACE_DIR = os.path.join(data_path(), '.hf_spaces')
   type=bool,
   is_flag=True,
   default=False)
-def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str],
-         concept: list[str], skip_build: bool) -> None:
+@click.option(
+  '--data_dir',
+  help='The data directory to use for the demo. Defaults to `env.DATA_DIR`.',
+  type=str,
+  default=data_path())
+def deploy_hf_command(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str],
+                      concept: list[str], skip_build: bool, data_dir: Optional[str]) -> None:
   """Generate the huggingface space app."""
+  deploy_hf(hf_username, hf_space, dataset, concept, skip_build, data_dir)
+
+
+def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: list[str],
+              concepts: list[str], skip_build: bool, data_dir: Optional[str]) -> None:
+  """Generate the huggingface space app."""
+  data_dir = data_dir or data_path()
   hf_username = hf_username or env('HF_USERNAME')
   if not hf_username:
     raise ValueError('Must specify --hf_username or set env.HF_USERNAME')
@@ -50,10 +62,12 @@ def main(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str]
   if not skip_build:
     run('sh ./scripts/build_server_prod.sh')
 
-  run(f'mkdir -p {HF_SPACE_DIR}')
+  hf_space_dir = os.path.join(data_dir, HF_SPACE_DIR)
+
+  run(f'mkdir -p {hf_space_dir}')
 
   # Clone the HuggingFace spaces repo.
-  repo_basedir = os.path.join(HF_SPACE_DIR, hf_space)
+  repo_basedir = os.path.join(hf_space_dir, hf_space)
   run(f'rm -rf {repo_basedir}')
   run(f'git clone https://{hf_username}@huggingface.co/spaces/{hf_space} {repo_basedir} '
       '--depth 1 --quiet --no-checkout')
@@ -92,7 +106,7 @@ XDG_CACHE_HOME='/data/.cache'
   # Create the huggingface README.
   with open(f'{repo_basedir}/README.md', 'w') as f:
     f.write("""---
-title: Lilac Blueprint
+title: Lilac
 emoji: 🌷
 colorFrom: purple
 colorTo: purple
@@ -110,29 +124,29 @@ app_port: 5432
   # directory.
   # NOTE(nsthorat): This currently doesn't write to persistent storage directly.
   hf_api = HfApi()
-  for d in dataset:
+  for d in datasets:
     namespace, name = d.split('/')
 
     hf_api.upload_folder(
-      folder_path=get_dataset_output_dir(data_path(), namespace, name),
+      folder_path=get_dataset_output_dir(data_dir, namespace, name),
       path_in_repo=get_dataset_output_dir('data', namespace, name),
       repo_id=hf_space,
       repo_type='space',
       # Delete all data on the server.
       delete_patterns='*')
 
-  disk_concepts = [f'{c.namespace}/{c.name}' for c in DiskConceptDB(data_path()).list()]
-  for c in concept:
+  disk_concepts = [f'{c.namespace}/{c.name}' for c in DiskConceptDB(data_dir).list()]
+  for c in concepts:
     if c not in disk_concepts:
       raise ValueError(f'Concept "{c}" not found in disk concepts: {disk_concepts}')
 
   lilac_concepts = [c for c in disk_concepts if c.startswith('lilac/')]
-  concepts = lilac_concepts + list(concept)
+  concepts = lilac_concepts + list(concepts)
 
   for c in concepts:
     namespace, name = c.split('/')
     hf_api.upload_folder(
-      folder_path=get_concept_output_dir(data_path(), namespace, name),
+      folder_path=get_concept_output_dir(data_dir, namespace, name),
       path_in_repo=get_concept_output_dir('data', namespace, name),
       repo_id=hf_space,
       repo_type='space',
@@ -146,4 +160,4 @@ def run(cmd: str) -> subprocess.CompletedProcess[bytes]:
 
 
 if __name__ == '__main__':
-  main()
+  deploy_hf_command()

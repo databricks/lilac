@@ -43,6 +43,11 @@ from .utils import DebugTimer, get_datasets_dir, list_datasets
   type=bool,
   is_flag=True,
   default=False)
+def load_command(output_dir: str, config_path: str, overwrite: bool) -> None:
+  """Run the source loader as a binary."""
+  load(output_dir, config_path, overwrite)
+
+
 def load(output_dir: str, config_path: str, overwrite: bool) -> None:
   """Run the source loader as a binary."""
   old_data_path = os.environ.get('LILAC_DATA_PATH')
@@ -124,7 +129,7 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
             if d.settings.preferred_embedding:
               embeddings.append(
                 EmbeddingConfig(path=path, embedding=d.settings.preferred_embedding))
-
+      print('emb configs', embeddings)
       for e in embeddings:
         task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {e.path}')
         task_manager.execute(task_id, _compute_embedding, d.namespace, d.name, e, output_dir,

@@ -4,7 +4,7 @@ datasets:
     settings:
       ui:
         media_paths: ['text']
-        preferred_embedding: 'gte-small'
+      preferred_embedding: 'gte-small'
     source:
       source_name: huggingface
       dataset_name: imdb
@@ -14,7 +14,7 @@ datasets:
     settings:
       ui:
         media_paths: ['text']
-        preferred_embedding: 'gte-small'
+      preferred_embedding: 'gte-small'
     source:
       source_name: huggingface
       dataset_name: OpenAssistant/oasst1
@@ -25,4 +25,3 @@ signals:
   - signal_name: spacy_ner
   - signal_name: near_dup
   - signal_name: lang_detection
-    split_by_paragraph: true

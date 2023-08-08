@@ -3,7 +3,7 @@
 import click
 
 from . import __version__
-from .load import load
+from .load import load_command as load
 from .server import start_server
 
 
