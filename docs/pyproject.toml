@@ -12,3 +12,4 @@ furo = "^2023.5.20"
 lilacai = { path = "..", develop = true }
 sphinx-autobuild = "^2021.3.14"
 myst-parser = "^2.0.0"
+hnswlib = "^0.7.0"                        # For some reason, this is needed for the docs to build.

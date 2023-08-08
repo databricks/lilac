@@ -1154,6 +1154,19 @@ files = [
 ]
 
 [[package]]
+name = "hnswlib"
+version = "0.7.0"
+description = "hnswlib"
+optional = false
+python-versions = "*"
+files = [
+    {file = "hnswlib-0.7.0.tar.gz", hash = "sha256:bc459668e7e44bb7454b256b90c98c5af750653919d9a91698dafcf416cf64c4"},
+]
+
+[package.dependencies]
+numpy = "*"
+
+[[package]]
 name = "httpcore"
 version = "0.17.3"
 description = "A minimal low-level HTTP client."
@@ -3273,4 +3286,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "0befc102a2ae7ad0dc57fcd5056eb9ee31e33a91ba4334ecc181903e2efef206"
+content-hash = "10692a69ba741233272569963a2de492fad43745edf06704d4b566d6f9793ff3"
