@@ -47,6 +47,8 @@ def get_sources() -> SourcesList:
 def get_source_schema(source_name: str) -> dict[str, Any]:
   """Get the fields for a source."""
   source_cls = get_source_cls(source_name)
+  if source_cls is None:
+    raise ValueError(f'Unknown source: {source_name}')
   return source_cls.schema()
 
 
@@ -70,6 +72,8 @@ async def load(source_name: str, options: LoadDatasetOptions,
     raise HTTPException(401, 'User does not have access to load a dataset.')
 
   source_cls = get_source_cls(source_name)
+  if source_cls is None:
+    raise ValueError(f'Unknown source: {source_name}')
   source = source_cls(**options.config)
 
   task_id = task_manager().task_id(

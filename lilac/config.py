@@ -15,7 +15,7 @@ from .sources.source_registry import resolve_source
 CONFIG_FILENAME = 'config.yml'
 
 
-def _readable_path(path: PathTuple) -> Union[str, list]:
+def _serializable_path(path: PathTuple) -> Union[str, list]:
   if len(path) == 1:
     return path[0]
   return list(path)
@@ -28,6 +28,16 @@ class SignalConfig(BaseModel):
 
   class Config:
     extra = Extra.forbid
+
+  @validator('path', pre=True)
+  def parse_path(cls, path: Path) -> PathTuple:
+    """Parse a path."""
+    return normalize_path(path)
+
+  @validator('signal', pre=True)
+  def parse_signal(cls, signal: dict) -> Signal:
+    """Parse a signal to its specific subclass instance."""
+    return resolve_signal(signal)
 
   def dict(
     self,
@@ -52,18 +62,8 @@ class SignalConfig(BaseModel):
       exclude_unset=exclude_unset,
       exclude_defaults=exclude_defaults,
       exclude_none=exclude_none)
-    res['path'] = _readable_path(res['path'])
+    res['path'] = _serializable_path(res['path'])
     return res
-
-  @validator('path', pre=True)
-  def parse_path(cls, path: Path) -> PathTuple:
-    """Parse a path."""
-    return normalize_path(path)
-
-  @validator('signal', pre=True)
-  def parse_signal(cls, signal: dict) -> Signal:
-    """Parse a signal to its specific subclass instance."""
-    return resolve_signal(signal)
 
 
 class EmbeddingConfig(BaseModel):
@@ -97,7 +97,7 @@ class EmbeddingConfig(BaseModel):
       exclude_unset=exclude_unset,
       exclude_defaults=exclude_defaults,
       exclude_none=exclude_none)
-    res['path'] = _readable_path(res['path'])
+    res['path'] = _serializable_path(res['path'])
     return res
 
   @validator('path', pre=True)
@@ -149,9 +149,9 @@ class DatasetUISettings(BaseModel):
       exclude_defaults=exclude_defaults,
       exclude_none=exclude_none)
     if 'media_paths' in res:
-      res['media_paths'] = [_readable_path(path) for path in res['media_paths']]
+      res['media_paths'] = [_serializable_path(path) for path in res['media_paths']]
     if 'markdown_paths' in res:
-      res['markdown_paths'] = [_readable_path(path) for path in res['markdown_paths']]
+      res['markdown_paths'] = [_serializable_path(path) for path in res['markdown_paths']]
     return res
 
 

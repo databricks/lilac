@@ -79,7 +79,7 @@ def process_source(base_dir: Union[str, pathlib.Path],
     f.write(manifest.json(indent=2, exclude_none=True))
 
   with open_file(os.path.join(output_dir, CONFIG_FILENAME), 'w') as f:
-    f.write(yaml.dump(config.dict(exclude_defaults=True, exclude_none=True, exclude_unset=True)))
+    f.write(yaml.dump(config.dict(exclude_defaults=True, exclude_none=True)))
 
   if not config.settings:
     dataset = get_dataset(config.namespace, config.name)

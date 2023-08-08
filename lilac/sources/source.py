@@ -80,7 +80,7 @@ class Source(BaseModel):
       schema['properties'] = {'source_name': signal_prop, **schema['properties']}
       if 'required' not in schema:
         schema['required'] = []
-      schema['required'].append('signal_name')
+      schema['required'].append('source_name')
 
   def source_schema(self) -> SourceSchema:
     """Return the source schema for this source.

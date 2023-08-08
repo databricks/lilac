@@ -33,6 +33,7 @@ export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
 ];
 
 export const DATASETS_TAG = 'datasets';
+export const DATASETS_CONFIG_TAG = 'config';
 export const DATASETS_SETTINGS_TAG = 'settings';
 
 export const DEFAULT_SELECT_ROWS_LIMIT = 20;
@@ -77,6 +78,7 @@ export const computeSignalMutation = createApiMutation(DatasetsService.computeSi
       queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
       queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
       queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
+      queryClient.invalidateQueries([DATASETS_CONFIG_TAG]);
     });
   }
 });
@@ -92,6 +94,7 @@ export const deleteSignalMutation = createApiMutation(DatasetsService.deleteSign
     queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
     queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
     queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
+    queryClient.invalidateQueries([DATASETS_CONFIG_TAG]);
   }
 });
 
@@ -160,6 +163,7 @@ export const infiniteQuerySelectRows = (
     enabled: !!schema
   });
 
+export const queryConfig = createApiQuery(DatasetsService.getConfig, DATASETS_CONFIG_TAG);
 export const querySettings = createApiQuery(DatasetsService.getSettings, DATASETS_SETTINGS_TAG);
 export const updateSettingsMutation = createApiMutation(DatasetsService.updateSettings, {
   onSuccess: () => {

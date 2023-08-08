@@ -6,12 +6,19 @@
   import RowView from '$lib/components/datasetView/RowView.svelte';
   import SearchPanel from '$lib/components/datasetView/SearchPanel.svelte';
   import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
-  import {queryDatasetSchema} from '$lib/queries/datasetQueries';
+  import {queryConfig, queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
-  import {Button, Tag} from 'carbon-components-svelte';
-  import {ChevronLeft, ChevronRight, Download, Settings, Share} from 'carbon-icons-svelte';
+  import {Button, Modal, SkeletonText, Tag, TextArea} from 'carbon-components-svelte';
+  import {
+    ChevronLeft,
+    ChevronRight,
+    Download,
+    Information,
+    Settings,
+    Share
+  } from 'carbon-icons-svelte';
   import {fade} from 'svelte/transition';
   import DatasetSettingsModal from './DatasetSettingsModal.svelte';
   import DownloadModal from './DownloadModal.svelte';
@@ -37,15 +44,21 @@
   let showCopyToast = false;
 
   $: link = datasetLink(namespace, datasetName);
+
+  let configModalOpen = false;
+  $: config = configModalOpen ? queryConfig(namespace, datasetName, 'yaml') : null;
 </script>
 
 <Page>
-  <div slot="header-subtext">
+  <div slot="header-subtext" class="flex flex-row items-center">
     <Tag type="outline">
       <a class="font-semibold text-black" href={link} on:click={() => goto(link)}
         >{$datasetViewStore.namespace}/{$datasetViewStore.datasetName}
       </a>
     </Tag>
+    <button on:click={() => (configModalOpen = true)}>
+      <Information />
+    </button>
   </div>
   <div slot="header-center" class="flex w-full items-center">
     <SearchPanel />
@@ -144,6 +157,36 @@
       name={datasetName}
     />
     <DownloadModal bind:open={downloadOpen} schema={$schema.data} />
+  {/if}
+
+  {#if configModalOpen}
+    <Modal
+      open
+      modalHeading="Dataset config"
+      primaryButtonText="Ok"
+      secondaryButtonText="Cancel"
+      on:click:button--secondary={() => (configModalOpen = false)}
+      on:close={() => (configModalOpen = false)}
+      on:submit={() => (configModalOpen = false)}
+    >
+      <div class="mb-4 text-sm">
+        This dataset configuration represents the transformations that created the dataset,
+        including signals, embeddings, and user settings. This can be used with lilac.load to
+        generate the dataset with the same view as presented.
+      </div>
+      <div class="font-mono text-xs">config.yml</div>
+      {#if $config?.isFetching}
+        <SkeletonText />
+      {:else if $config?.data}
+        <TextArea
+          value={`${$config.data}`}
+          readonly
+          rows={15}
+          placeholder="3 rows of data for previewing the response"
+          class="mb-2 font-mono"
+        />
+      {/if}
+    </Modal>
   {/if}
 </Page>
 <Commands />

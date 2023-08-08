@@ -57,7 +57,7 @@
   // Dictionary of source schema property values
   let sourceSchemaValues: Record<string, JSONSchema4Type> = {};
 
-  $: sourceSchemaValues['source_name'] = `${namespace}/${name}`;
+  $: sourceSchemaValues['source_name'] = selectedSource;
 
   function submit() {
     if (jsonValidationErrors.length) return;
@@ -79,6 +79,8 @@
       }
     );
   }
+  $: console.log(jsonValidationErrors?.length > 0, nameError != null, namespaceError != null);
+  $: console.log(jsonValidationErrors);
 </script>
 
 <Page>

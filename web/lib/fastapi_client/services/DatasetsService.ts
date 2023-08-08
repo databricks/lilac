@@ -324,8 +324,38 @@ export class DatasetsService {
     }
 
     /**
+     * Get Config
+     * Get the config for the dataset.
+     * @param namespace
+     * @param datasetName
+     * @param format
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getConfig(
+        namespace: string,
+        datasetName: string,
+        format: ('yaml' | 'json'),
+    ): CancelablePromise<(string | Record<string, any>)> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/config',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            query: {
+                'format': format,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Get Settings
-     * Get the media for the dataset.
+     * Get the settings for the dataset.
      * @param namespace
      * @param datasetName
      * @returns DatasetSettings Successful Response
@@ -350,7 +380,7 @@ export class DatasetsService {
 
     /**
      * Update Settings
-     * Get the media for the dataset.
+     * Update settings for the dataset.
      * @param namespace
      * @param datasetName
      * @param requestBody
