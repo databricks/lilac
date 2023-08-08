@@ -249,10 +249,12 @@
               shouldFilterItem={(item, value) =>
                 item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-concept'}
               placeholder={placeholderText}
-              let:index
+              let:item={it}
             >
-              {@const item = conceptSelectItems[index]}
-              {#if item.id === 'new-concept'}
+              {@const item = conceptSelectItems.find(p => p.id === it.id)}
+              {#if item == null}
+                <div />
+              {:else if item.id === 'new-concept'}
                 <div class="new-concept flex flex-row items-center justify-items-center">
                   <Tag><Add /></Tag>
                   <div class="ml-2">
