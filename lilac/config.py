@@ -3,12 +3,11 @@ from typing import Optional
 
 from pydantic import BaseModel, validator
 
-from lilac.sources.source_registry import resolve_source
-
 from .data.dataset import DatasetSettings
 from .schema import Path, PathTuple, normalize_path
 from .signals.signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
 from .sources.source import Source
+from .sources.source_registry import resolve_source
 
 
 class SignalConfig(BaseModel):

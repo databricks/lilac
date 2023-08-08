@@ -19,12 +19,12 @@ import psutil
 import yaml
 from distributed import Client
 
-from lilac.config import Config, EmbeddingConfig, SignalConfig
-from lilac.data_loader import process_source
-from lilac.db_manager import get_dataset
-from lilac.schema import UUID_COLUMN
-from lilac.tasks import TaskManager, TaskStepId
-from lilac.utils import DebugTimer, get_datasets_dir, list_datasets
+from .config import Config, EmbeddingConfig, SignalConfig
+from .data_loader import process_source
+from .db_manager import get_dataset
+from .schema import UUID_COLUMN
+from .tasks import TaskManager, TaskStepId
+from .utils import DebugTimer, get_datasets_dir, list_datasets
 
 
 @click.command()
@@ -43,7 +43,7 @@ from lilac.utils import DebugTimer, get_datasets_dir, list_datasets
   type=bool,
   is_flag=True,
   default=False)
-def main(output_dir: str, config_path: str, overwrite: bool) -> None:
+def load(output_dir: str, config_path: str, overwrite: bool) -> None:
   """Run the source loader as a binary."""
   old_data_path = os.environ.get('LILAC_DATA_PATH')
   os.environ['LILAC_DATA_PATH'] = output_dir
@@ -206,4 +206,4 @@ def _compute_embedding(namespace: str, name: str, embedding_config: EmbeddingCon
 
 
 if __name__ == '__main__':
-  main()
+  load()

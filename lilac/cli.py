@@ -3,6 +3,7 @@
 import click
 
 from . import __version__
+from .load import load
 from .server import start_server
 
 
@@ -32,6 +33,7 @@ def cli() -> None:
 
 cli.add_command(start)
 cli.add_command(version)
+cli.add_command(load)
 
 if __name__ == '__main__':
   cli()
