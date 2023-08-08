@@ -284,7 +284,8 @@ class DatasetDuckDB(Dataset):
 
     base_path = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
                              manifest.signal.name)
-    with DebugTimer(f'Loading vector store "{manifest.vector_store}" for "{path}"'
+    path_id = f'{self.namespace}/{self.dataset_name}:{path}'
+    with DebugTimer(f'Loading vector store "{manifest.vector_store}" for {path_id}'
                     f' with embedding "{embedding}"'):
       vector_index = VectorDBIndex(manifest.vector_store)
       vector_index.load(base_path)
@@ -745,6 +746,7 @@ class DatasetDuckDB(Dataset):
                   user: Optional[UserInfo] = None) -> SelectRowsResult:
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema)
+    offset = offset or 0
 
     # Always return the UUID column.
     col_paths = [col.path for col in cols]
@@ -813,9 +815,10 @@ class DatasetDuckDB(Dataset):
         topk_signal = cast(VectorSignal, topk_udf_col.signal_udf)
         # The input is an embedding.
         vector_index = self._get_vector_db_index(topk_signal.embedding, topk_udf_col.path)
-        k = (limit or 0) + (offset or 0)
-        with DebugTimer(f'Compute topk on "{topk_udf_col.path}" using embedding '
-                        f'"{topk_signal.embedding}" with vector store "{self.vector_store}"'):
+        k = (limit or 0) + offset
+        path_id = f'{self.namespace}/{self.dataset_name}:{topk_udf_col.path}'
+        with DebugTimer(f'Computing topk on {path_id} with embedding '
+                        f'"{topk_signal.embedding}" and vector store "{self.vector_store}"'):
           topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
         topk_uuids = list(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk]))
         # Update the offset to account for the number of unique UUIDs.
@@ -905,11 +908,11 @@ class DatasetDuckDB(Dataset):
     limit_query = ''
     if limit:
       if topk_udf_col:
-        limit_query = f'LIMIT {limit + (offset or 0)}'
+        limit_query = f'LIMIT {limit + offset}'
       elif sort_sql_after_udf:
         limit_query = ''
       else:
-        limit_query = f'LIMIT {limit} OFFSET {offset or 0}'
+        limit_query = f'LIMIT {limit} OFFSET {offset}'
 
     if not topk_udf_col and where_query:
       total_num_rows = cast(tuple,
@@ -937,7 +940,8 @@ class DatasetDuckDB(Dataset):
       signal_column = list(temp_signal_cols.keys())[0]
       input = df[signal_column]
 
-      with DebugTimer(f'Computing signal "{signal.name}"'):
+      path_id = f'{self.namespace}/{self.dataset_name}:{udf_col.path}'
+      with DebugTimer(f'Computing signal "{signal.name}" on {path_id}'):
         signal.setup()
 
         if isinstance(signal, VectorSignal):
@@ -983,6 +987,7 @@ class DatasetDuckDB(Dataset):
           df[signal_column] = deep_unflatten(signal_out_list, input)
 
         signal.teardown()
+
     if not df.empty and (udf_filters or sort_sql_after_udf):
       # Re-upload the udf outputs to duckdb so we can filter/sort on them.
       rel = con.from_df(df)
@@ -999,7 +1004,7 @@ class DatasetDuckDB(Dataset):
         rel = rel.order(f'{", ".join(sort_sql_after_udf)} {sort_order.value}')
 
       if limit:
-        rel = rel.limit(limit, offset or 0)
+        rel = rel.limit(limit, offset)
 
       df = _replace_nan_with_none(rel.df())
 

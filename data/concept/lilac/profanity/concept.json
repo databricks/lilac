@@ -5242,8 +5242,33 @@
       "label": false,
       "text": "The student is incredibly unintelligent.",
       "id": "e929b26a8ba04a72837b7d768a6d7fe0"
+    },
+    "509b4364b7eb40958f421858cb4e246c": {
+      "label": false,
+      "text": "The phrase \"garbage in, garbage out\" (GIGO) refers to the fact that computers can only process the information that they receive. If the inputs are wrong, or of low quality, then the outputs will also be wrong or of low quality. This phrase became popular in the early days of computing when it was used to highlight the importance of ensuring the quality of input data when working with computers.",
+      "id": "509b4364b7eb40958f421858cb4e246c"
+    },
+    "57d5b31cf4f2463da4dfa4d8042841bf": {
+      "label": false,
+      "text": "Antonym.",
+      "id": "57d5b31cf4f2463da4dfa4d8042841bf"
+    },
+    "c3aa24aa597d47819b63f4909806012d": {
+      "label": false,
+      "text": "Affluent - Wealthy, Repugnant - Obnoxious",
+      "id": "c3aa24aa597d47819b63f4909806012d"
+    },
+    "709e3ae2135647599d37e81263fd3895": {
+      "label": false,
+      "text": "Frightful, dire, horrible, dreadful, terrifying",
+      "id": "709e3ae2135647599d37e81263fd3895"
+    },
+    "31d01675b70049dc9f8e60c20204af8c": {
+      "label": false,
+      "text": "0A0C0A0D0E0M0I00P0R00G0R0A00M",
+      "id": "31d01675b70049dc9f8e60c20204af8c"
     }
   },
-  "version": 24,
+  "version": 29,
   "description": "Profane or obscene language"
 }

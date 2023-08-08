@@ -126,7 +126,7 @@ def get_concept_models(
   models = DISK_CONCEPT_MODEL_DB.get_models(namespace, concept_name, user)
 
   for m in models:
-    DISK_CONCEPT_MODEL_DB.sync(m, user)
+    DISK_CONCEPT_MODEL_DB.sync(m.namespace, m.concept_name, m.embedding_name, user)
 
   return [
     ConceptModelInfo(
@@ -150,10 +150,8 @@ def get_concept_model(
     raise HTTPException(
       status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
 
-  model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name, user=user)
-  if not model:
-    model = DISK_CONCEPT_MODEL_DB.create(namespace, concept_name, embedding_name, user=user)
-  DISK_CONCEPT_MODEL_DB.sync(model)
+  model = DISK_CONCEPT_MODEL_DB.sync(
+    namespace, concept_name, embedding_name, user=user, create=True)
   model_info = ConceptModelInfo(
     namespace=model.namespace,
     concept_name=model.concept_name,

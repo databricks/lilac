@@ -44,11 +44,7 @@ def server_compute_concept(signal: ConceptScoreSignal, examples: Iterable[RichDa
   if not concept:
     raise HTTPException(
       status_code=404, detail=f'Concept "{signal.namespace}/{signal.concept_name}" was not found')
-  model = DISK_CONCEPT_MODEL_DB.get(
-    signal.namespace, signal.concept_name, signal.embedding, user=user)
-  if model is None:
-    model = DISK_CONCEPT_MODEL_DB.create(
-      signal.namespace, signal.concept_name, signal.embedding, user=user)
-  DISK_CONCEPT_MODEL_DB.sync(model, user)
+  DISK_CONCEPT_MODEL_DB.sync(
+    signal.namespace, signal.concept_name, signal.embedding, user=user, create=True)
   texts = [example or '' for example in examples]
   return list(signal.compute(texts))
