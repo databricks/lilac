@@ -79,8 +79,6 @@
       }
     );
   }
-  $: console.log(jsonValidationErrors?.length > 0, nameError != null, namespaceError != null);
-  $: console.log(jsonValidationErrors);
 </script>
 
 <Page>
