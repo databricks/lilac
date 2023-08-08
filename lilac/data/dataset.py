@@ -7,12 +7,13 @@ from datetime import datetime
 from typing import Any, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
 
 from ..auth import UserInfo
-from ..schema import VALUE_KEY, Bin, DataType, Path, PathTuple, Schema, normalize_path
+from ..config import DatasetConfig, DatasetSettings, DatasetUISettings
+from ..schema import UUID_COLUMN, VALUE_KEY, Bin, DataType, Path, PathTuple, Schema, normalize_path
 from ..signals.signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
 from ..tasks import TaskStepId
 
@@ -162,29 +163,6 @@ class Column(BaseModel):
 ColumnId = Union[Path, Column]
 
 
-class DatasetUISettings(BaseModel):
-  """The UI persistent settings for a dataset."""
-  media_paths: list[PathTuple] = []
-  markdown_paths: list[PathTuple] = []
-
-  class Config:
-    extra = Extra.forbid
-
-  @validator('media_paths', pre=True)
-  def parse_media_paths(cls, media_paths: list) -> list:
-    """Parse a path, ensuring it is a tuple."""
-    return [normalize_path(path) for path in media_paths]
-
-
-class DatasetSettings(BaseModel):
-  """The persistent settings for a dataset."""
-  ui: Optional[DatasetUISettings] = None
-  preferred_embedding: Optional[str] = None
-
-  class Config:
-    extra = Extra.forbid
-
-
 class DatasetManifest(BaseModel):
   """The manifest for a dataset."""
   namespace: str
@@ -280,6 +258,11 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def manifest(self) -> DatasetManifest:
     """Return the manifest for the dataset."""
+    pass
+
+  @abc.abstractmethod
+  def config(self) -> DatasetConfig:
+    """Return the dataset config for this dataset."""
     pass
 
   @abc.abstractmethod
@@ -465,14 +448,17 @@ class Dataset(abc.ABC):
 def default_settings(dataset: Dataset) -> DatasetSettings:
   """Gets the default settings for a dataset."""
   schema = dataset.manifest().data_schema
-  leaf_paths = [path for path, field in schema.leafs.items() if field.dtype == DataType.STRING]
+  leaf_paths = [
+    path for path, field in schema.leafs.items()
+    if field.dtype == DataType.STRING and path != (UUID_COLUMN,)
+  ]
   pool = ThreadPoolExecutor()
   stats: list[StatsResult] = list(pool.map(lambda leaf: dataset.stats(leaf), leaf_paths))
   sorted_stats = sorted([stat for stat in stats if stat.avg_text_length],
                         key=lambda stat: stat.avg_text_length or -1.0)
-  media_paths: set[PathTuple] = set()
+  media_paths: list[PathTuple] = []
   if sorted_stats:
-    media_paths = set([sorted_stats[-1].path])
+    media_paths = [sorted_stats[-1].path]
 
   return DatasetSettings(ui=DatasetUISettings(media_paths=media_paths))
 

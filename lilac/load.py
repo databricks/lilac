@@ -12,14 +12,16 @@ import json
 import os
 import pathlib
 import shutil
+from typing import Optional
 
 import click
 import dask
 import psutil
 import yaml
 from distributed import Client
+from pydantic import ValidationError
 
-from .config import Config, EmbeddingConfig, SignalConfig
+from .config import Config, DatasetConfig, EmbeddingConfig, SignalConfig
 from .data_loader import process_source
 from .db_manager import get_dataset
 from .schema import UUID_COLUMN
@@ -35,7 +37,7 @@ from .utils import DebugTimer, get_datasets_dir, list_datasets
   required=True,
   type=str,
   help='The path to a json or yml file describing the configuration. '
-  'The file contents should be an instance of `lilac.Config`.')
+  'The file contents should be an instance of `lilac.Config` or `lilac.DatasetConfig`.')
 @click.option(
   '--overwrite',
   help='When True, runs all all data from scratch, overwriting existing data. When false, only'
@@ -65,7 +67,21 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
   else:
     raise ValueError(f'Unsupported config file extension: {config_ext}')
 
-  config = Config(**config_dict)
+  config: Optional[Config] = None
+  is_config = True
+  try:
+    config = Config(**config_dict)
+  except ValidationError:
+    is_config = False
+
+  if not is_config:
+    try:
+      dataset_config = DatasetConfig(**config_dict)
+      config = Config(datasets=[dataset_config])
+    except ValidationError as error:
+      raise ValidationError(
+        'Config is not a valid `Config` or `DatasetConfig`', model=DatasetConfig) from error
+  assert config is not None
 
   # Explicitly create a dask client in sync mode.
   dask.config.set({'distributed.worker.daemon': False})
@@ -94,8 +110,7 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
     for d in datasets_to_load:
       shutil.rmtree(os.path.join(output_dir, d.name), ignore_errors=True)
       task_id = task_manager.task_id(f'Load dataset {d.namespace}/{d.name}')
-      task_manager.execute(task_id, process_source, output_dir, d.namespace, d.name, d.source,
-                           (task_id, 0))
+      task_manager.execute(task_id, process_source, output_dir, d, (task_id, 0))
 
     task_manager.wait()
 

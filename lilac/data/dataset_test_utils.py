@@ -5,8 +5,10 @@ from datetime import datetime
 from typing import Optional, Type, cast
 
 import numpy as np
+import yaml
 from typing_extensions import Protocol
 
+from ..config import CONFIG_FILENAME, DatasetConfig
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   MANIFEST_FILENAME,
@@ -19,8 +21,9 @@ from ..schema import (
   Schema,
   SourceManifest,
 )
+from ..sources.source import Source
 from ..utils import get_dataset_output_dir, open_file
-from .dataset import Dataset
+from .dataset import Dataset, default_settings
 from .dataset_utils import is_primitive, write_items_to_parquet
 
 TEST_NAMESPACE = 'test_namespace'
@@ -82,6 +85,11 @@ class TestDataMaker(Protocol):
     ...
 
 
+class TestSource(Source):
+  """Test source that does nothing."""
+  name = 'test_source'
+
+
 def make_dataset(dataset_cls: Type[Dataset],
                  tmp_path: pathlib.Path,
                  items: list[Item],
@@ -89,7 +97,19 @@ def make_dataset(dataset_cls: Type[Dataset],
   """Create a test dataset."""
   schema = schema or _infer_schema(items)
   _write_items(tmp_path, TEST_DATASET_NAME, items, schema)
-  return dataset_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
+  dataset = dataset_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
+
+  config = DatasetConfig(
+    namespace=TEST_NAMESPACE,
+    name=TEST_DATASET_NAME,
+    source=TestSource(),
+    settings=default_settings(dataset))
+  config_filepath = os.path.join(
+    get_dataset_output_dir(str(tmp_path), TEST_NAMESPACE, TEST_DATASET_NAME), CONFIG_FILENAME)
+  with open_file(config_filepath, 'w') as f:
+    f.write(yaml.dump(config.dict(exclude_defaults=True, exclude_none=True, exclude_unset=True)))
+
+  return dataset
 
 
 def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],

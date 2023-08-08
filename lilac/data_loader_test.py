@@ -5,9 +5,11 @@ import pathlib
 import uuid
 from typing import Iterable
 
+import yaml
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
+from .config import CONFIG_FILENAME, DatasetConfig, DatasetSettings, DatasetUISettings
 from .data.dataset_duckdb import read_source_manifest
 from .data.dataset_utils import parquet_filename
 from .data_loader import process_source
@@ -36,13 +38,16 @@ class TestSource(Source):
 
 
 def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
+  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
+
   mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
   mock_uuid.side_effect = [fake_uuid(b'1'), fake_uuid(b'2')]
 
   source = TestSource()
   setup_mock = mocker.spy(TestSource, 'setup')
 
-  output_dir, num_items = process_source(tmp_path, 'test_namespace', 'test_dataset', source)
+  output_dir, num_items = process_source(
+    tmp_path, DatasetConfig(namespace='test_namespace', name='test_dataset', source=source))
 
   assert setup_mock.call_count == 1
 
@@ -72,3 +77,17 @@ def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
     'x': 2,
     'y': 'twenty'
   }]
+
+  # Make sure the config yml file was written.
+  config_filepath = os.path.join(output_dir, CONFIG_FILENAME)
+  assert os.path.exists(config_filepath)
+
+  with open(config_filepath) as f:
+    config = DatasetConfig(**yaml.safe_load(f))
+
+  assert config.dict() == DatasetConfig(
+    namespace='test_namespace',
+    name='test_dataset',
+    source=source,
+    # 'y' is the longest path, so should be set as the default setting.
+    settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('y',)]))).dict()

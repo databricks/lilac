@@ -13,8 +13,10 @@ import uuid
 from typing import Iterable, Optional, Union
 
 import pandas as pd
+import yaml
 
-from .data.dataset import Dataset
+from .config import CONFIG_FILENAME, DatasetConfig
+from .data.dataset import Dataset, default_settings
 from .data.dataset_utils import write_items_to_parquet
 from .db_manager import get_dataset
 from .env import data_path
@@ -29,32 +31,25 @@ from .schema import (
   field,
   is_float,
 )
-from .sources.source import Source
 from .tasks import TaskStepId, progress
 from .utils import get_dataset_output_dir, log, open_file
 
 
-def create_dataset(
-  namespace: str,
-  dataset_name: str,
-  source_config: Source,
-) -> Dataset:
+def create_dataset(config: DatasetConfig) -> Dataset:
   """Load a dataset from a given source configuration."""
-  process_source(data_path(), namespace, dataset_name, source_config)
-  return get_dataset(namespace, dataset_name)
+  process_source(data_path(), config)
+  return get_dataset(config.namespace, config.name)
 
 
 def process_source(base_dir: Union[str, pathlib.Path],
-                   namespace: str,
-                   dataset_name: str,
-                   source: Source,
+                   config: DatasetConfig,
                    task_step_id: Optional[TaskStepId] = None) -> tuple[str, int]:
   """Process a source."""
-  output_dir = get_dataset_output_dir(base_dir, namespace, dataset_name)
+  output_dir = get_dataset_output_dir(base_dir, config.namespace, config.name)
 
-  source.setup()
-  source_schema = source.source_schema()
-  items = source.process()
+  config.source.setup()
+  source_schema = config.source.source_schema()
+  items = config.source.process()
 
   # Add UUIDs and fix NaN in string columns.
   items = normalize_items(items, source_schema.fields)
@@ -64,7 +59,7 @@ def process_source(base_dir: Union[str, pathlib.Path],
     items,
     task_step_id=task_step_id,
     estimated_len=source_schema.num_items,
-    step_description=f'Reading from source {source.name}...')
+    step_description=f'Reading from source {config.source.name}...')
 
   # Filter out the `None`s after progress.
   items = (item for item in items if item is not None)
@@ -82,7 +77,15 @@ def process_source(base_dir: Union[str, pathlib.Path],
   manifest = SourceManifest(files=filenames, data_schema=data_schema, images=None)
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.json(indent=2, exclude_none=True))
-  log(f'Dataset "{dataset_name}" written to {output_dir}')
+
+  with open_file(os.path.join(output_dir, CONFIG_FILENAME), 'w') as f:
+    f.write(yaml.dump(config.dict(exclude_defaults=True, exclude_none=True, exclude_unset=True)))
+
+  if not config.settings:
+    dataset = get_dataset(config.namespace, config.name)
+    dataset.update_settings(default_settings(dataset))
+
+  log(f'Dataset "{config.name}" written to {output_dir}')
 
   return output_dir, num_items
 

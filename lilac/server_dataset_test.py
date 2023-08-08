@@ -6,13 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
-from .data.dataset import (
-  Dataset,
-  DatasetManifest,
-  DatasetSettings,
-  SelectRowsSchemaResult,
-  SelectRowsSchemaUDF,
-)
+from .config import DatasetSettings
+from .data.dataset import Dataset, DatasetManifest, SelectRowsSchemaResult, SelectRowsSchemaUDF
 from .data.dataset_duckdb import DatasetDuckDB
 from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, enriched_item, make_dataset
 from .router_dataset import (

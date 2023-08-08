@@ -1,13 +1,24 @@
 """Configurations for a dataset run."""
-from typing import Optional
+
+from typing import TYPE_CHECKING, Any, Optional, Union
+
+if TYPE_CHECKING:
+  from pydantic.typing import AbstractSetIntStr, MappingIntStrAny
 
 from pydantic import BaseModel, Extra, validator
 
-from .data.dataset import DatasetSettings
 from .schema import Path, PathTuple, normalize_path
 from .signals.signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
 from .sources.source import Source
 from .sources.source_registry import resolve_source
+
+CONFIG_FILENAME = 'config.yml'
+
+
+def _readable_path(path: PathTuple) -> Union[str, list]:
+  if len(path) == 1:
+    return path[0]
+  return list(path)
 
 
 class SignalConfig(BaseModel):
@@ -17,6 +28,32 @@ class SignalConfig(BaseModel):
 
   class Config:
     extra = Extra.forbid
+
+  def dict(
+    self,
+    *,
+    include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+    exclude: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+    by_alias: bool = False,
+    skip_defaults: Optional[bool] = None,
+    exclude_unset: bool = False,
+    exclude_defaults: bool = False,
+    exclude_none: bool = False,
+  ) -> dict[str, Any]:
+    """Override the default dict method to simplify the path tuples.
+
+    This is required to remove the python-specific tuple dump in the yaml file.
+    """
+    res = super().dict(
+      include=include,
+      exclude=exclude,
+      by_alias=by_alias,
+      skip_defaults=skip_defaults,
+      exclude_unset=exclude_unset,
+      exclude_defaults=exclude_defaults,
+      exclude_none=exclude_none)
+    res['path'] = _readable_path(res['path'])
+    return res
 
   @validator('path', pre=True)
   def parse_path(cls, path: Path) -> PathTuple:
@@ -37,6 +74,32 @@ class EmbeddingConfig(BaseModel):
   class Config:
     extra = Extra.forbid
 
+  def dict(
+    self,
+    *,
+    include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+    exclude: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+    by_alias: bool = False,
+    skip_defaults: Optional[bool] = None,
+    exclude_unset: bool = False,
+    exclude_defaults: bool = False,
+    exclude_none: bool = False,
+  ) -> dict[str, Any]:
+    """Override the default dict method to simplify the path tuples.
+
+    This is required to remove the python-specific tuple dump in the yaml file.
+    """
+    res = super().dict(
+      include=include,
+      exclude=exclude,
+      by_alias=by_alias,
+      skip_defaults=skip_defaults,
+      exclude_unset=exclude_unset,
+      exclude_defaults=exclude_defaults,
+      exclude_none=exclude_none)
+    res['path'] = _readable_path(res['path'])
+    return res
+
   @validator('path', pre=True)
   def parse_path(cls, path: Path) -> PathTuple:
     """Parse a path."""
@@ -49,6 +112,58 @@ class EmbeddingConfig(BaseModel):
     return embedding
 
 
+class DatasetUISettings(BaseModel):
+  """The UI persistent settings for a dataset."""
+  media_paths: list[PathTuple] = []
+  markdown_paths: list[PathTuple] = []
+
+  class Config:
+    extra = Extra.forbid
+
+  @validator('media_paths', pre=True)
+  def parse_media_paths(cls, media_paths: list) -> list:
+    """Parse a path, ensuring it is a tuple."""
+    return [normalize_path(path) for path in media_paths]
+
+  def dict(
+    self,
+    *,
+    include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+    exclude: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+    by_alias: bool = False,
+    skip_defaults: Optional[bool] = None,
+    exclude_unset: bool = False,
+    exclude_defaults: bool = False,
+    exclude_none: bool = False,
+  ) -> dict[str, Any]:
+    """Override the default dict method to simplify the path tuples.
+
+    This is required to remove the python-specific tuple dump in the yaml file.
+    """
+    res = super().dict(
+      include=include,
+      exclude=exclude,
+      by_alias=by_alias,
+      skip_defaults=skip_defaults,
+      exclude_unset=exclude_unset,
+      exclude_defaults=exclude_defaults,
+      exclude_none=exclude_none)
+    if 'media_paths' in res:
+      res['media_paths'] = [_readable_path(path) for path in res['media_paths']]
+    if 'markdown_paths' in res:
+      res['markdown_paths'] = [_readable_path(path) for path in res['markdown_paths']]
+    return res
+
+
+class DatasetSettings(BaseModel):
+  """The persistent settings for a dataset."""
+  ui: Optional[DatasetUISettings] = None
+  preferred_embedding: Optional[str] = None
+
+  class Config:
+    extra = Extra.forbid
+
+
 class DatasetConfig(BaseModel):
   """Configures a dataset with a source and transformations."""
   # The namespace and name of the dataset.
@@ -59,12 +174,12 @@ class DatasetConfig(BaseModel):
   source: Source
 
   # Model configuration: embeddings and signals on paths.
-  embeddings: Optional[list[EmbeddingConfig]]
+  embeddings: list[EmbeddingConfig] = []
   # When defined, uses this list of signals instead of running all signals.
-  signals: Optional[list[SignalConfig]]
+  signals: list[SignalConfig] = []
 
   # Dataset settings, default embeddings and UI settings like media paths.
-  settings: Optional[DatasetSettings]
+  settings: Optional[DatasetSettings] = None
 
   class Config:
     extra = Extra.forbid

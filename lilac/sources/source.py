@@ -1,12 +1,14 @@
 """Interface for implementing a source."""
 
-import abc
-from typing import ClassVar, Iterable, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Iterable, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
+
+if TYPE_CHECKING:
+  from pydantic.typing import AbstractSetIntStr, MappingIntStrAny
 
 from ..schema import (
   Field,
@@ -33,31 +35,53 @@ class SourceProcessResult(BaseModel):
   images: Optional[list[ImageInfo]] = None
 
 
-class Source(abc.ABC, BaseModel):
+class Source(BaseModel):
   """Interface for sources to implement. A source processes a set of shards and writes files."""
   # ClassVars do not get serialized with pydantic.
   name: ClassVar[str]
 
-  # The source_name will get populated in init automatically from the class name so it gets
-  # serialized and the source author doesn't have to define both the static property and the field.
-  source_name: Optional[str] = None
+  def dict(
+    self,
+    *,
+    include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+    exclude: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+    by_alias: bool = False,
+    skip_defaults: Optional[bool] = None,
+    exclude_unset: bool = False,
+    exclude_defaults: bool = False,
+    exclude_none: bool = False,
+  ) -> dict[str, Any]:
+    """Override the default dict method to add `source_name`."""
+    res = super().dict(
+      include=include,
+      exclude=exclude,
+      by_alias=by_alias,
+      skip_defaults=skip_defaults,
+      exclude_unset=exclude_unset,
+      exclude_defaults=exclude_defaults,
+      exclude_none=exclude_none)
+    res['source_name'] = self.name
+    return res
 
   class Config:
     underscore_attrs_are_private = True
 
-  @validator('source_name', always=True)
-  def validate_source_name(cls, source_name: str) -> str:
-    """Return the static name when the source_name name hasn't yet been set."""
-    # When it's already been set from JSON, just return it.
-    if source_name:
-      return source_name
+    @staticmethod
+    def schema_extra(schema: dict[str, Any], source: Type['Source']) -> None:
+      """Add the title to the schema from the display name and name.
 
-    if 'name' not in cls.__dict__:
-      raise ValueError('Source attribute "name" must be defined.')
+      Pydantic defaults this to the class name.
+      """
+      signal_prop: dict[str, Any]
+      if hasattr(source, 'name'):
+        signal_prop = {'enum': [source.name]}
+      else:
+        signal_prop = {'type': 'string'}
+      schema['properties'] = {'source_name': signal_prop, **schema['properties']}
+      if 'required' not in schema:
+        schema['required'] = []
+      schema['required'].append('signal_name')
 
-    return cls.name
-
-  @abc.abstractmethod
   def source_schema(self) -> SourceSchema:
     """Return the source schema for this source.
 
@@ -67,7 +91,7 @@ class Source(abc.ABC, BaseModel):
         num_items: the number of items in the source, used for progress.
 
     """
-    pass
+    raise NotImplementedError
 
   def setup(self) -> None:
     """Prepare the source for processing.
@@ -81,7 +105,6 @@ class Source(abc.ABC, BaseModel):
     """Tears down the source after processing."""
     pass
 
-  @abc.abstractmethod
   def process(self) -> Iterable[Item]:
     """Process the source upload request.
 
@@ -89,7 +112,7 @@ class Source(abc.ABC, BaseModel):
       task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
         progress of the task.
     """
-    pass
+    raise NotImplementedError
 
 
 def schema_from_df(df: pd.DataFrame, index_colname: str) -> SourceSchema:

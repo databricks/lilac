@@ -8,9 +8,10 @@ from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, validator
 
 from .auth import UserInfo, get_session_user, get_user_access
+from .config import DatasetSettings
 from .data.dataset import BinaryOp
 from .data.dataset import Column as DBColumn
-from .data.dataset import DatasetManifest, DatasetSettings, FeatureListValue, FeatureValue
+from .data.dataset import DatasetManifest, FeatureListValue, FeatureValue
 from .data.dataset import Filter as PyFilter
 from .data.dataset import (
   GroupsSortBy,

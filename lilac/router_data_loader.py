@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from .auth import get_user_access
+from .config import DatasetConfig
 from .data_loader import process_source
 from .env import data_path
 from .router_utils import RouteErrorHandler
@@ -74,7 +75,9 @@ async def load(source_name: str, options: LoadDatasetOptions,
   task_id = task_manager().task_id(
     name=f'[{options.namespace}/{options.dataset_name}] Load dataset',
     description=f'Loader: {source.name}. \n Config: {source}')
-  task_manager().execute(task_id, process_source, data_path(), options.namespace,
-                         options.dataset_name, source, (task_id, 0))
+  task_manager().execute(
+    task_id, process_source, data_path(),
+    DatasetConfig(namespace=options.namespace, name=options.dataset_name, source=source),
+    (task_id, 0))
 
   return LoadDatasetResponse(task_id=task_id)

@@ -153,7 +153,8 @@ poetry run lilac load \
 ```
 
 NOTE: You must have a config JSON or YAML file that represents your dataset configuration. The config
-should be an instance of the pydantic class `lilac.Config`.
+should be an instance of the pydantic class `lilac.Config` (for multiple datasets) or
+`lilac.DatasetConfig` (for a single dataset).
 
 ### Tips
 
