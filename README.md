@@ -147,7 +147,7 @@ Test JavaScript:
 Datasets can be ingested entirely from the UI, however if you prefer to use the CLI you can ingest data with the following command:
 
 ```sh
-poetry run python -m lilac.load \
+poetry run lilac load \
   --output_dir=demo_data \
   --config_path=demo.yml
 ```

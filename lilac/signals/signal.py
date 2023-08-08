@@ -119,7 +119,7 @@ class Signal(BaseModel):
     pass
 
   def __str__(self) -> str:
-    return f' {self.__class__.__name__}::{self.json(exclude_none=True)}'
+    return f' {self.__class__.__name__}({self.json(exclude_none=True)})'
 
 
 def _args_key_from_dict(args_dict: dict[str, Any]) -> str:
