@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 from pydantic import Field as PydanticField
 from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
 
@@ -167,6 +167,9 @@ class DatasetUISettings(BaseModel):
   media_paths: list[PathTuple] = []
   markdown_paths: list[PathTuple] = []
 
+  class Config:
+    extra = Extra.forbid
+
   @validator('media_paths', pre=True)
   def parse_media_paths(cls, media_paths: list) -> list:
     """Parse a path, ensuring it is a tuple."""
@@ -177,6 +180,9 @@ class DatasetSettings(BaseModel):
   """The persistent settings for a dataset."""
   ui: Optional[DatasetUISettings] = None
   preferred_embedding: Optional[str] = None
+
+  class Config:
+    extra = Extra.forbid
 
 
 class DatasetManifest(BaseModel):

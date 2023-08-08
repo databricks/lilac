@@ -1,7 +1,7 @@
 """Configurations for a dataset run."""
 from typing import Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Extra, validator
 
 from .data.dataset import DatasetSettings
 from .schema import Path, PathTuple, normalize_path
@@ -14,6 +14,9 @@ class SignalConfig(BaseModel):
   """Configures a signal on a source path."""
   path: PathTuple
   signal: Signal
+
+  class Config:
+    extra = Extra.forbid
 
   @validator('path', pre=True)
   def parse_path(cls, path: Path) -> PathTuple:
@@ -30,6 +33,9 @@ class EmbeddingConfig(BaseModel):
   """Configures an embedding on a source path."""
   path: PathTuple
   embedding: str
+
+  class Config:
+    extra = Extra.forbid
 
   @validator('path', pre=True)
   def parse_path(cls, path: Path) -> PathTuple:
@@ -60,6 +66,9 @@ class DatasetConfig(BaseModel):
   # Dataset settings, default embeddings and UI settings like media paths.
   settings: Optional[DatasetSettings]
 
+  class Config:
+    extra = Extra.forbid
+
   @validator('source', pre=True)
   def parse_source(cls, source: dict) -> Source:
     """Parse a source to its specific subclass instance."""
@@ -73,6 +82,9 @@ class Config(BaseModel):
   # When defined, uses this list of signals to run over every dataset, over all media paths, unless
   # signals is overridden by a specific dataset.
   signals: list[Signal] = []
+
+  class Config:
+    extra = Extra.forbid
 
   @validator('signals', pre=True)
   def parse_signal(cls, signals: list[dict]) -> list[Signal]:
