@@ -817,8 +817,8 @@ class DatasetDuckDB(Dataset):
         vector_index = self._get_vector_db_index(topk_signal.embedding, topk_udf_col.path)
         k = (limit or 0) + offset
         path_id = f'{self.namespace}/{self.dataset_name}:{topk_udf_col.path}'
-        with DebugTimer(f'Computing topk on {path_id} with embedding '
-                        f'"{topk_signal.embedding}" and vector store "{self.vector_store}"'):
+        with DebugTimer(f'Computing topk on {path_id} with embedding "{topk_signal.embedding}" '
+                        f'and vector store "{vector_index._vector_store.name}"'):
           topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
         topk_uuids = list(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk]))
         # Update the offset to account for the number of unique UUIDs.

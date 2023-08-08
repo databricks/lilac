@@ -9,7 +9,7 @@ from ..schema import Field, Item, RichData, SignalInputType, field, lilac_span
 from .signal import TextSignal
 
 LANG_CODE = 'lang_code'
-TEXT_LEN_THRESHOLD = 25
+TEXT_LEN_THRESHOLD = 40
 
 
 class LangDetectionSignal(TextSignal):
