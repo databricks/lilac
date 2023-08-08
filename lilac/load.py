@@ -125,9 +125,9 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
               embeddings.append(
                 EmbeddingConfig(path=path, embedding=d.settings.preferred_embedding))
 
-      for s in embeddings:
-        task_id = task_manager.task_id(f'Compute embedding {s.embedding} on {s.path}')
-        task_manager.execute(task_id, _compute_embedding, d.namespace, d.name, s, output_dir,
+      for e in embeddings:
+        task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {e.path}')
+        task_manager.execute(task_id, _compute_embedding, d.namespace, d.name, e, output_dir,
                              overwrite, (task_id, 0))
     task_manager.wait()
 
