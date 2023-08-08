@@ -264,8 +264,8 @@ class DatasetDuckDB(Dataset):
                      settings: Optional[DatasetSettings] = None,
                      signals: Optional[list[SignalConfig]] = None,
                      embeddings: Optional[list[EmbeddingConfig]] = None) -> None:
+    config = self.config()
     with self._config_lock:
-      config = self.config()
       if settings is not None:
         config.settings = settings
 
