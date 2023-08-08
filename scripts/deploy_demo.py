@@ -1,5 +1,8 @@
 """Deploys the public HuggingFace demo to https://huggingface.co/spaces/lilacai/lilac.
 
+NOTE: You must have `git-lfs` installed to sync data locally. This is required to download LFS files
+from HuggingFace. On Mac OS: `brew install git-lfs`.
+
 This script will, in order:
 1) Sync from the HuggingFace space data (only datasets). (--skip_sync to skip syncing)
 2) Load the data from the demo.yml config. (--skip_load to skip loading)
@@ -58,6 +61,11 @@ def deploy_demo(overwrite: bool, skip_sync: bool, skip_load: bool, skip_build: b
 
     run(f'git clone https://{hf_username}@huggingface.co/spaces/{DEMO_HF_SPACE} {repo_basedir} '
         '--depth 1 --quiet')
+    run(f"""
+        pushd {repo_basedir} > /dev/null && \
+        git lfs install && \
+        git lfs fetch && \
+        popd > /dev/null""")
 
     shutil.rmtree(get_datasets_dir(DEMO_DATA_DIR), ignore_errors=True)
     shutil.move(get_datasets_dir(os.path.join(repo_basedir, 'data')), DEMO_DATA_DIR)
