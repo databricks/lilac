@@ -21,7 +21,7 @@ class CSVDataset(Source):
   """ # noqa: D415, D400
   name = 'csv'
 
-  filepaths: list[str] = Field(description='A list of filepaths to CSV files.')
+  filepaths: list[str] = Field(description='A list of paths to CSV files.')
   delim: Optional[str] = Field(default=',', description='The CSV file delimiter to use.')
   header: Optional[bool] = Field(default=True, description='Whether the CSV file has a header row.')
   names: Optional[list[str]] = Field(

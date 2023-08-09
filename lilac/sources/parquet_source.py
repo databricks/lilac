@@ -13,7 +13,7 @@ from .source import Source, SourceSchema
 class ParquetDataset(Source):
   """Parquet source."""
   name = 'parquet'
-  filepaths: list[str] = Field(description='A list of filepaths to CSV files.')
+  filepaths: list[str] = Field(description='A list of paths to parquet files.')
 
   _source_schema: Optional[SourceSchema] = None
   _table: Optional[pa.Table] = None
