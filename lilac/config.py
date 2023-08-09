@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 if TYPE_CHECKING:
   from pydantic.typing import AbstractSetIntStr, MappingIntStrAny
 
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, ConfigDict, Extra, field_serializer, model_serializer, validator
 
 from .schema import Path, PathTuple, normalize_path
 from .signals.signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
@@ -140,6 +140,7 @@ class DatasetUISettings(BaseModel):
 
     This is required to remove the python-specific tuple dump in the yaml file.
     """
+    # TODO(nsthorat): Migrate this to @field_serializer when we upgrade to pydantic v2.
     res = super().dict(
       include=include,
       exclude=exclude,

@@ -264,8 +264,9 @@ class DatasetDuckDB(Dataset):
                      settings: Optional[DatasetSettings] = None,
                      signals: Optional[list[SignalConfig]] = None,
                      embeddings: Optional[list[EmbeddingConfig]] = None) -> None:
-    config = self.config()
     with self._config_lock:
+      config = self.config()
+
       if settings is not None:
         config.settings = settings
 
@@ -300,10 +301,9 @@ class DatasetDuckDB(Dataset):
 
   @override
   def config(self) -> DatasetConfig:
-    with self._config_lock:
-      config_filepath = _config_filepath(self.namespace, self.dataset_name)
-      with open(config_filepath) as f:
-        return DatasetConfig(**yaml.safe_load(f))
+    config_filepath = _config_filepath(self.namespace, self.dataset_name)
+    with open(config_filepath) as f:
+      return DatasetConfig(**yaml.safe_load(f))
 
   @override
   def settings(self) -> DatasetSettings:

@@ -29,7 +29,7 @@ orjson = "^3.8.10"                                       # Fast JSON serializati
 pillow = "^9.3.0"                                        # Image processing.
 psutil = "^5.9.5"
 pyarrow = "^9.0.0"
-pydantic = "^1.10.11"
+pydantic = "~2."
 python = ">=3.9,<4.0"
 python-dotenv = "^1.0.0"
 requests = "^2"
@@ -140,7 +140,6 @@ wheel = "^0.37.1"
 yapf = "^0.32.0"
 
 [tool.poetry.scripts]
-deploy-hf = "scripts.deploy_hf:main"
 lilac = "lilac.cli:cli"
 
 [build-system]
