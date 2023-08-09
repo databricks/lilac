@@ -29,7 +29,7 @@ orjson = "^3.8.10"                                       # Fast JSON serializati
 pillow = "^9.3.0"                                        # Image processing.
 psutil = "^5.9.5"
 pyarrow = "^9.0.0"
-pydantic = "~2."
+pydantic = "^1.10.11"
 python = ">=3.9,<4.0"
 python-dotenv = "^1.0.0"
 requests = "^2"
