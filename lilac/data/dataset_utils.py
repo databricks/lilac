@@ -183,7 +183,7 @@ def write_embeddings_to_disk(vector_store: str, uuids: Iterable[str], signal_ite
       embedding_vectors.append(vector.reshape(-1))
       spans.append((span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]))
     all_spans.append((path_key, spans))
-  embedding_matrix = np.array(embedding_vectors)
+  embedding_matrix = np.array(embedding_vectors, dtype=np.float32)
   del path_keys, all_embeddings, embedding_vectors
   gc.collect()
 

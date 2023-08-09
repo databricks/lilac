@@ -104,16 +104,17 @@ class VectorDBIndex:
       pickle.dump(list(self._id_to_spans.items()), f)
     self._vector_store.save(os.path.join(base_path, self._vector_store.name))
 
-  def add(self, spans: list[tuple[PathKey, list[tuple[int, int]]]], embeddings: np.ndarray) -> None:
+  def add(self, all_spans: list[tuple[PathKey, list[tuple[int, int]]]],
+          embeddings: np.ndarray) -> None:
     """Add the given spans and embeddings.
 
     Args:
-      spans: The spans to initialize the index with.
+      all_spans: The spans to initialize the index with.
       embeddings: The embeddings to initialize the index with.
     """
     assert not self._id_to_spans, 'Cannot add to a non-empty index.'
-    self._id_to_spans.update(spans)
-    vector_keys = [(*path_key, i) for path_key, spans in spans for i in range(len(spans))]
+    self._id_to_spans.update(all_spans)
+    vector_keys = [(*path_key, i) for path_key, spans in all_spans for i in range(len(spans))]
     assert len(vector_keys) == len(embeddings), (
       f'Number of spans ({len(vector_keys)}) and embeddings ({len(embeddings)}) must match.')
     self._vector_store.add(vector_keys, embeddings)
