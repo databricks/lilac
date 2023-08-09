@@ -64,33 +64,34 @@ datasets:
       - path: context
         embedding: gte-small
 
-  - name: databricks-dolly-15k-curated-en
-    namespace: local
-    settings:
-      ui:
-        media_paths:
-          - original-instruction
-          - original-context
-          - original-response
-          - - new-instruction
-            - value
-            - '*'
-          - - new-context
-            - value
-            - '*'
-          - - new-response
-            - value
-            - '*'
-      preferred_embedding: 'gte-small'
-    # Only run embeddings for original-context and new-context.
-    embeddings:
-      - path: original-context
-        embedding: gte-small
-      - path: [new-context, value, '*']
-        embedding: gte-small
-    source:
-      dataset_name: argilla/databricks-dolly-15k-curated-en
-      source_name: huggingface
+  # This dataset is currently causing issues with loading.
+  # - name: databricks-dolly-15k-curated-en
+  #   namespace: local
+  #   settings:
+  #     ui:
+  #       media_paths:
+  #         - original-instruction
+  #         - original-context
+  #         - original-response
+  #         - - new-instruction
+  #           - value
+  #           - '*'
+  #         - - new-context
+  #           - value
+  #           - '*'
+  #         - - new-response
+  #           - value
+  #           - '*'
+  #     preferred_embedding: 'gte-small'
+  #   # Only run embeddings for original-context and new-context.
+  #   embeddings:
+  #     - path: original-context
+  #       embedding: gte-small
+  #     - path: [new-context, value, '*']
+  #       embedding: gte-small
+  #   source:
+  #     dataset_name: argilla/databricks-dolly-15k-curated-en
+  #     source_name: huggingface
 
   - name: piqa
     namespace: local

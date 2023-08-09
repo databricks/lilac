@@ -155,7 +155,7 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
               embeddings.append(
                 EmbeddingConfig(path=path, embedding=d.settings.preferred_embedding))
       for e in embeddings:
-        if not _has_embedding(dataset, e):
+        if e not in dataset.config().embeddings:
           print('scheduling', e)
           task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {d.name}:{e.path}')
           task_manager.execute(task_id, _compute_embedding, d.namespace, d.name, e, output_dir,
@@ -191,7 +191,7 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
 
       for path, signals in path_signals.items():
         for s in signals:
-          if not _has_signal(dataset, s):
+          if s not in dataset.config().signals:
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
             task_manager.execute(task_id, _compute_signal, d.namespace, d.name, s, output_dir,
                                  overwrite, (task_id, 0))
@@ -208,18 +208,6 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
 
   if old_data_path:
     os.environ['LILAC_DATA_PATH'] = old_data_path
-
-
-def _has_signal(dataset: Dataset, signal_config: SignalConfig) -> bool:
-  field = dataset.manifest().data_schema.get_field(signal_config.path)
-  signal_field = (field.fields or {}).get(signal_config.signal.key())
-  return signal_field is not None and signal_field.signal == signal_config.signal.dict()
-
-
-def _has_embedding(dataset: Dataset, embedding_config: EmbeddingConfig) -> bool:
-  field = dataset.manifest().data_schema.get_field(embedding_config.path)
-  embedding_field = (field.fields or {}).get(embedding_config.embedding)
-  return embedding_field is not None
 
 
 def _compute_signal(namespace: str, name: str, signal_config: SignalConfig, output_dir: str,
@@ -265,6 +253,7 @@ def _compute_embedding(namespace: str, name: str, embedding_config: EmbeddingCon
     compute_embedding = True
 
   dataset = get_dataset(namespace, name)
+
   if not compute_embedding:
     field = dataset.manifest().data_schema.get_field(embedding_config.path)
     embedding_field = (field.fields or {}).get(embedding_config.embedding)
