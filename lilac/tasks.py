@@ -146,7 +146,8 @@ class TaskManager:
 
   def wait(self) -> None:
     """Wait until all tasks are completed."""
-    wait(self._futures)
+    if self._futures:
+      wait(self._futures)
 
   def task_id(self, name: str, description: Optional[str] = None) -> TaskId:
     """Create a unique ID for a task."""
