@@ -5,6 +5,7 @@ from .gmail_source import Gmail
 from .huggingface_source import HuggingFaceDataset
 from .json_source import JSONDataset
 from .pandas_source import PandasDataset
+from .parquet_source import ParquetDataset
 
 __all__ = [
   'HuggingFaceDataset',
@@ -12,4 +13,5 @@ __all__ = [
   'JSONDataset',
   'Gmail',
   'PandasDataset',
+  'ParquetDataset',
 ]

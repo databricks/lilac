@@ -112,7 +112,7 @@
     (field.repeated_field && field.repeated_field.dtype
       ? `${field.repeated_field.dtype}[]`
       : 'object');
-  $: tooltip = `Data type: ${dtypeTooltip}${signalTooltip}`;
+  $: tooltip = `${dtypeTooltip}${signalTooltip}`;
 
   $: isExpandable = isSortableField(field) && !isPreview;
 </script>

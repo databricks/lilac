@@ -23,7 +23,8 @@
   import type {JSONSchema4Type} from 'json-schema';
   import type {JSONError} from 'json-schema-library';
 
-  const sources = querySources();
+  const sourcesQuery = querySources();
+  $: sources = $sourcesQuery.data?.sources.filter(s => s !== 'pandas');
   const loadDataset = loadDatasetMutation();
 
   let namespace = 'local';
@@ -106,23 +107,23 @@
         </FormGroup>
         <FormGroup legendText="Data Loader">
           <!-- Radio button for selecting data loader -->
-          {#if $sources.isSuccess}
+          {#if $sourcesQuery.isFetching}
+            <RadioButtonSkeleton />
+          {:else if sources != null}
             <div>
               <RadioButtonGroup bind:selected={selectedSource}>
-                {#each $sources.data.sources as source}
+                {#each sources as source}
                   <RadioButton labelText={source} value={source} />
                 {/each}
               </RadioButtonGroup>
             </div>
-          {:else if $sources.isError}
+          {:else if $sourcesQuery.isError}
             <InlineNotification
               kind="error"
               title="Error"
-              subtitle={$sources.error.message}
+              subtitle={$sourcesQuery.error.message}
               hideCloseButton
             />
-          {:else if $sources.isLoading}
-            <RadioButtonSkeleton />
           {/if}
 
           {#if $sourcesSchema.isSuccess}

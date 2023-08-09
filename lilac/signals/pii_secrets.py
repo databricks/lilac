@@ -95,6 +95,8 @@ def _is_hash(content: str, value: str) -> bool:
   except ValueError:
     return False
   lines = content[:index].splitlines()
+  if not lines:
+    return False
   target_line = lines[-1]
   if len(value) in [32, 40, 64]:
     # if 'sha' or 'md5' are in content:
