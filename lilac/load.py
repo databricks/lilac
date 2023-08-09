@@ -26,7 +26,7 @@ from .data.dataset import Dataset
 from .data.dataset_duckdb import DatasetDuckDB
 from .data_loader import process_source
 from .db_manager import get_dataset, remove_dataset_from_cache
-from .schema import UUID_COLUMN
+from .schema import UUID_COLUMN, PathTuple
 from .tasks import TaskManager, TaskStepId
 from .utils import DebugTimer, get_datasets_dir, list_datasets
 
@@ -89,7 +89,7 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
 
   # Explicitly create a dask client in sync mode.
   dask.config.set({'distributed.worker.daemon': False})
-  total_memory_gb = psutil.virtual_memory().total / (1024**3)
+  total_memory_gb = psutil.virtual_memory().total / (1024**3) * 2 / 3
   task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB'))
 
   if overwrite:
@@ -165,8 +165,8 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
 
       del dataset
 
-    print('waiting on tasks')
-    task_manager.wait()
+      # Wait for all embeddings for each dataset to reduce the memory pressure.
+      task_manager.wait()
 
   print()
   print('*** Compute signals ***')
@@ -183,17 +183,25 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
             for signal in config.signals or []:
               signals.append(SignalConfig(path=path, signal=signal))
 
+      # Separate signals by path to avoid computing the same signal in parallel, which can cause
+      # issues with taking too much RAM.
+      path_signals: dict[PathTuple, list[SignalConfig]] = {}
       for s in signals:
-        if not _has_signal(dataset, s):
-          task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
-          task_manager.execute(task_id, _compute_signal, d.namespace, d.name, s, output_dir,
-                               overwrite, (task_id, 0))
-        else:
-          print(f'Signal {s.signal} already exists for {d.name}:{s.path}. Skipping.')
+        path_signals.setdefault(s.path, []).append(s)
+
+      for path, signals in path_signals.items():
+        for s in signals:
+          if not _has_signal(dataset, s):
+            task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
+            task_manager.execute(task_id, _compute_signal, d.namespace, d.name, s, output_dir,
+                                 overwrite, (task_id, 0))
+          else:
+            print(f'Signal {s.signal} already exists for {d.name}:{s.path}. Skipping.')
+
+        # Wait for all signals for each path to reduce the memory pressure.
+        task_manager.wait()
 
       del dataset
-
-    task_manager.wait()
 
   print()
   print('Done!')
