@@ -7,6 +7,7 @@ from typing import Generator, Iterable, Type, cast
 import numpy as np
 import pytest
 from pytest_mock import MockerFixture
+from sklearn.preprocessing import normalize
 from typing_extensions import override
 
 from ..data.dataset_duckdb import DatasetDuckDB
@@ -492,7 +493,8 @@ class ConceptModelDBSuite:
     (called_model, called_embeddings, called_labels) = fit_mock.call_args_list[-1].args
     assert called_model == logistic_model
     np.testing.assert_array_equal(
-      called_embeddings, np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']]))
+      called_embeddings,
+      normalize(np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']])))
     assert called_labels == [False, True]
 
     # Edit the concept.
@@ -513,10 +515,11 @@ class ConceptModelDBSuite:
     assert called_model == logistic_model
     np.testing.assert_array_equal(
       called_embeddings,
-      np.array([
-        EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept'],
-        EMBEDDING_MAP['a new data point']
-      ]))
+      normalize(
+        np.array([
+          EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept'],
+          EMBEDDING_MAP['a new data point']
+        ])))
     assert called_labels == [False, True, False]
 
   def test_out_of_sync_draft_model(self, concept_db_cls: Type[ConceptDB],
@@ -568,10 +571,11 @@ class ConceptModelDBSuite:
     assert called_draft_model == draft_model
     np.testing.assert_array_equal(
       called_draft_embeddings,
-      np.array([
-        EMBEDDING_MAP['a true draft point'], EMBEDDING_MAP['a false draft point'],
-        EMBEDDING_MAP['in concept'], EMBEDDING_MAP['not in concept']
-      ]))
+      normalize(
+        np.array([
+          EMBEDDING_MAP['a true draft point'], EMBEDDING_MAP['a false draft point'],
+          EMBEDDING_MAP['in concept'], EMBEDDING_MAP['not in concept']
+        ])))
     assert called_draft_labels == [
       True,
       False,
@@ -583,7 +587,8 @@ class ConceptModelDBSuite:
     # The main model was fit without the data from the draft.
     assert called_model == main_model
     np.testing.assert_array_equal(
-      called_embeddings, np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']]))
+      called_embeddings,
+      normalize(np.array([EMBEDDING_MAP['not in concept'], EMBEDDING_MAP['in concept']])))
     assert called_labels == [False, True]
 
   def test_embedding_not_found_in_map(self, concept_db_cls: Type[ConceptDB],

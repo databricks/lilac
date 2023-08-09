@@ -56,6 +56,8 @@
     }))
   }));
 
+  $: console.log('concepts', $concepts.data);
+
   // Signals.
   const signals = querySignals();
   const SIGNAL_EXCLUDE_LIST = [

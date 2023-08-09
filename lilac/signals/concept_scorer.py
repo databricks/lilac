@@ -87,7 +87,8 @@ class ConceptScoreSignal(VectorSignal):
       vector_index: VectorDBIndex,
       keys: Optional[Iterable[PathKey]] = None) -> list[tuple[PathKey, Optional[Item]]]:
     concept_model = self._get_concept_model()
-    query: np.ndarray = concept_model.coef(self.draft)
+    query: np.ndarray = concept_model.coef(self.draft).astype(np.float32)
+    query /= np.linalg.norm(query)
     topk_keys = [key for key, _ in vector_index.topk(query, topk, keys)]
     return list(zip(topk_keys, self.vector_compute(topk_keys, vector_index)))
 

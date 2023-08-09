@@ -264,8 +264,9 @@ class DatasetDuckDB(Dataset):
                      settings: Optional[DatasetSettings] = None,
                      signals: Optional[list[SignalConfig]] = None,
                      embeddings: Optional[list[EmbeddingConfig]] = None) -> None:
-    config = self.config()
     with self._config_lock:
+      config = self.config()
+
       if settings is not None:
         config.settings = settings
 
@@ -300,10 +301,9 @@ class DatasetDuckDB(Dataset):
 
   @override
   def config(self) -> DatasetConfig:
-    with self._config_lock:
-      config_filepath = _config_filepath(self.namespace, self.dataset_name)
-      with open(config_filepath) as f:
-        return DatasetConfig(**yaml.safe_load(f))
+    config_filepath = _config_filepath(self.namespace, self.dataset_name)
+    with open(config_filepath) as f:
+      return DatasetConfig(**yaml.safe_load(f))
 
   @override
   def settings(self) -> DatasetSettings:
@@ -881,8 +881,8 @@ class DatasetDuckDB(Dataset):
         vector_index = self._get_vector_db_index(topk_signal.embedding, topk_udf_col.path)
         k = (limit or 0) + offset
         path_id = f'{self.namespace}/{self.dataset_name}:{topk_udf_col.path}'
-        with DebugTimer(f'Computing topk on {path_id} with embedding '
-                        f'"{topk_signal.embedding}" and vector store "{self.vector_store}"'):
+        with DebugTimer(f'Computing topk on {path_id} with embedding "{topk_signal.embedding}" '
+                        f'and vector store "{vector_index._vector_store.name}"'):
           topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
         topk_uuids = list(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk]))
         # Update the offset to account for the number of unique UUIDs.

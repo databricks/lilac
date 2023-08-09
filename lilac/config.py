@@ -140,6 +140,7 @@ class DatasetUISettings(BaseModel):
 
     This is required to remove the python-specific tuple dump in the yaml file.
     """
+    # TODO(nsthorat): Migrate this to @field_serializer when we upgrade to pydantic v2.
     res = super().dict(
       include=include,
       exclude=exclude,

@@ -15,6 +15,12 @@ from .vector_store import VectorStore
 _HNSW_SUFFIX = '.hnswlib.bin'
 _LOOKUP_SUFFIX = '.lookup.pkl'
 
+# Parameters for HNSW index: https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md
+QUERY_EF = 50
+CONSTRUCTION_EF = 100
+M = 16
+SPACE = 'ip'
+
 
 class HNSWVectorStore(VectorStore):
   """HNSW-backed vector store."""
@@ -37,8 +43,8 @@ class HNSWVectorStore(VectorStore):
   def load(self, base_path: str) -> None:
     self._key_to_label = pd.read_pickle(base_path + _LOOKUP_SUFFIX)
     dim = int(self._key_to_label.name)
-    index = hnswlib.Index(space='ip', dim=dim)
-    index.set_ef(10)
+    index = hnswlib.Index(space=SPACE, dim=dim)
+    index.set_ef(QUERY_EF)
     index.set_num_threads(multiprocessing.cpu_count())
     index.load_index(base_path + _HNSW_SUFFIX)
     self._index = index
@@ -60,10 +66,10 @@ class HNSWVectorStore(VectorStore):
 
     dim = embeddings.shape[1]
     with DebugTimer('hnswlib index creation'):
-      index = hnswlib.Index(space='ip', dim=dim)
-      index.set_ef(10)
+      index = hnswlib.Index(space=SPACE, dim=dim)
+      index.set_ef(QUERY_EF)
       index.set_num_threads(multiprocessing.cpu_count())
-      index.init_index(max_elements=len(keys), ef_construction=50, M=16)
+      index.init_index(max_elements=len(keys), ef_construction=CONSTRUCTION_EF, M=M)
 
       # Cast to float32 since dot product with float32 is 40-50x faster than float16 and 2.5x faster
       # than float64.

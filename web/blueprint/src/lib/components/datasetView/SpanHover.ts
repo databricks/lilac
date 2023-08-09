@@ -51,19 +51,14 @@ export function spanHover(element: HTMLSpanElement, spanHoverInfo: SpanHoverInfo
 
   function destroyHoverElement() {
     tooltipComponent?.$destroy();
-    tooltipComponent = undefined;
-    if (curSpanHoverInfo.itemScrollContainer != null) {
-      curSpanHoverInfo.itemScrollContainer.removeEventListener('scroll', itemScrollListener);
-    }
+    curSpanHoverInfo.itemScrollContainer?.removeEventListener('scroll', itemScrollListener);
   }
 
   return {
     update(spanHoverInfo: SpanHoverInfo) {
+      destroyHoverElement();
       curSpanHoverInfo = spanHoverInfo;
-
-      if (!curSpanHoverInfo.isHovered) {
-        destroyHoverElement();
-      } else {
+      if (curSpanHoverInfo.isHovered) {
         showSpan();
       }
     },

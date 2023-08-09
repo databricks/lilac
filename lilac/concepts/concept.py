@@ -326,5 +326,5 @@ class ConceptModel:
     missing_embeddings = embed_fn(list(texts_of_missing_embeddings.values()))
 
     for id, (embedding,) in zip(missing_ids, missing_embeddings):
-      concept_embeddings[id] = embedding['vector']
+      concept_embeddings[id] = embedding['vector'] / np.linalg.norm(embedding['vector'])
     self._embeddings = concept_embeddings
