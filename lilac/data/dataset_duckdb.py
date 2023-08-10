@@ -155,7 +155,7 @@ class DatasetDuckDB(Dataset):
     self._manifest_lock = threading.Lock()
 
     self._config_lock = threading.Lock()
-    config_filepath = _config_filepath(namespace, dataset_name)
+    config_filepath = get_config_filepath(namespace, dataset_name)
 
     if not os.path.exists(config_filepath):
       # For backwards compatibility, if the config doesn't exist, create one. This will be out of
@@ -172,7 +172,7 @@ class DatasetDuckDB(Dataset):
 
       config = DatasetConfig(
         namespace=namespace, name=dataset_name, source=source_cls(), settings=settings)
-      with open(_config_filepath(self.namespace, self.dataset_name), 'w') as f:
+      with open(get_config_filepath(self.namespace, self.dataset_name), 'w') as f:
         yaml.dump(config.dict(exclude_none=True, exclude_defaults=True), f)
 
   @override
@@ -296,12 +296,12 @@ class DatasetDuckDB(Dataset):
           if update_config:
             config.embeddings.append(embedding_config)
 
-      with open(_config_filepath(self.namespace, self.dataset_name), 'w') as f:
+      with open(get_config_filepath(self.namespace, self.dataset_name), 'w') as f:
         yaml.dump(config.dict(exclude_none=True, exclude_defaults=True), f)
 
   @override
   def config(self) -> DatasetConfig:
-    config_filepath = _config_filepath(self.namespace, self.dataset_name)
+    config_filepath = get_config_filepath(self.namespace, self.dataset_name)
     with open(config_filepath) as f:
       return DatasetConfig(**yaml.safe_load(f))
 
@@ -1785,5 +1785,5 @@ def _settings_filepath(namespace: str, dataset_name: str) -> str:
     get_dataset_output_dir(data_path(), namespace, dataset_name), DATASET_SETTINGS_FILENAME)
 
 
-def _config_filepath(namespace: str, dataset_name: str) -> str:
+def get_config_filepath(namespace: str, dataset_name: str) -> str:
   return os.path.join(get_dataset_output_dir(data_path(), namespace, dataset_name), CONFIG_FILENAME)

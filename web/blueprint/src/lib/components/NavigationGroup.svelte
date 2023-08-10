@@ -1,4 +1,8 @@
 <script context="module" lang="ts">
+  export interface NavigationTagGroup {
+    tag: string;
+    groups: NavigationGroupItem[];
+  }
   export interface NavigationGroupItem {
     group: string;
     items: NavigationItem[];
@@ -13,14 +17,14 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
 
-  import {SkeletonText} from 'carbon-components-svelte';
+  import {SkeletonText, Tag} from 'carbon-components-svelte';
 
   import {ChevronDown, ChevronUp} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
 
   export let title: string;
   export let isFetching: boolean;
-  export let groups: NavigationGroupItem[];
+  export let tagGroups: NavigationTagGroup[];
   export let expanded = true;
 </script>
 
@@ -45,30 +49,42 @@
         <SkeletonText />
       {:else}
         <div class="mt-1">
-          {#each groups as { group, items }}
-            <div
-              class="flex flex-row justify-between pl-6
-                  text-sm opacity-80"
-            >
-              <div class="py-1 text-xs">
-                {group}
-              </div>
-            </div>
-            {#each items as item}
+          {#each tagGroups as { tag, groups }}
+            {#if tag != ''}
               <div
-                class={`flex w-full ${!item.isSelected ? 'hover:bg-gray-100' : ''}`}
-                class:bg-neutral-100={item.isSelected}
+                class="flex flex-row justify-between pl-3
+            text-sm opacity-80"
               >
-                <a
-                  href={item.link}
-                  on:click={() => goto(item.link)}
-                  class:text-black={item.isSelected}
-                  class:font-semibold={item.isSelected}
-                  class="w-full truncate py-1 pl-8 text-xs text-black"
-                >
-                  {item.name}
-                </a>
+                <div class="py-1 text-xs">
+                  <Tag type="purple" size="sm">{tag}</Tag>
+                </div>
               </div>
+            {/if}
+            {#each groups as { group, items }}
+              <div
+                class="flex flex-row justify-between pl-7
+                  text-sm opacity-80"
+              >
+                <div class="py-1 text-xs">
+                  {group}
+                </div>
+              </div>
+              {#each items as item}
+                <div
+                  class={`flex w-full ${!item.isSelected ? 'hover:bg-gray-100' : ''}`}
+                  class:bg-neutral-100={item.isSelected}
+                >
+                  <a
+                    href={item.link}
+                    on:click={() => goto(item.link)}
+                    class:text-black={item.isSelected}
+                    class:font-semibold={item.isSelected}
+                    class="w-full truncate py-1 pl-9 text-xs text-black"
+                  >
+                    {item.name}
+                  </a>
+                </div>
+              {/each}
             {/each}
           {/each}
         </div>

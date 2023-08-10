@@ -14,6 +14,7 @@ export type Concept = {
     type: SignalInputType;
     data: Record<string, Example>;
     version?: number;
+    tags?: Array<string>;
     description?: string;
 };
 
