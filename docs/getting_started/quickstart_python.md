@@ -103,7 +103,8 @@ dataset.compute_embedding('gte-small', 'response')
 ```
 
 ```sh
-Computing gte-small on local/open-orca-100k:('response',):   2%|████              | 2473/100000 [00:54<34:25, 47.22it/s]
+Computing gte-small on local/open-orca-100k:('response',): 100%|█████████████████████████████████████| 100000/100000 [17:59<00:00, 92.67it/s]
+Computing signal "gte-small" on local/open-orca-100k:('response',) took 1079.260s.
 ```
 
 Now we can preview the top 5 responses based on their profanity concept score:
