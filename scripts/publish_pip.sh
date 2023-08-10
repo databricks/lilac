@@ -14,7 +14,7 @@ poetry version patch
 poetry config pypi-token.pypi $PYPI_TOKEN
 poetry build
 
-read -p "Continue (y/n)?" CONT
+read -p "Continue (y/n)? " CONT
 if [ "$CONT" = "y" ]; then
   poetry publish
   echo "Published $(poetry version)"

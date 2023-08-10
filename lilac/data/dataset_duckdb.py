@@ -748,14 +748,21 @@ class DatasetDuckDB(Dataset):
       return None
     return udf_col
 
-  def _normalize_columns(self, columns: Optional[Sequence[ColumnId]],
-                         schema: Schema) -> list[Column]:
+  def _normalize_columns(self, columns: Optional[Sequence[ColumnId]], schema: Schema,
+                         combine_columns: bool) -> list[Column]:
     """Normalizes the columns to a list of `Column` objects."""
     cols = [column_from_identifier(col) for col in columns or []]
     star_in_cols = any(col.path == ('*',) for col in cols)
     if not cols or star_in_cols:
       # Select all columns.
       cols.extend([Column((name,)) for name in schema.fields.keys()])
+
+      if not combine_columns:
+        # Select all the signal top-level fields.
+        for path, field in schema.all_fields:
+          if field.signal:
+            cols.append(Column(path))
+
       if star_in_cols:
         cols = [col for col in cols if col.path != ('*',)]
     return cols
@@ -809,7 +816,7 @@ class DatasetDuckDB(Dataset):
                   combine_columns: bool = False,
                   user: Optional[UserInfo] = None) -> SelectRowsResult:
     manifest = self.manifest()
-    cols = self._normalize_columns(columns, manifest.data_schema)
+    cols = self._normalize_columns(columns, manifest.data_schema, combine_columns)
     offset = offset or 0
     schema = manifest.data_schema
 
@@ -1001,6 +1008,8 @@ class DatasetDuckDB(Dataset):
       with DebugTimer(f'Computing signal "{signal.name}" on {path_id}'):
         signal.setup()
 
+        step_description = f'Computing {signal.key()} on {path_id}'
+
         if isinstance(signal, VectorSignal):
           embedding_signal = signal
           vector_store = self._get_vector_db_index(embedding_signal.embedding, udf_col.path)
@@ -1013,7 +1022,7 @@ class DatasetDuckDB(Dataset):
               signal_out,
               task_step_id=task_step_id,
               estimated_len=len(flat_keys),
-              step_description=f'Computing {signal.key()}')
+              step_description=step_description)
           df[signal_column] = deep_unflatten(signal_out, input)
         else:
           num_rich_data = count_primitives(input)
@@ -1026,7 +1035,7 @@ class DatasetDuckDB(Dataset):
               signal_out,
               task_step_id=task_step_id,
               estimated_len=num_rich_data,
-              step_description=f'Computing {signal.key()}')
+              step_description=step_description)
           signal_out_list = list(signal_out)
           if signal_column in temp_column_to_offset_column:
             offset_column_name, field = temp_column_to_offset_column[signal_column]
@@ -1113,7 +1122,7 @@ class DatasetDuckDB(Dataset):
       raise NotImplementedError(
         'select_rows_schema with combine_columns=False is not yet supported.')
     manifest = self.manifest()
-    cols = self._normalize_columns(columns, manifest.data_schema)
+    cols = self._normalize_columns(columns, manifest.data_schema, combine_columns)
 
     # Always return the UUID column.
     col_paths = [col.path for col in cols]

@@ -467,6 +467,39 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   }]
 
 
+def test_enriched_select_all(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello'
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'everybody'
+  }])
+  test_signal = TestSignal()
+  dataset.compute_signal(test_signal, 'text')
+  length_signal = LengthSignal()
+  dataset.compute_signal(length_signal, 'text')
+
+  result = dataset.select_rows()
+  assert list(result) == [{
+    UUID_COLUMN: '1',
+    'text': 'hello',
+    'text.length_signal': 5,
+    'text.test_signal': {
+      'len': 5,
+      'flen': 5.0
+    }
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'everybody',
+    'text.length_signal': 9,
+    'text.test_signal': {
+      'len': 9,
+      'flen': 9.0
+    }
+  }]
+
+
 def test_merge_array_values(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',
