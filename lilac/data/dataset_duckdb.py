@@ -369,7 +369,7 @@ class DatasetDuckDB(Dataset):
     manifest = self.manifest()
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([signal_col],
+    select_rows_result = self.select_rows([UUID_COLUMN, signal_col],
                                           task_step_id=task_step_id,
                                           resolve_span=True)
     df = select_rows_result.df()
@@ -420,7 +420,7 @@ class DatasetDuckDB(Dataset):
 
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([signal_col],
+    select_rows_result = self.select_rows([UUID_COLUMN, signal_col],
                                           task_step_id=task_step_id,
                                           resolve_span=True)
     df = select_rows_result.df()

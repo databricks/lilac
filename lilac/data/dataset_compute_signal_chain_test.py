@@ -205,7 +205,7 @@ def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(TestSplitter(), 'text')
   dataset.compute_signal(entity, ('text', 'test_splitter', '*'))
 
-  result = dataset.select_rows(['text'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'text'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': enriched_item(

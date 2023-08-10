@@ -185,15 +185,15 @@ def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
     }))
 
   exists_filter = ('name', UnaryOp.EXISTS)
-  result = dataset.select_rows(['name'], filters=[exists_filter])
+  result = dataset.select_rows([UUID_COLUMN, 'name'], filters=[exists_filter])
   assert list(result) == [{UUID_COLUMN: '1', 'name': 'A'}, {UUID_COLUMN: '3', 'name': 'C'}]
 
   exists_filter = ('info.lang', UnaryOp.EXISTS)
-  result = dataset.select_rows(['name'], filters=[exists_filter])
+  result = dataset.select_rows([UUID_COLUMN, 'name'], filters=[exists_filter])
   assert list(result) == [{UUID_COLUMN: '1', 'name': 'A'}, {UUID_COLUMN: '2', 'name': None}]
 
   exists_filter = ('ages.*.*', UnaryOp.EXISTS)
-  result = dataset.select_rows(['name'], filters=[exists_filter])
+  result = dataset.select_rows([UUID_COLUMN, 'name'], filters=[exists_filter])
   assert list(result) == [{UUID_COLUMN: '3', 'name': 'C'}]
 
   with pytest.raises(ValueError, match='Unable to filter on path'):

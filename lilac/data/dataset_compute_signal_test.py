@@ -226,7 +226,7 @@ def test_sparse_signal(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestSparseSignal(), 'text')
 
-  result = dataset.select_rows(['text'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'text'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': enriched_item('hello', {'test_sparse_signal': None})
@@ -247,7 +247,7 @@ def test_sparse_rich_signal(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestSparseRichSignal(), 'text')
 
-  result = dataset.select_rows(['text'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'text'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': enriched_item('hello', {'test_sparse_rich_signal': None})
@@ -299,7 +299,7 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=3)
 
-  result = dataset.select_rows(['str'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'str'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'str': enriched_item('a', {'test_signal': {
@@ -321,7 +321,7 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
   }]
 
   # Select a specific signal leaf test_signal.flen with 'str'.
-  result = dataset.select_rows(['str', ('str', 'test_signal', 'flen')])
+  result = dataset.select_rows([UUID_COLUMN, 'str', ('str', 'test_signal', 'flen')])
 
   assert list(result) == [{
     UUID_COLUMN: '1',
@@ -339,7 +339,7 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
 
   # Select multiple signal leafs with aliasing.
   result = dataset.select_rows([
-    'str',
+    UUID_COLUMN, 'str',
     Column(('str', 'test_signal', 'flen'), alias='flen'),
     Column(('str', 'test_signal', 'len'), alias='len')
   ])
@@ -389,7 +389,7 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows(['text'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'text'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': enriched_item('hello', {
@@ -427,7 +427,7 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows(['text'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'text'], combine_columns=True)
   expected_result = [{
     UUID_COLUMN: '1',
     'text': enriched_item('[1, 1] first sentence. [1, 1] second sentence.',
@@ -475,7 +475,7 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows([('text', '*')], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, ('text', '*')], combine_columns=True)
 
   assert list(result) == [{
     UUID_COLUMN: '1',
@@ -515,7 +515,7 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestSplitSignal(), 'text')
 
-  result = dataset.select_rows(['text'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'text'], combine_columns=True)
   expected_result = [{
     UUID_COLUMN: '1',
     'text': enriched_item('[1, 1] first sentence. [1, 1] second sentence.',
