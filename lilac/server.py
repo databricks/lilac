@@ -31,10 +31,11 @@ from .auth import (
   get_user_access,
 )
 from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
+from .db_manager import list_datasets
 from .env import data_path, env
 from .router_utils import RouteErrorHandler
 from .tasks import task_manager
-from .utils import get_dataset_output_dir, list_datasets
+from .utils import get_dataset_output_dir
 
 DIST_PATH = os.path.join(os.path.dirname(__file__), 'web')
 

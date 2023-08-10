@@ -170,6 +170,8 @@ class DatasetConfig(BaseModel):
   # The namespace and name of the dataset.
   namespace: str
   name: str
+  # Tags to organize datasets.
+  tags: list[str] = []
 
   # The source configuration.
   source: Source

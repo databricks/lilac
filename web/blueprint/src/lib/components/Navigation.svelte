@@ -7,14 +7,8 @@
   import {querySignals} from '$lib/queries/signalQueries';
   import {getNavigationContext} from '$lib/stores/navigationStore';
   import {getUrlHashContext} from '$lib/stores/urlHashStore';
-  import {
-    conceptIdentifier,
-    conceptLink,
-    datasetIdentifier,
-    datasetLink,
-    signalLink
-  } from '$lib/utils';
-  import {getSortedConcepts, getSortedDatasets} from '$lib/view_utils';
+  import {conceptLink, signalLink} from '$lib/utils';
+  import {getTaggedConcepts, getTaggedDatasets} from '$lib/view_utils';
   import {AddAlt, Settings, SidePanelClose} from 'carbon-icons-svelte';
   import NavigationGroup from './NavigationGroup.svelte';
   import {Command, triggerCommand} from './commands/Commands.svelte';
@@ -30,31 +24,30 @@
 
   // Datasets.
   const datasets = queryDatasets();
-  $: namespaceDatasets = getSortedDatasets($datasets.data || []);
-  $: datasetNavGroups = namespaceDatasets.map(({namespace, datasets}) => ({
-    group: namespace,
-    items: datasets.map(c => ({
-      name: c.dataset_name,
-      link: datasetLink(c.namespace, c.dataset_name),
-      isSelected:
-        $urlHashContext.page === 'datasets' &&
-        $urlHashContext.identifier === datasetIdentifier(c.namespace, c.dataset_name)
-    }))
-  }));
+  let selectedDataset: {namespace: string; datasetName: string} | null = null;
+  $: {
+    if ($urlHashContext.page === 'datasets' && $urlHashContext.identifier != null) {
+      const [namespace, datasetName] = $urlHashContext.identifier.split('/');
+      selectedDataset = {namespace, datasetName};
+    } else {
+      selectedDataset = null;
+    }
+  }
+  $: taggedDatasets = getTaggedDatasets(selectedDataset, $datasets.data || []);
 
   // Concepts.
   const concepts = queryConcepts();
-  $: namespaceConcepts = getSortedConcepts($concepts.data || [], userId);
-  $: conceptNavGroups = namespaceConcepts.map(({namespace, concepts}) => ({
-    group: namespace === userId ? `${username}'s concepts` : namespace,
-    items: concepts.map(c => ({
-      name: c.name,
-      link: conceptLink(c.namespace, c.name),
-      isSelected:
-        $urlHashContext.page === 'concepts' &&
-        $urlHashContext.identifier === conceptIdentifier(c.namespace, c.name)
-    }))
-  }));
+  let selectedConcept: {namespace: string; name: string} | null = null;
+  $: {
+    if ($urlHashContext.page === 'concepts' && $urlHashContext.identifier != null) {
+      const [namespace, name] = $urlHashContext.identifier.split('/');
+      selectedConcept = {namespace, name};
+    } else {
+      selectedConcept = null;
+    }
+  }
+
+  $: taggedConcepts = getTaggedConcepts(selectedConcept, $concepts.data || [], userId, username);
 
   // Signals.
   const signals = querySignals();
@@ -71,12 +64,18 @@
 
   $: signalNavGroups = [
     {
-      group: 'lilac',
-      items: (sortedSignals || []).map(s => ({
-        name: s.name,
-        link: signalLink(s.name),
-        isSelected: $urlHashContext.page === 'signals' && $urlHashContext.identifier === s.name
-      }))
+      // Display no tag for signals.
+      tag: '',
+      groups: [
+        {
+          group: 'lilac',
+          items: (sortedSignals || []).map(s => ({
+            name: s.name,
+            link: signalLink(s.name),
+            isSelected: $urlHashContext.page === 'signals' && $urlHashContext.identifier === s.name
+          }))
+        }
+      ]
     }
   ];
 
@@ -98,7 +97,7 @@
       >
     </div>
   </div>
-  <NavigationGroup title="Datasets" groups={datasetNavGroups} isFetching={$datasets.isFetching}>
+  <NavigationGroup title="Datasets" tagGroups={taggedDatasets} isFetching={$datasets.isFetching}>
     <div slot="add" class="w-full">
       {#if canCreateDataset}
         <button
@@ -108,7 +107,7 @@
       {/if}
     </div>
   </NavigationGroup>
-  <NavigationGroup title="Concepts" groups={conceptNavGroups} isFetching={$concepts.isFetching}>
+  <NavigationGroup title="Concepts" tagGroups={taggedConcepts} isFetching={$concepts.isFetching}>
     <div slot="add" class="w-full">
       <button
         class="mr-1 flex w-full flex-row px-1 py-1 text-black hover:bg-gray-200"
@@ -120,7 +119,7 @@
       >
     </div>
   </NavigationGroup>
-  <NavigationGroup title="Signals" groups={signalNavGroups} isFetching={$signals.isFetching} />
+  <NavigationGroup title="Signals" tagGroups={signalNavGroups} isFetching={$signals.isFetching} />
   <div class="w-full px-1">
     <button
       class={`w-full px-4 py-2 text-left  ${!settingsSelected ? 'hover:bg-gray-100' : ''}`}

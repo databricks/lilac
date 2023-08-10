@@ -74,6 +74,7 @@ class Concept(BaseModel):
   data: dict[str, Example]
   version: int = 0
 
+  tags: list[str] = []
   description: Optional[str] = None
 
   def drafts(self) -> list[DraftId]:

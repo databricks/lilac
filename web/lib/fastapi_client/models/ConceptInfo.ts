@@ -14,6 +14,7 @@ export type ConceptInfo = {
     description?: string;
     type: SignalInputType;
     drafts: Array<('main' | string)>;
+    tags?: Array<string>;
     acls: ConceptACL;
 };
 

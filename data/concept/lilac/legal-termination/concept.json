@@ -2,6 +2,7 @@
   "namespace": "lilac",
   "concept_name": "legal-termination",
   "type": "text",
+  "tags": ["legal"],
   "data": {
     "731b1338cf1949958c3526c555f88058": {
       "label": true,

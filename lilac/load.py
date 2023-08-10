@@ -24,10 +24,10 @@ from pydantic import ValidationError
 from .config import Config, DatasetConfig, EmbeddingConfig, SignalConfig
 from .data.dataset_duckdb import DatasetDuckDB
 from .data_loader import process_source
-from .db_manager import get_dataset, remove_dataset_from_cache
+from .db_manager import get_dataset, list_datasets, remove_dataset_from_cache
 from .schema import UUID_COLUMN, PathTuple
 from .tasks import TaskManager, TaskStepId
-from .utils import DebugTimer, get_datasets_dir, list_datasets
+from .utils import DebugTimer, get_datasets_dir
 
 
 @click.command()

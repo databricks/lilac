@@ -39,10 +39,12 @@ import {
   Time,
   type CarbonIcon
 } from 'carbon-icons-svelte';
+import type {NavigationGroupItem, NavigationTagGroup} from './components/NavigationGroup.svelte';
 import type {SpanValueInfo} from './components/datasetView/spanHighlight';
 import type {DatasetState} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
 import type {SettingsState} from './stores/settingsStore';
+import {conceptLink, datasetLink} from './utils';
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
 export const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
@@ -272,25 +274,101 @@ function getDefaultSearchPath(datasetStore: DatasetState): Path | null {
   return paths[0].path;
 }
 
-export function getSortedDatasets(
+export function getTaggedDatasets(
+  selectedDataset: {namespace: string; datasetName: string} | null,
   datasets: DatasetInfo[]
-): {namespace: string; datasets: DatasetInfo[]}[] {
-  const namespaceDatasets: Record<string, DatasetInfo[]> = {};
-  for (const c of datasets) {
-    if (namespaceDatasets[c.namespace] == null) {
-      namespaceDatasets[c.namespace] = [];
+): NavigationTagGroup[] {
+  const tagDatasets: Record<string, Record<string, DatasetInfo[]>> = {};
+  for (const dataset of datasets) {
+    let tags = [''];
+    if (dataset.tags != null && dataset.tags.length > 0) {
+      tags = dataset.tags;
     }
-    namespaceDatasets[c.namespace].push(c);
+    for (const tag of tags) {
+      if (tagDatasets[tag] == null) {
+        tagDatasets[tag] = {};
+      }
+      if (tagDatasets[tag][dataset.namespace] == null) {
+        tagDatasets[tag][dataset.namespace] = [];
+      }
+      tagDatasets[tag][dataset.namespace].push(dataset);
+    }
   }
-  const sortPriorities = ['lilac'];
-  return Object.keys(namespaceDatasets)
-    .sort((a, b) => sortPriorities.indexOf(a) - sortPriorities.indexOf(b) || a.localeCompare(b))
-    .map(namespace => ({
-      namespace,
-      datasets: namespaceDatasets[namespace].sort((a, b) =>
-        a.dataset_name.localeCompare(b.dataset_name)
+  const namespaceSortPriorities = ['lilac'];
+
+  // Sort each tag by namespace and then dataset name.
+  const taggedDatasetGroups: NavigationTagGroup[] = [];
+  for (const tag of Object.keys(tagDatasets).sort()) {
+    const sortedNamespaceDatasets: NavigationGroupItem[] = Object.keys(tagDatasets[tag])
+      .sort(
+        (a, b) =>
+          namespaceSortPriorities.indexOf(a) - namespaceSortPriorities.indexOf(b) ||
+          a.localeCompare(b)
       )
-    }));
+      .map(namespace => ({
+        group: namespace,
+        items: tagDatasets[tag][namespace]
+          .sort((a, b) => a.dataset_name.localeCompare(b.dataset_name))
+          .map(d => ({
+            name: d.dataset_name,
+            link: datasetLink(d.namespace, d.dataset_name),
+            isSelected:
+              selectedDataset?.namespace === d.namespace &&
+              selectedDataset?.datasetName === d.dataset_name
+          }))
+      }));
+    taggedDatasetGroups.push({tag, groups: sortedNamespaceDatasets});
+  }
+  return taggedDatasetGroups;
+}
+
+export function getTaggedConcepts(
+  selectedConcept: {namespace: string; name: string} | null,
+  concepts: ConceptInfo[],
+  userId: string | undefined,
+  username: string | undefined
+): NavigationTagGroup[] {
+  const tagConcepts: Record<string, Record<string, ConceptInfo[]>> = {};
+  for (const concept of concepts) {
+    let tags = [''];
+    if (concept.tags != null && concept.tags.length > 0) {
+      tags = concept.tags;
+    }
+    for (const tag of tags) {
+      if (tagConcepts[tag] == null) {
+        tagConcepts[tag] = {};
+      }
+      if (tagConcepts[tag][concept.namespace] == null) {
+        tagConcepts[tag][concept.namespace] = [];
+      }
+      tagConcepts[tag][concept.namespace].push(concept);
+    }
+  }
+  const namespaceSortPriorities = ['lilac'];
+
+  // Sort each tag by namespace and then dataset name.
+  const taggedDatasetGroups: NavigationTagGroup[] = [];
+  for (const tag of Object.keys(tagConcepts).sort()) {
+    const sortedNamespaceDatasets: NavigationGroupItem[] = Object.keys(tagConcepts[tag])
+      .sort(
+        (a, b) =>
+          namespaceSortPriorities.indexOf(a) - namespaceSortPriorities.indexOf(b) ||
+          a.localeCompare(b)
+      )
+      .map(namespace => ({
+        group: namespace === userId ? `${username}'s concepts` : namespace,
+        items: tagConcepts[tag][namespace]
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map(c => ({
+            name: c.name,
+            link: conceptLink(c.namespace, c.name),
+            isSelected:
+              selectedConcept?.namespace === c.namespace && selectedConcept?.name === c.name
+          }))
+      }));
+    taggedDatasetGroups.push({tag, groups: sortedNamespaceDatasets});
+  }
+  return taggedDatasetGroups;
 }
 
 export function getSortedConcepts(

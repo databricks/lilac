@@ -51,6 +51,7 @@ class ConceptInfo(BaseModel):
   description: Optional[str] = None
   type: SignalInputType
   drafts: list[DraftId]
+  tags: list[str] = []
 
   acls: ConceptACL
 
@@ -367,6 +368,7 @@ class DiskConceptDB(ConceptDB):
               description=concept.description,
               type=SignalInputType.TEXT,
               drafts=concept.drafts(),
+              tags=concept.tags,
               acls=self.concept_acls(namespace, name, user=user)))
 
     return concept_infos

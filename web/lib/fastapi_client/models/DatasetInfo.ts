@@ -9,5 +9,6 @@ export type DatasetInfo = {
     namespace: string;
     dataset_name: string;
     description?: string;
+    tags?: Array<string>;
 };
 
