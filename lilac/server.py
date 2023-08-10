@@ -103,12 +103,12 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(current_dir, 'templates'))
 
 
-@app.get('/_data/{path:path}', response_class=HTMLResponse, include_in_schema=False)
+@app.get('/_data{path:path}', response_class=HTMLResponse, include_in_schema=False)
 def list_files(request: Request, path: str) -> Response:
   """List files in the data directory."""
   if env('LILAC_AUTH_ENABLED', False):
     return Response(status_code=401)
-  path = os.path.join(data_path(), path)
+  path = os.path.join(data_path(), f'.{path}')
   if not os.path.exists(path):
     return Response(status_code=404)
   if os.path.isfile(path):
