@@ -17,10 +17,10 @@ import click
 import huggingface_hub
 
 from lilac.concepts.db_concept import CONCEPTS_DIR
+from lilac.db_manager import list_datasets
 from lilac.load import load
 from lilac.utils import get_datasets_dir
 
-from .db_manager import list_datasets
 from .deploy_hf import deploy_hf
 
 DEMO_DATA_DIR = 'demo_data'

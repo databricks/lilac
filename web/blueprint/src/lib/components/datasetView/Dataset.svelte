@@ -52,9 +52,11 @@
 <Page>
   <div slot="header-subtext" class="flex flex-row items-center">
     <Tag type="outline">
-      <a class="font-semibold text-black" href={link} on:click={() => goto(link)}
-        >{$datasetViewStore.namespace}/{$datasetViewStore.datasetName}
-      </a>
+      <div class="dataset-name">
+        <a class="font-semibold text-black" href={link} on:click={() => goto(link)}
+          >{$datasetViewStore.namespace}/{$datasetViewStore.datasetName}
+        </a>
+      </div>
     </Tag>
     <button on:click={() => (configModalOpen = true)}>
       <Information />
@@ -191,8 +193,12 @@
 </Page>
 <Commands />
 
-<style>
+<style lang="postcss">
   .schema-container {
     transition: width 0.2s ease-in-out;
+  }
+  .dataset-name {
+    @apply truncate text-ellipsis;
+    max-width: 8rem;
   }
 </style>
