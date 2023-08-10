@@ -114,8 +114,19 @@ r = dataset.select_rows(['overview'], searches=[ll.Search(path='overview', query
 print(r.df())
 ```
 
+TODO: Fix concept not found.
+
 To compute the concept score over the entire dataset, we do:
 
 ```py
-dataset.comput
+dataset.compute_signal(
+    ll.ConceptScoreSignal(namespace='lilac',
+                          concept_name='profanity',
+                          embedding='gte-small'), 'response')
 ```
+
+TODO: Fix concept not found.
+
+## Download
+
+TODO
