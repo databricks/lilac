@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# The `firebase` CLI is assumed to be installed.
+# See: https://firebase.google.com/docs/cli
+
+
 # Fail if any of the commands below fail.
 set -e
 

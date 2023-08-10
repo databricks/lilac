@@ -23,7 +23,7 @@ Welcome to Lilac
    concepts/concept_create.md
    concepts/concept_tuning.md
    concepts/concept_metrics.md
-
+   concepts/concept_technical.md
 
 .. toctree::
    :caption: Datasets
