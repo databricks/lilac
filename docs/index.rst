@@ -12,6 +12,7 @@ Welcome to Lilac
 
    getting_started/installation.md
    getting_started/quickstart.md
+   getting_started/quickstart_python.md
 
 .. toctree::
    :caption: Concepts

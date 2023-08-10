@@ -12,31 +12,32 @@ lilac start
 
 This should open a browser tab pointing to `http://localhost:5432`.
 
-## Adding a dataset
+## Add a dataset
 
 Let's load [OpenOrca](https://huggingface.co/datasets/Open-Orca/OpenOrca), a popular instruction
 dataset used for tunning LLM models.
 
-Click the `Add dataset` button on the Getting Started page and fill the form shown in the video
-below. While the Lilac tool can scale to millions of rows on a single machine, we are sampling to
-100,000 so we can get started quickly.
+Click the `Add dataset` button on the Getting Started page and add the dataset info as shown below.
+While the Lilac tool can scale to millions of rows on a single machine, we are sampling to 100,000
+so we can get started quickly.
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-load.mp4"></video>
 
-## Configuring
+## Configure
 
-When we load a dataset, Lilac creates a default UI configuration, inferring the _media_ fields (e.g.
-rich text) from the _metadata_ fields. The two types of fields are presented differently in the UI.
-Let's edit the configuration by clicking the `Dataset settings` button in the top-right corner.
+When we load a dataset, Lilac creates a default UI configuration, inferring which fields are _media_
+(e.g. rich text), and which are _metadata_ fields. The two types of fields are presented differently
+in the UI. Let's edit the configuration by clicking the `Dataset settings` button in the top-right
+corner. If your media field contains markdown, you can enable markdown rendering.
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-settings.mp4"></video>
 
-## Enrichment
+## Enrich
 
-Lilac can enrich your media fields with additional metadata in two ways:
+Lilac can enrich your media fields with additional metadata by:
 
-- Running a signal (e.g. PII detection)
-- Running a concept (e.g. profanity detection)
+- Running a signal (e.g. PII detection, language detection, text statistics, etc.)
+- Running a concept (e.g. profanity, sentiment, etc. or a custom concept that you create)
 
 ### PII detection
 
@@ -63,7 +64,7 @@ need to index once. For a fast on-device embedding, we recommend the
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-index-response.mp4"></video>
 
-It took ~20 minutes to index the 100,000 responses on my Macbook M1. Now that the field is indexed,
+It takes ~20 minutes to index the 100,000 responses on a Macbook M1. Now that the field is indexed,
 we can now do _semantic search_ and _concept search_ on the field (in addition to the usual _keyword
 search_).
 
@@ -75,13 +76,18 @@ schema.
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-profanity-preview.mp4"></video>
 
-Computing the concept took ~20 seconds on my Macbook M1 laptop. Now that the concept is computed, we
+Computing the concept takes ~20 seconds on a Macbook M1 laptop. Now that the concept is computed, we
 can open the statistics panel to see the distribution of concept scores.
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-profanity-stats.mp4"></video>
 
-## Downloading
+## Download
 
-Now that we've enriched the dataset, let's download the enriched fields.
+Now that we've enriched the dataset, let's download it by clicking on the `Download data` button in
+the top-right corner. This will download a json file with the same name as the dataset. Once we have
+the data, we can continue working with it in a Python notebook, or any other language.
+
+For other formats (csv, parquet, pandas, etc.) see the
+[Download section](quickstart_python.md#Download) in [Quick Start (Python)](quickstart_python.md).
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-download.mp4"></video>
