@@ -16,7 +16,8 @@ This should open a browser tab pointing to `http://localhost:5432`.
 
 In this quick start we're going to:
 
-- Load OpenOrca, a popular instruction dataset for tunning LLMs.
+- Load [OpenOrca](https://huggingface.co/datasets/Open-Orca/OpenOrca), a popular instruction dataset
+  for tuning LLMs.
 - Find PII (emails, etc)
 - Find profanity in the responses (using powerful text embeddings)
 - Download the enriched dataset as a json file so we can clean it in a Python notebook
@@ -24,7 +25,7 @@ In this quick start we're going to:
 ## Add a dataset
 
 Let's load [OpenOrca](https://huggingface.co/datasets/Open-Orca/OpenOrca), a popular instruction
-dataset used for tunning LLM models.
+dataset used for tuning LLM models.
 
 Click the `Add dataset` button on the Getting Started page and add the dataset info as shown below.
 While the Lilac tool can scale to millions of rows on a single machine, we are sampling to 100,000
