@@ -14,7 +14,7 @@ This should open a browser tab pointing to `http://localhost:5432`.
 
 ## Overview
 
-In this quick start, we're going to:
+In this quick start we're going to:
 
 - Load OpenOrca, a popular instruction dataset for tunning LLMs.
 - Find PII (emails, etc)
@@ -82,10 +82,11 @@ we can now do _semantic search_ and _concept search_ on the field (in addition t
 search_).
 
 Let's search by the profanity concept and see if the LLM produced any profane content. Results in
-the video are blurred due to sensitive content. Concepts by default run in _preview_ mode, where we
-only compute the concept scores for the top K results. To compute the concept score over the entire
-dataset, we click the blue `Compute signal` button next to `lilac/profanity/gte-small` in the
-schema.
+the video are blurred due to sensitive content.
+
+Concepts by default run in _preview_ mode, where we only compute the concept scores for the top K
+results. To compute the concept score over the entire dataset, we click the blue `Compute signal`
+button next to `lilac/profanity/gte-small` in the schema.
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-profanity-preview.mp4"></video>
 
