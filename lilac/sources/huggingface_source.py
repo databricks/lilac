@@ -3,6 +3,7 @@ import multiprocessing
 from typing import Iterable, Optional, Union
 
 import numpy as np
+import requests
 from datasets import (
   ClassLabel,
   Dataset,
@@ -79,6 +80,12 @@ def hf_schema_to_schema(dataset: Dataset) -> SchemaInfo:
   return SchemaInfo(fields=fields, class_labels=class_labels, num_items=num_items)
 
 
+def _list_splits(dataset_name: str) -> list[str]:
+  url = f'https://datasets-server.huggingface.co/splits?dataset={dataset_name}'
+  print('listing splits from hf server')
+  return list(set([s['split'] for s in requests.get(url).json()['splits']]))
+
+
 class HuggingFaceDataset(Source):
   """HuggingFace data loader
 
@@ -115,11 +122,15 @@ class HuggingFaceDataset(Source):
     else:
       if not self.split:
         builder = load_dataset_builder(self.dataset_name, self.config_name)
-        splits = list(builder.info.splits.keys())
+        if builder.info.splits:
+          splits = list(builder.info.splits.keys())
+        else:
+          splits = _list_splits(self.dataset_name)
       else:
         splits = [self.split]
       if self.sample_size:
         splits = [f'{split}[:{self.sample_size}]' for split in splits]
+      print('splits', splits)
       self._dataset = load_dataset(
         self.dataset_name,
         self.config_name,
