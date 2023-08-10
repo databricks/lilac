@@ -6,7 +6,7 @@ import pathlib
 from datasets import Dataset, Features, Sequence, Value
 
 from ..schema import schema
-from .huggingface_source import HuggingFaceDataset
+from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceDataset
 from .source import SourceSchema
 
 
@@ -24,13 +24,22 @@ def test_hf(tmp_path: pathlib.Path) -> None:
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
     fields=schema({
+      HF_SPLIT_COLUMN: 'string',
       'x': 'int64',
       'y': 'string'
     }).fields, num_items=2)
 
   items = list(source.process())
 
-  assert items == [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}]
+  assert items == [{
+    HF_SPLIT_COLUMN: 'default',
+    'x': 1,
+    'y': 'ten'
+  }, {
+    HF_SPLIT_COLUMN: 'default',
+    'x': 2,
+    'y': 'twenty'
+  }]
 
 
 def test_hf_sequence(tmp_path: pathlib.Path) -> None:
@@ -69,6 +78,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
     fields=schema({
+      HF_SPLIT_COLUMN: 'string',
       'scalar': 'int64',
       'seq': ['int64'],
       'seq_dict': {
@@ -81,6 +91,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
   items = list(source.process())
 
   assert items == [{
+    HF_SPLIT_COLUMN: 'default',
     'scalar': 1,
     'seq': [1, 0],
     'seq_dict': {
@@ -88,6 +99,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
       'y': ['four', 'five', 'six']
     }
   }, {
+    HF_SPLIT_COLUMN: 'default',
     'scalar': 2,
     'seq': [2, 0],
     'seq_dict': {
@@ -130,6 +142,7 @@ def test_hf_list(tmp_path: pathlib.Path) -> None:
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
     fields=schema({
+      HF_SPLIT_COLUMN: 'string',
       'scalar': 'int64',
       'list': [{
         'x': 'int64',
@@ -141,12 +154,14 @@ def test_hf_list(tmp_path: pathlib.Path) -> None:
   items = list(source.process())
 
   assert items == [{
+    HF_SPLIT_COLUMN: 'default',
     'scalar': 1,
     'list': [{
       'x': 1,
       'y': 'two'
     }]
   }, {
+    HF_SPLIT_COLUMN: 'default',
     'scalar': 2,
     'list': [{
       'x': 3,

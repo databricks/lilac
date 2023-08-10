@@ -3,22 +3,15 @@ import multiprocessing
 from typing import Iterable, Optional, Union
 
 import numpy as np
-import requests
-from datasets import (
-  ClassLabel,
-  Dataset,
-  Sequence,
-  Value,
-  load_dataset,
-  load_dataset_builder,
-  load_from_disk,
-)
+from datasets import ClassLabel, DatasetDict, Sequence, Value, load_dataset, load_from_disk
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..schema import DataType, Field, Item, arrow_dtype_to_dtype
 from .source import Source, SourceSchema
+
+HF_SPLIT_COLUMN = '__hfsplit__'
 
 # Used when the dataset is saved locally.
 DEFAULT_LOCAL_SPLIT_NAME = 'default'
@@ -60,29 +53,35 @@ def _infer_field(feature_value: Union[Value, dict]) -> Field:
     raise ValueError(f'Feature is not a `Value`, `Sequence`, or `dict`: {feature_value}')
 
 
-def hf_schema_to_schema(dataset: Dataset) -> SchemaInfo:
+def hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> SchemaInfo:
   """Convert the HuggingFace schema to our schema."""
+  if split:
+    split_datasets = [hf_dataset_dict[split]]
+  else:
+    split_datasets = [hf_dataset_dict[split] for split in hf_dataset_dict.keys()]
+
   fields: dict[str, Field] = {}
   class_labels: dict[str, list[str]] = {}
-  num_items = len(dataset)
-  features = dataset.features
-  for feature_name, feature_value in features.items():
-    if feature_name in fields:
-      continue
+  num_items = 0
 
-    if isinstance(feature_value, ClassLabel):
-      # Class labels act as strings and we map the integer to a string before writing.
-      fields[feature_name] = Field(dtype=DataType.STRING)
-      class_labels[feature_name] = feature_value.names
-    else:
-      fields[feature_name] = _infer_field(feature_value)
+  for split_dataset in split_datasets:
+    num_items += len(split_dataset)
+    features = split_dataset.features
+    for feature_name, feature_value in features.items():
+      if feature_name in fields:
+        continue
+
+      if isinstance(feature_value, ClassLabel):
+        # Class labels act as strings and we map the integer to a string before writing.
+        fields[feature_name] = Field(dtype=DataType.STRING)
+        class_labels[feature_name] = feature_value.names
+      else:
+        fields[feature_name] = _infer_field(feature_value)
+
+  # Add the split column to the schema.
+  fields[HF_SPLIT_COLUMN] = Field(dtype=DataType.STRING)
 
   return SchemaInfo(fields=fields, class_labels=class_labels, num_items=num_items)
-
-
-def _list_splits(dataset_name: str) -> list[str]:
-  url = f'https://datasets-server.huggingface.co/splits?dataset={dataset_name}'
-  return list(set([s['split'] for s in requests.get(url).json()['splits']]))
 
 
 class HuggingFaceDataset(Source):
@@ -99,43 +98,31 @@ class HuggingFaceDataset(Source):
     required=True,
     description='Either in the format `user/dataset` or `dataset`.',
   )
-  sample_size: Optional[int] = PydanticField(
-    title='Sample size',
-    description='Number of rows to sample from the dataset, for each split.',
-    default=None)
   config_name: Optional[str] = PydanticField(
     title='Dataset config name', description='Some datasets require this.', default=None)
   split: Optional[str] = PydanticField(
     title='Dataset split', description='Loads all splits by default.', default=None)
+  sample_size: Optional[int] = PydanticField(
+    title='Sample size',
+    description='Number of rows to sample from the dataset, for each split.',
+    default=None)
   revision: Optional[str] = PydanticField(title='Dataset revision', default=None)
   load_from_disk: Optional[bool] = PydanticField(
     description='Load from local disk instead of the hub.', default=False)
 
-  _dataset: Optional[Dataset] = None
+  _dataset_dict: Optional[DatasetDict] = None
   _schema_info: Optional[SchemaInfo] = None
 
   @override
   def setup(self) -> None:
     if self.load_from_disk:
-      self._dataset = load_from_disk(self.dataset_name)
+      # Load from disk.
+      hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.dataset_name)}
     else:
-      if not self.split:
-        builder = load_dataset_builder(self.dataset_name, self.config_name)
-        if builder.info.splits:
-          splits = list(builder.info.splits.keys())
-        else:
-          splits = _list_splits(self.dataset_name)
-      else:
-        splits = [self.split]
-      if self.sample_size:
-        splits = [f'{split}[:{self.sample_size}]' for split in splits]
-      self._dataset = load_dataset(
-        self.dataset_name,
-        self.config_name,
-        # Concatenate the splits in a single dataset via `+`.
-        split='+'.join(splits),
-        num_proc=multiprocessing.cpu_count())
-    self._schema_info = hf_schema_to_schema(self._dataset)
+      hf_dataset_dict = load_dataset(
+        self.dataset_name, self.config_name, num_proc=multiprocessing.cpu_count())
+    self._dataset_dict = hf_dataset_dict
+    self._schema_info = hf_schema_to_schema(self._dataset_dict, self.split)
 
   @override
   def source_schema(self) -> SourceSchema:
@@ -145,19 +132,33 @@ class HuggingFaceDataset(Source):
 
   @override
   def process(self) -> Iterable[Item]:
-    if not self._schema_info or not self._dataset:
+    if not self._schema_info or not self._dataset_dict:
       raise ValueError('`setup()` must be called before `process`.')
 
-    for example in self._dataset:
-      # Replace the class labels with strings.
-      for feature_name in self._schema_info.class_labels.keys():
-        if feature_name in example:
-          example[feature_name] = self._schema_info.class_labels[feature_name][
-            example[feature_name]]
+    if self.split:
+      split_names = [self.split]
+    else:
+      split_names = list(self._dataset_dict.keys())
 
-      # Huggingface Sequences are represented as np.arrays. Convert them to lists.
-      example = _np_array_to_list_deep(example)
-      yield example
+    for split_name in split_names:
+      split_dataset = self._dataset_dict[split_name]
+      if self.sample_size:
+        split_dataset = split_dataset.select(range(self.sample_size))
+
+      for example in split_dataset:
+        # Replace the class labels with strings.
+        for feature_name in self._schema_info.class_labels.keys():
+          if feature_name in example:
+            example[feature_name] = self._schema_info.class_labels[feature_name][
+              example[feature_name]]
+
+        # Inject the split name.
+        example[HF_SPLIT_COLUMN] = split_name
+
+        # Huggingface Sequences are represented as np.arrays. Convert them to lists.
+        example = _np_array_to_list_deep(example)
+
+        yield example
 
 
 def _np_array_to_list_deep(item: Item) -> Item:
