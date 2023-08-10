@@ -47,7 +47,7 @@
     }
   }
 
-  $: taggedConcepts = getTaggedConcepts(selectedConcept, $concepts.data || [], userId);
+  $: taggedConcepts = getTaggedConcepts(selectedConcept, $concepts.data || [], userId, username);
 
   // Signals.
   const signals = querySignals();

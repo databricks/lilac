@@ -324,7 +324,9 @@ export function getTaggedDatasets(
 
 export function getTaggedConcepts(
   selectedConcept: {namespace: string; name: string} | null,
-  concepts: ConceptInfo[]
+  concepts: ConceptInfo[],
+  userId: string | undefined,
+  username: string | undefined
 ): NavigationTagGroup[] {
   const tagConcepts: Record<string, Record<string, ConceptInfo[]>> = {};
   for (const concept of concepts) {
@@ -354,7 +356,7 @@ export function getTaggedConcepts(
           a.localeCompare(b)
       )
       .map(namespace => ({
-        group: namespace,
+        group: namespace === userId ? `${username}'s concepts` : namespace,
         items: tagConcepts[tag][namespace]
           .sort((a, b) => a.name.localeCompare(b.name))
           .map(c => ({
