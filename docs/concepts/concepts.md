@@ -6,10 +6,11 @@
 
 ## What is a concept?
 
-A concept in Lilac is the algorithmic version of a concept we have in our head.
+A concept in Lilac is the algorithmic version of a concept we have in our head, in the context of
+natural language.
 
-Often time human concepts are fuzzy, hard to codify into a computer, or are simply "you know it when
-you see it".
+Often time human language concepts are fuzzy, hard to codify into a computer, or are simply "you
+know it when you see it".
 
 For instance, when text is positive in sentiment (for instance, a product review by a very happy
 customer), we understand that it is related to a _positive sentiment_ concept that we have in our
