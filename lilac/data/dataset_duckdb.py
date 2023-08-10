@@ -811,12 +811,6 @@ class DatasetDuckDB(Dataset):
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema)
     offset = offset or 0
-
-    # Always return the UUID column.
-    col_paths = [col.path for col in cols]
-    if (UUID_COLUMN,) not in col_paths:
-      cols.append(column_from_identifier(UUID_COLUMN))
-
     schema = manifest.data_schema
 
     if combine_columns:

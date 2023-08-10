@@ -58,3 +58,4 @@ html_theme_options = {
 }
 html_static_path = ['_static']
 html_css_files = ['styles/custom.css']
+html_js_files = ['custom.js']
