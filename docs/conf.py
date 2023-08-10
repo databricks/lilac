@@ -23,6 +23,8 @@ extensions = [
   'myst_parser',
 ]
 
+myst_enable_extensions = ['attrs_block', 'attrs_inline']
+
 autodoc_pydantic_model_show_json = False
 autodoc_pydantic_field_list_validators = False
 autodoc_pydantic_config_members = False

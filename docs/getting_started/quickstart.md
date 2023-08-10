@@ -88,6 +88,6 @@ the top-right corner. This will download a json file with the same name as the d
 the data, we can continue working with it in a Python notebook, or any other language.
 
 For other formats (csv, parquet, pandas, etc.) see the
-[Download section](quickstart_python.md#Download) in [Quick Start (Python)](quickstart_python.md).
+[Download section](quickstart_python.md#download) in [Quick Start (Python)](quickstart_python.md).
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-download.mp4"></video>

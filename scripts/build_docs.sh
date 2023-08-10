@@ -12,3 +12,4 @@ source $(poetry env info --path)/bin/activate
 make html
 
 popd > /dev/null
+deactivate
