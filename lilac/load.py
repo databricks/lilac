@@ -22,7 +22,6 @@ from distributed import Client
 from pydantic import ValidationError
 
 from .config import Config, DatasetConfig, EmbeddingConfig, SignalConfig
-from .data.dataset import Dataset
 from .data.dataset_duckdb import DatasetDuckDB
 from .data_loader import process_source
 from .db_manager import get_dataset, remove_dataset_from_cache
