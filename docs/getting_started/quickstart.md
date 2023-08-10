@@ -12,6 +12,15 @@ lilac start
 
 This should open a browser tab pointing to `http://localhost:5432`.
 
+## Overview
+
+In this quick start, we're going to:
+
+- Load OpenOrca, a popular instruction dataset for tunning LLMs.
+- Find PII (emails, etc)
+- Find profanity in the responses (using powerful text embeddings)
+- Download the enriched dataset as a json file so we can clean it in a Python notebook
+
 ## Add a dataset
 
 Let's load [OpenOrca](https://huggingface.co/datasets/Open-Orca/OpenOrca), a popular instruction
@@ -26,9 +35,11 @@ so we can get started quickly.
 ## Configure
 
 When we load a dataset, Lilac creates a default UI configuration, inferring which fields are _media_
-(e.g. rich text), and which are _metadata_ fields. The two types of fields are presented differently
-in the UI. Let's edit the configuration by clicking the `Dataset settings` button in the top-right
-corner. If your media field contains markdown, you can enable markdown rendering.
+(e.g. unstructured documents), and which are _metadata_ fields. The two types of fields are
+presented differently in the UI.
+
+Let's edit the configuration by clicking the `Dataset settings` button in the top-right corner. If
+your media field contains markdown, you can enable markdown rendering.
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-settings.mp4"></video>
 
@@ -36,8 +47,10 @@ corner. If your media field contains markdown, you can enable markdown rendering
 
 Lilac can enrich your media fields with additional metadata by:
 
-- Running a signal (e.g. PII detection, language detection, text statistics, etc.)
-- Running a concept (e.g. profanity, sentiment, etc. or a custom concept that you create)
+- Running a [signal](../signals/signals.md) (e.g. PII detection, language detection, text
+  statistics, etc.)
+- Running a [concept](../concepts/concepts.md) (e.g. profanity, sentiment, etc. or a custom concept
+  that you create)
 
 ### PII detection
 
