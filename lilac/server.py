@@ -8,10 +8,11 @@ import webbrowser
 from typing import Any, Optional
 
 import uvicorn
-from fastapi import APIRouter, FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse, ORJSONResponse
+from fastapi import APIRouter, FastAPI, Request, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import (
@@ -97,6 +98,25 @@ def auth_info(request: Request) -> AuthenticationInfo:
 
 
 app.include_router(v1_router, prefix='/api/v1')
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(current_dir, 'templates'))
+
+
+@app.get('/_data/{path:path}', response_class=HTMLResponse, include_in_schema=False)
+def list_files(request: Request, path: str) -> Response:
+  """List files in the data directory."""
+  if env('LILAC_AUTH_ENABLED', False):
+    return Response(status_code=401)
+  path = os.path.join(data_path(), path)
+  if not os.path.exists(path):
+    return Response(status_code=404)
+  if os.path.isfile(path):
+    return FileResponse(path)
+
+  files = os.listdir(path)
+  files_paths = sorted([(os.path.join(request.url.path, f), f) for f in files])
+  return templates.TemplateResponse('list_files.html', {'request': request, 'files': files_paths})
 
 
 @app.api_route('/{path_name}', include_in_schema=False)

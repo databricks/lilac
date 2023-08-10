@@ -25,7 +25,7 @@
   /** Custom components to use for certain properties */
   export let customComponents: Record<string, typeof SvelteComponent>;
 
-  $: property = schema.getSchema(path, value);
+  $: property = schema.getSchema(path, value || {});
   $: label = property.title ? `${property.title} ${required ? '*' : ''}` : '';
 
   // FInd the validation error for this property using some pointer magic
@@ -34,6 +34,14 @@
       `${err?.data?.pointer}${err?.data?.key ? '/' + err?.data?.key : ''}`.replaceAll('#', '') ==
       path
   );
+
+  let numberValue: number | null | undefined = undefined;
+  $: {
+    // Convert a null value to undefined for the json schema to validate.
+    if (numberValue !== undefined) {
+      value = numberValue === null ? undefined : numberValue;
+    }
+  }
 
   // Map common validation errors to user friendly messages
   let validationText = '';
@@ -100,9 +108,16 @@
       hideLabel={true}
       placeholder={!required ? '(optional)' : ''}
     />
-  {:else if property.type == 'number'}
+  {:else if property.type == 'number' || property.type == 'integer'}
     <!-- Number Input -->
-    <NumberInput bind:value name={path} {label} hideLabel={true} invalid={!value && required} />
+    <NumberInput
+      allowEmpty={!required}
+      bind:value={numberValue}
+      name={path}
+      {label}
+      hideLabel={true}
+      invalid={!value && required}
+    />
   {:else if property.type == 'boolean'}
     <!-- Boolean Input -->
     <div>

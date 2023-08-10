@@ -1,0 +1,13 @@
+<html>
+  <head>
+    <title>Lilac data files</title>
+  </head>
+  <body>
+    <h2>{{request.path_params['path']}}</h2>
+    <ul>
+      {% for file in files %}
+      <li><a href="{{file[0]}}">{{file[1]}}</a></li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>
