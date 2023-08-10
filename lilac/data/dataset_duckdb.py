@@ -1780,10 +1780,6 @@ def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
   return bins
 
 
-def _settings_filepath(namespace: str, dataset_name: str) -> str:
-  return os.path.join(
-    get_dataset_output_dir(data_path(), namespace, dataset_name), DATASET_SETTINGS_FILENAME)
-
-
 def get_config_filepath(namespace: str, dataset_name: str) -> str:
+  """Gets the config yaml filepath."""
   return os.path.join(get_dataset_output_dir(data_path(), namespace, dataset_name), CONFIG_FILENAME)
