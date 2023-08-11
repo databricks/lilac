@@ -286,6 +286,112 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
   ]
 
 
+def test_concept_search_without_uuid(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello world2.',
+  }])
+
+  test_embedding = TestEmbedding()
+  dataset.compute_signal(test_embedding, ('text'))
+
+  concept_db = DiskConceptDB()
+  concept_db.create(namespace='test_namespace', name='test_concept', type=SignalInputType.TEXT)
+  concept_db.edit(
+    'test_namespace', 'test_concept',
+    ConceptUpdate(insert=[
+      ExampleIn(label=False, text='hello world.'),
+      ExampleIn(label=True, text='hello world2.')
+    ]))
+
+  result = dataset.select_rows(
+    columns=['text'],
+    searches=[
+      Search(
+        path='text',
+        query=ConceptQuery(
+          type='concept',
+          concept_namespace='test_namespace',
+          concept_name='test_concept',
+          embedding='test_embedding'))
+    ])
+
+  assert list(result) == [
+    # Results are sorted by score desc.
+    {
+      'text': 'hello world2.',
+      'test_namespace/test_concept/test_embedding(text)': [
+        lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})
+      ],
+      'test_namespace/test_concept/labels(text)': [lilac_span(0, 13, {'label': True})]
+    },
+    {
+      'text': 'hello world.',
+      'test_namespace/test_concept/test_embedding(text)': [
+        lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})
+      ],
+      'test_namespace/test_concept/labels(text)': [lilac_span(0, 12, {'label': False})]
+    },
+  ]
+
+
+def test_concept_search_sort_by_uuid(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello world2.',
+  }])
+
+  test_embedding = TestEmbedding()
+  dataset.compute_signal(test_embedding, ('text'))
+
+  concept_db = DiskConceptDB()
+  concept_db.create(namespace='test_namespace', name='test_concept', type=SignalInputType.TEXT)
+  concept_db.edit(
+    'test_namespace', 'test_concept',
+    ConceptUpdate(insert=[
+      ExampleIn(label=False, text='hello world.'),
+      ExampleIn(label=True, text='hello world2.')
+    ]))
+
+  result = dataset.select_rows(
+    columns=['text'],
+    searches=[
+      Search(
+        path='text',
+        query=ConceptQuery(
+          type='concept',
+          concept_namespace='test_namespace',
+          concept_name='test_concept',
+          embedding='test_embedding'))
+    ],
+    sort_by=[UUID_COLUMN],
+    sort_order=SortOrder.ASC)
+
+  assert list(result) == [
+    # Results are sorted by score desc.
+    {
+      'text': 'hello world.',
+      'test_namespace/test_concept/test_embedding(text)': [
+        lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})
+      ],
+      'test_namespace/test_concept/labels(text)': [lilac_span(0, 12, {'label': False})]
+    },
+    {
+      'text': 'hello world2.',
+      'test_namespace/test_concept/test_embedding(text)': [
+        lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})
+      ],
+      'test_namespace/test_concept/labels(text)': [lilac_span(0, 13, {'label': True})]
+    }
+  ]
+
+
 def test_sort_override_search(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     UUID_COLUMN: '1',

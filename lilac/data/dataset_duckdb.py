@@ -831,6 +831,16 @@ class DatasetDuckDB(Dataset):
     cols.extend([search_udf.udf for search_udf in search_udfs])
     udf_columns = [col for col in cols if col.signal_udf]
 
+    temp_uuid_added = False
+    for col in cols:
+      if col.path == (UUID_COLUMN,):
+        temp_uuid_added = False
+        break
+      if isinstance(col.signal_udf, VectorSignal):
+        temp_uuid_added = True
+    if temp_uuid_added:
+      cols.append(Column(UUID_COLUMN))
+
     # Set extra information on any concept signals.
     for udf_col in udf_columns:
       if isinstance(udf_col.signal_udf, (ConceptSignal, ConceptLabelsSignal)):
@@ -1074,6 +1084,9 @@ class DatasetDuckDB(Dataset):
         rel = rel.limit(limit, offset)
 
       df = _replace_nan_with_none(rel.df())
+
+    if temp_uuid_added:
+      del df[UUID_COLUMN]
 
     if combine_columns:
       all_columns: dict[str, Column] = {}
