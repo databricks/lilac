@@ -345,7 +345,7 @@ class Dataset(abc.ABC):
                   resolve_span: bool = False,
                   combine_columns: bool = False,
                   user: Optional[UserInfo] = None) -> SelectRowsResult:
-    """Select grouped columns to power a histogram.
+    """Select a set of rows that match the provided filters, analogous to SQL SELECT.
 
     Args:
       columns: The columns to select. A column is an instance of `Column` which can either
@@ -372,7 +372,7 @@ class Dataset(abc.ABC):
         apply ACL to the query, especially for concepts.
 
     Returns
-      A SelectRowsResult iterator with rows of `Item`s.
+      A `SelectRowsResult` iterator with rows of `Item`s.
     """
     pass
 
