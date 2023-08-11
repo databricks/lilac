@@ -2,7 +2,6 @@
 
 import abc
 import glob
-import importlib
 import json
 import os
 import pathlib
@@ -13,7 +12,6 @@ import threading
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
 from importlib import resources
-from importlib.abc import Traversable
 from typing import Any, List, Optional, Union, cast
 
 from pydantic import BaseModel
@@ -371,11 +369,12 @@ class DiskConceptDB(ConceptDB):
       # None = Read the namespace from the directory.
       (None, os.path.join(self._get_base_dir(), CONCEPTS_DIR)),
       # Read lilac concepts from the resources directory.
-      ('lilac', str(resources.files(f'lilac').joinpath(LILAC_CONCEPTS_DIR)))
+      ('lilac', str(resources.files('lilac').joinpath(LILAC_CONCEPTS_DIR)))
     ]
 
     for (default_namespace, concept_dir) in namespace_concept_dirs:
-      # Read the concepts from the data dir and return a ConceptInfo containing the namespace and name.
+      # Read the concepts from the data dir and return a ConceptInfo containing the namespace and
+      # name.
       for root, _, files in os.walk(concept_dir):
         for file in files:
           if file == CONCEPT_JSON_FILENAME:

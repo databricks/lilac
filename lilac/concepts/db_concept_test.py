@@ -1,6 +1,5 @@
 """Tests for the the database concept."""
 
-import importlib
 import os
 from pathlib import Path
 from typing import Generator, Iterable, Type, cast
@@ -11,7 +10,6 @@ from pytest_mock import MockerFixture
 from sklearn.preprocessing import normalize
 from typing_extensions import override
 
-import lilac as ll
 
 from ..data.dataset_duckdb import DatasetDuckDB
 from ..db_manager import set_default_dataset_cls

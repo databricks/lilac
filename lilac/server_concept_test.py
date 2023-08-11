@@ -2,7 +2,7 @@
 import os
 import uuid
 from pathlib import Path
-from typing import Iterable, Type, cast
+from typing import Iterable, cast
 
 import numpy as np
 import pytest

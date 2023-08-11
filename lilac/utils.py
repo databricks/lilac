@@ -14,7 +14,6 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import Executor, ThreadPoolExecutor
 from datetime import timedelta
 from functools import partial, wraps
-from importlib.abc import Traversable
 from typing import IO, Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
 
 import numpy as np

@@ -1,14 +1,10 @@
 """Lilac CLI."""
 
-import os
-import sys
-from importlib import resources
-from typing import cast
 
 import click
 
 from . import __version__
-from .concepts.db_concept import DISK_CONCEPT_DB, ConceptInfo
+from .concepts.db_concept import DISK_CONCEPT_DB
 from .load import load_command as load
 from .server import start_server
 
