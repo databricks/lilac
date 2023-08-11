@@ -337,6 +337,39 @@ def test_concept_search_without_uuid(make_test_data: TestDataMaker) -> None:
     },
   ]
 
+  result = dataset.select_rows(
+    columns=['text'],
+    searches=[
+      Search(
+        path='text',
+        query=ConceptQuery(
+          type='concept',
+          concept_namespace='test_namespace',
+          concept_name='test_concept',
+          embedding='test_embedding'))
+    ],
+    combine_columns=True)
+
+  assert list(result) == [
+    # Results are sorted by score desc.
+    {
+      'text': enriched_item(
+        'hello world2.', {
+          'test_namespace/test_concept/test_embedding':
+            [lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})],
+          'test_namespace/test_concept/labels': [lilac_span(0, 13, {'label': True})]
+        })
+    },
+    {
+      'text': enriched_item(
+        'hello world.', {
+          'test_namespace/test_concept/test_embedding':
+            [lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})],
+          'test_namespace/test_concept/labels': [lilac_span(0, 12, {'label': False})]
+        })
+    },
+  ]
+
 
 def test_concept_search_sort_by_uuid(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
@@ -374,7 +407,7 @@ def test_concept_search_sort_by_uuid(make_test_data: TestDataMaker) -> None:
     sort_order=SortOrder.ASC)
 
   assert list(result) == [
-    # Results are sorted by score desc.
+    # Results are sorted by UUID.
     {
       'text': 'hello world.',
       'test_namespace/test_concept/test_embedding(text)': [

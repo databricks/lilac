@@ -1087,6 +1087,7 @@ class DatasetDuckDB(Dataset):
 
     if temp_uuid_added:
       del df[UUID_COLUMN]
+      del columns_to_merge[UUID_COLUMN]
 
     if combine_columns:
       all_columns: dict[str, Column] = {}

@@ -39,7 +39,7 @@
     dataset.namespace,
     dataset.name,
     {
-      columns: [fieldPath],
+      columns: [UUID_COLUMN, fieldPath],
       limit: NUM_ROW_CANDIDATES_TO_FETCH,
       combine_columns: true,
       searches: [
@@ -68,6 +68,7 @@
     dataset.name,
     {
       columns: [
+        UUID_COLUMN,
         fieldPath,
         {path: fieldPath, signal_udf: conceptSignal},
         {path: fieldPath, signal_udf: labelsSignal}
