@@ -32,7 +32,7 @@ def version() -> None:
 
 
 @click.command()
-def list_concepts() -> list[ConceptInfo]:
+def list_concepts() -> None:
   """Lists lilac concepts"""
   print(DISK_CONCEPT_DB.list())
 

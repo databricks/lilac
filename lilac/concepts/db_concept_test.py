@@ -79,6 +79,19 @@ def setup_teardown() -> Generator:
 @pytest.mark.parametrize('db_cls', ALL_CONCEPT_DBS)
 class ConceptDBSuite:
 
+  def test_list(self, db_cls: Type[ConceptDB]) -> None:
+    db = db_cls()
+    #db.create(namespace='test', name='test_concept', type=SignalInputType.TEXT)
+    print(db.list())
+
+    # Make sure a lilac concept exists in the default list.
+    assert ConceptInfo(
+      namespace='lilac',
+      name='positive-sentiment',
+      type=SignalInputType.TEXT,
+      drafts=[DRAFT_MAIN],
+      acls=ConceptACL(read=True, write=True)) in db.list()
+
   def test_create_concept(self, db_cls: Type[ConceptDB]) -> None:
     db = db_cls()
     db.create(namespace='test', name='test_concept', type=SignalInputType.TEXT)

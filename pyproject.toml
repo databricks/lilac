@@ -228,8 +228,6 @@ continuation_indent_width = 2
 indent_width = 2
 split_before_expression_after_opening_paren = true
 
-# [tool.setuptools.packages.find]
-# where = ["src"]
 
 # Consider enabling these options for more compact code.
 # split_before_named_assigns = false

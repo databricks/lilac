@@ -108,6 +108,11 @@ def get_dataset_output_dir(base_dir: Union[str, pathlib.Path], namespace: str,
   return os.path.join(get_datasets_dir(base_dir), namespace, dataset_name)
 
 
+def get_lilac_cache_dir(base_dir: Union[str, pathlib.Path]) -> str:
+  """Return the output directory for a dataset."""
+  return os.path.join(base_dir, '.cache', 'lilac')
+
+
 class CopyRequest(BaseModel):
   """A request to copy a file from source to destination path. Used to copy media files to GCS."""
   from_path: str
@@ -198,7 +203,6 @@ def delete_file(filepath: str) -> None:
 
 def file_exists(filepath: Union[str, pathlib.PosixPath]) -> bool:
   """Return true if the file exists. It works with both GCS and local paths."""
-  print('got', filepath, type(filepath))
   str_filepath = str(filepath)
   if str_filepath.startswith(GCS_PROTOCOL):
     return _get_gcs_blob(str_filepath).exists()

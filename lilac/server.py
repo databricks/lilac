@@ -35,7 +35,7 @@ from .db_manager import list_datasets
 from .env import data_path, env
 from .router_utils import RouteErrorHandler
 from .tasks import task_manager
-from .utils import get_dataset_output_dir
+from .utils import get_dataset_output_dir, get_lilac_cache_dir
 
 DIST_PATH = os.path.join(os.path.dirname(__file__), 'web')
 
@@ -148,6 +148,12 @@ def startup() -> None:
       shutil.rmtree(persistent_output_dir, ignore_errors=True)
       shutil.copytree(spaces_dataset_output_dir, persistent_output_dir, dirs_exist_ok=True)
       shutil.rmtree(spaces_dataset_output_dir, ignore_errors=True)
+
+    # Delete cache files from persistent storage.
+    shutil.rmtree(get_lilac_cache_dir(data_path()))
+    # Copy cache files from the space if they exist.
+    shutil.copytree(
+      get_lilac_cache_dir(spaces_data_dir), os.path.join(get_lilac_cache_dir(data_path()), '..'))
 
     # Copy concepts.
     concepts = DiskConceptDB(spaces_data_dir).list()
