@@ -15,9 +15,6 @@ try:
   __version__ = metadata.version('lilacai')
 except metadata.PackageNotFoundError:
   __version__ = ''
-from pkgutil import extend_path
-
-__path__ = extend_path(__path__, __name__)
 
 register_default_sources()
 register_default_signals()

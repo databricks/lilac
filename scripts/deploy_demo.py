@@ -17,10 +17,10 @@ import click
 import huggingface_hub
 
 from lilac.concepts.db_concept import CONCEPTS_DIR
+from lilac.db_manager import list_datasets
 from lilac.load import load
 from lilac.utils import get_datasets_dir
 
-from .db_manager import list_datasets
 from .deploy_hf import deploy_hf
 
 DEMO_DATA_DIR = 'demo_data'
@@ -82,6 +82,7 @@ def deploy_demo(overwrite: bool, skip_sync: bool, skip_load: bool, skip_build: b
     # No extra concepts. lilac concepts are pushed by default.
     concepts=[],
     skip_build=skip_build,
+    skip_cache=False,
     data_dir=DEMO_DATA_DIR)
 
 

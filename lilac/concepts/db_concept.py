@@ -2,6 +2,7 @@
 
 import abc
 import glob
+import importlib
 import json
 import os
 import pathlib
@@ -311,7 +312,7 @@ def _concept_json_path(base_dir: str, namespace: str, name: str) -> str:
   if namespace == 'lilac':
     # Lilac concepts are stored in the resources directory and shipped with the pip package.
     return str(
-      resources.files(f'lilac').joinpath(
+      resources.files('lilac').joinpath(
         os.path.join(LILAC_CONCEPTS_DIR, name, CONCEPT_JSON_FILENAME)))
 
   return os.path.join(get_concept_output_dir(base_dir, namespace, name), CONCEPT_JSON_FILENAME)
@@ -372,8 +373,6 @@ class DiskConceptDB(ConceptDB):
       # Read lilac concepts from the resources directory.
       ('lilac', str(resources.files(f'lilac').joinpath(LILAC_CONCEPTS_DIR)))
     ]
-
-    print(namespace_concept_dirs)
 
     for (default_namespace, concept_dir) in namespace_concept_dirs:
       # Read the concepts from the data dir and return a ConceptInfo containing the namespace and name.
