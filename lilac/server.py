@@ -162,6 +162,9 @@ def startup() -> None:
     # Copy concepts.
     concepts = DiskConceptDB(spaces_data_dir).list()
     for concept in concepts:
+      # Ignore lilac concepts, they're already part of the source code.
+      if concept.namespace == 'lilac':
+        continue
       spaces_concept_output_dir = get_concept_output_dir(spaces_data_dir, concept.namespace,
                                                          concept.name)
       persistent_output_dir = get_concept_output_dir(data_path(), concept.namespace, concept.name)
