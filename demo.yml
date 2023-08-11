@@ -152,20 +152,23 @@ datasets:
       dataset_name: pile-of-law/pile-of-law
       source_name: huggingface
 
-  - name: pile-of-law-atticus-contracts
-    namespace: lilac
-    tags: [legal]
-    settings:
-      ui:
-        media_paths:
-          - text
-      preferred_embedding: 'gte-small'
-    source:
-      config_name: atticus_contracts
-      dataset_name: pile-of-law/pile-of-law
-      # Limit to 100,000. The full size is 600K with large contracts that causes OOM issues.
-      sample_size: 100000
-      source_name: huggingface
+  # Embeddings will take 3 days to compute on my computer. This is an interesting dataset we should
+  # run later.
+
+  # - name: pile-of-law-atticus-contracts
+  #   namespace: lilac
+  #   tags: [legal]
+  #   settings:
+  #     ui:
+  #       media_paths:
+  #         - text
+  #     preferred_embedding: 'gte-small'
+  #   source:
+  #     config_name: atticus_contracts
+  #     dataset_name: pile-of-law/pile-of-law
+  #     # Limit to 100,000. The full size is 600K with large contracts that causes OOM issues.
+  #     sample_size: 100000
+  #     source_name: huggingface
 
 signals:
   - signal_name: pii
