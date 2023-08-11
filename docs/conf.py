@@ -39,12 +39,6 @@ autodoc_pydantic_model_signature_prefix = 'class'
 autodoc_pydantic_field_signature_prefix = 'param'
 autodoc_typehints_format = 'short'
 
-autodoc_type_aliases = {
-  'BinaryFilterTuple': 'lilac.data.BinaryFilterTuple',
-  'ListFilterTuple': 'lilac.data.ListFilterTuple',
-  'UnaryFilterTuple': 'lilac.data.UnaryFilterTuple'
-}
-
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv', 'README.md']
 

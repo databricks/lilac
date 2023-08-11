@@ -174,7 +174,7 @@ To compute the concept score over the entire dataset, we do:
 
 ```py
 dataset.compute_signal(
-    ll.ConceptScoreSignal(namespace='lilac',
+    ll.ConceptSignal(namespace='lilac',
                           concept_name='profanity',
                           embedding='gte-small'), 'response')
 ```

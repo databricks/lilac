@@ -5,14 +5,14 @@ import {
   deserializePath,
   getField,
   getFieldsByDtype,
-  isConceptScoreSignal,
+  isConceptSignal,
   pathIncludes,
   pathIsEqual,
   serializePath,
   type AuthenticationInfo,
   type ConceptInfo,
   type ConceptLabelsSignal,
-  type ConceptScoreSignal,
+  type ConceptSignal,
   type DataType,
   type DataTypeCasted,
   type DatasetInfo,
@@ -413,7 +413,7 @@ export function getSpanValuePaths(
 ): {spanPaths: Path[]; valuePaths: SpanValueInfo[]} {
   const children = childFields(field);
   // Find the non-keyword span fields under this field.
-  const conceptSignals = children.filter(f => isConceptScoreSignal(f.signal));
+  const conceptSignals = children.filter(f => isConceptSignal(f.signal));
   const conceptLabelSignals = children.filter(f => f.signal?.signal_name === 'concept_labels');
   const semanticSimilaritySignals = children.filter(
     f => f.signal?.signal_name === 'semantic_similarity'
@@ -471,7 +471,7 @@ export function getSpanValuePaths(
         pathIncludes(spanPetalChild.path, f.path)
       );
       if (concept != null) {
-        const signal = concept.signal as ConceptScoreSignal;
+        const signal = concept.signal as ConceptSignal;
         valuePaths.push({
           path: spanPetalChild.path,
           spanPath,

@@ -7,7 +7,7 @@
     type Concept,
     type ConceptLabelsSignal,
     type ConceptQuery,
-    type ConceptScoreSignal,
+    type ConceptSignal,
     type ExampleIn,
     type LilacSchema
   } from '$lilac';
@@ -56,7 +56,7 @@
     namespace: concept.namespace,
     concept_name: concept.concept_name,
     embedding
-  } as ConceptScoreSignal;
+  } as ConceptSignal;
   $: labelsSignal = {
     signal_name: 'concept_labels',
     namespace: concept.namespace,
