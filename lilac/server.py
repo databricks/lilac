@@ -150,10 +150,15 @@ def startup() -> None:
       shutil.rmtree(spaces_dataset_output_dir, ignore_errors=True)
 
     # Delete cache files from persistent storage.
-    shutil.rmtree(get_lilac_cache_dir(data_path()))
+    cache_dir = get_lilac_cache_dir(data_path())
+    if os.path.exists(cache_dir):
+      shutil.rmtree(cache_dir)
+
     # Copy cache files from the space if they exist.
-    shutil.copytree(
-      get_lilac_cache_dir(spaces_data_dir), os.path.join(get_lilac_cache_dir(data_path()), '..'))
+    spaces_cache_dir = get_lilac_cache_dir(spaces_data_dir)
+    if os.path.exists(spaces_cache_dir):
+      shutil.copytree(
+        get_lilac_cache_dir(spaces_data_dir), os.path.join(get_lilac_cache_dir(data_path()), '..'))
 
     # Copy concepts.
     concepts = DiskConceptDB(spaces_data_dir).list()
