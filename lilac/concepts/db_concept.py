@@ -11,6 +11,8 @@ import threading
 
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
+from importlib import resources
+from importlib.abc import Traversable
 from typing import Any, List, Optional, Union, cast
 
 from pydantic import BaseModel
@@ -25,6 +27,7 @@ from .concept import DRAFT_MAIN, Concept, ConceptModel, DraftId, Example, Exampl
 
 CONCEPTS_DIR = 'concept'
 CONCEPT_JSON_FILENAME = 'concept.json'
+LILAC_CONCEPTS_DIR = os.path.join('concepts', 'json')
 
 
 class ConceptNamespaceACL(BaseModel):
@@ -304,6 +307,9 @@ def get_concept_output_dir(base_dir: str, namespace: str, name: str) -> str:
 
 
 def _concept_json_path(base_dir: str, namespace: str, name: str) -> str:
+  if namespace == 'lilac':
+    # Lilac concepts are stored in the resources directory and shipped with the pip package.
+    return str(resources.files(f'lilac').joinpath(os.path.join(LILAC_CONCEPTS_DIR, f'{name}.json')))
   return os.path.join(get_concept_output_dir(base_dir, namespace, name), CONCEPT_JSON_FILENAME)
 
 
@@ -350,8 +356,19 @@ class DiskConceptDB(ConceptDB):
       if user:
         namespaces += [user.id]
 
-    # Read the concepts and return a ConceptInfo containing the namespace and name.
-    concept_infos = []
+    concept_infos: list[ConceptInfo] = []
+    # Read lilac concepts from the resources directory.
+    lilac_concepts = resources.files(f'lilac').joinpath(os.path.join(LILAC_CONCEPTS_DIR))
+    for lilac_concept in lilac_concepts.iterdir():
+      if lilac_concept.name.endswith('.json'):
+        namespace = 'lilac'
+        name = os.path.basename(lilac_concept.name)[0:-1 * len('.json')]
+
+        concept = cast(Concept, self.get(namespace, name, user=user))
+        concept_infos.append(
+          _info_from_concept(concept, self.concept_acls(namespace, name, user=user)))
+
+    # Read the concepts from the data dir and return a ConceptInfo containing the namespace and name.
     for root, _, files in os.walk(os.path.join(self._get_base_dir(), CONCEPTS_DIR)):
       for file in files:
         if file == CONCEPT_JSON_FILENAME:
@@ -362,14 +379,7 @@ class DiskConceptDB(ConceptDB):
 
           concept = cast(Concept, self.get(namespace, name, user=user))
           concept_infos.append(
-            ConceptInfo(
-              namespace=namespace,
-              name=name,
-              description=concept.description,
-              type=SignalInputType.TEXT,
-              drafts=concept.drafts(),
-              tags=concept.tags,
-              acls=self.concept_acls(namespace, name, user=user)))
+            _info_from_concept(concept, self.concept_acls(namespace, name, user=user)))
 
     return concept_infos
 
@@ -382,6 +392,7 @@ class DiskConceptDB(ConceptDB):
         f'Concept "{namespace}/{name}" does not exist or user does not have access.')
 
     concept_json_path = _concept_json_path(self._get_base_dir(), namespace, name)
+    print('reading from', concept_json_path)
     if not file_exists(concept_json_path):
       return None
 
@@ -531,6 +542,17 @@ class DiskConceptDB(ConceptDB):
     self._save(concept)
 
     return concept
+
+
+def _info_from_concept(concept: Concept, acls: ConceptACL) -> ConceptInfo:
+  return ConceptInfo(
+    namespace=concept.namespace,
+    name=concept.concept_name,
+    description=concept.description,
+    type=SignalInputType.TEXT,
+    drafts=concept.drafts(),
+    tags=concept.tags,
+    acls=acls)
 
 
 # A singleton concept database.

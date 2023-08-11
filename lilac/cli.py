@@ -1,8 +1,14 @@
 """Lilac CLI."""
 
+import os
+import sys
+from importlib import resources
+from typing import cast
+
 import click
 
 from . import __version__
+from .concepts.db_concept import DISK_CONCEPT_DB, ConceptInfo
 from .load import load_command as load
 from .server import start_server
 
@@ -25,6 +31,12 @@ def version() -> None:
   print(__version__)
 
 
+@click.command()
+def list_concepts() -> list[ConceptInfo]:
+  """Lists lilac concepts"""
+  print(DISK_CONCEPT_DB.list())
+
+
 @click.group()
 def cli() -> None:
   """Lilac CLI."""
@@ -34,6 +46,7 @@ def cli() -> None:
 cli.add_command(start)
 cli.add_command(version)
 cli.add_command(load)
+cli.add_command(list_concepts)
 
 if __name__ == '__main__':
   cli()

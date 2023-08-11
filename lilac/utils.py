@@ -14,6 +14,7 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import Executor, ThreadPoolExecutor
 from datetime import timedelta
 from functools import partial, wraps
+from importlib.abc import Traversable
 from typing import IO, Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
 
 import numpy as np
@@ -195,10 +196,12 @@ def delete_file(filepath: str) -> None:
   os.remove(filepath)
 
 
-def file_exists(filepath: str) -> bool:
+def file_exists(filepath: Union[str, pathlib.PosixPath]) -> bool:
   """Return true if the file exists. It works with both GCS and local paths."""
-  if filepath.startswith(GCS_PROTOCOL):
-    return _get_gcs_blob(filepath).exists()
+  print('got', filepath, type(filepath))
+  str_filepath = str(filepath)
+  if str_filepath.startswith(GCS_PROTOCOL):
+    return _get_gcs_blob(str_filepath).exists()
   return os.path.exists(filepath)
 
 

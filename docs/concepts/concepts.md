@@ -12,9 +12,8 @@ language.
 Often time human language concepts are fuzzy, hard to codify into a computer, or are simply "you
 know it when you see it".
 
-For instance, when text is positive in sentiment (for instance, a product review by a very happy
-customer), we understand that it is related to a _positive sentiment_ concept that we have in our
-minds, even if we can't list every way of speaking in positive sentiment.
+For instance, if we read a product review by a very happy customer, we understand that it is
+conceptually _positive sentiment_.
 
 When Lilac learns about a
 [_positive sentiment_](https://lilacai-lilac.hf.space/concepts#lilac/positive-sentiment) concept, it
