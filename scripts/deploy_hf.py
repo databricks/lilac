@@ -159,9 +159,9 @@ app_port: 5432
       raise ValueError(f'Concept "{c}" not found in disk concepts: {disk_concepts}')
 
   lilac_concepts = [c for c in disk_concepts if c.startswith('lilac/')]
-  concepts = lilac_concepts + list(concepts)
+  concepts_to_upload = lilac_concepts + list(concepts)
 
-  for c in concepts:
+  for c in concepts_to_upload:
     namespace, name = c.split('/')
     hf_api.upload_folder(
       folder_path=get_concept_output_dir(data_dir, namespace, name),

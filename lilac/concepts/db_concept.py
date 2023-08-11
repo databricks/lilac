@@ -303,16 +303,14 @@ class DiskConceptModelDB(ConceptModelDB):
 
 def get_concept_output_dir(base_dir: str, namespace: str, name: str) -> str:
   """Return the output directory for a given concept."""
+  if namespace == 'lilac':
+    # Lilac concepts are stored in the resources directory and shipped with the pip package.
+    return str(resources.files('lilac').joinpath(os.path.join(LILAC_CONCEPTS_DIR, name)))
+
   return os.path.join(base_dir, CONCEPTS_DIR, namespace, name)
 
 
 def _concept_json_path(base_dir: str, namespace: str, name: str) -> str:
-  if namespace == 'lilac':
-    # Lilac concepts are stored in the resources directory and shipped with the pip package.
-    return str(
-      resources.files('lilac').joinpath(
-        os.path.join(LILAC_CONCEPTS_DIR, name, CONCEPT_JSON_FILENAME)))
-
   return os.path.join(get_concept_output_dir(base_dir, namespace, name), CONCEPT_JSON_FILENAME)
 
 
