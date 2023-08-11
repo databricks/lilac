@@ -1,9 +1,9 @@
 <script lang="ts">
   import {queryConcepts} from '$lib/queries/conceptQueries';
-  import type {ConceptScoreSignal} from '$lilac';
+  import type {ConceptSignal} from '$lilac';
   import {Select, SelectItem, SelectItemGroup} from 'carbon-components-svelte';
 
-  export let rootValue: ConceptScoreSignal;
+  export let rootValue: ConceptSignal;
   export let invalid: boolean;
   export let invalidText: string;
   export let value: string;

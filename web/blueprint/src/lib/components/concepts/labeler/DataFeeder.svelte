@@ -7,7 +7,7 @@
     type Concept,
     type ConceptLabelsSignal,
     type ConceptQuery,
-    type ConceptScoreSignal,
+    type ConceptSignal,
     type ExampleIn,
     type LilacSchema
   } from '$lilac';
@@ -39,7 +39,7 @@
     dataset.namespace,
     dataset.name,
     {
-      columns: [fieldPath, UUID_COLUMN],
+      columns: [UUID_COLUMN, fieldPath],
       limit: NUM_ROW_CANDIDATES_TO_FETCH,
       combine_columns: true,
       searches: [
@@ -56,7 +56,7 @@
     namespace: concept.namespace,
     concept_name: concept.concept_name,
     embedding
-  } as ConceptScoreSignal;
+  } as ConceptSignal;
   $: labelsSignal = {
     signal_name: 'concept_labels',
     namespace: concept.namespace,
@@ -68,7 +68,7 @@
     dataset.name,
     {
       columns: [
-        [UUID_COLUMN],
+        UUID_COLUMN,
         fieldPath,
         {path: fieldPath, signal_udf: conceptSignal},
         {path: fieldPath, signal_udf: labelsSignal}

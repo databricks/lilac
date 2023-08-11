@@ -12,11 +12,11 @@ from ..concepts.concept import ExampleIn, LogisticEmbeddingModel
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..db_manager import set_default_dataset_cls
 from ..schema import UUID_COLUMN, Item, RichData, SignalInputType, lilac_embedding, lilac_span
-from ..signals.concept_scorer import ConceptScoreSignal
+from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from ..signals.substring_search import SubstringSignal
-from .dataset import ConceptQuery, KeywordQuery, ListOp, Search, SemanticQuery, SortOrder
+from .dataset import ConceptQuery, KeywordQuery, Search, SemanticQuery, SortOrder
 from .dataset_duckdb import DatasetDuckDB
 from .dataset_test_utils import TestDataMaker, enriched_item
 
@@ -145,7 +145,7 @@ def test_search_keyword_with_filters(make_test_data: TestDataMaker) -> None:
 
   query = 'world'
   result = dataset.select_rows(
-    filters=[(UUID_COLUMN, ListOp.IN, ['1', '3'])],
+    filters=[(UUID_COLUMN, 'in', ['1', '3'])],
     searches=[Search(path='text', query=KeywordQuery(type='keyword', search=query))],
     combine_columns=True)
 
@@ -252,9 +252,9 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
           concept_name='test_concept',
           embedding='test_embedding'))
     ],
-    filters=[(UUID_COLUMN, ListOp.IN, ['1', '2'])],
+    filters=[(UUID_COLUMN, 'in', ['1', '2'])],
     combine_columns=True)
-  expected_signal_udf = ConceptScoreSignal(
+  expected_signal_udf = ConceptSignal(
     namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
 
   assert list(result) == [
@@ -283,6 +283,145 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
     # Explicit labels.
     False,
     True
+  ]
+
+
+def test_concept_search_without_uuid(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello world2.',
+  }])
+
+  test_embedding = TestEmbedding()
+  dataset.compute_signal(test_embedding, ('text'))
+
+  concept_db = DiskConceptDB()
+  concept_db.create(namespace='test_namespace', name='test_concept', type=SignalInputType.TEXT)
+  concept_db.edit(
+    'test_namespace', 'test_concept',
+    ConceptUpdate(insert=[
+      ExampleIn(label=False, text='hello world.'),
+      ExampleIn(label=True, text='hello world2.')
+    ]))
+
+  result = dataset.select_rows(
+    columns=['text'],
+    searches=[
+      Search(
+        path='text',
+        query=ConceptQuery(
+          type='concept',
+          concept_namespace='test_namespace',
+          concept_name='test_concept',
+          embedding='test_embedding'))
+    ])
+
+  assert list(result) == [
+    # Results are sorted by score desc.
+    {
+      'text': 'hello world2.',
+      'test_namespace/test_concept/test_embedding(text)': [
+        lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})
+      ],
+      'test_namespace/test_concept/labels(text)': [lilac_span(0, 13, {'label': True})]
+    },
+    {
+      'text': 'hello world.',
+      'test_namespace/test_concept/test_embedding(text)': [
+        lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})
+      ],
+      'test_namespace/test_concept/labels(text)': [lilac_span(0, 12, {'label': False})]
+    },
+  ]
+
+  result = dataset.select_rows(
+    columns=['text'],
+    searches=[
+      Search(
+        path='text',
+        query=ConceptQuery(
+          type='concept',
+          concept_namespace='test_namespace',
+          concept_name='test_concept',
+          embedding='test_embedding'))
+    ],
+    combine_columns=True)
+
+  assert list(result) == [
+    # Results are sorted by score desc.
+    {
+      'text': enriched_item(
+        'hello world2.', {
+          'test_namespace/test_concept/test_embedding':
+            [lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})],
+          'test_namespace/test_concept/labels': [lilac_span(0, 13, {'label': True})]
+        })
+    },
+    {
+      'text': enriched_item(
+        'hello world.', {
+          'test_namespace/test_concept/test_embedding':
+            [lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})],
+          'test_namespace/test_concept/labels': [lilac_span(0, 12, {'label': False})]
+        })
+    },
+  ]
+
+
+def test_concept_search_sort_by_uuid(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    UUID_COLUMN: '1',
+    'text': 'hello world.',
+  }, {
+    UUID_COLUMN: '2',
+    'text': 'hello world2.',
+  }])
+
+  test_embedding = TestEmbedding()
+  dataset.compute_signal(test_embedding, ('text'))
+
+  concept_db = DiskConceptDB()
+  concept_db.create(namespace='test_namespace', name='test_concept', type=SignalInputType.TEXT)
+  concept_db.edit(
+    'test_namespace', 'test_concept',
+    ConceptUpdate(insert=[
+      ExampleIn(label=False, text='hello world.'),
+      ExampleIn(label=True, text='hello world2.')
+    ]))
+
+  result = dataset.select_rows(
+    columns=['text'],
+    searches=[
+      Search(
+        path='text',
+        query=ConceptQuery(
+          type='concept',
+          concept_namespace='test_namespace',
+          concept_name='test_concept',
+          embedding='test_embedding'))
+    ],
+    sort_by=[UUID_COLUMN],
+    sort_order=SortOrder.ASC)
+
+  assert list(result) == [
+    # Results are sorted by UUID.
+    {
+      'text': 'hello world.',
+      'test_namespace/test_concept/test_embedding(text)': [
+        lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})
+      ],
+      'test_namespace/test_concept/labels(text)': [lilac_span(0, 12, {'label': False})]
+    },
+    {
+      'text': 'hello world2.',
+      'test_namespace/test_concept/test_embedding(text)': [
+        lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})
+      ],
+      'test_namespace/test_concept/labels(text)': [lilac_span(0, 13, {'label': True})]
+    }
   ]
 
 

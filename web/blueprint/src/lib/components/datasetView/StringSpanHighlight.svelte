@@ -17,7 +17,7 @@
     getValueNodes,
     pathIsEqual,
     serializePath,
-    type ConceptScoreSignal,
+    type ConceptSignal,
     type LilacValueNode,
     type LilacValueNodeCasted,
     type Path
@@ -123,7 +123,7 @@
       );
       for (const conceptValue of conceptValues) {
         // Only use the first concept. We will later support multiple concepts.
-        const signal = conceptValue.signal as ConceptScoreSignal;
+        const signal = conceptValue.signal as ConceptSignal;
         spanDetails.conceptName = signal.concept_name;
         spanDetails.conceptNamespace = signal.namespace;
         break;

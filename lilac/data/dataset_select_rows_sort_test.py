@@ -26,7 +26,7 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import BinaryOp, Column, SortOrder
+from .dataset import Column, SortOrder
 from .dataset_test_utils import TestDataMaker, enriched_item
 
 
@@ -911,7 +911,7 @@ def test_sort_by_topk_udf_with_filter(make_test_data: TestDataMaker) -> None:
   # Sort by `udf`, where `udf` is an alias to `TopKSignal(scores, embedding='...')`.
   result = dataset.select_rows(['*', text_udf],
                                sort_by=['udf'],
-                               filters=[('active', BinaryOp.EQUALS, True)],
+                               filters=[('active', 'equals', True)],
                                sort_order=SortOrder.DESC,
                                limit=2,
                                combine_columns=True)

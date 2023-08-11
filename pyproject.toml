@@ -7,7 +7,7 @@ repository = "https://github.com/lilacai/lilac"
 packages = [{ include = "lilac" }]
 include = ["lilac/web/**/*"]                    # Include the web app assets.
 readme = "README.md"
-version = "0.0.6"
+version = "0.0.7"
 
 [tool.poetry.dependencies]
 
@@ -110,6 +110,13 @@ lang_detection = ["langdetect"]   # Language detection.
 ner = ["spacy"]                   # Named entity recognition.
 pii = ["detect-secrets", "regex"] # PII.
 text_stats = ["textacy", "spacy"] # Text statistics.
+
+# Individual embeddings.
+gte = ['sentence-transformers']
+sbert = ['sentence-transformers']
+cohere = ['cohere']
+palm = ['google-generativeai']
+openai = ['openai']
 
 [tool.poetry.group.dev] # Deps for development.
 optional = true

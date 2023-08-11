@@ -5,7 +5,7 @@ from ..embeddings.openai import OpenAI
 from ..embeddings.palm import PaLM
 from ..embeddings.sbert import SBERT
 from .concept_labels import ConceptLabelsSignal
-from .concept_scorer import ConceptScoreSignal
+from .concept_scorer import ConceptSignal
 from .lang_detection import LangDetectionSignal
 from .near_dup import NearDuplicateSignal
 from .ner import SpacyNER
@@ -17,7 +17,7 @@ from .text_statistics import TextStatisticsSignal
 def register_default_signals() -> None:
   """Register all the default signals."""
   # Concepts.
-  register_signal(ConceptScoreSignal)
+  register_signal(ConceptSignal)
   register_signal(ConceptLabelsSignal)
 
   # Text.

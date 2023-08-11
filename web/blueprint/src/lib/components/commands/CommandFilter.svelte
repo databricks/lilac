@@ -7,12 +7,10 @@
     getField,
     pathIsEqual,
     type BinaryFilter,
-    type BinaryOp,
     type LilacField,
     type ListFilter,
-    type ListOp,
-    type UnaryFilter,
-    type UnaryOp
+    type Op,
+    type UnaryFilter
   } from '$lilac';
   import {
     Checkbox,
@@ -86,7 +84,7 @@
     selectedField = defaultField;
   }
 
-  const operations: [BinaryOp | UnaryOp | ListOp, string][] = [
+  const operations: [Op, string][] = [
     ['equals', 'equals (=)'],
     ['not_equal', 'not equal (!=)'],
     ['greater', 'greater than (>)'],

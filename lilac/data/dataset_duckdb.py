@@ -49,7 +49,7 @@ from ..schema import (
   signal_type_supports_dtype,
 )
 from ..signals.concept_labels import ConceptLabelsSignal
-from ..signals.concept_scorer import ConceptScoreSignal
+from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
   Signal,
@@ -64,6 +64,9 @@ from ..tasks import TaskStepId, progress
 from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
 from . import dataset
 from .dataset import (
+  BINARY_OPS,
+  LIST_OPS,
+  UNARY_OPS,
   BinaryOp,
   Column,
   ColumnId,
@@ -74,7 +77,6 @@ from .dataset import (
   Filter,
   FilterLike,
   GroupsSortBy,
-  ListOp,
   MediaResult,
   Search,
   SearchResultInfo,
@@ -85,7 +87,6 @@ from .dataset import (
   SortOrder,
   SortResult,
   StatsResult,
-  UnaryOp,
   column_from_identifier,
   make_parquet_id,
 )
@@ -112,12 +113,12 @@ SAMPLE_SIZE_DISTINCT_COUNT = 100_000
 NUM_AUTO_BINS = 15
 
 BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
-  BinaryOp.EQUALS: '=',
-  BinaryOp.NOT_EQUAL: '!=',
-  BinaryOp.GREATER: '>',
-  BinaryOp.GREATER_EQUAL: '>=',
-  BinaryOp.LESS: '<',
-  BinaryOp.LESS_EQUAL: '<='
+  'equals': '=',
+  'not_equal': '!=',
+  'greater': '>',
+  'greater_equal': '>=',
+  'less': '<',
+  'less_equal': '<='
 }
 
 
@@ -748,14 +749,21 @@ class DatasetDuckDB(Dataset):
       return None
     return udf_col
 
-  def _normalize_columns(self, columns: Optional[Sequence[ColumnId]],
-                         schema: Schema) -> list[Column]:
+  def _normalize_columns(self, columns: Optional[Sequence[ColumnId]], schema: Schema,
+                         combine_columns: bool) -> list[Column]:
     """Normalizes the columns to a list of `Column` objects."""
     cols = [column_from_identifier(col) for col in columns or []]
     star_in_cols = any(col.path == ('*',) for col in cols)
     if not cols or star_in_cols:
       # Select all columns.
       cols.extend([Column((name,)) for name in schema.fields.keys()])
+
+      if not combine_columns:
+        # Select all the signal top-level fields.
+        for path, field in schema.all_fields:
+          if field.signal:
+            cols.append(Column(path))
+
       if star_in_cols:
         cols = [col for col in cols if col.path != ('*',)]
     return cols
@@ -809,7 +817,7 @@ class DatasetDuckDB(Dataset):
                   combine_columns: bool = False,
                   user: Optional[UserInfo] = None) -> SelectRowsResult:
     manifest = self.manifest()
-    cols = self._normalize_columns(columns, manifest.data_schema)
+    cols = self._normalize_columns(columns, manifest.data_schema, combine_columns)
     offset = offset or 0
     schema = manifest.data_schema
 
@@ -823,9 +831,19 @@ class DatasetDuckDB(Dataset):
     cols.extend([search_udf.udf for search_udf in search_udfs])
     udf_columns = [col for col in cols if col.signal_udf]
 
+    temp_uuid_added = False
+    for col in cols:
+      if col.path == (UUID_COLUMN,):
+        temp_uuid_added = False
+        break
+      if isinstance(col.signal_udf, VectorSignal):
+        temp_uuid_added = True
+    if temp_uuid_added:
+      cols.append(Column(UUID_COLUMN))
+
     # Set extra information on any concept signals.
     for udf_col in udf_columns:
-      if isinstance(udf_col.signal_udf, (ConceptScoreSignal, ConceptLabelsSignal)):
+      if isinstance(udf_col.signal_udf, (ConceptSignal, ConceptLabelsSignal)):
         # Concept are access controlled so we tell it about the user.
         udf_col.signal_udf.set_user(user)
 
@@ -883,7 +901,7 @@ class DatasetDuckDB(Dataset):
         offset = len(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk[:offset]]))
 
         # Ignore all the other filters and filter DuckDB results only by the top k UUIDs.
-        uuid_filter = Filter(path=(UUID_COLUMN,), op=ListOp.IN, value=topk_uuids)
+        uuid_filter = Filter(path=(UUID_COLUMN,), op='in', value=topk_uuids)
         filter_query = self._create_where(manifest, [uuid_filter])[0]
         where_query = f'WHERE {filter_query}'
 
@@ -1001,6 +1019,8 @@ class DatasetDuckDB(Dataset):
       with DebugTimer(f'Computing signal "{signal.name}" on {path_id}'):
         signal.setup()
 
+        step_description = f'Computing {signal.key()} on {path_id}'
+
         if isinstance(signal, VectorSignal):
           embedding_signal = signal
           vector_store = self._get_vector_db_index(embedding_signal.embedding, udf_col.path)
@@ -1013,7 +1033,7 @@ class DatasetDuckDB(Dataset):
               signal_out,
               task_step_id=task_step_id,
               estimated_len=len(flat_keys),
-              step_description=f'Computing {signal.key()}')
+              step_description=step_description)
           df[signal_column] = deep_unflatten(signal_out, input)
         else:
           num_rich_data = count_primitives(input)
@@ -1026,7 +1046,7 @@ class DatasetDuckDB(Dataset):
               signal_out,
               task_step_id=task_step_id,
               estimated_len=num_rich_data,
-              step_description=f'Computing {signal.key()}')
+              step_description=step_description)
           signal_out_list = list(signal_out)
           if signal_column in temp_column_to_offset_column:
             offset_column_name, field = temp_column_to_offset_column[signal_column]
@@ -1064,6 +1084,10 @@ class DatasetDuckDB(Dataset):
         rel = rel.limit(limit, offset)
 
       df = _replace_nan_with_none(rel.df())
+
+    if temp_uuid_added:
+      del df[UUID_COLUMN]
+      del columns_to_merge[UUID_COLUMN]
 
     if combine_columns:
       all_columns: dict[str, Column] = {}
@@ -1113,7 +1137,7 @@ class DatasetDuckDB(Dataset):
       raise NotImplementedError(
         'select_rows_schema with combine_columns=False is not yet supported.')
     manifest = self.manifest()
-    cols = self._normalize_columns(columns, manifest.data_schema)
+    cols = self._normalize_columns(columns, manifest.data_schema, combine_columns)
 
     # Always return the UUID column.
     col_paths = [col.path for col in cols]
@@ -1296,7 +1320,7 @@ class DatasetDuckDB(Dataset):
           search_signal = SemanticSimilaritySignal(
             query=search.query.search, embedding=search.query.embedding)
         elif search.query.type == 'concept':
-          search_signal = ConceptScoreSignal(
+          search_signal = ConceptSignal(
             namespace=search.query.concept_namespace,
             concept_name=search.query.concept_name,
             embedding=search.query.embedding)
@@ -1354,9 +1378,6 @@ class DatasetDuckDB(Dataset):
       sql_filter_queries.append(filter_query)
 
     # Add filter where queries.
-    binary_ops = set(BinaryOp)
-    unary_ops = set(UnaryOp)
-    list_ops = set(ListOp)
     for f in filters:
       duckdb_path = self._leaf_path_to_duckdb_path(f.path, manifest.data_schema)
       select_str = _select_sql(
@@ -1367,7 +1388,7 @@ class DatasetDuckDB(Dataset):
       field = manifest.data_schema.get_field(f.path)
       filter_nans = field.dtype and is_float(field.dtype)
 
-      if f.op in binary_ops:
+      if f.op in BINARY_OPS:
         sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, f.op)]
         filter_val = cast(FeatureValue, f.value)
         if isinstance(filter_val, str):
@@ -1383,13 +1404,13 @@ class DatasetDuckDB(Dataset):
         else:
           nan_filter = f'NOT isnan({select_str}) AND' if filter_nans else ''
           filter_query = f'{nan_filter} {select_str} {sql_op} {filter_val}'
-      elif f.op in unary_ops:
-        if f.op == UnaryOp.EXISTS:
+      elif f.op in UNARY_OPS:
+        if f.op == 'exists':
           filter_query = f'len({select_str}) > 0' if is_array else f'{select_str} IS NOT NULL'
         else:
           raise ValueError(f'Unary op: {f.op} is not yet supported')
-      elif f.op in list_ops:
-        if f.op == ListOp.IN:
+      elif f.op in LIST_OPS:
+        if f.op == 'in':
           filter_list_val = cast(FeatureListValue, f.value)
           if not isinstance(filter_list_val, list):
             raise ValueError('filter with array value can only use the IN comparison')

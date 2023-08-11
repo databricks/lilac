@@ -6,9 +6,9 @@ import pandas as pd
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ..data.duckdb_utils import duckdb_setup
 from ..schema import Item
 from ..utils import download_http_files
+from .duckdb_utils import duckdb_setup
 from .source import Source, SourceSchema, schema_from_df
 
 ROW_ID_COLUMN = '__row_id__'

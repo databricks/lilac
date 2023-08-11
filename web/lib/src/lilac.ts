@@ -1,12 +1,15 @@
 import type {JSONSchema7} from 'json-schema';
 import type {
+  BinaryFilter,
   DataType,
   Field,
+  ListFilter,
   Schema,
   Search,
   SelectRowsSchemaResult,
   Signal,
-  SignalInfo
+  SignalInfo,
+  UnaryFilter
 } from '../fastapi_client';
 import {
   PATH_WILDCARD,
@@ -23,6 +26,8 @@ export const SCHEMA_FIELD_KEY = '__field__';
 // The search type is not an explicitly exported type so we extract the type from the different
 // search types automatically for type-safety.
 export type SearchType = Exclude<Search['query']['type'], undefined>;
+
+export type Op = BinaryFilter['op'] | UnaryFilter['op'] | ListFilter['op'];
 
 export type LilacField<S extends Signal = Signal> = Field & {
   path: Path;

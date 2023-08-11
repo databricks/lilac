@@ -21,7 +21,7 @@ from ..data.dataset_duckdb import DatasetDuckDB
 from ..data.dataset_test_utils import make_vector_index
 from ..db_manager import set_default_dataset_cls
 from ..schema import Item, RichData, SignalInputType, lilac_embedding
-from .concept_scorer import ConceptScoreSignal
+from .concept_scorer import ConceptSignal
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
 ALL_CONCEPT_DBS = [DiskConceptDB]
@@ -82,15 +82,14 @@ def test_embedding_does_not_exist(db_cls: Type[ConceptDB]) -> None:
   ]
   db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-  signal = ConceptScoreSignal(
+  signal = ConceptSignal(
     namespace='test', concept_name='test_concept', embedding='unknown_embedding')
   with pytest.raises(ValueError, match='Signal "unknown_embedding" not found in the registry'):
     signal.compute(['a new data point'])
 
 
 def test_concept_does_not_exist() -> None:
-  signal = ConceptScoreSignal(
-    namespace='test', concept_name='test_concept', embedding='test_embedding')
+  signal = ConceptSignal(namespace='test', concept_name='test_concept', embedding='test_embedding')
   with pytest.raises(ValueError, match='Concept "test/test_concept" does not exist'):
     signal.compute(['a new data point', 'not in concept'])
 
@@ -111,8 +110,7 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-  signal = ConceptScoreSignal(
-    namespace='test', concept_name='test_concept', embedding='test_embedding')
+  signal = ConceptSignal(namespace='test', concept_name='test_concept', embedding='test_embedding')
 
   # Explicitly sync the model with the concept.
   model_db.sync(
@@ -141,8 +139,7 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-  signal = ConceptScoreSignal(
-    namespace='test', concept_name='test_concept', embedding='test_embedding')
+  signal = ConceptSignal(namespace='test', concept_name='test_concept', embedding='test_embedding')
 
   # Explicitly sync the model with the concept.
   model_db.sync(
@@ -179,8 +176,7 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-  signal = ConceptScoreSignal(
-    namespace='test', concept_name='test_concept', embedding='test_embedding')
+  signal = ConceptSignal(namespace='test', concept_name='test_concept', embedding='test_embedding')
 
   # Explicitly sync the model with the concept.
   model_db.sync(
@@ -228,9 +224,8 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB], model_db_cls: Type
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
-  signal = ConceptScoreSignal(
-    namespace='test', concept_name='test_concept', embedding='test_embedding')
-  draft_signal = ConceptScoreSignal(
+  signal = ConceptSignal(namespace='test', concept_name='test_concept', embedding='test_embedding')
+  draft_signal = ConceptSignal(
     namespace='test', concept_name='test_concept', embedding='test_embedding', draft='test_draft')
 
   # Explicitly sync the model with the concept.
@@ -259,7 +254,7 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB], model_db_cls: Type
 
 
 def test_concept_score_key() -> None:
-  signal = ConceptScoreSignal(
+  signal = ConceptSignal(
     namespace='test', concept_name='test_concept', embedding=TestEmbedding.name)
   assert signal.key() == 'test/test_concept/test_embedding'
 
@@ -271,6 +266,6 @@ def test_concept_score_compute_signal_key(concept_db_cls: Type[ConceptDB]) -> No
   concept_name = 'test_concept'
   concept_db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
 
-  signal = ConceptScoreSignal(
+  signal = ConceptSignal(
     namespace='test', concept_name='test_concept', embedding=TestEmbedding.name)
   assert signal.key(is_computed_signal=True) == 'test/test_concept/test_embedding/v0'

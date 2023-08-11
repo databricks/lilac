@@ -13,7 +13,7 @@ from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, Concept
 from .env import env
 from .router_utils import RouteErrorHandler, server_compute_concept
 from .schema import RichData, SignalInputType
-from .signals.concept_scorer import ConceptScoreSignal
+from .signals.concept_scorer import ConceptSignal
 
 router = APIRouter(route_class=RouteErrorHandler)
 
@@ -166,7 +166,7 @@ def get_concept_model(
 def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBody,
           user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> list[list[dict]]:
   """Score examples along the specified concept."""
-  concept_scorer = ConceptScoreSignal(
+  concept_scorer = ConceptSignal(
     namespace=namespace, concept_name=concept_name, embedding=embedding_name)
   return cast(
     list[list[dict]],

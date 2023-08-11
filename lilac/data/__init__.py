@@ -1,4 +1,16 @@
-from .dataset import Column, ConceptQuery, KeywordQuery, Search, SemanticQuery
+from .dataset import (
+  BinaryOp,
+  Column,
+  ConceptQuery,
+  Dataset,
+  Filter,
+  FilterLike,
+  KeywordQuery,
+  ListOp,
+  Search,
+  SemanticQuery,
+  UnaryOp,
+)
 
 __all__ = [
   'Column',
@@ -6,4 +18,10 @@ __all__ = [
   'KeywordQuery',
   'ConceptQuery',
   'SemanticQuery',
+  'Filter',
+  'UnaryOp',
+  'BinaryOp',
+  'ListOp',
+  'Dataset',
+  'FilterLike',
 ]

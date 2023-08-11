@@ -15,15 +15,18 @@ author = 'Lilac AI Inc.'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+  'sphinx.ext.napoleon',  # support for Google and NumPy style docstrings.
   'sphinx.ext.autodoc',
   'sphinx.ext.coverage',
   'sphinx.ext.autodoc.typehints',
   'sphinx.ext.autosummary',
   'sphinxcontrib.autodoc_pydantic',
   'myst_parser',
+  'enum_tools.autoenum',
 ]
 
 myst_enable_extensions = ['attrs_block', 'attrs_inline']
+myst_heading_anchors = 3
 
 autodoc_pydantic_model_show_json = False
 autodoc_pydantic_field_list_validators = False

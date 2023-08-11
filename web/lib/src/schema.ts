@@ -1,10 +1,4 @@
-import type {
-  Column,
-  ConceptScoreSignal,
-  DataType,
-  Signal,
-  SignalInputType
-} from '../fastapi_client';
+import type {Column, ConceptSignal, DataType, Signal, SignalInputType} from '../fastapi_client';
 import type {LilacField} from './lilac';
 export type LeafValue = number | boolean | string | null;
 export type FieldValue = FieldValue[] | {[fieldName: string]: FieldValue} | LeafValue;
@@ -151,9 +145,9 @@ export function pathIsMatching(path1: Path | string | undefined, path2: Path | s
   }
   return true;
 }
-export function isConceptScoreSignal(
-  signal: ConceptScoreSignal | Signal | undefined
-): signal is ConceptScoreSignal {
+export function isConceptSignal(
+  signal: ConceptSignal | Signal | undefined
+): signal is ConceptSignal {
   return signal?.signal_name === 'concept_score';
 }
 
