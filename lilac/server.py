@@ -157,8 +157,7 @@ def startup() -> None:
     # Copy cache files from the space if they exist.
     spaces_cache_dir = get_lilac_cache_dir(spaces_data_dir)
     if os.path.exists(spaces_cache_dir):
-      shutil.copytree(
-        get_lilac_cache_dir(spaces_data_dir), os.path.join(get_lilac_cache_dir(data_path()), '..'))
+      shutil.copytree(spaces_cache_dir, cache_dir)
 
     # Copy concepts.
     concepts = DiskConceptDB(spaces_data_dir).list()
