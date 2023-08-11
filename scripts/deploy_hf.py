@@ -153,15 +153,15 @@ app_port: 5432
       # Delete all data on the server.
       delete_patterns='*')
 
-  disk_concepts = [f'{c.namespace}/{c.name}' for c in DiskConceptDB(data_dir).list()]
+  disk_concepts = [
+    # Remove lilac concepts as they're checked in, and not in the
+    f'{c.namespace}/{c.name}' for c in DiskConceptDB(data_dir).list() if c.namespace != 'lilac'
+  ]
   for c in concepts:
     if c not in disk_concepts:
       raise ValueError(f'Concept "{c}" not found in disk concepts: {disk_concepts}')
 
-  lilac_concepts = [c for c in disk_concepts if c.startswith('lilac/')]
-  concepts_to_upload = lilac_concepts + list(concepts)
-
-  for c in concepts_to_upload:
+  for c in concepts:
     namespace, name = c.split('/')
     hf_api.upload_folder(
       folder_path=get_concept_output_dir(data_dir, namespace, name),

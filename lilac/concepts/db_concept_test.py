@@ -10,7 +10,6 @@ from pytest_mock import MockerFixture
 from sklearn.preprocessing import normalize
 from typing_extensions import override
 
-
 from ..data.dataset_duckdb import DatasetDuckDB
 from ..db_manager import set_default_dataset_cls
 from ..schema import Item, RichData, SignalInputType, lilac_embedding
