@@ -30,7 +30,7 @@ from .auth import (
   get_session_user,
   get_user_access,
 )
-from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
+from .concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
 from .db_manager import list_datasets
 from .env import data_path, env
 from .router_utils import RouteErrorHandler
@@ -153,6 +153,12 @@ def startup() -> None:
     cache_dir = get_lilac_cache_dir(data_path())
     if os.path.exists(cache_dir):
       shutil.rmtree(cache_dir)
+
+    # NOTE: This is temporary during the move of concepts into the pip package. Once all the demos
+    # have been updated, this block can be deleted.
+    old_lilac_concepts_data_dir = os.path.join(data_path(), CONCEPTS_DIR, 'lilac')
+    if os.path.exists(old_lilac_concepts_data_dir):
+      shutil.rmtree(old_lilac_concepts_data_dir)
 
     # Copy cache files from the space if they exist.
     spaces_cache_dir = get_lilac_cache_dir(spaces_data_dir)
