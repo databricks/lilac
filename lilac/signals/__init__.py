@@ -1,6 +1,6 @@
 """Signals enrich a document with additional metadata."""
 
-from .concept_scorer import ConceptScoreSignal
+from .concept_scorer import ConceptSignal
 from .lang_detection import LangDetectionSignal
 from .near_dup import NearDuplicateSignal
 from .ner import SpacyNER
@@ -13,5 +13,5 @@ __all__ = [
   'NearDuplicateSignal',
   'SpacyNER',
   'PIISignal',
-  'ConceptScoreSignal',
+  'ConceptSignal',
 ]

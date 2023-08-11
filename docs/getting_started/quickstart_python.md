@@ -81,7 +81,7 @@ The dataset now has the extra fields `question.pii` and `response.pii`, which we
 the entire schema:
 
 ```py
-print(dataset.manifest().schema)
+print(dataset.manifest().data_schema)
 ```
 
 Output:
@@ -110,14 +110,14 @@ and `end` indices that point to the location of the email in the original `quest
 
 Let's query 5 rows that have emails in the `response` field via
 [`Dataset.select_rows`](#lilac.data.Dataset.select_rows), a python API that is analogous to a
-`SQL Select` statement. We do this by adding an [`exists`](#lilac.data.UnaryOp.EXISTS) filter on
+`SQL Select` statement. We do this by adding an [`exists`](#lilac.data.Filter.op) filter on
 `response.pii.emails` to make sure it's not empty:
 
 ```py
 df_with_emails = dataset.select_rows(
   ['id', 'response', 'response.pii.emails'],
   limit=5,
-  filters=[('response.pii.emails', ll.UnaryOp.EXISTS)]).df()
+  filters=[('response.pii.emails', 'exists')]).df()
 print(df_with_emails)
 ```
 

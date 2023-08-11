@@ -20,7 +20,7 @@ from ..schema import (
   lilac_span,
   schema,
 )
-from ..signals.concept_scorer import ConceptScoreSignal
+from ..signals.concept_scorer import ConceptSignal
 from ..signals.signal import (
   TextEmbeddingSignal,
   TextSignal,
@@ -191,7 +191,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestSplitSignal)
   register_signal(TestEmbedding)
   register_signal(ComputedKeySignal)
-  register_signal(ConceptScoreSignal)
+  register_signal(ConceptSignal)
 
   # Unit test runs.
   yield
@@ -624,7 +624,7 @@ def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> Non
       ExampleIn(label=False, text='hello3.')
     ]))
 
-  concept_signal = ConceptScoreSignal(
+  concept_signal = ConceptSignal(
     namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
 
   dataset.compute_signal(concept_signal, 'text')

@@ -26,7 +26,7 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import BinaryFilterTuple, BinaryOp, Column
+from .dataset import BinaryFilterTuple, Column
 from .dataset_test_utils import TestDataMaker, enriched_item
 
 EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
@@ -164,7 +164,7 @@ def test_udf_with_filters(make_test_data: TestDataMaker) -> None:
 
   signal_col = Column('text', signal_udf=TestSignal())
   # Filter by source feature.
-  filters: list[BinaryFilterTuple] = [('text', BinaryOp.EQUALS, 'everybody')]
+  filters: list[BinaryFilterTuple] = [('text', 'equals', 'everybody')]
   result = dataset.select_rows([UUID_COLUMN, 'text', signal_col], filters=filters)
   assert list(result) == [{
     UUID_COLUMN: '2',
@@ -187,13 +187,13 @@ def test_udf_with_uuid_filter(make_test_data: TestDataMaker) -> None:
   }])
 
   # Filter by a specific UUID.
-  filters: list[BinaryFilterTuple] = [(UUID_COLUMN, BinaryOp.EQUALS, '1')]
+  filters: list[BinaryFilterTuple] = [(UUID_COLUMN, 'equals', '1')]
   udf_col = Column('text', signal_udf=LengthSignal())
   result = dataset.select_rows([UUID_COLUMN, 'text', udf_col], filters=filters)
   assert list(result) == [{UUID_COLUMN: '1', 'text': 'hello', 'length_signal(text)': 5}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 1
 
-  filters = [(UUID_COLUMN, BinaryOp.EQUALS, '2')]
+  filters = [(UUID_COLUMN, 'equals', '2')]
   result = dataset.select_rows([UUID_COLUMN, 'text', udf_col], filters=filters)
   assert list(result) == [{UUID_COLUMN: '2', 'text': 'everybody', 'length_signal(text)': 9}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 1 + 1
@@ -223,7 +223,7 @@ def test_udf_with_uuid_filter_repeated(make_test_data: TestDataMaker) -> None:
   }])
 
   # Filter by a specific UUID.
-  filters: list[BinaryFilterTuple] = [(UUID_COLUMN, BinaryOp.EQUALS, '1')]
+  filters: list[BinaryFilterTuple] = [(UUID_COLUMN, 'equals', '1')]
   udf_col = Column(('text', '*'), signal_udf=LengthSignal())
   result = dataset.select_rows([UUID_COLUMN, 'text', udf_col], filters=filters)
   assert list(result) == [{
@@ -234,7 +234,7 @@ def test_udf_with_uuid_filter_repeated(make_test_data: TestDataMaker) -> None:
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2
 
   # Filter by a specific UUID.
-  filters = [(UUID_COLUMN, BinaryOp.EQUALS, '2')]
+  filters = [(UUID_COLUMN, 'equals', '2')]
   result = dataset.select_rows([UUID_COLUMN, 'text', udf_col], filters=filters)
   assert list(result) == [{
     UUID_COLUMN: '2',
@@ -402,7 +402,7 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
 
   signal_col = Column('text', signal_udf=ComputedKeySignal())
   # Filter by source feature.
-  filters: list[BinaryFilterTuple] = [('text', BinaryOp.EQUALS, 'everybody')]
+  filters: list[BinaryFilterTuple] = [('text', 'equals', 'everybody')]
   result = dataset.select_rows([UUID_COLUMN, 'text', signal_col])
   assert list(result) == [{
     UUID_COLUMN: '1',

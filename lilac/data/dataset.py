@@ -1,4 +1,6 @@
 """The interface for the database."""
+from __future__ import annotations
+
 import abc
 import enum
 import pathlib
@@ -10,6 +12,7 @@ import pandas as pd
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
+from typing_extensions import TypeAlias
 
 from ..auth import UserInfo
 from ..config import DatasetConfig, DatasetSettings, DatasetUISettings
@@ -58,27 +61,15 @@ class MediaResult(BaseModel):
   data: bytes
 
 
-class BinaryOp(str, enum.Enum):
-  """The comparison operator between a column and a feature value."""
-  EQUALS = 'equals'
-  NOT_EQUAL = 'not_equal'
-  GREATER = 'greater'
-  GREATER_EQUAL = 'greater_equal'
-  LESS = 'less'
-  LESS_EQUAL = 'less_equal'
+BinaryOp = Literal['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal']
+UnaryOp = Literal['exists']
+ListOp = Literal['in']
 
+BINARY_OPS = set(['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal'])
+UNARY_OPS = set(['exists'])
+LIST_OPS = set(['in'])
 
 SearchType = Union[Literal['keyword'], Literal['semantic'], Literal['concept']]
-
-
-class UnaryOp(str, enum.Enum):
-  """A unary operator on a feature."""
-  EXISTS = 'exists'
-
-
-class ListOp(str, enum.Enum):
-  """A list operator on a feature."""
-  IN = 'in'
 
 
 class SortOrder(str, enum.Enum):
@@ -202,7 +193,7 @@ class Filter(BaseModel):
   value: Optional[Union[FeatureValue, FeatureListValue]] = None
 
 
-FilterLike = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListFilterTuple]
+FilterLike: TypeAlias = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListFilterTuple]
 
 SearchValue = StrictStr
 

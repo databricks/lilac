@@ -4,6 +4,7 @@ from .dataset import (
   ConceptQuery,
   Dataset,
   Filter,
+  FilterLike,
   KeywordQuery,
   ListOp,
   Search,
@@ -22,4 +23,5 @@ __all__ = [
   'BinaryOp',
   'ListOp',
   'Dataset',
+  'FilterLike',
 ]

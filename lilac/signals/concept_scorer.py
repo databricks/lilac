@@ -14,7 +14,7 @@ from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector
 from ..signals.signal import VectorSignal
 
 
-class ConceptScoreSignal(VectorSignal):
+class ConceptSignal(VectorSignal):
   """Compute scores along a given concept for documents."""
   name = 'concept_score'
   input_type = SignalInputType.TEXT

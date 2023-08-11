@@ -3,7 +3,7 @@
 import pytest
 
 from ..schema import UUID_COLUMN, Item, schema
-from .dataset import BinaryFilterTuple, BinaryOp, ListFilterTuple, ListOp, UnaryOp
+from .dataset import BinaryFilterTuple, ListFilterTuple, UnaryFilterTuple
 from .dataset_test_utils import TestDataMaker
 
 TEST_DATA: list[Item] = [{
@@ -33,17 +33,17 @@ TEST_DATA: list[Item] = [{
 def test_filter_by_ids(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
-  id_filter: BinaryFilterTuple = (UUID_COLUMN, BinaryOp.EQUALS, '1')
+  id_filter: BinaryFilterTuple = (UUID_COLUMN, 'equals', '1')
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == [{UUID_COLUMN: '1', 'str': 'a', 'int': 1, 'bool': False, 'float': 3.0}]
 
-  id_filter = (UUID_COLUMN, BinaryOp.EQUALS, '2')
+  id_filter = (UUID_COLUMN, 'equals', '2')
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == [{UUID_COLUMN: '2', 'str': 'b', 'int': 2, 'bool': True, 'float': 2.0}]
 
-  id_filter = (UUID_COLUMN, BinaryOp.EQUALS, b'f')
+  id_filter = (UUID_COLUMN, 'equals', b'f')
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == []
@@ -52,7 +52,7 @@ def test_filter_by_ids(make_test_data: TestDataMaker) -> None:
 def test_filter_greater(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
-  id_filter: BinaryFilterTuple = ('float', BinaryOp.GREATER, 2.0)
+  id_filter: BinaryFilterTuple = ('float', 'greater', 2.0)
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == [{UUID_COLUMN: '1', 'str': 'a', 'int': 1, 'bool': False, 'float': 3.0}]
@@ -61,7 +61,7 @@ def test_filter_greater(make_test_data: TestDataMaker) -> None:
 def test_filter_greater_equal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
-  id_filter: BinaryFilterTuple = ('float', BinaryOp.GREATER_EQUAL, 2.0)
+  id_filter: BinaryFilterTuple = ('float', 'greater_equal', 2.0)
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == [{
@@ -82,7 +82,7 @@ def test_filter_greater_equal(make_test_data: TestDataMaker) -> None:
 def test_filter_less(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
-  id_filter: BinaryFilterTuple = ('float', BinaryOp.LESS, 2.0)
+  id_filter: BinaryFilterTuple = ('float', 'less', 2.0)
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == [{UUID_COLUMN: '3', 'str': 'b', 'int': 2, 'bool': True, 'float': 1.0}]
@@ -91,7 +91,7 @@ def test_filter_less(make_test_data: TestDataMaker) -> None:
 def test_filter_less_equal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
-  id_filter: BinaryFilterTuple = ('float', BinaryOp.LESS_EQUAL, 2.0)
+  id_filter: BinaryFilterTuple = ('float', 'less_equal', 2.0)
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == [{
@@ -112,7 +112,7 @@ def test_filter_less_equal(make_test_data: TestDataMaker) -> None:
 def test_filter_not_equal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
-  id_filter: BinaryFilterTuple = ('float', BinaryOp.NOT_EQUAL, 2.0)
+  id_filter: BinaryFilterTuple = ('float', 'not_equal', 2.0)
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == [
@@ -137,7 +137,7 @@ def test_filter_not_equal(make_test_data: TestDataMaker) -> None:
 def test_filter_by_list_of_ids(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
-  id_filter: ListFilterTuple = (UUID_COLUMN, ListOp.IN, ['1', '2'])
+  id_filter: ListFilterTuple = (UUID_COLUMN, 'in', ['1', '2'])
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == [{
@@ -184,17 +184,17 @@ def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
       'ages': [['int32']]
     }))
 
-  exists_filter = ('name', UnaryOp.EXISTS)
+  exists_filter: UnaryFilterTuple = ('name', 'exists')
   result = dataset.select_rows([UUID_COLUMN, 'name'], filters=[exists_filter])
   assert list(result) == [{UUID_COLUMN: '1', 'name': 'A'}, {UUID_COLUMN: '3', 'name': 'C'}]
 
-  exists_filter = ('info.lang', UnaryOp.EXISTS)
+  exists_filter = ('info.lang', 'exists')
   result = dataset.select_rows([UUID_COLUMN, 'name'], filters=[exists_filter])
   assert list(result) == [{UUID_COLUMN: '1', 'name': 'A'}, {UUID_COLUMN: '2', 'name': None}]
 
-  exists_filter = ('ages.*.*', UnaryOp.EXISTS)
+  exists_filter = ('ages.*.*', 'exists')
   result = dataset.select_rows([UUID_COLUMN, 'name'], filters=[exists_filter])
   assert list(result) == [{UUID_COLUMN: '3', 'name': 'C'}]
 
   with pytest.raises(ValueError, match='Unable to filter on path'):
-    dataset.select_rows(['name'], filters=[('info', UnaryOp.EXISTS)])
+    dataset.select_rows(['name'], filters=[('info', 'exists')])

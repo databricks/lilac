@@ -22,7 +22,7 @@ from ..schema import (
   schema,
 )
 from ..signals.concept_labels import ConceptLabelsSignal
-from ..signals.concept_scorer import ConceptScoreSignal
+from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
   TextEmbeddingSignal,
@@ -488,7 +488,7 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
     ],
     combine_columns=True)
 
-  expected_world_signal = ConceptScoreSignal(
+  expected_world_signal = ConceptSignal(
     namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
   expected_labels_signal = ConceptLabelsSignal(
     namespace='test_namespace', concept_name='test_concept')
