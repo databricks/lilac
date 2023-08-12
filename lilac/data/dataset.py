@@ -20,6 +20,8 @@ from pydantic import (
 )
 from typing_extensions import TypeAlias
 
+from lilac.signals.concept_scorer import ConceptSignal
+
 from ..auth import UserInfo
 from ..config import DatasetConfig, DatasetSettings, DatasetUISettings
 from ..schema import UUID_COLUMN, VALUE_KEY, Bin, DataType, Path, PathTuple, Schema, normalize_path
@@ -293,7 +295,17 @@ class Dataset(abc.ABC):
                         task_step_id: Optional[TaskStepId] = None) -> None:
     """Compute an embedding for a given field path."""
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
-    self.compute_signal(signal, path)
+    self.compute_signal(signal, path, task_step_id)
+
+  def compute_concept(self,
+                      namespace: str,
+                      concept_name: str,
+                      embedding: str,
+                      path: Path,
+                      task_step_id: Optional[TaskStepId] = None) -> None:
+    """Compute concept scores for a given field path."""
+    signal = ConceptSignal(namespace=namespace, concept_name=concept_name, embedding=embedding)
+    self.compute_signal(signal, path, task_step_id)
 
   @abc.abstractmethod
   def delete_signal(self, signal_path: Path) -> None:
