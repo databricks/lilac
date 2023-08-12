@@ -176,6 +176,9 @@ class DatasetDuckDB(Dataset):
       with open(get_config_filepath(self.namespace, self.dataset_name), 'w') as f:
         yaml.dump(config.dict(exclude_none=True, exclude_defaults=True), f)
 
+    # Create a join table from all the parquet files.
+    self.manifest()
+
   @override
   def delete(self) -> None:
     """Deletes the dataset."""
