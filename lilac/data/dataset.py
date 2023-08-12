@@ -9,9 +9,15 @@ from datetime import datetime
 from typing import Any, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
-from pydantic import BaseModel
-from pydantic import Field as PydanticField
-from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
+from pydantic import (
+  BaseModel,
+  StrictBool,
+  StrictBytes,
+  StrictFloat,
+  StrictInt,
+  StrictStr,
+  validator,
+)
 from typing_extensions import TypeAlias
 
 from ..auth import UserInfo
@@ -198,31 +204,31 @@ FilterLike: TypeAlias = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListF
 SearchValue = StrictStr
 
 
-class KeywordQuery(BaseModel):
+class KeywordSearch(BaseModel):
   """A keyword search query on a column."""
+  path: Path
+  query: SearchValue
   type: Literal['keyword'] = 'keyword'
-  search: SearchValue
 
 
-class SemanticQuery(BaseModel):
+class SemanticSearch(BaseModel):
   """A semantic search on a column."""
-  type: Literal['semantic'] = 'semantic'
-  search: SearchValue
+  path: Path
+  query: SearchValue
   embedding: str
+  type: Literal['semantic'] = 'semantic'
 
 
-class ConceptQuery(BaseModel):
+class ConceptSearch(BaseModel):
   """A concept search query on a column."""
-  type: Literal['concept'] = 'concept'
+  path: Path
   concept_namespace: str
   concept_name: str
   embedding: str
+  type: Literal['concept'] = 'concept'
 
 
-class Search(BaseModel):
-  """A search on a column."""
-  path: Path
-  query: Union[KeywordQuery, SemanticQuery, ConceptQuery] = PydanticField(discriminator='type')
+Search = Union[ConceptSearch, SemanticSearch, KeywordSearch]
 
 
 class Dataset(abc.ABC):

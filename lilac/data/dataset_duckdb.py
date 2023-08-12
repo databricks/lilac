@@ -1295,15 +1295,15 @@ class DatasetDuckDB(Dataset):
     search_udfs: list[DuckDBSearchUDF] = []
     for search in searches:
       search_path = normalize_path(search.path)
-      if search.query.type == 'keyword':
-        udf = Column(path=search_path, signal_udf=SubstringSignal(query=search.query.search))
+      if search.type == 'keyword':
+        udf = Column(path=search_path, signal_udf=SubstringSignal(query=search.query))
         search_udfs.append(
           DuckDBSearchUDF(
             udf=udf,
             search_path=search_path,
             output_path=(*_col_destination_path(udf), PATH_WILDCARD)))
-      elif search.query.type == 'semantic' or search.query.type == 'concept':
-        embedding = search.query.embedding
+      elif search.type == 'semantic' or search.type == 'concept':
+        embedding = search.embedding
         if not embedding:
           raise ValueError(f'Please provide an embedding for semantic search. Got search: {search}')
 
@@ -1312,22 +1312,20 @@ class DatasetDuckDB(Dataset):
         except Exception as e:
           raise ValueError(
             f'Embedding {embedding} has not been computed. '
-            f'Please compute the embedding index before issuing a {search.query.type} query.'
-          ) from e
+            f'Please compute the embedding index before issuing a {search.type} query.') from e
 
         search_signal: Optional[Signal] = None
-        if search.query.type == 'semantic':
-          search_signal = SemanticSimilaritySignal(
-            query=search.query.search, embedding=search.query.embedding)
-        elif search.query.type == 'concept':
+        if search.type == 'semantic':
+          search_signal = SemanticSimilaritySignal(query=search.query, embedding=search.embedding)
+        elif search.type == 'concept':
           search_signal = ConceptSignal(
-            namespace=search.query.concept_namespace,
-            concept_name=search.query.concept_name,
-            embedding=search.query.embedding)
+            namespace=search.concept_namespace,
+            concept_name=search.concept_name,
+            embedding=search.embedding)
 
           # Add the label UDF.
           concept_labels_signal = ConceptLabelsSignal(
-            namespace=search.query.concept_namespace, concept_name=search.query.concept_name)
+            namespace=search.concept_namespace, concept_name=search.concept_name)
           concept_labels_udf = Column(path=search_path, signal_udf=concept_labels_signal)
           search_udfs.append(
             DuckDBSearchUDF(
@@ -1346,7 +1344,7 @@ class DatasetDuckDB(Dataset):
             output_path=_col_destination_path(udf),
             sort=((*output_path, PATH_WILDCARD, 'score'), SortOrder.DESC)))
       else:
-        raise ValueError(f'Unknown search operator {search.query.type}.')
+        raise ValueError(f'Unknown search operator {search.type}.')
 
     return search_udfs
 
@@ -1364,14 +1362,14 @@ class DatasetDuckDB(Dataset):
       duckdb_path = self._leaf_path_to_duckdb_path(
         normalize_path(search.path), manifest.data_schema)
       select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
-      if search.query.type == 'keyword':
+      if search.type == 'keyword':
         sql_op = 'ILIKE'
-        query_val = _escape_like_value(search.query.search)
-      elif search.query.type == 'semantic' or search.query.type == 'concept':
+        query_val = _escape_like_value(search.query)
+      elif search.type == 'semantic' or search.type == 'concept':
         # Semantic search and concepts don't yet filter.
         continue
       else:
-        raise ValueError(f'Unknown search operator {search.query.type}.')
+        raise ValueError(f'Unknown search operator {search.type}.')
 
       filter_query = f'{select_str} {sql_op} {query_val}'
 

@@ -1,29 +1,28 @@
 <script lang="ts">
-  import {serializePath, type KeywordQuery, type Search, type SemanticQuery} from '$lilac';
+  import {serializePath, type KeywordSearch, type Search, type SemanticSearch} from '$lilac';
   import {Tag} from 'carbon-components-svelte';
   import EmbeddingBadge from './EmbeddingBadge.svelte';
 
   export let search: Search;
   export let tagType: Tag['type'] = 'outline';
 
-  $: searchText =
-    search.query.type === 'concept' ? '' : (search.query as KeywordQuery | SemanticQuery).search;
+  $: searchText = search.type === 'concept' ? '' : (search as KeywordSearch | SemanticSearch).query;
 </script>
 
-{#if search.query.type === 'concept'}
+{#if search.type === 'concept'}
   <div class="mb-2 w-full text-center text-xs">
-    {search.query.concept_namespace} / {search.query.concept_name}
+    {search.concept_namespace} / {search.concept_name}
   </div>
 {/if}
 <div class="flex items-center justify-items-center">
   <div class="whitespace-nowrap">
     <Tag type={tagType}>
-      {serializePath(search.path)}: {search.query.type}
+      {serializePath(search.path)}: {search.type}
     </Tag>
   </div>
-  {#if search.query.type === 'semantic' || search.query.type === 'concept'}
+  {#if search.type === 'semantic' || search.type === 'concept'}
     <div class="ml-2">
-      <EmbeddingBadge embedding={search.query.embedding} />
+      <EmbeddingBadge embedding={search.embedding} />
     </div>
   {/if}
 </div>

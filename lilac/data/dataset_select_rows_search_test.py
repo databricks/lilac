@@ -16,7 +16,7 @@ from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from ..signals.substring_search import SubstringSignal
-from .dataset import ConceptQuery, KeywordQuery, Search, SemanticQuery, SortOrder
+from .dataset import ConceptSearch, KeywordSearch, SemanticSearch, SortOrder
 from .dataset_duckdb import DatasetDuckDB
 from .dataset_test_utils import TestDataMaker, enriched_item
 
@@ -66,8 +66,7 @@ def test_search_keyword(make_test_data: TestDataMaker) -> None:
 
   query = 'world'
   result = dataset.select_rows(
-    searches=[Search(path='text', query=KeywordQuery(type='keyword', search=query))],
-    combine_columns=True)
+    searches=[KeywordSearch(path='text', query=query)], combine_columns=True)
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [{
@@ -93,8 +92,7 @@ def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
 
   query = '100%'
   result = dataset.select_rows(
-    searches=[Search(path='text', query=KeywordQuery(type='keyword', search=query))],
-    combine_columns=True)
+    searches=[KeywordSearch(path='text', query=query)], combine_columns=True)
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [{
@@ -104,8 +102,7 @@ def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
 
   query = '_underscore_'
   result = dataset.select_rows(
-    searches=[Search(path='text', query=KeywordQuery(type='keyword', search=query))],
-    combine_columns=True)
+    searches=[KeywordSearch(path='text', query=query)], combine_columns=True)
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [{
@@ -125,8 +122,8 @@ def test_search_keyword_multiple(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows(
     searches=[
-      Search(path='text', query=KeywordQuery(type='keyword', search=query_world)),
-      Search(path='text2', query=KeywordQuery(type='keyword', search=query_looking_world)),
+      KeywordSearch(path='text', query=query_world),
+      KeywordSearch(path='text2', query=query_looking_world),
     ],
     combine_columns=True)
 
@@ -146,7 +143,7 @@ def test_search_keyword_with_filters(make_test_data: TestDataMaker) -> None:
   query = 'world'
   result = dataset.select_rows(
     filters=[(UUID_COLUMN, 'in', ['1', '3'])],
-    searches=[Search(path='text', query=KeywordQuery(type='keyword', search=query))],
+    searches=[KeywordSearch(path='text', query=query)],
     combine_columns=True)
 
   expected_signal_udf = SubstringSignal(query=query)
@@ -186,10 +183,7 @@ def test_semantic_search(make_test_data: TestDataMaker) -> None:
 
   query = 'hello2.'
   result = dataset.select_rows(
-    searches=[
-      Search(
-        path='text', query=SemanticQuery(type='semantic', search=query, embedding='test_embedding'))
-    ],
+    searches=[SemanticSearch(path='text', query=query, embedding='test_embedding')],
     combine_columns=True)
   expected_signal_udf = SemanticSimilaritySignal(query=query, embedding='test_embedding')
   assert list(result) == [
@@ -244,13 +238,11 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
 
   result = dataset.select_rows(
     searches=[
-      Search(
+      ConceptSearch(
         path='text',
-        query=ConceptQuery(
-          type='concept',
-          concept_namespace='test_namespace',
-          concept_name='test_concept',
-          embedding='test_embedding'))
+        concept_namespace='test_namespace',
+        concept_name='test_concept',
+        embedding='test_embedding')
     ],
     filters=[(UUID_COLUMN, 'in', ['1', '2'])],
     combine_columns=True)
@@ -310,13 +302,11 @@ def test_concept_search_without_uuid(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(
     columns=['text'],
     searches=[
-      Search(
+      ConceptSearch(
         path='text',
-        query=ConceptQuery(
-          type='concept',
-          concept_namespace='test_namespace',
-          concept_name='test_concept',
-          embedding='test_embedding'))
+        concept_namespace='test_namespace',
+        concept_name='test_concept',
+        embedding='test_embedding')
     ])
 
   assert list(result) == [
@@ -340,13 +330,11 @@ def test_concept_search_without_uuid(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(
     columns=['text'],
     searches=[
-      Search(
+      ConceptSearch(
         path='text',
-        query=ConceptQuery(
-          type='concept',
-          concept_namespace='test_namespace',
-          concept_name='test_concept',
-          embedding='test_embedding'))
+        concept_namespace='test_namespace',
+        concept_name='test_concept',
+        embedding='test_embedding')
     ],
     combine_columns=True)
 
@@ -395,13 +383,11 @@ def test_concept_search_sort_by_uuid(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(
     columns=['text'],
     searches=[
-      Search(
+      ConceptSearch(
         path='text',
-        query=ConceptQuery(
-          type='concept',
-          concept_namespace='test_namespace',
-          concept_name='test_concept',
-          embedding='test_embedding'))
+        concept_namespace='test_namespace',
+        concept_name='test_concept',
+        embedding='test_embedding')
     ],
     sort_by=[UUID_COLUMN],
     sort_order=SortOrder.ASC)
@@ -440,8 +426,7 @@ def test_sort_override_search(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(test_embedding, ('text'))
 
   query = 'hello2.'
-  search = Search(
-    path='text', query=SemanticQuery(type='semantic', search=query, embedding='test_embedding'))
+  search = SemanticSearch(path='text', query=query, embedding='test_embedding')
 
   expected_signal_udf = SemanticSimilaritySignal(query=query, embedding='test_embedding')
   expected_item_1 = {
@@ -492,10 +477,8 @@ def test_search_keyword_and_semantic(make_test_data: TestDataMaker) -> None:
   keyword_query = 'rld2'
   result = dataset.select_rows(
     searches=[
-      Search(
-        path='text', query=SemanticQuery(type='semantic', search=query,
-                                         embedding='test_embedding')),
-      Search(path='text', query=KeywordQuery(type='keyword', search=keyword_query))
+      SemanticSearch(path='text', query=query, embedding='test_embedding'),
+      KeywordSearch(path='text', query=keyword_query)
     ],
     combine_columns=True)
   expected_semantic_signal = SemanticSimilaritySignal(query=query, embedding='test_embedding')

@@ -166,9 +166,16 @@ r = dataset.select_rows(['overview'], searches=[ll.Search(path='overview', query
 print(r.df())
 ```
 
-Output:
+Output (the response text is removed due to sensitive content):
 
-TODO: Fix concept not found.
+```
+                                            response  ...                lilac/profanity/gte-small(response)
+0                                  -----------------  ...  [{'__value__': {'start': 0, 'end': 17}, 'score...
+1                                  -----------------  ...  [{'__value__': {'start': 0, 'end': 6}, 'score'...
+2                                  -----------------  ...  [{'__value__': {'start': 0, 'end': 143}, 'scor...
+3                                  -----------------  ...  [{'__value__': {'start': 0, 'end': 79}, 'score...
+4                                  -----------------  ...  [{'__value__': {'start': 0, 'end': 376}, 'scor...
+```
 
 To compute the concept score over the entire dataset, we do:
 

@@ -126,12 +126,10 @@
     const datasetViewStore = createDatasetViewStore(urlHashStore, dataset.namespace, dataset.name);
     datasetViewStore.addSearch({
       path: [pathId],
-      query: {
-        type: 'concept',
-        concept_namespace: concept.namespace,
-        concept_name: concept.concept_name,
-        embedding
-      }
+      type: 'concept',
+      concept_namespace: concept.namespace,
+      concept_name: concept.concept_name,
+      embedding
     });
     goto(datasetLink(dataset.namespace, dataset.name));
   }

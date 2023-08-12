@@ -5,15 +5,12 @@ import {
   serializePath,
   type BinaryFilter,
   type Column,
-  type ConceptQuery,
-  type KeywordQuery,
   type LilacSelectRowsSchema,
   type ListFilter,
   type Path,
   type Search,
   type SelectRowsOptions,
   type SelectRowsSchemaOptions,
-  type SemanticQuery,
   type SortOrder,
   type UnaryFilter
 } from '$lilac';
@@ -158,7 +155,7 @@ export function createDatasetViewStore(
         }
 
         // Remove any sorts if the search is semantic or conceptual.
-        if (search.query.type === 'semantic' || search.query.type === 'concept') {
+        if (search.type === 'semantic' || search.type === 'concept') {
           state.query.sort_by = undefined;
           state.query.sort_order = undefined;
         }
@@ -234,7 +231,7 @@ export function createDatasetViewStore(
       name: string,
       selectRowsSchema?: LilacSelectRowsSchema | null
     ) {
-      function matchesConcept(query: KeywordQuery | SemanticQuery | ConceptQuery) {
+      function matchesConcept(query: Search) {
         return (
           query.type === 'concept' &&
           query.concept_namespace === namespace &&
@@ -244,7 +241,7 @@ export function createDatasetViewStore(
       update(state => {
         const resultPathsToRemove: string[][] = [];
         state.query.searches = state.query.searches?.filter(s => {
-          const keep = !matchesConcept(s.query);
+          const keep = !matchesConcept(s);
           if (!keep && selectRowsSchema != null && selectRowsSchema.search_results != null) {
             const resultPaths = selectRowsSchema.search_results
               .filter(r => pathIsEqual(r.search_path, s.path))

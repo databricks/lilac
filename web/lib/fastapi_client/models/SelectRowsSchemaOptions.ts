@@ -3,7 +3,9 @@
 /* eslint-disable */
 
 import type { Column } from './Column';
-import type { Search } from './Search';
+import type { ConceptSearch } from './ConceptSearch';
+import type { KeywordSearch } from './KeywordSearch';
+import type { SemanticSearch } from './SemanticSearch';
 import type { SortOrder } from './SortOrder';
 
 /**
@@ -11,7 +13,7 @@ import type { SortOrder } from './SortOrder';
  */
 export type SelectRowsSchemaOptions = {
     columns?: Array<(Array<string> | string | Column)>;
-    searches?: Array<Search>;
+    searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch)>;
     sort_by?: Array<(Array<string> | string)>;
     sort_order?: SortOrder;
     combine_columns?: boolean;

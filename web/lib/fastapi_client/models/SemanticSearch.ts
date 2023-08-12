@@ -5,9 +5,10 @@
 /**
  * A semantic search on a column.
  */
-export type SemanticQuery = {
-    type?: 'semantic';
-    search: string;
+export type SemanticSearch = {
+    path: (Array<string> | string);
+    query: string;
     embedding: string;
+    type?: 'semantic';
 };
 

@@ -1,12 +1,14 @@
 import type {JSONSchema7} from 'json-schema';
 import type {
   BinaryFilter,
+  ConceptSearch,
   DataType,
   Field,
+  KeywordSearch,
   ListFilter,
   Schema,
-  Search,
   SelectRowsSchemaResult,
+  SemanticSearch,
   Signal,
   SignalInfo,
   UnaryFilter
@@ -25,7 +27,11 @@ export const PATH_KEY = '__path__';
 export const SCHEMA_FIELD_KEY = '__field__';
 // The search type is not an explicitly exported type so we extract the type from the different
 // search types automatically for type-safety.
-export type SearchType = Exclude<Search['query']['type'], undefined>;
+export type SearchType = Exclude<
+  (ConceptSearch | SemanticSearch | KeywordSearch)['type'],
+  undefined
+>;
+export type Search = ConceptSearch | SemanticSearch | KeywordSearch;
 
 export type Op = BinaryFilter['op'] | UnaryFilter['op'] | ListFilter['op'];
 

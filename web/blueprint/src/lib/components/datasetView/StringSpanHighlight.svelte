@@ -164,11 +164,9 @@
 
     datasetViewStore.addSearch({
       path: [serializePath(searchPath)],
-      query: {
-        type: 'semantic',
-        search: text,
-        embedding
-      }
+      type: 'semantic',
+      query: text,
+      embedding
     });
   };
 </script>

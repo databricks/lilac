@@ -6,7 +6,7 @@
     formatValue,
     type Concept,
     type ConceptLabelsSignal,
-    type ConceptQuery,
+    type ConceptSearch,
     type ConceptSignal,
     type ExampleIn,
     type LilacSchema
@@ -28,12 +28,13 @@
   let prevCandidates: Candidates = {};
   let candidates: Candidates = {};
 
-  $: conceptQuery = {
+  $: conceptSearch = {
+    path: fieldPath,
     type: 'concept',
     concept_namespace: concept.namespace,
     concept_name: concept.concept_name,
     embedding: embedding
-  } as ConceptQuery;
+  } as ConceptSearch;
 
   $: topRows = querySelectRows(
     dataset.namespace,
@@ -42,12 +43,7 @@
       columns: [UUID_COLUMN, fieldPath],
       limit: NUM_ROW_CANDIDATES_TO_FETCH,
       combine_columns: true,
-      searches: [
-        {
-          path: fieldPath,
-          query: conceptQuery
-        }
-      ]
+      searches: [conceptSearch]
     },
     schema
   );
