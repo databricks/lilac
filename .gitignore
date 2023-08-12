@@ -17,7 +17,7 @@ node_modules/
 dist/
 
 # Data to ignore.
-data/
+/data
 demo_data/
 
 # Ignore pickled concept models.

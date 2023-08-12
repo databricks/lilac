@@ -624,12 +624,13 @@ def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> Non
       ExampleIn(label=False, text='hello3.')
     ]))
 
-  concept_signal = ConceptSignal(
-    namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
+  dataset.compute_concept(
+    namespace='test_namespace',
+    concept_name='test_concept',
+    embedding='test_embedding',
+    path='text')
 
-  dataset.compute_signal(concept_signal, 'text')
-
-  concept_key = concept_signal.key(is_computed_signal=True)
+  concept_key = 'test_namespace/test_concept/test_embedding/v1'
   result = dataset.select_groups(f'text.{concept_key}.*.score')
   assert result.counts == [('Not in concept', 2), ('In concept', 1)]
 
