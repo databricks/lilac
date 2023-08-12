@@ -10,5 +10,5 @@ set -e
 ./scripts/build_docs.sh
 
 pushd docs > /dev/null
-firebase deploy
+firebase deploy --only hosting
 popd > /dev/null
