@@ -98,7 +98,6 @@ def test_select_all_columns(make_test_data: TestDataMaker) -> None:
 
 def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [{
-    ROWID: '1',
     'people': [{
       'name': 'A',
       'address': {
@@ -111,7 +110,6 @@ def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> Non
       }
     }]
   }, {
-    ROWID: '2',
     'people': [{
       'name': 'C',
       'address': {
@@ -121,20 +119,17 @@ def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> Non
   }]
   dataset = make_test_data(items)
 
-  result = dataset.select_rows([ROWID, 'people.*.name', 'people.*.address.zip'])
+  result = dataset.select_rows(['people.*.name', 'people.*.address.zip'])
   assert list(result) == [{
-    ROWID: '1',
     'people.*.name': ['A', 'B'],
     'people.*.address.zip': [1, 2]
   }, {
-    ROWID: '2',
     'people.*.name': ['C'],
     'people.*.address.zip': [3]
   }]
 
-  result = dataset.select_rows([ROWID, 'people.*.address.zip'], combine_columns=True)
+  result = dataset.select_rows(['people.*.address.zip'], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'people': [{
       'address': {
         'zip': 1
@@ -145,7 +140,6 @@ def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> Non
       }
     }]
   }, {
-    ROWID: '2',
     'people': [{
       'address': {
         'zip': 3
@@ -153,42 +147,36 @@ def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> Non
     }]
   }]
 
-  result = dataset.select_rows([ROWID, 'people'])
+  result = dataset.select_rows(['people'])
   assert list(result) == items
 
 
 def test_select_subcols_with_escaped_dot(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [{
-    ROWID: '1',
     'people.new': [{
       'name': 'A'
     }, {
       'name': 'B'
     }]
   }, {
-    ROWID: '2',
     'people.new': [{
       'name': 'C'
     }]
   }]
   dataset = make_test_data(items)
 
-  result = dataset.select_rows([ROWID, '"people.new".*.name'])
+  result = dataset.select_rows(['"people.new".*.name'])
   assert list(result) == [{
-    ROWID: '1',
     'people.new.*.name': ['A', 'B'],
   }, {
-    ROWID: '2',
     'people.new.*.name': ['C'],
   }]
 
   # Escape name even though it does not need to be.
-  result = dataset.select_rows([ROWID, '"people.new".*."name"'])
+  result = dataset.select_rows(['"people.new".*."name"'])
   assert list(result) == [{
-    ROWID: '1',
     'people.new.*.name': ['A', 'B'],
   }, {
-    ROWID: '2',
     'people.new.*.name': ['C'],
   }]
 
@@ -667,26 +655,21 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=3)
 
-  # Select both columns and the rowid.
-  result = dataset.select_rows(
-    [ROWID, 'str', Column(('str', 'test_signal'), alias='test_signal_on_str')])
+  result = dataset.select_rows(['str', Column(('str', 'test_signal'), alias='test_signal_on_str')])
 
   assert list(result) == [{
-    ROWID: '1',
     'str': 'a',
     'test_signal_on_str': {
       'len': 1,
       'flen': 1.0
     }
   }, {
-    ROWID: '2',
     'str': 'b',
     'test_signal_on_str': {
       'len': 1,
       'flen': 1.0
     }
   }, {
-    ROWID: '3',
     'str': 'b',
     'test_signal_on_str': {
       'len': 1,

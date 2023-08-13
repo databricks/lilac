@@ -125,20 +125,18 @@ def setup_teardown() -> Iterable[None]:
 
 
 def test_udf(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
 
   signal_col = Column('text', signal_udf=TestSignal())
-  result = dataset.select_rows([ROWID, 'text', signal_col])
+  result = dataset.select_rows(['text', signal_col])
 
   assert list(result) == [{
-    ROWID: '1',
     'text': 'hello',
     'text.test_signal': {
       'len': 5,
       'flen': 5.0
     }
   }, {
-    ROWID: '2',
     'text': 'everybody',
     'text.test_signal': {
       'len': 9,
@@ -148,25 +146,18 @@ def test_udf(make_test_data: TestDataMaker) -> None:
 
 
 def test_udf_with_filters(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
 
   signal_col = Column('text', signal_udf=TestSignal())
   # Filter by source feature.
   filters: list[BinaryFilterTuple] = [('text', 'equals', 'everybody')]
-  result = dataset.select_rows([ROWID, 'text', signal_col], filters=filters)
-  assert list(result) == [{
-    ROWID: '2',
-    'text': 'everybody',
-    'text.test_signal': {
-      'len': 9,
-      'flen': 9.0
-    }
-  }]
+  result = dataset.select_rows(['text', signal_col], filters=filters)
+  assert list(result) == [{'text': 'everybody', 'text.test_signal': {'len': 9, 'flen': 9.0}}]
 
 
 def test_udf_with_rowid_filter(make_test_data: TestDataMaker) -> None:
 
-  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
 
   # Filter by a specific rowid.
   filters: list[BinaryFilterTuple] = [(ROWID, 'equals', '1')]
@@ -196,13 +187,7 @@ def test_udf_with_rowid_filter(make_test_data: TestDataMaker) -> None:
 
 def test_udf_with_rowid_filter_repeated(make_test_data: TestDataMaker) -> None:
 
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': ['hello', 'hi']
-  }, {
-    ROWID: '2',
-    'text': ['everybody', 'bye', 'test']
-  }])
+  dataset = make_test_data([{'text': ['hello', 'hi']}, {'text': ['everybody', 'bye', 'test']}])
 
   # Filter by a specific rowid.
   filters: list[BinaryFilterTuple] = [(ROWID, 'equals', '1')]
@@ -224,20 +209,16 @@ def test_udf_with_rowid_filter_repeated(make_test_data: TestDataMaker) -> None:
 
 def test_udf_deeply_nested(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': [['hello'], ['hi', 'bye']]
   }, {
-    ROWID: '2',
     'text': [['everybody', 'bye'], ['test']]
   }])
 
   udf_col = Column(('text', '*', '*'), signal_udf=LengthSignal())
-  result = dataset.select_rows([ROWID, udf_col])
+  result = dataset.select_rows([udf_col])
   assert list(result) == [{
-    ROWID: '1',
     'text.length_signal': [[5], [2, 3]]
   }, {
-    ROWID: '2',
     'text.length_signal': [[9, 3], [4]]
   }]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 6
@@ -245,24 +226,20 @@ def test_udf_deeply_nested(make_test_data: TestDataMaker) -> None:
 
 def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello.',
   }, {
-    ROWID: '2',
     'text': 'hello2.',
   }])
 
   dataset.compute_signal(TestEmbedding(), 'text')
 
   signal_col = Column('text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
-  result = dataset.select_rows([ROWID, 'text', signal_col])
+  result = dataset.select_rows(['text', signal_col])
 
   expected_result: list[Item] = [{
-    ROWID: '1',
     'text': 'hello.',
     'text.test_embedding_sum(embedding=test_embedding)': 1.0
   }, {
-    ROWID: '2',
     'text': 'hello2.',
     'text.test_embedding_sum(embedding=test_embedding)': 2.0
   }]
@@ -271,38 +248,26 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   # Select rows with alias.
   signal_col = Column(
     'text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'), alias='emb_sum')
-  result = dataset.select_rows([ROWID, 'text', signal_col])
-  expected_result = [{
-    ROWID: '1',
-    'text': 'hello.',
-    'emb_sum': 1.0
-  }, {
-    ROWID: '2',
-    'text': 'hello2.',
-    'emb_sum': 2.0
-  }]
+  result = dataset.select_rows(['text', signal_col])
+  expected_result = [{'text': 'hello.', 'emb_sum': 1.0}, {'text': 'hello2.', 'emb_sum': 2.0}]
   assert list(result) == expected_result
 
 
 def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': ['hello.', 'hello world.'],
   }, {
-    ROWID: '2',
     'text': ['hello world2.', 'hello2.'],
   }])
 
   dataset.compute_signal(TestEmbedding(), ('text', '*'))
 
   signal_col = Column(('text', '*'), signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
-  result = dataset.select_rows([ROWID, ('text', '*'), signal_col])
+  result = dataset.select_rows([('text', '*'), signal_col])
   expected_result = [{
-    ROWID: '1',
     'text.*': ['hello.', 'hello world.'],
     'text.test_embedding_sum(embedding=test_embedding)': [1.0, 3.0]
   }, {
-    ROWID: '2',
     'text.*': ['hello world2.', 'hello2.'],
     'text.test_embedding_sum(embedding=test_embedding)': [4.0, 2.0]
   }]
@@ -311,10 +276,8 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
 
 def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello.',
   }, {
-    ROWID: '2',
     'text': 'hello2.',
   }])
 
@@ -373,13 +336,11 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
   }])
 
   signal_col = Column('text', signal_udf=ComputedKeySignal())
-  result = dataset.select_rows([ROWID, 'text', signal_col])
+  result = dataset.select_rows(['text', signal_col])
   assert list(result) == [{
-    ROWID: '1',
     'text': 'hello.',
     'text.key_False': 1
   }, {
-    ROWID: '2',
     'text': 'hello2.',
     'text.key_False': 1
   }]

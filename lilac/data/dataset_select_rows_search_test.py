@@ -131,7 +131,7 @@ def test_search_keyword_with_filters(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
   query = 'world'
-  result = dataset.select_rows([ROWID, '*'],
+  result = dataset.select_rows(['*'],
                                filters=[(ROWID, 'in', ['1', '3'])],
                                searches=[KeywordSearch(path='text', query=query)],
                                combine_columns=True)
@@ -139,7 +139,6 @@ def test_search_keyword_with_filters(make_test_data: TestDataMaker) -> None:
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [
     {
-      ROWID: '1',
       'text': enriched_item('hello world', {expected_signal_udf.key(): [lilac_span(6, 11)]}),
       'text2': 'again hello world'
     },

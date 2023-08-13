@@ -10,7 +10,6 @@ from ..concepts.concept import ExampleIn
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..schema import (
   EMBEDDING_KEY,
-  ROWID,
   Field,
   Item,
   RichData,
@@ -219,33 +218,27 @@ def test_sparse_signal(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestSparseSignal(), 'text')
 
-  result = dataset.select_rows([ROWID, 'text'], combine_columns=True)
+  result = dataset.select_rows(['text'], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item('hello', {'test_sparse_signal': None})
   }, {
-    ROWID: '2',
     'text': enriched_item('hello world', {'test_sparse_signal': 11})
   }]
 
 
 def test_sparse_rich_signal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello',
   }, {
-    ROWID: '2',
     'text': 'hello world',
   }])
 
   dataset.compute_signal(TestSparseRichSignal(), 'text')
 
-  result = dataset.select_rows([ROWID, 'text'], combine_columns=True)
+  result = dataset.select_rows(['text'], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item('hello', {'test_sparse_rich_signal': None})
   }, {
-    ROWID: '2',
     'text': enriched_item(
       'hello world',
       {'test_sparse_rich_signal': {
@@ -290,21 +283,18 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=3)
 
-  result = dataset.select_rows([ROWID, 'str'], combine_columns=True)
+  result = dataset.select_rows(['str'], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'str': enriched_item('a', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
   }, {
-    ROWID: '2',
     'str': enriched_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
     }}),
   }, {
-    ROWID: '3',
     'str': enriched_item('b', {'test_signal': {
       'len': 1,
       'flen': 1.0
@@ -312,41 +302,35 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
   }]
 
   # Select a specific signal leaf test_signal.flen with 'str'.
-  result = dataset.select_rows([ROWID, 'str', ('str', 'test_signal', 'flen')])
+  result = dataset.select_rows(['str', ('str', 'test_signal', 'flen')])
 
   assert list(result) == [{
-    ROWID: '1',
     'str': 'a',
     'str.test_signal.flen': 1.0
   }, {
-    ROWID: '2',
     'str': 'b',
     'str.test_signal.flen': 1.0
   }, {
-    ROWID: '3',
     'str': 'b',
     'str.test_signal.flen': 1.0
   }]
 
   # Select multiple signal leafs with aliasing.
   result = dataset.select_rows([
-    ROWID, 'str',
+    'str',
     Column(('str', 'test_signal', 'flen'), alias='flen'),
     Column(('str', 'test_signal', 'len'), alias='len')
   ])
 
   assert list(result) == [{
-    ROWID: '1',
     'str': 'a',
     'flen': 1.0,
     'len': 1
   }, {
-    ROWID: '2',
     'str': 'b',
     'flen': 1.0,
     'len': 1
   }, {
-    ROWID: '3',
     'str': 'b',
     'flen': 1.0,
     'len': 1
@@ -373,15 +357,13 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows([ROWID, 'text'], combine_columns=True)
+  result = dataset.select_rows(['text'], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item('hello', {
       'param_signal(param=a)': 'hello_a',
       'param_signal(param=b)': 'hello_b',
     })
   }, {
-    ROWID: '2',
     'text': enriched_item('everybody', {
       'param_signal(param=a)': 'everybody_a',
       'param_signal(param=b)': 'everybody_b',
@@ -408,13 +390,11 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows([ROWID, 'text'], combine_columns=True)
+  result = dataset.select_rows(['text'], combine_columns=True)
   expected_result = [{
-    ROWID: '1',
     'text': enriched_item('[1, 1] first sentence. [1, 1] second sentence.',
                           {'test_split': [lilac_span(0, 22), lilac_span(23, 46)]})
   }, {
-    ROWID: '2',
     'text': enriched_item('b2 [2, 1] first sentence. [2, 1] second sentence.',
                           {'test_split': [
                             lilac_span(0, 25),
@@ -453,10 +433,9 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows([ROWID, ('text', '*')], combine_columns=True)
+  result = dataset.select_rows([('text', '*')], combine_columns=True)
 
   assert list(result) == [{
-    ROWID: '1',
     'text': [
       enriched_item('hello', {'test_signal': {
         'len': 5,
@@ -468,7 +447,6 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
       }})
     ]
   }, {
-    ROWID: '2',
     'text': [
       enriched_item('hello2', {'test_signal': {
         'len': 6,
@@ -491,16 +469,14 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestSplitSignal(), 'text')
 
-  result = dataset.select_rows([ROWID, 'text'], combine_columns=True)
+  result = dataset.select_rows(['text'], combine_columns=True)
   expected_result = [{
-    ROWID: '1',
     'text': enriched_item('[1, 1] first sentence. [1, 1] second sentence.',
                           {'test_split': [
                             lilac_span(0, 22),
                             lilac_span(23, 46),
                           ]}),
   }, {
-    ROWID: '2',
     'text': enriched_item('b2 [2, 1] first sentence. [2, 1] second sentence.',
                           {'test_split': [
                             lilac_span(0, 25),
