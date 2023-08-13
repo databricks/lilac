@@ -11,7 +11,6 @@ import threading
 
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
-from enum import Enum
 from importlib import resources
 from typing import Any, List, Optional, Union, cast
 
@@ -434,9 +433,9 @@ class DiskConceptDB(ConceptDB):
     return concept
 
   def _validate_examples(self, examples: List[Union[ExampleIn, Example]],
-                         type: SignalInputType) -> None:
+                         type: ConceptType) -> None:
     for example in examples:
-      inferred_type = 'text' if example.text else 'img'
+      inferred_type = 'text' if example.text else 'unknown'
       if inferred_type != type:
         raise ValueError(f'Example type "{inferred_type}" does not match concept type "{type}".')
 
