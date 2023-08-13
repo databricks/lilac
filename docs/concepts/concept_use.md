@@ -8,8 +8,8 @@ Applying a concept to text can be done in one of two ways:
 
 A concept is simply a collection of positive and negative examples. To use a concept, we also need
 to choose an _Embedding_. Some embeddings, like `gte` and `sbert` will run entirely on device. Other
-embeddings like `openai`, `cohere`, or `palm`. See [Concept Technical Details](concept_technical.md)
-for details on embeddings.
+embeddings like `openai`, `cohere`, or `palm` require an API key and will make a request to retrieve
+embeddings. See [Concept Technical Details](concept_technical.md) for details on embeddings.
 
 The quality of a concept depends on the chosen embedding. See [Concept Metrics](concept_metrics.md)
 for details on understanding the quality of a concept with an embedding.
@@ -23,7 +23,7 @@ for details on understanding the quality of a concept with an embedding.
 To use a concept from the UI, click the concept from the Navigation panel, which will open the
 concept preview page.
 
-<img src="../_static/concepts/concept_preview.png"></img>
+<img src="../_static/concepts/concept_use.png"></img>
 
 From here, you can copy paste text and click "Compute" to compute the concept score for chunks of
 the given text. The sections of text where Lilac thinks text is related to your concept will be

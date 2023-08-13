@@ -29,8 +29,10 @@ positive examples, so this step can be useful to seed the concept.
 However, it's not required. You can choose to seed the concept with as many positive examples as you
 want.
 
-c Just like in step 3, we can use an LLM to generate fake negative examples, or you can enter your
-own negative examples. Negative examples can either be:
+### Step 3: Add negative examples
+
+Just like in step 2, we can use an LLM to generate fake negative examples, or you can enter your own
+negative examples. Negative examples can either be:
 
 1. The opposite of the concept.
 2. Unrelated to the concept (e.g. for `positive-sentiment`, the text can be neutral: neither
