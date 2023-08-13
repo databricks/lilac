@@ -78,7 +78,6 @@ def setup_teardown() -> Iterable[None]:
 
 def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'erased': True,
     'score': 4.1,
     'document': {
@@ -88,7 +87,6 @@ def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
       }
     }
   }, {
-    ROWID: '2',
     'erased': False,
     'score': 3.5,
     'document': {
@@ -98,7 +96,6 @@ def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
       }
     },
   }, {
-    ROWID: '3',
     'erased': True,
     'score': 3.7,
     'document': {
@@ -139,16 +136,7 @@ def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
 
 
 def test_sort_by_signal_no_alias_no_repeated(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': 'HEY'
-  }, {
-    ROWID: '2',
-    'text': 'everyone'
-  }, {
-    ROWID: '3',
-    'text': 'HI'
-  }])
+  dataset = make_test_data([{'text': 'HEY'}, {'text': 'everyone'}, {'text': 'HI'}])
 
   dataset.compute_signal(TestSignal(), 'text')
 
@@ -170,58 +158,43 @@ def test_sort_by_signal_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
 
 
 def test_sort_by_signal_alias_no_repeated(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': 'HEY'
-  }, {
-    ROWID: '2',
-    'text': 'everyone'
-  }, {
-    ROWID: '3',
-    'text': 'HI'
-  }])
+  dataset = make_test_data([{'text': 'HEY'}, {'text': 'everyone'}, {'text': 'HI'}])
 
   dataset.compute_signal(TestSignal(), 'text')
 
   # Sort by `signal.len`.
   signal_alias = Column('text.test_signal', alias='signal')
   result = dataset.select_rows(
-    columns=[ROWID, signal_alias], sort_by=['signal.len'], sort_order=SortOrder.ASC)
+    columns=[signal_alias], sort_by=['signal.len'], sort_order=SortOrder.ASC)
   assert list(result) == [{
-    ROWID: '3',
     'signal': {
       'len': 2,
       'is_all_cap': True
     }
   }, {
-    ROWID: '1',
     'signal': {
       'len': 3,
       'is_all_cap': True
     }
   }, {
-    ROWID: '2',
     'signal': {
       'len': 8,
       'is_all_cap': False
     }
   }]
   result = dataset.select_rows(
-    columns=[ROWID, signal_alias], sort_by=['signal.len'], sort_order=SortOrder.DESC)
+    columns=[signal_alias], sort_by=['signal.len'], sort_order=SortOrder.DESC)
   assert list(result) == [{
-    ROWID: '2',
     'signal': {
       'len': 8,
       'is_all_cap': False
     }
   }, {
-    ROWID: '1',
     'signal': {
       'len': 3,
       'is_all_cap': True
     }
   }, {
-    ROWID: '3',
     'signal': {
       'len': 2,
       'is_all_cap': True
@@ -230,40 +203,28 @@ def test_sort_by_signal_alias_no_repeated(make_test_data: TestDataMaker) -> None
 
 
 def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': 'HEY'
-  }, {
-    ROWID: '2',
-    'text': 'everyone'
-  }, {
-    ROWID: '3',
-    'text': 'HI'
-  }])
+  dataset = make_test_data([{'text': 'HEY'}, {'text': 'everyone'}, {'text': 'HI'}])
 
   dataset.compute_signal(TestSignal(), 'text')
 
   # Sort by `document.test_signal.is_all_cap` where 'document' is an alias to 'text'.
   text_alias = Column('text', alias='document')
   result = dataset.select_rows(
-    columns=[ROWID, text_alias],
+    columns=[text_alias],
     sort_by=['document.test_signal.is_all_cap'],
     sort_order=SortOrder.ASC,
     combine_columns=True)
   assert list(result) == [{
-    ROWID: '2',
     'text': enriched_item('everyone', {'test_signal': {
       'len': 8,
       'is_all_cap': False
     }})
   }, {
-    ROWID: '1',
     'text': enriched_item('HEY', {'test_signal': {
       'len': 3,
       'is_all_cap': True
     }})
   }, {
-    ROWID: '3',
     'text': enriched_item('HI', {'test_signal': {
       'len': 2,
       'is_all_cap': True
@@ -271,25 +232,22 @@ def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> No
   }]
 
   result = dataset.select_rows(
-    columns=[ROWID, text_alias],
+    columns=[text_alias],
     sort_by=['document.test_signal.is_all_cap'],
     sort_order=SortOrder.DESC,
     combine_columns=True)
   # Aliases are ignored when combining columns.
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item('HEY', {'test_signal': {
       'len': 3,
       'is_all_cap': True
     }})
   }, {
-    ROWID: '3',
     'text': enriched_item('HI', {'test_signal': {
       'len': 2,
       'is_all_cap': True
     }})
   }, {
-    ROWID: '2',
     'text': enriched_item('everyone', {'test_signal': {
       'len': 8,
       'is_all_cap': False
@@ -403,7 +361,6 @@ def test_sort_by_source_non_leaf_errors(make_test_data: TestDataMaker) -> None:
 
 def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'vals': [[{
       'score': 7
     }, {
@@ -414,14 +371,12 @@ def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None
       'score': 7
     }]]
   }, {
-    ROWID: '2',
     'vals': [[{
       'score': 3
     }, {
       'score': 4
     }]]
   }, {
-    ROWID: '3',
     'vals': [[{
       'score': 9
     }, {
@@ -431,16 +386,14 @@ def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None
 
   # Sort by repeated 'vals'.
   result = dataset.select_rows(
-    columns=[ROWID, 'vals'], sort_by=['vals.*.*.score'], sort_order=SortOrder.ASC)
+    columns=['vals'], sort_by=['vals.*.*.score'], sort_order=SortOrder.ASC)
   assert list(result) == [{
-    ROWID: '3',
     'vals': [[{
       'score': 9
     }, {
       'score': 0
     }]]
   }, {
-    ROWID: '1',
     'vals': [[{
       'score': 7
     }, {
@@ -451,7 +404,6 @@ def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None
       'score': 7
     }]]
   }, {
-    ROWID: '2',
     'vals': [[{
       'score': 3
     }, {
@@ -460,16 +412,14 @@ def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None
   }]
 
   result = dataset.select_rows(
-    columns=[ROWID, 'vals'], sort_by=['vals.*.*.score'], sort_order=SortOrder.DESC)
+    columns=['vals'], sort_by=['vals.*.*.score'], sort_order=SortOrder.DESC)
   assert list(result) == [{
-    ROWID: '3',
     'vals': [[{
       'score': 9
     }, {
       'score': 0
     }]]
   }, {
-    ROWID: '1',
     'vals': [[{
       'score': 7
     }, {
@@ -480,7 +430,6 @@ def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None
       'score': 7
     }]]
   }, {
-    ROWID: '2',
     'vals': [[{
       'score': 3
     }, {
@@ -490,45 +439,26 @@ def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None
 
 
 def test_sort_by_source_alias_repeated(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'vals': [[7, 1], [1, 7]]
-  }, {
-    ROWID: '2',
-    'vals': [[3], [11]]
-  }, {
-    ROWID: '3',
-    'vals': [[9, 0]]
-  }])
+  dataset = make_test_data([{'vals': [[7, 1], [1, 7]]}, {'vals': [[3], [11]]}, {'vals': [[9, 0]]}])
 
   # Sort by repeated 'vals'.
   result = dataset.select_rows(
-    columns=[ROWID, Column('vals', alias='scores')],
-    sort_by=['scores.*.*'],
-    sort_order=SortOrder.ASC)
+    columns=[Column('vals', alias='scores')], sort_by=['scores.*.*'], sort_order=SortOrder.ASC)
   assert list(result) == [{
-    ROWID: '3',
     'scores': [[9, 0]]
   }, {
-    ROWID: '1',
     'scores': [[7, 1], [1, 7]]
   }, {
-    ROWID: '2',
     'scores': [[3], [11]]
   }]
 
   result = dataset.select_rows(
-    columns=[ROWID, Column('vals', alias='scores')],
-    sort_by=['scores.*.*'],
-    sort_order=SortOrder.DESC)
+    columns=[Column('vals', alias='scores')], sort_by=['scores.*.*'], sort_order=SortOrder.DESC)
   assert list(result) == [{
-    ROWID: '2',
     'scores': [[3], [11]]
   }, {
-    ROWID: '3',
     'scores': [[9, 0]]
   }, {
-    ROWID: '1',
     'scores': [[7, 1], [1, 7]]
   }]
 

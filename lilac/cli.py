@@ -1,6 +1,5 @@
 """Lilac CLI."""
 
-
 import click
 
 from . import __version__

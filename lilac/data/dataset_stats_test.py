@@ -6,31 +6,27 @@ from typing import Any, cast
 import pytest
 from pytest_mock import MockerFixture
 
-from ..schema import ROWID, Item, schema
+from ..schema import Item, schema
 from . import dataset_duckdb
 from .dataset import StatsResult
 from .dataset_test_utils import TestDataMaker
 
 SIMPLE_ITEMS: list[Item] = [{
-  ROWID: '1',
   'str': 'a',
   'int': 1,
   'bool': False,
   'float': 3.0,
 }, {
-  ROWID: '2',
   'str': 'b',
   'int': 2,
   'bool': True,
   'float': 2.0
 }, {
-  ROWID: '3',
   'str': 'b',
   'int': 2,
   'bool': True,
   'float': 1.0
 }, {
-  ROWID: '4',
   'float': float('nan')
 }]
 
@@ -81,7 +77,7 @@ def test_nested_stats(make_test_data: TestDataMaker) -> None:
       }]
     }  # No zips in the first address.
   ]
-  nested_schema = schema({ROWID: 'string', 'name': 'string', 'addresses': [{'zips': ['int32']}]})
+  nested_schema = schema({'name': 'string', 'addresses': [{'zips': ['int32']}]})
   dataset = make_test_data(nested_items, schema=nested_schema)
 
   result = dataset.stats(leaf_path='name')
@@ -102,7 +98,7 @@ def test_stats_approximation(make_test_data: TestDataMaker, mocker: MockerFixtur
   mocker.patch(f'{dataset_duckdb.__name__}.SAMPLE_SIZE_DISTINCT_COUNT', sample_size)
 
   nested_items: list[Item] = [{'feature': str(i)} for i in range(sample_size * 10)]
-  nested_schema = schema({ROWID: 'string', 'feature': 'string'})
+  nested_schema = schema({'feature': 'string'})
   dataset = make_test_data(nested_items, schema=nested_schema)
 
   result = dataset.stats(leaf_path='feature')
@@ -123,23 +119,23 @@ def test_error_handling(make_test_data: TestDataMaker) -> None:
 def test_datetime(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
     {
-      ROWID: '1',
+      'id': '1',
       'date': datetime(2023, 1, 1)
     },
     {
-      ROWID: '2',
+      'id': '2',
       'date': datetime(2023, 1, 15)
     },
     {
-      ROWID: '2',
+      'id': '2',
       'date': datetime(2023, 2, 1)
     },
     {
-      ROWID: '4',
+      'id': '4',
       'date': datetime(2023, 3, 1)
     },
     {
-      ROWID: '5',
+      'id': '5',
       # Missing datetime.
     }
   ]
