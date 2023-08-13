@@ -12,19 +12,16 @@ from .dataset import Column, DatasetManifest
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
 
 SIMPLE_ITEMS: list[Item] = [{
-  ROWID: '1',
   'str': 'a',
   'int': 1,
   'bool': False,
   'float': 3.0
 }, {
-  ROWID: '2',
   'str': 'b',
   'int': 2,
   'bool': True,
   'float': 2.0
 }, {
-  ROWID: '3',
   'str': 'b',
   'int': 2,
   'bool': True,
@@ -95,6 +92,7 @@ def test_select_all_columns(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(SIMPLE_ITEMS)
 
   result = dataset.select_rows()
+  print(list(result))
   assert list(result) == SIMPLE_ITEMS
 
 
@@ -196,19 +194,7 @@ def test_select_subcols_with_escaped_dot(make_test_data: TestDataMaker) -> None:
 
 
 def test_select_star(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{
-    ROWID: '1',
-    'name': 'A',
-    'info': {
-      'age': 40
-    }
-  }, {
-    ROWID: '2',
-    'name': 'B',
-    'info': {
-      'age': 42
-    }
-  }]
+  items: list[Item] = [{'name': 'A', 'info': {'age': 40}}, {'name': 'B', 'info': {'age': 42}}]
   dataset = make_test_data(items)
 
   # Select *.
@@ -222,7 +208,6 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
   # Select *, plus a redundant `info` column.
   result = dataset.select_rows(['*', 'info'])
   assert list(result) == [{
-    ROWID: '1',
     'name': 'A',
     'info': {
       'age': 40
@@ -231,7 +216,6 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
       'age': 40
     },
   }, {
-    ROWID: '2',
     'name': 'B',
     'info': {
       'age': 42
@@ -244,14 +228,12 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
   # Select * plus an inner `info.age` column.
   result = dataset.select_rows(['*', ('info', 'age')])
   assert list(result) == [{
-    ROWID: '1',
     'name': 'A',
     'info': {
       'age': 40
     },
     'info.age': 40
   }, {
-    ROWID: '2',
     'name': 'B',
     'info': {
       'age': 42
@@ -261,19 +243,7 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
 
 
 def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{
-    ROWID: '1',
-    'name': 'A',
-    'info': {
-      'age': 40
-    }
-  }, {
-    ROWID: '2',
-    'name': 'B',
-    'info': {
-      'age': 42
-    }
-  }]
+  items: list[Item] = [{'name': 'A', 'info': {'age': 40}}, {'name': 'B', 'info': {'age': 42}}]
   dataset = make_test_data(items)
 
   # Select *.
@@ -293,7 +263,6 @@ def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['*', 'name', udf], combine_columns=True)
 
   assert list(result) == [{
-    ROWID: '1',
     'name': enriched_item('A', {'test_signal': {
       'len': 1,
       'flen': 1.0
@@ -302,7 +271,6 @@ def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
       'age': 40
     }
   }, {
-    ROWID: '2',
     'name': enriched_item('B', {'test_signal': {
       'len': 1,
       'flen': 1.0
@@ -322,17 +290,17 @@ def test_select_ids(make_test_data: TestDataMaker) -> None:
 
 
 def test_select_ids_with_limit_and_offset(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{ROWID: str(i)} for i in range(10, 20)]
+  items: list[Item] = [{} for _ in range(10)]
   dataset = make_test_data(items)
 
   result = dataset.select_rows([ROWID], offset=1, limit=3)
-  assert list(result) == [{ROWID: '11'}, {ROWID: '12'}, {ROWID: '13'}]
+  assert list(result) == [{ROWID: '2'}, {ROWID: '3'}, {ROWID: '4'}]
 
   result = dataset.select_rows([ROWID], offset=7, limit=2)
-  assert list(result) == [{ROWID: '17'}, {ROWID: '18'}]
+  assert list(result) == [{ROWID: '8'}, {ROWID: '9'}]
 
   result = dataset.select_rows([ROWID], offset=9, limit=200)
-  assert list(result) == [{ROWID: '19'}]
+  assert list(result) == [{ROWID: '10'}]
 
   result = dataset.select_rows([ROWID], offset=10, limit=200)
   assert list(result) == []
@@ -469,7 +437,6 @@ def test_enriched_select_all(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows()
   assert list(result) == [{
-    ROWID: '1',
     'text': 'hello',
     'text.length_signal': 5,
     'text.test_signal': {
@@ -477,7 +444,6 @@ def test_enriched_select_all(make_test_data: TestDataMaker) -> None:
       'flen': 5.0
     }
   }, {
-    ROWID: '2',
     'text': 'everybody',
     'text.length_signal': 9,
     'text.test_signal': {

@@ -345,23 +345,19 @@ class TestSplitter(TextSplitterSignal):
 
 def test_udf_after_precomputed_split(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'sentence 1. sentence 2 is longer',
   }, {
-    ROWID: '2',
     'text': 'sentence 1 is longer. sent2 is short',
   }])
   dataset.compute_signal(TestSplitter(), 'text')
   udf = Column('text', signal_udf=LengthSignal())
   result = dataset.select_rows(['*', udf], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item('sentence 1. sentence 2 is longer', {
       'length_signal': 32,
       'test_splitter': [lilac_span(0, 10), lilac_span(11, 32)]
     })
   }, {
-    ROWID: '2',
     'text': enriched_item('sentence 1 is longer. sent2 is short', {
       'length_signal': 36,
       'test_splitter': [lilac_span(0, 20), lilac_span(21, 36)]
@@ -371,10 +367,8 @@ def test_udf_after_precomputed_split(make_test_data: TestDataMaker) -> None:
 
 def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello.',
   }, {
-    ROWID: '2',
     'text': 'hello2.',
   }])
 

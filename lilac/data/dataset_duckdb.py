@@ -754,7 +754,7 @@ class DatasetDuckDB(Dataset):
     star_in_cols = any(col.path == (PATH_WILDCARD,) for col in cols)
     if not cols or star_in_cols:
       # Select all columns.
-      cols.extend([Column((name,)) for name in schema.fields.keys()])
+      cols.extend([Column((name,)) for name in schema.fields.keys() if name != ROWID])
 
       if not combine_columns:
         # Select all the signal top-level fields.
@@ -1136,11 +1136,6 @@ class DatasetDuckDB(Dataset):
         'select_rows_schema with combine_columns=False is not yet supported.')
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema, combine_columns)
-
-    # Always return the rowid column.
-    col_paths = [col.path for col in cols]
-    if (ROWID,) not in col_paths:
-      cols.append(column_from_identifier(ROWID))
 
     self._normalize_searches(searches, manifest)
     search_udfs = self._search_udfs(searches, manifest)

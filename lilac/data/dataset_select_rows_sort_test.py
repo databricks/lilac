@@ -298,37 +298,25 @@ def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> No
 
 
 def test_sort_by_udf_alias_no_repeated(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': 'HEY'
-  }, {
-    ROWID: '2',
-    'text': 'everyone'
-  }, {
-    ROWID: '3',
-    'text': 'HI'
-  }])
+  dataset = make_test_data([{'text': 'HEY'}, {'text': 'everyone'}, {'text': 'HI'}])
 
   # Equivalent to: SELECT `TestSignal(text) AS udf`.
   text_udf = Column('text', signal_udf=TestSignal(), alias='udf')
   # Sort by `udf.len`, where `udf` is an alias to `TestSignal(text)`.
   result = dataset.select_rows(['*', text_udf], sort_by=['udf.len'], sort_order=SortOrder.ASC)
   assert list(result) == [{
-    ROWID: '3',
     'text': 'HI',
     'udf': {
       'len': 2,
       'is_all_cap': True
     }
   }, {
-    ROWID: '1',
     'text': 'HEY',
     'udf': {
       'len': 3,
       'is_all_cap': True
     }
   }, {
-    ROWID: '2',
     'text': 'everyone',
     'udf': {
       'len': 8,
@@ -338,16 +326,7 @@ def test_sort_by_udf_alias_no_repeated(make_test_data: TestDataMaker) -> None:
 
 
 def test_sort_by_udf_no_alias_no_repeated(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': 'HEY'
-  }, {
-    ROWID: '2',
-    'text': 'everyone'
-  }, {
-    ROWID: '3',
-    'text': 'HI'
-  }])
+  dataset = make_test_data([{'text': 'HEY'}, {'text': 'everyone'}, {'text': 'HI'}])
 
   text_udf = Column('text', signal_udf=TestSignal())
   # Sort by `text.test_signal.len`, produced by executing the udf `TestSignal(text)`.
@@ -356,19 +335,16 @@ def test_sort_by_udf_no_alias_no_repeated(make_test_data: TestDataMaker) -> None
                                sort_order=SortOrder.ASC,
                                combine_columns=True)
   assert list(result) == [{
-    ROWID: '3',
     'text': enriched_item('HI', {'test_signal': {
       'len': 2,
       'is_all_cap': True
     }}),
   }, {
-    ROWID: '1',
     'text': enriched_item('HEY', {'test_signal': {
       'len': 3,
       'is_all_cap': True
     }}),
   }, {
-    ROWID: '2',
     'text': enriched_item('everyone', {'test_signal': {
       'len': 8,
       'is_all_cap': False
@@ -381,19 +357,16 @@ def test_sort_by_udf_no_alias_no_repeated(make_test_data: TestDataMaker) -> None
                                sort_order=SortOrder.DESC,
                                combine_columns=True)
   assert list(result) == [{
-    ROWID: '2',
     'text': enriched_item('everyone', {'test_signal': {
       'len': 8,
       'is_all_cap': False
     }}),
   }, {
-    ROWID: '1',
     'text': enriched_item('HEY', {'test_signal': {
       'len': 3,
       'is_all_cap': True
     }}),
   }, {
-    ROWID: '3',
     'text': enriched_item('HI', {'test_signal': {
       'len': 2,
       'is_all_cap': True
@@ -402,47 +375,26 @@ def test_sort_by_udf_no_alias_no_repeated(make_test_data: TestDataMaker) -> None
 
 
 def test_sort_by_primitive_udf_alias_no_repeated(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': 'HEY'
-  }, {
-    ROWID: '2',
-    'text': 'everyone'
-  }, {
-    ROWID: '3',
-    'text': 'HI'
-  }])
+  dataset = make_test_data([{'text': 'HEY'}, {'text': 'everyone'}, {'text': 'HI'}])
 
   # Equivalent to: SELECT `TestPrimitiveSignal(text) AS udf`.
   text_udf = Column('text', signal_udf=TestPrimitiveSignal(), alias='udf')
   # Sort by the primitive value returned by the udf.
   result = dataset.select_rows(['*', text_udf], sort_by=['udf'], sort_order=SortOrder.ASC)
   assert list(result) == [{
-    ROWID: '3',
     'text': 'HI',
     'udf': 3
   }, {
-    ROWID: '1',
     'text': 'HEY',
     'udf': 4
   }, {
-    ROWID: '2',
     'text': 'everyone',
     'udf': 9
   }]
 
 
 def test_sort_by_source_non_leaf_errors(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'vals': [7, 1]
-  }, {
-    ROWID: '2',
-    'vals': [3, 4]
-  }, {
-    ROWID: '3',
-    'vals': [9, 0]
-  }])
+  dataset = make_test_data([{'vals': [7, 1]}, {'vals': [3, 4]}, {'vals': [9, 0]}])
 
   # Sort by repeated.
   with pytest.raises(ValueError, match='Unable to sort by path'):
@@ -582,45 +534,30 @@ def test_sort_by_source_alias_repeated(make_test_data: TestDataMaker) -> None:
 
 
 def test_sort_by_udf_alias_repeated(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': 'HEY'
-  }, {
-    ROWID: '2',
-    'text': 'everyone'
-  }, {
-    ROWID: '3',
-    'text': 'HI'
-  }])
+  dataset = make_test_data([{'text': 'HEY'}, {'text': 'everyone'}, {'text': 'HI'}])
 
   # Equivalent to: SELECT `NestedArraySignal(text) AS udf`.
   text_udf = Column('text', signal_udf=NestedArraySignal(), alias='udf')
   # Sort by `udf.*.*`, where `udf` is an alias to `NestedArraySignal(text)`.
   result = dataset.select_rows(['*', text_udf], sort_by=['udf.*.*'], sort_order=SortOrder.ASC)
   assert list(result) == [{
-    ROWID: '3',
     'text': 'HI',
     'udf': [[3], [2]]
   }, {
-    ROWID: '1',
     'text': 'HEY',
     'udf': [[4], [3]]
   }, {
-    ROWID: '2',
     'text': 'everyone',
     'udf': [[9], [8]]
   }]
   result = dataset.select_rows(['*', text_udf], sort_by=['udf.*.*'], sort_order=SortOrder.DESC)
   assert list(result) == [{
-    ROWID: '2',
     'text': 'everyone',
     'udf': [[9], [8]]
   }, {
-    ROWID: '1',
     'text': 'HEY',
     'udf': [[4], [3]]
   }, {
-    ROWID: '3',
     'text': 'HI',
     'udf': [[3], [2]]
   }]
@@ -628,21 +565,18 @@ def test_sort_by_udf_alias_repeated(make_test_data: TestDataMaker) -> None:
 
 def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'texts': [{
       'text': 'eardrop'
     }, {
       'text': 'I'
     }]
   }, {
-    ROWID: '2',
     'texts': [{
       'text': 'hey'
     }, {
       'text': 'CARS'
     }]
   }, {
-    ROWID: '3',
     'texts': [{
       'text': 'everyone'
     }, {
@@ -658,7 +592,6 @@ def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: Tes
                                sort_order=SortOrder.ASC,
                                combine_columns=True)
   assert list(result) == [{
-    ROWID: '3',
     'texts': [{
       'text': enriched_item('everyone', {'test_signal': {
         'len': 8,
@@ -671,7 +604,6 @@ def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: Tes
       }})
     }]
   }, {
-    ROWID: '1',
     'texts': [{
       'text': enriched_item('eardrop', {'test_signal': {
         'len': 7,
@@ -684,7 +616,6 @@ def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: Tes
       }})
     }]
   }, {
-    ROWID: '2',
     'texts': [{
       'text': enriched_item('hey', {'test_signal': {
         'len': 3,
@@ -702,21 +633,18 @@ def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: Tes
 def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
     make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'texts': [{
       'text': 'eardrop'
     }, {
       'text': 'I'
     }]
   }, {
-    ROWID: '2',
     'texts': [{
       'text': 'hey'
     }, {
       'text': 'CARS'
     }]
   }, {
-    ROWID: '3',
     'texts': [{
       'text': 'everyone'
     }, {
@@ -732,21 +660,18 @@ def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
                                sort_order=SortOrder.ASC,
                                combine_columns=True)
   assert list(result) == [{
-    ROWID: '3',
     'texts': [{
       'text': enriched_item('everyone', {'primitive_signal': 9})
     }, {
       'text': enriched_item('', {'primitive_signal': 1})
     }]
   }, {
-    ROWID: '1',
     'texts': [{
       'text': enriched_item('eardrop', {'primitive_signal': 8})
     }, {
       'text': enriched_item('I', {'primitive_signal': 2})
     }]
   }, {
-    ROWID: '2',
     'texts': [{
       'text': enriched_item('hey', {'primitive_signal': 4})
     }, {
@@ -758,21 +683,18 @@ def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
                                sort_order=SortOrder.DESC,
                                combine_columns=True)
   assert list(result) == [{
-    ROWID: '3',
     'texts': [{
       'text': enriched_item('everyone', {'primitive_signal': 9})
     }, {
       'text': enriched_item('', {'primitive_signal': 1})
     }]
   }, {
-    ROWID: '1',
     'texts': [{
       'text': enriched_item('eardrop', {'primitive_signal': 8})
     }, {
       'text': enriched_item('I', {'primitive_signal': 2})
     }]
   }, {
-    ROWID: '2',
     'texts': [{
       'text': enriched_item('hey', {'primitive_signal': 4})
     }, {
@@ -831,13 +753,10 @@ class TopKSignal(VectorSignal):
 
 def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'scores': '8_1',
   }, {
-    ROWID: '2',
     'scores': '3_5'
   }, {
-    ROWID: '3',
     'scores': '9_7'
   }])
 
@@ -853,12 +772,10 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
                                limit=2,
                                combine_columns=True)
   assert list(result) == [{
-    ROWID: '3',
     'scores': enriched_item(
       '9_7', {signal.key(): [lilac_span(0, 1, {'score': 9.0}),
                              lilac_span(2, 3, {'score': 7.0})]}),
   }, {
-    ROWID: '1',
     'scores': enriched_item(
       '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}),
                              lilac_span(2, 3, {'score': 1.0})]}),
@@ -871,17 +788,14 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
                                limit=3,
                                combine_columns=True)
   assert list(result) == [{
-    ROWID: '3',
     'scores': enriched_item(
       '9_7', {signal.key(): [lilac_span(0, 1, {'score': 9.0}),
                              lilac_span(2, 3, {'score': 7.0})]}),
   }, {
-    ROWID: '1',
     'scores': enriched_item(
       '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}),
                              lilac_span(2, 3, {'score': 1.0})]}),
   }, {
-    ROWID: '2',
     'scores': enriched_item(
       '3_5', {signal.key(): [lilac_span(0, 1, {'score': 3.0}),
                              lilac_span(2, 3, {'score': 5.0})]}),
@@ -890,15 +804,12 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
 
 def test_sort_by_topk_udf_with_filter(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'scores': '8_1',
     'active': True
   }, {
-    ROWID: '2',
     'scores': '3_5',
     'active': True
   }, {
-    ROWID: '3',
     'scores': '9_7',
     'active': False
   }])
@@ -918,13 +829,11 @@ def test_sort_by_topk_udf_with_filter(make_test_data: TestDataMaker) -> None:
   # We make sure that '3' is not in the result, because it is not active, even though it has the
   # highest topk score.
   assert list(result) == [{
-    ROWID: '1',
     'active': True,
     'scores': enriched_item(
       '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}),
                              lilac_span(2, 3, {'score': 1.0})]})
   }, {
-    ROWID: '2',
     'active': True,
     'scores': enriched_item(
       '3_5', {signal.key(): [lilac_span(0, 1, {'score': 3.0}),

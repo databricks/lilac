@@ -21,15 +21,12 @@ from .dataset_duckdb import DatasetDuckDB
 from .dataset_test_utils import TestDataMaker, enriched_item
 
 TEST_DATA: list[Item] = [{
-  ROWID: '1',
   'text': 'hello world',
   'text2': 'again hello world',
 }, {
-  ROWID: '2',
   'text': 'looking for world in text',
   'text2': 'again looking for world in text',
 }, {
-  ROWID: '3',
   'text': 'unrelated text',
   'text2': 'again unrelated text'
 }]
@@ -70,11 +67,9 @@ def test_search_keyword(make_test_data: TestDataMaker) -> None:
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item('hello world', {expected_signal_udf.key(): [lilac_span(6, 11)]}),
     'text2': 'again hello world'
   }, {
-    ROWID: '2',
     'text': enriched_item('looking for world in text',
                           {expected_signal_udf.key(): [lilac_span(12, 17)]}),
     'text2': 'again looking for world in text',
@@ -83,10 +78,8 @@ def test_search_keyword(make_test_data: TestDataMaker) -> None:
 
 def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'This is 100%',
   }, {
-    ROWID: '2',
     'text': 'This has _underscore_',
   }])
 
@@ -96,7 +89,6 @@ def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item('This is 100%', {expected_signal_udf.key(): [lilac_span(8, 12)]}),
   }]
 
@@ -106,7 +98,6 @@ def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [{
-    ROWID: '2',
     'text': enriched_item('This has _underscore_',
                           {expected_signal_udf.key(): [lilac_span(9, 21)]}),
   }]
@@ -128,7 +119,6 @@ def test_search_keyword_multiple(make_test_data: TestDataMaker) -> None:
     combine_columns=True)
 
   assert list(result) == [{
-    ROWID: '2',
     'text': enriched_item('looking for world in text', {
       expected_world_udf.key(): [lilac_span(12, 17)],
     }),
@@ -141,10 +131,10 @@ def test_search_keyword_with_filters(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
   query = 'world'
-  result = dataset.select_rows(
-    filters=[(ROWID, 'in', ['1', '3'])],
-    searches=[KeywordSearch(path='text', query=query)],
-    combine_columns=True)
+  result = dataset.select_rows([ROWID, '*'],
+                               filters=[(ROWID, 'in', ['1', '3'])],
+                               searches=[KeywordSearch(path='text', query=query)],
+                               combine_columns=True)
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [
@@ -171,10 +161,8 @@ class TestEmbedding(TextEmbeddingSignal):
 
 def test_semantic_search(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello world.',
   }, {
-    ROWID: '2',
     'text': 'hello world2.',
   }])
 
@@ -189,12 +177,10 @@ def test_semantic_search(make_test_data: TestDataMaker) -> None:
   assert list(result) == [
     # Results are sorted by score desc.
     {
-      ROWID: '2',
       'text': enriched_item('hello world2.',
                             {expected_signal_udf.key(): [lilac_span(0, 13, {'score': 3})]})
     },
     {
-      ROWID: '1',
       'text': enriched_item('hello world.',
                             {expected_signal_udf.key(): [lilac_span(0, 12, {'score': 2})]})
     },
@@ -205,22 +191,16 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
   concept_model_mock = mocker.spy(LogisticEmbeddingModel, 'fit')
 
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello world.',
   }, {
-    ROWID: '2',
     'text': 'hello world2.',
   }, {
-    ROWID: '3',
     'text': 'random negative 1',
   }, {
-    ROWID: '4',
     'text': 'random negative 2',
   }, {
-    ROWID: '5',
     'text': 'random negative 3',
   }, {
-    ROWID: '6',
     'text': 'random negative 4',
   }])
 
@@ -237,6 +217,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
     ]))
 
   result = dataset.select_rows(
+    columns=[ROWID, '*'],
     searches=[
       ConceptSearch(
         path='text',
@@ -280,10 +261,8 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
 
 def test_concept_search_without_rowid(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello world.',
   }, {
-    ROWID: '2',
     'text': 'hello world2.',
   }])
 
@@ -361,10 +340,8 @@ def test_concept_search_without_rowid(make_test_data: TestDataMaker) -> None:
 
 def test_concept_search_sort_by_rowid(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello world.',
   }, {
-    ROWID: '2',
     'text': 'hello world2.',
   }])
 
@@ -413,11 +390,9 @@ def test_concept_search_sort_by_rowid(make_test_data: TestDataMaker) -> None:
 
 def test_sort_override_search(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello world.',
     'value': 10
   }, {
-    ROWID: '2',
     'text': 'hello world2.',
     'value': 20
   }])
@@ -430,13 +405,11 @@ def test_sort_override_search(make_test_data: TestDataMaker) -> None:
 
   expected_signal_udf = SemanticSimilaritySignal(query=query, embedding='test_embedding')
   expected_item_1 = {
-    ROWID: '1',
     'text': enriched_item('hello world.',
                           {expected_signal_udf.key(): [lilac_span(0, 12, {'score': 2.0})]}),
     'value': 10
   }
   expected_item_2 = {
-    ROWID: '2',
     'text': enriched_item('hello world2.',
                           {expected_signal_udf.key(): [lilac_span(0, 13, {'score': 3.0})]}),
     'value': 20
@@ -463,10 +436,8 @@ def test_sort_override_search(make_test_data: TestDataMaker) -> None:
 
 def test_search_keyword_and_semantic(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello world.',
   }, {
-    ROWID: '2',
     'text': 'hello world2.',
   }])
 
@@ -486,7 +457,6 @@ def test_search_keyword_and_semantic(make_test_data: TestDataMaker) -> None:
   assert list(result) == [
     # Results are sorted by score desc.
     {
-      ROWID: '2',
       'text': enriched_item(
         'hello world2.', {
           expected_semantic_signal.key(): [lilac_span(0, 13, {'score': 3})],

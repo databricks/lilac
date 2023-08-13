@@ -1,6 +1,7 @@
 """Fixtures for dataset tests."""
 import os
 import pathlib
+from copy import deepcopy
 from typing import Generator, Optional, Type
 
 import pytest
@@ -10,7 +11,7 @@ from .data.dataset import Dataset
 from .data.dataset_duckdb import DatasetDuckDB
 from .data.dataset_test_utils import make_dataset
 from .db_manager import set_default_dataset_cls
-from .schema import Item, Schema
+from .schema import ROWID, Item, Schema
 
 
 @pytest.fixture(scope='function', params=[DatasetDuckDB])
@@ -22,6 +23,9 @@ def make_test_data(tmp_path: pathlib.Path, mocker: MockerFixture,
   set_default_dataset_cls(dataset_cls)
 
   def _make_test_data(items: list[Item], schema: Optional[Schema] = None) -> Dataset:
+    items = [deepcopy(item) for item in items]
+    for i, item in enumerate(items):
+      item[ROWID] = str(i + 1)
     return make_dataset(dataset_cls, tmp_path, items, schema)
 
   # Return the factory for datasets that test methods can use.
