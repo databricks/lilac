@@ -153,7 +153,7 @@ def test_search_keyword_with_filters(make_test_data: TestDataMaker) -> None:
       'text': enriched_item('hello world', {expected_signal_udf.key(): [lilac_span(6, 11)]}),
       'text2': 'again hello world'
     },
-    # The second row doesn't match the UUID filter.
+    # The second row doesn't match the rowid filter.
   ]
 
 
@@ -278,7 +278,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
   ]
 
 
-def test_concept_search_without_uuid(make_test_data: TestDataMaker) -> None:
+def test_concept_search_without_rowid(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     ROWID: '1',
     'text': 'hello world.',
@@ -359,7 +359,7 @@ def test_concept_search_without_uuid(make_test_data: TestDataMaker) -> None:
   ]
 
 
-def test_concept_search_sort_by_uuid(make_test_data: TestDataMaker) -> None:
+def test_concept_search_sort_by_rowid(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     ROWID: '1',
     'text': 'hello world.',
@@ -393,7 +393,7 @@ def test_concept_search_sort_by_uuid(make_test_data: TestDataMaker) -> None:
     sort_order=SortOrder.ASC)
 
   assert list(result) == [
-    # Results are sorted by UUID.
+    # Results are sorted by rowid.
     {
       'text': 'hello world.',
       'text.test_namespace/test_concept/test_embedding': [
@@ -493,5 +493,5 @@ def test_search_keyword_and_semantic(make_test_data: TestDataMaker) -> None:
           expected_keyword_signal.key(): [lilac_span(8, 12)],
         })
     },
-    # UUID '1' is not returned because it does not match the keyword query.
+    # rowid '1' is not returned because it does not match the keyword query.
   ]

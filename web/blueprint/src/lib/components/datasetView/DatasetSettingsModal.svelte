@@ -9,7 +9,7 @@
   import {getSettingsContext} from '$lib/stores/settingsStore';
   import {datasetIdentifier} from '$lib/utils';
   import {
-    UUID_COLUMN,
+    ROWID,
     isSignalField,
     pathIsEqual,
     petals,
@@ -52,7 +52,7 @@
   let preferredEmbedding: string | undefined = $appSettings.embedding;
 
   $: mediaFields = petals(schema).filter(
-    f => f.dtype === 'string' && !pathIsEqual(f.path, [UUID_COLUMN]) && !isSignalField(f, schema)
+    f => f.dtype === 'string' && !pathIsEqual(f.path, [ROWID]) && !isSignalField(f, schema)
   );
 
   $: {

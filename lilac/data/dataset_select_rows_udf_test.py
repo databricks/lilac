@@ -164,11 +164,11 @@ def test_udf_with_filters(make_test_data: TestDataMaker) -> None:
   }]
 
 
-def test_udf_with_uuid_filter(make_test_data: TestDataMaker) -> None:
+def test_udf_with_rowid_filter(make_test_data: TestDataMaker) -> None:
 
   dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
 
-  # Filter by a specific UUID.
+  # Filter by a specific rowid.
   filters: list[BinaryFilterTuple] = [(ROWID, 'equals', '1')]
   udf_col = Column('text', signal_udf=LengthSignal())
   result = dataset.select_rows([ROWID, 'text', udf_col], filters=filters)
@@ -194,7 +194,7 @@ def test_udf_with_uuid_filter(make_test_data: TestDataMaker) -> None:
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2 + 2
 
 
-def test_udf_with_uuid_filter_repeated(make_test_data: TestDataMaker) -> None:
+def test_udf_with_rowid_filter_repeated(make_test_data: TestDataMaker) -> None:
 
   dataset = make_test_data([{
     ROWID: '1',
@@ -204,14 +204,14 @@ def test_udf_with_uuid_filter_repeated(make_test_data: TestDataMaker) -> None:
     'text': ['everybody', 'bye', 'test']
   }])
 
-  # Filter by a specific UUID.
+  # Filter by a specific rowid.
   filters: list[BinaryFilterTuple] = [(ROWID, 'equals', '1')]
   udf_col = Column(('text', '*'), signal_udf=LengthSignal())
   result = dataset.select_rows([ROWID, 'text', udf_col], filters=filters)
   assert list(result) == [{ROWID: '1', 'text': ['hello', 'hi'], 'text.length_signal': [5, 2]}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2
 
-  # Filter by a specific UUID.
+  # Filter by a specific rowid.
   filters = [(ROWID, 'equals', '2')]
   result = dataset.select_rows([ROWID, 'text', udf_col], filters=filters)
   assert list(result) == [{

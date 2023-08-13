@@ -51,7 +51,7 @@ def process_source(base_dir: Union[str, pathlib.Path],
   source_schema = config.source.source_schema()
   items = config.source.process()
 
-  # Add UUIDs and fix NaN in string columns.
+  # Add rowids and fix NaN in string columns.
   items = normalize_items(items, source_schema.fields)
 
   # Add progress.
@@ -99,7 +99,7 @@ def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
       yield item
       continue
 
-    # Add row uuid if it doesn't exist.
+    # Add rowid if it doesn't exist.
     if ROWID not in item:
       item[ROWID] = uuid.uuid4().hex
 

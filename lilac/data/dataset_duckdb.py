@@ -102,8 +102,6 @@ from .dataset_utils import (
   write_items_to_parquet,
 )
 
-UUID_INDEX_FILENAME = 'uuids.npy'
-
 SIGNAL_MANIFEST_FILENAME = 'signal_manifest.json'
 DATASET_SETTINGS_FILENAME = 'settings.json'
 SOURCE_VIEW_NAME = 'source'
@@ -223,7 +221,7 @@ class DatasetDuckDB(Dataset):
     #     source.*,
     #     "parquet_id1"."root_column" AS "parquet_id1",
     #     "parquet_id2"."root_column" AS "parquet_id2"
-    #   FROM source JOIN "parquet_id1" USING (uuid,) JOIN "parquet_id2" USING (uuid,)
+    #   FROM source JOIN "parquet_id1" USING (rowid,) JOIN "parquet_id2" USING (rowid,)
     # );
     # NOTE: "root_column" for each signal is defined as the top-level column.
     select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [(
@@ -384,8 +382,8 @@ class DatasetDuckDB(Dataset):
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
     enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
-    for uuid, item in zip(df[ROWID], enriched_signal_items):
-      item[ROWID] = uuid
+    for rowid, item in zip(df[ROWID], enriched_signal_items):
+      item[ROWID] = rowid
 
     enriched_signal_items = list(enriched_signal_items)
     parquet_filename, _ = write_items_to_parquet(
@@ -435,7 +433,7 @@ class DatasetDuckDB(Dataset):
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
 
     write_embeddings_to_disk(
-      vector_store=self.vector_store, uuids=df[ROWID], signal_items=values, output_dir=output_dir)
+      vector_store=self.vector_store, rowids=df[ROWID], signal_items=values, output_dir=output_dir)
 
     del select_rows_result, df, values
     gc.collect()
@@ -831,14 +829,14 @@ class DatasetDuckDB(Dataset):
     cols.extend([search_udf.udf for search_udf in search_udfs])
     udf_columns = [col for col in cols if col.signal_udf]
 
-    temp_uuid_added = False
+    temp_rowid_selected = False
     for col in cols:
       if col.path == (ROWID,):
-        temp_uuid_added = False
+        temp_rowid_selected = False
         break
       if isinstance(col.signal_udf, VectorSignal):
-        temp_uuid_added = True
-    if temp_uuid_added:
+        temp_rowid_selected = True
+    if temp_rowid_selected:
       cols.append(Column(ROWID))
 
     # Set extra information on any concept signals.
@@ -879,11 +877,11 @@ class DatasetDuckDB(Dataset):
     if topk_udf_col:
       path_keys: Optional[list[PathKey]] = None
       if where_query:
-        # If there are filters, we need to send UUIDs to the top k query.
+        # If there are filters, we need to send rowids to the top k query.
         df = con.execute(f'SELECT {ROWID} FROM t {where_query}').df()
         total_num_rows = len(df)
-        # Convert UUIDs to path keys.
-        path_keys = [(uuid,) for uuid in df[ROWID]]
+        # Convert rowids to path keys.
+        path_keys = [(rowid,) for rowid in df[ROWID]]
 
       if path_keys is not None and len(path_keys) == 0:
         where_query = 'WHERE false'
@@ -896,13 +894,13 @@ class DatasetDuckDB(Dataset):
         with DebugTimer(f'Computing topk on {path_id} with embedding "{topk_signal.embedding}" '
                         f'and vector store "{vector_index._vector_store.name}"'):
           topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
-        topk_uuids = list(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk]))
-        # Update the offset to account for the number of unique UUIDs.
-        offset = len(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk[:offset]]))
+        topk_rowids = list(dict.fromkeys([cast(str, rowid) for (rowid, *_), _ in topk]))
+        # Update the offset to account for the number of unique rowids.
+        offset = len(dict.fromkeys([cast(str, rowid) for (rowid, *_), _ in topk[:offset]]))
 
-        # Ignore all the other filters and filter DuckDB results only by the top k UUIDs.
-        uuid_filter = Filter(path=(ROWID,), op='in', value=topk_uuids)
-        filter_query = self._create_where(manifest, [uuid_filter])[0]
+        # Ignore all the other filters and filter DuckDB results only by the top k rowids.
+        rowid_filter = Filter(path=(ROWID,), op='in', value=topk_rowids)
+        filter_query = self._create_where(manifest, [rowid_filter])[0]
         where_query = f'WHERE {filter_query}'
 
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
@@ -912,7 +910,7 @@ class DatasetDuckDB(Dataset):
 
     for column in cols:
       path = column.path
-      # If the signal is vector-based, we don't need to select the actual data, just the uuids
+      # If the signal is vector-based, we don't need to select the actual data, just the rowids
       # plus an arbitrarily nested array of `None`s`.
       empty = bool(column.signal_udf and schema.get_field(path).dtype == DataType.EMBEDDING)
 
@@ -1085,7 +1083,7 @@ class DatasetDuckDB(Dataset):
 
       df = _replace_nan_with_none(rel.df())
 
-    if temp_uuid_added:
+    if temp_rowid_selected:
       del df[ROWID]
       del columns_to_merge[ROWID]
 
@@ -1139,7 +1137,7 @@ class DatasetDuckDB(Dataset):
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema, combine_columns)
 
-    # Always return the UUID column.
+    # Always return the rowid column.
     col_paths = [col.path for col in cols]
     if (ROWID,) not in col_paths:
       cols.append(column_from_identifier(ROWID))
@@ -1227,7 +1225,7 @@ class DatasetDuckDB(Dataset):
         continue
 
       if isinstance(m, SignalManifest) and path == (ROWID,):
-        # Do not select UUID from the signal because it's already in the source.
+        # Do not select rowid from the signal because it's already in the source.
         continue
 
       duckdb_path = path
@@ -1741,7 +1739,7 @@ def _root_column(manifest: SignalManifest) -> str:
   field_keys = manifest.data_schema.fields.keys()
   if len(field_keys) != 2:
     raise ValueError('Expected exactly two fields in signal manifest, '
-                     f'the row UUID and root this signal is enriching. Got {field_keys}.')
+                     f'the rowid and root this signal is enriching. Got {field_keys}.')
   return next(filter(lambda field: field != ROWID, manifest.data_schema.fields.keys()))
 
 

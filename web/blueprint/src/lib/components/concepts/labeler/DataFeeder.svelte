@@ -2,7 +2,7 @@
   import {editConceptMutation} from '$lib/queries/conceptQueries';
   import {querySelectRows} from '$lib/queries/datasetQueries';
   import {
-    UUID_COLUMN,
+    ROWID,
     formatValue,
     type Concept,
     type ConceptLabelsSignal,
@@ -40,7 +40,7 @@
     dataset.namespace,
     dataset.name,
     {
-      columns: [UUID_COLUMN, fieldPath],
+      columns: [ROWID, fieldPath],
       limit: NUM_ROW_CANDIDATES_TO_FETCH,
       combine_columns: true,
       searches: [conceptSearch]
@@ -64,14 +64,14 @@
     dataset.name,
     {
       columns: [
-        UUID_COLUMN,
+        ROWID,
         fieldPath,
         {path: fieldPath, signal_udf: conceptSignal},
         {path: fieldPath, signal_udf: labelsSignal}
       ],
       limit: NUM_ROW_CANDIDATES_TO_FETCH,
       combine_columns: true,
-      sort_by: [UUID_COLUMN] // Sort by UUID to get random rows.
+      sort_by: [ROWID] // Sort by rowid to get random rows.
     },
     schema
   );
