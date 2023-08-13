@@ -6,8 +6,8 @@
     formatValue,
     type Concept,
     type ConceptLabelsSignal,
-    type ConceptQuery,
-    type ConceptScoreSignal,
+    type ConceptSearch,
+    type ConceptSignal,
     type ExampleIn,
     type LilacSchema
   } from '$lilac';
@@ -28,26 +28,22 @@
   let prevCandidates: Candidates = {};
   let candidates: Candidates = {};
 
-  $: conceptQuery = {
+  $: conceptSearch = {
+    path: fieldPath,
     type: 'concept',
     concept_namespace: concept.namespace,
     concept_name: concept.concept_name,
     embedding: embedding
-  } as ConceptQuery;
+  } as ConceptSearch;
 
   $: topRows = querySelectRows(
     dataset.namespace,
     dataset.name,
     {
-      columns: [fieldPath],
+      columns: [UUID_COLUMN, fieldPath],
       limit: NUM_ROW_CANDIDATES_TO_FETCH,
       combine_columns: true,
-      searches: [
-        {
-          path: fieldPath,
-          query: conceptQuery
-        }
-      ]
+      searches: [conceptSearch]
     },
     schema
   );
@@ -56,7 +52,7 @@
     namespace: concept.namespace,
     concept_name: concept.concept_name,
     embedding
-  } as ConceptScoreSignal;
+  } as ConceptSignal;
   $: labelsSignal = {
     signal_name: 'concept_labels',
     namespace: concept.namespace,
@@ -68,6 +64,7 @@
     dataset.name,
     {
       columns: [
+        UUID_COLUMN,
         fieldPath,
         {path: fieldPath, signal_udf: conceptSignal},
         {path: fieldPath, signal_udf: labelsSignal}

@@ -49,7 +49,7 @@ from ..schema import (
   signal_type_supports_dtype,
 )
 from ..signals.concept_labels import ConceptLabelsSignal
-from ..signals.concept_scorer import ConceptScoreSignal
+from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
   Signal,
@@ -64,6 +64,9 @@ from ..tasks import TaskStepId, progress
 from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
 from . import dataset
 from .dataset import (
+  BINARY_OPS,
+  LIST_OPS,
+  UNARY_OPS,
   BinaryOp,
   Column,
   ColumnId,
@@ -74,7 +77,6 @@ from .dataset import (
   Filter,
   FilterLike,
   GroupsSortBy,
-  ListOp,
   MediaResult,
   Search,
   SearchResultInfo,
@@ -85,7 +87,6 @@ from .dataset import (
   SortOrder,
   SortResult,
   StatsResult,
-  UnaryOp,
   column_from_identifier,
   make_parquet_id,
 )
@@ -112,12 +113,12 @@ SAMPLE_SIZE_DISTINCT_COUNT = 100_000
 NUM_AUTO_BINS = 15
 
 BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
-  BinaryOp.EQUALS: '=',
-  BinaryOp.NOT_EQUAL: '!=',
-  BinaryOp.GREATER: '>',
-  BinaryOp.GREATER_EQUAL: '>=',
-  BinaryOp.LESS: '<',
-  BinaryOp.LESS_EQUAL: '<='
+  'equals': '=',
+  'not_equal': '!=',
+  'greater': '>',
+  'greater_equal': '>=',
+  'less': '<',
+  'less_equal': '<='
 }
 
 
@@ -174,6 +175,9 @@ class DatasetDuckDB(Dataset):
         namespace=namespace, name=dataset_name, source=source_cls(), settings=settings)
       with open(get_config_filepath(self.namespace, self.dataset_name), 'w') as f:
         yaml.dump(config.dict(exclude_none=True, exclude_defaults=True), f)
+
+    # Create a join table from all the parquet files.
+    self.manifest()
 
   @override
   def delete(self) -> None:
@@ -369,7 +373,7 @@ class DatasetDuckDB(Dataset):
     manifest = self.manifest()
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([signal_col],
+    select_rows_result = self.select_rows([UUID_COLUMN, signal_col],
                                           task_step_id=task_step_id,
                                           resolve_span=True)
     df = select_rows_result.df()
@@ -420,7 +424,7 @@ class DatasetDuckDB(Dataset):
 
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([signal_col],
+    select_rows_result = self.select_rows([UUID_COLUMN, signal_col],
                                           task_step_id=task_step_id,
                                           resolve_span=True)
     df = select_rows_result.df()
@@ -748,16 +752,23 @@ class DatasetDuckDB(Dataset):
       return None
     return udf_col
 
-  def _normalize_columns(self, columns: Optional[Sequence[ColumnId]],
-                         schema: Schema) -> list[Column]:
+  def _normalize_columns(self, columns: Optional[Sequence[ColumnId]], schema: Schema,
+                         combine_columns: bool) -> list[Column]:
     """Normalizes the columns to a list of `Column` objects."""
     cols = [column_from_identifier(col) for col in columns or []]
-    star_in_cols = any(col.path == ('*',) for col in cols)
+    star_in_cols = any(col.path == (PATH_WILDCARD,) for col in cols)
     if not cols or star_in_cols:
       # Select all columns.
       cols.extend([Column((name,)) for name in schema.fields.keys()])
+
+      if not combine_columns:
+        # Select all the signal top-level fields.
+        for path, field in schema.all_fields:
+          if field.signal:
+            cols.append(Column(path))
+
       if star_in_cols:
-        cols = [col for col in cols if col.path != ('*',)]
+        cols = [col for col in cols if col.path != (PATH_WILDCARD,)]
     return cols
 
   def _merge_sorts(self, search_udfs: list[DuckDBSearchUDF], sort_by: Optional[Sequence[Path]],
@@ -809,14 +820,8 @@ class DatasetDuckDB(Dataset):
                   combine_columns: bool = False,
                   user: Optional[UserInfo] = None) -> SelectRowsResult:
     manifest = self.manifest()
-    cols = self._normalize_columns(columns, manifest.data_schema)
+    cols = self._normalize_columns(columns, manifest.data_schema, combine_columns)
     offset = offset or 0
-
-    # Always return the UUID column.
-    col_paths = [col.path for col in cols]
-    if (UUID_COLUMN,) not in col_paths:
-      cols.append(column_from_identifier(UUID_COLUMN))
-
     schema = manifest.data_schema
 
     if combine_columns:
@@ -829,9 +834,19 @@ class DatasetDuckDB(Dataset):
     cols.extend([search_udf.udf for search_udf in search_udfs])
     udf_columns = [col for col in cols if col.signal_udf]
 
+    temp_uuid_added = False
+    for col in cols:
+      if col.path == (UUID_COLUMN,):
+        temp_uuid_added = False
+        break
+      if isinstance(col.signal_udf, VectorSignal):
+        temp_uuid_added = True
+    if temp_uuid_added:
+      cols.append(Column(UUID_COLUMN))
+
     # Set extra information on any concept signals.
     for udf_col in udf_columns:
-      if isinstance(udf_col.signal_udf, (ConceptScoreSignal, ConceptLabelsSignal)):
+      if isinstance(udf_col.signal_udf, (ConceptSignal, ConceptLabelsSignal)):
         # Concept are access controlled so we tell it about the user.
         udf_col.signal_udf.set_user(user)
 
@@ -889,7 +904,7 @@ class DatasetDuckDB(Dataset):
         offset = len(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk[:offset]]))
 
         # Ignore all the other filters and filter DuckDB results only by the top k UUIDs.
-        uuid_filter = Filter(path=(UUID_COLUMN,), op=ListOp.IN, value=topk_uuids)
+        uuid_filter = Filter(path=(UUID_COLUMN,), op='in', value=topk_uuids)
         filter_query = self._create_where(manifest, [uuid_filter])[0]
         where_query = f'WHERE {filter_query}'
 
@@ -1007,6 +1022,8 @@ class DatasetDuckDB(Dataset):
       with DebugTimer(f'Computing signal "{signal.name}" on {path_id}'):
         signal.setup()
 
+        step_description = f'Computing {signal.key()} on {path_id}'
+
         if isinstance(signal, VectorSignal):
           embedding_signal = signal
           vector_store = self._get_vector_db_index(embedding_signal.embedding, udf_col.path)
@@ -1019,7 +1036,7 @@ class DatasetDuckDB(Dataset):
               signal_out,
               task_step_id=task_step_id,
               estimated_len=len(flat_keys),
-              step_description=f'Computing {signal.key()}')
+              step_description=step_description)
           df[signal_column] = deep_unflatten(signal_out, input)
         else:
           num_rich_data = count_primitives(input)
@@ -1032,7 +1049,7 @@ class DatasetDuckDB(Dataset):
               signal_out,
               task_step_id=task_step_id,
               estimated_len=num_rich_data,
-              step_description=f'Computing {signal.key()}')
+              step_description=step_description)
           signal_out_list = list(signal_out)
           if signal_column in temp_column_to_offset_column:
             offset_column_name, field = temp_column_to_offset_column[signal_column]
@@ -1070,6 +1087,10 @@ class DatasetDuckDB(Dataset):
         rel = rel.limit(limit, offset)
 
       df = _replace_nan_with_none(rel.df())
+
+    if temp_uuid_added:
+      del df[UUID_COLUMN]
+      del columns_to_merge[UUID_COLUMN]
 
     if combine_columns:
       all_columns: dict[str, Column] = {}
@@ -1119,7 +1140,7 @@ class DatasetDuckDB(Dataset):
       raise NotImplementedError(
         'select_rows_schema with combine_columns=False is not yet supported.')
     manifest = self.manifest()
-    cols = self._normalize_columns(columns, manifest.data_schema)
+    cols = self._normalize_columns(columns, manifest.data_schema, combine_columns)
 
     # Always return the UUID column.
     col_paths = [col.path for col in cols]
@@ -1277,15 +1298,15 @@ class DatasetDuckDB(Dataset):
     search_udfs: list[DuckDBSearchUDF] = []
     for search in searches:
       search_path = normalize_path(search.path)
-      if search.query.type == 'keyword':
-        udf = Column(path=search_path, signal_udf=SubstringSignal(query=search.query.search))
+      if search.type == 'keyword':
+        udf = Column(path=search_path, signal_udf=SubstringSignal(query=search.query))
         search_udfs.append(
           DuckDBSearchUDF(
             udf=udf,
             search_path=search_path,
             output_path=(*_col_destination_path(udf), PATH_WILDCARD)))
-      elif search.query.type == 'semantic' or search.query.type == 'concept':
-        embedding = search.query.embedding
+      elif search.type == 'semantic' or search.type == 'concept':
+        embedding = search.embedding
         if not embedding:
           raise ValueError(f'Please provide an embedding for semantic search. Got search: {search}')
 
@@ -1294,22 +1315,20 @@ class DatasetDuckDB(Dataset):
         except Exception as e:
           raise ValueError(
             f'Embedding {embedding} has not been computed. '
-            f'Please compute the embedding index before issuing a {search.query.type} query.'
-          ) from e
+            f'Please compute the embedding index before issuing a {search.type} query.') from e
 
         search_signal: Optional[Signal] = None
-        if search.query.type == 'semantic':
-          search_signal = SemanticSimilaritySignal(
-            query=search.query.search, embedding=search.query.embedding)
-        elif search.query.type == 'concept':
-          search_signal = ConceptScoreSignal(
-            namespace=search.query.concept_namespace,
-            concept_name=search.query.concept_name,
-            embedding=search.query.embedding)
+        if search.type == 'semantic':
+          search_signal = SemanticSimilaritySignal(query=search.query, embedding=search.embedding)
+        elif search.type == 'concept':
+          search_signal = ConceptSignal(
+            namespace=search.concept_namespace,
+            concept_name=search.concept_name,
+            embedding=search.embedding)
 
           # Add the label UDF.
           concept_labels_signal = ConceptLabelsSignal(
-            namespace=search.query.concept_namespace, concept_name=search.query.concept_name)
+            namespace=search.concept_namespace, concept_name=search.concept_name)
           concept_labels_udf = Column(path=search_path, signal_udf=concept_labels_signal)
           search_udfs.append(
             DuckDBSearchUDF(
@@ -1328,7 +1347,7 @@ class DatasetDuckDB(Dataset):
             output_path=_col_destination_path(udf),
             sort=((*output_path, PATH_WILDCARD, 'score'), SortOrder.DESC)))
       else:
-        raise ValueError(f'Unknown search operator {search.query.type}.')
+        raise ValueError(f'Unknown search operator {search.type}.')
 
     return search_udfs
 
@@ -1346,23 +1365,20 @@ class DatasetDuckDB(Dataset):
       duckdb_path = self._leaf_path_to_duckdb_path(
         normalize_path(search.path), manifest.data_schema)
       select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
-      if search.query.type == 'keyword':
+      if search.type == 'keyword':
         sql_op = 'ILIKE'
-        query_val = _escape_like_value(search.query.search)
-      elif search.query.type == 'semantic' or search.query.type == 'concept':
+        query_val = _escape_like_value(search.query)
+      elif search.type == 'semantic' or search.type == 'concept':
         # Semantic search and concepts don't yet filter.
         continue
       else:
-        raise ValueError(f'Unknown search operator {search.query.type}.')
+        raise ValueError(f'Unknown search operator {search.type}.')
 
       filter_query = f'{select_str} {sql_op} {query_val}'
 
       sql_filter_queries.append(filter_query)
 
     # Add filter where queries.
-    binary_ops = set(BinaryOp)
-    unary_ops = set(UnaryOp)
-    list_ops = set(ListOp)
     for f in filters:
       duckdb_path = self._leaf_path_to_duckdb_path(f.path, manifest.data_schema)
       select_str = _select_sql(
@@ -1373,7 +1389,7 @@ class DatasetDuckDB(Dataset):
       field = manifest.data_schema.get_field(f.path)
       filter_nans = field.dtype and is_float(field.dtype)
 
-      if f.op in binary_ops:
+      if f.op in BINARY_OPS:
         sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, f.op)]
         filter_val = cast(FeatureValue, f.value)
         if isinstance(filter_val, str):
@@ -1389,13 +1405,13 @@ class DatasetDuckDB(Dataset):
         else:
           nan_filter = f'NOT isnan({select_str}) AND' if filter_nans else ''
           filter_query = f'{nan_filter} {select_str} {sql_op} {filter_val}'
-      elif f.op in unary_ops:
-        if f.op == UnaryOp.EXISTS:
+      elif f.op in UNARY_OPS:
+        if f.op == 'exists':
           filter_query = f'len({select_str}) > 0' if is_array else f'{select_str} IS NOT NULL'
         else:
           raise ValueError(f'Unary op: {f.op} is not yet supported')
-      elif f.op in list_ops:
-        if f.op == ListOp.IN:
+      elif f.op in LIST_OPS:
+        if f.op == 'in':
           filter_list_val = cast(FeatureListValue, f.value)
           if not isinstance(filter_list_val, list):
             raise ValueError('filter with array value can only use the IN comparison')
@@ -1444,23 +1460,59 @@ class DatasetDuckDB(Dataset):
       f'{_escape_col_name(path_comp)}' if quote_each_part else str(path_comp) for path_comp in path
     ])
 
+  def _get_selection(self, columns: Optional[Sequence[ColumnId]] = None) -> str:
+    """Get the selection clause for download a dataset."""
+    manifest = self.manifest()
+    if not columns:
+      return '*'
+
+    cols = self._normalize_columns(columns, manifest.data_schema, combine_columns=False)
+    schema = manifest.data_schema
+    self._validate_columns(cols, manifest.data_schema, schema)
+
+    select_queries: list[str] = []
+    for column in cols:
+      col_name = column.alias or _unique_alias(column)
+      duckdb_paths = self._column_to_duckdb_paths(column, schema, combine_columns=False)
+      if not duckdb_paths:
+        raise ValueError(f'Cannot download path {column.path} which does not exist in the dataset.')
+      if len(duckdb_paths) > 1:
+        raise ValueError(
+          f'Cannot download path {column.path} which spans multiple parquet files: {duckdb_paths}')
+      _, duckdb_path = duckdb_paths[0]
+      sql = _select_sql(duckdb_path, flatten=False, unnest=False)
+      select_queries.append(f'{sql} AS {_escape_string_literal(col_name)}')
+    return ', '.join(select_queries)
+
   @override
-  def to_json(self, filepath: Union[str, pathlib.Path], jsonl: bool = True) -> None:
-    self._execute(f"COPY t TO '{filepath}' (FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})")
+  def to_json(self,
+              filepath: Union[str, pathlib.Path],
+              jsonl: bool = True,
+              columns: Optional[Sequence[ColumnId]] = None) -> None:
+    selection = self._get_selection(columns)
+    self._execute(f"COPY (SELECT {selection} FROM t) TO '{filepath}' "
+                  f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})")
     log(f'Dataset exported to {filepath}')
 
   @override
-  def to_pandas(self) -> pd.DataFrame:
-    return self._query_df('SELECT * FROM t')
+  def to_pandas(self, columns: Optional[Sequence[ColumnId]] = None) -> pd.DataFrame:
+    selection = self._get_selection(columns)
+    return self._query_df(f'SELECT {selection} FROM t')
 
   @override
-  def to_csv(self, filepath: Union[str, pathlib.Path]) -> None:
-    self._execute(f"COPY t TO '{filepath}' (FORMAT CSV, HEADER)")
+  def to_csv(self,
+             filepath: Union[str, pathlib.Path],
+             columns: Optional[Sequence[ColumnId]] = None) -> None:
+    selection = self._get_selection(columns)
+    self._execute(f"COPY (SELECT {selection} FROM t) TO '{filepath}' (FORMAT CSV, HEADER)")
     log(f'Dataset exported to {filepath}')
 
   @override
-  def to_parquet(self, filepath: Union[str, pathlib.Path]) -> None:
-    self._execute(f"COPY t TO '{filepath}' (FORMAT PARQUET)")
+  def to_parquet(self,
+                 filepath: Union[str, pathlib.Path],
+                 columns: Optional[Sequence[ColumnId]] = None) -> None:
+    selection = self._get_selection(columns)
+    self._execute(f"COPY (SELECT {selection} FROM t) TO '{filepath}' (FORMAT PARQUET)")
     log(f'Dataset exported to {filepath}')
 
 

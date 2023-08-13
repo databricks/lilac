@@ -11,6 +11,7 @@ import threading
 
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
+from importlib import resources
 from typing import Any, List, Optional, Union, cast
 
 from pydantic import BaseModel
@@ -20,11 +21,13 @@ from ..auth import ConceptAuthorizationException, UserInfo
 from ..env import data_path, env
 from ..schema import SignalInputType
 from ..signals.signal import get_signal_cls
-from ..utils import delete_file, file_exists, open_file
+from ..utils import delete_file, file_exists, get_lilac_cache_dir, open_file
 from .concept import DRAFT_MAIN, Concept, ConceptModel, DraftId, Example, ExampleIn
 
 CONCEPTS_DIR = 'concept'
 CONCEPT_JSON_FILENAME = 'concept.json'
+# Under 'lilac' package.
+LILAC_CONCEPTS_DIR = 'concepts'
 
 
 class ConceptNamespaceACL(BaseModel):
@@ -288,7 +291,7 @@ class DiskConceptModelDB(ConceptModelDB):
                  user: Optional[UserInfo] = None) -> list[ConceptModel]:
     """List all the models associated with a concept."""
     model_files = glob.iglob(
-      os.path.join(get_concept_output_dir(self._get_base_dir(), namespace, concept_name), '*.pkl'))
+      os.path.join(_concept_cache_dir(self._get_base_dir(), namespace, concept_name), '*.pkl'))
     models: list[ConceptModel] = []
     for model_file in model_files:
       embedding_name = os.path.basename(model_file)[:-len('.pkl')]
@@ -300,6 +303,10 @@ class DiskConceptModelDB(ConceptModelDB):
 
 def get_concept_output_dir(base_dir: str, namespace: str, name: str) -> str:
   """Return the output directory for a given concept."""
+  if namespace == 'lilac':
+    # Lilac concepts are stored in the resources directory and shipped with the pip package.
+    return str(resources.files('lilac').joinpath(os.path.join(LILAC_CONCEPTS_DIR, name)))
+
   return os.path.join(base_dir, CONCEPTS_DIR, namespace, name)
 
 
@@ -307,11 +314,15 @@ def _concept_json_path(base_dir: str, namespace: str, name: str) -> str:
   return os.path.join(get_concept_output_dir(base_dir, namespace, name), CONCEPT_JSON_FILENAME)
 
 
+def _concept_cache_dir(base_dir: str, namespace: str, concept_name: str) -> str:
+  return os.path.join(get_lilac_cache_dir(base_dir), CONCEPTS_DIR, namespace, concept_name)
+
+
 def _concept_model_path(base_dir: str, namespace: str, concept_name: str,
                         embedding_name: str) -> str:
 
   return os.path.join(
-    get_concept_output_dir(base_dir, namespace, concept_name), f'{embedding_name}.pkl')
+    _concept_cache_dir(base_dir, namespace, concept_name), f'{embedding_name}.pkl')
 
 
 class DiskConceptDB(ConceptDB):
@@ -350,26 +361,31 @@ class DiskConceptDB(ConceptDB):
       if user:
         namespaces += [user.id]
 
-    # Read the concepts and return a ConceptInfo containing the namespace and name.
-    concept_infos = []
-    for root, _, files in os.walk(os.path.join(self._get_base_dir(), CONCEPTS_DIR)):
-      for file in files:
-        if file == CONCEPT_JSON_FILENAME:
-          namespace, name = root.split('/')[-2:]
-          if namespaces and namespace not in namespaces:
-            # Ignore concepts that are not in the namespace, if provided.
-            continue
+    concept_infos: list[ConceptInfo] = []
 
-          concept = cast(Concept, self.get(namespace, name, user=user))
-          concept_infos.append(
-            ConceptInfo(
-              namespace=namespace,
-              name=name,
-              description=concept.description,
-              type=SignalInputType.TEXT,
-              drafts=concept.drafts(),
-              tags=concept.tags,
-              acls=self.concept_acls(namespace, name, user=user)))
+    namespace_concept_dirs: list[tuple[Optional[str], str]] = [
+      # None = Read the namespace from the directory.
+      (None, os.path.join(self._get_base_dir(), CONCEPTS_DIR)),
+      # Read lilac concepts from the resources directory.
+      ('lilac', str(resources.files('lilac').joinpath(LILAC_CONCEPTS_DIR)))
+    ]
+
+    for (default_namespace, concept_dir) in namespace_concept_dirs:
+      # Read the concepts from the data dir and return a ConceptInfo containing the namespace and
+      # name.
+      for root, _, files in os.walk(concept_dir):
+        for file in files:
+          if file == CONCEPT_JSON_FILENAME:
+            namespace, name = root.split('/')[-2:]
+            if default_namespace is not None:
+              namespace = default_namespace
+            if namespaces and namespace not in namespaces:
+              # Ignore concepts that are not in the namespace, if provided.
+              continue
+
+            concept = cast(Concept, self.get(namespace, name, user=user))
+            concept_infos.append(
+              _info_from_concept(concept, self.concept_acls(namespace, name, user=user)))
 
     return concept_infos
 
@@ -531,6 +547,17 @@ class DiskConceptDB(ConceptDB):
     self._save(concept)
 
     return concept
+
+
+def _info_from_concept(concept: Concept, acls: ConceptACL) -> ConceptInfo:
+  return ConceptInfo(
+    namespace=concept.namespace,
+    name=concept.concept_name,
+    description=concept.description,
+    type=SignalInputType.TEXT,
+    drafts=concept.drafts(),
+    tags=concept.tags,
+    acls=acls)
 
 
 # A singleton concept database.

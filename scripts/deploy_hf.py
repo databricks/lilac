@@ -9,7 +9,7 @@ from huggingface_hub import HfApi
 
 from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from lilac.env import data_path, env
-from lilac.utils import get_dataset_output_dir
+from lilac.utils import get_dataset_output_dir, get_lilac_cache_dir
 
 HF_SPACE_DIR = '.hf_spaces'
 
@@ -36,18 +36,26 @@ HF_SPACE_DIR = '.hf_spaces'
   is_flag=True,
   default=False)
 @click.option(
+  '--skip_cache',
+  help='Skip uploading the cache files from .cache/lilac which contain cached concept pkl models.',
+  type=bool,
+  is_flag=True,
+  default=False)
+@click.option(
   '--data_dir',
   help='The data directory to use for the demo. Defaults to `env.DATA_DIR`.',
   type=str,
   default=data_path())
 def deploy_hf_command(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str],
-                      concept: list[str], skip_build: bool, data_dir: Optional[str]) -> None:
+                      concept: list[str], skip_build: bool, skip_cache: bool,
+                      data_dir: Optional[str]) -> None:
   """Generate the huggingface space app."""
-  deploy_hf(hf_username, hf_space, dataset, concept, skip_build, data_dir)
+  deploy_hf(hf_username, hf_space, dataset, concept, skip_build, skip_cache, data_dir)
 
 
 def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: list[str],
-              concepts: list[str], skip_build: bool, data_dir: Optional[str]) -> None:
+              concepts: list[str], skip_build: bool, skip_cache: bool,
+              data_dir: Optional[str]) -> None:
   """Generate the huggingface space app."""
   data_dir = data_dir or data_path()
   hf_username = hf_username or env('HF_USERNAME')
@@ -120,10 +128,20 @@ app_port: 5432
         (git commit -a -m "Push" --quiet && git push)) && \
       popd > /dev/null""")
 
+  # Upload the cache files.
+  hf_api = HfApi()
+  if not skip_cache:
+    hf_api.upload_folder(
+      folder_path=get_lilac_cache_dir(data_dir),
+      path_in_repo=get_lilac_cache_dir('data'),
+      repo_id=hf_space,
+      repo_type='space',
+      # Delete all data on the server.
+      delete_patterns='*')
+
   # Upload datasets to HuggingFace. We do this after uploading code to avoid clobbering the data
   # directory.
   # NOTE(nsthorat): This currently doesn't write to persistent storage directly.
-  hf_api = HfApi()
   for d in datasets:
     namespace, name = d.split('/')
 
@@ -135,13 +153,13 @@ app_port: 5432
       # Delete all data on the server.
       delete_patterns='*')
 
-  disk_concepts = [f'{c.namespace}/{c.name}' for c in DiskConceptDB(data_dir).list()]
+  disk_concepts = [
+    # Remove lilac concepts as they're checked in, and not in the
+    f'{c.namespace}/{c.name}' for c in DiskConceptDB(data_dir).list() if c.namespace != 'lilac'
+  ]
   for c in concepts:
     if c not in disk_concepts:
       raise ValueError(f'Concept "{c}" not found in disk concepts: {disk_concepts}')
-
-  lilac_concepts = [c for c in disk_concepts if c.startswith('lilac/')]
-  concepts = lilac_concepts + list(concepts)
 
   for c in concepts:
     namespace, name = c.split('/')

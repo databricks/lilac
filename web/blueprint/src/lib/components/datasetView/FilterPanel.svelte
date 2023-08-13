@@ -8,7 +8,6 @@
     formatValue,
     petals,
     serializePath,
-    type ConceptQuery,
     type Path,
     type Search,
     type SearchResultInfo,
@@ -50,18 +49,17 @@
   $: {
     searchesByType = {};
     for (const search of searches) {
-      if (!search.query.type) continue;
-      if (!(search.query.type in searchesByType)) {
-        searchesByType[search.query.type] = [];
+      if (!search.type) continue;
+      if (!(search.type in searchesByType)) {
+        searchesByType[search.type] = [];
       }
-      searchesByType[search.query.type].push(search);
+      searchesByType[search.type].push(search);
     }
   }
 
   function openSearchPill(search: Search) {
-    if (search.query.type === 'concept') {
-      const conceptQuery = search.query as ConceptQuery;
-      openedConcept = {namespace: conceptQuery.concept_namespace, name: conceptQuery.concept_name};
+    if (search.type === 'concept') {
+      openedConcept = {namespace: search.concept_namespace, name: search.concept_name};
     }
   }
 

@@ -187,6 +187,8 @@ class Schema(BaseModel):
   fields: dict[str, Field]
   # Cached leafs.
   _leafs: Optional[dict[PathTuple, Field]] = None
+  # Cached flat list of all the fields.
+  _all_fields: Optional[list[tuple[PathTuple, Field]]] = None
 
   class Config:
     arbitrary_types_allowed = True
@@ -216,6 +218,28 @@ class Schema(BaseModel):
         q.append((child_path, field.repeated_field))
 
     self._leafs = result
+    return result
+
+  @property
+  def all_fields(self) -> list[tuple[PathTuple, Field]]:
+    """Return all the fields in the schema as a flat list."""
+    if self._all_fields:
+      return self._all_fields
+    result: list[tuple[PathTuple, Field]] = []
+    q: deque[tuple[PathTuple, Field]] = deque([((), Field(fields=self.fields))])
+    while q:
+      path, field = q.popleft()
+      if path:
+        result.append((path, field))
+      if field.fields:
+        for name, child_field in field.fields.items():
+          child_path = (*path, name)
+          q.append((child_path, child_field))
+      elif field.repeated_field:
+        child_path = (*path, PATH_WILDCARD)
+        q.append((child_path, field.repeated_field))
+
+    self._all_fields = result
     return result
 
   def has_field(self, path: PathTuple) -> bool:

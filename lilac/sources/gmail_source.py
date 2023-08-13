@@ -63,7 +63,7 @@ class Gmail(Source):
       from google_auth_oauthlib.flow import InstalledAppFlow
     except ImportError:
       raise ImportError('Could not import dependencies for the "gmail" source. '
-                        'Please install with pip install lilac[gmail]')
+                        'Please install with pip install lilacai[gmail]')
 
     # The token file stores the user's access and refresh tokens, and is created automatically when
     # the authorization flow completes for the first time.
@@ -105,7 +105,7 @@ class Gmail(Source):
       from googleapiclient.errors import HttpError
     except ImportError:
       raise ImportError('Could not import dependencies for the "gmail" source. '
-                        'Please install with pip install lilac[gmail]')
+                        'Please install with pip install lilacai[gmail]')
 
     # Call the Gmail API
     service = build('gmail', 'v1', credentials=self._creds)

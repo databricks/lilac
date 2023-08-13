@@ -7,7 +7,8 @@
     "**/yarn.lock": true,
     "**/poetry.lock": true,
     "**/package-lock.json": true,
-    "**/.svelte-kit/**": true
+    "**/.svelte-kit/**": true,
+    "/data/": true
   },
   "files.trimTrailingWhitespace": true,
   "editor.formatOnSave": true,
@@ -25,6 +26,9 @@
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
   "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,

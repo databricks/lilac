@@ -114,9 +114,9 @@
               !isEmbeddingComputed ||
               searches.some(
                 s =>
-                  s.query.type === 'concept' &&
-                  s.query.concept_namespace === c.namespace &&
-                  s.query.concept_name === c.name
+                  s.type === 'concept' &&
+                  s.concept_namespace === c.namespace &&
+                  s.concept_name === c.name
               )
           }))
         )
@@ -147,12 +147,10 @@
     if (searchPath == null || selectedEmbedding == null) return;
     datasetViewStore.addSearch({
       path: [serializePath(searchPath)],
-      query: {
-        type: 'concept',
-        concept_namespace: namespace,
-        concept_name: name,
-        embedding: selectedEmbedding
-      }
+      type: 'concept',
+      concept_namespace: namespace,
+      concept_name: name,
+      embedding: selectedEmbedding
     });
     conceptComboBox.clear();
   };
@@ -191,10 +189,8 @@
       }
       datasetViewStore.addSearch({
         path: [serializePath(searchPath)],
-        query: {
-          type: 'keyword',
-          search: searchText
-        }
+        type: 'keyword',
+        query: searchText
       });
       conceptComboBox.clear();
       return;
@@ -204,11 +200,9 @@
       }
       datasetViewStore.addSearch({
         path: [serializePath(searchPath)],
-        query: {
-          type: 'semantic',
-          search: searchText,
-          embedding: selectedEmbedding
-        }
+        type: 'semantic',
+        query: searchText,
+        embedding: selectedEmbedding
       });
       conceptComboBox.clear();
       return;

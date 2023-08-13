@@ -9,7 +9,7 @@ from pydantic import BaseModel, validator
 from .auth import UserInfo, get_session_user
 from .router_utils import RouteErrorHandler, server_compute_concept
 from .schema import Field, SignalInputType
-from .signals.concept_scorer import ConceptScoreSignal
+from .signals.concept_scorer import ConceptSignal
 from .signals.signal import SIGNAL_REGISTRY, Signal, TextEmbeddingSignal, resolve_signal
 
 router = APIRouter(route_class=RouteErrorHandler)
@@ -75,7 +75,7 @@ def compute(
     user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> SignalComputeResponse:
   """Compute a signal over a set of inputs."""
   signal = options.signal
-  if isinstance(signal, ConceptScoreSignal):
+  if isinstance(signal, ConceptSignal):
     result = server_compute_concept(signal, options.inputs, user)
   else:
     signal.setup()

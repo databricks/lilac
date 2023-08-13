@@ -124,7 +124,7 @@ def test_select_rows_no_options() -> None:
 def test_select_rows_with_cols_and_limit() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
   options = SelectRowsOptions(
-    columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
+    columns=[UUID_COLUMN, ('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
     limit=1,
     offset=1)
   response = client.post(url, json=options.dict())
@@ -141,7 +141,7 @@ def test_select_rows_with_cols_and_limit() -> None:
 def test_select_rows_with_cols_and_combine() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
   options = SelectRowsOptions(
-    columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
+    columns=[UUID_COLUMN, ('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
     combine_columns=True)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200

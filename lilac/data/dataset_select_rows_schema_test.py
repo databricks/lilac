@@ -22,7 +22,7 @@ from ..schema import (
   schema,
 )
 from ..signals.concept_labels import ConceptLabelsSignal
-from ..signals.concept_scorer import ConceptScoreSignal
+from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import (
   TextEmbeddingSignal,
@@ -35,13 +35,12 @@ from ..signals.signal import (
 from ..signals.substring_search import SubstringSignal
 from .dataset import (
   Column,
-  ConceptQuery,
-  KeywordQuery,
-  Search,
+  ConceptSearch,
+  KeywordSearch,
   SearchResultInfo,
   SelectRowsSchemaResult,
   SelectRowsSchemaUDF,
-  SemanticQuery,
+  SemanticSearch,
   SortOrder,
   SortResult,
 )
@@ -382,8 +381,8 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows_schema(
     searches=[
-      Search(path='text', query=KeywordQuery(type='keyword', search=query_world)),
-      Search(path='text2', query=KeywordQuery(type='keyword', search=query_hello)),
+      KeywordSearch(path='text', query=query_world),
+      KeywordSearch(path='text2', query=query_hello),
     ],
     combine_columns=True)
 
@@ -435,9 +434,7 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows_schema(
     searches=[
-      Search(
-        path='text',
-        query=SemanticQuery(type='semantic', search=query_world, embedding='test_embedding')),
+      SemanticSearch(path='text', query=query_world, embedding='test_embedding'),
     ],
     combine_columns=True)
 
@@ -478,17 +475,15 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows_schema(
     searches=[
-      Search(
+      ConceptSearch(
         path='text',
-        query=ConceptQuery(
-          type='concept',
-          concept_namespace='test_namespace',
-          concept_name='test_concept',
-          embedding='test_embedding')),
+        concept_namespace='test_namespace',
+        concept_name='test_concept',
+        embedding='test_embedding'),
     ],
     combine_columns=True)
 
-  expected_world_signal = ConceptScoreSignal(
+  expected_world_signal = ConceptSignal(
     namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
   expected_labels_signal = ConceptLabelsSignal(
     namespace='test_namespace', concept_name='test_concept')
@@ -550,9 +545,7 @@ def test_search_sort_override(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows_schema(
     searches=[
-      Search(
-        path='text',
-        query=SemanticQuery(type='semantic', search=query_world, embedding='test_embedding')),
+      SemanticSearch(path='text', query=query_world, embedding='test_embedding'),
     ],
     # Explicit sort by overrides the semantic search.
     sort_by=[('text',)],

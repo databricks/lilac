@@ -9,6 +9,8 @@ poetry install
 # Activate the current py virtual env.
 source $(poetry env info --path)/bin/activate
 
+rm -r _build
 make html
 
 popd > /dev/null
+deactivate

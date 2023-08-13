@@ -4,8 +4,10 @@
 
 import type { BinaryFilter } from './BinaryFilter';
 import type { Column } from './Column';
+import type { ConceptSearch } from './ConceptSearch';
+import type { KeywordSearch } from './KeywordSearch';
 import type { ListFilter } from './ListFilter';
-import type { Search } from './Search';
+import type { SemanticSearch } from './SemanticSearch';
 import type { SortOrder } from './SortOrder';
 import type { UnaryFilter } from './UnaryFilter';
 
@@ -14,7 +16,7 @@ import type { UnaryFilter } from './UnaryFilter';
  */
 export type SelectRowsOptions = {
     columns?: Array<(Array<string> | string | Column)>;
-    searches?: Array<Search>;
+    searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch)>;
     filters?: Array<(BinaryFilter | UnaryFilter | ListFilter)>;
     sort_by?: Array<(Array<string> | string)>;
     sort_order?: SortOrder;

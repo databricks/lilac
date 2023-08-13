@@ -5,17 +5,15 @@
     formatValue,
     serializePath,
     type BinaryFilter,
-    type BinaryOp,
     type ListFilter,
-    type ListOp,
-    type UnaryFilter,
-    type UnaryOp
+    type Op,
+    type UnaryFilter
   } from '$lilac';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import RemovableTag from '../common/RemovableTag.svelte';
 
-  export const FILTER_SHORTHANDS: Record<BinaryOp | UnaryOp | ListOp, string> = {
+  export const FILTER_SHORTHANDS: Record<Op, string> = {
     equals: '=',
     not_equal: '≠',
     less: '<',

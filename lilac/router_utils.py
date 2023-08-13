@@ -9,7 +9,7 @@ from fastapi.routing import APIRoute
 from .auth import UserInfo
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB
 from .schema import Item, RichData
-from .signals.concept_scorer import ConceptScoreSignal
+from .signals.concept_scorer import ConceptSignal
 
 
 class RouteErrorHandler(APIRoute):
@@ -36,7 +36,7 @@ class RouteErrorHandler(APIRoute):
     return custom_route_handler
 
 
-def server_compute_concept(signal: ConceptScoreSignal, examples: Iterable[RichData],
+def server_compute_concept(signal: ConceptSignal, examples: Iterable[RichData],
                            user: Optional[UserInfo]) -> list[Optional[Item]]:
   """Compute a concept from the REST endpoints."""
   # TODO(nsthorat): Move this to the setup() method in the concept_scorer.

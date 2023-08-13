@@ -20,7 +20,7 @@ from ..schema import (
   lilac_span,
   schema,
 )
-from ..signals.concept_scorer import ConceptScoreSignal
+from ..signals.concept_scorer import ConceptSignal
 from ..signals.signal import (
   TextEmbeddingSignal,
   TextSignal,
@@ -191,7 +191,7 @@ def setup_teardown() -> Iterable[None]:
   register_signal(TestSplitSignal)
   register_signal(TestEmbedding)
   register_signal(ComputedKeySignal)
-  register_signal(ConceptScoreSignal)
+  register_signal(ConceptSignal)
 
   # Unit test runs.
   yield
@@ -226,7 +226,7 @@ def test_sparse_signal(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestSparseSignal(), 'text')
 
-  result = dataset.select_rows(['text'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'text'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': enriched_item('hello', {'test_sparse_signal': None})
@@ -247,7 +247,7 @@ def test_sparse_rich_signal(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestSparseRichSignal(), 'text')
 
-  result = dataset.select_rows(['text'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'text'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': enriched_item('hello', {'test_sparse_rich_signal': None})
@@ -299,7 +299,7 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=3)
 
-  result = dataset.select_rows(['str'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'str'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'str': enriched_item('a', {'test_signal': {
@@ -321,7 +321,7 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
   }]
 
   # Select a specific signal leaf test_signal.flen with 'str'.
-  result = dataset.select_rows(['str', ('str', 'test_signal', 'flen')])
+  result = dataset.select_rows([UUID_COLUMN, 'str', ('str', 'test_signal', 'flen')])
 
   assert list(result) == [{
     UUID_COLUMN: '1',
@@ -339,7 +339,7 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
 
   # Select multiple signal leafs with aliasing.
   result = dataset.select_rows([
-    'str',
+    UUID_COLUMN, 'str',
     Column(('str', 'test_signal', 'flen'), alias='flen'),
     Column(('str', 'test_signal', 'len'), alias='len')
   ])
@@ -389,7 +389,7 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows(['text'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'text'], combine_columns=True)
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': enriched_item('hello', {
@@ -427,7 +427,7 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows(['text'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'text'], combine_columns=True)
   expected_result = [{
     UUID_COLUMN: '1',
     'text': enriched_item('[1, 1] first sentence. [1, 1] second sentence.',
@@ -475,7 +475,7 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows([('text', '*')], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, ('text', '*')], combine_columns=True)
 
   assert list(result) == [{
     UUID_COLUMN: '1',
@@ -515,7 +515,7 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
 
   dataset.compute_signal(TestSplitSignal(), 'text')
 
-  result = dataset.select_rows(['text'], combine_columns=True)
+  result = dataset.select_rows([UUID_COLUMN, 'text'], combine_columns=True)
   expected_result = [{
     UUID_COLUMN: '1',
     'text': enriched_item('[1, 1] first sentence. [1, 1] second sentence.',
@@ -624,12 +624,13 @@ def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> Non
       ExampleIn(label=False, text='hello3.')
     ]))
 
-  concept_signal = ConceptScoreSignal(
-    namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
+  dataset.compute_concept(
+    namespace='test_namespace',
+    concept_name='test_concept',
+    embedding='test_embedding',
+    path='text')
 
-  dataset.compute_signal(concept_signal, 'text')
-
-  concept_key = concept_signal.key(is_computed_signal=True)
+  concept_key = 'test_namespace/test_concept/test_embedding/v1'
   result = dataset.select_groups(f'text.{concept_key}.*.score')
   assert result.counts == [('Not in concept', 2), ('In concept', 1)]
 

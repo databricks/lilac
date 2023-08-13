@@ -53,7 +53,8 @@ def _infer_field(feature_value: Union[Value, dict]) -> Field:
     raise ValueError(f'Feature is not a `Value`, `Sequence`, or `dict`: {feature_value}')
 
 
-def hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> SchemaInfo:
+def hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str],
+                        sample_size: Optional[int]) -> SchemaInfo:
   """Convert the HuggingFace schema to our schema."""
   if split:
     split_datasets = [hf_dataset_dict[split]]
@@ -65,7 +66,11 @@ def hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str]) -> S
   num_items = 0
 
   for split_dataset in split_datasets:
-    num_items += len(split_dataset)
+    split_size = len(split_dataset)
+    if sample_size:
+      split_size = min(split_size, sample_size)
+    num_items += split_size
+
     features = split_dataset.features
     for feature_name, feature_value in features.items():
       if feature_name in fields:
@@ -122,7 +127,7 @@ class HuggingFaceDataset(Source):
       hf_dataset_dict = load_dataset(
         self.dataset_name, self.config_name, num_proc=multiprocessing.cpu_count())
     self._dataset_dict = hf_dataset_dict
-    self._schema_info = hf_schema_to_schema(self._dataset_dict, self.split)
+    self._schema_info = hf_schema_to_schema(self._dataset_dict, self.split, self.sample_size)
 
   @override
   def source_schema(self) -> SourceSchema:

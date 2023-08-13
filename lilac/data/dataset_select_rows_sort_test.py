@@ -26,7 +26,7 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import BinaryOp, Column, SortOrder
+from .dataset import Column, SortOrder
 from .dataset_test_utils import TestDataMaker, enriched_item
 
 
@@ -186,7 +186,7 @@ def test_sort_by_signal_alias_no_repeated(make_test_data: TestDataMaker) -> None
   # Sort by `signal.len`.
   signal_alias = Column('text.test_signal', alias='signal')
   result = dataset.select_rows(
-    columns=[signal_alias], sort_by=['signal.len'], sort_order=SortOrder.ASC)
+    columns=[UUID_COLUMN, signal_alias], sort_by=['signal.len'], sort_order=SortOrder.ASC)
   assert list(result) == [{
     UUID_COLUMN: '3',
     'signal': {
@@ -207,7 +207,7 @@ def test_sort_by_signal_alias_no_repeated(make_test_data: TestDataMaker) -> None
     }
   }]
   result = dataset.select_rows(
-    columns=[signal_alias], sort_by=['signal.len'], sort_order=SortOrder.DESC)
+    columns=[UUID_COLUMN, signal_alias], sort_by=['signal.len'], sort_order=SortOrder.DESC)
   assert list(result) == [{
     UUID_COLUMN: '2',
     'signal': {
@@ -246,7 +246,7 @@ def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> No
   # Sort by `document.test_signal.is_all_cap` where 'document' is an alias to 'text'.
   text_alias = Column('text', alias='document')
   result = dataset.select_rows(
-    columns=[text_alias],
+    columns=[UUID_COLUMN, text_alias],
     sort_by=['document.test_signal.is_all_cap'],
     sort_order=SortOrder.ASC,
     combine_columns=True)
@@ -271,7 +271,7 @@ def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> No
   }]
 
   result = dataset.select_rows(
-    columns=[text_alias],
+    columns=[UUID_COLUMN, text_alias],
     sort_by=['document.test_signal.is_all_cap'],
     sort_order=SortOrder.DESC,
     combine_columns=True)
@@ -911,7 +911,7 @@ def test_sort_by_topk_udf_with_filter(make_test_data: TestDataMaker) -> None:
   # Sort by `udf`, where `udf` is an alias to `TopKSignal(scores, embedding='...')`.
   result = dataset.select_rows(['*', text_udf],
                                sort_by=['udf'],
-                               filters=[('active', BinaryOp.EQUALS, True)],
+                               filters=[('active', 'equals', True)],
                                sort_order=SortOrder.DESC,
                                limit=2,
                                combine_columns=True)

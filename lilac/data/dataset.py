@@ -1,4 +1,6 @@
 """The interface for the database."""
+from __future__ import annotations
+
 import abc
 import enum
 import pathlib
@@ -7,13 +9,32 @@ from datetime import datetime
 from typing import Any, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
-from pydantic import BaseModel
-from pydantic import Field as PydanticField
-from pydantic import StrictBool, StrictBytes, StrictFloat, StrictInt, StrictStr, validator
+from pydantic import (
+  BaseModel,
+  StrictBool,
+  StrictBytes,
+  StrictFloat,
+  StrictInt,
+  StrictStr,
+  validator,
+)
+from typing_extensions import TypeAlias
+
+from lilac.signals.concept_scorer import ConceptSignal
 
 from ..auth import UserInfo
 from ..config import DatasetConfig, DatasetSettings, DatasetUISettings
-from ..schema import UUID_COLUMN, VALUE_KEY, Bin, DataType, Path, PathTuple, Schema, normalize_path
+from ..schema import (
+  PATH_WILDCARD,
+  UUID_COLUMN,
+  VALUE_KEY,
+  Bin,
+  DataType,
+  Path,
+  PathTuple,
+  Schema,
+  normalize_path,
+)
 from ..signals.signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
 from ..tasks import TaskStepId
 
@@ -58,27 +79,15 @@ class MediaResult(BaseModel):
   data: bytes
 
 
-class BinaryOp(str, enum.Enum):
-  """The comparison operator between a column and a feature value."""
-  EQUALS = 'equals'
-  NOT_EQUAL = 'not_equal'
-  GREATER = 'greater'
-  GREATER_EQUAL = 'greater_equal'
-  LESS = 'less'
-  LESS_EQUAL = 'less_equal'
+BinaryOp = Literal['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal']
+UnaryOp = Literal['exists']
+ListOp = Literal['in']
 
+BINARY_OPS = set(['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal'])
+UNARY_OPS = set(['exists'])
+LIST_OPS = set(['in'])
 
 SearchType = Union[Literal['keyword'], Literal['semantic'], Literal['concept']]
-
-
-class UnaryOp(str, enum.Enum):
-  """A unary operator on a feature."""
-  EXISTS = 'exists'
-
-
-class ListOp(str, enum.Enum):
-  """A list operator on a feature."""
-  IN = 'in'
 
 
 class SortOrder(str, enum.Enum):
@@ -202,36 +211,36 @@ class Filter(BaseModel):
   value: Optional[Union[FeatureValue, FeatureListValue]] = None
 
 
-FilterLike = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListFilterTuple]
+FilterLike: TypeAlias = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListFilterTuple]
 
 SearchValue = StrictStr
 
 
-class KeywordQuery(BaseModel):
+class KeywordSearch(BaseModel):
   """A keyword search query on a column."""
+  path: Path
+  query: SearchValue
   type: Literal['keyword'] = 'keyword'
-  search: SearchValue
 
 
-class SemanticQuery(BaseModel):
+class SemanticSearch(BaseModel):
   """A semantic search on a column."""
-  type: Literal['semantic'] = 'semantic'
-  search: SearchValue
+  path: Path
+  query: SearchValue
   embedding: str
+  type: Literal['semantic'] = 'semantic'
 
 
-class ConceptQuery(BaseModel):
+class ConceptSearch(BaseModel):
   """A concept search query on a column."""
-  type: Literal['concept'] = 'concept'
+  path: Path
   concept_namespace: str
   concept_name: str
   embedding: str
+  type: Literal['concept'] = 'concept'
 
 
-class Search(BaseModel):
-  """A search on a column."""
-  path: Path
-  query: Union[KeywordQuery, SemanticQuery, ConceptQuery] = PydanticField(discriminator='type')
+Search = Union[ConceptSearch, SemanticSearch, KeywordSearch]
 
 
 class Dataset(abc.ABC):
@@ -296,7 +305,17 @@ class Dataset(abc.ABC):
                         task_step_id: Optional[TaskStepId] = None) -> None:
     """Compute an embedding for a given field path."""
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
-    self.compute_signal(signal, path)
+    self.compute_signal(signal, path, task_step_id)
+
+  def compute_concept(self,
+                      namespace: str,
+                      concept_name: str,
+                      embedding: str,
+                      path: Path,
+                      task_step_id: Optional[TaskStepId] = None) -> None:
+    """Compute concept scores for a given field path."""
+    signal = ConceptSignal(namespace=namespace, concept_name=concept_name, embedding=embedding)
+    self.compute_signal(signal, path, task_step_id)
 
   @abc.abstractmethod
   def delete_signal(self, signal_path: Path) -> None:
@@ -345,7 +364,7 @@ class Dataset(abc.ABC):
                   resolve_span: bool = False,
                   combine_columns: bool = False,
                   user: Optional[UserInfo] = None) -> SelectRowsResult:
-    """Select grouped columns to power a histogram.
+    """Select a set of rows that match the provided filters, analogous to SQL SELECT.
 
     Args:
       columns: The columns to select. A column is an instance of `Column` which can either
@@ -372,7 +391,7 @@ class Dataset(abc.ABC):
         apply ACL to the query, especially for concepts.
 
     Returns
-      A SelectRowsResult iterator with rows of `Item`s.
+      A `SelectRowsResult` iterator with rows of `Item`s.
     """
     pass
 
@@ -412,35 +431,49 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def to_json(self, filepath: Union[str, pathlib.Path], jsonl: bool = True) -> None:
+  def to_json(self,
+              filepath: Union[str, pathlib.Path],
+              jsonl: bool = True,
+              columns: Optional[Sequence[ColumnId]] = None) -> None:
     """Export the dataset to a JSON file.
 
     Args:
       filepath: The path to the file to export to.
       jsonl: Whether to export to JSONL or JSON.
+      columns: The columns to export.
     """
     pass
 
   @abc.abstractmethod
-  def to_pandas(self) -> pd.DataFrame:
-    """Export the dataset to a pandas DataFrame."""
+  def to_pandas(self, columns: Optional[Sequence[ColumnId]] = None) -> pd.DataFrame:
+    """Export the dataset to a pandas DataFrame.
+
+    Args:
+      columns: The columns to export.
+    """
     pass
 
   @abc.abstractmethod
-  def to_parquet(self, filepath: Union[str, pathlib.Path]) -> None:
+  def to_parquet(self,
+                 filepath: Union[str, pathlib.Path],
+                 columns: Optional[Sequence[ColumnId]] = None) -> None:
     """Export the dataset to a parquet file.
 
     Args:
       filepath: The path to the file to export to.
+      columns: The columns to export.
     """
     pass
 
   @abc.abstractmethod
-  def to_csv(self, filepath: Union[str, pathlib.Path]) -> None:
+  def to_csv(self,
+             filepath: Union[str, pathlib.Path],
+             columns: Optional[Sequence[ColumnId]] = None) -> None:
     """Export the dataset to a csv file.
 
     Args:
       filepath: The path to the file to export to.
+      columns: The columns to export.
     """
     pass
 
@@ -467,11 +500,9 @@ def make_parquet_id(signal: Signal,
                     source_path: PathTuple,
                     is_computed_signal: Optional[bool] = False) -> str:
   """Return a unique identifier for this parquet table."""
+  # Remove the wildcards from the parquet id since they are implicit.
+  path = [*[p for p in source_path if p != PATH_WILDCARD], signal.key(is_computed_signal)]
   # Don't use the VALUE_KEY as part of the parquet id to reduce the size of paths.
-  path = source_path[:-1] if source_path[-1] == VALUE_KEY else source_path
-  column_alias = '.'.join(map(str, path))
-  if column_alias.endswith('.*'):
-    # Remove the trailing .* from the column name.
-    column_alias = column_alias[:-2]
-
-  return f'{signal.key(is_computed_signal=is_computed_signal)}({column_alias})'
+  if path[-1] == VALUE_KEY:
+    path = path[:-1]
+  return '.'.join(path)

@@ -5,8 +5,9 @@
 /**
  * A keyword search query on a column.
  */
-export type KeywordQuery = {
+export type KeywordSearch = {
+    path: (Array<string> | string);
+    query: string;
     type?: 'keyword';
-    search: string;
 };
 

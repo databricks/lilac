@@ -82,6 +82,7 @@ def deploy_demo(overwrite: bool, skip_sync: bool, skip_load: bool, skip_build: b
     # No extra concepts. lilac concepts are pushed by default.
     concepts=[],
     skip_build=skip_build,
+    skip_cache=False,
     data_dir=DEMO_DATA_DIR)
 
 

@@ -5,7 +5,7 @@
 /**
  * Compute scores along a given concept for documents.
  */
-export type ConceptScoreSignal = {
+export type ConceptSignal = {
     signal_name: 'concept_score';
     embedding: string;
     namespace: string;

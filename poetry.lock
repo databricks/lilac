@@ -6383,16 +6383,21 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 
 [extras]
 all = ["cohere", "detect-secrets", "email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "google-generativeai", "langdetect", "openai", "sentence-transformers", "spacy", "textacy"]
+cohere = ["cohere"]
 embeddings = ["cohere", "google-generativeai", "openai", "sentence-transformers"]
 gmail = ["email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib"]
+gte = ["sentence-transformers"]
 lang-detection = ["langdetect"]
 llms = ["openai"]
 ner = ["spacy"]
+openai = ["openai"]
+palm = ["google-generativeai"]
 pii = ["detect-secrets", "regex"]
+sbert = ["sentence-transformers"]
 signals = ["detect-secrets", "langdetect", "spacy", "textacy"]
 text-stats = ["spacy", "textacy"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "f8913df8bc3a15d933f4cd1ba74211e306934e9612880827b75ac1efa3c80fac"
+content-hash = "db011a0ac8a30cf1c18b4795bcc6003323db6924ec5d5c575bb002ccaa8b1b0f"

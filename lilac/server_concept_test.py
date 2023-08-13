@@ -61,12 +61,27 @@ def setup_data_dir(tmp_path: Path, mocker: MockerFixture) -> None:
   mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
 
 
+def _remove_lilac_concepts(concepts: list[ConceptInfo]) -> list[ConceptInfo]:
+  return list(filter(lambda c: c.namespace != 'lilac', concepts))
+
+
+def test_list_lilac_concepts() -> None:
+  url = '/api/v1/concepts/'
+  response = client.get(url)
+
+  assert response.status_code == 200
+  # Make sure lilac concepts exist.
+  assert filter(lambda c: c.concept_name == 'positive-sentiment' and c.namespace == 'lilac',
+                response.json())
+
+
 def test_concept_create() -> None:
   url = '/api/v1/concepts/'
   response = client.get(url)
 
   assert response.status_code == 200
-  assert response.json() == []
+  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  assert response_concepts == []
 
   # Create a concept.
   url = '/api/v1/concepts/create'
@@ -85,7 +100,8 @@ def test_concept_create() -> None:
   url = '/api/v1/concepts/'
   response = client.get(url)
   assert response.status_code == 200
-  assert parse_obj_as(list[ConceptInfo], response.json()) == [
+  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  assert response_concepts == [
     ConceptInfo(
       namespace='concept_namespace',
       name='concept',
@@ -97,12 +113,14 @@ def test_concept_create() -> None:
 
 def test_concept_delete() -> None:
   # Create a concept.
-  response = client.post(
+  client.post(
     '/api/v1/concepts/create',
     json=CreateConceptOptions(
       namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
 
-  assert len(client.get('/api/v1/concepts/').json()) == 1
+  response = client.get('/api/v1/concepts/')
+  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  assert len(response_concepts) == 1
 
   # Delete the concept.
   url = '/api/v1/concepts/concept_namespace/concept'
@@ -110,7 +128,9 @@ def test_concept_delete() -> None:
   assert response.status_code == 200
 
   # Make sure list shows no concepts.
-  assert parse_obj_as(list[ConceptInfo], client.get('/api/v1/concepts/').json()) == []
+  response = client.get('/api/v1/concepts/')
+  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  assert response_concepts == []
 
 
 def test_concept_edits(mocker: MockerFixture) -> None:
@@ -152,7 +172,8 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   response = client.get(url)
 
   assert response.status_code == 200
-  assert parse_obj_as(list[ConceptInfo], response.json()) == [
+  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  assert response_concepts == [
     ConceptInfo(
       namespace='concept_namespace',
       name='concept',
@@ -230,7 +251,8 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   response = client.get(url)
 
   assert response.status_code == 200
-  assert parse_obj_as(list[ConceptInfo], response.json()) == [
+  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  assert response_concepts == [
     ConceptInfo(
       namespace='concept_namespace',
       name='concept',
@@ -265,7 +287,11 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   url = '/api/v1/concepts/'
   response = client.get(url)
   assert response.status_code == 200
-  assert parse_obj_as(list[ConceptInfo], response.json()) == [
+  # Remove lilac concepts for the test.
+  concepts = list(
+    filter(lambda c: c.namespace != 'lilac', parse_obj_as(list[ConceptInfo], response.json())))
+
+  assert concepts == [
     ConceptInfo(
       namespace='concept_namespace',
       name='concept',

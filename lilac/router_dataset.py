@@ -29,7 +29,7 @@ from .env import data_path
 from .router_utils import RouteErrorHandler
 from .schema import Bin, Path, normalize_path
 from .signals.concept_labels import ConceptLabelsSignal
-from .signals.concept_scorer import ConceptScoreSignal
+from .signals.concept_scorer import ConceptSignal
 from .signals.semantic_similarity import SemanticSimilaritySignal
 from .signals.signal import Signal, TextEmbeddingSignal, TextSignal, resolve_signal
 from .signals.substring_search import SubstringSignal
@@ -170,7 +170,7 @@ class ListFilter(BaseModel):
 
 Filter = Union[BinaryFilter, UnaryFilter, ListFilter]
 
-AllSignalTypes = Union[ConceptScoreSignal, ConceptLabelsSignal, SubstringSignal,
+AllSignalTypes = Union[ConceptSignal, ConceptLabelsSignal, SubstringSignal,
                        SemanticSimilaritySignal, TextEmbeddingSignal, TextSignal, Signal]
 
 

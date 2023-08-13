@@ -3,10 +3,10 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     serializePath,
-    type KeywordQuery,
+    type KeywordSearch,
     type Search,
     type SearchType,
-    type SemanticQuery
+    type SemanticSearch
   } from '$lilac';
   import type {Tag} from 'carbon-components-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
@@ -27,10 +27,10 @@
   const datasetStore = getDatasetContext();
 
   $: pillText =
-    search.query.type === 'concept'
-      ? search.query.concept_name
-      : (search.query as KeywordQuery | SemanticQuery).search;
-  $: tagType = search.query.type != null ? searchTypeToTagType[search.query.type] : 'outline';
+    search.type === 'concept'
+      ? search.concept_name
+      : (search as KeywordSearch | SemanticSearch).query;
+  $: tagType = search.type != null ? searchTypeToTagType[search.type] : 'outline';
 </script>
 
 <div

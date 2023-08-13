@@ -8,7 +8,6 @@ from pytest_mock import MockerFixture
 
 from ..schema import UUID_COLUMN, Item, field, schema
 from . import dataset as dataset_module
-from .dataset import BinaryOp
 from .dataset_test_utils import TestDataMaker
 
 
@@ -243,16 +242,16 @@ def test_filters(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(items)
 
   # active = True.
-  result = dataset.select_groups(leaf_path='name', filters=[('active', BinaryOp.EQUALS, True)])
+  result = dataset.select_groups(leaf_path='name', filters=[('active', 'equals', True)])
   assert result.counts == [('Name2', 1), (None, 1), ('Name3', 1)]
 
   # age < 35.
-  result = dataset.select_groups(leaf_path='name', filters=[('age', BinaryOp.LESS, 35)])
+  result = dataset.select_groups(leaf_path='name', filters=[('age', 'less', 35)])
   assert result.counts == [('Name1', 1), (None, 1)]
 
   # age < 35 and active = True.
   result = dataset.select_groups(
-    leaf_path='name', filters=[('age', BinaryOp.LESS, 35), ('active', BinaryOp.EQUALS, True)])
+    leaf_path='name', filters=[('age', 'less', 35), ('active', 'equals', True)])
   assert result.counts == [(None, 1)]
 
 
