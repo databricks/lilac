@@ -34,19 +34,16 @@ from .dataset import DatasetManifest
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
 
 SIMPLE_ITEMS: list[Item] = [{
-  ROWID: '1',
   'str': 'a',
   'int': 1,
   'bool': False,
   'float': 3.0
 }, {
-  ROWID: '2',
   'str': 'b',
   'int': 2,
   'bool': True,
   'float': 2.0
 }, {
-  ROWID: '3',
   'str': 'b',
   'int': 2,
   'bool': True,
@@ -156,10 +153,8 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
 
 def test_missing_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello.',
   }, {
-    ROWID: '2',
     'text': 'hello2.',
   }])
 
@@ -191,7 +186,7 @@ class NamedEntity(TextSignal):
 
 def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
   text = 'Hello nik@test. Here are some other entities like pii@gmail and all@lilac.'
-  dataset = make_test_data([{ROWID: '1', 'text': text}])
+  dataset = make_test_data([{'text': text}])
   entity = NamedEntity()
   dataset.compute_signal(TestSplitter(), 'text')
   dataset.compute_signal(entity, ('text', 'test_splitter', '*'))

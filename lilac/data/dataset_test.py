@@ -327,15 +327,14 @@ def test_columns(make_test_data: TestDataMaker) -> None:
 
 
 def test_merge_values(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
   test_signal = TestSignal()
   dataset.compute_signal(test_signal, 'text')
   length_signal = LengthSignal()
   dataset.compute_signal(length_signal, 'text')
 
-  result = dataset.select_rows([ROWID, 'text'], combine_columns=True)
+  result = dataset.select_rows(['text'], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item('hello', {
       'length_signal': 5,
       'test_signal': {
@@ -344,7 +343,6 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
       }
     })
   }, {
-    ROWID: '2',
     'text': enriched_item('everybody', {
       'length_signal': 9,
       'test_signal': {
@@ -356,14 +354,12 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
 
   # Test subselection.
   result = dataset.select_rows(
-    [ROWID, 'text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')])
+    ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')])
   assert list(result) == [{
-    ROWID: '1',
     'text': 'hello',
     'text.test_signal.flen': 5.0,
     'text.test_signal.len': 5
   }, {
-    ROWID: '2',
     'text': 'everybody',
     'text.test_signal.flen': 9.0,
     'text.test_signal.len': 9
@@ -371,10 +367,8 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
 
   # Test subselection with combine_columns=True.
   result = dataset.select_rows(
-    [ROWID, 'text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')],
-    combine_columns=True)
+    ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item('hello', {
       'length_signal': 5,
       'test_signal': {
@@ -383,7 +377,6 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
       }
     })
   }, {
-    ROWID: '2',
     'text': enriched_item('everybody', {
       'length_signal': 9,
       'test_signal': {
@@ -395,20 +388,11 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
 
   # Test subselection with aliasing.
   result = dataset.select_rows(
-    columns=[ROWID, 'text', Column(('text', 'test_signal', 'len'), alias='metadata')])
-  assert list(result) == [{
-    ROWID: '1',
-    'text': 'hello',
-    'metadata': 5
-  }, {
-    ROWID: '2',
-    'text': 'everybody',
-    'metadata': 9
-  }]
+    columns=['text', Column(('text', 'test_signal', 'len'), alias='metadata')])
+  assert list(result) == [{'text': 'hello', 'metadata': 5}, {'text': 'everybody', 'metadata': 9}]
 
-  result = dataset.select_rows(columns=[ROWID, 'text'], combine_columns=True)
+  result = dataset.select_rows(columns=['text'], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item('hello', {
       'length_signal': 5,
       'test_signal': {
@@ -417,7 +401,6 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
       }
     })
   }, {
-    ROWID: '2',
     'text': enriched_item('everybody', {
       'length_signal': 9,
       'test_signal': {
@@ -429,7 +412,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
 
 
 def test_enriched_select_all(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
   test_signal = TestSignal()
   dataset.compute_signal(test_signal, 'text')
   length_signal = LengthSignal()
@@ -454,13 +437,7 @@ def test_enriched_select_all(make_test_data: TestDataMaker) -> None:
 
 
 def test_merge_array_values(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'texts': ['hello', 'everybody']
-  }, {
-    ROWID: '2',
-    'texts': ['a', 'bc', 'def']
-  }])
+  dataset = make_test_data([{'texts': ['hello', 'everybody']}, {'texts': ['a', 'bc', 'def']}])
 
   test_signal = TestSignal()
   dataset.compute_signal(test_signal, ('texts', '*'))
@@ -471,7 +448,6 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      ROWID: 'string',
       'texts': [
         field(
           'string',
@@ -487,9 +463,8 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
     }),
     num_items=2)
 
-  result = dataset.select_rows([ROWID, 'texts'], combine_columns=True)
+  result = dataset.select_rows(['texts'], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'texts': [
       enriched_item('hello', {
         'length_signal': 5,
@@ -507,7 +482,6 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
       })
     ],
   }, {
-    ROWID: '2',
     'texts': [
       enriched_item('a', {
         'length_signal': 1,
@@ -534,15 +508,13 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
   }]
 
   # Test subselection.
-  result = dataset.select_rows(
-    [ROWID, ('texts', '*'), ('texts', '*', 'length_signal'), ('texts', '*', 'test_signal', 'flen')])
+  result = dataset.select_rows([('texts', '*'), ('texts', '*', 'length_signal'),
+                                ('texts', '*', 'test_signal', 'flen')])
   assert list(result) == [{
-    ROWID: '1',
     'texts.*': ['hello', 'everybody'],
     'texts.*.test_signal.flen': [5.0, 9.0],
     'texts.*.length_signal': [5, 9]
   }, {
-    ROWID: '2',
     'texts.*': ['a', 'bc', 'def'],
     'texts.*.test_signal.flen': [1.0, 2.0, 3.0],
     'texts.*.length_signal': [1, 2, 3]
@@ -551,7 +523,6 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
 
 def test_combining_columns(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello',
     'extra': {
       'text': {
@@ -563,7 +534,6 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
       }
     }
   }, {
-    ROWID: '2',
     'text': 'everybody',
     'extra': {
       'text': {
@@ -577,10 +547,8 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
   }])
 
   # Sub-select text and test_signal.
-  result = dataset.select_rows([ROWID, 'text', ('extra', 'text', 'test_signal')],
-                               combine_columns=True)
+  result = dataset.select_rows(['text', ('extra', 'text', 'test_signal')], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'text': 'hello',
     'extra': {
       'text': {
@@ -591,7 +559,6 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
       }
     }
   }, {
-    ROWID: '2',
     'text': 'everybody',
     'extra': {
       'text': {
@@ -604,10 +571,8 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
   }]
 
   # Sub-select text and length_signal.
-  result = dataset.select_rows([ROWID, 'text', ('extra', 'text', 'length_signal')],
-                               combine_columns=True)
+  result = dataset.select_rows(['text', ('extra', 'text', 'length_signal')], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'text': 'hello',
     'extra': {
       'text': {
@@ -615,7 +580,6 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
       }
     }
   }, {
-    ROWID: '2',
     'text': 'everybody',
     'extra': {
       'text': {
@@ -625,16 +589,14 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
   }]
 
   # Sub-select length_signal only.
-  result = dataset.select_rows([ROWID, ('extra', 'text', 'length_signal')], combine_columns=True)
+  result = dataset.select_rows([('extra', 'text', 'length_signal')], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'extra': {
       'text': {
         'length_signal': 5
       }
     }
   }, {
-    ROWID: '2',
     'extra': {
       'text': {
         'length_signal': 9
@@ -644,16 +606,14 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
 
   # Aliases are ignored when combing columns.
   len_col = Column(('extra', 'text', 'length_signal'), alias='hello')
-  result = dataset.select_rows([ROWID, len_col], combine_columns=True)
+  result = dataset.select_rows([len_col], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'extra': {
       'text': {
         'length_signal': 5
       }
     }
   }, {
-    ROWID: '2',
     'extra': {
       'text': {
         'length_signal': 9
@@ -663,12 +623,10 @@ def test_combining_columns(make_test_data: TestDataMaker) -> None:
 
   # Works with UDFs and aliases are ignored.
   udf_col = Column('text', alias='ignored', signal_udf=LengthSignal())
-  result = dataset.select_rows([ROWID, 'text', udf_col], combine_columns=True)
+  result = dataset.select_rows(['text', udf_col], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item('hello', {'length_signal': 5})
   }, {
-    ROWID: '2',
     'text': enriched_item('everybody', {'length_signal': 9})
   }]
 
@@ -739,7 +697,6 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
 
 def test_invalid_column_paths(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': enriched_item('hello', {'test_signal': {
       'len': 5
     }}),
@@ -762,38 +719,32 @@ def test_invalid_column_paths(make_test_data: TestDataMaker) -> None:
 
 def test_signal_with_quote(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello',
   }, {
-    ROWID: '2',
     'text': 'world',
   }])
   dataset.compute_signal(SignalWithQuoteInIt(), 'text')
   dataset.compute_signal(SignalWithDoubleQuoteInIt(), 'text')
-  result = dataset.select_rows([ROWID, 'text'], combine_columns=True)
+  result = dataset.select_rows(['text'], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item('hello', {
       "test'signal": True,
       'test"signal': True
     })
   }, {
-    ROWID: '2',
     'text': enriched_item('world', {
       "test'signal": True,
       'test"signal': True
     }),
   }]
 
-  result = dataset.select_rows([ROWID, 'text', "text.test'signal", 'text.test"signal'],
+  result = dataset.select_rows(['text', "text.test'signal", 'text.test"signal'],
                                combine_columns=False)
   assert list(result) == [{
-    ROWID: '1',
     'text': 'hello',
     "text.test'signal": True,
     'text.test"signal': True
   }, {
-    ROWID: '2',
     'text': 'world',
     "text.test'signal": True,
     'text.test"signal': True

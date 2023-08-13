@@ -200,10 +200,8 @@ def test_signal_output_validation(make_test_data: TestDataMaker) -> None:
   signal = TestInvalidSignal()
 
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello',
   }, {
-    ROWID: '2',
     'text': 'hello world',
   }])
 
@@ -214,10 +212,8 @@ def test_signal_output_validation(make_test_data: TestDataMaker) -> None:
 
 def test_sparse_signal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello',
   }, {
-    ROWID: '2',
     'text': 'hello world',
   }])
 
@@ -358,7 +354,7 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
 
 
 def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
   test_signal_a = TestParamSignal(param='a')
   test_signal_b = TestParamSignal(param='b')
   dataset.compute_signal(test_signal_a, 'text')
@@ -368,7 +364,6 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      ROWID: 'string',
       'text': field(
         'string',
         fields={
@@ -396,10 +391,8 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
 
 def test_split_signal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': '[1, 1] first sentence. [1, 1] second sentence.',
   }, {
-    ROWID: '2',
     'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
   }])
 
@@ -410,7 +403,6 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      ROWID: 'string',
       'text': field(
         'string', fields={'test_split': field(signal=signal.dict(), fields=[field('string_span')])})
     }),
@@ -434,10 +426,8 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
 
 def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': ['hello', 'everybody'],
   }, {
-    ROWID: '2',
     'text': ['hello2', 'everybody2'],
   }])
   test_signal = TestSignal()
@@ -449,7 +439,6 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      ROWID: 'string',
       'text': field(fields=[
         field(
           'string',
@@ -495,10 +484,8 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
 
 def test_text_splitter(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': '[1, 1] first sentence. [1, 1] second sentence.',
   }, {
-    ROWID: '2',
     'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
   }])
 
@@ -574,13 +561,10 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
 
 def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello.',
   }, {
-    ROWID: '2',
     'text': 'hello2.',
   }, {
-    ROWID: '3',
     'text': 'hello3.',
   }])
 
