@@ -1,8 +1,8 @@
 """Test the Spacy NER signal."""
 
 from ..schema import field
+from ..splitters.text_splitter_test_utils import text_to_expected_spans
 from .ner import SpacyNER
-from .splitters.text_splitter_test_utils import text_to_expected_spans
 
 
 def test_spacy_ner_fields() -> None:

@@ -4,8 +4,8 @@ from typing import Iterable, cast
 from typing_extensions import override
 
 from ..schema import Item, RichData
-from ..signals.signal import TextEmbeddingSignal
-from ..signals.splitters.chunk_splitter import split_text
+from ..signal import TextEmbeddingSignal
+from ..splitters.chunk_splitter import split_text
 from .embedding import compute_split_embeddings
 from .transformer_utils import get_model
 

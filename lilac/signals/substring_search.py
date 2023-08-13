@@ -5,7 +5,7 @@ from typing import Any, Iterable, Optional
 from typing_extensions import override
 
 from ..schema import Field, Item, RichData, SignalInputType, field, lilac_span
-from .signal import Signal
+from ..signal import Signal
 
 
 class SubstringSignal(Signal):

@@ -11,7 +11,7 @@ from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.embedding import get_embed_fn
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, lilac_span
-from ..signals.signal import VectorSignal
+from ..signal import VectorSignal
 
 
 class ConceptSignal(VectorSignal):

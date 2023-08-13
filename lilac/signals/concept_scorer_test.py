@@ -21,8 +21,8 @@ from ..data.dataset_duckdb import DatasetDuckDB
 from ..data.dataset_test_utils import make_vector_index
 from ..db_manager import set_default_dataset_cls
 from ..schema import Item, RichData, SignalInputType, lilac_embedding
+from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .concept_scorer import ConceptSignal
-from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
 ALL_CONCEPT_DBS = [DiskConceptDB]
 ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]

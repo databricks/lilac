@@ -1,6 +1,6 @@
 """Test the text splitter utils."""
 
-from ...schema import lilac_span
+from ..schema import lilac_span
 from .text_splitter_test_utils import text_to_expected_spans
 
 

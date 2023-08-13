@@ -2,7 +2,7 @@
 
 from typing import Optional, Union
 
-from ...schema import TEXT_SPAN_END_FEATURE, TEXT_SPAN_START_FEATURE, VALUE_KEY, Item, lilac_span
+from ..schema import TEXT_SPAN_END_FEATURE, TEXT_SPAN_START_FEATURE, VALUE_KEY, Item, lilac_span
 
 
 def spans_to_text(text: str, spans: Optional[list[Item]]) -> list[str]:

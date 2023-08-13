@@ -48,16 +48,10 @@ from ..schema import (
   normalize_path,
   signal_type_supports_dtype,
 )
+from ..signal import Signal, TextEmbeddingSignal, VectorSignal, get_signal_by_type, resolve_signal
 from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
-from ..signals.signal import (
-  Signal,
-  TextEmbeddingSignal,
-  VectorSignal,
-  get_signal_by_type,
-  resolve_signal,
-)
 from ..signals.substring_search import SubstringSignal
 from ..sources.source import Source
 from ..tasks import TaskStepId, progress

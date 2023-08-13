@@ -16,8 +16,8 @@ from ..schema import (
   SpanVector,
   lilac_embedding,
 )
-from ..signals.signal import TextEmbeddingSignal, get_signal_by_type
-from ..signals.splitters.chunk_splitter import TextChunk
+from ..signal import TextEmbeddingSignal, get_signal_by_type
+from ..splitters.chunk_splitter import TextChunk
 from ..utils import chunks
 
 EmbeddingId = Union[StrictStr, TextEmbeddingSignal]

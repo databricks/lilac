@@ -10,8 +10,8 @@ if TYPE_CHECKING:
 
 from typing_extensions import override
 
-from ..embeddings.vector_store import VectorDBIndex
-from ..schema import EMBEDDING_KEY, Field, Item, PathKey, RichData, SignalInputType, field
+from .embeddings.vector_store import VectorDBIndex
+from .schema import EMBEDDING_KEY, Field, Item, PathKey, RichData, SignalInputType, field
 
 
 class Signal(BaseModel):

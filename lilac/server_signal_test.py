@@ -16,7 +16,7 @@ from .router_signal import (
 )
 from .schema import Field, Item, RichData, SignalInputType, field
 from .server import app
-from .signals.signal import Signal, clear_signal_registry, register_signal
+from .signal import Signal, clear_signal_registry, register_signal
 
 client = TestClient(app)
 

@@ -5,8 +5,8 @@ from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..schema import Field, Item, RichData, SignalInputType, field
+from ..signal import TextSignal
 from .minhash_dup import find_clusters
-from .signal import TextSignal
 
 CLUSTER_KEY = 'cluster_id'
 

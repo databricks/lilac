@@ -20,14 +20,14 @@ from ..schema import (
   lilac_span,
   schema,
 )
-from ..signals.concept_scorer import ConceptSignal
-from ..signals.signal import (
+from ..signal import (
   TextEmbeddingSignal,
   TextSignal,
   TextSplitterSignal,
   clear_signal_registry,
   register_signal,
 )
+from ..signals.concept_scorer import ConceptSignal
 from .dataset import Column, DatasetManifest, GroupsSortBy, SortOrder
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
 

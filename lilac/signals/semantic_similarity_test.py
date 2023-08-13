@@ -10,8 +10,8 @@ from typing_extensions import override
 from ..data.dataset_test_utils import make_vector_index
 from ..embeddings.vector_store import VectorStore, register_vector_store
 from ..schema import Item, RichData, VectorKey, lilac_embedding, lilac_span
+from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .semantic_similarity import SemanticSimilaritySignal
-from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 
 EMBEDDINGS: dict[VectorKey, list[list[float]]] = {
   ('1',): [[1.0, 0.0, 0.0]],

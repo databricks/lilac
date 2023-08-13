@@ -21,7 +21,7 @@ from typing_extensions import override
 from ..auth import ConceptAuthorizationException, UserInfo
 from ..env import data_path, env
 from ..schema import SignalInputType
-from ..signals.signal import get_signal_cls
+from ..signal import get_signal_cls
 from ..utils import delete_file, file_exists, get_lilac_cache_dir, open_file
 from .concept import DRAFT_MAIN, Concept, ConceptModel, ConceptType, DraftId, Example, ExampleIn
 

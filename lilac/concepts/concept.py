@@ -13,7 +13,7 @@ from sklearn.metrics import precision_recall_curve, roc_auc_score
 from sklearn.model_selection import KFold
 
 from ..embeddings.embedding import get_embed_fn
-from ..signals.signal import TextEmbeddingSignal, get_signal_cls
+from ..signal import TextEmbeddingSignal, get_signal_cls
 from ..utils import DebugTimer
 
 LOCAL_CONCEPT_NAMESPACE = 'local'

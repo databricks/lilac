@@ -7,7 +7,7 @@ from ..auth import UserInfo
 from ..concepts.concept import DRAFT_MAIN, draft_examples
 from ..concepts.db_concept import DISK_CONCEPT_DB, ConceptDB
 from ..schema import Field, Item, RichData, field, lilac_span
-from .signal import TextSignal
+from ..signal import TextSignal
 
 
 class ConceptLabelsSignal(TextSignal):

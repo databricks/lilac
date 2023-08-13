@@ -1,8 +1,8 @@
 """Test the PII signal."""
 
 from ..schema import field
+from ..splitters.text_splitter_test_utils import text_to_expected_spans
 from .pii import EMAILS_KEY, IPS_KEY, SECRETS_KEY, PIISignal
-from .splitters.text_splitter_test_utils import text_to_expected_spans
 
 
 def test_pii_fields() -> None:

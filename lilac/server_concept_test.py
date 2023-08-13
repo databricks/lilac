@@ -22,7 +22,7 @@ from .router_concept import (
 )
 from .schema import Item, RichData, SignalInputType, lilac_embedding, lilac_span
 from .server import app
-from .signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
+from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .test_utils import fake_uuid
 
 client = TestClient(app)

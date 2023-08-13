@@ -3,7 +3,7 @@
 import numpy as np
 
 from ..schema import lilac_embedding
-from ..signals.splitters.chunk_splitter import TextChunk
+from ..splitters.chunk_splitter import TextChunk
 from .embedding import compute_split_embeddings
 
 

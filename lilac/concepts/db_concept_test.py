@@ -13,7 +13,7 @@ from typing_extensions import override
 from ..data.dataset_duckdb import DatasetDuckDB
 from ..db_manager import set_default_dataset_cls
 from ..schema import Item, RichData, SignalInputType, lilac_embedding
-from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
+from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .concept import (
   DRAFT_MAIN,
   Concept,

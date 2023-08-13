@@ -34,7 +34,7 @@ from ..schema import (
   schema,
   schema_to_arrow_schema,
 )
-from ..signals.signal import Signal
+from ..signal import Signal
 from ..utils import is_primitive, log, open_file
 
 

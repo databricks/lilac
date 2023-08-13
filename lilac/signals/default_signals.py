@@ -4,13 +4,13 @@ from ..embeddings.gte import GTEBase, GTESmall
 from ..embeddings.openai import OpenAI
 from ..embeddings.palm import PaLM
 from ..embeddings.sbert import SBERT
+from ..signal import register_signal
 from .concept_labels import ConceptLabelsSignal
 from .concept_scorer import ConceptSignal
 from .lang_detection import LangDetectionSignal
 from .near_dup import NearDuplicateSignal
 from .ner import SpacyNER
 from .pii import PIISignal
-from .signal import register_signal
 from .text_statistics import TextStatisticsSignal
 
 

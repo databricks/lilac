@@ -6,7 +6,7 @@ from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..schema import Field, Item, RichData, SignalInputType, field, lilac_span
-from .signal import TextSignal
+from ..signal import TextSignal
 
 LANG_CODE = 'lang_code'
 TEXT_LEN_THRESHOLD = 40

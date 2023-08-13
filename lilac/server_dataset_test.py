@@ -21,7 +21,7 @@ from .router_dataset import (
 )
 from .schema import ROWID, Field, Item, RichData, field, schema
 from .server import app
-from .signals.signal import TextSignal, clear_signal_registry, register_signal
+from .signal import TextSignal, clear_signal_registry, register_signal
 
 client = TestClient(app)
 

@@ -6,8 +6,8 @@ from typing_extensions import override
 
 from ..env import env
 from ..schema import Item, RichData
-from ..signals.signal import TextEmbeddingSignal
-from ..signals.splitters.chunk_splitter import split_text
+from ..signal import TextEmbeddingSignal
+from ..splitters.chunk_splitter import split_text
 from .embedding import compute_split_embeddings
 
 if TYPE_CHECKING:

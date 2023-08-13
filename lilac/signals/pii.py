@@ -5,7 +5,7 @@ from typing import Iterable, Optional
 from typing_extensions import override
 
 from ..schema import Field, Item, RichData, SignalInputType, field, lilac_span
-from .signal import TextSignal
+from ..signal import TextSignal
 
 EMAILS_KEY = 'emails'
 IPS_KEY = 'ip_addresses'

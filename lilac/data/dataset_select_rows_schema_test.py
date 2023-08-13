@@ -20,10 +20,7 @@ from ..schema import (
   lilac_span,
   schema,
 )
-from ..signals.concept_labels import ConceptLabelsSignal
-from ..signals.concept_scorer import ConceptSignal
-from ..signals.semantic_similarity import SemanticSimilaritySignal
-from ..signals.signal import (
+from ..signal import (
   TextEmbeddingSignal,
   TextSignal,
   TextSplitterSignal,
@@ -31,6 +28,9 @@ from ..signals.signal import (
   clear_signal_registry,
   register_signal,
 )
+from ..signals.concept_labels import ConceptLabelsSignal
+from ..signals.concept_scorer import ConceptSignal
+from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
 from .dataset import (
   Column,

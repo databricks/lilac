@@ -4,7 +4,7 @@ from typing import Iterable, Optional
 import pytest
 from typing_extensions import override
 
-from ..schema import Field, Item, RichData, SignalInputType, field
+from .schema import Field, Item, RichData, SignalInputType, field
 from .signal import (
   Signal,
   TextEmbeddingSignal,

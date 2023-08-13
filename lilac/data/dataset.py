@@ -35,7 +35,7 @@ from ..schema import (
   Schema,
   normalize_path,
 )
-from ..signals.signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
+from ..signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
 from ..tasks import TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.

@@ -11,7 +11,7 @@ import pytest
 from typing_extensions import override
 
 from ..schema import ROWID, Field, Item, RichData, field
-from ..signals.signal import TextSignal, clear_signal_registry, register_signal
+from ..signal import TextSignal, clear_signal_registry, register_signal
 from .dataset_test_utils import TestDataMaker
 
 

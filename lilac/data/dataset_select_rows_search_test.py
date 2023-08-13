@@ -12,9 +12,9 @@ from ..concepts.concept import ExampleIn, LogisticEmbeddingModel
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..db_manager import set_default_dataset_cls
 from ..schema import ROWID, Item, RichData, SignalInputType, lilac_embedding, lilac_span
+from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
-from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from ..signals.substring_search import SubstringSignal
 from .dataset import ConceptSearch, KeywordSearch, SemanticSearch, SortOrder
 from .dataset_duckdb import DatasetDuckDB

@@ -12,8 +12,8 @@ from ..concepts.db_concept import ConceptDB, ConceptUpdate, DiskConceptDB, DiskC
 from ..data.dataset_duckdb import DatasetDuckDB
 from ..db_manager import set_default_dataset_cls
 from ..schema import SignalInputType, lilac_span
+from ..signal import clear_signal_registry
 from .concept_labels import ConceptLabelsSignal
-from .signal import clear_signal_registry
 
 ALL_CONCEPT_DBS = [DiskConceptDB]
 ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]

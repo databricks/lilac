@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, Any, Iterable, Optional
 
 from typing_extensions import override
 
-from ...schema import Item, RichData, lilac_span
-from ...signals.signal import TextSplitterSignal
+from ..schema import Item, RichData, lilac_span
+from ..signal import TextSplitterSignal
 
 if TYPE_CHECKING:
   from spacy.language import Language

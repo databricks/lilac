@@ -7,7 +7,7 @@ import pytest
 from typing_extensions import override
 
 from ..schema import ROWID, Field, Item, RichData, field, lilac_embedding, schema
-from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
+from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset import Column, DatasetManifest
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
 

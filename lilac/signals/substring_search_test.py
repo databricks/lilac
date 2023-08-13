@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from ..schema import field
-from .splitters.text_splitter_test_utils import text_to_expected_spans
+from ..splitters.text_splitter_test_utils import text_to_expected_spans
 from .substring_search import SubstringSignal
 
 
