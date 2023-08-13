@@ -10,6 +10,7 @@ from .server import start_server, stop_server
 from .signals import *  # noqa: F403
 from .signals.default_signals import register_default_signals
 from .sources import *  # noqa: F403
+from .concepts import *  # noqa: F403
 from .sources.default_sources import register_default_sources
 
 try:

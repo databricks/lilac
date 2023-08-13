@@ -26,6 +26,9 @@ The Lilac [positive sentiment concept](https://lilacai-lilac.hf.space/concepts#l
 <img src="../_static/concepts/concepts_use_ui.png"></img>
 ```
 
+In practice, a concept is simply a collection of positive (text that is related to the concept) and
+negative examples (text that is unrelated to the concept, either the opposite, or simply unrelated).
+
 ## How are they made?
 
 ```{tip}

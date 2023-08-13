@@ -1,7 +1,6 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import Page from '$lib/components/Page.svelte';
-  import Commands from '$lib/components/commands/Commands.svelte';
   import {hoverTooltip} from '$lib/components/common/HoverTooltip';
   import RowView from '$lib/components/datasetView/RowView.svelte';
   import SearchPanel from '$lib/components/datasetView/SearchPanel.svelte';
@@ -191,7 +190,6 @@
     </Modal>
   {/if}
 </Page>
-<Commands />
 
 <style lang="postcss">
   .schema-container {

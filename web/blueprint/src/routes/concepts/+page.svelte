@@ -1,7 +1,6 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import Page from '$lib/components/Page.svelte';
-  import Commands from '$lib/components/commands/Commands.svelte';
   import {hoverTooltip} from '$lib/components/common/HoverTooltip';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
@@ -98,8 +97,6 @@
       {/if}
     </div>
   </div>
-
-  <Commands />
 
   {#if deleteConceptInfo}
     <Modal

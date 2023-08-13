@@ -195,7 +195,7 @@
             placeholder="Enter the concept description..."
             bind:value={conceptDescription}
           />
-          <div class="pt-5">
+          <div class="generate-button pt-6">
             <Button
               on:click={generatePositives}
               disabled={!conceptDescription || generatingPositives}
@@ -243,10 +243,12 @@
               {/each}
             </Select>
           {/if}
-          <Button on:click={generateNegatives} disabled={!dataset || !path}>
-            Generate
-            <span class="ml-2" class:invisible={!generatingNegatives}><InlineLoading /></span>
-          </Button>
+          <div class="generate-button">
+            <Button on:click={generateNegatives} disabled={!dataset || !path}>
+              Generate
+              <span class="ml-2" class:invisible={!generatingNegatives}><InlineLoading /></span>
+            </Button>
+          </div>
         </div>
         <ExamplesList bind:examples={negativeExamples} />
       </section>
@@ -263,5 +265,8 @@
 <style lang="postcss">
   .header-step {
     @apply mb-2 text-base;
+  }
+  :global(.generate-button .bx--btn) {
+    @apply h-10 min-h-0;
   }
 </style>

@@ -13,7 +13,6 @@ from sklearn.metrics import precision_recall_curve, roc_auc_score
 from sklearn.model_selection import KFold
 
 from ..embeddings.embedding import get_embed_fn
-from ..schema import SignalInputType
 from ..signals.signal import TextEmbeddingSignal, get_signal_cls
 from ..utils import DebugTimer
 
@@ -25,6 +24,14 @@ MAX_NUM_CROSS_VAL_MODELS = 15
 # β = 0.5 means we value precision 2x as much as recall.
 # β = 2 means we value recall 2x as much as precision.
 F_BETA_WEIGHT = 0.5
+
+
+class ConceptType(str, Enum):
+  """Enum holding the concept type."""
+  TEXT = 'text'
+
+  def __repr__(self) -> str:
+    return self.value
 
 
 class ExampleOrigin(BaseModel):
@@ -70,7 +77,7 @@ class Concept(BaseModel):
   # The name of the concept.
   concept_name: str
   # The type of the data format that this concept represents.
-  type: SignalInputType
+  type: ConceptType
   data: dict[str, Example]
   version: int = 0
 

@@ -20,6 +20,7 @@ Welcome to Lilac
    :maxdepth: 1
 
    concepts/concepts.md
+   concepts/concept_use.md
    concepts/concept_create.md
    concepts/concept_tuning.md
    concepts/concept_metrics.md
@@ -49,5 +50,6 @@ Welcome to Lilac
 
    api_reference/index.rst
    api_reference/sources.rst
+   api_reference/concepts.rst
    api_reference/signals.rst
    api_reference/data.rst

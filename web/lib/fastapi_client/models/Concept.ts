@@ -2,8 +2,8 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { ConceptType } from './ConceptType';
 import type { Example } from './Example';
-import type { SignalInputType } from './SignalInputType';
 
 /**
  * A concept is a collection of examples.
@@ -11,7 +11,7 @@ import type { SignalInputType } from './SignalInputType';
 export type Concept = {
     namespace: string;
     concept_name: string;
-    type: SignalInputType;
+    type: ConceptType;
     data: Record<string, Example>;
     version?: number;
     tags?: Array<string>;

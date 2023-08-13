@@ -19,6 +19,7 @@ export type { ConceptMetrics } from './models/ConceptMetrics';
 export type { ConceptModelInfo } from './models/ConceptModelInfo';
 export type { ConceptSearch } from './models/ConceptSearch';
 export type { ConceptSignal } from './models/ConceptSignal';
+export type { ConceptType } from './models/ConceptType';
 export type { ConceptUpdate } from './models/ConceptUpdate';
 export type { ConceptUserAccess } from './models/ConceptUserAccess';
 export type { CreateConceptOptions } from './models/CreateConceptOptions';

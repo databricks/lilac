@@ -11,6 +11,7 @@ import threading
 
 # NOTE: We have to import the module for uuid so it can be mocked.
 import uuid
+from enum import Enum
 from importlib import resources
 from typing import Any, List, Optional, Union, cast
 
@@ -22,7 +23,7 @@ from ..env import data_path, env
 from ..schema import SignalInputType
 from ..signals.signal import get_signal_cls
 from ..utils import delete_file, file_exists, get_lilac_cache_dir, open_file
-from .concept import DRAFT_MAIN, Concept, ConceptModel, DraftId, Example, ExampleIn
+from .concept import DRAFT_MAIN, Concept, ConceptModel, ConceptType, DraftId, Example, ExampleIn
 
 CONCEPTS_DIR = 'concept'
 CONCEPT_JSON_FILENAME = 'concept.json'
@@ -52,7 +53,7 @@ class ConceptInfo(BaseModel):
   namespace: str
   name: str
   description: Optional[str] = None
-  type: SignalInputType
+  type: ConceptType
   drafts: list[DraftId]
   tags: list[str] = []
 
@@ -98,7 +99,7 @@ class ConceptDB(abc.ABC):
   def create(self,
              namespace: str,
              name: str,
-             type: SignalInputType,
+             type: Union[ConceptType, str],
              description: Optional[str] = None,
              user: Optional[UserInfo] = None) -> Concept:
     """Create a concept.
@@ -106,7 +107,7 @@ class ConceptDB(abc.ABC):
     Args:
       namespace: The namespace of the concept.
       name: The name of the concept.
-      type: The input type of the concept.
+      type: The type of the concept.
       description: The description of the concept.
       user: The user creating the concept, if authentication is enabled.
     """
@@ -411,7 +412,7 @@ class DiskConceptDB(ConceptDB):
   def create(self,
              namespace: str,
              name: str,
-             type: SignalInputType,
+             type: Union[ConceptType, str] = ConceptType.TEXT,
              description: Optional[str] = None,
              user: Optional[UserInfo] = None) -> Concept:
     """Create a concept."""
@@ -425,6 +426,8 @@ class DiskConceptDB(ConceptDB):
     if file_exists(concept_json_path):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" already exists.')
 
+    if isinstance(type, str):
+      type = ConceptType(type)
     concept = Concept(
       namespace=namespace, concept_name=name, type=type, data={}, description=description)
     self._save(concept)
