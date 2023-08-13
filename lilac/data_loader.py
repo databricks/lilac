@@ -23,7 +23,7 @@ from .env import data_path
 from .schema import (
   MANIFEST_FILENAME,
   PARQUET_FILENAME_PREFIX,
-  UUID_COLUMN,
+  ROWID,
   Field,
   Item,
   Schema,
@@ -64,7 +64,7 @@ def process_source(base_dir: Union[str, pathlib.Path],
   # Filter out the `None`s after progress.
   items = (item for item in items if item is not None)
 
-  data_schema = Schema(fields={**source_schema.fields, UUID_COLUMN: field('string')})
+  data_schema = Schema(fields={**source_schema.fields, ROWID: field('string')})
   filepath, num_items = write_items_to_parquet(
     items=items,
     output_dir=output_dir,
@@ -100,8 +100,8 @@ def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
       continue
 
     # Add row uuid if it doesn't exist.
-    if UUID_COLUMN not in item:
-      item[UUID_COLUMN] = uuid.uuid4().hex
+    if ROWID not in item:
+      item[ROWID] = uuid.uuid4().hex
 
     # Fix NaN values.
     for field_name in replace_nan_fields:

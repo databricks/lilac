@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 from typing_extensions import override
 
-from ..schema import UUID_COLUMN, Field, Item, RichData, field
+from ..schema import ROWID, Field, Item, RichData, field
 from ..signals.signal import TextSignal, clear_signal_registry, register_signal
 from .dataset_test_utils import TestDataMaker
 
@@ -38,13 +38,7 @@ def setup_teardown() -> Iterable[None]:
 
 
 def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everybody'
-  }])
+  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
   dataset.compute_signal(TestSignal(), 'text')
 
   # Download all columns.
@@ -55,7 +49,7 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello',
     'text.test_signal': {
       'test_signal': {
@@ -64,7 +58,7 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
       }
     }
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'everybody',
     'text.test_signal': {
       'test_signal': {
@@ -76,13 +70,7 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
 
 
 def test_export_to_csv(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everybody'
-  }])
+  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
   dataset.compute_signal(TestSignal(), 'text')
 
   # Download all columns.
@@ -92,19 +80,13 @@ def test_export_to_csv(make_test_data: TestDataMaker, tmp_path: pathlib.Path) ->
   with open(filepath) as f:
     rows = list(csv.reader(f))
 
-  assert rows == [[UUID_COLUMN, 'text', 'text.test_signal'],
+  assert rows == [[ROWID, 'text', 'text.test_signal'],
                   ['1', 'hello', "{'test_signal': {'len': 5, 'flen': 5.0}}"],
                   ['2', 'everybody', "{'test_signal': {'len': 9, 'flen': 9.0}}"]]
 
 
 def test_export_to_parquet(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everybody'
-  }])
+  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
   dataset.compute_signal(TestSignal(), 'text')
 
   # Download all columns.
@@ -113,7 +95,7 @@ def test_export_to_parquet(make_test_data: TestDataMaker, tmp_path: pathlib.Path
 
   df = pd.read_parquet(filepath)
   expected_df = pd.DataFrame([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello',
     'text.test_signal': {
       'test_signal': {
@@ -122,7 +104,7 @@ def test_export_to_parquet(make_test_data: TestDataMaker, tmp_path: pathlib.Path
       }
     }
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'everybody',
     'text.test_signal': {
       'test_signal': {
@@ -135,19 +117,13 @@ def test_export_to_parquet(make_test_data: TestDataMaker, tmp_path: pathlib.Path
 
 
 def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everybody'
-  }])
+  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
   dataset.compute_signal(TestSignal(), 'text')
 
   # Download all columns.
   df = dataset.to_pandas()
   expected_df = pd.DataFrame([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello',
     'text.test_signal': {
       'test_signal': {
@@ -156,7 +132,7 @@ def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
       }
     }
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'everybody',
     'text.test_signal': {
       'test_signal': {

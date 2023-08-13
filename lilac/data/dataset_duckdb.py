@@ -26,9 +26,9 @@ from ..env import data_path, env
 from ..schema import (
   MANIFEST_FILENAME,
   PATH_WILDCARD,
+  ROWID,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
-  UUID_COLUMN,
   VALUE_KEY,
   Bin,
   DataType,
@@ -232,7 +232,7 @@ class DatasetDuckDB(Dataset):
                                                         for manifest in self._signal_manifests
                                                         if manifest.files])
     join_sql = ' '.join([SOURCE_VIEW_NAME] + [
-      f'join {_escape_col_name(manifest.parquet_id)} using ({UUID_COLUMN},)'
+      f'join {_escape_col_name(manifest.parquet_id)} using ({ROWID},)'
       for manifest in self._signal_manifests
       if manifest.files
     ])
@@ -373,7 +373,7 @@ class DatasetDuckDB(Dataset):
     manifest = self.manifest()
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([UUID_COLUMN, signal_col],
+    select_rows_result = self.select_rows([ROWID, signal_col],
                                           task_step_id=task_step_id,
                                           resolve_span=True)
     df = select_rows_result.df()
@@ -384,8 +384,8 @@ class DatasetDuckDB(Dataset):
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
     enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
-    for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
-      item[UUID_COLUMN] = uuid
+    for uuid, item in zip(df[ROWID], enriched_signal_items):
+      item[ROWID] = uuid
 
     enriched_signal_items = list(enriched_signal_items)
     parquet_filename, _ = write_items_to_parquet(
@@ -424,7 +424,7 @@ class DatasetDuckDB(Dataset):
 
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([UUID_COLUMN, signal_col],
+    select_rows_result = self.select_rows([ROWID, signal_col],
                                           task_step_id=task_step_id,
                                           resolve_span=True)
     df = select_rows_result.df()
@@ -435,10 +435,7 @@ class DatasetDuckDB(Dataset):
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
 
     write_embeddings_to_disk(
-      vector_store=self.vector_store,
-      uuids=df[UUID_COLUMN],
-      signal_items=values,
-      output_dir=output_dir)
+      vector_store=self.vector_store, uuids=df[ROWID], signal_items=values, output_dir=output_dir)
 
     del select_rows_result, df, values
     gc.collect()
@@ -836,13 +833,13 @@ class DatasetDuckDB(Dataset):
 
     temp_uuid_added = False
     for col in cols:
-      if col.path == (UUID_COLUMN,):
+      if col.path == (ROWID,):
         temp_uuid_added = False
         break
       if isinstance(col.signal_udf, VectorSignal):
         temp_uuid_added = True
     if temp_uuid_added:
-      cols.append(Column(UUID_COLUMN))
+      cols.append(Column(ROWID))
 
     # Set extra information on any concept signals.
     for udf_col in udf_columns:
@@ -883,10 +880,10 @@ class DatasetDuckDB(Dataset):
       path_keys: Optional[list[PathKey]] = None
       if where_query:
         # If there are filters, we need to send UUIDs to the top k query.
-        df = con.execute(f'SELECT {UUID_COLUMN} FROM t {where_query}').df()
+        df = con.execute(f'SELECT {ROWID} FROM t {where_query}').df()
         total_num_rows = len(df)
         # Convert UUIDs to path keys.
-        path_keys = [(uuid,) for uuid in df[UUID_COLUMN]]
+        path_keys = [(uuid,) for uuid in df[ROWID]]
 
       if path_keys is not None and len(path_keys) == 0:
         where_query = 'WHERE false'
@@ -904,7 +901,7 @@ class DatasetDuckDB(Dataset):
         offset = len(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk[:offset]]))
 
         # Ignore all the other filters and filter DuckDB results only by the top k UUIDs.
-        uuid_filter = Filter(path=(UUID_COLUMN,), op='in', value=topk_uuids)
+        uuid_filter = Filter(path=(ROWID,), op='in', value=topk_uuids)
         filter_query = self._create_where(manifest, [uuid_filter])[0]
         where_query = f'WHERE {filter_query}'
 
@@ -1027,7 +1024,7 @@ class DatasetDuckDB(Dataset):
         if isinstance(signal, VectorSignal):
           embedding_signal = signal
           vector_store = self._get_vector_db_index(embedding_signal.embedding, udf_col.path)
-          flat_keys = list(flatten_keys(df[UUID_COLUMN], input))
+          flat_keys = list(flatten_keys(df[ROWID], input))
           signal_out = sparse_to_dense_compute(
             iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store))
           # Add progress.
@@ -1089,8 +1086,8 @@ class DatasetDuckDB(Dataset):
       df = _replace_nan_with_none(rel.df())
 
     if temp_uuid_added:
-      del df[UUID_COLUMN]
-      del columns_to_merge[UUID_COLUMN]
+      del df[ROWID]
+      del columns_to_merge[ROWID]
 
     if combine_columns:
       all_columns: dict[str, Column] = {}
@@ -1144,8 +1141,8 @@ class DatasetDuckDB(Dataset):
 
     # Always return the UUID column.
     col_paths = [col.path for col in cols]
-    if (UUID_COLUMN,) not in col_paths:
-      cols.append(column_from_identifier(UUID_COLUMN))
+    if (ROWID,) not in col_paths:
+      cols.append(column_from_identifier(ROWID))
 
     self._normalize_searches(searches, manifest)
     search_udfs = self._search_udfs(searches, manifest)
@@ -1229,7 +1226,7 @@ class DatasetDuckDB(Dataset):
       if select_leaf and not m.data_schema.get_field(path).dtype:
         continue
 
-      if isinstance(m, SignalManifest) and path == (UUID_COLUMN,):
+      if isinstance(m, SignalManifest) and path == (ROWID,):
         # Do not select UUID from the signal because it's already in the source.
         continue
 
@@ -1745,7 +1742,7 @@ def _root_column(manifest: SignalManifest) -> str:
   if len(field_keys) != 2:
     raise ValueError('Expected exactly two fields in signal manifest, '
                      f'the row UUID and root this signal is enriching. Got {field_keys}.')
-  return next(filter(lambda field: field != UUID_COLUMN, manifest.data_schema.fields.keys()))
+  return next(filter(lambda field: field != ROWID, manifest.data_schema.fields.keys()))
 
 
 def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:

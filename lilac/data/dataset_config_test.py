@@ -13,7 +13,7 @@ from ..config import (
   EmbeddingConfig,
   SignalConfig,
 )
-from ..schema import UUID_COLUMN, Field, Item, RichData, field, lilac_embedding
+from ..schema import ROWID, Field, Item, RichData, field, lilac_embedding
 from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset_test_utils import TestDataMaker, TestSource
 
@@ -79,10 +79,10 @@ def setup_teardown() -> Iterable[None]:
 
 def test_config_compute_signal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello',
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'hello world',
   }])
 
@@ -140,10 +140,10 @@ def test_config_compute_signal(make_test_data: TestDataMaker) -> None:
 
 def test_config_compute_embedding(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello',
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'hello world',
   }])
 
@@ -201,10 +201,10 @@ def test_config_compute_embedding(make_test_data: TestDataMaker) -> None:
 
 def test_settings(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello',
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'hello world',
   }])
   expected_settings = DatasetSettings(ui=DatasetUISettings(media_paths=[('text',)]))

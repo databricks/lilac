@@ -6,7 +6,7 @@ from datetime import datetime
 import pytest
 from pytest_mock import MockerFixture
 
-from ..schema import UUID_COLUMN, Item, field, schema
+from ..schema import ROWID, Item, field, schema
 from . import dataset as dataset_module
 from .dataset_test_utils import TestDataMaker
 
@@ -68,7 +68,7 @@ def test_result_counts(make_test_data: TestDataMaker) -> None:
     },
     {}  # Missing "active".
   ]
-  dataset = make_test_data(items, schema=schema({UUID_COLUMN: 'string', 'active': 'boolean'}))
+  dataset = make_test_data(items, schema=schema({ROWID: 'string', 'active': 'boolean'}))
 
   result = dataset.select_groups(leaf_path='active')
   assert result.counts == [(True, 3), (False, 1), (None, 1)]
@@ -198,7 +198,7 @@ def test_schema_with_bins(make_test_data: TestDataMaker) -> None:
     'age': float('nan')
   }]
   data_schema = schema({
-    UUID_COLUMN: 'string',
+    ROWID: 'string',
     'age': field(
       'float32',
       bins=[
@@ -258,23 +258,23 @@ def test_filters(make_test_data: TestDataMaker) -> None:
 def test_datetime(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
     {
-      UUID_COLUMN: '1',
+      ROWID: '1',
       'date': datetime(2023, 1, 1)
     },
     {
-      UUID_COLUMN: '2',
+      ROWID: '2',
       'date': datetime(2023, 1, 15)
     },
     {
-      UUID_COLUMN: '2',
+      ROWID: '2',
       'date': datetime(2023, 2, 1)
     },
     {
-      UUID_COLUMN: '4',
+      ROWID: '4',
       'date': datetime(2023, 3, 1)
     },
     {
-      UUID_COLUMN: '5',
+      ROWID: '5',
       # Missing datetime.
     }
   ]

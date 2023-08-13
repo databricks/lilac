@@ -19,9 +19,9 @@ from ..parquet_writer import ParquetWriter
 from ..schema import (
   EMBEDDING_KEY,
   PATH_WILDCARD,
+  ROWID,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
-  UUID_COLUMN,
   VALUE_KEY,
   Field,
   Item,
@@ -153,7 +153,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   if not enriched_schema.fields:
     raise ValueError('This should not happen since enriched_schema always has fields (see above)')
 
-  return schema({UUID_COLUMN: 'string', **cast(dict, enriched_schema.fields)})
+  return schema({ROWID: 'string', **cast(dict, enriched_schema.fields)})
 
 
 def write_embeddings_to_disk(vector_store: str, uuids: Iterable[str], signal_items: Iterable[Item],
@@ -210,8 +210,8 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
   num_items = 0
   for item in items:
     # Add a UUID column.
-    if UUID_COLUMN not in item:
-      item[UUID_COLUMN] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
+    if ROWID not in item:
+      item[ROWID] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
     if debug:
       try:
         _validate(item, arrow_schema)
