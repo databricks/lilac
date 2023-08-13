@@ -192,8 +192,9 @@ Wrote signal output to ./data/datasets/local/open-orca-100k/response/lilac/profa
 ## Download
 
 Now that we’ve enriched the dataset, let’s download it so we can continue our work in a Python
-notebook, or any other language. Let's use [](#Dataset.to_pandas) to get a DataFrame in memory. For
-other formats see the other `.to_*()`[](#Dataset) methods.
+notebook, or any other language. [](#Dataset.to_pandas) will create a DataFrame in memory. For other
+formats see the other `.to_*()`[](#Dataset) methods. If you want to download only a subset of the
+dataset, you can use the `columns` argument.
 
 ```py
 df = dataset.to_pandas()
@@ -210,8 +211,7 @@ Output:
  2   question                                 100000 non-null  object
  3   response                                 100000 non-null  object
  4   __hfsplit__                              100000 non-null  object
- 5   __rowid__                                100000 non-null  object
- 6   response.pii                             100000 non-null  object
- 7   response.lilac/profanity/gte-small/v34   100000 non-null  object
- 8   question.pii                             100000 non-null  object
+ 5   response.pii                             100000 non-null  object
+ 6   response.lilac/profanity/gte-small/v34   100000 non-null  object
+ 7   question.pii                             100000 non-null  object
 ```
