@@ -28,7 +28,6 @@ from .schema import (
   Item,
   Schema,
   SourceManifest,
-  field,
   is_float,
 )
 from .tasks import TaskStepId, progress
@@ -64,7 +63,7 @@ def process_source(base_dir: Union[str, pathlib.Path],
   # Filter out the `None`s after progress.
   items = (item for item in items if item is not None)
 
-  data_schema = Schema(fields={**source_schema.fields, ROWID: field('string')})
+  data_schema = Schema(fields=source_schema.fields.copy())
   filepath, num_items = write_items_to_parquet(
     items=items,
     output_dir=output_dir,

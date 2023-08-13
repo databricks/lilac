@@ -260,6 +260,8 @@ class Schema(BaseModel):
 
   def get_field(self, path: PathTuple) -> Field:
     """Returns the field at the given path."""
+    if path == (ROWID,):
+      return Field(dtype=DataType.STRING)
     field = cast(Field, self)
     for name in path:
       if field.fields:

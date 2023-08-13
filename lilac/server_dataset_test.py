@@ -1,6 +1,5 @@
 """Test our public REST API."""
 import os
-from copy import deepcopy
 from typing import Iterable, Optional, Type
 
 import pytest
@@ -84,11 +83,7 @@ def test_data(tmp_path_factory: pytest.TempPathFactory, module_mocker: MockerFix
   module_mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
 
   dataset_cls: Type[Dataset] = request.param
-  items = [deepcopy(item) for item in TEST_DATA]
-  for i, item in enumerate(items):
-    item[ROWID] = str(i + 1)
-
-  make_dataset(dataset_cls, tmp_path, items)
+  make_dataset(dataset_cls, tmp_path, TEST_DATA)
 
 
 def test_get_manifest() -> None:
@@ -100,7 +95,6 @@ def test_get_manifest() -> None:
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
-        ROWID: 'string',
         'erased': 'boolean',
         'people': [{
           'name': 'string',

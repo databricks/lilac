@@ -133,7 +133,6 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      ROWID: 'string',
       'text': field(
         'string',
         fields={

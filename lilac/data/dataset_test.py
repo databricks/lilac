@@ -290,7 +290,7 @@ def test_select_ids(make_test_data: TestDataMaker) -> None:
 
 
 def test_select_ids_with_limit_and_offset(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{} for _ in range(10)]
+  items: list[Item] = [{i: i} for i in range(10)]
   dataset = make_test_data(items)
 
   result = dataset.select_rows([ROWID], offset=1, limit=3)
@@ -679,7 +679,6 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      ROWID: 'string',
       'str': 'string',
       'int': 'int32',
       'bool': 'boolean',
@@ -695,7 +694,6 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      ROWID: 'string',
       'str': field(
         'string',
         fields={
@@ -711,7 +709,7 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
     }),
     num_items=3)
 
-  # Select both columns.
+  # Select both columns and the rowid.
   result = dataset.select_rows(
     [ROWID, 'str', Column(('str', 'test_signal'), alias='test_signal_on_str')])
 

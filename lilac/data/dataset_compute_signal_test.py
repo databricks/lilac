@@ -32,19 +32,16 @@ from .dataset import Column, DatasetManifest, GroupsSortBy, SortOrder
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
 
 SIMPLE_ITEMS: list[Item] = [{
-  ROWID: '1',
   'str': 'a',
   'int': 1,
   'bool': False,
   'float': 3.0
 }, {
-  ROWID: '2',
   'str': 'b',
   'int': 2,
   'bool': True,
   'float': 2.0
 }, {
-  ROWID: '3',
   'str': 'b',
   'int': 2,
   'bool': True,
@@ -267,7 +264,6 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      ROWID: 'string',
       'str': 'string',
       'int': 'int32',
       'bool': 'boolean',
@@ -283,7 +279,6 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      ROWID: 'string',
       'str': field(
         'string',
         fields={
@@ -538,7 +533,6 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      ROWID: 'string',
       'text': field(
         'string',
         fields={
@@ -564,7 +558,6 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      ROWID: 'string',
       'text': field('string', fields={'key_True': field('int64', signal=signal.dict())}),
     }),
     num_items=2)

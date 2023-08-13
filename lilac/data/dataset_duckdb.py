@@ -472,6 +472,8 @@ class DatasetDuckDB(Dataset):
         continue
 
       current_field = Field(fields=manifest.data_schema.fields)
+      if filter.path == (ROWID,):
+        return
       for path_part in filter.path:
         if path_part == VALUE_KEY:
           if not current_field.dtype:
@@ -518,6 +520,8 @@ class DatasetDuckDB(Dataset):
     for column in columns:
       current_field = Field(fields=select_schema.fields)
       path = column.path
+      if path == (ROWID,):
+        return
       for path_part in path:
         if path_part == VALUE_KEY:
           if not current_field.dtype:
@@ -549,6 +553,8 @@ class DatasetDuckDB(Dataset):
 
   def _validate_sort_path(self, path: PathTuple, schema: Schema) -> None:
     current_field = Field(fields=schema.fields)
+    if path == (ROWID,):
+      return
     for path_part in path:
       if path_part == VALUE_KEY:
         if not current_field.dtype:
@@ -1201,6 +1207,9 @@ class DatasetDuckDB(Dataset):
 
     select_leaf = select_leaf or column.signal_udf is not None
 
+    if path == (ROWID,):
+      return [('source', path)]
+
     for m in parquet_manifests:
       if not m.files:
         continue
@@ -1217,10 +1226,6 @@ class DatasetDuckDB(Dataset):
 
       # Skip this parquet file if the path doesn't have a dtype.
       if select_leaf and not m.data_schema.get_field(path).dtype:
-        continue
-
-      if isinstance(m, SignalManifest) and path == (ROWID,):
-        # Do not select rowid from the signal because it's already in the source.
         continue
 
       duckdb_path = path
@@ -1731,9 +1736,9 @@ def _col_destination_path(column: Column, is_computed_signal: Optional[bool] = F
 
 def _root_column(manifest: SignalManifest) -> str:
   """Returns the root column of a signal manifest."""
-  field_keys = manifest.data_schema.fields.keys()
-  if len(field_keys) != 2:
-    raise ValueError('Expected exactly two fields in signal manifest, '
+  field_keys = list(manifest.data_schema.fields.keys())
+  if len(field_keys) > 2:
+    raise ValueError('Expected at most two fields in signal manifest, '
                      f'the rowid and root this signal is enriching. Got {field_keys}.')
   return next(filter(lambda field: field != ROWID, manifest.data_schema.fields.keys()))
 

@@ -23,6 +23,7 @@ from ..schema import (
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
   VALUE_KEY,
+  DataType,
   Field,
   Item,
   PathKey,
@@ -153,7 +154,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   if not enriched_schema.fields:
     raise ValueError('This should not happen since enriched_schema always has fields (see above)')
 
-  return schema({ROWID: 'string', **cast(dict, enriched_schema.fields)})
+  return schema(enriched_schema.fields.copy())
 
 
 def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_items: Iterable[Item],
@@ -200,6 +201,10 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
                            filename_prefix: str, shard_index: int,
                            num_shards: int) -> tuple[str, int]:
   """Write a set of items to a parquet file, in columnar format."""
+  schema = schema.copy(deep=True)
+  # Add a rowid column.
+  schema.fields[ROWID] = Field(dtype=DataType.STRING)
+
   arrow_schema = schema_to_arrow_schema(schema)
   out_filename = parquet_filename(filename_prefix, shard_index, num_shards)
   filepath = os.path.join(output_dir, out_filename)
