@@ -119,13 +119,7 @@ def setup_teardown() -> Iterable[None]:
 
 
 def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': 'hello.',
-  }, {
-    ROWID: '2',
-    'text': 'hello2.',
-  }])
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
 
   embed_mock = mocker.spy(TestEmbedding, 'compute')
   dataset.compute_embedding('test_embedding', 'text')
@@ -154,10 +148,8 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
 
   result = dataset.select_rows(combine_columns=True)
   expected_result = [{
-    ROWID: '1',
     'text': enriched_item('hello.', {'test_embedding_sum(embedding=test_embedding)': 1.0})
   }, {
-    ROWID: '2',
     'text': enriched_item('hello2.', {'test_embedding_sum(embedding=test_embedding)': 2.0})
   }]
   assert list(result) == expected_result

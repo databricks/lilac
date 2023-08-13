@@ -529,13 +529,7 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
 
 
 def test_embedding_signal(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': 'hello.',
-  }, {
-    ROWID: '2',
-    'text': 'hello2.',
-  }])
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
 
   embedding_signal = TestEmbedding()
   dataset.compute_signal(embedding_signal, 'text')
@@ -556,18 +550,12 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
     num_items=2)
 
   result = dataset.select_rows(combine_columns=True)
-  expected_result = [{ROWID: '1', 'text': 'hello.'}, {ROWID: '2', 'text': 'hello2.'}]
+  expected_result = [{'text': 'hello.'}, {'text': 'hello2.'}]
   assert list(result) == expected_result
 
 
 def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': 'hello.',
-  }, {
-    ROWID: '2',
-    'text': 'hello2.',
-  }])
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
 
   signal = ComputedKeySignal()
   dataset.compute_signal(signal, 'text')
@@ -584,10 +572,8 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(combine_columns=True)
 
   expected_result = [{
-    ROWID: '1',
     'text': enriched_item('hello.', {'key_True': 1})
   }, {
-    ROWID: '2',
     'text': enriched_item('hello2.', {'key_True': 1})
   }]
   assert list(result) == expected_result

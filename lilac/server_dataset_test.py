@@ -1,5 +1,6 @@
 """Test our public REST API."""
 import os
+from copy import deepcopy
 from typing import Iterable, Optional, Type
 
 import pytest
@@ -28,7 +29,6 @@ client = TestClient(app)
 DATASET_CLASSES = [DatasetDuckDB]
 
 TEST_DATA: list[Item] = [{
-  ROWID: '1',
   'erased': False,
   'people': [{
     'name': 'A',
@@ -42,7 +42,6 @@ TEST_DATA: list[Item] = [{
     }]
   }]
 }, {
-  ROWID: '2',
   'erased': True,
   'people': [{
     'name': 'B',
@@ -64,8 +63,7 @@ TEST_DATA: list[Item] = [{
     }]
   }]
 }, {
-  ROWID: '3',
-  'erased': True,
+  'erased': True
 }]
 
 
@@ -86,7 +84,11 @@ def test_data(tmp_path_factory: pytest.TempPathFactory, module_mocker: MockerFix
   module_mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
 
   dataset_cls: Type[Dataset] = request.param
-  make_dataset(dataset_cls, tmp_path, TEST_DATA)
+  items = [deepcopy(item) for item in TEST_DATA]
+  for i, item in enumerate(items):
+    item[ROWID] = str(i + 1)
+
+  make_dataset(dataset_cls, tmp_path, items)
 
 
 def test_get_manifest() -> None:
@@ -199,7 +201,6 @@ def test_select_rows_star_plus_udf() -> None:
   assert response.status_code == 200
   assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
     rows=[{
-      ROWID: '1',
       'erased': False,
       'people': [{
         'name': enriched_item('A', {'length_signal': 1}),
@@ -213,7 +214,6 @@ def test_select_rows_star_plus_udf() -> None:
         }]
       }]
     }, {
-      ROWID: '2',
       'erased': True,
       'people': [{
         'name': enriched_item('B', {'length_signal': 1}),
@@ -235,8 +235,7 @@ def test_select_rows_star_plus_udf() -> None:
         }]
       }]
     }, {
-      ROWID: '3',
-      'erased': True,
+      'erased': True
     }],
     total_num_rows=3)
 
@@ -250,7 +249,6 @@ def test_select_rows_schema_star_plus_udf() -> None:
   assert response.status_code == 200
   assert SelectRowsSchemaResult.parse_obj(response.json()) == SelectRowsSchemaResult(
     data_schema=schema({
-      ROWID: 'string',
       'erased': 'boolean',
       'people': [{
         'name': field(
@@ -272,7 +270,6 @@ def test_select_rows_schema_no_cols() -> None:
   assert response.status_code == 200
   assert SelectRowsSchemaResult.parse_obj(response.json()) == SelectRowsSchemaResult(
     data_schema=schema({
-      ROWID: 'string',
       'erased': 'boolean',
       'people': [{
         'name': 'string',
