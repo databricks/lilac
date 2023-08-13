@@ -13,7 +13,7 @@ from ..config import (
   EmbeddingConfig,
   SignalConfig,
 )
-from ..schema import ROWID, Field, Item, RichData, field, lilac_embedding
+from ..schema import Field, Item, RichData, field, lilac_embedding
 from ..signals.signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .dataset_test_utils import TestDataMaker, TestSource
 
@@ -79,11 +79,9 @@ def setup_teardown() -> Iterable[None]:
 
 def test_config_compute_signal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    ROWID: '1',
     'text': 'hello',
   }, {
-    ROWID: '2',
-    'text': 'hello world',
+    'text': 'hello world'
   }])
 
   assert dataset.config() == DatasetConfig(
@@ -139,13 +137,7 @@ def test_config_compute_signal(make_test_data: TestDataMaker) -> None:
 
 
 def test_config_compute_embedding(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': 'hello',
-  }, {
-    ROWID: '2',
-    'text': 'hello world',
-  }])
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
 
   assert dataset.config() == DatasetConfig(
     namespace='test_namespace',
@@ -200,13 +192,7 @@ def test_config_compute_embedding(make_test_data: TestDataMaker) -> None:
 
 
 def test_settings(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    ROWID: '1',
-    'text': 'hello',
-  }, {
-    ROWID: '2',
-    'text': 'hello world',
-  }])
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
   expected_settings = DatasetSettings(ui=DatasetUISettings(media_paths=[('text',)]))
 
   # Settings is reflected in the config and the public settings method.

@@ -11,7 +11,6 @@ from typing_extensions import override
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   EMBEDDING_KEY,
-  ROWID,
   Field,
   Item,
   PathKey,
@@ -191,9 +190,8 @@ def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(TestSplitter(), 'text')
   dataset.compute_signal(entity, ('text', 'test_splitter', '*'))
 
-  result = dataset.select_rows([ROWID, 'text'], combine_columns=True)
+  result = dataset.select_rows(['text'], combine_columns=True)
   assert list(result) == [{
-    ROWID: '1',
     'text': enriched_item(
       text, {
         'test_splitter': [

@@ -38,7 +38,7 @@ def setup_teardown() -> Iterable[None]:
 
 
 def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
-  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
   dataset.compute_signal(TestSignal(), 'text')
 
   # Download all columns.
@@ -49,28 +49,22 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [{
-    ROWID: '1',
     'text': 'hello',
     'text.test_signal': {
-      'test_signal': {
-        'len': 5,
-        'flen': 5.0
-      }
+      'len': 5,
+      'flen': 5.0
     }
   }, {
-    ROWID: '2',
     'text': 'everybody',
     'text.test_signal': {
-      'test_signal': {
-        'len': 9,
-        'flen': 9.0
-      }
+      'len': 9,
+      'flen': 9.0
     }
   }]
 
 
 def test_export_to_csv(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
-  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
   dataset.compute_signal(TestSignal(), 'text')
 
   # Download all columns.
@@ -80,13 +74,15 @@ def test_export_to_csv(make_test_data: TestDataMaker, tmp_path: pathlib.Path) ->
   with open(filepath) as f:
     rows = list(csv.reader(f))
 
-  assert rows == [[ROWID, 'text', 'text.test_signal'],
-                  ['1', 'hello', "{'test_signal': {'len': 5, 'flen': 5.0}}"],
-                  ['2', 'everybody', "{'test_signal': {'len': 9, 'flen': 9.0}}"]]
+  assert rows == [
+    ['text', 'text.test_signal'],
+    ['hello', "{'len': 5, 'flen': 5.0}"],
+    ['everybody', "{'len': 9, 'flen': 9.0}"],
+  ]
 
 
 def test_export_to_parquet(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
-  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
   dataset.compute_signal(TestSignal(), 'text')
 
   # Download all columns.
@@ -95,60 +91,50 @@ def test_export_to_parquet(make_test_data: TestDataMaker, tmp_path: pathlib.Path
 
   df = pd.read_parquet(filepath)
   expected_df = pd.DataFrame([{
-    ROWID: '1',
     'text': 'hello',
     'text.test_signal': {
-      'test_signal': {
-        'len': 5,
-        'flen': 5.0
-      }
+      'len': 5,
+      'flen': 5.0
     }
   }, {
-    ROWID: '2',
     'text': 'everybody',
     'text.test_signal': {
-      'test_signal': {
-        'len': 9,
-        'flen': 9.0
-      }
+      'len': 9,
+      'flen': 9.0
     }
   }])
   pd.testing.assert_frame_equal(df, expected_df)
 
 
 def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
   dataset.compute_signal(TestSignal(), 'text')
 
   # Download all columns.
   df = dataset.to_pandas()
   expected_df = pd.DataFrame([{
-    ROWID: '1',
     'text': 'hello',
     'text.test_signal': {
-      'test_signal': {
-        'len': 5,
-        'flen': 5.0
-      }
+      'len': 5,
+      'flen': 5.0
     }
   }, {
-    ROWID: '2',
     'text': 'everybody',
     'text.test_signal': {
-      'test_signal': {
-        'len': 9,
-        'flen': 9.0
-      }
+      'len': 9,
+      'flen': 9.0
     }
   }])
   pd.testing.assert_frame_equal(df, expected_df)
 
-  # Select only some columns.
-  df = dataset.to_pandas(['text', 'text.test_signal.flen'])
+  # Select only some columns, including pseudocolumn rowid.
+  df = dataset.to_pandas([ROWID, 'text', 'text.test_signal.flen'])
   expected_df = pd.DataFrame([{
+    ROWID: '1',
     'text': 'hello',
     'text.test_signal.flen': np.float32(5.0)
   }, {
+    ROWID: '2',
     'text': 'everybody',
     'text.test_signal.flen': np.float32(9.0)
   }])

@@ -19,7 +19,7 @@ from .router_dataset import (
   SelectRowsSchemaOptions,
   WebManifest,
 )
-from .schema import ROWID, Field, Item, RichData, field, schema
+from .schema import Field, Item, RichData, field, schema
 from .server import app
 from .signals.signal import TextSignal, clear_signal_registry, register_signal
 
@@ -120,14 +120,13 @@ def test_select_rows_no_options() -> None:
 def test_select_rows_with_cols_and_limit() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
   options = SelectRowsOptions(
-    columns=[ROWID, ('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
+    columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
     limit=1,
     offset=1)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
   assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
     rows=[{
-      ROWID: '2',
       'people.*.zipcode': [1, 2],
       'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']]
     }],
@@ -137,13 +136,12 @@ def test_select_rows_with_cols_and_limit() -> None:
 def test_select_rows_with_cols_and_combine() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
   options = SelectRowsOptions(
-    columns=[ROWID, ('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
+    columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
     combine_columns=True)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
   assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
     rows=[{
-      ROWID: '1',
       'people': [{
         'zipcode': 0,
         'locations': [{
@@ -153,7 +151,6 @@ def test_select_rows_with_cols_and_combine() -> None:
         }]
       }]
     }, {
-      ROWID: '2',
       'people': [{
         'zipcode': 1,
         'locations': [{
@@ -170,7 +167,6 @@ def test_select_rows_with_cols_and_combine() -> None:
         }]
       }]
     }, {
-      ROWID: '3',
       'people': None
     }],
     total_num_rows=3)

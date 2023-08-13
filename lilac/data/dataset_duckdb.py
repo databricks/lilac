@@ -1458,9 +1458,6 @@ class DatasetDuckDB(Dataset):
   def _get_selection(self, columns: Optional[Sequence[ColumnId]] = None) -> str:
     """Get the selection clause for download a dataset."""
     manifest = self.manifest()
-    if not columns:
-      return '*'
-
     cols = self._normalize_columns(columns, manifest.data_schema, combine_columns=False)
     schema = manifest.data_schema
     self._validate_columns(cols, manifest.data_schema, schema)
