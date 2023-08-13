@@ -1,6 +1,7 @@
 datasets:
   - name: imdb
-    namespace: local
+    namespace: lilac
+    tags: [machine-learning]
     settings:
       ui:
         media_paths:
@@ -11,7 +12,8 @@ datasets:
       dataset_name: imdb
 
   - name: open-asssistant-conversations
-    namespace: local
+    namespace: lilac
+    tags: [machine-learning]
     settings:
       ui:
         media_paths:
@@ -21,21 +23,9 @@ datasets:
       source_name: huggingface
       dataset_name: OpenAssistant/oasst1
 
-  - name: mmlu_professional_law
-    namespace: local
-    settings:
-      ui:
-        media_paths:
-          - question
-          - [choices, '*']
-      preferred_embedding: 'gte-small'
-    source:
-      config_name: professional_law
-      dataset_name: cais/mmlu
-      source_name: huggingface
-
   - name: wikitext-2-raw-v1
-    namespace: local
+    namespace: lilac
+    tags: [machine-learning]
     settings:
       ui:
         media_paths:
@@ -48,7 +38,8 @@ datasets:
       source_name: huggingface
 
   - name: squad_v2
-    namespace: local
+    namespace: lilac
+    tags: [machine-learning]
     settings:
       ui:
         media_paths:
@@ -66,7 +57,7 @@ datasets:
 
   # This dataset is currently causing issues with loading.
   # - name: databricks-dolly-15k-curated-en
-  #   namespace: local
+  #   namespace: lilac
   #   settings:
   #     ui:
   #       media_paths:
@@ -94,7 +85,8 @@ datasets:
   #     source_name: huggingface
 
   - name: piqa
-    namespace: local
+    namespace: lilac
+    tags: [machine-learning]
     settings:
       ui:
         media_paths:
@@ -105,6 +97,78 @@ datasets:
     source:
       dataset_name: piqa
       source_name: huggingface
+
+  # Legal datasets.
+  - name: mmlu_professional_law
+    namespace: lilac
+    tags: [legal]
+    settings:
+      ui:
+        media_paths:
+          - question
+          - [choices, '*']
+      preferred_embedding: 'gte-small'
+    source:
+      config_name: professional_law
+      dataset_name: cais/mmlu
+      source_name: huggingface
+
+  - name: pile-of-law-us-bills
+    namespace: lilac
+    tags: [legal]
+    settings:
+      ui:
+        media_paths:
+          - text
+      preferred_embedding: 'gte-small'
+    source:
+      config_name: us_bills
+      dataset_name: pile-of-law/pile-of-law
+      source_name: huggingface
+
+  - name: pile-of-law-constitutions
+    namespace: lilac
+    tags: [legal]
+    settings:
+      ui:
+        media_paths:
+          - text
+      preferred_embedding: 'gte-small'
+    source:
+      config_name: constitutions
+      dataset_name: pile-of-law/pile-of-law
+      source_name: huggingface
+
+  - name: pile-of-law-r-legaladvice
+    namespace: lilac
+    tags: [legal]
+    settings:
+      ui:
+        media_paths:
+          - text
+      preferred_embedding: 'gte-small'
+    source:
+      config_name: r_legaladvice
+      dataset_name: pile-of-law/pile-of-law
+      source_name: huggingface
+
+  # Embeddings will take 3 days to compute on my computer. This is an interesting dataset we should
+  # run later.
+
+  # - name: pile-of-law-atticus-contracts
+  #   namespace: lilac
+  #   tags: [legal]
+  #   settings:
+  #     ui:
+  #       media_paths:
+  #         - text
+  #     preferred_embedding: 'gte-small'
+  #   source:
+  #     config_name: atticus_contracts
+  #     dataset_name: pile-of-law/pile-of-law
+  #     # Limit to 100,000. The full size is 600K with large contracts that causes OOM issues.
+  #     sample_size: 100000
+  #     source_name: huggingface
 
 signals:
   - signal_name: pii
