@@ -19,7 +19,7 @@ from .router_dataset import (
   SelectRowsSchemaOptions,
   WebManifest,
 )
-from .schema import UUID_COLUMN, Field, Item, RichData, field, schema
+from .schema import ROWID, Field, Item, RichData, field, schema
 from .server import app
 from .signals.signal import TextSignal, clear_signal_registry, register_signal
 
@@ -28,7 +28,6 @@ client = TestClient(app)
 DATASET_CLASSES = [DatasetDuckDB]
 
 TEST_DATA: list[Item] = [{
-  UUID_COLUMN: '1',
   'erased': False,
   'people': [{
     'name': 'A',
@@ -42,7 +41,6 @@ TEST_DATA: list[Item] = [{
     }]
   }]
 }, {
-  UUID_COLUMN: '2',
   'erased': True,
   'people': [{
     'name': 'B',
@@ -64,8 +62,7 @@ TEST_DATA: list[Item] = [{
     }]
   }]
 }, {
-  UUID_COLUMN: '3',
-  'erased': True,
+  'erased': True
 }]
 
 
@@ -98,7 +95,6 @@ def test_get_manifest() -> None:
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
       data_schema=schema({
-        UUID_COLUMN: 'string',
         'erased': 'boolean',
         'people': [{
           'name': 'string',
@@ -124,14 +120,14 @@ def test_select_rows_no_options() -> None:
 def test_select_rows_with_cols_and_limit() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
   options = SelectRowsOptions(
-    columns=[UUID_COLUMN, ('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
+    columns=[ROWID, ('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
     limit=1,
     offset=1)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
   assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
     rows=[{
-      UUID_COLUMN: '2',
+      ROWID: '2',
       'people.*.zipcode': [1, 2],
       'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']]
     }],
@@ -141,13 +137,13 @@ def test_select_rows_with_cols_and_limit() -> None:
 def test_select_rows_with_cols_and_combine() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
   options = SelectRowsOptions(
-    columns=[UUID_COLUMN, ('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
+    columns=[ROWID, ('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
     combine_columns=True)
   response = client.post(url, json=options.dict())
   assert response.status_code == 200
   assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
     rows=[{
-      UUID_COLUMN: '1',
+      ROWID: '1',
       'people': [{
         'zipcode': 0,
         'locations': [{
@@ -157,7 +153,7 @@ def test_select_rows_with_cols_and_combine() -> None:
         }]
       }]
     }, {
-      UUID_COLUMN: '2',
+      ROWID: '2',
       'people': [{
         'zipcode': 1,
         'locations': [{
@@ -174,7 +170,7 @@ def test_select_rows_with_cols_and_combine() -> None:
         }]
       }]
     }, {
-      UUID_COLUMN: '3',
+      ROWID: '3',
       'people': None
     }],
     total_num_rows=3)
@@ -199,7 +195,6 @@ def test_select_rows_star_plus_udf() -> None:
   assert response.status_code == 200
   assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
     rows=[{
-      UUID_COLUMN: '1',
       'erased': False,
       'people': [{
         'name': enriched_item('A', {'length_signal': 1}),
@@ -213,7 +208,6 @@ def test_select_rows_star_plus_udf() -> None:
         }]
       }]
     }, {
-      UUID_COLUMN: '2',
       'erased': True,
       'people': [{
         'name': enriched_item('B', {'length_signal': 1}),
@@ -235,8 +229,7 @@ def test_select_rows_star_plus_udf() -> None:
         }]
       }]
     }, {
-      UUID_COLUMN: '3',
-      'erased': True,
+      'erased': True
     }],
     total_num_rows=3)
 
@@ -250,7 +243,6 @@ def test_select_rows_schema_star_plus_udf() -> None:
   assert response.status_code == 200
   assert SelectRowsSchemaResult.parse_obj(response.json()) == SelectRowsSchemaResult(
     data_schema=schema({
-      UUID_COLUMN: 'string',
       'erased': 'boolean',
       'people': [{
         'name': field(
@@ -272,7 +264,6 @@ def test_select_rows_schema_no_cols() -> None:
   assert response.status_code == 200
   assert SelectRowsSchemaResult.parse_obj(response.json()) == SelectRowsSchemaResult(
     data_schema=schema({
-      UUID_COLUMN: 'string',
       'erased': 'boolean',
       'people': [{
         'name': 'string',

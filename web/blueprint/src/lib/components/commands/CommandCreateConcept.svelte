@@ -5,7 +5,7 @@
   import {
     ConceptsService,
     DatasetsService,
-    UUID_COLUMN,
+    ROWID,
     childFields,
     deserializePath,
     isSignalField,
@@ -146,7 +146,7 @@
     const result = await DatasetsService.selectRows(dataset.namespace, dataset.name, {
       columns: [path],
       limit: 10,
-      sort_by: [UUID_COLUMN] // Sort by UUID to get random rows.
+      sort_by: [ROWID] // Sort by rowid to get random rows.
     });
     generatingNegatives = false;
     if (negativeExamples.at(-1) === '') {

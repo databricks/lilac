@@ -1,7 +1,7 @@
 import {stringSlice} from '$lib/view_utils';
 import {
   L,
-  UUID_COLUMN,
+  ROWID,
   valueAtPath,
   type Concept,
   type DataTypeCasted,
@@ -33,18 +33,18 @@ export function getCandidates(
     return candidates;
   }
   const allRows = [...topRows, ...randomRows];
-  const uuids = new Set<string>();
+  const rowids = new Set<string>();
   const spans: {
     text: string;
     score: number;
     span: NonNullable<DataTypeCasted<'string_span'>>;
   }[] = [];
   for (const row of allRows) {
-    const uuid = L.value(valueAtPath(row, [UUID_COLUMN])!, 'string');
-    if (uuid == null || uuids.has(uuid)) {
+    const rowid = L.value(valueAtPath(row, [ROWID])!, 'string');
+    if (rowid == null || rowids.has(rowid)) {
       continue;
     }
-    uuids.add(uuid);
+    rowids.add(rowid);
     const textNode = valueAtPath(row, fieldPath);
     if (textNode == null) {
       continue;

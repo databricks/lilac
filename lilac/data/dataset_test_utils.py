@@ -1,6 +1,7 @@
 """Tests utils of for dataset_test."""
 import os
 import pathlib
+from copy import deepcopy
 from datetime import datetime
 from typing import Optional, Type, cast
 
@@ -13,6 +14,7 @@ from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   MANIFEST_FILENAME,
   PARQUET_FILENAME_PREFIX,
+  ROWID,
   VALUE_KEY,
   DataType,
   Field,
@@ -117,6 +119,11 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
   """Write the items JSON to the dataset format: manifest.json and parquet files."""
   source_dir = get_dataset_output_dir(str(tmpdir), TEST_NAMESPACE, dataset_name)
   os.makedirs(source_dir)
+
+  # Add rowids to the items.
+  items = [deepcopy(item) for item in items]
+  for i, item in enumerate(items):
+    item[ROWID] = str(i + 1)
 
   simple_parquet_files, _ = write_items_to_parquet(
     items, source_dir, schema, filename_prefix=PARQUET_FILENAME_PREFIX, shard_index=0, num_shards=1)

@@ -19,10 +19,11 @@ from ..parquet_writer import ParquetWriter
 from ..schema import (
   EMBEDDING_KEY,
   PATH_WILDCARD,
+  ROWID,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
-  UUID_COLUMN,
   VALUE_KEY,
+  DataType,
   Field,
   Item,
   PathKey,
@@ -153,10 +154,10 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   if not enriched_schema.fields:
     raise ValueError('This should not happen since enriched_schema always has fields (see above)')
 
-  return schema({UUID_COLUMN: 'string', **cast(dict, enriched_schema.fields)})
+  return schema(enriched_schema.fields.copy())
 
 
-def write_embeddings_to_disk(vector_store: str, uuids: Iterable[str], signal_items: Iterable[Item],
+def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_items: Iterable[Item],
                              output_dir: str) -> None:
   """Write a set of embeddings to disk."""
 
@@ -164,7 +165,7 @@ def write_embeddings_to_disk(vector_store: str, uuids: Iterable[str], signal_ite
     return (isinstance(input, list) and len(input) > 0 and isinstance(input[0], dict) and
             EMBEDDING_KEY in input[0])
 
-  path_keys = flatten_keys(uuids, signal_items, is_primitive_predicate=embedding_predicate)
+  path_keys = flatten_keys(rowids, signal_items, is_primitive_predicate=embedding_predicate)
   all_embeddings = cast(Iterable[Item],
                         deep_flatten(signal_items, is_primitive_predicate=embedding_predicate))
 
@@ -200,6 +201,10 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
                            filename_prefix: str, shard_index: int,
                            num_shards: int) -> tuple[str, int]:
   """Write a set of items to a parquet file, in columnar format."""
+  schema = schema.copy(deep=True)
+  # Add a rowid column.
+  schema.fields[ROWID] = Field(dtype=DataType.STRING)
+
   arrow_schema = schema_to_arrow_schema(schema)
   out_filename = parquet_filename(filename_prefix, shard_index, num_shards)
   filepath = os.path.join(output_dir, out_filename)
@@ -209,9 +214,9 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
   debug = env('DEBUG', False)
   num_items = 0
   for item in items:
-    # Add a UUID column.
-    if UUID_COLUMN not in item:
-      item[UUID_COLUMN] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
+    # Add a rowid column.
+    if ROWID not in item:
+      item[ROWID] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
     if debug:
       try:
         _validate(item, arrow_schema)
@@ -242,28 +247,28 @@ def parquet_filename(prefix: str, shard_index: int, num_shards: int) -> str:
   return f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.parquet'
 
 
-def _flatten_keys(uuid: str, nested_input: Iterable, location: list[int],
+def _flatten_keys(rowid: str, nested_input: Iterable, location: list[int],
                   is_primitive_predicate: Callable[[object], bool]) -> Iterator[VectorKey]:
   if is_primitive_predicate(nested_input) or is_primitive(nested_input) or isinstance(
       nested_input, dict):
-    yield (uuid, *location)
+    yield (rowid, *location)
     return
 
   for i, input in enumerate(nested_input):
-    yield from _flatten_keys(uuid, input, [*location, i], is_primitive_predicate)
+    yield from _flatten_keys(rowid, input, [*location, i], is_primitive_predicate)
 
 
 def flatten_keys(
-    uuids: Iterable[str],
+    rowids: Iterable[str],
     nested_input: Iterable,
     is_primitive_predicate: Callable[[object],
                                      bool] = is_primitive) -> Iterator[Optional[VectorKey]]:
-  """Flatten the uuid keys of a nested input."""
-  for uuid, input in zip(uuids, nested_input):
+  """Flatten the rowids of a nested input."""
+  for rowid, input in zip(rowids, nested_input):
     if input is None:
       yield None
       continue
-    yield from _flatten_keys(uuid, input, [], is_primitive_predicate)
+    yield from _flatten_keys(rowid, input, [], is_primitive_predicate)
 
 
 Tin = TypeVar('Tin')

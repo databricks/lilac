@@ -8,7 +8,7 @@ from typing_extensions import override
 
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
-  UUID_COLUMN,
+  ROWID,
   Field,
   Item,
   PathKey,
@@ -78,7 +78,7 @@ def setup_teardown() -> Iterable[None]:
 
 def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'erased': True,
     'score': 4.1,
     'document': {
@@ -88,7 +88,7 @@ def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
       }
     }
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'erased': False,
     'score': 3.5,
     'document': {
@@ -98,7 +98,7 @@ def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
       }
     },
   }, {
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'erased': True,
     'score': 3.7,
     'document': {
@@ -110,43 +110,43 @@ def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
   }])
 
   # Sort by bool.
-  result = dataset.select_rows(columns=[UUID_COLUMN], sort_by=['erased'], sort_order=SortOrder.ASC)
-  assert list(result) == [{UUID_COLUMN: '2'}, {UUID_COLUMN: '1'}, {UUID_COLUMN: '3'}]
-  result = dataset.select_rows(columns=[UUID_COLUMN], sort_by=['erased'], sort_order=SortOrder.DESC)
-  assert list(result) == [{UUID_COLUMN: '1'}, {UUID_COLUMN: '3'}, {UUID_COLUMN: '2'}]
+  result = dataset.select_rows(columns=[ROWID], sort_by=['erased'], sort_order=SortOrder.ASC)
+  assert list(result) == [{ROWID: '2'}, {ROWID: '1'}, {ROWID: '3'}]
+  result = dataset.select_rows(columns=[ROWID], sort_by=['erased'], sort_order=SortOrder.DESC)
+  assert list(result) == [{ROWID: '1'}, {ROWID: '3'}, {ROWID: '2'}]
 
   # Sort by float.
-  result = dataset.select_rows(columns=[UUID_COLUMN], sort_by=['score'], sort_order=SortOrder.ASC)
-  assert list(result) == [{UUID_COLUMN: '2'}, {UUID_COLUMN: '3'}, {UUID_COLUMN: '1'}]
-  result = dataset.select_rows(columns=[UUID_COLUMN], sort_by=['score'], sort_order=SortOrder.DESC)
-  assert list(result) == [{UUID_COLUMN: '1'}, {UUID_COLUMN: '3'}, {UUID_COLUMN: '2'}]
+  result = dataset.select_rows(columns=[ROWID], sort_by=['score'], sort_order=SortOrder.ASC)
+  assert list(result) == [{ROWID: '2'}, {ROWID: '3'}, {ROWID: '1'}]
+  result = dataset.select_rows(columns=[ROWID], sort_by=['score'], sort_order=SortOrder.DESC)
+  assert list(result) == [{ROWID: '1'}, {ROWID: '3'}, {ROWID: '2'}]
 
   # Sort by nested int.
   result = dataset.select_rows(
-    columns=[UUID_COLUMN], sort_by=['document.num_pages'], sort_order=SortOrder.ASC)
-  assert list(result) == [{UUID_COLUMN: '3'}, {UUID_COLUMN: '1'}, {UUID_COLUMN: '2'}]
+    columns=[ROWID], sort_by=['document.num_pages'], sort_order=SortOrder.ASC)
+  assert list(result) == [{ROWID: '3'}, {ROWID: '1'}, {ROWID: '2'}]
   result = dataset.select_rows(
-    columns=[UUID_COLUMN], sort_by=['document.num_pages'], sort_order=SortOrder.DESC)
-  assert list(result) == [{UUID_COLUMN: '2'}, {UUID_COLUMN: '1'}, {UUID_COLUMN: '3'}]
+    columns=[ROWID], sort_by=['document.num_pages'], sort_order=SortOrder.DESC)
+  assert list(result) == [{ROWID: '2'}, {ROWID: '1'}, {ROWID: '3'}]
 
   # Sort by double nested string.
   result = dataset.select_rows(
-    columns=[UUID_COLUMN], sort_by=['document.header.title'], sort_order=SortOrder.ASC)
-  assert list(result) == [{UUID_COLUMN: '3'}, {UUID_COLUMN: '2'}, {UUID_COLUMN: '1'}]
+    columns=[ROWID], sort_by=['document.header.title'], sort_order=SortOrder.ASC)
+  assert list(result) == [{ROWID: '3'}, {ROWID: '2'}, {ROWID: '1'}]
   result = dataset.select_rows(
-    columns=[UUID_COLUMN], sort_by=['document.header.title'], sort_order=SortOrder.DESC)
-  assert list(result) == [{UUID_COLUMN: '1'}, {UUID_COLUMN: '2'}, {UUID_COLUMN: '3'}]
+    columns=[ROWID], sort_by=['document.header.title'], sort_order=SortOrder.DESC)
+  assert list(result) == [{ROWID: '1'}, {ROWID: '2'}, {ROWID: '3'}]
 
 
 def test_sort_by_signal_no_alias_no_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'HEY'
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'everyone'
   }, {
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'text': 'HI'
   }])
 
@@ -154,30 +154,30 @@ def test_sort_by_signal_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
 
   # Sort by `signal.len`.
   result = dataset.select_rows(
-    columns=[UUID_COLUMN], sort_by=['text.test_signal.len'], sort_order=SortOrder.ASC)
-  assert list(result) == [{UUID_COLUMN: '3'}, {UUID_COLUMN: '1'}, {UUID_COLUMN: '2'}]
+    columns=[ROWID], sort_by=['text.test_signal.len'], sort_order=SortOrder.ASC)
+  assert list(result) == [{ROWID: '3'}, {ROWID: '1'}, {ROWID: '2'}]
   result = dataset.select_rows(
-    columns=[UUID_COLUMN], sort_by=['text.test_signal.len'], sort_order=SortOrder.DESC)
-  assert list(result) == [{UUID_COLUMN: '2'}, {UUID_COLUMN: '1'}, {UUID_COLUMN: '3'}]
+    columns=[ROWID], sort_by=['text.test_signal.len'], sort_order=SortOrder.DESC)
+  assert list(result) == [{ROWID: '2'}, {ROWID: '1'}, {ROWID: '3'}]
 
   # Sort by `signal.is_all_cap`.
   result = dataset.select_rows(
-    columns=[UUID_COLUMN], sort_by=['text.test_signal.is_all_cap'], sort_order=SortOrder.ASC)
-  assert list(result) == [{UUID_COLUMN: '2'}, {UUID_COLUMN: '1'}, {UUID_COLUMN: '3'}]
+    columns=[ROWID], sort_by=['text.test_signal.is_all_cap'], sort_order=SortOrder.ASC)
+  assert list(result) == [{ROWID: '2'}, {ROWID: '1'}, {ROWID: '3'}]
   result = dataset.select_rows(
-    columns=[UUID_COLUMN], sort_by=['text.test_signal.is_all_cap'], sort_order=SortOrder.DESC)
-  assert list(result) == [{UUID_COLUMN: '1'}, {UUID_COLUMN: '3'}, {UUID_COLUMN: '2'}]
+    columns=[ROWID], sort_by=['text.test_signal.is_all_cap'], sort_order=SortOrder.DESC)
+  assert list(result) == [{ROWID: '1'}, {ROWID: '3'}, {ROWID: '2'}]
 
 
 def test_sort_by_signal_alias_no_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'HEY'
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'everyone'
   }, {
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'text': 'HI'
   }])
 
@@ -186,42 +186,42 @@ def test_sort_by_signal_alias_no_repeated(make_test_data: TestDataMaker) -> None
   # Sort by `signal.len`.
   signal_alias = Column('text.test_signal', alias='signal')
   result = dataset.select_rows(
-    columns=[UUID_COLUMN, signal_alias], sort_by=['signal.len'], sort_order=SortOrder.ASC)
+    columns=[ROWID, signal_alias], sort_by=['signal.len'], sort_order=SortOrder.ASC)
   assert list(result) == [{
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'signal': {
       'len': 2,
       'is_all_cap': True
     }
   }, {
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'signal': {
       'len': 3,
       'is_all_cap': True
     }
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'signal': {
       'len': 8,
       'is_all_cap': False
     }
   }]
   result = dataset.select_rows(
-    columns=[UUID_COLUMN, signal_alias], sort_by=['signal.len'], sort_order=SortOrder.DESC)
+    columns=[ROWID, signal_alias], sort_by=['signal.len'], sort_order=SortOrder.DESC)
   assert list(result) == [{
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'signal': {
       'len': 8,
       'is_all_cap': False
     }
   }, {
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'signal': {
       'len': 3,
       'is_all_cap': True
     }
   }, {
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'signal': {
       'len': 2,
       'is_all_cap': True
@@ -231,13 +231,13 @@ def test_sort_by_signal_alias_no_repeated(make_test_data: TestDataMaker) -> None
 
 def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'HEY'
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'everyone'
   }, {
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'text': 'HI'
   }])
 
@@ -246,24 +246,24 @@ def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> No
   # Sort by `document.test_signal.is_all_cap` where 'document' is an alias to 'text'.
   text_alias = Column('text', alias='document')
   result = dataset.select_rows(
-    columns=[UUID_COLUMN, text_alias],
+    columns=[ROWID, text_alias],
     sort_by=['document.test_signal.is_all_cap'],
     sort_order=SortOrder.ASC,
     combine_columns=True)
   assert list(result) == [{
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': enriched_item('everyone', {'test_signal': {
       'len': 8,
       'is_all_cap': False
     }})
   }, {
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': enriched_item('HEY', {'test_signal': {
       'len': 3,
       'is_all_cap': True
     }})
   }, {
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'text': enriched_item('HI', {'test_signal': {
       'len': 2,
       'is_all_cap': True
@@ -271,25 +271,25 @@ def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> No
   }]
 
   result = dataset.select_rows(
-    columns=[UUID_COLUMN, text_alias],
+    columns=[ROWID, text_alias],
     sort_by=['document.test_signal.is_all_cap'],
     sort_order=SortOrder.DESC,
     combine_columns=True)
   # Aliases are ignored when combining columns.
   assert list(result) == [{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': enriched_item('HEY', {'test_signal': {
       'len': 3,
       'is_all_cap': True
     }})
   }, {
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'text': enriched_item('HI', {'test_signal': {
       'len': 2,
       'is_all_cap': True
     }})
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': enriched_item('everyone', {'test_signal': {
       'len': 8,
       'is_all_cap': False
@@ -298,37 +298,25 @@ def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> No
 
 
 def test_sort_by_udf_alias_no_repeated(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'HEY'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everyone'
-  }, {
-    UUID_COLUMN: '3',
-    'text': 'HI'
-  }])
+  dataset = make_test_data([{'text': 'HEY'}, {'text': 'everyone'}, {'text': 'HI'}])
 
   # Equivalent to: SELECT `TestSignal(text) AS udf`.
   text_udf = Column('text', signal_udf=TestSignal(), alias='udf')
   # Sort by `udf.len`, where `udf` is an alias to `TestSignal(text)`.
   result = dataset.select_rows(['*', text_udf], sort_by=['udf.len'], sort_order=SortOrder.ASC)
   assert list(result) == [{
-    UUID_COLUMN: '3',
     'text': 'HI',
     'udf': {
       'len': 2,
       'is_all_cap': True
     }
   }, {
-    UUID_COLUMN: '1',
     'text': 'HEY',
     'udf': {
       'len': 3,
       'is_all_cap': True
     }
   }, {
-    UUID_COLUMN: '2',
     'text': 'everyone',
     'udf': {
       'len': 8,
@@ -338,16 +326,7 @@ def test_sort_by_udf_alias_no_repeated(make_test_data: TestDataMaker) -> None:
 
 
 def test_sort_by_udf_no_alias_no_repeated(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'HEY'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everyone'
-  }, {
-    UUID_COLUMN: '3',
-    'text': 'HI'
-  }])
+  dataset = make_test_data([{'text': 'HEY'}, {'text': 'everyone'}, {'text': 'HI'}])
 
   text_udf = Column('text', signal_udf=TestSignal())
   # Sort by `text.test_signal.len`, produced by executing the udf `TestSignal(text)`.
@@ -356,19 +335,16 @@ def test_sort_by_udf_no_alias_no_repeated(make_test_data: TestDataMaker) -> None
                                sort_order=SortOrder.ASC,
                                combine_columns=True)
   assert list(result) == [{
-    UUID_COLUMN: '3',
     'text': enriched_item('HI', {'test_signal': {
       'len': 2,
       'is_all_cap': True
     }}),
   }, {
-    UUID_COLUMN: '1',
     'text': enriched_item('HEY', {'test_signal': {
       'len': 3,
       'is_all_cap': True
     }}),
   }, {
-    UUID_COLUMN: '2',
     'text': enriched_item('everyone', {'test_signal': {
       'len': 8,
       'is_all_cap': False
@@ -381,19 +357,16 @@ def test_sort_by_udf_no_alias_no_repeated(make_test_data: TestDataMaker) -> None
                                sort_order=SortOrder.DESC,
                                combine_columns=True)
   assert list(result) == [{
-    UUID_COLUMN: '2',
     'text': enriched_item('everyone', {'test_signal': {
       'len': 8,
       'is_all_cap': False
     }}),
   }, {
-    UUID_COLUMN: '1',
     'text': enriched_item('HEY', {'test_signal': {
       'len': 3,
       'is_all_cap': True
     }}),
   }, {
-    UUID_COLUMN: '3',
     'text': enriched_item('HI', {'test_signal': {
       'len': 2,
       'is_all_cap': True
@@ -402,56 +375,35 @@ def test_sort_by_udf_no_alias_no_repeated(make_test_data: TestDataMaker) -> None
 
 
 def test_sort_by_primitive_udf_alias_no_repeated(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'HEY'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everyone'
-  }, {
-    UUID_COLUMN: '3',
-    'text': 'HI'
-  }])
+  dataset = make_test_data([{'text': 'HEY'}, {'text': 'everyone'}, {'text': 'HI'}])
 
   # Equivalent to: SELECT `TestPrimitiveSignal(text) AS udf`.
   text_udf = Column('text', signal_udf=TestPrimitiveSignal(), alias='udf')
   # Sort by the primitive value returned by the udf.
   result = dataset.select_rows(['*', text_udf], sort_by=['udf'], sort_order=SortOrder.ASC)
   assert list(result) == [{
-    UUID_COLUMN: '3',
     'text': 'HI',
     'udf': 3
   }, {
-    UUID_COLUMN: '1',
     'text': 'HEY',
     'udf': 4
   }, {
-    UUID_COLUMN: '2',
     'text': 'everyone',
     'udf': 9
   }]
 
 
 def test_sort_by_source_non_leaf_errors(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'vals': [7, 1]
-  }, {
-    UUID_COLUMN: '2',
-    'vals': [3, 4]
-  }, {
-    UUID_COLUMN: '3',
-    'vals': [9, 0]
-  }])
+  dataset = make_test_data([{'vals': [7, 1]}, {'vals': [3, 4]}, {'vals': [9, 0]}])
 
   # Sort by repeated.
   with pytest.raises(ValueError, match='Unable to sort by path'):
-    dataset.select_rows(columns=[UUID_COLUMN], sort_by=['vals'], sort_order=SortOrder.ASC)
+    dataset.select_rows(columns=[ROWID], sort_by=['vals'], sort_order=SortOrder.ASC)
 
 
 def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'vals': [[{
       'score': 7
     }, {
@@ -462,14 +414,14 @@ def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None
       'score': 7
     }]]
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'vals': [[{
       'score': 3
     }, {
       'score': 4
     }]]
   }, {
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'vals': [[{
       'score': 9
     }, {
@@ -479,16 +431,16 @@ def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None
 
   # Sort by repeated 'vals'.
   result = dataset.select_rows(
-    columns=[UUID_COLUMN, 'vals'], sort_by=['vals.*.*.score'], sort_order=SortOrder.ASC)
+    columns=[ROWID, 'vals'], sort_by=['vals.*.*.score'], sort_order=SortOrder.ASC)
   assert list(result) == [{
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'vals': [[{
       'score': 9
     }, {
       'score': 0
     }]]
   }, {
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'vals': [[{
       'score': 7
     }, {
@@ -499,7 +451,7 @@ def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None
       'score': 7
     }]]
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'vals': [[{
       'score': 3
     }, {
@@ -508,16 +460,16 @@ def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None
   }]
 
   result = dataset.select_rows(
-    columns=[UUID_COLUMN, 'vals'], sort_by=['vals.*.*.score'], sort_order=SortOrder.DESC)
+    columns=[ROWID, 'vals'], sort_by=['vals.*.*.score'], sort_order=SortOrder.DESC)
   assert list(result) == [{
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'vals': [[{
       'score': 9
     }, {
       'score': 0
     }]]
   }, {
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'vals': [[{
       'score': 7
     }, {
@@ -528,7 +480,7 @@ def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None
       'score': 7
     }]]
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'vals': [[{
       'score': 3
     }, {
@@ -539,88 +491,73 @@ def test_sort_by_source_no_alias_repeated(make_test_data: TestDataMaker) -> None
 
 def test_sort_by_source_alias_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'vals': [[7, 1], [1, 7]]
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'vals': [[3], [11]]
   }, {
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'vals': [[9, 0]]
   }])
 
   # Sort by repeated 'vals'.
   result = dataset.select_rows(
-    columns=[UUID_COLUMN, Column('vals', alias='scores')],
+    columns=[ROWID, Column('vals', alias='scores')],
     sort_by=['scores.*.*'],
     sort_order=SortOrder.ASC)
   assert list(result) == [{
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'scores': [[9, 0]]
   }, {
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'scores': [[7, 1], [1, 7]]
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'scores': [[3], [11]]
   }]
 
   result = dataset.select_rows(
-    columns=[UUID_COLUMN, Column('vals', alias='scores')],
+    columns=[ROWID, Column('vals', alias='scores')],
     sort_by=['scores.*.*'],
     sort_order=SortOrder.DESC)
   assert list(result) == [{
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'scores': [[3], [11]]
   }, {
-    UUID_COLUMN: '3',
+    ROWID: '3',
     'scores': [[9, 0]]
   }, {
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'scores': [[7, 1], [1, 7]]
   }]
 
 
 def test_sort_by_udf_alias_repeated(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'HEY'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everyone'
-  }, {
-    UUID_COLUMN: '3',
-    'text': 'HI'
-  }])
+  dataset = make_test_data([{'text': 'HEY'}, {'text': 'everyone'}, {'text': 'HI'}])
 
   # Equivalent to: SELECT `NestedArraySignal(text) AS udf`.
   text_udf = Column('text', signal_udf=NestedArraySignal(), alias='udf')
   # Sort by `udf.*.*`, where `udf` is an alias to `NestedArraySignal(text)`.
   result = dataset.select_rows(['*', text_udf], sort_by=['udf.*.*'], sort_order=SortOrder.ASC)
   assert list(result) == [{
-    UUID_COLUMN: '3',
     'text': 'HI',
     'udf': [[3], [2]]
   }, {
-    UUID_COLUMN: '1',
     'text': 'HEY',
     'udf': [[4], [3]]
   }, {
-    UUID_COLUMN: '2',
     'text': 'everyone',
     'udf': [[9], [8]]
   }]
   result = dataset.select_rows(['*', text_udf], sort_by=['udf.*.*'], sort_order=SortOrder.DESC)
   assert list(result) == [{
-    UUID_COLUMN: '2',
     'text': 'everyone',
     'udf': [[9], [8]]
   }, {
-    UUID_COLUMN: '1',
     'text': 'HEY',
     'udf': [[4], [3]]
   }, {
-    UUID_COLUMN: '3',
     'text': 'HI',
     'udf': [[3], [2]]
   }]
@@ -628,21 +565,18 @@ def test_sort_by_udf_alias_repeated(make_test_data: TestDataMaker) -> None:
 
 def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'texts': [{
       'text': 'eardrop'
     }, {
       'text': 'I'
     }]
   }, {
-    UUID_COLUMN: '2',
     'texts': [{
       'text': 'hey'
     }, {
       'text': 'CARS'
     }]
   }, {
-    UUID_COLUMN: '3',
     'texts': [{
       'text': 'everyone'
     }, {
@@ -658,7 +592,6 @@ def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: Tes
                                sort_order=SortOrder.ASC,
                                combine_columns=True)
   assert list(result) == [{
-    UUID_COLUMN: '3',
     'texts': [{
       'text': enriched_item('everyone', {'test_signal': {
         'len': 8,
@@ -671,7 +604,6 @@ def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: Tes
       }})
     }]
   }, {
-    UUID_COLUMN: '1',
     'texts': [{
       'text': enriched_item('eardrop', {'test_signal': {
         'len': 7,
@@ -684,7 +616,6 @@ def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: Tes
       }})
     }]
   }, {
-    UUID_COLUMN: '2',
     'texts': [{
       'text': enriched_item('hey', {'test_signal': {
         'len': 3,
@@ -702,21 +633,18 @@ def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: Tes
 def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
     make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'texts': [{
       'text': 'eardrop'
     }, {
       'text': 'I'
     }]
   }, {
-    UUID_COLUMN: '2',
     'texts': [{
       'text': 'hey'
     }, {
       'text': 'CARS'
     }]
   }, {
-    UUID_COLUMN: '3',
     'texts': [{
       'text': 'everyone'
     }, {
@@ -732,21 +660,18 @@ def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
                                sort_order=SortOrder.ASC,
                                combine_columns=True)
   assert list(result) == [{
-    UUID_COLUMN: '3',
     'texts': [{
       'text': enriched_item('everyone', {'primitive_signal': 9})
     }, {
       'text': enriched_item('', {'primitive_signal': 1})
     }]
   }, {
-    UUID_COLUMN: '1',
     'texts': [{
       'text': enriched_item('eardrop', {'primitive_signal': 8})
     }, {
       'text': enriched_item('I', {'primitive_signal': 2})
     }]
   }, {
-    UUID_COLUMN: '2',
     'texts': [{
       'text': enriched_item('hey', {'primitive_signal': 4})
     }, {
@@ -758,21 +683,18 @@ def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
                                sort_order=SortOrder.DESC,
                                combine_columns=True)
   assert list(result) == [{
-    UUID_COLUMN: '3',
     'texts': [{
       'text': enriched_item('everyone', {'primitive_signal': 9})
     }, {
       'text': enriched_item('', {'primitive_signal': 1})
     }]
   }, {
-    UUID_COLUMN: '1',
     'texts': [{
       'text': enriched_item('eardrop', {'primitive_signal': 8})
     }, {
       'text': enriched_item('I', {'primitive_signal': 2})
     }]
   }, {
-    UUID_COLUMN: '2',
     'texts': [{
       'text': enriched_item('hey', {'primitive_signal': 4})
     }, {
@@ -831,13 +753,10 @@ class TopKSignal(VectorSignal):
 
 def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'scores': '8_1',
   }, {
-    UUID_COLUMN: '2',
     'scores': '3_5'
   }, {
-    UUID_COLUMN: '3',
     'scores': '9_7'
   }])
 
@@ -853,12 +772,10 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
                                limit=2,
                                combine_columns=True)
   assert list(result) == [{
-    UUID_COLUMN: '3',
     'scores': enriched_item(
       '9_7', {signal.key(): [lilac_span(0, 1, {'score': 9.0}),
                              lilac_span(2, 3, {'score': 7.0})]}),
   }, {
-    UUID_COLUMN: '1',
     'scores': enriched_item(
       '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}),
                              lilac_span(2, 3, {'score': 1.0})]}),
@@ -871,17 +788,14 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
                                limit=3,
                                combine_columns=True)
   assert list(result) == [{
-    UUID_COLUMN: '3',
     'scores': enriched_item(
       '9_7', {signal.key(): [lilac_span(0, 1, {'score': 9.0}),
                              lilac_span(2, 3, {'score': 7.0})]}),
   }, {
-    UUID_COLUMN: '1',
     'scores': enriched_item(
       '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}),
                              lilac_span(2, 3, {'score': 1.0})]}),
   }, {
-    UUID_COLUMN: '2',
     'scores': enriched_item(
       '3_5', {signal.key(): [lilac_span(0, 1, {'score': 3.0}),
                              lilac_span(2, 3, {'score': 5.0})]}),
@@ -890,15 +804,12 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
 
 def test_sort_by_topk_udf_with_filter(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'scores': '8_1',
     'active': True
   }, {
-    UUID_COLUMN: '2',
     'scores': '3_5',
     'active': True
   }, {
-    UUID_COLUMN: '3',
     'scores': '9_7',
     'active': False
   }])
@@ -918,13 +829,11 @@ def test_sort_by_topk_udf_with_filter(make_test_data: TestDataMaker) -> None:
   # We make sure that '3' is not in the result, because it is not active, even though it has the
   # highest topk score.
   assert list(result) == [{
-    UUID_COLUMN: '1',
     'active': True,
     'scores': enriched_item(
       '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}),
                              lilac_span(2, 3, {'score': 1.0})]})
   }, {
-    UUID_COLUMN: '2',
     'active': True,
     'scores': enriched_item(
       '3_5', {signal.key(): [lilac_span(0, 1, {'score': 3.0}),

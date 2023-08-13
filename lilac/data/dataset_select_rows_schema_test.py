@@ -10,7 +10,6 @@ from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   EMBEDDING_KEY,
   PATH_WILDCARD,
-  UUID_COLUMN,
   Field,
   Item,
   RichData,
@@ -47,7 +46,6 @@ from .dataset import (
 from .dataset_test_utils import TestDataMaker
 
 TEST_DATA: list[Item] = [{
-  UUID_COLUMN: '1',
   'erased': False,
   'people': [{
     'name': 'A',
@@ -61,7 +59,6 @@ TEST_DATA: list[Item] = [{
     }]
   }]
 }, {
-  UUID_COLUMN: '2',
   'erased': True,
   'people': [{
     'name': 'B',
@@ -181,7 +178,6 @@ def test_simple_schema(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows_schema(combine_columns=True)
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
-      UUID_COLUMN: 'string',
       'erased': 'boolean',
       'people': [{
         'name': 'string',
@@ -201,34 +197,28 @@ def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
                                        ('people', '*', 'locations', '*', 'city')],
                                       combine_columns=True)
   assert result == SelectRowsSchemaResult(
-    data_schema=schema({
-      UUID_COLUMN: 'string',
-      'people': [{
-        'zipcode': 'int32',
-        'locations': [{
-          'city': 'string'
-        }]
+    data_schema=schema({'people': [{
+      'zipcode': 'int32',
+      'locations': [{
+        'city': 'string'
       }]
-    }))
+    }]}))
 
   result = dataset.select_rows_schema([('people', '*', 'name'), ('people', '*', 'locations')],
                                       combine_columns=True)
   assert result == SelectRowsSchemaResult(
-    data_schema=schema({
-      UUID_COLUMN: 'string',
-      'people': [{
+    data_schema=schema(
+      {'people': [{
         'name': 'string',
         'locations': [{
           'city': 'string',
           'state': 'string'
         }]
-      }]
-    }))
+      }]}))
 
   result = dataset.select_rows_schema([('people', '*')], combine_columns=True)
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
-      UUID_COLUMN: 'string',
       'people': [{
         'name': 'string',
         'zipcode': 'int32',
@@ -249,7 +239,6 @@ def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
                                       combine_columns=True)
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
-      UUID_COLUMN: 'string',
       'people': [{
         'name': {
           'length_signal': field('int32', length_signal.dict())
@@ -275,7 +264,6 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
                                       combine_columns=True)
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
-      UUID_COLUMN: 'string',
       'people': [{
         'name': field(
           'string', fields={'add_space_signal': field('string', signal=add_space_signal.dict())})
@@ -289,10 +277,8 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
 
 def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello. hello2.',
   }, {
-    UUID_COLUMN: '2',
     'text': 'hello world. hello world2.',
   }])
 
@@ -304,7 +290,6 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
 
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
-      UUID_COLUMN: 'string',
       'text': field(
         'string',
         fields={
@@ -320,10 +305,8 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
 
 def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello. hello2.',
   }, {
-    UUID_COLUMN: '2',
     'text': 'hello world. hello world2.',
   }])
 
@@ -337,7 +320,6 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
   result = dataset.select_rows_schema([('text'), udf_col], combine_columns=True)
 
   expected_schema = schema({
-    UUID_COLUMN: 'string',
     'text': field(
       'string',
       fields={
@@ -372,7 +354,6 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
 
 def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello world',
     'text2': 'hello world2',
   }])
@@ -391,7 +372,6 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
 
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
-      UUID_COLUMN: 'string',
       'text': field(
         'string',
         fields={
@@ -424,7 +404,6 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
 
 def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello world.',
   }])
   query_world = 'world'
@@ -444,7 +423,6 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
   similarity_score_path = ('text', expected_world_signal.key())
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
-      UUID_COLUMN: 'string',
       'text': field(
         'string',
         fields={
@@ -466,7 +444,6 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
 
 def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello world.',
   }])
 
@@ -492,7 +469,6 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
   concept_labels_path = ('text', expected_labels_signal.key())
   assert result == SelectRowsSchemaResult(
     data_schema=schema({
-      UUID_COLUMN: 'string',
       'text': field(
         'string',
         fields={
@@ -535,7 +511,6 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
 
 def test_search_sort_override(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello world.',
   }])
   query_world = 'world'

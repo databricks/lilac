@@ -11,7 +11,7 @@ from typing_extensions import override
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   EMBEDDING_KEY,
-  UUID_COLUMN,
+  ROWID,
   Field,
   Item,
   PathKey,
@@ -34,19 +34,16 @@ from .dataset import DatasetManifest
 from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
 
 SIMPLE_ITEMS: list[Item] = [{
-  UUID_COLUMN: '1',
   'str': 'a',
   'int': 1,
   'bool': False,
   'float': 3.0
 }, {
-  UUID_COLUMN: '2',
   'str': 'b',
   'int': 2,
   'bool': True,
   'float': 2.0
 }, {
-  UUID_COLUMN: '3',
   'str': 'b',
   'int': 2,
   'bool': True,
@@ -119,13 +116,7 @@ def setup_teardown() -> Iterable[None]:
 
 
 def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello.',
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'hello2.',
-  }])
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
 
   embed_mock = mocker.spy(TestEmbedding, 'compute')
   dataset.compute_embedding('test_embedding', 'text')
@@ -139,7 +130,6 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      UUID_COLUMN: 'string',
       'text': field(
         'string',
         fields={
@@ -154,10 +144,8 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
 
   result = dataset.select_rows(combine_columns=True)
   expected_result = [{
-    UUID_COLUMN: '1',
     'text': enriched_item('hello.', {'test_embedding_sum(embedding=test_embedding)': 1.0})
   }, {
-    UUID_COLUMN: '2',
     'text': enriched_item('hello2.', {'test_embedding_sum(embedding=test_embedding)': 2.0})
   }]
   assert list(result) == expected_result
@@ -165,10 +153,8 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
 
 def test_missing_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello.',
   }, {
-    UUID_COLUMN: '2',
     'text': 'hello2.',
   }])
 
@@ -200,14 +186,14 @@ class NamedEntity(TextSignal):
 
 def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
   text = 'Hello nik@test. Here are some other entities like pii@gmail and all@lilac.'
-  dataset = make_test_data([{UUID_COLUMN: '1', 'text': text}])
+  dataset = make_test_data([{'text': text}])
   entity = NamedEntity()
   dataset.compute_signal(TestSplitter(), 'text')
   dataset.compute_signal(entity, ('text', 'test_splitter', '*'))
 
-  result = dataset.select_rows([UUID_COLUMN, 'text'], combine_columns=True)
+  result = dataset.select_rows([ROWID, 'text'], combine_columns=True)
   assert list(result) == [{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': enriched_item(
       text, {
         'test_splitter': [

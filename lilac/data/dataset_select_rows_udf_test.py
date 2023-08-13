@@ -8,7 +8,7 @@ from typing_extensions import override
 
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
-  UUID_COLUMN,
+  ROWID,
   Field,
   Item,
   RichData,
@@ -125,26 +125,20 @@ def setup_teardown() -> Iterable[None]:
 
 
 def test_udf(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everybody'
-  }])
+  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
 
   signal_col = Column('text', signal_udf=TestSignal())
-  result = dataset.select_rows([UUID_COLUMN, 'text', signal_col])
+  result = dataset.select_rows([ROWID, 'text', signal_col])
 
   assert list(result) == [{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello',
     'text.test_signal': {
       'len': 5,
       'flen': 5.0
     }
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'everybody',
     'text.test_signal': {
       'len': 9,
@@ -154,20 +148,14 @@ def test_udf(make_test_data: TestDataMaker) -> None:
 
 
 def test_udf_with_filters(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everybody'
-  }])
+  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
 
   signal_col = Column('text', signal_udf=TestSignal())
   # Filter by source feature.
   filters: list[BinaryFilterTuple] = [('text', 'equals', 'everybody')]
-  result = dataset.select_rows([UUID_COLUMN, 'text', signal_col], filters=filters)
+  result = dataset.select_rows([ROWID, 'text', signal_col], filters=filters)
   assert list(result) == [{
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'everybody',
     'text.test_signal': {
       'len': 9,
@@ -176,64 +164,58 @@ def test_udf_with_filters(make_test_data: TestDataMaker) -> None:
   }]
 
 
-def test_udf_with_uuid_filter(make_test_data: TestDataMaker) -> None:
+def test_udf_with_rowid_filter(make_test_data: TestDataMaker) -> None:
 
-  dataset = make_test_data([{
-    UUID_COLUMN: '1',
-    'text': 'hello'
-  }, {
-    UUID_COLUMN: '2',
-    'text': 'everybody'
-  }])
+  dataset = make_test_data([{ROWID: '1', 'text': 'hello'}, {ROWID: '2', 'text': 'everybody'}])
 
-  # Filter by a specific UUID.
-  filters: list[BinaryFilterTuple] = [(UUID_COLUMN, 'equals', '1')]
+  # Filter by a specific rowid.
+  filters: list[BinaryFilterTuple] = [(ROWID, 'equals', '1')]
   udf_col = Column('text', signal_udf=LengthSignal())
-  result = dataset.select_rows([UUID_COLUMN, 'text', udf_col], filters=filters)
-  assert list(result) == [{UUID_COLUMN: '1', 'text': 'hello', 'text.length_signal': 5}]
+  result = dataset.select_rows([ROWID, 'text', udf_col], filters=filters)
+  assert list(result) == [{ROWID: '1', 'text': 'hello', 'text.length_signal': 5}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 1
 
-  filters = [(UUID_COLUMN, 'equals', '2')]
-  result = dataset.select_rows([UUID_COLUMN, 'text', udf_col], filters=filters)
-  assert list(result) == [{UUID_COLUMN: '2', 'text': 'everybody', 'text.length_signal': 9}]
+  filters = [(ROWID, 'equals', '2')]
+  result = dataset.select_rows([ROWID, 'text', udf_col], filters=filters)
+  assert list(result) == [{ROWID: '2', 'text': 'everybody', 'text.length_signal': 9}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 1 + 1
 
   # No filters.
-  result = dataset.select_rows([UUID_COLUMN, 'text', udf_col])
+  result = dataset.select_rows([ROWID, 'text', udf_col])
   assert list(result) == [{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello',
     'text.length_signal': 5
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'everybody',
     'text.length_signal': 9
   }]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2 + 2
 
 
-def test_udf_with_uuid_filter_repeated(make_test_data: TestDataMaker) -> None:
+def test_udf_with_rowid_filter_repeated(make_test_data: TestDataMaker) -> None:
 
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': ['hello', 'hi']
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': ['everybody', 'bye', 'test']
   }])
 
-  # Filter by a specific UUID.
-  filters: list[BinaryFilterTuple] = [(UUID_COLUMN, 'equals', '1')]
+  # Filter by a specific rowid.
+  filters: list[BinaryFilterTuple] = [(ROWID, 'equals', '1')]
   udf_col = Column(('text', '*'), signal_udf=LengthSignal())
-  result = dataset.select_rows([UUID_COLUMN, 'text', udf_col], filters=filters)
-  assert list(result) == [{UUID_COLUMN: '1', 'text': ['hello', 'hi'], 'text.length_signal': [5, 2]}]
+  result = dataset.select_rows([ROWID, 'text', udf_col], filters=filters)
+  assert list(result) == [{ROWID: '1', 'text': ['hello', 'hi'], 'text.length_signal': [5, 2]}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2
 
-  # Filter by a specific UUID.
-  filters = [(UUID_COLUMN, 'equals', '2')]
-  result = dataset.select_rows([UUID_COLUMN, 'text', udf_col], filters=filters)
+  # Filter by a specific rowid.
+  filters = [(ROWID, 'equals', '2')]
+  result = dataset.select_rows([ROWID, 'text', udf_col], filters=filters)
   assert list(result) == [{
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': ['everybody', 'bye', 'test'],
     'text.length_signal': [9, 3, 4]
   }]
@@ -242,20 +224,20 @@ def test_udf_with_uuid_filter_repeated(make_test_data: TestDataMaker) -> None:
 
 def test_udf_deeply_nested(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': [['hello'], ['hi', 'bye']]
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': [['everybody', 'bye'], ['test']]
   }])
 
   udf_col = Column(('text', '*', '*'), signal_udf=LengthSignal())
-  result = dataset.select_rows([UUID_COLUMN, udf_col])
+  result = dataset.select_rows([ROWID, udf_col])
   assert list(result) == [{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text.length_signal': [[5], [2, 3]]
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text.length_signal': [[9, 3], [4]]
   }]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 6
@@ -263,24 +245,24 @@ def test_udf_deeply_nested(make_test_data: TestDataMaker) -> None:
 
 def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello.',
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'hello2.',
   }])
 
   dataset.compute_signal(TestEmbedding(), 'text')
 
   signal_col = Column('text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
-  result = dataset.select_rows([UUID_COLUMN, 'text', signal_col])
+  result = dataset.select_rows([ROWID, 'text', signal_col])
 
   expected_result: list[Item] = [{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello.',
     'text.test_embedding_sum(embedding=test_embedding)': 1.0
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'hello2.',
     'text.test_embedding_sum(embedding=test_embedding)': 2.0
   }]
@@ -289,13 +271,13 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   # Select rows with alias.
   signal_col = Column(
     'text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'), alias='emb_sum')
-  result = dataset.select_rows([UUID_COLUMN, 'text', signal_col])
+  result = dataset.select_rows([ROWID, 'text', signal_col])
   expected_result = [{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello.',
     'emb_sum': 1.0
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'hello2.',
     'emb_sum': 2.0
   }]
@@ -304,23 +286,23 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
 
 def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': ['hello.', 'hello world.'],
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': ['hello world2.', 'hello2.'],
   }])
 
   dataset.compute_signal(TestEmbedding(), ('text', '*'))
 
   signal_col = Column(('text', '*'), signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
-  result = dataset.select_rows([UUID_COLUMN, ('text', '*'), signal_col])
+  result = dataset.select_rows([ROWID, ('text', '*'), signal_col])
   expected_result = [{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text.*': ['hello.', 'hello world.'],
     'text.test_embedding_sum(embedding=test_embedding)': [1.0, 3.0]
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text.*': ['hello world2.', 'hello2.'],
     'text.test_embedding_sum(embedding=test_embedding)': [4.0, 2.0]
   }]
@@ -329,10 +311,10 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
 
 def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello.',
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'hello2.',
   }])
 
@@ -363,23 +345,19 @@ class TestSplitter(TextSplitterSignal):
 
 def test_udf_after_precomputed_split(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'sentence 1. sentence 2 is longer',
   }, {
-    UUID_COLUMN: '2',
     'text': 'sentence 1 is longer. sent2 is short',
   }])
   dataset.compute_signal(TestSplitter(), 'text')
   udf = Column('text', signal_udf=LengthSignal())
   result = dataset.select_rows(['*', udf], combine_columns=True)
   assert list(result) == [{
-    UUID_COLUMN: '1',
     'text': enriched_item('sentence 1. sentence 2 is longer', {
       'length_signal': 32,
       'test_splitter': [lilac_span(0, 10), lilac_span(11, 32)]
     })
   }, {
-    UUID_COLUMN: '2',
     'text': enriched_item('sentence 1 is longer. sent2 is short', {
       'length_signal': 36,
       'test_splitter': [lilac_span(0, 20), lilac_span(21, 36)]
@@ -389,21 +367,19 @@ def test_udf_after_precomputed_split(make_test_data: TestDataMaker) -> None:
 
 def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello.',
   }, {
-    UUID_COLUMN: '2',
     'text': 'hello2.',
   }])
 
   signal_col = Column('text', signal_udf=ComputedKeySignal())
-  result = dataset.select_rows([UUID_COLUMN, 'text', signal_col])
+  result = dataset.select_rows([ROWID, 'text', signal_col])
   assert list(result) == [{
-    UUID_COLUMN: '1',
+    ROWID: '1',
     'text': 'hello.',
     'text.key_False': 1
   }, {
-    UUID_COLUMN: '2',
+    ROWID: '2',
     'text': 'hello2.',
     'text.key_False': 1
   }]

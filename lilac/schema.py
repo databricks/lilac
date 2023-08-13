@@ -17,7 +17,7 @@ PARQUET_FILENAME_PREFIX = 'data'
 
 # We choose `__rowid__` inspired by the standard `rowid` pseudocolumn in DBs:
 # https://docs.oracle.com/cd/B19306_01/server.102/b14200/pseudocolumns008.htm
-UUID_COLUMN = '__rowid__'
+ROWID = '__rowid__'
 PATH_WILDCARD = '*'
 VALUE_KEY = '__value__'
 SIGNAL_METADATA_KEY = '__metadata__'
@@ -260,6 +260,8 @@ class Schema(BaseModel):
 
   def get_field(self, path: PathTuple) -> Field:
     """Returns the field at the given path."""
+    if path == (ROWID,):
+      return Field(dtype=DataType.STRING)
     field = cast(Field, self)
     for name in path:
       if field.fields:
@@ -505,7 +507,7 @@ def _schema_to_arrow_schema_impl(schema: Union[Schema, Field]) -> Union[pa.Schem
   if schema.fields:
     arrow_fields: dict[str, Union[pa.Schema, pa.DataType]] = {}
     for name, field in schema.fields.items():
-      if name == UUID_COLUMN:
+      if name == ROWID:
         arrow_schema = dtype_to_arrow_schema(cast(DataType, field.dtype))
       else:
         arrow_schema = _schema_to_arrow_schema_impl(field)

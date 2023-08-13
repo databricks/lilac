@@ -23,12 +23,11 @@ from .env import data_path
 from .schema import (
   MANIFEST_FILENAME,
   PARQUET_FILENAME_PREFIX,
-  UUID_COLUMN,
+  ROWID,
   Field,
   Item,
   Schema,
   SourceManifest,
-  field,
   is_float,
 )
 from .tasks import TaskStepId, progress
@@ -51,7 +50,7 @@ def process_source(base_dir: Union[str, pathlib.Path],
   source_schema = config.source.source_schema()
   items = config.source.process()
 
-  # Add UUIDs and fix NaN in string columns.
+  # Add rowids and fix NaN in string columns.
   items = normalize_items(items, source_schema.fields)
 
   # Add progress.
@@ -64,7 +63,7 @@ def process_source(base_dir: Union[str, pathlib.Path],
   # Filter out the `None`s after progress.
   items = (item for item in items if item is not None)
 
-  data_schema = Schema(fields={**source_schema.fields, UUID_COLUMN: field('string')})
+  data_schema = Schema(fields=source_schema.fields.copy())
   filepath, num_items = write_items_to_parquet(
     items=items,
     output_dir=output_dir,
@@ -99,9 +98,9 @@ def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
       yield item
       continue
 
-    # Add row uuid if it doesn't exist.
-    if UUID_COLUMN not in item:
-      item[UUID_COLUMN] = uuid.uuid4().hex
+    # Add rowid if it doesn't exist.
+    if ROWID not in item:
+      item[ROWID] = uuid.uuid4().hex
 
     # Fix NaN values.
     for field_name in replace_nan_fields:

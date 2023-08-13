@@ -25,7 +25,7 @@ from .config import Config, DatasetConfig, EmbeddingConfig, SignalConfig
 from .data.dataset_duckdb import DatasetDuckDB
 from .data_loader import process_source
 from .db_manager import get_dataset, list_datasets, remove_dataset_from_cache
-from .schema import UUID_COLUMN, PathTuple
+from .schema import ROWID, PathTuple
 from .tasks import TaskManager, TaskStepId
 from .utils import DebugTimer, get_datasets_dir
 
@@ -121,7 +121,7 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
   total_num_rows = 0
   for d in datasets_to_load:
     dataset = DatasetDuckDB(d.namespace, d.name)
-    num_rows = dataset.select_rows([UUID_COLUMN], limit=1).total_num_rows
+    num_rows = dataset.select_rows([ROWID], limit=1).total_num_rows
     print(f'{d.namespace}/{d.name} loaded with {num_rows:,} rows.')
 
     # Free up RAM.

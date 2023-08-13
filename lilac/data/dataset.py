@@ -26,7 +26,7 @@ from ..auth import UserInfo
 from ..config import DatasetConfig, DatasetSettings, DatasetUISettings
 from ..schema import (
   PATH_WILDCARD,
-  UUID_COLUMN,
+  ROWID,
   VALUE_KEY,
   Bin,
   DataType,
@@ -483,7 +483,7 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
   schema = dataset.manifest().data_schema
   leaf_paths = [
     path for path, field in schema.leafs.items()
-    if field.dtype == DataType.STRING and path != (UUID_COLUMN,)
+    if field.dtype == DataType.STRING and path != (ROWID,)
   ]
   pool = ThreadPoolExecutor()
   stats: list[StatsResult] = list(pool.map(lambda leaf: dataset.stats(leaf), leaf_paths))

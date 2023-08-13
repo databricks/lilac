@@ -81,8 +81,8 @@ _SPANS_PICKLE_NAME = 'spans.pkl'
 class VectorDBIndex:
   """Stores and retrives span vectors.
 
-  This wraps a regular vector store by adding a mapping from path keys, such as (uuid1, 0),
-  to span keys, such as (uuid1, 0, 0), which denotes the first span in the (uuid1, 0) text document.
+  This wraps a regular vector store by adding a mapping from path keys, such as (rowid1, 0),
+  to span keys, such as (rowid1, 0, 0), which denotes the first span in the (rowid1, 0) document.
   """
 
   def __init__(self, vector_store: str) -> None:

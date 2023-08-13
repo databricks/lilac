@@ -11,7 +11,7 @@ from typing_extensions import override
 from ..concepts.concept import ExampleIn, LogisticEmbeddingModel
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..db_manager import set_default_dataset_cls
-from ..schema import UUID_COLUMN, Item, RichData, SignalInputType, lilac_embedding, lilac_span
+from ..schema import ROWID, Item, RichData, SignalInputType, lilac_embedding, lilac_span
 from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.signal import TextEmbeddingSignal, clear_signal_registry, register_signal
@@ -21,15 +21,12 @@ from .dataset_duckdb import DatasetDuckDB
 from .dataset_test_utils import TestDataMaker, enriched_item
 
 TEST_DATA: list[Item] = [{
-  UUID_COLUMN: '1',
   'text': 'hello world',
   'text2': 'again hello world',
 }, {
-  UUID_COLUMN: '2',
   'text': 'looking for world in text',
   'text2': 'again looking for world in text',
 }, {
-  UUID_COLUMN: '3',
   'text': 'unrelated text',
   'text2': 'again unrelated text'
 }]
@@ -70,11 +67,9 @@ def test_search_keyword(make_test_data: TestDataMaker) -> None:
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [{
-    UUID_COLUMN: '1',
     'text': enriched_item('hello world', {expected_signal_udf.key(): [lilac_span(6, 11)]}),
     'text2': 'again hello world'
   }, {
-    UUID_COLUMN: '2',
     'text': enriched_item('looking for world in text',
                           {expected_signal_udf.key(): [lilac_span(12, 17)]}),
     'text2': 'again looking for world in text',
@@ -83,10 +78,8 @@ def test_search_keyword(make_test_data: TestDataMaker) -> None:
 
 def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'This is 100%',
   }, {
-    UUID_COLUMN: '2',
     'text': 'This has _underscore_',
   }])
 
@@ -96,7 +89,6 @@ def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [{
-    UUID_COLUMN: '1',
     'text': enriched_item('This is 100%', {expected_signal_udf.key(): [lilac_span(8, 12)]}),
   }]
 
@@ -106,7 +98,6 @@ def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [{
-    UUID_COLUMN: '2',
     'text': enriched_item('This has _underscore_',
                           {expected_signal_udf.key(): [lilac_span(9, 21)]}),
   }]
@@ -128,7 +119,6 @@ def test_search_keyword_multiple(make_test_data: TestDataMaker) -> None:
     combine_columns=True)
 
   assert list(result) == [{
-    UUID_COLUMN: '2',
     'text': enriched_item('looking for world in text', {
       expected_world_udf.key(): [lilac_span(12, 17)],
     }),
@@ -141,19 +131,19 @@ def test_search_keyword_with_filters(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
   query = 'world'
-  result = dataset.select_rows(
-    filters=[(UUID_COLUMN, 'in', ['1', '3'])],
-    searches=[KeywordSearch(path='text', query=query)],
-    combine_columns=True)
+  result = dataset.select_rows([ROWID, '*'],
+                               filters=[(ROWID, 'in', ['1', '3'])],
+                               searches=[KeywordSearch(path='text', query=query)],
+                               combine_columns=True)
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [
     {
-      UUID_COLUMN: '1',
+      ROWID: '1',
       'text': enriched_item('hello world', {expected_signal_udf.key(): [lilac_span(6, 11)]}),
       'text2': 'again hello world'
     },
-    # The second row doesn't match the UUID filter.
+    # The second row doesn't match the rowid filter.
   ]
 
 
@@ -171,10 +161,8 @@ class TestEmbedding(TextEmbeddingSignal):
 
 def test_semantic_search(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello world.',
   }, {
-    UUID_COLUMN: '2',
     'text': 'hello world2.',
   }])
 
@@ -189,12 +177,10 @@ def test_semantic_search(make_test_data: TestDataMaker) -> None:
   assert list(result) == [
     # Results are sorted by score desc.
     {
-      UUID_COLUMN: '2',
       'text': enriched_item('hello world2.',
                             {expected_signal_udf.key(): [lilac_span(0, 13, {'score': 3})]})
     },
     {
-      UUID_COLUMN: '1',
       'text': enriched_item('hello world.',
                             {expected_signal_udf.key(): [lilac_span(0, 12, {'score': 2})]})
     },
@@ -205,22 +191,16 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
   concept_model_mock = mocker.spy(LogisticEmbeddingModel, 'fit')
 
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello world.',
   }, {
-    UUID_COLUMN: '2',
     'text': 'hello world2.',
   }, {
-    UUID_COLUMN: '3',
     'text': 'random negative 1',
   }, {
-    UUID_COLUMN: '4',
     'text': 'random negative 2',
   }, {
-    UUID_COLUMN: '5',
     'text': 'random negative 3',
   }, {
-    UUID_COLUMN: '6',
     'text': 'random negative 4',
   }])
 
@@ -237,6 +217,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
     ]))
 
   result = dataset.select_rows(
+    columns=[ROWID, '*'],
     searches=[
       ConceptSearch(
         path='text',
@@ -244,7 +225,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
         concept_name='test_concept',
         embedding='test_embedding')
     ],
-    filters=[(UUID_COLUMN, 'in', ['1', '2'])],
+    filters=[(ROWID, 'in', ['1', '2'])],
     combine_columns=True)
   expected_signal_udf = ConceptSignal(
     namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
@@ -252,7 +233,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
   assert list(result) == [
     # Results are sorted by score desc.
     {
-      UUID_COLUMN: '2',
+      ROWID: '2',
       'text': enriched_item(
         'hello world2.', {
           expected_signal_udf.key(): [lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})],
@@ -260,7 +241,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
         })
     },
     {
-      UUID_COLUMN: '1',
+      ROWID: '1',
       'text': enriched_item(
         'hello world.', {
           expected_signal_udf.key(): [lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})],
@@ -278,12 +259,10 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
   ]
 
 
-def test_concept_search_without_uuid(make_test_data: TestDataMaker) -> None:
+def test_concept_search_without_rowid(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello world.',
   }, {
-    UUID_COLUMN: '2',
     'text': 'hello world2.',
   }])
 
@@ -359,12 +338,10 @@ def test_concept_search_without_uuid(make_test_data: TestDataMaker) -> None:
   ]
 
 
-def test_concept_search_sort_by_uuid(make_test_data: TestDataMaker) -> None:
+def test_concept_search_sort_by_rowid(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello world.',
   }, {
-    UUID_COLUMN: '2',
     'text': 'hello world2.',
   }])
 
@@ -389,11 +366,11 @@ def test_concept_search_sort_by_uuid(make_test_data: TestDataMaker) -> None:
         concept_name='test_concept',
         embedding='test_embedding')
     ],
-    sort_by=[UUID_COLUMN],
+    sort_by=[ROWID],
     sort_order=SortOrder.ASC)
 
   assert list(result) == [
-    # Results are sorted by UUID.
+    # Results are sorted by rowid.
     {
       'text': 'hello world.',
       'text.test_namespace/test_concept/test_embedding': [
@@ -413,11 +390,9 @@ def test_concept_search_sort_by_uuid(make_test_data: TestDataMaker) -> None:
 
 def test_sort_override_search(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello world.',
     'value': 10
   }, {
-    UUID_COLUMN: '2',
     'text': 'hello world2.',
     'value': 20
   }])
@@ -430,13 +405,11 @@ def test_sort_override_search(make_test_data: TestDataMaker) -> None:
 
   expected_signal_udf = SemanticSimilaritySignal(query=query, embedding='test_embedding')
   expected_item_1 = {
-    UUID_COLUMN: '1',
     'text': enriched_item('hello world.',
                           {expected_signal_udf.key(): [lilac_span(0, 12, {'score': 2.0})]}),
     'value': 10
   }
   expected_item_2 = {
-    UUID_COLUMN: '2',
     'text': enriched_item('hello world2.',
                           {expected_signal_udf.key(): [lilac_span(0, 13, {'score': 3.0})]}),
     'value': 20
@@ -463,10 +436,8 @@ def test_sort_override_search(make_test_data: TestDataMaker) -> None:
 
 def test_search_keyword_and_semantic(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
-    UUID_COLUMN: '1',
     'text': 'hello world.',
   }, {
-    UUID_COLUMN: '2',
     'text': 'hello world2.',
   }])
 
@@ -486,12 +457,11 @@ def test_search_keyword_and_semantic(make_test_data: TestDataMaker) -> None:
   assert list(result) == [
     # Results are sorted by score desc.
     {
-      UUID_COLUMN: '2',
       'text': enriched_item(
         'hello world2.', {
           expected_semantic_signal.key(): [lilac_span(0, 13, {'score': 3})],
           expected_keyword_signal.key(): [lilac_span(8, 12)],
         })
     },
-    # UUID '1' is not returned because it does not match the keyword query.
+    # rowid '1' is not returned because it does not match the keyword query.
   ]

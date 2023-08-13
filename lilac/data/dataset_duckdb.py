@@ -26,9 +26,9 @@ from ..env import data_path, env
 from ..schema import (
   MANIFEST_FILENAME,
   PATH_WILDCARD,
+  ROWID,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
-  UUID_COLUMN,
   VALUE_KEY,
   Bin,
   DataType,
@@ -101,8 +101,6 @@ from .dataset_utils import (
   write_embeddings_to_disk,
   write_items_to_parquet,
 )
-
-UUID_INDEX_FILENAME = 'uuids.npy'
 
 SIGNAL_MANIFEST_FILENAME = 'signal_manifest.json'
 DATASET_SETTINGS_FILENAME = 'settings.json'
@@ -223,7 +221,7 @@ class DatasetDuckDB(Dataset):
     #     source.*,
     #     "parquet_id1"."root_column" AS "parquet_id1",
     #     "parquet_id2"."root_column" AS "parquet_id2"
-    #   FROM source JOIN "parquet_id1" USING (uuid,) JOIN "parquet_id2" USING (uuid,)
+    #   FROM source JOIN "parquet_id1" USING (rowid,) JOIN "parquet_id2" USING (rowid,)
     # );
     # NOTE: "root_column" for each signal is defined as the top-level column.
     select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [(
@@ -232,7 +230,7 @@ class DatasetDuckDB(Dataset):
                                                         for manifest in self._signal_manifests
                                                         if manifest.files])
     join_sql = ' '.join([SOURCE_VIEW_NAME] + [
-      f'join {_escape_col_name(manifest.parquet_id)} using ({UUID_COLUMN},)'
+      f'join {_escape_col_name(manifest.parquet_id)} using ({ROWID},)'
       for manifest in self._signal_manifests
       if manifest.files
     ])
@@ -373,7 +371,7 @@ class DatasetDuckDB(Dataset):
     manifest = self.manifest()
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([UUID_COLUMN, signal_col],
+    select_rows_result = self.select_rows([ROWID, signal_col],
                                           task_step_id=task_step_id,
                                           resolve_span=True)
     df = select_rows_result.df()
@@ -384,8 +382,8 @@ class DatasetDuckDB(Dataset):
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
     enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
-    for uuid, item in zip(df[UUID_COLUMN], enriched_signal_items):
-      item[UUID_COLUMN] = uuid
+    for rowid, item in zip(df[ROWID], enriched_signal_items):
+      item[ROWID] = rowid
 
     enriched_signal_items = list(enriched_signal_items)
     parquet_filename, _ = write_items_to_parquet(
@@ -424,7 +422,7 @@ class DatasetDuckDB(Dataset):
 
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([UUID_COLUMN, signal_col],
+    select_rows_result = self.select_rows([ROWID, signal_col],
                                           task_step_id=task_step_id,
                                           resolve_span=True)
     df = select_rows_result.df()
@@ -435,10 +433,7 @@ class DatasetDuckDB(Dataset):
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
 
     write_embeddings_to_disk(
-      vector_store=self.vector_store,
-      uuids=df[UUID_COLUMN],
-      signal_items=values,
-      output_dir=output_dir)
+      vector_store=self.vector_store, rowids=df[ROWID], signal_items=values, output_dir=output_dir)
 
     del select_rows_result, df, values
     gc.collect()
@@ -477,6 +472,8 @@ class DatasetDuckDB(Dataset):
         continue
 
       current_field = Field(fields=manifest.data_schema.fields)
+      if filter.path == (ROWID,):
+        return
       for path_part in filter.path:
         if path_part == VALUE_KEY:
           if not current_field.dtype:
@@ -523,6 +520,8 @@ class DatasetDuckDB(Dataset):
     for column in columns:
       current_field = Field(fields=select_schema.fields)
       path = column.path
+      if path == (ROWID,):
+        return
       for path_part in path:
         if path_part == VALUE_KEY:
           if not current_field.dtype:
@@ -554,6 +553,8 @@ class DatasetDuckDB(Dataset):
 
   def _validate_sort_path(self, path: PathTuple, schema: Schema) -> None:
     current_field = Field(fields=schema.fields)
+    if path == (ROWID,):
+      return
     for path_part in path:
       if path_part == VALUE_KEY:
         if not current_field.dtype:
@@ -759,7 +760,7 @@ class DatasetDuckDB(Dataset):
     star_in_cols = any(col.path == (PATH_WILDCARD,) for col in cols)
     if not cols or star_in_cols:
       # Select all columns.
-      cols.extend([Column((name,)) for name in schema.fields.keys()])
+      cols.extend([Column((name,)) for name in schema.fields.keys() if name != ROWID])
 
       if not combine_columns:
         # Select all the signal top-level fields.
@@ -834,15 +835,15 @@ class DatasetDuckDB(Dataset):
     cols.extend([search_udf.udf for search_udf in search_udfs])
     udf_columns = [col for col in cols if col.signal_udf]
 
-    temp_uuid_added = False
+    temp_rowid_selected = False
     for col in cols:
-      if col.path == (UUID_COLUMN,):
-        temp_uuid_added = False
+      if col.path == (ROWID,):
+        temp_rowid_selected = False
         break
       if isinstance(col.signal_udf, VectorSignal):
-        temp_uuid_added = True
-    if temp_uuid_added:
-      cols.append(Column(UUID_COLUMN))
+        temp_rowid_selected = True
+    if temp_rowid_selected:
+      cols.append(Column(ROWID))
 
     # Set extra information on any concept signals.
     for udf_col in udf_columns:
@@ -882,11 +883,11 @@ class DatasetDuckDB(Dataset):
     if topk_udf_col:
       path_keys: Optional[list[PathKey]] = None
       if where_query:
-        # If there are filters, we need to send UUIDs to the top k query.
-        df = con.execute(f'SELECT {UUID_COLUMN} FROM t {where_query}').df()
+        # If there are filters, we need to send rowids to the top k query.
+        df = con.execute(f'SELECT {ROWID} FROM t {where_query}').df()
         total_num_rows = len(df)
-        # Convert UUIDs to path keys.
-        path_keys = [(uuid,) for uuid in df[UUID_COLUMN]]
+        # Convert rowids to path keys.
+        path_keys = [(rowid,) for rowid in df[ROWID]]
 
       if path_keys is not None and len(path_keys) == 0:
         where_query = 'WHERE false'
@@ -899,13 +900,13 @@ class DatasetDuckDB(Dataset):
         with DebugTimer(f'Computing topk on {path_id} with embedding "{topk_signal.embedding}" '
                         f'and vector store "{vector_index._vector_store.name}"'):
           topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
-        topk_uuids = list(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk]))
-        # Update the offset to account for the number of unique UUIDs.
-        offset = len(dict.fromkeys([cast(str, uuid) for (uuid, *_), _ in topk[:offset]]))
+        topk_rowids = list(dict.fromkeys([cast(str, rowid) for (rowid, *_), _ in topk]))
+        # Update the offset to account for the number of unique rowids.
+        offset = len(dict.fromkeys([cast(str, rowid) for (rowid, *_), _ in topk[:offset]]))
 
-        # Ignore all the other filters and filter DuckDB results only by the top k UUIDs.
-        uuid_filter = Filter(path=(UUID_COLUMN,), op='in', value=topk_uuids)
-        filter_query = self._create_where(manifest, [uuid_filter])[0]
+        # Ignore all the other filters and filter DuckDB results only by the top k rowids.
+        rowid_filter = Filter(path=(ROWID,), op='in', value=topk_rowids)
+        filter_query = self._create_where(manifest, [rowid_filter])[0]
         where_query = f'WHERE {filter_query}'
 
     # Map a final column name to a list of temporary namespaced column names that need to be merged.
@@ -915,7 +916,7 @@ class DatasetDuckDB(Dataset):
 
     for column in cols:
       path = column.path
-      # If the signal is vector-based, we don't need to select the actual data, just the uuids
+      # If the signal is vector-based, we don't need to select the actual data, just the rowids
       # plus an arbitrarily nested array of `None`s`.
       empty = bool(column.signal_udf and schema.get_field(path).dtype == DataType.EMBEDDING)
 
@@ -1027,7 +1028,7 @@ class DatasetDuckDB(Dataset):
         if isinstance(signal, VectorSignal):
           embedding_signal = signal
           vector_store = self._get_vector_db_index(embedding_signal.embedding, udf_col.path)
-          flat_keys = list(flatten_keys(df[UUID_COLUMN], input))
+          flat_keys = list(flatten_keys(df[ROWID], input))
           signal_out = sparse_to_dense_compute(
             iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store))
           # Add progress.
@@ -1088,9 +1089,9 @@ class DatasetDuckDB(Dataset):
 
       df = _replace_nan_with_none(rel.df())
 
-    if temp_uuid_added:
-      del df[UUID_COLUMN]
-      del columns_to_merge[UUID_COLUMN]
+    if temp_rowid_selected:
+      del df[ROWID]
+      del columns_to_merge[ROWID]
 
     if combine_columns:
       all_columns: dict[str, Column] = {}
@@ -1141,11 +1142,6 @@ class DatasetDuckDB(Dataset):
         'select_rows_schema with combine_columns=False is not yet supported.')
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema, combine_columns)
-
-    # Always return the UUID column.
-    col_paths = [col.path for col in cols]
-    if (UUID_COLUMN,) not in col_paths:
-      cols.append(column_from_identifier(UUID_COLUMN))
 
     self._normalize_searches(searches, manifest)
     search_udfs = self._search_udfs(searches, manifest)
@@ -1211,6 +1207,9 @@ class DatasetDuckDB(Dataset):
 
     select_leaf = select_leaf or column.signal_udf is not None
 
+    if path == (ROWID,):
+      return [('source', path)]
+
     for m in parquet_manifests:
       if not m.files:
         continue
@@ -1227,10 +1226,6 @@ class DatasetDuckDB(Dataset):
 
       # Skip this parquet file if the path doesn't have a dtype.
       if select_leaf and not m.data_schema.get_field(path).dtype:
-        continue
-
-      if isinstance(m, SignalManifest) and path == (UUID_COLUMN,):
-        # Do not select UUID from the signal because it's already in the source.
         continue
 
       duckdb_path = path
@@ -1741,11 +1736,11 @@ def _col_destination_path(column: Column, is_computed_signal: Optional[bool] = F
 
 def _root_column(manifest: SignalManifest) -> str:
   """Returns the root column of a signal manifest."""
-  field_keys = manifest.data_schema.fields.keys()
-  if len(field_keys) != 2:
-    raise ValueError('Expected exactly two fields in signal manifest, '
-                     f'the row UUID and root this signal is enriching. Got {field_keys}.')
-  return next(filter(lambda field: field != UUID_COLUMN, manifest.data_schema.fields.keys()))
+  field_keys = list(manifest.data_schema.fields.keys())
+  if len(field_keys) > 2:
+    raise ValueError('Expected at most two fields in signal manifest, '
+                     f'the rowid and root this signal is enriching. Got {field_keys}.')
+  return next(filter(lambda field: field != ROWID, manifest.data_schema.fields.keys()))
 
 
 def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:

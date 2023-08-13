@@ -14,7 +14,7 @@ export interface ImageInfo {
 export type Path = Array<string>;
 
 export const PATH_WILDCARD = '*';
-export const UUID_COLUMN = '__rowid__';
+export const ROWID = '__rowid__';
 export const VALUE_KEY = '__value__';
 
 export const SIGNAL_INPUT_TYPE_TO_VALID_DTYPES: Record<SignalInputType, DataType[]> = {
