@@ -24,7 +24,17 @@ from lilac.signals.concept_scorer import ConceptSignal
 
 from ..auth import UserInfo
 from ..config import DatasetConfig, DatasetSettings, DatasetUISettings
-from ..schema import UUID_COLUMN, VALUE_KEY, Bin, DataType, Path, PathTuple, Schema, normalize_path
+from ..schema import (
+  PATH_WILDCARD,
+  UUID_COLUMN,
+  VALUE_KEY,
+  Bin,
+  DataType,
+  Path,
+  PathTuple,
+  Schema,
+  normalize_path,
+)
 from ..signals.signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
 from ..tasks import TaskStepId
 
@@ -421,35 +431,49 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def to_json(self, filepath: Union[str, pathlib.Path], jsonl: bool = True) -> None:
+  def to_json(self,
+              filepath: Union[str, pathlib.Path],
+              jsonl: bool = True,
+              columns: Optional[Sequence[ColumnId]] = None) -> None:
     """Export the dataset to a JSON file.
 
     Args:
       filepath: The path to the file to export to.
       jsonl: Whether to export to JSONL or JSON.
+      columns: The columns to export.
     """
     pass
 
   @abc.abstractmethod
-  def to_pandas(self) -> pd.DataFrame:
-    """Export the dataset to a pandas DataFrame."""
+  def to_pandas(self, columns: Optional[Sequence[ColumnId]] = None) -> pd.DataFrame:
+    """Export the dataset to a pandas DataFrame.
+
+    Args:
+      columns: The columns to export.
+    """
     pass
 
   @abc.abstractmethod
-  def to_parquet(self, filepath: Union[str, pathlib.Path]) -> None:
+  def to_parquet(self,
+                 filepath: Union[str, pathlib.Path],
+                 columns: Optional[Sequence[ColumnId]] = None) -> None:
     """Export the dataset to a parquet file.
 
     Args:
       filepath: The path to the file to export to.
+      columns: The columns to export.
     """
     pass
 
   @abc.abstractmethod
-  def to_csv(self, filepath: Union[str, pathlib.Path]) -> None:
+  def to_csv(self,
+             filepath: Union[str, pathlib.Path],
+             columns: Optional[Sequence[ColumnId]] = None) -> None:
     """Export the dataset to a csv file.
 
     Args:
       filepath: The path to the file to export to.
+      columns: The columns to export.
     """
     pass
 
@@ -476,11 +500,9 @@ def make_parquet_id(signal: Signal,
                     source_path: PathTuple,
                     is_computed_signal: Optional[bool] = False) -> str:
   """Return a unique identifier for this parquet table."""
+  # Remove the wildcards from the parquet id since they are implicit.
+  path = [*[p for p in source_path if p != PATH_WILDCARD], signal.key(is_computed_signal)]
   # Don't use the VALUE_KEY as part of the parquet id to reduce the size of paths.
-  path = source_path[:-1] if source_path[-1] == VALUE_KEY else source_path
-  column_alias = '.'.join(map(str, path))
-  if column_alias.endswith('.*'):
-    # Remove the trailing .* from the column name.
-    column_alias = column_alias[:-2]
-
-  return f'{signal.key(is_computed_signal=is_computed_signal)}({column_alias})'
+  if path[-1] == VALUE_KEY:
+    path = path[:-1]
+  return '.'.join(path)

@@ -139,14 +139,14 @@ def test_udf(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': 'hello',
-    'test_signal(text)': {
+    'text.test_signal': {
       'len': 5,
       'flen': 5.0
     }
   }, {
     UUID_COLUMN: '2',
     'text': 'everybody',
-    'test_signal(text)': {
+    'text.test_signal': {
       'len': 9,
       'flen': 9.0
     }
@@ -169,7 +169,7 @@ def test_udf_with_filters(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '2',
     'text': 'everybody',
-    'test_signal(text)': {
+    'text.test_signal': {
       'len': 9,
       'flen': 9.0
     }
@@ -190,12 +190,12 @@ def test_udf_with_uuid_filter(make_test_data: TestDataMaker) -> None:
   filters: list[BinaryFilterTuple] = [(UUID_COLUMN, 'equals', '1')]
   udf_col = Column('text', signal_udf=LengthSignal())
   result = dataset.select_rows([UUID_COLUMN, 'text', udf_col], filters=filters)
-  assert list(result) == [{UUID_COLUMN: '1', 'text': 'hello', 'length_signal(text)': 5}]
+  assert list(result) == [{UUID_COLUMN: '1', 'text': 'hello', 'text.length_signal': 5}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 1
 
   filters = [(UUID_COLUMN, 'equals', '2')]
   result = dataset.select_rows([UUID_COLUMN, 'text', udf_col], filters=filters)
-  assert list(result) == [{UUID_COLUMN: '2', 'text': 'everybody', 'length_signal(text)': 9}]
+  assert list(result) == [{UUID_COLUMN: '2', 'text': 'everybody', 'text.length_signal': 9}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 1 + 1
 
   # No filters.
@@ -203,11 +203,11 @@ def test_udf_with_uuid_filter(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': 'hello',
-    'length_signal(text)': 5
+    'text.length_signal': 5
   }, {
     UUID_COLUMN: '2',
     'text': 'everybody',
-    'length_signal(text)': 9
+    'text.length_signal': 9
   }]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2 + 2
 
@@ -226,11 +226,7 @@ def test_udf_with_uuid_filter_repeated(make_test_data: TestDataMaker) -> None:
   filters: list[BinaryFilterTuple] = [(UUID_COLUMN, 'equals', '1')]
   udf_col = Column(('text', '*'), signal_udf=LengthSignal())
   result = dataset.select_rows([UUID_COLUMN, 'text', udf_col], filters=filters)
-  assert list(result) == [{
-    UUID_COLUMN: '1',
-    'text': ['hello', 'hi'],
-    'length_signal(text)': [5, 2]
-  }]
+  assert list(result) == [{UUID_COLUMN: '1', 'text': ['hello', 'hi'], 'text.length_signal': [5, 2]}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2
 
   # Filter by a specific UUID.
@@ -239,7 +235,7 @@ def test_udf_with_uuid_filter_repeated(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{
     UUID_COLUMN: '2',
     'text': ['everybody', 'bye', 'test'],
-    'length_signal(text)': [9, 3, 4]
+    'text.length_signal': [9, 3, 4]
   }]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2 + 3
 
@@ -257,10 +253,10 @@ def test_udf_deeply_nested(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows([UUID_COLUMN, udf_col])
   assert list(result) == [{
     UUID_COLUMN: '1',
-    'length_signal(text.*)': [[5], [2, 3]]
+    'text.length_signal': [[5], [2, 3]]
   }, {
     UUID_COLUMN: '2',
-    'length_signal(text.*)': [[9, 3], [4]]
+    'text.length_signal': [[9, 3], [4]]
   }]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 6
 
@@ -282,11 +278,11 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
   expected_result: list[Item] = [{
     UUID_COLUMN: '1',
     'text': 'hello.',
-    'test_embedding_sum(embedding=test_embedding)(text)': 1.0
+    'text.test_embedding_sum(embedding=test_embedding)': 1.0
   }, {
     UUID_COLUMN: '2',
     'text': 'hello2.',
-    'test_embedding_sum(embedding=test_embedding)(text)': 2.0
+    'text.test_embedding_sum(embedding=test_embedding)': 2.0
   }]
   assert list(result) == expected_result
 
@@ -322,11 +318,11 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
   expected_result = [{
     UUID_COLUMN: '1',
     'text.*': ['hello.', 'hello world.'],
-    'test_embedding_sum(embedding=test_embedding)(text)': [1.0, 3.0]
+    'text.test_embedding_sum(embedding=test_embedding)': [1.0, 3.0]
   }, {
     UUID_COLUMN: '2',
     'text.*': ['hello world2.', 'hello2.'],
-    'test_embedding_sum(embedding=test_embedding)(text)': [4.0, 2.0]
+    'text.test_embedding_sum(embedding=test_embedding)': [4.0, 2.0]
   }]
   assert list(result) == expected_result
 
@@ -401,15 +397,13 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
   }])
 
   signal_col = Column('text', signal_udf=ComputedKeySignal())
-  # Filter by source feature.
-  filters: list[BinaryFilterTuple] = [('text', 'equals', 'everybody')]
   result = dataset.select_rows([UUID_COLUMN, 'text', signal_col])
   assert list(result) == [{
     UUID_COLUMN: '1',
     'text': 'hello.',
-    'key_False(text)': 1
+    'text.key_False': 1
   }, {
     UUID_COLUMN: '2',
     'text': 'hello2.',
-    'key_False(text)': 1
+    'text.key_False': 1
   }]

@@ -756,7 +756,7 @@ class DatasetDuckDB(Dataset):
                          combine_columns: bool) -> list[Column]:
     """Normalizes the columns to a list of `Column` objects."""
     cols = [column_from_identifier(col) for col in columns or []]
-    star_in_cols = any(col.path == ('*',) for col in cols)
+    star_in_cols = any(col.path == (PATH_WILDCARD,) for col in cols)
     if not cols or star_in_cols:
       # Select all columns.
       cols.extend([Column((name,)) for name in schema.fields.keys()])
@@ -768,7 +768,7 @@ class DatasetDuckDB(Dataset):
             cols.append(Column(path))
 
       if star_in_cols:
-        cols = [col for col in cols if col.path != ('*',)]
+        cols = [col for col in cols if col.path != (PATH_WILDCARD,)]
     return cols
 
   def _merge_sorts(self, search_udfs: list[DuckDBSearchUDF], sort_by: Optional[Sequence[Path]],
@@ -1460,23 +1460,59 @@ class DatasetDuckDB(Dataset):
       f'{_escape_col_name(path_comp)}' if quote_each_part else str(path_comp) for path_comp in path
     ])
 
+  def _get_selection(self, columns: Optional[Sequence[ColumnId]] = None) -> str:
+    """Get the selection clause for download a dataset."""
+    manifest = self.manifest()
+    if not columns:
+      return '*'
+
+    cols = self._normalize_columns(columns, manifest.data_schema, combine_columns=False)
+    schema = manifest.data_schema
+    self._validate_columns(cols, manifest.data_schema, schema)
+
+    select_queries: list[str] = []
+    for column in cols:
+      col_name = column.alias or _unique_alias(column)
+      duckdb_paths = self._column_to_duckdb_paths(column, schema, combine_columns=False)
+      if not duckdb_paths:
+        raise ValueError(f'Cannot download path {column.path} which does not exist in the dataset.')
+      if len(duckdb_paths) > 1:
+        raise ValueError(
+          f'Cannot download path {column.path} which spans multiple parquet files: {duckdb_paths}')
+      _, duckdb_path = duckdb_paths[0]
+      sql = _select_sql(duckdb_path, flatten=False, unnest=False)
+      select_queries.append(f'{sql} AS {_escape_string_literal(col_name)}')
+    return ', '.join(select_queries)
+
   @override
-  def to_json(self, filepath: Union[str, pathlib.Path], jsonl: bool = True) -> None:
-    self._execute(f"COPY t TO '{filepath}' (FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})")
+  def to_json(self,
+              filepath: Union[str, pathlib.Path],
+              jsonl: bool = True,
+              columns: Optional[Sequence[ColumnId]] = None) -> None:
+    selection = self._get_selection(columns)
+    self._execute(f"COPY (SELECT {selection} FROM t) TO '{filepath}' "
+                  f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})")
     log(f'Dataset exported to {filepath}')
 
   @override
-  def to_pandas(self) -> pd.DataFrame:
-    return self._query_df('SELECT * FROM t')
+  def to_pandas(self, columns: Optional[Sequence[ColumnId]] = None) -> pd.DataFrame:
+    selection = self._get_selection(columns)
+    return self._query_df(f'SELECT {selection} FROM t')
 
   @override
-  def to_csv(self, filepath: Union[str, pathlib.Path]) -> None:
-    self._execute(f"COPY t TO '{filepath}' (FORMAT CSV, HEADER)")
+  def to_csv(self,
+             filepath: Union[str, pathlib.Path],
+             columns: Optional[Sequence[ColumnId]] = None) -> None:
+    selection = self._get_selection(columns)
+    self._execute(f"COPY (SELECT {selection} FROM t) TO '{filepath}' (FORMAT CSV, HEADER)")
     log(f'Dataset exported to {filepath}')
 
   @override
-  def to_parquet(self, filepath: Union[str, pathlib.Path]) -> None:
-    self._execute(f"COPY t TO '{filepath}' (FORMAT PARQUET)")
+  def to_parquet(self,
+                 filepath: Union[str, pathlib.Path],
+                 columns: Optional[Sequence[ColumnId]] = None) -> None:
+    selection = self._get_selection(columns)
+    self._execute(f"COPY (SELECT {selection} FROM t) TO '{filepath}' (FORMAT PARQUET)")
     log(f'Dataset exported to {filepath}')
 
 

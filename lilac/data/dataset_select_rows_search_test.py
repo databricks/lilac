@@ -313,17 +313,17 @@ def test_concept_search_without_uuid(make_test_data: TestDataMaker) -> None:
     # Results are sorted by score desc.
     {
       'text': 'hello world2.',
-      'test_namespace/test_concept/test_embedding(text)': [
+      'text.test_namespace/test_concept/test_embedding': [
         lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})
       ],
-      'test_namespace/test_concept/labels(text)': [lilac_span(0, 13, {'label': True})]
+      'text.test_namespace/test_concept/labels': [lilac_span(0, 13, {'label': True})]
     },
     {
       'text': 'hello world.',
-      'test_namespace/test_concept/test_embedding(text)': [
+      'text.test_namespace/test_concept/test_embedding': [
         lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})
       ],
-      'test_namespace/test_concept/labels(text)': [lilac_span(0, 12, {'label': False})]
+      'text.test_namespace/test_concept/labels': [lilac_span(0, 12, {'label': False})]
     },
   ]
 
@@ -396,17 +396,17 @@ def test_concept_search_sort_by_uuid(make_test_data: TestDataMaker) -> None:
     # Results are sorted by UUID.
     {
       'text': 'hello world.',
-      'test_namespace/test_concept/test_embedding(text)': [
+      'text.test_namespace/test_concept/test_embedding': [
         lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})
       ],
-      'test_namespace/test_concept/labels(text)': [lilac_span(0, 12, {'label': False})]
+      'text.test_namespace/test_concept/labels': [lilac_span(0, 12, {'label': False})]
     },
     {
       'text': 'hello world2.',
-      'test_namespace/test_concept/test_embedding(text)': [
+      'text.test_namespace/test_concept/test_embedding': [
         lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})
       ],
-      'test_namespace/test_concept/labels(text)': [lilac_span(0, 13, {'label': True})]
+      'text.test_namespace/test_concept/labels': [lilac_span(0, 13, {'label': True})]
     }
   ]
 
