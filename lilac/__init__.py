@@ -1,5 +1,6 @@
 from importlib import metadata
 
+from .concepts import *  # noqa: F403
 from .config import DatasetConfig, DatasetSettings, EmbeddingConfig, SignalConfig
 from .data import *  # noqa: F403
 from .data.dataset_duckdb import DatasetDuckDB
@@ -10,7 +11,6 @@ from .server import start_server, stop_server
 from .signals import *  # noqa: F403
 from .signals.default_signals import register_default_signals
 from .sources import *  # noqa: F403
-from .concepts import *  # noqa: F403
 from .sources.default_sources import register_default_sources
 
 try:
