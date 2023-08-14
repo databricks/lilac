@@ -4,8 +4,8 @@
 [Try Lilac concepts on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)
 ```
 
-We can often tell how good a concept is doing by how good it does on examples we explicitly feed it,
-but often we want to be able to quantify the quality of a concept.
+We can quantify the quality of a concept using an [F1 score](https://en.wikipedia.org/wiki/F-score)
+from the labeled examples.
 
 Moreover, the choice of an _embedding_ will affect the quality of the concept in practice. Some
 embeddings can capture nuanced concepts much better than other embeddings, especially when the model
