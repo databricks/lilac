@@ -14,7 +14,11 @@ from lilac.utils import get_dataset_output_dir, get_lilac_cache_dir, log
 def delete_old_files() -> None:
   """Delete old files from the cache."""
   # Scan cache
-  scan = scan_cache_dir()
+  try:
+    scan = scan_cache_dir()
+  except BaseException:
+    # Cache was not found.
+    return
 
   # Select revisions to delete
   to_delete = []
