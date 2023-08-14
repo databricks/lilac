@@ -25,7 +25,7 @@ def main() -> None:
     repo_id=repo_id,
     repo_type='space',
     local_dir=spaces_download_dir,
-    # local_dir_use_symlinks=False,
+    local_dir_use_symlinks=False,
     token=env('HF_ACCESS_TOKEN'))
   # Copy datasets.
   spaces_data_dir = os.path.join(spaces_download_dir, 'data')
