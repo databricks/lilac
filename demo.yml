@@ -113,19 +113,6 @@ datasets:
       dataset_name: cais/mmlu
       source_name: huggingface
 
-  - name: pile-of-law-us-bills
-    namespace: lilac
-    tags: [legal]
-    settings:
-      ui:
-        media_paths:
-          - text
-      preferred_embedding: 'gte-small'
-    source:
-      config_name: us_bills
-      dataset_name: pile-of-law/pile-of-law
-      source_name: huggingface
-
   - name: pile-of-law-constitutions
     namespace: lilac
     tags: [legal]

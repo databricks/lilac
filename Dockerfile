@@ -19,11 +19,6 @@ COPY LICENSE .
 # Copy python files.
 COPY /lilac ./lilac/
 
-# Copy the data files. We use glob so docker copy won't fail if the directory doesn't exist.
-COPY /dat[a] ./data/
+COPY docker_start.sh docker_start.py ./
 
-CMD [ \
-  "gunicorn", "lilac.server:app", \
-  "--bind", "0.0.0.0:5432", \
-  "-k", "uvicorn.workers.UvicornWorker" \
-  ]
+CMD ["bash", "docker_start.sh"]
