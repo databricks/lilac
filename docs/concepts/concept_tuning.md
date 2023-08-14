@@ -17,10 +17,8 @@ page, or from the dataset page.
 In this example, the score is relatively low for this piece of text that is clearly related to
 positive product reviews.
 
-Clicking the thumbs up will add it to the set of positive examples for the concept:
-
-After clicking thumbs up, you'll notice that it gets added to the labels at the bottom of the
-concept preview page:
+Clicking the thumbs up will add it to the set of positive examples for the concept, which can be
+seen at the bottom of the concept preview page:
 
 <img src="../_static/concepts/concept_labels.png"></img>
 
