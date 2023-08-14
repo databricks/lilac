@@ -15,6 +15,11 @@
   import Navigation from '$lib/components/Navigation.svelte';
   import Commands from '$lib/components/commands/Commands.svelte';
   import {createNavigationStore, setNavigationContext} from '$lib/stores/navigationStore';
+  import {
+    createNotificationsStore,
+    getNotificationsContext,
+    setNotificationsContext
+  } from '$lib/stores/notificationsStore';
   import {createSettingsStore, setSettingsContext} from '$lib/stores/settingsStore';
   import 'carbon-components-svelte/css/all.css';
   import {slide} from 'svelte/transition';
@@ -33,6 +38,12 @@
   $: currentPage = $page.route.id != null ? routeToPage[$page.route.id] : 'home';
   let urlHashStore = createUrlHashStore();
   setUrlHashContext(urlHashStore);
+
+  const notificationsStore = createNotificationsStore();
+  setNotificationsContext(notificationsStore);
+  $: notifications = $notificationsStore?.notifications || [];
+
+  console.log('ctx', getNotificationsContext());
 
   onMount(() => {
     // Initialize the page from the hash.
@@ -63,8 +74,11 @@
     };
   });
 
-  $: settingsStore = createSettingsStore();
-  $: setSettingsContext(settingsStore);
+  const settingsStore = createSettingsStore();
+  setSettingsContext(settingsStore);
+
+  $: console.log('notifications:', notifications);
+  $: console.log('store=', notificationsStore);
 
   const navStore = createNavigationStore();
   setNavigationContext(navStore);
@@ -101,6 +115,22 @@
     </div>
   </main>
 
+  <div class="w-128 absolute right-2 top-0 z-10">
+    {#each notifications as notification}
+      <ToastNotification
+        lowContrast
+        fullWidth
+        title={notification.title}
+        subtitle={notification.subtitle || ''}
+        caption={notification.message}
+        kind={notification.kind}
+        timeout={30_000}
+        on:close={() => {
+          notificationsStore.removeNotification(notification);
+        }}
+      />
+    {/each}
+  </div>
   <div class="absolute bottom-4 right-4">
     {#each $apiErrors as error}
       <ToastNotification
@@ -121,6 +151,7 @@
       <ApiErrorModal error={showError} />
     {/if}
   </div>
+
   <TaskMonitor />
   <Commands />
 </QueryClientProvider>

@@ -1,3 +1,4 @@
+import type {Notification} from '$lib/stores/notificationsStore';
 import type {SvelteComponent} from 'svelte';
 import type {SpanDetails} from './StringSpanDetails.svelte';
 import StringSpanDetails from './StringSpanDetails.svelte';
@@ -12,6 +13,7 @@ export interface SpanClickInfo {
     text: string,
     label: boolean
   ) => void;
+  addNotification: (notification: Notification) => void;
   disabled: boolean;
 }
 
@@ -29,6 +31,7 @@ export function spanClick(element: HTMLSpanElement, clickInfo: SpanClickInfo) {
         clickPosition: {x: e.clientX, y: e.clientY},
         embeddings: curClickInfo.embeddings,
         addConceptLabel: curClickInfo.addConceptLabel,
+        addNotification: curClickInfo.addNotification,
         findSimilar: curClickInfo.findSimilar
       },
       target: document.body

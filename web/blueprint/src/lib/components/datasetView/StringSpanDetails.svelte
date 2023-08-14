@@ -14,6 +14,8 @@
 <script lang="ts">
   import {fade} from 'svelte/transition';
 
+  import type {Notification} from '$lib/stores/notificationsStore';
+  import {conceptIdentifier} from '$lib/utils';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
   import {createEventDispatcher} from 'svelte';
@@ -34,12 +36,20 @@
     label: boolean
   ) => void;
   export let findSimilar: ((embedding: string, text: string) => unknown) | null;
+  export let addNotification: (notification: Notification) => void;
 
   const dispatch = createEventDispatcher();
   function addLabel(label: boolean) {
     if (!details.conceptName || !details.conceptNamespace)
       throw Error('Label could not be added, no active concept.');
     addConceptLabel(details.conceptNamespace, details.conceptName, details.text, label);
+    const labelText = label === true ? 'Positive' : 'Negative';
+    addNotification({
+      kind: 'success',
+      title: `[${labelText}] Concept label added`,
+      subtitle: conceptIdentifier(details.conceptNamespace, details.conceptName),
+      message: details.text
+    });
     dispatch('click');
   }
 </script>

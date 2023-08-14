@@ -411,7 +411,8 @@ export function getSpanValuePaths(
   field: LilacField,
   visibleFields?: LilacField[]
 ): {spanPaths: Path[]; valuePaths: SpanValueInfo[]} {
-  const children = childFields(field);
+  // Include the field.
+  const children = [field, ...childFields(field)];
   // Find the non-keyword span fields under this field.
   const conceptSignals = children.filter(f => isConceptSignal(f.signal));
   const conceptLabelSignals = children.filter(f => f.signal?.signal_name === 'concept_labels');

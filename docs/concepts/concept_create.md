@@ -6,6 +6,9 @@ few lines of code.
 A concept is created by seeding it with a few positive and negative examples, and then will be tuned
 given a data source.
 
+This guide will show you how to create a concept from the UI and from Python. These can be
+interchangeable -- if you create a concept from the UI, you can use it from Python, and vice-versa.
+
 ## Create from UI
 
 To create a concept from the UI, click the "Add concept" button in the navigation on the left. This
