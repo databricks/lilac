@@ -10,7 +10,7 @@ from ..schema import Item, arrow_schema_to_schema
 from .source import Source, SourceSchema
 
 
-class ParquetDataset(Source):
+class ParquetSource(Source):
   """Parquet source."""
   name = 'parquet'
   filepaths: list[str] = Field(description='A list of paths to parquet files.')

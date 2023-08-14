@@ -10,7 +10,7 @@ from .source import Source, SourceSchema, schema_from_df
 PANDAS_INDEX_COLUMN = '__pd_index__'
 
 
-class PandasDataset(Source):
+class PandasSource(Source):
   """Pandas source."""
   name = 'pandas'
 

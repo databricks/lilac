@@ -31,7 +31,7 @@ _UNWRAP_PATTERN = re.compile(r'(\S)\n(\S)')
 HTTP_PATTERN = re.compile(r'https?://[^\s]+')
 
 
-class Gmail(Source):
+class GmailSource(Source):
   """Connects to your Gmail and loads the text of your emails.
 
   **One time setup**

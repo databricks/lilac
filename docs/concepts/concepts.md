@@ -23,7 +23,7 @@ generalizing to other types of positive language that it has never seen.
 ```{note}
 The Lilac [positive sentiment concept](https://lilacai-lilac.hf.space/concepts#lilac/positive-sentiment) below highlights text blue that is positive in sentiment.
 
-<img src="../_static/concepts/concepts_use_ui.png"></img>
+<img src="../_static/concepts/concept_use.png"></img>
 ```
 
 In practice, a concept is simply a collection of positive (text that is related to the concept) and

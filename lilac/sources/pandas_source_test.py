@@ -3,7 +3,7 @@
 import pandas as pd
 
 from ..schema import schema
-from .pandas_source import PANDAS_INDEX_COLUMN, PandasDataset
+from .pandas_source import PANDAS_INDEX_COLUMN, PandasSource
 from .source import SourceSchema
 
 
@@ -19,7 +19,7 @@ def test_simple_dataframe() -> None:
     'age': 3
   }])
 
-  source = PandasDataset(df)
+  source = PandasSource(df)
   source.setup()
 
   source_schema = source.source_schema()
@@ -61,7 +61,7 @@ def test_simple_dataframe_with_index() -> None:
   }],
                                  index=['id1', 'id2', 'id3'])
 
-  source = PandasDataset(df)
+  source = PandasSource(df)
   source.setup()
 
   source_schema = source.source_schema()

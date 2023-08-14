@@ -13,6 +13,7 @@
 
   import {editConceptMutation} from '$lib/queries/conceptQueries';
   import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
+  import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {
     getValueNodes,
     pathIsEqual,
@@ -169,6 +170,8 @@
       embedding
     });
   };
+
+  const notificationStore = getNotificationsContext();
 </script>
 
 <div class="relative overflow-x-hidden text-ellipsis whitespace-break-spaces py-4">
@@ -188,6 +191,8 @@
           findSimilar: datasetStore != null ? findSimilar : null,
           embeddings,
           addConceptLabel,
+          addNotification:
+            notificationStore != null ? notificationStore.addNotification : () => null,
           disabled: renderSpan.paths.length === 0 || embeddings.length === 0
         }}
         class="hover:cursor-poiner highlight-span break-words text-sm leading-5"

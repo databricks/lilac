@@ -74,6 +74,8 @@
       $signalSchema?.data?.fields != null
     ) {
       const resultSchema = deserializeField($signalSchema.data.fields);
+      // Add the signal to the result schema as it doesn't come back with the response.
+      resultSchema.signal = signal;
       previewResultItem = deserializeRow($conceptScore.data[0], resultSchema);
       const spanValuePaths = getSpanValuePaths(resultSchema);
       spanPaths = spanValuePaths.spanPaths;

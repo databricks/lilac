@@ -1,7 +1,11 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import GettingStartedStep from '$lib/components/GettingStartedStep.svelte';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {Button} from 'carbon-components-svelte';
+
+  const authInfo = queryAuthInfo();
+  $: canCreateDataset = $authInfo.data?.access.create_dataset;
 </script>
 
 <div class="flex w-full flex-col items-center gap-y-6 px-8 pt-20">
@@ -16,8 +20,20 @@
       description="Click 'Add dataset' to add a new dataset."
     >
       <div class="mt-4">
-        <Button size="small" on:click={() => goto('/datasets/new')}>+ Add dataset</Button>
+        <Button disabled={!canCreateDataset} size="small" on:click={() => goto('/datasets/new')}
+          >+ Add dataset</Button
+        >
       </div>
+      {#if !canCreateDataset}
+        <div class="flex flex-col border border-neutral-100 bg-red-100 p-2">
+          <span class="mb-2">You do not have authorization to create a dataset.</span>
+          <span>
+            For HuggingFace spaces, fork this space and set <span class="font-mono"
+              >LILAC_AUTH_ENABLED</span
+            > environment flag to 'false' from settings.
+          </span>
+        </div>
+      {/if}
     </GettingStartedStep>
 
     <GettingStartedStep

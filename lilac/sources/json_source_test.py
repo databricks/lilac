@@ -4,7 +4,7 @@ import os
 import pathlib
 
 from ..schema import schema
-from .json_source import ROW_ID_COLUMN, JSONDataset
+from .json_source import ROW_ID_COLUMN, JSONSource
 from .source import SourceSchema
 
 
@@ -16,7 +16,7 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
   with open(filepath, 'w') as f:
     f.write(json.dumps(json_records))
 
-  source = JSONDataset(filepaths=[filepath])
+  source = JSONSource(filepaths=[filepath])
   source.setup()
 
   source_schema = source.source_schema()
@@ -49,7 +49,7 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
   with open(filepath, 'w') as f:
     f.writelines(json_lines)
 
-  source = JSONDataset(filepaths=[filepath])
+  source = JSONSource(filepaths=[filepath])
   source.setup()
 
   source_schema = source.source_schema()

@@ -6,7 +6,7 @@ import pathlib
 from datasets import Dataset, Features, Sequence, Value
 
 from ..schema import schema
-from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceDataset
+from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceSource
 from .source import SourceSchema
 
 
@@ -16,7 +16,7 @@ def test_hf(tmp_path: pathlib.Path) -> None:
   dataset_name = os.path.join(tmp_path, 'hf-test-dataset')
   dataset.save_to_disk(dataset_name)
 
-  source = HuggingFaceDataset(dataset_name=dataset_name, load_from_disk=True)
+  source = HuggingFaceSource(dataset_name=dataset_name, load_from_disk=True)
 
   items = source.process()
   source.setup()
@@ -70,7 +70,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
   dataset_name = os.path.join(tmp_path, 'hf-test-dataset')
   dataset.save_to_disk(dataset_name)
 
-  source = HuggingFaceDataset(dataset_name=dataset_name, load_from_disk=True)
+  source = HuggingFaceSource(dataset_name=dataset_name, load_from_disk=True)
 
   items = source.process()
   source.setup()
@@ -134,7 +134,7 @@ def test_hf_list(tmp_path: pathlib.Path) -> None:
   dataset_name = os.path.join(tmp_path, 'hf-test-dataset')
   dataset.save_to_disk(dataset_name)
 
-  source = HuggingFaceDataset(dataset_name=dataset_name, load_from_disk=True)
+  source = HuggingFaceSource(dataset_name=dataset_name, load_from_disk=True)
 
   items = source.process()
   source.setup()
