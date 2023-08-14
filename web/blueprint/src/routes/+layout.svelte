@@ -124,7 +124,7 @@
         subtitle={notification.subtitle || ''}
         caption={notification.message}
         kind={notification.kind}
-        timeout={30_000}
+        timeout={5_000}
         on:close={() => {
           notificationsStore.removeNotification(notification);
         }}
