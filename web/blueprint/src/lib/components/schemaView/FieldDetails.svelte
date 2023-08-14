@@ -1,7 +1,15 @@
 <script lang="ts">
   import {queryDatasetStats, querySelectGroups} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {formatValue, type BinaryFilter, type LeafValue, type LilacField} from '$lilac';
+  import {
+    formatValue,
+    isNumeric,
+    type BinaryFilter,
+    type GroupsSortBy,
+    type LeafValue,
+    type LilacField,
+    type SortOrder
+  } from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
   import {Information} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
@@ -12,9 +20,18 @@
   const store = getDatasetViewContext();
 
   $: statsQuery = queryDatasetStats($store.namespace, $store.datasetName, {leaf_path: field.path});
+
+  let sortBy: GroupsSortBy;
+  $: sortBy = isNumeric(field.dtype!) && !field.categorical ? 'value' : 'count';
+
+  let sortOrder: SortOrder;
+  $: sortOrder = sortBy === 'value' ? 'ASC' : 'DESC';
+
   $: groupsQuery = querySelectGroups($store.namespace, $store.datasetName, {
     leaf_path: field.path,
-    filters: $store.query.filters
+    filters: $store.query.filters,
+    sort_by: sortBy,
+    sort_order: sortOrder
   });
 
   $: counts =
