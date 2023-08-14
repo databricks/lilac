@@ -5,10 +5,10 @@ import shutil
 
 from huggingface_hub import snapshot_download
 
-from .lilac.concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
-from .lilac.db_manager import list_datasets
-from .lilac.env import data_path, env
-from .lilac.utils import get_dataset_output_dir, get_lilac_cache_dir
+from lilac.concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
+from lilac.db_manager import list_datasets
+from lilac.env import data_path, env
+from lilac.utils import get_dataset_output_dir, get_lilac_cache_dir
 
 
 def main() -> None:
