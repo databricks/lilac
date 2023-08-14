@@ -45,7 +45,7 @@ You can use this labeler to quickly tune your concept.
 
 ## Tune from Python
 
-Tuning from Python looks very similar to [Creating a concept](concept_create#create-from-python).
+Tuning from Python looks very similar to [Creating a concept](concept_create.md#create-from-python).
 
 You can list examples in a concept by using the [](DiskConceptDB.get) method.
 

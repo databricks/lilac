@@ -4,3 +4,4 @@
 .. toctree::
 
 .. automodule:: lilac.concepts
+   :members:
