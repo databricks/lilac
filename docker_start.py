@@ -8,7 +8,7 @@ from huggingface_hub import scan_cache_dir, snapshot_download
 from lilac.concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
 from lilac.db_manager import list_datasets
 from lilac.env import data_path, env
-from lilac.utils import get_dataset_output_dir, get_lilac_cache_dir
+from lilac.utils import get_dataset_output_dir, get_lilac_cache_dir, log
 
 
 def delete_old_files() -> None:
@@ -25,7 +25,7 @@ def delete_old_files() -> None:
   strategy = scan.delete_revisions(*to_delete)
 
   # Delete them
-  print(f'Will delete {len(to_delete)} old revisions and save {strategy.expected_freed_size_str}')
+  log(f'Will delete {len(to_delete)} old revisions and save {strategy.expected_freed_size_str}')
   strategy.execute()
 
 
