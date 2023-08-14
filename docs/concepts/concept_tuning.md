@@ -24,8 +24,8 @@ seen at the bottom of the concept preview page:
 
 Examples can always be removed by clicking the trash icon.
 
-This process can be slow, so Lilac provides a labeler mechanism that will under "Collect Labels"
-that will feed examples that Lilac thinks are:
+Thinking of hypothetical examples can be hard, so Lilac provides a labeler mechanism that will under
+"Collect Labels" that will feed examples that Lilac thinks are:
 
 - In the concept
 - Confused (close to the decision threshold of 0.5)
@@ -66,11 +66,11 @@ You can continue to add examples:
 
 ```python
 train_data = [
-  ll.concepts.ExampleIn(label=False, text='The weather is beautiful today'),
+  ll.ExampleIn(label=False, text='The weather is beautiful today'),
 ]
 db.edit(
   'local', 'positive-product-reviews',
-  ll.concepts.ConceptUpdate(insert=train_data))
+  ll.ConceptUpdate(insert=train_data))
 ```
 
 You can remove examples by using the unique ID given above:
@@ -78,7 +78,7 @@ You can remove examples by using the unique ID given above:
 ```python
 db.edit(
   'local', 'positive-product-reviews',
-  ll.concepts.ConceptUpdate(remove=['d86e4cb53c70443b8d8782a6847f4752']))
+  ll.ConceptUpdate(remove=['d86e4cb53c70443b8d8782a6847f4752']))
 ```
 
 You can entirely delete a concept using the [](DiskConceptDB.remove) method:
