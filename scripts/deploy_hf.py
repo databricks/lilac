@@ -99,9 +99,9 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
   # Create an .env.local to set HF-specific flags.
   with open(f'{repo_basedir}/.env.demo', 'w') as f:
     f.write("""LILAC_DATA_PATH='/data'
-HF_HOME='/data/.huggingface'
-TRANSFORMERS_CACHE='/data/.cache'
-XDG_CACHE_HOME='/data/.cache'
+HF_HOME=/data/.huggingface
+TRANSFORMERS_CACHE=/data/.cache
+XDG_CACHE_HOME=/data/.cache
 """)
 
   # Create a .gitignore to avoid uploading unnecessary files.
