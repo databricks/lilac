@@ -3,12 +3,30 @@
 import os
 import shutil
 
-from huggingface_hub import snapshot_download
+from huggingface_hub import scan_cache_dir, snapshot_download
 
 from lilac.concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
 from lilac.db_manager import list_datasets
 from lilac.env import data_path, env
 from lilac.utils import get_dataset_output_dir, get_lilac_cache_dir
+
+
+def delete_old_files() -> None:
+  """Delete old files from the cache."""
+  # Scan cache
+  scan = scan_cache_dir()
+
+  # Select revisions to delete
+  to_delete = []
+  for repo in scan.repos:
+    latest_revision = max(repo.revisions, key=lambda x: x.last_modified)
+    to_delete.extend(
+      [revision.commit_hash for revision in repo.revisions if revision != latest_revision])
+  strategy = scan.delete_revisions(*to_delete)
+
+  # Delete them
+  print(f'Will delete {len(to_delete)} old revisions and save {strategy.expected_freed_size_str}')
+  strategy.execute()
 
 
 def main() -> None:
@@ -18,17 +36,12 @@ def main() -> None:
   if not repo_id:
     return
 
+  delete_old_files()
   # Download the huggingface space data. This includes code and datasets, so we move the datasets
   # alone to the data directory.
-  spaces_download_dir = os.path.join(data_path(), '.hf_spaces', repo_id)
-  snapshot_download(
-    repo_id=repo_id,
-    repo_type='space',
-    local_dir=spaces_download_dir,
-    local_dir_use_symlinks=False,
-    token=env('HF_ACCESS_TOKEN'))
+  snapshot_dir = snapshot_download(repo_id=repo_id, repo_type='space', token=env('HF_ACCESS_TOKEN'))
   # Copy datasets.
-  spaces_data_dir = os.path.join(spaces_download_dir, 'data')
+  spaces_data_dir = os.path.join(snapshot_dir, 'data')
   datasets = list_datasets(spaces_data_dir)
   for dataset in datasets:
     spaces_dataset_output_dir = get_dataset_output_dir(spaces_data_dir, dataset.namespace,
@@ -38,7 +51,7 @@ def main() -> None:
     # Huggingface doesn't let you selectively download files so we just copy the data directory
     # out of the cloned space.
     shutil.rmtree(persistent_output_dir, ignore_errors=True)
-    shutil.move(spaces_dataset_output_dir, persistent_output_dir)
+    shutil.copytree(spaces_dataset_output_dir, persistent_output_dir)
 
   # Delete cache files from persistent storage.
   cache_dir = get_lilac_cache_dir(data_path())
