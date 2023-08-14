@@ -30,15 +30,14 @@ You can register your own embedding in Python:
 
 class MyEmbedding(ll.TextEmbeddingSignal):
   name: 'my_embedding'
-  @override
-  def setup(self) -> None:
+  def setup(self):
     # Do your one-time setup here.
     pass
 
-  @override
-  def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
-    def embed_fn(texts: list[str]) -> list[np.ndarray]:
-      # Compute your embedding matrix for the batch of text here.
+  def compute(self, docs):
+    def embed_fn(texts: list[str]):
+      # Compute your embedding matrix for the batch of text here. This return a matrix with
+      # dimensions [batch_size, embedding_dims].
       return your_embedding(texts)
 
     for doc in docs:
@@ -52,7 +51,7 @@ class MyEmbedding(ll.TextEmbeddingSignal):
         # How many batches to request as a single unit.
         num_parallel_requests=1)
 
-register_signal(MyEmbedding)
+ll.register_signal(MyEmbedding)
 ```
 
 After you create a custom embedding and register it, you will be able to use it as `my_embedding`.
