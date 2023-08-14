@@ -49,7 +49,7 @@ Welcome to Lilac
    :hidden:
    :maxdepth: 1
 
-    embeddings/embeddings.md
+   embeddings/embeddings.md
 
 .. toctree::
    :caption: API Reference
