@@ -106,7 +106,7 @@
     </div>
   </main>
 
-  <div class="w-128 absolute right-2 top-0 z-10">
+  <div class="absolute right-2 top-0 z-10 w-96">
     {#each notifications as notification}
       <ToastNotification
         lowContrast
