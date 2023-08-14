@@ -30,7 +30,7 @@ The human readable scores are based on this score:
 From the concepts preview page, there is a metrics panel, which determines the quality for each
 embedding for that concept:
 
-<img src="../_static/concepts/concept_good_metrics.png"></img>
+<img src="../_static/concepts/concept_metrics.png"></img>
 
 Toxicity is a particularly difficult concept, as it requires a deeper understanding of the meaning
 of the text, so larger embeddings typically do better for this concept.
