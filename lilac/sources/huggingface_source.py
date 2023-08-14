@@ -89,7 +89,7 @@ def hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str],
   return SchemaInfo(fields=fields, class_labels=class_labels, num_items=num_items)
 
 
-class HuggingFaceDataset(Source):
+class HuggingFaceSource(Source):
   """HuggingFace data loader
 
   For a list of datasets see: [huggingface.co/datasets](https://huggingface.co/datasets).

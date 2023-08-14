@@ -14,7 +14,7 @@ from .source import Source, SourceSchema, schema_from_df
 ROW_ID_COLUMN = '__row_id__'
 
 
-class JSONDataset(Source):
+class JSONSource(Source):
   """JSON data loader
 
   Supports both JSON and JSONL.

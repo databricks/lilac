@@ -4,7 +4,7 @@ import os
 import pathlib
 
 from ..schema import schema
-from .csv_source import LINE_NUMBER_COLUMN, CSVDataset
+from .csv_source import LINE_NUMBER_COLUMN, CSVSource
 from .source import SourceSchema
 
 
@@ -18,7 +18,7 @@ def test_csv(tmp_path: pathlib.Path) -> None:
     writer.writeheader()
     writer.writerows(csv_rows)
 
-  source = CSVDataset(filepaths=[filepath])
+  source = CSVSource(filepaths=[filepath])
   source.setup()
 
   source_schema = source.source_schema()

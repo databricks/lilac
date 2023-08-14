@@ -14,7 +14,7 @@ from .source import Source, SourceSchema, normalize_column_name, schema_from_df
 LINE_NUMBER_COLUMN = '__line_number__'
 
 
-class CSVDataset(Source):
+class CSVSource(Source):
   """CSV data loader
 
   CSV files can live locally as a filepath, or point to an external URL.

@@ -6,6 +6,7 @@
   import HFNameInput from '$lib/components/datasets/huggingface/HFNameInput.svelte';
   import SplitsInput from '$lib/components/datasets/huggingface/SplitsInput.svelte';
   import {loadDatasetMutation, querySources, querySourcesSchema} from '$lib/queries/datasetQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {watchTask} from '$lib/stores/taskMonitoringStore';
   import {datasetLink} from '$lib/utils';
 
@@ -26,6 +27,9 @@
   const sourcesQuery = querySources();
   $: sources = $sourcesQuery.data?.sources.filter(s => s !== 'pandas');
   const loadDataset = loadDatasetMutation();
+
+  const authInfo = queryAuthInfo();
+  $: canCreateDataset = $authInfo.data?.access.create_dataset;
 
   let namespace = 'local';
   let name = '';
@@ -86,84 +90,96 @@
   <div class="flex h-full w-full gap-y-4 overflow-y-scroll p-4">
     <div class="new-form mx-auto flex h-full max-w-xl flex-col">
       <h2>Add dataset</h2>
-      <Form class="py-8">
-        <FormGroup legendText="Name">
-          <!-- Input field for namespace and name -->
-          <div class="flex flex-row content-start">
-            <TextInput
-              labelText="namespace"
-              bind:value={namespace}
-              invalid={namespaceError != null}
-              invalidText={namespaceError}
-            />
-            <span class="mx-4 mt-6 text-lg">/</span>
-            <TextInput
-              labelText="name"
-              bind:value={name}
-              invalid={nameError != null}
-              invalidText={nameError}
-            />
-          </div>
-        </FormGroup>
-        <FormGroup legendText="Data Loader">
-          <!-- Radio button for selecting data loader -->
-          {#if $sourcesQuery.isFetching}
-            <RadioButtonSkeleton />
-          {:else if sources != null}
-            <div>
-              <RadioButtonGroup bind:selected={selectedSource}>
-                {#each sources as source}
-                  <RadioButton labelText={source} value={source} />
-                {/each}
-              </RadioButtonGroup>
-            </div>
-          {:else if $sourcesQuery.isError}
-            <InlineNotification
-              kind="error"
-              title="Error"
-              subtitle={$sourcesQuery.error.message}
-              hideCloseButton
-            />
-          {/if}
-
-          {#if $sourcesSchema.isSuccess}
-            {@const schema = $sourcesSchema.data}
-            {#key selectedSource}
-              <!-- Data Loader Fields -->
-              <JsonSchemaForm
-                {schema}
-                hiddenProperties={['/source_name']}
-                bind:value={sourceSchemaValues}
-                bind:validationErrors={jsonValidationErrors}
-                customComponents={selectedSource === 'huggingface'
-                  ? {
-                      '/dataset_name': HFNameInput,
-                      '/split': SplitsInput,
-                      '/config_name': ConfigInput
-                    }
-                  : {}}
+      {#if canCreateDataset}
+        <Form class="py-8">
+          <FormGroup legendText="Name">
+            <!-- Input field for namespace and name -->
+            <div class="flex flex-row content-start">
+              <TextInput
+                labelText="namespace"
+                bind:value={namespace}
+                invalid={namespaceError != null}
+                invalidText={namespaceError}
               />
-            {/key}
-          {:else if $sourcesSchema.isError}
-            <InlineNotification
-              kind="error"
-              title="Error"
-              hideCloseButton
-              subtitle={$sourcesSchema.error.message}
-            />
-          {:else if $sourcesSchema.isLoading}
-            <div class="mt-4">
-              <h3 class="text-lg">Schema</h3>
-              <SkeletonText />
+              <span class="mx-4 mt-6 text-lg">/</span>
+              <TextInput
+                labelText="name"
+                bind:value={name}
+                invalid={nameError != null}
+                invalidText={nameError}
+              />
             </div>
-          {/if}
-        </FormGroup>
-        <Button
-          on:click={submit}
-          disabled={jsonValidationErrors?.length > 0 || nameError != null || namespaceError != null}
-          >Add</Button
-        >
-      </Form>
+          </FormGroup>
+          <FormGroup legendText="Data Loader">
+            <!-- Radio button for selecting data loader -->
+            {#if $sourcesQuery.isFetching}
+              <RadioButtonSkeleton />
+            {:else if sources != null}
+              <div>
+                <RadioButtonGroup bind:selected={selectedSource}>
+                  {#each sources as source}
+                    <RadioButton labelText={source} value={source} />
+                  {/each}
+                </RadioButtonGroup>
+              </div>
+            {:else if $sourcesQuery.isError}
+              <InlineNotification
+                kind="error"
+                title="Error"
+                subtitle={$sourcesQuery.error.message}
+                hideCloseButton
+              />
+            {/if}
+
+            {#if $sourcesSchema.isSuccess}
+              {@const schema = $sourcesSchema.data}
+              {#key selectedSource}
+                <!-- Data Loader Fields -->
+                <JsonSchemaForm
+                  {schema}
+                  hiddenProperties={['/source_name']}
+                  bind:value={sourceSchemaValues}
+                  bind:validationErrors={jsonValidationErrors}
+                  customComponents={selectedSource === 'huggingface'
+                    ? {
+                        '/dataset_name': HFNameInput,
+                        '/split': SplitsInput,
+                        '/config_name': ConfigInput
+                      }
+                    : {}}
+                />
+              {/key}
+            {:else if $sourcesSchema.isError}
+              <InlineNotification
+                kind="error"
+                title="Error"
+                hideCloseButton
+                subtitle={$sourcesSchema.error.message}
+              />
+            {:else if $sourcesSchema.isLoading}
+              <div class="mt-4">
+                <h3 class="text-lg">Schema</h3>
+                <SkeletonText />
+              </div>
+            {/if}
+          </FormGroup>
+          <Button
+            on:click={submit}
+            disabled={jsonValidationErrors?.length > 0 ||
+              nameError != null ||
+              namespaceError != null}>Add</Button
+          >
+        </Form>
+      {:else}
+        <div class="mt-4 flex flex-col border border-neutral-100 bg-red-100 p-2">
+          <span class="mb-2">You do not have authorization to create a dataset.</span>
+          <span>
+            For HuggingFace spaces, fork this space and set <span class="font-mono"
+              >LILAC_AUTH_ENABLED</span
+            > environment flag to 'false' from settings.
+          </span>
+        </div>
+      {/if}
     </div>
   </div>
 </Page>

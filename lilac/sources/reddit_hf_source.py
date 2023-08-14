@@ -5,7 +5,7 @@ from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..schema import Item
-from .huggingface_source import HuggingFaceDataset
+from .huggingface_source import HuggingFaceSource
 from .source import Source, SourceSchema
 
 HF_REDDIT_DATASET_NAME = 'reddit'
@@ -24,11 +24,11 @@ class RedditDataset(Source):
     description='If defined, only loads the subset of reddit data in these subreddit.',
   )
 
-  _hf_dataset: HuggingFaceDataset
+  _hf_dataset: HuggingFaceSource
 
   @override
   def setup(self) -> None:
-    self._hf_dataset = HuggingFaceDataset(dataset_name=HF_REDDIT_DATASET_NAME)
+    self._hf_dataset = HuggingFaceSource(dataset_name=HF_REDDIT_DATASET_NAME)
     self._hf_dataset.setup()
 
   @override

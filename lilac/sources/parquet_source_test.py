@@ -7,7 +7,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from ..schema import schema
-from .parquet_source import ParquetDataset
+from .parquet_source import ParquetSource
 from .source import SourceSchema
 
 
@@ -26,7 +26,7 @@ def test_simple_rows(tmp_path: pathlib.Path) -> None:
   out_file = os.path.join(tmp_path, 'test.parquet')
   pq.write_table(table, out_file)
 
-  source = ParquetDataset(filepaths=[out_file])
+  source = ParquetSource(filepaths=[out_file])
   source.setup()
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
