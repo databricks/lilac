@@ -260,7 +260,7 @@ class ConceptModel:
   _embeddings: dict[str, np.ndarray] = dataclasses.field(default_factory=dict)
   _logistic_models: dict[DraftId, LogisticEmbeddingModel] = dataclasses.field(default_factory=dict)
 
-  def get_metrics(self, concept: Concept) -> Optional[ConceptMetrics]:
+  def get_metrics(self) -> Optional[ConceptMetrics]:
     """Return the metrics for this model."""
     return self._get_logistic_model(DRAFT_MAIN)._metrics
 

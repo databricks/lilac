@@ -45,6 +45,13 @@ Welcome to Lilac
    signals/signals.md
 
 .. toctree::
+   :caption: Embeddings
+   :hidden:
+   :maxdepth: 1
+
+    embeddings/embeddings.md
+
+.. toctree::
    :caption: API Reference
    :hidden:
 

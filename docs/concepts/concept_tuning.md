@@ -1,5 +1,9 @@
 # Tuning a concept
 
+```{tip}
+[Try Lilac concepts on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)
+```
+
 Often times, after creating a concept or using an off-the-shelf-concept, the concept needs to be
 tuned to fit shape of your data (often called the "distribution" of your data).
 

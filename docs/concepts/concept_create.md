@@ -88,6 +88,9 @@ db.edit('local', 'positive-product-reviews', ll.concepts.ConceptUpdate(insert=ex
 From here, we can continue to add examples, or we can use the concept. See
 [Using concepts](concept_use.md) for details on how to use a concept.
 
+In this example, we're using the `gte-small` embedding. For details on embeddings, see
+[Embeddings](../embeddings/embeddings.md) for details on embeddings.
+
 ```python
 signal = ll.signals.ConceptSignal(
   namespace='local',

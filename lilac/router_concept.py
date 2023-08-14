@@ -134,7 +134,7 @@ def get_concept_models(
       concept_name=m.concept_name,
       embedding_name=m.embedding_name,
       version=m.version,
-      metrics=m.get_metrics(concept)) for m in models
+      metrics=m.get_metrics()) for m in models
   ]
 
 
@@ -157,7 +157,7 @@ def get_concept_model(
     concept_name=model.concept_name,
     embedding_name=model.embedding_name,
     version=model.version,
-    metrics=model.get_metrics(concept))
+    metrics=model.get_metrics())
   return model_info
 
 
