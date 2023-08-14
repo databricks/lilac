@@ -46,8 +46,7 @@ model = model_db.get(
   'local', 'positive-product-reviews',
   embedding_name='gte-small')
 
-if model:
-  print(model.get_metrics())
+print(model.get_metrics())
 ```
 
 Output:
