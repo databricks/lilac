@@ -59,3 +59,5 @@ dataset = ll.create_dataset(config)
 ```
 
 For details on all the source loaders, see [](#lilac.sources).
+
+For details on the dataset config, see [](#lilac.DatasetConfig).
