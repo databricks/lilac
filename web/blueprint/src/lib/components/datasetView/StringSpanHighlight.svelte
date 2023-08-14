@@ -172,8 +172,6 @@
   };
 
   const notificationStore = getNotificationsContext();
-
-  $: console.log('store = ', notificationStore);
 </script>
 
 <div class="relative overflow-x-hidden text-ellipsis whitespace-break-spaces py-4">

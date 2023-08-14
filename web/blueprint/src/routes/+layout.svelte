@@ -15,11 +15,7 @@
   import Navigation from '$lib/components/Navigation.svelte';
   import Commands from '$lib/components/commands/Commands.svelte';
   import {createNavigationStore, setNavigationContext} from '$lib/stores/navigationStore';
-  import {
-    createNotificationsStore,
-    getNotificationsContext,
-    setNotificationsContext
-  } from '$lib/stores/notificationsStore';
+  import {createNotificationsStore, setNotificationsContext} from '$lib/stores/notificationsStore';
   import {createSettingsStore, setSettingsContext} from '$lib/stores/settingsStore';
   import 'carbon-components-svelte/css/all.css';
   import {slide} from 'svelte/transition';
@@ -42,8 +38,6 @@
   const notificationsStore = createNotificationsStore();
   setNotificationsContext(notificationsStore);
   $: notifications = $notificationsStore?.notifications || [];
-
-  console.log('ctx', getNotificationsContext());
 
   onMount(() => {
     // Initialize the page from the hash.
@@ -76,9 +70,6 @@
 
   const settingsStore = createSettingsStore();
   setSettingsContext(settingsStore);
-
-  $: console.log('notifications:', notifications);
-  $: console.log('store=', notificationsStore);
 
   const navStore = createNavigationStore();
   setNavigationContext(navStore);
