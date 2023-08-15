@@ -191,4 +191,4 @@ You may need the following to install poetry:
 - [homebrew](https://brew.sh/) (MacOS)
 - [pyenv](https://github.com/pyenv/pyenv) (Python version management)
 - [Set your current python version](./.python-version)
-- [Python Poetry](https://pypi.org/project/poetry/) <<<<<<< HEAD
+- [Python Poetry](https://pypi.org/project/poetry/)
