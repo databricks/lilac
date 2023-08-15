@@ -57,6 +57,7 @@ datasets:
 
   - name: databricks-dolly-15k-curated-en
     namespace: lilac
+    tags: [machine-learning]
     settings:
       ui:
         media_paths:
