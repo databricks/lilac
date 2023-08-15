@@ -10,8 +10,9 @@ to a concept.
 Before we can use conceptual search, we first must compute an embedding index for the field of
 interest. See [Embeddings](../embeddings/embeddings.md) for details on choosing an embedding.
 
-> **_IMPORTANT:_** Embedding indexes can be expensive to compute, however this is a one-time task
-> and enables you to search by any concept once it's computed.
+```{important}
+Embedding indexes can be expensive to compute, however this is a one-time task and enables you to search by any concept once it's computed.
+```
 
 We can compute an embedding index with one of two approaches:
 
@@ -41,8 +42,8 @@ will be highlighted according to their concept score:
 
 #### (Optional) Step 3: Compute the concept for the whole column
 
-Search by concept does not produce a score for every item in the dataset. If we want to want to add
-a score for every item, we click the blue "compute" chip next to the preview in the schema.
+Search by concept does not produce a score for every item in the dataset. If we want to add a score
+for every item, click the blue "compute" chip next to the preview in the schema.
 
 <img src="../_static/dataset/dataset_compute_concept.png"></img>
 
@@ -65,13 +66,14 @@ Once this is complete, we can search by a concept. Let's search by the `lilac/po
 concept.
 
 ```python
-r = dataset.select_rows(['text', 'label'],
-                        searches=[
-                          ll.ConceptSearch(
-                            concept_namespace='lilac',
-                            concept_name='positive-sentiment',
-                            path='text')],
-                        limit=5)
+r = dataset.select_rows(
+  ['text', 'label'],
+  searches=[
+    ll.ConceptSearch(
+      concept_namespace='lilac',
+      concept_name='positive-sentiment',
+      path='text')],
+  limit=5)
 ```
 
 Search by concept does not produce a score for every item in the dataset. If we want to want to add
