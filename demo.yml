@@ -55,20 +55,6 @@ datasets:
       - path: context
         embedding: gte-small
 
-  - name: the-movies-dataset
-    namespace: lilac
-    tags: [fun]
-    settings:
-      ui:
-        media_paths:
-          - text
-      preferred_embedding: 'gte-small'
-    source:
-      source_name: csv
-      filepaths:
-        - https://storage.cloud.google.com/lilac-data/datasets/the_movies_dataset/the_movies_dataset.csv
-
-  This dataset is currently causing issues with loading.
   - name: databricks-dolly-15k-curated-en
     namespace: lilac
     settings:
@@ -141,15 +127,15 @@ datasets:
 
   # Medical datasets
   - name: medical_dialog
-    namespace: local
+    namespace: lilac
     tags: [medical]
 
     settings:
       ui:
         media_paths:
-        - - dialogue_turns
-          - utterance
-          - '*'
+          - - dialogue_turns
+            - utterance
+            - '*'
     source:
       config_name: en
       dataset_name: medical_dialog
@@ -157,6 +143,5 @@ datasets:
 signals:
   - signal_name: pii
   - signal_name: text_statistics
-  - signal_name: spacy_ner
   - signal_name: near_dup
   - signal_name: lang_detection
