@@ -146,7 +146,7 @@
   const searchConcept = (namespace: string, name: string) => {
     if (searchPath == null || selectedEmbedding == null) return;
     datasetViewStore.addSearch({
-      path: [serializePath(searchPath)],
+      path: searchPath,
       type: 'concept',
       concept_namespace: namespace,
       concept_name: name,
@@ -188,7 +188,7 @@
         return;
       }
       datasetViewStore.addSearch({
-        path: [serializePath(searchPath)],
+        path: searchPath,
         type: 'keyword',
         query: searchText
       });
@@ -199,7 +199,7 @@
         return;
       }
       datasetViewStore.addSearch({
-        path: [serializePath(searchPath)],
+        path: searchPath,
         type: 'semantic',
         query: searchText,
         embedding: selectedEmbedding
