@@ -90,9 +90,7 @@
         {:else if $concept?.isError}
           <p>{$concept.error}</p>
         {:else if $concept?.isSuccess}
-          {#key $concept.data}
-            <ConceptView concept={$concept.data} />
-          {/key}
+          <ConceptView concept={$concept.data} />
         {/if}
       {/if}
     </div>

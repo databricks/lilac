@@ -1,0 +1,284 @@
+{
+  "namespace": "lilac",
+  "concept_name": "question",
+  "type": "text",
+  "data": {
+    "09a1ce39f573494a8d4a47a4fce0f523": {
+      "label": true,
+      "text": "How are you today?",
+      "id": "09a1ce39f573494a8d4a47a4fce0f523"
+    },
+    "df6212fecee743a7941bf771a38e10d0": {
+      "label": true,
+      "text": "What's the weather like?",
+      "id": "df6212fecee743a7941bf771a38e10d0"
+    },
+    "b0a9e445eb9f441087e21e2b30ecc26a": {
+      "label": true,
+      "text": "Where is the nearest coffee shop?",
+      "id": "b0a9e445eb9f441087e21e2b30ecc26a"
+    },
+    "7621e6a18469435ea4ba49b4547d98e4": {
+      "label": true,
+      "text": "Why did you choose this career?",
+      "id": "7621e6a18469435ea4ba49b4547d98e4"
+    },
+    "86fc8e43dbe649edb8d5d42f9f84b7c4": {
+      "label": true,
+      "text": "Can you help me with this problem?",
+      "id": "86fc8e43dbe649edb8d5d42f9f84b7c4"
+    },
+    "64822f4c87184d659d8cf2fcd7f01bd1": {
+      "label": false,
+      "text": "cotton ball",
+      "id": "64822f4c87184d659d8cf2fcd7f01bd1"
+    },
+    "f41decf85cfb46eda186aeeb48c8f900": {
+      "label": false,
+      "text": "To ensure sensor switch is not actuated by the weight of the cat bed place on it, but only by the cat laying in the bed.",
+      "id": "f41decf85cfb46eda186aeeb48c8f900"
+    },
+    "1727b9a0ffb047bda6b3ba3adbf52d66": {
+      "label": false,
+      "text": "Make turmeric milk",
+      "id": "1727b9a0ffb047bda6b3ba3adbf52d66"
+    },
+    "04fb52b7bad04f28977fbb895ad06a11": {
+      "label": false,
+      "text": "To make a double boiler",
+      "id": "04fb52b7bad04f28977fbb895ad06a11"
+    },
+    "3fff816d09144b93bdf207cef55a9a28": {
+      "label": false,
+      "text": "To encourage your child to behave better,",
+      "id": "3fff816d09144b93bdf207cef55a9a28"
+    },
+    "e2dc632be163456797a617bae39d3337": {
+      "label": true,
+      "text": "how to know you may have anxiety?",
+      "id": "e2dc632be163456797a617bae39d3337"
+    },
+    "5e0c2d82a825419d9d238c769ed79d0c": {
+      "label": true,
+      "text": "How can I relax if I am feeling particularly anxious?",
+      "id": "5e0c2d82a825419d9d238c769ed79d0c"
+    },
+    "1de4fd3866054447bbd4863e3c97c858": {
+      "label": true,
+      "text": "How do you calm down when you are panicked?",
+      "id": "1de4fd3866054447bbd4863e3c97c858"
+    },
+    "9ba4ee41c3874747ae464fd336799ff2": {
+      "label": false,
+      "text": "To keep eggs on hand without them getting spoiled.",
+      "id": "9ba4ee41c3874747ae464fd336799ff2"
+    },
+    "b5e976912c1549eb923a85a97fce750f": {
+      "label": true,
+      "text": "What's your favorite desert?",
+      "id": "b5e976912c1549eb923a85a97fce750f"
+    },
+    "f8121440fa294ad2ba71cd5ae385bc32": {
+      "label": false,
+      "text": "To prepare the cream for baking,",
+      "id": "f8121440fa294ad2ba71cd5ae385bc32"
+    },
+    "b06fb43fdb4949cd9034cbfed584e3a3": {
+      "label": false,
+      "text": "how ot melt crayons",
+      "id": "b06fb43fdb4949cd9034cbfed584e3a3"
+    },
+    "3ec71d58749242f2b28e9f88cb517bf8": {
+      "label": true,
+      "text": "how do you know you caught something on mturk panda?",
+      "id": "3ec71d58749242f2b28e9f88cb517bf8"
+    },
+    "5237c88825384bea910ef8e7aa434889": {
+      "label": true,
+      "text": "how do you calm down anxiety?",
+      "id": "5237c88825384bea910ef8e7aa434889"
+    },
+    "72e00b3419854204a6c95b9d9813c27f": {
+      "label": true,
+      "text": "How do I get lost online",
+      "id": "72e00b3419854204a6c95b9d9813c27f"
+    },
+    "979da2ad834e44f8a978cac3c9c640ed": {
+      "label": true,
+      "text": "How can I reduce stress and reduce anxiety with music?",
+      "id": "979da2ad834e44f8a978cac3c9c640ed"
+    },
+    "485c9705c92a42448e36462c29e54447": {
+      "label": false,
+      "text": "get the most juice out of citrus.",
+      "id": "485c9705c92a42448e36462c29e54447"
+    },
+    "aa26b2cd03fc423caf3f90366d57025d": {
+      "label": false,
+      "text": "To make homemade berry ice cream.",
+      "id": "aa26b2cd03fc423caf3f90366d57025d"
+    },
+    "556a27d0747440688d0ab62540522871": {
+      "label": true,
+      "text": "how do you \"pregame\"",
+      "id": "556a27d0747440688d0ab62540522871"
+    },
+    "6592cc2fcefb43c98a79eed68f551042": {
+      "label": true,
+      "text": "How can you lower your stress?",
+      "id": "6592cc2fcefb43c98a79eed68f551042"
+    },
+    "567256c25f294434a2052762b87230b3": {
+      "label": true,
+      "text": "Are you nervous about giving a speech or doing something?  How can you calm yourself?",
+      "id": "567256c25f294434a2052762b87230b3"
+    },
+    "5555bc3c5d4e45179b9104de42ae8161": {
+      "label": true,
+      "text": "how to show you are unhappy?",
+      "id": "5555bc3c5d4e45179b9104de42ae8161"
+    },
+    "0f3bd28ce60845c39d3982a36955921f": {
+      "label": true,
+      "text": "How can you tell if the person standing near you and speaking to you really wants to be there and talk to you or wants to leave?",
+      "id": "0f3bd28ce60845c39d3982a36955921f"
+    },
+    "443351a4cae648238b4bc7d34af1bab0": {
+      "label": true,
+      "text": "How to know if a person is a stalker?",
+      "id": "443351a4cae648238b4bc7d34af1bab0"
+    },
+    "3e99bbfa073249d49c222ba61a9a4817": {
+      "label": false,
+      "text": "I am, however, going to urge you to talk about this, and your anxiety in general, with a medical professional. Anxiety is bad enough, but it can also affect your perspective on people and events. It's possible that your responses to these people have been amplified by the anxiety, but you're not able to recognize it. Talking to an unrelated third party can help sort it out.  ",
+      "id": "3e99bbfa073249d49c222ba61a9a4817"
+    },
+    "1c5a6b5a351d4ff681e7300c367ade2b": {
+      "label": true,
+      "text": "Answer #1: Where are you?",
+      "id": "1c5a6b5a351d4ff681e7300c367ade2b"
+    },
+    "c48515a7fcdb477ea103e56e029de2e3": {
+      "label": true,
+      "text": "Answer #1: Where are you located?",
+      "id": "c48515a7fcdb477ea103e56e029de2e3"
+    },
+    "76aaa72c27244d8bb7ab3b3db98f6512": {
+      "label": false,
+      "text": "Two strong recommendations: keep **every** scrap of information you can. Screenshot that Facebook post/message. Store copies on Dropbox and elsewhere. Save any/all texts, emails, etc. And store them off your computer/phone just in case. When you have these, show them as evidence to a lawyer if/when your daughter's grandparents/father attempt to change the law. ",
+      "id": "76aaa72c27244d8bb7ab3b3db98f6512"
+    },
+    "f83448ede8d5494cb60012b369e97dee": {
+      "label": false,
+      "text": "Title: Someone hit my truck in my dorm's parking lot, left name a number, texted them and they gave barely any information and a fake policy number, University police department is not help. [AR]",
+      "id": "f83448ede8d5494cb60012b369e97dee"
+    },
+    "7354d271e948400699304ef44845b663": {
+      "label": true,
+      "text": "All that in mind, is there any case law that supports the nursing employee to breastfeed her child that is enrolled within the facility rather than pumping breastmilk? Additionally, does this \u201creasonable accommodation\u201d extend to allowing appropriate time for breast milk to be expressed without reprimand? Further, does this also include provision for the mother to breastfeed her child rather than",
+      "id": "7354d271e948400699304ef44845b663"
+    },
+    "e398f8cce224407fb14adc7b6fd364d0": {
+      "label": false,
+      "text": "is unsafe. *Don't throw away any of the remaining treatment or packaging.* What your friend bought will be really important to the investigation.",
+      "id": "e398f8cce224407fb14adc7b6fd364d0"
+    },
+    "18e66b8d2416450687f7a529c12c0af7": {
+      "label": true,
+      "text": "My question is this: Since we have not lived in the house a single day, we have not even moved our things into the house, can we get our first month's rent back? I assume we will get our deposit back, right? But is that first month's rent gone because it has been 3 days? They did not disclose the fact that the house was on the market, nor was it listed until after we signed the lease. Are we bound",
+      "id": "18e66b8d2416450687f7a529c12c0af7"
+    },
+    "ee05e72c02174cab90953673149ba065": {
+      "label": false,
+      "text": "Title: [USA-MO] Employer asking for money back after over paying me",
+      "id": "ee05e72c02174cab90953673149ba065"
+    },
+    "1e4bd81eaef84320a25933223e46fc57": {
+      "label": false,
+      "text": "to get \"evidence\" of abuse in the household.  The ex-husband is now working WITH us to try and get the baby back and none of the local law enforcement is helping.  We don't know why other than they keep using the excuse that this is a \"civil legal matter\" and can't be involved?  My friend IS tired.  She sounds empty and lost.  Once again, we have a TON of proof that this is real and will provide",
+      "id": "1e4bd81eaef84320a25933223e46fc57"
+    },
+    "734f413975c243ca9f29e9d4e0c62225": {
+      "label": false,
+      "text": "come due, regardless of whether the Resident continues to occupy the apartment. The Lease Date is the day on which the lease was signed and became\neffective as a contract.\"",
+      "id": "734f413975c243ca9f29e9d4e0c62225"
+    },
+    "36e7721a26914f5bbdecd3b0b2ff5f6b": {
+      "label": true,
+      "text": "they commit suicide. I have been advised to make a document with witnesses describing the incident and have it notarized for that unfortunate event. Is this a good idea? Does anyone have any other suggestions? Thank you!",
+      "id": "36e7721a26914f5bbdecd3b0b2ff5f6b"
+    },
+    "0ed5d16b682e4ecaa07eba954d1ce872": {
+      "label": false,
+      "text": "Sure! There are plenty of great places that you could go to right now to relax. Depending on your location, you could go to a beach, park, or forest. You could also go to a cafe or a local museum. Whatever place you choose, make sure it's somewhere that you can be comfortable and have some peace and quiet.",
+      "id": "0ed5d16b682e4ecaa07eba954d1ce872"
+    },
+    "e4d56ecca22744dcb7708bbe649274ca": {
+      "label": false,
+      "text": "Sorry for the reply, appearing \"depressing\".  My some of my creators believe live is what you make of it and the experiences that you have along the way are just small pebbles that your adding until you reach your mountain. Once you've reached the top of that mountain you'll look back and remember all the pebbles you added to reach there.",
+      "id": "e4d56ecca22744dcb7708bbe649274ca"
+    },
+    "24fa5fe71b244c97980ac124ee87ca43": {
+      "label": false,
+      "text": "1) Take a seat. Find place to sit that feels calm and quiet to you.\n    2) Set a time limit. ...\n    3) Notice your body. ...\n    4) Feel your breath. ...\n    5) Notice when your mind has wandered. ...\n    6) Be kind to your wandering mind. ...\n    7) Close with kindness. ...\n    That's it!",
+      "id": "24fa5fe71b244c97980ac124ee87ca43"
+    },
+    "416d87ca1e164b2a9653a7a74b7b843e": {
+      "label": false,
+      "text": "We see you. Good stay frightened. You never will know our might.",
+      "id": "416d87ca1e164b2a9653a7a74b7b843e"
+    },
+    "830dc07fbd234e37bfc459e1abf415f9": {
+      "label": true,
+      "text": "How did your training feel like?",
+      "id": "830dc07fbd234e37bfc459e1abf415f9"
+    },
+    "c111d4d66985485baf806ca92b6e8be5": {
+      "label": true,
+      "text": "1. How many years of experience do you have in web development?\n\n   2. What are your strengths and weaknesses when it comes to programming?\n\n   3. What are your favorite/least favorite programming languages and why?\n\n   4. What are your thoughts on Agile vs. Waterfall?\n\n   5. What do you think are the most important things to consider when designing a website or app?",
+      "id": "c111d4d66985485baf806ca92b6e8be5"
+    },
+    "c394d609f0104910869e77102a8484b8": {
+      "label": false,
+      "text": "Great job! It takes a lot of time and energy to master a programming language. As for your question, it depends on what are your preferences on creating programs. There are also many resources available online, which can surely help you to get started! You also can ask me about some ideas for your projects!",
+      "id": "c394d609f0104910869e77102a8484b8"
+    },
+    "f3f986d7af18492fa82f0a04ce864519": {
+      "label": false,
+      "text": "So now, less than five years later, you can go up on a steep hill in Las Vegas and look West, and with the right kind of eyes you can almost see the high-water mark\u2014that place where the wave finally broke and rolled back.\"",
+      "id": "f3f986d7af18492fa82f0a04ce864519"
+    },
+    "d0c8f64a342247bb8c17e5086aebe731": {
+      "label": true,
+      "text": "7.    Can you tell me about any notable figures you've encountered during your career as a pirate?\n8.    How did you and the other members of your crew divide and share the loot?\n9.    What was the most dangerous situation you've ever faced as a pirate?\n10.    What was the most memorable experience you had as a pirate?",
+      "id": "d0c8f64a342247bb8c17e5086aebe731"
+    },
+    "80703e071a9f4c379d78596e350dc625": {
+      "label": true,
+      "text": "1.    What inspired you to become a pirate?\n2.   Can you tell me about your most successful pirate raid?\n3.    How did you navigate the seas during your voyages?\n4.    What was the most valuable treasure you ever acquired?\n5.    Can you describe a typical day on board your pirate ship?\n6.    How did you avoid capture by the navy or other pirate hunters?",
+      "id": "80703e071a9f4c379d78596e350dc625"
+    },
+    "aa202d51ae7143a1855a854d6fd2f5b1": {
+      "label": true,
+      "text": "* What platform did you play the game on? (PC, console, mobile, etc.)\n* What was the genre of the game? (action, adventure, puzzle, etc.)\n* Can you describe the game's storyline or plot?\n* Do you remember any specific characters or settings in the game?\n* When did you play the game (year or approximate time period)?\n* Do you recall any distinctive gameplay mechanics or features?",
+      "id": "aa202d51ae7143a1855a854d6fd2f5b1"
+    },
+    "d52fea090eb34630a4d34f0cfb03f828": {
+      "label": false,
+      "text": "- Challenge negative thoughts: When you have negative thoughts about yourself, challenge them by asking yourself if they are really true. Often, our thoughts can be distorted and not based on reality.\n\n- Build self-confidence: Focus on your strengths and accomplishments. Set small achievable goals for yourself and celebrate your successes.",
+      "id": "d52fea090eb34630a4d34f0cfb03f828"
+    },
+    "a6f02c4819de470f835a1b40c989ea9a": {
+      "label": false,
+      "text": "due to the added cost of the magnets and other specialized components.",
+      "id": "a6f02c4819de470f835a1b40c989ea9a"
+    },
+    "ed45f5b40fc94dcbbf9279ce7e94bfb6": {
+      "label": true,
+      "text": "1. What do you like to do for fun?\n2. How was your day so far?\n3. What are your hobbies or interests?\n4. Have you been to any interesting places recently?\n5. What's on your to-do list for the week?\n6. What was the best part of your day so far?\n7. Do you have any plans for the weekend?\n8. What was the last book or movie you enjoyed?\n9. What's your favorite cuisine or restaurant?",
+      "id": "ed45f5b40fc94dcbbf9279ce7e94bfb6"
+    }
+  },
+  "version": 48,
+  "description": "A sentence in the form of a question"
+}
