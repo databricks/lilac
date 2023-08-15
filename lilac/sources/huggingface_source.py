@@ -47,8 +47,9 @@ def _infer_field(feature_value: Union[Value, dict]) -> Field:
       raise ValueError('Field arrays with multiple values are not supported.')
     return Field(repeated_field=_infer_field(feature_value[0]))
   elif isinstance(feature_value, ClassLabel):
-    raise ValueError('Nested ClassLabel is not supported.')
-
+    # TODO(nsthorat): For nested class labels, return the path with the class label values to show
+    # strings in the UI.
+    return Field(dtype=DataType.INT32)
   else:
     raise ValueError(f'Feature is not a `Value`, `Sequence`, or `dict`: {feature_value}')
 
@@ -125,7 +126,10 @@ class HuggingFaceSource(Source):
       hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.dataset_name)}
     else:
       hf_dataset_dict = load_dataset(
-        self.dataset_name, self.config_name, num_proc=multiprocessing.cpu_count())
+        self.dataset_name,
+        self.config_name,
+        num_proc=multiprocessing.cpu_count(),
+        ignore_verifications=True)
     self._dataset_dict = hf_dataset_dict
     self._schema_info = hf_schema_to_schema(self._dataset_dict, self.split, self.sample_size)
 

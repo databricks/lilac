@@ -55,34 +55,34 @@ datasets:
       - path: context
         embedding: gte-small
 
-  # This dataset is currently causing issues with loading.
-  # - name: databricks-dolly-15k-curated-en
-  #   namespace: lilac
-  #   settings:
-  #     ui:
-  #       media_paths:
-  #         - original-instruction
-  #         - original-context
-  #         - original-response
-  #         - - new-instruction
-  #           - value
-  #           - '*'
-  #         - - new-context
-  #           - value
-  #           - '*'
-  #         - - new-response
-  #           - value
-  #           - '*'
-  #     preferred_embedding: 'gte-small'
-  #   # Only run embeddings for original-context and new-context.
-  #   embeddings:
-  #     - path: original-context
-  #       embedding: gte-small
-  #     - path: [new-context, value, '*']
-  #       embedding: gte-small
-  #   source:
-  #     dataset_name: argilla/databricks-dolly-15k-curated-en
-  #     source_name: huggingface
+  - name: databricks-dolly-15k-curated-en
+    namespace: lilac
+    tags: [machine-learning]
+    settings:
+      ui:
+        media_paths:
+          - original-instruction
+          - original-context
+          - original-response
+          - - new-instruction
+            - value
+            - '*'
+          - - new-context
+            - value
+            - '*'
+          - - new-response
+            - value
+            - '*'
+      preferred_embedding: 'gte-small'
+    # Only run embeddings for original-context and new-context.
+    embeddings:
+      - path: original-context
+        embedding: gte-small
+      - path: [new-context, value, '*']
+        embedding: gte-small
+    source:
+      dataset_name: argilla/databricks-dolly-15k-curated-en
+      source_name: huggingface
 
   - name: piqa
     namespace: lilac
@@ -113,19 +113,6 @@ datasets:
       dataset_name: cais/mmlu
       source_name: huggingface
 
-  - name: pile-of-law-constitutions
-    namespace: lilac
-    tags: [legal]
-    settings:
-      ui:
-        media_paths:
-          - text
-      preferred_embedding: 'gte-small'
-    source:
-      config_name: constitutions
-      dataset_name: pile-of-law/pile-of-law
-      source_name: huggingface
-
   - name: pile-of-law-r-legaladvice
     namespace: lilac
     tags: [legal]
@@ -139,27 +126,22 @@ datasets:
       dataset_name: pile-of-law/pile-of-law
       source_name: huggingface
 
-  # Embeddings will take 3 days to compute on my computer. This is an interesting dataset we should
-  # run later.
+  # Medical datasets
+  - name: medical_dialog
+    namespace: lilac
+    tags: [medical]
 
-  # - name: pile-of-law-atticus-contracts
-  #   namespace: lilac
-  #   tags: [legal]
-  #   settings:
-  #     ui:
-  #       media_paths:
-  #         - text
-  #     preferred_embedding: 'gte-small'
-  #   source:
-  #     config_name: atticus_contracts
-  #     dataset_name: pile-of-law/pile-of-law
-  #     # Limit to 100,000. The full size is 600K with large contracts that causes OOM issues.
-  #     sample_size: 100000
-  #     source_name: huggingface
-
+    settings:
+      ui:
+        media_paths:
+          - [dialogue_turns, utterance, '*']
+      preferred_embedding: 'gte-small'
+    source:
+      config_name: en
+      dataset_name: medical_dialog
+      source_name: huggingface
 signals:
   - signal_name: pii
   - signal_name: text_statistics
-  - signal_name: spacy_ner
   - signal_name: near_dup
   - signal_name: lang_detection

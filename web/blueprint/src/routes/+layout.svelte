@@ -13,7 +13,6 @@
   // This import is so we can override the carbon icon theme below.
   import {page} from '$app/stores';
   import Navigation from '$lib/components/Navigation.svelte';
-  import Commands from '$lib/components/commands/Commands.svelte';
   import {createNavigationStore, setNavigationContext} from '$lib/stores/navigationStore';
   import {createNotificationsStore, setNotificationsContext} from '$lib/stores/notificationsStore';
   import {createSettingsStore, setSettingsContext} from '$lib/stores/settingsStore';
@@ -144,5 +143,4 @@
   </div>
 
   <TaskMonitor />
-  <Commands />
 </QueryClientProvider>

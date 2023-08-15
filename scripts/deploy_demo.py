@@ -68,11 +68,6 @@ def deploy_demo(overwrite: bool, skip_sync: bool, skip_load: bool, skip_build: b
   if not skip_load:
     load(DEMO_DATA_DIR, DEMO_CONFIG_PATH, overwrite)
 
-  # Copy lilac concepts to the demo data dir from the default data_path: 'data'.
-  concepts_target_dir = os.path.join(DEMO_DATA_DIR, CONCEPTS_DIR, 'lilac')
-  shutil.copytree(
-    os.path.join('data', CONCEPTS_DIR, 'lilac'), concepts_target_dir, dirs_exist_ok=True)
-
   datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(DEMO_DATA_DIR)]
   deploy_hf(
     # Take this from the env variable.
