@@ -8,6 +8,7 @@
   import {getNavigationContext} from '$lib/stores/navigationStore';
   import {SidePanelOpen} from 'carbon-icons-svelte';
   import TaskStatus from './TaskStatus.svelte';
+  import Commands from './commands/Commands.svelte';
   import {hoverTooltip} from './common/HoverTooltip';
 
   const authInfo = queryAuthInfo();
@@ -79,4 +80,6 @@
   <div class="relative flex h-full w-full overflow-hidden">
     <slot />
   </div>
+
+  <Commands />
 </div>

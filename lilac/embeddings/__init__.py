@@ -1,4 +1,4 @@
-"""Embeddings compute a vector for a chunk of a document"""
+"""Embeddings compute a vector for a chunk of a document."""
 
 from .embedding import compute_split_embeddings
 

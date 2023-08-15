@@ -350,11 +350,11 @@ class DatasetDuckDB(Dataset):
   @override
   def compute_signal(self,
                      signal: Signal,
-                     leaf_path: Path,
+                     path: Path,
                      task_step_id: Optional[TaskStepId] = None) -> None:
     if isinstance(signal, TextEmbeddingSignal):
-      return self.compute_embedding(signal.name, leaf_path, task_step_id)
-    source_path = normalize_path(leaf_path)
+      return self.compute_embedding(signal.name, path, task_step_id)
+    source_path = normalize_path(path)
     manifest = self.manifest()
 
     if task_step_id is None:

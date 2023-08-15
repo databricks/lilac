@@ -5,7 +5,6 @@ from .huggingface_source import HuggingFaceSource
 from .json_source import JSONSource
 from .pandas_source import PandasSource
 from .parquet_source import ParquetSource
-from .reddit_hf_source import RedditDataset
 from .source_registry import register_source
 
 
