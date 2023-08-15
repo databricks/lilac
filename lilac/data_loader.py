@@ -31,7 +31,7 @@ from .schema import (
   is_float,
 )
 from .tasks import TaskStepId, progress
-from .utils import get_dataset_output_dir, log, open_file
+from .utils import get_dataset_output_dir, log, open_file, to_yaml
 
 
 def create_dataset(config: DatasetConfig) -> Dataset:
@@ -81,7 +81,7 @@ def process_source(base_dir: Union[str, pathlib.Path],
     dataset = get_dataset(config.namespace, config.name)
     config.settings = default_settings(dataset)
   with open_file(os.path.join(output_dir, CONFIG_FILENAME), 'w') as f:
-    f.write(yaml.dump(config.dict(exclude_defaults=True, exclude_none=True)))
+    f.write(to_yaml(config.dict(exclude_defaults=True, exclude_none=True)))
 
   log(f'Dataset "{config.name}" written to {output_dir}')
 

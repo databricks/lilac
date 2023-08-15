@@ -18,6 +18,7 @@ from typing import IO, Any, Awaitable, Callable, Iterable, Optional, TypeVar, Un
 
 import numpy as np
 import requests
+import yaml
 from google.cloud.storage import Blob, Client
 from pydantic import BaseModel
 
@@ -288,3 +289,8 @@ def pretty_timedelta(delta: timedelta) -> str:
     return '%dm%ds' % (minutes, seconds)
   else:
     return '%ds' % (seconds,)
+
+
+def to_yaml(input: dict) -> str:
+  """Convert a dictionary to a pretty yaml representation."""
+  return yaml.dump(input, default_flow_style=None)

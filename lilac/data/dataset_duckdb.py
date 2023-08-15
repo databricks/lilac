@@ -55,7 +55,7 @@ from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
 from ..sources.source import Source
 from ..tasks import TaskStepId, progress
-from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
+from ..utils import DebugTimer, get_dataset_output_dir, log, open_file, to_yaml
 from . import dataset
 from .dataset import (
   BINARY_OPS,
@@ -166,7 +166,7 @@ class DatasetDuckDB(Dataset):
       config = DatasetConfig(
         namespace=namespace, name=dataset_name, source=source_cls(), settings=settings)
       with open(get_config_filepath(self.namespace, self.dataset_name), 'w') as f:
-        yaml.dump(config.dict(exclude_none=True, exclude_defaults=True), f)
+        f.write(to_yaml(config.dict(exclude_none=True, exclude_defaults=True), f))
 
     # Create a join table from all the parquet files.
     self.manifest()
@@ -293,7 +293,7 @@ class DatasetDuckDB(Dataset):
             config.embeddings.append(embedding_config)
 
       with open(get_config_filepath(self.namespace, self.dataset_name), 'w') as f:
-        yaml.dump(config.dict(exclude_none=True, exclude_defaults=True), f)
+        f.write(to_yaml(config.dict(exclude_none=True, exclude_defaults=True)))
 
   @override
   def config(self) -> DatasetConfig:

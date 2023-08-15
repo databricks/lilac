@@ -293,7 +293,7 @@ def get_config(namespace: str, dataset_name: str,
   dataset = get_dataset(namespace, dataset_name)
   config_dict = dataset.config().dict(exclude_defaults=True, exclude_none=True)
   if format == 'yaml':
-    return yaml.dump(config_dict)
+    return to_yaml(config_dict)
   elif format == 'json':
     return config_dict
 

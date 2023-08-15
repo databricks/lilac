@@ -24,7 +24,7 @@ from ..schema import (
   SourceManifest,
 )
 from ..sources.source import Source
-from ..utils import get_dataset_output_dir, open_file
+from ..utils import get_dataset_output_dir, open_file, to_yaml
 from .dataset import Dataset, default_settings
 from .dataset_utils import is_primitive, write_items_to_parquet
 
@@ -109,7 +109,7 @@ def make_dataset(dataset_cls: Type[Dataset],
   config_filepath = os.path.join(
     get_dataset_output_dir(str(tmp_path), TEST_NAMESPACE, TEST_DATASET_NAME), CONFIG_FILENAME)
   with open_file(config_filepath, 'w') as f:
-    f.write(yaml.dump(config.dict(exclude_defaults=True, exclude_none=True, exclude_unset=True)))
+    f.write(to_yaml(config.dict(exclude_defaults=True, exclude_none=True, exclude_unset=True)))
 
   return dataset
 
