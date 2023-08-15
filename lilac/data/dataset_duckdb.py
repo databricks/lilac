@@ -224,7 +224,7 @@ class DatasetDuckDB(Dataset):
                                                         for manifest in self._signal_manifests
                                                         if manifest.files])
     join_sql = ' '.join([SOURCE_VIEW_NAME] + [
-      f'join {_escape_col_name(manifest.parquet_id)} using ({ROWID},)'
+      f'LEFT JOIN {_escape_col_name(manifest.parquet_id)} USING ({ROWID})'
       for manifest in self._signal_manifests
       if manifest.files
     ])
