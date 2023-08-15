@@ -293,7 +293,7 @@ class Dataset(abc.ABC):
 
     Args:
       signal: The signal to compute over the given columns.
-      leaf_path: The leaf path to compute the signal on.
+      path: The leaf path to compute the signal on.
       task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
         progress of the task.
     """
