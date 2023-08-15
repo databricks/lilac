@@ -78,12 +78,6 @@
           // Filter out the entity field.
           .filter(f => f.path.at(-1) !== VALUE_KEY)
       ]
-        .flatMap(f => {
-          // Recursively find the children without children
-          const children = childDisplayFields(f);
-          // If any children are signal roots, don't add the field itself.
-          return children.some(c => isSignalRootField(c)) ? children : [f];
-        })
 
         // Filter out specific types of signals
         .filter(c => {
