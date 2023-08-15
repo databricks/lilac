@@ -19,7 +19,7 @@ To install Lilac on your machine:
 pip install lilacai
 ```
 
-https://raw.githubusercontent.com/lilacai/lilac/main/docs/_static/lilac-welcome.mp4
+https://github.com/lilacai/lilac/assets/2294279/cb1378f8-92c1-4f2a-9524-ce5ddd8e0c53
 
 Lilac helps you:
 
