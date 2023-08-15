@@ -154,7 +154,7 @@ datasets:
       dataset_name: medical_dialog
       source_name: huggingface
 
-  - name: enron
+  - name: enron-emails
     namespace: local
     tags: [business]
     settings:
