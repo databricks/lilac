@@ -92,7 +92,6 @@ def test_select_all_columns(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(SIMPLE_ITEMS)
 
   result = dataset.select_rows()
-  print(list(result))
   assert list(result) == SIMPLE_ITEMS
 
 

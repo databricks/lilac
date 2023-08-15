@@ -60,6 +60,9 @@ from . import dataset
 from .dataset import (
   BINARY_OPS,
   LIST_OPS,
+  SAMPLE_AVG_TEXT_LENGTH,
+  TOO_LONG_TEXT,
+  TOO_MANY_DISTINCT,
   UNARY_OPS,
   BinaryOp,
   Column,
@@ -100,8 +103,6 @@ SIGNAL_MANIFEST_FILENAME = 'signal_manifest.json'
 DATASET_SETTINGS_FILENAME = 'settings.json'
 SOURCE_VIEW_NAME = 'source'
 
-# Sample size for approximating the distinct count of a column.
-SAMPLE_SIZE_DISTINCT_COUNT = 100_000
 NUM_AUTO_BINS = 15
 
 BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
@@ -575,6 +576,7 @@ class DatasetDuckDB(Dataset):
       raise ValueError(f'Unable to sort by path {path}. The field has no value.')
 
   @override
+  @functools.cache # Cache stats for leaf paths since we ask on every dataset page refresh.
   def stats(self, leaf_path: Path) -> StatsResult:
     if not leaf_path:
       raise ValueError('leaf_path must be provided')
@@ -593,36 +595,45 @@ class DatasetDuckDB(Dataset):
     inner_select = _select_sql(
       duckdb_path, flatten=True, unnest=True, span_from=self._get_span_from(path, manifest))
 
-    # Compute approximate count by sampling the data to avoid OOM.
-    sample_size = SAMPLE_SIZE_DISTINCT_COUNT
-    avg_length_query = ''
+    # Compute the average length of text fields.
+    avg_text_length: Optional[int] = None
     if leaf.dtype == DataType.STRING:
-      avg_length_query = ', avg(length(val)) as avgTextLength'
+      avg_length_query = f"""
+        SELECT avg(length(val))
+        FROM (SELECT {inner_select} AS val FROM t) USING SAMPLE {SAMPLE_AVG_TEXT_LENGTH};
+      """
+      with DebugTimer('avg text length'):
+        row = self._query(avg_length_query)[0]
+        avg_text_length = int(row[0])
 
-    row: Optional[tuple[int, ...]] = None
-    if leaf.dtype == DataType.BOOLEAN:
+    with DebugTimer('total count'):
+      total_count_query = f'SELECT count(val) FROM (SELECT {inner_select} as val FROM t)'
+      total_count = int(self._query(total_count_query)[0][0])
+
+    # Compute approximate count by sampling the data to avoid OOM.
+    if avg_text_length and avg_text_length > TOO_LONG_TEXT:
+      # Assume that every text field is unique.
+      approx_count_distinct = manifest.num_items
+    elif leaf.dtype == DataType.BOOLEAN:
       approx_count_distinct = 2
     else:
+      sample_size = TOO_MANY_DISTINCT
       approx_count_query = f"""
-        SELECT approx_count_distinct(val) as approxCountDistinct {avg_length_query}
-        FROM (SELECT {inner_select} AS val FROM t LIMIT {sample_size});
+        SELECT approx_count_distinct(val) as approxCountDistinct
+        FROM (SELECT {inner_select} AS val FROM t) USING SAMPLE {sample_size};
       """
       row = self._query(approx_count_query)[0]
-      approx_count_distinct = row[0]
+      approx_count_distinct = int(row[0])
 
-    total_count_query = f'SELECT count(val) FROM (SELECT {inner_select} as val FROM t)'
-    total_count = self._query(total_count_query)[0][0]
-
-    if leaf.dtype != DataType.BOOLEAN:
       # Adjust the counts for the sample size.
       factor = max(1, total_count / sample_size)
       approx_count_distinct = round(approx_count_distinct * factor)
 
     result = StatsResult(
-      path=path, total_count=total_count, approx_count_distinct=approx_count_distinct)
-
-    if leaf.dtype == DataType.STRING and row:
-      result.avg_text_length = row[1]
+      path=path,
+      total_count=total_count,
+      approx_count_distinct=approx_count_distinct,
+      avg_text_length=avg_text_length)
 
     # Compute min/max values for ordinal leafs, without sampling the data.
     if is_ordinal(leaf.dtype):

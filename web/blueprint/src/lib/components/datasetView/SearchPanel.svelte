@@ -161,7 +161,7 @@
       selectedItem: SearchSelectItem;
     }>
   ) => {
-    if (searchPath == null || selectedEmbedding == null) return;
+    if (searchPath == null) return;
     if (e.detail.selectedId === 'new-concept') {
       if (searchText === newConceptItem.id) searchText = '';
       const conceptSplit = searchText.split('/', 2);
@@ -172,7 +172,6 @@
       } else {
         [conceptName] = conceptSplit;
       }
-
       triggerCommand({
         command: Command.CreateConcept,
         namespace: conceptNamespace,
@@ -182,7 +181,6 @@
         onCreate: e => searchConcept(e.detail.namespace, e.detail.name)
       });
       conceptComboBox.clear();
-      return;
     } else if (e.detail.selectedId === 'keyword-search') {
       if (searchText == '') {
         return;
@@ -193,9 +191,8 @@
         query: searchText
       });
       conceptComboBox.clear();
-      return;
     } else if (e.detail.selectedId == 'semantic-search') {
-      if (searchText == '') {
+      if (searchText == '' || selectedEmbedding == null) {
         return;
       }
       datasetViewStore.addSearch({
@@ -205,9 +202,9 @@
         embedding: selectedEmbedding
       });
       conceptComboBox.clear();
-      return;
+    } else {
+      searchConcept(e.detail.selectedId.namespace, e.detail.selectedId.name);
     }
-    searchConcept(e.detail.selectedId.namespace, e.detail.selectedId.name);
   };
 
   const selectField = (e: Event) => {

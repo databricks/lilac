@@ -7,7 +7,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from ..schema import Item, schema
-from . import dataset_duckdb
+from . import dataset as dataset_module
 from .dataset import StatsResult
 from .dataset_test_utils import TestDataMaker
 
@@ -95,7 +95,7 @@ def test_nested_stats(make_test_data: TestDataMaker) -> None:
 
 def test_stats_approximation(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   sample_size = 5
-  mocker.patch(f'{dataset_duckdb.__name__}.SAMPLE_SIZE_DISTINCT_COUNT', sample_size)
+  mocker.patch(f'{dataset_module.__name__}.TOO_MANY_DISTINCT', sample_size)
 
   nested_items: list[Item] = [{'feature': str(i)} for i in range(sample_size * 10)]
   nested_schema = schema({'feature': 'string'})
