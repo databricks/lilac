@@ -50,7 +50,14 @@ DEMO_HF_SPACE = 'lilacai/lilac'
   type=bool,
   is_flag=True,
   default=False)
-def deploy_demo(overwrite: bool, skip_sync: bool, skip_load: bool, skip_build: bool) -> None:
+@click.option(
+  '--skip_deploy',
+  help='Skip deploying to HuggingFace. Useful to test locally.',
+  type=bool,
+  is_flag=True,
+  default=False)
+def deploy_demo(overwrite: bool, skip_sync: bool, skip_load: bool, skip_build: bool,
+                skip_deploy: bool) -> None:
   """Deploys the public demo."""
   if not skip_sync:
     repo_basedir = os.path.join(DEMO_DATA_DIR, '.hf_sync')
@@ -68,17 +75,18 @@ def deploy_demo(overwrite: bool, skip_sync: bool, skip_load: bool, skip_build: b
   if not skip_load:
     load(DEMO_DATA_DIR, DEMO_CONFIG_PATH, overwrite)
 
-  datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(DEMO_DATA_DIR)]
-  deploy_hf(
-    # Take this from the env variable.
-    hf_username=None,
-    hf_space=DEMO_HF_SPACE,
-    datasets=datasets,
-    # No extra concepts. lilac concepts are pushed by default.
-    concepts=[],
-    skip_build=skip_build,
-    skip_cache=False,
-    data_dir=DEMO_DATA_DIR)
+  if not skip_deploy:
+    datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(DEMO_DATA_DIR)]
+    deploy_hf(
+      # Take this from the env variable.
+      hf_username=None,
+      hf_space=DEMO_HF_SPACE,
+      datasets=datasets,
+      # No extra concepts. lilac concepts are pushed by default.
+      concepts=[],
+      skip_build=skip_build,
+      skip_cache=False,
+      data_dir=DEMO_DATA_DIR)
 
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:

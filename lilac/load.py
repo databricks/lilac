@@ -21,6 +21,7 @@ import yaml
 from distributed import Client
 from pydantic import ValidationError
 
+from .concepts.db_concept import DiskConceptDB, DiskConceptModelDB
 from .config import Config, DatasetConfig, EmbeddingConfig, SignalConfig
 from .data.dataset_duckdb import DatasetDuckDB
 from .data_loader import process_source
@@ -201,6 +202,17 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
         task_manager.wait()
 
       del dataset
+
+  print()
+  print('*** Compute model caches ***')
+  with DebugTimer('Computing model caches'):
+    concept_db = DiskConceptDB(output_dir)
+    concept_model_db = DiskConceptModelDB(concept_db)
+    if config.concept_model_cache_embeddings:
+      for concept_info in concept_db.list():
+        for embedding in config.concept_model_cache_embeddings:
+          concept_model_db.sync(
+            concept_info.namespace, concept_info.name, embedding_name=embedding, create=True)
 
   print()
   print('Done!')

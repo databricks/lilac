@@ -145,3 +145,11 @@ signals:
   - signal_name: text_statistics
   - signal_name: near_dup
   - signal_name: lang_detection
+
+concept_model_cache_embeddings:
+  - gte-small
+  - gte-base
+  - sbert
+  - openai
+  - cohere
+  - palm

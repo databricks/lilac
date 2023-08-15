@@ -201,6 +201,9 @@ class Config(BaseModel):
   # signals is overridden by a specific dataset.
   signals: list[Signal] = []
 
+  # A list of embeddings to compute the model caches for, for all concepts.
+  concept_model_cache_embeddings: list[str] = []
+
   class Config:
     extra = Extra.forbid
 
