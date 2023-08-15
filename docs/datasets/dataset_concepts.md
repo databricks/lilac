@@ -78,10 +78,10 @@ Search by concept does not produce a score for every item in the dataset. If we 
 a score for every item, we can call [](#Dataset.compute_signal):
 
 ```python
-dataset.compute_signal(
-  ll.ConceptSignal(
-    namespace='lilac',
-    concept_name='positive-sentiment'),
+dataset.compute_concept(
+  namespace='lilac',
+  concept_name='positive-sentiment',
+  embedding='gte-small',
   path='text')
 ```
 
