@@ -142,3 +142,29 @@ too_many_distinct=False counts=[('pos', 75000), ('neg', 25000)] bins=None
 ```
 
 See [](#Dataset.select_groups) for more options.
+
+#### `data_schema`
+
+To get the schema and metadata for the dataset, call dataset.manifest():
+
+```python
+print(dataset.manifest())
+```
+
+Output:
+
+```
+namespace='local' dataset_name='imdb' data_schema={
+  "fields": {
+    "text": {
+      "dtype": "string"
+    },
+    "label": {
+      "dtype": "string"
+    },
+    "__hfsplit__": {
+      "dtype": "string"
+    }
+  }
+} num_items=100000
+```

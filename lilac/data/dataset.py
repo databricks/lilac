@@ -287,7 +287,7 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def compute_signal(self,
                      signal: Signal,
-                     leaf_path: Path,
+                     path: Path,
                      task_step_id: Optional[TaskStepId] = None) -> None:
     """Compute a signal for a column.
 
