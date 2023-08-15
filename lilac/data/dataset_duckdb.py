@@ -602,13 +602,11 @@ class DatasetDuckDB(Dataset):
         SELECT avg(length(val))
         FROM (SELECT {inner_select} AS val FROM t) USING SAMPLE {SAMPLE_AVG_TEXT_LENGTH};
       """
-      with DebugTimer('avg text length'):
-        row = self._query(avg_length_query)[0]
-        avg_text_length = int(row[0])
+      row = self._query(avg_length_query)[0]
+      avg_text_length = int(row[0])
 
-    with DebugTimer('total count'):
-      total_count_query = f'SELECT count(val) FROM (SELECT {inner_select} as val FROM t)'
-      total_count = int(self._query(total_count_query)[0][0])
+    total_count_query = f'SELECT count(val) FROM (SELECT {inner_select} as val FROM t)'
+    total_count = int(self._query(total_count_query)[0][0])
 
     # Compute approximate count by sampling the data to avoid OOM.
     if avg_text_length and avg_text_length > MAX_TEXT_LEN_DISTINCT_COUNT:
