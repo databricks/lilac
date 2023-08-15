@@ -6,7 +6,7 @@
    */
   import {googleLogoutMutation} from '$lib/queries/googleAuthQueries';
   import {getNavigationContext} from '$lib/stores/navigationStore';
-  import {SidePanelOpen} from 'carbon-icons-svelte';
+  import {Help, SidePanelOpen} from 'carbon-icons-svelte';
   import TaskStatus from './TaskStatus.svelte';
   import Commands from './commands/Commands.svelte';
   import {hoverTooltip} from './common/HoverTooltip';
@@ -50,6 +50,16 @@
       </div>
       <div class="flex flex-row items-center gap-x-2">
         <slot name="header-right" />
+        <div>
+          <OverflowMenu flipped icon={Help}>
+            <OverflowMenuItem href="https://lilacml.com" text="Documentation" />
+            <OverflowMenuItem href="https://discord.gg/YpGxQMyk" text="Discord" />
+            <OverflowMenuItem
+              href="https://github.com/lilacai/lilac/issues/new"
+              text="File a bug"
+            />
+          </OverflowMenu>
+        </div>
         <TaskStatus />
         {#if $authInfo.data?.auth_enabled}
           {#if $authInfo.data?.user != null}
