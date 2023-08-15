@@ -5,7 +5,7 @@ Analyze, structure and clean unstructured data with AI.
 [![Downloads](https://static.pepy.tech/badge/lilacai/month)](https://pepy.tech/project/lilacai)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Twitter](https://img.shields.io/twitter/follow/lilac_ai)](https://twitter.com/lilac_ai)
-[![](https://dcbadge.vercel.app/api/server/Mq7AGrmv?compact=true&style=flat)](https://discord.gg/Mq7AGrmv)
+[![](https://dcbadge.vercel.app/api/server/YpGxQMyk?compact=true&style=flat)](https://discord.gg/YpGxQMyk)
 
 > **NEW: Try the [Lilac hosted demo with pre-loaded datasets](https://lilacai-lilac.hf.space/)**
 
@@ -192,49 +192,3 @@ You may need the following to install poetry:
 - [pyenv](https://github.com/pyenv/pyenv) (Python version management)
 - [Set your current python version](./.python-version)
 - [Python Poetry](https://pypi.org/project/poetry/) <<<<<<< HEAD
-
-### Troubleshooting
-
-#### pyenv install not working on M1
-
-If your pyenv does not work on M1 machines after installing xcode, you may need to reinstall xcode
-command line tools.
-[Stack Overflow Link](https://stackoverflow.com/questions/65778888/pyenv-configure-error-c-compiler-cannot-create-executables)
-
-#### No module named `_lzma`
-
-Follow instructions from [pyenv](https://github.com/pyenv/pyenv/wiki#suggested-build-environment):
-
-- Uninstall python via `pyenv uninstall`
-- Run `brew install openssl readline sqlite3 xz zlib tcl-tk`
-- Reinstall python via `pyenv install`
-
-```sh
-$ sudo rm -rf /Library/Developer/CommandLineTools
-$ xcode-select --install
-```
-
-#### Installing TensorFlow on M1
-
-M1/M2 chips need a special TF installation. These steps are taken from the official
-[Apple docs](https://developer.apple.com/metal/tensorflow-plugin/):
-
-1. Click
-   [here](https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh)
-   to download Conda env
-2. Run:
-
-```
-chmod +x ~/Downloads/Miniforge3-MacOSX-arm64.sh
-sh ~/Downloads/Miniforge3-MacOSX-arm64.sh
-source ~/miniforge3/bin/activate
-```
-
-3. Install the TensorFlow `2.9.0` dependencies: `conda install -c apple tensorflow-deps=2.9.0`
-
-#### Too many open files on MacOS
-
-When downloading and pre-processing TFDS datasets, you might get `too many open files` error. To
-fix, increase [the max open files limit](https://superuser.com/a/1679740). =======
-
-> > > > > > > origin/main
