@@ -5,7 +5,7 @@ Analyze, structure and clean unstructured data with AI.
 [![Downloads](https://static.pepy.tech/badge/lilacai/month)](https://pepy.tech/project/lilacai)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Twitter](https://img.shields.io/twitter/follow/lilac_ai)](https://twitter.com/lilac_ai)
-[![](https://dcbadge.vercel.app/api/server/Mq7AGrmv?compact=true&style=flat)](https://discord.gg/Mq7AGrmv)
+[![](https://dcbadge.vercel.app/api/server/Mq7AGrmv?compact=true&style=flat)](https://discord.gg/YpGxQMyk)
 [![Dev Container](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/lilacai/lilac)
 [![GitHub Codespace](https://github.com/codespaces/badge.svg)](https://codespaces.new/lilacai/lilac)
 
