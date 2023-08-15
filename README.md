@@ -7,7 +7,31 @@ Analyze, structure and clean unstructured data with AI.
 [![Twitter](https://img.shields.io/twitter/follow/lilac_ai)](https://twitter.com/lilac_ai)
 [![](https://dcbadge.vercel.app/api/server/Mq7AGrmv?compact=true&style=flat)](https://discord.gg/Mq7AGrmv)
 
-### Prerequisites
+> **NEW: Try the [Lilac hosted demo with pre-loaded datasets](https://lilacai-lilac.hf.space/)**
+
+Lilac is an open-source product that helps you analyze, structure, and clean unstructured data.
+
+To install Lilac on your machine:
+
+```sh
+pip install lilacai
+```
+
+https://github.com/lilacai/lilac/assets/2294279/cb1378f8-92c1-4f2a-9524-ce5ddd8e0c53
+
+Lilac helps you:
+
+- **Explore** datasets with natural language (e.g. documents)
+- **Enrich** your dataset with metadata (e.g. PII detection, profanity, text statistics, etc.)
+- Conceptually **search** and tag your data (e.g. find paragraphs about injury)
+- **Remove** unwanted or problematic data based on your own criteria
+- **Analyze** patterns in your data.
+
+Lilac runs completely **on device** using powerful open-source LLM technologies.
+
+## Development
+
+### Setup
 
 Before you can run the server, install the following:
 
@@ -21,8 +45,6 @@ Before you can run the server, install the following:
 ```
 
 ### Run Lilac
-
-#### Development
 
 To run the web server in dev mode with fast edit-refresh:
 
@@ -160,13 +182,7 @@ NOTE: You must have a config JSON or YAML file that represents your dataset conf
 config should be an instance of the pydantic class `lilac.Config` (for multiple datasets) or
 `lilac.DatasetConfig` (for a single dataset).
 
-### Tips
-
-#### Recommended dev tools
-
-- [VSCode](https://code.visualstudio.com/)
-
-#### Installing poetry
+### Installing poetry
 
 You may need the following to install poetry:
 
@@ -175,7 +191,7 @@ You may need the following to install poetry:
 - [homebrew](https://brew.sh/) (MacOS)
 - [pyenv](https://github.com/pyenv/pyenv) (Python version management)
 - [Set your current python version](./.python-version)
-- [Python Poetry](https://pypi.org/project/poetry/)
+- [Python Poetry](https://pypi.org/project/poetry/) <<<<<<< HEAD
 
 ### Troubleshooting
 
@@ -219,4 +235,6 @@ source ~/miniforge3/bin/activate
 #### Too many open files on MacOS
 
 When downloading and pre-processing TFDS datasets, you might get `too many open files` error. To
-fix, increase [the max open files limit](https://superuser.com/a/1679740).
+fix, increase [the max open files limit](https://superuser.com/a/1679740). =======
+
+> > > > > > > origin/main
