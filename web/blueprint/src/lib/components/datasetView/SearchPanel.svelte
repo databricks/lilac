@@ -215,7 +215,7 @@
   };
 </script>
 
-<div class="border-1 flex w-full flex-row items-center px-4">
+<div class="border-1 flex w-full flex-row items-center">
   <div class="compute-embedding mr-1" class:compute-embedding-indexing={isIndexing}>
     <Button
       disabled={isEmbeddingComputed || isIndexing}
@@ -302,7 +302,7 @@
       </Select>
     {/key}
   </div>
-  <div class="embedding-select mr-8 flex flex-row">
+  <div class="embedding-select flex flex-row">
     <div class="w-32" use:hoverTooltip={{text: 'Select the embedding to use.'}}>
       <Select
         size="xl"

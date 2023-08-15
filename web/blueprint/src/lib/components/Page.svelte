@@ -33,15 +33,15 @@
   >
     <button
       class:invisible={$navStore.open}
-      class="ml-1 opacity-60 hover:bg-gray-200"
+      class="opacity-60 hover:bg-gray-200"
       use:hoverTooltip={{text: 'Open sidebar'}}
       on:click={() => ($navStore.open = true)}><SidePanelOpen /></button
     >
     <div
-      class="ml-1 flex flex-grow flex-row items-center justify-between justify-items-center gap-x-12 py-2 pr-4"
+      class="flex flex-grow flex-row items-center justify-between justify-items-center gap-x-4 py-2 pr-4"
     >
-      <div class="mr-4 flex flex-row items-center">
-        <div class="mt-1">
+      <div class="flex flex-row items-center">
+        <div>
           <slot name="header-subtext" />
         </div>
       </div>
