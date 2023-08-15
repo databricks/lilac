@@ -60,8 +60,8 @@ from . import dataset
 from .dataset import (
   BINARY_OPS,
   LIST_OPS,
+  MAX_TEXT_LEN_DISTINCT_COUNT,
   SAMPLE_AVG_TEXT_LENGTH,
-  TOO_LONG_TEXT,
   TOO_MANY_DISTINCT,
   UNARY_OPS,
   BinaryOp,
@@ -576,7 +576,7 @@ class DatasetDuckDB(Dataset):
       raise ValueError(f'Unable to sort by path {path}. The field has no value.')
 
   @override
-  @functools.cache # Cache stats for leaf paths since we ask on every dataset page refresh.
+  @functools.cache  # Cache stats for leaf paths since we ask on every dataset page refresh.
   def stats(self, leaf_path: Path) -> StatsResult:
     if not leaf_path:
       raise ValueError('leaf_path must be provided')
@@ -611,7 +611,7 @@ class DatasetDuckDB(Dataset):
       total_count = int(self._query(total_count_query)[0][0])
 
     # Compute approximate count by sampling the data to avoid OOM.
-    if avg_text_length and avg_text_length > TOO_LONG_TEXT:
+    if avg_text_length and avg_text_length > MAX_TEXT_LEN_DISTINCT_COUNT:
       # Assume that every text field is unique.
       approx_count_distinct = manifest.num_items
     elif leaf.dtype == DataType.BOOLEAN:
