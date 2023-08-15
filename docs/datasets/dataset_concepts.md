@@ -7,22 +7,22 @@ to a concept.
 
 #### Step 1: Compute an embedding index
 
-Before we can apply conceptual search, we first must compute an embedding index for a field we want
-to search over. See [Embeddings](../embeddings/embeddings.md) for details on choosing an embedding.
+Before we can use conceptual search, we first must compute an embedding index for the field of
+interest. See [Embeddings](../embeddings/embeddings.md) for details on choosing an embedding.
 
 > **_IMPORTANT:_** Embedding indexes can be expensive to compute, however this is a one-time task
-> and enables you to search by _any_ concept once it's computed.
+> and enables you to search by any concept once it's computed.
 
 We can compute an embedding index with one of two approaches:
 
-##### From the search box
+##### 1a. From the search box
 
 From the search box, we can choose a column and an embedding. Then we can click the blue gear icon
 to compute the index!
 
 <img src="../_static/dataset/dataset_search_compute.png"></img>
 
-##### From the schema
+##### 1b. From the schema
 
 From the schema, we can choose the field's hamburger menu to click "Compute Embedding".
 
