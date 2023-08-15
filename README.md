@@ -19,7 +19,7 @@ To install Lilac on your machine:
 pip install lilacai
 ```
 
-<video loop muted autoplay controls src="docs/_static/lilac-welcome.mp4"></video>
+https://raw.githubusercontent.com/lilacai/lilac/main/docs/_static/lilac-welcome.mp4
 
 Lilac helps you:
 
