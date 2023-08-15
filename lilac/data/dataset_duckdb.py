@@ -597,7 +597,7 @@ class DatasetDuckDB(Dataset):
 
     # Compute the average length of text fields.
     avg_text_length: Optional[int] = None
-    if leaf.dtype == DataType.STRING:
+    if leaf.dtype in (DataType.STRING, DataType.STRING_SPAN):
       avg_length_query = f"""
         SELECT avg(length(val))
         FROM (SELECT {inner_select} AS val FROM t) USING SAMPLE {SAMPLE_AVG_TEXT_LENGTH};
