@@ -9,7 +9,7 @@
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
-  import {Button, Modal, SkeletonText, Tag, TextArea} from 'carbon-components-svelte';
+  import {Modal, SkeletonText, Tag, TextArea} from 'carbon-components-svelte';
   import {
     ChevronLeft,
     ChevronRight,
@@ -57,7 +57,10 @@
         </a>
       </div>
     </Tag>
-    <button on:click={() => (configModalOpen = true)}>
+    <button
+      on:click={() => (configModalOpen = true)}
+      use:hoverTooltip={{text: 'Dataset information'}}
+    >
       <Information />
     </button>
   </div>
@@ -76,11 +79,8 @@
               Copied!
             </div>
           {/if}
-          <Button
-            size="field"
-            kind="ghost"
-            icon={Share}
-            iconDescription="Copy the URL"
+          <button
+            use:hoverTooltip={{text: 'Copy the URL'}}
             on:click={() =>
               navigator.clipboard.writeText(location.href).then(
                 () => {
@@ -90,17 +90,13 @@
                 () => {
                   throw Error('Error copying link to clipboard.');
                 }
-              )}
-          />
+              )}><Share /></button
+          >
         </div>
 
-        <Button
-          size="field"
-          kind="ghost"
-          icon={Download}
-          iconDescription="Download data"
-          on:click={() => (downloadOpen = true)}
-        />
+        <button use:hoverTooltip={{text: 'Download data'}} on:click={() => (downloadOpen = true)}
+          ><Download /></button
+        >
         <div
           use:hoverTooltip={{
             text: !canUpdateSettings
@@ -108,15 +104,13 @@
               : ''
           }}
           class:opacity-40={!canUpdateSettings}
+          class="mr-2"
         >
-          <Button
+          <button
+            use:hoverTooltip={{text: 'Dataset settings'}}
             disabled={!canUpdateSettings}
-            size="field"
-            kind="ghost"
-            icon={Settings}
-            iconDescription="Dataset settings"
-            on:click={() => (settingsOpen = true)}
-          />
+            on:click={() => (settingsOpen = true)}><Settings /></button
+          >
         </div>
       </div>
     </div>
