@@ -13,7 +13,6 @@ import uuid
 from typing import Iterable, Optional, Union
 
 import pandas as pd
-import yaml
 
 from .config import CONFIG_FILENAME, DatasetConfig
 from .data.dataset import Dataset, default_settings

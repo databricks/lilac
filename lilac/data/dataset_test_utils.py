@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Optional, Type, cast
 
 import numpy as np
-import yaml
 from typing_extensions import Protocol
 
 from ..config import CONFIG_FILENAME, DatasetConfig

@@ -2,7 +2,6 @@
 from typing import Annotated, Literal, Optional, Sequence, Union, cast
 from urllib.parse import unquote
 
-import yaml
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.params import Depends
 from fastapi.responses import ORJSONResponse
@@ -34,6 +33,7 @@ from .signals.concept_scorer import ConceptSignal
 from .signals.semantic_similarity import SemanticSimilaritySignal
 from .signals.substring_search import SubstringSignal
 from .tasks import TaskId, task_manager
+from .utils import to_yaml
 
 router = APIRouter(route_class=RouteErrorHandler)
 

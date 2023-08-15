@@ -166,7 +166,7 @@ class DatasetDuckDB(Dataset):
       config = DatasetConfig(
         namespace=namespace, name=dataset_name, source=source_cls(), settings=settings)
       with open(get_config_filepath(self.namespace, self.dataset_name), 'w') as f:
-        f.write(to_yaml(config.dict(exclude_none=True, exclude_defaults=True), f))
+        f.write(to_yaml(config.dict(exclude_none=True, exclude_defaults=True)))
 
     # Create a join table from all the parquet files.
     self.manifest()
