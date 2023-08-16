@@ -29,6 +29,7 @@ F_BETA_WEIGHT = 0.5
 class ConceptType(str, Enum):
   """Enum holding the concept type."""
   TEXT = 'text'
+  IMAGE = 'image'
 
   def __repr__(self) -> str:
     return self.value

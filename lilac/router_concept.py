@@ -8,11 +8,18 @@ from openai_function_call import OpenAISchema
 from pydantic import BaseModel, Field
 
 from .auth import UserInfo, get_session_user
-from .concepts.concept import DRAFT_MAIN, Concept, ConceptMetrics, DraftId, draft_examples
+from .concepts.concept import (
+  DRAFT_MAIN,
+  Concept,
+  ConceptMetrics,
+  ConceptType,
+  DraftId,
+  draft_examples,
+)
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB, ConceptInfo, ConceptUpdate
 from .env import env
 from .router_utils import RouteErrorHandler, server_compute_concept
-from .schema import RichData, SignalInputType
+from .schema import RichData
 from .signals.concept_scorer import ConceptSignal
 
 router = APIRouter(route_class=RouteErrorHandler)
@@ -50,7 +57,7 @@ class CreateConceptOptions(BaseModel):
   # Name of the concept.
   name: str
   # Input type (modality) of the concept.
-  type: SignalInputType
+  type: ConceptType
   description: Optional[str] = None
 
 

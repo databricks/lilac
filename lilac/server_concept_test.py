@@ -11,7 +11,15 @@ from pydantic import parse_obj_as
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from .concepts.concept import DRAFT_MAIN, Concept, ConceptModel, Example, ExampleIn, ExampleOrigin
+from .concepts.concept import (
+  DRAFT_MAIN,
+  Concept,
+  ConceptModel,
+  ConceptType,
+  Example,
+  ExampleIn,
+  ExampleOrigin,
+)
 from .concepts.db_concept import ConceptACL, ConceptInfo, ConceptUpdate
 from .router_concept import (
   ConceptModelInfo,
@@ -86,13 +94,13 @@ def test_concept_create() -> None:
   # Create a concept.
   url = '/api/v1/concepts/create'
   create_concept = CreateConceptOptions(
-    namespace='concept_namespace', name='concept', type=SignalInputType.TEXT)
+    namespace='concept_namespace', name='concept', type=ConceptType.TEXT)
   response = client.post(url, json=create_concept.dict())
   assert response.status_code == 200
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type=SignalInputType.TEXT,
+    type=ConceptType.TEXT,
     data={},
     version=0)
 
@@ -105,7 +113,7 @@ def test_concept_create() -> None:
     ConceptInfo(
       namespace='concept_namespace',
       name='concept',
-      type=SignalInputType.TEXT,
+      type=ConceptType.TEXT,
       drafts=[DRAFT_MAIN],
       acls=ConceptACL(read=True, write=True))
   ]
@@ -115,8 +123,8 @@ def test_concept_delete() -> None:
   # Create a concept.
   client.post(
     '/api/v1/concepts/create',
-    json=CreateConceptOptions(
-      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
+    json=CreateConceptOptions(namespace='concept_namespace', name='concept',
+                              type=ConceptType.TEXT).dict())
 
   response = client.get('/api/v1/concepts/')
   response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
@@ -139,8 +147,8 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   # Create the concept.
   response = client.post(
     '/api/v1/concepts/create',
-    json=CreateConceptOptions(
-      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
+    json=CreateConceptOptions(namespace='concept_namespace', name='concept',
+                              type=ConceptType.TEXT).dict())
 
   # Make sure we can add an example.
   mock_uuid.return_value = fake_uuid(b'1')
@@ -157,7 +165,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type=SignalInputType.TEXT,
+    type=ConceptType.TEXT,
     data={
       fake_uuid(b'1').hex: Example(
         id=fake_uuid(b'1').hex,
@@ -177,7 +185,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
     ConceptInfo(
       namespace='concept_namespace',
       name='concept',
-      type=SignalInputType.TEXT,
+      type=ConceptType.TEXT,
       drafts=[DRAFT_MAIN],
       acls=ConceptACL(read=True, write=True))
   ]
@@ -197,7 +205,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type=SignalInputType.TEXT,
+    type=ConceptType.TEXT,
     data={
       fake_uuid(b'1').hex: Example(
         id=fake_uuid(b'1').hex,
@@ -227,7 +235,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type=SignalInputType.TEXT,
+    type=ConceptType.TEXT,
     data={
       fake_uuid(b'1').hex: Example(id=fake_uuid(b'1').hex, label=False, text='hello'),
       fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=True, text='hello world')
@@ -242,7 +250,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type=SignalInputType.TEXT,
+    type=ConceptType.TEXT,
     data={fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=True, text='hello world')},
     version=4)
 
@@ -256,7 +264,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
     ConceptInfo(
       namespace='concept_namespace',
       name='concept',
-      type=SignalInputType.TEXT,
+      type=ConceptType.TEXT,
       drafts=[DRAFT_MAIN],
       acls=ConceptACL(read=True, write=True))
   ]
@@ -268,8 +276,8 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   # Create the concept.
   response = client.post(
     '/api/v1/concepts/create',
-    json=CreateConceptOptions(
-      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
+    json=CreateConceptOptions(namespace='concept_namespace', name='concept',
+                              type=ConceptType.TEXT).dict())
 
   # Add examples, some drafts.
   mock_uuid.side_effect = [fake_uuid(b'1'), fake_uuid(b'2'), fake_uuid(b'3'), fake_uuid(b'4')]
@@ -295,7 +303,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
     ConceptInfo(
       namespace='concept_namespace',
       name='concept',
-      type=SignalInputType.TEXT,
+      type=ConceptType.TEXT,
       drafts=[DRAFT_MAIN, 'test_draft'],
       acls=ConceptACL(read=True, write=True))
   ]
@@ -307,7 +315,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type=SignalInputType.TEXT,
+    type=ConceptType.TEXT,
     data={
       # Only main are returned.
       fake_uuid(b'1').hex: Example(id=fake_uuid(b'1').hex, label=True, text='in concept'),
@@ -322,7 +330,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type=SignalInputType.TEXT,
+    type=ConceptType.TEXT,
     data={
       # b'1' is deduped with b'3'.
       fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=False, text='out of concept'),
@@ -347,7 +355,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   assert Concept.parse_obj(response.json()).dict() == Concept(
     namespace='concept_namespace',
     concept_name='concept',
-    type=SignalInputType.TEXT,
+    type=ConceptType.TEXT,
     data={
       # b'1' is deduped with b'3'.
       fake_uuid(b'2').hex: Example(id=fake_uuid(b'2').hex, label=False, text='out of concept'),
@@ -365,8 +373,8 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   # Create the concept.
   response = client.post(
     '/api/v1/concepts/create',
-    json=CreateConceptOptions(
-      namespace='concept_namespace', name='concept', type=SignalInputType.TEXT).dict())
+    json=CreateConceptOptions(namespace='concept_namespace', name='concept',
+                              type=ConceptType.TEXT).dict())
 
   # Add two examples.
   mock_uuid.side_effect = [fake_uuid(b'1'), fake_uuid(b'2')]
@@ -386,9 +394,15 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   response = client.post(url, json=concept_update.dict())
   assert response.status_code == 200
 
-  # Get the concept model.
+  # Get the concept model, without creating it.
   url = '/api/v1/concepts/concept_namespace/concept/model/test_embedding'
-  response = client.get(url)
+  response = client.get(url, params={'create_if_not_exists': False})
+  assert response.status_code == 200
+  assert response.json() == None
+
+  # Get the concept model, and create it.
+  url = '/api/v1/concepts/concept_namespace/concept/model/test_embedding'
+  response = client.get(url, params={'create_if_not_exists': True})
   assert response.status_code == 200
   assert ConceptModelInfo.parse_obj(response.json()) == ConceptModelInfo(
     namespace='concept_namespace',
@@ -427,7 +441,7 @@ def test_concept_edits_wrong_type(mocker: MockerFixture) -> None:
   response = client.post(
     '/api/v1/concepts/create',
     json=CreateConceptOptions(
-      namespace='concept_namespace', name='concept', type=SignalInputType.IMAGE).dict())
+      namespace='concept_namespace', name='concept', type=ConceptType.IMAGE).dict())
 
   url = '/api/v1/concepts/concept_namespace/concept'
   concept_update = ConceptUpdate(insert=[
