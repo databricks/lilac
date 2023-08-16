@@ -193,6 +193,7 @@ export class ConceptsService {
      * @param namespace
      * @param conceptName
      * @param embeddingName
+     * @param createIfNotExists
      * @returns ConceptModelInfo Successful Response
      * @throws ApiError
      */
@@ -200,6 +201,7 @@ export class ConceptsService {
         namespace: string,
         conceptName: string,
         embeddingName: string,
+        createIfNotExists: boolean = false,
     ): CancelablePromise<ConceptModelInfo> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -208,6 +210,9 @@ export class ConceptsService {
                 'namespace': namespace,
                 'concept_name': conceptName,
                 'embedding_name': embeddingName,
+            },
+            query: {
+                'create_if_not_exists': createIfNotExists,
             },
             errors: {
                 422: `Validation Error`,

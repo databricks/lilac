@@ -140,18 +140,24 @@ def get_concept_models(
 
 @router.get('/{namespace}/{concept_name}/model/{embedding_name}')
 def get_concept_model(
-    namespace: str,
-    concept_name: str,
-    embedding_name: str,
-    user: Annotated[Optional[UserInfo], Depends(get_session_user)] = None) -> ConceptModelInfo:
+  namespace: str,
+  concept_name: str,
+  embedding_name: str,
+  create_if_not_exists: bool = False,
+  user: Annotated[Optional[UserInfo], Depends(get_session_user)] = None
+) -> Optional[ConceptModelInfo]:
   """Get a concept model from a database."""
   concept = DISK_CONCEPT_DB.get(namespace, concept_name, user)
   if not concept:
     raise HTTPException(
       status_code=404, detail=f'Concept "{namespace}/{concept_name}" was not found')
 
+  model = DISK_CONCEPT_MODEL_DB.get(namespace, concept_name, embedding_name, user)
+  if not model and not create_if_not_exists:
+    return None
+
   model = DISK_CONCEPT_MODEL_DB.sync(
-    namespace, concept_name, embedding_name, user=user, create=True)
+    namespace, concept_name, embedding_name, user=user, create=create_if_not_exists)
   model_info = ConceptModelInfo(
     namespace=model.namespace,
     concept_name=model.concept_name,

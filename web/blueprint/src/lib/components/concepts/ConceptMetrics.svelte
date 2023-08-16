@@ -36,9 +36,16 @@
       {scoreToText[$model.data.metrics.overall]}
     </div>
   {:else}
+    {@const createModelIfNotExists = true}
     <Button
       icon={$modelMutation.isLoading ? InlineLoading : Chip}
-      on:click={() => $modelMutation.mutate([concept.namespace, concept.concept_name, embedding])}
+      on:click={() =>
+        $modelMutation.mutate([
+          concept.namespace,
+          concept.concept_name,
+          embedding,
+          createModelIfNotExists
+        ])}
       class="w-28 text-3xl"
     >
       Compute
