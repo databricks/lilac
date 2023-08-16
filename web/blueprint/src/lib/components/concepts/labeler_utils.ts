@@ -9,6 +9,7 @@ import {
 } from '$lilac';
 
 export interface Candidate {
+  rowid: string;
   text: string;
   score: number;
   label?: boolean;
@@ -35,6 +36,7 @@ export function getCandidates(
   const allRows = [...topRows, ...randomRows];
   const rowids = new Set<string>();
   const spans: {
+    rowid: string;
     text: string;
     score: number;
     span: NonNullable<DataTypeCasted<'string_span'>>;
@@ -93,16 +95,18 @@ export function getCandidates(
       if (score == null) {
         continue;
       }
-      spans.push({text, span, score});
+      spans.push({rowid, text, span, score});
     }
   }
 
   function spanToCandidate(span: {
+    rowid: string;
     text: string;
     score: number;
     span: NonNullable<DataTypeCasted<'string_span'>>;
   }): Candidate {
     return {
+      rowid: span.rowid,
       text: stringSlice(span.text, span.span.start, span.span.end),
       score: span.score
     };

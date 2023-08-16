@@ -3,7 +3,6 @@
   import {maybeQueryDatasetSchema, queryDatasets} from '$lib/queries/datasetQueries';
   import {createDatasetViewStore} from '$lib/stores/datasetViewStore';
   import {getSettingsContext} from '$lib/stores/settingsStore';
-  import {getUrlHashContext} from '$lib/stores/urlHashStore';
   import {datasetLink} from '$lib/utils';
   import {
     childFields,
@@ -20,14 +19,14 @@
     InlineNotification,
     Select,
     SelectItem,
-    SelectSkeleton
+    SelectSkeleton,
+    ToastNotification
   } from 'carbon-components-svelte';
   import {ArrowUpRight} from 'carbon-icons-svelte';
-  import DataFeeder from './DataFeeder.svelte';
+  import ConceptDataFeeder from './ConceptDataFeeder.svelte';
 
   export let concept: Concept;
 
-  $: urlHashStore = getUrlHashContext();
   const settings = getSettingsContext();
 
   let dataset: {namespace: string; name: string} | undefined | null = undefined;
@@ -121,9 +120,20 @@
     path = deserializePath(val);
   }
 
+  $: datasetViewStore =
+    dataset != null && path != null && embedding != null
+      ? createDatasetViewStore(dataset.namespace, dataset.name)
+      : null;
+
   function openDataset() {
-    if (pathId == null || embedding == null || dataset == null) return;
-    const datasetViewStore = createDatasetViewStore(urlHashStore, dataset.namespace, dataset.name);
+    if (
+      pathId == null ||
+      embedding == null ||
+      dataset == null ||
+      datasetViewStore == null ||
+      $datasetViewStore == null
+    )
+      return;
     datasetViewStore.addSearch({
       path: [pathId],
       type: 'concept',
@@ -131,7 +141,7 @@
       concept_name: concept.concept_name,
       embedding
     });
-    goto(datasetLink(dataset.namespace, dataset.name));
+    goto(datasetLink(dataset.namespace!, dataset.name!, $datasetViewStore));
   }
 </script>
 
@@ -190,8 +200,18 @@
 
   {#if dataset != null && path != null && schema != null && embedding != null}
     <div>
-      <DataFeeder {concept} {dataset} fieldPath={path} {schema} {embedding} />
+      <ConceptDataFeeder {concept} {dataset} fieldPath={path} {schema} {embedding} />
     </div>
+  {/if}
+  {#if indexedFields.length === 0}
+    <ToastNotification
+      kind="warning"
+      fullWidth
+      lowContrast
+      title="No embeddings"
+      caption={'Dataset has no fields with computed embeddings. ' +
+        'Please compute an embedding index before using the labeler on this dataset.'}
+    />
   {/if}
 </div>
 

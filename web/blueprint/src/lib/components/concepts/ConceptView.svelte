@@ -1,23 +1,17 @@
 <script lang="ts">
-  import {
-    conceptModelMutation,
-    editConceptMutation,
-    queryConceptModels
-  } from '$lib/queries/conceptQueries';
+  import {editConceptMutation} from '$lib/queries/conceptQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
-  import type {Concept, ConceptModelInfo} from '$lilac';
-  import {Button, InlineLoading} from 'carbon-components-svelte';
-  import {Chip, ViewOff} from 'carbon-icons-svelte';
+  import type {Concept} from '$lilac';
+  import {ViewOff} from 'carbon-icons-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
   import Expandable from '../Expandable.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptExampleList from './ConceptExampleList.svelte';
-  import ConceptHoverPill from './ConceptHoverPill.svelte';
+  import ConceptMetrics from './ConceptMetrics.svelte';
   import ConceptPreview from './ConceptPreview.svelte';
-  import {scoreToColor, scoreToText} from './colors';
-  import Labeler from './labeler/Labeler.svelte';
+  import ConceptLabeler from './labeler/ConceptLabeler.svelte';
 
   export let concept: Concept;
 
@@ -26,19 +20,6 @@
 
   const conceptMutation = editConceptMutation();
   const embeddings = queryEmbeddings();
-  $: conceptModels = queryConceptModels(concept.namespace, concept.concept_name);
-  let embeddingToModel: Record<string, ConceptModelInfo> = {};
-
-  const modelMutation = conceptModelMutation();
-
-  $: {
-    if ($conceptModels.data) {
-      embeddingToModel = {};
-      for (const model of $conceptModels.data) {
-        embeddingToModel[model.embedding_name] = model;
-      }
-    }
-  }
 
   $: positiveExamples = Object.values(concept.data).filter(v => v.label == true);
   $: negativeExamples = Object.values(concept.data).filter(v => v.label == false);
@@ -85,47 +66,14 @@
       <div slot="above" class="text-md font-semibold">Metrics</div>
       <div slot="below" class="model-metrics flex gap-x-4">
         {#each $embeddings.data as embedding}
-          {@const model = embeddingToModel[embedding.name]}
-          {@const scoreIsLoading =
-            $modelMutation.isLoading &&
-            $modelMutation.variables &&
-            $modelMutation.variables[2] == embedding.name}
-          <div
-            class="flex w-36 flex-col items-center gap-y-2 rounded-md border border-b-0 border-gray-200 p-4 shadow-md"
-          >
-            <div class="text-gray-500">{embedding.name}</div>
-            {#if $conceptModels.isLoading}
-              <InlineLoading />
-            {:else if model && model.metrics}
-              <div
-                class="concept-score-pill cursor-default text-2xl font-light {scoreToColor[
-                  model.metrics.overall
-                ]}"
-                use:hoverTooltip={{
-                  component: ConceptHoverPill,
-                  props: {metrics: model.metrics}
-                }}
-              >
-                {scoreToText[model.metrics.overall]}
-              </div>
-            {:else}
-              <Button
-                icon={scoreIsLoading ? InlineLoading : Chip}
-                on:click={() =>
-                  $modelMutation.mutate([concept.namespace, concept.concept_name, embedding.name])}
-                class="w-28 text-3xl"
-              >
-                Compute
-              </Button>
-            {/if}
-          </div>
+          <ConceptMetrics {concept} embedding={embedding.name} />
         {/each}
       </div>
     </Expandable>
   {/if}
   <Expandable>
     <div slot="above" class="text-md font-semibold">Collect labels</div>
-    <Labeler slot="below" {concept} />
+    <ConceptLabeler slot="below" {concept} />
   </Expandable>
   <div class="flex gap-x-4">
     <div class="flex w-0 flex-grow flex-col gap-y-4">

@@ -9,10 +9,17 @@
   import {createDatasetStore, setDatasetContext} from '$lib/stores/datasetStore';
   import {
     createDatasetViewStore,
+    defaultDatasetViewState,
     getSelectRowsSchemaOptions,
-    setDatasetViewContext
+    setDatasetViewContext,
+    type DatasetViewState
   } from '$lib/stores/datasetViewStore';
-  import {getUrlHashContext} from '$lib/stores/urlHashStore';
+  import {
+    deserializeState,
+    getUrlHashContext,
+    persistedHashStore,
+    serializeState
+  } from '$lib/stores/urlHashStore';
   import {getVisibleFields} from '$lib/view_utils';
   import {getFieldsByDtype} from '$lilac';
 
@@ -36,7 +43,20 @@
   }
 
   $: datasetViewStore =
-    namespace && datasetName ? createDatasetViewStore(urlHashStore, namespace, datasetName) : null;
+    namespace && datasetName ? createDatasetViewStore(namespace, datasetName) : null;
+  $: {
+    if (datasetViewStore != null) {
+      const defaultState = defaultDatasetViewState(namespace!, datasetName!);
+      persistedHashStore<DatasetViewState>(
+        'datasets',
+        `${namespace}/${datasetName}`,
+        datasetViewStore,
+        urlHashStore,
+        hashState => deserializeState(hashState, defaultState),
+        state => serializeState(state, defaultState)
+      );
+    }
+  }
   $: {
     if (datasetViewStore != null) {
       setDatasetViewContext(datasetViewStore);

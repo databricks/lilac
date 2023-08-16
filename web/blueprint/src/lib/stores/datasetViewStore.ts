@@ -17,12 +17,6 @@ import {
 import deepEqual from 'deep-equal';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable} from 'svelte/store';
-import {
-  deserializeState,
-  persistedHashStore,
-  serializeState,
-  type UrlHashStateStore
-} from './urlHashStore';
 
 const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
@@ -69,9 +63,10 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
 }
 
 export function createDatasetViewStore(
-  urlHashStore: UrlHashStateStore,
   namespace: string,
-  datasetName: string
+  datasetName: string,
+  // Whether the store gets saved to the global dictionary.
+  saveGlobally = true
 ) {
   const defaultState = defaultDatasetViewState(namespace, datasetName);
 
@@ -261,16 +256,9 @@ export function createDatasetViewStore(
     }
   };
 
-  persistedHashStore<DatasetViewState>(
-    'datasets',
-    `${namespace}/${datasetName}`,
-    store,
-    urlHashStore,
-    hashState => deserializeState(hashState, defaultState),
-    state => serializeState(state, defaultState)
-  );
-
-  datasetViewStores[datasetKey(namespace, datasetName)] = store;
+  if (saveGlobally) {
+    datasetViewStores[datasetKey(namespace, datasetName)] = store;
+  }
   return store;
 }
 

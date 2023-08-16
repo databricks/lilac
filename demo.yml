@@ -99,7 +99,7 @@ datasets:
       source_name: huggingface
 
   - name: 'OpenOrca-100k'
-    namespace: local
+    namespace: lilac
     tags: [machine-learning]
     settings:
       ui:
@@ -141,21 +141,10 @@ datasets:
       source_name: huggingface
 
   # Medical datasets
-  - name: medical_dialog
-    namespace: lilac
-    tags: [medical]
-    settings:
-      ui:
-        media_paths:
-          - [dialogue_turns, utterance, '*']
-      preferred_embedding: 'gte-small'
-    source:
-      config_name: en
-      dataset_name: medical_dialog
-      source_name: huggingface
 
+  # Business datasets.
   - name: enron-emails
-    namespace: local
+    namespace: lilac
     tags: [business]
     settings:
       ui:

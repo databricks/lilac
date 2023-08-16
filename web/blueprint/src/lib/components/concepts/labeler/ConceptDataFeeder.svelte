@@ -86,6 +86,9 @@
   );
   $: candidateList = [candidates.positive, candidates.neutral, candidates.negative];
 
+  // Keep a list of IDs fetching since the mutation can take a while, and the UI would feel like it
+  // didn't handle the click.
+  let idsFetching: string[] = [];
   function addLabel(candidate: Candidate | undefined, label: boolean) {
     if (candidate == null) {
       return;
@@ -96,12 +99,18 @@
     );
     // Save the old state.
     prevCandidates = {...candidates};
+    idsFetching = [candidate.rowid, ...idsFetching];
+
     $conceptEdit.mutate([concept.namespace, concept.concept_name, {insert: [exampleIn]}], {
-      onSuccess: () =>
-        (prevCandidates = {
+      onSuccess: () => {
+        prevCandidates = {
           ...prevCandidates,
           [key as keyof Candidates]: undefined
-        })
+        };
+      },
+      onSettled: () => {
+        idsFetching = idsFetching.filter(id => id !== candidate.rowid);
+      }
     });
   }
 
@@ -128,7 +137,7 @@
 
 <div class="flex flex-col gap-y-4">
   {#each candidateList as candidate}
-    {#if candidate == null}
+    {#if candidate == null || idsFetching.includes(candidate.rowid)}
       <SkeletonText paragraph lines={2} />
     {:else}
       {@const background = getBackground(candidate.score)}
