@@ -160,8 +160,6 @@
   function close() {
     dispatch('close');
   }
-
-  $: console.log('auth=', authEnabled);
 </script>
 
 <ComposedModal open on:submit={submit} on:close={close} size="lg">
