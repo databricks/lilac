@@ -2,7 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { SignalInputType } from './SignalInputType';
+import type { ConceptType } from './ConceptType';
 
 /**
  * Options for creating a concept.
@@ -10,7 +10,7 @@ import type { SignalInputType } from './SignalInputType';
 export type CreateConceptOptions = {
     namespace: string;
     name: string;
-    type: SignalInputType;
+    type: ConceptType;
     description?: string;
 };
 

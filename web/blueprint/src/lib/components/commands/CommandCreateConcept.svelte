@@ -191,14 +191,16 @@
         <div class="my-4 flex gap-x-2">
           <TextInput
             labelText="Concept description"
-            helperText="This will be used by an LLM to generate example sentences."
+            helperText={authEnabled
+              ? 'Authentication is enabled, so LLM generation of examples is disabled. Please fork this and enable authentication to use generated examples.'
+              : 'This will be used by an LLM to generate example sentences.'}
             placeholder="Enter the concept description..."
             bind:value={conceptDescription}
           />
           <div class="generate-button pt-6">
             <Button
               on:click={generatePositives}
-              disabled={!conceptDescription || generatingPositives}
+              disabled={!conceptDescription || generatingPositives || authEnabled}
             >
               Generate
               <span class="ml-2" class:invisible={!generatingPositives}><InlineLoading /></span>
