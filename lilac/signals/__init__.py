@@ -1,6 +1,6 @@
 """Signals enrich a document with additional metadata."""
 
-from ..signal import Signal
+from ..signal import Signal, TextEmbeddingSignal, TextSignal
 from .concept_scorer import ConceptSignal
 from .lang_detection import LangDetectionSignal
 from .near_dup import NearDuplicateSignal
@@ -9,6 +9,8 @@ from .pii import PIISignal
 
 __all__ = [
   'Signal',
+  'TextEmbeddingSignal',
+  'TextSignal',
   'LangDetectionSignal',
   'NearDuplicateSignal',
   'SpacyNER',

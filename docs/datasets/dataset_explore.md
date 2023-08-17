@@ -51,6 +51,18 @@ both keywords are present.
 
 <img src="../_static/dataset/dataset_keyword_search_results.png"></img>
 
+#### Sharing URLs
+
+After clicking around and finding interested findings in datasets, we can share the URL to exactly
+the view we are looking at by:
+
+- Copying the URL
+- Clicking the Copy URL Icon
+
+<img src="../_static/dataset/dataset_copy_url_icon.png"></img>
+
+The URL will have a hash-identifier that represents the UI state you are in.
+
 ## From Python
 
 The Lilac Python API has 2 top-level methods which power the exploration from the UI:
