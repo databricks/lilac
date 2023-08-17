@@ -33,10 +33,6 @@ del (metadata, register_default_sources, register_default_signals, set_default_d
 __all__ = [
   'start_server',
   'stop_server',
-  'field',
-  'Field',
-  'Schema',
-  'DataType',
   'create_dataset',
   'get_dataset',
   'DatasetConfig',
