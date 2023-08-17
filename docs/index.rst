@@ -43,6 +43,7 @@ Welcome to Lilac
    :maxdepth: 1
 
    signals/signals.md
+   signals/signals_create.md
 
 .. toctree::
    :caption: Embeddings
