@@ -30,7 +30,7 @@ We can try the signal out by entering text, and pressing "Compute":
 We can see that the detected language is "french".
 
 To apply a signal to an entire dataset, see
-[Apply a signal to a dataset](../dataset/dataset_signals.md).
+[Apply a signal to a dataset](../datasets/dataset_signals.md).
 
 ## From Python
 
