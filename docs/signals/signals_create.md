@@ -15,7 +15,7 @@ There are two types of [](#Signal) base classes based on the input:
 Let's create a signal that emits:
 
 - `len`: The length of the text, in number of characters.
-- `is_all_capital`: A boolean that determins whether all of the letters are capitalized.
+- `is_all_capital`: A boolean that determines whether all of the letters are capitalized.
 
 To create a signal, we extend from one of these two classes:
 
@@ -23,6 +23,8 @@ To create a signal, we extend from one of these two classes:
 import lilac as ll
 
 class MySignal(ll.TextSignal):
+  """My awesome custom signal that computes the length of text, and whether it's all capitalized."""
+
   # The unique identifier for the signal. This must be globally unique.
   name = 'my_signal'
   # The display name will show up in the UI.
