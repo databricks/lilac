@@ -1,7 +1,6 @@
-# Lilac 🌸
+# 🌸 Lilac
 
-Analyze, structure and clean unstructured data with AI.
-
+[![Static Badge](https://img.shields.io/badge/Homepage-8A2BE2?link=http%3A%2F%2Flilacml.com%2F)](https://lilacml.com)
 [![Downloads](https://static.pepy.tech/badge/lilacai/month)](https://pepy.tech/project/lilacai)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Twitter](https://img.shields.io/twitter/follow/lilac_ai)](https://twitter.com/lilac_ai)
@@ -9,7 +8,16 @@ Analyze, structure and clean unstructured data with AI.
 
 > **NEW: Try the [Lilac hosted demo with pre-loaded datasets](https://lilacai-lilac.hf.space/)**
 
-Lilac is an open-source product that helps you analyze, structure, and clean unstructured data.
+## 👋 Welcome
+
+[Lilac](http://lilacml.com) is an open-source product that helps you **analyze**, **structure**, and
+**clean** unstructured data with AI.
+
+Lilac can be used from our UI or from Python.
+
+<video loop muted autoplay controls src="https://github.com/lilacai/lilac/assets/2294279/cb1378f8-92c1-4f2a-9524-ce5ddd8e0c53"></video>
+
+## 💻 Install
 
 To install Lilac on your machine:
 
@@ -17,178 +25,46 @@ To install Lilac on your machine:
 pip install lilacai
 ```
 
-https://github.com/lilacai/lilac/assets/2294279/cb1378f8-92c1-4f2a-9524-ce5ddd8e0c53
+You can also use Lilac with no installation by
+[forking our public HuggingFace Spaces demo](https://lilacai-lilac.hf.space/).
 
-Lilac helps you:
+## 🔥 Getting started
+
+Start the Lilac webserver from the CLI:
+
+```sh
+lilac start
+```
+
+Or start the Lilac webserver from Python:
+
+```py
+import lilac as ll
+
+ll.start_server()
+```
+
+This will open start a webserver at http://localhost:5432/.
+
+## 📁 Documentation
+
+Visit our website: [lilacml.com](http://lilacml.com)
+
+## 💻 Why Lilac?
+
+Lilac is a visual tool and a Python API that helps you:
 
 - **Explore** datasets with natural language (e.g. documents)
 - **Enrich** your dataset with metadata (e.g. PII detection, profanity, text statistics, etc.)
 - Conceptually **search** and tag your data (e.g. find paragraphs about injury)
 - **Remove** unwanted or problematic data based on your own criteria
-- **Analyze** patterns in your data.
+- **Analyze** patterns in your data
 
 Lilac runs completely **on device** using powerful open-source LLM technologies.
 
-## Development
+## 🏆 Contact
 
-### Setup
+For bugs and feature requests, please
+[file an issue on GitHub](https://github.com/lilacai/lilac/issues).
 
-Before you can run the server, install the following:
-
-- [Python Poetry](https://pypi.org/project/poetry/)
-- [NPM](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
-
-### Install dependencies
-
-```sh
-./scripts/setup.sh
-```
-
-### Run Lilac
-
-To run the web server in dev mode with fast edit-refresh:
-
-```sh
-./run_server_dev.sh
-```
-
-Format typescript files:
-
-```sh
-npm run format --workspace web/lib
-npm run format --workspace web/blueprint
-```
-
-##### Huggingface
-
-Huggingface spaces are used for PRs and for demos.
-
-Details can be found at
-[Managing Spaces with Github Actions](https://huggingface.co/docs/hub/spaces-github-actions)
-
-###### Staging demo
-
-1. Login with the HuggingFace to access git.
-
-   `poetry run huggingface-cli login`
-
-   [Follow the instructions](https://huggingface.co/docs/hub/repositories-getting-started) to use
-   your git SSH keys to talk to HuggingFace.
-
-1. Create a huggingface space from your browser:
-   [huggingface.co/spaces](https://huggingface.co/spaces)
-
-1. Turn on persistent storage in the Settings UI.
-
-1. Set .env.local environment variables so you can upload data to the space:
-
-   ```sh
-     # The repo to use for the huggingface demo.
-     HF_STAGING_DEMO_REPO='lilacai/your-space'
-     # To authenticate with HuggingFace for uploading to the space.
-     HF_USERNAME='your-username'
-   ```
-
-1. Deploy to your HuggingFace Space:
-
-   ```
-   poetry run python -m scripts.deploy_hf \
-     --dataset=$DATASET_NAMESPACE/$DATASET_NAME
-
-   # --concept is optional. By default all lilac/* concepts are uploaded. This flag enables uploading other concepts from local.
-   # --hf_username and --hf_space are optional and can override the ENV for local uploading.
-   ```
-
-#### Deployment
-
-To build the docker image:
-
-```sh
-./scripts/build_docker.sh
-```
-
-To run the docker image locally:
-
-```sh
-docker run -p 5432:5432 lilac_blueprint
-```
-
-#### Authentication
-
-Authentication is done via Google login. A Google Client token should be created from the Google API
-Console. Details can be found [here](https://developers.google.com/identity/protocols/oauth2).
-
-By default, the Lilac google client is used. The secret can be found in Google Cloud console, and
-should be defined under `GOOGLE_CLIENT_SECRET` in .env.local.
-
-For the session middleware, a random string should be created and defined as
-`LILAC_OAUTH_SECRET_KEY` in .env.local.
-
-You can generate a random secret key with:
-
-```py
-import string
-import random
-key = ''.join(random.choices(string.ascii_uppercase + string.digits, k=64))
-print(f"LILAC_OAUTH_SECRET_KEY='{key}'")
-```
-
-### Publishing on pip
-
-To authenticate, add the `PYPI_TOKEN` to your `.env.local` file. You can get the token from
-[pypi.org](https://pypi.org/manage/project/lilacai/settings/). To publish, run:
-
-```sh
-./scripts/publish_pip.sh
-```
-
-### Configuration
-
-To use various API's, API keys need to be provided. Create a file named `.env.local` in the root,
-and add variables that are listed in `.env` with your own values.
-
-#### Testing
-
-Run all the checks before mailing:
-
-```sh
-./scripts/checks.sh
-```
-
-Test python:
-
-```sh
-./scripts/test_py.sh
-```
-
-Test JavaScript:
-
-```sh
-./scripts/test_ts.sh
-```
-
-### Ingesting datasets from CLI
-
-Datasets can be ingested entirely from the UI, however if you prefer to use the CLI you can ingest
-data with the following command:
-
-```sh
-poetry run lilac load \
-  --output_dir=demo_data \
-  --config_path=demo.yml
-```
-
-NOTE: You must have a config JSON or YAML file that represents your dataset configuration. The
-config should be an instance of the pydantic class `lilac.Config` (for multiple datasets) or
-`lilac.DatasetConfig` (for a single dataset).
-
-### Installing poetry
-
-You may need the following to install poetry:
-
-- [Install XCode and sign license](https://apps.apple.com/us/app/xcode/id497799835?mt=12)
-- [XCode command line tools](https://mac.install.guide/commandlinetools/4.html) (MacOS)
-- [homebrew](https://brew.sh/) (MacOS)
-- [pyenv](https://github.com/pyenv/pyenv) (Python version management)
-- [Set your current python version](./.python-version)
-- [Python Poetry](https://pypi.org/project/poetry/)
+For general questions, please [visit our Discord](https://discord.com/invite/YpGxQMyk).
