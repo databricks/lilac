@@ -1,7 +1,7 @@
 Welcome to Lilac
 =================
 
-.. include:: ../README.md
+.. include:: welcome.md
    :parser: myst_parser.sphinx_
 
 
