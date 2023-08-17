@@ -31,8 +31,6 @@ class SchemaInfo(BaseModel):
   """Information about the processed huggingface schema."""
   fields: dict[str, Field] = {}
   class_labels: dict[str, list[str]]
-  # Maps a path to a list of languages.
-  translation_path_languages: dict[str, list[str]]
   num_items: int
 
 
@@ -84,7 +82,6 @@ def hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str],
 
   fields: dict[str, Field] = {}
   class_labels: dict[str, list[str]] = {}
-  translation_path_languages: dict[str, list[str]] = {}
   num_items = 0
 
   for split_dataset in split_datasets:
@@ -116,11 +113,7 @@ def hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str],
   # Add the split column to the schema.
   fields[HF_SPLIT_COLUMN] = Field(dtype=DataType.STRING)
 
-  return SchemaInfo(
-    fields=fields,
-    class_labels=class_labels,
-    translation_path_languages=translation_path_languages,
-    num_items=num_items)
+  return SchemaInfo(fields=fields, class_labels=class_labels, num_items=num_items)
 
 
 class HuggingFaceSource(Source):
