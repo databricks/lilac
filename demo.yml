@@ -108,9 +108,24 @@ datasets:
           - response
       preferred_embedding: 'gte-small'
     source:
+      source_name: huggingface
       dataset_name: Open-Orca/OpenOrca
       sample_size: 100000
+
+  - name: opus100-en-us-validation
+    namespace: lilac
+    tags: [machine-learning]
+    settings:
+      ui:
+        media_paths:
+          - [translation, es]
+          - [translation, en]
+      preferred_embedding: 'gte-small'
+    source:
+      config_name: en-es
+      dataset_name: opus100
       source_name: huggingface
+      split: validation
 
   # Legal datasets.
   - name: mmlu_professional_law
@@ -138,6 +153,18 @@ datasets:
     source:
       config_name: r_legaladvice
       dataset_name: pile-of-law/pile-of-law
+      source_name: huggingface
+
+  # Science datasets
+  - name: science-qa-derek-thomas
+    namespace: lilac
+    tags: [science]
+    settings:
+      ui:
+        media_paths: [lecture]
+      preferred_embedding: 'gte-small'
+    source:
+      dataset_name: derek-thomas/ScienceQA
       source_name: huggingface
 
   # Medical datasets

@@ -7,7 +7,16 @@ This script will, in order:
 4) Push code & data to the HuggingFace space.
 
 Usage:
-poetry run python -m scripts.deploy_demo
+poetry run python -m scripts.deploy_demo \
+  --data_dir=./demo_data \
+  --config=./demo.yml \
+  --hf_space=lilacai/lilac
+
+Add:
+  --skip_sync to skip syncing data from the HuggingFace space data.
+  --skip_load to skip loading the data.
+  --skip_build to skip building the web server TypeScript.
+  --skip_deploy to skip deploying to HuggingFace. Useful to test locally.
 """
 import os
 import shutil
@@ -23,12 +32,11 @@ from lilac.utils import get_datasets_dir
 
 from .deploy_hf import deploy_hf
 
-DEMO_DATA_DIR = 'demo_data'
-DEMO_CONFIG_PATH = 'demo.yml'
-DEMO_HF_SPACE = 'lilacai/lilac'
-
 
 @click.command()
+@click.option('--config', help='The Lilac config path.', type=str)
+@click.option('--hf_space', help='The huggingface space.', type=str)
+@click.option('--data_dir', help='The local output dir to use to sync the data.', type=str)
 @click.option(
   '--overwrite',
   help='When True, runs all all data from scratch, overwriting existing data. When false, only'
@@ -56,37 +64,34 @@ DEMO_HF_SPACE = 'lilacai/lilac'
   type=bool,
   is_flag=True,
   default=False)
-def deploy_demo(overwrite: bool, skip_sync: bool, skip_load: bool, skip_build: bool,
-                skip_deploy: bool) -> None:
+def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip_sync: bool,
+                skip_load: bool, skip_build: bool, skip_deploy: bool) -> None:
   """Deploys the public demo."""
   if not skip_sync:
-    repo_basedir = os.path.join(DEMO_DATA_DIR, '.hf_sync')
+    repo_basedir = os.path.join(data_dir, '.hf_sync')
     shutil.rmtree(repo_basedir, ignore_errors=True)
 
     huggingface_hub.snapshot_download(
-      repo_id=DEMO_HF_SPACE,
-      repo_type='space',
-      local_dir=repo_basedir,
-      local_dir_use_symlinks=False)
+      repo_id=hf_space, repo_type='space', local_dir=repo_basedir, local_dir_use_symlinks=False)
 
-    shutil.rmtree(get_datasets_dir(DEMO_DATA_DIR), ignore_errors=True)
-    shutil.move(get_datasets_dir(os.path.join(repo_basedir, 'data')), DEMO_DATA_DIR)
+    shutil.rmtree(get_datasets_dir(data_dir), ignore_errors=True)
+    shutil.move(get_datasets_dir(os.path.join(repo_basedir, 'data')), data_dir)
 
   if not skip_load:
-    load(DEMO_DATA_DIR, DEMO_CONFIG_PATH, overwrite)
+    load(data_dir, config, overwrite)
 
   if not skip_deploy:
-    datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(DEMO_DATA_DIR)]
+    datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(data_dir)]
     deploy_hf(
       # Take this from the env variable.
       hf_username=None,
-      hf_space=DEMO_HF_SPACE,
+      hf_space=hf_space,
       datasets=datasets,
       # No extra concepts. lilac concepts are pushed by default.
       concepts=[],
       skip_build=skip_build,
       skip_cache=False,
-      data_dir=DEMO_DATA_DIR)
+      data_dir=data_dir)
 
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:

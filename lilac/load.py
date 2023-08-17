@@ -114,8 +114,8 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
     for d in datasets_to_load:
       shutil.rmtree(os.path.join(output_dir, d.name), ignore_errors=True)
       task_id = task_manager.task_id(f'Load dataset {d.namespace}/{d.name}')
-      task_manager.execute(task_id, process_source, output_dir, d, (task_id, 0))
-
+      #task_manager.execute(task_id, process_source, output_dir, d, (task_id, 0))
+      process_source(output_dir, d)  #, (task_id, 0))
     task_manager.wait()
 
   print()
