@@ -33,6 +33,7 @@ dataset = ll.get_dataset('local', 'imdb')
 results = dataset.select_rows(['text', ('text', 'lang_detection'), 'text'])
 
 # Print the first result.
+# NOTE: `results` is an iterable of dicts (not a list).
 print(next(iter(results)))
 ```
 
