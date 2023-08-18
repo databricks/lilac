@@ -77,9 +77,6 @@
       {
         onSuccess: resp => {
           goto(`/datasets/loading#${datasetIdentifier(namespace, name)}/${resp.task_id}`);
-          // watchTask(resp.task_id, () => {
-          //   goto(datasetLink(namespace, name));
-          // });
         }
       }
     );
