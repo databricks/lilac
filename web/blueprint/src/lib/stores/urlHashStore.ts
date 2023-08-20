@@ -2,7 +2,13 @@ import {mergeDeep} from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable, type Writable} from 'svelte/store';
 
-export type AppPage = 'home' | 'concepts' | 'datasets' | 'signals' | 'settings';
+export type AppPage =
+  | 'home'
+  | 'concepts'
+  | 'datasets'
+  | 'signals'
+  | 'settings'
+  | 'datasets/loading';
 interface UrlHashState {
   hash: string;
   page: AppPage | null;

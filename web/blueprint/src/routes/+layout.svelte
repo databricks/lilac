@@ -25,6 +25,7 @@
   const routeToPage: Record<string, AppPage> = {
     '/': 'home',
     '/datasets': 'datasets',
+    '/datasets/loading': 'datasets/loading',
     '/concepts': 'concepts',
     '/signals': 'signals',
     '/settings': 'settings'

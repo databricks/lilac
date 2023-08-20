@@ -1,0 +1,389 @@
+{
+  "namespace": "lilac",
+  "concept_name": "source-code",
+  "type": "text",
+  "data": {
+    "c7d0400c6e5442a59859ea7b0a7d6bab": {
+      "label": true,
+      "text": "const num1 = 10;\nconst num2 = 20;\nconst sum = num1 + num2;",
+      "id": "c7d0400c6e5442a59859ea7b0a7d6bab"
+    },
+    "cfa936b9ba9e4c72b835b44d8cfb393b": {
+      "label": true,
+      "text": "function calculateArea(radius) {\n  return Math.PI * radius * radius;\n}",
+      "id": "cfa936b9ba9e4c72b835b44d8cfb393b"
+    },
+    "3952102e61a44fde92117a0519c4e8e6": {
+      "label": true,
+      "text": "let message = 'Hello, World!';\nconsole.log(message);",
+      "id": "3952102e61a44fde92117a0519c4e8e6"
+    },
+    "6e90cb4c8fdb46a1b38460b5d2eca907": {
+      "label": true,
+      "text": "for (let i = 0; i < 10; i++) {\n  console.log(i);\n}",
+      "id": "6e90cb4c8fdb46a1b38460b5d2eca907"
+    },
+    "7e7a438002384ae194f35f27b9c85888": {
+      "label": true,
+      "text": "const colors = ['red', 'green', 'blue'];\nfor (const color of colors) {\n  console.log(color);\n}",
+      "id": "7e7a438002384ae194f35f27b9c85888"
+    },
+    "91cc90d155ef4c1fb4f3c458cfdc8fac": {
+      "label": false,
+      "text": "No bathroom bill made it to Abbott\u2019s desk by the end of the legislative session in May.",
+      "id": "91cc90d155ef4c1fb4f3c458cfdc8fac"
+    },
+    "c67e408ec3544898a0d3fc21c2ee36c3": {
+      "label": false,
+      "text": "The theory that they are products of the radiation from the bomb is genius.",
+      "id": "c67e408ec3544898a0d3fc21c2ee36c3"
+    },
+    "fa78b497c7704c198fe0b2a320ed55e6": {
+      "label": false,
+      "text": "We built our society on clean energy.",
+      "id": "fa78b497c7704c198fe0b2a320ed55e6"
+    },
+    "a8bef6215f2346f7b67101b055724e99": {
+      "label": false,
+      "text": "No bathroom bill made it to Abbott\u2019s desk by the end of the legislative session in May.",
+      "id": "a8bef6215f2346f7b67101b055724e99"
+    },
+    "cab51176c2f74c8497410764628ea7cf": {
+      "label": false,
+      "text": "They should be attached to the lifting mechanism in the faucet.",
+      "id": "cab51176c2f74c8497410764628ea7cf"
+    },
+    "6585fbabe83444cfb43dee977dc3ebfe": {
+      "label": false,
+      "text": "This dataset is very big.",
+      "id": "6585fbabe83444cfb43dee977dc3ebfe"
+    },
+    "59e8b12ef7dd4e948dfae42c97f55721": {
+      "label": false,
+      "text": "The 15th Tank Corps was a corps of the Soviet Union's Red Army.",
+      "id": "59e8b12ef7dd4e948dfae42c97f55721"
+    },
+    "efaa58793e2840c6b966caa6a11ecaad": {
+      "label": false,
+      "text": "Every lunch hour I make it my goal to sift through one research paper.",
+      "id": "efaa58793e2840c6b966caa6a11ecaad"
+    },
+    "b529748962774d36a4ff781da0e327bf": {
+      "label": false,
+      "text": "On Sunday, Jane had a party.",
+      "id": "b529748962774d36a4ff781da0e327bf"
+    },
+    "b6f2f93f75f44d3780882cd1ebd3d311": {
+      "label": false,
+      "text": "TIL David Attenborough and Queen Elizabeth II are roughly the same age.",
+      "id": "b6f2f93f75f44d3780882cd1ebd3d311"
+    },
+    "2c04925ab5114925b9e891eb2706b83e": {
+      "label": true,
+      "text": "```js\nfor (var i = 1; i < 12; i++) {\n   console.log(i);\n}\n```",
+      "id": "2c04925ab5114925b9e891eb2706b83e"
+    },
+    "030117a7d9044dd8b055c80853804d3d": {
+      "label": false,
+      "text": "\u00a1Desde luego! Aqu\u00ed tienes unas secuencias del tipo \"123456789\" convertidas en operaciones aritm\u00e9ticas (haciendo uso de los operadores + y -) cuyo resultado da 200:\n\n* 123 + 4 + 5 + 67 - 8 + 9 = 200\n* 123 - 4 + 5 - 6 - 7 + 89 = 200\n* 1 + 234 - 5 - 6 - 7 - 8 - 9 = 200",
+      "id": "030117a7d9044dd8b055c80853804d3d"
+    },
+    "c0095d13aed4431bb75bbc215b0d4819": {
+      "label": false,
+      "text": "and the Roman Senate was often more interested in maintaining their own power and wealth than in governing effectively.",
+      "id": "c0095d13aed4431bb75bbc215b0d4819"
+    },
+    "6ea50e4168ed42fe94ce15a9c330a54f": {
+      "label": true,
+      "text": "```javascript\n// Get the canvas element\nconst canvas = document.getElementById('myCanvas');\n\n// Get the 2D context of the canvas\nconst ctx = canvas.getContext('2d');\n\n// Set the position of the circle\nconst x = 100; // X coordinate\nconst y = 100; // Y coordinate\n\n// Set the radius of the circle\nconst radius = 50;\n\n// Set the color of the circle\nconst color = 'blue';",
+      "id": "6ea50e4168ed42fe94ce15a9c330a54f"
+    },
+    "7266060a88d04a6299922714f62091d8": {
+      "label": false,
+      "text": "Certainly! Here's a simple JavaScript function that takes a mathematical expression as a string and a value for x, then returns the result of the operation:\n\n",
+      "id": "7266060a88d04a6299922714f62091d8"
+    },
+    "6bf7df5363ff4eb3ac237eed4acda0af": {
+      "label": false,
+      "text": "Another factor in Rome's decline was the empire's overextended infrastructure. The Roman Empire was renowned for its impressive network of roads, aqueducts, and other public works. However, as the empire expanded and resources became scarce, the maintenance of these critical systems was neglected. This deterioration led to problems such as a lack of clean drinking water, food shortages, and the",
+      "id": "6bf7df5363ff4eb3ac237eed4acda0af"
+    },
+    "048952d5e620410282e09d625dc45f20": {
+      "label": true,
+      "text": "```javascript\nconst canvas = document.getElementById('canvas'); // note that you will have to use your own canvas\nconst context = canvas.getContext('2d');\nconst x = 100; // x-coordinate, you can set it up\nconst y = 100; // y-coordinate, you can set it up too\nconst radius = 50; // radius of the circle, set-up-able\nconst color = 'red'; // color of the circle, also set-up-able\ncontext.beginPath();",
+      "id": "048952d5e620410282e09d625dc45f20"
+    },
+    "eb5ee4b631bc400d95aa21aed4cb1dcd": {
+      "label": true,
+      "text": "```javascript\n// Get the canvas element from the DOM\nconst canvas = document.getElementById('canvas');\n\n// Get the 2D context of the canvas\nconst ctx = canvas.getContext('2d');\n\n// Set the position, radius, and color of the circle\nconst x = 50;\nconst y = 50;\nconst radius = 30;\nconst color = 'red';\n\n// Begin a new path\nctx.beginPath();\n\n// Draw the circle\nctx.arc(x, y, radius, 0, 2 * Math.PI);",
+      "id": "eb5ee4b631bc400d95aa21aed4cb1dcd"
+    },
+    "ca0e90e7a6f54427997b9c98ab86508e": {
+      "label": true,
+      "text": "  const getColor = (depth) => {\n    if (depth < 0.25) {\n      return `rgb(0, ${Math.floor(depth * 1020)}, 255)`;\n    } else if (depth < 0.5) {\n      return `rgb(0, 255, ${Math.floor(1020 - depth * 1020)})`;\n    } else if (depth < 0.75) {\n      return `rgb(${Math.floor(depth * 1020) - 255}, 255, 0)`;\n    } else {\n      return `rgb(255, ${Math.floor(1020 - depth * 1020)}, 0)`;\n    }\n  };",
+      "id": "ca0e90e7a6f54427997b9c98ab86508e"
+    },
+    "bec8c965143b4a0dba7add98346996a0": {
+      "label": false,
+      "text": "Rome itself. Consequently, military leadership was fraught with intrigue, as ambitious generals vied for power, often at the expense of the empire's stability.",
+      "id": "bec8c965143b4a0dba7add98346996a0"
+    },
+    "8342a4029d384b5183a78ca0dc7e398e": {
+      "label": true,
+      "text": "\n  \n  \n  \n  \n  \n  \n  \n window._taboola = window._taboola || []; _taboola.push({ mode: 'thumbnails-c', container: 'taboola-interstitial-gallery-thumbnails-5', placement: 'Interstitial Gallery Thumbnails 5', target_type: 'mix' }); \n  \n  \n  ",
+      "id": "8342a4029d384b5183a78ca0dc7e398e"
+    },
+    "aecfb1e4c7ba45fb8847f304c5c848af": {
+      "label": false,
+      "text": "miles an hour,\" and worried that their \"uteruses would fly out of [their] bodies as they were accelerated to that speed.\" ",
+      "id": "aecfb1e4c7ba45fb8847f304c5c848af"
+    },
+    "6a6aaea62afc43258b646b4b25d93692": {
+      "label": true,
+      "text": "  \n window._taboola = window._taboola || []; _taboola.push({ mode: 'thumbnails-c', container: 'taboola-interstitial-gallery-thumbnails-15', placement: 'Interstitial Gallery Thumbnails 15', target_type: 'mix' }); _taboola.push({flush: true}); \n  ",
+      "id": "6a6aaea62afc43258b646b4b25d93692"
+    },
+    "4f94dc90c0c94420a99301ac1fc92171": {
+      "label": true,
+      "text": "  \n window._taboola = window._taboola || []; _taboola.push({ mode: 'thumbnails-c', container: 'taboola-interstitial-gallery-thumbnails-25', placement: 'Interstitial Gallery Thumbnails 25', target_type: 'mix' }); _taboola.push({flush: true}); \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  ",
+      "id": "4f94dc90c0c94420a99301ac1fc92171"
+    },
+    "64e15fb5d64548ca8b0d2c288916d303": {
+      "label": false,
+      "text": "Choose the Ellipse, Rectangle, or Polygon tool from InDesign's Tools panel. Adjust your background shape's size by clicking one of your shape's handles with your Select tool and dragging it until your shape is the correct size. Make sure the object is selected, then open InDesign's Swatches panel and select the Fill button. Choose the color you want to apply from the Swatches panel. Your shape",
+      "id": "64e15fb5d64548ca8b0d2c288916d303"
+    },
+    "3374e377ae4440a98626ae06aba98dea": {
+      "label": true,
+      "text": "  \n window._taboola = window._taboola || []; _taboola.push({ mode: 'thumbnails-c', container: 'taboola-interstitial-gallery-thumbnails-20', placement: 'Interstitial Gallery Thumbnails 20', target_type: 'mix' }); _taboola.push({flush: true}); \n  ",
+      "id": "3374e377ae4440a98626ae06aba98dea"
+    },
+    "2e14c0bbc5d84955b6b65f502b599eda": {
+      "label": true,
+      "text": "value=\"#000000\" /><param name=\"allowScriptAccess\" value=\"always\" /><param name=\"allowFullScreen\" value=\"true\" /><param name=\"flashvars\" value=\"embedType=noscriptObjectTag&embedCode=1udG03NTowIl-eAG5T0wYzU_zYNmmNht&videoPcode=BhdmY6l9g002rBhQ6aEBZiheacDu\" /><embed src=\"http://player.ooyala.com/player.swf?embedCode=1udG03NTowIl-eAG5T0wYzU_zYNmmNht&version=2\" bgcolor=\"#000000\" width=\"618\"",
+      "id": "2e14c0bbc5d84955b6b65f502b599eda"
+    },
+    "a556ea1110714d38ad2fdcaac47a4332": {
+      "label": false,
+      "text": "What are the best resources to learn Express.js?\nWhat is the best way to learn AngularJS and nodeJS?\n\nAre these two questions inquiring about the same information?",
+      "id": "a556ea1110714d38ad2fdcaac47a4332"
+    },
+    "20f20d8cff8c475f93b25298e5f58ff2": {
+      "label": true,
+      "text": "  \n window._taboola = window._taboola || []; _taboola.push({ mode: 'thumbnails-c', container: 'taboola-interstitial-gallery-thumbnails-10', placement: 'Interstitial Gallery Thumbnails 10', target_type: 'mix' }); _taboola.push({flush: true}); \n  ",
+      "id": "20f20d8cff8c475f93b25298e5f58ff2"
+    },
+    "7f810a7c98bc4d44a3dd07688d39ae02": {
+      "label": false,
+      "text": "used on the left side and when used on the right side it extends too far forward. C'est la Vie. I will try it on my XBox next. Answer:",
+      "id": "7f810a7c98bc4d44a3dd07688d39ae02"
+    },
+    "3b476d5fbd0f472eb26485a58690f62a": {
+      "label": true,
+      "text": "let-Step-7Bullet1.jpg\",\"smallWidth\":460,\"smallHeight\":306,\"bigWidth\":\"728\",\"bigHeight\":\"485\",\"licensing\":\"<div",
+      "id": "3b476d5fbd0f472eb26485a58690f62a"
+    },
+    "5c51478ab56d4ef580aec02f4554a557": {
+      "label": true,
+      "text": "  \n window._taboola = window._taboola || []; _taboola.push({ mode: 'thumbnails-c', container: 'taboola-interstitial-gallery-thumbnails-5', placement: 'Interstitial Gallery Thumbnails 5', target_type: 'mix' }); _taboola.push({flush: true}); \n  ",
+      "id": "5c51478ab56d4ef580aec02f4554a557"
+    },
+    "8c1657d2e75b440aae9c0c36162f13b5": {
+      "label": false,
+      "text": "Worries increased with age. People ages 30 to 49 \u2014 a time when people are coping with tuition payments, car payments and child-care costs \u2014 were the most likely to say they are limiting their monthly spending. And seniors were three times as likely as those 18 to 29 to say stagnant income was the main reason for cutting back.",
+      "id": "8c1657d2e75b440aae9c0c36162f13b5"
+    },
+    "123e676caaba4266bc2cf174c33a9816": {
+      "label": true,
+      "text": "Aqu\u00ed hay un ejemplo de c\u00f3mo realizar una operaci\u00f3n AND en dos bytes en JavaScript:\n\nconst byte1 = 0b10101010; // 170 en decimal\nconst byte2 = 0b11110000; // 240 en decimal\n\nconst resultado = byte1 & byte2;\n\nconsole.log(resultado.toString(2)); // \"10100000\"",
+      "id": "123e676caaba4266bc2cf174c33a9816"
+    },
+    "5990d015dd1249a58af88ec3adca6a58": {
+      "label": false,
+      "text": "How in JavaScript draw a circle with radius 10 pixels in a html canvas?",
+      "id": "5990d015dd1249a58af88ec3adca6a58"
+    },
+    "ca62cf272b1e463aa973d1f23eb25fc5": {
+      "label": false,
+      "text": "such as Tacitus and Livy, and philosophers like Seneca and Marcus Aurelius influencing generations of thinkers and writers.",
+      "id": "ca62cf272b1e463aa973d1f23eb25fc5"
+    },
+    "5a7986b9233d45b1b194001c74c98af0": {
+      "label": true,
+      "text": "menu.    {\"smallUrl\":\"https:\\/\\/www.wikihow.com\\/images\\/thumb\\/a\\/ad\\/Enable-Automatic-Updates-Step-5Bullet3.jpg\\/v4-460px-Enable-Automatic-Updates-Step-5Bullet3.jpg\",\"bigUrl\":\"\\/images\\/thumb\\/a\\/ad\\/Enable-Automatic-Updates-Step-5Bullet3.jpg\\/aid1480351-v4-728px-Enable-Automatic-Updates-Step-5Bullet3.jpg\",\"smallWidth\":460,\"smallHeight\":345,\"bigWidth\":\"728\",\"bigHeight\":\"546\",\"licensing\":\"<div",
+      "id": "5a7986b9233d45b1b194001c74c98af0"
+    },
+    "3148cb870d2a40009e9d17b0c6056470": {
+      "label": true,
+      "text": "allow_photos=false, maxitems=7, display_ugc_photos=false, includepause=true, canvas_allcomments_app_instance=6634zxcgfd, includepermalink=false}!!",
+      "id": "3148cb870d2a40009e9d17b0c6056470"
+    },
+    "874e2014361046e6988229dd17674847": {
+      "label": true,
+      "text": "   {\"smallUrl\":\"https:\\/\\/www.wikihow.com\\/images\\/thumb\\/4\\/4c\\/Enable-Automatic-Updates-Step-5Bullet2.jpg\\/v4-460px-Enable-Automatic-Updates-Step-5Bullet2.jpg\",\"bigUrl\":\"\\/images\\/thumb\\/4\\/4c\\/Enable-Automatic-Updates-Step-5Bullet2.jpg\\/aid1480351-v4-728px-Enable-Automatic-Updates-Step-5Bullet2.jpg\",\"smallWidth\":460,\"smallHeight\":345,\"bigWidth\":\"728\",\"bigHeight\":\"546\",\"licensing\":\"<div",
+      "id": "874e2014361046e6988229dd17674847"
+    },
+    "9d5510fa41a24f3aa77ccb3e2f37c366": {
+      "label": true,
+      "text": "   {\"smallUrl\":\"https:\\/\\/www.wikihow.com\\/images\\/thumb\\/e\\/ee\\/Enable-Automatic-Updates-Step-5Bullet4.jpg\\/v4-460px-Enable-Automatic-Updates-Step-5Bullet4.jpg\",\"bigUrl\":\"\\/images\\/thumb\\/e\\/ee\\/Enable-Automatic-Updates-Step-5Bullet4.jpg\\/aid1480351-v4-728px-Enable-Automatic-Updates-Step-5Bullet4.jpg\",\"smallWidth\":460,\"smallHeight\":345,\"bigWidth\":\"728\",\"bigHeight\":\"546\",\"licensing\":\"<div",
+      "id": "9d5510fa41a24f3aa77ccb3e2f37c366"
+    },
+    "4bf8a3da04e040b58b2216f231b23272": {
+      "label": false,
+      "text": "want to edit the size of the original image.  Save the image as a separate copy.  Add \"thumbnail\" or something similar to the end of the copy of the image (i.e. weddingphoto_thumbnail.jpg).  Use the following steps to create a copy of the image:  Click File  Click Save As. Type a name for the image next to \"Filename\". Click Save. It's in the upper-left corner above the box labeled \"Image\". It's at",
+      "id": "4bf8a3da04e040b58b2216f231b23272"
+    },
+    "04c7fc7da2a44936accb79f9abc65a94": {
+      "label": false,
+      "text": "Two-thirds of Americans say they aren\u2019t spending as much as they could each month, according to the poll released Tuesday by Bankrate.com. And they may keep spending down even as they enter the holiday season, says Greg McBride, chief financial analyst for Bankrate.com. \u201cPeople just don\u2019t have a lot of extra money to throw around,\u201d he says.",
+      "id": "04c7fc7da2a44936accb79f9abc65a94"
+    },
+    "46f6088066c24694b5448648160540f1": {
+      "label": false,
+      "text": "Update 1 : I have discovered problems with logging in and with the display of the CAPTCHA images when using FireFox 3.0.1 browser . These are currently being investigated . Update 2 : The problems noted above seem to be fixed .\n\nGenerate a question about the above context.",
+      "id": "46f6088066c24694b5448648160540f1"
+    },
+    "1d44b65a89214a8eaaa305d18c5d13e9": {
+      "label": false,
+      "text": "One bright note: Young people are saving more. Millennials were most likely to cite the need to save as their main reason for cutting down spending. Younger consumers, who are also less likely to own a credit card, and may be overwhelmed by student loans, recognize the importance of having emergency savings. \u201cMany of them are building a solid financial foundation,\u201d McBride says.",
+      "id": "1d44b65a89214a8eaaa305d18c5d13e9"
+    },
+    "490ef080fa174d938dba33adc155fd4c": {
+      "label": true,
+      "text": "of time.    {\"smallUrl\":\"https:\\/\\/www.wikihow.com\\/images\\/thumb\\/b\\/bd\\/Enable-Automatic-Updates-Step-5Bullet1.jpg\\/v4-460px-Enable-Automatic-Updates-Step-5Bullet1.jpg\",\"bigUrl\":\"\\/images\\/thumb\\/b\\/bd\\/Enable-Automatic-Updates-Step-5Bullet1.jpg\\/aid1480351-v4-728px-Enable-Automatic-Updates-Step-5Bullet1.jpg\",\"smallWidth\":460,\"smallHeight\":345,\"bigWidth\":\"728\",\"bigHeight\":\"546\",\"licensing\":\"<div",
+      "id": "490ef080fa174d938dba33adc155fd4c"
+    },
+    "8c39537e3827468fa16039966fbb2fec": {
+      "label": true,
+      "text": "VALUE=\"0\"><PARAM NAME=\"DisplayForeColor\" VALUE=\"16777215\"><PARAM NAME=\"DisplayMode\" VALUE=\"0\"><PARAM NAME=\"DisplaySize\" VALUE=\"4\"><PARAM NAME=\"Enabled\" VALUE=\"-1\"><PARAM NAME=\"EnableContextMenu\" VALUE=\"-1\"><PARAM NAME=\"EnablePositionControls\" VALUE=\"-1\"><PARAM NAME=\"EnableFullScreenControls\" VA!",
+      "id": "8c39537e3827468fa16039966fbb2fec"
+    },
+    "23bdbe40c81e45b487d653f936459bdf": {
+      "label": true,
+      "text": "<font class=\"smalltext\" color=\"#999966\">11/7 -- HOT JOBS </font><br />\n<font class=\"itext\"> <A HREF=\"http://www.businessweek.com/careers/content/nov2001/ca2001117_9208.htm?c=bwinsidernov09&n=link45&t=email\">\n<B>A Surge of Civic-Mindedness</B></a></font> <br />\n<font class=\"itext\">September 11 and a bad economy have folks flocking to find work in the government ",
+      "id": "23bdbe40c81e45b487d653f936459bdf"
+    },
+    "a2d7ac3aa9054cc193afb92aaaf2db10": {
+      "label": true,
+      "text": "howGotoBar\" VALUE=\"0\"><PARAM NAME=\"ShowPositionControls\" VALUE=\"-1\"><PARAM NAME=\"ShowStatusBar\" VALUE=\"0\"><PARAM NAME=\"ShowTracker\" VALUE=\"-1\"><PARAM NAME=\"TransparentAtStart\" VALUE=\"0\"><PARAM NAME=\"VideoBorderWidth\" VALUE=\"0\"><PARAM NAME=\"VideoBorderColor\" VALUE=\"0\"><PARAM NAME=\"VideoBorder3D\" VALUE=\"0\"><PARAM NAME=\"Volume\" VALUE=\"-260\"><PARAM NAME=\"WindowlessVideo\" VALUE=\"0\">",
+      "id": "a2d7ac3aa9054cc193afb92aaaf2db10"
+    },
+    "064bcd09ae674b3a93a8a28b2f2d776a": {
+      "label": true,
+      "text": "NAME=\"SendMouseClickEvents\" VALUE=\"0\"><PARAM NAME=\"SendMouseMoveEvents\" VALUE=\"0\"><PARAM NAME=\"SendPlayStateChangeEvents\" VALUE=\"-1\"><PARAM NAME=\"ShowCaptioning\" VALUE=\"0\"><PARAM NAME=\"ShowControls\" VALUE=\"0\"><PARAM NAME=\"ShowAudioControls\" VALUE=\"-1\"><PARAM NAME=\"ShowDisplay\" VALUE=\"0\"><PARAM NAME=\"S!",
+      "id": "064bcd09ae674b3a93a8a28b2f2d776a"
+    },
+    "3964174632e949bba35991a1ad18cd66": {
+      "label": false,
+      "text": "1) Through Terminal Server (the one that opens up a desktop within a desktop and it actually appears that you have two Start buttons). \nor\n2) By opening the Stack Manager directly from your \"native\" desktop.\n\nPlease reply to this message with either a corresponding \"1\" or a \"2\" in the subject field.",
+      "id": "3964174632e949bba35991a1ad18cd66"
+    },
+    "f79e3b6f46444f05ac04fc2661f2fc23": {
+      "label": true,
+      "text": "```\nimport React, { useState } from \"react\";\n\nfunction Ball() {\n  const [position, setPosition] = useState({ x: 0, y: 0 });\n\n  const handleMouseMove = (event) => {\n    setPosition({ x: event.clientX, y: event.clientY });\n  };",
+      "id": "f79e3b6f46444f05ac04fc2661f2fc23"
+    },
+    "2e71a1fa193a42e0b04c399666939997": {
+      "label": true,
+      "text": "7. Por \u00faltimo, itera a trav\u00e9s de los resultados de b\u00fasqueda y muestra el nombre del canal y una miniatura para cada uno:\n\nreturn (\n  <div>\n    <form>\n      <input type=\"text\" value={query} onChange={handleInputChange} />\n      <button type=\"button\" onClick={searchTwitch}>Search</button>\n    </form>",
+      "id": "2e71a1fa193a42e0b04c399666939997"
+    },
+    "3c5fdf9f6a194342a83f59127257ad56": {
+      "label": false,
+      "text": "the Eastern Roman Empire, or the Byzantine Empire, would continue to survive and even flourish for many centuries, the fall of the Western Roman Empire in 476 CE marked a dramatic turning point in world history. The legacy of the Roman Empire endures in the many aspects of modern society that have been influenced by its achievements, from language and law to art and architecture. The Latin",
+      "id": "3c5fdf9f6a194342a83f59127257ad56"
+    },
+    "60a6019fa6da495aa395d80568867fdd": {
+      "label": true,
+      "text": "import React, { useState } from \"react\";\n\nfunction BallFollowingMouse() {\n  const [position, setPosition] = useState({ x: 0, y: 0 });\n\n  function handleMouseMove(event) {\n    setPosition({ x: event.clientX, y: event.clientY });\n  }",
+      "id": "60a6019fa6da495aa395d80568867fdd"
+    },
+    "24a37a8d1bde4548807c27fa75a611c2": {
+      "label": true,
+      "text": "```js\nwhile (condicion) {\n  // sentencia(s);\n}\n```",
+      "id": "24a37a8d1bde4548807c27fa75a611c2"
+    },
+    "dd489a1ec0d0444f894c57d2f0f30fc1": {
+      "label": true,
+      "text": "```\nconst btn = document.getElementById(\"showFormBtn\");\nconst form = document.getElementById(\"form\");\n\nbtn.addEventListener(\"click\", function() {\n  if (form.style.display === \"block\") {\n    form.style.display = \"none\";\n  } else {\n    form.style.display = \"block\";\n    form.elements[0].focus();\n  }\n});\n```",
+      "id": "dd489a1ec0d0444f894c57d2f0f30fc1"
+    },
+    "1fd93665d3ea44fca509521c179ac54b": {
+      "label": false,
+      "text": "\u041f\u043e\u0441\u043b\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438 \u0431\u0438\u0431\u043b\u0438\u043e\u0442\u0435\u043a\u0438 \u0432\u044b \u043c\u043e\u0436\u0435\u0442\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c \u0435\u0435 \u0432 \u0441\u0432\u043e\u0435\u043c \u043f\u0440\u043e\u0435\u043a\u0442\u0435. \u0411\u0438\u0431\u043b\u0438\u043e\u0442\u0435\u043a\u0430 FFT.js \u043f\u0440\u0435\u0434\u043b\u0430\u0433\u0430\u0435\u0442 \u043d\u0430\u0431\u043e\u0440 \u0444\u0443\u043d\u043a\u0446\u0438\u0439, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u043c\u043e\u0436\u043d\u043e \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c \u0434\u043b\u044f \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f \u0424\u0443\u0440\u044c\u0435-\u0430\u043d\u0430\u043b\u0438\u0437\u0430 \u043d\u0430 \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u043d\u043e\u043c \u043d\u0430\u0431\u043e\u0440\u0435 \u0434\u0430\u043d\u043d\u044b\u0445. \u0424\u0443\u043d\u043a\u0446\u0438\u0438 fft \u0438 ifft - \u044d\u0442\u043e \u0434\u0432\u0435 \u043a\u043b\u044e\u0447\u0435\u0432\u044b\u0435 \u0444\u0443\u043d\u043a\u0446\u0438\u0438, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u0432\u0430\u043c \u043d\u0443\u0436\u043d\u043e \u0431\u0443\u0434\u0435\u0442 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c. \u041d\u0430 \u0432\u0445\u043e\u0434 \u0444\u0443\u043d\u043a\u0446\u0438\u0438 fft \u043f\u0435\u0440\u0435\u0434\u0430\u0435\u0442\u0441\u044f \u043c\u0430\u0441\u0441\u0438\u0432 \u043a\u043e\u043c\u043f\u043b\u0435\u043a\u0441\u043d\u044b\u0445 \u0447\u0438\u0441\u0435\u043b, \u0438 \u043e\u043d\u0430 \u0432\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 \u043c\u0430\u0441\u0441\u0438\u0432 \u043a\u043e\u043c\u043f\u043b\u0435\u043a\u0441\u043d\u044b\u0445 \u0447\u0438\u0441\u0435\u043b, \u043a\u043e\u0442\u043e\u0440\u044b\u0439",
+      "id": "1fd93665d3ea44fca509521c179ac54b"
+    },
+    "0362a26ed9024f6d9fb39dfa39e113b0": {
+      "label": true,
+      "text": "const calculadora=document.getElementById('calculadora')const resultado=document.getElementById('resultado') calculadora.addEventListener('click',a\u00f1adirNumeros) let operaciones=[] function",
+      "id": "0362a26ed9024f6d9fb39dfa39e113b0"
+    },
+    "20d9a45df83e4ad1a092ea00e4d2204a": {
+      "label": true,
+      "text": ".calculator-keys button[value=\"calculate\"] {\n  grid-column: 3/5;\n}\nAgregue la funcionalidad de la calculadora utilizando JavaScript. Debe agregar un controlador de eventos para cada bot\u00f3n de la calculadora y escribir la l\u00f3gica para realizar los c\u00e1lculos. Por ejemplo:\nvbnet",
+      "id": "20d9a45df83e4ad1a092ea00e4d2204a"
+    },
+    "dff7dec5c01d4fc185f633dbe3c32b60": {
+      "label": true,
+      "text": "const calculator = document.querySelector('.calculator');\nconst keys = calculator.querySelector('.calculator-keys');\nconst screen = calculator.querySelector('.calculator-screen');\n\nkeys.addEventListener('click', event => {\n  if (!event.target.matches('button')) {\n    return;\n  }\n\n  const key = event.target;\n  const keyValue = key.value;\n  const displayValue = screen.textContent;",
+      "id": "dff7dec5c01d4fc185f633dbe3c32b60"
+    },
+    "53d4066c6d704bd79f2d531a1f9562f4": {
+      "label": true,
+      "text": "\n    if (!phoneRegex.test(phoneValue)) {return inputError(\"phone\")}\n\n    if (passwordValue !== passwordConfirmValue) {\n        inputError(\"password\");\n        return inputError(\"confirm-password\");\n    }\n\n\n});\n\nfunction inputError(inputName) {\n    form.elements[inputName].style.border = \"1px solid red\";\n}\n```",
+      "id": "53d4066c6d704bd79f2d531a1f9562f4"
+    },
+    "59f75053fff04c879d1aacfb7bd8b51b": {
+      "label": true,
+      "text": "const App = () => {\n  const [elements1, setElements1] = useState([\n    { id: 1, text: 'Element 1' },\n    { id: 2, text: 'Element 2' },\n    { id: 3, text: 'Element 3' },\n  ]);\n  const [elements2, setElements2] = useState([\n    { id: 4, text: 'Element 4' },\n    { id: 5, text: 'Element 5' },\n    { id: 6, text: 'Element 6' },\n  ]);",
+      "id": "59f75053fff04c879d1aacfb7bd8b51b"
+    },
+    "cda55f47106b4a40b49bf9b8722cd7f1": {
+      "label": true,
+      "text": "```js\nfetch(\"/robots.txt\")\n  .then(response => {\n    return response.text(); // Devuelve una promesa\n  })\n  .then(data => {\n    console.log(data);\n  })\n  .catch(error => { /* C\u00f3digo a realizar cuando se rechaza la promesa */ });\n```",
+      "id": "cda55f47106b4a40b49bf9b8722cd7f1"
+    },
+    "397f7180a5af495a874646051f8bc248": {
+      "label": true,
+      "text": "  const handleButtonClick = async () => {\n    try {\n      const response = await axios.get(`https://example-api.com/${inputValue}`);\n      setResult(response.data);\n    } catch (error) {\n      console.error(error);\n    }\n  };",
+      "id": "397f7180a5af495a874646051f8bc248"
+    },
+    "4439280d86e644da8c5a10277ba7777a": {
+      "label": true,
+      "text": "                client.send(message);\n            }\n    });\n});\n```",
+      "id": "4439280d86e644da8c5a10277ba7777a"
+    },
+    "e54d850ca2cb41c5a869936baad2163f": {
+      "label": true,
+      "text": "```javascript\nconst axios = require('axios');\nconst cheerio = require('cheerio');\n\nconst getData = async () => {\n  const response = await axios.get('https://www.realestate.com.au/rent/in-sydney,+nsw/list-1');\n  const $ = cheerio.load(response.data);\n  \n  const properties = [];\n\n  $('.listing-result').each((i, el) => {\n    const property = {};",
+      "id": "e54d850ca2cb41c5a869936baad2163f"
+    },
+    "ae64416d43bc4a61b2783d1b7067b9de": {
+      "label": true,
+      "text": "const App = () => {\n  const [list1, setList1] = useState([\n    { id: 1, text: \"Item 1\" },\n    { id: 2, text: \"Item 2\" },\n    { id: 3, text: \"Item 3\" }\n  ]);\n  const [list2, setList2] = useState([\n    { id: 4, text: \"Item 4\" },\n    { id: 5, text: \"Item 5\" }\n  ]);\n\n  const onDragStart = (event, source) => {\n    event.dataTransfer.setData(\"source\", source);\n  };",
+      "id": "ae64416d43bc4a61b2783d1b7067b9de"
+    },
+    "5b6b91512f014660bc48d8527b3ca226": {
+      "label": true,
+      "text": "```javascript\nimport React, { useState } from 'react';\n\nconst App = () => {\n  const [items1, setItems1] = useState(['Item 1', 'Item 2', 'Item 3']);\n  const [items2, setItems2] = useState([]);",
+      "id": "5b6b91512f014660bc48d8527b3ca226"
+    },
+    "c751dfc325414603a16ac65e2fa62fd7": {
+      "label": false,
+      "text": "Detailed Instructions: In this task, you are given an input list. A list contains several comma-separated items written within brackets. You need to return the position of all the alphabetical elements in the given list in order. Assume the position of the 1st element to be 1. Return -1 if no alphabetical element is in the list.\nQ: ['g', '7171', 'v', 'i', 'f', 'c']\nA:",
+      "id": "c751dfc325414603a16ac65e2fa62fd7"
+    },
+    "0310318744f1425e88cdd053773681ca": {
+      "label": false,
+      "text": "In this task, you are given an input list. A list contains several comma-separated items written within brackets. You need to return the position of all the alphabetical elements in the given list in order. Assume the position of the 1st element to be 1. Return -1 if no alphabetical element is in the list.",
+      "id": "0310318744f1425e88cdd053773681ca"
+    },
+    "8d6eb8f1aac745359540c9f454aa9a58": {
+      "label": false,
+      "text": "not how you reconcile with your estranged wife,\u201d wrote Vulture.",
+      "id": "8d6eb8f1aac745359540c9f454aa9a58"
+    }
+  },
+  "version": 62,
+  "description": "Source code for a programming language."
+}

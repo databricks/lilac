@@ -34,8 +34,8 @@
   $: authEnabled = $authInfo.data?.auth_enabled;
   $: userId = $authInfo.data?.user?.id;
 
-  $: defaultNamespace = (authEnabled ? userId : null) || 'local';
-  $: namespace = command.namespace || defaultNamespace;
+  $: defaultNamespace = command.namespace || (authEnabled ? userId : null);
+  let namespace = defaultNamespace || 'local';
   $: dataset = command.dataset;
   $: datasetId = dataset ? `${dataset.namespace}/${dataset.name}` : '';
   $: path = command.path;
@@ -176,7 +176,11 @@
         -->
             <TextInput labelText="namespace" disabled />
           {:else}
-            <TextInput labelText="namespace" bind:value={namespace} />
+            <TextInput
+              labelText="namespace"
+              value={defaultNamespace}
+              on:change={e => (namespace = (e.detail || '').toString())}
+            />
           {/if}
           <TextInput labelText="name" bind:value={name} required />
         </div>
@@ -191,14 +195,16 @@
         <div class="my-4 flex gap-x-2">
           <TextInput
             labelText="Concept description"
-            helperText="This will be used by an LLM to generate example sentences."
+            helperText={authEnabled
+              ? 'Authentication is enabled, so LLM generation of examples is disabled. Please fork this and enable authentication to use generated examples.'
+              : 'This will be used by an LLM to generate example sentences.'}
             placeholder="Enter the concept description..."
             bind:value={conceptDescription}
           />
           <div class="generate-button pt-6">
             <Button
               on:click={generatePositives}
-              disabled={!conceptDescription || generatingPositives}
+              disabled={!conceptDescription || generatingPositives || authEnabled}
             >
               Generate
               <span class="ml-2" class:invisible={!generatingPositives}><InlineLoading /></span>

@@ -28,7 +28,7 @@ from .router_concept import (
   ScoreBody,
   ScoreExample,
 )
-from .schema import Item, RichData, SignalInputType, lilac_embedding, lilac_span
+from .schema import Item, RichData, lilac_embedding, lilac_span
 from .server import app
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .test_utils import fake_uuid
@@ -398,7 +398,7 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   url = '/api/v1/concepts/concept_namespace/concept/model/test_embedding'
   response = client.get(url, params={'create_if_not_exists': False})
   assert response.status_code == 200
-  assert response.json() == None
+  assert response.json() is None
 
   # Get the concept model, and create it.
   url = '/api/v1/concepts/concept_namespace/concept/model/test_embedding'

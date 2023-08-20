@@ -143,7 +143,8 @@
       {@const background = getBackground(candidate.score)}
       {@const info = getInfo(candidate.score)}
       <div
-        class={`flex flex-grow items-center rounded-md border border-gray-300 p-4 pl-2 ${background}`}
+        class={`flex flex-grow items-center whitespace-break-spaces rounded-md border ` +
+          `border-gray-300 p-4 pl-2 ${background}`}
       >
         <div class="mr-2 flex flex-shrink-0 gap-x-1">
           <button

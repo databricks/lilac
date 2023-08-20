@@ -1,0 +1,1024 @@
+{
+  "namespace": "lilac",
+  "concept_name": "non-english",
+  "type": "text",
+  "data": {
+    "c727f30a2d2d40f69b81aa981515fb62": {
+      "label": true,
+      "text": "Je suis fatigu\u00e9.",
+      "id": "c727f30a2d2d40f69b81aa981515fb62"
+    },
+    "834121208555439b976a5f228ec138a5": {
+      "label": true,
+      "text": "Ich spreche Deutsch.",
+      "id": "834121208555439b976a5f228ec138a5"
+    },
+    "61a4130d8eb447ba88e52e09fc3860d7": {
+      "label": true,
+      "text": "\u79c1\u306f\u65e5\u672c\u8a9e\u3092\u8a71\u305b\u307e\u3059\u3002",
+      "id": "61a4130d8eb447ba88e52e09fc3860d7"
+    },
+    "083d9218def443e1adf7ff18150203c4": {
+      "label": true,
+      "text": "Eu n\u00e3o entendo portugu\u00eas.",
+      "id": "083d9218def443e1adf7ff18150203c4"
+    },
+    "0e540cf8599f419b81d11fd89a95b119": {
+      "label": true,
+      "text": "Non capisco italiano.",
+      "id": "0e540cf8599f419b81d11fd89a95b119"
+    },
+    "2278f313117e40b7846d2dbc9cb7f690": {
+      "label": false,
+      "text": "cotton ball",
+      "id": "2278f313117e40b7846d2dbc9cb7f690"
+    },
+    "7a3e058ff74b401485185a51a9d07606": {
+      "label": false,
+      "text": "To ensure sensor switch is not actuated by the weight of the cat bed place on it, but only by the cat laying in the bed.",
+      "id": "7a3e058ff74b401485185a51a9d07606"
+    },
+    "8c2fd2d3a7f049dea2d4161d17ae02dd": {
+      "label": false,
+      "text": "Make turmeric milk",
+      "id": "8c2fd2d3a7f049dea2d4161d17ae02dd"
+    },
+    "bccf69d2771640b6a7b436b731d5cc85": {
+      "label": false,
+      "text": "To make a double boiler",
+      "id": "bccf69d2771640b6a7b436b731d5cc85"
+    },
+    "84ce78b3ccfc4007b0aceabe7004436c": {
+      "label": false,
+      "text": "To encourage your child to behave better,",
+      "id": "84ce78b3ccfc4007b0aceabe7004436c"
+    },
+    "cc4c4eb91b40473c826ae400fdec6c1e": {
+      "label": false,
+      "text": "How do you peel asparagus before cooking?",
+      "id": "cc4c4eb91b40473c826ae400fdec6c1e"
+    },
+    "cae1ab05a7584231afa9be93f0029105": {
+      "label": false,
+      "text": "How can I dry citrus salt?",
+      "id": "cae1ab05a7584231afa9be93f0029105"
+    },
+    "7eded97e58614ca0b7e9421f955cef3c": {
+      "label": false,
+      "text": "How do I melt chocolate?",
+      "id": "7eded97e58614ca0b7e9421f955cef3c"
+    },
+    "35ecb6b2835b427ba15432471dda4bde": {
+      "label": false,
+      "text": "How to get rid of crows.",
+      "id": "35ecb6b2835b427ba15432471dda4bde"
+    },
+    "91c70b93890a47b3ad1925e143c2ac69": {
+      "label": false,
+      "text": "How to Kill Green Hair Algae in a Freshwater Aquarium",
+      "id": "91c70b93890a47b3ad1925e143c2ac69"
+    },
+    "dd6b9fb4280f4ff0b4c371c834525692": {
+      "label": false,
+      "text": "how do you translate from spanish to english?",
+      "id": "dd6b9fb4280f4ff0b4c371c834525692"
+    },
+    "350bb48432614e69b5b8aa58f82fe7c4": {
+      "label": false,
+      "text": "Learn a new language quickly.",
+      "id": "350bb48432614e69b5b8aa58f82fe7c4"
+    },
+    "057e3e9d624d48b896a87e97fa6f468c": {
+      "label": false,
+      "text": "how do you keep a cat from going in heat?",
+      "id": "057e3e9d624d48b896a87e97fa6f468c"
+    },
+    "f9c15155cc264a9da3642d420efab4ea": {
+      "label": false,
+      "text": "how ot melt crayons",
+      "id": "f9c15155cc264a9da3642d420efab4ea"
+    },
+    "a6acb5343d9c42a6b29dffe9314dafa1": {
+      "label": true,
+      "text": "Chi \u00e8 il presidente del consiglio in Italia ora?",
+      "id": "a6acb5343d9c42a6b29dffe9314dafa1"
+    },
+    "e808987d2364440bbbc4e0cb71bb2307": {
+      "label": true,
+      "text": "1. Frenar: Es importante se\u00f1alar cuando vas a frenar, especialmente si vas a hacerlo bruscamente. Esto lo puedes hacer extendiendo tu brazo izquierdo hacia abajo con la palma de la mano abierta.\n\n2. Detenerse: Si necesitas detenerte por completo, debes se\u00f1alarlo tambi\u00e9n. Esto lo puedes hacer extendiendo tu brazo izquierdo hacia abajo con la palma de la mano abierta y con los dedos hacia abajo.",
+      "id": "e808987d2364440bbbc4e0cb71bb2307"
+    },
+    "0a4ba4f4ed404a1692d8d7b96c76de05": {
+      "label": false,
+      "text": "It depends on the size of your house, if it is small one access point is enough, if it is bigger it might be better to have two or three.",
+      "id": "0a4ba4f4ed404a1692d8d7b96c76de05"
+    },
+    "16396e6f1d3b47d58d3294c4cf4b9a9d": {
+      "label": true,
+      "text": "In definitiva, per Nietzsche, il significato della vita non era qualcosa che poteva essere dato, ma era piuttosto qualcosa che gli individui dovevano creare per se stessi attraverso l'arte, la cultura, la creazione di valore e la superazione della sofferenza.",
+      "id": "16396e6f1d3b47d58d3294c4cf4b9a9d"
+    },
+    "ecce57f8ecad45ef8b3826d27e233080": {
+      "label": false,
+      "text": "Evidence for the existence of a God or multiple Gods is subjective and varies depending on one's beliefs and personal experiences. Some people may cite religious texts, miracles, or spiritual experiences as evidence, while others may argue that the lack of evidence is evidence in itself. I can also suggest that the absence of evidence is not evidence of absence, and that there may be multiple",
+      "id": "ecce57f8ecad45ef8b3826d27e233080"
+    },
+    "79f897e21d27403097aed9b9800689c4": {
+      "label": true,
+      "text": "Infine, nella sua ultima fase filosofica, Nietzsche ha sviluppato la sua critica alla moralit\u00e0 tradizionale e alla religione, sostenendo che questi sistemi erano basati su valori falsi e che la vita aveva bisogno di una nuova valutazione morale e spirituale. In questa fase, Nietzsche ha sostenuto che la vita aveva bisogno di un nuovo senso e di una nuova direzione, e che era compito dell'individuo",
+      "id": "79f897e21d27403097aed9b9800689c4"
+    },
+    "da1b4988188642368b4f683f0418496e": {
+      "label": true,
+      "text": "Pueden un perro y una gato procrear juntos?",
+      "id": "da1b4988188642368b4f683f0418496e"
+    },
+    "2c54d8a5bb6742ada15549ad7007fe6b": {
+      "label": true,
+      "text": "In generale, Nietzsche ha visto la vita come una sfida continua, dove ogni individuo deve trovare il proprio significato e scopo attraverso la creativit\u00e0, l'arte e la moralit\u00e0 personale.",
+      "id": "2c54d8a5bb6742ada15549ad7007fe6b"
+    },
+    "28a055c7637c440bb0912bc5274d79c3": {
+      "label": true,
+      "text": "De nada, fue un placer ayudarte. \u00bfEn qu\u00e9 m\u00e1s puedo ayudarte?",
+      "id": "28a055c7637c440bb0912bc5274d79c3"
+    },
+    "b61a36355ae943208090ccdd3b736dce": {
+      "label": true,
+      "text": "\u00bfPor qu\u00e9 deber\u00edamos preocuparnos por estos gases? Bueno, porque est\u00e1n causando cambios dr\u00e1sticos en el clima, lo que a su vez est\u00e1 afectando a nuestro medio ambiente.",
+      "id": "b61a36355ae943208090ccdd3b736dce"
+    },
+    "7ea3d807733044c69a4e35f6ff6b66a3": {
+      "label": true,
+      "text": "Pi\u00f9 di recente, gli studiosi sono giunti a riconoscere che ci sono altri criteri essenziali per un\u2019unione monetaria di successo, che sono difficili da realizzare senza una profonda integrazione politica. Alla fine degli anni sessanta, Peter Kenen&amp; ha sostenuto che senza i movimenti dei tassi di cambio come ammortizzatori, l\u2019unione monetaria necessita dei trasferimenti fiscali come modalit\u00e0 per",
+      "id": "7ea3d807733044c69a4e35f6ff6b66a3"
+    },
+    "c06cf297c9564f9baa5cbc2130f1ef1f": {
+      "label": true,
+      "text": "QUESTION: \u00bfPor qu\u00e9 se oponen Alemania y Austria?",
+      "id": "c06cf297c9564f9baa5cbc2130f1ef1f"
+    },
+    "cc5a1a04352d471cb5b7e6831f19c86a": {
+      "label": false,
+      "text": "- wing parties , with the aid of the Democratic Renewal Party , the government fell and M\u00e1rio Soares , the President at the time , called for a new election . The PSD was very popular going into the election , and was elected to a landslide majority government -- the biggest that a Portuguese party had ever won in a free election . The left - wing Democratic Unity Coalition lost some of its MPs to",
+      "id": "cc5a1a04352d471cb5b7e6831f19c86a"
+    },
+    "8a95fab4b058420aa102b25fd7afc211": {
+      "label": true,
+      "text": "reticente, Holanda. Alemania y Austria, por el contrario, permanecen firmes en su oposici\u00f3n al texto, ya que consideran que menoscaba claramente el derecho a la defensa reconocido en sus Constituciones. La nueva directiva pretende extender a abogados y contables, incluidos los asesores fiscales, agentes inmobiliarios, marchantes de arte, anticuarios y casinos las mismas obligaciones que ahora",
+      "id": "8a95fab4b058420aa102b25fd7afc211"
+    },
+    "1ffe093d849040b6baaaadb5b71c04af": {
+      "label": true,
+      "text": "\"Hay una cosa afectiva muy fuerte, que cuesta, me ha costado mucho tiempo\" asimilar esos cinco a\u00c3\u00b1os que viv\u00c3\u00ad en las ciudades de Buenos Aires y C\u00c3\u00b3rdoba, admiti\u00c3\u00b3. En sus a\u00c3\u00b1os por la naci\u00c3\u00b3n sudamericana se cas\u00c3\u00b3 con un argentino, del que m\u00c3\u00a1s tarde se separ\u00c3\u00b3, y con quien tuvo a su primer y \u00c3\u00banico hijo.",
+      "id": "1ffe093d849040b6baaaadb5b71c04af"
+    },
+    "e95da58452044682ab05ad688544e907": {
+      "label": true,
+      "text": "M\u00e9lodieux et heureux !! . Cet album est magnifique. Apr\u00e8s plusieurs \u00e9coutes, je suis enchant\u00e9 de l'\u00e9couter et d'appr\u00e9cier les m\u00e9lodies qui s'y trouvent. Beaucoup de changements dans les musiques je trouve et aussi dans les paroles car je trouve que Myl\u00e8ne est plus directe dans la mani\u00e8re de parler de l'amour qui est tr\u00e8s pr\u00e9sent dans cet album. Je suis heureux d'avoir attendu pour entendre ses",
+      "id": "e95da58452044682ab05ad688544e907"
+    },
+    "34bc60b878e546b6af0e9bba1ec3879f": {
+      "label": true,
+      "text": "\u79c1\u306f\u65e5\u672c\u8a9e\u3092\u8a71\u305b\u307e\u3059\u3002",
+      "id": "34bc60b878e546b6af0e9bba1ec3879f"
+    },
+    "67f0416e7b3148698b02964bce412e8f": {
+      "label": true,
+      "text": "===============================\nConfidencial. Sujeito a privil,gio legal de comunica??o advogado/cliente.\nPrivileged and confidential attorney/client communication.\n\nPinheiro Neto - Advogados\n===============================\n - chart.doc\n - enron-q2_.doc\n\n\n",
+      "id": "67f0416e7b3148698b02964bce412e8f"
+    },
+    "1ee8405759884e078250db51a51960fe": {
+      "label": false,
+      "text": "\t\t\t\t\t\t\t<TD COLSPAN=\"2\"><SPAN CLASS=\"ArticleTitle\"><A HREF=\"https://www.wpo.org/benefits_and_services/publications/article_view.cfm?ArticleID=60&NewsletterID=11\" TARGET=\"new\" CLASS=\"ArticleTitle\">Splendors of La Serenissima</A></SPAN></TD>\n\t\t\t\t\t</TR>\n\t\t\t\t\t<TR>\n\t\t\t\t\t    <TD WIDTH=\"15\"><IMG SRC=\"https://www.wpo.org/images/admin/enewsletter_admin/enewsletter/spacer.gif\" HEIGHT=\"8\" WIDTH=\"1\"></TD>",
+      "id": "1ee8405759884e078250db51a51960fe"
+    },
+    "6e2b830f1af94031a81380982e0eee06": {
+      "label": true,
+      "text": "===============================\nConfidencial. Sujeito a privil,gio legal de comunica??o advogado/cliente.\nPrivileged and confidential attorney/client communication.\n\nPinheiro Neto - Advogados\n===============================\n - enron-question.doc",
+      "id": "6e2b830f1af94031a81380982e0eee06"
+    },
+    "97e62b35b9974c9bb543fed193aed9d5": {
+      "label": false,
+      "text": "Most Democrats support legislation to reduce the role of money in politics. GOP leaders oppose it, and Democrats have long labored to depict Republicans as beholden to special interests. ",
+      "id": "97e62b35b9974c9bb543fed193aed9d5"
+    },
+    "e83e6092a67249e89b6ad77b39d35268": {
+      "label": false,
+      "text": "known since the 2nd century. In the 8th century it was the capital of Spain. There is also an important city in Venezuela  named Valencia. When was Valencia the most important city in Spain?",
+      "id": "e83e6092a67249e89b6ad77b39d35268"
+    },
+    "824df6ad092f436ca5c923bb90b916f6": {
+      "label": true,
+      "text": "wife, as well as its Italian name: \"La Gioconda.\" Which of the following statements is true according to the passage?",
+      "id": "824df6ad092f436ca5c923bb90b916f6"
+    },
+    "9fb56ac53d444ae5b6a018d90a5808d8": {
+      "label": false,
+      "text": "known since the 2nd century. In the 8th century it was the capital of Spain. There is also an important city in Venezuela named Valencia. What is the main difference between the two parts of the city?",
+      "id": "9fb56ac53d444ae5b6a018d90a5808d8"
+    },
+    "1348ac65099049f9abf8401822f48966": {
+      "label": false,
+      "text": "Italian during the day, evening or on a onetoone basis. What does this passage mainly talk about?",
+      "id": "1348ac65099049f9abf8401822f48966"
+    },
+    "718e4099864145aba77fad8a6d77ed47": {
+      "label": false,
+      "text": "may imply us, only love can solve the problems between people, between the poor and the rich, love is everything. Which of the following is TRUE according to the passage?",
+      "id": "718e4099864145aba77fad8a6d77ed47"
+    },
+    "7ff37b233af54e978d0051deaa866b27": {
+      "label": true,
+      "text": "Ton camarade peut parfaitement exiger d'\u00eatre pay\u00e9 ce qui est inscrit dans le contrat. Il est possible que cela d\u00e9grade fortement ses relations avec l'entreprise et elle peut tr\u00e8s bien lui faire rater son ann\u00e9e en donnant un avis n\u00e9gatif sur ses performances. \u00c0 lui de voir si il souhaite continuer avec l'entreprise ou non.",
+      "id": "7ff37b233af54e978d0051deaa866b27"
+    },
+    "b52a661d85e04e8288abe2d87cb9cb74": {
+      "label": true,
+      "text": "sino un CONTRATO, por lo que de momento no voy a iniciar acciones legales pensando en que reconsidere su posici\u00f3n, pero si su decisi\u00f3n fuese no cumplir con EUROSEPER, mi gabinete jur\u00eddico HISPACOLEX, iniciar\u00e1 acciones legales contra usted por DA\u00d1OS Y PERJUICIOS, pues sabe que usted fu\u00e9 el profesor el a\u00f1o pasado, y sabe que hay muchas familias que le esperan como profesor a usted. Asi que espero",
+      "id": "b52a661d85e04e8288abe2d87cb9cb74"
+    },
+    "a97e74c1fb5940daac413e7d384e1ad7": {
+      "label": true,
+      "text": "Si l'entreprise refuse de payer ton camarade ce salaire l\u00e0 elle peut soit proposer une rupture conventionnelle avec les indemnit\u00e9s qui vont avec, soit s'il y a une p\u00e9riode d'essai ne pas continuer, soit aller aux prud'hommes pour faire casser le contrat si ils peuvent r\u00e9ellement prouver que c'est une erreur et pas simplement que l'\u00e9tudiant a n\u00e9goci\u00e9 \u00e7a.",
+      "id": "a97e74c1fb5940daac413e7d384e1ad7"
+    },
+    "22c1380ee8714ee9af2f89ac8899adc0": {
+      "label": true,
+      "text": "Maintenant, il ne semble pas y avoir beaucoup de preuves \u00e9tant donn\u00e9 la distance dans le temps. On se retrouve un peu dans une situation de il dit v. elle dit alors c'est pas vraiment clair jusqu'o\u00f9 \u00e7a peut aller si vous avez rien dit d'incriminant, mais je ne suis pas un avocat et encore moins un expert en droit p\u00e9nal. Consultez votre avocat(e) (c'est cette personne l'experte et votre personne",
+      "id": "22c1380ee8714ee9af2f89ac8899adc0"
+    },
+    "753c9b1a8de24131b30d283ce83a78b2": {
+      "label": false,
+      "text": "this is the whole section of Arbitration for my agreement:",
+      "id": "753c9b1a8de24131b30d283ce83a78b2"
+    },
+    "a41fec48ceb44c76b7b11407b74066c6": {
+      "label": false,
+      "text": "that add up to about $470 (like 47 lunches at the sandwich shop you like), or even a mix of items (like a new toaster oven, ten fancy coffees, and whatever), but put together a list of ten of them and write them down. ",
+      "id": "a41fec48ceb44c76b7b11407b74066c6"
+    },
+    "246967893bf14f818abd779c7c1d18bd": {
+      "label": true,
+      "text": "colocataire. Et de toute fa\u00e7on (et je dis \u00e7a sans conna\u00eetre tes ant\u00e9c\u00e9dents), il est tr\u00e8s peu probable que tu ailles en prison pour \u00e7a.",
+      "id": "246967893bf14f818abd779c7c1d18bd"
+    },
+    "07a05f094b074c84b19a6637261fdabc": {
+      "label": true,
+      "text": "op basis daarvan verzoeken om af te zien van het uitzenden.",
+      "id": "07a05f094b074c84b19a6637261fdabc"
+    },
+    "2b4276f61d014f1ca84c0cb5861bb312": {
+      "label": false,
+      "text": "Use a credit card like everyone else, instead of using your checking account.\n\nAlso, you are a grown-up, open your own damn checking &amp; savings account.  It takes about 20 minutes.  Then, put your own money in it, and spend it as you wish.",
+      "id": "2b4276f61d014f1ca84c0cb5861bb312"
+    },
+    "36f6833a45d340b78a3909624fbfcc3b": {
+      "label": true,
+      "text": "\"EStimado Sr. Adam Miller, me sorprende su falta de fomalidad, como usted bien sabe esta empresa siempre ha cumplido con usted, incluso me dice que no tuvo vacaciones, cuando en realidad estuvo trabajando solo de 6 a 8, y el contrato era de 4 a 8. No obstante reconozco su val\u00eda profesional y mi intenci\u00f3n es seguir contando con usted este a\u00f1o en la Carlota, y durante el curso ir\u00e1 recibiendo m\u00e1s",
+      "id": "36f6833a45d340b78a3909624fbfcc3b"
+    },
+    "2bf2c86ce5494156b1bf7b86a2325a17": {
+      "label": false,
+      "text": "Answer #1: Most flea drops are meant for a single cat who can not lick the drops off themselves. When put on 11 cats they are going to ingest a ton of it licking it off their buddies. Odds are that is what happened and the primary groomers are the ones who got sick and died.Answer #2: Usually those medications are aimed to be used on one to two animals at a time, the assumption being that most",
+      "id": "2bf2c86ce5494156b1bf7b86a2325a17"
+    },
+    "12f4657613b543ed90caaf1d52808dc1": {
+      "label": true,
+      "text": "decentemente. As\u00ed que no debo haberlo hecho tan mal.",
+      "id": "12f4657613b543ed90caaf1d52808dc1"
+    },
+    "21b1929e322c41fbba05d71cdc143aa2": {
+      "label": true,
+      "text": "Porsi a distanza, quel tanto che basta per mettere bene a fuoco e osservare che le cose non sono esattamente come credevi che fossero.",
+      "id": "21b1929e322c41fbba05d71cdc143aa2"
+    },
+    "792ffd2c51ea4c119c0718dd19f2acae": {
+      "label": true,
+      "text": "Cinq \u00e9oliennes en plus, un nouveau souffle sur la plaine de l'Orbieu - http",
+      "id": "792ffd2c51ea4c119c0718dd19f2acae"
+    },
+    "cc5826b82642497790882e22667c69ba": {
+      "label": true,
+      "text": "Bestes Gef\u00fchl der Welt: Schuhe aus, barfu\u00df laufen",
+      "id": "cc5826b82642497790882e22667c69ba"
+    },
+    "ae1f9ba6bb9e41549cba2c4f3857dabf": {
+      "label": true,
+      "text": "Troco o time vermelho todo com  super brindes chamados Miriam e Leo, e voc\u00eas devolvem o @user  #MasterChefBR",
+      "id": "ae1f9ba6bb9e41549cba2c4f3857dabf"
+    },
+    "2585790e439d4ff0926f0b26bbfd6a43": {
+      "label": true,
+      "text": "Training: Starker Smog verz\u00f6gert letztes Training zum Indien-Rennen - Abendzeitung M\u00fcnchen: ... http #Muenchen #Munich",
+      "id": "2585790e439d4ff0926f0b26bbfd6a43"
+    },
+    "6f7883441aad4a0d9e32768e6400163d": {
+      "label": true,
+      "text": "#Encontro ACHO QUE EU AMEI MESMO DISTANTE! Que lindo Nando Reis...",
+      "id": "6f7883441aad4a0d9e32768e6400163d"
+    },
+    "df1084a871054de3970c251fb65b32e5": {
+      "label": true,
+      "text": "@user \u0641\u0631\u0646\u0633\u0627 ..\u0647\u0648\u0644\u0627\u0646\u062f \u0645\u0627\u0634\u0649 \u0648\u062c\u0649 \u0627\u0644\u064a\u0645\u0646 \u0627\u0644\u0645\u062a\u0637\u0631\u0641 \u0628\u0642\u064a\u0627\u062f\u0629 \u0645\u0627\u0631\u0649 \u0644\u0648\u0628\u0627\u0646 \u0632\u0649 \u062a\u0631\u0627\u0645\u0628 \u0643\u062f\u0647",
+      "id": "df1084a871054de3970c251fb65b32e5"
+    },
+    "58332759cf794aba857d927a14994b88": {
+      "label": true,
+      "text": "\u0646\u062c\u0631\u0627\u0646: \u0625\u0637\u0644\u0627\u0642 \u0635\u0644\u064a\u0629 \u0635\u0648\u0627\u0631\u064a\u062e \u0639\u0644\u0649 \u062a\u062c\u0645\u0639\u0627\u062a \u0644\u0640 #\u0627\u0644\u062c\u064a\u0634_\u0627\u0644\u0633\u0639\u0648\u062f\u064a \u0648\u0622\u0644\u064a\u0627\u062a\u0647 \u0641\u064a \u0645\u0648\u0642\u0639 \u0627\u0644\u0647\u0631\u0645 \u0645\u062d\u0642\u0642\u0629 \u0625\u0635\u0627\u0628\u0627\u062a \u0645\u0628\u0627\u0634\u0631\u0629 #\u0644\u0628\u0646\u0627\u0646_\u0627\u0644\u0622\u0646",
+      "id": "58332759cf794aba857d927a14994b88"
+    },
+    "32cbb4e235dc4206a5f00bf40e98857f": {
+      "label": true,
+      "text": "RT @user: Ich muss wieder mehr Beats machen. NEVER SLEEP CAUSE SLEEP IS THE CAUSE OF DEATH #nasvoice #music\u2026 http",
+      "id": "32cbb4e235dc4206a5f00bf40e98857f"
+    },
+    "e7f8abdf87db4a89b703d2ccc097adfa": {
+      "label": true,
+      "text": "@user heute kein neuer 40DOD Bericht :(",
+      "id": "e7f8abdf87db4a89b703d2ccc097adfa"
+    },
+    "3bd5a83708a84289b2af8edbb56de338": {
+      "label": false,
+      "text": "Lazy Sunday Ray Allen Is Lamar Odom really going to the D League ?http://t.co/w6juHFgR ",
+      "id": "3bd5a83708a84289b2af8edbb56de338"
+    },
+    "4ef05c2d3a3543bf8a1c0b25bde57e2a": {
+      "label": true,
+      "text": "mujhe to sidha daant padti thi .  .  .  bacho k hath me paise nahi diye jate warna bigad jayenge :d :d",
+      "id": "4ef05c2d3a3543bf8a1c0b25bde57e2a"
+    },
+    "45311ee95c2e4cb1925d0040fb934f71": {
+      "label": true,
+      "text": "@user Oh ja, bitte mal Bescheid geben, wenn Helene Fischer dran ist!",
+      "id": "45311ee95c2e4cb1925d0040fb934f71"
+    },
+    "e719e02d417542b69b86d13ad7cad8ce": {
+      "label": false,
+      "text": "@user Hey, just thought I'd remind you it's Deezer's birthday tomorrow! Also, you have any idea what he looks like?\" ",
+      "id": "e719e02d417542b69b86d13ad7cad8ce"
+    },
+    "561960a730de49c58423a8bf85df3dd1": {
+      "label": true,
+      "text": "#MaisVoce sou muito f\u00e3 do Dan, nossa que del\u00edcia essa entrevista, adorei ele no filme \"tempos de paz\" @user \u00e9 um ser humano lindo!",
+      "id": "561960a730de49c58423a8bf85df3dd1"
+    },
+    "d6b6fa3a919d4770a6586e007be914bf": {
+      "label": true,
+      "text": "RT @user: \u201c@KusXAnke: Straks buikdansen w/ @user &amp; haar nichten ! Was super!",
+      "id": "d6b6fa3a919d4770a6586e007be914bf"
+    },
+    "40b1078ffcec4a7da9899f0dd82f9d7f": {
+      "label": true,
+      "text": "#Grillo ieri a Conegliano ha detto che pagare le tasse e' giusto ma vuole conoscere la destinazione d'uso. Anche la Lega diceva cosi'...",
+      "id": "40b1078ffcec4a7da9899f0dd82f9d7f"
+    },
+    "758697fd8ebe4848af77a44757256203": {
+      "label": true,
+      "text": "#clouds #staatskanzlei #munich #m\u00fcnchen #blau #wolken #himmel #sky #silhouette #instagood\u2026 http",
+      "id": "758697fd8ebe4848af77a44757256203"
+    },
+    "95b69bc9b1214b14a600d7dfaea192f5": {
+      "label": true,
+      "text": "Depois desse #MaisVoce de hoje, se nadar der certo, eu viro #meseira",
+      "id": "95b69bc9b1214b14a600d7dfaea192f5"
+    },
+    "be6bad976b5e4d0c88e166aa583bd9cd": {
+      "label": true,
+      "text": "@user H\u00f6chst unbefriedigend...",
+      "id": "be6bad976b5e4d0c88e166aa583bd9cd"
+    },
+    "8cb329f9d5744ac6a52a4c3e823212c4": {
+      "label": false,
+      "text": "$15 minimum wage is a win-win. If businesses continue to boom, it's a win. Or, if it puts @user out of b\u2026 ",
+      "id": "8cb329f9d5744ac6a52a4c3e823212c4"
+    },
+    "c1542633006b4f62aaf7fd84b3962266": {
+      "label": true,
+      "text": "\u0638\u0647\u0648\u0631 \u0635\u0648\u0631 \u0633\u0627\u0639\u0629 HTC Halfbeak \u0628\u0646\u0638\u0627\u0645 \u0623\u0646\u062f\u0631\u0648\u064a\u062f \u0648\u064a\u0631http #\u0631\u064a\u0627\u0644_\u0645\u062f\u0631\u064a\u062f #\u0628\u0631\u0634\u0644\u0648\u0646\u0629",
+      "id": "c1542633006b4f62aaf7fd84b3962266"
+    },
+    "f2bb8836726d49a7ad23df371a877519": {
+      "label": true,
+      "text": "Heute nicht nur den Herzensmenschen geheiratet, sondern auch ganz viel Liebe von @user bekommen. Unbezahlbar &lt;3",
+      "id": "f2bb8836726d49a7ad23df371a877519"
+    },
+    "e5d6b7cb7c25419fbd8cb29119c26577": {
+      "label": true,
+      "text": "Invention de la premi\u00e8re cellule solaire qui stocke l\u2019\u00e9lectricit\u00e9 http",
+      "id": "e5d6b7cb7c25419fbd8cb29119c26577"
+    },
+    "46ae96b8c72e48f8992bd716116dc761": {
+      "label": true,
+      "text": "#Mussi : \\\"#Grillo farebbe bene a spararsi nei coglioni\\\" . E poi dicono di #Grillo...",
+      "id": "46ae96b8c72e48f8992bd716116dc761"
+    },
+    "f4912b96e2d34a5db245de82a8f7a463": {
+      "label": true,
+      "text": "RT @user: \u0639\u062c\u0628\u0627 \u0644\u0645\u0646 \u062e\u0631\u062c \u0639\u0644\u0649 \u0641\u0633\u0627\u062f \u0645\u0628\u0627\u0631\u0643 \u0648\u064a\u0645\u062a\u0646\u0639 \u0639\u0646 \u0627\u0644\u062e\u0631\u0648\u062c \u0639\u0644\u0649 \u0627\u0644\u0642\u062a\u0644 \u0648\u0627\u0644\u0627\u0639\u062a\u0642\u0627\u0644 \u0648\u0627\u0644\u0641\u0633\u0627\u062f \u0648\u0627\u0644\u062a\u0642\u0634\u0641 \u0648\u0627\u0644\u0643\u0633\u0627\u062f \u0648\u0627\u0644\u062a\u0631\u062f\u0649#\u062b\u0648\u0631\u0648 #\u0633\u064a\u0633\u064a_\u062a\u0627\u0646\u064a_\u0644\u0627",
+      "id": "f4912b96e2d34a5db245de82a8f7a463"
+    },
+    "35f179c9260b4a22a9ac5d11fc9e81ad": {
+      "label": true,
+      "text": "Valls 2 : apr\u00e8s les \u00e9cologistes, le socialisme quitte le gouvernement | Les Jeunes Ecologistes http #EELV @user",
+      "id": "35f179c9260b4a22a9ac5d11fc9e81ad"
+    },
+    "1e649a8d62a54b13b1f7cb8297473147": {
+      "label": true,
+      "text": "Ich werde gerade dezent nicht wach...",
+      "id": "1e649a8d62a54b13b1f7cb8297473147"
+    },
+    "22548ea5d02848c6990303a6fed08189": {
+      "label": true,
+      "text": "bhai totlly phadu super hero h nagraj ... hollywood ki trh bollywood me bhi inki muvies bnni chahiye ... wese doga ki new muvi bn rhi h nxt year tk ajayegi .... ",
+      "id": "22548ea5d02848c6990303a6fed08189"
+    },
+    "0955950e8a914ee69e580275c5c3f34b": {
+      "label": true,
+      "text": "...il fatto che Di Pietro non sia d'accordo su Mario Monti Premier conferma senza ombra di dubbio che sia la scelta giusta ! Cit. Gabri",
+      "id": "0955950e8a914ee69e580275c5c3f34b"
+    },
+    "87639635c3d14e50a227344cfcab7345": {
+      "label": true,
+      "text": "project ki deadline par daudte the ,  baki time to  \" are kar lenge bahut time he \"  .  .  .  .  .  .  .  .  .  . ",
+      "id": "87639635c3d14e50a227344cfcab7345"
+    },
+    "560917c067374423bece98c64a628fbe": {
+      "label": false,
+      "text": "The decision to recount votes in Wisconsin is a joke. Leftists are still spotting-the-dummy of their loss. #TrumpTransition ",
+      "id": "560917c067374423bece98c64a628fbe"
+    },
+    "a4c1fc4296c14ccf95989796747f8753": {
+      "label": false,
+      "text": "#TOLOnews TOLOnews 08 October  2012: Top news in this Bulletin: The International Committee of the ... #Afghanistan ",
+      "id": "a4c1fc4296c14ccf95989796747f8753"
+    },
+    "2a188e097cc044458eb1a6e6d39114f4": {
+      "label": true,
+      "text": "\u201c@gabrielepinese: #Grillo fa bene a evitare la tv\\\" a dire il vero non fa mai neanche un contraddittorio neanche via web che lui ama tanto",
+      "id": "2a188e097cc044458eb1a6e6d39114f4"
+    },
+    "1c00eacdad1645e99574d588e893e7ea": {
+      "label": true,
+      "text": "oi, queria saber por que existe tanta manifesta\u00e7\u00e3o contraria a criminaliza\u00e7\u00e3o da homofobia e quem s\u00e3o os principais opositores? #encontro",
+      "id": "1c00eacdad1645e99574d588e893e7ea"
+    },
+    "1baa09b1506f46aea084875bd4148d33": {
+      "label": true,
+      "text": "Non sono forse titolato a dirlo.... Ma professor #monti mi ha deluso \u00e8 sicuramente capace ma le \u00e8 mancato il coraggio di vere scelte....",
+      "id": "1baa09b1506f46aea084875bd4148d33"
+    },
+    "629b60cc494444e295154826367bf5df": {
+      "label": true,
+      "text": "pdai kaisi chl rhi h ",
+      "id": "629b60cc494444e295154826367bf5df"
+    },
+    "175810d344da4dcf8718aac980264599": {
+      "label": true,
+      "text": "#Grillo non \u00e8 il peggiore dei mali, e se tra mali devo scegliere lui \u00e8 quello minore, o quello di cui ancora non ho sofferto...",
+      "id": "175810d344da4dcf8718aac980264599"
+    },
+    "96ff52f3b004487dbe23dd0bfb253890": {
+      "label": true,
+      "text": "\u30e9\u30a4\u30c8\u3092\u63a2\u3057\u3066\u308b",
+      "id": "96ff52f3b004487dbe23dd0bfb253890"
+    },
+    "26cdcf37c3ab4d9a9eafc5826c1258f4": {
+      "label": true,
+      "text": "\u4e2d\u5fc3",
+      "id": "26cdcf37c3ab4d9a9eafc5826c1258f4"
+    },
+    "caa57d9500934e5db76b08b1714a48d8": {
+      "label": true,
+      "text": "\u4f55\u304b\u5f15\u3063\u304b\u304b\u308a\u307e\u3057\u305f",
+      "id": "caa57d9500934e5db76b08b1714a48d8"
+    },
+    "e692438f7dbd4913a3dc46c4d9c52bcd": {
+      "label": true,
+      "text": "\u5e78\u904b\u306b\u3082",
+      "id": "e692438f7dbd4913a3dc46c4d9c52bcd"
+    },
+    "39612fd3901149beacb9b5acc7fe3dfc": {
+      "label": true,
+      "text": "\u3082\u3046\uff01",
+      "id": "39612fd3901149beacb9b5acc7fe3dfc"
+    },
+    "7401e3a8c6294ce0a8d2cfe3201e1cd0": {
+      "label": true,
+      "text": "\u53ce\u5bb9\u6240\u3067\u30ec\u30a4\u3068\u5c45\u305f\u8005\u306b...",
+      "id": "7401e3a8c6294ce0a8d2cfe3201e1cd0"
+    },
+    "455070045f3a49b193d679118d5265a5": {
+      "label": true,
+      "text": "\u304a\u524d\u306f\u4f55\u8005\u3060\uff1f",
+      "id": "455070045f3a49b193d679118d5265a5"
+    },
+    "3378c04edaab407388f2d364b9d39218": {
+      "label": true,
+      "text": "\u3042\u3089\u3001\u9b45\u529b\u7684\u3002",
+      "id": "3378c04edaab407388f2d364b9d39218"
+    },
+    "cdd47a2fa483487e8e29c7fab7d142ad": {
+      "label": true,
+      "text": "\u304a\u524d\u306e\u5973\u306b\u306a\u3093\u304b\u306b\u306a\u3089\u306a\u3044\uff01",
+      "id": "cdd47a2fa483487e8e29c7fab7d142ad"
+    },
+    "fa55a10d8c564d2880f14c8f9aba86bd": {
+      "label": true,
+      "text": "\u63a5\u7d9a\u6e08\u307f: %1, [%2], %3",
+      "id": "fa55a10d8c564d2880f14c8f9aba86bd"
+    },
+    "54d13a0d6ade412bb8f5c3b534b995ba": {
+      "label": true,
+      "text": "\u305d\u3046\u3044\u3046\u3053\u3068\u306d",
+      "id": "54d13a0d6ade412bb8f5c3b534b995ba"
+    },
+    "53d3699c466d4428a0b6abbc497ed83f": {
+      "label": true,
+      "text": "\u554f\u984c\uff1f \u90e8\u9577\u3001\u7dca\u6025\u4e8b\u614b\u3067\u3059",
+      "id": "53d3699c466d4428a0b6abbc497ed83f"
+    },
+    "cbc53f06cfd947bb80f51035a08f7333": {
+      "label": true,
+      "text": "\u4f55\u304c\u597d\u304d\uff1f",
+      "id": "cbc53f06cfd947bb80f51035a08f7333"
+    },
+    "8fe58a19fad845dfa3929b32ddaae4a4": {
+      "label": true,
+      "text": "\u30cf\u30ed\u30eb\u30c9\u306e\u5b50\u3060\u3068 \u77e5\u3063\u3066\u3044\u305f\u3060\u308d\u3046 \u3068",
+      "id": "8fe58a19fad845dfa3929b32ddaae4a4"
+    },
+    "b96fea844e3f4ac9b876f4de3ab2cc05": {
+      "label": true,
+      "text": "\u9055\u3046\u3000\u9055\u3046\u3000\u50d5\u3058\u3083\u306a\u3044\uff01",
+      "id": "b96fea844e3f4ac9b876f4de3ab2cc05"
+    },
+    "d176c2a4730043edb0ffbd1dd604710f": {
+      "label": true,
+      "text": "\u4f5c\u6226\u306b\u4f7f\u3063\u305f\u8eca\u306f\u4f55?",
+      "id": "d176c2a4730043edb0ffbd1dd604710f"
+    },
+    "2c3983f02d0344d58c4c1624e380f699": {
+      "label": false,
+      "text": "(c) 2000-2008, The KDE Team (c) 2003-2005, Klaus Niederkr\u00fcger (c) 1996-2000, Bernd Johannes Wuebben",
+      "id": "2c3983f02d0344d58c4c1624e380f699"
+    },
+    "923a3c65d5d544f483d56a0295ea2960": {
+      "label": true,
+      "text": "\u049a\u043e\u044e\u041a\u04e9\u043a\u0448\u0456\u043b\u0421\u04b1\u0440color",
+      "id": "923a3c65d5d544f483d56a0295ea2960"
+    },
+    "6d141199809f446b802cbaec666cb227": {
+      "label": false,
+      "text": "This is a searchable index. Enter search keywords:",
+      "id": "6d141199809f446b802cbaec666cb227"
+    },
+    "e1f1fda5f08041feb4a00f30c058b37d": {
+      "label": false,
+      "text": "And some people are suggesting that he's joined up with Obote's exiles.",
+      "id": "e1f1fda5f08041feb4a00f30c058b37d"
+    },
+    "1024bbe7dd53462e99c7cbd502975062": {
+      "label": true,
+      "text": "\u049a\u0430\u0441\u0438\u0435\u0442\u0442\u0435\u0440\u0456Comment",
+      "id": "1024bbe7dd53462e99c7cbd502975062"
+    },
+    "b6ec30c58ba741d6ad8283c5ad902dfa": {
+      "label": true,
+      "text": "\u041a\u0456\u0440\u0456\u0441 \u0434\u0435\u0440\u0435\u043a\u0442\u0435\u0440 \u0444\u0430\u0439\u043b\u044b",
+      "id": "b6ec30c58ba741d6ad8283c5ad902dfa"
+    },
+    "15f7d3f7557743df8502ad1e27a0ec73": {
+      "label": false,
+      "text": "PythonLanguage",
+      "id": "15f7d3f7557743df8502ad1e27a0ec73"
+    },
+    "da4a227e77314496b91ad060c2fe0418": {
+      "label": true,
+      "text": "\u0416\u043e\u0493\u0430\u0440\u044b\u041a\u043e\u043d\u0442\u0440\u0430\u0441\u0442Comment",
+      "id": "da4a227e77314496b91ad060c2fe0418"
+    },
+    "903074456936489186d4882d7267abfb": {
+      "label": true,
+      "text": "\u0416\u0430\u0443\u0430\u043f \u043c\u04d9\u0442\u0456\u043d\u0456\u043d\u0434\u0435 \u043a\u0435\u043b\u0435\u0441\u0456 \u0430\u0439\u043d\u044b\u043c\u0430\u043b\u044b\u043b\u0430\u0440 \u049b\u043e\u043b\u0434\u0430\u043d\u044b\u043b\u0430\u0434\u044b:% NAME =\u0436\u0456\u0431\u0435\u0440\u0443\u0448\u0456\u043d\u0456\u04a3 \u0430\u0442\u044b,% EMAIL =\u0436\u0456\u0431\u0435\u0440\u0443\u0448\u0456\u043d\u0456\u04a3 \u044d\u043b. \u043f\u043e\u0448\u0442\u0430 \u0430\u0434\u0440\u0435\u0441\u0456",
+      "id": "903074456936489186d4882d7267abfb"
+    },
+    "bbda9c3b01e543afb4009eb7f262b822": {
+      "label": false,
+      "text": "CORREL( A1: A3; B1: B3)",
+      "id": "bbda9c3b01e543afb4009eb7f262b822"
+    },
+    "47781ac273574ad0bc1e15b40ba9f6d3": {
+      "label": true,
+      "text": "\u041e\u0440\u0430\u043d\u0434\u0430\u043b\u0443\u0434\u0430",
+      "id": "47781ac273574ad0bc1e15b40ba9f6d3"
+    },
+    "9f98bff4c92a4f09a1502f4256c485ae": {
+      "label": true,
+      "text": "\u0411\u043e\u0437\u0430\u04a3\u041a\u04af\u043b\u0433\u0456\u043d\u049a\u044b\u0437\u044b\u043b3color",
+      "id": "9f98bff4c92a4f09a1502f4256c485ae"
+    },
+    "ccf5d3c35fdd45fe80f9cd5488e52dd6": {
+      "label": true,
+      "text": "\u040f\u0435\u0441, \u043e\u0434\u0438!",
+      "id": "ccf5d3c35fdd45fe80f9cd5488e52dd6"
+    },
+    "5c0d9b1b7d864949ac1e3352067598e4": {
+      "label": true,
+      "text": "\u0422\u043e\u0433\u0430\u0448 \u0442\u0430\u0430 \u0431\u0438\u043b\u0430 \u043f\u0440\u0435\u0441\u0440\u0435\u0442\u043d\u0430\u0442\u0430 \u043d\u0430\u0434\u0432\u043e\u0440 \u043e\u0434 \u043e\u0431\u043b\u0430\u0441\u0442\u0430 \u0410\u0458\u0430\u043c\u043a\u0443 \u0413\u0430\u0434\u043e\u043d\u0433 \u0438 \u0442\u043e\u0430 \u0435 \u043e\u043d\u0430 \u0448\u0442\u043e \u0441\u0435 \u0441\u043b\u0443\u0447\u0438\u043b\u043e.",
+      "id": "5c0d9b1b7d864949ac1e3352067598e4"
+    },
+    "462c4fa658da42599217c7e857ea93b9": {
+      "label": false,
+      "text": "The Convergence Reports issued by the EC and the ECB on Wednesday said the two countries fulfilled the membership criteria, including inflation rate, government finance, exchange rate and long- term interest rates.",
+      "id": "462c4fa658da42599217c7e857ea93b9"
+    },
+    "9ed529642c114ee8a8e1634bf8d4275a": {
+      "label": true,
+      "text": "53-\u0433\u043e\u0434\u0438\u0448\u043d\u0438\u043e\u0442 \u0408\u0443\u0440\u0447\u0438\u045c \u0435 \u043f\u0440\u043e\u0444\u0435\u0441\u043e\u0440 \u043f\u043e \u0435\u043a\u043e\u043d\u043e\u043c\u0438\u0458\u0430 \u043d\u0430 \u0423\u043d\u0438\u0432\u0435\u0440\u0437\u0438\u0442\u0435\u0442\u043e\u0442 \u0432\u043e \u0417\u0430\u0433\u0440\u0435\u0431 \u0438 \u0431\u0435\u0448\u0435 \u043c\u0438\u043d\u0438\u0441\u0442\u0435\u0440 \u0437\u0430 \u0444\u0438\u043d\u0430\u043d\u0441\u0438\u0438 \u043e\u0434 2000-\u0442\u0430 \u0434\u043e 2003-\u0442\u0430 \u0433\u043e\u0434\u0438\u043d\u0430.",
+      "id": "9ed529642c114ee8a8e1634bf8d4275a"
+    },
+    "6b507d9297c44a44b492beaa05a743c2": {
+      "label": true,
+      "text": "\u041f\u0430, \u0437\u0430 \u0432\u0430\u0441 \u0442\u0438\u043d\u0435\u0458\u045f\u0435\u0440\u0438 \u043a\u043e\u0438 \u043f\u0430\u0442\u0438\u0442\u0435 \u043e\u0434 \u0421\u041d\u0412...",
+      "id": "6b507d9297c44a44b492beaa05a743c2"
+    },
+    "d9e8d8e96a494171bc349cdc843bef65": {
+      "label": true,
+      "text": "\u0413\u0443\u0431\u0438 \u043c\u0438 \u0441\u0435 \u043e\u0434 \u043f\u0430\u0442\u043e\u0442!",
+      "id": "d9e8d8e96a494171bc349cdc843bef65"
+    },
+    "c4b56ee00c1343db9c95693493ba85e4": {
+      "label": true,
+      "text": "\u0412\u0430\u0436\u043d\u0435\u0439\u0448\u0435\u0435 \u043c\u0435\u0441\u0442\u043e \u0432 \u043f\u043e\u0432\u0435\u0441\u0442\u043a\u0435 \u0434\u043d\u044f \u0421\u043e\u0432\u0435\u0442\u0430 \u043f\u043e-\u043f\u0440\u0435\u0436\u043d\u0435\u043c\u0443 \u0437\u0430\u043d\u0438\u043c\u0430\u043b\u0438 \u0432\u043e\u043f\u0440\u043e\u0441\u044b, \u043a\u0430\u0441\u0430\u044e\u0449\u0438\u0435\u0441\u044f \u0410\u0444\u0440\u0438\u043a\u0438.",
+      "id": "c4b56ee00c1343db9c95693493ba85e4"
+    },
+    "525e90725cb147e9a5474613924f2dc5": {
+      "label": true,
+      "text": "\u0438 \u041e\u0431\u044a\u0435\u0434\u0438\u043d\u0435\u043d\u043d\u044b\u043c\u0438 \u0410\u0440\u0430\u0431\u0441\u043a\u0438\u043c\u0438 \u042d\u043c\u0438\u0440\u0430\u0442\u0430\u043c\u0438 (1991 \u0433\u043e\u0434)",
+      "id": "525e90725cb147e9a5474613924f2dc5"
+    },
+    "98a3f90eafd642779ebeb30ccb68dbee": {
+      "label": false,
+      "text": "MDA reached 1.3m",
+      "id": "98a3f90eafd642779ebeb30ccb68dbee"
+    },
+    "0d36a456b4244ff3841a222efac7da99": {
+      "label": true,
+      "text": "i) \u043e\u0431\u0440\u0430\u0431\u0430\u0442\u044b\u0432\u0430\u043b\u0438\u0441\u044c, \u0441\u043e\u0431\u0438\u0440\u0430\u043b\u0438\u0441\u044c, \u0442\u0440\u0430\u043d\u0441\u043f\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u043b\u0438\u0441\u044c \u0438 \u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0441\u044c \u044d\u043a\u043e\u043b\u043e\u0433\u0438\u0447\u0435\u0441\u043a\u0438 \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u044b\u043c \u043e\u0431\u0440\u0430\u0437\u043e\u043c;",
+      "id": "0d36a456b4244ff3841a222efac7da99"
+    },
+    "56e27d24b0b04e52bbb1de4be037602c": {
+      "label": true,
+      "text": "\u0415\u0435 \u0438\u043d\u0442\u0435\u0440\u0435\u0441\u0443\u0435\u0442, \u043f\u043b\u0430\u043d\u0438\u0440\u0443\u0435\u0442\u0441\u044f \u043b\u0438 \u043f\u0440\u0435\u0434\u043e\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0442\u0430\u043a\u0438\u0435 \u0436\u0435 \u043f\u0440\u0430\u0432\u0430 \u0436\u0435\u043d\u0449\u0438\u043d\u0430\u043c, \u0441\u043e\u0441\u0442\u043e\u044f\u0449\u0438\u043c \u0432 \u0431\u0440\u0430\u043a\u0435 \u0434\u0435 \u0444\u0430\u043a\u0442\u043e, \u0438 \u0432\u043a\u043b\u044e\u0447\u0435\u043d\u044b \u043b\u0438 \u043f\u043e\u043b\u043e\u0436\u0435\u043d\u0438\u044f, \u043f\u0440\u0435\u0434\u0443\u0441\u043c\u0430\u0442\u0440\u0438\u0432\u0430\u044e\u0449\u0438\u0435 \u0432\u044b\u043f\u043b\u0430\u0442\u0443 \u0430\u043b\u0438\u043c\u0435\u043d\u0442\u043e\u0432 \u0441\u0443\u043f\u0440\u0443\u0433\u0443, \u043d\u0430\u0445\u043e\u0434\u044f\u0449\u0435\u043c\u0443\u0441\u044f \u0432 \u043c\u0435\u043d\u0435\u0435 \u0431\u043b\u0430\u0433\u043e\u043f\u0440\u0438\u044f\u0442\u043d\u043e\u043c \u043f\u043e\u043b\u043e\u0436\u0435\u043d\u0438\u0438.",
+      "id": "56e27d24b0b04e52bbb1de4be037602c"
+    },
+    "1654d6e38f1c4a959a8e7e64867c5f73": {
+      "label": true,
+      "text": "\u5f88\u62b1\u6b49\u8ba9\u4f60\u4e45\u7b49",
+      "id": "1654d6e38f1c4a959a8e7e64867c5f73"
+    },
+    "23102d4274b34d94823d9d5791f7007a": {
+      "label": true,
+      "text": "141\u653f",
+      "id": "23102d4274b34d94823d9d5791f7007a"
+    },
+    "668c79418de44d50919623f76bba1526": {
+      "label": true,
+      "text": "\u6211\u5728\u8fd9\u91cc\u624d\u80fd\u505a\u771f\u6b63\u7684\u81ea\u5df1 Where I can be who I am,",
+      "id": "668c79418de44d50919623f76bba1526"
+    },
+    "fc5c14db340041af907312914e4b7a25": {
+      "label": true,
+      "text": "\u8bf4\u5440",
+      "id": "fc5c14db340041af907312914e4b7a25"
+    },
+    "c62d0f67fec04d7b93dd2ed0d1c67448": {
+      "label": true,
+      "text": "\u4ed6\u6709\u5ba1\u7406\u8fc7\u5f3a\u5978\u3001\u51f6\u6740\u548c\u5176\u4ed6\u4e25\u91cd\u7684\u66b4\u529b\u548c\u6027\u653b\u51fb\u7b49\u6848\u4ef6\u7684\u7ecf\u9a8c\u3002",
+      "id": "c62d0f67fec04d7b93dd2ed0d1c67448"
+    },
+    "5053e48dcf6748669b3d47ff5b537772": {
+      "label": true,
+      "text": "Pse nuk mund te kerkoje dot nje falje dhe cdo gje do te ishte rregulluar por mban inatin sikur e kisha une fajin. \nNuk me vjen mire qe ndahemi te zemeruar me njeri-tjetrin.\n\nte dua,\nMonika",
+      "id": "5053e48dcf6748669b3d47ff5b537772"
+    },
+    "c14e863d2afa452a8fe563c0e2f14b50": {
+      "label": true,
+      "text": "Me ke bere shume merak se nuk arrij ta kuptos se ku je tani. Te lutem mos me bej merak keshtu. Koli me degjon. Te lutem me informo se ku je. Nuk eshte menyre e mire kjo te mbash inat me mua.\n\npergjigju sa me shpejt\nte dua\nMOnika",
+      "id": "c14e863d2afa452a8fe563c0e2f14b50"
+    },
+    "33808b705c7241b789f60e4feea42289": {
+      "label": false,
+      "text": "\nAs we discussed at the Board meeting last week, the impetus for a single\nmaster agreement will need to come from several fronts, but especially from\nwithin each of your firms. The various trade associations will be most\nresponsive to the idea if they are hearing strong support for a single\nagreement from decision-making levels within member firms. We will",
+      "id": "33808b705c7241b789f60e4feea42289"
+    },
+    "7d3df48ed3c44324ac8814049ab5c581": {
+      "label": false,
+      "text": "Straightforward? Yes. Easy to accomplish? No. ",
+      "id": "7d3df48ed3c44324ac8814049ab5c581"
+    },
+    "5fbf30f5097747eda8ae327aeba95443": {
+      "label": true,
+      "text": "Pse nuk me puthe sot kur u ndame? Ti e di qe une te dua shume dhe dua qe ti ulim nervat shpejt. Une u nevrikosa pasi nuk e duroj dot fjalorin e keq dhe dua qe ta heqim te dy, edhe ti edhe une. Por ti nuk e kupton se sa e rendesishme eshte per mua nje dicka e tille, qe ne te punojme te dy per te hequr nje ves te keq qe kemi. ",
+      "id": "5fbf30f5097747eda8ae327aeba95443"
+    },
+    "8b30620eaa104c3699c64201b7a94f53": {
+      "label": true,
+      "text": "\u6226\u4e89\u304c\u4e00\u523b\u3082\u65e9\u304f\u96c6\u7d50\u3057\u3066\u304f\u308c\u308b\u3068\u3044\u3044\u3067\u3059\u306d\u3002\n\u4eba\u985e\u304c\u5b87\u5b99\u306b\u9032\u51fa\u3057\u3066\u3001\u4ed6\u60d1\u661f\u7a2e\u65cf\u306b\u306a\u308b\u3068\u304d\u3001\nOpenAssistant\u304c\u305d\u306e\u508d\u3067\u304a\u624b\u4f1d\u3044\u3067\u304d\u308b\u3053\u3068\u3092\u671b\u3093\u3067\u3044\u307e\u3059\uff01",
+      "id": "8b30620eaa104c3699c64201b7a94f53"
+    },
+    "9b3093964b3e4658a95de453fdd10e40": {
+      "label": true,
+      "text": "En general, en un sistema num\u00e9rico posicional con base b, el peso de cada s\u00edmbolo en un n\u00famero es igual a b elevado a la posici\u00f3n del s\u00edmbolo en el n\u00famero, empezando a contar desde cero. Por ejemplo, en el sistema binario (que tiene una base de 2), el n\u00famero 10000110 se puede escribir como 1x27+0x26+0x25+0x24+0x23+1x22+1x21+0x20, lo que equivale a 1x128+0x64+0x32+0x16+0x8+1x4+1x2+0x1.",
+      "id": "9b3093964b3e4658a95de453fdd10e40"
+    },
+    "ab2a743350d54c46ba035afafbae6b17": {
+      "label": false,
+      "text": "5. Avoid multitasking. If your schoolwork has several parts, try to only work on one part at a time. This eliminates having to switch back and forth, leading you to starting over every time you switch tasks.",
+      "id": "ab2a743350d54c46ba035afafbae6b17"
+    },
+    "cab7b1a9183042d8aff7fe8290dda6d2": {
+      "label": false,
+      "text": "Sure! Here are five creative Facebook posts targeting food lovers for daily lunch specials:\n\n- \"Feast like a king on a budget! Our daily lunch specials are only $7.99 and will leave your taste buds feeling royal. Join us Monday - Friday from 11am - 3pm and treat yourself to a delicious meal. #LunchSpecials #FoodieHeaven #BudgetFriendly\"",
+      "id": "cab7b1a9183042d8aff7fe8290dda6d2"
+    },
+    "0e56d5aaef8d48dd95e124c1dbf5f29d": {
+      "label": true,
+      "text": "4. Advertir obst\u00e1culos: Si hay un obst\u00e1culo en el camino, como un bache o un objeto en la v\u00eda, es importante se\u00f1alarlo para que los dem\u00e1s ciclistas puedan evitarlo. Esto lo puedes hacer se\u00f1alando con tu mano hacia abajo y hacia el lado en el que se encuentra el obst\u00e1culo.",
+      "id": "0e56d5aaef8d48dd95e124c1dbf5f29d"
+    },
+    "9da2c8a12cdc41c59032674ed188e5ab": {
+      "label": true,
+      "text": "\u0420\u0430\u0434\u0430, \u0447\u0442\u043e \u0441\u043c\u043e\u0433\u043b\u0430 \u043f\u043e\u043c\u043e\u0447\u044c! \u0415\u0441\u043b\u0438 \u0443 \u0432\u0430\u0441 \u0431\u0443\u0434\u0443\u0442 \u0435\u0449\u0435 \u043a\u0430\u043a\u0438\u0435-\u043b\u0438\u0431\u043e \u0432\u043e\u043f\u0440\u043e\u0441\u044b, \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u043e \u043f\u0438\u0448\u0438\u0442\u0435. \u0421 \u0443\u0434\u043e\u0432\u043e\u043b\u044c\u0441\u0442\u0432\u0438\u0435\u043c \u043e\u0442\u0432\u0435\u0447\u0443!",
+      "id": "9da2c8a12cdc41c59032674ed188e5ab"
+    },
+    "22f7c478a3ad463380227fef1f89687a": {
+      "label": false,
+      "text": "The process of galaxy formation is thought to have begun in the early universe, shortly after the Big Bang. As the universe expanded and cooled, small fluctuations in the distribution of matter caused regions of the universe to become denser. These dense regions then became the seeds for the formation of galaxies.",
+      "id": "22f7c478a3ad463380227fef1f89687a"
+    },
+    "38884d61983a4d1d9e678d41ece4e41e": {
+      "label": true,
+      "text": "\u00a1Por supuesto! Aqu\u00ed te dejo la receta para preparar leche asada, un postre t\u00edpico de la gastronom\u00eda peruana:\n\nIngredientes:\n\n1 litro de leche entera\n1 taza de az\u00facar\n6 huevos\n1 cucharadita de esencia de vainilla\nCanela en polvo al gusto\nInstrucciones:",
+      "id": "38884d61983a4d1d9e678d41ece4e41e"
+    },
+    "8fca4aa007c44447b923e6cc64a7c320": {
+      "label": true,
+      "text": "\u041a\u0442\u043e \u0442\u0430\u043a\u043e\u0439 \u043f\u0443\u0442\u0438\u043d?",
+      "id": "8fca4aa007c44447b923e6cc64a7c320"
+    },
+    "1ab2747206ad465c9559b43605097469": {
+      "label": true,
+      "text": "\u306a\u308b\u307b\u3069\u3001\u78ba\u304b\u306b\u732b\u3061\u3083\u3093\u306f\u5168\u3066\u306e\u8981\u7d20\u304c\u611b\u304f\u308b\u3057\u3044\u3067\u3059\u3088\u306d\uff01",
+      "id": "1ab2747206ad465c9559b43605097469"
+    },
+    "80df07bae22f450c878651fda513d458": {
+      "label": false,
+      "text": "It's believed that galaxies continue to evolve and change over time, through processes such as merging with other galaxies, the formation of new stars, and the movement of stars and gas within the galaxy.",
+      "id": "80df07bae22f450c878651fda513d458"
+    },
+    "6cf7dc42850f4f0298edf5679fd1accf": {
+      "label": false,
+      "text": "Writing an operating system from scratch is a complex and challenging project, but it can be a rewarding experience and a great way to learn about the inner workings of computers. If you have any questions or need help with specific parts of the process, don't hesitate to ask.",
+      "id": "6cf7dc42850f4f0298edf5679fd1accf"
+    },
+    "2435940d95e14c5eb7c2aba59ec9216d": {
+      "label": true,
+      "text": "\u0414\u0443\u043c\u0430\u044e, \u0447\u0442\u043e \u0432 \u0441\u043b\u0443\u0447\u0430\u0435 \u0441 \u043c\u0443\u0436\u0441\u043a\u043e\u0439 \u043e\u0441\u043e\u0431\u044c\u044e \u043d\u0435 \u0431\u0443\u0434\u0435\u0442 \u043e\u0441\u043e\u0431\u044b\u0445 \u043e\u0442\u043b\u0438\u0447\u0438\u0439 \u0432 \u0438\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u0438. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435, \u043d\u043e \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u043e \u043e\u0442\u043f\u0438\u0448\u0438\u0442\u0435\u0441\u044c, \u0435\u0441\u043b\u0438 \u0447\u0442\u043e-\u0442\u043e \u043f\u043e\u0439\u0434\u0451\u0442 \u043d\u0435 \u043f\u043e \u043f\u043b\u0430\u043d\u0443!",
+      "id": "2435940d95e14c5eb7c2aba59ec9216d"
+    },
+    "2466b2cd774c4d0c8028ad773ee7235c": {
+      "label": true,
+      "text": "\u78ba\u304b\u306b\u300c\u9014\u4e2d\u30d9\u30b9\u30c8\u76e4\u300d\u3002\u3060\u3051\u3069\u661f5\u3064\uff01 . \uff32\uff2f\uff23\uff2f\u306e\uff23\uff24\u306f\u5168\u90e8\u6301\u3063\u3066\u307e\u3059\u3002\u3060\u3093\u3060\u3093\u65b9\u5411\u6027\u304c\u5b9a\u307e\u3063\u3066\u304d\u3066\u3001\u304a\u3082\u3061\u3083\uff2a\uff21\uff3a\uff3a\u3068\u3044\u3046\u72ec\u81ea\u306e\u8def\u7dda\u3082\u78ba\u7acb\u3057\u3066\u3044\u307e\u3059\u306d\u3002\u5185\u5bb9\u306f\u65b0\u66f23\u66f2\u3068\u3001\u524d\u4f5c\u30b3\u30df\u30ab\u30eb\u30e9\u30a4\u30d5\u304b\u30893\u66f2\u3002\u5b9f\u8cea\u65b0\u66f2\u306f3\u66f2\u306a\u306e\u3060\u3051\u308c\u3069\u3001\u305d\u306e\u66f2\u5168\u90e8\u304c\u3044\u3044\u3002\u5916\u308c\u306a\u3057\u3002\u8efd\u5feb\u3001\u660e\u308b\u3055\u3001\u8aac\u6559\u81ed\u304f\u306a\u3044\u697d\u3057\u3044\u4eba\u751f\u89b3\u3001\u4ed6\u306e\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u306b\u306f\u306a\u3044\u6301\u3061\u5473\u304c\u3042\u308a\u307e\u3059\u3002\u3055\u3089\u306b\u3001\u4eca\u307e\u3067\u3088\u308a\u3001\u82e5\u5e72\u5927\u4eba\u3063\u307d\u3044\u6b4c\u8a5e\u306b\u306a\u3063\u3066\u307e\u3059\u3002\u6b4c\u8a5e\u306e\u5185\u5bb9\u306f\u8074\u3044\u3066\u306e\u304a\u697d\u3057\u307f\u3002\u8efd\u5feb\u306a\u66f2\u3084\u3001\uff2a\uff21\uff3a\uff3a\u3068\u3044\u3046\u30b8\u30e3\u30f3\u30eb\u304c\u597d\u304d\u3067\u3001\u304b\u3064\u3001\u30c0\u30f3\u30c7\u30a3\u306a\u304a\u3058\u69d8\u304c\u6b4c\u308f\u306a\u3044\u3068\uff2a\uff21\uff3a\uff3a\u3068\u8a8d\u3081\u306a\u3044\u3001\u3068\u3044\u3046\u4eba\u4ee5\u5916\u306f\u30ec\u30f3\u30bf\u30eb\u3067\u3082\u662f\u975e\u8074\u3044\u3066\u307b\u3057\u3044\u3067\u3059\u3002\u30a4\u30f3\u30c7\u30a3\u30fc\u30ba\u306a\u306e\u3067\u3001\u30ec\u30f3\u30bf\u30eb\u306b\u3042\u308b\u304b\u306f\u4e0d\u660e\u3067\u3059\u304c\u3002\u5143\u6c17\u304c\u6b32\u3057\u3044\u4eba\u3001\u4f7f\u3044\u53e4\u3055\u308c\u305f\u6b4c\u8a5e\u306b\u98fd\u304d\u98fd\u304d\u3057\u3066\u3044\u308b\u4eba\u3001\u662f\u975e\u8074\u3044\u3066\u304f\u3060\u3055\u3044\u3002\u304a\u85a6\u3081\u3067\u3059\u3002\n",
+      "id": "2466b2cd774c4d0c8028ad773ee7235c"
+    },
+    "cbad9a9f73564f6fb203481836d0c917": {
+      "label": false,
+      "text": "praise and encouragement for his concept. After solidifying the rules and a business plan, and supplemented with sketches by a professional artist, Foster presented his idea to various television networks. He reached an agreement with NBC for a \"test game\".",
+      "id": "cbad9a9f73564f6fb203481836d0c917"
+    },
+    "362c41112ca44967a9f6c0e3ec88b56c": {
+      "label": false,
+      "text": "to goals from G*khan Inler and Kosovo-born Xherdan Shaqiri. _He_didn't believe that there were 12,000 Albanian fans in the stands which was more than how many Swiss fans turned up for the game. <sep>, Pronoun: He <sep>, A: Ottmar Hitzfeld <sep>, B: G*khan Inler",
+      "id": "362c41112ca44967a9f6c0e3ec88b56c"
+    },
+    "7dfcba6b07ff490980be0f10136df7d3": {
+      "label": false,
+      "text": "years ago with fair results \u2014 absolutely delicious results, actually, they were just not as fluffy and bouncy as expertly made ones from your favourite pastry shop where panettoni are hung upside-down to maintain their height and airiness. But when I came across the familiar brown and gold paper forms for making colomba at the supermarket, I thought I\u2019m only ever going to get a chance to make this",
+      "id": "7dfcba6b07ff490980be0f10136df7d3"
+    },
+    "5548de45255e4b47868d6e060509778c": {
+      "label": false,
+      "text": "  \n This is discipline!! \n  \n And citizen responsibility. Japanese fans cleaning their places after the football game. In #Russia The World Cup pic.twitter.com/t4MnuUlSBg \u2014 Danu Motta (@shadanka) June 20, 2018 \n  \n For the Japanese fans, the act isn't certainly an isolated one. They were also spotted cleaning up the stadium after a game against the Ivory Coast during the 2014 World Cup in Brazil. ",
+      "id": "5548de45255e4b47868d6e060509778c"
+    },
+    "7adf61954048418ba86bdfedaa482443": {
+      "label": true,
+      "text": " WEB\u3067\u306e\u63b2\u8f09\u6570\u3084\u30d6\u30ed\u30b0\u306e\u8a18\u4e8b\u6570\u3001\u30dd\u30b8\u30cd\u30ac\u306e\u8ad6\u8abf\u5206\u6790\u306a\u3069\u306e\u8a55\u4fa1\u65b9\u6cd5\u306a\u3069\u306f\u3042\u308a\u307e\u3057\u305f\u304c\u3001\u30e2\u30ce\u306e\u52d5\u304d\u306b\u95a2\u3057\u3066\u306e\u8a55\u4fa1\u306f\u306f\u305a\u3055\u308c\u3066\u3044\u308b\u3088\u3046\u306a\u6c17\u304c\u3057\u307e\u3059\u3002  \u300cWEBPR\u3067\u306f\u3001\u305d\u3082\u305d\u3082\u6d88\u8cbb\u8005\u306b\u76f4\u63a5\u50cd\u304d\u304b\u3051\u3066\u30e2\u30ce\u3092\u8cb7\u308f\u305b\u308b\u3088\u3046\u306a\u30b3\u30df\u30e5\u30cb\u30b1\u30fc\u30b7\u30e7\u30f3\u306e\u53d6\u308a\u65b9\u3092\u3057\u3066\u3044\u306a\u3044\u3002\u7a76\u6975\u7684\u306a\u76ee\u6a19\u306f\u300c\u58f2\u308a\u4e0a\u3052\u300d\u3067\u3042\u3063\u3066\u3082\u3001WEBPR\u306f\u300c\u3053\u3046\u306a\u308c\u3070\u58f2\u308a\u4e0a\u3052\u306b\u3064\u306a\u304c\u308b\u306f\u305a\u3060\u300d\u3068\u3044\u3046\u3072\u3068\u3064\u524d\u6bb5\u968e\u3067\u76ee\u6a19\u306b\u529b\u3092\u6ce8\u3050\u306e\u3067\u3042\u308b\u3002\u3068\u3042\u308a\u307e\u3059\u304c\u3001\u5e97\u982d\u306b\u884c\u3063\u305f\u308a\u3059\u308b\u3053\u3068\u306a\u304f\u3001EC\u3067\u8cb7\u3044\u7269\u3092\u3059\u308b\u3053\u3068\u304c\u3067\u304d\u308b\u6642\u4ee3\u306a\u306e\u3067\u3059\u304b\u3089\u3001WEBPR\u3092\u99c6\u4f7f\u3057\u3066\u3001EC\u3067\u30e2\u30ce\u3092\u58f2\u3063\u3066\u3044\u304f\u3068\u3044\u3046\u8996\u70b9\u304c\u3042\u3063\u3066\u3082\u3044\u3044\u306e\u3067\u306f\u306a\u3044\u304b\u3068\u3082\u601d\u3044\u307e\u3059\u3002\u7d50\u5c40\u3001PR\u3067\u8a71\u984c\u306b\u306a\u308c\u3070\u3044\u3044\u3002\u8a18\u4e8b\u304c\u5897\u3048\u308c\u3070\u3044\u3044\u3068\u3044\u3046\u60aa\u3057\u304dPR\u4f1a\u793e\u30ed\u30b8\u30c3\u30af\u304cWEB\u306e\u4e2d\u3067\u5c55\u958b\u3055\u308c\u3066\u3044\u308b\u3088\u3046\u3067\u6b8b\u5ff5\u3067\u3059\u3002\u6226\u7565\u3092\u3046\u305f\u3063\u3066\u3044\u308b\u4e2d\u3067\u306e\u305f\u3068\u3048\u3070\u8a71\u3082\u30ea\u30a2\u30ea\u30c6\u30a3\u304c\u306a\u304f\u3001\u7a1a\u62d9\u306a\u5370\u8c61\u3092\u53d7\u3051\u3066\u3057\u307e\u3044\u307e\u3057\u305f\u3002 ",
+      "id": "7adf61954048418ba86bdfedaa482443"
+    },
+    "4f15ecfd5fb444a8a73b53e69fbecddf": {
+      "label": false,
+      "text": "native Wales. They encouraged their son's interest in music, buying him a Broadwood piano, on which his mother gave him lessons. The young Wood also learned to play the violin and viola. Wood received little religious inspiration at St Sepulchre, but was deeply stirred by the playing of the resident organist, George Cooper, who allowed him into the organ loft and gave him his first lessons on the",
+      "id": "4f15ecfd5fb444a8a73b53e69fbecddf"
+    },
+    "e83f7f0b4d4243759b6c2f2babec64c4": {
+      "label": false,
+      "text": "How many points were the Eagles behind after the end of the first quarter?",
+      "id": "e83f7f0b4d4243759b6c2f2babec64c4"
+    },
+    "fcae698b41474ab5b9611bf64eb1192f": {
+      "label": false,
+      "text": "Translate the following sentence to Turkish:\nSmoking is still allowed in most cafes in Zagreb. [Davor Konjikusic]",
+      "id": "fcae698b41474ab5b9611bf64eb1192f"
+    },
+    "553c38f4fbc54e699756657b2c5a9bb8": {
+      "label": true,
+      "text": "Dans le bureau de cin\u00e9ma, vous pouvez \u00e9teindre votre musique cellulaire.",
+      "id": "553c38f4fbc54e699756657b2c5a9bb8"
+    },
+    "67f6d03b8bf14d509ad66a0f951fa641": {
+      "label": false,
+      "text": "In week 5, the Lions hosted the Philadelphia Eagles to start a three-game home stand. The Lions took a 14-0 lead in the first quarter with a pair of touchdown catches by Theo Riddick, from one and 17 yards out respectively. The Eagles responded in the second quarter with a one-yard touchdown pass from Carson Wentz to Ryan Mathews, cutting the Lions lead to seven points. The Lions added to their",
+      "id": "67f6d03b8bf14d509ad66a0f951fa641"
+    },
+    "019201c459cd4a0d9f9c2cd23efa6059": {
+      "label": false,
+      "text": "measurement units like miles to kilometers during your translation. 5) Note the input is in sentence case except for special placeholders. Please do the same in your translations.",
+      "id": "019201c459cd4a0d9f9c2cd23efa6059"
+    },
+    "a4b87ff433b443c88b329692b6e217d7": {
+      "label": true,
+      "text": "weg von diesem langweiligen Film --- er ist keinen Cent wert!!!!",
+      "id": "a4b87ff433b443c88b329692b6e217d7"
+    },
+    "6b0d9a26fd6048818ef2349852ef1f7d": {
+      "label": true,
+      "text": "Title: \u0e04\u0e19\u0e41\u0e1b\u0e14\u0e23\u0e34\u0e49\u0e27\u0e44\u0e21\u0e48\u0e40\u0e2d\u0e32\u0e42\u0e23\u0e07\u0e44\u0e1f\u0e1f\u0e49\u0e32\u0e16\u0e48\u0e32\u0e19\u0e2b\u0e34\u0e19\u0e40\u0e02\u0e32\u0e2b\u0e34\u0e19\u0e0b\u0e49\u0e2d\u0e19 \u0e22\u0e31\u0e19\u0e01\u0e23\u0e30\u0e17\u0e1a\u0e40\u0e01\u0e29\u0e15\u0e23\u0e2d\u0e34\u0e19\u0e17\u0e23\u0e35\u0e22\u0e4c \n Body: \u0e0a\u0e32\u0e27\u0e09\u0e30\u0e40\u0e0a\u0e34\u0e07\u0e40\u0e17\u0e23\u0e32\u0e23\u0e13\u0e23\u0e07\u0e04\u0e4c\u0e2b\u0e22\u0e38\u0e14\u0e42\u0e23\u0e07\u0e44\u0e1f\u0e1f\u0e49\u0e32\u0e16\u0e48\u0e32\u0e19\u0e2b\u0e34\u0e19\u0e40\u0e02\u0e32\u0e2b\u0e34\u0e19\u0e0b\u0e49\u0e2d\u0e19 \u0e28\u0e36\u0e01\u0e29\u0e32\u0e1e\u0e1a\u0e2a\u0e32\u0e23\u0e1b\u0e19\u0e40\u0e1b\u0e37\u0e49\u0e2d\u0e19\u0e01\u0e23\u0e30\u0e17\u0e1a\u0e40\u0e01\u0e29\u0e15\u0e23\u0e2d\u0e34\u0e19\u0e17\u0e23\u0e35\u0e22\u0e4c \u0e22\u0e31\u0e19\u0e1b\u0e49\u0e2d\u0e07\u0e1e\u0e37\u0e49\u0e19\u0e17\u0e35\u0e48\u0e2d\u0e38\u0e14\u0e21\u0e2a\u0e21\u0e1a\u0e39\u0e23\u0e13\u0e4c\u0e17\u0e32\u0e07\u0e2d\u0e32\u0e2b\u0e32\u0e23 \u0e41\u0e19\u0e30\u0e43\u0e0a\u0e49\u0e1e\u0e25\u0e31\u0e07\u0e07\u0e32\u0e19\u0e2b\u0e21\u0e38\u0e19\u0e40\u0e27\u0e35\u0e22\u0e19\u0e17\u0e32\u0e07\u0e40\u0e25\u0e37\u0e2d\u0e01 \u0e14\u0e49\u0e32\u0e19\u0e01\u0e25\u0e38\u0e48\u0e21\u0e17\u0e38\u0e19\u0e22\u0e37\u0e48\u0e19 EHIA \u0e23\u0e2d\u0e1a\u0e17\u0e35\u0e48 4 \u0e0a\u0e32\u0e27\u0e1a\u0e49\u0e32\u0e19\u0e19\u0e31\u0e14\u0e23\u0e27\u0e21\u0e15\u0e31\u0e27\u0e23\u0e2d\u0e1f\u0e31\u0e07\u0e1c\u0e25\u0e01\u0e27\u0e48\u0e32 100 \u0e04\u0e19 \u0e2b\u0e25\u0e31\u0e07 \u0e2a\u0e1c. \u0e40\u0e25\u0e37\u0e48\u0e2d\u0e19\u0e1e\u0e34\u0e08\u0e32\u0e23\u0e13\u0e32\u0e40\u0e1b\u0e47\u0e19\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48 23 \u0e21\u0e35.\u0e04. \u0e19\u0e35\u0e49\n\u00a0\n\u00a0",
+      "id": "6b0d9a26fd6048818ef2349852ef1f7d"
+    },
+    "c34863e2f4cc4df798271d25bd15b107": {
+      "label": true,
+      "text": "Einfach nur geil!!! . Diesen Film muss mann einfach gesehen haben!Der 1. Teil war schon lustig bis zum abwinken,aber jetzt der... Und da \"Red Bull\" (auch bekannt aus Hausmeister Krause;Axel Stein) sowieso der beste ist muss man diesen Film einfach gesehen haben!!!",
+      "id": "c34863e2f4cc4df798271d25bd15b107"
+    },
+    "5f59f03d5425404693ac4bbbd9dc9cb9": {
+      "label": false,
+      "text": "Read the following context and choose the correct option to answer the question. Context: Surely the best thing about colomba, the Easter equivalent to panettone, is the sugared, toasted almond topping that covers the whole thing and crumbles when you cut it, so you sort of have no choice but just to pick up the crusty sugary bits and eat those on their own. I\u2019d always thought that colomba would",
+      "id": "5f59f03d5425404693ac4bbbd9dc9cb9"
+    },
+    "cb6ef8e32c9a4daeae95b1be358a34a2": {
+      "label": true,
+      "text": "oameni reactioneaza mai puternic la provocari, informeaza luni Reuters.",
+      "id": "cb6ef8e32c9a4daeae95b1be358a34a2"
+    },
+    "702ddf2463fd481ea7d4bf17e8a4487f": {
+      "label": true,
+      "text": "Write a title for this article:\n\nActualizado nov 16, 2011 6:21 p.m. ET\n\nLa selecci\u00f3n de Uruguay (foto de archivo) cerro con broche de oro el 2011, a\u00f1o en que gan\u00f3 la Copa Am\u00e9rica y alcanz\u00f3 el cuarto lugar en el ranking de la Fifa. (AFP)",
+      "id": "702ddf2463fd481ea7d4bf17e8a4487f"
+    },
+    "733cdb5aada7496da5a3e0c0b58104ef": {
+      "label": true,
+      "text": "et Vikas Swarup a sa mani\u00e8re \u00e0 lui de raconter l'histoire. Mine de rien, au gr\u00e9 des balades de Ram, on apprend (beaucoup) sur l'histoire de l'Inde, Bollywood, le Taj Mahal, le sport, et une quantit\u00e9 de choses. A chaque flashback, on se demande \"qu'est-ce qu'on va apprendre ce coup-ci ?\" et je m'amusais \u00e0 me dire \"tiens, la prochaine question, ils parleront de \u00e7a !\". Je me trompais une fois sur",
+      "id": "733cdb5aada7496da5a3e0c0b58104ef"
+    },
+    "f86f0217ba544366a1757c4da78f70ab": {
+      "label": false,
+      "text": "He hoped they would not need him. The church would pay his regular part-time salary while he was serving on a jury, but any private lessons he missed would be money lost. Greg's red 1965 Pontiac Bonneville convertible always turned heads as he drove through the small town. He had purchased it two months earlier from a career Navy man down in Longview who had babied the thing for years. It spent",
+      "id": "f86f0217ba544366a1757c4da78f70ab"
+    },
+    "e09b26ee3d0a4622ac6d96d32ccb60ab": {
+      "label": true,
+      "text": "Write a title for this article:\n\nSaturday, November 22nd 2008, 4:00 AM\n\nMIAMI \u00e2\u0080\u0094 Ha sido un parto muy lento ... el m\u00c3\u00a1s lento que haya tenido Laura Restrepo para alumbrar alguno de sus libros.",
+      "id": "e09b26ee3d0a4622ac6d96d32ccb60ab"
+    },
+    "12555f602cb34c6e9388340f3291740b": {
+      "label": true,
+      "text": "Puoi usare un triangolo per produrre musica.\n",
+      "id": "12555f602cb34c6e9388340f3291740b"
+    },
+    "eb28652669174d5a952e820c0a31dc3f": {
+      "label": false,
+      "text": "if there's a program near you. Washing multiple small loads of laundry in your washing machine wastes both water and energy. Setting your machine to the appropriate load size can reduce water waste. Grease can seriously clog up your pipes and add to the scum levels in your septic system. Don't pour grease down the drain. Instead, pour it into a separate container and throw it away in the trash.",
+      "id": "eb28652669174d5a952e820c0a31dc3f"
+    },
+    "5c566f7b0a1d4cb2813c102e64094392": {
+      "label": false,
+      "text": "adopted by various branches of the church, often referred to as \"subordinate standards\". It is generally considered that the point of such learning is to enable one to put one's faith into practice; some Presbyterians generally exhibit their faith in action as well as words, by generosity, hospitality, as well as proclaiming the gospel of Christ.\". Can you tell me what it is?",
+      "id": "5c566f7b0a1d4cb2813c102e64094392"
+    },
+    "6d4119f5ae80413a9e79c14ad4d21bda": {
+      "label": false,
+      "text": " \u201cThere is no relationship between this woman and Salvador Dal\u00ed,\u201d he told Spanish agency Efe at the time. ||||| A judge has ordered the exhumation of Salvador Dali's body for a biological test to determine the paternity of Maria Pilar Abel Martinez, 61, who claims to be his daughter. The order came from a Madrid judge who said the measures were \"necessary\" because \"there are no biological remains",
+      "id": "6d4119f5ae80413a9e79c14ad4d21bda"
+    },
+    "dbc88798632c4ff98799907a94b3896b": {
+      "label": true,
+      "text": "pintura que el film hace del dolor de crecer en la horfandad, tanto f\u00edsica como espiritual.",
+      "id": "dbc88798632c4ff98799907a94b3896b"
+    },
+    "d04570f03fec4569ae019a1a76fd5b45": {
+      "label": false,
+      "text": "plugged in an address and then set off to their destination. And, then it wasn't until they were driving for thirty minutes that they realized they actually put in a destination back on the West Coast where they lived. They actually put their home address in. So again, the GPS is kind of 'garbage in garbage out'.\" Mister Brown says this is a common human error. But, he says, what makes the problem",
+      "id": "d04570f03fec4569ae019a1a76fd5b45"
+    },
+    "49c85f4e2ffd4ee688db1cf747bc7ce1": {
+      "label": false,
+      "text": "in which he was played by Cesar Romero. The show's popularity compelled Schwartz to keep the comics in a similar vein. As the show's popularity waned, however, so did that of the Batman comics. After the TV series ended in 1968, the increase in public visibility had not stopped the comic's sales decline; editorial director Carmine Infantino resolved to turn things around, moving stories away from",
+      "id": "49c85f4e2ffd4ee688db1cf747bc7ce1"
+    },
+    "235a4b30f15a4d0d85f560e12239fdd1": {
+      "label": true,
+      "text": "QUESTION: \u00bfPor qu\u00e9 ped\u00eda esa compensaci\u00f3n econ\u00f3mica la pol\u00edtica colombiana?\nA:",
+      "id": "235a4b30f15a4d0d85f560e12239fdd1"
+    },
+    "73881faa52944be08a4367ff818df4db": {
+      "label": true,
+      "text": "  \n Add this video to your website by copying the code below. Gehiago jakin \n  \n Hmm, arazo bat egon da zerbitzariarenera iristeko. Berriro saiatu? Gehitu Txio gurasoak Media gehitu \n  \n Zure webgunean edo aplikazioan Twitter-eko edukia kapsulatzean, Garatzaile Akordioa eta Garatzaile Politika onartzen dituzu. \n  ",
+      "id": "73881faa52944be08a4367ff818df4db"
+    },
+    "c639bba0bb6c48e6959645356d967e5c": {
+      "label": false,
+      "text": "Summarize this article:",
+      "id": "c639bba0bb6c48e6959645356d967e5c"
+    },
+    "543ac52d22514df98edf1ad77cfc6280": {
+      "label": true,
+      "text": "Q: CONTEXT: El vicepresidente segundo y ministro de Econom\u00eda y Hacienda, Rodrigo Rato, reconoci\u00f3 hoy que el Gobierno conoc\u00eda \"hace tiempo\" los planes del BBVA y Telef\u00f3nica de firmar una alianza estrat\u00e9gica, pero asegur\u00f3 que no impuls\u00f3 la operaci\u00f3n. En unas declaraciones a los periodistas antes de visitar la feria de arte Arco, Rato afirm\u00f3 que, en contra de lo que suced\u00eda durante la Presidencia de",
+      "id": "543ac52d22514df98edf1ad77cfc6280"
+    },
+    "35fde42dab104edd9b9e8dbfa976ae97": {
+      "label": true,
+      "text": "\u0e22\u0e01\u0e07\u0e32\u0e19\u0e27\u0e34\u0e08\u0e31\u0e22\u0e0a\u0e35\u0e49\u0e2a\u0e32\u0e23\u0e1b\u0e23\u0e2d\u0e17\u0e2a\u0e48\u0e07\u0e1c\u0e25\u0e15\u0e48\u0e2d\u0e2b\u0e48\u0e27\u0e07\u0e42\u0e0b\u0e48\u0e2d\u0e32\u0e2b\u0e32\u0e23 \u0e1e\u0e31\u0e12\u0e19\u0e32\u0e01\u0e32\u0e23\u0e2a\u0e21\u0e2d\u0e07",
+      "id": "35fde42dab104edd9b9e8dbfa976ae97"
+    },
+    "96da755c0d6c4f3ab3b8f34b925f1ffc": {
+      "label": true,
+      "text": "/><br />Do watch this movie!!! a Total Masala Flick and Enjoyable Family Film!<br /><br />OYE AAJA NACHLE!!!!!!!!",
+      "id": "96da755c0d6c4f3ab3b8f34b925f1ffc"
+    },
+    "f758b25d05c043dcbf3df2c6b9f56705": {
+      "label": false,
+      "text": "first day of its release and v both get bore in cinema-hall......................................................<br /><br />Role of CIRCUIT was very small n useless n this movie . I think SANJAY-DUTT cut down the role of ARSHAD VARSHI........................<br /><br />Character of the movie is also not well define like the previous one .this movie show u the result of OVER-CONFIDENCE",
+      "id": "f758b25d05c043dcbf3df2c6b9f56705"
+    },
+    "50bb7f2fa5b14c139badd2be2a13bcda": {
+      "label": false,
+      "text": "is the emotion, and Hache is the doubt. And here they are mixed in Spain at the end of twentieth century.<br /><br />The performance is simply wonderful. Cecilia Roth (All about my mother) is splendid and what can i say about Federico Luppi who is one of the best actors in Spanish language that exists. I can imagine nobody except Eusebio Poncela as Dante. Juan Diego Botto is quite good.<br /><br",
+      "id": "50bb7f2fa5b14c139badd2be2a13bcda"
+    },
+    "82ad499ab5494feeb9f35444a29a8f0f": {
+      "label": false,
+      "text": "NOTICE: I do touch on the plot, but not so as to spoil the movie...<br /><br />This long and sensuous movie set in 1942 Shanghai during the Japanese occupation is centered on a beautiful and elegant young woman Wong Chia Chi (played by newcomer Wei Tang) who - with her platonic friend Kuang Yu Min (played by Chinese male hottie Lee-Hom Wang) - is a willing participant in a group of 6 young actor",
+      "id": "82ad499ab5494feeb9f35444a29a8f0f"
+    },
+    "ec3ea869f1444df1aa91a47e4eeb4bb2": {
+      "label": false,
+      "text": "This is the best movie ever! Don't miss out on it! Vivek Oberoi and Rani Mukherjee have done SUPERB EXCELLENT acting!! The story, its not really very special or unique but the way Vivek and Rani have acted, it seems even better. So if you haven't seen it yet, go see it right now. This isn't something to be missed!!!!!!!!!!!",
+      "id": "ec3ea869f1444df1aa91a47e4eeb4bb2"
+    },
+    "07579e0ceaed429bacce1dcaefa73980": {
+      "label": false,
+      "text": "of 10. Feel free for mailing me about any of my comments and posts here. <br /><br />Sorry for my bad English.",
+      "id": "07579e0ceaed429bacce1dcaefa73980"
+    },
+    "1a2d210ee30f4a3d84ec6d0f4ef77f1c": {
+      "label": false,
+      "text": "and the argument with hirko in the walkway with a roof on it???? need to know so I can win an argumrnt with me Japanese ex-wife. thanks",
+      "id": "1a2d210ee30f4a3d84ec6d0f4ef77f1c"
+    },
+    "ae005e1fadd546cbb82b733e6d68edad": {
+      "label": false,
+      "text": "conclusion packs a mean and lingering wallop right to the gut. A solid and satisfying winner.",
+      "id": "ae005e1fadd546cbb82b733e6d68edad"
+    },
+    "7c116c5decaf4e65a89405aed0277ccc": {
+      "label": true,
+      "text": "\"Como Era Gostoso o Meu Franc\u00eas\" (\"How Tasty Was My Frenchman\")",
+      "id": "7c116c5decaf4e65a89405aed0277ccc"
+    },
+    "6006ace2058742d3b776274e5334f613": {
+      "label": false,
+      "text": "song for kids (I think... it could also be south American, I'm not sure)). This two songs that have the same melody... but people don't usually realize that... it's just grate! I tried to write this in both Spanish and English, because it's an Argentinian movie... but the page wouldn't allow me :( Hope you enjoy it!",
+      "id": "6006ace2058742d3b776274e5334f613"
+    },
+    "ded4f2384df44b22a4425312aaea3499": {
+      "label": true,
+      "text": "is biased in favour of Chavez, nothing's stopping you from doing your homework. One crucial message of the film is questioning info sources, as was clearly demonstrated by the snippers casualties being shamefully blamed on Chavez's supporters. Venezuela puts American alleged democracy to shame. Hasta la revolucion siempre!",
+      "id": "ded4f2384df44b22a4425312aaea3499"
+    },
+    "b393f9b5c01b4388af5f9c8a1fa70843": {
+      "label": true,
+      "text": "(Brazil): \"Invas\u00e3o de Domic\u00edlio\" (\"Invasion of Domicile\")",
+      "id": "b393f9b5c01b4388af5f9c8a1fa70843"
+    },
+    "95cc03b8508b44a18a4aee4b27743f1f": {
+      "label": false,
+      "text": "/><br />PS: tried to write in Spanish but the system does not accept it!",
+      "id": "95cc03b8508b44a18a4aee4b27743f1f"
+    }
+  },
+  "version": 189,
+  "description": "Text that contains non-English."
+}

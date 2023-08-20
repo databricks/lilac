@@ -181,6 +181,7 @@ def score(namespace: str, concept_name: str, embedding_name: str, body: ScoreBod
   """Score examples along the specified concept."""
   concept_scorer = ConceptSignal(
     namespace=namespace, concept_name=concept_name, embedding=embedding_name)
+  concept_scorer.set_user(user)
   return cast(
     list[list[dict]],
     server_compute_concept(concept_scorer, cast(Iterable[RichData],

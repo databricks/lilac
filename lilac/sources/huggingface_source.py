@@ -3,12 +3,22 @@ import multiprocessing
 from typing import Iterable, Optional, Union
 
 import numpy as np
-from datasets import ClassLabel, DatasetDict, Sequence, Value, load_dataset, load_from_disk
+from datasets import (
+  ClassLabel,
+  DatasetDict,
+  Image,
+  Sequence,
+  Translation,
+  Value,
+  load_dataset,
+  load_from_disk,
+)
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..schema import DataType, Field, Item, arrow_dtype_to_dtype
+from ..utils import log
 from .source import Source, SourceSchema
 
 HF_SPLIT_COLUMN = '__hfsplit__'
@@ -24,10 +34,15 @@ class SchemaInfo(BaseModel):
   num_items: int
 
 
-def _infer_field(feature_value: Union[Value, dict]) -> Field:
+def _infer_field(feature_value: Union[Value, dict]) -> Optional[Field]:
   """Infer the field type from the feature value."""
   if isinstance(feature_value, dict):
-    return Field(fields={name: _infer_field(value) for name, value in feature_value.items()})
+    fields: dict[str, Field] = {}
+    for name, value in feature_value.items():
+      field = _infer_field(value)
+      if field:
+        fields[name] = field
+    return Field(fields=fields)
   elif isinstance(feature_value, Value):
     return Field(dtype=arrow_dtype_to_dtype(feature_value.pa_type))
   elif isinstance(feature_value, Sequence):
@@ -50,6 +65,9 @@ def _infer_field(feature_value: Union[Value, dict]) -> Field:
     # TODO(nsthorat): For nested class labels, return the path with the class label values to show
     # strings in the UI.
     return Field(dtype=DataType.INT32)
+  elif isinstance(feature_value, Image):
+    log(f'{feature_value} has type Image and is ignored.')
+    return None
   else:
     raise ValueError(f'Feature is not a `Value`, `Sequence`, or `dict`: {feature_value}')
 
@@ -81,8 +99,16 @@ def hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str],
         # Class labels act as strings and we map the integer to a string before writing.
         fields[feature_name] = Field(dtype=DataType.STRING)
         class_labels[feature_name] = feature_value.names
+      elif isinstance(feature_value, Translation):
+        # Translations act as categorical strings.
+        language_fields: dict[str, Field] = {}
+        for language in feature_value.languages:
+          language_fields[language] = Field(dtype=DataType.STRING)
+        fields[feature_name] = Field(fields=language_fields)
       else:
-        fields[feature_name] = _infer_field(feature_value)
+        field = _infer_field(feature_value)
+        if field:
+          fields[feature_name] = field
 
   # Add the split column to the schema.
   fields[HF_SPLIT_COLUMN] = Field(dtype=DataType.STRING)
@@ -155,7 +181,7 @@ class HuggingFaceSource(Source):
         split_dataset = split_dataset.select(range(self.sample_size))
 
       for example in split_dataset:
-        # Replace the class labels with strings.
+        # Replace the label maps with strings.
         for feature_name in self._schema_info.class_labels.keys():
           if feature_name in example:
             example[feature_name] = self._schema_info.class_labels[feature_name][

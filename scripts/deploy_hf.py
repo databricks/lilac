@@ -48,21 +48,21 @@ HF_SPACE_DIR = '.hf_spaces'
   type=str,
   default=data_path())
 @click.option(
-  '--public_datasets',
+  '--make_datasets_public',
   help='When true, sets the huggingface datasets uploaded to blic. Defaults to false.',
   is_flag=True,
   default=False)
 def deploy_hf_command(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str],
                       concept: list[str], skip_build: bool, skip_cache: bool,
-                      data_dir: Optional[str], public_datasets: bool) -> None:
+                      data_dir: Optional[str], make_datasets_public: bool) -> None:
   """Generate the huggingface space app."""
   deploy_hf(hf_username, hf_space, dataset, concept, skip_build, skip_cache, data_dir,
-            public_datasets)
+            make_datasets_public)
 
 
 def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: list[str],
               concepts: list[str], skip_build: bool, skip_cache: bool, data_dir: Optional[str],
-              public_datasets: bool) -> None:
+              make_datasets_public: bool) -> None:
   """Generate the huggingface space app."""
   data_dir = data_dir or data_path()
   hf_username = hf_username or env('HF_USERNAME')
@@ -91,7 +91,8 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
     repo_id = f'{hf_space_org}/{hf_space_name}-{namespace}-{name}'
     print(f'Creating HuggingFace repo {repo_id}')
 
-    hf_api.create_repo(repo_id, repo_type='dataset', private=not public_datasets, exist_ok=True)
+    hf_api.create_repo(
+      repo_id, repo_type='dataset', private=not make_datasets_public, exist_ok=True)
     dataset_output_dir = get_dataset_output_dir(data_dir, namespace, name)
     hf_api.upload_folder(
       folder_path=dataset_output_dir,

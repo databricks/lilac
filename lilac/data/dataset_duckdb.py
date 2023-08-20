@@ -603,7 +603,8 @@ class DatasetDuckDB(Dataset):
         FROM (SELECT {inner_select} AS val FROM t) USING SAMPLE {SAMPLE_AVG_TEXT_LENGTH};
       """
       row = self._query(avg_length_query)[0]
-      avg_text_length = int(row[0])
+      if row[0] is not None:
+        avg_text_length = int(row[0])
 
     total_count_query = f'SELECT count(val) FROM (SELECT {inner_select} as val FROM t)'
     total_count = int(self._query(total_count_query)[0][0])

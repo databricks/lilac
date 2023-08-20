@@ -7,8 +7,7 @@
   import SplitsInput from '$lib/components/datasets/huggingface/SplitsInput.svelte';
   import {loadDatasetMutation, querySources, querySourcesSchema} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
-  import {watchTask} from '$lib/stores/taskMonitoringStore';
-  import {datasetLink} from '$lib/utils';
+  import {datasetIdentifier} from '$lib/utils';
 
   import {
     Button,
@@ -77,9 +76,7 @@
       ],
       {
         onSuccess: resp => {
-          watchTask(resp.task_id, () => {
-            goto(datasetLink(namespace, name));
-          });
+          goto(`/datasets/loading#${datasetIdentifier(namespace, name)}/${resp.task_id}`);
         }
       }
     );
