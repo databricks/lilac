@@ -213,8 +213,15 @@ class Config(BaseModel):
     return [resolve_signal(signal) for signal in signals]
 
 
+class LilacHuggingFaceDataset(BaseModel):
+  """A huggingface dataset that powers the demo."""
+  hf_dataset_repo_id: str
+  lilac_namespace: str
+  lilac_name: str
+
+
 class DemoConfig(BaseModel):
   """Configures a hosted demo."""
 
   # A list of huggingface dataset repositories that power the demo.
-  lilac_hf_datasets: list[str] = []
+  lilac_hf_datasets: list[LilacHuggingFaceDataset] = []

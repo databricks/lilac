@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY .env .
 COPY .env.demo .
+COPY demo_config.yml .
 COPY LICENSE .
 
 # Copy python files.

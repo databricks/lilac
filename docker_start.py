@@ -3,10 +3,11 @@
 import os
 import shutil
 
+import yaml
 from huggingface_hub import scan_cache_dir, snapshot_download
 
 from lilac.concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
-from lilac.db_manager import list_datasets
+from lilac.config import DemoConfig
 from lilac.env import data_path, env
 from lilac.utils import get_dataset_output_dir, get_lilac_cache_dir, log
 
@@ -41,21 +42,28 @@ def main() -> None:
     return
 
   delete_old_files()
+
+  # Open the demo config and download the datasets locally.
+  demo_config_path = 'demo_config.yml'
+  demo_config = DemoConfig()
+  if os.path.exists(demo_config_path):
+    with open(demo_config_path) as f:
+      demo_config = DemoConfig.parse_obj(yaml.safe_load(f))
+
   # Download the huggingface space data. This includes code and datasets, so we move the datasets
   # alone to the data directory.
+  for lilac_hf_dataset in demo_config.lilac_hf_datasets:
+    print('Downloading dataset from HuggingFace: ', lilac_hf_dataset.hf_dataset_repo_id)
+    snapshot_download(
+      repo_id=lilac_hf_dataset.hf_dataset_repo_id,
+      repo_type='dataset',
+      token=env('HF_ACCESS_TOKEN'),
+      local_dir=get_dataset_output_dir(data_path(), lilac_hf_dataset.lilac_namespace,
+                                       lilac_hf_dataset.lilac_name))
+
   snapshot_dir = snapshot_download(repo_id=repo_id, repo_type='space', token=env('HF_ACCESS_TOKEN'))
-  # Copy datasets.
+  # # Copy datasets.
   spaces_data_dir = os.path.join(snapshot_dir, 'data')
-  datasets = list_datasets(spaces_data_dir)
-  for dataset in datasets:
-    spaces_dataset_output_dir = get_dataset_output_dir(spaces_data_dir, dataset.namespace,
-                                                       dataset.dataset_name)
-    persistent_output_dir = get_dataset_output_dir(data_path(), dataset.namespace,
-                                                   dataset.dataset_name)
-    # Huggingface doesn't let you selectively download files so we just copy the data directory
-    # out of the cloned space.
-    shutil.rmtree(persistent_output_dir, ignore_errors=True)
-    shutil.copytree(spaces_dataset_output_dir, persistent_output_dir)
 
   # Delete cache files from persistent storage.
   cache_dir = get_lilac_cache_dir(data_path())
