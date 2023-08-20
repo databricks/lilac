@@ -2,7 +2,7 @@
 
 This script will, in order:
 1) Sync from the HuggingFace space data (only datasets). (--skip_sync to skip syncing)
-2) Load the data from the demo.yml config. (--skip_load to skip loading)
+2) Load the data from the lilac_hf_space.yml config. (--skip_load to skip loading)
 3) Build the web server TypeScript. (--skip_build to skip building)
 4) Push code & data to the HuggingFace space.
 
@@ -16,7 +16,6 @@ import subprocess
 import click
 import huggingface_hub
 
-from lilac.concepts.db_concept import CONCEPTS_DIR
 from lilac.db_manager import list_datasets
 from lilac.load import load
 from lilac.utils import get_datasets_dir
@@ -24,7 +23,7 @@ from lilac.utils import get_datasets_dir
 from .deploy_hf import deploy_hf
 
 DEMO_DATA_DIR = 'demo_data'
-DEMO_CONFIG_PATH = 'demo.yml'
+DEMO_CONFIG_PATH = 'lilac_hf_space.yml'
 DEMO_HF_SPACE = 'lilacai/lilac'
 
 

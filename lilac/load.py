@@ -4,7 +4,7 @@ Usage:
 
 poetry run python -m lilac.load \
   --output_dir=demo_data \
-  --config_path=demo.yml
+  --config_path=lilac_hf_space.yml
 """
 
 import gc

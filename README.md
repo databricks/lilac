@@ -175,7 +175,7 @@ data with the following command:
 ```sh
 poetry run lilac load \
   --output_dir=demo_data \
-  --config_path=demo.yml
+  --config_path=lilac_hf_space.yml
 ```
 
 NOTE: You must have a config JSON or YAML file that represents your dataset configuration. The

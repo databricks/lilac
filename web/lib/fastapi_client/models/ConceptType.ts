@@ -5,4 +5,4 @@
 /**
  * Enum holding the concept type.
  */
-export type ConceptType = 'text';
+export type ConceptType = 'text' | 'image';

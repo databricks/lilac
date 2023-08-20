@@ -28,7 +28,7 @@
         <div class="flex flex-col border border-neutral-100 bg-red-100 p-2">
           <span class="mb-2">You do not have authorization to create a dataset.</span>
           <span>
-            For HuggingFace spaces, fork this space and set <span class="font-mono"
+            For HuggingFace spaces, duplicate lilacai/lilac and set <span class="font-mono"
               >LILAC_AUTH_ENABLED</span
             > environment flag to 'false' from settings.
           </span>

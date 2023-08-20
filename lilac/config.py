@@ -211,3 +211,10 @@ class Config(BaseModel):
   def parse_signal(cls, signals: list[dict]) -> list[Signal]:
     """Parse alist of signals to their specific subclass instances."""
     return [resolve_signal(signal) for signal in signals]
+
+
+class DemoConfig(BaseModel):
+  """Configures a hosted demo."""
+
+  # A list of huggingface dataset repositories that power the demo.
+  lilac_hf_datasets: list[str] = []
