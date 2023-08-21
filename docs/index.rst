@@ -4,6 +4,12 @@ Welcome to Lilac
 .. include:: welcome.md
    :parser: myst_parser.sphinx_
 
+.. toctree::
+   :caption: Blog posts
+   :hidden:
+
+   blog/shedding-light-on-datasets.md
+
 
 .. toctree::
    :caption: Getting Started

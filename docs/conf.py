@@ -40,7 +40,14 @@ autodoc_pydantic_field_signature_prefix = 'param'
 autodoc_typehints_format = 'short'
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv', 'README.md']
+exclude_patterns = [
+  '_build',
+  'Thumbs.db',
+  '.DS_Store',
+  '.venv',
+  'README.md',
+  '.github/*',
+]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
