@@ -1,11 +1,15 @@
 """Configurations for a dataset run."""
 
+import json
+import pathlib
 from typing import TYPE_CHECKING, Any, Optional, Union
+
+import yaml
 
 if TYPE_CHECKING:
   from pydantic.typing import AbstractSetIntStr, MappingIntStrAny
 
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, Extra, ValidationError, validator
 
 from .schema import Path, PathTuple, normalize_path
 from .signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
@@ -211,6 +215,43 @@ class Config(BaseModel):
   def parse_signal(cls, signals: list[dict]) -> list[Signal]:
     """Parse alist of signals to their specific subclass instances."""
     return [resolve_signal(signal) for signal in signals]
+
+
+def read_config(config_path: str) -> Config:
+  """Reads a config file.
+
+  The config file can either be a `Config` or a `DatasetConfig`.
+
+  The result is always a `Config` object. If the input is a `DatasetConfig`, the config will just
+  contain a single dataset.
+  """
+  config_ext = pathlib.Path(config_path).suffix
+  if config_ext in ['.yml', '.yaml']:
+    with open(config_path, 'r') as f:
+      config_dict = yaml.safe_load(f)
+  elif config_ext in ['.json']:
+    with open(config_path, 'r') as f:
+      config_dict = json.load(f)
+  else:
+    raise ValueError(f'Unsupported config file extension: {config_ext}')
+
+  config: Optional[Config] = None
+  is_config = True
+  try:
+    config = Config(**config_dict)
+  except ValidationError:
+    is_config = False
+
+  if not is_config:
+    try:
+      dataset_config = DatasetConfig(**config_dict)
+      config = Config(datasets=[dataset_config])
+    except ValidationError as error:
+      raise ValidationError(
+        'Config is not a valid `Config` or `DatasetConfig`', model=DatasetConfig) from error
+  assert config is not None
+
+  return config
 
 
 class LilacHuggingFaceDataset(BaseModel):

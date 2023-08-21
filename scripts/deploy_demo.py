@@ -24,11 +24,13 @@ import shutil
 import subprocess
 
 import click
-import huggingface_hub
+from huggingface_hub import HfApi, snapshot_download
 
+from lilac.config import read_config
 from lilac.db_manager import list_datasets
+from lilac.env import env
 from lilac.load import load
-from lilac.utils import get_datasets_dir
+from lilac.utils import get_datasets_dir, get_hf_dataset_repo_id
 
 from .deploy_hf import deploy_hf
 
@@ -73,15 +75,34 @@ def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip
                 skip_load: bool, skip_build: bool, skip_deploy: bool,
                 make_datasets_public: bool) -> None:
   """Deploys the public demo."""
+  hf_space_org, hf_space_name = hf_space.split('/')
+
   if not skip_sync:
+    hf_api = HfApi()
+    # Get all the datasets uploaded in the org.
+    hf_dataset_repos = [dataset.id for dataset in hf_api.list_datasets(author=hf_space_org)]
+
     repo_basedir = os.path.join(data_dir, '.hf_sync')
     shutil.rmtree(repo_basedir, ignore_errors=True)
 
-    huggingface_hub.snapshot_download(
-      repo_id=hf_space, repo_type='space', local_dir=repo_basedir, local_dir_use_symlinks=False)
+    for dataset in read_config(config).datasets:
+      repo_id = get_hf_dataset_repo_id(hf_space_org, hf_space_name, dataset.namespace, dataset.name)
+      if repo_id not in hf_dataset_repos:
+        continue
 
-    shutil.rmtree(get_datasets_dir(data_dir), ignore_errors=True)
-    shutil.move(get_datasets_dir(os.path.join(repo_basedir, 'data')), data_dir)
+      print('Downloading dataset from HuggingFace: ', dataset)
+      snapshot_download(
+        repo_id=repo_id,
+        repo_type='dataset',
+        token=env('HF_ACCESS_TOKEN'),
+        local_dir=get_datasets_dir(data_dir),
+        ignore_patterns=['.gitattributes', 'README.md'])
+
+    # huggingface_hub.snapshot_download(
+    #   repo_id=hf_space, repo_type='space', local_dir=repo_basedir, local_dir_use_symlinks=False)
+
+    # shutil.rmtree(get_datasets_dir(data_dir), ignore_errors=True)
+    # shutil.move(get_datasets_dir(os.path.join(repo_basedir, 'data')), data_dir)
 
   if not skip_load:
     load(data_dir, config, overwrite)

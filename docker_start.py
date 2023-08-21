@@ -2,14 +2,14 @@
 
 import os
 import shutil
+from typing import TypedDict
 
 import yaml
 from huggingface_hub import scan_cache_dir, snapshot_download
 
 from lilac.concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
-from lilac.config import DemoConfig
 from lilac.env import data_path, env
-from lilac.utils import get_dataset_output_dir, get_lilac_cache_dir, log
+from lilac.utils import get_datasets_dir, get_lilac_cache_dir, log
 
 
 def delete_old_files() -> None:
@@ -34,6 +34,16 @@ def delete_old_files() -> None:
   strategy.execute()
 
 
+class HfSpaceConfig(TypedDict):
+  """The huggingface space config, defined in README.md.
+
+  See:
+  https://huggingface.co/docs/hub/spaces-config-reference
+  """
+  title: str
+  datasets: list[str]
+
+
 def main() -> None:
   """Download dataset files from the HF space that was uploaded before building the image."""
   # SPACE_ID is the HuggingFace Space ID environment variable that is automatically set by HF.
@@ -43,23 +53,25 @@ def main() -> None:
 
   delete_old_files()
 
-  # Open the demo config and download the datasets locally.
-  demo_config_path = 'demo_config.yml'
-  demo_config = DemoConfig()
-  if os.path.exists(demo_config_path):
-    with open(demo_config_path) as f:
-      demo_config = DemoConfig.parse_obj(yaml.safe_load(f))
+  print('readme:', os.path.abspath('README.md'))
+  with open(os.path.abspath('README.md')) as f:
+    print(f.read())
+
+  with open(os.path.abspath('README.md')) as f:
+    # Strip the '---' for the huggingface readme config.
+    readme = f.read().strip('---')
+    hf_config: HfSpaceConfig = yaml.safe_load(readme)
 
   # Download the huggingface space data. This includes code and datasets, so we move the datasets
   # alone to the data directory.
-  for lilac_hf_dataset in demo_config.lilac_hf_datasets:
-    print('Downloading dataset from HuggingFace: ', lilac_hf_dataset.hf_dataset_repo_id)
+  for lilac_hf_dataset in hf_config['datasets']:
+    print('Downloading dataset from HuggingFace: ', lilac_hf_dataset)
     snapshot_download(
-      repo_id=lilac_hf_dataset.hf_dataset_repo_id,
+      repo_id=lilac_hf_dataset,
       repo_type='dataset',
       token=env('HF_ACCESS_TOKEN'),
-      local_dir=get_dataset_output_dir(data_path(), lilac_hf_dataset.lilac_namespace,
-                                       lilac_hf_dataset.lilac_name))
+      local_dir=get_datasets_dir(data_path()),
+      ignore_patterns=['.gitattributes', 'README.md'])
 
   snapshot_dir = snapshot_download(repo_id=repo_id, repo_type='space', token=env('HF_ACCESS_TOKEN'))
   # # Copy datasets.

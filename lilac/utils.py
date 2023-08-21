@@ -294,3 +294,12 @@ def pretty_timedelta(delta: timedelta) -> str:
 def to_yaml(input: dict) -> str:
   """Convert a dictionary to a pretty yaml representation."""
   return yaml.dump(input, default_flow_style=None)
+
+
+def get_hf_dataset_repo_id(hf_org: str, hf_space_name: str, namespace: str,
+                           dataset_name: str) -> str:
+  """Returns the repo name for a given dataset. This does not include the namespace."""
+  if hf_space_name == 'lilac':
+    # Don't include the space name for lilac datasets to shorten the linked dataset name.
+    return f'{hf_org}/{namespace}-{dataset_name}'
+  return f'{hf_org}/{hf_space_name}-{namespace}-{dataset_name}'

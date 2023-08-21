@@ -8,21 +8,16 @@ poetry run python -m lilac.load \
 """
 
 import gc
-import json
 import os
-import pathlib
 import shutil
-from typing import Optional
 
 import click
 import dask
 import psutil
-import yaml
 from distributed import Client
-from pydantic import ValidationError
 
 from .concepts.db_concept import DiskConceptDB, DiskConceptModelDB
-from .config import Config, DatasetConfig, EmbeddingConfig, SignalConfig
+from .config import EmbeddingConfig, SignalConfig, read_config
 from .data.dataset_duckdb import DatasetDuckDB
 from .data_loader import process_source
 from .db_manager import get_dataset, list_datasets, remove_dataset_from_cache
@@ -61,31 +56,7 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
   # Use views to avoid loading duckdb tables into RAM since we aren't query heavy.
   os.environ['DUCKDB_USE_VIEWS'] = '1'
 
-  config_ext = pathlib.Path(config_path).suffix
-  if config_ext in ['.yml', '.yaml']:
-    with open(config_path, 'r') as f:
-      config_dict = yaml.safe_load(f)
-  elif config_ext in ['.json']:
-    with open(config_path, 'r') as f:
-      config_dict = json.load(f)
-  else:
-    raise ValueError(f'Unsupported config file extension: {config_ext}')
-
-  config: Optional[Config] = None
-  is_config = True
-  try:
-    config = Config(**config_dict)
-  except ValidationError:
-    is_config = False
-
-  if not is_config:
-    try:
-      dataset_config = DatasetConfig(**config_dict)
-      config = Config(datasets=[dataset_config])
-    except ValidationError as error:
-      raise ValidationError(
-        'Config is not a valid `Config` or `DatasetConfig`', model=DatasetConfig) from error
-  assert config is not None
+  config = read_config(config_path)
 
   # Explicitly create a dask client in sync mode.
   dask.config.set({'distributed.worker.daemon': False})
