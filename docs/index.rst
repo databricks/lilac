@@ -7,8 +7,10 @@ Welcome to Lilac
 .. toctree::
    :caption: Blog posts
    :hidden:
+   :maxdepth: 1
+   :glob:
 
-   blog/shedding-light-on-datasets.md
+   blog/*
 
 
 .. toctree::
