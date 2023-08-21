@@ -69,6 +69,6 @@ may lead to an out of memory error when cloning locally.
 To remove these, edit the `README.md` on the space and delete the datasets under the linked
 `datasets` field for the HuggingFace space configuration. The space will restart.
 
-If there datasets were synced in the process, you can delete them from the UI.
+If there were datasets were synced in the process, you can delete them from the UI.
 
 <img src="../_static/huggingface/huggingface_space_readme_datasets.png"></img>
