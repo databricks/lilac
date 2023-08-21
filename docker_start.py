@@ -53,10 +53,6 @@ def main() -> None:
 
   delete_old_files()
 
-  print('readme:', os.path.abspath('README.md'))
-  with open(os.path.abspath('README.md')) as f:
-    print(f.read())
-
   with open(os.path.abspath('README.md')) as f:
     # Strip the '---' for the huggingface readme config.
     readme = f.read().strip('---')
@@ -74,7 +70,7 @@ def main() -> None:
       ignore_patterns=['.gitattributes', 'README.md'])
 
   snapshot_dir = snapshot_download(repo_id=repo_id, repo_type='space', token=env('HF_ACCESS_TOKEN'))
-  # # Copy datasets.
+  # Copy datasets.
   spaces_data_dir = os.path.join(snapshot_dir, 'data')
 
   # Delete cache files from persistent storage.

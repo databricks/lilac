@@ -51,7 +51,7 @@ HF_SPACE_DIR = '.hf_spaces'
   default=data_path())
 @click.option(
   '--make_datasets_public',
-  help='When true, sets the huggingface datasets uploaded to blic. Defaults to false.',
+  help='When true, sets the huggingface datasets uploaded to public. Defaults to false.',
   is_flag=True,
   default=False)
 def deploy_hf_command(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str],

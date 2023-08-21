@@ -68,7 +68,7 @@ from .deploy_hf import deploy_hf
   default=False)
 @click.option(
   '--make_datasets_public',
-  help='When true, sets the huggingface datasets uploaded to blic. Defaults to false.',
+  help='When true, sets the huggingface datasets uploaded to public. Defaults to false.',
   is_flag=True,
   default=False)
 def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip_sync: bool,
@@ -97,12 +97,6 @@ def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip
         token=env('HF_ACCESS_TOKEN'),
         local_dir=get_datasets_dir(data_dir),
         ignore_patterns=['.gitattributes', 'README.md'])
-
-    # huggingface_hub.snapshot_download(
-    #   repo_id=hf_space, repo_type='space', local_dir=repo_basedir, local_dir_use_symlinks=False)
-
-    # shutil.rmtree(get_datasets_dir(data_dir), ignore_errors=True)
-    # shutil.move(get_datasets_dir(os.path.join(repo_basedir, 'data')), data_dir)
 
   if not skip_load:
     load(data_dir, config, overwrite)
