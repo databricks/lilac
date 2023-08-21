@@ -112,7 +112,7 @@ datasets:
       dataset_name: Open-Orca/OpenOrca
       sample_size: 100000
 
-  - name: opus100-en-us-validation
+  - name: opus100-en-es-validation
     namespace: lilac
     tags: [machine-learning]
     settings:
