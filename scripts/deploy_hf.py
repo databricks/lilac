@@ -90,17 +90,17 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
   # NOTE(nsthorat): This currently doesn't write to persistent storage directly.
   for d in datasets:
     namespace, name = d.split('/')
-    repo_id = get_hf_dataset_repo_id(hf_space_org, hf_space_name, namespace, name)
+    dataset_repo_id = get_hf_dataset_repo_id(hf_space_org, hf_space_name, namespace, name)
 
-    print(f'Creating HuggingFace repo https://huggingface.co/spaces/{repo_id}')
+    print(f'Uploading to HuggingFace repo https://huggingface.co/datasets/{dataset_repo_id}\n')
 
     hf_api.create_repo(
-      repo_id, repo_type='dataset', private=not make_datasets_public, exist_ok=True)
+      dataset_repo_id, repo_type='dataset', private=not make_datasets_public, exist_ok=True)
     dataset_output_dir = get_dataset_output_dir(data_dir, namespace, name)
     hf_api.upload_folder(
       folder_path=dataset_output_dir,
       path_in_repo=os.path.join(namespace, name),
-      repo_id=repo_id,
+      repo_id=dataset_repo_id,
       repo_type='dataset',
       # Delete all data on the server.
       delete_patterns='*')
@@ -124,13 +124,13 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
     hf_api.upload_file(
       path_or_fileobj=readme,
       path_in_repo='README.md',
-      repo_id=repo_id,
+      repo_id=dataset_repo_id,
       repo_type='dataset',
     )
 
     lilac_hf_datasets.append(
       LilacHuggingFaceDataset(
-        hf_dataset_repo_id=repo_id, lilac_namespace=namespace, lilac_name=name))
+        hf_dataset_repo_id=dataset_repo_id, lilac_namespace=namespace, lilac_name=name))
 
   hf_space_dir = os.path.join(data_dir, HF_SPACE_DIR)
 
