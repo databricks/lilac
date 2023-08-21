@@ -62,7 +62,7 @@ Lilac is a visual tool and a Python API that helps you:
 
 Lilac runs completely **on device** using powerful open-source LLM technologies.
 
-## 🏆 Contact
+## 💬 Contact
 
 For bugs and feature requests, please
 [file an issue on GitHub](https://github.com/lilacai/lilac/issues).
