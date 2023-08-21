@@ -4,7 +4,7 @@
 
 August 21, 2023 <br/> _Daniel Smilkov & Nikhil Thorat_
 
-### Data quality is tricky
+### Data quality in AI is tricky
 
 During our time at Google, we collaborated with many teams to improve datasets used to build their
 AI models. Their goal was to continually improve the quality of their models, often focusing on
