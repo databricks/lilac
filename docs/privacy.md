@@ -1,4 +1,4 @@
-# Lilac AI Inc. Privacy Policy.
+# Privacy Policy
 
 Last updated: August 21, 2023
 
