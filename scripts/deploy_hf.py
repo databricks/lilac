@@ -68,7 +68,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 
   # Build the web server Svelte & TypeScript.
   if not skip_build:
-    run('sh ./scripts/build_server_prod.sh')
+    run('PUBLIC_HF_ANALYTICS=1 ./scripts/build_server_prod.sh')
 
   hf_space_dir = os.path.join(data_dir, HF_SPACE_DIR)
 
