@@ -1,6 +1,6 @@
 # Shedding light on AI datasets
 
-August 21, 2023
+August 21, 2023 <br/> _Daniel Smilkov & Nikhil Thorat_
 
 During our time at Google, we had the opportunity to collaborate with over 20 teams and improve
 numerous datasets used for training AI models. The main objective of these teams was to ensure the
