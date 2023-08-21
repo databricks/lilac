@@ -63,6 +63,12 @@ For more details on environment variables, see [Environment Variables](../enviro
 
 ### Removing datasets
 
-You'll notice that the demo will try to load the same datasets from the lilacai/lilac space. To
-remove these, edit the `README.md` on the space and delete the datasets under the linked `datasets`
-field for the HuggingFace space configuration.
+You'll notice that the demo will try to load the same datasets from the lilacai/lilac space. This
+may lead to an out of memory error when cloning locally.
+
+To remove these, edit the `README.md` on the space and delete the datasets under the linked
+`datasets` field for the HuggingFace space configuration. The space will restart.
+
+If there datasets were synced in the process, you can delete them from the UI.
+
+<img src="../_static/huggingface/huggingface_space_readme_datasets.png"></img>

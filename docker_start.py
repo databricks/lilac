@@ -55,7 +55,7 @@ def main() -> None:
 
   with open(os.path.abspath('README.md')) as f:
     # Strip the '---' for the huggingface readme config.
-    readme = f.read().strip('---')
+    readme = f.read().strip().strip('---')
     hf_config: HfSpaceConfig = yaml.safe_load(readme)
 
   # Download the huggingface space data. This includes code and datasets, so we move the datasets

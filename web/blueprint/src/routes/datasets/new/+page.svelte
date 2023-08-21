@@ -171,11 +171,10 @@
         <div class="mt-4 flex flex-col border border-neutral-100 bg-red-100 p-2">
           <span class="mb-2">You do not have authorization to create a dataset.</span>
           <span>
-            For HuggingFace spaces, you can duplicate this space and remove authentication. See: <a
+            For HuggingFace spaces, you can duplicate this space and remove authentication. See <a
               href="https://lilacml.com/huggingface/huggingface_spaces.html"
               >Duplicating the HuggingFace demo</a
-            >
-            for details.
+            >.
           </span>
         </div>
       {/if}
