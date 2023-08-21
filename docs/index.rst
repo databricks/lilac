@@ -1,4 +1,4 @@
-Welcome to Lilac
+🌸 Lilac
 =================
 
 .. include:: welcome.md
@@ -59,6 +59,20 @@ Welcome to Lilac
    :maxdepth: 1
 
    embeddings/embeddings.md
+
+.. toctree::
+   :caption: HuggingFace Spaces
+   :hidden:
+   :maxdepth: 1
+
+   huggingface/huggingface_spaces.md
+
+.. toctree::
+   :caption: Environment
+   :hidden:
+   :maxdepth: 1
+
+   environment/variables.md
 
 .. toctree::
    :caption: API Reference

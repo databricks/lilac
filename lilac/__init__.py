@@ -8,6 +8,8 @@ from .data_loader import create_dataset
 from .db_manager import get_dataset, set_default_dataset_cls
 from .embeddings import *  # noqa: F403
 from .embeddings.default_vector_stores import register_default_vector_stores
+from .env import *  # noqa: F403
+from .env import LilacEnvironment
 from .schema import *  # noqa: F403
 from .server import start_server, stop_server
 from .signals import *  # noqa: F403
@@ -39,4 +41,5 @@ __all__ = [
   'EmbeddingConfig',
   'SignalConfig',
   'DatasetSettings',
+  'LilacEnvironment',
 ]

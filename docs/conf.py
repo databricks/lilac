@@ -68,7 +68,7 @@ html_theme_options = {
     'class': '',
   },],
 }
-html_title = 'Lilac'
+html_title = '🌸 Lilac'
 html_static_path = ['_static']
 html_css_files = ['styles/custom.css']
 html_js_files = ['custom.js']
