@@ -26,8 +26,8 @@ class LilacEnvironment(BaseModel):
 
   # API Keys.
   OPENAI_API_KEY: str = PydanticField(
-    description='The OpenAI API key, used for computing `openai` embeddings and generating positive '
-    'examples for concept seeding.')
+    description='The OpenAI API key, used for computing `openai` embeddings and generating '
+    'positive examples for concept seeding.')
   COHERE_API_KEY: str = PydanticField(
     description='The Cohere API key, used for computing `cohere` embeddings.')
   PALM_API_KEY: str = PydanticField(
