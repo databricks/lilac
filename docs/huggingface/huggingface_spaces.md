@@ -59,10 +59,10 @@ docker image in your own space.
 
 Once the image is built, your space is now running a personalized Lilac instance!
 
+For more details on environment variables, see [Environment Variables](../environment/variables.md).
+
 ### Removing datasets
 
 You'll notice that the demo will try to load the same datasets from the lilacai/lilac space. To
 remove these, edit the `README.md` on the space and delete the datasets under the linked `datasets`
 field for the HuggingFace space configuration.
-
-For more details on environment variables, see [Environment Variables](../environment/variables.md).
