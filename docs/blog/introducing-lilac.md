@@ -1,7 +1,7 @@
 # Introducing Lilac
 
 ```{tip}
-Try the Lilac hosted **[demo on HuggingFace](https://lilacai-lilac.hf.space/)** or find us on GitHub: **[github.com/lilacai/lilac](https://github.com/lilacai/lilac)**
+Try the Lilac hosted **[demo on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)** or find us on GitHub: **[github.com/lilacai/lilac](https://github.com/lilacai/lilac)**
 ```
 
 August 21, 2023 <br/> _Daniel Smilkov & Nikhil Thorat_
