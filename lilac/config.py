@@ -252,17 +252,3 @@ def read_config(config_path: str) -> Config:
   assert config is not None
 
   return config
-
-
-class LilacHuggingFaceDataset(BaseModel):
-  """A huggingface dataset that powers the demo."""
-  hf_dataset_repo_id: str
-  lilac_namespace: str
-  lilac_name: str
-
-
-class DemoConfig(BaseModel):
-  """Configures a hosted demo."""
-
-  # A list of huggingface dataset repositories that power the demo.
-  lilac_hf_datasets: list[LilacHuggingFaceDataset] = []

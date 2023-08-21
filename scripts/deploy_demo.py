@@ -90,7 +90,7 @@ def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip
       if repo_id not in hf_dataset_repos:
         continue
 
-      print('Downloading dataset from HuggingFace: ', dataset)
+      print(f'Downloading dataset from HuggingFace "{repo_id}": ', dataset)
       snapshot_download(
         repo_id=repo_id,
         repo_type='dataset',

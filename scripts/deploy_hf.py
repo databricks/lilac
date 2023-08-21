@@ -9,7 +9,7 @@ import yaml
 from huggingface_hub import HfApi
 
 from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
-from lilac.config import CONFIG_FILENAME, DatasetConfig, DemoConfig, LilacHuggingFaceDataset
+from lilac.config import CONFIG_FILENAME, DatasetConfig
 from lilac.env import data_path, env
 from lilac.sources.huggingface_source import HuggingFaceSource
 from lilac.utils import get_dataset_output_dir, get_hf_dataset_repo_id, get_lilac_cache_dir, to_yaml
@@ -81,7 +81,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 
   hf_api = HfApi()
 
-  lilac_hf_datasets: list[LilacHuggingFaceDataset] = []
+  lilac_hf_datasets: list[str] = []
 
   # Upload datasets.
   hf_space_org, hf_space_name = hf_space.split('/')
@@ -128,9 +128,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
       repo_type='dataset',
     )
 
-    lilac_hf_datasets.append(
-      LilacHuggingFaceDataset(
-        hf_dataset_repo_id=dataset_repo_id, lilac_namespace=namespace, lilac_name=name))
+    lilac_hf_datasets.append(dataset_repo_id)
 
   hf_space_dir = os.path.join(data_dir, HF_SPACE_DIR)
 
@@ -158,12 +156,6 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
   for copy_file in copy_files:
     shutil.copyfile(copy_file, os.path.join(repo_basedir, copy_file))
 
-  # Write the demo config yaml.
-  demo_config = DemoConfig(lilac_hf_datasets=lilac_hf_datasets)
-  demo_config_yaml = to_yaml(demo_config.dict())
-  with open(f'{repo_basedir}/demo_config.yml', 'w') as f:
-    f.write(demo_config_yaml)
-
   # Create an .env.local to set HF-specific flags.
   with open(f'{repo_basedir}/.env.demo', 'w') as f:
     f.write("""LILAC_DATA_PATH='/data'
@@ -190,7 +182,7 @@ XDG_CACHE_HOME=/data/.cache
       'colorTo': 'purple',
       'sdk': 'docker',
       'app_port': 5432,
-      'datasets': [d.hf_dataset_repo_id for d in lilac_hf_datasets],
+      'datasets': [d for d in lilac_hf_datasets],
     }
     f.write(f'---\n{to_yaml(config)}\n---')
 

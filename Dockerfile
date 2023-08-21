@@ -14,7 +14,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY .env .
 COPY .env.demo .
-COPY demo_config.yml .
 # Copy the README so we can read the datasets from the HuggingFace config.
 COPY README.md .
 COPY LICENSE .
