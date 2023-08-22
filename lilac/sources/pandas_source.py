@@ -1,5 +1,5 @@
 """Pandas source."""
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 import pandas as pd
 from typing_extensions import override
@@ -14,18 +14,19 @@ class PandasSource(Source):
   """Pandas source."""
   name = 'pandas'
 
-  _df: pd.DataFrame
+  _df: Optional[pd.DataFrame] = None
   _source_schema: SourceSchema
 
   class Config:
     underscore_attrs_are_private = True
 
-  def __init__(self, df: pd.DataFrame, **kwargs: Any):
+  def __init__(self, df: Optional[pd.DataFrame] = None, **kwargs: Any):
     super().__init__(**kwargs)
     self._df = df
 
   @override
   def setup(self) -> None:
+    assert self._df is not None, 'df must be set.'
     # Create the source schema in prepare to share it between process and source_schema.
     self._source_schema = schema_from_df(self._df, PANDAS_INDEX_COLUMN)
 
@@ -37,6 +38,7 @@ class PandasSource(Source):
   @override
   def process(self) -> Iterable[Item]:
     """Process the source upload request."""
+    assert self._df is not None, 'df must be set.'
     cols = self._df.columns.tolist()
     yield from ({
       PANDAS_INDEX_COLUMN: idx,
