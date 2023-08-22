@@ -143,7 +143,7 @@ index once. For a fast on-device embedding, we recommend the
 Before we can index with GTE-small, we need to install optional dependencies for the gte embedding:
 
 ```sh
-pip install lilac[gte]
+pip install lilacai[gte]
 ```
 
 ```py
