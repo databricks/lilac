@@ -1,7 +1,7 @@
 # 🌸 Lilac
 
 [![Static Badge](https://img.shields.io/badge/Homepage-8A2BE2?link=http%3A%2F%2Flilacml.com%2F)](https://lilacml.com)
-[![Downloads](https://static.pepy.tech/badge/lilacai/month)](https://pepy.tech/project/lilacai)
+[![Downloads](https://static.pepy.tech/badge/lilac/month)](https://pepy.tech/project/lilac)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Twitter](https://img.shields.io/twitter/follow/lilac_ai)](https://twitter.com/lilac_ai)
 [![](https://dcbadge.vercel.app/api/server/YpGxQMyk?compact=true&style=flat)](https://discord.gg/YpGxQMyk)
@@ -22,7 +22,7 @@ https://github.com/lilacai/lilac/assets/2294279/cb1378f8-92c1-4f2a-9524-ce5ddd8e
 To install Lilac on your machine:
 
 ```sh
-pip install lilacai
+pip install lilac
 ```
 
 You can also use Lilac with no installation by

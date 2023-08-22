@@ -40,7 +40,7 @@ class PIISignal(TextSignal):
       from .pii_secrets import find_secrets
     except ImportError:
       raise ImportError('Could not import dependencies for the "PII" signal. '
-                        'Please install optional dependencies via `pip install lilacai[pii]`.')
+                        'Please install optional dependencies via `pip install lilac[pii]`.')
     for text in data:
       if not isinstance(text, str):
         yield None

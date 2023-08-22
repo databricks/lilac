@@ -19,7 +19,7 @@ from .sources.default_sources import register_default_sources
 from .splitters import *  # noqa: F403
 
 try:
-  __version__ = metadata.version('lilacai')
+  __version__ = metadata.version('lilac')
 except metadata.PackageNotFoundError:
   __version__ = ''
 

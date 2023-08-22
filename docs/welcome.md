@@ -3,7 +3,7 @@ Try the Lilac hosted **[demo on HuggingFace](https://huggingface.co/spaces/lilac
 ```
 
 [![GitHub Repo stars](https://img.shields.io/github/stars/lilacai/lilac?logo=github&label=lilacai%2Flilac)](https://github.com/lilacai/lilac)
-[![Downloads](https://static.pepy.tech/badge/lilacai/month)](https://pepy.tech/project/lilacai)
+[![Downloads](https://static.pepy.tech/badge/lilac/month)](https://pepy.tech/project/lilac)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Twitter](https://img.shields.io/twitter/follow/lilac_ai)](https://twitter.com/lilac_ai)
 [![](https://dcbadge.vercel.app/api/server/YpGxQMyk?compact=true&style=flat)](https://discord.gg/YpGxQMyk)
@@ -22,7 +22,7 @@ See the [Announcement Blog](./blog/introducing-lilac.md) for more details.
 To install Lilac on your machine:
 
 ```sh
-pip install lilacai
+pip install lilac
 ```
 
 You can also use Lilac with no installation by

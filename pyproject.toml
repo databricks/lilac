@@ -2,12 +2,12 @@
 authors = ["Lilac AI Inc. <info@lilacml.com>"]
 description = "Organize unstructured data"
 license = "Apache-2.0"
-name = "lilacai"
+name = "lilac"
 repository = "https://github.com/lilacai/lilac"
 packages = [{ include = "lilac" }]
 include = ["lilac/web/**/*"]                    # Include the web app assets.
 readme = "README.md"
-version = "0.0.9"
+version = "0.0.11"
 
 [tool.poetry.dependencies]
 

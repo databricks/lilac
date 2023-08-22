@@ -54,7 +54,7 @@ To keep the binary pip package small, we don't include the optional dependencies
 PII detection. To install the optional pii, run:
 
 ```sh
-pip install lilacai[pii]
+pip install lilac[pii]
 ```
 
 Let's run the PII detection signal on both the `question` and the `response` field.
