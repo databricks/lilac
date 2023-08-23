@@ -12,5 +12,6 @@ export type AuthenticationInfo = {
     user?: UserInfo;
     access: UserAccess;
     auth_enabled: boolean;
+    huggingface_space_id?: string;
 };
 

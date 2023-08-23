@@ -91,7 +91,11 @@ def auth_info(request: Request) -> AuthenticationInfo:
   """
   user_info: Optional[UserInfo] = get_session_user(request)
   return AuthenticationInfo(
-    user=user_info, access=get_user_access(), auth_enabled=env('LILAC_AUTH_ENABLED', False))
+    user=user_info,
+    access=get_user_access(),
+    auth_enabled=env('LILAC_AUTH_ENABLED', False),
+    # See: https://huggingface.co/docs/hub/spaces-overview#helper-environment-variables
+    huggingface_space_id=env('SPACE_ID', None))
 
 
 app.include_router(v1_router, prefix='/api/v1')
