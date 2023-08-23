@@ -127,11 +127,11 @@ export function deserializeState(
     const [key, value] = param.split('=');
     urlState[key] = JSON.parse(value);
   }
-  return mergeDeep(defaultState, urlState);
+  return mergeDeep(urlState, defaultState);
 }
 
 /**
- * Subscribes to the store and serializes it to the URL.
+ * Subscribes to the store and serializes it toe the URL.
  */
 export function persistedHashStore<T extends object>(
   page: string,

@@ -6,6 +6,7 @@ import {
   getField,
   getFieldsByDtype,
   isConceptSignal,
+  isSignalField,
   pathIncludes,
   pathIsEqual,
   serializePath,
@@ -18,12 +19,12 @@ import {
   type DatasetInfo,
   type DatasetSettings,
   type LilacField,
-  type LilacSchema,
   type LilacSelectRowsSchema,
   type LilacValueNode,
   type LilacValueNodeCasted,
   type Path,
   type Search,
+  type SelectRowsOptions,
   type SemanticSimilaritySignal,
   type SortResult,
   type SubstringSignal
@@ -73,10 +74,12 @@ export const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
 
 export function getVisibleFields(
   selectedColumns: {[path: string]: boolean} | null,
-  schema: LilacSchema | null,
+  selectRowsOptions: SelectRowsOptions,
+  selectRowsSchema: LilacSelectRowsSchema,
   field?: LilacField | null,
   dtype?: DataType
 ): LilacField[] {
+  const schema = selectRowsSchema?.schema;
   if (schema == null) {
     return [];
   }
@@ -87,7 +90,9 @@ export function getVisibleFields(
   } else {
     fields = getFieldsByDtype(dtype, field || schema);
   }
-  return fields.filter(f => isPathVisible(selectedColumns, f.path));
+  return fields.filter(f =>
+    isPathVisible(selectRowsSchema, selectedColumns, selectRowsOptions, f.path)
+  );
 }
 
 export function isFieldVisible(field: LilacField, visibleFields: LilacField[]): boolean {
@@ -142,23 +147,52 @@ export function getMediaFields(
 }
 
 export function isPathVisible(
+  selectRowsSchema: LilacSelectRowsSchema,
   selectedColumns: {[path: string]: boolean} | null,
+  selectRowsOptions: SelectRowsOptions,
   path: Path | string
 ): boolean {
+  const schema = selectRowsSchema.schema;
   if (selectedColumns == null) return false;
   if (typeof path !== 'string') path = serializePath(path);
 
-  // If a user has explicitly selected a column, return the value of the selection.
-  if (selectedColumns[path] != null) return selectedColumns[path];
+  // When filtering by a path, the path, the children, and all the parents of the path are visible.
+  const pathIsFiltered = selectRowsOptions.filters?.some(
+    filter => pathIncludes(filter.path, path) || pathIncludes(path, filter.path)
+  );
+  if (pathIsFiltered) {
+    return true;
+  }
+  if (isPreviewSignal(selectRowsSchema, deserializePath(path))) {
+    return true;
+  }
+
+  if (selectedColumns[path] != null)
+    // If a user has explicitly selected a column, return the value of the selection.
+    return selectedColumns[path];
 
   const pathArray = deserializePath(path);
 
-  if (pathArray.length > 1) {
-    // When no explicit selection, children inherit from their parent.
-    return isPathVisible(selectedColumns, serializePath(pathArray.slice(0, pathArray.length - 1)));
+  // Signal columns are not visible by default. Because children inherit from parents, we only need
+  // need to check for the parent.
+  const field = getField(schema, pathArray);
+  const isSignal = isSignalField(field!, schema);
+
+  if (isSignal) {
+    return false;
   }
 
-  // Columns are visible by default.
+  if (pathArray.length > 1) {
+    // When no explicit selection, children inherit from their parent.
+    return isPathVisible(
+      selectRowsSchema,
+      selectedColumns,
+      selectRowsOptions,
+      serializePath(pathArray.slice(0, pathArray.length - 1))
+    );
+  }
+
+  // Source columns are visible by default.
   return true;
 }
 

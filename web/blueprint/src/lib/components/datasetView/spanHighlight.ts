@@ -169,21 +169,28 @@ export function getSnippetSpans(
   // First, cut any snippet shown render spans that are too long.
   renderSpans = renderSpans
     .map(renderSpan => {
-      if (renderSpan.isShownSnippet && renderSpan.text.length > MAX_RENDER_SPAN_LENGTH) {
+      if (renderSpan.text.length > MAX_RENDER_SPAN_LENGTH) {
         const shownRenderSpan = {
           ...renderSpan,
           text: renderSpan.text.slice(0, MAX_RENDER_SPAN_LENGTH),
           snippetText: renderSpan.snippetText.slice(0, MAX_RENDER_SPAN_LENGTH)
         };
-        const hiddenRenderSpan = {
-          ...renderSpan,
-          text: renderSpan.text.slice(MAX_RENDER_SPAN_LENGTH),
-          snippetText: renderSpan.snippetText.slice(MAX_RENDER_SPAN_LENGTH),
-          isShownSnippet: false,
-          // The hover metadata is already displayed in the shown span.
-          namedValues: []
-        };
-        return [shownRenderSpan, hiddenRenderSpan];
+        // Split the hidden parts by '\n' so that don't use the whole budget for a single span.
+        const hiddenSpanLines = renderSpan.text.slice(MAX_RENDER_SPAN_LENGTH).split('\n');
+        const hiddenRenderSpans = hiddenSpanLines.map((line, i) => {
+          const addNewline = i !== hiddenSpanLines.length - 1;
+          const lineText = line + (addNewline ? '\n' : '');
+          return {
+            ...renderSpan,
+            text: lineText,
+            snippetText: lineText,
+            isShownSnippet: false,
+            // The hover metadata is already displayed in the shown span.
+            namedValues: []
+          };
+        });
+
+        return [shownRenderSpan, ...hiddenRenderSpans];
       } else {
         return [renderSpan];
       }

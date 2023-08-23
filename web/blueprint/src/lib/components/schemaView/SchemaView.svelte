@@ -2,7 +2,7 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {SkeletonText, Tab, TabContent, Tabs} from 'carbon-components-svelte';
   import QueryBuilder from '../queryBuilder/QueryBuilder.svelte';
-  import FlattenedField from './FlattenedField.svelte';
+  import SchemaField from './SchemaField.svelte';
 
   const datasetStore = getDatasetContext();
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
@@ -18,7 +18,7 @@
           <SkeletonText paragraph lines={3} />
         {:else if selectRowsSchema?.isSuccess && selectRowsSchema.data.schema.fields != null}
           {#each Object.keys(selectRowsSchema.data.schema.fields) as key (key)}
-            <FlattenedField
+            <SchemaField
               schema={selectRowsSchema.data.schema}
               field={selectRowsSchema.data.schema.fields[key]}
             />
