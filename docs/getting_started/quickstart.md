@@ -4,13 +4,9 @@
 Make sure you've followed the [installation](installation.md) steps first.
 ```
 
-Start the lilac web server.
-
-```bash
-lilac start
+```{note}
+For a Python-based quick start, see [Quick Start (Python)](./quickstart_python.md).
 ```
-
-This should open a browser tab pointing to `http://localhost:5432`.
 
 ## Overview
 
@@ -21,6 +17,16 @@ In this quick start we're going to:
 - Find PII (emails, etc)
 - Find profanity in the responses (using powerful text embeddings)
 - Download the enriched dataset as a json file so we can clean it in a Python notebook
+
+## Start the web server
+
+Start the lilac web server.
+
+```bash
+lilac start
+```
+
+This should open a browser tab pointing to `http://localhost:5432`.
 
 ## Add a dataset
 
