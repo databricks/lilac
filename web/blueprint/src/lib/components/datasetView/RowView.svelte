@@ -44,11 +44,10 @@
     serializePath(a.path) > serializePath(b.path) ? 1 : -1
   );
   $: visibleSchema =
-    selectRowsSchema?.data?.schema != null
-      ? getVisibleSchema(selectRowsSchema?.data?.schema, visibleFields)!
+    $datasetStore.selectRowsSchema?.data?.schema != null
+      ? getVisibleSchema($datasetStore.selectRowsSchema?.data?.schema, visibleFields)!
       : null;
   $: mediaFields = $settings.data ? getMediaFields(visibleSchema, $settings.data) : [];
-
   // Pass the item scroll container to children so they can handle scroll events.
   let itemScrollContainer: HTMLDivElement | null = null;
   const writableStore = writable<HTMLDivElement | null>(itemScrollContainer);

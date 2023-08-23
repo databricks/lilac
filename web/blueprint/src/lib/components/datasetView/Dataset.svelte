@@ -10,14 +10,7 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
   import {Modal, SkeletonText, Tag, TextArea} from 'carbon-components-svelte';
-  import {
-    ChevronLeft,
-    ChevronRight,
-    Download,
-    Information,
-    Settings,
-    Share
-  } from 'carbon-icons-svelte';
+  import {Download, Information, Settings, Share, TableOfContents} from 'carbon-icons-svelte';
   import {fade} from 'svelte/transition';
   import DatasetSettingsModal from './DatasetSettingsModal.svelte';
   import DownloadModal from './DownloadModal.svelte';
@@ -49,7 +42,16 @@
 </script>
 
 <Page>
-  <div slot="header-subtext" class="flex flex-row items-center">
+  <div slot="header-subtext" class="flex flex-row items-center gap-x-1">
+    <button
+      class="mr-2"
+      class:bg-blue-100={!schemaCollapsed}
+      class:outline-blue-400={!schemaCollapsed}
+      class:outline={!schemaCollapsed}
+      use:hoverTooltip={{text: schemaCollapsed ? 'Show Schema' : 'Hide Schema'}}
+      on:click={toggleSchemaCollapsed}
+      on:keypress={toggleSchemaCollapsed}><TableOfContents /></button
+    >
     <Tag type="outline">
       <div class="dataset-name">
         <a class="font-semibold text-black" href={link} on:click={() => goto(link)}
@@ -122,24 +124,6 @@
       } border-r border-gray-200`}
     >
       <SchemaView />
-      <div
-        class={`absolute right-0 top-1/2 flex
-                h-8 w-4 cursor-pointer items-center justify-center
-                rounded border
-                border-neutral-200 bg-neutral-100
-                opacity-60 hover:bg-neutral-200
-                hover:opacity-100
-                ${schemaCollapsed ? ' translate-x-full' : ' translate-x-1/2'}`}
-        use:hoverTooltip={{text: schemaCollapsed ? 'Show Schema' : 'Hide Schema'}}
-        on:click={toggleSchemaCollapsed}
-        on:keypress={toggleSchemaCollapsed}
-      >
-        {#if !schemaCollapsed}
-          <ChevronLeft />
-        {:else}
-          <ChevronRight />
-        {/if}
-      </div>
     </div>
     <div class="h-full w-2/3 flex-grow"><RowView /></div>
   </div>
