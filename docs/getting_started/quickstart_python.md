@@ -4,6 +4,10 @@
 Make sure you've followed the [installation](installation.md) steps first.
 ```
 
+```{note}
+For a UI-based quick start, see [Quick Start](./quickstart.md).
+```
+
 ## Overview
 
 In this quick start we're going to:

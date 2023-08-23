@@ -13,7 +13,9 @@ Try the Lilac hosted **[demo on HuggingFace](https://huggingface.co/spaces/lilac
 [Lilac](http://lilacml.com) is an open-source product that helps you **analyze**, **structure**, and
 **clean** unstructured data with AI.
 
-See the [Announcement Blog](./blog/introducing-lilac.md) for more details.
+See the [Installation](./getting_started/installation.md) and
+[Quick Start](./getting_started/quickstart.md) guides to get started. Read the
+[Announcement Blog](./blog/introducing-lilac.md) for more details.
 
 <video loop muted autoplay controls src="https://github-production-user-asset-6210df.s3.amazonaws.com/2294279/260771834-cb1378f8-92c1-4f2a-9524-ce5ddd8e0c53.mp4"></video>
 
@@ -25,12 +27,14 @@ To install Lilac on your machine:
 pip install lilac
 ```
 
-You can also use Lilac with no installation by
-[duplicating our public HuggingFace Spaces demo](https://lilacai-lilac.hf.space/).
+For more details see the [Installation](./getting_started/installation.md) guide. You can also use
+Lilac with no installation by duplicating our public
+[HuggingFace Spaces demo](https://lilacai-lilac.hf.space/).
 
 ## 🔥 Getting started
 
-Start the Lilac webserver from the CLI:
+See the [Quick Start](./getting_started/quickstart.md) guide for an end-to-end example. To start the
+Lilac webserver from the CLI:
 
 ```sh
 lilac start
@@ -40,11 +44,10 @@ Or start the Lilac webserver from Python:
 
 ```py
 import lilac as ll
-
 ll.start_server()
 ```
 
-This will open start a webserver at http://localhost:5432/.
+This will start a webserver at http://localhost:5432/.
 
 ## 💻 Why Lilac?
 
