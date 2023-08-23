@@ -31,6 +31,16 @@ Out of the box, Lilac comes with a set of generally useful **Signals** and **Con
 this list is not exhaustive and we will continue to work with the OSS community to continue to add
 more useful enrichments.
 
+### Our mission
+
+At Lilac, our mission is to make unstructured data **visible**, **quantifiable**, and **malleable**.
+
+This will lead to:
+
+- Higher quality AI models
+- Better actionability when AI models fail
+- Better control and visibility of model bias
+
 ### Data quality in AI is tricky
 
 During our time at Google, we collaborated with many teams to improve datasets used to build their
@@ -58,16 +68,6 @@ quirks, and these quirks can have non-obvious implications for the quality of do
 
 Today, data cleaning for datasets fed into AI models is often done with heuristics in a Python
 script, with little visibility into the side effects of that change.
-
-### Our mission
-
-At Lilac, our mission is to make unstructured data **visible**, **quantifiable**, and **malleable**.
-
-This will lead to:
-
-- Higher quality AI models
-- Better actionability when AI models fail
-- Better control and visibility of model bias
 
 ### Concepts
 
