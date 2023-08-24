@@ -1,5 +1,5 @@
 ```{tip}
-Try the Lilac hosted **[demo on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)** or find us on GitHub: **[github.com/lilacai/lilac](https://github.com/lilacai/lilac)**
+Try the Lilac hosted **[demo on HuggingFace](https://lilacai-lilac.hf.space/)** or find us on GitHub: **[github.com/lilacai/lilac](https://github.com/lilacai/lilac)**
 ```
 
 [![GitHub Repo stars](https://img.shields.io/github/stars/lilacai/lilac?logo=github&label=lilacai%2Flilac)](https://github.com/lilacai/lilac)

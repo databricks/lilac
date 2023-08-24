@@ -1,7 +1,7 @@
 # Export data
 
 ```{tip}
-[Download enrichments for popular datasets on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)
+[Download enrichments for popular datasets on HuggingFace](https://lilacai-lilac.hf.space/)
 ```
 
 Once we've computed signals and concepts over a dataset, it can be very useful to download the

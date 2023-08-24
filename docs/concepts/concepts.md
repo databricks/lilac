@@ -1,7 +1,7 @@
 # Concepts
 
 ```{tip}
-[Try Lilac concepts on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)
+[Try Lilac concepts on HuggingFace](https://lilacai-lilac.hf.space/)
 ```
 
 ## What is a concept?

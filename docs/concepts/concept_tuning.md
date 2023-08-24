@@ -1,7 +1,7 @@
 # Tuning a concept
 
 ```{tip}
-[Try Lilac concepts on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)
+[Try Lilac concepts on HuggingFace](https://lilacai-lilac.hf.space/)
 ```
 
 Often times, after creating a concept or using an off-the-shelf-concept, the concept needs to be
