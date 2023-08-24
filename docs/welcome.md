@@ -6,7 +6,7 @@ Try the Lilac hosted **[demo on HuggingFace](https://lilacai-lilac.hf.space/)** 
 [![Downloads](https://static.pepy.tech/badge/lilac/month)](https://pepy.tech/project/lilac)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Twitter](https://img.shields.io/twitter/follow/lilac_ai)](https://twitter.com/lilac_ai)
-[![](https://dcbadge.vercel.app/api/server/YpGxQMyk?compact=true&style=flat)](https://discord.gg/YpGxQMyk)
+[![](https://dcbadge.vercel.app/api/server/jNzw9mC8pp?compact=true&style=flat)](https://discord.gg/jNzw9mC8pp)
 
 ## 👋 Welcome
 
