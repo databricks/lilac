@@ -53,7 +53,7 @@
     <SkeletonText />
   {:else if hasTryDataset}
     <WelcomeBanner
-      backgroundColorClass="bg-violet-300"
+      backgroundColorClass="bg-violet-300 hover:bg-violet-400"
       link={tryLink}
       title={`Browse the ${tryDataset.name} dataset`}
     >
@@ -66,7 +66,7 @@
   {/if}
 
   <WelcomeBanner
-    backgroundColorClass="bg-violet-100"
+    backgroundColorClass="bg-violet-100 hover:bg-violet-200"
     link={'https://lilacml.com/blog/introducing-lilac.html'}
     title={`Read our Announcement Blog`}
   >
@@ -76,7 +76,7 @@
   </WelcomeBanner>
 
   <WelcomeBanner
-    backgroundColorClass="bg-violet-100"
+    backgroundColorClass="bg-violet-100 hover:bg-violet-200"
     link={'https://lilacml.com/'}
     title={`Documentation`}
   >
