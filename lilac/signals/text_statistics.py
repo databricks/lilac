@@ -9,6 +9,7 @@ from ..utils import chunks
 
 SPACY_LANG_MODEL = 'en_core_web_sm'
 SPACY_BATCH_SIZE = 128
+SPACY_MAX_LENGTH = 2_000_000
 
 NUM_CHARS = 'num_characters'
 READABILITY = 'readability'
@@ -55,6 +56,7 @@ class TextStatisticsSignal(TextSignal):
       disable=[
         'parser', 'tagger', 'ner', 'lemmatizer', 'textcat', 'custom', 'tok2vec', 'attribute_ruler'
       ])
+    self._lang.max_length = SPACY_MAX_LENGTH
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:

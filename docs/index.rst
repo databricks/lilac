@@ -1,5 +1,12 @@
 🌸 Lilac
 =================
+.. meta::
+   :description: Analyze, structure and clean unstructured data with AI
+   :keywords: datasets, AI, machine learning, unstructured, lilac
+
+.. raw:: html
+
+    <meta property="og:image" content="https://lilacml.com/_static/logo_wide.png" />
 
 .. include:: welcome.md
    :parser: myst_parser.sphinx_

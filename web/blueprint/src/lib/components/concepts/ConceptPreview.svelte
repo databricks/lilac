@@ -14,6 +14,7 @@
   import {Button, Select, SelectItem, SkeletonText, TextArea} from 'carbon-components-svelte';
   import {onMount} from 'svelte';
   import StringSpanHighlight from '../datasetView/StringSpanHighlight.svelte';
+  import {colorFromScore} from '../datasetView/colors';
   import type {SpanValueInfo} from '../datasetView/spanHighlight';
 
   export let concept: Concept;
@@ -82,6 +83,15 @@
       valuePaths = spanValuePaths.valuePaths;
     }
   }
+  let maxConceptScore: number;
+  // Compute the max score and show it separately.
+  $: if ($conceptScore?.data != null) {
+    maxConceptScore = 0;
+    for (const row of $conceptScore.data[0]) {
+      const score = row['score'] as number;
+      maxConceptScore = Math.max(score, maxConceptScore);
+    }
+  }
 </script>
 
 <div class="flex flex-col gap-x-8">
@@ -111,6 +121,12 @@
     {#if conceptScore && $conceptScore?.isFetching}
       <SkeletonText />
     {:else if previewResultItem != null && previewText != null}
+      <div class="my-2">
+        <span class="font-medium">Max score:</span>
+        <span class="rounded p-0.5" style:background-color={colorFromScore(maxConceptScore)}
+          >{maxConceptScore.toFixed(3)}</span
+        >
+      </div>
       <StringSpanHighlight
         text={previewText}
         row={previewResultItem}

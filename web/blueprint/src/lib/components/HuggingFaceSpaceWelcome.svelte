@@ -34,10 +34,19 @@
       <a href="https://lilacml.com">visit our website</a>
     </div>
     <div class="duplicate mt-6 flex flex-row items-center justify-center gap-x-4 text-gray-700">
-      <Button
-        href={`https://huggingface.co/spaces/${huggingFaceSpaceId}?duplicate=true`}
-        kind="tertiary">duplicate</Button
+      <div
+        use:hoverTooltip={{
+          text:
+            'Duplicate the HuggingFace space to manage your own instance. ' +
+            'You must be logged into HuggingFace for the duplicate modal to appear.'
+        }}
       >
+        <Button
+          href={`https://huggingface.co/spaces/${huggingFaceSpaceId}?duplicate=true`}
+          target="_blank"
+          kind="tertiary">duplicate</Button
+        >
+      </div>
       <a
         class="-ml-2"
         use:hoverTooltip={{

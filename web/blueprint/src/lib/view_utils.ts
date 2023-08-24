@@ -167,9 +167,10 @@ export function isPathVisible(
     return true;
   }
 
-  if (selectedColumns[path] != null)
+  if (selectedColumns[path] != null) {
     // If a user has explicitly selected a column, return the value of the selection.
     return selectedColumns[path];
+  }
 
   const pathArray = deserializePath(path);
 
@@ -328,21 +329,32 @@ export function getTaggedDatasets(
       tagDatasets[tag][dataset.namespace].push(dataset);
     }
   }
+  const tagSortPriorities = ['machine-learning'];
+  const sortedTags = Object.keys(tagDatasets).sort(
+    (a, b) => tagSortPriorities.indexOf(b) - tagSortPriorities.indexOf(a) || a.localeCompare(b)
+  );
+
   const namespaceSortPriorities = ['lilac'];
+  // TODO(nsthorat): Don't hard-code this. Let's make this a config.
+  const pinnedDatasets = ['OpenOrca-100k'];
 
   // Sort each tag by namespace and then dataset name.
   const taggedDatasetGroups: NavigationTagGroup[] = [];
-  for (const tag of Object.keys(tagDatasets).sort()) {
+  for (const tag of sortedTags) {
     const sortedNamespaceDatasets: NavigationGroupItem[] = Object.keys(tagDatasets[tag])
       .sort(
         (a, b) =>
-          namespaceSortPriorities.indexOf(a) - namespaceSortPriorities.indexOf(b) ||
+          namespaceSortPriorities.indexOf(b) - namespaceSortPriorities.indexOf(a) ||
           a.localeCompare(b)
       )
       .map(namespace => ({
         group: namespace,
         items: tagDatasets[tag][namespace]
-          .sort((a, b) => a.dataset_name.localeCompare(b.dataset_name))
+          .sort(
+            (a, b) =>
+              pinnedDatasets.indexOf(b.dataset_name) - pinnedDatasets.indexOf(a.dataset_name) ||
+              a.dataset_name.localeCompare(b.dataset_name)
+          )
           .map(d => ({
             name: d.dataset_name,
             link: datasetLink(d.namespace, d.dataset_name),
@@ -378,11 +390,12 @@ export function getTaggedConcepts(
       tagConcepts[tag][concept.namespace].push(concept);
     }
   }
+
   const namespaceSortPriorities = ['lilac'];
 
   // Sort each tag by namespace and then dataset name.
   const taggedDatasetGroups: NavigationTagGroup[] = [];
-  for (const tag of Object.keys(tagConcepts).sort()) {
+  for (const tag of Object.keys(tagConcepts)) {
     const sortedNamespaceDatasets: NavigationGroupItem[] = Object.keys(tagConcepts[tag])
       .sort(
         (a, b) =>
