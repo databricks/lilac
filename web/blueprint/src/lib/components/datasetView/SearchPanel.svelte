@@ -15,7 +15,16 @@
     getSearches,
     getSortedConcepts
   } from '$lib/view_utils';
-  import {deserializePath, serializePath, type Path} from '$lilac';
+  import {
+    childFields,
+    deserializePath,
+    isNumeric,
+    serializePath,
+    type LilacSchema,
+    type Op,
+    type Path,
+    type StatsResult
+  } from '$lilac';
   import {Button, ComboBox, InlineLoading, Select, SelectItem, Tag} from 'carbon-components-svelte';
   import {Add, Checkmark, Chip, SearchAdvanced} from 'carbon-icons-svelte';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
@@ -32,6 +41,32 @@
   $: searchPath = getSearchPath($datasetViewStore, $datasetStore);
 
   $: searches = getSearches($datasetViewStore, searchPath);
+
+  function getFieldSearchItems(
+    stats: StatsResult[] | null,
+    schema: LilacSchema | null
+  ): SearchItem[] {
+    if (schema == null || stats == null) {
+      return [];
+    }
+    const allFields = schema ? childFields(schema) : [];
+    const items: SearchItem[] = [];
+    for (const field of allFields) {
+      if (field.dtype == null) {
+        continue;
+      }
+      if (isNumeric(field.dtype)) {
+        items.push({
+          text: serializePath(field.path),
+          description: 'Sort descending by this field.',
+          id: {type: 'field', path: field.path, sort: 'desc'} as FieldId
+        });
+      }
+    }
+    return items;
+  }
+
+  $: fieldSearchItems = getFieldSearchItems($datasetStore.stats, $datasetStore.schema);
 
   const signalMutation = computeSignalMutation();
 
@@ -65,8 +100,8 @@
     !isEmbeddingComputed && isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding)];
 
   $: placeholderText = isEmbeddingComputed
-    ? 'Search by concept or keyword.'
-    : 'Search by keyword. Click "compute embedding" to search by concept.';
+    ? 'Search by keyword, field or concept.'
+    : 'Search by keyword or field. Compute embedding to enable concept search.';
 
   const concepts = queryConcepts();
   const authInfo = queryAuthInfo();
@@ -74,18 +109,25 @@
 
   $: namespaceConcepts = getSortedConcepts($concepts.data || [], userId);
   interface ConceptId {
+    type: 'concept';
     namespace: string;
     name: string;
   }
-  interface SearchSelectItem {
-    id: ConceptId | 'new-concept' | 'keyword-search' | 'semantic-search';
+  interface FieldId {
+    type: 'field';
+    path: Path;
+    op?: Op;
+    sort?: 'asc' | 'desc';
+  }
+  interface SearchItem {
+    id: ConceptId | FieldId | 'new-concept' | 'keyword-search' | 'semantic-search';
     text: string;
     description?: string;
   }
-  let conceptSelectItems: SearchSelectItem[] = [];
+  let searchItems: SearchItem[] = [];
 
   let searchText = '';
-  let newConceptItem: SearchSelectItem;
+  let newConceptItem: SearchItem;
   $: newConceptItem = {
     id: 'new-concept',
     text: searchText,
@@ -94,20 +136,21 @@
   $: keywordSearchItem = {
     id: 'keyword-search',
     text: searchText
-  } as SearchSelectItem;
+  } as SearchItem;
   $: semanticSearchItem = {
     id: 'semantic-search',
     text: searchText,
     disabled: !isEmbeddingComputed
-  } as SearchSelectItem;
-  $: conceptSelectItems = $concepts?.data
+  } as SearchItem;
+  $: searchItems = $concepts?.data
     ? [
         newConceptItem,
         ...(searchText != '' ? [keywordSearchItem] : []),
         ...(searchText != '' && selectedEmbedding ? [semanticSearchItem] : []),
+        ...fieldSearchItems,
         ...namespaceConcepts.flatMap(namespaceConcept =>
           namespaceConcept.concepts.map(c => ({
-            id: {namespace: c.namespace, name: c.name},
+            id: {namespace: c.namespace, name: c.name, type: 'concept'} as ConceptId,
             text: conceptDisplayName(c.namespace, c.name, $authInfo.data),
             description: c.description,
             disabled:
@@ -157,8 +200,8 @@
 
   const selectSearchItem = (
     e: CustomEvent<{
-      selectedId: SearchSelectItem['id'];
-      selectedItem: SearchSelectItem;
+      selectedId: SearchItem['id'];
+      selectedItem: SearchItem;
     }>
   ) => {
     if (searchPath == null) return;
@@ -180,7 +223,6 @@
         path: searchPath,
         onCreate: e => searchConcept(e.detail.namespace, e.detail.name)
       });
-      conceptComboBox.clear();
     } else if (e.detail.selectedId === 'keyword-search') {
       if (searchText == '') {
         return;
@@ -190,7 +232,6 @@
         type: 'keyword',
         query: searchText
       });
-      conceptComboBox.clear();
     } else if (e.detail.selectedId == 'semantic-search') {
       if (searchText == '' || selectedEmbedding == null) {
         return;
@@ -201,10 +242,14 @@
         query: searchText,
         embedding: selectedEmbedding
       });
-      conceptComboBox.clear();
-    } else {
+    } else if (e.detail.selectedId.type === 'concept') {
       searchConcept(e.detail.selectedId.namespace, e.detail.selectedId.name);
+    } else if (e.detail.selectedId.type === 'field') {
+      console.log(e.detail.selectedId);
+    } else {
+      throw new Error('Unknown search type', e.detail.selectedId);
     }
+    conceptComboBox.clear();
   };
 
   const selectField = (e: Event) => {
@@ -234,7 +279,7 @@
             <ComboBox
               size="xl"
               bind:this={conceptComboBox}
-              items={conceptSelectItems}
+              items={searchItems}
               bind:value={searchText}
               on:select={selectSearchItem}
               shouldFilterItem={(item, value) =>
@@ -242,7 +287,7 @@
               placeholder={placeholderText}
               let:item={it}
             >
-              {@const item = conceptSelectItems.find(p => p.id === it.id)}
+              {@const item = searchItems.find(p => p.id === it.id)}
               {#if item == null}
                 <div />
               {:else if item.id === 'new-concept'}
