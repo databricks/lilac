@@ -7,12 +7,13 @@
 
   const authInfo = queryAuthInfo();
   $: huggingFaceSpaceId = $authInfo.data?.huggingface_space_id;
+  $: canCreateDataset = $authInfo.data?.access.create_dataset;
 </script>
 
 <Page>
   {#if $authInfo.isFetching}
     <SkeletonText />
-  {:else if huggingFaceSpaceId != null}
+  {:else if huggingFaceSpaceId != null && !canCreateDataset}
     <HuggingFaceSpaceWelcome />
   {:else}
     <GettingStarted />
