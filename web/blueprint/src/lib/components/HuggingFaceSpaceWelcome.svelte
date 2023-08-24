@@ -25,7 +25,7 @@
 </script>
 
 <div class="mx-32 flex w-full flex-col items-center gap-y-6 px-8">
-  <div class="welcome-item mt-8 text-center">
+  <div class="mt-8 w-full text-center">
     <h2>Welcome to Lilac</h2>
     <div class="mt-2 text-base text-gray-700">
       analyze, structure and clean unstructured data with AI
@@ -88,9 +88,6 @@
 </div>
 
 <style lang="postcss">
-  .welcome-item {
-    @apply w-full;
-  }
   :global(.duplicate .bx--btn) {
     @apply min-h-0 px-4;
   }
