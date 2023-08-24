@@ -1,15 +1,17 @@
 <script lang="ts">
-  import {goto} from '$app/navigation';
   import {queryDatasets} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {datasetLink} from '$lib/utils';
   import {Button, SkeletonText} from 'carbon-components-svelte';
-  import {Fork, Help, Launch} from 'carbon-icons-svelte';
+  import {Help} from 'carbon-icons-svelte';
+  import WelcomeBanner from './WelcomeBanner.svelte';
   import {hoverTooltip} from './common/HoverTooltip';
 
   const tryDataset = {
     namespace: 'lilac',
-    name: 'OpenOrca-100k'
+    name: 'OpenOrca-100k',
+    displayName: 'OpenOrca',
+    originalLink: 'https://huggingface.co/datasets/Open-Orca/OpenOrca'
   };
   const tryLink = datasetLink(tryDataset.namespace, tryDataset.name);
   const authInfo = queryAuthInfo();
@@ -23,57 +25,73 @@
 </script>
 
 <div class="mx-32 flex w-full flex-col items-center gap-y-6 px-8">
-  <div class="welcome-item mt-8 shadow-md">
-    {#if $datasets.isFetching}
-      <SkeletonText />
-    {:else if hasTryDataset}
-      <div
-        class="flex cursor-pointer flex-row bg-green-300 px-4 py-4 font-bold"
-        on:click={() => goto(tryLink)}
-        on:keypress={() => goto(tryLink)}
-      >
-        <div class="mr-4"><Launch /></div>
-        Try {tryDataset.name}
-      </div>
-      <div class="px-4 py-4">
-        <p class="text-sm">
-          Browse the pre-loaded {tryDataset.name} dataset in Lilac.
-        </p>
-        <p class="mt-4 text-sm">
-          Check out our <a href="https://lilacml.com/getting_started/quickstart.html"
-            >Getting Started</a
-          > guide to follow along the steps to import, analyze and enrich your own dataset.
-        </p>
-      </div>
-    {/if}
-  </div>
-  <div class="welcome-item text-center">
-    <h3>Welcome to the Lilac Demo</h3>
-    <div class="mt-2 text-gray-700">A HuggingFace space with pre-loaded datasets</div>
-    <div class="mt-4 flex flex-row items-center justify-center gap-x-4 text-gray-700">
+  <div class="welcome-item mt-8 text-center">
+    <h2>Welcome to Lilac</h2>
+    <div class="mt-2 text-base text-gray-700">
+      analyze, structure and clean unstructured data with AI
+    </div>
+    <div class="mt-2 text-sm text-gray-700">
+      <a href="https://lilacml.com">visit our website</a>
+    </div>
+    <div class="duplicate mt-6 flex flex-row items-center justify-center gap-x-4 text-gray-700">
       <Button
         href={`https://huggingface.co/spaces/${huggingFaceSpaceId}?duplicate=true`}
-        icon={Fork}
-        kind="primary">Duplicate this Space</Button
+        kind="tertiary">duplicate</Button
       >
       <a
+        class="-ml-2"
         use:hoverTooltip={{
-          text: 'See Lilac documentation on duplicating the HuggingFace demo space.'
+          text:
+            'See Lilac documentation on duplicating the HuggingFace space  ' +
+            'so you can manage your own instance.'
         }}
         href="https://lilacml.com/huggingface/huggingface_spaces.html"><Help /></a
       >
     </div>
   </div>
-  <div class=" flex flex-col gap-y-8 rounded-lg border border-gray-200 p-9">
-    <p class="text-center">
-      Check out our <a href="https://lilacml.com/blog/introducing-lilac.html">Announcement Blog</a>
-      or visit our website at <a href="https://lilacml.com/">lilacml.com</a> for details.
+  {#if $datasets.isFetching}
+    <SkeletonText />
+  {:else if hasTryDataset}
+    <WelcomeBanner
+      backgroundColorClass="bg-violet-300"
+      link={tryLink}
+      title={`Browse the ${tryDataset.name} dataset`}
+    >
+      <p class="text-sm">
+        Try the Lilac dataset viewer on the the pre-loaded <a href={tryDataset.originalLink}
+          >{tryDataset.displayName}</a
+        > dataset.
+      </p>
+    </WelcomeBanner>
+  {/if}
+
+  <WelcomeBanner
+    backgroundColorClass="bg-violet-100"
+    link={'https://lilacml.com/blog/introducing-lilac.html'}
+    title={`Read our Announcement Blog`}
+  >
+    <p class="text-sm">
+      Read about how to get started and learn more about how to use Lilac for your data.
     </p>
-  </div>
+  </WelcomeBanner>
+
+  <WelcomeBanner
+    backgroundColorClass="bg-violet-100"
+    link={'https://lilacml.com/'}
+    title={`Documentation`}
+  >
+    <p class="text-sm">
+      Find detailed documentation about how to install Lilac on your own machine, how to import your
+      own data, and create your own concepts.
+    </p>
+  </WelcomeBanner>
 </div>
 
 <style lang="postcss">
   .welcome-item {
     @apply w-full;
+  }
+  :global(.duplicate .bx--btn) {
+    @apply min-h-0 px-4;
   }
 </style>
