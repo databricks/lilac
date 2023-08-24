@@ -41,13 +41,13 @@
       .map(valueNode => {
         const field = L.field(valueNode)!;
         const path = L.path(valueNode)!;
-        let value: DataTypeCasted | DataTypeCasted[] = L.value(valueNode);
+        let value = L.value(valueNode);
         if (field.dtype === 'string_span') {
           if (selectRowsSchema == null) {
             return null;
           }
 
-          const stringValues: DataTypeCasted<'string'>[] = [];
+          const stringValues = [];
           // Get the parent that is dtype string to resolve the span.
           for (let i = path.length - 1; i >= 0; i--) {
             const parentPath = path.slice(0, i);
@@ -60,7 +60,7 @@
               break;
             }
           }
-          value = stringValues;
+          value = stringValues as unknown as DataTypeCasted;
         }
 
         const isEmbeddingSignal =
