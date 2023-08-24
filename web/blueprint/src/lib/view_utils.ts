@@ -395,7 +395,7 @@ export function getTaggedConcepts(
 
   // Sort each tag by namespace and then dataset name.
   const taggedDatasetGroups: NavigationTagGroup[] = [];
-  for (const tag of Object.keys(tagConcepts)) {
+  for (const tag of Object.keys(tagConcepts).sort()) {
     const sortedNamespaceDatasets: NavigationGroupItem[] = Object.keys(tagConcepts[tag])
       .sort(
         (a, b) =>
