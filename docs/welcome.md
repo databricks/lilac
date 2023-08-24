@@ -14,8 +14,9 @@ Try the Lilac hosted **[demo on HuggingFace](https://huggingface.co/spaces/lilac
 **clean** unstructured data with AI.
 
 See the [Installation](./getting_started/installation.md) and
-[Quick Start](./getting_started/quickstart.md) guides to get started. Read the
-[Announcement Blog](./blog/introducing-lilac.md) for more details.
+[Quick Start](./getting_started/quickstart.md) guides to get started.
+
+Read the [Announcement Blog](./blog/introducing-lilac.md) for more details.
 
 <video loop muted autoplay controls src="https://github-production-user-asset-6210df.s3.amazonaws.com/2294279/260771834-cb1378f8-92c1-4f2a-9524-ce5ddd8e0c53.mp4"></video>
 
