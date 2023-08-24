@@ -7,7 +7,7 @@
   export let backgroundColorClass: string;
 </script>
 
-<div class="welcome-item mt-8 w-full rounded shadow-md">
+<div class="my-4 w-full rounded shadow-md">
   <div
     class={`flex cursor-pointer flex-row justify-between ${backgroundColorClass} rounded-t px-4 py-4 font-semibold`}
     on:click={() => goto(link)}

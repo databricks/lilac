@@ -1,7 +1,7 @@
 # Duplicate the HuggingFace demo
 
-Lilac hosts a [HuggingFace spaces demo](https://huggingface.co/spaces/lilacai/lilac) so you can try
-Lilac before installing it.
+Lilac hosts a [HuggingFace spaces demo](https://lilacai-lilac.hf.space/) so you can try Lilac before
+installing it.
 
 Thanks to HuggingFace, this space can be duplicated and customized with your own data. You can
 decide to make your duplicated private for use with private or sensitive data.

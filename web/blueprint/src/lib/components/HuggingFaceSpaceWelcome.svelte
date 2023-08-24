@@ -29,7 +29,7 @@
     <h2>Welcome to Lilac</h2>
     <div class="mt-2 text-base text-gray-700">analyze, structure and clean data with AI</div>
     <div class="mt-2 text-sm text-gray-700">
-      <a href="https://lilacml.com">visit our website</a>
+      <a target="_blank" href="https://lilacml.com">visit our website</a>
     </div>
     <div class="duplicate mt-6 flex flex-row items-center justify-center gap-x-4 text-gray-700">
       <div
@@ -65,8 +65,9 @@
       title={`Browse the ${tryDataset.name} dataset`}
     >
       <p class="text-sm">
-        Try the Lilac dataset viewer on the the pre-loaded <a href={tryDataset.originalLink}
-          >{tryDataset.displayName}</a
+        Try the Lilac dataset viewer on the the pre-loaded <a
+          target="_blank"
+          href={tryDataset.originalLink}>{tryDataset.displayName}</a
         > dataset.
       </p>
     </WelcomeBanner>

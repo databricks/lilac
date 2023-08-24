@@ -11,11 +11,13 @@
 </script>
 
 <Page>
-  {#if $authInfo.isFetching}
-    <SkeletonText />
-  {:else if huggingFaceSpaceId != null && !canCreateDataset}
-    <HuggingFaceSpaceWelcome />
-  {:else}
-    <GettingStarted />
-  {/if}
+  <div class="flex h-full w-full gap-y-4 overflow-y-scroll p-4">
+    {#if $authInfo.isFetching}
+      <SkeletonText />
+    {:else if huggingFaceSpaceId != null && !canCreateDataset}
+      <HuggingFaceSpaceWelcome />
+    {:else}
+      <GettingStarted />
+    {/if}
+  </div>
 </Page>
