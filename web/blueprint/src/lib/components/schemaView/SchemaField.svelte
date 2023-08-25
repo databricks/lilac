@@ -125,9 +125,24 @@
         checked={isVisible}
         on:change={() => {
           if (!isVisible) {
+            // For signals, when the root of a signal is checked, enable all the children.
+            if (field.signal != null) {
+              const children = childFields(field);
+              children.forEach(f => {
+                datasetViewStore.addSelectedColumn(f.path);
+              });
+            }
             datasetViewStore.addSelectedColumn(path);
+            // Repeated fields are collapsed. When clicked, we need to also make them visible.
+            if (field.repeated_field != null) {
+              datasetViewStore.addSelectedColumn([...path, PATH_WILDCARD]);
+            }
           } else {
             datasetViewStore.removeSelectedColumn(path);
+            // Repeated fields are collapsed. When clicked, we need to also make them visible.
+            if (field.repeated_field != null) {
+              datasetViewStore.removeSelectedColumn([...path, PATH_WILDCARD]);
+            }
           }
         }}
       />

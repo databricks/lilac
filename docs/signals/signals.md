@@ -1,7 +1,7 @@
 # Signals
 
 ```{tip}
-[Try Lilac signals on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)
+[Try Lilac signals on HuggingFace](https://lilacai-lilac.hf.space/)
 ```
 
 There are two types of [](#Signal) base classes based on the input:

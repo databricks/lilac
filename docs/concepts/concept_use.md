@@ -17,7 +17,7 @@ for details on understanding the quality of a concept with an embedding.
 ## From the UI
 
 ```{tip}
-[Try Lilac concepts on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)
+[Try Lilac concepts on HuggingFace](https://lilacai-lilac.hf.space/)
 ```
 
 To use a concept from the UI, click the concept from the Navigation panel, which will open the

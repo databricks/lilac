@@ -113,10 +113,11 @@
   }
 
   $: {
-    if (datasetStore && $datasetViewStore && $selectRowsSchema?.data?.schema) {
+    if (datasetStore && $datasetViewStore && $selectRowsSchema?.data) {
       const visibleFields = getVisibleFields(
         $datasetViewStore.selectedColumns || {},
-        $selectRowsSchema.data?.schema || null
+        $datasetViewStore.query,
+        $selectRowsSchema?.data || null
       );
       datasetStore.setVisibleFields(visibleFields);
     }

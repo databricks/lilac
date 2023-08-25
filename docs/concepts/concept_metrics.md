@@ -1,7 +1,7 @@
 # Concept metrics
 
 ```{tip}
-[Try Lilac concepts on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)
+[Try Lilac concepts on HuggingFace](https://lilacai-lilac.hf.space/)
 ```
 
 We can quantify the quality of a concept using an [F1 score](https://en.wikipedia.org/wiki/F-score)

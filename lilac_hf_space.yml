@@ -203,6 +203,38 @@ signals:
   - signal_name: text_statistics
   - signal_name: near_dup
   - signal_name: lang_detection
+  - signal_name: concept_score
+    namespace: lilac
+    concept_name: legal-termination
+    embedding: gte-small
+  - signal_name: concept_score
+    namespace: lilac
+    concept_name: negative-sentiment
+    embedding: gte-small
+  - signal_name: concept_score
+    namespace: lilac
+    concept_name: non-english
+    embedding: gte-small
+  - signal_name: concept_score
+    namespace: lilac
+    concept_name: positive-sentiment
+    embedding: gte-small
+  - signal_name: concept_score
+    namespace: lilac
+    concept_name: profanity
+    embedding: gte-small
+  - signal_name: concept_score
+    namespace: lilac
+    concept_name: question
+    embedding: gte-small
+  - signal_name: concept_score
+    namespace: lilac
+    concept_name: source-code
+    embedding: gte-small
+  - signal_name: concept_score
+    namespace: lilac
+    concept_name: toxicity
+    embedding: gte-small
 
 concept_model_cache_embeddings:
   - gte-small

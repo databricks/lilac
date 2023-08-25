@@ -18,6 +18,8 @@
   $: userId = $authInfo.data?.user?.id;
   $: username = $authInfo.data?.user?.given_name;
   $: canCreateDataset = $authInfo.data?.access.create_dataset;
+  // TODO(nsthorat): Make this a separate bit for canCreateConcepts.
+  $: canCreateConcepts = !$authInfo.data?.auth_enabled;
 
   const urlHashContext = getUrlHashContext();
   const navStore = getNavigationContext();
@@ -108,8 +110,14 @@
     </div>
   </NavigationGroup>
   <NavigationGroup title="Concepts" tagGroups={taggedConcepts} isFetching={$concepts.isFetching}>
-    <div slot="add" class="w-full">
+    <div
+      slot="add"
+      class="w-full"
+      use:hoverTooltip={{text: !canCreateConcepts ? 'Login to create a concept.' : undefined}}
+    >
       <button
+        disabled={!canCreateConcepts}
+        class:opacity-30={!canCreateConcepts}
         class="mr-1 flex w-full flex-row px-1 py-1 text-black hover:bg-gray-200"
         on:click={() =>
           triggerCommand({

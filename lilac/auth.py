@@ -54,6 +54,8 @@ class AuthenticationInfo(BaseModel):
   user: Optional[UserInfo] = None
   access: UserAccess
   auth_enabled: bool
+  # The HuggingFace space ID if the server is running on a HF space.
+  huggingface_space_id: Optional[str]
 
 
 def get_session_user(request: Request) -> Optional[UserInfo]:

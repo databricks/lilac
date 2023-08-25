@@ -4,10 +4,11 @@
   import {
     L,
     formatValue,
+    getField,
     isSignalRootField,
     listValueNodes,
-    pathIncludes,
     serializePath,
+    valueAtPath,
     type DataTypeCasted,
     type LilacField,
     type LilacSelectRowsSchema,
@@ -36,57 +37,64 @@
   }
   function makeRows(row: LilacValueNode): MetadataRow[] {
     const valueNodes = listValueNodes(row).filter(item => isItemVisible(item, visibleFields));
-    const spanPaths = valueNodes
-      .filter(valueNode => L.field(valueNode)?.dtype === 'string_span')
-      .map(valueNode => L.path(valueNode)!);
-    return (
-      valueNodes
-        // Filter out any nodes with a span parent. These are rendered with the media.
-        .filter(valueNode => {
-          return !spanPaths.some(path => pathIncludes(L.path(valueNode)!, path));
-        })
-        .map(valueNode => {
-          const field = L.field(valueNode)!;
-          const path = L.path(valueNode)!;
-          let value = L.value(valueNode);
-          if (field.dtype === 'string_span') {
-            // Skip rendering string spans.
+    return valueNodes
+      .map(valueNode => {
+        const field = L.field(valueNode)!;
+        const path = L.path(valueNode)!;
+        let value = L.value(valueNode);
+        if (field.dtype === 'string_span') {
+          if (selectRowsSchema == null) {
             return null;
           }
 
-          const isEmbeddingSignal =
-            $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) ||
-            false;
-          const isSignal = isSignalRootField(field);
-          let formattedValue: string | null;
-          if (
-            isEmbeddingSignal ||
-            (isSignal && field.dtype == null) ||
-            field.dtype === 'embedding' ||
-            field.repeated_field != null
-          ) {
-            formattedValue = '';
-          } else if (value == null) {
-            formattedValue = null;
-          } else {
-            formattedValue = formatValue(value);
-          }
+          const stringValues = [];
+          // Get the parent that is dtype string to resolve the span.
+          for (let i = path.length - 1; i >= 0; i--) {
+            const parentPath = path.slice(0, i);
+            const parent = getField(selectRowsSchema?.schema, parentPath)!;
 
-          return {
-            indentLevel: path.length - 1,
-            fieldName: path[path.length - 1],
-            field,
-            path,
-            isSignal,
-            isPreviewSignal:
-              selectRowsSchema != null ? isPreviewSignal(selectRowsSchema, path) : false,
-            isEmbeddingSignal,
-            value,
-            formattedValue
-          };
-        })
-        .filter(x => x != null) as MetadataRow[]
-    );
+            if (parent.dtype === 'string') {
+              const v = L.value<'string'>(valueAtPath(row, parentPath)!)!;
+              const {start, end} = value as {start: number; end: number};
+              stringValues.push(v.slice(start, end));
+              break;
+            }
+          }
+          value = stringValues as unknown as DataTypeCasted;
+        }
+
+        const isEmbeddingSignal =
+          $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) ||
+          false;
+        const isSignal = isSignalRootField(field);
+        let formattedValue: string | null;
+        if (
+          isEmbeddingSignal ||
+          (isSignal && field.dtype == null) ||
+          field.dtype === 'embedding' ||
+          field.repeated_field != null
+        ) {
+          formattedValue = '';
+        } else if (value == null) {
+          formattedValue = null;
+        } else {
+          formattedValue = formatValue(value);
+        }
+
+        return {
+          indentLevel: path.length - 1,
+          fieldName: path[path.length - 1],
+          field,
+          path,
+          isSignal,
+          isPreviewSignal:
+            selectRowsSchema != null ? isPreviewSignal(selectRowsSchema, path) : false,
+          isEmbeddingSignal,
+          value,
+          formattedValue
+        };
+      })
+      .filter(x => x != null) as MetadataRow[];
   }
 
   $: rows = makeRows(row);

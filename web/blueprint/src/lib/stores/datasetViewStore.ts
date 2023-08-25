@@ -58,7 +58,7 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
       columns: [],
       combine_columns: true
     },
-    schemaCollapsed: false
+    schemaCollapsed: true
   };
 }
 
