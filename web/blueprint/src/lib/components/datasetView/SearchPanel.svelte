@@ -86,7 +86,7 @@
       // Suggest sorting for numeric fields.
       if (isNumeric(field.dtype)) {
         items.push({
-          id: {type: 'field', path: field.path, sort: 'DESC'} as FieldId,
+          id: {type: 'field', path: field.path, sort: 'DESC', isSignal: signal != null} as FieldId,
           text,
           description: `Sort descending by ${shortName}`
         });
@@ -100,7 +100,7 @@
           continue;
         }
         items.push({
-          id: {type: 'field', path: field.path, op: 'exists'} as FieldId,
+          id: {type: 'field', path: field.path, op: 'exists', isSignal: signal != null} as FieldId,
           text,
           description: `Find documents with ${shortName}`
         });
@@ -164,6 +164,7 @@
   interface FieldId {
     type: 'field';
     path: Path;
+    isSignal: boolean;
     op?: Op;
     sort?: 'ASC' | 'DESC';
   }
@@ -347,6 +348,13 @@
               let:item={it}
             >
               {@const item = searchItems.find(p => p.id === it.id)}
+              {@const isSignal =
+                item != null &&
+                typeof item.id === 'object' &&
+                item.id.type === 'field' &&
+                item.id.isSignal}
+              {@const isConcept =
+                item != null && typeof item.id === 'object' && item.id.type === 'concept'}
               {#if item == null}
                 <div />
               {:else if item.id === 'new-concept'}
@@ -374,7 +382,7 @@
                   </div>
                 </div>
               {:else}
-                <div class="flex justify-between gap-x-4">
+                <div class="flex justify-between gap-x-8" class:isSignal class:isConcept>
                   <div>{item.text}</div>
                   {#if item.description}
                     <div class="truncate text-xs text-gray-500">{item.description}</div>
@@ -437,5 +445,11 @@
   }
   :global(.new-concept, .new-keyword) {
     @apply h-full;
+  }
+  :global(.bx--list-box__menu-item:not(.bx--list-box__menu-item--highlighted):has(.isSignal)) {
+    @apply bg-blue-50;
+  }
+  :global(.bx--list-box__menu-item:not(.bx--list-box__menu-item--highlighted):has(.isConcept)) {
+    @apply bg-emerald-100;
   }
 </style>
