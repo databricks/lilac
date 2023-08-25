@@ -198,26 +198,13 @@ export function isPathVisible(
   return true;
 }
 
-export function getSearchPath(store: DatasetViewState, datasetStore: DatasetState): Path | null {
-  // If the user explicitly chose a search path, use it.
-  if (store.searchPath != null && store.selectedColumns[store.searchPath] != false)
-    return deserializePath(store.searchPath);
-
-  // Without explicit selection, choose the default string path.
-  return getDefaultSearchPath(datasetStore);
-}
-
 export function getSearchEmbedding(
-  appSettings: SettingsState,
   datasetSettings: DatasetSettings | undefined,
-  store: DatasetViewState,
+  appSettings: SettingsState,
   datasetStore: DatasetState,
-  searchPath: Path | null,
+  searchPath: Path | undefined,
   embeddings: string[]
 ): string | null {
-  if (store.searchEmbedding != null) {
-    return store.searchEmbedding;
-  }
   if (datasetSettings != null && datasetSettings.preferred_embedding != null) {
     return datasetSettings.preferred_embedding;
   }
@@ -247,7 +234,10 @@ export function getSearchEmbedding(
 }
 
 /** Get the computed embeddings for a path. */
-export function getComputedEmbeddings(datasetStore: DatasetState, path: Path | null): string[] {
+export function getComputedEmbeddings(
+  datasetStore: DatasetState,
+  path: Path | undefined
+): string[] {
   if (datasetStore.schema == null || path == null) return [];
 
   const existingEmbeddings: Set<string> = new Set();
@@ -757,6 +747,9 @@ export function shortFieldName(path: Path): string {
 }
 
 export function displayPath(path: Path): string {
+  if (!Array.isArray(path)) {
+    path = [path];
+  }
   const result = path.join('.');
   return result.replaceAll(`.${PATH_WILDCARD}`, '[]');
 }

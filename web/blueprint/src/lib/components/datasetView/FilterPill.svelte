@@ -69,7 +69,4 @@
   :global(.filter-pill .bx--tooltip__content) {
     @apply flex flex-col items-center;
   }
-  :global(.search-container .bx--list-box__menu) {
-    max-height: 26rem !important;
-  }
 </style>

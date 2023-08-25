@@ -3,17 +3,11 @@
    * Component that renders string spans as an absolute positioned
    * layer, meant to be rendered on top of the source text.
    */
-  import type {DatasetState} from '$lib/stores/datasetStore';
-  import {
-    ITEM_SCROLL_CONTAINER_CTX_KEY,
-    getSearchPath,
-    mergeSpans,
-    type MergedSpan
-  } from '$lib/view_utils';
-
   import {editConceptMutation} from '$lib/queries/conceptQueries';
+  import type {DatasetState} from '$lib/stores/datasetStore';
   import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
+  import {ITEM_SCROLL_CONTAINER_CTX_KEY, mergeSpans, type MergedSpan} from '$lib/view_utils';
   import {
     getValueNodes,
     pathIsEqual,
@@ -152,23 +146,15 @@
     ITEM_SCROLL_CONTAINER_CTX_KEY
   );
 
-  // Click details.
-  let searchPath: Path | null;
-  $: {
-    if ($datasetViewStore != null && datasetStore != null) {
-      searchPath = getSearchPath($datasetViewStore, datasetStore);
-    }
-  }
-
   const findSimilar = (embedding: string, text: string) => {
-    if (datasetViewStore == null || searchPath == null) return;
+    if (datasetViewStore == null) return;
 
-    datasetViewStore.addSearch({
-      path: [serializePath(searchPath)],
-      type: 'semantic',
-      query: text,
-      embedding
-    });
+    // datasetViewStore.addSearch({
+    //   path: [serializePath(searchPath)],
+    //   type: 'semantic',
+    //   query: text,
+    //   embedding
+    // });
   };
 
   const notificationStore = getNotificationsContext();

@@ -7,7 +7,7 @@
    * In the case of strings with string_spans, it will render the derived string spans as well
    */
   import {notEmpty} from '$lib/utils';
-  import {getComputedEmbeddings, getSearchPath, getSpanValuePaths} from '$lib/view_utils';
+  import {getComputedEmbeddings, getSpanValuePaths} from '$lib/view_utils';
   import {
     L,
     formatValue,
@@ -26,8 +26,7 @@
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
   $: visibleFields = $datasetStore.visibleFields || [];
-  $: searchPath = getSearchPath($datasetViewStore, $datasetStore);
-  $: computedEmbeddings = getComputedEmbeddings($datasetStore, searchPath);
+  $: computedEmbeddings = getComputedEmbeddings($datasetStore, path);
 
   $: spanValuePaths = getSpanValuePaths(field, visibleFields);
 

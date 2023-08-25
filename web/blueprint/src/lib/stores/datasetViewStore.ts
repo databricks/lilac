@@ -29,10 +29,6 @@ export interface DatasetViewState {
   expandedColumns: {[path: string]: boolean};
   query: SelectRowsOptions;
 
-  // Search.
-  searchPath: string | null;
-  searchEmbedding: string | null;
-
   // View.
   schemaCollapsed: boolean;
 }
@@ -50,7 +46,6 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
     namespace,
     datasetName,
     searchPath: null,
-    searchEmbedding: null,
     selectedColumns: {},
     expandedColumns: {},
     query: {
@@ -129,17 +124,6 @@ export function createDatasetViewStore(
         return state;
       });
     },
-
-    setSearchPath: (path: Path | string) =>
-      update(state => {
-        state.searchPath = serializePath(path);
-        return state;
-      }),
-    setSearchEmbedding: (embedding: string) =>
-      update(state => {
-        state.searchEmbedding = embedding;
-        return state;
-      }),
     addSearch: (search: Search) =>
       update(state => {
         state.query.searches = state.query.searches || [];
