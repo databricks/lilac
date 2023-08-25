@@ -16,14 +16,16 @@
     getSortedConcepts
   } from '$lib/view_utils';
   import {
+    PATH_WILDCARD,
     childFields,
     deserializePath,
-    isNumeric,
+    isTemporal,
     serializePath,
     type LilacSchema,
     type Op,
     type Path,
-    type StatsResult
+    type StatsResult,
+    type UnaryFilter
   } from '$lilac';
   import {Button, ComboBox, InlineLoading, Select, SelectItem, Tag} from 'carbon-components-svelte';
   import {Add, Checkmark, Chip, SearchAdvanced} from 'carbon-icons-svelte';
@@ -55,12 +57,22 @@
       if (field.dtype == null) {
         continue;
       }
-      if (isNumeric(field.dtype)) {
+      const shortName = [...field.path].reverse().find(p => p !== PATH_WILDCARD);
+      if (isTemporal(field.dtype)) {
         items.push({
+          id: {type: 'field', path: field.path, sort: 'DESC'} as FieldId,
           text: serializePath(field.path),
-          description: 'Sort descending by this field.',
-          id: {type: 'field', path: field.path, sort: 'desc'} as FieldId
+          description: `Sort descending by ${shortName}`
         });
+        continue;
+      }
+      if (field.dtype === 'string' || field.dtype === 'string_span') {
+        items.push({
+          id: {type: 'field', path: field.path, op: 'exists'} as FieldId,
+          text: serializePath(field.path),
+          description: `Show documents with ${shortName}`
+        });
+        continue;
       }
     }
     return items;
@@ -117,7 +129,7 @@
     type: 'field';
     path: Path;
     op?: Op;
-    sort?: 'asc' | 'desc';
+    sort?: 'ASC' | 'DESC';
   }
   interface SearchItem {
     id: ConceptId | FieldId | 'new-concept' | 'keyword-search' | 'semantic-search';
@@ -245,9 +257,20 @@
     } else if (e.detail.selectedId.type === 'concept') {
       searchConcept(e.detail.selectedId.namespace, e.detail.selectedId.name);
     } else if (e.detail.selectedId.type === 'field') {
-      console.log(e.detail.selectedId);
+      const searchItem = e.detail.selectedId as FieldId;
+      if (searchItem.sort != null) {
+        datasetViewStore.setSortBy(searchItem.path);
+        datasetViewStore.setSortOrder(searchItem.sort);
+      } else if (searchItem.op != null) {
+        datasetViewStore.addFilter({
+          path: searchItem.path,
+          op: searchItem.op
+        } as UnaryFilter);
+      } else {
+        throw new Error(`Unknown search type ${e.detail.selectedId}`);
+      }
     } else {
-      throw new Error('Unknown search type', e.detail.selectedId);
+      throw new Error(`Unknown search type ${e.detail.selectedId}`);
     }
     conceptComboBox.clear();
   };
