@@ -1,10 +1,9 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {shortFieldName} from '$lib/view_utils';
+  import {displayPath, shortFieldName} from '$lib/view_utils';
   import {
     deserializePath,
     formatValue,
-    serializePath,
     type BinaryFilter,
     type ListFilter,
     type Op,
@@ -34,8 +33,8 @@
   $: path = deserializePath(filter.path);
   $: tooltip =
     filter.op === 'exists'
-      ? `has ${serializePath(filter.path)}`
-      : `${serializePath(filter.path)} ${FILTER_SHORTHANDS[filter.op]} ${formattedValue}`;
+      ? `has ${displayPath(path)}`
+      : `${displayPath(path)} ${FILTER_SHORTHANDS[filter.op]} ${formattedValue}`;
   $: shortenPath = shortFieldName(path);
 </script>
 

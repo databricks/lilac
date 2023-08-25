@@ -80,7 +80,7 @@
   $: {
     // Auto-select the first path.
     if (fields && fields.length > 0 && path === undefined) {
-      path = deserializePath(fields[0].path);
+      path = fields[0].path;
     }
   }
 

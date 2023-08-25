@@ -755,3 +755,8 @@ export function shortFieldName(path: Path): string {
   }
   return [...path].reverse().find(p => p !== PATH_WILDCARD)!;
 }
+
+export function displayPath(path: Path): string {
+  const result = path.join('.');
+  return result.replaceAll(`.${PATH_WILDCARD}`, '[]');
+}

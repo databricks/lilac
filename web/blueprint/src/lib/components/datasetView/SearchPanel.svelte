@@ -9,6 +9,7 @@
   import {getSettingsContext} from '$lib/stores/settingsStore';
   import {
     conceptDisplayName,
+    displayPath,
     getComputedEmbeddings,
     getSearchEmbedding,
     getSearchPath,
@@ -81,12 +82,12 @@
         continue;
       }
       const shortName = shortFieldName(field.path);
-
+      const text = displayPath(field.path.slice(searchPath.length));
       // Suggest sorting for numeric fields.
       if (isNumeric(field.dtype)) {
         items.push({
           id: {type: 'field', path: field.path, sort: 'DESC'} as FieldId,
-          text: serializePath(field.path.slice(searchPath.length)),
+          text,
           description: `Sort descending by ${shortName}`
         });
         continue;
@@ -100,7 +101,7 @@
         }
         items.push({
           id: {type: 'field', path: field.path, op: 'exists'} as FieldId,
-          text: serializePath(field.path.slice(searchPath.length)),
+          text,
           description: `Find documents with ${shortName}`
         });
         continue;
