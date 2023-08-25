@@ -446,6 +446,8 @@
   :global(.new-concept, .new-keyword) {
     @apply h-full;
   }
+
+  /* Style the combobox item's parent div with a background color depending on type of search. */
   :global(.bx--list-box__menu-item:not(.bx--list-box__menu-item--highlighted):has(.isSignal)) {
     @apply bg-blue-50;
   }
