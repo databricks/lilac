@@ -1,5 +1,6 @@
 import {
   L,
+  PATH_WILDCARD,
   VALUE_KEY,
   childFields,
   deserializePath,
@@ -177,7 +178,7 @@ export function isPathVisible(
   // Signal columns are not visible by default. Because children inherit from parents, we only need
   // need to check for the parent.
   const field = getField(schema, pathArray);
-  const isSignal = isSignalField(field!, schema);
+  const isSignal = isSignalField(field!);
 
   if (isSignal) {
     return false;
@@ -745,4 +746,12 @@ export function getChars(text: string): string[] {
 /** Counts each grapheme as 1 character (like python) instead of counting UTF-16 characters. */
 export function stringLength(text: string): number {
   return getChars(text).length;
+}
+
+/** Returns a short-form field name for displaying. */
+export function shortFieldName(path: Path): string {
+  if (path.length === 0) {
+    throw new Error('Cannot get short name for empty path');
+  }
+  return [...path].reverse().find(p => p !== PATH_WILDCARD)!;
 }

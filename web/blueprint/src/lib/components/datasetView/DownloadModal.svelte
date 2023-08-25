@@ -48,7 +48,7 @@
       return {sourceFields: null, enrichedFields: null};
     }
     const petalFields = petals(schema).filter(field => ['embedding'].indexOf(field.dtype!) === -1);
-    const sourceFields = petalFields.filter(f => !isSignalField(f, schema));
+    const sourceFields = petalFields.filter(f => !isSignalField(f));
     const enrichedFields = childFields(schema)
       .filter(f => isSignalRootField(f))
       .filter(f => !childFields(f).some(f => f.dtype === 'embedding'));

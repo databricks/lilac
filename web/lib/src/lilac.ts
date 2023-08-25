@@ -37,6 +37,7 @@ export type Op = BinaryFilter['op'] | UnaryFilter['op'] | ListFilter['op'];
 
 export type LilacField<S extends Signal = Signal> = Field & {
   path: Path;
+  parent?: LilacField;
   // Overwrite the fields and repeated_field properties to be LilacField
   repeated_field?: LilacField;
   fields?: Record<string, LilacField>;
@@ -202,25 +203,20 @@ export function getValueNodes(row: LilacValueNode, path: Path): LilacValueNode[]
   return list.filter(value => pathIsMatching(path, L.path(value)));
 }
 
-/**
- * Determine if field is produced by a signal. We do this by walking the schema from the root to the
- * field, and checking if a parent has a signal.
- */
-export function isSignalField(
-  field: LilacField,
-  schema: LilacField,
-  hasSignalRootParent = false
-): boolean {
-  if (isSignalRootField(schema)) {
-    hasSignalRootParent = true;
+/** Determine if a field is produced by a signal. */
+export function isSignalField(field: LilacField): boolean {
+  return getSignalInfo(field) != null;
+}
+
+/** If a field is produced by a signal, it returns the signal information. Otherwise returns null. */
+export function getSignalInfo(field: LilacField): Signal | null {
+  if (field.signal) {
+    return field.signal;
   }
-  if (schema === field) return hasSignalRootParent;
-  if (schema.fields != null) {
-    return Object.values(schema.fields).some(f => isSignalField(field, f, hasSignalRootParent));
-  } else if (schema.repeated_field != null) {
-    return isSignalField(field, schema.repeated_field, hasSignalRootParent);
+  if (field.parent) {
+    return getSignalInfo(field.parent);
   }
-  return false;
+  return null;
 }
 
 /** True if the field was the root field produced by a signal. */
@@ -262,12 +258,14 @@ export function deserializeField(field: Field, path: Path = []): LilacField {
     for (const [fieldName, field] of Object.entries(fields)) {
       const lilacChildField = deserializeField(field, [...path, fieldName]);
       lilacChildField.path = [...path, fieldName];
+      lilacChildField.parent = lilacField;
       lilacField.fields[fieldName] = lilacChildField;
     }
   }
   if (repeated_field != null) {
     const lilacChildField = deserializeField(repeated_field, [...path, PATH_WILDCARD]);
     lilacChildField.path = [...path, PATH_WILDCARD];
+    lilacChildField.parent = lilacField;
     lilacField.repeated_field = lilacChildField;
   }
   return lilacField;

@@ -12,7 +12,7 @@
       checkedFields.push(field);
       checkedFields = checkedFields;
     } else {
-      checkedFields = checkedFields.filter(f => f !== field);
+      checkedFields = checkedFields.filter(f => !pathIsEqual(f.path, field.path));
     }
   }
 </script>

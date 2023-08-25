@@ -303,8 +303,8 @@ describe('lilac', () => {
 
   describe('utilities', () => {
     it('isSignalField', () => {
-      expect(isSignalField(schema.fields!.comment_text!, schema)).toEqual(false);
-      expect(isSignalField(schema.fields!.comment_text.fields!.pii, schema)).toEqual(true);
+      expect(isSignalField(schema.fields!.comment_text!)).toEqual(false);
+      expect(isSignalField(schema.fields!.comment_text.fields!.pii)).toEqual(true);
     });
   });
 

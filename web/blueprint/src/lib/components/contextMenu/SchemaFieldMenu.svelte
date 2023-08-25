@@ -10,8 +10,7 @@
     isSignalRootField,
     isSortableField,
     serializePath,
-    type LilacField,
-    type LilacSchema
+    type LilacField
   } from '$lilac';
   import {Modal, OverflowMenu, OverflowMenuItem} from 'carbon-components-svelte';
   import {InProgress} from 'carbon-icons-svelte';
@@ -19,7 +18,6 @@
   import {hoverTooltip} from '../common/HoverTooltip';
 
   export let field: LilacField;
-  export let schema: LilacSchema;
 
   let deleteSignalOpen = false;
 
@@ -31,7 +29,7 @@
   const datasetStore = getDatasetContext();
   const deleteSignal = deleteSignalMutation();
 
-  $: isSignal = isSignalField(field, schema);
+  $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
 
   $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, field.path);

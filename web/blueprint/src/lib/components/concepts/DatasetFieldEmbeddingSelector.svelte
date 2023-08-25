@@ -37,7 +37,7 @@
   $: schema = $schemaQuery.data;
   $: pathId = path ? serializePath(path) : undefined;
   $: sourceFields = schema
-    ? childFields(schema).filter(f => !isSignalField(f, schema!) && f.dtype != null)
+    ? childFields(schema).filter(f => !isSignalField(f) && f.dtype != null)
     : [];
   $: indexedFields = sourceFields.filter(f =>
     childFields(f).some(f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding'))

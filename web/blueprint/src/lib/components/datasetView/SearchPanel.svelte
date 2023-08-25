@@ -13,17 +13,20 @@
     getSearchEmbedding,
     getSearchPath,
     getSearches,
-    getSortedConcepts
+    getSortedConcepts,
+    shortFieldName
   } from '$lib/view_utils';
   import {
-    PATH_WILDCARD,
     childFields,
     deserializePath,
-    isTemporal,
+    getSignalInfo,
+    isNumeric,
+    pathIncludes,
     serializePath,
     type LilacSchema,
     type Op,
     type Path,
+    type SignalInfoWithTypedSchema,
     type StatsResult,
     type UnaryFilter
   } from '$lilac';
@@ -46,9 +49,10 @@
 
   function getFieldSearchItems(
     stats: StatsResult[] | null,
-    schema: LilacSchema | null
+    schema: LilacSchema | null,
+    embeddings: SignalInfoWithTypedSchema[] | undefined
   ): SearchItem[] {
-    if (schema == null || stats == null) {
+    if (schema == null || stats == null || searchPath == null) {
       return [];
     }
     const allFields = schema ? childFields(schema) : [];
@@ -57,20 +61,39 @@
       if (field.dtype == null) {
         continue;
       }
-      const shortName = [...field.path].reverse().find(p => p !== PATH_WILDCARD);
-      if (isTemporal(field.dtype)) {
+      if (field.dtype === 'embedding' || field.dtype === 'binary') {
+        continue;
+      }
+      if (!pathIncludes(field.path, searchPath)) {
+        continue;
+      }
+      const shortName = shortFieldName(field.path);
+      const signal = getSignalInfo(field);
+      if (signal?.signal_name === 'concept_score') {
+        // Concepts are handled seperately via preview signal.
+        continue;
+      }
+      const isEmbedding = embeddings?.some(e => e.name === signal?.signal_name);
+      if (isEmbedding) {
+        continue;
+      }
+      if (isNumeric(field.dtype)) {
         items.push({
           id: {type: 'field', path: field.path, sort: 'DESC'} as FieldId,
-          text: serializePath(field.path),
+          text: serializePath(field.path.slice(searchPath.length)),
           description: `Sort descending by ${shortName}`
         });
         continue;
       }
       if (field.dtype === 'string' || field.dtype === 'string_span') {
+        if (signal == null) {
+          // Skip filtering source fields by EXISTS.
+          continue;
+        }
         items.push({
           id: {type: 'field', path: field.path, op: 'exists'} as FieldId,
-          text: serializePath(field.path),
-          description: `Show documents with ${shortName}`
+          text: serializePath(field.path.slice(searchPath.length)),
+          description: `Find documents with ${shortName}`
         });
         continue;
       }
@@ -78,7 +101,11 @@
     return items;
   }
 
-  $: fieldSearchItems = getFieldSearchItems($datasetStore.stats, $datasetStore.schema);
+  $: fieldSearchItems = getFieldSearchItems(
+    $datasetStore.stats,
+    $datasetStore.schema,
+    $embeddings.data
+  );
 
   const signalMutation = computeSignalMutation();
 
@@ -156,9 +183,9 @@
   } as SearchItem;
   $: searchItems = $concepts?.data
     ? [
-        newConceptItem,
         ...(searchText != '' ? [keywordSearchItem] : []),
         ...(searchText != '' && selectedEmbedding ? [semanticSearchItem] : []),
+        newConceptItem,
         ...fieldSearchItems,
         ...namespaceConcepts.flatMap(namespaceConcept =>
           namespaceConcept.concepts.map(c => ({

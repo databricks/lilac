@@ -35,7 +35,7 @@
   export let sourceField: LilacField | undefined = undefined;
   export let indent = 0;
 
-  $: isSignal = isSignalField(field, schema);
+  $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
   $: isSourceField = !isSignal;
 
@@ -269,7 +269,7 @@
         <div class="transition" class:rotate-180={expandedDetails}><ChevronDown /></div>
       </button>
     {/if}
-    <SchemaFieldMenu {field} {schema} />
+    <SchemaFieldMenu {field} />
   </div>
 
   {#if expandedDetails}
@@ -285,7 +285,7 @@
           {schema}
           field={childField}
           indent={indent + 1}
-          sourceField={isSourceField && isSignalField(childField, schema) ? field : sourceField}
+          sourceField={isSourceField && isSignalField(childField) ? field : sourceField}
         />
       {/each}
     {/if}

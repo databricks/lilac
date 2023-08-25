@@ -1,5 +1,6 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {shortFieldName} from '$lib/view_utils';
   import {
     deserializePath,
     formatValue,
@@ -31,8 +32,11 @@
 
   $: formattedValue = formatValue(filter.value || 'false');
   $: path = deserializePath(filter.path);
-  $: tooltip = `${serializePath(filter.path)} ${FILTER_SHORTHANDS[filter.op]} ${formattedValue}`;
-  $: shortenPath = path.at(-1);
+  $: tooltip =
+    filter.op === 'exists'
+      ? `has ${serializePath(filter.path)}`
+      : `${serializePath(filter.path)} ${FILTER_SHORTHANDS[filter.op]} ${formattedValue}`;
+  $: shortenPath = shortFieldName(path);
 </script>
 
 <div class="filter-pill items-center" use:hoverTooltip={{text: tooltip}}>
@@ -48,9 +52,13 @@
       })}
     on:remove={() => datasetViewStore.removeFilter(filter)}
   >
-    <span class="font-mono">{hidePath ? '' : shortenPath}</span>
-    {FILTER_SHORTHANDS[filter.op]}
-    {formattedValue}
+    {#if filter.op === 'exists'}
+      has <span class="font-mono">{hidePath ? '' : shortenPath}</span>
+    {:else}
+      <span class="font-mono">{hidePath ? '' : shortenPath}</span>
+      {FILTER_SHORTHANDS[filter.op]}
+      {formattedValue}
+    {/if}
   </RemovableTag>
 </div>
 
@@ -61,5 +69,8 @@
   }
   :global(.filter-pill .bx--tooltip__content) {
     @apply flex flex-col items-center;
+  }
+  :global(.search-container .bx--list-box__menu) {
+    max-height: 26rem !important;
   }
 </style>
