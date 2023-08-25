@@ -59,24 +59,30 @@
     const items: SearchItem[] = [];
     for (const field of allFields) {
       if (field.dtype == null) {
+        // Ignore non-pedals.
         continue;
       }
       if (field.dtype === 'embedding' || field.dtype === 'binary') {
+        // Ignore special dtypes.
         continue;
       }
       if (!pathIncludes(field.path, searchPath)) {
+        // Ignore any fields unrelated to the current search path.
         continue;
       }
-      const shortName = shortFieldName(field.path);
       const signal = getSignalInfo(field);
       if (signal?.signal_name === 'concept_score') {
-        // Concepts are handled seperately via preview signal.
+        // Ignore any concept scores since they are handled seperately via preview.
         continue;
       }
       const isEmbedding = embeddings?.some(e => e.name === signal?.signal_name);
       if (isEmbedding) {
+        // Ignore any embeddings since they are special "index" fields.
         continue;
       }
+      const shortName = shortFieldName(field.path);
+
+      // Suggest sorting for numeric fields.
       if (isNumeric(field.dtype)) {
         items.push({
           id: {type: 'field', path: field.path, sort: 'DESC'} as FieldId,
@@ -85,6 +91,8 @@
         });
         continue;
       }
+
+      // Suggest "exists" for signal string fields such as PII.
       if (field.dtype === 'string' || field.dtype === 'string_span') {
         if (signal == null) {
           // Skip filtering source fields by EXISTS.
