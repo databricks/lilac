@@ -2,7 +2,7 @@
   import {queryConcept} from '$lib/queries/conceptQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {getSearches, getSort} from '$lib/view_utils';
+  import {displayPath, getSearches, getSort} from '$lib/view_utils';
   import {
     deserializePath,
     formatValue,
@@ -86,7 +86,7 @@
             .map(field => {
               return {
                 path: field.path,
-                text: serializePath(field.path.slice(1)),
+                text: displayPath(field.path.slice(1)),
                 disabled: false
               };
             })
