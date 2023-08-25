@@ -53,7 +53,7 @@
         <div>
           <OverflowMenu flipped icon={Help}>
             <OverflowMenuItem href="https://lilacml.com" text="Documentation" />
-            <OverflowMenuItem href="https://discord.gg/YpGxQMyk" text="Discord" />
+            <OverflowMenuItem href="https://discord.gg/jNzw9mC8pp" text="Discord" />
             <OverflowMenuItem
               href="https://github.com/lilacai/lilac/issues/new"
               text="File a bug"

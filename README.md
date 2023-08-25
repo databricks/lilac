@@ -67,4 +67,4 @@ Lilac runs completely **on device** using powerful open-source LLM technologies.
 For bugs and feature requests, please
 [file an issue on GitHub](https://github.com/lilacai/lilac/issues).
 
-For general questions, please [visit our Discord](https://discord.com/invite/YpGxQMyk).
+For general questions, please [visit our Discord](https://discord.com/invite/jNzw9mC8pp).
