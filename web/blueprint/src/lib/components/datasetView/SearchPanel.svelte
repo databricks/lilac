@@ -325,6 +325,14 @@
   const selectField = (e: CustomEvent) => {
     searchPath = e.detail.selectedItem.path as Path;
   };
+
+  let dropdownItems: {id: string; text: string; path: Path; embeddings: string[]}[] = [];
+  $: dropdownItems = (mediaPaths || []).map(p => ({
+    id: serializePath(p),
+    text: displayPath(p),
+    path: p,
+    embeddings: getComputedEmbeddings($datasetStore, p)
+  }));
 </script>
 
 <!-- Search boxes -->
@@ -332,17 +340,25 @@
   <div use:hoverTooltip={{text: 'Select the field to search over.'}}>
     <Search size={16} class="mr-2" />
   </div>
-  <div>
+  <div class="embedding-dropdown">
     <Dropdown
       size="xl"
       class="w-48"
       on:select={selectField}
       selectedId={searchPath ? serializePath(searchPath) : undefined}
-      items={(mediaPaths || []).map(p => ({id: serializePath(p), text: displayPath(p), path: p}))}
+      items={dropdownItems}
       let:item
     >
-      <div>
-        {item.text}
+      {@const dropdownItem = dropdownItems.find(x => x === item)}
+      <div class="flex h-full w-full items-center justify-between gap-x-1">
+        {#if dropdownItem}
+          <div class="w-full flex-grow truncate">
+            {dropdownItem.text}
+          </div>
+          {#if dropdownItem.embeddings.length > 0}
+            <Tag><Chip /></Tag>
+          {/if}
+        {/if}
       </div>
     </Dropdown>
   </div>
@@ -437,5 +453,8 @@
   }
   :global(.search-container .bx--list-box__menu) {
     max-height: 26rem !important;
+  }
+  :global(.embedding-dropdown .bx--list-box__menu-item__option) {
+    width: 100% !important;
   }
 </style>
