@@ -266,28 +266,26 @@ export function getSearches(store: DatasetViewState, path?: Path | null): Search
   return (store.query.searches || []).filter(s => pathIsEqual(s.path, path));
 }
 
-function getDefaultSearchPath(datasetStore: DatasetState): Path | null {
+export function getDefaultSearchPath(
+  datasetStore: DatasetState,
+  mediaPaths: Path[]
+): Path | undefined {
   if (datasetStore.stats == null || datasetStore.stats.length === 0) {
-    return null;
+    return mediaPaths[0];
   }
-  const visibleStringPaths = (datasetStore.visibleFields || [])
-    .filter(f => f.dtype === 'string')
-    .map(f => serializePath(f.path));
   // The longest visible path that has an embedding is auto-selected.
-  let paths = datasetStore.stats.map(stat => {
+  const mediaPathsStats = datasetStore.stats.filter(s =>
+    mediaPaths.some(p => pathIsEqual(s.path, p))
+  );
+  let paths = mediaPathsStats.map(stat => {
     return {
       path: stat.path,
       embeddings: getComputedEmbeddings(datasetStore, stat.path),
-      avgTextLength: stat.avg_text_length,
-      isVisible: visibleStringPaths.indexOf(serializePath(stat.path)) >= 0
+      avgTextLength: stat.avg_text_length
     };
   });
   paths = paths.sort((a, b) => {
-    if (!a.isVisible && b.isVisible) {
-      return 1;
-    } else if (a.isVisible && !b.isVisible) {
-      return -1;
-    } else if (a.embeddings.length > 0 && b.embeddings.length === 0) {
+    if (a.embeddings.length > 0 && b.embeddings.length === 0) {
       return -1;
     } else if (a.embeddings.length === 0 && b.embeddings.length > 0) {
       return 1;
