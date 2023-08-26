@@ -1,7 +1,7 @@
 <script lang="ts">
   import {queryConcepts} from '$lib/queries/conceptQueries';
 
-  import {querySettings} from '$lib/queries/datasetQueries';
+  import {computeSignalMutation, querySettings} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
@@ -32,7 +32,7 @@
     type UnaryFilter
   } from '$lilac';
   import {ComboBox, Select, SelectItem, Tag} from 'carbon-components-svelte';
-  import {Add, Search, SearchAdvanced} from 'carbon-icons-svelte';
+  import {Add, Chip, Search, SearchAdvanced} from 'carbon-icons-svelte';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
 
@@ -45,10 +45,14 @@
   $: datasetName = $datasetViewStore.datasetName;
 
   let searchPath: Path | undefined;
-  let mediaPaths: Path[] = [];
 
-  $: mediaPaths = $settings.data?.ui?.media_paths || [];
-  $: searchPath = getDefaultSearchPath($datasetStore, mediaPaths);
+  $: mediaPaths = $settings.data?.ui?.media_paths;
+
+  $: {
+    if (searchPath == null && mediaPaths != null) {
+      searchPath = getDefaultSearchPath($datasetStore, mediaPaths);
+    }
+  }
 
   $: searches = getSearches($datasetViewStore, searchPath);
 
@@ -122,7 +126,7 @@
     $embeddings.data
   );
 
-  // const signalMutation = computeSignalMutation();
+  const signalMutation = computeSignalMutation();
 
   // Get the embeddings.
   const embeddings = queryEmbeddings();
@@ -141,11 +145,11 @@
   $: isEmbeddingComputed =
     existingEmbeddings != null && !!existingEmbeddings.includes(selectedEmbedding || '');
 
-  // const indexingKey = (path: Path | undefined, embedding: string | null) =>
-  //   `${serializePath(path || '')}_${embedding}`;
-  // let isWaitingForIndexing: {[key: string]: boolean} = {};
-  // $: isIndexing =
-  //   !isEmbeddingComputed && isWaitingForIndexing[indexingKey(searchBy, selectedEmbedding)];
+  const indexingKey = (path: Path | undefined, embedding: string | null) =>
+    `${serializePath(path || '')}_${embedding}`;
+  let isWaitingForIndexing: {[key: string]: boolean} = {};
+  $: isIndexing =
+    !isEmbeddingComputed && isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding)];
 
   $: placeholderText = isEmbeddingComputed
     ? 'Search by keyword, field or concept.'
@@ -169,7 +173,13 @@
     sort?: 'ASC' | 'DESC';
   }
   interface SearchItem {
-    id: ConceptId | FieldId | 'new-concept' | 'keyword-search' | 'semantic-search';
+    id:
+      | ConceptId
+      | FieldId
+      | 'new-concept'
+      | 'keyword-search'
+      | 'semantic-search'
+      | 'compute-embedding';
     text: string;
     description?: string;
   }
@@ -179,8 +189,7 @@
   let newConceptItem: SearchItem;
   $: newConceptItem = {
     id: 'new-concept',
-    text: searchText,
-    disabled: !isEmbeddingComputed
+    text: searchText
   };
   $: keywordSearchItem = {
     id: 'keyword-search',
@@ -188,14 +197,20 @@
   } as SearchItem;
   $: semanticSearchItem = {
     id: 'semantic-search',
-    text: searchText,
-    disabled: !isEmbeddingComputed
+    text: searchText
+  } as SearchItem;
+  $: computeEmbeddingItem = {
+    id: 'compute-embedding',
+    text: 'Compute embedding',
+    disabled: isIndexing
   } as SearchItem;
   $: searchItems = $concepts?.data
     ? [
         ...(searchText != '' ? [keywordSearchItem] : []),
-        ...(searchText != '' && selectedEmbedding ? [semanticSearchItem] : []),
-        ...(isEmbeddingComputed ? [newConceptItem] : []),
+        ...(searchText != '' && selectedEmbedding && isEmbeddingComputed
+          ? [semanticSearchItem]
+          : []),
+        ...(isEmbeddingComputed ? [newConceptItem] : [computeEmbeddingItem]),
         ...fieldSearchItems,
         ...namespaceConcepts.flatMap(namespaceConcept =>
           namespaceConcept.concepts.map(c => ({
@@ -213,20 +228,20 @@
       ]
     : [];
 
-  // const computeEmbedding = () => {
-  //   if (selectedEmbedding == null) return;
-  //   isWaitingForIndexing[indexingKey(searchBy, selectedEmbedding)] = true;
-  //   $signalMutation.mutate([
-  //     namespace,
-  //     datasetName,
-  //     {
-  //       leaf_path: deserializePath(searchBy || []),
-  //       signal: {
-  //         signal_name: selectedEmbedding
-  //       }
-  //     }
-  //   ]);
-  // };
+  function computeEmbedding() {
+    if (selectedEmbedding == null) return;
+    isWaitingForIndexing[indexingKey(searchPath, selectedEmbedding)] = true;
+    $signalMutation.mutate([
+      namespace,
+      datasetName,
+      {
+        leaf_path: deserializePath(searchPath || []),
+        signal: {
+          signal_name: selectedEmbedding
+        }
+      }
+    ]);
+  }
 
   let comboBox: ComboBox;
   const searchConcept = (namespace: string, name: string) => {
@@ -285,6 +300,8 @@
         query: searchText,
         embedding: selectedEmbedding
       });
+    } else if (e.detail.selectedId == 'compute-embedding') {
+      computeEmbedding();
     } else if (e.detail.selectedId.type === 'concept') {
       searchConcept(e.detail.selectedId.namespace, e.detail.selectedId.name);
     } else if (e.detail.selectedId.type === 'field') {
@@ -310,17 +327,6 @@
   };
 </script>
 
-<!-- <div class="compute-embedding mr-1" class:compute-embedding-indexing={isIndexing}>
-  <Button
-    disabled={isEmbeddingComputed || isIndexing}
-    iconDescription="Compute embedding index. This may be expensive."
-    on:click={() => {
-      computeEmbedding();
-    }}
-    icon={isEmbeddingComputed ? Checkmark : isIndexing ? InlineLoading : Chip}
-  />
-</div> -->
-
 <!-- Search boxes -->
 <div class="flex h-full w-full flex-grow items-center">
   <Search size={24} class="mr-2" />
@@ -330,10 +336,10 @@
       class="field-select w-48"
       selected={searchPath ? serializePath(searchPath) : undefined}
       on:change={selectField}
-      disabled={mediaPaths.length === 0}
-      warn={mediaPaths.length === 0}
+      disabled={mediaPaths == null}
+      warn={mediaPaths == null}
     >
-      {#each mediaPaths as mediaPath}
+      {#each mediaPaths || [] as mediaPath}
         <SelectItem value={serializePath(mediaPath)} text={displayPath(mediaPath)} />
       {/each}
     </Select>
@@ -348,7 +354,9 @@
         bind:value={searchText}
         on:select={selectSearchItem}
         shouldFilterItem={(item, value) =>
-          item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-concept'}
+          item.text.toLowerCase().includes(value.toLowerCase()) ||
+          item.id === 'new-concept' ||
+          item.id === 'compute-embedding'}
         placeholder={placeholderText}
         let:item={it}
       >
@@ -385,6 +393,17 @@
               Semantic search:
               {searchText}
             </div>
+          </div>
+        {:else if item.id === 'compute-embedding' && selectedEmbedding && searchPath}
+          <div class="new-concept flex items-center justify-between">
+            <div class="flex items-center">
+              <Tag><Chip /></Tag>
+              <div class="ml-2">
+                Compute embedding <code>{selectedEmbedding}</code> for
+                <code>{displayPath(searchPath)}</code>
+              </div>
+            </div>
+            <div class="truncate text-xs text-gray-500">May be expensive</div>
           </div>
         {:else}
           <div class="flex justify-between gap-x-8" class:isSignal class:isConcept>

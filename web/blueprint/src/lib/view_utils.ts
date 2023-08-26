@@ -271,12 +271,15 @@ export function getDefaultSearchPath(
   mediaPaths: Path[]
 ): Path | undefined {
   if (datasetStore.stats == null || datasetStore.stats.length === 0) {
-    return mediaPaths[0];
+    return undefined;
   }
   // The longest visible path that has an embedding is auto-selected.
   const mediaPathsStats = datasetStore.stats.filter(s =>
     mediaPaths.some(p => pathIsEqual(s.path, p))
   );
+  if (mediaPathsStats.length === 0) {
+    return undefined;
+  }
   let paths = mediaPathsStats.map(stat => {
     return {
       path: stat.path,
