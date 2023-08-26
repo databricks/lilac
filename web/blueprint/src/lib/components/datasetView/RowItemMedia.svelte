@@ -53,6 +53,7 @@
         <StringSpanHighlight
           text={formatValue(value)}
           {row}
+          {path}
           {markdown}
           spanPaths={spanValuePaths.spanPaths}
           valuePaths={spanValuePaths.valuePaths}

@@ -395,15 +395,9 @@
             </div>
           </div>
         {:else if item.id === 'compute-embedding' && selectedEmbedding && searchPath}
-          <div class="new-concept flex items-center justify-between">
-            <div class="flex items-center">
-              <Tag><Chip /></Tag>
-              <div class="ml-2">
-                Compute embedding <code>{selectedEmbedding}</code> for
-                <code>{displayPath(searchPath)}</code>
-              </div>
-            </div>
-            <div class="truncate text-xs text-gray-500">May be expensive</div>
+          <div class="new-concept flex items-center">
+            <Tag><Chip /></Tag>
+            <div class="ml-2">Compute embeddings to enable concept search.</div>
           </div>
         {:else}
           <div class="flex justify-between gap-x-8" class:isSignal class:isConcept>

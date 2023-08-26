@@ -39,6 +39,8 @@
   export let row: LilacValueNode;
   // Path of the spans for this item to render.
   export let spanPaths: Path[];
+  export let path: Path | undefined = undefined;
+
   // Information about each value under span paths to render.
   export let valuePaths: SpanValueInfo[];
   export let markdown = false;
@@ -147,14 +149,13 @@
   );
 
   const findSimilar = (embedding: string, text: string) => {
-    if (datasetViewStore == null) return;
-
-    // datasetViewStore.addSearch({
-    //   path: [serializePath(searchPath)],
-    //   type: 'semantic',
-    //   query: text,
-    //   embedding
-    // });
+    if (datasetViewStore == null || path == null) return;
+    datasetViewStore.addSearch({
+      path: [serializePath(path)],
+      type: 'semantic',
+      query: text,
+      embedding
+    });
   };
 
   const notificationStore = getNotificationsContext();

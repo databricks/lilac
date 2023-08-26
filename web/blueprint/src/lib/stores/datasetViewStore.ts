@@ -45,7 +45,6 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
   return {
     namespace,
     datasetName,
-    searchPath: null,
     selectedColumns: {},
     expandedColumns: {},
     query: {
