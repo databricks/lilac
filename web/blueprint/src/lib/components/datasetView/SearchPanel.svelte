@@ -340,87 +340,93 @@
   <div use:hoverTooltip={{text: 'Select the field to search over.'}}>
     <Search size={16} class="mr-2" />
   </div>
-  <div class="embedding-dropdown">
-    <Dropdown
-      size="xl"
-      class="w-48"
-      on:select={selectField}
-      selectedId={searchPath ? serializePath(searchPath) : undefined}
-      items={dropdownItems}
-      let:item
-    >
-      {@const dropdownItem = dropdownItems.find(x => x === item)}
-      <div class="flex h-full w-full items-center justify-between gap-x-1">
-        {#if dropdownItem}
-          <div class="w-full flex-grow truncate">
-            {dropdownItem.text}
+  <div class="flex w-full border border-gray-200 pb-px">
+    <div class="embedding-dropdown rounded border-r border-gray-200">
+      <Dropdown
+        size="xl"
+        class="w-48"
+        on:select={selectField}
+        selectedId={searchPath ? serializePath(searchPath) : undefined}
+        items={dropdownItems}
+        let:item
+      >
+        {@const dropdownItem = dropdownItems.find(x => x === item)}
+        <div class="flex h-full w-full items-center justify-between gap-x-1">
+          {#if dropdownItem}
+            <div class="w-full flex-grow truncate">
+              {dropdownItem.text}
+            </div>
+            {#if dropdownItem.embeddings.length > 0}
+              <Tag><Chip /></Tag>
+            {/if}
+          {/if}
+        </div>
+      </Dropdown>
+    </div>
+    <div class="search-container w-full flex-grow">
+      <ComboBox
+        size="xl"
+        class="w-full"
+        bind:this={comboBox}
+        items={searchItems}
+        bind:value={searchText}
+        on:select={selectSearchItem}
+        shouldFilterItem={(item, value) =>
+          item.text.toLowerCase().includes(value.toLowerCase()) ||
+          item.id === 'new-concept' ||
+          item.id === 'compute-embedding'}
+        placeholder={placeholderText}
+        let:item={it}
+      >
+        {@const item = searchItems.find(p => p.id === it.id)}
+        {@const isSignal =
+          item != null &&
+          typeof item.id === 'object' &&
+          item.id.type === 'field' &&
+          item.id.isSignal}
+        {@const isConcept =
+          item != null && typeof item.id === 'object' && item.id.type === 'concept'}
+        {#if item == null}
+          <div />
+        {:else if item.id === 'new-concept'}
+          <div class="new-concept flex flex-row items-center justify-items-center">
+            <Tag><Add /></Tag>
+            <div class="ml-2">
+              New concept{searchText != '' ? ':' : ''}
+              {searchText}
+            </div>
           </div>
-          {#if dropdownItem.embeddings.length > 0}
+        {:else if item.id === 'keyword-search'}
+          <div class="new-keyword flex flex-row items-center justify-items-center">
+            <Tag><SearchAdvanced /></Tag>
+            <div class="ml-2">
+              Keyword search:
+              {searchText}
+            </div>
+          </div>
+        {:else if item.id === 'semantic-search'}
+          <div class="new-keyword flex flex-row items-center justify-items-center">
+            <Tag><SearchAdvanced /></Tag>
+            <div class="ml-2">
+              Semantic search:
+              {searchText}
+            </div>
+          </div>
+        {:else if item.id === 'compute-embedding' && selectedEmbedding && searchPath}
+          <div class="new-concept flex items-center">
             <Tag><Chip /></Tag>
-          {/if}
+            <div class="ml-2">Compute embeddings to enable concept search.</div>
+          </div>
+        {:else}
+          <div class="flex justify-between gap-x-8" class:isSignal class:isConcept>
+            <div>{item.text}</div>
+            {#if item.description}
+              <div class="truncate text-xs text-gray-500">{item.description}</div>
+            {/if}
+          </div>
         {/if}
-      </div>
-    </Dropdown>
-  </div>
-  <div class="search-container w-full flex-grow">
-    <ComboBox
-      size="xl"
-      class="w-full"
-      bind:this={comboBox}
-      items={searchItems}
-      bind:value={searchText}
-      on:select={selectSearchItem}
-      shouldFilterItem={(item, value) =>
-        item.text.toLowerCase().includes(value.toLowerCase()) ||
-        item.id === 'new-concept' ||
-        item.id === 'compute-embedding'}
-      placeholder={placeholderText}
-      let:item={it}
-    >
-      {@const item = searchItems.find(p => p.id === it.id)}
-      {@const isSignal =
-        item != null && typeof item.id === 'object' && item.id.type === 'field' && item.id.isSignal}
-      {@const isConcept = item != null && typeof item.id === 'object' && item.id.type === 'concept'}
-      {#if item == null}
-        <div />
-      {:else if item.id === 'new-concept'}
-        <div class="new-concept flex flex-row items-center justify-items-center">
-          <Tag><Add /></Tag>
-          <div class="ml-2">
-            New concept{searchText != '' ? ':' : ''}
-            {searchText}
-          </div>
-        </div>
-      {:else if item.id === 'keyword-search'}
-        <div class="new-keyword flex flex-row items-center justify-items-center">
-          <Tag><SearchAdvanced /></Tag>
-          <div class="ml-2">
-            Keyword search:
-            {searchText}
-          </div>
-        </div>
-      {:else if item.id === 'semantic-search'}
-        <div class="new-keyword flex flex-row items-center justify-items-center">
-          <Tag><SearchAdvanced /></Tag>
-          <div class="ml-2">
-            Semantic search:
-            {searchText}
-          </div>
-        </div>
-      {:else if item.id === 'compute-embedding' && selectedEmbedding && searchPath}
-        <div class="new-concept flex items-center">
-          <Tag><Chip /></Tag>
-          <div class="ml-2">Compute embeddings to enable concept search.</div>
-        </div>
-      {:else}
-        <div class="flex justify-between gap-x-8" class:isSignal class:isConcept>
-          <div>{item.text}</div>
-          {#if item.description}
-            <div class="truncate text-xs text-gray-500">{item.description}</div>
-          {/if}
-        </div>
-      {/if}
-    </ComboBox>
+      </ComboBox>
+    </div>
   </div>
 </div>
 
