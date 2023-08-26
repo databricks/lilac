@@ -57,7 +57,9 @@
 
   $: {
     if (selectedMediaFields == null) {
-      const mediaPathsFromSettings = $settings.data?.ui?.media_paths;
+      const mediaPathsFromSettings = $settings.data?.ui?.media_paths?.map(p =>
+        Array.isArray(p) ? p : [p]
+      );
       if (mediaPathsFromSettings != null) {
         selectedMediaFields = mediaFields.filter(f =>
           mediaPathsFromSettings.some(path => pathIsEqual(f.path, path))

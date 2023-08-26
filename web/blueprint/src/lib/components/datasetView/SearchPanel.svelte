@@ -46,7 +46,7 @@
 
   let searchPath: Path | undefined;
 
-  $: mediaPaths = $settings.data?.ui?.media_paths;
+  $: mediaPaths = $settings.data?.ui?.media_paths?.map(p => (Array.isArray(p) ? p : [p]));
 
   $: {
     if (searchPath == null && mediaPaths != null) {
