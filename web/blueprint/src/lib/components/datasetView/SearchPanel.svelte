@@ -53,12 +53,12 @@
   $: searches = getSearches($datasetViewStore, searchPath);
 
   function getFieldSearchItems(
-    searchBy: Path | undefined,
+    searchPath: Path | undefined,
     stats: StatsResult[] | null,
     schema: LilacSchema | null,
     embeddings: SignalInfoWithTypedSchema[] | undefined
   ): SearchItem[] {
-    if (schema == null || stats == null || searchBy == null) {
+    if (schema == null || stats == null || searchPath == null) {
       return [];
     }
     const allFields = schema ? childFields(schema) : [];
@@ -72,7 +72,7 @@
         // Ignore special dtypes.
         continue;
       }
-      if (!pathIncludes(field.path, searchBy)) {
+      if (!pathIncludes(field.path, searchPath)) {
         // Ignore any fields unrelated to the current search path.
         continue;
       }
@@ -87,7 +87,7 @@
         continue;
       }
       const shortName = shortFieldName(field.path);
-      const text = displayPath(field.path.slice(searchBy.length));
+      const text = displayPath(field.path.slice(searchPath.length));
       // Suggest sorting for numeric fields.
       if (isNumeric(field.dtype)) {
         items.push({
