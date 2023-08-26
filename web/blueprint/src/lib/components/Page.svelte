@@ -38,7 +38,7 @@
       on:click={() => ($navStore.open = true)}><SidePanelOpen /></button
     >
     <div
-      class="flex flex-grow flex-row items-center justify-between justify-items-center gap-x-4 py-2 pr-4"
+      class="flex flex-grow flex-row items-center justify-between justify-items-center gap-x-6 py-2 pr-4"
     >
       <div class="flex flex-row items-center">
         <div>
