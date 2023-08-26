@@ -347,10 +347,6 @@
         items={searchItems}
         bind:value={searchText}
         on:select={selectSearchItem}
-        on:clear={() => {
-          console.log('clear');
-          searchPath = undefined;
-        }}
         shouldFilterItem={(item, value) =>
           item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-concept'}
         placeholder={placeholderText}
