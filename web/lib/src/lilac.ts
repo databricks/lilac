@@ -34,6 +34,7 @@ export type SearchType = Exclude<
 export type Search = ConceptSearch | SemanticSearch | KeywordSearch;
 
 export type Op = BinaryFilter['op'] | UnaryFilter['op'] | ListFilter['op'];
+export type Filter = BinaryFilter | UnaryFilter | ListFilter;
 
 export type LilacField<S extends Signal = Signal> = Field & {
   path: Path;

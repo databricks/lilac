@@ -2,16 +2,7 @@
   import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
-  import {
-    childFields,
-    getField,
-    pathIsEqual,
-    type BinaryFilter,
-    type LilacField,
-    type ListFilter,
-    type Op,
-    type UnaryFilter
-  } from '$lilac';
+  import {childFields, getField, pathIsEqual, type Filter, type LilacField, type Op} from '$lilac';
   import {
     Checkbox,
     ComposedModal,
@@ -62,7 +53,7 @@
     : undefined;
 
   // Copy filters from query options
-  let stagedFilters: (UnaryFilter | ListFilter | BinaryFilter)[] = [];
+  let stagedFilters: Filter[] = [];
   onMount(() => {
     stagedFilters = structuredClone($datasetViewStore.query.filters || []);
   });

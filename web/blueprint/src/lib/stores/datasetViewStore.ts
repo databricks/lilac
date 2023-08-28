@@ -3,16 +3,14 @@ import {
   pathIncludes,
   pathIsEqual,
   serializePath,
-  type BinaryFilter,
   type Column,
+  type Filter,
   type LilacSelectRowsSchema,
-  type ListFilter,
   type Path,
   type Search,
   type SelectRowsOptions,
   type SelectRowsSchemaOptions,
-  type SortOrder,
-  type UnaryFilter
+  type SortOrder
 } from '$lilac';
 import deepEqual from 'deep-equal';
 import {getContext, hasContext, setContext} from 'svelte';
@@ -185,7 +183,7 @@ export function createDatasetViewStore(
         state.query.sort_order = sortOrder || undefined;
         return state;
       }),
-    removeFilter: (removedFilter: BinaryFilter | UnaryFilter | ListFilter) =>
+    removeFilter: (removedFilter: Filter) =>
       update(state => {
         state.query.filters = state.query.filters?.filter(f => !deepEqual(f, removedFilter));
         if ((state.query.filters || []).length === 0) {
@@ -193,8 +191,10 @@ export function createDatasetViewStore(
         }
         return state;
       }),
-    addFilter: (filter: BinaryFilter | UnaryFilter | ListFilter) =>
+    addFilter: (filter: Filter) =>
       update(state => {
+        const filterExists = state.query.filters?.some(f => filterEquals(f, filter));
+        if (filterExists) return state;
         state.query.filters = [...(state.query.filters || []), filter];
         return state;
       }),
@@ -278,4 +278,9 @@ export function getSelectRowsSchemaOptions(
     sort_by: options.sort_by,
     sort_order: options.sort_order
   };
+}
+
+/** Returns if two filters are equall. */
+function filterEquals(f1: Filter, f2: Filter): boolean {
+  return f1.op == f2.op && f1.value == f2.value && pathIsEqual(f1.path, f2.path);
 }

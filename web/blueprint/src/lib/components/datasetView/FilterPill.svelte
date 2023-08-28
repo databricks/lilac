@@ -1,14 +1,7 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {displayPath, shortFieldName} from '$lib/view_utils';
-  import {
-    deserializePath,
-    formatValue,
-    type BinaryFilter,
-    type ListFilter,
-    type Op,
-    type UnaryFilter
-  } from '$lilac';
+  import {deserializePath, formatValue, type Filter, type Op} from '$lilac';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import RemovableTag from '../common/RemovableTag.svelte';
@@ -24,7 +17,7 @@
     exists: 'exists'
   };
 
-  export let filter: BinaryFilter | UnaryFilter | ListFilter;
+  export let filter: Filter;
   export let hidePath = false;
 
   const datasetViewStore = getDatasetViewContext();

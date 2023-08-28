@@ -32,7 +32,7 @@
     type UnaryFilter
   } from '$lilac';
   import {ComboBox, Dropdown, Tag} from 'carbon-components-svelte';
-  import {Add, Chip, Search, SearchAdvanced} from 'carbon-icons-svelte';
+  import {Add, AssemblyCluster, Chip, Search, SearchAdvanced} from 'carbon-icons-svelte';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
 
@@ -337,16 +337,20 @@
 
 <!-- Search boxes -->
 <div class="flex h-full w-full flex-grow items-center">
-  <div use:hoverTooltip={{text: 'Select the field to search over.'}}>
-    <Search size={16} class="mr-2" />
-  </div>
-  <div class="flex w-full border border-gray-200 pb-px">
+  <div class="flex w-full rounded border border-gray-200">
+    <div
+      class="search-icon flex items-center"
+      use:hoverTooltip={{text: 'Select the field to search over.'}}
+    >
+      <Search class="ml-2 mr-px" size={16} />
+    </div>
     <div class="embedding-dropdown rounded border-r border-gray-200">
       <Dropdown
         size="xl"
         class="w-48"
         on:select={selectField}
-        selectedId={searchPath ? serializePath(searchPath) : undefined}
+        disabled={searchPath == null}
+        selectedId={searchPath ? serializePath(searchPath) : dropdownItems[0]?.id}
         items={dropdownItems}
         let:item
       >
@@ -357,7 +361,13 @@
               {dropdownItem.text}
             </div>
             {#if dropdownItem.embeddings.length > 0}
-              <Tag><Chip /></Tag>
+              <div
+                use:hoverTooltip={{
+                  text: `Computed embeddings: ${dropdownItem.embeddings.join(', ')}`
+                }}
+              >
+                <Tag><AssemblyCluster /></Tag>
+              </div>
             {/if}
           {/if}
         </div>
@@ -431,6 +441,9 @@
 </div>
 
 <style lang="postcss">
+  .search-icon {
+    background-color: rgb(250, 250, 250);
+  }
   :global(.bx--form__helper-text) {
     padding: 0 0 0 1rem;
   }
@@ -449,7 +462,6 @@
   :global(.new-concept, .new-keyword) {
     @apply h-full;
   }
-
   /* Style the combobox item's parent div with a background color depending on type of search. */
   :global(.bx--list-box__menu-item:not(.bx--list-box__menu-item--highlighted):has(.isSignal)) {
     @apply bg-blue-50;
@@ -460,7 +472,10 @@
   :global(.search-container .bx--list-box__menu) {
     max-height: 26rem !important;
   }
+  :global(.search-container .bx--list-box__field) {
+    height: 100%;
+  }
   :global(.embedding-dropdown .bx--list-box__menu-item__option) {
-    width: 100% !important;
+    padding-right: 0;
   }
 </style>
