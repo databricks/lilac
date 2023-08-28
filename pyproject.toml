@@ -28,7 +28,7 @@ openai-function-call = "^0.0.5"                          # Wraps OpenAI function
 orjson = "^3.8.10"                                       # Fast JSON serialization: https://fastapi.tiangolo.com/advanced/custom-response/#use-orjsonresponse
 pillow = "^9.3.0"                                        # Image processing.
 psutil = "^5.9.5"
-pyarrow = "^9.0.0"
+pyarrow = "^13.0.0"
 pydantic = "^1.10.11"
 python = ">=3.9,<4.0"
 python-dotenv = "^1.0.0"
