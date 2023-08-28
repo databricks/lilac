@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import webbrowser
+from importlib import metadata
 from typing import Any, Optional
 
 import uvicorn
@@ -16,7 +17,6 @@ from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import (
-  __version__,
   router_concept,
   router_data_loader,
   router_dataset,
@@ -109,7 +109,8 @@ class ServerStatus(BaseModel):
 @app.get('/status')
 def status() -> ServerStatus:
   """Returns server status information."""
-  return ServerStatus(version=__version__, google_analytics_enabled=env('PUBLIC_HF_ANALYTICS'))
+  return ServerStatus(
+    version=metadata.version('lilac'), google_analytics_enabled=env('PUBLIC_HF_ANALYTICS', False))
 
 
 app.include_router(v1_router, prefix='/api/v1')
