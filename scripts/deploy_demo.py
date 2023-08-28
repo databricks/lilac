@@ -113,7 +113,9 @@ def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip
       skip_build=skip_build,
       skip_cache=False,
       data_dir=data_dir,
-      make_datasets_public=make_datasets_public)
+      make_datasets_public=make_datasets_public,
+      # The public demo uses the public pip package.
+      use_pip=True)
 
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:

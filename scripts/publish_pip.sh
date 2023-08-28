@@ -10,6 +10,9 @@ if [[ -z "${PYPI_TOKEN}" ]]; then
   exit 1
 fi
 
+# Build the web server.
+./scripts/build_server_prod.sh
+
 poetry version patch
 poetry config pypi-token.pypi $PYPI_TOKEN
 poetry build
