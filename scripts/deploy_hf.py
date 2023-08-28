@@ -272,13 +272,7 @@ XDG_CACHE_HOME=/data/.cache
 
 def run(cmd: str) -> subprocess.CompletedProcess[str]:
   """Run a command and return the result."""
-  return subprocess.run(
-    cmd,
-    shell=True,
-    check=True,
-    capture_output=True,  # Python >= 3.7 only
-    text=True  # Python >= 3.7 only
-  )
+  return subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
 
 
 if __name__ == '__main__':
