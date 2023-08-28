@@ -115,7 +115,9 @@ def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip
       data_dir=data_dir,
       make_datasets_public=make_datasets_public,
       # The public demo uses the public pip package.
-      use_pip=True)
+      use_pip=True,
+      # Enable Google Analytics on the public demo.
+      disable_google_analytics=False)
 
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:
