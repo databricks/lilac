@@ -74,6 +74,8 @@
 
   const navStore = createNavigationStore();
   setNavigationContext(navStore);
+
+  $: console.log('testing');
 </script>
 
 <svelte:head>
