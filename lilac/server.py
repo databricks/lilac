@@ -12,9 +12,11 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, ORJSONRe
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import (
+  __version__,
   router_concept,
   router_data_loader,
   router_dataset,
@@ -96,6 +98,18 @@ def auth_info(request: Request) -> AuthenticationInfo:
     auth_enabled=env('LILAC_AUTH_ENABLED', False),
     # See: https://huggingface.co/docs/hub/spaces-overview#helper-environment-variables
     huggingface_space_id=env('SPACE_ID', None))
+
+
+class ServerStatus(BaseModel):
+  """Server status information."""
+  version: str
+  google_analytics_enabled: bool
+
+
+@app.get('/status')
+def status() -> ServerStatus:
+  """Returns server status information."""
+  return ServerStatus(version=__version__, google_analytics_enabled=env('PUBLIC_HF_ANALYTICS'))
 
 
 app.include_router(v1_router, prefix='/api/v1')

@@ -16,6 +16,7 @@ export default defineConfig({
       // Google login.
       '^/google': 'http://0.0.0.0:5432',
       '/auth_info': 'http://0.0.0.0:5432',
+      '/status': 'http://0.0.0.0:5432',
       // OpenAPI docs
       '^/docs': 'http://0.0.0.0:5432',
       '/openapi.json': 'http://0.0.0.0:5432'
