@@ -75,8 +75,6 @@
 
   const navStore = createNavigationStore();
   setNavigationContext(navStore);
-
-  $: console.log('testing');
 </script>
 
 <!-- Monitor for hash changes in the URL. -->
