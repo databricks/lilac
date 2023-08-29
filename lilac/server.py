@@ -110,7 +110,8 @@ class ServerStatus(BaseModel):
 def status() -> ServerStatus:
   """Returns server status information."""
   return ServerStatus(
-    version=metadata.version('lilac'), google_analytics_enabled=env('PUBLIC_HF_ANALYTICS', False))
+    version=metadata.version('lilac'),
+    google_analytics_enabled=env('GOOGLE_ANALYTICS_ENABLED', False))
 
 
 app.include_router(v1_router, prefix='/api/v1')

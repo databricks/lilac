@@ -90,7 +90,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
   # Build the web server Svelte & TypeScript.
   if not use_pip and not skip_build:
     print('Building webserver...')
-    run('PUBLIC_HF_ANALYTICS=1 ./scripts/build_server_prod.sh')
+    run('./scripts/build_server_prod.sh')
 
   hf_api = HfApi()
 
@@ -196,7 +196,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 HF_HOME=/data/.huggingface
 TRANSFORMERS_CACHE=/data/.cache
 XDG_CACHE_HOME=/data/.cache
-{'PUBLIC_HF_ANALYTICS=true' if not disable_google_analytics else ''}
+{'GOOGLE_ANALYTICS_ENABLED=true' if not disable_google_analytics else ''}
 """)
 
   # Create a .gitignore to avoid uploading unnecessary files.
