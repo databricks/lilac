@@ -436,7 +436,7 @@ def _str_field(field: Field, indent: int) -> str:
     return f'{prefix}{_str_fields(field.fields, indent)}'
   if field.repeated_field:
     return f' list({_str_field(field.repeated_field, indent)})'
-  return f' {cast(DataType, field.dtype)}'
+  return f' {cast(DataType, field.dtype).value}'
 
 
 def dtype_to_arrow_schema(dtype: DataType) -> Union[pa.Schema, pa.DataType]:

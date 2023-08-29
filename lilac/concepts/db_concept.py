@@ -376,7 +376,7 @@ class DiskConceptDB(ConceptDB):
       for root, _, files in os.walk(concept_dir):
         for file in files:
           if file == CONCEPT_JSON_FILENAME:
-            namespace, name = root.split('/')[-2:]
+            namespace, name = root.split(os.sep)[-2:]
             if default_namespace is not None:
               namespace = default_namespace
             if namespaces and namespace not in namespaces:

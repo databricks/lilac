@@ -12,7 +12,7 @@ from .server import start_server
 @click.option(
   '--host',
   help='The host address where the web server will listen to.',
-  default='0.0.0.0',
+  default='127.0.0.1',
   type=str)
 @click.option('--port', help='The port number of the web-server', type=int, default=5432)
 def start(host: str, port: int) -> None:

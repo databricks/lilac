@@ -13,19 +13,17 @@ ENV HOME=/home/user \
 # Set the working directory in the container.
 WORKDIR $HOME/app
 
-# Install the dependencies. This requires exporting requirements.txt from poetry first, which
-# happens from ./build_docker.sh.
-COPY --chown=user requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install the dependencies. This will look in ./dist for any wheels that match lilac. If they are
+# not found, it will use the public pip package.
+COPY --chown=user /dist ./dist/
+RUN python -m pip install --find-links=dist lilac
 
 COPY --chown=user .env .
 COPY --chown=user .env.demo .
 # Copy the README so we can read the datasets from the HuggingFace config.
 COPY --chown=user README.md .
+# Copy the license just in case.
 COPY --chown=user LICENSE .
-
-# Copy python files.
-COPY --chown=user /lilac ./lilac/
 
 COPY --chown=user docker_start.sh docker_start.py ./
 

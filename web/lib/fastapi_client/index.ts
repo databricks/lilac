@@ -57,6 +57,7 @@ export type { SelectRowsSchemaResult } from './models/SelectRowsSchemaResult';
 export type { SelectRowsSchemaUDF } from './models/SelectRowsSchemaUDF';
 export type { SemanticSearch } from './models/SemanticSearch';
 export type { SemanticSimilaritySignal } from './models/SemanticSimilaritySignal';
+export type { ServerStatus } from './models/ServerStatus';
 export type { Signal } from './models/Signal';
 export type { SignalComputeOptions } from './models/SignalComputeOptions';
 export type { SignalComputeResponse } from './models/SignalComputeResponse';

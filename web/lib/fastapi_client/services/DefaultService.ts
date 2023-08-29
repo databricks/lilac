@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AuthenticationInfo } from '../models/AuthenticationInfo';
+import type { ServerStatus } from '../models/ServerStatus';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -21,6 +22,19 @@ export class DefaultService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/auth_info',
+        });
+    }
+
+    /**
+     * Status
+     * Returns server status information.
+     * @returns ServerStatus Successful Response
+     * @throws ApiError
+     */
+    public static status(): CancelablePromise<ServerStatus> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/status',
         });
     }
 
