@@ -27,7 +27,7 @@ machine, we are sampling to 100,000 so we can get started quickly.
 ```python
 import lilac as ll
 
-source = ll.HuggingFaceDataset(dataset_name='Open-Orca/OpenOrca', sample_size=100_000)
+source = ll.HuggingFaceSource(dataset_name='Open-Orca/OpenOrca', sample_size=100_000)
 config = ll.DatasetConfig(namespace='local', name='open-orca-100k', source=source)
 dataset = ll.create_dataset(config)
 ```
