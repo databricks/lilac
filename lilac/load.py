@@ -37,7 +37,7 @@ from .utils import DebugTimer, get_datasets_dir
   'The file contents should be an instance of `lilac.Config` or `lilac.DatasetConfig`.')
 @click.option(
   '--overwrite',
-  help='When True, runs all all data from scratch, overwriting existing data. When false, only'
+  help='When True, runs all data from scratch, overwriting existing data. When false, only'
   'load new datasets, embeddings, and signals.',
   type=bool,
   is_flag=True,
@@ -52,7 +52,8 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
   old_data_path = os.environ.get('LILAC_DATA_PATH')
   os.environ['LILAC_DATA_PATH'] = output_dir
   # Turn off debug logging.
-  del os.environ['DEBUG']
+  if 'DEBUG' in os.environ:
+    del os.environ['DEBUG']
   # Use views to avoid loading duckdb tables into RAM since we aren't query heavy.
   os.environ['DUCKDB_USE_VIEWS'] = '1'
 

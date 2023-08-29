@@ -57,25 +57,23 @@
 
   $: {
     if (selectedMediaFields == null) {
-      const mediaPathsFromSettings = $settings.data?.ui?.media_paths?.map(p =>
+      const mediaPathsFromSettings = ($settings.data?.ui?.media_paths || []).map(p =>
         Array.isArray(p) ? p : [p]
       );
-      if (mediaPathsFromSettings != null) {
-        selectedMediaFields = mediaFields.filter(f =>
-          mediaPathsFromSettings.some(path => pathIsEqual(f.path, path))
-        );
-      }
+      selectedMediaFields = mediaFields.filter(f =>
+        mediaPathsFromSettings.some(path => pathIsEqual(f.path, path))
+      );
     }
   }
 
   $: {
     if (markdownMediaFields == null) {
-      const mardownPathsFromSettings = $settings.data?.ui?.markdown_paths;
-      if (mardownPathsFromSettings != null) {
-        markdownMediaFields = mediaFields.filter(f =>
-          mardownPathsFromSettings.some(path => pathIsEqual(f.path, path))
-        );
-      }
+      const mardownPathsFromSettings = ($settings.data?.ui?.markdown_paths || []).map(p =>
+        Array.isArray(p) ? p : [p]
+      );
+      markdownMediaFields = mediaFields.filter(f =>
+        mardownPathsFromSettings.some(path => pathIsEqual(f.path, path))
+      );
     }
   }
 
@@ -140,6 +138,8 @@
                     fields={mediaFields}
                     bind:checkedFields={selectedMediaFields}
                   />
+                {:else}
+                  <SelectSkeleton />
                 {/if}
               </section>
 
@@ -172,6 +172,8 @@
                     fields={selectedMediaFields}
                     bind:checkedFields={markdownMediaFields}
                   />
+                {:else}
+                  <SelectSkeleton />
                 {/if}
               </section>
             </div>

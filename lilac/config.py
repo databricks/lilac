@@ -129,6 +129,11 @@ class DatasetUISettings(BaseModel):
     """Parse a path, ensuring it is a tuple."""
     return [normalize_path(path) for path in media_paths]
 
+  @validator('markdown_paths', pre=True)
+  def parse_markdown_paths(cls, markdown_paths: list) -> list:
+    """Parse a path, ensuring it is a tuple."""
+    return [normalize_path(path) for path in markdown_paths]
+
   def dict(
     self,
     *,

@@ -40,7 +40,7 @@ def cli() -> None:
 
 cli.add_command(start)
 cli.add_command(version)
-cli.add_command(load)
+cli.add_command(load, name='load')
 cli.add_command(concepts)
 
 if __name__ == '__main__':
