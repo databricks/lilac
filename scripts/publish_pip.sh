@@ -10,11 +10,19 @@ if [[ -z "${PYPI_TOKEN}" ]]; then
   exit 1
 fi
 
-CUR_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+CHANGES=`git status --porcelain`
+CUR_BRANCH=`git rev-parse --abbrev-ref HEAD`
 
 if [[ "$CUR_BRANCH" != "nik-publish" ]]; then
   echo "Please checkout the main branch before publishing."
   exit 1
+fi
+
+if [ ! -z "$CHANGES" ];
+then
+    echo "Make sure the main branch has no changes. Found changes:"
+    echo $CHANGES
+    exit 1
 fi
 
 # Build the web server.
@@ -22,24 +30,34 @@ fi
 
 exit 1
 
+# Upgrade the version in pyproject.
 poetry version patch
 
-NEW_VERSION=$(poetry version --short)
+NEW_VERSION=`poetry version --short`
+NEW_VERSION_ID="v$NEW_VERSION"
 
-gh pr create --title "Bump version to $NEW_VERSION" --web
-
+# PYPI_TOKEN must be set in .env.local.
 poetry config pypi-token.pypi $PYPI_TOKEN
+
+# Build the wheel file.
 poetry build
+
+# Publish to pip.
 
 read -p "Continue (y/n)? " CONT
 if [ "$CONT" = "y" ]; then
   poetry publish
   echo "Published $(poetry version)"
-
-  echo "Please run ./scripts/tag_version.sh to tag the version after the PR is committed."
 else
   echo "Did not publish"
   exit 1
 fi
 
-gh release create
+# Commit directly to main.
+git commit -a -m "Bump version to $NEW_VERSION."
+git push origin main
+
+gh release create "$NEW_VERSION_ID" ./dist/*.whl \
+  --generate-notes \
+  --latest \
+  --title "$NEW_VERSION_ID"
