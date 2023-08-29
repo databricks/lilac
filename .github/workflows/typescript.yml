@@ -1,3 +1,4 @@
+name: UI lint and test
 on:
   pull_request:
     types: [opened, reopened, synchronize]
