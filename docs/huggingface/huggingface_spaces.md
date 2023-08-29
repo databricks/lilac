@@ -53,6 +53,8 @@ The modal also contains options for environment variables.
   to use `./data` because it has been given writen permissions by the docker image. See
   [HuggingFace Disk usage on Spaces](https://huggingface.co/docs/hub/spaces-storage) for
   documentation on Persistent Storage.
+- `GOOGLE_ANALYTICS_ENABLED`: Set this to "false" to disable our Google Analytics tracking on the
+  HuggingFace demo. We use this just to track basic session information on the public demo.
 
 After you click the duplicate space button, the space will be duplicated and start building the
 docker image in your own space.

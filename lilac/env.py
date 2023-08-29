@@ -60,6 +60,10 @@ class LilacEnvironment(BaseModel):
     description='The Google OAuth random secret key. Details can be found at '
     'https://developers.google.com/identity/protocols/oauth2.')
 
+  # Other settings.
+  GOOGLE_ANALYTICS_ENABLED: str = PydanticField(
+    description='Set to to true to enable Google analytics.')
+
 
 def _init_env() -> None:
   in_test = os.environ.get('LILAC_TEST', None)

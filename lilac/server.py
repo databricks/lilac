@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import webbrowser
+from importlib import metadata
 from typing import Any, Optional
 
 import uvicorn
@@ -12,6 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, ORJSONRe
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import (
@@ -98,6 +100,20 @@ def auth_info(request: Request) -> AuthenticationInfo:
     huggingface_space_id=env('SPACE_ID', None))
 
 
+class ServerStatus(BaseModel):
+  """Server status information."""
+  version: str
+  google_analytics_enabled: bool
+
+
+@app.get('/status')
+def status() -> ServerStatus:
+  """Returns server status information."""
+  return ServerStatus(
+    version=metadata.version('lilac'),
+    google_analytics_enabled=env('GOOGLE_ANALYTICS_ENABLED', False))
+
+
 app.include_router(v1_router, prefix='/api/v1')
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -149,7 +165,7 @@ logging.getLogger('uvicorn.access').addFilter(GetTasksFilter())
 SERVER: Optional[uvicorn.Server] = None
 
 
-def start_server(host: str = '0.0.0.0', port: int = 5432, open: bool = False) -> None:
+def start_server(host: str = '127.0.0.1', port: int = 5432, open: bool = False) -> None:
   """Starts the Lilac web server.
 
   Args:

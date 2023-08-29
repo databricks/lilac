@@ -10,15 +10,16 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '^/api': 'http://0.0.0.0:5432',
+      '^/api': 'http://127.0.0.1:5432',
       // Listing data files.
-      '^/_data': 'http://0.0.0.0:5432',
+      '^/_data': 'http://127.0.0.1:5432',
       // Google login.
-      '^/google': 'http://0.0.0.0:5432',
-      '/auth_info': 'http://0.0.0.0:5432',
+      '^/google': 'http://127.0.0.1:5432',
+      '/auth_info': 'http://127.0.0.1:5432',
+      '/status': 'http://127.0.0.1:5432',
       // OpenAPI docs
-      '^/docs': 'http://0.0.0.0:5432',
-      '/openapi.json': 'http://0.0.0.0:5432'
+      '^/docs': 'http://127.0.0.1:5432',
+      '/openapi.json': 'http://127.0.0.1:5432'
     }
   }
 });

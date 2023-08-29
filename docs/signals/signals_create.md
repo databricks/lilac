@@ -103,7 +103,7 @@ Output:
 INFO:     Started server process [51748]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:5432 (Press CTRL+C to quit)
+INFO:     Uvicorn running on http://127.0.0.1:5432 (Press CTRL+C to quit)
 ```
 
 Let's open the webserver in our web browser. You'll notice the signal is now in the list of signals

@@ -1,9 +1,11 @@
+name: UI
 on:
   pull_request:
     types: [opened, reopened, synchronize]
 
 jobs:
   build:
+    name: 'front-end lint and test'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
