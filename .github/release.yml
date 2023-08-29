@@ -8,7 +8,7 @@ changelog:
     - title: Breaking Changes 🛠
       labels:
         - breaking-change
-    - title: Exciting New Features 🎉
+    - title: New Features 🎉
       labels:
         - enhancement
     - title: Other Changes
