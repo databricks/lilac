@@ -1,5 +1,13 @@
 #!/bin/bash
+# Important!
+# Make sure you have `gh` installed and are logged in with:
+#  $ brew install gh
+#  $ gh auth login
+
 set -e # Fail if any of the commands below fail.
+
+# Make sure the user is logged into github and has `gh` installed.
+gh auth status || exit 1
 
 set -o allexport
 source .env.local
@@ -40,6 +48,7 @@ poetry config pypi-token.pypi $PYPI_TOKEN
 
 # Build the wheel file.
 echo "Building wheel..."
+rm -rf dist/*
 poetry build
 
 # Publish to pip.
