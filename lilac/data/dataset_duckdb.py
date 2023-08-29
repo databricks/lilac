@@ -657,6 +657,8 @@ class DatasetDuckDB(Dataset):
       bins: Optional[Union[Sequence[Bin], Sequence[float]]] = None) -> SelectGroupsResult:
     if not leaf_path:
       raise ValueError('leaf_path must be provided')
+    sort_by = sort_by or GroupsSortBy.COUNT
+    sort_order = sort_order or SortOrder.DESC
     path = normalize_path(leaf_path)
     manifest = self.manifest()
     leaf = manifest.data_schema.get_field(path)
