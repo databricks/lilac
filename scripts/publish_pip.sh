@@ -48,6 +48,7 @@ poetry config pypi-token.pypi $PYPI_TOKEN
 
 # Build the wheel file.
 echo "Building wheel..."
+rm -rf dist/*
 poetry build
 
 # Publish to pip.
