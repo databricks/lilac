@@ -29,8 +29,6 @@ fi
 echo "Building webserver..."
 ./scripts/build_server_prod.sh
 
-exit 1
-
 # Upgrade the version in pyproject.
 poetry version patch
 
