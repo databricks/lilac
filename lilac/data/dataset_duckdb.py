@@ -705,8 +705,8 @@ class DatasetDuckDB(Dataset):
       if stats.approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
         return SelectGroupsResult(too_many_distinct=True, counts=[], bins=named_bins)
 
-    count_column = 'count'
-    value_column = 'value'
+    count_column = GroupsSortBy.COUNT.value
+    value_column = GroupsSortBy.VALUE.value
 
     limit_query = f'LIMIT {limit}' if limit else ''
     duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
@@ -724,7 +724,7 @@ class DatasetDuckDB(Dataset):
       SELECT {outer_select} AS {value_column}, COUNT() AS {count_column}
       FROM (SELECT {inner_select} AS {inner_val} FROM t {where_query})
       GROUP BY {value_column}
-      ORDER BY {sort_by} {sort_order}
+      ORDER BY {sort_by.value} {sort_order.value}
       {limit_query}
     """
     df = self._query_df(query)
