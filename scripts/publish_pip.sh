@@ -13,19 +13,20 @@ fi
 CHANGES=`git status --porcelain`
 CUR_BRANCH=`git rev-parse --abbrev-ref HEAD`
 
-if [[ "$CUR_BRANCH" != "nik-publish" ]]; then
+if [[ "$CUR_BRANCH" != "main" ]]; then
   echo "Please checkout the main branch before publishing."
   exit 1
 fi
 
 if [ ! -z "$CHANGES" ];
 then
-    echo "Make sure the main branch has no changes. Found changes:"
-    echo $CHANGES
-    exit 1
+  echo "Make sure the main branch has no changes. Found changes:"
+  echo $CHANGES
+  exit 1
 fi
 
 # Build the web server.
+echo "Building webserver..."
 ./scripts/build_server_prod.sh
 
 exit 1
@@ -34,12 +35,13 @@ exit 1
 poetry version patch
 
 NEW_VERSION=`poetry version --short`
-NEW_VERSION_ID="v$NEW_VERSION"
+TAG_ID="v$NEW_VERSION"
 
 # PYPI_TOKEN must be set in .env.local.
 poetry config pypi-token.pypi $PYPI_TOKEN
 
 # Build the wheel file.
+echo "Building wheel..."
 poetry build
 
 # Publish to pip.
@@ -54,10 +56,18 @@ else
 fi
 
 # Commit directly to main.
+echo "Commiting version in pyproject.toml to main..."
 git commit -a -m "Bump version to $NEW_VERSION."
 git push origin main
 
-gh release create "$NEW_VERSION_ID" ./dist/*.whl \
+# Create the tag and push it.
+echo "Tagging with $TAG_ID..."
+git tag "$TAG_ID" && git push --tags
+
+# Create the release with auto-generated release notes.
+echo "Creating release..."
+gh release create "$TAG_ID" ./dist/*.whl \
   --generate-notes \
   --latest \
-  --title "$NEW_VERSION_ID"
+  --title "$TAG_ID" \
+  --verify-tag
