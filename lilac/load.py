@@ -61,8 +61,10 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
 
   # Explicitly create a dask client in sync mode.
   dask.config.set({'distributed.worker.daemon': False})
+  # Use threads instead of processes to avoid running out of RAM.
+  dask.config.set(scheduler='threads')
   total_memory_gb = psutil.virtual_memory().total / (1024**3) * 2 / 3
-  task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB'))
+  task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB', processes=False))
 
   if overwrite:
     shutil.rmtree(get_datasets_dir(output_dir), ignore_errors=True)
@@ -166,11 +168,10 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
             task_manager.execute(task_id, _compute_signal, d.namespace, d.name, s, output_dir,
                                  overwrite, (task_id, 0))
+            # Wait for each signal to reduce memory pressure.
+            task_manager.wait()
           else:
             print(f'Signal {s.signal} already exists for {d.name}:{s.path}. Skipping.')
-
-        # Wait for all signals for each path to reduce the memory pressure.
-        task_manager.wait()
 
       del dataset
 
