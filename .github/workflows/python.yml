@@ -18,15 +18,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.11']
     timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v3
       - name: Install poetry
         run: pipx install poetry
-      - uses: actions/setup-python@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
           cache: 'poetry'
       - name: Install dependencies
         # Re-install pytorch for cpu to avoid errors that cuda was not found
