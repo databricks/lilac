@@ -180,6 +180,7 @@
         data={negativeExamples}
         on:remove={ev => remove(ev.detail)}
         on:add={ev => add(ev.detail, false)}
+        {canEditConcept}
       />
     </div>
   </div>
