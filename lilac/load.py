@@ -110,6 +110,7 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
     if d.settings:
       dataset = DatasetDuckDB(d.namespace, d.name)
       dataset.update_settings(d.settings)
+      del dataset
 
   print()
   print('*** Compute embeddings ***')
@@ -137,6 +138,7 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
           print(f'Embedding {e.embedding} already exists for {d.name}:{e.path}. Skipping.')
 
       del dataset
+      gc.collect()
 
       # Wait for all embeddings for each dataset to reduce the memory pressure.
       task_manager.wait()
