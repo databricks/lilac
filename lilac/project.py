@@ -16,7 +16,7 @@ def project_path_from_args(project_path_arg: str) -> str:
   if not project_path:
     project_path = '.'
 
-  return project_path
+  return os.path.expanduser(project_path)
 
 
 def dir_is_project(project_path: str) -> bool:
