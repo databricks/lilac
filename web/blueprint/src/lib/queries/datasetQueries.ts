@@ -121,7 +121,7 @@ export const querySelectRows = createApiQuery(async function selectRows(
     total_num_rows: res.total_num_rows
   };
 },
-DATASETS_TAG);
+'DATASETS_TAG');
 
 export const querySelectRowsSchema = createApiQuery(
   DatasetsService.selectRowsSchema,
