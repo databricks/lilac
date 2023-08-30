@@ -1,7 +1,9 @@
 """Project utilities."""
 import os
 
+from .config import Config
 from .env import env
+from .utils import to_yaml
 
 PROJECT_CONFIG_FILENAME = 'lilac.yml'
 
@@ -28,9 +30,9 @@ def dir_is_project(project_path: str) -> bool:
 def create_project(project_path: str) -> None:
   """Creates an empty lilac project."""
   with open(os.path.join(project_path, PROJECT_CONFIG_FILENAME), 'w') as f:
-    f.write(
-      '# Lilac project config. See https://lilacml.com/api_reference/index.html#lilac.Config for details.\n'
-    )
+    f.write('# Lilac project config. See https://lilacml.com/api_reference/index.html#lilac.Config '
+            'for details.\n\n' +
+            to_yaml(Config(datasets=[]).dict(exclude_defaults=True, exclude_none=True)))
 
 
 def create_project_and_set_env(project_path_arg: str) -> None:

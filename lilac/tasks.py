@@ -47,6 +47,11 @@ class TaskStatus(str, Enum):
   ERROR = 'error'
 
 
+class TaskType(str, Enum):
+  """Enum holding a task type."""
+  DATASET_LOAD = 'dataset_load'
+
+
 class TaskStepInfo(BaseModel):
   """Information about a step of the task.."""
   progress: Optional[float] = None
@@ -57,6 +62,7 @@ class TaskStepInfo(BaseModel):
 class TaskInfo(BaseModel):
   """Metadata about a task."""
   name: str
+  type: Optional[TaskType]
   status: TaskStatus
   progress: Optional[float] = None
   message: Optional[str] = None
@@ -104,7 +110,11 @@ class TaskManager:
       if task.status == TaskStatus.COMPLETED:
         continue
 
-      step_events = cast(Any, self._dask_client.get_events(_progress_event_topic(task_id)))
+      try:
+        step_events = cast(Any, self._dask_client.get_events(_progress_event_topic(task_id)))
+      except Exception as e:
+        return None
+
       # This allows us to work with both sync and async clients.
       if not isinstance(step_events, tuple):
         step_events = await step_events
@@ -149,11 +159,15 @@ class TaskManager:
     if self._futures:
       wait(self._futures)
 
-  def task_id(self, name: str, description: Optional[str] = None) -> TaskId:
+  def task_id(self,
+              name: str,
+              type: Optional[TaskType] = None,
+              description: Optional[str] = None) -> TaskId:
     """Create a unique ID for a task."""
     task_id = uuid.uuid4().hex
     self._tasks[task_id] = TaskInfo(
       name=name,
+      type=type,
       status=TaskStatus.PENDING,
       progress=None,
       description=description,
@@ -206,7 +220,7 @@ class TaskManager:
 
 
 @functools.cache
-def task_manager() -> TaskManager:
+def get_task_manager() -> TaskManager:
   """The global singleton for the task manager."""
   return TaskManager()
 

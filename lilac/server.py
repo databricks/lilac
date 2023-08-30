@@ -3,12 +3,14 @@
 import asyncio
 import logging
 import os
+import time
 import webbrowser
 from importlib import metadata
 from typing import Any, Optional
 
+import requests
 import uvicorn
-from fastapi import APIRouter, FastAPI, Request, Response
+from fastapi import APIRouter, BackgroundTasks, FastAPI, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
@@ -32,9 +34,10 @@ from .auth import (
   get_user_access,
 )
 from .env import data_path, env
-from .project import create_project_and_set_env
+from .load import load
+from .project import PROJECT_CONFIG_FILENAME, create_project_and_set_env
 from .router_utils import RouteErrorHandler
-from .tasks import task_manager
+from .tasks import get_task_manager
 
 DIST_PATH = os.path.join(os.path.dirname(__file__), 'web')
 
@@ -115,6 +118,22 @@ def status() -> ServerStatus:
     google_analytics_enabled=env('GOOGLE_ANALYTICS_ENABLED', False))
 
 
+@app.post('/load_config')
+def load_config(background_tasks: BackgroundTasks) -> dict:
+  """Loads from the lilac.yml."""
+
+  def _load() -> None:
+    load(
+      output_dir=data_path(),
+      config_path=os.path.join(data_path(), PROJECT_CONFIG_FILENAME),
+      overwrite=False,
+      task_manager=get_task_manager())
+
+  print('loading post endpoint')
+  background_tasks.add_task(_load)
+  return {}
+
+
 app.include_router(v1_router, prefix='/api/v1')
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -147,18 +166,10 @@ def catch_all() -> FileResponse:
 app.mount('/', StaticFiles(directory=DIST_PATH, html=True, check_dir=False))
 
 
-@app.on_event('startup')
-async def startup() -> None:
-  """Load data from config.yml."""
-  global SKIP_LOAD
-  if not SKIP_LOAD:
-    print('loading data from config yml.')
-
-
 @app.on_event('shutdown')
 async def shutdown_event() -> None:
   """Kill the task manager when FastAPI shuts down."""
-  await task_manager().stop()
+  await get_task_manager().stop()
 
 
 class GetTasksFilter(logging.Filter):
@@ -172,7 +183,6 @@ class GetTasksFilter(logging.Filter):
 logging.getLogger('uvicorn.access').addFilter(GetTasksFilter())
 
 SERVER: Optional[uvicorn.Server] = None
-SKIP_LOAD = False
 
 
 def start_server(host: str = '127.0.0.1',
@@ -191,8 +201,6 @@ def start_server(host: str = '127.0.0.1',
     skip_load: Whether to skip loading from the lilac.yml when the server boots up.
   """
   create_project_and_set_env(project_path)
-  global SKIP_LOAD
-  SKIP_LOAD = skip_load
 
   global SERVER
   if SERVER:
@@ -211,6 +219,26 @@ def start_server(host: str = '127.0.0.1',
     @app.on_event('startup')
     def open_browser() -> None:
       webbrowser.open(f'http://{host}:{port}')
+
+      if not skip_load:
+
+        def _post_load() -> None:
+          server_ready = False
+          while not server_ready:
+            try:
+              server_ready = requests.get((f'http://{host}:{port}/status'),
+                                          timeout=.200).status_code == 200
+            except Exception as e:
+              server_ready = False
+            time.sleep(.1)
+          try:
+            # Load the config.
+            requests.post(f'http://{host}:{port}/load_config')
+          except Exception as e:
+            print('error:', e)
+
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(None, _post_load)
 
   try:
     loop = asyncio.get_event_loop()

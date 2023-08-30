@@ -18,7 +18,7 @@ from .data_loader import process_source
 from .env import data_path
 from .router_utils import RouteErrorHandler
 from .sources.source_registry import get_source_cls, registered_sources
-from .tasks import TaskId, task_manager
+from .tasks import TaskId, TaskType, get_task_manager
 
 REQUEST_TIMEOUT_SEC = 30 * 60  # 30 mins.
 
@@ -76,10 +76,11 @@ async def load(source_name: str, options: LoadDatasetOptions,
     raise ValueError(f'Unknown source: {source_name}')
   source = source_cls(**options.config)
 
-  task_id = task_manager().task_id(
+  task_id = get_task_manager().task_id(
     name=f'[{options.namespace}/{options.dataset_name}] Load dataset',
+    type=TaskType.DATASET_LOAD,
     description=f'Loader: {source.name}. \n Config: {source}')
-  task_manager().execute(
+  get_task_manager().execute(
     task_id, process_source, data_path(),
     DatasetConfig(namespace=options.namespace, name=options.dataset_name, source=source),
     (task_id, 0))
