@@ -35,7 +35,6 @@
   $: userId = $authInfo.data?.user?.id;
 
   $: defaultNamespace = command.namespace || (authEnabled ? userId : null);
-  console.log('cnms', defaultNamespace);
 
   let namespace = defaultNamespace || 'local';
   $: {
