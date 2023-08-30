@@ -1,7 +1,7 @@
 from importlib import metadata
 
 from .concepts import *  # noqa: F403
-from .config import DatasetConfig, DatasetSettings, EmbeddingConfig, SignalConfig
+from .config import Config, DatasetConfig, DatasetSettings, EmbeddingConfig, SignalConfig
 from .data import *  # noqa: F403
 from .data.dataset_duckdb import DatasetDuckDB
 from .data_loader import create_dataset
@@ -37,6 +37,7 @@ __all__ = [
   'stop_server',
   'create_dataset',
   'get_dataset',
+  'Config',
   'DatasetConfig',
   'EmbeddingConfig',
   'SignalConfig',

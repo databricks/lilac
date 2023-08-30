@@ -1,13 +1,26 @@
 # Load a dataset
 
 ```{tip}
-[Explore popular datasets in Lilac on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)
+[Explore popular datasets in Lilac on HuggingFace](https://lilacai-lilac.hf.space/)
 ```
 
 Loading a dataset can be done from the UI or from Python. See [](#lilac.sources) for details on
 available sources.
 
 ## From the UI
+
+### Start the webserver
+
+To start the webserver at a lilac project directory:
+
+```sh
+lilac start ~/my_project
+```
+
+This will start an empty lilac project under `~/my_project`, with an empty `lilac.yml` and start the
+webserver. The configuration for `lilac.yml` can be found at [](#Config). The `lilac.yml` file will
+stay up to date with interactions from the UI. This can be manually edited, or just changed via the
+UI.
 
 To load a dataset from the UI, click the "Add dataset" button from the "Getting Started" homepage.
 
@@ -47,6 +60,20 @@ After you click "Add", a task will be created:
 You will be redirected to the dataset view once your data is loaded.
 
 ## From Python
+
+### Loading from lilac.yml
+
+When you start a webserver, Lilac will automatically create a project for you in the given project
+path.
+
+```python
+import lilac as ll
+ll.start_server(project_path='~/my_lilac')
+```
+
+An empty `lilac.yml` file will be created in the root of the project directory.
+
+### Loading an individual dataset
 
 This example loads the `glue` dataset with the `ax` config from HuggingFace:
 

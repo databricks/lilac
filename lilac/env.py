@@ -63,6 +63,8 @@ class LilacEnvironment(BaseModel):
   # Other settings.
   GOOGLE_ANALYTICS_ENABLED: str = PydanticField(
     description='Set to to true to enable Google analytics.')
+  DISABLE_LOAD_ON_START: str = PydanticField(
+    description='When true, will not try to load from lilac.yml upon startup.')
 
 
 def _init_env() -> None:

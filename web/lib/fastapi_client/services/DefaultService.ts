@@ -38,4 +38,17 @@ export class DefaultService {
         });
     }
 
+    /**
+     * Load Config
+     * Loads from the lilac.yml.
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static loadConfig(): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/load_config',
+        });
+    }
+
 }

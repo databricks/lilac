@@ -32,7 +32,7 @@ from .signals.concept_labels import ConceptLabelsSignal
 from .signals.concept_scorer import ConceptSignal
 from .signals.semantic_similarity import SemanticSimilaritySignal
 from .signals.substring_search import SubstringSignal
-from .tasks import TaskId, task_manager
+from .tasks import TaskId, get_task_manager
 from .utils import to_yaml
 
 router = APIRouter(route_class=RouteErrorHandler)
@@ -103,11 +103,11 @@ def compute_signal(namespace: str, dataset_name: str,
     dataset.compute_signal(options.signal, options.leaf_path, task_step_id=(task_id, 0))
 
   path_str = '.'.join(map(str, options.leaf_path))
-  task_id = task_manager().task_id(
+  task_id = get_task_manager().task_id(
     name=f'[{namespace}/{dataset_name}] Compute signal "{options.signal.name}" on "{path_str}"',
     description=f'Config: {options.signal}')
-  task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name, options.dict(),
-                         task_id)
+  get_task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name, options.dict(),
+                             task_id)
 
   return ComputeSignalResponse(task_id=task_id)
 

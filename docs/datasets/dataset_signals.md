@@ -1,7 +1,7 @@
 # Apply a signal to a dataset
 
 ```{tip}
-[Explore enriched datasets in Lilac on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)
+[Explore enriched datasets in Lilac on HuggingFace](https://lilacai-lilac.hf.space/)
 ```
 
 [Signals](../signals/signals.md) can be applied to an entire dataset to add metadata to each row of
