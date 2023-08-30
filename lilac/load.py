@@ -13,7 +13,6 @@ import shutil
 from typing import Optional
 
 import click
-import dask
 import psutil
 from distributed import Client
 
@@ -64,12 +63,10 @@ def load(output_dir: str,
   config = read_config(config_path)
 
   # Use threads instead of processes to avoid running out of RAM.
-  dask.config.set(scheduler='threads')
   if not task_manager:
     task_manager = get_task_manager()
   else:
     # Explicitly create a dask client in sync mode.
-    dask.config.set({'distributed.worker.daemon': False})
     total_memory_gb = psutil.virtual_memory().total / (1024**3) * 2 / 3
     task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB', processes=False))
 

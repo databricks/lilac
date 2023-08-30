@@ -100,10 +100,11 @@ class TaskManager:
     # Set dasks workers to be non-daemonic so they can spawn child processes if they need to. This
     # is particularly useful for signals that use libraries with multiprocessing support.
     dask.config.set({'distributed.worker.daemon': False})
+    dask.config.set(scheduler='threads')
 
     total_memory_gb = psutil.virtual_memory().total / (1024**3)
     self._dask_client = dask_client or Client(
-      asynchronous=True, memory_limit=f'{total_memory_gb} GB')
+      asynchronous=True, memory_limit=f'{total_memory_gb} GB', processes=False)
 
   async def _update_tasks(self) -> None:
     for task_id, task in list(self._tasks.items()):
