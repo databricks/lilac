@@ -17,6 +17,8 @@ WORKDIR $HOME/app
 # not found, it will use the public pip package.
 COPY --chown=user /dist ./dist/
 RUN python -m pip install --find-links=dist lilac
+RUN pip install --find-links=dist lilac
+RUN pip install lilac[gte]
 
 COPY --chown=user .env .
 COPY --chown=user .env.demo .

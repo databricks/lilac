@@ -19,7 +19,7 @@
   $: username = $authInfo.data?.user?.given_name;
   $: canCreateDataset = $authInfo.data?.access.create_dataset;
   // TODO(nsthorat): Make this a separate bit for canCreateConcepts.
-  $: canCreateConcepts = !$authInfo.data?.auth_enabled;
+  $: canCreateConcepts = !$authInfo.data?.auth_enabled || $authInfo.data?.user != null;
 
   const urlHashContext = getUrlHashContext();
   const navStore = getNavigationContext();
