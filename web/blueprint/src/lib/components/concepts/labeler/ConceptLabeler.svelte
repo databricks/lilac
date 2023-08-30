@@ -16,7 +16,6 @@
   let path: string[] | undefined;
   let embedding: string | undefined = undefined;
 
-  $: console.log(dataset?.namespace, dataset?.name);
   $: schemaQuery =
     dataset?.namespace != null && dataset.name != null
       ? maybeQueryDatasetSchema(dataset?.namespace, dataset?.name)
