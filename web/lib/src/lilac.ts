@@ -38,7 +38,6 @@ export type Filter = BinaryFilter | UnaryFilter | ListFilter;
 
 export type LilacField<S extends Signal = Signal> = Field & {
   path: Path;
-  parent?: LilacField;
   // Overwrite the fields and repeated_field properties to be LilacField
   repeated_field?: LilacField;
   fields?: Record<string, LilacField>;
@@ -205,18 +204,20 @@ export function getValueNodes(row: LilacValueNode, path: Path): LilacValueNode[]
 }
 
 /** Determine if a field is produced by a signal. */
-export function isSignalField(field: LilacField): boolean {
-  return getSignalInfo(field) != null;
+export function isSignalField(schema: LilacSchema, field: LilacField): boolean {
+  return getSignalInfo(schema, field) != null;
 }
 
 /** If a field is produced by a signal, it returns the signal information. Otherwise returns null. */
-export function getSignalInfo(field: LilacField): Signal | null {
+export function getSignalInfo(schema: LilacSchema, field: LilacField): Signal | null {
   if (field.signal) {
     return field.signal;
   }
-  if (field.parent) {
-    return getSignalInfo(field.parent);
+  if (field.path.length > 1) {
+    const parent = getField(schema, field.path.slice(0, -1))!;
+    return getSignalInfo(schema, parent);
   }
+
   return null;
 }
 
@@ -259,14 +260,12 @@ export function deserializeField(field: Field, path: Path = []): LilacField {
     for (const [fieldName, field] of Object.entries(fields)) {
       const lilacChildField = deserializeField(field, [...path, fieldName]);
       lilacChildField.path = [...path, fieldName];
-      lilacChildField.parent = lilacField;
       lilacField.fields[fieldName] = lilacChildField;
     }
   }
   if (repeated_field != null) {
     const lilacChildField = deserializeField(repeated_field, [...path, PATH_WILDCARD]);
     lilacChildField.path = [...path, PATH_WILDCARD];
-    lilacChildField.parent = lilacField;
     lilacField.repeated_field = lilacChildField;
   }
   return lilacField;
