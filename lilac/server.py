@@ -129,7 +129,6 @@ def load_config(background_tasks: BackgroundTasks) -> dict:
       overwrite=False,
       task_manager=get_task_manager())
 
-  print('loading post endpoint')
   background_tasks.add_task(_load)
   return {}
 
@@ -235,7 +234,7 @@ def start_server(host: str = '127.0.0.1',
             # Load the config.
             requests.post(f'http://{host}:{port}/load_config')
           except Exception as e:
-            print('error:', e)
+            print('Error loading config: ', e)
 
         loop = asyncio.get_running_loop()
         loop.run_in_executor(None, _post_load)
