@@ -32,6 +32,7 @@ from .auth import (
   get_user_access,
 )
 from .env import data_path, env
+from .project import create_project_and_set_env
 from .router_utils import RouteErrorHandler
 from .tasks import task_manager
 
@@ -146,6 +147,14 @@ def catch_all() -> FileResponse:
 app.mount('/', StaticFiles(directory=DIST_PATH, html=True, check_dir=False))
 
 
+@app.on_event('startup')
+async def startup() -> None:
+  """Load data from config.yml."""
+  global SKIP_LOAD
+  if not SKIP_LOAD:
+    print('loading data from config yml.')
+
+
 @app.on_event('shutdown')
 async def shutdown_event() -> None:
   """Kill the task manager when FastAPI shuts down."""
@@ -163,16 +172,28 @@ class GetTasksFilter(logging.Filter):
 logging.getLogger('uvicorn.access').addFilter(GetTasksFilter())
 
 SERVER: Optional[uvicorn.Server] = None
+SKIP_LOAD = False
 
 
-def start_server(host: str = '127.0.0.1', port: int = 5432, open: bool = False) -> None:
+def start_server(host: str = '127.0.0.1',
+                 port: int = 5432,
+                 open: bool = False,
+                 project_path: str = '',
+                 skip_load: bool = False) -> None:
   """Starts the Lilac web server.
 
   Args:
     host: The host to run the server on.
     port: The port to run the server on.
     open: Whether to open a browser tab upon startup.
+    project_path: The path to the Lilac project path. If not specified, the LILAC_DATA_PATH
+      will be used. If LILAC_DATA_PATH is not defined, will start in the current directory.
+    skip_load: Whether to skip loading from the lilac.yml when the server boots up.
   """
+  create_project_and_set_env(project_path)
+  global SKIP_LOAD
+  SKIP_LOAD = skip_load
+
   global SERVER
   if SERVER:
     raise ValueError('Server is already running')
