@@ -100,7 +100,7 @@ class TaskManager:
       asynchronous=True, memory_limit=f'{total_memory_gb} GB')
 
   async def _update_tasks(self) -> None:
-    for task_id, task in self._tasks.items():
+    for task_id, task in list(self._tasks.items()):
       if task.status == TaskStatus.COMPLETED:
         continue
 

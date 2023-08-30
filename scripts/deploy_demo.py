@@ -19,8 +19,6 @@ Add:
   --skip_build to skip building the web server TypeScript.
   --skip_deploy to skip deploying to HuggingFace. Useful to test locally.
 """
-import os
-import shutil
 import subprocess
 
 import click
@@ -81,9 +79,6 @@ def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip
     hf_api = HfApi()
     # Get all the datasets uploaded in the org.
     hf_dataset_repos = [dataset.id for dataset in hf_api.list_datasets(author=hf_space_org)]
-
-    repo_basedir = os.path.join(data_dir, '.hf_sync')
-    shutil.rmtree(repo_basedir, ignore_errors=True)
 
     for dataset in read_config(config).datasets:
       repo_id = get_hf_dataset_repo_id(hf_space_org, hf_space_name, dataset.namespace, dataset.name)

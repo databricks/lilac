@@ -37,7 +37,7 @@ from .utils import DebugTimer, get_datasets_dir
   'The file contents should be an instance of `lilac.Config` or `lilac.DatasetConfig`.')
 @click.option(
   '--overwrite',
-  help='When True, runs all all data from scratch, overwriting existing data. When false, only'
+  help='When True, runs all data from scratch, overwriting existing data. When false, only'
   'load new datasets, embeddings, and signals.',
   type=bool,
   is_flag=True,
@@ -52,7 +52,8 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
   old_data_path = os.environ.get('LILAC_DATA_PATH')
   os.environ['LILAC_DATA_PATH'] = output_dir
   # Turn off debug logging.
-  del os.environ['DEBUG']
+  if 'DEBUG' in os.environ:
+    del os.environ['DEBUG']
   # Use views to avoid loading duckdb tables into RAM since we aren't query heavy.
   os.environ['DUCKDB_USE_VIEWS'] = '1'
 
@@ -60,8 +61,10 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
 
   # Explicitly create a dask client in sync mode.
   dask.config.set({'distributed.worker.daemon': False})
+  # Use threads instead of processes to avoid running out of RAM.
+  dask.config.set(scheduler='threads')
   total_memory_gb = psutil.virtual_memory().total / (1024**3) * 2 / 3
-  task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB'))
+  task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB', processes=False))
 
   if overwrite:
     shutil.rmtree(get_datasets_dir(output_dir), ignore_errors=True)
@@ -107,6 +110,7 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
     if d.settings:
       dataset = DatasetDuckDB(d.namespace, d.name)
       dataset.update_settings(d.settings)
+      del dataset
 
   print()
   print('*** Compute embeddings ***')
@@ -134,6 +138,7 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
           print(f'Embedding {e.embedding} already exists for {d.name}:{e.path}. Skipping.')
 
       del dataset
+      gc.collect()
 
       # Wait for all embeddings for each dataset to reduce the memory pressure.
       task_manager.wait()
@@ -165,11 +170,10 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
             task_manager.execute(task_id, _compute_signal, d.namespace, d.name, s, output_dir,
                                  overwrite, (task_id, 0))
+            # Wait for each signal to reduce memory pressure.
+            task_manager.wait()
           else:
             print(f'Signal {s.signal} already exists for {d.name}:{s.path}. Skipping.')
-
-        # Wait for all signals for each path to reduce the memory pressure.
-        task_manager.wait()
 
       del dataset
 

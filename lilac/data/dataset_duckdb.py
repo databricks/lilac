@@ -147,8 +147,8 @@ class DatasetDuckDB(Dataset):
     self._vector_indices: dict[tuple[PathKey, str], VectorDBIndex] = {}
     self.vector_store = vector_store
     self._manifest_lock = threading.Lock()
-
     self._config_lock = threading.Lock()
+    self._vector_index_lock = threading.Lock()
     config_filepath = get_config_filepath(namespace, dataset_name)
 
     if not os.path.exists(config_filepath):
@@ -321,32 +321,33 @@ class DatasetDuckDB(Dataset):
     # Refresh the manifest to make sure we have the latest signal manifests.
     self.manifest()
     index_key = (path, embedding)
-    if index_key in self._vector_indices:
-      return self._vector_indices[index_key]
+    with self._vector_index_lock:
+      if index_key in self._vector_indices:
+        return self._vector_indices[index_key]
 
-    manifests = [
-      m for m in self._signal_manifests
-      if schema_contains_path(m.data_schema, path) and m.vector_store and m.signal.name == embedding
-    ]
-    if not manifests:
-      raise ValueError(f'No embedding found for path {path}.')
-    if len(manifests) > 1:
-      raise ValueError(f'Multiple embeddings found for path {path}. Got: {manifests}')
-    manifest = manifests[0]
-    if not manifest.vector_store:
-      raise ValueError(f'Signal manifest for path {path} is not an embedding. '
-                       f'Got signal manifest: {manifest}')
+      manifests = [
+        m for m in self._signal_manifests if schema_contains_path(m.data_schema, path) and
+        m.vector_store and m.signal.name == embedding
+      ]
+      if not manifests:
+        raise ValueError(f'No embedding found for path {path}.')
+      if len(manifests) > 1:
+        raise ValueError(f'Multiple embeddings found for path {path}. Got: {manifests}')
+      manifest = manifests[0]
+      if not manifest.vector_store:
+        raise ValueError(f'Signal manifest for path {path} is not an embedding. '
+                         f'Got signal manifest: {manifest}')
 
-    base_path = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
-                             manifest.signal.name)
-    path_id = f'{self.namespace}/{self.dataset_name}:{path}'
-    with DebugTimer(f'Loading vector store "{manifest.vector_store}" for {path_id}'
-                    f' with embedding "{embedding}"'):
-      vector_index = VectorDBIndex(manifest.vector_store)
-      vector_index.load(base_path)
-    # Cache the vector index.
-    self._vector_indices[index_key] = vector_index
-    return vector_index
+      base_path = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
+                               manifest.signal.name)
+      path_id = f'{self.namespace}/{self.dataset_name}:{path}'
+      with DebugTimer(f'Loading vector store "{manifest.vector_store}" for {path_id}'
+                      f' with embedding "{embedding}"'):
+        vector_index = VectorDBIndex(manifest.vector_store)
+        vector_index.load(base_path)
+      # Cache the vector index.
+      self._vector_indices[index_key] = vector_index
+      return vector_index
 
   @override
   def compute_signal(self,

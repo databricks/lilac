@@ -133,16 +133,15 @@ class VectorDBIndex:
       The span vectors for the given keys.
     """
     all_spans: list[list[tuple[int, int]]] = []
-    vector_keys: list[VectorKey] = []
+    all_vector_keys: list[list[VectorKey]] = []
     for path_key in keys:
       spans = self._id_to_spans[path_key]
       all_spans.append(spans)
-      vector_keys.extend([(*path_key, i) for i in range(len(spans))])
+      all_vector_keys.append([(*path_key, i) for i in range(len(spans))])
 
-    all_vectors = self._vector_store.get(vector_keys)
     offset = 0
-    for spans in all_spans:
-      vectors = all_vectors[offset:offset + len(spans)]
+    for spans, vector_keys in zip(all_spans, all_vector_keys):
+      vectors = self._vector_store.get(vector_keys)
       yield [{'span': span, 'vector': vector} for span, vector in zip(spans, vectors)]
       offset += len(spans)
 
