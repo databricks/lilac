@@ -62,7 +62,7 @@
   $: schema = schemaQuery && $schemaQuery?.data;
 
   $: stringFields = schema
-    ? childFields(schema).filter(f => f.dtype === 'string' && !isSignalField(f))
+    ? childFields(schema).filter(f => f.dtype === 'string' && !isSignalField(schema!, f))
     : [];
   $: fields = stringFields.sort((a, b) => {
     const aIsIndexed = childFields(a).some(
