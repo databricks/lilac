@@ -1,6 +1,6 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
-  import {editConceptMutation} from '$lib/queries/conceptQueries';
+  import {editConceptMutation, queryConcepts} from '$lib/queries/conceptQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {createDatasetViewStore} from '$lib/stores/datasetViewStore';
@@ -22,6 +22,13 @@
 
   const authInfo = queryAuthInfo();
   $: userId = $authInfo.data?.user?.id;
+
+  const concepts = queryConcepts();
+
+  $: conceptInfo = $concepts.data?.find(
+    c => c.namespace === concept.namespace && c.name === concept.concept_name
+  );
+  $: canEditConcept = conceptInfo?.acls.write == true;
 
   const conceptMutation = editConceptMutation();
   const embeddings = queryEmbeddings();
@@ -138,7 +145,20 @@
   {/if}
   <Expandable>
     <div slot="above" class="text-md font-semibold">Collect labels</div>
-    <ConceptLabeler slot="below" {concept} />
+    <div slot="below" class="w-full">
+      {#if canEditConcept}
+        <ConceptLabeler {concept} />
+      {:else}
+        <ToastNotification
+          hideCloseButton
+          kind="warning"
+          fullWidth
+          lowContrast
+          title="You don't have permission to edit this concept"
+          caption={'You can only edit concepts you created.'}
+        />
+      {/if}
+    </div>
   </Expandable>
   <div class="flex gap-x-4">
     <div class="flex w-0 flex-grow flex-col gap-y-4">
@@ -149,6 +169,7 @@
         data={positiveExamples}
         on:remove={ev => remove(ev.detail)}
         on:add={ev => add(ev.detail, true)}
+        {canEditConcept}
       />
     </div>
     <div class="flex w-0 flex-grow flex-col gap-y-4">

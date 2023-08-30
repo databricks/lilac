@@ -3,8 +3,10 @@
   import {TextInput} from 'carbon-components-svelte';
   import TrashCan from 'carbon-icons-svelte/lib/TrashCan.svelte';
   import {createEventDispatcher} from 'svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
 
   export let data: Example[];
+  export let canEditConcept: boolean;
 
   let newSampleText: string;
 
@@ -29,13 +31,21 @@
       <span class="shrink">
         {row.text}
       </span>
-      <button
-        title="Remove sample"
-        class="shrink-0 opacity-50 hover:text-red-400 hover:opacity-100"
-        on:click={() => dispatch('remove', row.id)}
+      <div
+        use:hoverTooltip={{
+          text: !canEditConcept ? 'User does not have access to edit this concept.' : ''
+        }}
+        class:opacity-40={!canEditConcept}
       >
-        <TrashCan size={16} />
-      </button>
+        <button
+          title="Remove sample"
+          class="shrink-0 opacity-50 hover:text-red-400 hover:opacity-100"
+          on:click={() => dispatch('remove', row.id)}
+          disabled={!canEditConcept}
+        >
+          <TrashCan size={16} />
+        </button>
+      </div>
     </div>
   {/each}
 </div>
