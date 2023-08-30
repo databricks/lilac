@@ -70,6 +70,9 @@ regex = "^2023.6.3"
 # For language detection.
 langdetect = { version = "^1.0.9", optional = true }
 
+# Langsmith source ingestion.
+langsmith = { version = "^0.0.29", optional = true }
+
 [tool.poetry.extras]
 all = [
   "cohere",
@@ -84,6 +87,7 @@ all = [
   "detect-secrets",
   "langdetect",
   "spacy",
+  "langsmith",
 ]
 
 embeddings = [

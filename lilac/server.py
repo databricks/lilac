@@ -33,7 +33,11 @@ from .auth import (
 )
 from .env import data_path, env
 from .router_utils import RouteErrorHandler
+from .sources.default_sources import register_default_sources
+from .sources.source_registry import registered_sources
 from .tasks import task_manager
+
+register_default_sources()
 
 DIST_PATH = os.path.join(os.path.dirname(__file__), 'web')
 
@@ -83,6 +87,10 @@ v1_router.include_router(router_concept.router, prefix='/concepts', tags=['conce
 v1_router.include_router(router_data_loader.router, prefix='/data_loaders', tags=['data_loaders'])
 v1_router.include_router(router_signal.router, prefix='/signals', tags=['signals'])
 v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
+
+for source_name, source in registered_sources().items():
+  if source.router:
+    v1_router.include_router(source.router, prefix=f'/{source_name}')
 
 
 @app.get('/auth_info')

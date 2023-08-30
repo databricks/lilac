@@ -38,4 +38,17 @@ export class DefaultService {
         });
     }
 
+    /**
+     * Get Datasets
+     * List the datasets in LangSmith.
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static getDatasets(): CancelablePromise<Array<string>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/langsmith/datasets',
+        });
+    }
+
 }
