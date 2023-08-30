@@ -16,10 +16,7 @@
   let path: string[] | undefined;
   let embedding: string | undefined = undefined;
 
-  $: schemaQuery =
-    dataset?.namespace != null && dataset.name != null
-      ? maybeQueryDatasetSchema(dataset?.namespace, dataset?.name)
-      : null;
+  $: schemaQuery = maybeQueryDatasetSchema(dataset?.namespace, dataset?.name);
 
   $: schema = $schemaQuery?.data;
   $: pathId = path ? serializePath(path) : undefined;
