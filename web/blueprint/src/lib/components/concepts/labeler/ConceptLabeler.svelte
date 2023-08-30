@@ -16,9 +16,13 @@
   let path: string[] | undefined;
   let embedding: string | undefined = undefined;
 
-  $: schemaQuery = maybeQueryDatasetSchema(dataset?.namespace, dataset?.name);
+  $: console.log(dataset?.namespace, dataset?.name);
+  $: schemaQuery =
+    dataset?.namespace != null && dataset.name != null
+      ? maybeQueryDatasetSchema(dataset?.namespace, dataset?.name)
+      : null;
 
-  $: schema = $schemaQuery.data;
+  $: schema = $schemaQuery?.data;
   $: pathId = path ? serializePath(path) : undefined;
 
   $: datasetViewStore =
