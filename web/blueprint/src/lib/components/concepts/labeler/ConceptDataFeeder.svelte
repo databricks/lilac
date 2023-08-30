@@ -36,6 +36,7 @@
     embedding: embedding
   } as ConceptSearch;
 
+  $: console.log(dataset.namespace, dataset.name, schema, conceptSearch, fieldPath);
   $: topRows = querySelectRows(
     dataset.namespace,
     dataset.name,
@@ -47,6 +48,7 @@
     },
     schema
   );
+  $: console.log('top rows', $topRows.data);
   $: conceptSignal = {
     signal_name: 'concept_score',
     namespace: concept.namespace,
