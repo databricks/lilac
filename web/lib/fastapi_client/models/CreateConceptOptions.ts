@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { ConceptMetadata } from './ConceptMetadata';
 import type { ConceptType } from './ConceptType';
 
 /**
@@ -11,6 +12,6 @@ export type CreateConceptOptions = {
     namespace: string;
     name: string;
     type: ConceptType;
-    description?: string;
+    metadata?: ConceptMetadata;
 };
 

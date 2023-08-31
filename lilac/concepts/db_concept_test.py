@@ -17,6 +17,7 @@ from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .concept import (
   DRAFT_MAIN,
   Concept,
+  ConceptMetadata,
   ConceptModel,
   ConceptType,
   DraftId,
@@ -98,7 +99,8 @@ class ConceptDBSuite:
         name='test_concept',
         type=ConceptType.TEXT,
         drafts=[DRAFT_MAIN],
-        acls=ConceptACL(read=True, write=True))
+        acls=ConceptACL(read=True, write=True),
+        metadata=ConceptMetadata())
     ]
 
     # Make sure list with drafts relects the drafts.
@@ -117,7 +119,42 @@ class ConceptDBSuite:
         name='test_concept',
         type=ConceptType.TEXT,
         drafts=[DRAFT_MAIN, 'test_draft'],
-        acls=ConceptACL(read=True, write=True))
+        acls=ConceptACL(read=True, write=True),
+        metadata=ConceptMetadata())
+    ]
+
+  def test_update_metadata(self, db_cls: Type[ConceptDB]) -> None:
+    db = db_cls()
+    db.create(namespace='test', name='test_concept', type=ConceptType.TEXT)
+
+    # Remove lilac concepts.
+    concepts = list(filter(lambda c: c.namespace != 'lilac', db.list()))
+
+    assert concepts == [
+      ConceptInfo(
+        namespace='test',
+        name='test_concept',
+        type=ConceptType.TEXT,
+        drafts=[DRAFT_MAIN],
+        acls=ConceptACL(read=True, write=True),
+        metadata=ConceptMetadata())
+    ]
+
+    db.update_metadata(
+      'test', 'test_concept',
+      ConceptMetadata(is_public=True, tags=['test_tag'], description='test description'))
+
+    # Remove lilac concepts.
+    concepts = list(filter(lambda c: c.namespace != 'lilac', db.list()))
+
+    assert concepts == [
+      ConceptInfo(
+        namespace='test',
+        name='test_concept',
+        type=ConceptType.TEXT,
+        drafts=[DRAFT_MAIN],
+        acls=ConceptACL(read=True, write=True),
+        metadata=ConceptMetadata(is_public=True, tags=['test_tag'], description='test description'))
     ]
 
   def test_add_example(self, db_cls: Type[ConceptDB]) -> None:

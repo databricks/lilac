@@ -59,7 +59,7 @@ class CreateConceptOptions(BaseModel):
   name: str
   # Input type (modality) of the concept.
   type: ConceptType
-  description: Optional[str] = None
+  metadata: Optional[ConceptMetadata] = None
 
 
 @router.post('/create', response_model_exclude_none=True)
@@ -68,7 +68,7 @@ def create_concept(options: CreateConceptOptions,
                                    Depends(get_session_user)]) -> Concept:
   """Edit a concept in the database."""
   return DISK_CONCEPT_DB.create(
-    options.namespace, options.name, options.type, metadata=ConceptMetadata(), user=user)
+    options.namespace, options.name, options.type, metadata=options.metadata, user=user)
 
 
 @router.post('/{namespace}/{concept_name}', response_model_exclude_none=True)

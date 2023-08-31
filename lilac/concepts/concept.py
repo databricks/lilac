@@ -90,7 +90,7 @@ class Concept(BaseModel):
   data: dict[str, Example]
   version: int = 0
 
-  metadata: Optional[ConceptMetadata]
+  metadata: Optional[ConceptMetadata] = None
 
   def drafts(self) -> list[DraftId]:
     """Gets all the drafts for the concept."""

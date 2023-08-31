@@ -121,10 +121,8 @@
       />
       {#if applyDataset != null && applyPath != null && applyEmbedding != null}
         <div class="mt-4">
-          <Button
-            class=""
-            iconDescription={'Open dataset and apply concept.'}
-            on:click={() => openDataset()}>Search by concept</Button
+          <Button iconDescription={'Open dataset and apply concept.'} on:click={() => openDataset()}
+            >Search by concept</Button
           >
         </div>
       {:else}

@@ -369,8 +369,8 @@ export function getTaggedConcepts(
   const tagConcepts: Record<string, Record<string, ConceptInfo[]>> = {};
   for (const concept of concepts) {
     let tags = [''];
-    if (concept.tags != null && concept.tags.length > 0) {
-      tags = concept.tags;
+    if (concept.metadata.tags != null && concept.metadata.tags.length > 0) {
+      tags = concept.metadata.tags;
     }
     for (const tag of tags) {
       if (tagConcepts[tag] == null) {
