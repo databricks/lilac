@@ -110,21 +110,22 @@
     </div>
   </NavigationGroup>
   <NavigationGroup title="Concepts" tagGroups={taggedConcepts} isFetching={$concepts.isFetching}>
-    <div
-      slot="add"
-      class="w-full"
-      use:hoverTooltip={{text: !canCreateConcepts ? 'Login to create a concept.' : undefined}}
-    >
-      <button
-        disabled={!canCreateConcepts}
-        class:opacity-30={!canCreateConcepts}
-        class="mr-1 flex w-full flex-row px-1 py-1 text-black hover:bg-gray-200"
-        on:click={() =>
-          triggerCommand({
-            command: Command.CreateConcept,
-            onCreate: e => goto(conceptLink(e.detail.namespace, e.detail.name))
-          })}><AddAlt class="mr-1" />Add concept</button
+    <div slot="add">
+      <div
+        class="w-full"
+        use:hoverTooltip={{text: !canCreateConcepts ? 'Login to create a concept.' : undefined}}
       >
+        <button
+          disabled={!canCreateConcepts}
+          class:opacity-30={!canCreateConcepts}
+          class="mr-1 flex w-full flex-row px-1 py-1 text-black hover:bg-gray-200"
+          on:click={() =>
+            triggerCommand({
+              command: Command.CreateConcept,
+              onCreate: e => goto(conceptLink(e.detail.namespace, e.detail.name))
+            })}><AddAlt class="mr-1" />Add concept</button
+        >
+      </div>
     </div>
   </NavigationGroup>
   <NavigationGroup title="Signals" tagGroups={signalNavGroups} isFetching={$signals.isFetching} />
