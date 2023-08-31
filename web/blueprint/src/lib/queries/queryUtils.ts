@@ -32,6 +32,7 @@ export function createApiQuery<
     createQuery<TQueryFnData, TError, TData>({
       queryKey: apiQueryKey(tags as string[], endpoint.name, ...args),
       queryFn: () => endpoint(...args),
+      structuralSharing: false,
       ...queryArgs
     });
 }
