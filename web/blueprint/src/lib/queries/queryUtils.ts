@@ -32,6 +32,9 @@ export function createApiQuery<
     createQuery<TQueryFnData, TError, TData>({
       queryKey: apiQueryKey(tags as string[], endpoint.name, ...args),
       queryFn: () => endpoint(...args),
+      // Allow the result of the query to contain non-serializable data, such as `LilacField` which
+      // has pointers to parents: https://tanstack.com/query/v4/docs/react/reference/useQuery
+      structuralSharing: false,
       ...queryArgs
     });
 }
