@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from pydantic import Field
 from typing_extensions import override
 
+from ..env import env
 from ..schema import Item, infer_schema
 from .source import Source, SourceSchema
 
@@ -31,12 +32,17 @@ class LangSmithSource(Source):
 
   @override
   def setup(self) -> None:
+    api_key = env('LANGCHAIN_API_KEY')
+    api_url = env('LANGCHAIN_ENDPOINT')
+    if not api_key or not api_url:
+      raise ValueError(
+        '`LANGCHAIN_API_KEY` and `LANGCHAIN_ENDPOINT` environment variables must be set.')
     try:
       from langsmith import Client
     except ImportError:
       raise ImportError('Could not import dependencies for the LangSmith source. '
-                        'Please install the optional dependency via `pip install langsmith`.')
-    client = Client()
+                        'Please install the dependency via `pip install lilac[langsmith]`.')
+    client = Client(api_key=api_key, api_url=api_url)
 
     self._items = [{
       **example.inputs,
