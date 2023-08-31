@@ -44,10 +44,10 @@ class HNSWVectorStore(VectorStore):
     self._key_to_label = pd.read_pickle(base_path + _LOOKUP_SUFFIX)
     dim = int(self._key_to_label.name)
     index = hnswlib.Index(space=SPACE, dim=dim)
-    index.set_ef(QUERY_EF)
     index.set_num_threads(multiprocessing.cpu_count())
     index.load_index(base_path + _HNSW_SUFFIX)
     self._index = index
+    index.set_ef(min(QUERY_EF, self.size()))
 
   @override
   def size(self) -> int:
@@ -67,7 +67,6 @@ class HNSWVectorStore(VectorStore):
     dim = embeddings.shape[1]
     with DebugTimer('hnswlib index creation'):
       index = hnswlib.Index(space=SPACE, dim=dim)
-      index.set_ef(QUERY_EF)
       index.set_num_threads(multiprocessing.cpu_count())
       index.init_index(max_elements=len(keys), ef_construction=CONSTRUCTION_EF, M=M)
 
@@ -79,6 +78,7 @@ class HNSWVectorStore(VectorStore):
       self._key_to_label.name = str(dim)
       index.add_items(embeddings, row_indices)
       self._index = index
+      self._index.set_ef(min(QUERY_EF, self.size()))
 
   @override
   def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:
@@ -100,6 +100,8 @@ class HNSWVectorStore(VectorStore):
     if keys is not None:
       labels = set(self._key_to_label.loc[cast(list[str], keys)].tolist())
       k = min(k, len(labels))
+
+    k = min(k, self.size())
 
     def filter_func(label: int) -> bool:
       return label in labels

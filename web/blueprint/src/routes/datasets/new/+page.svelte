@@ -5,6 +5,7 @@
   import ConfigInput from '$lib/components/datasets/huggingface/ConfigInput.svelte';
   import HFNameInput from '$lib/components/datasets/huggingface/HFNameInput.svelte';
   import SplitsInput from '$lib/components/datasets/huggingface/SplitsInput.svelte';
+  import LangsmithDatasetInput from '$lib/components/datasets/langsmith/DatasetInput.svelte';
   import {loadDatasetMutation, querySources, querySourcesSchema} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {datasetIdentifier} from '$lib/utils';
@@ -22,6 +23,7 @@
   } from 'carbon-components-svelte';
   import type {JSONSchema4Type} from 'json-schema';
   import type {JSONError} from 'json-schema-library';
+  import type {SvelteComponent} from 'svelte';
 
   const sourcesQuery = querySources();
   $: sources = $sourcesQuery.data?.sources.filter(s => s !== 'pandas');
@@ -37,6 +39,17 @@
 
   let namespaceError: string | undefined = undefined;
   let nameError: string | undefined = undefined;
+
+  const CUSTOM_COMPONENTS: Record<string, Record<string, typeof SvelteComponent>> = {
+    huggingface: {
+      '/dataset_name': HFNameInput,
+      '/split': SplitsInput,
+      '/config_name': ConfigInput
+    },
+    langsmith: {
+      '/dataset_name': LangsmithDatasetInput
+    }
+  };
   $: {
     if (namespace == null || namespace == '') {
       namespaceError = 'Enter a namespace';
@@ -137,13 +150,7 @@
                   hiddenProperties={['/source_name']}
                   bind:value={sourceSchemaValues}
                   bind:validationErrors={jsonValidationErrors}
-                  customComponents={selectedSource === 'huggingface'
-                    ? {
-                        '/dataset_name': HFNameInput,
-                        '/split': SplitsInput,
-                        '/config_name': ConfigInput
-                      }
-                    : {}}
+                  customComponents={CUSTOM_COMPONENTS[selectedSource] || {}}
                 />
               {/key}
             {:else if $sourcesSchema.isError}

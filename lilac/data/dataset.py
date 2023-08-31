@@ -20,8 +20,6 @@ from pydantic import (
 )
 from typing_extensions import TypeAlias
 
-from lilac.signals.concept_scorer import ConceptSignal
-
 from ..auth import UserInfo
 from ..config import DatasetConfig, DatasetSettings, DatasetUISettings
 from ..schema import (
@@ -36,6 +34,7 @@ from ..schema import (
   normalize_path,
 )
 from ..signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
+from ..signals.concept_scorer import ConceptSignal
 from ..tasks import TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.

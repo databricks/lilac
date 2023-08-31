@@ -2,8 +2,7 @@
 import os
 import pathlib
 from copy import deepcopy
-from datetime import datetime
-from typing import Optional, Type, cast
+from typing import Optional, Type
 
 import numpy as np
 from typing_extensions import Protocol
@@ -15,67 +14,19 @@ from ..schema import (
   PARQUET_FILENAME_PREFIX,
   ROWID,
   VALUE_KEY,
-  DataType,
-  Field,
   Item,
   PathKey,
   Schema,
   SourceManifest,
+  infer_schema,
 )
 from ..sources.source import Source
 from ..utils import get_dataset_output_dir, open_file, to_yaml
 from .dataset import Dataset, default_settings
-from .dataset_utils import is_primitive, write_items_to_parquet
+from .dataset_utils import write_items_to_parquet
 
 TEST_NAMESPACE = 'test_namespace'
 TEST_DATASET_NAME = 'test_dataset'
-
-
-def _infer_dtype(value: Item) -> DataType:
-  if isinstance(value, str):
-    return DataType.STRING
-  elif isinstance(value, bool):
-    return DataType.BOOLEAN
-  elif isinstance(value, bytes):
-    return DataType.BINARY
-  elif isinstance(value, float):
-    return DataType.FLOAT32
-  elif isinstance(value, int):
-    return DataType.INT32
-  elif isinstance(value, datetime):
-    return DataType.TIMESTAMP
-  else:
-    raise ValueError(f'Cannot infer dtype of primitive value: {value}')
-
-
-def _infer_field(item: Item) -> Field:
-  """Infer the schema from the items."""
-  if isinstance(item, dict):
-    fields: dict[str, Field] = {}
-    for k, v in item.items():
-      fields[k] = _infer_field(cast(Item, v))
-    dtype = None
-    if VALUE_KEY in fields:
-      dtype = fields[VALUE_KEY].dtype
-      del fields[VALUE_KEY]
-    return Field(fields=fields, dtype=dtype)
-  elif is_primitive(item):
-    return Field(dtype=_infer_dtype(item))
-  elif isinstance(item, list):
-    return Field(repeated_field=_infer_field(item[0]))
-  else:
-    raise ValueError(f'Cannot infer schema of item: {item}')
-
-
-def _infer_schema(items: list[Item]) -> Schema:
-  """Infer the schema from the items."""
-  schema = Schema(fields={})
-  for item in items:
-    field = _infer_field(item)
-    if not field.fields:
-      raise ValueError(f'Invalid schema of item. Expected an object, but got: {item}')
-    schema.fields = {**schema.fields, **field.fields}
-  return schema
 
 
 class TestDataMaker(Protocol):
@@ -96,7 +47,7 @@ def make_dataset(dataset_cls: Type[Dataset],
                  items: list[Item],
                  schema: Optional[Schema] = None) -> Dataset:
   """Create a test dataset."""
-  schema = schema or _infer_schema(items)
+  schema = schema or infer_schema(items)
   _write_items(tmp_path, TEST_DATASET_NAME, items, schema)
   dataset = dataset_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
 

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Iterable, Optional, Type, Union
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+from fastapi import APIRouter
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
@@ -39,6 +40,7 @@ class Source(BaseModel):
   """Interface for sources to implement. A source processes a set of shards and writes files."""
   # ClassVars do not get serialized with pydantic.
   name: ClassVar[str]
+  router: ClassVar[Optional[APIRouter]] = None
 
   def dict(
     self,
@@ -128,9 +130,3 @@ def schema_from_df(df: pd.DataFrame, index_colname: str) -> SourceSchema:
     fields={
       **schema.fields, index_colname: field(dtype=index_dtype)
     }, num_items=len(df))
-
-
-def normalize_column_name(name: str) -> str:
-  """Normalize a column name."""
-  return name
-  #return name.replace(' ', '_').replace(':', '_').replace('.', '_')

@@ -23,7 +23,6 @@ try:
 except metadata.PackageNotFoundError:
   __version__ = ''
 
-register_default_sources()
 register_default_signals()
 register_default_vector_stores()
 set_default_dataset_cls(DatasetDuckDB)
