@@ -190,18 +190,21 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
   # Compute topk without id restriction.
   topk_result = signal.vector_compute_topk(3, vector_index)
   expected_result = [('3',), ('1',), ('2',)]
+  assert len(topk_result) == len(expected_result)
   for (id, _), expected_id in zip(topk_result, expected_result):
     assert id == expected_id
 
   # Compute top 1.
   topk_result = signal.vector_compute_topk(1, vector_index)
   expected_result = [('3',)]
+  assert len(topk_result) == len(expected_result)
   for (id, _), expected_id in zip(topk_result, expected_result):
     assert id == expected_id
 
   # Compute topk with id restriction.
   topk_result = signal.vector_compute_topk(3, vector_index, keys=[('1',), ('2',)])
   expected_result = [('1',), ('2',)]
+  assert len(topk_result) == len(expected_result)
   for (id, _), expected_id in zip(topk_result, expected_result):
     assert id == expected_id
 

@@ -12,6 +12,8 @@ import pyarrow as pa
 from pydantic import BaseModel, StrictInt, StrictStr, validator
 from typing_extensions import TypedDict
 
+from lilac.utils import is_primitive
+
 MANIFEST_FILENAME = 'manifest.json'
 PARQUET_FILENAME_PREFIX = 'data'
 
@@ -624,3 +626,50 @@ def is_temporal(dtype: DataType) -> bool:
 def is_ordinal(dtype: DataType) -> bool:
   """Check if a dtype is an ordinal dtype."""
   return is_float(dtype) or is_integer(dtype) or is_temporal(dtype)
+
+
+def _infer_dtype(value: Item) -> DataType:
+  if isinstance(value, str):
+    return DataType.STRING
+  elif isinstance(value, bool):
+    return DataType.BOOLEAN
+  elif isinstance(value, bytes):
+    return DataType.BINARY
+  elif isinstance(value, float):
+    return DataType.FLOAT32
+  elif isinstance(value, int):
+    return DataType.INT32
+  elif isinstance(value, datetime):
+    return DataType.TIMESTAMP
+  else:
+    raise ValueError(f'Cannot infer dtype of primitive value: {value}')
+
+
+def _infer_field(item: Item) -> Field:
+  """Infer the schema from the items."""
+  if isinstance(item, dict):
+    fields: dict[str, Field] = {}
+    for k, v in item.items():
+      fields[k] = _infer_field(cast(Item, v))
+    dtype = None
+    if VALUE_KEY in fields:
+      dtype = fields[VALUE_KEY].dtype
+      del fields[VALUE_KEY]
+    return Field(fields=fields, dtype=dtype)
+  elif is_primitive(item):
+    return Field(dtype=_infer_dtype(item))
+  elif isinstance(item, list):
+    return Field(repeated_field=_infer_field(item[0]))
+  else:
+    raise ValueError(f'Cannot infer schema of item: {item}')
+
+
+def infer_schema(items: list[Item]) -> Schema:
+  """Infer the schema from a list of items."""
+  schema = Schema(fields={})
+  for item in items:
+    field = _infer_field(item)
+    if not field.fields:
+      raise ValueError(f'Invalid schema of item. Expected an object, but got: {item}')
+    schema.fields = {**schema.fields, **field.fields}
+  return schema

@@ -159,16 +159,18 @@ class VectorDBIndex:
     Returns
       A list of (key, score) tuples.
     """
+    total_num_span_keys = self._vector_store.size()
+    k = min(k, total_num_span_keys)
     span_keys: Optional[list[VectorKey]] = None
     if path_keys is not None:
       span_keys = [
         (*path_key, i) for path_key in path_keys for i in range(len(self._id_to_spans[path_key]))
       ]
+      k = min(k, len(span_keys))
     span_k = k
     path_key_scores: dict[PathKey, float] = {}
-    total_num_span_keys = self._vector_store.size()
-    while (len(path_key_scores) < k and span_k < total_num_span_keys and
-           (not span_keys or span_k < len(span_keys))):
+    while (len(path_key_scores) < k and span_k <= total_num_span_keys and
+           (not span_keys or span_k <= len(span_keys))):
       span_k += k
       vector_key_scores = self._vector_store.topk(query, span_k, span_keys)
       for (*path_key_list, _), score in vector_key_scores:

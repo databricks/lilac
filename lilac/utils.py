@@ -23,7 +23,6 @@ from google.cloud.storage import Blob, Client
 from pydantic import BaseModel
 
 from .env import data_path, env
-from .schema import Path
 
 GCS_PROTOCOL = 'gs://'
 GCS_REGEX = re.compile(f'{GCS_PROTOCOL}(.*?)/(.*)')
@@ -207,13 +206,6 @@ def file_exists(filepath: Union[str, pathlib.PosixPath]) -> bool:
   if str_filepath.startswith(GCS_PROTOCOL):
     return _get_gcs_blob(str_filepath).exists()
   return os.path.exists(filepath)
-
-
-def get_image_path(output_dir: str, path: Path, row_id: bytes) -> str:
-  """Return the GCS file path to an image associated with a specific row."""
-  path_subdir = '_'.join([str(p) for p in path])
-  filename = row_id.hex()
-  return os.path.join(output_dir, IMAGES_DIR_NAME, path_subdir, filename)
 
 
 Tout = TypeVar('Tout')

@@ -70,6 +70,9 @@ regex = "^2023.6.3"
 # For language detection.
 langdetect = { version = "^1.0.9", optional = true }
 
+# Langsmith source ingestion.
+langsmith = { version = "^0.0.29", optional = true }
+
 [tool.poetry.extras]
 all = [
   "cohere",
@@ -84,6 +87,7 @@ all = [
   "detect-secrets",
   "langdetect",
   "spacy",
+  "langsmith",
 ]
 
 embeddings = [
@@ -95,28 +99,32 @@ embeddings = [
 llms = ["openai"]
 
 # Sources.
+sources = ["gmail", "langsmith"]
+
+## Individual sources.
 gmail = [
   "email-reply-parser",
   "google-api-python-client",
   "google-auth-httplib2",
   "google-auth-oauthlib",
 ]
+langsmith = ["langsmith"]
 
 # Signals.
 signals = ["textacy", "detect-secrets", "langdetect", "spacy"]
 
-# Individual signals.
+## Individual signals.
 lang_detection = ["langdetect"]   # Language detection.
 ner = ["spacy"]                   # Named entity recognition.
 pii = ["detect-secrets", "regex"] # PII.
 text_stats = ["textacy", "spacy"] # Text statistics.
 
 # Individual embeddings.
-gte = ['sentence-transformers']
-sbert = ['sentence-transformers']
-cohere = ['cohere']
-palm = ['google-generativeai']
-openai = ['openai']
+gte = ["sentence-transformers"]
+sbert = ["sentence-transformers"]
+cohere = ["cohere"]
+palm = ["google-generativeai"]
+openai = ["openai"]
 
 [tool.poetry.group.dev] # Deps for development.
 optional = true
