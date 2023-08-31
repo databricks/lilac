@@ -269,7 +269,7 @@
         <div class="transition" class:rotate-180={expandedDetails}><ChevronDown /></div>
       </button>
     {/if}
-    <SchemaFieldMenu {schema} {field} />
+    <SchemaFieldMenu {field} />
   </div>
 
   {#if expandedDetails}

@@ -18,7 +18,7 @@
 
   $: schemaQuery = maybeQueryDatasetSchema(dataset?.namespace, dataset?.name);
 
-  $: schema = $schemaQuery?.data;
+  $: schema = $schemaQuery.data;
   $: pathId = path ? serializePath(path) : undefined;
 
   $: datasetViewStore =
