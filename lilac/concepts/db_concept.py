@@ -107,7 +107,7 @@ class ConceptDB(abc.ABC):
              namespace: str,
              name: str,
              type: Union[ConceptType, str],
-             description: Optional[str] = None,
+             metadata: Optional[ConceptMetadata] = None,
              user: Optional[UserInfo] = None) -> Concept:
     """Create a concept.
 
@@ -115,7 +115,7 @@ class ConceptDB(abc.ABC):
       namespace: The namespace of the concept.
       name: The name of the concept.
       type: The type of the concept.
-      description: The description of the concept.
+      metadata: The metadata for the concept, including tags, description, and visibility.
       user: The user creating the concept, if authentication is enabled.
     """
     pass
