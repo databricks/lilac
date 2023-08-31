@@ -9,7 +9,9 @@
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {ITEM_SCROLL_CONTAINER_CTX_KEY, mergeSpans, type MergedSpan} from '$lib/view_utils';
   import {
+    L,
     getValueNodes,
+    pathIncludes,
     pathIsEqual,
     serializePath,
     type ConceptSignal,
@@ -56,7 +58,9 @@
   $: pathToSpans = Object.fromEntries(
     spanPaths.map(p => [
       serializePath(p),
-      getValueNodes(row, p) as LilacValueNodeCasted<'string_span'>[]
+      getValueNodes(row, p).filter(v =>
+        pathIncludes(L.path(v), path)
+      ) as LilacValueNodeCasted<'string_span'>[]
     ])
   );
 

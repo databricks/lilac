@@ -13,6 +13,7 @@
     formatValue,
     getValueNodes,
     pathIsEqual,
+    serializePath,
     type LilacField,
     type LilacValueNode,
     type Path
@@ -32,36 +33,37 @@
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: values = getValueNodes(row, path)
-    .map(v => L.value(v))
-    .filter(notEmpty);
+  $: valueNodes = getValueNodes(row, path);
 </script>
 
-{#each values as value, i}
-  {@const suffix = values.length > 1 ? `[${i}]` : ''}
-  {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
-  <div class="flex flex-row">
-    <div class="flex w-full flex-col">
-      <div
-        class="sticky top-0 z-10 w-full self-start border-t border-neutral-200 bg-neutral-100 px-2 py-2
+{#each valueNodes as valueNode}
+  {@const value = L.value(valueNode)}
+  {#if notEmpty(value)}
+    {@const path = L.path(valueNode) || []}
+    {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
+    <div class="flex flex-row">
+      <div class="flex w-full flex-col">
+        <div
+          class="sticky top-0 z-10 w-full self-start border-t border-neutral-200 bg-neutral-100 px-2 py-2
                pb-2 font-mono font-medium text-neutral-500"
-      >
-        {path.join('.') + suffix}
-      </div>
+        >
+          {serializePath(path)}
+        </div>
 
-      <div class="mx-4 font-normal">
-        <StringSpanHighlight
-          text={formatValue(value)}
-          {row}
-          {path}
-          {markdown}
-          spanPaths={spanValuePaths.spanPaths}
-          valuePaths={spanValuePaths.valuePaths}
-          {datasetViewStore}
-          datasetStore={$datasetStore}
-          embeddings={computedEmbeddings}
-        />
+        <div class="mx-4 font-normal">
+          <StringSpanHighlight
+            text={formatValue(value)}
+            {row}
+            {path}
+            {markdown}
+            spanPaths={spanValuePaths.spanPaths}
+            valuePaths={spanValuePaths.valuePaths}
+            {datasetViewStore}
+            datasetStore={$datasetStore}
+            embeddings={computedEmbeddings}
+          />
+        </div>
       </div>
     </div>
-  </div>
+  {/if}
 {/each}

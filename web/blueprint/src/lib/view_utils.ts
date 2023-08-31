@@ -463,7 +463,8 @@ export function getSpanValuePaths(
   // Find the non-keyword span fields under this field.
   const spanFields = children
     .filter(f => f.dtype === 'string_span')
-    .filter(f => !childFields(f).some(c => c.dtype === 'embedding'));
+    .filter(f => !childFields(f).some(c => c.dtype === 'embedding'))
+    .filter(f => visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path)));
   const spanPaths = spanFields.map(f => f.path);
 
   const valuePaths: SpanValueInfo[] = [];
