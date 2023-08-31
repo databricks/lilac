@@ -31,7 +31,7 @@
   const datasetStore = getDatasetContext();
   const deleteSignal = deleteSignalMutation();
 
-  $: isSignal = isSignalField(schema, field);
+  $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
 
   $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, field.path);

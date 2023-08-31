@@ -35,7 +35,7 @@
   export let sourceField: LilacField | undefined = undefined;
   export let indent = 0;
 
-  $: isSignal = isSignalField(schema, field);
+  $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
   $: isSourceField = !isSignal;
 
@@ -285,7 +285,7 @@
           {schema}
           field={childField}
           indent={indent + 1}
-          sourceField={isSourceField && isSignalField(schema, childField) ? field : sourceField}
+          sourceField={isSourceField && isSignalField(childField) ? field : sourceField}
         />
       {/each}
     {/if}

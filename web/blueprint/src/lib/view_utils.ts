@@ -178,7 +178,7 @@ export function isPathVisible(
   // Signal columns are not visible by default. Because children inherit from parents, we only need
   // need to check for the parent.
   const field = getField(schema, pathArray);
-  const isSignal = isSignalField(schema, field!);
+  const isSignal = isSignalField(field!);
 
   if (isSignal) {
     return false;
