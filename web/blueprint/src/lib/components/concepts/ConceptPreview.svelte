@@ -4,7 +4,6 @@
   import {getSettingsContext} from '$lib/stores/settingsStore';
   import {getSpanValuePaths} from '$lib/view_utils';
   import {
-    PATH_WILDCARD,
     deserializeField,
     deserializeRow,
     type Concept,
@@ -69,8 +68,6 @@
   let previewResultItem: LilacValueNode | undefined = undefined;
   let valuePaths: SpanValueInfo[];
   let spanPaths: Path[];
-  // The item path is the path to the item in the result schema.
-  const itemPath: Path = PATH_WILDCARD;
   $: {
     if (
       $conceptScore?.data != null &&
