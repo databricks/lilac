@@ -376,10 +376,6 @@ class DiskConceptDB(ConceptDB):
     read = namespace_acls.read
     if env('LILAC_AUTH_ENABLED'):
       concept = self._read_concept(namespace, name)
-<<<<<<< HEAD
-=======
-      if concept:
->>>>>>> 045e381 (save)
       if concept and concept.metadata and concept.metadata.is_public:
         read = True
 
