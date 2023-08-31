@@ -28,6 +28,12 @@ export const editConceptMutation = createApiMutation(ConceptsService.editConcept
   }
 });
 
+export const editConceptMetadataMutation = createApiMutation(ConceptsService.editConceptMetadata, {
+  onSuccess: () => {
+    queryClient.invalidateQueries([CONCEPTS_TAG]);
+  }
+});
+
 export const deleteConceptMutation = createApiMutation(ConceptsService.deleteConcept, {
   onSuccess: () => queryClient.invalidateQueries([CONCEPTS_TAG])
 });

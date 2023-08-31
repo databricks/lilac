@@ -385,5 +385,8 @@
     }
   },
   "version": 62,
-  "description": "Source code for a programming language."
+  "metadata": {
+    "is_public": true,
+    "description": "Source code from any programming language."
+  }
 }

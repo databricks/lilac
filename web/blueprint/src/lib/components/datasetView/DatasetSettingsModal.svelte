@@ -3,7 +3,7 @@
   import {
     deleteDatasetMutation,
     querySettings,
-    updateSettingsMutation
+    updateDatasetSettingsMutation
   } from '$lib/queries/datasetQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {getSettingsContext} from '$lib/stores/settingsStore';
@@ -40,7 +40,7 @@
 
   const appSettings = getSettingsContext();
   const embeddings = queryEmbeddings();
-  const updateSettings = updateSettingsMutation();
+  const updateSettings = updateDatasetSettingsMutation();
 
   $: settings = querySettings(namespace, name);
   $: identifier = datasetIdentifier(namespace, name);
@@ -195,15 +195,17 @@
                 invalid={deleteDatasetInputName != identifier}
               />
               <button
-                class="flex cursor-pointer flex-row justify-between p-4 text-left hover:bg-gray-200"
+                class="mt-2 flex cursor-pointer flex-row justify-between p-4 text-left outline-red-400 hover:bg-gray-200"
                 class:cursor-not-allowed={deleteDatasetInputName != identifier}
+                class:outline={deleteDatasetInputName == identifier}
+                class:opacity-50={deleteDatasetInputName != identifier}
                 disabled={deleteDatasetInputName != identifier}
                 on:click={() =>
                   $deleteDataset.mutate([namespace, name], {onSuccess: () => goto('/')})}
               >
                 I understand, delete this dataset
-                <TrashCan /></button
-              >
+                <TrashCan />
+              </button>
             </section>
           </div>
         {/if}
@@ -211,8 +213,10 @@
     </div></ModalBody
   >
   <ModalFooter
+    danger={settingsPage === 'administration'}
     primaryButtonText="Save"
     secondaryButtonText="Cancel"
     on:click:button--secondary={close}
+    primaryButtonDisabled={settingsPage === 'administration'}
   />
 </ComposedModal>

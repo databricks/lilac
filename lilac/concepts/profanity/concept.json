@@ -5295,5 +5295,8 @@
     }
   },
   "version": 34,
-  "description": "Profane or obscene language"
+  "metadata": {
+    "is_public": true,
+    "description": "Profane or obscene language."
+  }
 }

@@ -2,7 +2,12 @@
   "namespace": "lilac",
   "concept_name": "legal-termination",
   "type": "text",
-  "tags": ["legal"],
+  "metadata": {
+    "is_public": true,
+    "tags": ["legal"],
+    "description": "Termination or survival clause in a legal document",
+    "version": 33
+  },
   "data": {
     "731b1338cf1949958c3526c555f88058": {
       "label": true,
@@ -179,7 +184,5 @@
       "text": "terminate in accordance with Section 2 of the Investors\u2019 Rights Agreement.",
       "id": "907f92e0d5704418944a559a4bfb96c7"
     }
-  },
-  "version": 33,
-  "description": "Termination or survival clause in a legal document"
+  }
 }

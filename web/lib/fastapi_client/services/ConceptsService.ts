@@ -3,6 +3,7 @@
 /* eslint-disable */
 import type { Concept } from '../models/Concept';
 import type { ConceptInfo } from '../models/ConceptInfo';
+import type { ConceptMetadata } from '../models/ConceptMetadata';
 import type { ConceptModelInfo } from '../models/ConceptModelInfo';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
 import type { CreateConceptOptions } from '../models/CreateConceptOptions';
@@ -125,6 +126,35 @@ export class ConceptsService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/concepts/create',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Edit Concept Metadata
+     * Edit the metadata of a concept.
+     * @param namespace
+     * @param conceptName
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static editConceptMetadata(
+        namespace: string,
+        conceptName: string,
+        requestBody: ConceptMetadata,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/concepts/{namespace}/{concept_name}/metadata',
+            path: {
+                'namespace': namespace,
+                'concept_name': conceptName,
+            },
             body: requestBody,
             mediaType: 'application/json',
             errors: {

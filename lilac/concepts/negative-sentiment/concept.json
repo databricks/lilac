@@ -629,6 +629,8 @@
       "id": "5471008376cf44518f2ff1f67f057c08"
     }
   },
-  "version": 27,
-  "description": "Negative sentiment"
+  "metadata": {
+    "is_public": true,
+    "description": "Negative sentiment."
+  }
 }
