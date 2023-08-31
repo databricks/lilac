@@ -3,6 +3,7 @@
 /* eslint-disable */
 
 import type { ConceptACL } from './ConceptACL';
+import type { ConceptMetadata } from './ConceptMetadata';
 import type { ConceptType } from './ConceptType';
 
 /**
@@ -11,10 +12,9 @@ import type { ConceptType } from './ConceptType';
 export type ConceptInfo = {
     namespace: string;
     name: string;
-    description?: string;
     type: ConceptType;
+    metadata: ConceptMetadata;
     drafts: Array<('main' | string)>;
-    tags?: Array<string>;
     acls: ConceptACL;
 };
 

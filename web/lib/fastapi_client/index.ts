@@ -15,6 +15,7 @@ export type { Concept } from './models/Concept';
 export type { ConceptACL } from './models/ConceptACL';
 export type { ConceptInfo } from './models/ConceptInfo';
 export type { ConceptLabelsSignal } from './models/ConceptLabelsSignal';
+export type { ConceptMetadata } from './models/ConceptMetadata';
 export type { ConceptMetrics } from './models/ConceptMetrics';
 export type { ConceptModelInfo } from './models/ConceptModelInfo';
 export type { ConceptSearch } from './models/ConceptSearch';

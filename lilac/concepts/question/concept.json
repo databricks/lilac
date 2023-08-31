@@ -1895,5 +1895,8 @@
     }
   },
   "version": 373,
-  "description": "A sentence in the form of a question"
+  "metadata": {
+    "is_public": true,
+    "description": "Text in the form of a question."
+  }
 }

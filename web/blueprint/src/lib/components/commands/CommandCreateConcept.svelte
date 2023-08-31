@@ -184,7 +184,7 @@
           {:else}
             <TextInput
               labelText="namespace"
-              value={defaultNamespace}
+              value={namespace}
               on:change={e => (namespace = (e.detail || '').toString())}
             />
           {/if}

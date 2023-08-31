@@ -5959,5 +5959,9 @@
       "id": "51401c65eec74ea9bf47cf116c2a44fb"
     }
   },
-  "version": 175
+  "version": 175,
+  "metadata": {
+    "is_public": true,
+    "description": "Profanity, insults, obscenities, etc."
+  }
 }
