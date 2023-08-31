@@ -35,7 +35,6 @@
 
   $: concept = namespace && conceptName ? queryConcept(namespace, conceptName) : undefined;
   $: conceptInfo = $concepts.data?.find(c => c.namespace === namespace && c.name === conceptName);
-  $: canDeleteConcept = conceptInfo?.acls.write;
   $: canEditConcept = conceptInfo?.acls.write;
 
   function deleteConceptClicked() {
