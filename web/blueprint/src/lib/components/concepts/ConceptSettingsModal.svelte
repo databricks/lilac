@@ -5,7 +5,8 @@
     editConceptMetadataMutation,
     queryConcepts
   } from '$lib/queries/conceptQueries';
-  import {conceptIdentifier} from '$lib/utils';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
+  import {conceptDisplayName} from '$lib/view_utils';
   import {
     Checkbox,
     ComposedModal,
@@ -26,10 +27,11 @@
 
   $: conceptInfo = $concepts.data?.find(c => c.namespace === namespace && c.name === conceptName);
   $: metadata = conceptInfo?.metadata || {};
-  $: identifier = conceptIdentifier(namespace, conceptName);
-  export let open = false;
 
-  $: console.log(conceptInfo);
+  const authInfo = queryAuthInfo();
+  $: displayName = conceptDisplayName(namespace, conceptName, $authInfo.data);
+
+  export let open = false;
 
   let settingsPage: 'general' | 'administration' = 'general';
 
@@ -42,8 +44,6 @@
       $editConceptMetadata.mutate([namespace, conceptName, metadata]);
     }
   }
-
-  $: console.log('metadtata', metadata);
 
   function descriptionChange(e: Event) {
     const description = (e.target as HTMLTextAreaElement).value;
@@ -120,21 +120,21 @@
                   <p class="mb-2">This action cannot be undone.</p>
                   <p>
                     This will permanently delete the
-                    <span class="font-bold">{identifier}</span> dataset and all its files. Please
+                    <span class="font-bold">{displayName}</span> dataset and all its files. Please
                     type
-                    <span class="font-bold">{identifier}</span> to confirm.
+                    <span class="font-bold">{displayName}</span> to confirm.
                   </p>
                 </div>
                 <TextInput
                   bind:value={deleteConceptInputName}
-                  invalid={deleteConceptInputName != identifier}
+                  invalid={deleteConceptInputName != displayName}
                 />
                 <button
                   class="mt-2 flex cursor-pointer flex-row justify-between p-4 text-left outline-red-400 hover:bg-gray-200"
-                  class:cursor-not-allowed={deleteConceptInputName != identifier}
-                  class:outline={deleteConceptInputName == identifier}
-                  class:opacity-50={deleteConceptInputName != identifier}
-                  disabled={deleteConceptInputName != identifier}
+                  class:cursor-not-allowed={deleteConceptInputName != displayName}
+                  class:outline={deleteConceptInputName == displayName}
+                  class:opacity-50={deleteConceptInputName != displayName}
+                  disabled={deleteConceptInputName != displayName}
                   on:click={() =>
                     $deleteConcept.mutate([namespace, conceptName], {onSuccess: () => goto('/')})}
                 >

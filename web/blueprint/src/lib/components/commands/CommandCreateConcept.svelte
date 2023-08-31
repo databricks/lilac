@@ -205,7 +205,8 @@
           <TextInput
             labelText="Concept description"
             helperText={authEnabled
-              ? 'Authentication is enabled, so LLM generation of examples is disabled. Please fork this and enable authentication to use generated examples.'
+              ? 'Authentication is enabled, so LLM generation of examples is disabled. ' +
+                'Please fork this and disable authentication to use generated examples.'
               : 'This will be used by an LLM to generate example sentences.'}
             placeholder="Enter the concept description..."
             bind:value={conceptDescription}
