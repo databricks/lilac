@@ -52,7 +52,7 @@
   let preferredEmbedding: string | undefined = $appSettings.embedding;
 
   $: mediaFields = petals(schema).filter(
-    f => f.dtype === 'string' && !pathIsEqual(f.path, [ROWID]) && !isSignalField(schema, f)
+    f => f.dtype === 'string' && !pathIsEqual(f.path, [ROWID]) && !isSignalField(f)
   );
 
   $: {

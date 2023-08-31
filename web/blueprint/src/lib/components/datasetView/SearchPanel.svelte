@@ -80,7 +80,7 @@
         // Ignore any fields unrelated to the current search path.
         continue;
       }
-      const signal = getSignalInfo(schema, field);
+      const signal = getSignalInfo(field);
       if (signal?.signal_name === 'concept_score') {
         // Ignore any concept scores since they are handled seperately via preview.
         continue;

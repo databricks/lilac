@@ -35,7 +35,7 @@
   export let sourceField: LilacField | undefined = undefined;
   export let indent = 0;
 
-  $: isSignal = isSignalField(schema, field);
+  $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
   $: isSourceField = !isSignal;
 
