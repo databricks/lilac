@@ -110,28 +110,31 @@
   let negativeExamples: string[] = [''];
 
   function submit() {
-    $conceptCreate.mutate([{namespace, name, type: 'text', description: conceptDescription}], {
-      onSuccess: () => {
-        $conceptEdit.mutate(
-          [
-            namespace,
-            name,
+    $conceptCreate.mutate(
+      [{namespace, name, type: 'text', metadata: {description: conceptDescription}}],
+      {
+        onSuccess: () => {
+          $conceptEdit.mutate(
+            [
+              namespace,
+              name,
+              {
+                insert: [
+                  ...positiveExamples.filter(text => text != '').map(text => ({text, label: true})),
+                  ...negativeExamples.filter(text => text != '').map(text => ({text, label: false}))
+                ]
+              }
+            ],
             {
-              insert: [
-                ...positiveExamples.filter(text => text != '').map(text => ({text, label: true})),
-                ...negativeExamples.filter(text => text != '').map(text => ({text, label: false}))
-              ]
+              onSuccess: () => {
+                dispatch('create', {namespace, name});
+                close();
+              }
             }
-          ],
-          {
-            onSuccess: () => {
-              dispatch('create', {namespace, name});
-              close();
-            }
-          }
-        );
+          );
+        }
       }
-    });
+    );
   }
 
   async function generatePositives() {
