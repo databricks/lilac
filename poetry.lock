@@ -6541,6 +6541,7 @@ embeddings = ["cohere", "google-generativeai", "openai", "sentence-transformers"
 gmail = ["email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib"]
 gte = ["sentence-transformers"]
 lang-detection = ["langdetect"]
+langsmith = ["langsmith"]
 llms = ["openai"]
 ner = ["spacy"]
 openai = ["openai"]
@@ -6548,9 +6549,10 @@ palm = ["google-generativeai"]
 pii = ["detect-secrets", "regex"]
 sbert = ["sentence-transformers"]
 signals = ["detect-secrets", "langdetect", "spacy", "textacy"]
+sources = ["langsmith"]
 text-stats = ["spacy", "textacy"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "0e4881b2c5ec43433641a60f0b7dcf8bdadc9435541f4638b5e441e642ac271d"
+content-hash = "fa6531e79954d8497fec57d501eeb0f0b7140e81cf2fd1b8a0727d18d435053a"
