@@ -461,10 +461,15 @@ export function getSpanValuePaths(
   const keywordSignals = children.filter(f => f.signal?.signal_name === 'substring_search');
 
   // Find the non-keyword span fields under this field.
-  const spanFields = children
+  let spanFields = children
     .filter(f => f.dtype === 'string_span')
-    .filter(f => !childFields(f).some(c => c.dtype === 'embedding'))
-    .filter(f => visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path)));
+    .filter(f => !childFields(f).some(c => c.dtype === 'embedding'));
+  if (visibleFields != null) {
+    spanFields = spanFields.filter(f =>
+      visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path))
+    );
+  }
+
   const spanPaths = spanFields.map(f => f.path);
 
   const valuePaths: SpanValueInfo[] = [];
