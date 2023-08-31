@@ -90,7 +90,7 @@ v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
 
 for source_name, source in registered_sources().items():
   if source.router:
-    v1_router.include_router(source.router, prefix=f'/{source_name}')
+    v1_router.include_router(source.router, prefix=f'/{source_name}', tags=[source_name])
 
 
 @app.get('/auth_info')

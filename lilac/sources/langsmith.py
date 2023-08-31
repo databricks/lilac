@@ -1,15 +1,12 @@
 """LangSmith source."""
 from typing import Iterable, Optional
 
-import pandas as pd
 from fastapi import APIRouter
 from pydantic import Field
 from typing_extensions import override
 
-from ..schema import Item
-from .source import Source, SourceSchema, schema_from_df
-
-LINE_NUMBER_COLUMN = '__line_number__'
+from ..schema import Item, infer_schema
+from .source import Source, SourceSchema
 
 router = APIRouter()
 
@@ -30,7 +27,7 @@ class LangSmithSource(Source):
   dataset_name: str = Field(description='The LangSmith dataset name')
 
   _source_schema: Optional[SourceSchema] = None
-  _df: Optional[pd.DataFrame] = None
+  _items: Optional[Item] = None
 
   @override
   def setup(self) -> None:
@@ -41,13 +38,14 @@ class LangSmithSource(Source):
                         'Please install the optional dependency via `pip install langsmith`.')
     client = Client()
 
-    self._df = pd.DataFrame([{
+    self._items = [{
       **example.inputs,
       **example.outputs
-    } for example in client.list_examples(dataset_name=self.dataset_name)])
+    } for example in client.list_examples(dataset_name=self.dataset_name)]
 
     # Create the source schema in prepare to share it between process and source_schema.
-    self._source_schema = schema_from_df(self._df, LINE_NUMBER_COLUMN)
+    schema = infer_schema(self._items)
+    self._source_schema = SourceSchema(fields=schema.fields, num_items=len(self._items))
 
   @override
   def source_schema(self) -> SourceSchema:
@@ -58,11 +56,7 @@ class LangSmithSource(Source):
   @override
   def process(self) -> Iterable[Item]:
     """Process the source upload request."""
-    if self._df is None:
+    if self._items is None:
       raise RuntimeError('The langsmith source is not initialized.')
 
-    cols = self._df.columns.tolist()
-    yield from ({
-      LINE_NUMBER_COLUMN: idx,
-      **dict(zip(cols, item_vals)),
-    } for idx, *item_vals in self._df.itertuples())
+    yield from self._items
