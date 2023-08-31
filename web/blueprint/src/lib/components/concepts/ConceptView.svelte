@@ -7,7 +7,7 @@
   import {datasetLink} from '$lib/utils';
   import {serializePath, type Concept} from '$lilac';
   import {Button, ToastNotification} from 'carbon-components-svelte';
-  import {ViewOff} from 'carbon-icons-svelte';
+  import {View, ViewOff} from 'carbon-icons-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
   import Expandable from '../Expandable.svelte';
@@ -76,7 +76,7 @@
   <div>
     <div class="flex flex-row items-center text-2xl font-semibold">
       {concept.concept_name}
-      {#if userId == concept.namespace}
+      {#if userId == concept.namespace && !concept.metadata?.is_public}
         <div
           use:hoverTooltip={{
             text: 'Your concepts are only visible to you when logged in with Google.'
@@ -84,10 +84,18 @@
         >
           <ViewOff class="ml-2" />
         </div>
+      {:else if concept.metadata?.is_public}
+        <div
+          use:hoverTooltip={{
+            text: 'This concept is publicly visible.'
+          }}
+        >
+          <View class="ml-2" />
+        </div>
       {/if}
     </div>
-    {#if concept.description}
-      <div class="text text-base text-gray-600">{concept.description}</div>
+    {#if concept.metadata?.description}
+      <div class="text text-base text-gray-600">{concept.metadata.description}</div>
     {/if}
   </div>
 

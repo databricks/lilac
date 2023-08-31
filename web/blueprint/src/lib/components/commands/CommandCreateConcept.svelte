@@ -35,7 +35,9 @@
   $: userId = $authInfo.data?.user?.id;
 
   $: defaultNamespace = command.namespace || (authEnabled ? userId : null);
+  $: console.log('dfn', defaultNamespace);
   let namespace = defaultNamespace || 'local';
+  console.log('n=', namespace);
   $: dataset = command.dataset;
   $: datasetId = dataset ? `${dataset.namespace}/${dataset.name}` : '';
   $: path = command.path;
@@ -178,7 +180,7 @@
           {:else}
             <TextInput
               labelText="namespace"
-              value={defaultNamespace}
+              value={namespace}
               on:change={e => (namespace = (e.detail || '').toString())}
             />
           {/if}

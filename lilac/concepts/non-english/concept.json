@@ -1020,5 +1020,8 @@
     }
   },
   "version": 189,
-  "description": "Text that contains non-English."
+  "metadata": {
+    "is_public": true,
+    "description": "Text that contains non-English."
+  }
 }

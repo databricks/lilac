@@ -165,7 +165,7 @@ export const infiniteQuerySelectRows = (
 
 export const queryConfig = createApiQuery(DatasetsService.getConfig, DATASETS_CONFIG_TAG);
 export const querySettings = createApiQuery(DatasetsService.getSettings, DATASETS_SETTINGS_TAG);
-export const updateSettingsMutation = createApiMutation(DatasetsService.updateSettings, {
+export const updateDatasetSettingsMutation = createApiMutation(DatasetsService.updateSettings, {
   onSuccess: () => {
     queryClient.invalidateQueries([DATASETS_SETTINGS_TAG]);
     queryClient.invalidateQueries([DATASETS_CONFIG_TAG]);
