@@ -21,7 +21,6 @@
     {invalidText}
     warn={items.length === 0}
     warnText={'No datasets found'}
-    titleText="Dataset"
     {items}
   />
 {:else}

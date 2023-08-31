@@ -25,7 +25,7 @@ class LangSmithSource(Source):
   name = 'langsmith'
   router = router
 
-  dataset_name: str = Field(description='The LangSmith dataset name')
+  dataset_name: str = Field(description='LangSmith dataset name')
 
   _source_schema: Optional[SourceSchema] = None
   _items: Optional[Item] = None
