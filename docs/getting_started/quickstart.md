@@ -23,7 +23,7 @@ In this quick start we're going to:
 Start the lilac web server.
 
 ```bash
-lilac start
+lilac start ~/my_project
 ```
 
 This should open a browser tab pointing to `http://localhost:5432`.

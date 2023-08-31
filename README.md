@@ -30,10 +30,10 @@ You can also use Lilac with no installation by
 
 ## 🔥 Getting started
 
-Start the Lilac webserver from the CLI:
+Start a Lilac webserver from the CLI:
 
 ```sh
-lilac start
+lilac start ~/my_project
 ```
 
 Or start the Lilac webserver from Python:
@@ -41,7 +41,7 @@ Or start the Lilac webserver from Python:
 ```py
 import lilac as ll
 
-ll.start_server()
+ll.start_server(project_path='~/my_project')
 ```
 
 This will open start a webserver at http://localhost:5432/.

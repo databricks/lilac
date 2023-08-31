@@ -10,9 +10,9 @@ poetry run python -m lilac.load \
 import gc
 import os
 import shutil
+from typing import Optional
 
 import click
-import dask
 import psutil
 from distributed import Client
 
@@ -22,7 +22,7 @@ from .data.dataset_duckdb import DatasetDuckDB
 from .data_loader import process_source
 from .db_manager import get_dataset, list_datasets, remove_dataset_from_cache
 from .schema import ROWID, PathTuple
-from .tasks import TaskManager, TaskStepId
+from .tasks import TaskManager, TaskStepId, TaskType, get_task_manager
 from .utils import DebugTimer, get_datasets_dir
 
 
@@ -47,7 +47,10 @@ def load_command(output_dir: str, config_path: str, overwrite: bool) -> None:
   load(output_dir, config_path, overwrite)
 
 
-def load(output_dir: str, config_path: str, overwrite: bool) -> None:
+def load(output_dir: str,
+         config_path: str,
+         overwrite: bool,
+         task_manager: Optional[TaskManager] = None) -> None:
   """Run the source loader as a binary."""
   old_data_path = os.environ.get('LILAC_DATA_PATH')
   os.environ['LILAC_DATA_PATH'] = output_dir
@@ -59,12 +62,13 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
 
   config = read_config(config_path)
 
-  # Explicitly create a dask client in sync mode.
-  dask.config.set({'distributed.worker.daemon': False})
   # Use threads instead of processes to avoid running out of RAM.
-  dask.config.set(scheduler='threads')
-  total_memory_gb = psutil.virtual_memory().total / (1024**3) * 2 / 3
-  task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB', processes=False))
+  if not task_manager:
+    task_manager = get_task_manager()
+  else:
+    # Explicitly create a dask client in sync mode.
+    total_memory_gb = psutil.virtual_memory().total / (1024**3) * 2 / 3
+    task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB', processes=False))
 
   if overwrite:
     shutil.rmtree(get_datasets_dir(output_dir), ignore_errors=True)
@@ -87,7 +91,8 @@ def load(output_dir: str, config_path: str, overwrite: bool) -> None:
   with DebugTimer(f'Loading datasets: {", ".join([d.name for d in datasets_to_load])}'):
     for d in datasets_to_load:
       shutil.rmtree(os.path.join(output_dir, d.name), ignore_errors=True)
-      task_id = task_manager.task_id(f'Load dataset {d.namespace}/{d.name}')
+      task_id = task_manager.task_id(
+        f'Load dataset {d.namespace}/{d.name}', type=TaskType.DATASET_LOAD)
       task_manager.execute(task_id, process_source, output_dir, d, (task_id, 0))
     task_manager.wait()
 

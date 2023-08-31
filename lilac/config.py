@@ -5,6 +5,7 @@ import pathlib
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 import yaml
+from pydantic import Field as PydanticField
 
 if TYPE_CHECKING:
   from pydantic.typing import AbstractSetIntStr, MappingIntStrAny
@@ -176,22 +177,26 @@ class DatasetSettings(BaseModel):
 
 class DatasetConfig(BaseModel):
   """Configures a dataset with a source and transformations."""
-  # The namespace and name of the dataset.
-  namespace: str
-  name: str
-  # Tags to organize datasets.
-  tags: list[str] = []
+  namespace: str = PydanticField(description='The namespace of the dataset.')
+  name: str = PydanticField(description='The name of the dataset.')
+  tags: list[str] = PydanticField(
+    description='A list of tags for the dataset to organize in the UI.', default=[])
 
   # The source configuration.
-  source: Source
+  source: Source = PydanticField(
+    description=
+    'The source configuration. This config determines where data is loaded from for the dataset.')
 
   # Model configuration: embeddings and signals on paths.
-  embeddings: list[EmbeddingConfig] = []
+  embeddings: list[EmbeddingConfig] = PydanticField(
+    description='The embedding configs for the dataset.', default=[])
+
   # When defined, uses this list of signals instead of running all signals.
-  signals: list[SignalConfig] = []
+  signals: list[SignalConfig] = PydanticField(
+    description='The signal configs for the dataset', default=[])
 
   # Dataset settings, default embeddings and UI settings like media paths.
-  settings: Optional[DatasetSettings] = None
+  settings: Optional[DatasetSettings] = PydanticField(description='Dataset settings.', default=None)
 
   class Config:
     extra = Extra.forbid
@@ -204,14 +209,17 @@ class DatasetConfig(BaseModel):
 
 class Config(BaseModel):
   """Configures a set of datasets for a lilac instance."""
-  datasets: list[DatasetConfig]
+  datasets: list[DatasetConfig] = PydanticField(
+    description='The configurations for the datasets in the project.')
 
   # When defined, uses this list of signals to run over every dataset, over all media paths, unless
   # signals is overridden by a specific dataset.
-  signals: list[Signal] = []
+  signals: list[Signal] = PydanticField(
+    description='The signals to run for every dataset.', default=[])
 
   # A list of embeddings to compute the model caches for, for all concepts.
-  concept_model_cache_embeddings: list[str] = []
+  concept_model_cache_embeddings: list[str] = PydanticField(
+    description='The set of embeddings to compute model caches for for every concept.', default=[])
 
   class Config:
     extra = Extra.forbid

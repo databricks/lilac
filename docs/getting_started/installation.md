@@ -9,7 +9,7 @@ pip install lilac
 To make sure the installation works, start the web server:
 
 ```bash
-lilac start
+lilac start ~/my_project
 ```
 
 To check the version:
