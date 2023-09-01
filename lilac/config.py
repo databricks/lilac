@@ -14,7 +14,7 @@ from pydantic import BaseModel, Extra, ValidationError, validator
 
 from .schema import Path, PathTuple, normalize_path
 from .signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
-from .sources.source import Source
+from .source import Source
 from .sources.source_registry import resolve_source
 
 CONFIG_FILENAME = 'config.yml'
@@ -228,6 +228,16 @@ class Config(BaseModel):
   def parse_signal(cls, signals: list[dict]) -> list[Signal]:
     """Parse alist of signals to their specific subclass instances."""
     return [resolve_signal(signal) for signal in signals]
+
+
+def get_dataset_config(config: Config, dataset_namespace: str,
+                       dataset_name: str) -> Optional[DatasetConfig]:
+  """Returns the dataset config."""
+  for dataset_config in config.datasets:
+    if dataset_config.namespace == dataset_namespace and dataset_config.name == dataset_name:
+      return dataset_config
+
+  return None
 
 
 def read_config(config_path: str) -> Config:

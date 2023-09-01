@@ -9,6 +9,7 @@ from typing_extensions import Protocol
 
 from ..config import CONFIG_FILENAME, DatasetConfig
 from ..embeddings.vector_store import VectorDBIndex
+from ..project import add_project_dataset_config, create_project
 from ..schema import (
   MANIFEST_FILENAME,
   PARQUET_FILENAME_PREFIX,
@@ -17,12 +18,11 @@ from ..schema import (
   Item,
   PathKey,
   Schema,
-  SourceManifest,
   infer_schema,
 )
-from ..sources.source import Source
+from ..source import Source
 from ..utils import get_dataset_output_dir, open_file, to_yaml
-from .dataset import Dataset, default_settings
+from .dataset import Dataset, SourceManifest, default_settings
 from .dataset_utils import write_items_to_parquet
 
 TEST_NAMESPACE = 'test_namespace'
@@ -49,6 +49,7 @@ def make_dataset(dataset_cls: Type[Dataset],
   """Create a test dataset."""
   schema = schema or infer_schema(items)
   _write_items(tmp_path, TEST_DATASET_NAME, items, schema)
+  create_project(str(tmp_path))
   dataset = dataset_cls(TEST_NAMESPACE, TEST_DATASET_NAME)
 
   config = DatasetConfig(
@@ -56,6 +57,7 @@ def make_dataset(dataset_cls: Type[Dataset],
     name=TEST_DATASET_NAME,
     source=TestSource(),
     settings=default_settings(dataset))
+  add_project_dataset_config(config)
   config_filepath = os.path.join(
     get_dataset_output_dir(str(tmp_path), TEST_NAMESPACE, TEST_DATASET_NAME), CONFIG_FILENAME)
   with open_file(config_filepath, 'w') as f:
@@ -77,7 +79,7 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
 
   simple_parquet_files, _ = write_items_to_parquet(
     items, source_dir, schema, filename_prefix=PARQUET_FILENAME_PREFIX, shard_index=0, num_shards=1)
-  manifest = SourceManifest(files=[simple_parquet_files], data_schema=schema)
+  manifest = SourceManifest(files=[simple_parquet_files], data_schema=schema, source=TestSource())
   with open_file(os.path.join(source_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.json(indent=2, exclude_none=True))
 

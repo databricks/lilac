@@ -2,7 +2,7 @@
 
 from typing import Optional, Type, Union
 
-from .source import Source
+from ..source import Source
 
 SOURCE_REGISTRY: dict[str, Type[Source]] = {}
 

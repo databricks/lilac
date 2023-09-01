@@ -7,7 +7,7 @@ from pydantic import Field
 from typing_extensions import override
 
 from ..schema import Item, arrow_schema_to_schema
-from .source import Source, SourceSchema
+from ..source import Source, SourceSchema
 
 
 class ParquetSource(Source):

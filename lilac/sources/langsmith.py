@@ -7,7 +7,7 @@ from typing_extensions import override
 
 from ..env import env
 from ..schema import Item, infer_schema
-from .source import Source, SourceSchema
+from ..source import Source, SourceSchema
 
 router = APIRouter()
 

@@ -10,11 +10,12 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from .config import CONFIG_FILENAME, DatasetConfig, DatasetSettings, DatasetUISettings
+from .data.dataset import SourceManifest
 from .data.dataset_duckdb import read_source_manifest
 from .data.dataset_utils import parquet_filename
 from .data_loader import process_source
-from .schema import PARQUET_FILENAME_PREFIX, ROWID, Item, SourceManifest, schema
-from .sources.source import Source, SourceSchema
+from .schema import PARQUET_FILENAME_PREFIX, ROWID, Item, schema
+from .source import Source, SourceSchema
 from .test_utils import fake_uuid, read_items
 from .utils import DATASETS_DIR_NAME
 
@@ -62,7 +63,7 @@ def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
       'x': 'int64',
       'y': 'string'
     }),
-  )
+    source=source)
 
   items = read_items(output_dir, source_manifest.files, source_manifest.data_schema)
 

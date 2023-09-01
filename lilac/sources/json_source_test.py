@@ -4,8 +4,8 @@ import os
 import pathlib
 
 from ..schema import schema
+from ..source import SourceSchema
 from .json_source import ROW_ID_COLUMN, JSONSource
-from .source import SourceSchema
 
 
 def test_simple_json(tmp_path: pathlib.Path) -> None:

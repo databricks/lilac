@@ -20,9 +20,22 @@ from typing_extensions import override
 
 from ..auth import UserInfo
 from ..batch_utils import deep_flatten, deep_unflatten
-from ..config import CONFIG_FILENAME, DatasetConfig, DatasetSettings, EmbeddingConfig, SignalConfig
+from ..config import (
+  CONFIG_FILENAME,
+  DatasetConfig,
+  EmbeddingConfig,
+  SignalConfig,
+  get_dataset_config,
+)
 from ..embeddings.vector_store import VectorDBIndex
 from ..env import data_path, env
+from ..project import (
+  add_project_dataset_config,
+  add_project_embedding_config,
+  add_project_signal_config,
+  delete_project_signal_config,
+  read_project_config,
+)
 from ..schema import (
   MANIFEST_FILENAME,
   PATH_WILDCARD,
@@ -39,7 +52,6 @@ from ..schema import (
   PathTuple,
   RichData,
   Schema,
-  SourceManifest,
   column_paths_match,
   is_float,
   is_integer,
@@ -53,9 +65,8 @@ from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
-from ..sources.source import Source
 from ..tasks import TaskStepId, progress
-from ..utils import DebugTimer, get_dataset_output_dir, log, open_file, to_yaml
+from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
 from . import dataset
 from .dataset import (
   BINARY_OPS,
@@ -75,6 +86,7 @@ from .dataset import (
   FilterLike,
   GroupsSortBy,
   MediaResult,
+  NoSource,
   Search,
   SearchResultInfo,
   SelectGroupsResult,
@@ -83,8 +95,10 @@ from .dataset import (
   SelectRowsSchemaUDF,
   SortOrder,
   SortResult,
+  SourceManifest,
   StatsResult,
   column_from_identifier,
+  dataset_config_from_manifest,
   make_parquet_id,
 )
 from .dataset_utils import (
@@ -149,28 +163,24 @@ class DatasetDuckDB(Dataset):
     self._manifest_lock = threading.Lock()
     self._config_lock = threading.Lock()
     self._vector_index_lock = threading.Lock()
-    config_filepath = get_config_filepath(namespace, dataset_name)
-
-    if not os.path.exists(config_filepath):
-      # For backwards compatibility, if the config doesn't exist, create one. This will be out of
-      # sync but allow the server to still boot and update with new config changes.
-      # Make a metaclass so we get a valid `Source` class.
-      source_cls = type('Source_no_source', (Source,), {'name': 'no_source'})
-
-      old_settings_filepath = os.path.join(
-        get_dataset_output_dir(data_path(), namespace, dataset_name), 'settings.json')
-      settings = DatasetSettings()
-      if os.path.exists(old_settings_filepath):
-        with open(old_settings_filepath) as f:
-          settings = DatasetSettings.parse_raw(f.read())
-
-      config = DatasetConfig(
-        namespace=namespace, name=dataset_name, source=source_cls(), settings=settings)
-      with open(get_config_filepath(self.namespace, self.dataset_name), 'w') as f:
-        f.write(to_yaml(config.dict(exclude_none=True, exclude_defaults=True)))
 
     # Create a join table from all the parquet files.
-    self.manifest()
+    manifest = self.manifest()
+
+    # NOTE: This block is only for backwards compatibility.
+    # Make sure the project reflects the dataset.
+    project_config = read_project_config(data_path())
+    existing_dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
+    if not existing_dataset_config:
+      dataset_config = dataset_config_from_manifest(manifest)
+      # Check if the old config.yml file exists so we remember settings.
+      old_config_filepath = os.path.join(self.dataset_path, 'config.yml')
+      if os.path.exists(old_config_filepath):
+        with open(old_config_filepath) as f:
+          old_config = DatasetConfig(**yaml.safe_load(f))
+        dataset_config.settings = old_config.settings
+
+      add_project_dataset_config(dataset_config)
 
   @override
   def delete(self) -> None:
@@ -245,7 +255,8 @@ class DatasetDuckDB(Dataset):
       namespace=self.namespace,
       dataset_name=self.dataset_name,
       data_schema=merged_schema,
-      num_items=num_items)
+      num_items=num_items,
+      source=self._source_manifest.source)
 
   @override
   def manifest(self) -> DatasetManifest:
@@ -256,62 +267,6 @@ class DatasetDuckDB(Dataset):
       latest_mtime = max(map(os.path.getmtime, all_dataset_files))
       latest_mtime_micro_sec = int(latest_mtime * 1e6)
       return self._recompute_joint_table(latest_mtime_micro_sec)
-
-  def _update_config(self,
-                     settings: Optional[DatasetSettings] = None,
-                     signals: Optional[list[SignalConfig]] = None,
-                     embeddings: Optional[list[EmbeddingConfig]] = None) -> None:
-    with self._config_lock:
-      config = self.config()
-
-      if settings is not None:
-        config.settings = settings
-
-      if signals is not None:
-        # Update the config with the new signal, if the new signal has not already been added (this
-        # can happen if a signal is re-computed)
-        update_config = True
-        for signal_config in signals:
-          for existing_signal in config.signals:
-            if (existing_signal.path == signal_config.path and
-                existing_signal.signal.dict() == signal_config.signal.dict()):
-              update_config = False
-              break
-          if update_config:
-            config.signals.append(signal_config)
-
-      if embeddings is not None:
-        # Update the config with the new signal, if the new signal has not already been added (this
-        # can happen if a signal is re-computed)
-        update_config = True
-        for embedding_config in embeddings:
-          for existing_embedding in config.embeddings:
-            if (existing_embedding.path == embedding_config.path and
-                existing_embedding.embedding == embedding_config.embedding):
-              update_config = False
-              break
-          if update_config:
-            config.embeddings.append(embedding_config)
-
-      with open(get_config_filepath(self.namespace, self.dataset_name), 'w') as f:
-        f.write(to_yaml(config.dict(exclude_none=True, exclude_defaults=True)))
-
-  @override
-  def config(self) -> DatasetConfig:
-    config_filepath = get_config_filepath(self.namespace, self.dataset_name)
-    with open(config_filepath) as f:
-      return DatasetConfig(**yaml.safe_load(f))
-
-  @override
-  def settings(self) -> DatasetSettings:
-    # Settings should always have a default.
-    settings = self.config().settings
-    assert settings is not None
-    return settings
-
-  @override
-  def update_settings(self, settings: DatasetSettings) -> None:
-    self._update_config(settings)
 
   def count(self, filters: Optional[list[FilterLike]] = None) -> int:
     """Count the number of rows."""
@@ -356,7 +311,13 @@ class DatasetDuckDB(Dataset):
                      task_step_id: Optional[TaskStepId] = None) -> None:
     if isinstance(signal, TextEmbeddingSignal):
       return self.compute_embedding(signal.name, path, task_step_id)
+
     source_path = normalize_path(path)
+
+    # Update the project config before computing the signal.
+    add_project_signal_config(self.namespace, self.dataset_name,
+                              SignalConfig(path=source_path, signal=signal))
+
     manifest = self.manifest()
 
     if task_step_id is None:
@@ -400,8 +361,6 @@ class DatasetDuckDB(Dataset):
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.json(exclude_none=True, indent=2))
 
-    self._update_config(signals=[SignalConfig(path=source_path, signal=signal)])
-
     log(f'Wrote signal output to {output_dir}')
 
   @override
@@ -410,6 +369,8 @@ class DatasetDuckDB(Dataset):
                         path: Path,
                         task_step_id: Optional[TaskStepId] = None) -> None:
     source_path = normalize_path(path)
+    add_project_embedding_config(self.namespace, self.dataset_name,
+                                 EmbeddingConfig(path=source_path, embedding=embedding))
     manifest = self.manifest()
 
     if task_step_id is None:
@@ -446,16 +407,24 @@ class DatasetDuckDB(Dataset):
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.json(exclude_none=True, indent=2))
 
-    self._update_config(embeddings=[EmbeddingConfig(path=source_path, embedding=embedding)])
-
     log(f'Wrote embedding index to {output_dir}')
 
   @override
   def delete_signal(self, signal_path: Path) -> None:
     signal_path = normalize_path(signal_path)
+
     manifest = self.manifest()
     if not manifest.data_schema.has_field(signal_path):
       raise ValueError(f'Unknown signal path: {signal_path}')
+
+    source_path = signal_path[0:-1]  # Remove the inner most signal path.
+    field = manifest.data_schema.get_field(signal_path)
+    signal = field.signal
+    if signal is None:
+      raise ValueError(f'{signal_path} is not a signal.')
+
+    delete_project_signal_config(self.namespace, self.dataset_name,
+                                 SignalConfig(path=source_path, signal=resolve_signal(signal)))
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(signal_path))
     shutil.rmtree(output_dir, ignore_errors=True)
@@ -1599,8 +1568,25 @@ def _select_sql(path: PathTuple,
 
 def read_source_manifest(dataset_path: str) -> SourceManifest:
   """Read the manifest file."""
+  # TODO(nsthorat): Overwrite the source manifest with a "source" added if the source is not defined
+  # by reading the config yml.
   with open_file(os.path.join(dataset_path, MANIFEST_FILENAME), 'r') as f:
-    return SourceManifest.parse_raw(f.read())
+    source_manifest = SourceManifest.parse_raw(f.read())
+
+  # For backwards compatibility, check if the config.yml has the source and write it back to the
+  # source manifest.
+  # This can be deleted after some time of migrating people.
+  if source_manifest.source == NoSource():
+    config_path = os.path.join(dataset_path, 'config.yml')
+    if os.path.exists(config_path):
+      with open_file(config_path, 'r') as f:
+        dataset_config = DatasetConfig(**yaml.safe_load(f))
+        if dataset_config.source:
+          source_manifest.source = dataset_config.source
+      with open_file(os.path.join(dataset_path, MANIFEST_FILENAME), 'w') as f:
+        f.write(source_manifest.json(indent=2, exclude_none=True))
+
+  return source_manifest
 
 
 def _signal_dir(enriched_path: PathTuple) -> str:

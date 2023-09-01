@@ -28,7 +28,13 @@ from ..signal import (
 )
 from ..signals.concept_scorer import ConceptSignal
 from .dataset import Column, DatasetManifest, GroupsSortBy, SortOrder
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
+from .dataset_test_utils import (
+  TEST_DATASET_NAME,
+  TEST_NAMESPACE,
+  TestDataMaker,
+  TestSource,
+  enriched_item,
+)
 
 SIMPLE_ITEMS: list[Item] = [{
   'str': 'a',
@@ -258,7 +264,8 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
       'bool': 'boolean',
       'float': 'float32',
     }),
-    num_items=3)
+    num_items=3,
+    source=TestSource())
 
   test_signal = TestSignal()
   dataset.compute_signal(test_signal, 'str')
@@ -281,7 +288,8 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
       'bool': 'boolean',
       'float': 'float32',
     }),
-    num_items=3)
+    num_items=3,
+    source=TestSource())
 
   result = dataset.select_rows(['str'], combine_columns=True)
   assert list(result) == [{
@@ -355,7 +363,8 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
           'param_signal(param=b)': field('string', test_signal_b.dict()),
         }),
     }),
-    num_items=2)
+    num_items=2,
+    source=TestSource())
 
   result = dataset.select_rows(['text'], combine_columns=True)
   assert list(result) == [{
@@ -388,7 +397,8 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
       'text': field(
         'string', fields={'test_split': field(signal=signal.dict(), fields=[field('string_span')])})
     }),
-    num_items=2)
+    num_items=2,
+    source=TestSource())
 
   result = dataset.select_rows(['text'], combine_columns=True)
   expected_result = [{
@@ -431,7 +441,8 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
           })
       ])
     }),
-    num_items=2)
+    num_items=2,
+    source=TestSource())
 
   result = dataset.select_rows([('text', '*')], combine_columns=True)
 
@@ -504,7 +515,8 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
             fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
         }),
     }),
-    num_items=2)
+    num_items=2,
+    source=TestSource())
 
   result = dataset.select_rows(combine_columns=True)
   expected_result = [{'text': 'hello.'}, {'text': 'hello2.'}]
@@ -523,7 +535,8 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       'text': field('string', fields={'key_True': field('int64', signal=signal.dict())}),
     }),
-    num_items=2)
+    num_items=2,
+    source=TestSource())
 
   result = dataset.select_rows(combine_columns=True)
 

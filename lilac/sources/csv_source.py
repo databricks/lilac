@@ -7,9 +7,9 @@ from pydantic import Field
 from typing_extensions import override
 
 from ..schema import Item
+from ..source import Source, SourceSchema, schema_from_df
 from ..utils import download_http_files
 from .duckdb_utils import duckdb_setup
-from .source import Source, SourceSchema, schema_from_df
 
 LINE_NUMBER_COLUMN = '__line_number__'
 

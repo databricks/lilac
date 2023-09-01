@@ -9,7 +9,13 @@ from pytest_mock import MockerFixture
 from .config import DatasetSettings
 from .data.dataset import Dataset, DatasetManifest, SelectRowsSchemaResult, SelectRowsSchemaUDF
 from .data.dataset_duckdb import DatasetDuckDB
-from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, enriched_item, make_dataset
+from .data.dataset_test_utils import (
+  TEST_DATASET_NAME,
+  TEST_NAMESPACE,
+  TestSource,
+  enriched_item,
+  make_dataset,
+)
 from .router_dataset import (
   Column,
   ComputeSignalOptions,
@@ -105,7 +111,8 @@ def test_get_manifest() -> None:
           }]
         }]
       }),
-      num_items=3))
+      num_items=3,
+      source=TestSource()))
 
 
 def test_select_rows_no_options() -> None:

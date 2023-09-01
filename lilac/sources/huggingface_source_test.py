@@ -6,8 +6,8 @@ import pathlib
 from datasets import Dataset, Features, Sequence, Value
 
 from ..schema import schema
+from ..source import SourceSchema
 from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceSource
-from .source import SourceSchema
 
 
 def test_hf(tmp_path: pathlib.Path) -> None:

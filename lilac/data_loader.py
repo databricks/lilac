@@ -14,27 +14,22 @@ from typing import Iterable, Optional, Union
 
 import pandas as pd
 
-from .config import CONFIG_FILENAME, DatasetConfig
-from .data.dataset import Dataset, default_settings
+from .config import DatasetConfig
+from .data.dataset import Dataset, SourceManifest, default_settings
 from .data.dataset_utils import write_items_to_parquet
 from .db_manager import get_dataset
 from .env import data_path
-from .schema import (
-  MANIFEST_FILENAME,
-  PARQUET_FILENAME_PREFIX,
-  ROWID,
-  Field,
-  Item,
-  Schema,
-  SourceManifest,
-  is_float,
-)
+from .project import add_project_dataset_config, update_project_dataset_settings
+from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, Item, Schema, is_float
 from .tasks import TaskStepId, progress
-from .utils import get_dataset_output_dir, log, open_file, to_yaml
+from .utils import get_dataset_output_dir, log, open_file
 
 
 def create_dataset(config: DatasetConfig) -> Dataset:
   """Load a dataset from a given source configuration."""
+  # Update the config before processing the source.
+  add_project_dataset_config(config)
+
   process_source(data_path(), config)
   return get_dataset(config.namespace, config.name)
 
@@ -72,15 +67,15 @@ def process_source(base_dir: Union[str, pathlib.Path],
     num_shards=1)
 
   filenames = [os.path.basename(filepath)]
-  manifest = SourceManifest(files=filenames, data_schema=data_schema, images=None)
+  manifest = SourceManifest(
+    files=filenames, data_schema=data_schema, images=None, source=config.source)
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.json(indent=2, exclude_none=True))
 
   if not config.settings:
     dataset = get_dataset(config.namespace, config.name)
-    config.settings = default_settings(dataset)
-  with open_file(os.path.join(output_dir, CONFIG_FILENAME), 'w') as f:
-    f.write(to_yaml(config.dict(exclude_defaults=True, exclude_none=True)))
+    settings = default_settings(dataset)
+    update_project_dataset_settings(config.namespace, config.name, settings)
 
   log(f'Dataset "{config.name}" written to {output_dir}')
 

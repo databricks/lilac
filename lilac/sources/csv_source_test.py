@@ -4,8 +4,8 @@ import os
 import pathlib
 
 from ..schema import schema
+from ..source import SourceSchema
 from .csv_source import LINE_NUMBER_COLUMN, CSVSource
-from .source import SourceSchema
 
 
 def test_csv(tmp_path: pathlib.Path) -> None:
