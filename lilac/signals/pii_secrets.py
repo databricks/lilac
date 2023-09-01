@@ -138,7 +138,7 @@ def _get_indexes(text: str, value: str) -> list[tuple[int, int]]:
 
 def find_secrets(content: str, suffix: str = '.txt') -> Iterator[Item]:
   """Detect secret keys in content using detect-secrets tool."""
-  fp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False, mode='w')
+  fp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False, mode='w', encoding='utf-8')
   fp.write(content)
   fp.close()
   secrets = SecretsCollection()
