@@ -105,6 +105,8 @@
     const val = (e.target as HTMLInputElement).value;
     path = deserializePath(val);
   }
+
+  $: console.log('emb:', embedding);
 </script>
 
 <div class="flex w-full flex-row gap-x-4">
