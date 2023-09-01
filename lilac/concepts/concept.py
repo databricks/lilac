@@ -71,6 +71,14 @@ class Example(ExampleIn):
   id: str
 
 
+class ConceptMetadata(BaseModel):
+  """Metadata associated with a concept."""
+  # True if the concept is publicly visible.
+  is_public: bool = False
+  tags: list[str] = []
+  description: Optional[str] = None
+
+
 class Concept(BaseModel):
   """A concept is a collection of examples."""
   # The namespace of the concept.
@@ -82,8 +90,7 @@ class Concept(BaseModel):
   data: dict[str, Example]
   version: int = 0
 
-  tags: list[str] = []
-  description: Optional[str] = None
+  metadata: Optional[ConceptMetadata] = None
 
   def drafts(self) -> list[DraftId]:
     """Gets all the drafts for the concept."""

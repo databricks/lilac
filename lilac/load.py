@@ -22,7 +22,7 @@ from .data.dataset_duckdb import DatasetDuckDB
 from .data_loader import process_source
 from .db_manager import get_dataset, list_datasets, remove_dataset_from_cache
 from .schema import ROWID, PathTuple
-from .tasks import TaskManager, TaskStepId, TaskType, get_task_manager
+from .tasks import TaskManager, TaskStepId, TaskType
 from .utils import DebugTimer, get_datasets_dir
 
 
@@ -64,8 +64,6 @@ def load(output_dir: str,
 
   # Use threads instead of processes to avoid running out of RAM.
   if not task_manager:
-    task_manager = get_task_manager()
-  else:
     # Explicitly create a dask client in sync mode.
     total_memory_gb = psutil.virtual_memory().total / (1024**3) * 2 / 3
     task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB', processes=False))

@@ -14,6 +14,7 @@ from typing_extensions import override
 from .concepts.concept import (
   DRAFT_MAIN,
   Concept,
+  ConceptMetadata,
   ConceptModel,
   ConceptType,
   Example,
@@ -94,7 +95,10 @@ def test_concept_create() -> None:
   # Create a concept.
   url = '/api/v1/concepts/create'
   create_concept = CreateConceptOptions(
-    namespace='concept_namespace', name='concept', type=ConceptType.TEXT)
+    namespace='concept_namespace',
+    name='concept',
+    type=ConceptType.TEXT,
+    metadata=ConceptMetadata(is_public=False, tags=['test_tag'], description='test_description'))
   response = client.post(url, json=create_concept.dict())
   assert response.status_code == 200
   assert Concept.parse_obj(response.json()) == Concept(
@@ -102,7 +106,8 @@ def test_concept_create() -> None:
     concept_name='concept',
     type=ConceptType.TEXT,
     data={},
-    version=0)
+    version=0,
+    metadata=ConceptMetadata(is_public=False, tags=['test_tag'], description='test_description'))
 
   # Make sure list shows us the new concept.
   url = '/api/v1/concepts/'
@@ -115,7 +120,46 @@ def test_concept_create() -> None:
       name='concept',
       type=ConceptType.TEXT,
       drafts=[DRAFT_MAIN],
-      acls=ConceptACL(read=True, write=True))
+      acls=ConceptACL(read=True, write=True),
+      metadata=ConceptMetadata(is_public=False, tags=['test_tag'], description='test_description'))
+  ]
+
+
+def test_concept_update_metadata() -> None:
+  url = '/api/v1/concepts/'
+  response = client.get(url)
+
+  assert response.status_code == 200
+  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  assert response_concepts == []
+
+  # Create a concept.
+  url = '/api/v1/concepts/create'
+  create_concept = CreateConceptOptions(
+    namespace='concept_namespace', name='concept', type=ConceptType.TEXT)
+  response = client.post(url, json=create_concept.dict())
+  assert response.status_code == 200
+
+  # Update the metadata.
+  url = '/api/v1/concepts/concept_namespace/concept/metadata'
+  update_metadata = ConceptMetadata(
+    is_public=True, tags=['test_tag'], description='test_description')
+  response = client.post(url, json=update_metadata.dict())
+  assert response.status_code == 200
+
+  # Make sure list shows us the new concept.
+  url = '/api/v1/concepts/'
+  response = client.get(url)
+  assert response.status_code == 200
+  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  assert response_concepts == [
+    ConceptInfo(
+      namespace='concept_namespace',
+      name='concept',
+      type=ConceptType.TEXT,
+      drafts=[DRAFT_MAIN],
+      acls=ConceptACL(read=True, write=True),
+      metadata=ConceptMetadata(is_public=True, tags=['test_tag'], description='test_description'))
   ]
 
 
@@ -187,7 +231,8 @@ def test_concept_edits(mocker: MockerFixture) -> None:
       name='concept',
       type=ConceptType.TEXT,
       drafts=[DRAFT_MAIN],
-      acls=ConceptACL(read=True, write=True))
+      acls=ConceptACL(read=True, write=True),
+      metadata=ConceptMetadata())
   ]
 
   # Add another example.
@@ -266,7 +311,8 @@ def test_concept_edits(mocker: MockerFixture) -> None:
       name='concept',
       type=ConceptType.TEXT,
       drafts=[DRAFT_MAIN],
-      acls=ConceptACL(read=True, write=True))
+      acls=ConceptACL(read=True, write=True),
+      metadata=ConceptMetadata())
   ]
 
 
@@ -305,7 +351,8 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
       name='concept',
       type=ConceptType.TEXT,
       drafts=[DRAFT_MAIN, 'test_draft'],
-      acls=ConceptACL(read=True, write=True))
+      acls=ConceptACL(read=True, write=True),
+      metadata=ConceptMetadata())
   ]
 
   # Make sure when we request main, we only get data in main.

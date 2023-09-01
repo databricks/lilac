@@ -2,6 +2,10 @@
   "namespace": "lilac",
   "concept_name": "question",
   "type": "text",
+  "metadata": {
+    "is_public": true,
+    "description": "Text in the form of a question."
+  },
   "data": {
     "09a1ce39f573494a8d4a47a4fce0f523": {
       "label": true,
@@ -1894,6 +1898,5 @@
       "id": "8e7cff1f58774a45a24c895782d4689b"
     }
   },
-  "version": 373,
-  "description": "A sentence in the form of a question"
+  "version": 373
 }

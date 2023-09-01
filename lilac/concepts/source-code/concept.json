@@ -2,6 +2,10 @@
   "namespace": "lilac",
   "concept_name": "source-code",
   "type": "text",
+  "metadata": {
+    "is_public": true,
+    "description": "Source code from any programming language."
+  },
   "data": {
     "c7d0400c6e5442a59859ea7b0a7d6bab": {
       "label": true,
@@ -384,6 +388,5 @@
       "id": "8d6eb8f1aac745359540c9f454aa9a58"
     }
   },
-  "version": 62,
-  "description": "Source code for a programming language."
+  "version": 62
 }

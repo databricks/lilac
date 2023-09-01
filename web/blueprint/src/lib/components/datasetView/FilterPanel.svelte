@@ -2,6 +2,7 @@
   import {queryConcept} from '$lib/queries/conceptQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {conceptLink} from '$lib/utils';
   import {displayPath, getSearches, getSort} from '$lib/view_utils';
   import {
     deserializePath,
@@ -14,8 +15,21 @@
     type SearchType,
     type WebManifest
   } from '$lilac';
-  import {Modal, Select, SelectItem, SelectItemGroup, SkeletonText} from 'carbon-components-svelte';
-  import {Close, SortAscending, SortDescending, SortRemove} from 'carbon-icons-svelte';
+  import {
+    Button,
+    Modal,
+    Select,
+    SelectItem,
+    SelectItemGroup,
+    SkeletonText
+  } from 'carbon-components-svelte';
+  import {
+    ArrowUpRight,
+    Close,
+    SortAscending,
+    SortDescending,
+    SortRemove
+  } from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptView from '../concepts/ConceptView.svelte';
   import FilterPill from './FilterPill.svelte';
@@ -200,12 +214,22 @@
 </div>
 
 {#if openedConcept}
-  <Modal open modalHeading="Concept" passiveModal on:close={() => (openedConcept = null)} size="lg">
+  <Modal open modalHeading={''} passiveModal on:close={() => (openedConcept = null)} size="lg">
     {#if $concept?.isLoading}
       <SkeletonText />
     {:else if $concept?.isError}
       <p>{$concept.error.message}</p>
     {:else if $concept?.isSuccess}
+      <div class="mb-4 ml-6">
+        <Button
+          size="small"
+          kind="ghost"
+          icon={ArrowUpRight}
+          href={conceptLink($concept?.data.namespace, $concept.data.concept_name)}
+          iconDescription={'Open concept page'}>Go to concept</Button
+        >
+      </div>
+
       <ConceptView concept={$concept.data} />
     {/if}
   </Modal>

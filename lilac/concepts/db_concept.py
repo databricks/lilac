@@ -19,10 +19,18 @@ from typing_extensions import override
 
 from ..auth import ConceptAuthorizationException, UserInfo
 from ..env import data_path, env
-from ..schema import SignalInputType
 from ..signal import get_signal_cls
 from ..utils import delete_file, file_exists, get_lilac_cache_dir, open_file
-from .concept import DRAFT_MAIN, Concept, ConceptModel, ConceptType, DraftId, Example, ExampleIn
+from .concept import (
+  DRAFT_MAIN,
+  Concept,
+  ConceptMetadata,
+  ConceptModel,
+  ConceptType,
+  DraftId,
+  Example,
+  ExampleIn,
+)
 
 CONCEPTS_DIR = 'concept'
 CONCEPT_JSON_FILENAME = 'concept.json'
@@ -51,10 +59,10 @@ class ConceptInfo(BaseModel):
   """Information about a concept."""
   namespace: str
   name: str
-  description: Optional[str] = None
   type: ConceptType
+  metadata: ConceptMetadata
+
   drafts: list[DraftId]
-  tags: list[str] = []
 
   acls: ConceptACL
 
@@ -99,7 +107,7 @@ class ConceptDB(abc.ABC):
              namespace: str,
              name: str,
              type: Union[ConceptType, str],
-             description: Optional[str] = None,
+             metadata: Optional[ConceptMetadata] = None,
              user: Optional[UserInfo] = None) -> Concept:
     """Create a concept.
 
@@ -107,7 +115,7 @@ class ConceptDB(abc.ABC):
       namespace: The namespace of the concept.
       name: The name of the concept.
       type: The type of the concept.
-      description: The description of the concept.
+      metadata: The metadata for the concept, including tags, description, and visibility.
       user: The user creating the concept, if authentication is enabled.
     """
     pass
@@ -119,6 +127,22 @@ class ConceptDB(abc.ABC):
            change: ConceptUpdate,
            user: Optional[UserInfo] = None) -> Concept:
     """Edit a concept. If the concept doesn't exist, throw an error."""
+    pass
+
+  @abc.abstractmethod
+  def update_metadata(self,
+                      namespace: str,
+                      name: str,
+                      metadata: ConceptMetadata,
+                      user: Optional[UserInfo] = None) -> None:
+    """Update the metadata of a concept.
+
+    Args:
+      namespace: The namespace of the concept.
+      name: The name of the concept.
+      metadata: The metadata to update.
+      user: The user updating the metadata, if authentication is enabled.
+    """
     pass
 
   @abc.abstractmethod
@@ -349,9 +373,15 @@ class DiskConceptDB(ConceptDB):
   @override
   def concept_acls(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> ConceptACL:
     namespace_acls = self.namespace_acls(namespace, user=user)
+    read = namespace_acls.read
+    if env('LILAC_AUTH_ENABLED'):
+      concept = self._read_concept(namespace, name)
+      if concept and concept.metadata and concept.metadata.is_public:
+        read = True
+
     # Concept ACL inherit from the namespace ACL. We currently don't have concept-specific
     #  ACL.
-    return ConceptACL(read=namespace_acls.read, write=namespace_acls.write)
+    return ConceptACL(read=read, write=namespace_acls.write)
 
   @override
   def list(self, user: Optional[UserInfo] = None) -> list[ConceptInfo]:
@@ -396,7 +426,9 @@ class DiskConceptDB(ConceptDB):
     if not acls.read:
       raise ConceptAuthorizationException(
         f'Concept "{namespace}/{name}" does not exist or user does not have access.')
+    return self._read_concept(namespace, name)
 
+  def _read_concept(self, namespace: str, name: str) -> Optional[Concept]:
     concept_json_path = _concept_json_path(self._get_base_dir(), namespace, name)
     if not file_exists(concept_json_path):
       return None
@@ -412,7 +444,7 @@ class DiskConceptDB(ConceptDB):
              namespace: str,
              name: str,
              type: Union[ConceptType, str] = ConceptType.TEXT,
-             description: Optional[str] = None,
+             metadata: Optional[ConceptMetadata] = None,
              user: Optional[UserInfo] = None) -> Concept:
     """Create a concept."""
     # If the user does not have access to the write to the concept namespace, throw.
@@ -427,8 +459,7 @@ class DiskConceptDB(ConceptDB):
 
     if isinstance(type, str):
       type = ConceptType(type)
-    concept = Concept(
-      namespace=namespace, concept_name=name, type=type, data={}, description=description)
+    concept = Concept(namespace=namespace, concept_name=name, type=type, data={}, metadata=metadata)
     self._save(concept)
     return concept
 
@@ -438,6 +469,20 @@ class DiskConceptDB(ConceptDB):
       inferred_type = 'text' if example.text else 'unknown'
       if inferred_type != type:
         raise ValueError(f'Example type "{inferred_type}" does not match concept type "{type}".')
+
+  @override
+  def update_metadata(self,
+                      namespace: str,
+                      name: str,
+                      metadata: ConceptMetadata,
+                      user: Optional[UserInfo] = None) -> None:
+    concept = self.get(namespace, name, user=user)
+    if not concept:
+      raise ValueError('Concept with namespace "{namespace}" and name "{name}" does not exist.')
+
+    concept.metadata = metadata
+
+    self._save(concept)
 
   @override
   def edit(self,
@@ -552,13 +597,13 @@ class DiskConceptDB(ConceptDB):
 
 
 def _info_from_concept(concept: Concept, acls: ConceptACL) -> ConceptInfo:
+  metadata = concept.metadata or ConceptMetadata()
   return ConceptInfo(
     namespace=concept.namespace,
     name=concept.concept_name,
-    description=concept.description,
-    type=SignalInputType.TEXT,
+    metadata=metadata,
+    type=concept.type,
     drafts=concept.drafts(),
-    tags=concept.tags,
     acls=acls)
 
 

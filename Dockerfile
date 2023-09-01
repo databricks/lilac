@@ -16,7 +16,7 @@ WORKDIR $HOME/app
 # Install the dependencies. This will look in ./dist for any wheels that match lilac. If they are
 # not found, it will use the public pip package.
 COPY --chown=user /dist ./dist/
-RUN python -m pip install --find-links=dist lilac
+RUN python -m pip install --find-links=dist lilac[all]
 
 COPY --chown=user .env .
 COPY --chown=user .env.demo .

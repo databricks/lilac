@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { ConceptMetadata } from './ConceptMetadata';
 import type { ConceptType } from './ConceptType';
 import type { Example } from './Example';
 
@@ -14,7 +15,6 @@ export type Concept = {
     type: ConceptType;
     data: Record<string, Example>;
     version?: number;
-    tags?: Array<string>;
-    description?: string;
+    metadata?: ConceptMetadata;
 };
 

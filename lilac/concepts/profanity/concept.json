@@ -2,6 +2,10 @@
   "namespace": "lilac",
   "concept_name": "profanity",
   "type": "text",
+  "metadata": {
+    "is_public": true,
+    "description": "Profane or obscene language."
+  },
   "data": {
     "0": {
       "label": true,
@@ -5294,6 +5298,5 @@
       "id": "0e4484fa362a4559a4050e8ef0718684"
     }
   },
-  "version": 34,
-  "description": "Profane or obscene language"
+  "version": 34
 }

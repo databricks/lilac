@@ -11,6 +11,7 @@ from .auth import UserInfo, get_session_user
 from .concepts.concept import (
   DRAFT_MAIN,
   Concept,
+  ConceptMetadata,
   ConceptMetrics,
   ConceptType,
   DraftId,
@@ -58,7 +59,7 @@ class CreateConceptOptions(BaseModel):
   name: str
   # Input type (modality) of the concept.
   type: ConceptType
-  description: Optional[str] = None
+  metadata: Optional[ConceptMetadata] = None
 
 
 @router.post('/create', response_model_exclude_none=True)
@@ -66,8 +67,8 @@ def create_concept(options: CreateConceptOptions,
                    user: Annotated[Optional[UserInfo],
                                    Depends(get_session_user)]) -> Concept:
   """Edit a concept in the database."""
-  return DISK_CONCEPT_DB.create(options.namespace, options.name, options.type, options.description,
-                                user)
+  return DISK_CONCEPT_DB.create(
+    options.namespace, options.name, options.type, metadata=options.metadata, user=user)
 
 
 @router.post('/{namespace}/{concept_name}', response_model_exclude_none=True)
@@ -75,6 +76,15 @@ def edit_concept(namespace: str, concept_name: str, change: ConceptUpdate,
                  user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> Concept:
   """Edit a concept in the database."""
   return DISK_CONCEPT_DB.edit(namespace, concept_name, change, user)
+
+
+@router.post('/{namespace}/{concept_name}/metadata', response_model_exclude_none=True)
+def edit_concept_metadata(namespace: str, concept_name: str, concept_metadata: ConceptMetadata,
+                          user: Annotated[Optional[UserInfo],
+                                          Depends(get_session_user)]) -> None:
+  """Edit the metadata of a concept."""
+  DISK_CONCEPT_DB.update_metadata(
+    namespace=namespace, name=concept_name, metadata=concept_metadata, user=user)
 
 
 @router.delete('/{namespace}/{concept_name}')

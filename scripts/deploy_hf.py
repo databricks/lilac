@@ -1,4 +1,9 @@
-"""Deploy to a huggingface space."""
+"""Deploy to a huggingface space.
+
+Usage:
+  poetry run python -m scripts.deploy_hf
+
+"""
 import os
 import shutil
 import subprocess

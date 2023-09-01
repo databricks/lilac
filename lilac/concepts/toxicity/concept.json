@@ -2,6 +2,10 @@
   "namespace": "lilac",
   "concept_name": "toxicity",
   "type": "text",
+  "metadata": {
+    "is_public": true,
+    "description": "Profanity, insults, obscenities, etc."
+  },
   "data": {
     "0": {
       "label": true,

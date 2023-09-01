@@ -2,6 +2,7 @@
   import {goto} from '$app/navigation';
   import Page from '$lib/components/Page.svelte';
   import {hoverTooltip} from '$lib/components/common/HoverTooltip';
+  import ConceptSettingsModal from '$lib/components/concepts/ConceptSettingsModal.svelte';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
   import {datasetStores} from '$lib/stores/datasetStore';
@@ -9,8 +10,9 @@
   import {getUrlHashContext} from '$lib/stores/urlHashStore';
   import {conceptIdentifier, conceptLink} from '$lib/utils';
   import {Modal, SkeletonText, Tag} from 'carbon-components-svelte';
-  import {InProgress, TrashCan} from 'carbon-icons-svelte';
+  import {InProgress, Settings, Share} from 'carbon-icons-svelte';
   import {get} from 'svelte/store';
+  import {fade} from 'svelte/transition';
 
   let namespace: string;
   let conceptName: string;
@@ -34,7 +36,7 @@
 
   $: concept = namespace && conceptName ? queryConcept(namespace, conceptName) : undefined;
   $: conceptInfo = $concepts.data?.find(c => c.namespace === namespace && c.name === conceptName);
-  $: canDeleteConcept = conceptInfo?.acls.write;
+  $: canEditConcept = conceptInfo?.acls.write;
 
   function deleteConceptClicked() {
     if (deleteConceptInfo == null) {
@@ -54,6 +56,9 @@
   }
 
   $: link = conceptLink(namespace, conceptName);
+
+  let settingsOpen = false;
+  let showCopyToast = false;
 </script>
 
 <Page>
@@ -64,20 +69,48 @@
       </a>
     </Tag>
   </div>
-  <div slot="header-right">
+  <div slot="header-right" class="flex flex-row">
+    {#if conceptInfo?.metadata.is_public}
+      <div class="relative flex flex-row justify-items-center">
+        {#if showCopyToast}
+          <div
+            out:fade
+            class="absolute right-12 z-50 mt-2 rounded border border-neutral-300 bg-neutral-50 px-4 py-1 text-xs"
+          >
+            Copied!
+          </div>
+        {/if}
+        <button
+          class="p-3"
+          use:hoverTooltip={{text: 'Copy the URL'}}
+          on:click={() =>
+            navigator.clipboard.writeText(location.href).then(
+              () => {
+                showCopyToast = true;
+                setTimeout(() => (showCopyToast = false), 2000);
+              },
+              () => {
+                throw Error('Error copying link to clipboard.');
+              }
+            )}><Share /></button
+        >
+      </div>
+    {/if}
     <div
       use:hoverTooltip={{
-        text: !canDeleteConcept ? 'User does not have access to delete this concept.' : ''
+        text: !canEditConcept
+          ? 'User does not have access to edit this concept.'
+          : 'Edit concept settings'
       }}
-      class:opacity-40={!canDeleteConcept}
+      class:opacity-40={!canEditConcept}
     >
       <button
-        title="Remove concept"
-        disabled={!canDeleteConcept}
-        class="p-3 hover:text-red-400 hover:opacity-100"
-        on:click={() => (deleteConceptInfo = {namespace: namespace, name: conceptName})}
+        title="Concept settings"
+        disabled={!canEditConcept}
+        class="p-3"
+        on:click={() => (settingsOpen = true)}
       >
-        <TrashCan size={16} />
+        <Settings size={16} />
       </button>
     </div>
   </div>
@@ -114,4 +147,5 @@
       <p class="mt-2">This is a permanent action and cannot be undone.</p>
     </Modal>
   {/if}
+  <ConceptSettingsModal bind:open={settingsOpen} {namespace} {conceptName} />
 </Page>

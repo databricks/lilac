@@ -1,13 +1,13 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
-  import {editConceptMutation} from '$lib/queries/conceptQueries';
+  import {editConceptMutation, queryConcepts} from '$lib/queries/conceptQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {createDatasetViewStore} from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
   import {serializePath, type Concept} from '$lilac';
   import {Button, ToastNotification} from 'carbon-components-svelte';
-  import {ViewOff} from 'carbon-icons-svelte';
+  import {View, ViewOff} from 'carbon-icons-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
   import Expandable from '../Expandable.svelte';
@@ -22,6 +22,13 @@
 
   const authInfo = queryAuthInfo();
   $: userId = $authInfo.data?.user?.id;
+
+  const concepts = queryConcepts();
+
+  $: conceptInfo = $concepts.data?.find(
+    c => c.namespace === concept.namespace && c.name === concept.concept_name
+  );
+  $: canEditConcept = conceptInfo?.acls.write == true;
 
   const conceptMutation = editConceptMutation();
   const embeddings = queryEmbeddings();
@@ -76,7 +83,7 @@
   <div>
     <div class="flex flex-row items-center text-2xl font-semibold">
       {concept.concept_name}
-      {#if userId == concept.namespace}
+      {#if userId == concept.namespace && !concept.metadata?.is_public}
         <div
           use:hoverTooltip={{
             text: 'Your concepts are only visible to you when logged in with Google.'
@@ -84,10 +91,18 @@
         >
           <ViewOff class="ml-2" />
         </div>
+      {:else if concept.metadata?.is_public}
+        <div
+          use:hoverTooltip={{
+            text: 'This concept is publicly visible.'
+          }}
+        >
+          <View class="ml-2" />
+        </div>
       {/if}
     </div>
-    {#if concept.description}
-      <div class="text text-base text-gray-600">{concept.description}</div>
+    {#if concept.metadata?.description}
+      <div class="text text-base text-gray-600">{concept.metadata.description}</div>
     {/if}
   </div>
 
@@ -106,10 +121,8 @@
       />
       {#if applyDataset != null && applyPath != null && applyEmbedding != null}
         <div class="mt-4">
-          <Button
-            class=""
-            iconDescription={'Open dataset and apply concept.'}
-            on:click={() => openDataset()}>Search by concept</Button
+          <Button iconDescription={'Open dataset and apply concept.'} on:click={() => openDataset()}
+            >Search by concept</Button
           >
         </div>
       {:else}
@@ -138,7 +151,20 @@
   {/if}
   <Expandable>
     <div slot="above" class="text-md font-semibold">Collect labels</div>
-    <ConceptLabeler slot="below" {concept} />
+    <div slot="below" class="w-full">
+      {#if canEditConcept}
+        <ConceptLabeler {concept} />
+      {:else}
+        <ToastNotification
+          hideCloseButton
+          kind="warning"
+          fullWidth
+          lowContrast
+          title="You don't have permission to edit this concept"
+          caption={'You can only edit concepts you created.'}
+        />
+      {/if}
+    </div>
   </Expandable>
   <div class="flex gap-x-4">
     <div class="flex w-0 flex-grow flex-col gap-y-4">
@@ -149,6 +175,7 @@
         data={positiveExamples}
         on:remove={ev => remove(ev.detail)}
         on:add={ev => add(ev.detail, true)}
+        {canEditConcept}
       />
     </div>
     <div class="flex w-0 flex-grow flex-col gap-y-4">
@@ -159,6 +186,7 @@
         data={negativeExamples}
         on:remove={ev => remove(ev.detail)}
         on:add={ev => add(ev.detail, false)}
+        {canEditConcept}
       />
     </div>
   </div>

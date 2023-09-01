@@ -35,7 +35,13 @@
   $: userId = $authInfo.data?.user?.id;
 
   $: defaultNamespace = command.namespace || (authEnabled ? userId : null);
+
   let namespace = defaultNamespace || 'local';
+  $: {
+    if (userId != null) {
+      namespace = userId;
+    }
+  }
   $: dataset = command.dataset;
   $: datasetId = dataset ? `${dataset.namespace}/${dataset.name}` : '';
   $: path = command.path;
@@ -104,28 +110,31 @@
   let negativeExamples: string[] = [''];
 
   function submit() {
-    $conceptCreate.mutate([{namespace, name, type: 'text', description: conceptDescription}], {
-      onSuccess: () => {
-        $conceptEdit.mutate(
-          [
-            namespace,
-            name,
+    $conceptCreate.mutate(
+      [{namespace, name, type: 'text', metadata: {description: conceptDescription}}],
+      {
+        onSuccess: () => {
+          $conceptEdit.mutate(
+            [
+              namespace,
+              name,
+              {
+                insert: [
+                  ...positiveExamples.filter(text => text != '').map(text => ({text, label: true})),
+                  ...negativeExamples.filter(text => text != '').map(text => ({text, label: false}))
+                ]
+              }
+            ],
             {
-              insert: [
-                ...positiveExamples.filter(text => text != '').map(text => ({text, label: true})),
-                ...negativeExamples.filter(text => text != '').map(text => ({text, label: false}))
-              ]
+              onSuccess: () => {
+                dispatch('create', {namespace, name});
+                close();
+              }
             }
-          ],
-          {
-            onSuccess: () => {
-              dispatch('create', {namespace, name});
-              close();
-            }
-          }
-        );
+          );
+        }
       }
-    });
+    );
   }
 
   async function generatePositives() {
@@ -178,7 +187,7 @@
           {:else}
             <TextInput
               labelText="namespace"
-              value={defaultNamespace}
+              value={namespace}
               on:change={e => (namespace = (e.detail || '').toString())}
             />
           {/if}
@@ -196,7 +205,8 @@
           <TextInput
             labelText="Concept description"
             helperText={authEnabled
-              ? 'Authentication is enabled, so LLM generation of examples is disabled. Please fork this and enable authentication to use generated examples.'
+              ? 'Authentication is enabled, so LLM generation of examples is disabled. ' +
+                'Please fork this and disable authentication to use generated examples.'
               : 'This will be used by an LLM to generate example sentences.'}
             placeholder="Enter the concept description..."
             bind:value={conceptDescription}

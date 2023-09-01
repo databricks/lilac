@@ -9,7 +9,9 @@
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {ITEM_SCROLL_CONTAINER_CTX_KEY, mergeSpans, type MergedSpan} from '$lib/view_utils';
   import {
+    L,
     getValueNodes,
+    pathIncludes,
     pathIsEqual,
     serializePath,
     type ConceptSignal,
@@ -52,13 +54,18 @@
 
   const spanHoverOpacity = 0.9;
 
-  // Map a path to the visible span fields.
-  $: pathToSpans = Object.fromEntries(
-    spanPaths.map(p => [
-      serializePath(p),
-      getValueNodes(row, p) as LilacValueNodeCasted<'string_span'>[]
-    ])
-  );
+  let pathToSpans: {
+    [path: string]: LilacValueNodeCasted<'string_span'>[];
+  };
+  $: {
+    pathToSpans = {};
+    spanPaths.forEach(sp => {
+      const valueNodes = getValueNodes(row, sp);
+      pathToSpans[serializePath(sp)] = valueNodes.filter(
+        v => pathIncludes(L.path(v), path) || path == null
+      ) as LilacValueNodeCasted<'string_span'>[];
+    });
+  }
 
   let spanPathToValueInfos: Record<string, SpanValueInfo[]> = {};
   $: {

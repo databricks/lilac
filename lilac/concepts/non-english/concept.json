@@ -2,6 +2,10 @@
   "namespace": "lilac",
   "concept_name": "non-english",
   "type": "text",
+  "metadata": {
+    "is_public": true,
+    "description": "Text that contains non-English."
+  },
   "data": {
     "c727f30a2d2d40f69b81aa981515fb62": {
       "label": true,
@@ -1019,6 +1023,5 @@
       "id": "95cc03b8508b44a18a4aee4b27743f1f"
     }
   },
-  "version": 189,
-  "description": "Text that contains non-English."
+  "version": 189
 }

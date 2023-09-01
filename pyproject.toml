@@ -7,7 +7,7 @@ repository = "https://github.com/lilacai/lilac"
 packages = [{ include = "lilac" }]
 include = ["lilac/web/**/*"]                    # Include the web app assets.
 readme = "README.md"
-version = "0.0.15"
+version = "0.0.16"
 
 [tool.poetry.dependencies]
 

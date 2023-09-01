@@ -2,6 +2,10 @@
   "namespace": "lilac",
   "concept_name": "positive-sentiment",
   "type": "text",
+  "metadata": {
+    "is_public": true,
+    "description": "Positive sentiment."
+  },
   "data": {
     "0": {
       "label": false,
@@ -559,6 +563,5 @@
       "id": "abf2d24c7d8845769b7368be28f2c25d"
     }
   },
-  "version": 11,
-  "description": "Positive sentiment"
+  "version": 11
 }
