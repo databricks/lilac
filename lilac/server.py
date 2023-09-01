@@ -127,7 +127,7 @@ def status() -> ServerStatus:
 
 
 @app.post('/load_config')
-def load_config() -> dict:
+def load_config(background_tasks: BackgroundTasks) -> dict:
   """Loads from the lilac.yml."""
 
   try:
@@ -135,11 +135,14 @@ def load_config() -> dict:
   except:
     raise HTTPException(status_code=500, detail='Task manager not initialized.')
 
-  load(
-    output_dir=data_path(),
-    config_path=os.path.join(data_path(), PROJECT_CONFIG_FILENAME),
-    overwrite=False,
-    task_manager=task_manager)
+  def _load() -> None:
+    load(
+      output_dir=data_path(),
+      config_path=os.path.join(data_path(), PROJECT_CONFIG_FILENAME),
+      overwrite=False,
+      task_manager=get_task_manager())
+
+  background_tasks.add_task(_load)
 
   return {}
 
