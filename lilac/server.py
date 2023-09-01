@@ -10,7 +10,7 @@ from typing import Any, Optional
 
 import requests
 import uvicorn
-from fastapi import APIRouter, BackgroundTasks, FastAPI, Request, Response
+from fastapi import APIRouter, BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
@@ -127,17 +127,20 @@ def status() -> ServerStatus:
 
 
 @app.post('/load_config')
-def load_config(background_tasks: BackgroundTasks) -> dict:
+def load_config() -> dict:
   """Loads from the lilac.yml."""
 
-  def _load() -> None:
-    load(
-      output_dir=data_path(),
-      config_path=os.path.join(data_path(), PROJECT_CONFIG_FILENAME),
-      overwrite=False,
-      task_manager=get_task_manager())
+  try:
+    task_manager = get_task_manager()
+  except:
+    raise HTTPException(status_code=500, detail='Task manager not initialized.')
 
-  background_tasks.add_task(_load)
+  load(
+    output_dir=data_path(),
+    config_path=os.path.join(data_path(), PROJECT_CONFIG_FILENAME),
+    overwrite=False,
+    task_manager=task_manager)
+
   return {}
 
 
@@ -238,11 +241,15 @@ def start_server(host: str = '127.0.0.1',
             except Exception as e:
               server_ready = False
             time.sleep(.1)
-          try:
-            # Load the config.
-            requests.post(f'http://{host}:{port}/load_config')
-          except Exception as e:
-            print('Error loading config: ', e)
+
+          load_success = False
+          while not load_success:
+            try:
+              # Load the config.
+              requests.post(f'http://{host}:{port}/load_config')
+              load_success = True
+            except Exception as e:
+              print('Error loading config: ', e)
 
         loop = asyncio.get_running_loop()
         loop.run_in_executor(None, _post_load)
