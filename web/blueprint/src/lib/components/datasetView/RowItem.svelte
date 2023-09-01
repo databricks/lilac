@@ -33,7 +33,7 @@
           style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
           class="overflow-y-auto"
         >
-          <RowItemMetadata {row} {visibleFields} {selectRowsSchema} />
+          <RowItemMetadata {mediaFields} {row} {visibleFields} {selectRowsSchema} />
         </div>
       </div>
     </div>
