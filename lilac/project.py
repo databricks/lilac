@@ -79,7 +79,7 @@ def add_project_embedding_config(dataset_namespace: str, dataset_name: str,
     if dataset_config is None:
       raise ValueError('Dataset not found in project config.')
 
-    if embedding_config in dataset_config.signals:
+    if embedding_config in dataset_config.embeddings:
       return
 
     dataset_config.embeddings.append(embedding_config)
