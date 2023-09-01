@@ -135,13 +135,13 @@ class VectorDBIndex:
     all_spans: list[list[tuple[int, int]]] = []
     all_vector_keys: list[list[VectorKey]] = []
     for path_key in keys:
-      spans = self._id_to_spans[path_key]
+      spans = self._id_to_spans.get(path_key, [])
       all_spans.append(spans)
       all_vector_keys.append([(*path_key, i) for i in range(len(spans))])
 
     offset = 0
     for spans, vector_keys in zip(all_spans, all_vector_keys):
-      vectors = self._vector_store.get(vector_keys)
+      vectors = self._vector_store.get(vector_keys) if vector_keys else np.array([])
       yield [{'span': span, 'vector': vector} for span, vector in zip(spans, vectors)]
       offset += len(spans)
 
