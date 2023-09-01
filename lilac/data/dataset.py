@@ -312,8 +312,6 @@ class Dataset(abc.ABC):
 
   def config(self) -> DatasetConfig:
     """Return the dataset config for this dataset."""
-    # This line is only for
-
     project_config = read_project_config(data_path())
     dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not dataset_config:
@@ -323,8 +321,7 @@ class Dataset(abc.ABC):
   def settings(self) -> DatasetSettings:
     """Return the persistent settings for the dataset."""
     settings = self.config().settings
-    assert settings is not None
-    return settings
+    return settings or DatasetSettings()
 
   def update_settings(self, settings: DatasetSettings) -> None:
     """Update the persistent settings for the dataset."""

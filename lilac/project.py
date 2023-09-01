@@ -133,7 +133,10 @@ def read_project_config(project_path: str) -> Config:
 def _write_project_config(project_path: str, config: Config) -> None:
   """Writes the project config."""
   with open(os.path.join(project_path, PROJECT_CONFIG_FILENAME), 'w') as f:
-    f.write(to_yaml(config.dict(exclude_defaults=True, exclude_none=True)))
+    yaml_config = to_yaml(config.dict(exclude_defaults=True, exclude_none=True))
+    f.write('# Lilac project config.\n' +
+            '# See https://lilacml.com/api_reference/index.html#lilac.Config '
+            'for details.\n\n' + yaml_config)
 
 
 def create_project(project_path: str) -> None:
@@ -142,11 +145,7 @@ def create_project(project_path: str) -> None:
     if not os.path.isdir(project_path):
       os.makedirs(project_path)
 
-    with open(os.path.join(project_path, PROJECT_CONFIG_FILENAME), 'w') as f:
-      f.write(
-        '# Lilac project config. See https://lilacml.com/api_reference/index.html#lilac.Config '
-        'for details.\n\n' +
-        to_yaml(Config(datasets=[]).dict(exclude_defaults=True, exclude_none=True)))
+    _write_project_config(project_path, Config(datasets=[]))
 
 
 def create_project_and_set_env(project_path_arg: str) -> None:
