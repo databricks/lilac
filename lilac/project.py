@@ -20,7 +20,7 @@ PROJECT_CONFIG_LOCK = threading.Lock()
 
 
 def add_project_dataset_config(dataset_config: DatasetConfig) -> None:
-  """Add a dataset signal to the project config."""
+  """Add a dataset to the project config."""
   with PROJECT_CONFIG_LOCK:
     config = read_project_config(data_path())
     existing_dataset_config = get_dataset_config(config, dataset_config.namespace,
@@ -33,7 +33,7 @@ def add_project_dataset_config(dataset_config: DatasetConfig) -> None:
 
 
 def delete_project_dataset_config(namespace: str, dataset_name: str) -> None:
-  """Add a dataset signal to the project config."""
+  """Delete a dataset config in a project."""
   with PROJECT_CONFIG_LOCK:
     config = read_project_config(data_path())
     dataset_config = get_dataset_config(config, namespace, dataset_name)
@@ -46,7 +46,7 @@ def delete_project_dataset_config(namespace: str, dataset_name: str) -> None:
 
 def update_project_dataset_settings(dataset_namespace: str, dataset_name: str,
                                     settings: DatasetSettings) -> None:
-  """Add a dataset signal to the project config."""
+  """Update the settings of a dataset config in a project."""
   with PROJECT_CONFIG_LOCK:
     config = read_project_config(data_path())
     dataset_config = get_dataset_config(config, dataset_namespace, dataset_name)
@@ -72,7 +72,7 @@ def add_project_signal_config(dataset_namespace: str, dataset_name: str,
 
 def add_project_embedding_config(dataset_namespace: str, dataset_name: str,
                                  embedding_config: EmbeddingConfig) -> None:
-  """Add a dataset signal to the project config."""
+  """Add a dataset embedding to the project config."""
   with PROJECT_CONFIG_LOCK:
     config = read_project_config(data_path())
     dataset_config = get_dataset_config(config, dataset_namespace, dataset_name)
@@ -88,7 +88,7 @@ def add_project_embedding_config(dataset_namespace: str, dataset_name: str,
 
 def delete_project_signal_config(dataset_namespace: str, dataset_name: str,
                                  signal_config: SignalConfig) -> None:
-  """Add a dataset signal to the project config."""
+  """Delete a dataset signal from the project config."""
   with PROJECT_CONFIG_LOCK:
     config = read_project_config(data_path())
     dataset_config = get_dataset_config(config, dataset_namespace, dataset_name)

@@ -540,7 +540,11 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
 
 
 def dataset_config_from_manifest(manifest: DatasetManifest) -> DatasetConfig:
-  """Computes a DatasetConfig from a manifest. Used for diffing the results to the config."""
+  """Computes a DatasetConfig from a manifest.
+
+  NOTE: This is only used for backwards compatibility. Once we remove the back-compat logic, this
+  method can be removed.
+  """
   all_fields = manifest.data_schema.all_fields
 
   all_signals = [
