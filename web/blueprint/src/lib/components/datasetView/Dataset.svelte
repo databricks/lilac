@@ -9,11 +9,28 @@
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
-  import {Modal, SkeletonText, Tag, TextArea} from 'carbon-components-svelte';
-  import {Download, Information, Settings, Share, TableOfContents} from 'carbon-icons-svelte';
+  import {
+    ComposedModal,
+    Modal,
+    ModalBody,
+    ModalFooter,
+    ModalHeader,
+    SkeletonText,
+    Tag,
+    TextArea
+  } from 'carbon-components-svelte';
+  import {
+    Download,
+    IbmWatsonKnowledgeStudio,
+    Information,
+    Settings,
+    Share,
+    TableOfContents
+  } from 'carbon-icons-svelte';
   import {fade} from 'svelte/transition';
   import DatasetSettingsModal from './DatasetSettingsModal.svelte';
   import DownloadModal from './DownloadModal.svelte';
+  import Insights from './Insights.svelte';
 
   export let namespace: string;
   export let datasetName: string;
@@ -29,6 +46,7 @@
 
   let settingsOpen = false;
   let downloadOpen = false;
+  let insightsOpen = false;
 
   const authInfo = queryAuthInfo();
   $: canUpdateSettings = $authInfo.data?.access.dataset.update_settings;
@@ -64,6 +82,9 @@
       use:hoverTooltip={{text: 'Dataset information'}}
     >
       <Information />
+    </button>
+    <button use:hoverTooltip={{text: 'Dataset insights'}} on:click={() => (insightsOpen = true)}>
+      <IbmWatsonKnowledgeStudio />
     </button>
   </div>
   <div slot="header-center" class="flex w-full items-center">
@@ -136,6 +157,20 @@
       name={datasetName}
     />
     <DownloadModal bind:open={downloadOpen} schema={$schema.data} />
+    <ComposedModal
+      size="lg"
+      open={insightsOpen}
+      on:close={() => (insightsOpen = false)}
+      on:submit={() => (insightsOpen = false)}
+    >
+      <ModalHeader title="Insights" />
+      <ModalBody>
+        {#if insightsOpen}
+          <Insights schema={$schema.data} {namespace} name={datasetName} />
+        {/if}
+      </ModalBody>
+      <ModalFooter primaryButtonText="Close" />
+    </ComposedModal>
   {/if}
 
   {#if configModalOpen}

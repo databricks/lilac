@@ -45,7 +45,9 @@ export type LilacField<S extends Signal = Signal> = Field & {
   // Overwrite signal type from generic
   signal?: S;
 };
-export type LilacSchema = LilacField;
+export interface LilacSchema extends LilacField {
+  fields: NonNullable<LilacField['fields']>;
+}
 export type LilacSelectRowsSchema = SelectRowsSchemaResult & {
   schema: LilacSchema;
 };

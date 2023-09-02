@@ -757,6 +757,6 @@ export function displayPath(path: Path): string {
   if (!Array.isArray(path)) {
     path = [path];
   }
-  const result = path.join('.');
-  return result.replaceAll(`.${PATH_WILDCARD}`, '[]');
+  const result = path.join('›');
+  return result.replaceAll(`›${PATH_WILDCARD}`, '[]');
 }
