@@ -130,7 +130,7 @@ def status() -> ServerStatus:
 def load_config(background_tasks: BackgroundTasks) -> dict:
   """Loads from the lilac.yml."""
 
-  def _load() -> None:
+  async def _load() -> None:
     load(
       output_dir=data_path(),
       config_path=os.path.join(data_path(), PROJECT_CONFIG_FILENAME),
