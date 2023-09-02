@@ -9,6 +9,7 @@ from huggingface_hub import scan_cache_dir, snapshot_download
 
 from lilac.concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
 from lilac.env import data_path, env
+from lilac.project import PROJECT_CONFIG_FILENAME
 from lilac.utils import get_datasets_dir, get_lilac_cache_dir, log
 
 
@@ -70,8 +71,12 @@ def main() -> None:
       ignore_patterns=['.gitattributes', 'README.md'])
 
   snapshot_dir = snapshot_download(repo_id=repo_id, repo_type='space', token=env('HF_ACCESS_TOKEN'))
-  # Copy datasets.
+
   spaces_data_dir = os.path.join(snapshot_dir, 'data')
+  # Copy the config file.
+  project_config_file = os.path.join(spaces_data_dir, PROJECT_CONFIG_FILENAME)
+  if os.path.exists(project_config_file):
+    shutil.copy(project_config_file, os.path.join(data_path(), PROJECT_CONFIG_FILENAME))
 
   # Delete cache files from persistent storage.
   cache_dir = get_lilac_cache_dir(data_path())

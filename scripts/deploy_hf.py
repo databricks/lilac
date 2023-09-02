@@ -16,6 +16,7 @@ from huggingface_hub import HfApi
 from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from lilac.config import CONFIG_FILENAME, DatasetConfig
 from lilac.env import data_path, env
+from lilac.project import PROJECT_CONFIG_FILENAME
 from lilac.sources.huggingface_source import HuggingFaceSource
 from lilac.utils import get_dataset_output_dir, get_hf_dataset_repo_id, get_lilac_cache_dir, to_yaml
 
@@ -84,6 +85,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
               make_datasets_public: bool, use_pip: bool, disable_google_analytics: bool) -> None:
   """Generate the huggingface space app."""
   data_dir = data_dir or data_path()
+
   hf_username = hf_username or env('HF_USERNAME')
   if not hf_username:
     raise ValueError('Must specify --hf_username or set env.HF_USERNAME')
@@ -194,6 +196,14 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
   ]
   for copy_file in copy_files:
     shutil.copyfile(copy_file, os.path.join(repo_basedir, copy_file))
+
+  # Copy the lilac.yml
+  repo_data_dir = os.path.join(repo_basedir, 'data')
+  if not os.path.exists(repo_data_dir):
+    os.makedirs(repo_data_dir)
+  shutil.copyfile(
+    os.path.join(data_dir, PROJECT_CONFIG_FILENAME),
+    os.path.join(repo_data_dir, PROJECT_CONFIG_FILENAME))
 
   # Create an .env.local to set HF-specific flags.
   with open(f'{repo_basedir}/.env.demo', 'w') as f:
