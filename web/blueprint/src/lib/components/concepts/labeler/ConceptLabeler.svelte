@@ -18,7 +18,7 @@
 
   $: schemaQuery =
     dataset?.namespace && dataset?.name
-      ? maybeQueryDatasetSchema(dataset?.namespace, dataset?.name)
+      ? maybeQueryDatasetSchema(dataset.namespace, dataset.name)
       : null;
 
   $: schema = $schemaQuery?.data;
