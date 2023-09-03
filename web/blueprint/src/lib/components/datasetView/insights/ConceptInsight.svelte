@@ -1,7 +1,13 @@
 <script lang="ts">
   import {queryConcept} from '$lib/queries/conceptQueries';
   import {querySelectGroups} from '$lib/queries/datasetQueries';
-  import {PATH_WILDCARD, type ConceptSignal, type LilacField, type LilacSchema} from '$lilac';
+  import {
+    PATH_WILDCARD,
+    formatValue,
+    type ConceptSignal,
+    type LilacField,
+    type LilacSchema
+  } from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
   import Expandable from '../../Expandable.svelte';
   import ConceptInsightItems from './ConceptInsightItems.svelte';
@@ -42,7 +48,7 @@
       </div>
       <div class="flex-none">
         <div class="text-lg font-bold">
-          {conceptFraction.toFixed(2)}% ({inConceptCount} items)
+          {conceptFraction.toFixed(2)}% ({formatValue(inConceptCount)} items)
         </div>
       </div>
     </div>
