@@ -165,11 +165,7 @@
                     />
                   {/if}
                   {#if metadataFields.length > 0}
-                    <RowItemMetadata
-                      mediaFields={[]}
-                      row={previewResultItem}
-                      visibleFields={metadataFields}
-                    />
+                    <RowItemMetadata mediaFields={[]} row={previewResultItem} />
                   {/if}
                   {#if primitiveValue != null}
                     <div class="flex flex-row items-center">
