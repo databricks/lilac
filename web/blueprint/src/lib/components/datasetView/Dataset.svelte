@@ -46,7 +46,6 @@
 
   let settingsOpen = false;
   let downloadOpen = false;
-  let insightsOpen = false;
 
   const authInfo = queryAuthInfo();
   $: canUpdateSettings = $authInfo.data?.access.dataset.update_settings;
@@ -83,7 +82,10 @@
     >
       <Information />
     </button>
-    <button use:hoverTooltip={{text: 'Dataset insights'}} on:click={() => (insightsOpen = true)}>
+    <button
+      use:hoverTooltip={{text: 'Dataset insights'}}
+      on:click={() => datasetViewStore.setInsightsOpen(true)}
+    >
       <IbmWatsonKnowledgeStudio />
     </button>
   </div>
@@ -159,13 +161,13 @@
     <DownloadModal bind:open={downloadOpen} schema={$schema.data} />
     <ComposedModal
       size="lg"
-      open={insightsOpen}
-      on:close={() => (insightsOpen = false)}
-      on:submit={() => (insightsOpen = false)}
+      open={$datasetViewStore.insightsOpen}
+      on:close={() => datasetViewStore.setInsightsOpen(false)}
+      on:submit={() => datasetViewStore.setInsightsOpen(false)}
     >
       <ModalHeader title="Insights" />
       <ModalBody>
-        {#if insightsOpen}
+        {#if $datasetViewStore.insightsOpen}
           <Insights schema={$schema.data} {namespace} {datasetName} />
         {/if}
       </ModalBody>

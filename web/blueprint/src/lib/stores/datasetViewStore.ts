@@ -29,6 +29,7 @@ export interface DatasetViewState {
 
   // View.
   schemaCollapsed: boolean;
+  insightsOpen: boolean;
 }
 
 export type DatasetViewStore = ReturnType<typeof createDatasetViewStore>;
@@ -50,7 +51,8 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
       columns: [],
       combine_columns: true
     },
-    schemaCollapsed: true
+    schemaCollapsed: true,
+    insightsOpen: false
   };
 }
 
@@ -234,6 +236,12 @@ export function createDatasetViewStore(
         state.query.filters = state.query.filters?.filter(
           f => !resultPathsToRemove.some(r => pathIsEqual(r, f.path))
         );
+        return state;
+      });
+    },
+    setInsightsOpen(open: boolean) {
+      update(state => {
+        state.insightsOpen = open;
         return state;
       });
     }

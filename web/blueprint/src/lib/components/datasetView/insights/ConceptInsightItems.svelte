@@ -1,5 +1,8 @@
 <script lang="ts">
+  import {goto} from '$app/navigation';
   import {querySelectRows} from '$lib/queries/datasetQueries';
+  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {datasetLink} from '$lib/utils';
   import {getSpanValuePaths} from '$lib/view_utils';
   import {
     L,
@@ -10,7 +13,8 @@
     type LilacValueNode,
     type Path
   } from '$lilac';
-  import {SkeletonText} from 'carbon-components-svelte';
+  import {Button, SkeletonText} from 'carbon-components-svelte';
+  import {ArrowUpRight} from 'carbon-icons-svelte';
   import StringSpanHighlight from '../StringSpanHighlight.svelte';
 
   export let schema: LilacSchema;
@@ -18,6 +22,8 @@
   export let datasetName: string;
   export let mediaPath: Path;
   export let scorePath: Path;
+
+  const datasetViewStore = getDatasetViewContext();
 
   const NUM_ITEMS = 5;
 
@@ -54,13 +60,31 @@
     }
     return maxScore;
   }
+
+  function openDataset() {
+    datasetViewStore.setSortBy(scorePath);
+    datasetViewStore.setSortOrder('DESC');
+    datasetViewStore.setInsightsOpen(false);
+    goto(datasetLink(namespace, datasetName, $datasetViewStore));
+  }
 </script>
 
 {#if $topRows.isFetching}
   <SkeletonText />
 {:else if $topRows.data}
   <div class="flex flex-col gap-y-4">
-    <div class="text-lg">Items with highest score</div>
+    <div class="flex h-8 justify-between text-lg">
+      <div>Items with highest score</div>
+      <div>
+        <Button
+          size="small"
+          tooltipPosition="left"
+          icon={ArrowUpRight}
+          iconDescription={'Sort dataset by concept score'}
+          on:click={openDataset}
+        />
+      </div>
+    </div>
     {#each $topRows.data.rows as row}
       {@const text = getText(row)}
       {@const maxScore = getMaxScore(row)}
