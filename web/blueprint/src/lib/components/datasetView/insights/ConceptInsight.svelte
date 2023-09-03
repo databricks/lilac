@@ -21,8 +21,8 @@
   $: conceptQuery = queryConcept(conceptSignal.namespace, conceptSignal.concept_name);
   $: conceptDesc = $conceptQuery.data?.metadata?.description;
 
-  $: notInConceptCount = $countQuery.data?.counts[0][1];
-  $: inConceptCount = $countQuery.data?.counts[1][1];
+  $: notInConceptCount = $countQuery.data?.counts[0]?.[1] || 0;
+  $: inConceptCount = $countQuery.data?.counts[1]?.[1] || 0;
   $: version = $conceptQuery.data?.version;
 
   $: conceptFraction = (inConceptCount / (inConceptCount + notInConceptCount)) * 100;
