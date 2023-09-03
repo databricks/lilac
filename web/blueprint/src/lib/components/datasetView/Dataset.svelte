@@ -30,7 +30,7 @@
   import {fade} from 'svelte/transition';
   import DatasetSettingsModal from './DatasetSettingsModal.svelte';
   import DownloadModal from './DownloadModal.svelte';
-  import Insights from './Insights.svelte';
+  import Insights from './insights/Insights.svelte';
 
   export let namespace: string;
   export let datasetName: string;
@@ -166,7 +166,7 @@
       <ModalHeader title="Insights" />
       <ModalBody>
         {#if insightsOpen}
-          <Insights schema={$schema.data} {namespace} name={datasetName} />
+          <Insights schema={$schema.data} {namespace} {datasetName} />
         {/if}
       </ModalBody>
       <ModalFooter primaryButtonText="Close" />

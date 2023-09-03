@@ -8,7 +8,7 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {ITEM_SCROLL_CONTAINER_CTX_KEY, getMediaFields, getVisibleSchema} from '$lib/view_utils';
-  import {serializePath} from '$lilac';
+  import {serializePath, type LilacSchema} from '$lilac';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import {setContext} from 'svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
@@ -47,7 +47,9 @@
     $datasetStore.selectRowsSchema?.data?.schema != null
       ? getVisibleSchema($datasetStore.selectRowsSchema?.data?.schema, visibleFields)!
       : null;
-  $: mediaFields = $settings.data ? getMediaFields(visibleSchema, $settings.data) : [];
+  $: mediaFields = $settings.data
+    ? getMediaFields(visibleSchema as LilacSchema, $settings.data)
+    : [];
   // Pass the item scroll container to children so they can handle scroll events.
   let itemScrollContainer: HTMLDivElement | null = null;
   const writableStore = writable<HTMLDivElement | null>(itemScrollContainer);

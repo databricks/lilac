@@ -5,13 +5,13 @@
 
   export let schema: LilacSchema;
   export let namespace: string;
-  export let name: string;
+  export let datasetName: string;
 
   $: conceptFields = childFields(schema).filter(
     s => s.signal?.signal_name == 'concept_score'
   ) as LilacField[];
 
-  $: settings = querySettings(namespace, name);
+  $: settings = querySettings(namespace, datasetName);
 
   $: mediaPaths = ($settings.data?.ui?.media_paths || []).map(p => (Array.isArray(p) ? p : [p]));
 
@@ -25,7 +25,7 @@
   <div class="flex flex-col gap-y-4 rounded border border-gray-300 p-4">
     <div class="mb-3 text-2xl">{mediaPath}</div>
     {#each concepts as concept}
-      <ConceptInsight field={concept} {name} {namespace} />
+      <ConceptInsight {schema} {namespace} {datasetName} field={concept} />
     {/each}
   </div>
 {/each}

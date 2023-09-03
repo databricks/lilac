@@ -20,6 +20,7 @@ import {
   type DatasetInfo,
   type DatasetSettings,
   type LilacField,
+  type LilacSchema,
   type LilacSelectRowsSchema,
   type LilacValueNode,
   type LilacValueNodeCasted,
@@ -138,7 +139,7 @@ export function getVisibleSchema(
 }
 
 export function getMediaFields(
-  schema: LilacField | null,
+  schema: LilacSchema | null,
   settings: DatasetSettings | null
 ): LilacField[] {
   if (schema == null) return [];
