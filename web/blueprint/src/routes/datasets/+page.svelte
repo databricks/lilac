@@ -117,7 +117,7 @@
       const visibleFields = getVisibleFields(
         $datasetViewStore.selectedColumns || {},
         $datasetViewStore.query,
-        $selectRowsSchema?.data || null
+        $selectRowsSchema.data
       );
       datasetStore.setVisibleFields(visibleFields);
     }

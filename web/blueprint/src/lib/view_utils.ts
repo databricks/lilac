@@ -5,7 +5,6 @@ import {
   childFields,
   deserializePath,
   getField,
-  getFieldsByDtype,
   isConceptSignal,
   isSignalField,
   pathIncludes,
@@ -77,69 +76,15 @@ export const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
 export function getVisibleFields(
   selectedColumns: {[path: string]: boolean} | null,
   selectRowsOptions: SelectRowsOptions,
-  selectRowsSchema: LilacSelectRowsSchema,
-  field?: LilacField | null,
-  dtype?: DataType
+  selectRowsSchema: LilacSelectRowsSchema
 ): LilacField[] {
-  const schema = selectRowsSchema?.schema;
-  if (schema == null) {
-    return [];
-  }
-
-  let fields: LilacField[] = [];
-  if (dtype == null) {
-    fields = childFields(field || schema);
-  } else {
-    fields = getFieldsByDtype(dtype, field || schema);
-  }
-  return fields.filter(f =>
+  return childFields(selectRowsSchema.schema).filter(f =>
     isPathVisible(selectRowsSchema, selectedColumns, selectRowsOptions, f.path)
   );
 }
 
-export function isFieldVisible(field: LilacField, visibleFields: LilacField[]): boolean {
-  return visibleFields.some(f => pathIsEqual(f.path, field.path));
-}
-
-export function isItemVisible(item: LilacValueNode, visibleFields: LilacField[]): boolean {
-  const field = L.field(item);
-  if (field == null) return false;
-  return isFieldVisible(field, visibleFields);
-}
-
-export function getVisibleSchema(
-  schema: LilacField,
-  visibleFields: LilacField[]
-): LilacField | null {
-  const fields: {[fieldName: string]: LilacField} = {};
-  let repeatedField: LilacField | undefined = undefined;
-
-  if (schema.fields != null) {
-    for (const [fieldName, field] of Object.entries(schema.fields)) {
-      if (visibleFields.some(f => pathIsEqual(f.path, field.path))) {
-        const child = getVisibleSchema(field, visibleFields);
-        if (child != null) {
-          fields[fieldName] = child;
-        }
-      }
-    }
-  } else if (schema.repeated_field != null) {
-    if (!visibleFields.some(f => pathIsEqual(f.path, schema.repeated_field?.path))) {
-      repeatedField = undefined;
-    } else {
-      repeatedField = schema.repeated_field;
-    }
-  }
-  if (repeatedField == null && Object.keys(fields).length === 0)
-    return {...schema, fields: undefined, repeated_field: undefined};
-  const isVisible =
-    schema.path.length === 0 || visibleFields.some(f => pathIsEqual(f.path, schema.path));
-  if (!isVisible) return null;
-  return {...schema, fields, repeated_field: repeatedField};
-}
-
 export function getMediaFields(
-  schema: LilacSchema | null,
+  schema: LilacSchema | undefined,
   settings: DatasetSettings | null
 ): LilacField[] {
   if (schema == null) return [];
@@ -162,7 +107,8 @@ export function isPathVisible(
   const pathIsFiltered = selectRowsOptions.filters?.some(
     filter => pathIncludes(filter.path, path) || pathIncludes(path, filter.path)
   );
-  if (pathIsFiltered) {
+  const pathIsSortedBy = selectRowsSchema?.sorts?.some(s => pathIsEqual(s.path, path)) || false;
+  if (pathIsFiltered || pathIsSortedBy) {
     return true;
   }
   if (isPreviewSignal(selectRowsSchema, deserializePath(path))) {
@@ -452,7 +398,7 @@ export function getSpanValuePaths(
   visibleFields?: LilacField[]
 ): {spanPaths: Path[]; valuePaths: SpanValueInfo[]} {
   // Include the field.
-  const children = [field, ...childFields(field)];
+  const children = childFields(field);
   // Find the non-keyword span fields under this field.
   const conceptSignals = children.filter(f => isConceptSignal(f.signal));
   const conceptLabelSignals = children.filter(f => f.signal?.signal_name === 'concept_labels');
@@ -460,14 +406,15 @@ export function getSpanValuePaths(
     f => f.signal?.signal_name === 'semantic_similarity'
   );
   const keywordSignals = children.filter(f => f.signal?.signal_name === 'substring_search');
-
   // Find the non-keyword span fields under this field.
   let spanFields = children
     .filter(f => f.dtype === 'string_span')
+    // Ignore embedding spans.
     .filter(f => !childFields(f).some(c => c.dtype === 'embedding'));
   if (visibleFields != null) {
+    // Keep only spans that have visible children.
     spanFields = spanFields.filter(f =>
-      visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path))
+      childFields(f).some(c => visibleFields.some(v => pathIsEqual(v.path, c.path)))
     );
   }
 
@@ -477,11 +424,7 @@ export function getSpanValuePaths(
   for (const spanField of spanFields) {
     const spanChildren = childFields(spanField)
       .filter(f => f.dtype != 'string_span')
-      .filter(
-        f =>
-          visibleFields == null ||
-          visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path))
-      );
+      .filter(f => visibleFields == null || visibleFields.some(v => pathIsEqual(v.path, f.path)));
     const spanPetalChildren = spanChildren.filter(f => f.dtype != null && f.dtype != 'embedding');
     const spanPath = spanField.path;
 

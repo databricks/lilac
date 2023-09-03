@@ -1,6 +1,6 @@
 <script lang="ts">
   import {queryEmbeddings} from '$lib/queries/signalQueries';
-  import {isItemVisible, isPreviewSignal} from '$lib/view_utils';
+  import {isPreviewSignal} from '$lib/view_utils';
   import {
     L,
     formatValue,
@@ -20,7 +20,6 @@
   import SignalBadge from './SignalBadge.svelte';
 
   export let row: LilacValueNode;
-  export let visibleFields: LilacField[];
   export let mediaFields: LilacField[];
   export let selectRowsSchema: LilacSelectRowsSchema | undefined = undefined;
 
@@ -37,9 +36,9 @@
     value?: DataTypeCasted | null;
     formattedValue?: string | null;
   }
+
   function makeRows(row: LilacValueNode): MetadataRow[] {
     const valueNodes = listValueNodes(row)
-      .filter(item => isItemVisible(item, visibleFields))
       // Filter out media fields.
       .filter(item => !mediaFields.some(mf => pathIsEqual(mf.path, L.field(item)?.path)));
     return valueNodes

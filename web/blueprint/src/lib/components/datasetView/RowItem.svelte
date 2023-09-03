@@ -6,7 +6,6 @@
 
   export let row: LilacValueNode;
   export let mediaFields: LilacField[];
-  export let visibleFields: LilacField[];
 
   const datasetStore = getDatasetContext();
 
@@ -33,7 +32,7 @@
           style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
           class="overflow-y-auto"
         >
-          <RowItemMetadata {mediaFields} {row} {visibleFields} {selectRowsSchema} />
+          <RowItemMetadata {mediaFields} {row} {selectRowsSchema} />
         </div>
       </div>
     </div>
