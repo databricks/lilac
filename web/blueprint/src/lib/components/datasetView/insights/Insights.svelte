@@ -20,12 +20,14 @@
   }
 </script>
 
-{#each mediaPaths as mediaPath}
-  {@const concepts = conceptsForMediaPath(mediaPath)}
-  <div class="flex flex-col gap-y-4 rounded border border-gray-300 p-4">
-    <div class="mb-3 text-2xl">{mediaPath}</div>
-    {#each concepts as concept}
-      <ConceptInsight {schema} {namespace} {datasetName} field={concept} />
-    {/each}
-  </div>
-{/each}
+<div class="flex flex-col gap-y-6">
+  {#each mediaPaths as mediaPath}
+    {@const concepts = conceptsForMediaPath(mediaPath)}
+    <div class="flex flex-col gap-y-3 rounded border border-gray-300 p-4">
+      <div class="mb-3 text-2xl">{mediaPath}</div>
+      {#each concepts as concept}
+        <ConceptInsight {schema} {namespace} {datasetName} field={concept} />
+      {/each}
+    </div>
+  {/each}
+</div>
