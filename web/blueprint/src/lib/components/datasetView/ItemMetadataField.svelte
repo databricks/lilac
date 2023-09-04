@@ -26,21 +26,20 @@
 
 <div class="flex w-full items-center">
   <div class="flex items-center text-xs font-medium text-neutral-500" title={node.fieldName}>
-    {#if node.children?.length}
-      <button
-        class="p-1"
-        on:click={() => {
-          node.expanded = !node.expanded;
-          node = node;
-        }}
-      >
-        {#if node.expanded}
-          <ChevronUp />
-        {:else}
-          <ChevronDown />
-        {/if}
-      </button>
-    {/if}
+    <button
+      class="p-1"
+      class:invisible={!node.children?.length}
+      on:click={() => {
+        node.expanded = !node.expanded;
+        node = node;
+      }}
+    >
+      {#if node.expanded}
+        <ChevronUp />
+      {:else}
+        <ChevronDown />
+      {/if}
+    </button>
     <span class="truncate font-mono">{node.fieldName}</span>
   </div>
   <div class="w-10">
@@ -59,10 +58,10 @@
   </div>
 </div>
 
-<div transition:slide|local>
-  {#if node.children && node.expanded}
+{#if node.children && node.expanded}
+  <div transition:slide|local>
     {#each node.children as child (serializePath(child.path))}
-      <div class="pl-5"><svelte:self node={child} /></div>
+      <div class="pl-2"><svelte:self node={child} /></div>
     {/each}
-  {/if}
-</div>
+  </div>
+{/if}
