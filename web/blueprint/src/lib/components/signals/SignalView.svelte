@@ -21,7 +21,7 @@
   import EmptyComponent from '../commands/customComponents/EmptyComponent.svelte';
   import SelectConcept from '../commands/customComponents/SelectConcept.svelte';
   import SelectEmbedding from '../commands/customComponents/SelectEmbedding.svelte';
-  import RowItemMetadata from '../datasetView/ItemMetadata.svelte';
+  import RowItemMetadata from '../datasetView/RowItemMetadata.svelte';
   import StringSpanHighlight from '../datasetView/StringSpanHighlight.svelte';
   import type {SpanValueInfo} from '../datasetView/spanHighlight';
 

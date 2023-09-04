@@ -1,8 +1,8 @@
 <script lang="ts">
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {serializePath, type LilacField, type LilacValueNode} from '$lilac';
-  import RowItemMetadata from './ItemMetadata.svelte';
   import RowItemMedia from './RowItemMedia.svelte';
+  import RowItemMetadata from './RowItemMetadata.svelte';
 
   export let row: LilacValueNode;
   export let mediaFields: LilacField[];
