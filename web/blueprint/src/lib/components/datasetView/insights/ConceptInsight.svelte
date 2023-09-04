@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {hoverTooltip} from '$lib/components/common/HoverTooltip';
   import {queryConcept} from '$lib/queries/conceptQueries';
   import {querySelectGroups} from '$lib/queries/datasetQueries';
   import {
@@ -17,6 +18,9 @@
   export let namespace: string;
   export let datasetName: string;
 
+  const IN_CONCEPT_BIN_NAME = 'In concept';
+  const NOT_IN_CONCEPT_BIN_NAME = 'Not in concept';
+
   let conceptSignal = field.signal as ConceptSignal;
 
   $: scorePath = [...field.path, PATH_WILDCARD, 'score'];
@@ -27,37 +31,44 @@
   $: conceptQuery = queryConcept(conceptSignal.namespace, conceptSignal.concept_name);
   $: conceptDesc = $conceptQuery.data?.metadata?.description;
 
-  $: notInConceptCount = $countQuery.data?.counts[0]?.[1] || 0;
-  $: inConceptCount = $countQuery.data?.counts[1]?.[1] || 0;
+  $: notInConceptCount =
+    $countQuery.data?.counts.find(([binName, _]) => binName === NOT_IN_CONCEPT_BIN_NAME)?.[1] || 0;
+  $: inConceptCount =
+    $countQuery.data?.counts.find(([binName, _]) => binName === IN_CONCEPT_BIN_NAME)?.[1] || 0;
   $: version = $conceptQuery.data?.version;
 
   $: conceptFraction = (inConceptCount / (inConceptCount + notInConceptCount)) * 100;
 </script>
 
-{#if $countQuery.isFetching || $conceptQuery.isFetching}
-  <SkeletonText />
-{:else}
-  <Expandable>
-    <div slot="above" class="flex w-full items-center">
-      <div class="w-full flex-grow">
-        <div class="text-lg">
-          {conceptSignal.namespace} / {conceptSignal.concept_name}
-          <span class="text-sm text-gray-500">v{version}</span>
-        </div>
-        <div class="text-sm text-gray-500">{conceptDesc}</div>
+<Expandable>
+  <div slot="above" class="flex w-full items-center">
+    <div class="w-full flex-grow">
+      <div class="text-lg">
+        <span use:hoverTooltip={{text: `version: ${version}`}}
+          >{conceptSignal.namespace} / {conceptSignal.concept_name}</span
+        >
       </div>
-      <div class="flex-none">
+      {#if conceptDesc}
+        <div class="text-sm text-gray-500">{conceptDesc}</div>
+      {:else}
+        <SkeletonText lines={1} width="200px" />
+      {/if}
+    </div>
+    <div class="flex-none">
+      {#if $countQuery.isFetching}
+        <SkeletonText lines={1} width="200px" />
+      {:else}
         <div class="text-lg font-bold">
           {conceptFraction.toFixed(2)}% ({formatValue(inConceptCount)} items)
         </div>
-      </div>
-    </div>
-    <div slot="below">
-      {#if $conceptQuery.data}
-        <ConceptInsightItems {schema} {namespace} {datasetName} {mediaPath} {scorePath} />
-      {:else}
-        <SkeletonText />
       {/if}
     </div>
-  </Expandable>
-{/if}
+  </div>
+  <div slot="below">
+    {#if $conceptQuery.data}
+      <ConceptInsightItems {schema} {namespace} {datasetName} {mediaPath} {scorePath} />
+    {:else}
+      <SkeletonText />
+    {/if}
+  </div>
+</Expandable>

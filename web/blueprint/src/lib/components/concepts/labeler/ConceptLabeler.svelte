@@ -6,6 +6,7 @@
   import {serializePath, type Concept, type LilacSchema} from '$lilac';
   import {Button, ToastNotification} from 'carbon-components-svelte';
   import {ArrowUpRight} from 'carbon-icons-svelte';
+  import {get} from 'svelte/store';
   import DatasetFieldEmbeddingSelector from '../DatasetFieldEmbeddingSelector.svelte';
   import ConceptDataFeeder from './ConceptDataFeeder.svelte';
 
@@ -24,30 +25,19 @@
   $: schema = $schemaQuery?.data;
   $: pathId = path ? serializePath(path) : undefined;
 
-  $: datasetViewStore =
-    dataset != null && path != null && embedding != null
-      ? createDatasetViewStore(dataset.namespace, dataset.name)
-      : null;
-
   function openDataset() {
-    if (
-      pathId == null ||
-      embedding == null ||
-      dataset == null ||
-      datasetViewStore == null ||
-      $datasetViewStore == null
-    ) {
+    if (pathId == null || embedding == null || dataset == null) {
       return;
     }
-
-    datasetViewStore.addSearch({
+    const store = createDatasetViewStore(dataset.namespace, dataset.name);
+    store.addSearch({
       path: [pathId],
       type: 'concept',
       concept_namespace: concept.namespace,
       concept_name: concept.concept_name,
       embedding
     });
-    goto(datasetLink(dataset.namespace!, dataset.name!, $datasetViewStore));
+    goto(datasetLink(dataset.namespace, dataset.name, get(store)));
   }
 </script>
 

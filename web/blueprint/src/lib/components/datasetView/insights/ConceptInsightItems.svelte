@@ -1,7 +1,7 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import {querySelectRows} from '$lib/queries/datasetQueries';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {defaultDatasetViewState} from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
   import {getSpanValuePaths} from '$lib/view_utils';
   import {
@@ -23,8 +23,6 @@
   export let mediaPath: Path;
   export let scorePath: Path;
 
-  const datasetViewStore = getDatasetViewContext();
-
   const NUM_ITEMS = 5;
 
   $: topRows = querySelectRows(
@@ -38,12 +36,7 @@
     },
     schema
   );
-  $: visibleFields = [
-    getField(schema, mediaPath)!,
-    getField(schema, scorePath.slice(0, scorePath.length - 2))!,
-    getField(schema, scorePath.slice(0, scorePath.length - 1))!,
-    getField(schema, scorePath)!
-  ];
+  $: visibleFields = [getField(schema, scorePath)!];
   $: spanValuePaths = getSpanValuePaths(schema, visibleFields);
 
   function getText(row: LilacValueNode): string {
@@ -62,10 +55,11 @@
   }
 
   function openDataset() {
-    datasetViewStore.setSortBy(scorePath);
-    datasetViewStore.setSortOrder('DESC');
-    datasetViewStore.setInsightsOpen(false);
-    goto(datasetLink(namespace, datasetName, $datasetViewStore));
+    const datasetState = defaultDatasetViewState(namespace, datasetName);
+    datasetState.query.sort_by = [scorePath];
+    datasetState.query.sort_order = 'DESC';
+    datasetState.insightsOpen = false;
+    goto(datasetLink(namespace, datasetName, datasetState));
   }
 </script>
 
@@ -99,7 +93,7 @@
           />
         </div>
         <div class="flex flex-none flex-col items-end">
-          <div class="text-sm text-gray-500">Max. span score</div>
+          <div class="text-sm text-gray-500">Max score</div>
           <div class="text-lg">{formatValue(maxScore)}</div>
         </div>
       </div>

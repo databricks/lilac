@@ -1,7 +1,7 @@
 <script lang="ts">
   import {querySettings} from '$lib/queries/datasetQueries';
   import {childFields, pathIncludes, type LilacField, type LilacSchema, type Path} from '$lilac';
-  import ConceptInsight from './ConceptInsight.svelte';
+  import MediaInsight from './MediaInsight.svelte';
 
   export let schema: LilacSchema;
   export let namespace: string;
@@ -12,7 +12,6 @@
   ) as LilacField[];
 
   $: settings = querySettings(namespace, datasetName);
-
   $: mediaPaths = ($settings.data?.ui?.media_paths || []).map(p => (Array.isArray(p) ? p : [p]));
 
   function conceptsForMediaPath(mediaPath: Path) {
@@ -23,11 +22,6 @@
 <div class="flex flex-col gap-y-6">
   {#each mediaPaths as mediaPath}
     {@const concepts = conceptsForMediaPath(mediaPath)}
-    <div class="flex flex-col gap-y-3 rounded border border-gray-300 p-4">
-      <div class="mb-3 text-2xl">{mediaPath}</div>
-      {#each concepts as concept}
-        <ConceptInsight {schema} {namespace} {datasetName} field={concept} />
-      {/each}
-    </div>
+    <MediaInsight {mediaPath} {schema} {namespace} {datasetName} {concepts} />
   {/each}
 </div>
