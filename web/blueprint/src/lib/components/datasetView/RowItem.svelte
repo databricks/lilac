@@ -1,8 +1,8 @@
 <script lang="ts">
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {serializePath, type LilacField, type LilacValueNode} from '$lilac';
+  import RowItemMetadata from './ItemMetadata.svelte';
   import RowItemMedia from './RowItemMedia.svelte';
-  import RowItemMetadata from './RowItemMetadata.svelte';
 
   export let row: LilacValueNode;
   export let mediaFields: LilacField[];
@@ -27,12 +27,12 @@
       </div>
     {/if}
     <div class="flex h-full w-1/3 bg-neutral-100">
-      <div class="sticky top-0 self-start">
+      <div class="sticky top-0 w-full self-start">
         <div
           style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
           class="overflow-y-auto"
         >
-          <RowItemMetadata {mediaFields} {row} {selectRowsSchema} />
+          <RowItemMetadata {row} {selectRowsSchema} />
         </div>
       </div>
     </div>
