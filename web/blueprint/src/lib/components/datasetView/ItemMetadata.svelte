@@ -69,7 +69,6 @@
       children: Array.isArray(node)
         ? node.map(makeRenderNode)
         : getChildren(node).map(makeRenderNode),
-      indentLevel: path.length - 1,
       fieldName: path[path.length - 1],
       field,
       path,

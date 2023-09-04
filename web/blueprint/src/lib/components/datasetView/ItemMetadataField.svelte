@@ -4,7 +4,6 @@
     path: Path;
     fieldName: string;
     expanded: boolean;
-    indentLevel: number;
     children?: RenderNode[];
     isSignal: boolean;
     isPreviewSignal: boolean;
