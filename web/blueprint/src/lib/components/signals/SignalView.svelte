@@ -151,7 +151,7 @@
         {:else if previewResultItem != null && previewText != null && $compute?.data != null}
           <Tabs>
             <Tab label="Preview" />
-            <Tab label="Raw response" />
+            <Tab label="JSON response" />
             <svelte:fragment slot="content">
               <TabContent>
                 <div class="mt-2">
@@ -165,7 +165,7 @@
                     />
                   {/if}
                   {#if metadataFields.length > 0}
-                    <ItemMetadata row={previewResultItem} />
+                    <div style:width="500px"><ItemMetadata row={previewResultItem} /></div>
                   {/if}
                   {#if primitiveValue != null}
                     <div class="flex flex-row items-center">
@@ -182,8 +182,8 @@
                   readonly
                   rows={10}
                   class="mb-2 font-mono"
-                /></TabContent
-              >
+                />
+              </TabContent>
             </svelte:fragment>
           </Tabs>
         {/if}
