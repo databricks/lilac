@@ -22,37 +22,35 @@
 </script>
 
 <div
-  class="flex items-center pr-2"
+  class="flex items-center gap-x-1 pr-2 text-xs"
   class:bg-blue-100={node.isSignal}
   class:bg-emerald-100={node.isPreviewSignal}
   style:padding-left={0.25 + (node.path.length - 1) * 0.5 + 'rem'}
+  style:line-height="1.6rem"
 >
-  <div
-    class="contents flex-grow items-center text-xs font-medium text-neutral-500"
-    title={node.fieldName}
+  <button
+    class="p-1"
+    class:invisible={!node.children?.length}
+    on:click={() => {
+      node.expanded = !node.expanded;
+      node = node;
+    }}
   >
-    <button
-      class="p-1"
-      class:invisible={!node.children?.length}
-      on:click={() => {
-        node.expanded = !node.expanded;
-        node = node;
-      }}
-    >
-      {#if node.expanded}
-        <ChevronUp />
-      {:else}
-        <ChevronDown />
-      {/if}
-    </button>
-    <div class="truncated truncate font-mono">{node.fieldName}</div>
+    {#if node.expanded}
+      <ChevronUp />
+    {:else}
+      <ChevronDown />
+    {/if}
+  </button>
+  <div class="truncated flex-grow truncate font-mono font-medium text-neutral-500">
+    {node.fieldName}
   </div>
   <div
     title={node.value?.toString()}
-    class="truncated flex-grow truncate text-right text-xs"
+    class="truncated flex-grow truncate text-right"
     class:italic={node.formattedValue === null}
   >
-    {node.formattedValue}
+    {node.formattedValue || (node.children?.length ? '' : 'N/A')}
   </div>
 </div>
 
@@ -70,6 +68,6 @@
 
 <style lang="postcss">
   .truncated {
-    min-width: 5ch;
+    min-width: 7ch;
   }
 </style>

@@ -45,7 +45,7 @@
 
   $: path = field.path;
 
-  $: expandedDetails = $datasetViewStore.expandedColumns[serializePath(path)] || false;
+  $: expandedStats = $datasetViewStore.expandedStats[serializePath(path)] || false;
 
   $: isRepeatedField = path.at(-1) === PATH_WILDCARD ? true : false;
   $: fieldName = isRepeatedField ? path.at(-2) : path.at(-1);
@@ -142,7 +142,7 @@
       disabled={!isExpandable}
       on:click={() => {
         if (isExpandable) {
-          if (expandedDetails) {
+          if (expandedStats) {
             datasetViewStore.removeExpandedColumn(path);
           } else {
             datasetViewStore.addExpandedColumn(path);
@@ -226,23 +226,23 @@
     {/if}
     {#if isExpandable}
       <button
-        use:hoverTooltip={{text: expandedDetails ? 'Close statistics' : 'See statistics'}}
-        class:bg-slate-300={expandedDetails}
+        use:hoverTooltip={{text: expandedStats ? 'Close statistics' : 'See statistics'}}
+        class:bg-slate-300={expandedStats}
         on:click={() => {
-          if (expandedDetails) {
+          if (expandedStats) {
             datasetViewStore.removeExpandedColumn(path);
           } else {
             datasetViewStore.addExpandedColumn(path);
           }
         }}
       >
-        <div class="transition" class:rotate-180={expandedDetails}><ChevronDown /></div>
+        <div class="transition" class:rotate-180={expandedStats}><ChevronDown /></div>
       </button>
     {/if}
     <SchemaFieldMenu {field} />
   </div>
 
-  {#if expandedDetails}
+  {#if expandedStats}
     <div transition:slide|local class="px-2">
       <FieldDetails {field} />
     </div>

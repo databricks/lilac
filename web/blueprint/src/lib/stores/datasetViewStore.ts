@@ -22,8 +22,8 @@ export interface DatasetViewState {
   namespace: string;
   datasetName: string;
 
-  // Explicit user-selected columns.
-  expandedColumns: {[path: string]: boolean};
+  // Maps a path to whether the stats are expanded.
+  expandedStats: {[path: string]: boolean};
   query: SelectRowsOptions;
 
   // View.
@@ -43,7 +43,7 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
   return {
     namespace,
     datasetName,
-    expandedColumns: {},
+    expandedStats: {},
     query: {
       // Add * as default field when supported here
       columns: [],
@@ -76,13 +76,13 @@ export function createDatasetViewStore(
     },
     addExpandedColumn(path: Path) {
       update(state => {
-        state.expandedColumns[serializePath(path)] = true;
+        state.expandedStats[serializePath(path)] = true;
         return state;
       });
     },
     removeExpandedColumn(path: Path) {
       update(state => {
-        delete state.expandedColumns[serializePath(path)];
+        delete state.expandedStats[serializePath(path)];
         return state;
       });
     },

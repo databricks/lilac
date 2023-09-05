@@ -381,7 +381,7 @@ export function getSort(datasetStore: DatasetState): SortResult | null {
 
 export function getSpanValuePaths(
   field: LilacField,
-  visibleFields?: LilacField[]
+  highlightedFields?: LilacField[]
 ): {spanPaths: Path[]; valuePaths: SpanValueInfo[]} {
   // Include the field.
   const children = childFields(field);
@@ -397,10 +397,10 @@ export function getSpanValuePaths(
     .filter(f => f.dtype === 'string_span')
     // Ignore embedding spans.
     .filter(f => !childFields(f).some(c => c.dtype === 'embedding'));
-  if (visibleFields != null) {
+  if (highlightedFields != null) {
     // Keep only spans that have visible children.
     spanFields = spanFields.filter(f =>
-      childFields(f).some(c => visibleFields.some(v => pathIsEqual(v.path, c.path)))
+      childFields(f).some(c => highlightedFields.some(v => pathIsEqual(v.path, c.path)))
     );
   }
 
@@ -410,7 +410,9 @@ export function getSpanValuePaths(
   for (const spanField of spanFields) {
     const spanChildren = childFields(spanField)
       .filter(f => f.dtype != 'string_span')
-      .filter(f => visibleFields == null || visibleFields.some(v => pathIsEqual(v.path, f.path)));
+      .filter(
+        f => highlightedFields == null || highlightedFields.some(v => pathIsEqual(v.path, f.path))
+      );
     const spanPetalChildren = spanChildren.filter(f => f.dtype != null && f.dtype != 'embedding');
     const spanPath = spanField.path;
 

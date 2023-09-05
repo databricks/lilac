@@ -7,7 +7,7 @@
    * In the case of strings with string_spans, it will render the derived string spans as well
    */
   import {notEmpty} from '$lib/utils';
-  import {getComputedEmbeddings, getSpanValuePaths, getVisibleFields} from '$lib/view_utils';
+  import {getComputedEmbeddings, getSpanValuePaths} from '$lib/view_utils';
   import {
     L,
     formatValue,
@@ -23,17 +23,14 @@
   export let path: Path;
   export let row: LilacValueNode;
   export let field: LilacField;
+  export let highlightedFields: LilacField[];
 
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
 
-  $: visibleFields = getVisibleFields(
-    $datasetViewStore.query,
-    $datasetStore.selectRowsSchema?.data
-  );
   $: computedEmbeddings = getComputedEmbeddings($datasetStore, path);
 
-  $: spanValuePaths = getSpanValuePaths(field, visibleFields);
+  $: spanValuePaths = getSpanValuePaths(field, highlightedFields);
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
