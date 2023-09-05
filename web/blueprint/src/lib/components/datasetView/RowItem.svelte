@@ -30,7 +30,7 @@
       <div class="sticky top-0 w-full self-start">
         <div
           style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
-          class="overflow-y-auto p-4 pl-1"
+          class="overflow-y-auto py-2"
         >
           <ItemMetadata {row} {selectRowsSchema} />
         </div>

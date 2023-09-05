@@ -17,13 +17,16 @@
   import {serializePath, type DataTypeCasted, type LilacField, type Path} from '$lilac';
   import {ChevronDown, ChevronUp} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
-  import EmbeddingBadge from './EmbeddingBadge.svelte';
-  import SignalBadge from './SignalBadge.svelte';
 
   export let node: RenderNode;
 </script>
 
-<div class="flex items-center">
+<div
+  class="flex items-center pr-2"
+  class:bg-blue-100={node.isSignal}
+  class:bg-emerald-100={node.isPreviewSignal}
+  style:padding-left={0.25 + (node.path.length - 1) * 0.5 + 'rem'}
+>
   <div
     class="contents flex-grow items-center text-xs font-medium text-neutral-500"
     title={node.fieldName}
@@ -44,13 +47,6 @@
     </button>
     <div class="truncated truncate font-mono">{node.fieldName}</div>
   </div>
-  <div class="w-10">
-    {#if node.isEmbeddingSignal}
-      <EmbeddingBadge hideEmbeddingName={true} embedding={node.field.signal?.signal_name} />
-    {:else if node.isSignal}
-      <SignalBadge isPreview={node.isPreviewSignal} />
-    {/if}
-  </div>
   <div
     title={node.value?.toString()}
     class="truncated flex-grow truncate text-right text-xs"
@@ -61,15 +57,19 @@
 </div>
 
 {#if node.children && node.expanded}
-  <div transition:slide|local>
+  <div
+    transition:slide|local
+    class:bg-blue-100={node.isSignal}
+    class:bg-emerald-100={node.isPreviewSignal}
+  >
     {#each node.children as child (serializePath(child.path))}
-      <div class="ml-2"><svelte:self node={child} /></div>
+      <svelte:self node={child} />
     {/each}
   </div>
 {/if}
 
 <style lang="postcss">
   .truncated {
-    min-width: 3ch;
+    min-width: 5ch;
   }
 </style>
