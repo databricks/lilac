@@ -72,7 +72,7 @@
   {:else}
     <div class="label text-s mb-2 font-medium text-gray-700">{label}</div>
     {#if property.description && showDescription}
-      <div class="bx--label pb-2\1 text-xs text-gray-500">
+      <div class="bx--label pb-1 text-xs text-gray-500">
         {property.description}
       </div>
     {/if}
