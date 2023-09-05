@@ -1,7 +1,7 @@
 <script lang="ts">
   import {queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {childFields, getField} from '$lilac';
+  import {childFields, getComputedEmbeddings, getField} from '$lilac';
   import {Select, SelectItem} from 'carbon-components-svelte';
   import type {JSONSchema7} from 'json-schema';
   import {getCommandSignalContext} from '../CommandSignals.svelte';
@@ -22,10 +22,14 @@
   // Find all existing pre-computed embeddings for the current split from the schema
   $: precomputedEmbs =
     $ctx.path && $schema.data
-      ? childFields(getField($schema.data, $ctx.path)).filter(
-          f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
-        )
+      ? getComputedEmbeddings(getField($schema.data, $ctx.path)!)
       : undefined;
+
+  $: $schema.data != null && $ctx.path != null
+    ? console.log(childFields(getField($schema.data, $ctx.path)).map(f => f.dtype))
+    : [];
+  $: console.log('precomputed:', precomputedEmbs);
+  $: console.log('embedding schema:', embeddingSchema);
 
   // Sort possible embeddings by if they are already computed
   $: sortedEnum = [...(embeddingSchema?.enum || [])].sort((a, b) => {
@@ -35,6 +39,7 @@
     if (!aComputed && bComputed) return 1;
     return 0;
   });
+  $: console.log('sorted:', sortedEnum);
 
   // The initial selected value should be the first computed embedding by default.
   $: {
@@ -55,8 +60,8 @@
 </script>
 
 <Select
-  labelText="Embedding *"
   on:change={selectionChanged}
+  hideLabel={true}
   selected={value}
   warn={!!warnText}
   {warnText}

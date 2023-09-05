@@ -10,7 +10,7 @@
     return getContext<Readable<CommandSignalStore>>(COMMAND_SIGNAL_CONTEXT);
   }
 
-  function createCommandSignalContext(path?: Path, jsonSchema?: JSONSchema7) {
+  export function createCommandSignalContext(path?: Path, jsonSchema?: JSONSchema7) {
     const store = writable<CommandSignalStore>({path, jsonSchema});
     setContext(COMMAND_SIGNAL_CONTEXT, store);
     return store;

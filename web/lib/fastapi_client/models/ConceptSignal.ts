@@ -6,8 +6,10 @@
  * Compute scores along a given concept for documents.
  */
 export type ConceptSignal = {
-    signal_name: 'concept_score';
-    embedding: string;
+    /**
+     * The name of the pre-computed embedding.
+     */
+    embedding: 'cohere' | 'sbert' | 'openai' | 'palm' | 'gte-small' | 'gte-base';
     namespace: string;
     concept_name: string;
     draft?: string;
