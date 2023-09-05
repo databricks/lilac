@@ -15,7 +15,6 @@
 
   $: {
     if ($concepts.data != null) {
-      console.log('first concept', $concepts.data[0]);
       selectedConceptInfo = $concepts.data[0];
     }
   }

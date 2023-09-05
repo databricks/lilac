@@ -23,20 +23,15 @@
   let conceptPropertyValues: Record<string, JSONSchema4Type> = {};
   let errors: JSONError[] = [];
 
-  $: console.log('CPV', conceptPropertyValues);
-
   let selectedConceptInfo: ConceptInfo;
 
   const signals = querySignals();
   $: signalInfo = $signals.data?.find(c => c.name === 'concept_score');
-  $: console.log('signal info:', signalInfo);
 
   // Store the field path and json schema in the context so custom components can access it
   const contextStore = createCommandSignalContext(path, signalInfo?.json_schema);
   $: $contextStore.path = path;
   $: $contextStore.jsonSchema = signalInfo?.json_schema;
-
-  $: console.log('jschom', $contextStore.jsonSchema);
 
   const datasetViewStore = getDatasetViewContext();
   const dispatch = createEventDispatcher();
@@ -59,7 +54,6 @@
   };
 
   function submit() {
-    console.log('signal, path', signalInfo, path);
     if (!signalInfo) return;
     if (path == null) return;
     if (selectedConceptInfo == null) return;
@@ -70,7 +64,6 @@
       concept_name: selectedConceptInfo.name,
       namespace: selectedConceptInfo.namespace
     };
-    console.log('concept signal = ', conceptSignal);
 
     $signalMutation.mutate([
       $datasetViewStore.namespace,
