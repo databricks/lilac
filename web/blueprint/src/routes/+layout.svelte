@@ -130,7 +130,7 @@
       <ToastNotification
         lowContrast
         title={error.name || 'Error'}
-        subtitle={error.message}
+        subtitle={error.body.message || error.message}
         on:close={() => {
           $apiErrors = $apiErrors.filter(e => e !== error);
         }}

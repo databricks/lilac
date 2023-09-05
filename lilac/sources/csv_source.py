@@ -17,11 +17,16 @@ LINE_NUMBER_COLUMN = '__line_number__'
 class CSVSource(Source):
   """CSV data loader
 
-  CSV files can live locally as a filepath, or point to an external URL.
+  CSV files can live locally as a filepath, point to an external URL, or live on S3, GCS, or R2.
+
+  For more details on authorizing access to S3, GCS or R2, see:
+  https://duckdb.org/docs/guides/import/s3_import.html
   """ # noqa: D415, D400
   name = 'csv'
 
-  filepaths: list[str] = Field(description='A list of paths to CSV files.')
+  filepaths: list[str] = Field(
+    description='A list of paths to CSV files. '
+    'Paths can be local, point to an HTTP(s) url, or live on GCS, S3 or R2.')
   delim: Optional[str] = Field(default=',', description='The CSV file delimiter to use.')
   header: Optional[bool] = Field(default=True, description='Whether the CSV file has a header row.')
   names: Optional[list[str]] = Field(

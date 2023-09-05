@@ -75,9 +75,26 @@ app = FastAPI(
 def concept_authorization_exception(request: Request,
                                     exc: ConceptAuthorizationException) -> JSONResponse:
   """Return a 401 JSON response when an authorization exception is thrown."""
+  message = 'Oops! You are not authorized to do this.'
   return JSONResponse(
     status_code=401,
-    content={'message"': 'Oops! You are not authorized to do this.'},
+    content={
+      'detail': message,
+      'message': message
+    },
+  )
+
+
+@app.exception_handler(ModuleNotFoundError)
+def module_not_found_error(request: Request, exc: ModuleNotFoundError) -> JSONResponse:
+  """Return a 500 JSON response when a module fails to import because of optional imports."""
+  message = 'Oops! You are missing a python dependency. ' + str(exc)
+  return JSONResponse(
+    status_code=500,
+    content={
+      'detail': message,
+      'message': message
+    },
   )
 
 

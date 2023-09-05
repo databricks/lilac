@@ -11,9 +11,17 @@ from ..source import Source, SourceSchema
 
 
 class ParquetSource(Source):
-  """Parquet source."""
+  """Parquet data loader
+
+  Parquet files can live locally as a filepath, or remotely on GCS, S3, or Hadoop.
+
+  For more details on authentication with private objects, see:
+  https://arrow.apache.org/docs/python/filesystems.html
+  """ # noqa: D415, D400
   name = 'parquet'
-  filepaths: list[str] = Field(description='A list of paths to parquet files.')
+  filepaths: list[str] = Field(
+    description=
+    'A list of paths to parquet files which live locally or remotely on GCS, S3, or Hadoop.')
 
   _source_schema: Optional[SourceSchema] = None
   _table: Optional[pa.Table] = None
