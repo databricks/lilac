@@ -24,7 +24,7 @@ def start(project_path: str, host: str, port: int, skip_load: bool) -> None:
   if not dir_is_project(project_path):
     value = str(
       click.prompt(
-        f'Lilac will create a project in {project_path}. Do you want to continue? (y/n)',
+        f'Lilac will create a project in `{project_path}`. Do you want to continue? (y/n)',
         type=str)).lower()
     if value == 'n':
       exit()

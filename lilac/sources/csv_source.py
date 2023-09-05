@@ -17,11 +17,16 @@ LINE_NUMBER_COLUMN = '__line_number__'
 class CSVSource(Source):
   """CSV data loader
 
-  CSV files can live locally as a filepath, or point to an external URL.
+  CSV files can live locally as a filepath, on GCS, or point to an external URL.
+
+  For GCS files, the filepath should be prefixed with `gs://`. If the object is not publicly
+  readable, the source will rely on the user's GCS credentials to read the file.
   """ # noqa: D415, D400
   name = 'csv'
 
-  filepaths: list[str] = Field(description='A list of paths to CSV files.')
+  filepaths: list[str] = Field(
+    description=
+    'A list of paths to CSV files. Paths can be local, on GCS, or point to an HTTP(s) url.')
   delim: Optional[str] = Field(default=',', description='The CSV file delimiter to use.')
   header: Optional[bool] = Field(default=True, description='Whether the CSV file has a header row.')
   names: Optional[list[str]] = Field(

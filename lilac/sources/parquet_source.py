@@ -11,9 +11,16 @@ from ..source import Source, SourceSchema
 
 
 class ParquetSource(Source):
-  """Parquet source."""
+  """Parquet data loader
+
+  Parquet files can live locally as a filepath or on GCS.
+
+  For GCS files, the filepath should be prefixed with `gs://`. If the object is not publicly
+  readable, the source will rely on the user's GCS credentials to read the file.
+  """ # noqa: D415, D400
   name = 'parquet'
-  filepaths: list[str] = Field(description='A list of paths to parquet files.')
+  filepaths: list[str] = Field(
+    description='A list of paths to parquet files which live locally or on GCS.')
 
   _source_schema: Optional[SourceSchema] = None
   _table: Optional[pa.Table] = None
