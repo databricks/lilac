@@ -28,7 +28,7 @@ openai-function-call = "^0.0.5" # Wraps OpenAI functions with Pydantic models.
 orjson = "^3.8.10"              # Fast JSON serialization: https://fastapi.tiangolo.com/advanced/custom-response/#use-orjsonresponse
 # NOTE: Duckdb 0.8.1 has an issue with pandas 2.1.0. When this is resolved we can fix this dep.
 # https://github.com/duckdb/duckdb/pull/8738
-pandas = ">=2.0.3,<2.1.0"
+pandas = ">=2.0.0,<2.1.0"
 pillow = "^9.3.0"                                        # Image processing.
 psutil = "^5.9.5"
 pyarrow = "^13.0.0"
