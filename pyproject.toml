@@ -72,6 +72,7 @@ langdetect = { version = "^1.0.9", optional = true }
 
 # Langsmith source ingestion.
 langsmith = { version = "^0.0.29", optional = true }
+pandas = "^2.1.0"
 
 [tool.poetry.extras]
 all = [
