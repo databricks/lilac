@@ -190,6 +190,20 @@ class VectorSignal(Signal, abc.ABC):
       for s in SIGNAL_REGISTRY.values():
         if issubclass(s, TextEmbeddingSignal):
           embeddings.append(s.name)
+
+      if hasattr(signal, 'display_name'):
+        schema['title'] = signal.display_name
+
+      signal_prop: dict[str, Any]
+      if hasattr(signal, 'name'):
+        signal_prop = {'enum': [signal.name]}
+      else:
+        signal_prop = {'type': 'string'}
+      schema['properties'] = {'signal_name': signal_prop, **schema['properties']}
+      if 'required' not in schema:
+        schema['required'] = []
+      schema['required'].append('signal_name')
+
       schema['properties']['embedding']['enum'] = embeddings
 
   @abc.abstractmethod

@@ -6,6 +6,7 @@
  * Compute scores along a given concept for documents.
  */
 export type ConceptSignal = {
+    signal_name: 'concept_score';
     /**
      * The name of the pre-computed embedding.
      */

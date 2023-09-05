@@ -9,6 +9,7 @@
  * a similarity score between them.
  */
 export type SemanticSimilaritySignal = {
+    signal_name: 'semantic_similarity';
     /**
      * The name of the pre-computed embedding.
      */
