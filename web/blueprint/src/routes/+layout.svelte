@@ -127,7 +127,6 @@
   </div>
   <div class="absolute bottom-4 right-4">
     {#each $apiErrors as error}
-      {(console.log(JSON.stringify(error), error.message), '')}
       <ToastNotification
         lowContrast
         title={error.name || 'Error'}
