@@ -13,10 +13,10 @@ from ..source import Source, SourceSchema
 class ParquetSource(Source):
   """Parquet data loader
 
-  Parquet files can live locally as a filepath or on GCS.
+  Parquet files can live locally as a filepath, or remotely on GCS, S3, or Hadoop.
 
-  For GCS files, the filepath should be prefixed with `gs://`. If the object is not publicly
-  readable, the source will rely on the user's GCS credentials to read the file.
+  For more details on authentication with private objects, see:
+  https://arrow.apache.org/docs/python/filesystems.html
   """ # noqa: D415, D400
   name = 'parquet'
   filepaths: list[str] = Field(

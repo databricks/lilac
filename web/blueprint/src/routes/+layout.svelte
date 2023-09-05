@@ -127,10 +127,11 @@
   </div>
   <div class="absolute bottom-4 right-4">
     {#each $apiErrors as error}
+      {(console.log(JSON.stringify(error), error.message), '')}
       <ToastNotification
         lowContrast
         title={error.name || 'Error'}
-        subtitle={error.message}
+        subtitle={error.body.message || error.message}
         on:close={() => {
           $apiErrors = $apiErrors.filter(e => e !== error);
         }}
