@@ -19,6 +19,13 @@
   import {slide} from 'svelte/transition';
 
   export let node: RenderNode;
+
+  function expandTree(node: RenderNode) {
+    node.expanded = true;
+    if (node.children) {
+      node.children.forEach(expandTree);
+    }
+  }
 </script>
 
 <div
@@ -26,13 +33,16 @@
   class:bg-blue-100={node.isSignal}
   class:bg-emerald-100={node.isPreviewSignal}
   style:padding-left={0.25 + (node.path.length - 1) * 0.5 + 'rem'}
-  style:line-height="1.6rem"
+  style:line-height="1.7rem"
 >
   <button
     class="p-1"
     class:invisible={!node.children?.length}
     on:click={() => {
       node.expanded = !node.expanded;
+      if (node.isSignal && node.expanded) {
+        expandTree(node);
+      }
       node = node;
     }}
   >
