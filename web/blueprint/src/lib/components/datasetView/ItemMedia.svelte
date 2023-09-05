@@ -23,13 +23,14 @@
   export let path: Path;
   export let row: LilacValueNode;
   export let field: LilacField;
+  export let highlightedFields: LilacField[];
 
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
-  $: visibleFields = $datasetStore.visibleFields || [];
+
   $: computedEmbeddings = getComputedEmbeddings($datasetStore, path);
 
-  $: spanValuePaths = getSpanValuePaths(field, visibleFields);
+  $: spanValuePaths = getSpanValuePaths(field, highlightedFields);
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 

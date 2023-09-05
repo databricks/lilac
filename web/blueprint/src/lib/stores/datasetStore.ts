@@ -2,7 +2,6 @@
 import type {
   ApiError,
   DatasetSettings,
-  LilacField,
   LilacSchema,
   LilacSelectRowsSchema,
   StatsResult
@@ -19,7 +18,6 @@ export interface DatasetState {
   schema: LilacSchema | null;
   stats: StatsResult[] | null;
   selectRowsSchema: QueryObserverResult<LilacSelectRowsSchema, ApiError> | null;
-  visibleFields: LilacField[] | null;
   settings: DatasetSettings | null;
 }
 
@@ -30,7 +28,6 @@ export const createDatasetStore = (namespace: string, datasetName: string) => {
     schema: null,
     stats: null,
     selectRowsSchema: null,
-    visibleFields: null,
     settings: null
   };
 
@@ -52,11 +49,6 @@ export const createDatasetStore = (namespace: string, datasetName: string) => {
     setStats: (stats: StatsResult[]) =>
       update(state => {
         state.stats = stats;
-        return state;
-      }),
-    setVisibleFields: (visibleFields: LilacField[]) =>
-      update(state => {
-        state.visibleFields = visibleFields;
         return state;
       }),
     setSelectRowsSchema: (

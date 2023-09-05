@@ -3,7 +3,6 @@ import {
   PATH_WILDCARD,
   VALUE_KEY,
   childFields,
-  deserializePath,
   getField,
   isConceptSignal,
   isSignalField,
@@ -74,12 +73,14 @@ export const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
 };
 
 export function getVisibleFields(
-  selectedColumns: {[path: string]: boolean} | null,
   selectRowsOptions: SelectRowsOptions,
-  selectRowsSchema: LilacSelectRowsSchema
+  selectRowsSchema: LilacSelectRowsSchema | undefined
 ): LilacField[] {
+  if (selectRowsSchema == null) {
+    return [];
+  }
   return childFields(selectRowsSchema.schema).filter(f =>
-    isPathVisible(selectRowsSchema, selectedColumns, selectRowsOptions, f.path)
+    isPathVisible(selectRowsSchema, selectRowsOptions, f.path)
   );
 }
 
@@ -93,15 +94,12 @@ export function getMediaFields(
   return (settings?.ui?.media_paths || []).map(path => getField(schema!, path)!);
 }
 
-export function isPathVisible(
+function isPathVisible(
   selectRowsSchema: LilacSelectRowsSchema,
-  selectedColumns: {[path: string]: boolean} | null,
   selectRowsOptions: SelectRowsOptions,
-  path: Path | string
+  path: Path
 ): boolean {
   const schema = selectRowsSchema.schema;
-  if (selectedColumns == null) return false;
-  if (typeof path !== 'string') path = serializePath(path);
 
   // When filtering by a path, the path, the children, and all the parents of the path are visible.
   const pathIsFiltered = selectRowsOptions.filters?.some(
@@ -111,34 +109,22 @@ export function isPathVisible(
   if (pathIsFiltered || pathIsSortedBy) {
     return true;
   }
-  if (isPreviewSignal(selectRowsSchema, deserializePath(path))) {
+  if (isPreviewSignal(selectRowsSchema, path)) {
     return true;
   }
 
-  if (selectedColumns[path] != null) {
-    // If a user has explicitly selected a column, return the value of the selection.
-    return selectedColumns[path];
-  }
-
-  const pathArray = deserializePath(path);
-
   // Signal columns are not visible by default. Because children inherit from parents, we only need
   // need to check for the parent.
-  const field = getField(schema, pathArray);
+  const field = getField(schema, path);
   const isSignal = isSignalField(field!);
 
   if (isSignal) {
     return false;
   }
 
-  if (pathArray.length > 1) {
+  if (path.length > 1) {
     // When no explicit selection, children inherit from their parent.
-    return isPathVisible(
-      selectRowsSchema,
-      selectedColumns,
-      selectRowsOptions,
-      serializePath(pathArray.slice(0, pathArray.length - 1))
-    );
+    return isPathVisible(selectRowsSchema, selectRowsOptions, path.slice(0, path.length - 1));
   }
 
   // Source columns are visible by default.
@@ -395,7 +381,7 @@ export function getSort(datasetStore: DatasetState): SortResult | null {
 
 export function getSpanValuePaths(
   field: LilacField,
-  visibleFields?: LilacField[]
+  highlightedFields?: LilacField[]
 ): {spanPaths: Path[]; valuePaths: SpanValueInfo[]} {
   // Include the field.
   const children = childFields(field);
@@ -411,10 +397,10 @@ export function getSpanValuePaths(
     .filter(f => f.dtype === 'string_span')
     // Ignore embedding spans.
     .filter(f => !childFields(f).some(c => c.dtype === 'embedding'));
-  if (visibleFields != null) {
+  if (highlightedFields != null) {
     // Keep only spans that have visible children.
     spanFields = spanFields.filter(f =>
-      childFields(f).some(c => visibleFields.some(v => pathIsEqual(v.path, c.path)))
+      childFields(f).some(c => highlightedFields.some(v => pathIsEqual(v.path, c.path)))
     );
   }
 
@@ -424,7 +410,9 @@ export function getSpanValuePaths(
   for (const spanField of spanFields) {
     const spanChildren = childFields(spanField)
       .filter(f => f.dtype != 'string_span')
-      .filter(f => visibleFields == null || visibleFields.some(v => pathIsEqual(v.path, f.path)));
+      .filter(
+        f => highlightedFields == null || highlightedFields.some(v => pathIsEqual(v.path, f.path))
+      );
     const spanPetalChildren = spanChildren.filter(f => f.dtype != null && f.dtype != 'embedding');
     const spanPath = spanField.path;
 
