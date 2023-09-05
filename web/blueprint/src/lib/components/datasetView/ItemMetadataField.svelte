@@ -23,8 +23,11 @@
   export let node: RenderNode;
 </script>
 
-<div class="flex w-full items-center">
-  <div class="flex w-full items-center text-xs font-medium text-neutral-500" title={node.fieldName}>
+<div class="flex items-center">
+  <div
+    class="contents flex-grow items-center text-xs font-medium text-neutral-500"
+    title={node.fieldName}
+  >
     <button
       class="p-1"
       class:invisible={!node.children?.length}
@@ -39,7 +42,7 @@
         <ChevronDown />
       {/if}
     </button>
-    <span class="truncate font-mono">{node.fieldName}</span>
+    <div class="truncated truncate font-mono">{node.fieldName}</div>
   </div>
   <div class="w-10">
     {#if node.isEmbeddingSignal}
@@ -50,7 +53,7 @@
   </div>
   <div
     title={node.value?.toString()}
-    class="w-full truncate text-right text-xs"
+    class="truncated flex-grow truncate text-right text-xs"
     class:italic={node.formattedValue === null}
   >
     {node.formattedValue}
@@ -60,7 +63,13 @@
 {#if node.children && node.expanded}
   <div transition:slide|local>
     {#each node.children as child (serializePath(child.path))}
-      <div class="pl-2"><svelte:self node={child} /></div>
+      <div class="ml-2"><svelte:self node={child} /></div>
     {/each}
   </div>
 {/if}
+
+<style lang="postcss">
+  .truncated {
+    min-width: 3ch;
+  }
+</style>
