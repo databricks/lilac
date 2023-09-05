@@ -17,10 +17,10 @@ LINE_NUMBER_COLUMN = '__line_number__'
 class CSVSource(Source):
   """CSV data loader
 
-  CSV files can live locally as a filepath, on GCS, or point to an external URL.
+  CSV files can live locally as a filepath, point to an external URL, or live on S3, GCS, or R2.
 
-  For GCS files, the filepath should be prefixed with `gs://`. If the object is not publicly
-  readable, the source will rely on the user's GCS credentials to read the file.
+  For more details on authorizing access to S3, GCS or R2, see:
+  https://duckdb.org/docs/guides/import/s3_import.html
   """ # noqa: D415, D400
   name = 'csv'
 
