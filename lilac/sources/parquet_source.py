@@ -20,7 +20,8 @@ class ParquetSource(Source):
   """ # noqa: D415, D400
   name = 'parquet'
   filepaths: list[str] = Field(
-    description='A list of paths to parquet files which live locally or on GCS.')
+    description=
+    'A list of paths to parquet files which live locally or remotely on GCS, S3, or Hadoop.')
 
   _source_schema: Optional[SourceSchema] = None
   _table: Optional[pa.Table] = None

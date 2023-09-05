@@ -25,8 +25,8 @@ class CSVSource(Source):
   name = 'csv'
 
   filepaths: list[str] = Field(
-    description=
-    'A list of paths to CSV files. Paths can be local, on GCS, or point to an HTTP(s) url.')
+    description='A list of paths to CSV files. '
+    'Paths can be local, point to an HTTP(s) url, or live on GCS, S3 or R2.')
   delim: Optional[str] = Field(default=',', description='The CSV file delimiter to use.')
   header: Optional[bool] = Field(default=True, description='Whether the CSV file has a header row.')
   names: Optional[list[str]] = Field(
