@@ -8,7 +8,6 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {ITEM_SCROLL_CONTAINER_CTX_KEY, getMediaFields} from '$lib/view_utils';
-  import {serializePath} from '$lilac';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import {setContext} from 'svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
@@ -40,9 +39,6 @@
 
   $: items = $rows.data?.pages.flatMap(x => x.rows);
 
-  $: visibleFields = ($datasetStore.visibleFields || []).sort((a, b) =>
-    serializePath(a.path) > serializePath(b.path) ? 1 : -1
-  );
   $: mediaFields = $settings.data
     ? getMediaFields($datasetStore.selectRowsSchema?.data?.schema, $settings.data)
     : [];
@@ -69,13 +65,11 @@
   />
 {:else if $rows?.isFetching || $schema.isFetching || selectRowsSchema?.isFetching || $settings.isFetching}
   <SkeletonText paragraph lines={3} />
-{:else if visibleFields.length === 0}
-  <div class="mt-12 w-full text-center text-gray-600">Select fields to display</div>
 {:else if $rows?.isSuccess && items && items.length === 0}
   <div class="mx-4 mt-8 w-full text-gray-600">No results.</div>
 {/if}
 
-{#if items && visibleFields.length > 0 && $schema.isSuccess && mediaFields != null}
+{#if items && $schema.isSuccess && mediaFields != null}
   <div
     class="flex h-full w-full flex-col gap-y-10 overflow-y-scroll px-5 pb-32"
     bind:this={itemScrollContainer}

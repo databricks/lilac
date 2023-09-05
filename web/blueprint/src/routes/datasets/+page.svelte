@@ -20,7 +20,6 @@
     persistedHashStore,
     serializeState
   } from '$lib/stores/urlHashStore';
-  import {getVisibleFields} from '$lib/view_utils';
   import {getFieldsByDtype} from '$lilac';
 
   let namespace: string | undefined = undefined;
@@ -109,17 +108,6 @@
   $: {
     if (datasetStore && $selectRowsSchema?.data) {
       datasetStore.setSelectRowsSchema($selectRowsSchema);
-    }
-  }
-
-  $: {
-    if (datasetStore && $datasetViewStore && $selectRowsSchema?.data) {
-      const visibleFields = getVisibleFields(
-        $datasetViewStore.selectedColumns || {},
-        $datasetViewStore.query,
-        $selectRowsSchema.data
-      );
-      datasetStore.setVisibleFields(visibleFields);
     }
   }
 </script>

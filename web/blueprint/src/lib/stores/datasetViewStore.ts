@@ -23,7 +23,6 @@ export interface DatasetViewState {
   datasetName: string;
 
   // Explicit user-selected columns.
-  selectedColumns: {[path: string]: boolean};
   expandedColumns: {[path: string]: boolean};
   query: SelectRowsOptions;
 
@@ -44,7 +43,6 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
   return {
     namespace,
     datasetName,
-    selectedColumns: {},
     expandedColumns: {},
     query: {
       // Add * as default field when supported here
@@ -76,22 +74,6 @@ export function createDatasetViewStore(
     reset: () => {
       set(JSON.parse(JSON.stringify(defaultState)));
     },
-    addSelectedColumn: (path: Path | string) =>
-      update(state => {
-        state.selectedColumns[serializePath(path)] = true;
-        return state;
-      }),
-    removeSelectedColumn: (path: Path | string) =>
-      update(state => {
-        state.selectedColumns[serializePath(path)] = false;
-        // Remove any explicit children.
-        for (const childPath of Object.keys(state.selectedColumns)) {
-          if (pathIncludes(childPath, path) && !pathIsEqual(path, childPath)) {
-            delete state.selectedColumns[childPath];
-          }
-        }
-        return state;
-      }),
     addExpandedColumn(path: Path) {
       update(state => {
         state.expandedColumns[serializePath(path)] = true;

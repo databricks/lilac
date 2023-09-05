@@ -17,7 +17,7 @@
     type LilacSchema,
     type TextEmbeddingSignal
   } from '$lilac';
-  import {Checkbox, Tag} from 'carbon-components-svelte';
+  import {Tag} from 'carbon-components-svelte';
   import {ChevronDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
@@ -51,8 +51,6 @@
   $: fieldName = isRepeatedField ? path.at(-2) : path.at(-1);
 
   $: children = childDisplayFields(field);
-
-  $: isVisible = $datasetStore.visibleFields?.some(f => pathIsEqual(f.path, path));
 
   $: embeddingFields = isSourceField
     ? (childFields(field).filter(
@@ -118,37 +116,9 @@
     class:bg-emerald-100={isPreview}
     class:hover:bg-blue-100={isSignal}
   >
-    <div style:margin-left={indent * 1.5 + 'rem'}>
-      <Checkbox
-        labelText="Show"
-        hideLabel
-        checked={isVisible}
-        on:change={() => {
-          if (!isVisible) {
-            // For signals, when the root of a signal is checked, enable all the children.
-            if (field.signal != null) {
-              const children = childFields(field);
-              children.forEach(f => {
-                datasetViewStore.addSelectedColumn(f.path);
-              });
-            }
-            datasetViewStore.addSelectedColumn(path);
-            // Repeated fields are collapsed. When clicked, we need to also make them visible.
-            if (field.repeated_field != null) {
-              datasetViewStore.addSelectedColumn([...path, PATH_WILDCARD]);
-            }
-          } else {
-            datasetViewStore.removeSelectedColumn(path);
-            // Repeated fields are collapsed. When clicked, we need to also make them visible.
-            if (field.repeated_field != null) {
-              datasetViewStore.removeSelectedColumn([...path, PATH_WILDCARD]);
-            }
-          }
-        }}
-      />
-    </div>
     <div
       class="rounded-md bg-blue-200 p-0.5"
+      style:margin-left={indent * 1.5 + 'rem'}
       class:bg-blue-200={isSignal}
       use:hoverTooltip={{text: tooltip}}
     >
