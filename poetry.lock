@@ -6564,4 +6564,4 @@ text-stats = ["spacy", "textacy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "134b6c7ade764a0f26ab9cf063175f11d57295ece3a4eda604b22376798c3a6c"
+content-hash = "06b0adb8b3fae4e7d36d4bfbab3065d4e6d1d7bfe404952d512e185016ca08ea"
