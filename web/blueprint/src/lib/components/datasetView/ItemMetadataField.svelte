@@ -24,7 +24,7 @@
 </script>
 
 <div class="flex w-full items-center">
-  <div class="flex items-center text-xs font-medium text-neutral-500" title={node.fieldName}>
+  <div class="flex w-full items-center text-xs font-medium text-neutral-500" title={node.fieldName}>
     <button
       class="p-1"
       class:invisible={!node.children?.length}
