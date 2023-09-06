@@ -225,13 +225,6 @@ export function getSignalInfo(field: LilacField): Signal | null {
   return null;
 }
 
-/** Find the computed embeddings for a field. */
-export function getComputedEmbeddings(field: LilacField): LilacField[] {
-  return childFields(field).filter(
-    f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
-  );
-}
-
 /** True if the field was the root field produced by a signal. */
 export function isSignalRootField(field: LilacField) {
   return field.signal != null;

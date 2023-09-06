@@ -28,7 +28,7 @@
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
 
-  $: computedEmbeddings = getComputedEmbeddings($datasetStore, path);
+  $: computedEmbeddings = getComputedEmbeddings($datasetStore.schema, path);
 
   $: spanValuePaths = getSpanValuePaths(field, highlightedFields);
 

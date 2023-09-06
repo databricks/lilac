@@ -146,7 +146,7 @@ export function getSearchEmbedding(
   }
   if (searchPath == null) return null;
 
-  const existingEmbeddings = getComputedEmbeddings(datasetStore, searchPath);
+  const existingEmbeddings = getComputedEmbeddings(datasetStore.schema, searchPath);
   // Sort embeddings by what have already been precomputed first.
   const sortedEmbeddings =
     existingEmbeddings != null
@@ -168,13 +168,13 @@ export function getSearchEmbedding(
 
 /** Get the computed embeddings for a path. */
 export function getComputedEmbeddings(
-  datasetStore: DatasetState,
+  schema: LilacSchema | undefined | null,
   path: Path | undefined
 ): string[] {
-  if (datasetStore.schema == null || path == null) return [];
+  if (schema == null || path == null) return [];
 
   const existingEmbeddings: Set<string> = new Set();
-  const embeddingSignalRoots = childFields(getField(datasetStore.schema, path)).filter(
+  const embeddingSignalRoots = childFields(getField(schema, path)).filter(
     f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
   );
   for (const field of embeddingSignalRoots) {
@@ -216,7 +216,7 @@ export function getDefaultSearchPath(
   let paths = mediaPathsStats.map(stat => {
     return {
       path: stat.path,
-      embeddings: getComputedEmbeddings(datasetStore, stat.path),
+      embeddings: getComputedEmbeddings(datasetStore.schema, stat.path),
       avgTextLength: stat.avg_text_length
     };
   });

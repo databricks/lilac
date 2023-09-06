@@ -20,7 +20,9 @@
   export let command: ComputeConceptCommand;
 
   let path = command.path;
-  let conceptPropertyValues: Record<string, JSONSchema4Type> = {};
+  let conceptPropertyValues: Record<string, JSONSchema4Type> = {
+    signal_name: 'concept_score'
+  };
   let errors: JSONError[] = [];
 
   let selectedConceptInfo: ConceptInfo;
@@ -133,7 +135,7 @@
   <ModalFooter
     primaryButtonText={'Compute'}
     secondaryButtonText="Cancel"
-    primaryButtonDisabled={errors.length > 0 || !path || selectedConceptInfo == null}
+    primaryButtonDisabled={errors.length > 0 || path == null || selectedConceptInfo == null}
     on:click:button--secondary={close}
   />
 </ComposedModal>

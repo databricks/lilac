@@ -180,8 +180,6 @@ class VectorSignal(Signal, abc.ABC):
   embedding: str = PydanticField(description='The name of the pre-computed embedding.')
 
   class Config:
-    underscore_attrs_are_private = True
-    extra = Extra.forbid
 
     @staticmethod
     def schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:

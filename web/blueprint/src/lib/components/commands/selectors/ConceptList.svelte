@@ -13,11 +13,7 @@
   $: userId = $authInfo.data?.user?.id;
   $: username = $authInfo.data?.user?.given_name;
 
-  $: {
-    if ($concepts.data != null) {
-      selectedConceptInfo = $concepts.data[0];
-    }
-  }
+  $: selectedConceptInfo = $concepts.data?.[0];
 
   // Sort the concepts by the same sort order as navigation.
   $: taggedConcepts = getTaggedConcepts(null, $concepts.data || [], userId, username);

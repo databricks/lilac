@@ -3,9 +3,8 @@
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {isPreviewSignal} from '$lib/view_utils';
+  import {getComputedEmbeddings, isPreviewSignal} from '$lib/view_utils';
   import {
-    getComputedEmbeddings,
     isFilterableField,
     isSignalField,
     isSignalRootField,
@@ -33,7 +32,7 @@
   $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
 
-  $: computedEmbeddings = getComputedEmbeddings(field).map(f => f.signal!.signal_name);
+  $: computedEmbeddings = getComputedEmbeddings($datasetStore.schema, field.path);
 
   $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, field.path);
   $: hasMenu =
