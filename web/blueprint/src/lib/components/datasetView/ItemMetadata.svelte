@@ -9,8 +9,10 @@
     formatValue,
     getField,
     isSignalRootField,
+    pathIncludes,
     valueAtPath,
     type DataTypeCasted,
+    type LilacField,
     type LilacSelectRowsSchema,
     type LilacValueNode
   } from '$lilac';
@@ -18,6 +20,7 @@
 
   export let row: LilacValueNode;
   export let selectRowsSchema: LilacSelectRowsSchema | undefined = undefined;
+  export let highlightedFields: LilacField[];
 
   const embeddings = queryEmbeddings();
 
@@ -65,6 +68,10 @@
       const {[VALUE_KEY]: _value, [PATH_KEY]: _path, [SCHEMA_FIELD_KEY]: _field, ...rest} = node;
       return Object.values(rest);
     }
+    // Expand any parents of highlighted fields.
+    const expanded = highlightedFields.some(highlightedField => {
+      return pathIncludes(highlightedField.path, path);
+    });
     return {
       children: Array.isArray(node)
         ? node.map(makeRenderNode)
@@ -72,7 +79,7 @@
       fieldName: path[path.length - 1],
       field,
       path,
-      expanded: false,
+      expanded,
       isSignal,
       isPreviewSignal: selectRowsSchema != null ? isPreviewSignal(selectRowsSchema, path) : false,
       isEmbeddingSignal,

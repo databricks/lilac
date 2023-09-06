@@ -7,7 +7,11 @@
   } from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
-  import {ITEM_SCROLL_CONTAINER_CTX_KEY, getMediaFields} from '$lib/view_utils';
+  import {
+    ITEM_SCROLL_CONTAINER_CTX_KEY,
+    getHighlightedFields,
+    getMediaFields
+  } from '$lib/view_utils';
   import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import {setContext} from 'svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
@@ -27,6 +31,8 @@
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
+
+  $: highlightedFields = getHighlightedFields($datasetViewStore.query, selectRowsSchema?.data);
 
   $: rows = infiniteQuerySelectRows(
     $datasetViewStore.namespace,
@@ -75,7 +81,7 @@
     bind:this={itemScrollContainer}
   >
     {#each items as row}
-      <RowItem {row} {mediaFields} />
+      <RowItem {row} {mediaFields} {highlightedFields} />
     {/each}
     {#if items.length > 0}
       <InfiniteScroll threshold={100} on:loadMore={() => $rows?.fetchNextPage()} />

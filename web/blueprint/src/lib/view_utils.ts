@@ -5,7 +5,6 @@ import {
   childFields,
   getField,
   isConceptSignal,
-  isSignalField,
   pathIncludes,
   pathIsEqual,
   serializePath,
@@ -72,7 +71,7 @@ export const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
   null: NotAvailable
 };
 
-export function getVisibleFields(
+export function getHighlightedFields(
   selectRowsOptions: SelectRowsOptions,
   selectRowsSchema: LilacSelectRowsSchema | undefined
 ): LilacField[] {
@@ -80,7 +79,7 @@ export function getVisibleFields(
     return [];
   }
   return childFields(selectRowsSchema.schema).filter(f =>
-    isPathVisible(selectRowsSchema, selectRowsOptions, f.path)
+    isPathHighlighted(selectRowsSchema, selectRowsOptions, f.path)
   );
 }
 
@@ -94,41 +93,20 @@ export function getMediaFields(
   return (settings?.ui?.media_paths || []).map(path => getField(schema!, path)!);
 }
 
-function isPathVisible(
+function isPathHighlighted(
   selectRowsSchema: LilacSelectRowsSchema,
   selectRowsOptions: SelectRowsOptions,
   path: Path
 ): boolean {
-  const schema = selectRowsSchema.schema;
-
-  // When filtering by a path, the path, the children, and all the parents of the path are visible.
-  const pathIsFiltered = selectRowsOptions.filters?.some(
-    filter => pathIncludes(filter.path, path) || pathIncludes(path, filter.path)
-  );
-  const pathIsSortedBy = selectRowsSchema?.sorts?.some(s => pathIsEqual(s.path, path)) || false;
+  const pathIsFiltered = selectRowsOptions.filters?.some(f => pathIsEqual(f.path, path));
+  const pathIsSortedBy = selectRowsSchema?.sorts?.some(s => pathIsEqual(s.path, path));
   if (pathIsFiltered || pathIsSortedBy) {
     return true;
   }
   if (isPreviewSignal(selectRowsSchema, path)) {
     return true;
   }
-
-  // Signal columns are not visible by default. Because children inherit from parents, we only need
-  // need to check for the parent.
-  const field = getField(schema, path);
-  const isSignal = isSignalField(field!);
-
-  if (isSignal) {
-    return false;
-  }
-
-  if (path.length > 1) {
-    // When no explicit selection, children inherit from their parent.
-    return isPathVisible(selectRowsSchema, selectRowsOptions, path.slice(0, path.length - 1));
-  }
-
-  // Source columns are visible by default.
-  return true;
+  return false;
 }
 
 export function getSearchEmbedding(

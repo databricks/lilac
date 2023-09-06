@@ -165,7 +165,9 @@
                     />
                   {/if}
                   {#if metadataFields.length > 0}
-                    <div style:width="500px"><ItemMetadata row={previewResultItem} /></div>
+                    <div style:width="500px">
+                      <ItemMetadata row={previewResultItem} highlightedFields={[]} />
+                    </div>
                   {/if}
                   {#if primitiveValue != null}
                     <div class="flex flex-row items-center">
