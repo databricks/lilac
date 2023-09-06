@@ -4,6 +4,7 @@
   export enum Command {
     ComputeSignal = 'computeSignal',
     PreviewConcept = 'previewConcept',
+    ComputeConcept = 'computeConcept',
     EditPreviewConcept = 'editPreviewConcept',
     EditFilter = 'editFilter',
     CreateConcept = 'createConcept',
@@ -30,6 +31,16 @@
     command: Command.ComputeSignal;
     /** The value of the signal to edit */
     value?: Signal;
+  };
+
+  export type ComputeConceptCommand = {
+    /** The dataset namespace */
+    namespace: string;
+    /** The dataset name */
+    datasetName: string;
+    /** The path to the field to select by default */
+    path?: Path;
+    command: Command.ComputeConcept;
   };
 
   export type PreviewConceptCommand = SignalCommandBase & {
@@ -65,6 +76,7 @@
   export type Commands =
     | NoCommand
     | ComputeSignalCommand
+    | ComputeConceptCommand
     | PreviewConceptCommand
     | EditPreviewConceptCommand
     | EditFilterCommand
@@ -80,6 +92,7 @@
 
 <script lang="ts">
   import type {Path, Signal} from '$lilac';
+  import CommandConcepts from './CommandConcepts.svelte';
   import CommandCreateConcept from './CommandCreateConcept.svelte';
   import CommandFilter from './CommandFilter.svelte';
   import CommandSignals from './CommandSignals.svelte';
@@ -93,6 +106,8 @@
 
 {#if currentCommand.command === Command.ComputeSignal || currentCommand.command === Command.ComputeEmbedding || currentCommand.command === Command.PreviewConcept || currentCommand.command === Command.EditPreviewConcept}
   <CommandSignals command={currentCommand} on:close={close} />
+{:else if currentCommand.command === Command.ComputeConcept}
+  <CommandConcepts command={currentCommand} on:close={close} />
 {:else if currentCommand.command === Command.EditFilter}
   <CommandFilter command={currentCommand} on:close={close} />
 {:else if currentCommand.command === Command.CreateConcept}

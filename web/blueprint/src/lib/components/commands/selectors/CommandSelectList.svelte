@@ -17,7 +17,7 @@
 {#if skeleton}
   <SkeletonText lines={3} />
 {:else}
-  <div class="flex flex-col" role="list">
+  <div class="flex flex-col px-1" role="list">
     {#each items as _item}
       <button
         data-active={item === _item.value}

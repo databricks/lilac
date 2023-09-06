@@ -1,16 +1,17 @@
 <script context="module" lang="ts">
-  export interface NavigationTagGroup {
+  export interface NavigationTagGroup<T = unknown> {
     tag: string;
-    groups: NavigationGroupItem[];
+    groups: NavigationGroupItem<T>[];
   }
-  export interface NavigationGroupItem {
+  export interface NavigationGroupItem<T = unknown> {
     group: string;
-    items: NavigationItem[];
+    items: NavigationItem<T>[];
   }
-  export interface NavigationItem {
+  export interface NavigationItem<T = unknown> {
     name: string;
     link: string;
     isSelected: boolean;
+    item: T;
   }
 </script>
 

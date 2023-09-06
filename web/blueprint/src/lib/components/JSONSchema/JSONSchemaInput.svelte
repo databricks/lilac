@@ -72,7 +72,7 @@
   {:else}
     <div class="label text-s mb-2 font-medium text-gray-700">{label}</div>
     {#if property.description && showDescription}
-      <div class="bx--label pb-2 text-xs text-gray-500">
+      <div class="bx--label pb-1 text-xs text-gray-500">
         {property.description}
       </div>
     {/if}
@@ -141,12 +141,15 @@
     />
   {:else if property.type == 'object'}
     <!-- Object -->
-    {@const properties = Object.keys(property.properties ?? {})}
+    {@const properties = Object.keys(property.properties ?? {}).filter(
+      key => !hiddenProperties?.includes(path + '/' + key)
+    )}
     {#each properties as key, i}
+      {@const childPath = path + '/' + key}
       <div class:border-b={i < properties.length - 1} class="mt-4 border-gray-300">
         <svelte:self
           bind:value={value[key]}
-          path={path + '/' + key}
+          path={childPath}
           {schema}
           {hiddenProperties}
           {validationErrors}

@@ -79,17 +79,22 @@
 {:else if fields?.length === 0}
   <Select invalid invalidText="No valid fields found" />
 {:else}
-  <Select {labelText} {helperText} bind:selected={selectedPath} required>
-    {#if sourceFields?.length}
-      <SelectItemGroup label="Source Fields">
-        {#each sourceFields as field}
-          <SelectItem
-            value={serializePath(field.path)}
-            disabled={false}
-            text={formatField(field)}
-          />
-        {/each}
-      </SelectItemGroup>
-    {/if}
-  </Select>
+  <div>
+    <div class="label text-s mb-2 font-medium text-gray-700">
+      {labelText}
+    </div>
+    <Select hideLabel={true} {helperText} bind:selected={selectedPath} required>
+      {#if sourceFields?.length}
+        <SelectItemGroup label="Source Fields">
+          {#each sourceFields as field}
+            <SelectItem
+              value={serializePath(field.path)}
+              disabled={false}
+              text={formatField(field)}
+            />
+          {/each}
+        </SelectItemGroup>
+      {/if}
+    </Select>
+  </div>
 {/if}
