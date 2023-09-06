@@ -59,9 +59,9 @@
     <div
       title={node.value?.toString()}
       class="truncated text-right"
-      class:italic={node.formattedValue === null}
+      class:italic={!node.formattedValue && !node.children?.length}
     >
-      {node.formattedValue || (node.children?.length ? '' : 'N/A')}
+      {node.formattedValue || (node.children?.length ? '' : 'n/a')}
     </div>
   {/if}
 </div>
