@@ -52,16 +52,18 @@
       <ChevronDown />
     {/if}
   </button>
-  <div class="truncated flex-grow truncate font-mono font-medium text-neutral-500">
+  <div class="truncated font-mono font-medium text-neutral-500" style:min-width="10ch">
     {node.fieldName}
   </div>
-  <div
-    title={node.value?.toString()}
-    class="truncated flex-grow truncate text-right"
-    class:italic={node.formattedValue === null}
-  >
-    {node.formattedValue || (node.children?.length ? '' : 'N/A')}
-  </div>
+  {#if node.formattedValue || !node.children?.length}
+    <div
+      title={node.value?.toString()}
+      class="truncated text-right"
+      class:italic={node.formattedValue === null}
+    >
+      {node.formattedValue || (node.children?.length ? '' : 'N/A')}
+    </div>
+  {/if}
 </div>
 
 {#if node.children && node.expanded}
@@ -78,6 +80,6 @@
 
 <style lang="postcss">
   .truncated {
-    min-width: 7ch;
+    @apply flex-grow truncate;
   }
 </style>
