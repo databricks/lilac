@@ -5,9 +5,9 @@
   "metadata": {
     "is_public": true,
     "tags": ["legal"],
-    "description": "Termination or survival clause in a legal document",
-    "version": 33
+    "description": "Termination or survival clause in a legal document"
   },
+  "version": 33,
   "data": {
     "731b1338cf1949958c3526c555f88058": {
       "label": true,
