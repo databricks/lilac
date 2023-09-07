@@ -10,7 +10,10 @@
  */
 export type SemanticSimilaritySignal = {
     signal_name: 'semantic_similarity';
-    embedding: string;
+    /**
+     * The name of the pre-computed embedding.
+     */
+    embedding: 'cohere' | 'sbert' | 'openai' | 'palm' | 'gte-small' | 'gte-base';
     query: string;
 };
 

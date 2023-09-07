@@ -10,6 +10,7 @@
   import {View, ViewOff} from 'carbon-icons-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
+  import {get} from 'svelte/store';
   import Expandable from '../Expandable.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptExampleList from './ConceptExampleList.svelte';
@@ -42,30 +43,20 @@
   let applyDataset: {namespace: string; name: string} | undefined | null = undefined;
   let applyPath: string[] | undefined;
   let applyEmbedding: string | undefined = undefined;
-  $: datasetViewStore =
-    applyDataset != null && applyPath != null && applyEmbedding != null
-      ? createDatasetViewStore(applyDataset.namespace, applyDataset.name)
-      : null;
   function openDataset() {
     const pathId = applyPath ? serializePath(applyPath) : undefined;
-    if (
-      pathId == null ||
-      applyEmbedding == null ||
-      applyDataset == null ||
-      datasetViewStore == null ||
-      $datasetViewStore == null
-    ) {
+    if (pathId == null || applyEmbedding == null || applyDataset == null) {
       return;
     }
-
-    datasetViewStore.addSearch({
+    const store = createDatasetViewStore(applyDataset.namespace, applyDataset.name);
+    store.addSearch({
       path: [pathId],
       type: 'concept',
       concept_namespace: concept.namespace,
       concept_name: concept.concept_name,
       embedding: applyEmbedding
     });
-    goto(datasetLink(applyDataset.namespace!, applyDataset.name!, $datasetViewStore));
+    goto(datasetLink(applyDataset.namespace, applyDataset.name, get(store)));
   }
 
   function remove(id: string) {

@@ -395,6 +395,11 @@ def column_paths_match(path_match: Path, specific_path: Path) -> bool:
   return True
 
 
+class ImageInfo(BaseModel):
+  """Info about an individual image."""
+  path: Path
+
+
 def normalize_path(path: Path) -> PathTuple:
   """Normalizes a dot seperated path, but ignores dots inside quotes, like regular SQL.
 
@@ -406,22 +411,6 @@ def normalize_path(path: Path) -> PathTuple:
   if isinstance(path, str):
     return tuple(next(csv.reader(io.StringIO(path), delimiter='.')))
   return path
-
-
-class ImageInfo(BaseModel):
-  """Info about an individual image."""
-  path: Path
-
-
-class SourceManifest(BaseModel):
-  """The manifest that describes the dataset run, including schema and parquet files."""
-  # List of a parquet filepaths storing the data. The paths can be relative to `manifest.json`.
-  files: list[str]
-  # The data schema.
-  data_schema: Schema
-
-  # Image information for the dataset.
-  images: Optional[list[ImageInfo]] = None
 
 
 def _str_fields(fields: dict[str, Field], indent: int) -> str:

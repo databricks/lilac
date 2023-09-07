@@ -6,6 +6,7 @@
     "is_public": true,
     "description": "Negative sentiment."
   },
+  "version": 26,
   "data": {
     "0": {
       "label": true,

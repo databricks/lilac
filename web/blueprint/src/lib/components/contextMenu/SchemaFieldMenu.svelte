@@ -3,7 +3,7 @@
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {isPreviewSignal} from '$lib/view_utils';
+  import {getComputedEmbeddings, isPreviewSignal} from '$lib/view_utils';
   import {
     isFilterableField,
     isSignalField,
@@ -31,6 +31,8 @@
 
   $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
+
+  $: computedEmbeddings = getComputedEmbeddings($datasetStore.schema, field.path);
 
   $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, field.path);
   $: hasMenu =
@@ -91,16 +93,28 @@
       </div>
     {/if}
     {#if !isSignal}
-      <OverflowMenuItem
-        text="Preview signal"
-        on:click={() =>
-          triggerCommand({
-            command: Command.PreviewConcept,
-            namespace,
-            datasetName,
-            path: field?.path
-          })}
-      />
+      <div
+        class="w-full"
+        use:hoverTooltip={{
+          text: !canComputeSignals
+            ? 'User does not have access to compute concepts over this dataset.'
+            : computedEmbeddings.length === 0
+            ? 'No embeddings are computed for this field. Compute embeddings before using concepts.'
+            : ''
+        }}
+      >
+        <OverflowMenuItem
+          text="Compute concept"
+          disabled={!canComputeSignals || computedEmbeddings.length === 0}
+          on:click={() =>
+            triggerCommand({
+              command: Command.ComputeConcept,
+              namespace,
+              datasetName,
+              path: field?.path
+            })}
+        />
+      </div>
     {/if}
     {#if !isSignal}
       <div
@@ -123,6 +137,18 @@
             })}
         />
       </div>
+    {/if}
+    {#if !isSignal}
+      <OverflowMenuItem
+        text="Preview signal"
+        on:click={() =>
+          triggerCommand({
+            command: Command.PreviewConcept,
+            namespace,
+            datasetName,
+            path: field?.path
+          })}
+      />
     {/if}
     {#if isSignalRoot}
       <div

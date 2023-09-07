@@ -9,7 +9,11 @@ import {
   type Path,
   type SelectRowsOptions
 } from '$lilac';
-import {createInfiniteQuery, type CreateInfiniteQueryResult} from '@tanstack/svelte-query';
+import {
+  createInfiniteQuery,
+  type CreateInfiniteQueryResult,
+  type CreateQueryResult
+} from '@tanstack/svelte-query';
 import type {JSONSchema7} from 'json-schema';
 import {watchTask} from '../stores/taskMonitoringStore';
 import {queryClient} from './queryClient';
@@ -109,19 +113,25 @@ export const queryManyDatasetStats = createApiQuery(function getStats(
 },
 DATASETS_TAG);
 
-export const querySelectRows = createApiQuery(async function selectRows(
+export const querySelectRows = (
   namespace: string,
   datasetName: string,
   requestBody: SelectRowsOptions,
-  schema?: LilacSchema
-) {
-  const res = await DatasetsService.selectRows(namespace, datasetName, requestBody);
-  return {
-    rows: schema == null ? res.rows : res.rows.map(row => deserializeRow(row, schema)),
-    total_num_rows: res.total_num_rows
-  };
-},
-'DATASETS_TAG');
+  schema?: LilacSchema | undefined
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): CreateQueryResult<Awaited<{rows: Record<string, any>[]; total_num_rows: number}>, ApiError> =>
+  createApiQuery(async function selectRows(
+    namespace: string,
+    datasetName: string,
+    requestBody: SelectRowsOptions
+  ) {
+    const res = await DatasetsService.selectRows(namespace, datasetName, requestBody);
+    return {
+      rows: schema == null ? res.rows : res.rows.map(row => deserializeRow(row, schema)),
+      total_num_rows: res.total_num_rows
+    };
+  },
+  DATASETS_TAG)(namespace, datasetName, requestBody);
 
 export const querySelectRowsSchema = createApiQuery(
   DatasetsService.selectRowsSchema,

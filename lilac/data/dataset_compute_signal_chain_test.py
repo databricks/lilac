@@ -30,7 +30,13 @@ from ..signal import (
   register_signal,
 )
 from .dataset import DatasetManifest
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
+from .dataset_test_utils import (
+  TEST_DATASET_NAME,
+  TEST_NAMESPACE,
+  TestDataMaker,
+  TestSource,
+  enriched_item,
+)
 
 SIMPLE_ITEMS: list[Item] = [{
   'str': 'a',
@@ -139,7 +145,8 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
             fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
         }),
     }),
-    num_items=2)
+    num_items=2,
+    source=TestSource())
 
   result = dataset.select_rows(combine_columns=True)
   expected_result = [{

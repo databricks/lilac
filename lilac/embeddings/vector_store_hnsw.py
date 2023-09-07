@@ -107,7 +107,12 @@ class HNSWVectorStore(VectorStore):
       return label in labels
 
     query = np.expand_dims(query.astype(np.float32), axis=0)
-    locs, dists = self._index.knn_query(query, k=k, filter=filter_func if labels else None)
+    try:
+      locs, dists = self._index.knn_query(query, k=k, filter=filter_func if labels else None)
+    except RuntimeError:
+      # If K is too large compared to M and construction-time ef, HNSW will throw an error.
+      # In this case we return no results, which is ok for the caller of this method (VectorIndex).
+      return []
     locs = locs[0]
     dists = dists[0]
     topk_keys = self._key_to_label.index.values[locs]

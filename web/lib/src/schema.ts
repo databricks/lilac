@@ -110,6 +110,8 @@ export function pathIsEqual(
   path2 = deserializePath(path2);
   if (path1.length !== path2.length) return false;
   for (let i = 0; i < path1.length; i++) {
+    if (path1[i] === PATH_WILDCARD && path2[i].match(/\d/g)) continue;
+    if (path1[i].match(/\d/g) && path2[i] === PATH_WILDCARD) continue;
     if (path1[i] !== path2[i]) return false;
   }
   return true;

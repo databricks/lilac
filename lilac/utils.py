@@ -283,9 +283,17 @@ def pretty_timedelta(delta: timedelta) -> str:
     return '%ds' % (seconds,)
 
 
+class IndentDumper(yaml.Dumper):
+  """A yaml dumper that indent lists."""
+
+  def increase_indent(self, flow: bool = False, indentless: bool = False) -> Any:
+    """Increase the indent level."""
+    return super(IndentDumper, self).increase_indent(flow, False)
+
+
 def to_yaml(input: dict) -> str:
   """Convert a dictionary to a pretty yaml representation."""
-  return yaml.dump(input, default_flow_style=None)
+  return yaml.dump(input, Dumper=IndentDumper, sort_keys=False)
 
 
 def get_hf_dataset_repo_id(hf_org: str, hf_space_name: str, namespace: str,

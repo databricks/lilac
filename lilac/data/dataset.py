@@ -21,13 +21,23 @@ from pydantic import (
 from typing_extensions import TypeAlias
 
 from ..auth import UserInfo
-from ..config import DatasetConfig, DatasetSettings, DatasetUISettings
+from ..config import (
+  DatasetConfig,
+  DatasetSettings,
+  DatasetUISettings,
+  EmbeddingConfig,
+  SignalConfig,
+  get_dataset_config,
+)
+from ..env import data_path
+from ..project import read_project_config, update_project_dataset_settings
 from ..schema import (
   PATH_WILDCARD,
   ROWID,
   VALUE_KEY,
   Bin,
   DataType,
+  ImageInfo,
   Path,
   PathTuple,
   Schema,
@@ -35,6 +45,8 @@ from ..schema import (
 )
 from ..signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
 from ..signals.concept_scorer import ConceptSignal
+from ..source import Source
+from ..sources.source_registry import resolve_source
 from ..tasks import TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -173,13 +185,41 @@ class Column(BaseModel):
 ColumnId = Union[Path, Column]
 
 
+class NoSource(Source):
+  """A dummy source that is used when no source is defined, for backwards compat."""
+  name = 'no_source'
+
+
+class SourceManifest(BaseModel):
+  """The manifest that describes the dataset run, including schema and parquet files."""
+  # List of a parquet filepaths storing the data. The paths can be relative to `manifest.json`.
+  files: list[str]
+  # The data schema.
+  data_schema: Schema
+  source: Source = NoSource()
+
+  # Image information for the dataset.
+  images: Optional[list[ImageInfo]] = None
+
+  @validator('source', pre=True)
+  def parse_source(cls, source: dict) -> Source:
+    """Parse a source to its specific subclass instance."""
+    return resolve_source(source)
+
+
 class DatasetManifest(BaseModel):
   """The manifest for a dataset."""
   namespace: str
   dataset_name: str
   data_schema: Schema
+  source: Source
   # Number of items in the dataset.
   num_items: int
+
+  @validator('source', pre=True)
+  def parse_source(cls, source: dict) -> Source:
+    """Parse a source to its specific subclass instance."""
+    return resolve_source(source)
 
 
 def column_from_identifier(column: ColumnId) -> Column:
@@ -270,20 +310,22 @@ class Dataset(abc.ABC):
     """Return the manifest for the dataset."""
     pass
 
-  @abc.abstractmethod
   def config(self) -> DatasetConfig:
     """Return the dataset config for this dataset."""
-    pass
+    project_config = read_project_config(data_path())
+    dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
+    if not dataset_config:
+      raise ValueError('Dataset not found in project config.')
+    return dataset_config
 
-  @abc.abstractmethod
   def settings(self) -> DatasetSettings:
     """Return the persistent settings for the dataset."""
-    pass
+    settings = self.config().settings
+    return settings or DatasetSettings()
 
-  @abc.abstractmethod
   def update_settings(self, settings: DatasetSettings) -> None:
-    """Update the settings for the dataset."""
-    pass
+    """Update the persistent settings for the dataset."""
+    update_project_dataset_settings(self.namespace, self.dataset_name, settings)
 
   @abc.abstractmethod
   def compute_signal(self,
@@ -495,6 +537,37 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
     media_paths = [sorted_stats[-1].path]
 
   return DatasetSettings(ui=DatasetUISettings(media_paths=media_paths))
+
+
+def dataset_config_from_manifest(manifest: DatasetManifest) -> DatasetConfig:
+  """Computes a DatasetConfig from a manifest.
+
+  NOTE: This is only used for backwards compatibility. Once we remove the back-compat logic, this
+  method can be removed.
+  """
+  all_fields = manifest.data_schema.all_fields
+
+  all_signals = [
+    (path, resolve_signal(field.signal)) for (path, field) in all_fields if field.signal
+  ]
+  signals: list[tuple[PathTuple, Signal]] = []
+  embeddings: list[tuple[PathTuple, TextEmbeddingSignal]] = []
+  for (path, s) in all_signals:
+    source_path = path[0:-1]  # Remove the signal name from the path.
+    if isinstance(s, TextEmbeddingSignal):
+      embeddings.append((source_path, s))
+    else:
+      signals.append((source_path, s))
+
+  return DatasetConfig(
+    namespace=manifest.namespace,
+    name=manifest.dataset_name,
+    source=manifest.source,
+    signals=[SignalConfig(path=path, signal=signal) for path, signal in signals],
+    embeddings=[
+      EmbeddingConfig(path=path, embedding=embedding.name) for path, embedding in embeddings
+    ],
+  )
 
 
 def make_parquet_id(signal: Signal,

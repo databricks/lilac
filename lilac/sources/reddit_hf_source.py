@@ -5,8 +5,8 @@ from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..schema import Item
+from ..source import Source, SourceSchema
 from .huggingface_source import HuggingFaceSource
-from .source import Source, SourceSchema
 
 HF_REDDIT_DATASET_NAME = 'reddit'
 HF_SUBREDDIT_COL = 'subreddit'

@@ -7,9 +7,9 @@ from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..schema import Item
+from ..source import Source, SourceSchema, schema_from_df
 from ..utils import download_http_files
 from .duckdb_utils import duckdb_setup
-from .source import Source, SourceSchema, schema_from_df
 
 ROW_ID_COLUMN = '__row_id__'
 
@@ -19,11 +19,16 @@ class JSONSource(Source):
 
   Supports both JSON and JSONL.
 
-  JSON files can live locally as a filepath, or point to an external URL.
+  JSON files can live locally as a filepath, point to an external URL, or live on S3, GCS, or R2.
+
+  For more details on authorizing access to S3, GCS or R2, see:
+  https://duckdb.org/docs/guides/import/s3_import.html
   """ # noqa: D415, D400
   name = 'json'
 
-  filepaths: list[str] = PydanticField(description='A list of filepaths to JSON files.')
+  filepaths: list[str] = PydanticField(
+    description='A list of filepaths to JSON files. '
+    'Paths can be local, point to an HTTP(s) url, or live on GCS, S3 or R2.')
 
   _source_schema: Optional[SourceSchema] = None
   _df: Optional[pd.DataFrame] = None

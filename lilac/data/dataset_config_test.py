@@ -169,7 +169,7 @@ def test_config_compute_embedding(make_test_data: TestDataMaker) -> None:
       path=('text',),
       embedding='test_embedding',
     )],
-    settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('text',)]))).dict()
+    settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('text',)])))
 
   # Computing another embedding should add another config.
   dataset.compute_embedding('test_embedding2', 'text')

@@ -3,11 +3,8 @@ import {
   PATH_WILDCARD,
   VALUE_KEY,
   childFields,
-  deserializePath,
   getField,
-  getFieldsByDtype,
   isConceptSignal,
-  isSignalField,
   pathIncludes,
   pathIsEqual,
   serializePath,
@@ -20,6 +17,7 @@ import {
   type DatasetInfo,
   type DatasetSettings,
   type LilacField,
+  type LilacSchema,
   type LilacSelectRowsSchema,
   type LilacValueNode,
   type LilacValueNodeCasted,
@@ -73,72 +71,20 @@ export const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
   null: NotAvailable
 };
 
-export function getVisibleFields(
-  selectedColumns: {[path: string]: boolean} | null,
+export function getHighlightedFields(
   selectRowsOptions: SelectRowsOptions,
-  selectRowsSchema: LilacSelectRowsSchema,
-  field?: LilacField | null,
-  dtype?: DataType
+  selectRowsSchema: LilacSelectRowsSchema | undefined
 ): LilacField[] {
-  const schema = selectRowsSchema?.schema;
-  if (schema == null) {
+  if (selectRowsSchema == null) {
     return [];
   }
-
-  let fields: LilacField[] = [];
-  if (dtype == null) {
-    fields = childFields(field || schema);
-  } else {
-    fields = getFieldsByDtype(dtype, field || schema);
-  }
-  return fields.filter(f =>
-    isPathVisible(selectRowsSchema, selectedColumns, selectRowsOptions, f.path)
+  return childFields(selectRowsSchema.schema).filter(f =>
+    isPathHighlighted(selectRowsSchema, selectRowsOptions, f.path)
   );
 }
 
-export function isFieldVisible(field: LilacField, visibleFields: LilacField[]): boolean {
-  return visibleFields.some(f => pathIsEqual(f.path, field.path));
-}
-
-export function isItemVisible(item: LilacValueNode, visibleFields: LilacField[]): boolean {
-  const field = L.field(item);
-  if (field == null) return false;
-  return isFieldVisible(field, visibleFields);
-}
-
-export function getVisibleSchema(
-  schema: LilacField,
-  visibleFields: LilacField[]
-): LilacField | null {
-  const fields: {[fieldName: string]: LilacField} = {};
-  let repeatedField: LilacField | undefined = undefined;
-
-  if (schema.fields != null) {
-    for (const [fieldName, field] of Object.entries(schema.fields)) {
-      if (visibleFields.some(f => pathIsEqual(f.path, field.path))) {
-        const child = getVisibleSchema(field, visibleFields);
-        if (child != null) {
-          fields[fieldName] = child;
-        }
-      }
-    }
-  } else if (schema.repeated_field != null) {
-    if (!visibleFields.some(f => pathIsEqual(f.path, schema.repeated_field?.path))) {
-      repeatedField = undefined;
-    } else {
-      repeatedField = schema.repeated_field;
-    }
-  }
-  if (repeatedField == null && Object.keys(fields).length === 0)
-    return {...schema, fields: undefined, repeated_field: undefined};
-  const isVisible =
-    schema.path.length === 0 || visibleFields.some(f => pathIsEqual(f.path, schema.path));
-  if (!isVisible) return null;
-  return {...schema, fields, repeated_field: repeatedField};
-}
-
 export function getMediaFields(
-  schema: LilacField | null,
+  schema: LilacSchema | undefined,
   settings: DatasetSettings | null
 ): LilacField[] {
   if (schema == null) return [];
@@ -147,55 +93,20 @@ export function getMediaFields(
   return (settings?.ui?.media_paths || []).map(path => getField(schema!, path)!);
 }
 
-export function isPathVisible(
+function isPathHighlighted(
   selectRowsSchema: LilacSelectRowsSchema,
-  selectedColumns: {[path: string]: boolean} | null,
   selectRowsOptions: SelectRowsOptions,
-  path: Path | string
+  path: Path
 ): boolean {
-  const schema = selectRowsSchema.schema;
-  if (selectedColumns == null) return false;
-  if (typeof path !== 'string') path = serializePath(path);
-
-  // When filtering by a path, the path, the children, and all the parents of the path are visible.
-  const pathIsFiltered = selectRowsOptions.filters?.some(
-    filter => pathIncludes(filter.path, path) || pathIncludes(path, filter.path)
-  );
-  if (pathIsFiltered) {
+  const pathIsFiltered = selectRowsOptions.filters?.some(f => pathIsEqual(f.path, path));
+  const pathIsSortedBy = selectRowsSchema?.sorts?.some(s => pathIsEqual(s.path, path));
+  if (pathIsFiltered || pathIsSortedBy) {
     return true;
   }
-  if (isPreviewSignal(selectRowsSchema, deserializePath(path))) {
+  if (isPreviewSignal(selectRowsSchema, path)) {
     return true;
   }
-
-  if (selectedColumns[path] != null) {
-    // If a user has explicitly selected a column, return the value of the selection.
-    return selectedColumns[path];
-  }
-
-  const pathArray = deserializePath(path);
-
-  // Signal columns are not visible by default. Because children inherit from parents, we only need
-  // need to check for the parent.
-  const field = getField(schema, pathArray);
-  const isSignal = isSignalField(field!);
-
-  if (isSignal) {
-    return false;
-  }
-
-  if (pathArray.length > 1) {
-    // When no explicit selection, children inherit from their parent.
-    return isPathVisible(
-      selectRowsSchema,
-      selectedColumns,
-      selectRowsOptions,
-      serializePath(pathArray.slice(0, pathArray.length - 1))
-    );
-  }
-
-  // Source columns are visible by default.
-  return true;
+  return false;
 }
 
 export function getSearchEmbedding(
@@ -213,7 +124,7 @@ export function getSearchEmbedding(
   }
   if (searchPath == null) return null;
 
-  const existingEmbeddings = getComputedEmbeddings(datasetStore, searchPath);
+  const existingEmbeddings = getComputedEmbeddings(datasetStore.schema, searchPath);
   // Sort embeddings by what have already been precomputed first.
   const sortedEmbeddings =
     existingEmbeddings != null
@@ -235,13 +146,13 @@ export function getSearchEmbedding(
 
 /** Get the computed embeddings for a path. */
 export function getComputedEmbeddings(
-  datasetStore: DatasetState,
+  schema: LilacSchema | undefined | null,
   path: Path | undefined
 ): string[] {
-  if (datasetStore.schema == null || path == null) return [];
+  if (schema == null || path == null) return [];
 
   const existingEmbeddings: Set<string> = new Set();
-  const embeddingSignalRoots = childFields(getField(datasetStore.schema, path)).filter(
+  const embeddingSignalRoots = childFields(getField(schema, path)).filter(
     f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
   );
   for (const field of embeddingSignalRoots) {
@@ -283,7 +194,7 @@ export function getDefaultSearchPath(
   let paths = mediaPathsStats.map(stat => {
     return {
       path: stat.path,
-      embeddings: getComputedEmbeddings(datasetStore, stat.path),
+      embeddings: getComputedEmbeddings(datasetStore.schema, stat.path),
       avgTextLength: stat.avg_text_length
     };
   });
@@ -304,7 +215,7 @@ export function getDefaultSearchPath(
 export function getTaggedDatasets(
   selectedDataset: {namespace: string; datasetName: string} | null,
   datasets: DatasetInfo[]
-): NavigationTagGroup[] {
+): NavigationTagGroup<DatasetInfo>[] {
   const tagDatasets: Record<string, Record<string, DatasetInfo[]>> = {};
   for (const dataset of datasets) {
     let tags = [''];
@@ -331,9 +242,11 @@ export function getTaggedDatasets(
   const pinnedDatasets = ['OpenOrca-100k'];
 
   // Sort each tag by namespace and then dataset name.
-  const taggedDatasetGroups: NavigationTagGroup[] = [];
+  const taggedDatasetGroups: NavigationTagGroup<DatasetInfo>[] = [];
   for (const tag of sortedTags) {
-    const sortedNamespaceDatasets: NavigationGroupItem[] = Object.keys(tagDatasets[tag])
+    const sortedNamespaceDatasets: NavigationGroupItem<DatasetInfo>[] = Object.keys(
+      tagDatasets[tag]
+    )
       .sort(
         (a, b) =>
           namespaceSortPriorities.indexOf(b) - namespaceSortPriorities.indexOf(a) ||
@@ -352,7 +265,8 @@ export function getTaggedDatasets(
             link: datasetLink(d.namespace, d.dataset_name),
             isSelected:
               selectedDataset?.namespace === d.namespace &&
-              selectedDataset?.datasetName === d.dataset_name
+              selectedDataset?.datasetName === d.dataset_name,
+            item: d
           }))
       }));
     taggedDatasetGroups.push({tag, groups: sortedNamespaceDatasets});
@@ -365,7 +279,7 @@ export function getTaggedConcepts(
   concepts: ConceptInfo[],
   userId: string | undefined,
   username: string | undefined
-): NavigationTagGroup[] {
+): NavigationTagGroup<ConceptInfo>[] {
   const tagConcepts: Record<string, Record<string, ConceptInfo[]>> = {};
   for (const concept of concepts) {
     let tags = [''];
@@ -386,9 +300,11 @@ export function getTaggedConcepts(
   const namespaceSortPriorities = ['lilac'];
 
   // Sort each tag by namespace and then dataset name.
-  const taggedDatasetGroups: NavigationTagGroup[] = [];
+  const taggedDatasetGroups: NavigationTagGroup<ConceptInfo>[] = [];
   for (const tag of Object.keys(tagConcepts).sort()) {
-    const sortedNamespaceDatasets: NavigationGroupItem[] = Object.keys(tagConcepts[tag])
+    const sortedNamespaceDatasets: NavigationGroupItem<ConceptInfo>[] = Object.keys(
+      tagConcepts[tag]
+    )
       .sort(
         (a, b) =>
           namespaceSortPriorities.indexOf(a) - namespaceSortPriorities.indexOf(b) ||
@@ -402,7 +318,8 @@ export function getTaggedConcepts(
             name: c.name,
             link: conceptLink(c.namespace, c.name),
             isSelected:
-              selectedConcept?.namespace === c.namespace && selectedConcept?.name === c.name
+              selectedConcept?.namespace === c.namespace && selectedConcept?.name === c.name,
+            item: c
           }))
       }));
     taggedDatasetGroups.push({tag, groups: sortedNamespaceDatasets});
@@ -448,10 +365,10 @@ export function getSort(datasetStore: DatasetState): SortResult | null {
 
 export function getSpanValuePaths(
   field: LilacField,
-  visibleFields?: LilacField[]
+  highlightedFields?: LilacField[]
 ): {spanPaths: Path[]; valuePaths: SpanValueInfo[]} {
   // Include the field.
-  const children = [field, ...childFields(field)];
+  const children = childFields(field);
   // Find the non-keyword span fields under this field.
   const conceptSignals = children.filter(f => isConceptSignal(f.signal));
   const conceptLabelSignals = children.filter(f => f.signal?.signal_name === 'concept_labels');
@@ -459,14 +376,15 @@ export function getSpanValuePaths(
     f => f.signal?.signal_name === 'semantic_similarity'
   );
   const keywordSignals = children.filter(f => f.signal?.signal_name === 'substring_search');
-
   // Find the non-keyword span fields under this field.
   let spanFields = children
     .filter(f => f.dtype === 'string_span')
+    // Ignore embedding spans.
     .filter(f => !childFields(f).some(c => c.dtype === 'embedding'));
-  if (visibleFields != null) {
+  if (highlightedFields != null) {
+    // Keep only spans that have visible children.
     spanFields = spanFields.filter(f =>
-      visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path))
+      childFields(f).some(c => highlightedFields.some(v => pathIsEqual(v.path, c.path)))
     );
   }
 
@@ -477,9 +395,7 @@ export function getSpanValuePaths(
     const spanChildren = childFields(spanField)
       .filter(f => f.dtype != 'string_span')
       .filter(
-        f =>
-          visibleFields == null ||
-          visibleFields?.some(visibleField => pathIsEqual(visibleField.path, f.path))
+        f => highlightedFields == null || highlightedFields.some(v => pathIsEqual(v.path, f.path))
       );
     const spanPetalChildren = spanChildren.filter(f => f.dtype != null && f.dtype != 'embedding');
     const spanPath = spanField.path;
@@ -757,6 +673,6 @@ export function displayPath(path: Path): string {
   if (!Array.isArray(path)) {
     path = [path];
   }
-  const result = path.join('.');
-  return result.replaceAll(`.${PATH_WILDCARD}`, '[]');
+  const result = path.join(' › ');
+  return result.replaceAll(` › ${PATH_WILDCARD}`, '[]');
 }

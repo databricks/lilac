@@ -68,6 +68,7 @@ export type { SignalSchemaOptions } from './models/SignalSchemaOptions';
 export type { SignalSchemaResponse } from './models/SignalSchemaResponse';
 export type { SortOrder } from './models/SortOrder';
 export type { SortResult } from './models/SortResult';
+export type { Source } from './models/Source';
 export type { SourcesList } from './models/SourcesList';
 export type { StatsResult } from './models/StatsResult';
 export type { SubstringSignal } from './models/SubstringSignal';

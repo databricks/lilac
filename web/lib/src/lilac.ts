@@ -45,7 +45,9 @@ export type LilacField<S extends Signal = Signal> = Field & {
   // Overwrite signal type from generic
   signal?: S;
 };
-export type LilacSchema = LilacField;
+export interface LilacSchema extends LilacField {
+  fields: NonNullable<LilacField['fields']>;
+}
 export type LilacSelectRowsSchema = SelectRowsSchemaResult & {
   schema: LilacSchema;
 };
@@ -103,7 +105,10 @@ export function deserializeSchema(rawSchema: Schema): LilacSchema {
   return {fields: lilacFields.fields, path: []};
 }
 
-export function deserializeRow(rawRow: FieldValue, schema: LilacSchema): LilacValueNode {
+export function deserializeRow(
+  rawRow: FieldValue,
+  schema: LilacSchema | LilacField
+): LilacValueNode {
   const fields = childFields(schema);
   const rootNode = lilacValueNodeFromRawValue(rawRow, fields, []);
 
@@ -139,7 +144,7 @@ export function petals(field: LilacField | LilacSchema | undefined | null): Lila
   return childFields(field).filter(f => f.dtype != null);
 }
 
-export function getFieldsByDtype(dtype: DataType, schema?: LilacSchema): LilacField[] {
+export function getFieldsByDtype(dtype: DataType, schema?: LilacSchema | LilacField): LilacField[] {
   if (schema == null) {
     return [];
   }

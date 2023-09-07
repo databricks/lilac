@@ -9,11 +9,28 @@
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
-  import {Modal, SkeletonText, Tag, TextArea} from 'carbon-components-svelte';
-  import {Download, Information, Settings, Share, TableOfContents} from 'carbon-icons-svelte';
+  import {
+    ComposedModal,
+    Modal,
+    ModalBody,
+    ModalFooter,
+    ModalHeader,
+    SkeletonText,
+    Tag,
+    TextArea
+  } from 'carbon-components-svelte';
+  import {
+    Download,
+    IbmWatsonKnowledgeStudio,
+    Information,
+    Settings,
+    Share,
+    TableOfContents
+  } from 'carbon-icons-svelte';
   import {fade} from 'svelte/transition';
   import DatasetSettingsModal from './DatasetSettingsModal.svelte';
   import DownloadModal from './DownloadModal.svelte';
+  import Insights from './insights/Insights.svelte';
 
   export let namespace: string;
   export let datasetName: string;
@@ -64,6 +81,12 @@
       use:hoverTooltip={{text: 'Dataset information'}}
     >
       <Information />
+    </button>
+    <button
+      use:hoverTooltip={{text: 'Dataset insights'}}
+      on:click={() => datasetViewStore.setInsightsOpen(true)}
+    >
+      <IbmWatsonKnowledgeStudio />
     </button>
   </div>
   <div slot="header-center" class="flex w-full items-center">
@@ -136,6 +159,20 @@
       name={datasetName}
     />
     <DownloadModal bind:open={downloadOpen} schema={$schema.data} />
+    <ComposedModal
+      size="lg"
+      open={$datasetViewStore.insightsOpen}
+      on:close={() => datasetViewStore.setInsightsOpen(false)}
+      on:submit={() => datasetViewStore.setInsightsOpen(false)}
+    >
+      <ModalHeader title="Insights" />
+      <ModalBody>
+        {#if $datasetViewStore.insightsOpen}
+          <Insights schema={$schema.data} {namespace} {datasetName} />
+        {/if}
+      </ModalBody>
+      <ModalFooter primaryButtonText="Close" />
+    </ComposedModal>
   {/if}
 
   {#if configModalOpen}

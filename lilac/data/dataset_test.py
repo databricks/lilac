@@ -6,10 +6,17 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..schema import ROWID, Field, Item, RichData, field, lilac_embedding, schema
+from ..config import DatasetConfig, EmbeddingConfig, SignalConfig
+from ..schema import EMBEDDING_KEY, ROWID, Field, Item, RichData, field, lilac_embedding, schema
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
-from .dataset import Column, DatasetManifest
-from .dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE, TestDataMaker, enriched_item
+from .dataset import Column, DatasetManifest, dataset_config_from_manifest
+from .dataset_test_utils import (
+  TEST_DATASET_NAME,
+  TEST_NAMESPACE,
+  TestDataMaker,
+  TestSource,
+  enriched_item,
+)
 
 SIMPLE_ITEMS: list[Item] = [{
   'str': 'a',
@@ -77,6 +84,7 @@ class TestSignal(TextSignal):
 def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(TestSignal)
+  register_signal(TestEmbedding)
   register_signal(LengthSignal)
   register_signal(SignalWithQuoteInIt)
   register_signal(SignalWithDoubleQuoteInIt)
@@ -448,7 +456,8 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
           })
       ],
     }),
-    num_items=2)
+    num_items=2,
+    source=TestSource())
 
   result = dataset.select_rows(['texts'], combine_columns=True)
   assert list(result) == [{
@@ -629,7 +638,8 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
       'bool': 'boolean',
       'float': 'float32',
     }),
-    num_items=3)
+    num_items=3,
+    source=TestSource())
 
   test_signal = TestSignal()
   dataset.compute_signal(test_signal, 'str')
@@ -652,7 +662,8 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
       'bool': 'boolean',
       'float': 'float32',
     }),
-    num_items=3)
+    num_items=3,
+    source=TestSource())
 
   result = dataset.select_rows(['str', Column(('str', 'test_signal'), alias='test_signal_on_str')])
 
@@ -757,3 +768,38 @@ class SignalWithDoubleQuoteInIt(TextSignal):
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     for d in data:
       yield True
+
+
+def test_dataset_config_from_manifest(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello world.'}])
+  dataset.compute_signal(TestSignal(), 'text')
+  dataset.compute_embedding('test_embedding', 'text')
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema({
+      'text': field(
+        'string',
+        fields={
+          'test_signal': field(
+            signal=TestSignal().dict(), fields={
+              'len': 'int32',
+              'flen': 'float32'
+            }),
+          'test_embedding': field(
+            signal=TestEmbedding().dict(),
+            fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
+        })
+    }),
+    num_items=2,
+    source=TestSource())
+
+  config = dataset_config_from_manifest(dataset.manifest())
+
+  assert config == DatasetConfig(
+    namespace=TEST_NAMESPACE,
+    name=TEST_DATASET_NAME,
+    source=TestSource(),
+    embeddings=[EmbeddingConfig(path=('text',), embedding='test_embedding')],
+    signals=[SignalConfig(path=('text',), signal=TestSignal())])

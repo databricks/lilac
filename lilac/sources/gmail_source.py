@@ -13,8 +13,8 @@ from typing_extensions import override
 
 from ..env import data_path
 from ..schema import Item, field
+from ..source import Source, SourceSchema
 from ..utils import log
-from .source import Source, SourceSchema
 
 if TYPE_CHECKING:
   from google.oauth2.credentials import Credentials

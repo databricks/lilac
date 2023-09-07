@@ -2,10 +2,6 @@
   "namespace": "lilac",
   "concept_name": "source-code",
   "type": "text",
-  "metadata": {
-    "is_public": true,
-    "description": "Source code from any programming language."
-  },
   "data": {
     "c7d0400c6e5442a59859ea7b0a7d6bab": {
       "label": true,
@@ -386,7 +382,76 @@
       "label": false,
       "text": "not how you reconcile with your estranged wife,\u201d wrote Vulture.",
       "id": "8d6eb8f1aac745359540c9f454aa9a58"
+    },
+    "398c417c545247fcb0bde55fd78048b9": {
+      "label": true,
+      "text": "```java\npublic class MyClass {\n    int variable;\n\n    public MyClass(int variable) {\n        this.variable = variable;\n    }\n}\n```",
+      "id": "398c417c545247fcb0bde55fd78048b9"
+    },
+    "5ca266e52895450795c6078fa47ecb56": {
+      "label": false,
+      "text": "- `priceRange`: Indicates the price range of the business, which is 'Cheap'.\n- `customerRating`: This represents how customers rate the business, and it's 'Average'.\n- `location`: This is another nested object within the main `business` object. It contains specific details about the location of the business.\n   - `area`: Specifies where the business area is located, in this example, 'City Centre'.",
+      "id": "5ca266e52895450795c6078fa47ecb56"
+    },
+    "5bc05f9ac04249caacea737866486929": {
+      "label": false,
+      "text": "1. through its toolbar button: a dedicated button is added to the firefox toolbar, which, upon clicking, displays a dropdown list of all currently installed add-ons, with checkboxes provided for enabling and disabling individual extensions.",
+      "id": "5bc05f9ac04249caacea737866486929"
+    },
+    "cde1398742df4a4090cb52cec530941e": {
+      "label": false,
+      "text": "\u6771\u30a2\u30a4\u30aa\u30ef\u306e\u90fd\u5e02\u3092\u7834\u58ca\u3057\u305f\u6d2a\u6c34\u306f\u4e0b\u6d41\u306b\u79fb\u52d5\u3057\u3001\u73fe\u5728\u30a2\u30a4\u30aa\u30ef\u30b7\u30c6\u30a3\u3068\u30b3\u30fc\u30e9\u30eb\u30d3\u30eb\u3092\u8105\u304b\u3057\u3066\u3044\u307e\u3059\u3002\u4e21\u5e02\u306f\u4f4e\u5730\u306e\u5730\u57df\u306b\u907f\u96e3\u6307\u793a\u3092\u51fa\u3057\u307e\u3057\u305f\u3002",
+      "id": "cde1398742df4a4090cb52cec530941e"
+    },
+    "50bf4d04810b42e78f6e019a86f05d26": {
+      "label": true,
+      "text": "```json\n{\n  \"business\": {\n    \"name\": \"The Eagle\",\n    \"type\": [\"Coffee Shop\", \"Restaurant\"],\n    \"cuisine\": \"Indian\",\n    \"priceRange\": \"Cheap\",\n    \"customerRating\": \"Average\",\n    \"location\": {\n      \"area\": \"City Centre\",\n      \"nearbyBusiness\": \"Burger King\"\n    },\n    \"features\": {\n      \"familyFriendly\": \"No\"\n    }\n  }\n}\n```",
+      "id": "50bf4d04810b42e78f6e019a86f05d26"
+    },
+    "5d1b41863c84461487ea80b772d5ed75": {
+      "label": false,
+      "text": "Step 2: Set up the Wii Remote\n- Insert 2 AA batteries into the Wii Remote.\n- Pair the Wii Remote with the console by pressing the SYNC button on both the remote and the console, if needed.\n\nStep 3: Connect the Wii Sensor Bar\n- Connect the sensor bar to the Wii console and place it either above or below your TV.",
+      "id": "5d1b41863c84461487ea80b772d5ed75"
+    },
+    "aec542f43c8b4ec09c0731969b75e033": {
+      "label": true,
+      "text": "```java\nclass Parent {\n    int number;\n\n    Parent(int number) {\n        this.number = number;\n    }\n}\n\nclass Child extends Parent {\n    int number;\n\n    Child(int number, int childNumber) {\n        super(number);\n        this.number = childNumber;\n    }\n}\n```",
+      "id": "aec542f43c8b4ec09c0731969b75e033"
+    },
+    "f89040e6b0e74e66ae7d897fdb421f0b": {
+      "label": true,
+      "text": "```python\nrestaurant_data = {\n   \"name\": \"Zizzi\",\n   \"eatType\": \"pub\",\n   \"food\": \"Japanese\",\n   \"familyFriendly\": \"yes\"\n}\n```\n\nIf using JavaScript, an object can be used:\n\n```javascript\nconst restaurantData = {\n   name: \"Zizzi\",\n   eatType: \"pub\",\n   food: \"Japanese\",\n   familyFriendly: \"yes\"\n};\n```",
+      "id": "f89040e6b0e74e66ae7d897fdb421f0b"
+    },
+    "445dd68c04314b34902cc803f696e124": {
+      "label": true,
+      "text": "In JavaScript:\n--------------\nconst restaurantInfo = {\n    name: 'The Rice Boat',\n    food: 'Indian',\n    priceRange: 'moderate',\n    customerRating: '1 out of 5',\n    area: 'city centre',\n    familyFriendly: false,\n    near: 'Express by Holiday Inn'\n};\n\nNow we have successfully represented the content of the sentence in data form.",
+      "id": "445dd68c04314b34902cc803f696e124"
+    },
+    "b8b61f6cad1c4f5aaba38acc2be6b644": {
+      "label": true,
+      "text": "Certainly! The content in the given sentence can be represented as structured data in the form of a dictionary, JSON object, or as a key-value pair data set. Here's the data representation in three formats:\n\n1. Dictionary (Python):\n```python\nrestaurant_data = {\n    \"name\": \"Blue Spice\",\n    \"food\": \"Indian\",\n    \"priceRange\": \"more than \u00a330\",\n    \"area\": \"riverside\"\n}\n```\n\n2. JSON object:\n",
+      "id": "b8b61f6cad1c4f5aaba38acc2be6b644"
+    },
+    "68839e32f2304f6b81ace676d4f22071": {
+      "label": true,
+      "text": "```\n\nXML example:\n\n```xml\n<entities>\n  <person>\n    <entity>Person 1</entity>\n    <name>Alfons Gorbach</name>\n    <event>Death</event>\n    <location>Styria, Austria</location>\n  </person>\n  <person>\n    <entity>Person 2</entity>\n    <name>Doris Bures</name>\n    <role>Leader</role>\n    <location>Styria, Austria</location>\n  </person>\n</entities>\n```",
+      "id": "68839e32f2304f6b81ace676d4f22071"
+    },
+    "f6bf3805bfd746bd861fbcf197a3670a": {
+      "label": false,
+      "text": "\"This will be done in a few minutes.\" translates to \"T\u00e4m\u00e4 tehd\u00e4\u00e4n muutamassa minuutissa.\" in Finnish.\n\nIt's important to note that Finnish, like many languages, has a different grammatical structure from English.\n\n1. \"T\u00e4m\u00e4\" is the Finnish word for \"this\". It acts as the subject of the sentence.",
+      "id": "f6bf3805bfd746bd861fbcf197a3670a"
+    },
+    "037be08532f44d0d80f6fe14538e382f": {
+      "label": false,
+      "text": "- \"You need JavaScript\" can be translated to \"Sie ben\u00f6tigen JavaScript.\"\n- \"enabled\" can be translated to \"aktiviert.\"\n- \"to view it\" can be translated to \"um es anzeigen zu k\u00f6nnen.\"\n- \"and\" can be translated to \"und.\"\n- \"This e-mail address\" can be translated to \"diese E-Mail-Adresse.\"\n- \"is being protected\" can be translated to \"ist gesch\u00fctzt.\"",
+      "id": "037be08532f44d0d80f6fe14538e382f"
     }
   },
-  "version": 62
+  "version": 75,
+  "metadata": {
+    "is_public": true,
+    "description": "Source code from any programming language."
+  }
 }

@@ -53,3 +53,11 @@ def test_secrets() -> None:
   pii = list(signal.compute([text]))
   expected_spans = text_to_expected_spans(text, ['AKIATESTTESTTESTTEST'])
   assert pii == [{EMAILS_KEY: [], IPS_KEY: [], SECRETS_KEY: expected_spans}]
+
+
+def test_no_unicode_error() -> None:
+  signal = PIISignal()
+
+  text = 'Olof Heden and Denis S. Krotov\u2217'
+  pii = list(signal.compute([text]))
+  assert pii == [{EMAILS_KEY: [], IPS_KEY: [], SECRETS_KEY: []}]

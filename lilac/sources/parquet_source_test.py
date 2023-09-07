@@ -7,8 +7,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from ..schema import schema
+from ..source import SourceSchema
 from .parquet_source import ParquetSource
-from .source import SourceSchema
 
 
 def test_simple_rows(tmp_path: pathlib.Path) -> None:

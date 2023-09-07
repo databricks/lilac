@@ -140,7 +140,7 @@
   );
 
   // Populate existing embeddings for the selected field.
-  $: existingEmbeddings = getComputedEmbeddings($datasetStore, searchPath);
+  $: existingEmbeddings = getComputedEmbeddings($datasetStore.schema, searchPath);
 
   $: isEmbeddingComputed =
     existingEmbeddings != null && !!existingEmbeddings.includes(selectedEmbedding || '');
@@ -331,7 +331,7 @@
     id: serializePath(p),
     text: displayPath(p),
     path: p,
-    embeddings: getComputedEmbeddings($datasetStore, p)
+    embeddings: getComputedEmbeddings($datasetStore.schema, p)
   }));
 </script>
 

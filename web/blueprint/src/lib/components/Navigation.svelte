@@ -74,7 +74,8 @@
           items: (sortedSignals || []).map(s => ({
             name: s.name,
             link: signalLink(s.name),
-            isSelected: $urlHashContext.page === 'signals' && $urlHashContext.identifier === s.name
+            isSelected: $urlHashContext.page === 'signals' && $urlHashContext.identifier === s.name,
+            item: s
           }))
         }
       ]

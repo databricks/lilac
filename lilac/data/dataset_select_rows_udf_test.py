@@ -4,7 +4,12 @@ from typing import Iterable, Optional, cast
 
 import numpy as np
 import pytest
+from pytest import approx
 from typing_extensions import override
+
+from lilac.concepts.concept import ExampleIn
+from lilac.concepts.db_concept import ConceptUpdate, DiskConceptDB
+from lilac.signals.concept_scorer import ConceptSignal
 
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
@@ -26,7 +31,7 @@ from ..signal import (
   clear_signal_registry,
   register_signal,
 )
-from .dataset import BinaryFilterTuple, Column
+from .dataset import BinaryFilterTuple, Column, SortOrder
 from .dataset_test_utils import TestDataMaker, enriched_item
 
 EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
@@ -45,6 +50,9 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     for example in data:
+      if example == '':
+        yield None
+        continue
       yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
@@ -343,4 +351,47 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
   }, {
     'text': 'hello2.',
     'text.key_False': 1
+  }]
+
+
+def test_sparse_embedding_index_with_asc_sort(make_test_data: TestDataMaker) -> None:
+  # Make the 2nd item have empty string.
+  dataset = make_test_data([{'text': 'hello.'}, {'text': ''}, {'text': 'hello world.'}])
+  dataset.compute_signal(TestEmbedding(), 'text')
+
+  concept_db = DiskConceptDB()
+  concept_db.create(namespace='test_namespace', name='test_concept', type=SignalInputType.TEXT)
+  concept_db.edit(
+    'test_namespace', 'test_concept',
+    ConceptUpdate(
+      insert=[ExampleIn(label=False, text='hello.'),
+              ExampleIn(label=True, text='hello world.')]))
+
+  udf = ConceptSignal(
+    namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
+  result = dataset.select_rows(
+    columns=['text', Column('text', signal_udf=udf, alias='udf')],
+    sort_by=['udf'],
+    sort_order=SortOrder.ASC)
+  assert list(result) == [{
+    'text': '',
+    'udf': []
+  }, {
+    'text': 'hello.',
+    'udf': [{
+      '__value__': {
+        'start': 0,
+        'end': 6
+      },
+      'score': approx(0.142, abs=1e-3)
+    }]
+  }, {
+    'text': 'hello world.',
+    'udf': [{
+      '__value__': {
+        'start': 0,
+        'end': 12
+      },
+      'score': approx(0.958, abs=1e-3)
+    }]
   }]

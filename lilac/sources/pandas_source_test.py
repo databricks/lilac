@@ -3,8 +3,8 @@
 import pandas as pd
 
 from ..schema import schema
+from ..source import SourceSchema
 from .pandas_source import PANDAS_INDEX_COLUMN, PandasSource
-from .source import SourceSchema
 
 
 def test_simple_dataframe() -> None:

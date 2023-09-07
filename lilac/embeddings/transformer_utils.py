@@ -1,10 +1,8 @@
 """Utils for transformer embeddings."""
 
 import functools
-import os
 from typing import TYPE_CHECKING, Optional
 
-from ..env import data_path
 from ..utils import log
 
 if TYPE_CHECKING:
@@ -19,7 +17,7 @@ def get_model(model_name: str,
     from sentence_transformers import SentenceTransformer
   except ImportError:
     raise ImportError('Could not import the "sentence_transformers" python package. '
-                      'Please install it with `pip install sentence-transformers`.')
+                      'Please install it with `pip install "lilac[gte]".')
   preferred_device: Optional[str] = None
   if torch.backends.mps.is_available():
     preferred_device = 'mps'
@@ -28,8 +26,7 @@ def get_model(model_name: str,
 
   @functools.cache
   def _get_model(model_name: str) -> 'SentenceTransformer':
-    return SentenceTransformer(
-      model_name, device=preferred_device, cache_folder=os.path.join(data_path(), '.cache'))
+    return SentenceTransformer(model_name, device=preferred_device)
 
   batch_size = optimal_batch_sizes[preferred_device or '']
   return batch_size, _get_model(model_name)
