@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "lilac-386213"
-  }
+    "default": "lilac-386213",
+    "staging": "lilac-386213"
+  },
+  "targets": {},
+  "etags": {}
 }
