@@ -153,7 +153,7 @@ class DatasetDuckDB(Dataset):
     # TODO: Infer the manifest from the parquet files so this is lighter weight.
     self._source_manifest = read_source_manifest(self.dataset_path)
     self._signal_manifests: list[SignalManifest] = []
-    self._label_schemas: dict[str, Schema] = []
+    self._label_schemas: dict[str, Schema] = {}
     self.con = duckdb.connect(database=':memory:')
 
     # Maps a path and embedding to the vector index. This is lazily generated as needed.
