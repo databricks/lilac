@@ -18,6 +18,8 @@ See the [Installation](./getting_started/installation.md) and
 
 Read the [Announcement Blog](./blog/introducing-lilac.md) for more details.
 
+<br>
+
 <table style="border-spacing:0">
   <tr>
     <td style="width:200px;padding-right:10px;">
