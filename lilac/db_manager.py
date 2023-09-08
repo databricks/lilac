@@ -4,12 +4,12 @@ import pathlib
 import threading
 from typing import Optional, Type, Union
 
-import yaml
 from pydantic import BaseModel
 
-from .config import DatasetConfig
+from .config import get_dataset_config
 from .data.dataset import Dataset
-from .data.dataset_duckdb import get_config_filepath
+from .env import data_path
+from .project import read_project_config
 from .utils import get_datasets_dir
 
 _DEFAULT_DATASET_CLS: Type[Dataset]
@@ -57,6 +57,8 @@ def list_datasets(base_dir: Union[str, pathlib.Path]) -> list[DatasetInfo]:
   if not os.path.isdir(datasets_path):
     return []
 
+  project_config = read_project_config(data_path())
+
   dataset_infos: list[DatasetInfo] = []
   for namespace in os.listdir(datasets_path):
     dataset_dir = os.path.join(datasets_path, namespace)
@@ -74,14 +76,10 @@ def list_datasets(base_dir: Union[str, pathlib.Path]) -> list[DatasetInfo]:
       if dataset_name.startswith('.'):
         continue
 
-      # Open the config file to read the tags. We avoid instantiating a dataset for now to reduce
-      # the overhead of listing datasets.
-      config_filepath = get_config_filepath(namespace, dataset_name)
+      dataset_config = get_dataset_config(project_config, namespace, dataset_name)
       tags = []
-      if os.path.exists(config_filepath):
-        with open(config_filepath) as f:
-          config = DatasetConfig(**yaml.safe_load(f))
-        tags = config.tags
+      if dataset_config:
+        tags = dataset_config.tags
 
       dataset_infos.append(DatasetInfo(namespace=namespace, dataset_name=dataset_name, tags=tags))
 

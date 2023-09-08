@@ -156,6 +156,7 @@ types-tqdm = "^4.65.0.0"
 watchdog = { extras = ["watchmedo"], version = "^3.0.0" }
 wheel = "^0.37.1"
 yapf = "^0.32.0"
+freezegun = "^1.2.2"
 
 [tool.poetry.scripts]
 lilac = "lilac.cli:cli"
