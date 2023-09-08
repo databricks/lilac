@@ -19,7 +19,7 @@ If this is a fresh virtual env, it might take a dozen seconds to see the initial
 
 ```bash
 ❯ lilac start ~/my_project
-Lilac will create a project in "/Users/me/my-project". Do you want to continue? (y/n): y
+Lilac will create a project in `/Users/me/my-project`. Do you want to continue? (y/n): y
 
 INFO:     Started server process [33100]
 INFO:     Waiting for application startup.
