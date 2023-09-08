@@ -20,22 +20,36 @@ In this quick start we're going to:
 
 ## Start the web server
 
-Start the lilac web server.
+Start a new Lilac project.
 
 ```bash
 lilac start ~/my_project
 ```
 
-This should open a browser tab pointing to `http://localhost:5432`.
+This should open a browser tab pointing to [http://localhost:5432](http://localhost:5432).
 
 ## Add a dataset
 
 Let's load [OpenOrca](https://huggingface.co/datasets/Open-Orca/OpenOrca), a popular instruction
 dataset used for tuning LLM models.
 
-Click the `Add dataset` button on the Getting Started page and add the dataset info as shown below.
-While the Lilac tool can scale to millions of rows on a single machine, we are sampling to 100,000
-so we can get started quickly.
+Click the `Add dataset` button on the Getting Started page and fill in:
+
+1. The dataset name in the Lilac project: `open-orca-10k`
+2. Choose `huggingface` dataset loader chechbox
+
+Fill in HuggingFace-specific fields:
+
+3. HuggingFace dataset name: `Open-Orca/OpenOrca`
+4. Sample size: 10000 (it takes ~5mins to compute on-device embeddings for 10,000 items)
+
+Finally:
+
+5. Click the "Add" button at the bottom.
+
+```{note}
+See the console output to track progress of the dataset download from HuggingFace.
+```
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-load.mp4"></video>
 

@@ -44,7 +44,7 @@
       class:bg-blue-200={runningTasks.length}
       class:border-blue-400={runningTasks.length}
     >
-      <div class="relative z-10 flex gap-x-2">
+      <div class="relative z-10 flex gap-x-2 truncate">
         {#if runningTasks.length}
           {runningTasks.length} running task{runningTasks.length > 1 ? 's' : ''}... <Loading
             withOverlay={false}

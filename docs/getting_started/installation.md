@@ -3,16 +3,33 @@
 Lilac is published on pip under [lilac](https://pypi.org/project/lilac/). You can install it with:
 
 ```bash
-pip install lilac
+pip install lilac[all]
 ```
 
-To make sure the installation works, start the web server:
+```{note}
+To skip optional dependencies, run `pip install lilac` instead. You will have to manually install any
+dependencies. For example to install GTE embedding, do `pip install lilac[gte]`.
+```
+
+To make sure the installation works, start a new lilac project:
+
+```{note}
+If this is a fresh virtual env, it might take a dozen seconds to see the initial output.
+```
 
 ```bash
-lilac start ~/my_project
+❯ lilac start ~/my_project
+Lilac will create a project in `/Users/me/my-project`. Do you want to continue? (y/n): y
+
+INFO:     Started server process [33100]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:5432 (Press CTRL+C to quit)
 ```
 
-To check the version:
+This should start a web server at [http://localhost:5432](http://localhost:5432).
+
+To check the current version:
 
 ```bash
 lilac version

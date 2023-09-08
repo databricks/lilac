@@ -26,10 +26,9 @@
     {invalidText}
     warn={!datasetExists}
     warnText={"Dataset doesn't exist"}
-    titleText="Split"
     placeholder="(optional)"
     {items}
   />
 {:else}
-  <TextInput bind:value {invalid} {invalidText} labelText="Split" placeholder="(optional)" />
+  <TextInput bind:value {invalid} {invalidText} placeholder="(optional)" />
 {/if}
