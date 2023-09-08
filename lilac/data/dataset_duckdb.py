@@ -1698,17 +1698,6 @@ class SignalManifest(BaseModel):
     return resolve_signal(signal)
 
 
-class LabelManifest(BaseModel):
-  """The manifest that describes a label, with schema and jsonl files."""
-  # List of a parquet filepaths storing the data. The paths are relative to the manifest.
-  files: list[str]
-
-  # An identifier for this parquet table. Will be used as the view name in SQL.
-  parquet_id: str
-
-  data_schema: Schema
-
-
 def _merge_cells(dest_cell: Item, source_cell: Item) -> Item:
   if source_cell is None or isinstance(source_cell, float) and math.isnan(source_cell):
     # Nothing to merge here (missing value).
