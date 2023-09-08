@@ -78,7 +78,7 @@ Read the [Announcement Blog](./blog/introducing-lilac.md) for more details.
   <tr>
     <td style="width:200px;padding-left:10px;">
       <h4>Download the enriched data</h4>
-      <p style="color:rgb(75,75,75)">Continue your data work in your favorite stack</p>
+      <p style="color:rgb(75,75,75)">Continue working in your favorite data stack</p>
     </td>
     <td><video loop muted autoplay controls src="_static/welcome/download.mp4"></video></td>
   </tr>
