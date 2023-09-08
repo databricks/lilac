@@ -46,7 +46,7 @@ class LangSmithSource(Source):
 
     self._items = [{
       **example.inputs,
-      **example.outputs
+      **(example.outputs or {})
     } for example in client.list_examples(dataset_name=self.dataset_name)]
 
     # Create the source schema in prepare to share it between process and source_schema.
