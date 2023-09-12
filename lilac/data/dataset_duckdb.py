@@ -162,6 +162,7 @@ class DatasetDuckDB(Dataset):
     self._manifest_lock = threading.Lock()
     self._config_lock = threading.Lock()
     self._vector_index_lock = threading.Lock()
+    self._label_file_lock: dict[str, threading.Lock] = {}
 
     # Create a join table from all the parquet files.
     manifest = self.manifest()
@@ -1196,22 +1197,26 @@ class DatasetDuckDB(Dataset):
 
     # Check if the label file exists.
     labels_filepath = get_labels_filepath(self.dataset_path, name)
+    if labels_filepath not in self._label_file_lock:
+      self._label_file_lock[labels_filepath] = threading.Lock()
+
     if not os.path.exists(labels_filepath):
       # Create an empty labels file.
       with open(labels_filepath, 'w') as f:
         pass
 
+    # Write the chunk to the jsonl file, row by row.
     # TODO(nsthorat): Use duckdb to write the labels for better performance.
-    for row_chunk in chunks(rows, size=10_000):
-      labels = [{
-        ROWID: row[ROWID],
-        name: DatasetLabel(label=label, created=created).dict()
-      } for row in row_chunk]
-
-      # Write the chunk to the jsonl file, row by row.
+    with self._label_file_lock[labels_filepath]:
       with open(labels_filepath, 'a') as f:
-        f.write('\n'.join(json.dumps(label) for label in labels))
-        f.write('\n')
+        for row_chunk in chunks(rows, size=10_000):
+          labels = [{
+            ROWID: row[ROWID],
+            name: DatasetLabel(label=label, created=created).dict()
+          } for row in row_chunk]
+
+          f.write('\n'.join(json.dumps(label) for label in labels))
+          f.write('\n')
 
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
