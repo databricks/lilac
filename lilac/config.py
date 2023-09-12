@@ -240,7 +240,7 @@ def get_dataset_config(config: Config, dataset_namespace: str,
   return None
 
 
-def read_config(config_path: str) -> Config:
+def read_config(config_path: Union[str, pathlib.Path]) -> Config:
   """Reads a config file.
 
   The config file can either be a `Config` or a `DatasetConfig`.

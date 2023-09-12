@@ -1,6 +1,7 @@
 """Load environment variables from .env file."""
 import os
-from typing import Any, Optional, cast
+import pathlib
+from typing import Any, Optional, Union
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -19,7 +20,12 @@ class LilacEnvironment(BaseModel):
   """
   # General Lilac environment variables.
   LILAC_DATA_PATH: str = PydanticField(
-    description='The Lilac data path where datasets, concepts, caches are stored.',)
+    description='[Deprecated] The Lilac data path where datasets, concepts, caches are stored. '
+    'This is deprecated in favor of `LILAC_PROJECT_DIR`, but will work for backwards compat.',)
+  LILAC_PROJECT_DIR: str = PydanticField(
+    description='The Lilac project directory where datasets, concepts, caches are stored.'
+    'This replaces `LILAC_PROJECT_DIR`, which is deprecated but as the same functionality. '
+    'This can be set with `set_project_dir`.',)
   DEBUG: str = PydanticField(
     description='Turn on Lilac debug mode to log queries and timing information.')
   DISABLE_LOGS: str = PydanticField(description='Disable log() statements to the console.')
@@ -100,9 +106,19 @@ def env(key: str, default: Optional[Any] = None) -> Any:
   return os.environ.get(key, default)
 
 
-def data_path() -> str:
+def get_project_dir() -> str:
   """Return the base path for data."""
-  return cast(str, env('LILAC_DATA_PATH', './data'))
+  project_dir = env('LILAC_PROJECT_DIR', None)
+  if not project_dir:
+    project_dir = env('LILAC_DATA_PATH', None)
+  if not project_dir:
+    raise ValueError('`LILAC_PROJECT_DIR` environment variable must be set. ')
+  return project_dir
+
+
+def set_project_dir(project_dir: Union[str, pathlib.Path]) -> None:
+  """Set the project directory."""
+  os.environ['LILAC_PROJECT_DIR'] = str(project_dir)
 
 
 # Initialize the environment at import time.

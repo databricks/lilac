@@ -18,7 +18,7 @@ from pydantic import BaseModel
 from typing_extensions import override
 
 from ..auth import ConceptAuthorizationException, UserInfo
-from ..env import data_path, env
+from ..env import env, get_project_dir
 from ..signal import get_signal_cls
 from ..utils import delete_file, file_exists, get_lilac_cache_dir, open_file
 from .concept import (
@@ -241,12 +241,12 @@ class DiskConceptModelDB(ConceptModelDB):
 
   def __init__(self,
                concept_db: ConceptDB,
-               base_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
+               project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
     super().__init__(concept_db)
-    self._base_dir = base_dir
+    self._project_dir = project_dir
 
-  def _get_base_dir(self) -> str:
-    return str(self._base_dir) if self._base_dir else data_path()
+  def _get_project_dir(self) -> str:
+    return str(self._project_dir) if self._project_dir else get_project_dir()
 
   @override
   def create(self,
@@ -279,7 +279,7 @@ class DiskConceptModelDB(ConceptModelDB):
     if not get_signal_cls(embedding_name):
       raise ValueError(f'Embedding signal "{embedding_name}" not found in the registry.')
 
-    concept_model_path = _concept_model_path(self._get_base_dir(), namespace, concept_name,
+    concept_model_path = _concept_model_path(self._get_project_dir(), namespace, concept_name,
                                              embedding_name)
     if not file_exists(concept_model_path):
       return None
@@ -289,7 +289,7 @@ class DiskConceptModelDB(ConceptModelDB):
 
   def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
-    concept_model_path = _concept_model_path(self._get_base_dir(), model.namespace,
+    concept_model_path = _concept_model_path(self._get_project_dir(), model.namespace,
                                              model.concept_name, model.embedding_name)
     with open_file(concept_model_path, 'wb') as f:
       pickle.dump(model, f)
@@ -300,7 +300,7 @@ class DiskConceptModelDB(ConceptModelDB):
              concept_name: str,
              embedding_name: str,
              user: Optional[UserInfo] = None) -> None:
-    concept_model_path = _concept_model_path(self._get_base_dir(), namespace, concept_name,
+    concept_model_path = _concept_model_path(self._get_project_dir(), namespace, concept_name,
                                              embedding_name)
 
     if not file_exists(concept_model_path):
@@ -315,7 +315,7 @@ class DiskConceptModelDB(ConceptModelDB):
                  user: Optional[UserInfo] = None) -> list[ConceptModel]:
     """List all the models associated with a concept."""
     model_files = glob.iglob(
-      os.path.join(_concept_cache_dir(self._get_base_dir(), namespace, concept_name), '*.pkl'))
+      os.path.join(_concept_cache_dir(self._get_project_dir(), namespace, concept_name), '*.pkl'))
     models: list[ConceptModel] = []
     for model_file in model_files:
       embedding_name = os.path.basename(model_file)[:-len('.pkl')]
@@ -325,38 +325,38 @@ class DiskConceptModelDB(ConceptModelDB):
     return models
 
 
-def get_concept_output_dir(base_dir: str, namespace: str, name: str) -> str:
+def get_concept_output_dir(project_dir: str, namespace: str, name: str) -> str:
   """Return the output directory for a given concept."""
   if namespace == 'lilac':
     # Lilac concepts are stored in the resources directory and shipped with the pip package.
     return str(resources.files('lilac').joinpath(os.path.join(LILAC_CONCEPTS_DIR, name)))
 
-  return os.path.join(base_dir, CONCEPTS_DIR, namespace, name)
+  return os.path.join(project_dir, CONCEPTS_DIR, namespace, name)
 
 
-def _concept_json_path(base_dir: str, namespace: str, name: str) -> str:
-  return os.path.join(get_concept_output_dir(base_dir, namespace, name), CONCEPT_JSON_FILENAME)
+def _concept_json_path(project_dir: str, namespace: str, name: str) -> str:
+  return os.path.join(get_concept_output_dir(project_dir, namespace, name), CONCEPT_JSON_FILENAME)
 
 
-def _concept_cache_dir(base_dir: str, namespace: str, concept_name: str) -> str:
-  return os.path.join(get_lilac_cache_dir(base_dir), CONCEPTS_DIR, namespace, concept_name)
+def _concept_cache_dir(project_dir: str, namespace: str, concept_name: str) -> str:
+  return os.path.join(get_lilac_cache_dir(project_dir), CONCEPTS_DIR, namespace, concept_name)
 
 
-def _concept_model_path(base_dir: str, namespace: str, concept_name: str,
+def _concept_model_path(project_dir: str, namespace: str, concept_name: str,
                         embedding_name: str) -> str:
 
   return os.path.join(
-    _concept_cache_dir(base_dir, namespace, concept_name), f'{embedding_name}.pkl')
+    _concept_cache_dir(project_dir, namespace, concept_name), f'{embedding_name}.pkl')
 
 
 class DiskConceptDB(ConceptDB):
   """A concept database."""
 
-  def __init__(self, base_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
-    self._base_dir = base_dir
+  def __init__(self, project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
+    self._project_dir = project_dir
 
-  def _get_base_dir(self) -> str:
-    return str(self._base_dir) if self._base_dir else data_path()
+  def _get_project_dir(self) -> str:
+    return str(self._project_dir) if self._project_dir else get_project_dir()
 
   @override
   def namespace_acls(self, namespace: str, user: Optional[UserInfo] = None) -> ConceptNamespaceACL:
@@ -395,7 +395,7 @@ class DiskConceptDB(ConceptDB):
 
     namespace_concept_dirs: list[tuple[Optional[str], str]] = [
       # None = Read the namespace from the directory.
-      (None, os.path.join(self._get_base_dir(), CONCEPTS_DIR)),
+      (None, os.path.join(self._get_project_dir(), CONCEPTS_DIR)),
       # Read lilac concepts from the resources directory.
       ('lilac', str(resources.files('lilac').joinpath(LILAC_CONCEPTS_DIR)))
     ]
@@ -429,7 +429,7 @@ class DiskConceptDB(ConceptDB):
     return self._read_concept(namespace, name)
 
   def _read_concept(self, namespace: str, name: str) -> Optional[Concept]:
-    concept_json_path = _concept_json_path(self._get_base_dir(), namespace, name)
+    concept_json_path = _concept_json_path(self._get_project_dir(), namespace, name)
     if not file_exists(concept_json_path):
       return None
 
@@ -453,7 +453,7 @@ class DiskConceptDB(ConceptDB):
       raise ConceptAuthorizationException(
         f'Concept namespace "{namespace}" does not exist or user does not have access.')
 
-    concept_json_path = _concept_json_path(self._get_base_dir(), namespace, name)
+    concept_json_path = _concept_json_path(self._get_project_dir(), namespace, name)
     if file_exists(concept_json_path):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" already exists.')
 
@@ -496,7 +496,7 @@ class DiskConceptDB(ConceptDB):
       raise ConceptAuthorizationException(
         f'Concept "{namespace}/{name}" does not exist or user does not have access.')
 
-    concept_json_path = _concept_json_path(self._get_base_dir(), namespace, name)
+    concept_json_path = _concept_json_path(self._get_project_dir(), namespace, name)
 
     if not file_exists(concept_json_path):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" does not exist. '
@@ -534,7 +534,7 @@ class DiskConceptDB(ConceptDB):
     return concept
 
   def _save(self, concept: Concept) -> None:
-    concept_json_path = _concept_json_path(self._get_base_dir(), concept.namespace,
+    concept_json_path = _concept_json_path(self._get_project_dir(), concept.namespace,
                                            concept.concept_name)
     with open_file(concept_json_path, 'w') as f:
       f.write(concept.json(exclude_none=True, indent=2, exclude_defaults=True))
@@ -547,7 +547,7 @@ class DiskConceptDB(ConceptDB):
       raise ConceptAuthorizationException(
         f'Concept "{namespace}/{name}" does not exist or user does not have access.')
 
-    concept_dir = get_concept_output_dir(self._get_base_dir(), namespace, name)
+    concept_dir = get_concept_output_dir(self._get_project_dir(), namespace, name)
 
     if not file_exists(concept_dir):
       raise ValueError(f'Concept with namespace "{namespace}" and name "{name}" does not exist.')

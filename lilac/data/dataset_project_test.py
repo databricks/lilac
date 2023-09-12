@@ -17,7 +17,7 @@ from ..config import (
 )
 from ..data_loader import create_dataset
 from ..db_manager import get_dataset
-from ..env import data_path
+from ..env import get_project_dir
 from ..project import create_project_and_set_env, read_project_config
 from ..schema import Field, Item, RichData, field, lilac_embedding
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
@@ -118,7 +118,7 @@ def setup_data_dir(tmp_path: Path) -> None:
 
 
 def test_load_dataset_updates_project() -> None:
-  config = read_project_config(data_path())
+  config = read_project_config(get_project_dir())
 
   assert config == Config(datasets=[
     DatasetConfig(
@@ -131,7 +131,7 @@ def test_load_dataset_updates_project() -> None:
 
 
 def test_delete_dataset_updates_project() -> None:
-  config = read_project_config(data_path())
+  config = read_project_config(get_project_dir())
 
   # TODO: nsthorat do this.
   pass
@@ -141,7 +141,7 @@ def test_compute_signal_updates_project() -> None:
   dataset = get_dataset('namespace', 'test')
   dataset.compute_signal(TestSignal(), path='str')
 
-  config = read_project_config(data_path())
+  config = read_project_config(get_project_dir())
 
   assert config == Config(datasets=[
     DatasetConfig(
@@ -158,7 +158,7 @@ def test_delete_signal_updates_project() -> None:
   dataset = get_dataset('namespace', 'test')
   dataset.compute_signal(TestSignal(), path='str')
 
-  config = read_project_config(data_path())
+  config = read_project_config(get_project_dir())
 
   assert config == Config(datasets=[
     DatasetConfig(
@@ -172,7 +172,7 @@ def test_delete_signal_updates_project() -> None:
 
   dataset.delete_signal(signal_path=('str', TestSignal.name))
 
-  config = read_project_config(data_path())
+  config = read_project_config(get_project_dir())
 
   assert config == Config(datasets=[
     DatasetConfig(
@@ -190,7 +190,7 @@ def test_compute_embedding_updates_project() -> None:
   dataset = get_dataset('namespace', 'test')
   dataset.compute_embedding('test_embedding', path='str')
 
-  config = read_project_config(data_path())
+  config = read_project_config(get_project_dir())
 
   assert config == Config(datasets=[
     DatasetConfig(

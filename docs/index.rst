@@ -53,6 +53,13 @@
    datasets/dataset_export.md
 
 .. toctree::
+   :caption: Projects
+   :hidden:
+   :maxdepth: 1
+
+   projects/projects.md
+
+.. toctree::
    :caption: Signals
    :hidden:
    :maxdepth: 1

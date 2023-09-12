@@ -86,7 +86,7 @@ def setup_teardown() -> Iterable[None]:
 def test_data(tmp_path_factory: pytest.TempPathFactory, module_mocker: MockerFixture,
               request: pytest.FixtureRequest) -> None:
   tmp_path = tmp_path_factory.mktemp('data')
-  module_mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
+  module_mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
 
   dataset_cls: Type[Dataset] = request.param
   make_dataset(dataset_cls, tmp_path, TEST_DATA)
