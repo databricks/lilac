@@ -143,7 +143,7 @@ data with the following command:
 
 ```sh
 poetry run lilac load \
-  --output_dir=demo_data \
+  --project_dir=demo_data \
   --config_path=demo.yml
 ```
 

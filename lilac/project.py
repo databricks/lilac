@@ -29,7 +29,7 @@ def init(project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
 
   create_project(project_dir)
 
-  log(f'Successfully initialized project at {project_dir}.')
+  log(f'Successfully initialized project at {project_dir}')
 
 
 def add_project_dataset_config(dataset_config: DatasetConfig,

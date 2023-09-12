@@ -10,6 +10,8 @@ from .embeddings import *  # noqa: F403
 from .embeddings.default_vector_stores import register_default_vector_stores
 from .env import *  # noqa: F403
 from .env import LilacEnvironment, get_project_dir, set_project_dir
+from .load import load
+from .project import init
 from .schema import *  # noqa: F403
 from .server import start_server, stop_server
 from .signals import *  # noqa: F403
@@ -36,6 +38,8 @@ __all__ = [
   'stop_server',
   'create_dataset',
   'get_dataset',
+  'init',
+  'load',
   'set_project_dir',
   'get_project_dir',
   'Config',

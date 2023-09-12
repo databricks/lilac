@@ -7,15 +7,17 @@ from typing import Iterable, Optional, cast
 import numpy as np
 import pytest
 from distributed import Client
+from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from .config import Config, DatasetConfig, SignalConfig
+from .config import Config, DatasetConfig, EmbeddingConfig, SignalConfig
 from .data.dataset import DatasetManifest
+from .data.dataset_duckdb import DatasetDuckDB
 from .db_manager import get_dataset
 from .env import set_project_dir
 from .load import load
 from .project import PROJECT_CONFIG_FILENAME, init
-from .schema import Field, Item, RichData, field, lilac_embedding, schema
+from .schema import EMBEDDING_KEY, Field, Item, RichData, field, lilac_embedding, schema
 from .signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .source import Source, SourceSchema
 from .sources.source_registry import clear_source_registry, register_source
@@ -239,3 +241,120 @@ def test_load_signals(tmp_path: pathlib.Path, task_manager: TaskManager) -> None
     }),
     num_items=3,
     source=TestSource())
+
+
+def test_load_embeddings(tmp_path: pathlib.Path, task_manager: TaskManager) -> None:
+  set_project_dir(tmp_path)
+
+  # Initialize the lilac project. init() defaults to the project directory.
+  init()
+
+  project_config = Config(datasets=[
+    DatasetConfig(
+      namespace='namespace',
+      name='test',
+      source=TestSource(),
+      embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding')])
+  ])
+
+  # Load the project config from a config object.
+  load(config=project_config, task_manager=task_manager)
+
+  dataset = get_dataset('namespace', 'test')
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace='namespace',
+    dataset_name='test',
+    data_schema=schema({
+      'str': field(
+        'string',
+        fields={
+          'test_embedding': field(
+            signal=TestEmbedding().dict(),
+            fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
+        }),
+      'int': 'int32',
+      'bool': 'boolean',
+      'float': 'float32'
+    }),
+    num_items=3,
+    source=TestSource())
+
+
+def test_load_twice_no_overwrite(tmp_path: pathlib.Path, task_manager: TaskManager,
+                                 mocker: MockerFixture) -> None:
+  set_project_dir(tmp_path)
+
+  # Initialize the lilac project. init() defaults to the project directory.
+  init()
+
+  compute_signal_mock = mocker.spy(DatasetDuckDB, DatasetDuckDB.compute_signal.__name__)
+  compute_embedding_mock = mocker.spy(DatasetDuckDB, DatasetDuckDB.compute_embedding.__name__)
+
+  test_signal = TestSignal()
+  project_config = Config(datasets=[
+    DatasetConfig(
+      namespace='namespace',
+      name='test',
+      source=TestSource(),
+      signals=[SignalConfig(path=('str',), signal=test_signal)],
+      embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding')])
+  ])
+
+  # Load the project config from a config object.
+  load(config=project_config, task_manager=task_manager)
+
+  assert compute_signal_mock.call_count == 1
+  assert compute_embedding_mock.call_count == 1
+
+  first_manifest = get_dataset('namespace', 'test').manifest()
+
+  # Load the project again, make sure signals and embeddings are not computed again.
+  load(config=project_config, task_manager=task_manager)
+
+  assert compute_signal_mock.call_count == 1
+  assert compute_embedding_mock.call_count == 1
+
+  second_manifest = get_dataset('namespace', 'test').manifest()
+
+  assert first_manifest == second_manifest
+
+
+def test_load_twice_overwrite(tmp_path: pathlib.Path, task_manager: TaskManager,
+                              mocker: MockerFixture) -> None:
+  set_project_dir(tmp_path)
+
+  # Initialize the lilac project. init() defaults to the project directory.
+  init()
+
+  compute_signal_mock = mocker.spy(DatasetDuckDB, DatasetDuckDB.compute_signal.__name__)
+  compute_embedding_mock = mocker.spy(DatasetDuckDB, DatasetDuckDB.compute_embedding.__name__)
+
+  test_signal = TestSignal()
+  project_config = Config(datasets=[
+    DatasetConfig(
+      namespace='namespace',
+      name='test',
+      source=TestSource(),
+      signals=[SignalConfig(path=('str',), signal=test_signal)],
+      embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding')])
+  ])
+
+  # Load the project config from a config object.
+  load(config=project_config, task_manager=task_manager)
+
+  assert compute_signal_mock.call_count == 1
+  assert compute_embedding_mock.call_count == 1
+
+  first_manifest = get_dataset('namespace', 'test').manifest()
+
+  # Load the project again, make sure signals and embeddings are not computed again.
+  load(config=project_config, task_manager=task_manager, overwrite=True)
+
+  # With overwrite=True, compute_signal and compute_embedding should be called again.
+  assert compute_signal_mock.call_count == 2
+  assert compute_embedding_mock.call_count == 2
+
+  second_manifest = get_dataset('namespace', 'test').manifest()
+
+  assert first_manifest == second_manifest

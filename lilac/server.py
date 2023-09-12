@@ -35,7 +35,7 @@ from .auth import (
 )
 from .env import env, get_project_dir
 from .load import load
-from .project import PROJECT_CONFIG_FILENAME, create_project_and_set_env
+from .project import create_project_and_set_env
 from .router_utils import RouteErrorHandler
 from .sources.default_sources import register_default_sources
 from .sources.source_registry import registered_sources
@@ -148,11 +148,7 @@ def load_config(background_tasks: BackgroundTasks) -> dict:
   """Loads from the lilac.yml."""
 
   async def _load() -> None:
-    load(
-      output_dir=get_project_dir(),
-      config_path=os.path.join(get_project_dir(), PROJECT_CONFIG_FILENAME),
-      overwrite=False,
-      task_manager=get_task_manager())
+    load(project_dir=get_project_dir(), overwrite=False, task_manager=get_task_manager())
 
   background_tasks.add_task(_load)
   return {}

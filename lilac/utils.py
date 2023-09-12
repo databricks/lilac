@@ -234,13 +234,13 @@ def is_primitive(obj: object) -> bool:
   return True
 
 
-def log(*args: Optional[str]) -> None:
+def log(*args: str) -> None:
   """Print and logs a message so it shows up in the logs on cloud."""
   if env('DISABLE_LOGS'):
     return
 
   print(*args)
-  logging.info(*args)
+  logging.info([' '.join(args)])
 
 
 class DebugTimer:

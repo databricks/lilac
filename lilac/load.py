@@ -13,7 +13,6 @@ import pathlib
 import shutil
 from typing import Optional, Union
 
-import click
 import psutil
 from distributed import Client
 
@@ -27,35 +26,6 @@ from .project import PROJECT_CONFIG_FILENAME
 from .schema import ROWID, PathTuple
 from .tasks import TaskManager, TaskStepId, TaskType
 from .utils import DebugTimer, get_datasets_dir, log
-
-
-@click.command()
-@click.option(
-  '--project_dir',
-  type=str,
-  help='[Optional] The Lilac project directory. If not defined, uses the `LILAC_PROJECT_DIR` '
-  'environment variable.')
-@click.option(
-  '--config_path',
-  type=str,
-  help='[Optional] The path to a json or yml file describing the configuration. '
-  'The file contents should be an instance of `lilac.Config` or `lilac.DatasetConfig`. '
-  'When not defined, uses `LILAC_PROJECT_DIR`/lilac.yml.')
-@click.option(
-  '--overwrite',
-  help='When True, runs all data from scratch, overwriting existing data. When false, only'
-  'load new datasets, embeddings, and signals.',
-  type=bool,
-  is_flag=True,
-  default=False)
-def load_command(project_dir: str, config_path: str, overwrite: bool) -> None:
-  """Run the source loader as a binary."""
-  project_dir = project_dir or get_project_dir()
-  if not project_dir:
-    raise ValueError(
-      '--project_dir or the environment variable `LILAC_PROJECT_DIR` must be defined.')
-
-  load(project_dir, config_path, overwrite)
 
 
 def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
@@ -160,10 +130,10 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
               embeddings.append(
                 EmbeddingConfig(path=path, embedding=d.settings.preferred_embedding))
       for e in embeddings:
-        if e not in dataset.config().embeddings:
+        if e not in dataset.config().embeddings or overwrite:
           task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {d.name}:{e.path}')
           task_manager.execute(task_id, _compute_embedding, d.namespace, d.name, e, project_dir,
-                               overwrite, (task_id, 0))
+                               (task_id, 0))
         else:
           log(f'Embedding {e.embedding} already exists for {d.name}:{e.path}. Skipping.')
 
@@ -196,10 +166,10 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
 
       for path, signals in path_signals.items():
         for s in signals:
-          if s not in dataset.config().signals:
+          if s not in dataset.config().signals or overwrite:
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
             task_manager.execute(task_id, _compute_signal, d.namespace, d.name, s, project_dir,
-                                 overwrite, (task_id, 0))
+                                 (task_id, 0))
             # Wait for each signal to reduce memory pressure.
             task_manager.wait()
           else:
@@ -223,27 +193,15 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
 
 
 def _compute_signal(namespace: str, name: str, signal_config: SignalConfig,
-                    project_dir: Union[str, pathlib.Path], overwrite: bool,
-                    task_step_id: TaskStepId) -> None:
+                    project_dir: Union[str, pathlib.Path], task_step_id: TaskStepId) -> None:
   os.environ['DUCKDB_USE_VIEWS'] = '1'
 
   # Turn off debug logging.
   if 'DEBUG' in os.environ:
     del os.environ['DEBUG']
 
-  compute_signal = False
-  if overwrite:
-    compute_signal = True
-
   dataset = get_dataset(namespace, name, project_dir)
-
-  if not compute_signal:
-    field = dataset.manifest().data_schema.get_field(signal_config.path)
-    signal_field = (field.fields or {}).get(signal_config.signal.key())
-    if not signal_field or signal_field.signal != signal_config.signal.dict():
-      compute_signal = True
-  if compute_signal:
-    dataset.compute_signal(signal_config.signal, signal_config.path, task_step_id)
+  dataset.compute_signal(signal_config.signal, signal_config.path, task_step_id)
 
   # Free up RAM.
   remove_dataset_from_cache(namespace, name)
@@ -252,27 +210,15 @@ def _compute_signal(namespace: str, name: str, signal_config: SignalConfig,
 
 
 def _compute_embedding(namespace: str, name: str, embedding_config: EmbeddingConfig,
-                       project_dir: str, overwrite: bool, task_step_id: TaskStepId) -> None:
+                       project_dir: str, task_step_id: TaskStepId) -> None:
   os.environ['DUCKDB_USE_VIEWS'] = '1'
 
   # Turn off debug logging.
   if 'DEBUG' in os.environ:
     del os.environ['DEBUG']
 
-  compute_embedding = False
-  if overwrite:
-    compute_embedding = True
-
   dataset = get_dataset(namespace, name, project_dir)
-
-  if not compute_embedding:
-    field = dataset.manifest().data_schema.get_field(embedding_config.path)
-    embedding_field = (field.fields or {}).get(embedding_config.embedding)
-    if not embedding_field:
-      compute_embedding = True
-
-  if compute_embedding:
-    dataset.compute_embedding(embedding_config.embedding, embedding_config.path, task_step_id)
+  dataset.compute_embedding(embedding_config.embedding, embedding_config.path, task_step_id)
 
   remove_dataset_from_cache(namespace, name)
   del dataset
