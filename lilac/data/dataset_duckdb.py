@@ -24,7 +24,7 @@ from ..auth import UserInfo
 from ..batch_utils import deep_flatten, deep_unflatten
 from ..config import DatasetConfig, EmbeddingConfig, SignalConfig, get_dataset_config
 from ..embeddings.vector_store import VectorDBIndex
-from ..env import env, get_project_dir
+from ..env import env
 from ..project import (
   add_project_dataset_config,
   add_project_embedding_config,
@@ -1901,13 +1901,6 @@ def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
   return bins
 
 
-<<<<<<< HEAD
-def get_config_filepath(namespace: str, dataset_name: str) -> str:
-  """Gets the config yaml filepath."""
-  return os.path.join(
-    get_dataset_output_dir(get_project_dir(), namespace, dataset_name), CONFIG_FILENAME)
-=======
 def get_labels_filepath(dataset_output_dir: str, label_name: str) -> str:
   """Get the filepath to the labels file."""
   return os.path.join(dataset_output_dir, f'{label_name}{LABELS_FILENAME_SUFFIX}')
->>>>>>> origin/main
