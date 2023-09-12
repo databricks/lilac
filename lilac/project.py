@@ -38,8 +38,8 @@ def add_project_dataset_config(dataset_config: DatasetConfig,
 
   Args:
     dataset_config: The dataset configuration to load.
-    project_dir: The path to the project directory for where to create the dataset. If not defined, uses
-      the project directory from `LILAC_PROJECT_DIR` or [deprecated] `LILAC_DATA_PATH`.
+    project_dir: The path to the project directory for where to create the dataset. If not defined,
+      uses the project directory from `LILAC_PROJECT_DIR` or [deprecated] `LILAC_DATA_PATH`.
   """
   project_dir = project_dir or get_project_dir()
   with PROJECT_CONFIG_LOCK:

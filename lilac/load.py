@@ -35,9 +35,9 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
   """Load a project from a project configuration.
 
   Args:
-    project_dir: The path to the project directory for where to create the dataset. If not defined, uses
-      the project directory from `LILAC_PROJECT_DIR` or [deprecated] `LILAC_DATA_PATH`. The project_dir
-      can be set globally with `set_project_dir`.
+    project_dir: The path to the project directory for where to create the dataset. If not defined,
+      uses the project directory from `LILAC_PROJECT_DIR` or [deprecated] `LILAC_DATA_PATH`. The
+      project_dir can be set globally with `set_project_dir`.
     config: A Lilac config or the path to a json or yml file describing the configuration. The
       contents should be an instance of `lilac.Config` or `lilac.DatasetConfig`. When not defined,
       uses `LILAC_PROJECT_DIR`/lilac.yml.
@@ -223,7 +223,3 @@ def _compute_embedding(namespace: str, name: str, embedding_config: EmbeddingCon
   remove_dataset_from_cache(namespace, name)
   del dataset
   gc.collect()
-
-
-if __name__ == '__main__':
-  load_command()
