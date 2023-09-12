@@ -284,6 +284,17 @@ class ConceptSearch(BaseModel):
 Search = Union[ConceptSearch, SemanticSearch, KeywordSearch]
 
 
+class DatasetLabel(BaseModel):
+  """A label for a row of a dataset."""
+  label: str
+  created: datetime
+
+  @validator('created')
+  def created_datetime_to_string(cls, created: datetime) -> str:
+    """Convert the datetime to a string for serialization."""
+    return created.isoformat()
+
+
 class Dataset(abc.ABC):
   """The database implementation to query a dataset."""
 
@@ -455,6 +466,15 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def add_label(self,
+                label_name: str,
+                label_value: str,
+                searches: Optional[Sequence[Search]] = None,
+                filters: Optional[Sequence[FilterLike]] = None) -> None:
+    """Adds a label to a row, or a set of rows defined by searches and filters."""
+    pass
+
+  @abc.abstractmethod
   def stats(self, leaf_path: Path) -> StatsResult:
     """Compute stats for a leaf path.
 
@@ -576,9 +596,9 @@ def dataset_config_from_manifest(manifest: DatasetManifest) -> DatasetConfig:
   )
 
 
-def make_parquet_id(signal: Signal,
-                    source_path: PathTuple,
-                    is_computed_signal: Optional[bool] = False) -> str:
+def make_signal_parquet_id(signal: Signal,
+                           source_path: PathTuple,
+                           is_computed_signal: Optional[bool] = False) -> str:
   """Return a unique identifier for this parquet table."""
   # Remove the wildcards from the parquet id since they are implicit.
   path = [*[p for p in source_path if p != PATH_WILDCARD], signal.key(is_computed_signal)]

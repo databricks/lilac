@@ -2,13 +2,15 @@
 import functools
 import gc
 import glob
+import json
 import math
 import os
 import pathlib
 import re
 import shutil
 import threading
-from typing import Any, Iterable, Iterator, Optional, Sequence, Union, cast
+from datetime import datetime
+from typing import Any, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
 
 import duckdb
 import numpy as np
@@ -20,13 +22,7 @@ from typing_extensions import override
 
 from ..auth import UserInfo
 from ..batch_utils import deep_flatten, deep_unflatten
-from ..config import (
-  CONFIG_FILENAME,
-  DatasetConfig,
-  EmbeddingConfig,
-  SignalConfig,
-  get_dataset_config,
-)
+from ..config import DatasetConfig, EmbeddingConfig, SignalConfig, get_dataset_config
 from ..embeddings.vector_store import VectorDBIndex
 from ..env import env, get_project_dir
 from ..project import (
@@ -67,7 +63,7 @@ from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
 from ..tasks import TaskStepId, progress
-from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
+from ..utils import DebugTimer, chunks, get_dataset_output_dir, log, open_file
 from . import dataset
 from .dataset import (
   BINARY_OPS,
@@ -80,6 +76,7 @@ from .dataset import (
   Column,
   ColumnId,
   Dataset,
+  DatasetLabel,
   DatasetManifest,
   FeatureListValue,
   FeatureValue,
@@ -100,7 +97,7 @@ from .dataset import (
   StatsResult,
   column_from_identifier,
   dataset_config_from_manifest,
-  make_parquet_id,
+  make_signal_parquet_id,
 )
 from .dataset_utils import (
   count_primitives,
@@ -115,6 +112,7 @@ from .dataset_utils import (
 )
 
 SIGNAL_MANIFEST_FILENAME = 'signal_manifest.json'
+LABELS_FILENAME_SUFFIX = '.labels.json'
 DATASET_SETTINGS_FILENAME = 'settings.json'
 SOURCE_VIEW_NAME = 'source'
 
@@ -159,6 +157,7 @@ class DatasetDuckDB(Dataset):
     # TODO: Infer the manifest from the parquet files so this is lighter weight.
     self._source_manifest = read_source_manifest(self.dataset_path)
     self._signal_manifests: list[SignalManifest] = []
+    self._label_schemas: dict[str, Schema] = {}
     self.con = duckdb.connect(database=':memory:')
 
     # Maps a path and embedding to the vector index. This is lazily generated as needed.
@@ -167,6 +166,7 @@ class DatasetDuckDB(Dataset):
     self._manifest_lock = threading.Lock()
     self._config_lock = threading.Lock()
     self._vector_index_lock = threading.Lock()
+    self._label_file_lock: dict[str, threading.Lock] = {}
 
     # Create a join table from all the parquet files.
     manifest = self.manifest()
@@ -191,13 +191,22 @@ class DatasetDuckDB(Dataset):
     """Deletes the dataset."""
     self.con.close()
     shutil.rmtree(self.dataset_path, ignore_errors=True)
-
     delete_project_dataset_config(self.namespace, self.dataset_name, self.project_dir)
 
-  def _create_view(self, view_name: str, files: list[str]) -> None:
+  def _create_view(self, view_name: str, files: list[str], type: Union[Literal['parquet'],
+                                                                       Literal['json']]) -> None:
+    inner_select: str
+    if type == 'parquet':
+      inner_select = f'SELECT * FROM read_parquet({files})'
+    elif type == 'json':
+      inner_select = f'SELECT * FROM read_json_auto({files})'
+    else:
+      raise ValueError(f'Unknown type: {type}')
+
     self.con.execute(f"""
-      CREATE OR REPLACE VIEW {_escape_col_name(view_name)} AS (SELECT * FROM read_parquet({files}));
+      CREATE OR REPLACE VIEW {_escape_col_name(view_name)} AS ({inner_select});
     """)
+    res = self._query_df(f'SELECT * FROM {_escape_col_name(view_name)}')
 
   # NOTE: This is cached, but when the latest mtime of any file in the dataset directory changes
   # the results are invalidated.
@@ -206,25 +215,38 @@ class DatasetDuckDB(Dataset):
     del latest_mtime_micro_sec  # This is used as the cache key.
     merged_schema = self._source_manifest.data_schema.copy(deep=True)
     self._signal_manifests = []
+    self._label_schemas = {}
     # Make a joined view of all the column groups.
-    self._create_view(SOURCE_VIEW_NAME,
-                      [os.path.join(self.dataset_path, f) for f in self._source_manifest.files])
+    self._create_view(
+      SOURCE_VIEW_NAME, [os.path.join(self.dataset_path, f) for f in self._source_manifest.files],
+      type='parquet')
 
     # Add the signal column groups.
     for root, _, files in os.walk(self.dataset_path):
       for file in files:
-        if not file.endswith(SIGNAL_MANIFEST_FILENAME):
-          continue
-
-        with open_file(os.path.join(root, file)) as f:
-          signal_manifest = SignalManifest.parse_raw(f.read())
-        self._signal_manifests.append(signal_manifest)
-        signal_files = [os.path.join(root, f) for f in signal_manifest.files]
-        if signal_files:
-          self._create_view(signal_manifest.parquet_id, signal_files)
+        if file.endswith(SIGNAL_MANIFEST_FILENAME):
+          with open_file(os.path.join(root, file)) as f:
+            signal_manifest = SignalManifest.parse_raw(f.read())
+          self._signal_manifests.append(signal_manifest)
+          signal_files = [os.path.join(root, f) for f in signal_manifest.files]
+          if signal_files:
+            self._create_view(signal_manifest.parquet_id, signal_files, type='parquet')
+        elif file.endswith(LABELS_FILENAME_SUFFIX):
+          label_name = file[0:-len(LABELS_FILENAME_SUFFIX)]
+          self._create_view(label_name, [os.path.join(root, file)], type='json')
+          # This mirrors the structure in DuckDBDatasetLabel.
+          self._label_schemas[label_name] = Schema(
+            fields={
+              label_name: Field(
+                fields={
+                  'label': Field(dtype=DataType.STRING),
+                  'created': Field(dtype=DataType.TIMESTAMP),
+                })
+            })
 
     merged_schema = merge_schemas([self._source_manifest.data_schema] +
-                                  [m.data_schema for m in self._signal_manifests])
+                                  [m.data_schema for m in self._signal_manifests] +
+                                  list(self._label_schemas.values()))
 
     # The logic below generates the following example query:
     # CREATE OR REPLACE VIEW t AS (
@@ -235,16 +257,23 @@ class DatasetDuckDB(Dataset):
     #   FROM source JOIN "parquet_id1" USING (rowid,) JOIN "parquet_id2" USING (rowid,)
     # );
     # NOTE: "root_column" for each signal is defined as the top-level column.
-    select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [(
-      f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
-      f'AS {_escape_col_name(manifest.parquet_id)}')
-                                                        for manifest in self._signal_manifests
-                                                        if manifest.files])
-    join_sql = ' '.join([SOURCE_VIEW_NAME] + [
-      f'LEFT JOIN {_escape_col_name(manifest.parquet_id)} USING ({ROWID})'
+    signal_column_selects = [
+      (f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
+       f'AS {_escape_col_name(manifest.parquet_id)}')
       for manifest in self._signal_manifests
       if manifest.files
-    ])
+    ]
+    label_column_selects = []
+    for label_name in self._label_schemas.keys():
+      col_name = _escape_col_name(label_name)
+      label_column_selects.append(f'{col_name}.{col_name} AS {col_name}')
+
+    select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + signal_column_selects + label_column_selects)
+    parquet_ids = [manifest.parquet_id for manifest in self._signal_manifests if manifest.files
+                  ] + list(self._label_schemas.keys())
+    join_sql = ' '.join(
+      [SOURCE_VIEW_NAME] +
+      [f'LEFT JOIN {_escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids])
     view_or_table = 'TABLE'
     use_views = env('DUCKDB_USE_VIEWS', 0) or 0
     if int(use_views):
@@ -362,7 +391,7 @@ class DatasetDuckDB(Dataset):
       data_schema=signal_schema,
       signal=signal,
       enriched_path=source_path,
-      parquet_id=make_parquet_id(signal, source_path, is_computed_signal=True))
+      parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True))
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.json(exclude_none=True, indent=2))
@@ -407,7 +436,7 @@ class DatasetDuckDB(Dataset):
       data_schema=signal_schema,
       signal=signal,
       enriched_path=source_path,
-      parquet_id=make_parquet_id(signal, source_path, is_computed_signal=True),
+      parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True),
       vector_store=self.vector_store)
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
 
@@ -1162,6 +1191,41 @@ class DatasetDuckDB(Dataset):
       data_schema=new_schema, udfs=udfs, search_results=search_results, sorts=sort_results or None)
 
   @override
+  def add_label(self,
+                name: str,
+                label: str,
+                searches: Optional[Sequence[Search]] = None,
+                filters: Optional[Sequence[FilterLike]] = None) -> None:
+    if not searches and not filters:
+      raise ValueError('`searches` or `filters` must be specified when using `dataset.add_label`.')
+
+    created = datetime.now()
+    rows = self.select_rows(columns=[ROWID], searches=searches, filters=filters)
+
+    # Check if the label file exists.
+    labels_filepath = get_labels_filepath(self.dataset_path, name)
+    if labels_filepath not in self._label_file_lock:
+      self._label_file_lock[labels_filepath] = threading.Lock()
+
+    if not os.path.exists(labels_filepath):
+      # Create an empty labels file.
+      with open(labels_filepath, 'w') as f:
+        pass
+
+    # Write the chunk to the jsonl file, row by row.
+    # TODO(nsthorat): Use duckdb to write the labels for better performance.
+    with self._label_file_lock[labels_filepath]:
+      with open(labels_filepath, 'a') as f:
+        for row_chunk in chunks(rows, size=10_000):
+          labels = [{
+            ROWID: row[ROWID],
+            name: DatasetLabel(label=label, created=created).dict()
+          } for row in row_chunk]
+
+          f.write('\n'.join(json.dumps(label) for label in labels))
+          f.write('\n')
+
+  @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
@@ -1183,6 +1247,10 @@ class DatasetDuckDB(Dataset):
                               combine_columns: bool,
                               select_leaf: bool = False) -> list[tuple[str, PathTuple]]:
     path = column.path
+    if path[0] in self._label_schemas:
+      # This is a label column if it exists in label schemas.
+      return [(path[0], path)]
+
     parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
       self._source_manifest, *self._signal_manifests
     ]
@@ -1696,7 +1764,7 @@ def merge_series(destination: pd.Series, source: pd.Series) -> list[Item]:
 def _unique_alias(column: Column) -> str:
   """Get a unique alias for a selection column."""
   if column.signal_udf:
-    return make_parquet_id(column.signal_udf, column.path)
+    return make_signal_parquet_id(column.signal_udf, column.path)
   return '.'.join(map(str, column.path))
 
 
@@ -1833,7 +1901,13 @@ def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
   return bins
 
 
+<<<<<<< HEAD
 def get_config_filepath(namespace: str, dataset_name: str) -> str:
   """Gets the config yaml filepath."""
   return os.path.join(
     get_dataset_output_dir(get_project_dir(), namespace, dataset_name), CONFIG_FILENAME)
+=======
+def get_labels_filepath(dataset_output_dir: str, label_name: str) -> str:
+  """Get the filepath to the labels file."""
+  return os.path.join(dataset_output_dir, f'{label_name}{LABELS_FILENAME_SUFFIX}')
+>>>>>>> origin/main
