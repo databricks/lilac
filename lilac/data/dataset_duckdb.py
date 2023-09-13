@@ -236,7 +236,8 @@ class DatasetDuckDB(Dataset):
                 fields={
                   'label': Field(dtype=DataType.STRING),
                   'created': Field(dtype=DataType.TIMESTAMP),
-                })
+                },
+                label=label_name)
             })
 
     merged_schema = merge_schemas([self._source_manifest.data_schema] +
@@ -734,6 +735,7 @@ class DatasetDuckDB(Dataset):
     if is_temporal(leaf.dtype):
       # Replace any NaT with None and pd.Timestamp to native datetime objects.
       counts = [(None if pd.isnull(val) else val.to_pydatetime(), count) for val, count in counts]
+
     return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)
 
   def _topk_udf_to_sort_by(

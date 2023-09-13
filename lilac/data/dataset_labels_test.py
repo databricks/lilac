@@ -5,7 +5,7 @@ from datetime import datetime
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
-from ..schema import PATH_WILDCARD, ROWID, Item, schema
+from ..schema import PATH_WILDCARD, ROWID, Item, field, schema
 from .dataset import DatasetManifest, SelectGroupsResult
 from .dataset_test_utils import TestDataMaker, TestSource
 
@@ -44,10 +44,10 @@ def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) 
     data_schema=schema({
       'str': 'string',
       'int': 'int32',
-      'test_label': {
+      'test_label': field(fields={
         'label': 'string',
         'created': 'timestamp'
-      }
+      }, label='test_label')
     }),
     num_items=3)
 
@@ -100,10 +100,10 @@ def test_add_multiple_labels(make_test_data: TestDataMaker, mocker: MockerFixtur
     data_schema=schema({
       'str': 'string',
       'int': 'int32',
-      'test_label': {
+      'test_label': field(fields={
         'label': 'string',
         'created': 'timestamp'
-      }
+      }, label='test_label')
     }),
     num_items=3)
 

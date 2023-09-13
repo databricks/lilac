@@ -6,7 +6,10 @@ import enum
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, Iterator, Literal, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Iterator, Literal, Optional, Sequence, Union
+
+if TYPE_CHECKING:
+  pass
 
 import pandas as pd
 from pydantic import (

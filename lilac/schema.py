@@ -122,6 +122,8 @@ class Field(BaseModel):
   dtype: Optional[DataType] = None
   # Defined as the serialized signal when this field is the root result of a signal.
   signal: Optional[dict[str, Any]] = None
+  # Defined as the label name when the field is a label.
+  label: Optional[str] = None
   # Maps a named bin to a tuple of (start, end) values.
   bins: Optional[list[Bin]] = None
   categorical: Optional[bool] = None
@@ -293,17 +295,18 @@ def schema(schema_like: object) -> Schema:
   return Schema(fields=field.fields)
 
 
-def field(
-  dtype: Optional[Union[DataType, str]] = None,
-  signal: Optional[dict] = None,
-  fields: Optional[object] = None,
-  bins: Optional[list[Bin]] = None,
-  categorical: Optional[bool] = None,
-) -> Field:
+def field(dtype: Optional[Union[DataType, str]] = None,
+          signal: Optional[dict] = None,
+          fields: Optional[object] = None,
+          bins: Optional[list[Bin]] = None,
+          categorical: Optional[bool] = None,
+          label: Optional[str] = None) -> Field:
   """Parse a field-like object to a Field object."""
   field = _parse_field_like(fields or {}, dtype)
   if signal:
     field.signal = signal
+  if label:
+    field.label = label
   if dtype:
     if isinstance(dtype, str):
       dtype = DataType(dtype)
