@@ -124,9 +124,9 @@ export const querySelectRows = (
     async function selectRows(
       namespace: string,
       datasetName: string,
-      requestBody: SelectRowsOptions
+      selectRowsOptions: SelectRowsOptions
     ) {
-      const res = await DatasetsService.selectRows(namespace, datasetName, requestBody);
+      const res = await DatasetsService.selectRows(namespace, datasetName, selectRowsOptions);
       return {
         rows: schema == null ? res.rows : res.rows.map(row => deserializeRow(row, schema)),
         total_num_rows: res.total_num_rows
