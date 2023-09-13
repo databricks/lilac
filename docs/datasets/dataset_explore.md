@@ -1,7 +1,7 @@
 # Explore a dataset
 
 ```{tip}
-[Explore popular datasets in Lilac on HuggingFace](https://huggingface.co/spaces/lilacai/lilac)
+[Explore popular datasets in Lilac on HuggingFace](https://lilacai-lilac.hf.space/)
 ```
 
 Exploring a dataset is often useful to understand what's inside a dataset, or even find glaring

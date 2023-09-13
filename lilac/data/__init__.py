@@ -7,6 +7,7 @@ from .dataset import (
   FilterLike,
   KeywordSearch,
   ListOp,
+  SelectRowsResult,
   SemanticSearch,
   UnaryOp,
 )
@@ -21,5 +22,6 @@ __all__ = [
   'BinaryOp',
   'ListOp',
   'Dataset',
+  'SelectRowsResult',
   'FilterLike',
 ]
