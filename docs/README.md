@@ -41,5 +41,5 @@ FIREBASE_TOKEN=...
 ### Deploy
 
 ```bash
-./scripts/deploy_website.sh
+poetry run python -m scripts.deploy_website
 ```
