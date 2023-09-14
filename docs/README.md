@@ -18,7 +18,7 @@ To build the docs:
 
 ## Deployment
 
-### One time setup (skip to [#Deploy])
+### One time setup (skip to [](#Deploy))
 
 Install firebase cli:
 
