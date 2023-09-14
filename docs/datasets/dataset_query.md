@@ -1,4 +1,4 @@
-# Query a dataset
+# Query a dataset (Python)
 
 After enriching a dataset with concepts and signals, we can issue queries to the dataset to search
 and filter the data.
