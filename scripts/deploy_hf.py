@@ -15,7 +15,7 @@ from huggingface_hub import HfApi
 
 from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from lilac.config import CONFIG_FILENAME, DatasetConfig
-from lilac.env import data_path, env
+from lilac.env import env, get_project_dir
 from lilac.project import PROJECT_CONFIG_FILENAME
 from lilac.sources.huggingface_source import HuggingFaceSource
 from lilac.utils import get_dataset_output_dir, get_hf_dataset_repo_id, get_lilac_cache_dir, to_yaml
@@ -25,6 +25,11 @@ PY_DIST_DIR = 'dist'
 
 
 @click.command()
+@click.option(
+  '--project_dir',
+  help='The project directory to use for the demo. Defaults to `env.LILAC_PROJECT_DIR`.',
+  type=str,
+  required=True)
 @click.option(
   '--hf_username', help='The huggingface username to use to authenticate for the space.', type=str)
 @click.option(
@@ -52,11 +57,6 @@ PY_DIST_DIR = 'dist'
   is_flag=True,
   default=False)
 @click.option(
-  '--data_dir',
-  help='The data directory to use for the demo. Defaults to `env.DATA_DIR`.',
-  type=str,
-  default=data_path())
-@click.option(
   '--make_datasets_public',
   help='When true, sets the huggingface datasets uploaded to public. Defaults to false.',
   is_flag=True,
@@ -71,20 +71,23 @@ PY_DIST_DIR = 'dist'
   help='When true, disables Google Analytics.',
   is_flag=True,
   default=False)
-def deploy_hf_command(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str],
-                      concept: list[str], skip_build: bool, skip_cache: bool,
-                      data_dir: Optional[str], make_datasets_public: bool, use_pip: bool,
+def deploy_hf_command(project_dir: str, hf_username: Optional[str], hf_space: Optional[str],
+                      dataset: list[str], concept: list[str], skip_build: bool, skip_cache: bool,
+                      make_datasets_public: bool, use_pip: bool,
                       disable_google_analytics: bool) -> None:
   """Generate the huggingface space app."""
-  deploy_hf(hf_username, hf_space, dataset, concept, skip_build, skip_cache, data_dir,
+  deploy_hf(hf_username, hf_space, dataset, concept, skip_build, skip_cache, project_dir,
             make_datasets_public, use_pip, disable_google_analytics)
 
 
 def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: list[str],
-              concepts: list[str], skip_build: bool, skip_cache: bool, data_dir: Optional[str],
+              concepts: list[str], skip_build: bool, skip_cache: bool, project_dir: Optional[str],
               make_datasets_public: bool, use_pip: bool, disable_google_analytics: bool) -> None:
   """Generate the huggingface space app."""
-  data_dir = data_dir or data_path()
+  project_dir = project_dir or get_project_dir()
+  if not project_dir:
+    raise ValueError(
+      '--project_dir or the environment variable `LILAC_PROJECT_DIR` must be defined.')
 
   hf_username = hf_username or env('HF_USERNAME')
   if not hf_username:
@@ -141,7 +144,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 
     hf_api.create_repo(
       dataset_repo_id, repo_type='dataset', private=not make_datasets_public, exist_ok=True)
-    dataset_output_dir = get_dataset_output_dir(data_dir, namespace, name)
+    dataset_output_dir = get_dataset_output_dir(project_dir, namespace, name)
     hf_api.upload_folder(
       folder_path=dataset_output_dir,
       path_in_repo=os.path.join(namespace, name),
@@ -175,7 +178,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 
     lilac_hf_datasets.append(dataset_repo_id)
 
-  hf_space_dir = os.path.join(data_dir, HF_SPACE_DIR)
+  hf_space_dir = os.path.join(project_dir, HF_SPACE_DIR)
 
   run(f'mkdir -p {hf_space_dir}')
 
@@ -202,7 +205,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
   if not os.path.exists(repo_data_dir):
     os.makedirs(repo_data_dir)
   shutil.copyfile(
-    os.path.join(data_dir, PROJECT_CONFIG_FILENAME),
+    os.path.join(project_dir, PROJECT_CONFIG_FILENAME),
     os.path.join(repo_data_dir, PROJECT_CONFIG_FILENAME))
 
   # Create an .env.local to set HF-specific flags.
@@ -254,7 +257,7 @@ XDG_CACHE_HOME=/data/.cache
 
   print('Uploading cache files...')
   # Upload the cache files.
-  cache_dir = get_lilac_cache_dir(data_dir)
+  cache_dir = get_lilac_cache_dir(project_dir)
   if not skip_cache and os.path.exists(cache_dir):
     hf_api.upload_folder(
       folder_path=cache_dir,
@@ -268,7 +271,7 @@ XDG_CACHE_HOME=/data/.cache
   print('Uploading concepts...')
   disk_concepts = [
     # Remove lilac concepts as they're checked in, and not in the
-    f'{c.namespace}/{c.name}' for c in DiskConceptDB(data_dir).list() if c.namespace != 'lilac'
+    f'{c.namespace}/{c.name}' for c in DiskConceptDB(project_dir).list() if c.namespace != 'lilac'
   ]
   for c in concepts:
     if c not in disk_concepts:
@@ -277,7 +280,7 @@ XDG_CACHE_HOME=/data/.cache
   for c in concepts:
     namespace, name = c.split('/')
     hf_api.upload_folder(
-      folder_path=get_concept_output_dir(data_dir, namespace, name),
+      folder_path=get_concept_output_dir(project_dir, namespace, name),
       path_in_repo=get_concept_output_dir('data', namespace, name),
       repo_id=hf_space,
       repo_type='space',

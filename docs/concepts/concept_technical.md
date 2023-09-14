@@ -17,4 +17,4 @@ details on chosing an embedding.
 
 These models are the same size as a single vector of the training set. For example, an embedding
 with 384 dimensions (32-bit floats) will be 1536 bytes (~1K). These models are pickled and saved to
-disk in `DATA_PATH/.cache/lilac/concept/$NAMESPACE/$NAME`.
+disk in `$LILAC_PROJECT_DIR/.cache/lilac/concept/$NAMESPACE/$NAME`.

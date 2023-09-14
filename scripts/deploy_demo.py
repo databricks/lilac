@@ -8,7 +8,7 @@ This script will, in order:
 
 Usage:
 poetry run python -m scripts.deploy_demo \
-  --data_dir=./demo_data \
+  --project_dir=./demo_data \
   --config=./lilac_hf_space.yml \
   --hf_space=lilacai/lilac \
   --make_datasets_public
@@ -36,7 +36,7 @@ from .deploy_hf import deploy_hf
 @click.command()
 @click.option('--config', help='The Lilac config path.', type=str)
 @click.option('--hf_space', help='The huggingface space.', type=str)
-@click.option('--data_dir', help='The local output dir to use to sync the data.', type=str)
+@click.option('--project_dir', help='The local output dir to use to sync the data.', type=str)
 @click.option(
   '--overwrite',
   help='When True, runs all all data from scratch, overwriting existing data. When false, only'
@@ -69,7 +69,7 @@ from .deploy_hf import deploy_hf
   help='When true, sets the huggingface datasets uploaded to public. Defaults to false.',
   is_flag=True,
   default=False)
-def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip_sync: bool,
+def deploy_demo(config: str, hf_space: str, project_dir: str, overwrite: bool, skip_sync: bool,
                 skip_load: bool, skip_build: bool, skip_deploy: bool,
                 make_datasets_public: bool) -> None:
   """Deploys the public demo."""
@@ -90,14 +90,14 @@ def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip
         repo_id=repo_id,
         repo_type='dataset',
         token=env('HF_ACCESS_TOKEN'),
-        local_dir=get_datasets_dir(data_dir),
+        local_dir=get_datasets_dir(project_dir),
         ignore_patterns=['.gitattributes', 'README.md'])
 
   if not skip_load:
-    load(data_dir, config, overwrite)
+    load(project_dir, config, overwrite)
 
   if not skip_deploy:
-    datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(data_dir)]
+    datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(project_dir)]
     deploy_hf(
       # Take this from the env variable.
       hf_username=None,
@@ -107,7 +107,7 @@ def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip
       concepts=[],
       skip_build=skip_build,
       skip_cache=False,
-      data_dir=data_dir,
+      project_dir=project_dir,
       make_datasets_public=make_datasets_public,
       # The public demo uses the public pip package.
       use_pip=True,

@@ -39,7 +39,7 @@ class TestSource(Source):
 
 
 def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
-  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
+  mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
 
   mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
   mock_uuid.side_effect = [fake_uuid(b'1'), fake_uuid(b'2')]

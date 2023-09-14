@@ -8,7 +8,7 @@ import yaml
 from huggingface_hub import scan_cache_dir, snapshot_download
 
 from lilac.concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
-from lilac.env import data_path, env
+from lilac.env import env, get_project_dir
 from lilac.project import PROJECT_CONFIG_FILENAME
 from lilac.utils import get_datasets_dir, get_lilac_cache_dir, log
 
@@ -67,7 +67,7 @@ def main() -> None:
       repo_id=lilac_hf_dataset,
       repo_type='dataset',
       token=env('HF_ACCESS_TOKEN'),
-      local_dir=get_datasets_dir(data_path()),
+      local_dir=get_datasets_dir(get_project_dir()),
       ignore_patterns=['.gitattributes', 'README.md'])
 
   snapshot_dir = snapshot_download(repo_id=repo_id, repo_type='space', token=env('HF_ACCESS_TOKEN'))
@@ -76,16 +76,16 @@ def main() -> None:
   # Copy the config file.
   project_config_file = os.path.join(spaces_data_dir, PROJECT_CONFIG_FILENAME)
   if os.path.exists(project_config_file):
-    shutil.copy(project_config_file, os.path.join(data_path(), PROJECT_CONFIG_FILENAME))
+    shutil.copy(project_config_file, os.path.join(get_project_dir(), PROJECT_CONFIG_FILENAME))
 
   # Delete cache files from persistent storage.
-  cache_dir = get_lilac_cache_dir(data_path())
+  cache_dir = get_lilac_cache_dir(get_project_dir())
   if os.path.exists(cache_dir):
     shutil.rmtree(cache_dir)
 
   # NOTE: This is temporary during the move of concepts into the pip package. Once all the demos
   # have been updated, this block can be deleted.
-  old_lilac_concepts_data_dir = os.path.join(data_path(), CONCEPTS_DIR, 'lilac')
+  old_lilac_concepts_data_dir = os.path.join(get_project_dir(), CONCEPTS_DIR, 'lilac')
   if os.path.exists(old_lilac_concepts_data_dir):
     shutil.rmtree(old_lilac_concepts_data_dir)
 
@@ -102,7 +102,8 @@ def main() -> None:
       continue
     spaces_concept_output_dir = get_concept_output_dir(spaces_data_dir, concept.namespace,
                                                        concept.name)
-    persistent_output_dir = get_concept_output_dir(data_path(), concept.namespace, concept.name)
+    persistent_output_dir = get_concept_output_dir(get_project_dir(), concept.namespace,
+                                                   concept.name)
     shutil.rmtree(persistent_output_dir, ignore_errors=True)
     shutil.copytree(spaces_concept_output_dir, persistent_output_dir, dirs_exist_ok=True)
     shutil.rmtree(spaces_concept_output_dir, ignore_errors=True)
