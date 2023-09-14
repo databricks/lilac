@@ -240,7 +240,8 @@ class DatasetDuckDB(Dataset):
                 fields={
                   'label': Field(dtype=DataType.STRING),
                   'created': Field(dtype=DataType.TIMESTAMP),
-                })
+                },
+                label=label_name)
             })
 
     merged_schema = merge_schemas([self._source_manifest.data_schema] +
@@ -740,6 +741,7 @@ class DatasetDuckDB(Dataset):
     if is_temporal(leaf.dtype):
       # Replace any NaT with None and pd.Timestamp to native datetime objects.
       counts = [(None if pd.isnull(val) else val.to_pydatetime(), count) for val, count in counts]
+
     return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)
 
   def _topk_udf_to_sort_by(
@@ -1190,11 +1192,11 @@ class DatasetDuckDB(Dataset):
       data_schema=new_schema, udfs=udfs, search_results=search_results, sorts=sort_results or None)
 
   @override
-  def add_label(self,
-                name: str,
-                label: str,
-                searches: Optional[Sequence[Search]] = None,
-                filters: Optional[Sequence[FilterLike]] = None) -> None:
+  def add_labels(self,
+                 name: str,
+                 label: str,
+                 searches: Optional[Sequence[Search]] = None,
+                 filters: Optional[Sequence[FilterLike]] = None) -> None:
     if not searches and not filters:
       raise ValueError('`searches` or `filters` must be specified when using `dataset.add_label`.')
 

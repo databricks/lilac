@@ -230,6 +230,21 @@ export function isSignalRootField(field: LilacField) {
   return field.signal != null;
 }
 
+/** If a field is produced by a label, returns the label name. Otherwise returns null. */
+export function getLabel(field: LilacField): string | null {
+  if (field.label) {
+    return field.label;
+  }
+  if (field.parent) {
+    return getLabel(field.parent);
+  }
+  return null;
+}
+
+export function isLabelField(field: LilacField): boolean {
+  return getLabel(field) != null;
+}
+
 export const L = {
   path: (value: LilacValueNode): Path | undefined => {
     if (!value) return undefined;

@@ -8,6 +8,7 @@
     VALUE_KEY,
     formatValue,
     getField,
+    isLabelField,
     isSignalRootField,
     pathIncludes,
     valueAtPath,
@@ -48,6 +49,7 @@
     const isEmbeddingSignal =
       $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) || false;
     const isSignal = isSignalRootField(field);
+    const isLabel = isLabelField(field);
     let formattedValue: string | null;
     if (
       isEmbeddingSignal ||
@@ -81,6 +83,7 @@
       path,
       expanded,
       isSignal,
+      isLabel,
       isPreviewSignal: selectRowsSchema != null ? isPreviewSignal(selectRowsSchema, path) : false,
       isEmbeddingSignal,
       value,

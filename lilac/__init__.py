@@ -13,9 +13,11 @@ from .env import LilacEnvironment, get_project_dir, set_project_dir
 from .load import load
 from .project import init
 from .schema import *  # noqa: F403
+from .schema import Field
 from .server import start_server, stop_server
 from .signals import *  # noqa: F403
 from .signals.default_signals import register_default_signals
+from .source import Source
 from .sources import *  # noqa: F403
 from .sources.default_sources import register_default_sources
 from .splitters import *  # noqa: F403
@@ -48,4 +50,6 @@ __all__ = [
   'SignalConfig',
   'DatasetSettings',
   'LilacEnvironment',
+  'Source',
+  'Field',
 ]

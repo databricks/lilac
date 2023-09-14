@@ -8,6 +8,7 @@
     PATH_WILDCARD,
     VALUE_KEY,
     childFields,
+    isLabelField,
     isSignalField,
     isSignalRootField,
     isSortableField,
@@ -37,6 +38,7 @@
 
   $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
+  $: isLabel = isLabelField(field);
   $: isSourceField = !isSignal;
 
   const signalMutation = computeSignalMutation();
@@ -114,6 +116,7 @@
     class="flex w-full flex-row items-center gap-x-2 border-gray-300 px-4 hover:bg-gray-100"
     class:bg-blue-50={isSignal}
     class:bg-emerald-100={isPreview}
+    class:bg-teal-200={isLabel}
     class:hover:bg-blue-100={isSignal}
   >
     <div

@@ -6,6 +6,7 @@
     expanded: boolean;
     children?: RenderNode[];
     isSignal: boolean;
+    isLabel: boolean;
     isPreviewSignal: boolean;
     isEmbeddingSignal: boolean;
     value?: DataTypeCasted | null;
@@ -32,6 +33,7 @@
   class="flex items-center gap-x-1 pr-2 text-xs"
   class:bg-blue-100={node.isSignal}
   class:bg-emerald-100={node.isPreviewSignal}
+  class:bg-teal-200={node.isLabel}
   style:padding-left={0.25 + (node.path.length - 1) * 0.5 + 'rem'}
   style:line-height="1.7rem"
 >
