@@ -29,7 +29,7 @@ from ..config import (
   SignalConfig,
   get_dataset_config,
 )
-from ..env import data_path
+from ..env import get_project_dir
 from ..project import read_project_config, update_project_dataset_settings
 from ..schema import (
   PATH_WILDCARD,
@@ -300,16 +300,22 @@ class Dataset(abc.ABC):
 
   namespace: str
   dataset_name: str
+  project_dir: Union[str, pathlib.Path]
 
-  def __init__(self, namespace: str, dataset_name: str):
+  def __init__(self,
+               namespace: str,
+               dataset_name: str,
+               project_dir: Optional[Union[str, pathlib.Path]] = None):
     """Initialize a dataset.
 
     Args:
       namespace: The dataset namespace.
       dataset_name: The dataset name.
+      project_dir: The path to the project directory.
     """
     self.namespace = namespace
     self.dataset_name = dataset_name
+    self.project_dir = project_dir or get_project_dir()
 
   @abc.abstractmethod
   def delete(self) -> None:
@@ -323,7 +329,7 @@ class Dataset(abc.ABC):
 
   def config(self) -> DatasetConfig:
     """Return the dataset config for this dataset."""
-    project_config = read_project_config(data_path())
+    project_config = read_project_config(get_project_dir())
     dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not dataset_config:
       raise ValueError('Dataset not found in project config.')

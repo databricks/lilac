@@ -111,7 +111,7 @@ Or start the Lilac webserver from Python:
 
 ```py
 import lilac as ll
-ll.start_server(project_path='~/my_project')
+ll.start_server(project_dir='~/my_project')
 ```
 
 This will start a webserver at http://localhost:5432/.

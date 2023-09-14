@@ -17,7 +17,7 @@ from .schema import Item, Schema
 def make_test_data(tmp_path: pathlib.Path, mocker: MockerFixture,
                    request: pytest.FixtureRequest) -> Generator:
   """A pytest fixture for creating temporary test datasets."""
-  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
+  mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
   dataset_cls: Type[Dataset] = request.param
   set_default_dataset_cls(dataset_cls)
 

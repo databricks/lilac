@@ -31,7 +31,7 @@ ALL_VECTOR_STORES = ['numpy', 'hnsw']
 
 @pytest.fixture(autouse=True)
 def set_data_path(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
-  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
+  mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {

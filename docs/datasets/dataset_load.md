@@ -20,7 +20,9 @@ lilac start ~/my_project
 This will start an empty lilac project under `~/my_project`, with an empty `lilac.yml` and start the
 webserver. The configuration for `lilac.yml` can be found at [](#Config). The `lilac.yml` file will
 stay up to date with interactions from the UI. This can be manually edited, or just changed via the
-UI.
+UI. For more information on peojcts, see [Projects](../projects/projects.md).
+
+### Load a dataset
 
 To load a dataset from the UI, click the "Add dataset" button from the "Getting Started" homepage.
 
@@ -64,24 +66,54 @@ You will be redirected to the dataset view once your data is loaded.
 ### Loading from lilac.yml
 
 When you start a webserver, Lilac will automatically create a project for you in the given project
-path.
+path, with an empty `lilac.yml` file in the root of the project directory. See
+[Projects](../projects/projects.md) for more information.
 
 ```python
 import lilac as ll
-ll.start_server(project_path='~/my_lilac')
+
+ll.start_server(project_dir='~/my_lilac')
 ```
 
-An empty `lilac.yml` file will be created in the root of the project directory.
+This will create a project file:
+
+```sh
+~/my_lilac/lilac.yml
+```
+
+The configuration for `lilac.yml` can be found at [](#Config). The `lilac.yml` file will stay up to
+date with commands from python, however this file can also be manually edited.
+
+The next time the web server boots up, the `lilac.yml` file will be read and loaded. Tasks will be
+visible from the UI.
+
+Alternatively, you can explicitly load the lilac.yml after editing it without starting the
+webserver:
+
+```python
+ll.load(project_dir='~/my_lilac')
+```
+
+Or from the CLI:
+
+```sh
+lilac load --project_dir=~/my_lilac
+```
 
 ### Loading an individual dataset
 
 This example loads the `glue` dataset with the `ax` config from HuggingFace:
 
 ```python
+# Set the global project directory to where project files will be stored.
+ll.set_project_dir('~/my_project')
+
 config = ll.DatasetConfig(
   namespace='local',
   name='glue',
   source=ll.HuggingFaceSource(dataset_name='glue', config_name='ax'))
+
+# NOTE: If you don't want to set a global project directory, you can pass the `project_dir` to `create_dataset` as the second argument.
 dataset = ll.create_dataset(config)
 ```
 

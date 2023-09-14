@@ -24,11 +24,12 @@ from ..auth import UserInfo
 from ..batch_utils import deep_flatten, deep_unflatten
 from ..config import DatasetConfig, EmbeddingConfig, SignalConfig, get_dataset_config
 from ..embeddings.vector_store import VectorDBIndex
-from ..env import data_path, env
+from ..env import env
 from ..project import (
   add_project_dataset_config,
   add_project_embedding_config,
   add_project_signal_config,
+  delete_project_dataset_config,
   delete_project_signal_config,
   read_project_config,
 )
@@ -145,10 +146,13 @@ class DuckDBSearchUDFs(BaseModel):
 class DatasetDuckDB(Dataset):
   """The DuckDB implementation of the dataset database."""
 
-  def __init__(self, namespace: str, dataset_name: str, vector_store: str = 'hnsw'):
-    super().__init__(namespace, dataset_name)
-
-    self.dataset_path = get_dataset_output_dir(data_path(), namespace, dataset_name)
+  def __init__(self,
+               namespace: str,
+               dataset_name: str,
+               vector_store: str = 'hnsw',
+               project_dir: Optional[Union[str, pathlib.Path]] = None):
+    super().__init__(namespace, dataset_name, project_dir)
+    self.dataset_path = get_dataset_output_dir(self.project_dir, namespace, dataset_name)
 
     # TODO: Infer the manifest from the parquet files so this is lighter weight.
     self._source_manifest = read_source_manifest(self.dataset_path)
@@ -169,7 +173,7 @@ class DatasetDuckDB(Dataset):
 
     # NOTE: This block is only for backwards compatibility.
     # Make sure the project reflects the dataset.
-    project_config = read_project_config(data_path())
+    project_config = read_project_config(self.project_dir)
     existing_dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not existing_dataset_config:
       dataset_config = dataset_config_from_manifest(manifest)
@@ -180,13 +184,14 @@ class DatasetDuckDB(Dataset):
           old_config = DatasetConfig(**yaml.safe_load(f))
         dataset_config.settings = old_config.settings
 
-      add_project_dataset_config(dataset_config)
+      add_project_dataset_config(dataset_config, self.project_dir)
 
   @override
   def delete(self) -> None:
     """Deletes the dataset."""
     self.con.close()
     shutil.rmtree(self.dataset_path, ignore_errors=True)
+    delete_project_dataset_config(self.namespace, self.dataset_name, self.project_dir)
 
   def _create_view(self, view_name: str, files: list[str], type: Union[Literal['parquet'],
                                                                        Literal['json']]) -> None:
@@ -346,7 +351,7 @@ class DatasetDuckDB(Dataset):
 
     # Update the project config before computing the signal.
     add_project_signal_config(self.namespace, self.dataset_name,
-                              SignalConfig(path=source_path, signal=signal))
+                              SignalConfig(path=source_path, signal=signal), self.project_dir)
 
     manifest = self.manifest()
 
@@ -400,7 +405,8 @@ class DatasetDuckDB(Dataset):
                         task_step_id: Optional[TaskStepId] = None) -> None:
     source_path = normalize_path(path)
     add_project_embedding_config(self.namespace, self.dataset_name,
-                                 EmbeddingConfig(path=source_path, embedding=embedding))
+                                 EmbeddingConfig(path=source_path, embedding=embedding),
+                                 self.project_dir)
     manifest = self.manifest()
 
     if task_step_id is None:
@@ -454,7 +460,8 @@ class DatasetDuckDB(Dataset):
       raise ValueError(f'{signal_path} is not a signal.')
 
     delete_project_signal_config(self.namespace, self.dataset_name,
-                                 SignalConfig(path=source_path, signal=resolve_signal(signal)))
+                                 SignalConfig(path=source_path, signal=resolve_signal(signal)),
+                                 self.project_dir)
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(signal_path))
     shutil.rmtree(output_dir, ignore_errors=True)

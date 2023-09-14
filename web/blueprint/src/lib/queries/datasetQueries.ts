@@ -116,22 +116,24 @@ DATASETS_TAG);
 export const querySelectRows = (
   namespace: string,
   datasetName: string,
-  requestBody: SelectRowsOptions,
+  selectRowsOptions: SelectRowsOptions,
   schema?: LilacSchema | undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): CreateQueryResult<Awaited<{rows: Record<string, any>[]; total_num_rows: number}>, ApiError> =>
-  createApiQuery(async function selectRows(
-    namespace: string,
-    datasetName: string,
-    requestBody: SelectRowsOptions
-  ) {
-    const res = await DatasetsService.selectRows(namespace, datasetName, requestBody);
-    return {
-      rows: schema == null ? res.rows : res.rows.map(row => deserializeRow(row, schema)),
-      total_num_rows: res.total_num_rows
-    };
-  },
-  DATASETS_TAG)(namespace, datasetName, requestBody);
+  createApiQuery(
+    async function selectRows(
+      namespace: string,
+      datasetName: string,
+      selectRowsOptions: SelectRowsOptions
+    ) {
+      const res = await DatasetsService.selectRows(namespace, datasetName, selectRowsOptions);
+      return {
+        rows: schema == null ? res.rows : res.rows.map(row => deserializeRow(row, schema)),
+        total_num_rows: res.total_num_rows
+      };
+    },
+    [DATASETS_TAG, 'selectRows', namespace, datasetName]
+  )(namespace, datasetName, selectRowsOptions);
 
 export const querySelectRowsSchema = createApiQuery(
   DatasetsService.selectRowsSchema,

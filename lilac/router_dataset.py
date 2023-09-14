@@ -24,7 +24,7 @@ from .data.dataset import (
   UnaryOp,
 )
 from .db_manager import DatasetInfo, get_dataset, list_datasets, remove_dataset_from_cache
-from .env import data_path
+from .env import get_project_dir
 from .router_utils import RouteErrorHandler
 from .schema import Bin, Path, normalize_path
 from .signal import Signal, TextEmbeddingSignal, TextSignal, resolve_signal
@@ -41,7 +41,7 @@ router = APIRouter(route_class=RouteErrorHandler)
 @router.get('/', response_model_exclude_none=True)
 def get_datasets() -> list[DatasetInfo]:
   """List the datasets."""
-  return list_datasets(data_path())
+  return list_datasets(get_project_dir())
 
 
 class WebManifest(BaseModel):

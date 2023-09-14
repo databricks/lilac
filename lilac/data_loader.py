@@ -18,27 +18,39 @@ from .config import DatasetConfig
 from .data.dataset import Dataset, SourceManifest, default_settings
 from .data.dataset_utils import write_items_to_parquet
 from .db_manager import get_dataset
-from .env import data_path
+from .env import get_project_dir
 from .project import add_project_dataset_config, update_project_dataset_settings
 from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, Item, Schema, is_float
 from .tasks import TaskStepId, progress
 from .utils import get_dataset_output_dir, log, open_file
 
 
-def create_dataset(config: DatasetConfig) -> Dataset:
-  """Load a dataset from a given source configuration."""
+def create_dataset(config: DatasetConfig,
+                   project_dir: Optional[Union[str, pathlib.Path]] = None) -> Dataset:
+  """Load a dataset from a given source configuration.
+
+  Args:
+    config: The dataset configuration to load.
+    project_dir: The path to the project directory for where to create the dataset. If not defined,
+      uses the project directory from `LILAC_PROJECT_DIR` or [deprecated] `LILAC_DATA_PATH`.
+  """
+  project_dir = project_dir or get_project_dir()
+  if not project_dir:
+    raise ValueError('`project_dir` must be defined. Please pass a `project_dir` or set it '
+                     'globally with `set_project_dir(path)`')
+
   # Update the config before processing the source.
-  add_project_dataset_config(config)
+  add_project_dataset_config(config, project_dir)
 
-  process_source(data_path(), config)
-  return get_dataset(config.namespace, config.name)
+  process_source(project_dir, config)
+  return get_dataset(config.namespace, config.name, project_dir)
 
 
-def process_source(base_dir: Union[str, pathlib.Path],
+def process_source(project_dir: Union[str, pathlib.Path],
                    config: DatasetConfig,
                    task_step_id: Optional[TaskStepId] = None) -> tuple[str, int]:
   """Process a source."""
-  output_dir = get_dataset_output_dir(base_dir, config.namespace, config.name)
+  output_dir = get_dataset_output_dir(project_dir, config.namespace, config.name)
 
   config.source.setup()
   source_schema = config.source.source_schema()
@@ -73,9 +85,9 @@ def process_source(base_dir: Union[str, pathlib.Path],
     f.write(manifest.json(indent=2, exclude_none=True))
 
   if not config.settings:
-    dataset = get_dataset(config.namespace, config.name)
+    dataset = get_dataset(config.namespace, config.name, project_dir)
     settings = default_settings(dataset)
-    update_project_dataset_settings(config.namespace, config.name, settings)
+    update_project_dataset_settings(config.namespace, config.name, settings, project_dir)
 
   log(f'Dataset "{config.name}" written to {output_dir}')
 

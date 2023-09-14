@@ -22,7 +22,7 @@ import yaml
 from google.cloud.storage import Blob, Client
 from pydantic import BaseModel
 
-from .env import data_path, env
+from .env import env, get_project_dir
 
 GCS_PROTOCOL = 'gs://'
 GCS_REGEX = re.compile(f'{GCS_PROTOCOL}(.*?)/(.*)')
@@ -77,7 +77,7 @@ def download_http_files(filepaths: list[str]) -> list[str]:
   for filepath in filepaths:
     if filepath.startswith(('http://', 'https://')):
       tmp_filename = uuid.uuid4().hex
-      tmp_filepath = f'/tmp/{data_path()}/local_cache/{tmp_filename}'
+      tmp_filepath = f'/tmp/{get_project_dir()}/local_cache/{tmp_filename}'
       log(f'Downloading from url {filepath} to {tmp_filepath}')
       dl = requests.get(filepath, timeout=10000, allow_redirects=True)
       with open_file(tmp_filepath, 'wb') as f:
@@ -96,15 +96,15 @@ def makedirs(dir_path: str) -> None:
   os.makedirs(dir_path, exist_ok=True)
 
 
-def get_datasets_dir(base_dir: Union[str, pathlib.Path]) -> str:
+def get_datasets_dir(project_dir: Union[str, pathlib.Path]) -> str:
   """Return the output directory that holds all datasets."""
-  return os.path.join(base_dir, DATASETS_DIR_NAME)
+  return os.path.join(project_dir, DATASETS_DIR_NAME)
 
 
-def get_dataset_output_dir(base_dir: Union[str, pathlib.Path], namespace: str,
+def get_dataset_output_dir(project_dir: Union[str, pathlib.Path], namespace: str,
                            dataset_name: str) -> str:
   """Return the output directory for a dataset."""
-  return os.path.join(get_datasets_dir(base_dir), namespace, dataset_name)
+  return os.path.join(get_datasets_dir(project_dir), namespace, dataset_name)
 
 
 def get_lilac_cache_dir(base_dir: Union[str, pathlib.Path]) -> str:
@@ -234,13 +234,13 @@ def is_primitive(obj: object) -> bool:
   return True
 
 
-def log(log_str: str) -> None:
+def log(*args: str) -> None:
   """Print and logs a message so it shows up in the logs on cloud."""
   if env('DISABLE_LOGS'):
     return
 
-  print(log_str)
-  logging.info(log_str)
+  print(*args)
+  logging.info([' '.join(args)])
 
 
 class DebugTimer:
