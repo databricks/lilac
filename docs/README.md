@@ -18,7 +18,7 @@ To build the docs:
 
 ## Deployment
 
-### One time setup
+### One time setup (skip to #Deploy)
 
 Install firebase cli:
 
@@ -37,6 +37,8 @@ Add the generated token to `.env.local`:
 ```bash
 FIREBASE_TOKEN=...
 ```
+
+### Deploy
 
 ```bash
 ./scripts/deploy_website.sh
