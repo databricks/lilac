@@ -206,7 +206,6 @@ class DatasetDuckDB(Dataset):
     self.con.execute(f"""
       CREATE OR REPLACE VIEW {_escape_col_name(view_name)} AS ({inner_select});
     """)
-    res = self._query_df(f'SELECT * FROM {_escape_col_name(view_name)}')
 
   # NOTE: This is cached, but when the latest mtime of any file in the dataset directory changes
   # the results are invalidated.
