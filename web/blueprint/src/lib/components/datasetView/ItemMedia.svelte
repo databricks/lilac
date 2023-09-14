@@ -43,7 +43,7 @@
     {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
     <div class="flex">
       <div class="relative flex w-44 flex-none font-mono font-medium text-neutral-500">
-        <div class="sticky top-0 self-start truncate p-4">
+        <div class="sticky top-0 self-start truncate p-4 leading-5">
           {displayPath(path)}
         </div>
       </div>
