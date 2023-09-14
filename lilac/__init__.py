@@ -13,7 +13,8 @@ from .env import LilacEnvironment, get_project_dir, set_project_dir
 from .load import load
 from .project import init
 from .schema import *  # noqa: F403
-from .server import stop_server
+from .schema import Field
+from .server import start_server, stop_server
 from .signals import *  # noqa: F403
 from .signals.default_signals import register_default_signals
 from .source import Source
@@ -35,8 +36,6 @@ del (metadata, register_default_sources, register_default_signals, set_default_d
      DatasetDuckDB)
 
 __all__ = [
-  'Source',
-  'Field'
   'start_server',
   'stop_server',
   'create_dataset',
@@ -51,4 +50,6 @@ __all__ = [
   'SignalConfig',
   'DatasetSettings',
   'LilacEnvironment',
+  'Source',
+  'Field',
 ]
