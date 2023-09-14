@@ -6,6 +6,7 @@
    * Component that renders a single value from a row in the dataset row view
    * In the case of strings with string_spans, it will render the derived string spans as well
    */
+  import {getSettingsContext} from '$lib/stores/settingsStore';
   import {notEmpty} from '$lib/utils';
   import {displayPath, getComputedEmbeddings, getSpanValuePaths} from '$lib/view_utils';
   import {
@@ -13,10 +14,13 @@
     formatValue,
     getValueNodes,
     pathIsEqual,
+    type DataTypeCasted,
     type LilacField,
     type LilacValueNode,
     type Path
   } from '$lilac';
+  import {Search} from 'carbon-icons-svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 
   export let path: Path;
@@ -26,6 +30,7 @@
 
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
+  const appSettings = getSettingsContext();
 
   $: computedEmbeddings = getComputedEmbeddings($datasetStore.schema, path);
 
@@ -34,6 +39,29 @@
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: valueNodes = getValueNodes(row, path);
+
+  function findSimilar(searchText: DataTypeCasted, path: Path) {
+    let embedding = computedEmbeddings[0];
+
+    if ($settings.data?.preferred_embedding != null) {
+      const preferred = $settings.data.preferred_embedding;
+      if (computedEmbeddings.some(v => v === preferred)) {
+        embedding = preferred;
+      }
+    }
+    if ($appSettings.embedding != null) {
+      const preferred = $appSettings.embedding;
+      if (computedEmbeddings.some(v => v === preferred)) {
+        embedding = preferred;
+      }
+    }
+    datasetViewStore.addSearch({
+      path,
+      type: 'semantic',
+      query: searchText as string,
+      embedding
+    });
+  }
 </script>
 
 {#each valueNodes as valueNode}
@@ -43,8 +71,16 @@
     {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
     <div class="flex">
       <div class="relative flex w-44 flex-none font-mono font-medium text-neutral-500">
-        <div class="sticky top-0 self-start truncate p-4">
-          {displayPath(path)}
+        <div class="sticky top-0 flex w-full items-center self-start p-4 pr-0">
+          <div title={displayPath(path)} class="w-full truncate">{displayPath(path)}</div>
+          <div>
+            {#if computedEmbeddings.length > 0}
+              <button
+                on:click={() => findSimilar(value, path)}
+                use:hoverTooltip={{text: 'More like this'}}><Search size={16} /></button
+              >
+            {/if}
+          </div>
         </div>
       </div>
 
