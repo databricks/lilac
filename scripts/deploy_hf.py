@@ -119,7 +119,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
   if not use_pip:
     # We have to change the version to a dev version so that the huggingface demo does not try to
     # install the public pip package.
-    current_lilac_version = run('poetry version -s').stdout.strip()
+    current_lilac_version = run('poetry version -s', capture_output=True).stdout.strip()
     # Bump the version temporarily so that the install uses this pip.
     version_parts = current_lilac_version.split('.')
     version_parts[-1] = str(int(version_parts[-1]) + 1)
@@ -288,9 +288,9 @@ XDG_CACHE_HOME=/data/.cache
       delete_patterns='*')
 
 
-def run(cmd: str) -> subprocess.CompletedProcess[str]:
+def run(cmd: str, capture_output=False) -> subprocess.CompletedProcess[str]:
   """Run a command and return the result."""
-  return subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+  return subprocess.run(cmd, shell=True, check=True, capture_output=capture_output, text=True)
 
 
 if __name__ == '__main__':
