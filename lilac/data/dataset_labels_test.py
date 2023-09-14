@@ -35,7 +35,7 @@ def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) 
 
   dataset = make_test_data(TEST_ITEMS)
 
-  dataset.add_label('test_label', 'yes', filters=[(ROWID, 'equals', '1')])
+  dataset.add_labels('test_label', 'yes', filters=[(ROWID, 'equals', '1')])
 
   assert dataset.manifest() == DatasetManifest(
     source=TestSource(),
@@ -89,9 +89,9 @@ def test_add_multiple_labels(make_test_data: TestDataMaker, mocker: MockerFixtur
   dataset = make_test_data(TEST_ITEMS)
 
   # Add a 'yes' for every item with int=2.
-  dataset.add_label('test_label', 'yes', filters=[('int', 'equals', 2)])
+  dataset.add_labels('test_label', 'yes', filters=[('int', 'equals', 2)])
   # Add a 'no' for every item with int < 2.
-  dataset.add_label('test_label', 'no', filters=[('int', 'less', 2)])
+  dataset.add_labels('test_label', 'no', filters=[('int', 'less', 2)])
 
   assert dataset.manifest() == DatasetManifest(
     source=TestSource(),
@@ -140,9 +140,9 @@ def test_labels_select_groups(make_test_data: TestDataMaker, mocker: MockerFixtu
   dataset = make_test_data(TEST_ITEMS)
 
   # Add a 'yes' for every item with int=2.
-  dataset.add_label('test_label', 'yes', filters=[('int', 'equals', 2)])
+  dataset.add_labels('test_label', 'yes', filters=[('int', 'equals', 2)])
   # Add a 'no' for every item with int < 2.
-  dataset.add_label('test_label', 'no', filters=[('int', 'less', 2)])
+  dataset.add_labels('test_label', 'no', filters=[('int', 'less', 2)])
 
   assert dataset.select_groups(('test_label', 'label')) == SelectGroupsResult(
     too_many_distinct=False, counts=[('yes', 2), ('no', 1)])

@@ -466,11 +466,11 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def add_label(self,
-                label_name: str,
-                label_value: str,
-                searches: Optional[Sequence[Search]] = None,
-                filters: Optional[Sequence[FilterLike]] = None) -> None:
+  def add_labels(self,
+                 label_name: str,
+                 label_value: str,
+                 searches: Optional[Sequence[Search]] = None,
+                 filters: Optional[Sequence[FilterLike]] = None) -> None:
     """Adds a label to a row, or a set of rows defined by searches and filters."""
     pass
 
