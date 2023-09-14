@@ -10,7 +10,7 @@ set -e
 # Load the environment variables from `.env.local`.
 set -o allexport
 source .env.local set
-+o allexport
+set +o allexport
 
 ./scripts/build_docs.sh
 
