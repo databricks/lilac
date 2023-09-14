@@ -1,3 +1,4 @@
+import {isMobile} from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable} from 'svelte/store';
 
@@ -9,7 +10,7 @@ export interface NavigationState {
   open: boolean;
 }
 export function createNavigationStore() {
-  return writable<NavigationState>({open: true});
+  return writable<NavigationState>({open: !isMobile()});
 }
 
 export function setNavigationContext(store: NavigationStore) {
