@@ -12,7 +12,7 @@ An example project directory:
     lilac.yml
     datasets/
         open-orca/
-    concepts/
+    concept/
 ```
 
 ## Project directory

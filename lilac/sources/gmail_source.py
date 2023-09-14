@@ -49,13 +49,15 @@ class GmailSource(Source):
   name = 'gmail'
 
   credentials_file: str = PydanticField(
-    description=f'Path to the OAuth credentials file. Defaults to {_CREDS_FILENAME} in your Lilac '
-    'project directory.')
+    description=
+    f'Path to the OAuth credentials file. Defaults to `.gmail/{_CREDS_FILENAME}` in your Lilac '
+    'project directory.',
+    default_factory=lambda: os.path.join(_gmail_config_dir(), _CREDS_FILENAME))
 
   _creds: Optional['Credentials'] = None
 
   class Config:
-    # Language is required even though it has a default value.
+    # `credentials_file` is required even though it has a default value.
     schema_extra = {'required': ['credentials_file']}
 
   @override
