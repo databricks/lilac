@@ -16,12 +16,12 @@
   $: selectRowsSchema = $datasetStore.selectRowsSchema?.data;
 </script>
 
-<div class="rounded border-x border-b border-neutral-200 shadow-md">
+<div class="rounded border border-neutral-300">
   <div class="flex h-full w-full flex-row">
     {#if mediaFields.length > 0}
-      <div class="w-2/3 overflow-hidden" bind:clientHeight={mediaHeight}>
+      <div class="w-2/3" bind:clientHeight={mediaHeight}>
         {#each mediaFields as mediaField, i (serializePath(mediaField.path))}
-          <div class:border-b={i < mediaFields.length - 1} class="border-gray-100">
+          <div class:border-b={i < mediaFields.length - 1} class="border-neutral-200">
             <ItemMedia {row} path={mediaField.path} field={mediaField} {highlightedFields} />
           </div>
         {/each}

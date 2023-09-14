@@ -7,13 +7,12 @@
    * In the case of strings with string_spans, it will render the derived string spans as well
    */
   import {notEmpty} from '$lib/utils';
-  import {getComputedEmbeddings, getSpanValuePaths} from '$lib/view_utils';
+  import {displayPath, getComputedEmbeddings, getSpanValuePaths} from '$lib/view_utils';
   import {
     L,
     formatValue,
     getValueNodes,
     pathIsEqual,
-    serializePath,
     type LilacField,
     type LilacValueNode,
     type Path
@@ -42,28 +41,25 @@
   {#if notEmpty(value)}
     {@const path = L.path(valueNode) || []}
     {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
-    <div class="flex flex-row">
-      <div class="flex w-full flex-col">
-        <div
-          class="sticky top-0 z-10 w-full self-start border-t border-neutral-200 bg-neutral-100 px-2 py-2
-               pb-2 font-mono font-medium text-neutral-500"
-        >
-          {serializePath(path)}
+    <div class="flex">
+      <div class="relative flex w-56 flex-none font-mono font-medium text-neutral-500">
+        <div class="sticky top-0 self-start truncate p-4">
+          {displayPath(path)}
         </div>
+      </div>
 
-        <div class="mx-4 font-normal">
-          <StringSpanHighlight
-            text={formatValue(value)}
-            {row}
-            {path}
-            {markdown}
-            spanPaths={spanValuePaths.spanPaths}
-            valuePaths={spanValuePaths.valuePaths}
-            {datasetViewStore}
-            datasetStore={$datasetStore}
-            embeddings={computedEmbeddings}
-          />
-        </div>
+      <div class="mx-4 w-full font-normal">
+        <StringSpanHighlight
+          text={formatValue(value)}
+          {row}
+          {path}
+          {markdown}
+          spanPaths={spanValuePaths.spanPaths}
+          valuePaths={spanValuePaths.valuePaths}
+          {datasetViewStore}
+          datasetStore={$datasetStore}
+          embeddings={computedEmbeddings}
+        />
       </div>
     </div>
   {/if}

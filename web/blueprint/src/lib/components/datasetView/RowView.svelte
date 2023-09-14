@@ -77,7 +77,7 @@
 
 {#if items && $schema.isSuccess && mediaFields != null}
   <div
-    class="flex h-full w-full flex-col gap-y-10 overflow-y-scroll px-5 pb-32"
+    class="flex h-full w-full flex-col gap-y-20 overflow-y-scroll px-5 pb-32"
     bind:this={itemScrollContainer}
   >
     {#each items as row}
