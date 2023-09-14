@@ -94,7 +94,7 @@ ll.register_signal(MySignal)
 Start a Lilac webserver with:
 
 ```python
-ll.start_server(project_path='~/my_project')
+ll.start_server(project_dir='~/my_project')
 ```
 
 Output:

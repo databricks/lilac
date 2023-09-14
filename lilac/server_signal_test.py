@@ -58,7 +58,7 @@ def setup_teardown() -> Iterable[None]:
 
 @pytest.fixture(scope='function', autouse=True)
 def setup_data_dir(tmp_path: Path, mocker: MockerFixture) -> None:
-  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
+  mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
 
 
 def test_compute() -> None:

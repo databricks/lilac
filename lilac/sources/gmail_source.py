@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Optional
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ..env import data_path
+from ..env import get_project_dir
 from ..schema import Item, field
 from ..source import Source, SourceSchema
 from ..utils import log
@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 
 # If modifying these scopes, delete the token json file.
 _SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
-_GMAIL_CONFIG_DIR = os.path.join(data_path(), '.gmail')
 _TOKEN_FILENAME = 'token.json'
 _CREDS_FILENAME = 'credentials.json'
 _NUM_RETRIES = 10
@@ -29,6 +28,10 @@ _MAX_NUM_THREADS = 30_000
 
 _UNWRAP_PATTERN = re.compile(r'(\S)\n(\S)')
 HTTP_PATTERN = re.compile(r'https?://[^\s]+')
+
+
+def _gmail_config_dir() -> str:
+  return os.path.join(get_project_dir(), '.gmail')
 
 
 class GmailSource(Source):
@@ -46,13 +49,15 @@ class GmailSource(Source):
   name = 'gmail'
 
   credentials_file: str = PydanticField(
-    description='Path to the OAuth credentials file.',
-    default=os.path.join(_GMAIL_CONFIG_DIR, _CREDS_FILENAME))
+    description=
+    f'Path to the OAuth credentials file. Defaults to `.gmail/{_CREDS_FILENAME}` in your Lilac '
+    'project directory.',
+    default_factory=lambda: os.path.join(_gmail_config_dir(), _CREDS_FILENAME))
 
   _creds: Optional['Credentials'] = None
 
   class Config:
-    # Language is required even though it has a default value.
+    # `credentials_file` is required even though it has a default value.
     schema_extra = {'required': ['credentials_file']}
 
   @override
@@ -65,9 +70,12 @@ class GmailSource(Source):
       raise ImportError('Could not import dependencies for the "gmail" source. '
                         'Please install with pip install lilac[gmail]')
 
+    gmail_config_dir = _gmail_config_dir()
+    credentials_file = self.credentials_file or os.path.join(gmail_config_dir, _CREDS_FILENAME)
+
     # The token file stores the user's access and refresh tokens, and is created automatically when
     # the authorization flow completes for the first time.
-    token_filepath = os.path.join(_GMAIL_CONFIG_DIR, _TOKEN_FILENAME)
+    token_filepath = os.path.join(gmail_config_dir, _TOKEN_FILENAME)
     if os.path.exists(token_filepath):
       self._creds = Credentials.from_authorized_user_file(token_filepath, _SCOPES)
     # If there are no (valid) credentials available, let the user log in.
@@ -75,11 +83,11 @@ class GmailSource(Source):
       if self._creds and self._creds.expired and self._creds.refresh_token:
         self._creds.refresh(Request())
       else:
-        if not os.path.exists(self.credentials_file):
+        if not os.path.exists(credentials_file):
           raise ValueError(
-            f'Could not find the OAuth credentials file at "{self.credentials_file}". Make sure to '
+            f'Could not find the OAuth credentials file at "{credentials_file}". Make sure to '
             'download it from the Google Cloud Console and save it to the correct location.')
-        flow = InstalledAppFlow.from_client_secrets_file(self.credentials_file, _SCOPES)
+        flow = InstalledAppFlow.from_client_secrets_file(credentials_file, _SCOPES)
         self._creds = flow.run_local_server()
 
       os.makedirs(os.path.dirname(token_filepath), exist_ok=True)

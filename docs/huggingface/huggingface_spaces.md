@@ -47,12 +47,13 @@ The modal also contains options for environment variables.
 - `HF_HOME`: This should be kept `/data/.huggingface` if you plan on using Persistent Storage. This
   allows the HuggingFace cache to be persistent. If you are not, you should remove this variable
   entirely.
-- `LILAC_DATA_PATH`: The path where data for datasets, concept models and Lilac caches are stored.
+- `LILAC_PROJECT_DIR`: The path where data for datasets, concept models and Lilac caches are stored.
   This should be kept `/data` if you plan on using Persistent Storage. If you are not, this should
   be set to the relative path `./data` which lives ephemerally in the docker image. It is important
   to use `./data` because it has been given writen permissions by the docker image. See
   [HuggingFace Disk usage on Spaces](https://huggingface.co/docs/hub/spaces-storage) for
   documentation on Persistent Storage.
+- `LILAC_DATA_PATH`: Deprecated in favor of `LILAC_PROJECT_DIR`.
 - `GOOGLE_ANALYTICS_ENABLED`: Set this to "false" to disable our Google Analytics tracking on the
   HuggingFace demo. We use this just to track basic session information on the public demo.
 
