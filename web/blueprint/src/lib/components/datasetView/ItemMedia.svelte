@@ -66,6 +66,7 @@
 
 {#each valueNodes as valueNode}
   {@const value = L.value(valueNode)}
+  {@const noEmbeddings = computedEmbeddings.length === 0}
   {#if notEmpty(value)}
     {@const path = L.path(valueNode) || []}
     {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
@@ -74,12 +75,19 @@
         <div class="sticky top-0 flex w-full items-center self-start p-4 pr-0">
           <div title={displayPath(path)} class="w-full truncate">{displayPath(path)}</div>
           <div>
-            {#if computedEmbeddings.length > 0}
+            <div
+              use:hoverTooltip={{
+                text: noEmbeddings ? '"More like this" requires an embedding index' : undefined
+              }}
+              class:opacity-50={noEmbeddings}
+            >
               <button
+                disabled={noEmbeddings}
                 on:click={() => findSimilar(value, path)}
-                use:hoverTooltip={{text: 'More like this'}}><Search size={16} /></button
-              >
-            {/if}
+                use:hoverTooltip={{text: 'More like this'}}
+                ><Search size={16} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
