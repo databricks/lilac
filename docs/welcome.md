@@ -10,7 +10,7 @@ Try the Lilac hosted **[demo on HuggingFace](https://lilacai-lilac.hf.space/)** 
 
 ## 👋 Welcome
 
-[Lilac](http://lilacml.com) is an open-source product that helps you **analyze**, **enrich**, and
+[Lilac AI](http://lilacml.com) is an open-source product that helps you **analyze**, **enrich**, and
 **clean** unstructured data with AI.
 
 See the [Installation](./getting_started/installation.md) and
