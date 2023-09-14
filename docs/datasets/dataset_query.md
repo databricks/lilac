@@ -137,8 +137,12 @@ the data, and can either be expressed as a tuple, or as a period-separated strin
 
 In the example above, the `emails` field under `pii` can be accessed with:
 
-- `('text', 'pii', 'emails')`
-- `'text.pii.emails'`
+- `('text', 'pii', 'emails', '*')`
+- `'text.pii.emails.*'`
+
+You'll notice there is a `*` in the paths. This is a _path wildcard_, which refers to a field that
+is repeated (e.g. a list of values). By selecting with a `*`, we will get all of the values under
+the emails field, which is a list of emails.
 
 If we want to see all of the leaf paths from the schema, we can use [](#Schema.leafs), which returns
 a dictionary mapping a path to a [](#Field).
@@ -205,7 +209,9 @@ print(list(rows))
 Output:
 
 ```
-[{'text': "I can't believe that those praising this movie herein aren't thinking of some other film. I was prepared for the possibility that this would be awful, but the script (or lack thereof) makes for a film that's also pointless. On the plus side, the general level of craft on the part of the actors and technical crew is quite competent, but when you've got a sow's ear to work with you can't make a silk purse. Ben G fans should stick with just about any other movie he's been in. Dorothy S fans should stick to Galaxina. Peter B fans should stick to Last Picture Show and Target. Fans of cheap laughs at the expense of those who seem to be asking for it should stick to Peter B's amazingly awful book, Killing of the Unicorn.", 'label': 'neg'}]
+[{
+  'text': "I can't believe that those praising this movie herein aren't thinking of some other film. I was prepared for the possibility that this would be awful, but the script (or lack thereof) makes for a film that's also pointless. On the plus side, the general level of craft on the part of the actors and technical crew is quite competent, but when you've got a sow's ear to work with you can't make a silk purse. Ben G fans should stick with just about any other movie he's been in. Dorothy S fans should stick to Galaxina. Peter B fans should stick to Last Picture Show and Target. Fans of cheap laughs at the expense of those who seem to be asking for it should stick to Peter B's amazingly awful book, Killing of the Unicorn.",
+  'label': 'neg'}]
 ```
 
 #### `searches`
@@ -271,12 +277,12 @@ we can filter by the any source field or the output of any signal.
 
 Types of filters:
 
-- [](#BinaryOp): Compares a feature to a particular value. This is expressed as a tuple, with
-  supported comparators: `equals`, `not_equal`, `greater`, `greater_equal`, `less`, `less_equal`.
-  Example: `('label', 'equals', 'pos')`.
-- [](#UnaryOp): Only `exists` is supported. Used for checking whether a sparse feature has a value
-  for a particular row. Example: `('label', 'exists')`.
-- [](#ListOp): Filters results where a list value contains a particular value. Example:
+- Binary ops: Compares a feature to a particular value. This is expressed as a tuple, with supported
+  comparators: `equals`, `not_equal`, `greater`, `greater_equal`, `less`, `less_equal`. Example:
+  `('label', 'equals', 'pos')`.
+- Unary ops: Only `exists` is supported. Used for checking whether a sparse feature has a value for
+  a particular row. Example: `('label', 'exists')`.
+- List ops: Filters results where a list value contains a particular value. Example:
   `('x', 'in', 'list_feature')`
 
 Let's find the first example that is labeled `pos`.

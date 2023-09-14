@@ -11,9 +11,11 @@ from .embeddings.default_vector_stores import register_default_vector_stores
 from .env import *  # noqa: F403
 from .env import LilacEnvironment
 from .schema import *  # noqa: F403
+from .schema import Field
 from .server import start_server, stop_server
 from .signals import *  # noqa: F403
 from .signals.default_signals import register_default_signals
+from .source import Source
 from .sources import *  # noqa: F403
 from .sources.default_sources import register_default_sources
 from .splitters import *  # noqa: F403
@@ -32,14 +34,6 @@ del (metadata, register_default_sources, register_default_signals, set_default_d
      DatasetDuckDB)
 
 __all__ = [
-  'start_server',
-  'stop_server',
-  'create_dataset',
-  'get_dataset',
-  'Config',
-  'DatasetConfig',
-  'EmbeddingConfig',
-  'SignalConfig',
-  'DatasetSettings',
-  'LilacEnvironment',
+  'start_server', 'stop_server', 'create_dataset', 'get_dataset', 'Config', 'DatasetConfig',
+  'EmbeddingConfig', 'SignalConfig', 'DatasetSettings', 'LilacEnvironment', 'Source', 'Field'
 ]
