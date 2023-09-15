@@ -71,7 +71,7 @@
     {@const path = L.path(valueNode) || []}
     {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
     <div class="flex">
-      <div class="relative flex w-44 flex-none font-mono font-medium text-neutral-500">
+      <div class="relative flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
         <div class="sticky top-0 flex w-full items-center self-start p-4 pr-0">
           <div title={displayPath(path)} class="w-full truncate">{displayPath(path)}</div>
           <div>

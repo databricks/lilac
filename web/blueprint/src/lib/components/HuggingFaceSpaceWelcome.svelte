@@ -24,7 +24,7 @@
   );
 </script>
 
-<div class="mx-32 flex w-full flex-col items-center gap-y-6 px-8">
+<div class="flex w-full flex-col items-center gap-y-6 px-8">
   <div class="mt-8 w-full text-center">
     <h2>Welcome to Lilac</h2>
     <div class="mt-2 text-base text-gray-700">analyze, structure and clean data with AI</div>
