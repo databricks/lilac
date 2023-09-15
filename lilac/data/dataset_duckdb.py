@@ -1222,7 +1222,7 @@ class DatasetDuckDB(Dataset):
                  row_ids: Optional[Sequence[str]] = None,
                  searches: Optional[Sequence[Search]] = None,
                  filters: Optional[Sequence[FilterLike]] = None,
-                 label: Optional[str] = 'true') -> None:
+                 value: Optional[str] = 'true') -> None:
     if not searches and not filters and not row_ids:
       raise ValueError(
         '`row_ids`, `searches` or `filters` must be specified when using `dataset.add_label`.')
@@ -1270,7 +1270,7 @@ class DatasetDuckDB(Dataset):
           f"""
             INSERT INTO {name} VALUES (?, ?, ?)
             ON CONFLICT({ROWID}) DO UPDATE SET label=excluded.label;
-          """, (row_id, label, created.isoformat()))
+          """, (row_id, value, created.isoformat()))
       sqlite_con.commit()
 
   @override

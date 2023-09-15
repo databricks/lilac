@@ -471,7 +471,7 @@ class Dataset(abc.ABC):
                  row_ids: Optional[Sequence[str]] = None,
                  searches: Optional[Sequence[Search]] = None,
                  filters: Optional[Sequence[FilterLike]] = None,
-                 label: Optional[str] = 'true') -> None:
+                 value: Optional[str] = 'true') -> None:
     """Adds a label to a row, or a set of rows defined by searches and filters."""
     pass
 
