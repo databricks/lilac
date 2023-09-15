@@ -277,6 +277,8 @@ class DatasetDuckDB(Dataset):
     label_column_selects = []
     for label_name in self._label_schemas.keys():
       col_name = _escape_col_name(label_name)
+      # We use a case here because labels are sparse and we don't want to return an object at all
+      # when there is no label.
       label_column_selects.append(f"""
         (CASE WHEN {col_name}.{SQLITE_LABEL_COLNAME} IS NULL THEN NULL ELSE {{
           {SQLITE_LABEL_COLNAME}: {col_name}.{SQLITE_LABEL_COLNAME},
@@ -1242,6 +1244,8 @@ class DatasetDuckDB(Dataset):
       """)
 
       for row in rows:
+        # We use ON CONFLICT to resolve the same row UUID being labeled again. In this case, we
+        # overwrite the existing label with the new label.
         sqlite_cur.execute(
           f"""
             INSERT INTO {name} VALUES (?, ?, ?)
