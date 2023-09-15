@@ -1,6 +1,13 @@
 <script lang="ts">
   import {DTYPE_TO_ICON} from '$lib/view_utils';
-  import {PATH_WILDCARD, pathIsEqual, serializePath, type LilacField} from '$lilac';
+  import {
+    PATH_WILDCARD,
+    isLabelField,
+    isSignalField,
+    pathIsEqual,
+    serializePath,
+    type LilacField
+  } from '$lilac';
   import {Checkbox} from 'carbon-components-svelte';
 
   export let fields: LilacField[];
@@ -18,6 +25,8 @@
 </script>
 
 {#each fields as field}
+  {@const isSignal = isSignalField(field)}
+  {@const isLabel = isLabelField(field)}
   <div class="flex items-center">
     <div class="mr-2">
       <Checkbox
@@ -28,7 +37,11 @@
       />
     </div>
     <div class="flex w-10">
-      <div class="inline-flex items-center rounded-md bg-blue-200 p-0.5">
+      <div
+        class="inline-flex items-center rounded-md p-0.5"
+        class:bg-blue-200={isSignal}
+        class:bg-teal-100={isLabel}
+      >
         {#if field.dtype}
           <svelte:component this={DTYPE_TO_ICON[field.dtype]} title={field.dtype} />
         {:else}

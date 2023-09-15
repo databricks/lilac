@@ -39,7 +39,7 @@
   $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
   $: isLabel = isLabelField(field);
-  $: isSourceField = !isSignal;
+  $: isSourceField = !isSignal && !isLabel;
 
   const signalMutation = computeSignalMutation();
   const datasetViewStore = getDatasetViewContext();
@@ -111,12 +111,12 @@
   $: isExpandable = isSortableField(field) && !isPreview;
 </script>
 
-<div class="border-gray-300" class:border-b={!isSignal}>
+<div class="border-gray-300" class:border-b={isSourceField}>
   <div
     class="flex w-full flex-row items-center gap-x-2 border-gray-300 px-4 hover:bg-gray-100"
     class:bg-blue-50={isSignal}
     class:bg-emerald-100={isPreview}
-    class:bg-teal-200={isLabel}
+    class:bg-teal-100={isLabel}
     class:hover:bg-blue-100={isSignal}
   >
     <div

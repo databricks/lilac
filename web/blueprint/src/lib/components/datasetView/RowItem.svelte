@@ -98,8 +98,8 @@
 </script>
 
 <div class="flex flex-col rounded border border-neutral-300 md:flex-row">
-  <div class="flex flex-col md:w-2/3" bind:clientHeight={mediaHeight}>
-    <div class="flex flex-wrap gap-x-2 gap-y-2 p-4">
+  <div class="flex flex-col gap-y-1 p-4 md:w-2/3" bind:clientHeight={mediaHeight}>
+    <div class="flex h-20 flex-wrap gap-x-2 gap-y-2">
       {#each rowLabels as label}
         <div class="flex items-center rounded-full bg-neutral-200 px-3 py-1 text-neutral-600">
           {label}
@@ -109,12 +109,12 @@
         <button
           on:click={addLabel}
           use:hoverTooltip={{text: 'Add label'}}
-          class="flex items-center gap-x-2"
+          class="flex items-center gap-x-2 border border-gray-300"
           class:hidden={labelMenuOpen}
           ><Add />
         </button>
         <div
-          class="absolute left-0 top-0 w-64"
+          class="absolute left-0 top-0 w-60"
           class:hidden={!labelMenuOpen}
           use:clickOutside={() => (labelMenuOpen = false)}
         >
@@ -153,7 +153,11 @@
     </div>
     {#if mediaFields.length > 0}
       {#each mediaFields as mediaField, i (serializePath(mediaField.path))}
-        <div class:border-b={i < mediaFields.length - 1} class="flex h-full border-neutral-200">
+        <div
+          class:border-b={i < mediaFields.length - 1}
+          class:pb-2={i < mediaFields.length - 1}
+          class="flex h-full border-neutral-200"
+        >
           <ItemMedia {row} path={mediaField.path} field={mediaField} {highlightedFields} />
         </div>
       {/each}

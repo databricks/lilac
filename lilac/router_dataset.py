@@ -207,7 +207,7 @@ class SelectRowsResponse(BaseModel):
   total_num_rows: int
 
 
-@router.get('/{namespace}/{dataset_name}/select_rows_download', response_model=None)
+@router.get('/{namespace}/{dataset_name}/select_rows_download', response_model_exclude_none=True)
 def select_rows_download(
     namespace: str, dataset_name: str, url_safe_options: str,
     user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> list[dict]:
