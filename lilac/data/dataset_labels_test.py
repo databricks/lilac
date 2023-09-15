@@ -35,7 +35,7 @@ def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) 
 
   dataset = make_test_data(TEST_ITEMS)
 
-  dataset.add_labels('test_label', 'yes', filters=[(ROWID, 'equals', '1')])
+  dataset.add_labels('test_label', filters=[(ROWID, 'equals', '1')])
 
   assert dataset.manifest() == DatasetManifest(
     source=TestSource(),
@@ -55,7 +55,7 @@ def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) 
     'str': 'a',
     'int': 1,
     'test_label': {
-      'label': 'yes',
+      'label': 'true',
       'created': TEST_TIME
     }
   }, {
@@ -70,11 +70,11 @@ def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) 
 
   # Make sure we can filter by the label.
   assert list(
-    dataset.select_rows([PATH_WILDCARD], filters=[('test_label.label', 'equals', 'yes')])) == [{
+    dataset.select_rows([PATH_WILDCARD], filters=[('test_label.label', 'equals', 'true')])) == [{
       'str': 'a',
       'int': 1,
       'test_label': {
-        'label': 'yes',
+        'label': 'true',
         'created': TEST_TIME
       }
     }]
@@ -88,20 +88,20 @@ def test_add_row_labels(make_test_data: TestDataMaker, mocker: MockerFixture) ->
 
   dataset = make_test_data(TEST_ITEMS)
 
-  dataset.add_labels('test_label', 'yes', row_ids=['1', '2'])
+  dataset.add_labels('test_label', row_ids=['1', '2'])
 
   assert list(dataset.select_rows([PATH_WILDCARD])) == [{
     'str': 'a',
     'int': 1,
     'test_label': {
-      'label': 'yes',
+      'label': 'true',
       'created': TEST_TIME
     }
   }, {
     'str': 'b',
     'int': 2,
     'test_label': {
-      'label': 'yes',
+      'label': 'true',
       'created': TEST_TIME
     }
   }, {
@@ -119,7 +119,7 @@ def test_remove_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> 
 
   dataset = make_test_data(TEST_ITEMS)
 
-  dataset.add_labels('test_label', 'yes', row_ids=['1', '2', '3'])
+  dataset.add_labels('test_label', row_ids=['1', '2', '3'])
   # Remove the first label.
   dataset.remove_labels('test_label', row_ids=['1'])
 
@@ -131,14 +131,14 @@ def test_remove_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> 
     'str': 'b',
     'int': 2,
     'test_label': {
-      'label': 'yes',
+      'label': 'true',
       'created': TEST_TIME
     }
   }, {
     'str': 'c',
     'int': 3,
     'test_label': {
-      'label': 'yes',
+      'label': 'true',
       'created': TEST_TIME
     }
   }]
@@ -168,9 +168,9 @@ def test_label_overwrites(make_test_data: TestDataMaker, mocker: MockerFixture) 
 
   dataset = make_test_data(TEST_ITEMS)
 
-  dataset.add_labels('test_label', 'yes', filters=[(ROWID, 'equals', '1')])
+  dataset.add_labels('test_label', label='yes', filters=[(ROWID, 'equals', '1')])
   # Overwrite the value.
-  dataset.add_labels('test_label', 'no', filters=[(ROWID, 'equals', '1')])
+  dataset.add_labels('test_label', label='no', filters=[(ROWID, 'equals', '1')])
 
   assert list(dataset.select_rows([PATH_WILDCARD])) == [{
     'str': 'a',
@@ -199,9 +199,9 @@ def test_add_multiple_labels(make_test_data: TestDataMaker, mocker: MockerFixtur
   dataset = make_test_data(TEST_ITEMS)
 
   # Add a 'yes' for every item with int=2.
-  dataset.add_labels('test_label', 'yes', filters=[('int', 'greater_equal', 2)])
+  dataset.add_labels('test_label', label='yes', filters=[('int', 'greater_equal', 2)])
   # Add a 'no' for every item with int < 2.
-  dataset.add_labels('test_label', 'no', filters=[('int', 'less', 2)])
+  dataset.add_labels('test_label', label='no', filters=[('int', 'less', 2)])
 
   assert dataset.manifest() == DatasetManifest(
     source=TestSource(),
@@ -250,9 +250,9 @@ def test_labels_select_groups(make_test_data: TestDataMaker, mocker: MockerFixtu
   dataset = make_test_data(TEST_ITEMS)
 
   # Add a 'yes' for every item with int=2.
-  dataset.add_labels('test_label', 'yes', filters=[('int', 'greater_equal', 2)])
+  dataset.add_labels('test_label', label='yes', filters=[('int', 'greater_equal', 2)])
   # Add a 'no' for every item with int < 2.
-  dataset.add_labels('test_label', 'no', filters=[('int', 'less', 2)])
+  dataset.add_labels('test_label', label='no', filters=[('int', 'less', 2)])
 
   assert dataset.select_groups(('test_label', 'label')) == SelectGroupsResult(
     too_many_distinct=False, counts=[('yes', 2), ('no', 1)])

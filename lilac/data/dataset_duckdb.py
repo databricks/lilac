@@ -1219,10 +1219,10 @@ class DatasetDuckDB(Dataset):
   @override
   def add_labels(self,
                  name: str,
-                 label: str,
                  row_ids: Optional[Sequence[str]] = None,
                  searches: Optional[Sequence[Search]] = None,
-                 filters: Optional[Sequence[FilterLike]] = None) -> None:
+                 filters: Optional[Sequence[FilterLike]] = None,
+                 label: Optional[str] = 'true') -> None:
     if not searches and not filters and not row_ids:
       raise ValueError(
         '`row_ids`, `searches` or `filters` must be specified when using `dataset.add_label`.')
