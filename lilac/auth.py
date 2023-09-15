@@ -23,6 +23,8 @@ class DatasetUserAccess(BaseModel):
   delete_signals: bool
   # Whether the user can update settings.
   update_settings: bool
+  # Whether the user can add labels.
+  add_labels: bool
 
 
 class ConceptUserAccess(BaseModel):
@@ -80,10 +82,18 @@ def get_user_access() -> UserAccess:
     return UserAccess(
       create_dataset=False,
       dataset=DatasetUserAccess(
-        compute_signals=False, delete_dataset=False, delete_signals=False, update_settings=False),
+        compute_signals=False,
+        delete_dataset=False,
+        delete_signals=False,
+        update_settings=False,
+        add_labels=False),
       concept=ConceptUserAccess(delete_any_concept=False))
   return UserAccess(
     create_dataset=True,
     dataset=DatasetUserAccess(
-      compute_signals=True, delete_dataset=True, delete_signals=True, update_settings=True),
+      compute_signals=True,
+      delete_dataset=True,
+      delete_signals=True,
+      update_settings=True,
+      add_labels=True),
     concept=ConceptUserAccess(delete_any_concept=True))

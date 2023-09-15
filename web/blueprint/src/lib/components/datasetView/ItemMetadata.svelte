@@ -4,6 +4,7 @@
   import {
     L,
     PATH_KEY,
+    ROWID,
     SCHEMA_FIELD_KEY,
     VALUE_KEY,
     formatValue,
@@ -66,8 +67,15 @@
 
     function getChildren(node: LilacValueNode): LilacValueNode[] {
       // Strip internal values.
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const {[VALUE_KEY]: _value, [PATH_KEY]: _path, [SCHEMA_FIELD_KEY]: _field, ...rest} = node;
+      /* eslint-disable @typescript-eslint/no-unused-vars */
+      const {
+        [VALUE_KEY]: _value,
+        [PATH_KEY]: _path,
+        [SCHEMA_FIELD_KEY]: _field,
+        [ROWID]: _rowid,
+        ...rest
+      } = node;
+      /* eslint-enable @typescript-eslint/no-unused-vars */
       return Object.values(rest);
     }
     // Expand any parents of highlighted fields.
