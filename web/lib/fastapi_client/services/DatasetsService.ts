@@ -187,7 +187,7 @@ export class DatasetsService {
         namespace: string,
         datasetName: string,
         urlSafeOptions: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<Array<Record<string, any>>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/select_rows_download',

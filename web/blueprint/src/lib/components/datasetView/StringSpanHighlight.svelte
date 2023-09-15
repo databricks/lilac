@@ -168,7 +168,7 @@
   const notificationStore = getNotificationsContext();
 </script>
 
-<div class="relative overflow-x-hidden text-ellipsis whitespace-break-spaces py-4">
+<div class="relative overflow-x-hidden text-ellipsis whitespace-break-spaces">
   {#each snippetSpans as snippetSpan}
     {@const renderSpan = snippetSpan.renderSpan}
     {#if snippetSpan.isShown}

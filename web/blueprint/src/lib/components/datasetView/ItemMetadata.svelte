@@ -76,7 +76,8 @@
         ...rest
       } = node;
       /* eslint-enable @typescript-eslint/no-unused-vars */
-      return Object.values(rest);
+      // Filter out any label fields.
+      return Object.values(rest).filter(n => L.field(n)?.label == null);
     }
     // Expand any parents of highlighted fields.
     const expanded = highlightedFields.some(highlightedField => {
