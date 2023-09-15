@@ -467,11 +467,21 @@ class Dataset(abc.ABC):
 
   @abc.abstractmethod
   def add_labels(self,
-                 label_name: str,
-                 label_value: str,
+                 name: str,
+                 row_ids: Optional[Sequence[str]] = None,
                  searches: Optional[Sequence[Search]] = None,
-                 filters: Optional[Sequence[FilterLike]] = None) -> None:
+                 filters: Optional[Sequence[FilterLike]] = None,
+                 value: Optional[str] = 'true') -> None:
     """Adds a label to a row, or a set of rows defined by searches and filters."""
+    pass
+
+  @abc.abstractmethod
+  def remove_labels(self,
+                    name: str,
+                    row_ids: Optional[Sequence[str]] = None,
+                    searches: Optional[Sequence[Search]] = None,
+                    filters: Optional[Sequence[FilterLike]] = None) -> None:
+    """Removes labels from a row, or a set of rows defined by searches and filters."""
     pass
 
   @abc.abstractmethod

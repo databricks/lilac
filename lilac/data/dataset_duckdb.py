@@ -161,6 +161,7 @@ class DatasetDuckDB(Dataset):
     self._signal_manifests: list[SignalManifest] = []
     self._label_schemas: dict[str, Schema] = {}
     self.con = duckdb.connect(database=':memory:')
+
     # Install sqlite for labels.
     self.con.execute("""
       INSTALL sqlite;
@@ -174,6 +175,7 @@ class DatasetDuckDB(Dataset):
     self._config_lock = threading.Lock()
     self._vector_index_lock = threading.Lock()
     self._label_file_lock: dict[str, threading.Lock] = {}
+    self._label_sqlite_cons: dict[str, sqlite3.Connection] = {}
 
     # Create a join table from all the parquet files.
     manifest = self.manifest()
@@ -1209,17 +1211,35 @@ class DatasetDuckDB(Dataset):
     return SelectRowsSchemaResult(
       data_schema=new_schema, udfs=udfs, search_results=search_results, sorts=sort_results or None)
 
+  def _label_sqlite_con(self, labels_filepath: str) -> sqlite3.Connection:
+    if labels_filepath not in self._label_sqlite_cons:
+      self._label_sqlite_cons[labels_filepath] = sqlite3.connect(labels_filepath)
+    return self._label_sqlite_cons[labels_filepath]
+
   @override
   def add_labels(self,
                  name: str,
-                 label: str,
+                 row_ids: Optional[Sequence[str]] = None,
                  searches: Optional[Sequence[Search]] = None,
-                 filters: Optional[Sequence[FilterLike]] = None) -> None:
-    if not searches and not filters:
-      raise ValueError('`searches` or `filters` must be specified when using `dataset.add_label`.')
+                 filters: Optional[Sequence[FilterLike]] = None,
+                 value: Optional[str] = 'true') -> None:
+    if not searches and not filters and not row_ids:
+      raise ValueError(
+        '`row_ids`, `searches` or `filters` must be specified when using `dataset.add_label`.')
 
     created = datetime.now()
-    rows = self.select_rows(columns=[ROWID], searches=searches, filters=filters)
+
+    # If filters and searches are defined with row_ids, add this as a filter.
+    if row_ids and (searches or filters):
+      filters = list(filters) if filters else []
+      filters.append(Filter(path=(ROWID,), op='in', value=list(row_ids)))
+
+    insert_row_ids: Iterable[str]
+    if searches or filters:
+      insert_row_ids = (
+        row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters))
+    else:
+      insert_row_ids = row_ids or []
 
     # Check if the label file exists.
     labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
@@ -1232,7 +1252,7 @@ class DatasetDuckDB(Dataset):
         pass
 
     with self._label_file_lock[labels_filepath]:
-      sqlite_con = sqlite3.connect(labels_filepath)
+      sqlite_con = self._label_sqlite_con(labels_filepath)
       sqlite_cur = sqlite_con.cursor()
 
       # Create the table if it doesn't exist.
@@ -1243,14 +1263,59 @@ class DatasetDuckDB(Dataset):
           created DATETIME)
       """)
 
-      for row in rows:
+      for row_id in insert_row_ids:
         # We use ON CONFLICT to resolve the same row UUID being labeled again. In this case, we
         # overwrite the existing label with the new label.
         sqlite_cur.execute(
           f"""
             INSERT INTO {name} VALUES (?, ?, ?)
             ON CONFLICT({ROWID}) DO UPDATE SET label=excluded.label;
-          """, (row[ROWID], label, created.isoformat()))
+          """, (row_id, value, created.isoformat()))
+      sqlite_con.commit()
+
+  @override
+  def remove_labels(self,
+                    name: str,
+                    row_ids: Optional[Sequence[str]] = None,
+                    searches: Optional[Sequence[Search]] = None,
+                    filters: Optional[Sequence[FilterLike]] = None) -> None:
+    if not searches and not filters and not row_ids:
+      raise ValueError(
+        '`row_ids`, `searches` or `filters` must be specified when using `dataset.add_label`.')
+
+    # Check if the label file exists.
+    labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
+
+    if not os.path.exists(labels_filepath):
+      raise ValueError(f'Label with name "{name}" does not exist.')
+
+    # If filters and searches are defined with row_ids, add this as a filter.
+    if row_ids and (searches or filters):
+      filters = list(filters) if filters else []
+      filters.append(Filter(path=(ROWID,), op='in', value=list(row_ids)))
+
+    remove_row_ids: Iterable[str]
+    if searches or filters:
+      remove_row_ids = (
+        row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters))
+    else:
+      remove_row_ids = row_ids or []
+
+    if labels_filepath not in self._label_file_lock:
+      self._label_file_lock[labels_filepath] = threading.Lock()
+
+    with self._label_file_lock[labels_filepath]:
+      sqlite_con = self._label_sqlite_con(labels_filepath)
+      sqlite_cur = sqlite_con.cursor()
+
+      for row_id in remove_row_ids:
+        # We use ON CONFLICT to resolve the same row UUID being labeled again. In this case, we
+        # overwrite the existing label with the new label.
+        sqlite_cur.execute(
+          f"""
+            DELETE FROM {name}
+            WHERE {ROWID} = ?
+          """, (row_id,))
       sqlite_con.commit()
 
   @override

@@ -335,4 +335,8 @@ def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions) -> 
   ]
 
   dataset = get_dataset(namespace, dataset_name)
-  dataset.add_labels(options.label_name, options.label_value, options.searches, sanitized_filters)
+  dataset.add_labels(
+    name=options.label_name,
+    value=options.label_value,
+    searches=options.searches,
+    filters=sanitized_filters)
