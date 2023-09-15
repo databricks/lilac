@@ -9,7 +9,6 @@
   import {getUrlHashContext} from '$lib/stores/urlHashStore';
   import {conceptLink, signalLink} from '$lib/utils';
   import {getTaggedConcepts, getTaggedDatasets} from '$lib/view_utils';
-  import {isMobile} from '$lilac';
   import {AddAlt, Settings, SidePanelClose} from 'carbon-icons-svelte';
   import NavigationGroup from './NavigationGroup.svelte';
   import {Command, triggerCommand} from './commands/Commands.svelte';
@@ -85,8 +84,6 @@
 
   // Settings.
   $: settingsSelected = $urlHashContext.page === 'settings';
-
-  console.log('mobile?', isMobile());
 </script>
 
 <div class="nav-container flex h-full w-56 flex-col items-center overflow-y-scroll pb-2">
