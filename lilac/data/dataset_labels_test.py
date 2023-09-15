@@ -24,7 +24,7 @@ TEST_ITEMS: list[Item] = [
   },
 ]
 
-TEST_TIME = '2023-08-15 01:23:45'
+TEST_TIME = datetime(2023, 8, 15, 1, 23, 45)
 
 
 @freeze_time(TEST_TIME)
@@ -56,7 +56,7 @@ def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) 
     'int': 1,
     'test_label': {
       'label': 'yes',
-      'created': '2023-08-15T01:23:45'
+      'created': TEST_TIME
     }
   }, {
     'str': 'b',
@@ -75,9 +75,39 @@ def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) 
       'int': 1,
       'test_label': {
         'label': 'yes',
-        'created': '2023-08-15T01:23:45'
+        'created': TEST_TIME
       }
     }]
+
+
+@freeze_time(TEST_TIME)
+def test_label_overwrites(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
+  test_datetime = datetime.now()
+  mock_datetime = mocker.patch.object(datetime, 'now', autospec=True)
+  mock_datetime.return_value = test_datetime
+
+  dataset = make_test_data(TEST_ITEMS)
+
+  dataset.add_labels('test_label', 'yes', filters=[(ROWID, 'equals', '1')])
+  # Overwrite the value.
+  dataset.add_labels('test_label', 'no', filters=[(ROWID, 'equals', '1')])
+
+  assert list(dataset.select_rows([PATH_WILDCARD])) == [{
+    'str': 'a',
+    'int': 1,
+    'test_label': {
+      'label': 'no',
+      'created': TEST_TIME
+    }
+  }, {
+    'str': 'b',
+    'int': 2,
+    'test_label': None
+  }, {
+    'str': 'c',
+    'int': 2,
+    'test_label': None
+  }]
 
 
 @freeze_time(TEST_TIME)
@@ -112,21 +142,21 @@ def test_add_multiple_labels(make_test_data: TestDataMaker, mocker: MockerFixtur
     'int': 1,
     'test_label': {
       'label': 'no',
-      'created': '2023-08-15T01:23:45'
+      'created': TEST_TIME
     }
   }, {
     'str': 'b',
     'int': 2,
     'test_label': {
       'label': 'yes',
-      'created': '2023-08-15T01:23:45'
+      'created': TEST_TIME
     }
   }, {
     'str': 'c',
     'int': 2,
     'test_label': {
       'label': 'yes',
-      'created': '2023-08-15T01:23:45'
+      'created': TEST_TIME
     }
   }]
 
