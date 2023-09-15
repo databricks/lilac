@@ -20,3 +20,7 @@ export function mergeDeep<T>(target: T, ...sources: T[]): T {
   }
   return mergeDeep(target, ...sources);
 }
+
+export function isMobile() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}

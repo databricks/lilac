@@ -26,7 +26,9 @@ def main(staging: bool) -> None:
   """Generate a web client from the OpenAPI spec."""
   firebase_token = env('FIREBASE_TOKEN')
   if not firebase_token:
-    raise ValueError('Missing `FIREBASE_TOKEN` environment variable. Add it to .env.local')
+    raise ValueError(
+      'Missing `FIREBASE_TOKEN` environment variable. Generate it with `firebase login:ci` '
+      'and add it to .env.local')
 
   run('./scripts/build_docs.sh')
 

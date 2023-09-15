@@ -97,8 +97,8 @@
   };
 </script>
 
-<div class="flex rounded border border-neutral-300">
-  <div class="flex w-2/3 flex-col" bind:clientHeight={mediaHeight}>
+<div class="flex flex-col rounded border border-neutral-300 md:flex-row">
+  <div class="flex flex-col md:w-2/3" bind:clientHeight={mediaHeight}>
     <div class="flex flex-wrap gap-x-2 gap-y-2 p-4">
       {#each rowLabels as label}
         <div class="flex items-center rounded-full bg-neutral-200 px-3 py-1 text-neutral-600">
@@ -159,7 +159,7 @@
       {/each}
     {/if}
   </div>
-  <div class="flex h-full w-1/3 bg-neutral-100">
+  <div class="flex h-full bg-neutral-100 md:w-1/3">
     <div class="sticky top-0 w-full self-start">
       <div
         style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}

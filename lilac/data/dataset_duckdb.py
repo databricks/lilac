@@ -2,12 +2,12 @@
 import functools
 import gc
 import glob
-import json
 import math
 import os
 import pathlib
 import re
 import shutil
+import sqlite3
 import threading
 from datetime import datetime
 from typing import Any, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
@@ -63,7 +63,7 @@ from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
 from ..tasks import TaskStepId, progress
-from ..utils import DebugTimer, chunks, get_dataset_output_dir, log, open_file
+from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
 from . import dataset
 from .dataset import (
   BINARY_OPS,
@@ -76,7 +76,6 @@ from .dataset import (
   Column,
   ColumnId,
   Dataset,
-  DatasetLabel,
   DatasetManifest,
   FeatureListValue,
   FeatureValue,
@@ -112,9 +111,12 @@ from .dataset_utils import (
 )
 
 SIGNAL_MANIFEST_FILENAME = 'signal_manifest.json'
-LABELS_FILENAME_SUFFIX = '.labels.json'
+LABELS_SQLITE_SUFFIX = '.labels.sqlite'
 DATASET_SETTINGS_FILENAME = 'settings.json'
 SOURCE_VIEW_NAME = 'source'
+
+SQLITE_LABEL_COLNAME = 'label'
+SQLITE_CREATED_COLNAME = 'created'
 
 NUM_AUTO_BINS = 15
 
@@ -159,6 +161,11 @@ class DatasetDuckDB(Dataset):
     self._signal_manifests: list[SignalManifest] = []
     self._label_schemas: dict[str, Schema] = {}
     self.con = duckdb.connect(database=':memory:')
+    # Install sqlite for labels.
+    self.con.execute("""
+      INSTALL sqlite;
+      LOAD sqlite;
+    """)
 
     # Maps a path and embedding to the vector index. This is lazily generated as needed.
     self._vector_indices: dict[tuple[PathKey, str], VectorDBIndex] = {}
@@ -194,12 +201,16 @@ class DatasetDuckDB(Dataset):
     delete_project_dataset_config(self.namespace, self.dataset_name, self.project_dir)
 
   def _create_view(self, view_name: str, files: list[str], type: Union[Literal['parquet'],
-                                                                       Literal['json']]) -> None:
+                                                                       Literal['sqlite']]) -> None:
     inner_select: str
     if type == 'parquet':
       inner_select = f'SELECT * FROM read_parquet({files})'
-    elif type == 'json':
-      inner_select = f'SELECT * FROM read_json_auto({files})'
+    elif type == 'sqlite':
+      if len(files) > 1:
+        raise ValueError('Only one sqlite file is supported.')
+      inner_select = f"""
+        SELECT * FROM sqlite_scan('{files[0]}', '{view_name}')
+      """
     else:
       raise ValueError(f'Unknown type: {type}')
 
@@ -230,9 +241,9 @@ class DatasetDuckDB(Dataset):
           signal_files = [os.path.join(root, f) for f in signal_manifest.files]
           if signal_files:
             self._create_view(signal_manifest.parquet_id, signal_files, type='parquet')
-        elif file.endswith(LABELS_FILENAME_SUFFIX):
-          label_name = file[0:-len(LABELS_FILENAME_SUFFIX)]
-          self._create_view(label_name, [os.path.join(root, file)], type='json')
+        elif file.endswith(LABELS_SQLITE_SUFFIX):
+          label_name = file[0:-len(LABELS_SQLITE_SUFFIX)]
+          self._create_view(label_name, [os.path.join(root, file)], type='sqlite')
           # This mirrors the structure in DuckDBDatasetLabel.
           self._label_schemas[label_name] = Schema(
             fields={
@@ -266,7 +277,14 @@ class DatasetDuckDB(Dataset):
     label_column_selects = []
     for label_name in self._label_schemas.keys():
       col_name = _escape_col_name(label_name)
-      label_column_selects.append(f'{col_name}.{col_name} AS {col_name}')
+      # We use a case here because labels are sparse and we don't want to return an object at all
+      # when there is no label.
+      label_column_selects.append(f"""
+        (CASE WHEN {col_name}.{SQLITE_LABEL_COLNAME} IS NULL THEN NULL ELSE {{
+          {SQLITE_LABEL_COLNAME}: {col_name}.{SQLITE_LABEL_COLNAME},
+          {SQLITE_CREATED_COLNAME}: {col_name}.{SQLITE_CREATED_COLNAME}
+        }} END) as {col_name}
+      """)
 
     select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + signal_column_selects + label_column_selects)
     parquet_ids = [manifest.parquet_id for manifest in self._signal_manifests if manifest.files
@@ -1204,7 +1222,7 @@ class DatasetDuckDB(Dataset):
     rows = self.select_rows(columns=[ROWID], searches=searches, filters=filters)
 
     # Check if the label file exists.
-    labels_filepath = get_labels_filepath(self.dataset_path, name)
+    labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
     if labels_filepath not in self._label_file_lock:
       self._label_file_lock[labels_filepath] = threading.Lock()
 
@@ -1213,18 +1231,27 @@ class DatasetDuckDB(Dataset):
       with open(labels_filepath, 'w') as f:
         pass
 
-    # Write the chunk to the jsonl file, row by row.
-    # TODO(nsthorat): Use duckdb to write the labels for better performance.
     with self._label_file_lock[labels_filepath]:
-      with open(labels_filepath, 'a') as f:
-        for row_chunk in chunks(rows, size=10_000):
-          labels = [{
-            ROWID: row[ROWID],
-            name: DatasetLabel(label=label, created=created).dict()
-          } for row in row_chunk]
+      sqlite_con = sqlite3.connect(labels_filepath)
+      sqlite_cur = sqlite_con.cursor()
 
-          f.write('\n'.join(json.dumps(label) for label in labels))
-          f.write('\n')
+      # Create the table if it doesn't exist.
+      sqlite_cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS {name}(
+          {ROWID} VARCHAR NOT NULL PRIMARY KEY,
+          label VARCHAR NOT NULL,
+          created DATETIME)
+      """)
+
+      for row in rows:
+        # We use ON CONFLICT to resolve the same row UUID being labeled again. In this case, we
+        # overwrite the existing label with the new label.
+        sqlite_cur.execute(
+          f"""
+            INSERT INTO {name} VALUES (?, ?, ?)
+            ON CONFLICT({ROWID}) DO UPDATE SET label=excluded.label;
+          """, (row[ROWID], label, created.isoformat()))
+      sqlite_con.commit()
 
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
@@ -1902,6 +1929,6 @@ def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
   return bins
 
 
-def get_labels_filepath(dataset_output_dir: str, label_name: str) -> str:
+def get_labels_sqlite_filename(dataset_output_dir: str, label_name: str) -> str:
   """Get the filepath to the labels file."""
-  return os.path.join(dataset_output_dir, f'{label_name}{LABELS_FILENAME_SUFFIX}')
+  return os.path.join(dataset_output_dir, f'{label_name}{LABELS_SQLITE_SUFFIX}')

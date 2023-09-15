@@ -164,11 +164,15 @@
   <div class="flex w-full flex-row items-center justify-between">
     <div class="py-1">
       {#if totalNumRows && manifest}
-        {formatValue(totalNumRows)} of {formatValue(manifest.dataset_manifest.num_items)} rows
+        {#if totalNumRows == manifest.dataset_manifest.num_items}
+          {formatValue(totalNumRows)} rows
+        {:else}
+          {formatValue(totalNumRows)} of {formatValue(manifest.dataset_manifest.num_items)} rows
+        {/if}
       {/if}
     </div>
-    <div class="sort-container flex flex-row items-center gap-x-1">
-      <div class="mr-1">Sort by</div>
+    <div class="sort-container flex w-44 flex-row items-center gap-x-1 md:w-fit">
+      <div class="mr-1 whitespace-nowrap">Sort by</div>
       <Select noLabel size="sm" class="w-80" selected={sortById} on:update={selectSort}>
         {#each Object.entries(sortGroups) as [groupName, items]}
           <SelectItemGroup label={groupName}>
