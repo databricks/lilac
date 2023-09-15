@@ -153,7 +153,10 @@
     </div>
     {#if mediaFields.length > 0}
       {#each mediaFields as mediaField, i (serializePath(mediaField.path))}
-        <div class:border-b={i < mediaFields.length - 1} class="flex h-full border-neutral-200">
+        <div
+          class:border-b={i < mediaFields.length - 1}
+          class="flex h-full w-full border-neutral-200"
+        >
           <ItemMedia {row} path={mediaField.path} field={mediaField} {highlightedFields} />
         </div>
       {/each}
