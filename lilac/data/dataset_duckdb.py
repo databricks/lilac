@@ -1229,8 +1229,6 @@ class DatasetDuckDB(Dataset):
       with open(labels_filepath, 'w') as f:
         pass
 
-    # Write the chunk to the jsonl file, row by row.
-    # TODO(nsthorat): Use duckdb to write the labels for better performance.
     with self._label_file_lock[labels_filepath]:
       sqlite_con = sqlite3.connect(labels_filepath)
       sqlite_cur = sqlite_con.cursor()
