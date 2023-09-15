@@ -207,6 +207,7 @@ class SelectRowsResponse(BaseModel):
   total_num_rows: int
 
 
+# SQL adds {"x": None} for `SELECT x` where x is sparse, thus exclude none to keep response small.
 @router.get('/{namespace}/{dataset_name}/select_rows_download', response_model_exclude_none=True)
 def select_rows_download(
     namespace: str, dataset_name: str, url_safe_options: str,
