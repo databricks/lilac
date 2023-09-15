@@ -314,3 +314,25 @@ def update_settings(namespace: str, dataset_name: str, settings: DatasetSettings
   dataset = get_dataset(namespace, dataset_name)
   dataset.update_settings(settings)
   return None
+
+
+class AddLabelsOptions(BaseModel):
+  """The request for the add labels endpoint."""
+  label_name: str
+  label_value: str
+  searches: Optional[Sequence[Search]] = None
+  filters: Optional[Sequence[Filter]] = None
+
+
+@router.post('/{namespace}/{dataset_name}/labels', response_model_exclude_none=True)
+def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions) -> None:
+  """"Add a label to the dataset."""
+  if not get_user_access().dataset.add_labels:
+    raise HTTPException(401, 'User does not have access to add labels to this dataset.')
+
+  sanitized_filters = [
+    PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
+  ]
+
+  dataset = get_dataset(namespace, dataset_name)
+  dataset.add_labels(options.label_name, options.label_value, options.searches, sanitized_filters)

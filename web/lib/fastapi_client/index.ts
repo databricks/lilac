@@ -6,6 +6,7 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export type { AddLabelsOptions } from './models/AddLabelsOptions';
 export type { AuthenticationInfo } from './models/AuthenticationInfo';
 export type { BinaryFilter } from './models/BinaryFilter';
 export type { Column } from './models/Column';

@@ -245,6 +245,18 @@ export function isLabelField(field: LilacField): boolean {
   return getLabel(field) != null;
 }
 
+export function getSchemaLabels(schema: LilacSchema | LilacField): string[] {
+  return childFields(schema)
+    .map(f => f.label)
+    .filter(l => l != null) as string[];
+}
+
+export function getRowLabels(node: LilacValueNode): string[] {
+  return listValueNodes(node)
+    .map(n => L.field(n)?.label)
+    .filter(l => l != null) as string[];
+}
+
 export const L = {
   path: (value: LilacValueNode): Path | undefined => {
     if (!value) return undefined;

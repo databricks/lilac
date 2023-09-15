@@ -183,3 +183,11 @@ export const updateDatasetSettingsMutation = createApiMutation(DatasetsService.u
     queryClient.invalidateQueries([DATASETS_CONFIG_TAG]);
   }
 });
+
+export const addLabelsMutation = createApiMutation(DatasetsService.addLabels, {
+  onSuccess: () => {
+    queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
+    queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
+    queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
+  }
+});

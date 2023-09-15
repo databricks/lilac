@@ -1172,6 +1172,7 @@ class DatasetDuckDB(Dataset):
       elif manifest.data_schema.has_field(dest_path):
         field = manifest.data_schema.get_field(dest_path)
       else:
+        print('skippe', col)
         # This column might refer to an output of a udf. We postpone validation to later.
         continue
       col_schemas.append(_make_schema_from_path(dest_path, field))

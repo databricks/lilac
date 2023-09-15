@@ -248,6 +248,8 @@ class Schema(BaseModel):
 
   def has_field(self, path: PathTuple) -> bool:
     """Returns if the field is found at the given path."""
+    if path == (ROWID,):
+      return True
     field = cast(Field, self)
     for path_part in path:
       if field.fields:
