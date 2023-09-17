@@ -4,6 +4,7 @@ from .csv_source import CSVSource
 from .gmail_source import GmailSource
 from .huggingface_source import HuggingFaceSource
 from .json_source import JSONSource
+from .langsmith import LangSmithSource
 from .pandas_source import PandasSource
 from .parquet_source import ParquetSource
 
@@ -14,4 +15,5 @@ __all__ = [
   'GmailSource',
   'PandasSource',
   'ParquetSource',
+  'LangSmithSource',
 ]
