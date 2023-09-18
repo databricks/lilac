@@ -70,7 +70,7 @@
   {#if notEmpty(value)}
     {@const path = L.path(valueNode) || []}
     {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
-    <div class="flex gap-x-4">
+    <div class="flex w-full gap-x-4">
       <div class="relative flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
         <div class="sticky top-0 flex w-full items-center self-start">
           <div title={displayPath(path)} class="w-full truncate">{displayPath(path)}</div>
@@ -92,7 +92,7 @@
         </div>
       </div>
 
-      <div class="w-full pt-1 font-normal">
+      <div class="w-full grow-0 pt-1 font-normal">
         <StringSpanHighlight
           text={formatValue(value)}
           {row}

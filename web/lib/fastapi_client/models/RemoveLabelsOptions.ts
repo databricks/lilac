@@ -1,4 +1,3 @@
-/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -11,11 +10,10 @@ import type { SemanticSearch } from './SemanticSearch';
 import type { UnaryFilter } from './UnaryFilter';
 
 /**
- * The request for the add labels endpoint.
+ * The request for the remove labels endpoint.
  */
-export type AddLabelsOptions = {
+export type RemoveLabelsOptions = {
     label_name: string;
-    label_value?: string;
     row_ids?: Array<string>;
     searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch)>;
     filters?: Array<(BinaryFilter | UnaryFilter | ListFilter)>;

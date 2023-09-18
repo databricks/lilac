@@ -179,7 +179,7 @@
     {/if}
     {#if isFiltered}
       {#each filters as filter}
-        <FilterPill {filter} hidePath />
+        <FilterPill {schema} {filter} hidePath />
       {/each}
     {/if}
     {#each searches as search}

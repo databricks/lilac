@@ -1,0 +1,161 @@
+<script context="module" lang="ts">
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  export interface AddLabelsQuery extends Omit<AddLabelsOptions, 'label_name'> {}
+</script>
+
+<script lang="ts">
+  import {addLabelsMutation, infiniteQuerySelectRows} from '$lib/queries/datasetQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
+  import {getDatasetContext} from '$lib/stores/datasetStore';
+  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
+  import {getNotificationsContext} from '$lib/stores/notificationsStore';
+  import {getSchemaLabels, type AddLabelsOptions} from '$lilac';
+  import {ComboBox, SkeletonText} from 'carbon-components-svelte';
+  import {Add, Tag} from 'carbon-icons-svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
+  import {clickOutside} from '../common/clickOutside';
+
+  export let addLabelsQuery: AddLabelsQuery;
+  export let hideLabels: string[] | undefined = undefined;
+  export let buttonText: string | undefined = undefined;
+  export let helperText = 'Add label';
+  $: labelMenuOpen = false;
+  let comboBox: ComboBox;
+  let comboBoxText = '';
+
+  const notificationStore = getNotificationsContext();
+
+  const datasetStore = getDatasetContext();
+  const datasetViewStore = getDatasetViewContext();
+
+  $: namespace = $datasetViewStore.namespace;
+  $: datasetName = $datasetViewStore.datasetName;
+
+  const authInfo = queryAuthInfo();
+  $: canEditLabels = $authInfo.data?.access.dataset.edit_labels;
+
+  $: schemaLabels = $datasetStore.schema && getSchemaLabels($datasetStore.schema);
+  $: newLabelItem = {
+    id: 'new-label',
+    text: comboBoxText
+  };
+  $: missingLabelItems =
+    schemaLabels
+      ?.filter(l => !(hideLabels || []).includes(l))
+      .map((l, i) => ({id: `label_${i}`, text: l})) || [];
+  $: labelItems = [...(comboBoxText != '' ? [newLabelItem] : []), ...missingLabelItems];
+
+  const addLabels = addLabelsMutation();
+
+  $: selectOptions = getSelectRowsOptions($datasetViewStore);
+  $: selectRowsSchema = $datasetStore.selectRowsSchema;
+  // Query rows to get the total count for the notification.
+  // TODO(nsthorat): Add this to the response of add_labels instead of making a query.
+  $: rows = infiniteQuerySelectRows(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    selectOptions || {},
+    selectRowsSchema?.isSuccess ? selectRowsSchema.data.schema : undefined
+  );
+
+  function addLabel() {
+    labelMenuOpen = true;
+    requestAnimationFrame(() => {
+      // comboBox.clear({focus: true}) does not open the combo box automatically, so we
+      // programmatically set it.
+      comboBox.$set({open: true});
+    });
+  }
+
+  interface LabelItem {
+    id: 'new-label' | string;
+    text: string;
+  }
+
+  const selectLabelItem = (
+    e: CustomEvent<{
+      selectedId: LabelItem['id'];
+      selectedItem: LabelItem;
+    }>
+  ) => {
+    const selectedItem = e.detail.selectedItem;
+    const addLabelsOptions: AddLabelsOptions = {
+      ...addLabelsQuery,
+      label_name: selectedItem.text
+    };
+    $addLabels.mutate([namespace, datasetName, addLabelsOptions], {
+      onSuccess: () => {
+        const totalNumRows = $rows.data?.pages[0].total_num_rows;
+
+        const message =
+          addLabelsOptions.row_ids != null
+            ? `Document id: ${addLabelsOptions.row_ids}`
+            : `${totalNumRows} rows labeled`;
+
+        notificationStore.addNotification({
+          kind: 'success',
+          title: `Added label "${addLabelsOptions.label_name}"`,
+          message
+        });
+        labelMenuOpen = false;
+      }
+    });
+    comboBox.clear();
+  };
+</script>
+
+<div
+  class="w-full"
+  use:hoverTooltip={{
+    text: !canEditLabels ? 'You do not have access to add labels.' : ''
+  }}
+>
+  <button
+    disabled={!canEditLabels}
+    class:opacity-30={!canEditLabels}
+    on:click={addLabel}
+    use:hoverTooltip={{text: helperText}}
+    class="flex items-center gap-x-2 border border-gray-300"
+    class:hidden={labelMenuOpen}
+    ><Add />
+    {#if buttonText != null}
+      <span class="mr-1">{buttonText}</span>
+    {/if}
+  </button>
+</div>
+<div
+  class="absolute left-0 top-0 w-60"
+  class:hidden={!labelMenuOpen}
+  use:clickOutside={() => (labelMenuOpen = false)}
+>
+  {#if $addLabels.isLoading}
+    <SkeletonText />
+  {:else}
+    <ComboBox
+      size="sm"
+      open={labelMenuOpen}
+      bind:this={comboBox}
+      items={labelItems}
+      bind:value={comboBoxText}
+      on:select={selectLabelItem}
+      shouldFilterItem={(item, value) =>
+        item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-label'}
+      placeholder="Select or add a new label"
+      let:item={it}
+    >
+      {@const item = labelItems.find(p => p.id === it.id)}
+      {#if item == null}
+        <div />
+      {:else if item.id === 'new-label'}
+        <div class="new-concept flex flex-row items-center justify-items-center">
+          <Tag><Add /></Tag>
+          <div class="ml-2">
+            New label: {comboBoxText}
+          </div>
+        </div>
+      {:else}
+        <div class="flex justify-between gap-x-8">{item.text}</div>
+      {/if}
+    </ComboBox>
+  {/if}
+</div>
