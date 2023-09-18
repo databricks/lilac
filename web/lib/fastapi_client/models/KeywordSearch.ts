@@ -9,6 +9,6 @@
 export type KeywordSearch = {
     path: (Array<string> | string);
     query: string;
-    type?: any;
+    type?: 'keyword';
 };
 

@@ -201,7 +201,8 @@ class DatasetDuckDB(Dataset):
     shutil.rmtree(self.dataset_path, ignore_errors=True)
     delete_project_dataset_config(self.namespace, self.dataset_name, self.project_dir)
 
-  def _create_view(self, view_name: str, files: list[str], type: Literal['parquet', 'sqlite']) -> None:
+  def _create_view(self, view_name: str, files: list[str], type: Literal['parquet',
+                                                                         'sqlite']) -> None:
     inner_select: str
     if type == 'parquet':
       inner_select = f'SELECT * FROM read_parquet({files})'

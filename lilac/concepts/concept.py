@@ -47,7 +47,7 @@ class ExampleOrigin(BaseModel):
   dataset_row_id: str
 
 
-DraftId = Union[Literal['main'], str]
+DraftId = Union[Literal['main', None], str]
 DRAFT_MAIN = 'main'
 
 

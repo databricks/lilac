@@ -42,7 +42,7 @@ export class ConceptsService {
     public static getConcept(
         namespace: string,
         conceptName: string,
-        draft?: (string | null),
+        draft?: ('main' | string | null),
     ): CancelablePromise<Concept> {
         return __request(OpenAPI, {
             method: 'GET',

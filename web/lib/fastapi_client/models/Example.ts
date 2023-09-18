@@ -13,7 +13,7 @@ export type Example = {
     text?: (string | null);
     img?: (Blob | null);
     origin?: (ExampleOrigin | null);
-    draft?: (string | null);
+    draft?: ('main' | string | null);
     id: string;
 };
 

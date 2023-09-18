@@ -8,7 +8,7 @@
  */
 export type ListFilter = {
     path: (Array<string> | string);
-    op: any;
+    op: 'in';
     value: Array<string>;
 };
 

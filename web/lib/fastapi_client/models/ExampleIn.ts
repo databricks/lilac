@@ -13,6 +13,6 @@ export type ExampleIn = {
     text?: (string | null);
     img?: (Blob | null);
     origin?: (ExampleOrigin | null);
-    draft?: (string | null);
+    draft?: ('main' | string | null);
 };
 

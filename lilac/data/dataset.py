@@ -93,8 +93,8 @@ class MediaResult(BaseModel):
 
 
 BinaryOp = Literal['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal']
-UnaryOp = Literal['exists']
-ListOp = Literal['in']
+UnaryOp = Literal['exists', None]
+ListOp = Literal['in', None]
 
 BINARY_OPS = set(['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal'])
 UNARY_OPS = set(['exists'])
@@ -261,7 +261,7 @@ class KeywordSearch(BaseModel):
   """A keyword search query on a column."""
   path: Path
   query: SearchValue
-  type: Literal['keyword'] = 'keyword'
+  type: Literal['keyword', None] = 'keyword'
 
 
 class SemanticSearch(BaseModel):
@@ -269,7 +269,7 @@ class SemanticSearch(BaseModel):
   path: Path
   query: SearchValue
   embedding: str
-  type: Literal['semantic'] = 'semantic'
+  type: Literal['semantic', None] = 'semantic'
 
 
 class ConceptSearch(BaseModel):
@@ -278,7 +278,7 @@ class ConceptSearch(BaseModel):
   concept_namespace: str
   concept_name: str
   embedding: str
-  type: Literal['concept'] = 'concept'
+  type: Literal['concept', None] = 'concept'
 
 
 Search = Union[ConceptSearch, SemanticSearch, KeywordSearch]

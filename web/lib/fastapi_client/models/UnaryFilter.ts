@@ -8,7 +8,7 @@
  */
 export type UnaryFilter = {
     path: (Array<string> | string);
-    op: any;
+    op: 'exists';
     value?: null;
 };
 

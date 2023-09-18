@@ -10,6 +10,6 @@ export type SemanticSearch = {
     path: (Array<string> | string);
     query: string;
     embedding: string;
-    type?: any;
+    type?: 'semantic';
 };
 
