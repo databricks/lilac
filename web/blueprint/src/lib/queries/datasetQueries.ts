@@ -2,14 +2,20 @@ import {
   ApiError,
   DataLoadersService,
   DatasetsService,
+  PATH_WILDCARD,
+  ROWID,
   deserializeRow,
   deserializeSchema,
+  getSchemaLabels,
+  type AddLabelsOptions,
   type DataType,
   type LilacSchema,
   type Path,
+  type RemoveLabelsOptions,
   type SelectRowsOptions
 } from '$lilac';
 import {
+  QueryClient,
   createInfiniteQuery,
   type CreateInfiniteQueryResult,
   type CreateQueryResult
@@ -39,6 +45,8 @@ export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
 export const DATASETS_TAG = 'datasets';
 export const DATASETS_CONFIG_TAG = 'config';
 export const DATASETS_SETTINGS_TAG = 'settings';
+
+export const DATASET_ITEM_METADATA_TAG = 'item_metadata';
 
 export const DEFAULT_SELECT_ROWS_LIMIT = 20;
 
@@ -113,6 +121,7 @@ export const queryManyDatasetStats = createApiQuery(function getStats(
 },
 DATASETS_TAG);
 
+/** Queries the /select_rows endpoint with all options. */
 export const querySelectRows = (
   namespace: string,
   datasetName: string,
@@ -134,6 +143,30 @@ export const querySelectRows = (
     },
     [DATASETS_TAG, 'selectRows', namespace, datasetName]
   )(namespace, datasetName, selectRowsOptions);
+
+/** Gets the metadata for a single row. */
+export const queryRowMetadata = (
+  namespace: string,
+  datasetName: string,
+  rowId: string,
+  schema?: LilacSchema | undefined
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): CreateQueryResult<Awaited<Record<string, any>>, ApiError> =>
+  createApiQuery(
+    async function selectRows(
+      namespace: string,
+      datasetName: string,
+      selectRowsOptions: SelectRowsOptions
+    ) {
+      const res = await DatasetsService.selectRows(namespace, datasetName, selectRowsOptions);
+      return schema == null ? res.rows[0] : deserializeRow(res.rows[0], schema);
+    },
+    [DATASETS_TAG, namespace, datasetName, DATASET_ITEM_METADATA_TAG, rowId]
+  )(namespace, datasetName, {
+    filters: [{path: [ROWID], op: 'equals', value: rowId}],
+    columns: [PATH_WILDCARD, ROWID],
+    combine_columns: true
+  });
 
 export const querySelectRowsSchema = createApiQuery(
   DatasetsService.selectRowsSchema,
@@ -184,18 +217,50 @@ export const updateDatasetSettingsMutation = createApiMutation(DatasetsService.u
   }
 });
 
-export const addLabelsMutation = createApiMutation(DatasetsService.addLabels, {
-  onSuccess: () => {
-    queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
-    queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
-    queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
-  }
-});
+export const addLabelsMutation = (schema: LilacSchema) =>
+  createApiMutation(DatasetsService.addLabels, {
+    onSuccess: (data, [namespace, datasetName, addLabelsOptions]) => {
+      invalidateQueriesLabelEdit(schema, namespace, datasetName, queryClient, addLabelsOptions);
+    }
+  })();
 
-export const removeLabelsMutation = createApiMutation(DatasetsService.removeLabels, {
-  onSuccess: () => {
+export const removeLabelsMutation = (schema: LilacSchema) =>
+  createApiMutation(DatasetsService.removeLabels, {
+    onSuccess: (data, [namespace, datasetName, removeLabelsOptions]) => {
+      invalidateQueriesLabelEdit(schema, namespace, datasetName, queryClient, removeLabelsOptions);
+    }
+  })();
+
+function invalidateQueriesLabelEdit(
+  schema: LilacSchema,
+  namespace: string,
+  datasetName: string,
+  queryClient: QueryClient,
+  options: AddLabelsOptions | RemoveLabelsOptions
+) {
+  const schemaLabels = getSchemaLabels(schema);
+  if (!schemaLabels.includes(options.label_name)) {
     queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
     queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
-    queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
   }
-});
+
+  if (options.row_ids != null) {
+    for (const rowId of options.row_ids) {
+      queryClient.invalidateQueries([
+        DATASETS_TAG,
+        namespace,
+        datasetName,
+        DATASET_ITEM_METADATA_TAG,
+        rowId
+      ]);
+    }
+  }
+  if (options.filters != null || options.searches != null) {
+    queryClient.invalidateQueries([
+      DATASETS_TAG,
+      namespace,
+      datasetName,
+      DATASET_ITEM_METADATA_TAG
+    ]);
+  }
+}
