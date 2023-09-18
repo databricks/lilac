@@ -1,5 +1,5 @@
 """Pandas source."""
-from typing import Any, Iterable, Optional
+from typing import Any, ClassVar, Iterable, Optional
 
 import pandas as pd
 from typing_extensions import override
@@ -12,7 +12,7 @@ PANDAS_INDEX_COLUMN = '__pd_index__'
 
 class PandasSource(Source):
   """Pandas source."""
-  name = 'pandas'
+  name: ClassVar[str] = 'pandas'
 
   _df: Optional[pd.DataFrame] = None
   _source_schema: SourceSchema

@@ -1,6 +1,6 @@
 """Tests for dataset.compute_signal()."""
 
-from typing import Iterable, Optional, Union, cast
+from typing import ClassVar, Iterable, Optional, Union, cast
 
 import numpy as np
 import pytest
@@ -57,7 +57,7 @@ SIMPLE_ITEMS: list[Item] = [{
 
 
 class TestInvalidSignal(TextSignal):
-  name = 'test_invalid_signal'
+  name: ClassVar[str] = 'test_invalid_signal'
 
   @override
   def fields(self) -> Field:
@@ -70,7 +70,7 @@ class TestInvalidSignal(TextSignal):
 
 
 class TestSparseSignal(TextSignal):
-  name = 'test_sparse_signal'
+  name: ClassVar[str] = 'test_sparse_signal'
 
   @override
   def fields(self) -> Field:
@@ -88,7 +88,7 @@ class TestSparseSignal(TextSignal):
 
 class TestSparseRichSignal(TextSignal):
   """Find personally identifiable information (emails, phone numbers, etc)."""
-  name = 'test_sparse_rich_signal'
+  name: ClassVar[str] = 'test_sparse_rich_signal'
 
   @override
   def fields(self) -> Field:
@@ -105,7 +105,7 @@ class TestSparseRichSignal(TextSignal):
 
 
 class TestParamSignal(TextSignal):
-  name = 'param_signal'
+  name: ClassVar[str] = 'param_signal'
   param: str
 
   def fields(self) -> Field:
@@ -117,7 +117,7 @@ class TestParamSignal(TextSignal):
 
 
 class TestSignal(TextSignal):
-  name = 'test_signal'
+  name: ClassVar[str] = 'test_signal'
 
   @override
   def fields(self) -> Field:
@@ -130,7 +130,7 @@ class TestSignal(TextSignal):
 
 class TestSplitSignal(TextSplitterSignal):
   """Split documents into sentence by splitting on period, generating entities."""
-  name = 'test_split'
+  name: ClassVar[str] = 'test_split'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -158,7 +158,7 @@ STR_EMBEDDINGS: dict[str, Union[list[float], list[list[float]]]] = {
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -169,7 +169,7 @@ class TestEmbedding(TextEmbeddingSignal):
 
 
 class ComputedKeySignal(TextSignal):
-  name = 'computed_key'
+  name: ClassVar[str] = 'computed_key'
 
   @override
   def fields(self) -> Field:

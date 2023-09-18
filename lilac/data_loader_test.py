@@ -3,7 +3,7 @@
 import os
 import pathlib
 import uuid
-from typing import Iterable
+from typing import ClassVar, Iterable
 
 import pytest
 from pytest_mock import MockerFixture
@@ -25,7 +25,7 @@ from .utils import DATASETS_DIR_NAME
 
 class TestSource(Source):
   """A test source."""
-  name = 'test_source'
+  name: ClassVar[str] = 'test_source'
 
   @override
   def setup(self) -> None:

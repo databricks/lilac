@@ -1,5 +1,5 @@
 """LangSmith source."""
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 from fastapi import APIRouter
 from pydantic import Field
@@ -22,8 +22,8 @@ def get_datasets() -> list[str]:
 
 class LangSmithSource(Source):
   """LangSmith data loader."""
-  name = 'langsmith'
-  router = router
+  name: ClassVar[str] = 'langsmith'
+  router: ClassVar[APIRouter] = router
 
   dataset_name: str = Field(description='LangSmith dataset name')
 

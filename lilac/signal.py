@@ -130,7 +130,7 @@ def _args_key_from_dict(args_dict: dict[str, Any]) -> str:
 
 class TextSplitterSignal(Signal):
   """An interface for signals that compute over text."""
-  input_type = SignalInputType.TEXT
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -140,7 +140,7 @@ class TextSplitterSignal(Signal):
 # Signal base classes, used for inferring the dependency chain required for computing a signal.
 class TextSignal(Signal):
   """An interface for signals that compute over text."""
-  input_type = SignalInputType.TEXT
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   @override
   def key(self, is_computed_signal: Optional[bool] = False) -> str:
@@ -152,7 +152,7 @@ class TextSignal(Signal):
 
 class TextEmbeddingSignal(TextSignal):
   """An interface for signals that compute embeddings for text."""
-  input_type = SignalInputType.TEXT
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   _split = True
 

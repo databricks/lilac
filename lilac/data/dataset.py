@@ -6,7 +6,7 @@ import enum
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, Iterator, Literal, Optional, Sequence, Union
+from typing import Any, ClassVar, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
 from pydantic import (
@@ -185,7 +185,7 @@ ColumnId = Union[Path, Column]
 
 class NoSource(Source):
   """A dummy source that is used when no source is defined, for backwards compat."""
-  name = 'no_source'
+  name: ClassVar[str] = 'no_source'
 
 
 class SourceManifest(BaseModel):

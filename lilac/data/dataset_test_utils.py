@@ -2,7 +2,7 @@
 import os
 import pathlib
 from copy import deepcopy
-from typing import Optional, Type
+from typing import ClassVar, Optional, Type
 
 import numpy as np
 from typing_extensions import Protocol
@@ -39,7 +39,7 @@ class TestDataMaker(Protocol):
 
 class TestSource(Source):
   """Test source that does nothing."""
-  name = 'test_source'
+  name: ClassVar[str] = 'test_source'
 
 
 def make_dataset(dataset_cls: Type[Dataset],

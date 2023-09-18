@@ -1,5 +1,5 @@
 """CSV source."""
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 import duckdb
 import pandas as pd
@@ -24,7 +24,7 @@ class JSONSource(Source):
   For more details on authorizing access to S3, GCS or R2, see:
   https://duckdb.org/docs/guides/import/s3_import.html
   """ # noqa: D415, D400
-  name = 'json'
+  name: ClassVar[str] = 'json'
 
   filepaths: list[str] = PydanticField(
     description='A list of filepaths to JSON files. '

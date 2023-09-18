@@ -29,7 +29,7 @@ https://github.com/hwchase17/langchain/blob/master/langchain/text_splitter.py
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from typing import Callable, Iterable, Optional
+from typing import Callable, ClassVar, Iterable, Optional
 
 from pydantic import FieldValidationInfo, field_validator
 from typing_extensions import override
@@ -48,8 +48,8 @@ CHUNK_OVERLAP = 50
 class ChunkSplitter(TextSplitterSignal):
   """Recursively split documents by different characters to find one that works."""
 
-  name = 'chunk'
-  display_name = 'Chunk Splitter'
+  name: ClassVar[str] = 'chunk'
+  display_name: ClassVar[str] = 'Chunk Splitter'
 
   chunk_size: int = CHUNK_SIZE
   chunk_overlap: int = CHUNK_OVERLAP

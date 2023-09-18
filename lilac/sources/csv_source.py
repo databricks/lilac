@@ -1,5 +1,5 @@
 """CSV source."""
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 import duckdb
 import pandas as pd
@@ -22,7 +22,7 @@ class CSVSource(Source):
   For more details on authorizing access to S3, GCS or R2, see:
   https://duckdb.org/docs/guides/import/s3_import.html
   """ # noqa: D415, D400
-  name = 'csv'
+  name: ClassVar[str] = 'csv'
 
   filepaths: list[str] = Field(
     description='A list of paths to CSV files. '

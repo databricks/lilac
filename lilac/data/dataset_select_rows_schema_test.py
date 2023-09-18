@@ -1,6 +1,6 @@
 """Tests for `db.select_rows_schema()`."""
 
-from typing import Iterable, Optional, cast
+from typing import ClassVar, Iterable, Optional, cast
 
 import numpy as np
 import pytest
@@ -84,7 +84,7 @@ TEST_DATA: list[Item] = [{
 
 class TestSplitter(TextSplitterSignal):
   """Split documents into sentence by splitting on period."""
-  name = 'test_splitter'
+  name: ClassVar[str] = 'test_splitter'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -108,7 +108,7 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -119,8 +119,8 @@ class TestEmbedding(TextEmbeddingSignal):
 
 class TestEmbeddingSumSignal(VectorSignal):
   """Sums the embeddings to return a single floating point value."""
-  name = 'test_embedding_sum'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'test_embedding_sum'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -152,7 +152,7 @@ def setup_teardown() -> Iterable[None]:
 
 
 class LengthSignal(TextSignal):
-  name = 'length_signal'
+  name: ClassVar[str] = 'length_signal'
 
   def fields(self) -> Field:
     return field('int32')
@@ -163,7 +163,7 @@ class LengthSignal(TextSignal):
 
 
 class AddSpaceSignal(TextSignal):
-  name = 'add_space_signal'
+  name: ClassVar[str] = 'add_space_signal'
 
   def fields(self) -> Field:
     return field('string')

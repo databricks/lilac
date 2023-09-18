@@ -1,7 +1,7 @@
 """Tests for dataset.compute_signal() when signals are chained."""
 
 import re
-from typing import Iterable, List, Optional, cast
+from typing import ClassVar, Iterable, List, Optional, cast
 
 import numpy as np
 import pytest
@@ -67,7 +67,7 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in
 
 class TestSplitter(TextSplitterSignal):
   """Split documents into sentence by splitting on period."""
-  name = 'test_splitter'
+  name: ClassVar[str] = 'test_splitter'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -83,7 +83,7 @@ class TestSplitter(TextSplitterSignal):
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -94,8 +94,8 @@ class TestEmbedding(TextEmbeddingSignal):
 
 class TestEmbeddingSumSignal(VectorSignal):
   """Sums the embeddings to return a single floating point value."""
-  name = 'test_embedding_sum'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'test_embedding_sum'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -179,7 +179,7 @@ ENTITY_REGEX = r'[A-Za-z]+@[A-Za-z]+'
 
 class NamedEntity(TextSignal):
   """Find special entities."""
-  name = 'entity'
+  name: ClassVar[str] = 'entity'
 
   @override
   def fields(self) -> Field:

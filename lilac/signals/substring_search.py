@@ -1,6 +1,6 @@
 """A signal to search for a substring in a document."""
 import re
-from typing import Any, Iterable, Optional
+from typing import Any, ClassVar, Iterable, Optional
 
 from typing_extensions import override
 
@@ -10,9 +10,9 @@ from ..signal import Signal
 
 class SubstringSignal(Signal):
   """Find a substring in a document."""
-  name = 'substring_search'
-  display_name = 'Substring Search'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'substring_search'
+  display_name: ClassVar[str] = 'Substring Search'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   query: str
 

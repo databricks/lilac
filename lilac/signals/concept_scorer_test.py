@@ -2,7 +2,7 @@
 
 import os
 import pathlib
-from typing import Generator, Iterable, Type, cast
+from typing import ClassVar, Generator, Iterable, Type, cast
 
 import numpy as np
 import pytest
@@ -45,7 +45,7 @@ EMBEDDING_MAP: dict[str, list[float]] = {
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

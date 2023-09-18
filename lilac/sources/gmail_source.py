@@ -6,7 +6,7 @@ import random
 import re
 from datetime import datetime
 from time import sleep
-from typing import TYPE_CHECKING, Any, Iterable, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Iterable, Optional
 
 from pydantic import ConfigDict
 from pydantic import Field as PydanticField
@@ -47,7 +47,7 @@ class GmailSource(Source):
   for details.
   """
 
-  name = 'gmail'
+  name: ClassVar[str] = 'gmail'
 
   credentials_file: str = PydanticField(
     description=

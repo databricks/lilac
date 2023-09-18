@@ -1,6 +1,6 @@
 """Implementation-agnostic tests of the Dataset DB API."""
 
-from typing import Iterable, Optional, cast
+from typing import ClassVar, Iterable, Optional, cast
 
 import numpy as np
 import pytest
@@ -47,7 +47,7 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -57,7 +57,7 @@ class TestEmbedding(TextEmbeddingSignal):
 
 
 class LengthSignal(TextSignal):
-  name = 'length_signal'
+  name: ClassVar[str] = 'length_signal'
 
   _call_count: int = 0
 
@@ -71,7 +71,7 @@ class LengthSignal(TextSignal):
 
 
 class TestSignal(TextSignal):
-  name = 'test_signal'
+  name: ClassVar[str] = 'test_signal'
 
   @override
   def fields(self) -> Field:
@@ -749,7 +749,7 @@ def test_signal_with_quote(make_test_data: TestDataMaker) -> None:
 
 
 class SignalWithQuoteInIt(TextSignal):
-  name = "test'signal"
+  name: ClassVar[str] = "test'signal"
 
   @override
   def fields(self) -> Field:
@@ -762,7 +762,7 @@ class SignalWithQuoteInIt(TextSignal):
 
 
 class SignalWithDoubleQuoteInIt(TextSignal):
-  name = 'test"signal'
+  name: ClassVar[str] = 'test"signal'
 
   @override
   def fields(self) -> Field:

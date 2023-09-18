@@ -207,8 +207,7 @@ def read_config(config_path: Union[str, pathlib.Path]) -> Config:
       dataset_config = DatasetConfig(**config_dict)
       config = Config(datasets=[dataset_config])
     except ValidationError as error:
-      raise ValidationError(
-        'Config is not a valid `Config` or `DatasetConfig`', model=DatasetConfig) from error
+      raise ValueError('Config is not a valid `Config` or `DatasetConfig`') from error
   assert config is not None
 
   return config

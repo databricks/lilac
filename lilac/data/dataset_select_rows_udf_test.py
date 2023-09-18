@@ -1,6 +1,6 @@
 """Tests for dataset.select_rows(udf_col)."""
 
-from typing import Iterable, Optional, cast
+from typing import ClassVar, Iterable, Optional, cast
 
 import numpy as np
 import pytest
@@ -44,7 +44,7 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -57,7 +57,7 @@ class TestEmbedding(TextEmbeddingSignal):
 
 
 class LengthSignal(TextSignal):
-  name = 'length_signal'
+  name: ClassVar[str] = 'length_signal'
 
   _call_count: int = 0
 
@@ -71,7 +71,7 @@ class LengthSignal(TextSignal):
 
 
 class TestSignal(TextSignal):
-  name = 'test_signal'
+  name: ClassVar[str] = 'test_signal'
 
   @override
   def fields(self) -> Field:
@@ -84,8 +84,8 @@ class TestSignal(TextSignal):
 
 class TestEmbeddingSumSignal(VectorSignal):
   """Sums the embeddings to return a single floating point value."""
-  name = 'test_embedding_sum'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'test_embedding_sum'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -101,7 +101,7 @@ class TestEmbeddingSumSignal(VectorSignal):
 
 
 class ComputedKeySignal(TextSignal):
-  name = 'computed_key'
+  name: ClassVar[str] = 'computed_key'
 
   @override
   def fields(self) -> Field:
@@ -299,7 +299,7 @@ def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
 
 class TestSplitter(TextSplitterSignal):
   """Split documents into sentence by splitting on period."""
-  name = 'test_splitter'
+  name: ClassVar[str] = 'test_splitter'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

@@ -1,5 +1,5 @@
 """Text splitters using spaCy."""
-from typing import TYPE_CHECKING, Any, Iterable, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Iterable, Optional
 
 from pydantic import ConfigDict
 from typing_extensions import override
@@ -13,8 +13,8 @@ if TYPE_CHECKING:
 
 class SentenceSplitterSpacy(TextSplitterSignal):
   """Splits documents into sentences using the SpaCy sentence tokenizer."""
-  name = 'sentences'
-  display_name = 'Sentence Splitter'
+  name: ClassVar[str] = 'sentences'
+  display_name: ClassVar[str] = 'Sentence Splitter'
 
   language: str = 'en'
 

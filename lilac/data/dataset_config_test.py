@@ -1,6 +1,6 @@
 """Tests for dataset.config()."""
 
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 import numpy as np
 import pytest
@@ -21,7 +21,7 @@ from .dataset_test_utils import TestDataMaker, TestSource
 
 
 class TestSignal(TextSignal):
-  name = 'test_signal'
+  name: ClassVar[str] = 'test_signal'
 
   @override
   def fields(self) -> Field:
@@ -33,7 +33,7 @@ class TestSignal(TextSignal):
 
 
 class TestSignal2(TextSignal):
-  name = 'test_signal2'
+  name: ClassVar[str] = 'test_signal2'
 
   @override
   def fields(self) -> Field:
@@ -46,7 +46,7 @@ class TestSignal2(TextSignal):
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -57,7 +57,7 @@ class TestEmbedding(TextEmbeddingSignal):
 
 class TestEmbedding2(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding2'
+  name: ClassVar[str] = 'test_embedding2'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

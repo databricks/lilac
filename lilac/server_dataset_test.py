@@ -1,6 +1,6 @@
 """Test our public REST API."""
 import os
-from typing import Iterable, Optional, Type
+from typing import ClassVar, Iterable, Optional, Type
 
 import pytest
 from fastapi.testclient import TestClient
@@ -183,7 +183,7 @@ def test_select_rows_with_cols_and_combine() -> None:
 
 
 class LengthSignal(TextSignal):
-  name = 'length_signal'
+  name: ClassVar[str] = 'length_signal'
 
   def fields(self) -> Field:
     return field('int32')

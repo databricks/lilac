@@ -3,7 +3,7 @@
 import csv
 import json
 import pathlib
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 import numpy as np
 import pandas as pd
@@ -16,7 +16,7 @@ from .dataset_test_utils import TestDataMaker
 
 
 class TestSignal(TextSignal):
-  name = 'test_signal'
+  name: ClassVar[str] = 'test_signal'
 
   @override
   def fields(self) -> Field:

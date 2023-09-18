@@ -1,5 +1,5 @@
 """Test signal base class."""
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 import pytest
 from typing_extensions import override
@@ -22,8 +22,8 @@ class TestSignal(Signal):
   """A test signal."""
 
   # Pydantic fields
-  name = 'test_signal'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'test_signal'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   query: str
 
@@ -39,7 +39,7 @@ class TestSignal(Signal):
 
 class TestTextSplitter(TextSplitterSignal):
   """A test text splitter."""
-  name = 'test_splitter'
+  name: ClassVar[str] = 'test_splitter'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -49,7 +49,7 @@ class TestTextSplitter(TextSplitterSignal):
 
 class TestTextEmbedding(TextEmbeddingSignal):
   """A test text embedding."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -114,12 +114,12 @@ def test_get_signals_by_type() -> None:
 
 
 class TestSignalNoDisplayName(Signal):
-  name = 'signal_no_name'
+  name: ClassVar[str] = 'signal_no_name'
 
 
 class TestSignalDisplayName(Signal):
-  name = 'signal_display_name'
-  display_name = 'test display name'
+  name: ClassVar[str] = 'signal_display_name'
+  display_name: ClassVar[str] = 'test display name'
 
 
 def test_signal_title_schema() -> None:
