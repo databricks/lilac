@@ -447,9 +447,9 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
         field(
           'string',
           fields={
-            'length_signal': field('int32', length_signal.dict()),
+            'length_signal': field('int32', length_signal.model_dump()),
             'test_signal': field(
-              signal=test_signal.dict(), fields={
+              signal=test_signal.model_dump(), fields={
                 'len': 'int32',
                 'flen': 'float32'
               })
@@ -653,7 +653,7 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_signal': field(
-            signal=test_signal.dict(), fields={
+            signal=test_signal.model_dump(), fields={
               'len': 'int32',
               'flen': 'float32'
             })
@@ -783,12 +783,12 @@ def test_dataset_config_from_manifest(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_signal': field(
-            signal=TestSignal().dict(), fields={
+            signal=TestSignal().model_dump(), fields={
               'len': 'int32',
               'flen': 'float32'
             }),
           'test_embedding': field(
-            signal=TestEmbedding().dict(),
+            signal=TestEmbedding().model_dump(),
             fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
         })
     }),

@@ -49,7 +49,7 @@ def get_source_schema(source_name: str) -> dict[str, Any]:
   source_cls = get_source_cls(source_name)
   if source_cls is None:
     raise ValueError(f'Unknown source: {source_name}')
-  return source_cls.schema()
+  return source_cls.model_json_schema()
 
 
 class LoadDatasetOptions(BaseModel):

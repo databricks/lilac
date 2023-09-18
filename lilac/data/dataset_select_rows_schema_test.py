@@ -241,7 +241,7 @@ def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       'people': [{
         'name': {
-          'length_signal': field('int32', length_signal.dict())
+          'length_signal': field('int32', length_signal.model_dump())
         },
         'locations': [{
           'city': 'string'
@@ -266,7 +266,8 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       'people': [{
         'name': field(
-          'string', fields={'add_space_signal': field('string', signal=add_space_signal.dict())})
+          'string',
+          fields={'add_space_signal': field('string', signal=add_space_signal.model_dump())})
       }],
     }),
     udfs=[
@@ -293,8 +294,8 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
       'text': field(
         'string',
         fields={
-          'add_space_signal': field('string', add_space_signal.dict()),
-          'test_splitter': field(signal=test_splitter.dict(), fields=['string_span'])
+          'add_space_signal': field('string', add_space_signal.model_dump()),
+          'test_splitter': field(signal=test_splitter.model_dump(), fields=['string_span'])
         })
     }),
     udfs=[
@@ -324,15 +325,16 @@ def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) 
       'string',
       fields={
         'test_splitter': field(
-          signal=test_splitter.dict(),
+          signal=test_splitter.model_dump(),
           fields=[
             field(
               'string_span',
               fields={
                 'test_embedding': field(
-                  signal=test_embedding.dict(),
+                  signal=test_embedding.model_dump(),
                   fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
-                embedding_sum_signal.key(): field('float32', signal=embedding_sum_signal.dict())
+                embedding_sum_signal.key(): field(
+                  'float32', signal=embedding_sum_signal.model_dump())
               })
           ])
       })
@@ -376,13 +378,13 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           expected_world_signal.key(): field(
-            signal=expected_world_signal.dict(), fields=['string_span'])
+            signal=expected_world_signal.model_dump(), fields=['string_span'])
         }),
       'text2': field(
         'string',
         fields={
           expected_hello_signal.key(): field(
-            signal=expected_hello_signal.dict(), fields=['string_span'])
+            signal=expected_hello_signal.model_dump(), fields=['string_span'])
         })
     }),
     search_results=[
@@ -427,10 +429,10 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_embedding': field(
-            signal=test_embedding.dict(),
+            signal=test_embedding.model_dump(),
             fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
           expected_world_signal.key(): field(
-            signal=expected_world_signal.dict(),
+            signal=expected_world_signal.model_dump(),
             fields=[field('string_span', fields={'score': 'float32'})])
         })
     }),
@@ -473,10 +475,10 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_embedding': field(
-            signal=test_embedding.dict(),
+            signal=test_embedding.model_dump(),
             fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
           expected_world_signal.key(): field(
-            signal=expected_world_signal.dict(),
+            signal=expected_world_signal.model_dump(),
             fields=[
               field(
                 dtype='string_span',
@@ -492,7 +494,7 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
               'label': 'boolean',
               'draft': 'string'
             })],
-            signal=expected_labels_signal.dict())
+            signal=expected_labels_signal.model_dump())
         })
     }),
     udfs=[

@@ -141,7 +141,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
     raise ValueError(f'"{source_path}" is not a valid leaf path. Leaf paths: {leafs.keys()}')
 
   signal_schema = signal.fields()
-  signal_schema.signal = signal.dict()
+  signal_schema.signal = signal.model_dump()
 
   enriched_schema = field(fields={signal.key(is_computed_signal=True): signal_schema})
 

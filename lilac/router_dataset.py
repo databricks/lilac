@@ -5,7 +5,7 @@ from urllib.parse import unquote
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.params import Depends
 from fastapi.responses import ORJSONResponse
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from .auth import UserInfo, get_session_user, get_user_access
 from .config import DatasetSettings
@@ -65,7 +65,8 @@ class ComputeSignalOptions(BaseModel):
   # The leaf path to compute the signal on.
   leaf_path: Path
 
-  @validator('signal', pre=True)
+  @field_validator('signal', mode='before')
+  @classmethod
   def parse_signal(cls, signal: dict) -> Signal:
     """Parse a signal to its specific subclass instance."""
     return resolve_signal(signal)
@@ -96,8 +97,8 @@ def compute_signal(namespace: str, dataset_name: str,
 
   def _task_compute_signal(namespace: str, dataset_name: str, options_dict: dict,
                            task_id: TaskId) -> None:
-    # NOTE: We manually call .dict() to avoid the dask serializer, which doesn't call the underlying
-    # pydantic serializer.
+    # NOTE: We manually call .model_dump() to avoid the dask serializer, which doesn't call the
+    # underlying pydantic serializer.
     options = ComputeSignalOptions(**options_dict)
     dataset = get_dataset(namespace, dataset_name)
     dataset.compute_signal(options.signal, options.leaf_path, task_step_id=(task_id, 0))
@@ -106,8 +107,8 @@ def compute_signal(namespace: str, dataset_name: str,
   task_id = get_task_manager().task_id(
     name=f'[{namespace}/{dataset_name}] Compute signal "{options.signal.name}" on "{path_str}"',
     description=f'Config: {options.signal}')
-  get_task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name, options.dict(),
-                             task_id)
+  get_task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name,
+                             options.model_dump(), task_id)
 
   return ComputeSignalResponse(task_id=task_id)
 
@@ -213,7 +214,7 @@ def select_rows_download(
     namespace: str, dataset_name: str, url_safe_options: str,
     user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> list[dict]:
   """Select rows from the dataset database and downloads them."""
-  options = SelectRowsOptions.parse_raw(unquote(url_safe_options))
+  options = SelectRowsOptions.model_validate_json(unquote(url_safe_options))
   return select_rows(namespace, dataset_name, options, user).rows
 
 

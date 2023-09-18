@@ -414,7 +414,7 @@ class ConceptDBSuite:
     assert concept is not None
     keys = list(concept.data.keys())
 
-    assert concept.dict() == Concept(
+    assert concept.model_dump() == Concept(
       namespace='test',
       concept_name='test_concept',
       type=ConceptType.TEXT,
@@ -428,7 +428,7 @@ class ConceptDBSuite:
         keys[4]: Example(id=keys[4], label=False, text='hello', draft='draft2'),
         keys[5]: Example(id=keys[5], label=True, text='world draft 2', draft='draft2'),
       },
-      version=2).dict()
+      version=2).model_dump()
 
     db.merge_draft(namespace, concept_name, 'draft2')
 

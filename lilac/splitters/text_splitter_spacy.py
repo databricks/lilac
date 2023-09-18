@@ -1,6 +1,7 @@
 """Text splitters using spaCy."""
 from typing import TYPE_CHECKING, Any, Iterable, Optional
 
+from pydantic import ConfigDict
 from typing_extensions import override
 
 from ..schema import Item, RichData, lilac_span
@@ -46,6 +47,7 @@ class SentenceSplitterSpacy(TextSplitterSignal):
       else:
         yield None
 
-  class Config:
+  model_config = ConfigDict(json_schema_extra={
     # Language is required even though it has a default value.
-    schema_extra = {'required': ['language']}
+    'required': ['language'],
+  })

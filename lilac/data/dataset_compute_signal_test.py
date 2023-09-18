@@ -279,7 +279,7 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_signal': field(
-            signal=test_signal.dict(), fields={
+            signal=test_signal.model_dump(), fields={
               'len': 'int32',
               'flen': 'float32'
             }),
@@ -359,8 +359,8 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
       'text': field(
         'string',
         fields={
-          'param_signal(param=a)': field('string', test_signal_a.dict()),
-          'param_signal(param=b)': field('string', test_signal_b.dict()),
+          'param_signal(param=a)': field('string', test_signal_a.model_dump()),
+          'param_signal(param=b)': field('string', test_signal_b.model_dump()),
         }),
     }),
     num_items=2,
@@ -395,7 +395,8 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       'text': field(
-        'string', fields={'test_split': field(signal=signal.dict(), fields=[field('string_span')])})
+        'string',
+        fields={'test_split': field(signal=signal.model_dump(), fields=[field('string_span')])})
     }),
     num_items=2,
     source=TestSource())
@@ -434,7 +435,7 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              signal=test_signal.dict(), fields={
+              signal=test_signal.model_dump(), fields={
                 'len': 'int32',
                 'flen': 'float32'
               })
@@ -511,7 +512,7 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_embedding': field(
-            signal=embedding_signal.dict(),
+            signal=embedding_signal.model_dump(),
             fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
         }),
     }),
@@ -533,7 +534,7 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      'text': field('string', fields={'key_True': field('int64', signal=signal.dict())}),
+      'text': field('string', fields={'key_True': field('int64', signal=signal.model_dump())}),
     }),
     num_items=2,
     source=TestSource())

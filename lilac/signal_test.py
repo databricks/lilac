@@ -75,7 +75,7 @@ def test_signal_serialization() -> None:
   signal = TestSignal(query='test')
 
   # The class variables should not be included.
-  assert signal.dict() == {'signal_name': 'test_signal', 'query': 'test'}
+  assert signal.model_dump() == {'signal_name': 'test_signal', 'query': 'test'}
 
 
 def test_get_signal_cls() -> None:
@@ -91,7 +91,7 @@ def test_resolve_signal() -> None:
   assert resolve_signal(test_signal) == test_signal
 
   # Dicts resolve to the base class.
-  assert resolve_signal(test_signal.dict()) == test_signal
+  assert resolve_signal(test_signal.model_dump()) == test_signal
 
 
 def test_get_signal_by_type() -> None:
@@ -123,5 +123,5 @@ class TestSignalDisplayName(Signal):
 
 
 def test_signal_title_schema() -> None:
-  assert TestSignalNoDisplayName.schema()['title'] == TestSignalNoDisplayName.__name__
-  assert TestSignalDisplayName.schema()['title'] == 'test display name'
+  assert TestSignalNoDisplayName.model_json_schema()['title'] == TestSignalNoDisplayName.__name__
+  assert TestSignalDisplayName.model_json_schema()['title'] == 'test display name'

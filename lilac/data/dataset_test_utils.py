@@ -76,7 +76,7 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
     items, source_dir, schema, filename_prefix=PARQUET_FILENAME_PREFIX, shard_index=0, num_shards=1)
   manifest = SourceManifest(files=[simple_parquet_files], data_schema=schema, source=TestSource())
   with open_file(os.path.join(source_dir, MANIFEST_FILENAME), 'w') as f:
-    f.write(manifest.json(indent=2, exclude_none=True))
+    f.write(manifest.model_dump_json(indent=2, exclude_none=True))
 
 
 def enriched_item(value: Optional[Item] = None, metadata: dict[str, Item] = {}) -> Item:

@@ -16,7 +16,7 @@ from pydantic import (
   StrictFloat,
   StrictInt,
   StrictStr,
-  validator,
+  field_validator,
 )
 from typing_extensions import TypeAlias
 
@@ -163,9 +163,6 @@ class Column(BaseModel):
   # Defined when the feature is another column.
   signal_udf: Optional[Signal] = None
 
-  class Config:
-    smart_union = True
-
   def __init__(self,
                path: Path,
                alias: Optional[str] = None,
@@ -174,7 +171,8 @@ class Column(BaseModel):
     """Initialize a column. We override __init__ to allow positional arguments for brevity."""
     super().__init__(path=normalize_path(path), alias=alias, signal_udf=signal_udf, **kwargs)
 
-  @validator('signal_udf', pre=True)
+  @field_validator('signal_udf', mode='before')
+  @classmethod
   def parse_signal_udf(cls, signal_udf: Optional[dict]) -> Optional[Signal]:
     """Parse a signal to its specific subclass instance."""
     if not signal_udf:
@@ -201,7 +199,8 @@ class SourceManifest(BaseModel):
   # Image information for the dataset.
   images: Optional[list[ImageInfo]] = None
 
-  @validator('source', pre=True)
+  @field_validator('source', mode='before')
+  @classmethod
   def parse_source(cls, source: dict) -> Source:
     """Parse a source to its specific subclass instance."""
     return resolve_source(source)
@@ -216,7 +215,8 @@ class DatasetManifest(BaseModel):
   # Number of items in the dataset.
   num_items: int
 
-  @validator('source', pre=True)
+  @field_validator('source', mode='before')
+  @classmethod
   def parse_source(cls, source: dict) -> Source:
     """Parse a source to its specific subclass instance."""
     return resolve_source(source)
@@ -225,7 +225,7 @@ class DatasetManifest(BaseModel):
 def column_from_identifier(column: ColumnId) -> Column:
   """Create a column from a column identifier."""
   if isinstance(column, Column):
-    return column.copy()
+    return column.model_copy()
   return Column(path=column)
 
 
@@ -289,7 +289,8 @@ class DatasetLabel(BaseModel):
   label: str
   created: datetime
 
-  @validator('created')
+  @field_validator('created')
+  @classmethod
   def created_datetime_to_string(cls, created: datetime) -> str:
     """Convert the datetime to a string for serialization."""
     return created.isoformat()

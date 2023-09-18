@@ -158,7 +158,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
       dataset_config_yaml = f.read()
 
     dataset_link = ''
-    dataset_config = DatasetConfig.parse_obj(yaml.safe_load(dataset_config_yaml))
+    dataset_config = DatasetConfig.model_validate(yaml.safe_load(dataset_config_yaml))
     if isinstance(dataset_config.source, HuggingFaceSource):
       dataset_link = f'https://huggingface.co/datasets/{dataset_config.source.dataset_name}'
 

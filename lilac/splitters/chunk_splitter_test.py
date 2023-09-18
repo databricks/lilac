@@ -35,7 +35,7 @@ def test_newlines_with_overlap() -> None:
 
 def test_serialization() -> None:
   signal = ChunkSplitter(chunk_size=12, chunk_overlap=5)
-  assert signal.dict() == {
+  assert signal.model_dump() == {
     'signal_name': 'chunk',
     'chunk_size': 12,
     'chunk_overlap': 5,

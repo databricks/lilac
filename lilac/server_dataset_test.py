@@ -96,7 +96,7 @@ def test_get_manifest() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}'
   response = client.get(url)
   assert response.status_code == 200
-  assert WebManifest.parse_obj(response.json()) == WebManifest(
+  assert WebManifest.model_validate(response.json()) == WebManifest(
     dataset_manifest=DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
@@ -118,9 +118,9 @@ def test_get_manifest() -> None:
 def test_select_rows_no_options() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
   options = SelectRowsOptions()
-  response = client.post(url, json=options.dict())
+  response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
-  assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
+  assert SelectRowsResponse.model_validate(response.json()) == SelectRowsResponse(
     rows=TEST_DATA, total_num_rows=3)
 
 
@@ -130,9 +130,9 @@ def test_select_rows_with_cols_and_limit() -> None:
     columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
     limit=1,
     offset=1)
-  response = client.post(url, json=options.dict())
+  response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
-  assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
+  assert SelectRowsResponse.model_validate(response.json()) == SelectRowsResponse(
     rows=[{
       'people.*.zipcode': [1, 2],
       'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']]
@@ -145,9 +145,9 @@ def test_select_rows_with_cols_and_combine() -> None:
   options = SelectRowsOptions(
     columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
     combine_columns=True)
-  response = client.post(url, json=options.dict())
+  response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
-  assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
+  assert SelectRowsResponse.model_validate(response.json()) == SelectRowsResponse(
     rows=[{
       'people': [{
         'zipcode': 0,
@@ -194,9 +194,9 @@ def test_select_rows_star_plus_udf() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
   udf = Column(path=('people', '*', 'name'), alias='len', signal_udf=LengthSignal())
   options = SelectRowsOptions(columns=['*', udf], combine_columns=True)
-  response = client.post(url, json=options.dict())
+  response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
-  assert SelectRowsResponse.parse_obj(response.json()) == SelectRowsResponse(
+  assert SelectRowsResponse.model_validate(response.json()) == SelectRowsResponse(
     rows=[{
       'erased': False,
       'people': [{
@@ -242,9 +242,9 @@ def test_select_rows_schema_star_plus_udf() -> None:
   signal = LengthSignal()
   udf = Column(path=('people', '*', 'name'), alias='len', signal_udf=signal)
   options = SelectRowsSchemaOptions(columns=['*', udf], combine_columns=True)
-  response = client.post(url, json=options.dict())
+  response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
-  assert SelectRowsSchemaResult.parse_obj(response.json()) == SelectRowsSchemaResult(
+  assert SelectRowsSchemaResult.model_validate(response.json()) == SelectRowsSchemaResult(
     data_schema=schema({
       'erased': 'boolean',
       'people': [{
@@ -263,9 +263,9 @@ def test_select_rows_schema_star_plus_udf() -> None:
 def test_select_rows_schema_no_cols() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows_schema'
   options = SelectRowsSchemaOptions(combine_columns=True)
-  response = client.post(url, json=options.dict())
+  response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
-  assert SelectRowsSchemaResult.parse_obj(response.json()) == SelectRowsSchemaResult(
+  assert SelectRowsSchemaResult.model_validate(response.json()) == SelectRowsSchemaResult(
     data_schema=schema({
       'erased': 'boolean',
       'people': [{
@@ -284,7 +284,8 @@ def test_compute_signal_auth(mocker: MockerFixture) -> None:
 
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/compute_signal'
   response = client.post(
-    url, json=ComputeSignalOptions(signal=LengthSignal(), leaf_path=('people', 'name')).dict())
+    url,
+    json=ComputeSignalOptions(signal=LengthSignal(), leaf_path=('people', 'name')).model_dump())
   assert response.status_code == 401
   assert response.is_error is True
   assert 'User does not have access to compute signals over this dataset.' in response.text
@@ -295,7 +296,7 @@ def test_delete_signal_auth(mocker: MockerFixture) -> None:
 
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/delete_signal'
   response = client.request(
-    'DELETE', url, json=DeleteSignalOptions(signal_path=('doesnt', 'matter')).dict())
+    'DELETE', url, json=DeleteSignalOptions(signal_path=('doesnt', 'matter')).model_dump())
   assert response.status_code == 401
   assert response.is_error is True
   assert 'User does not have access to delete this signal.' in response.text
@@ -305,7 +306,7 @@ def test_update_settings_auth(mocker: MockerFixture) -> None:
   mocker.patch.dict(os.environ, {'LILAC_AUTH_ENABLED': 'True'})
 
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/settings'
-  response = client.post(url, json=DatasetSettings().dict())
+  response = client.post(url, json=DatasetSettings().model_dump())
   assert response.status_code == 401
   assert response.is_error is True
   assert 'User does not have access to update the settings of this dataset.' in response.text

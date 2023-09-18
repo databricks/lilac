@@ -62,7 +62,7 @@ class TaskStepInfo(BaseModel):
 class TaskInfo(BaseModel):
   """Metadata about a task."""
   name: str
-  type: Optional[TaskType]
+  type: Optional[TaskType] = None
   status: TaskStatus
   progress: Optional[float] = None
   message: Optional[str] = None
@@ -298,7 +298,7 @@ def progress(it: Union[Iterator[TProgress], Iterable[TProgress]],
 def set_worker_steps(task_id: TaskId, steps: list[TaskStepInfo]) -> None:
   """Sets up worker steps. Use to provide task step descriptions before they compute."""
   get_worker().log_event(
-    _progress_event_topic(task_id), {STEPS_LOG_KEY: [step.dict() for step in steps]})
+    _progress_event_topic(task_id), {STEPS_LOG_KEY: [step.model_dump() for step in steps]})
 
 
 def get_worker_steps(task_id: TaskId) -> list[TaskStepInfo]:

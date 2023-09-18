@@ -17,9 +17,6 @@ class PandasSource(Source):
   _df: Optional[pd.DataFrame] = None
   _source_schema: SourceSchema
 
-  class Config:
-    underscore_attrs_are_private = True
-
   def __init__(self, df: Optional[pd.DataFrame] = None, **kwargs: Any):
     super().__init__(**kwargs)
     self._df = df

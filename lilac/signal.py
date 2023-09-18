@@ -1,18 +1,49 @@
 """Interface for implementing a signal."""
 
 import abc
-from typing import TYPE_CHECKING, Any, ClassVar, Iterable, Optional, Sequence, Type, TypeVar, Union
+from typing import (
+  TYPE_CHECKING,
+  Any,
+  Callable,
+  ClassVar,
+  Iterable,
+  Optional,
+  Sequence,
+  Type,
+  TypeVar,
+  Union,
+)
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, ConfigDict
 from pydantic import Field as PydanticField
+from pydantic import model_serializer
 
 if TYPE_CHECKING:
-  from pydantic.typing import AbstractSetIntStr, MappingIntStrAny
+  pass
 
 from typing_extensions import override
 
 from .embeddings.vector_store import VectorDBIndex
 from .schema import EMBEDDING_KEY, Field, Item, PathKey, RichData, SignalInputType, field
+
+
+def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
+  """Add the title to the schema from the display name and name.
+
+  Pydantic defaults this to the class name.
+  """
+  if hasattr(signal, 'display_name'):
+    schema['title'] = signal.display_name
+
+  signal_prop: dict[str, Any]
+  if hasattr(signal, 'name'):
+    signal_prop = {'enum': [signal.name]}
+  else:
+    signal_prop = {'type': 'string'}
+  schema['properties'] = {'signal_name': signal_prop, **schema['properties']}
+  if 'required' not in schema:
+    schema['required'] = []
+  schema['required'].append('signal_name')
 
 
 class Signal(BaseModel):
@@ -25,51 +56,14 @@ class Signal(BaseModel):
   # The input type is used to populate the UI to determine what the signal accepts as input.
   input_type: ClassVar[SignalInputType]
 
-  def dict(
-    self,
-    *,
-    include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
-    exclude: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
-    by_alias: bool = False,
-    skip_defaults: Optional[bool] = None,
-    exclude_unset: bool = False,
-    exclude_defaults: bool = False,
-    exclude_none: bool = False,
-  ) -> dict[str, Any]:
-    """Override the default dict method to add `signal_name`."""
-    res = super().dict(
-      include=include,
-      exclude=exclude,
-      by_alias=by_alias,
-      skip_defaults=skip_defaults,
-      exclude_unset=exclude_unset,
-      exclude_defaults=exclude_defaults,
-      exclude_none=exclude_none)
+  @model_serializer(mode='wrap')
+  def serialize_model(self, next: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+    """Serialize the model to a dictionary."""
+    res = next()
     res['signal_name'] = self.name
     return res
 
-  class Config:
-    underscore_attrs_are_private = True
-    extra = Extra.forbid
-
-    @staticmethod
-    def schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
-      """Add the title to the schema from the display name and name.
-
-      Pydantic defaults this to the class name.
-      """
-      if hasattr(signal, 'display_name'):
-        schema['title'] = signal.display_name
-
-      signal_prop: dict[str, Any]
-      if hasattr(signal, 'name'):
-        signal_prop = {'enum': [signal.name]}
-      else:
-        signal_prop = {'type': 'string'}
-      schema['properties'] = {'signal_name': signal_prop, **schema['properties']}
-      if 'required' not in schema:
-        schema['required'] = []
-      schema['required'].append('signal_name')
+  model_config = ConfigDict(extra='forbid', json_schema_extra=_signal_schema_extra)
 
   def fields(self) -> Field:
     """Return the fields schema for this signal.
@@ -175,34 +169,34 @@ class TextEmbeddingSignal(TextSignal):
     return field(fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
 
 
+def _vector_signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
+  """Add the enum values for embeddings."""
+  embeddings: list[str] = []
+  for s in SIGNAL_REGISTRY.values():
+    if issubclass(s, TextEmbeddingSignal):
+      embeddings.append(s.name)
+
+  if hasattr(signal, 'display_name'):
+    schema['title'] = signal.display_name
+
+  signal_prop: dict[str, Any]
+  if hasattr(signal, 'name'):
+    signal_prop = {'enum': [signal.name]}
+  else:
+    signal_prop = {'type': 'string'}
+  schema['properties'] = {'signal_name': signal_prop, **schema['properties']}
+  if 'required' not in schema:
+    schema['required'] = []
+  schema['required'].append('signal_name')
+
+  schema['properties']['embedding']['enum'] = embeddings
+
+
 class VectorSignal(Signal, abc.ABC):
   """An interface for signals that can compute items given vector inputs."""
   embedding: str = PydanticField(description='The name of the pre-computed embedding.')
 
-  class Config:
-
-    @staticmethod
-    def schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
-      """Add the enum values for embeddings."""
-      embeddings: list[str] = []
-      for s in SIGNAL_REGISTRY.values():
-        if issubclass(s, TextEmbeddingSignal):
-          embeddings.append(s.name)
-
-      if hasattr(signal, 'display_name'):
-        schema['title'] = signal.display_name
-
-      signal_prop: dict[str, Any]
-      if hasattr(signal, 'name'):
-        signal_prop = {'enum': [signal.name]}
-      else:
-        signal_prop = {'type': 'string'}
-      schema['properties'] = {'signal_name': signal_prop, **schema['properties']}
-      if 'required' not in schema:
-        schema['required'] = []
-      schema['required'].append('signal_name')
-
-      schema['properties']['embedding']['enum'] = embeddings
+  model_config = ConfigDict(json_schema_extra=_vector_signal_schema_extra)
 
   @abc.abstractmethod
   def vector_compute(self, keys: Iterable[PathKey],

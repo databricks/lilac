@@ -52,4 +52,4 @@ def test_resolve_source() -> None:
   assert resolve_source(test_source) == test_source
 
   # Dicts resolve to the base class.
-  assert resolve_source(test_source.dict()) == test_source
+  assert resolve_source(test_source.model_dump()) == test_source

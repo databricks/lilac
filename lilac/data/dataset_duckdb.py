@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from pandas.api.types import is_object_dtype
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from typing_extensions import override
 
 from ..auth import UserInfo
@@ -238,7 +238,7 @@ class DatasetDuckDB(Dataset):
       for file in files:
         if file.endswith(SIGNAL_MANIFEST_FILENAME):
           with open_file(os.path.join(root, file)) as f:
-            signal_manifest = SignalManifest.parse_raw(f.read())
+            signal_manifest = SignalManifest.model_validate_json(f.read())
           self._signal_manifests.append(signal_manifest)
           signal_files = [os.path.join(root, f) for f in signal_manifest.files]
           if signal_files:
@@ -1188,7 +1188,7 @@ class DatasetDuckDB(Dataset):
       if col.signal_udf:
         udfs.append(SelectRowsSchemaUDF(path=dest_path, alias=col.alias))
         field = col.signal_udf.fields()
-        field.signal = col.signal_udf.dict()
+        field.signal = col.signal_udf.model_dump()
       elif manifest.data_schema.has_field(dest_path):
         field = manifest.data_schema.get_field(dest_path)
       else:
@@ -1740,7 +1740,7 @@ def read_source_manifest(dataset_path: str) -> SourceManifest:
   # TODO(nsthorat): Overwrite the source manifest with a "source" added if the source is not defined
   # by reading the config yml.
   with open_file(os.path.join(dataset_path, MANIFEST_FILENAME), 'r') as f:
-    source_manifest = SourceManifest.parse_raw(f.read())
+    source_manifest = SourceManifest.model_validate_json(f.read())
 
   # For backwards compatibility, check if the config.yml has the source and write it back to the
   # source manifest.
@@ -1797,7 +1797,8 @@ class SignalManifest(BaseModel):
   # The name of the vector store. Present when the signal is an embedding.
   vector_store: Optional[str] = None
 
-  @validator('signal', pre=True)
+  @field_validator('signal', mode="before")
+  @classmethod
   def parse_signal(cls, signal: dict) -> Signal:
     """Parse a signal to its specific subclass instance."""
     return resolve_signal(signal)

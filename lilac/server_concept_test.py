@@ -2,12 +2,12 @@
 import os
 import uuid
 from pathlib import Path
-from typing import Iterable, cast
+from typing import ClassVar, Iterable, cast
 
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
@@ -46,7 +46,7 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -89,7 +89,8 @@ def test_concept_create() -> None:
   response = client.get(url)
 
   assert response.status_code == 200
-  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  adapter = TypeAdapter(list[ConceptInfo])
+  response_concepts = _remove_lilac_concepts(adapter.validate_python(response.json()))
   assert response_concepts == []
 
   # Create a concept.
@@ -99,9 +100,9 @@ def test_concept_create() -> None:
     name='concept',
     type=ConceptType.TEXT,
     metadata=ConceptMetadata(is_public=False, tags=['test_tag'], description='test_description'))
-  response = client.post(url, json=create_concept.dict())
+  response = client.post(url, json=create_concept.model_dump())
   assert response.status_code == 200
-  assert Concept.parse_obj(response.json()) == Concept(
+  assert Concept.model_validate(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
     type=ConceptType.TEXT,
@@ -113,7 +114,7 @@ def test_concept_create() -> None:
   url = '/api/v1/concepts/'
   response = client.get(url)
   assert response.status_code == 200
-  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  response_concepts = _remove_lilac_concepts(adapter.validate_python(response.json()))
   assert response_concepts == [
     ConceptInfo(
       namespace='concept_namespace',
@@ -128,30 +129,31 @@ def test_concept_create() -> None:
 def test_concept_update_metadata() -> None:
   url = '/api/v1/concepts/'
   response = client.get(url)
+  adapter = TypeAdapter(list[ConceptInfo])
 
   assert response.status_code == 200
-  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  response_concepts = _remove_lilac_concepts(adapter.validate_python(response.json()))
   assert response_concepts == []
 
   # Create a concept.
   url = '/api/v1/concepts/create'
   create_concept = CreateConceptOptions(
     namespace='concept_namespace', name='concept', type=ConceptType.TEXT)
-  response = client.post(url, json=create_concept.dict())
+  response = client.post(url, json=create_concept.model_dump())
   assert response.status_code == 200
 
   # Update the metadata.
   url = '/api/v1/concepts/concept_namespace/concept/metadata'
   update_metadata = ConceptMetadata(
     is_public=True, tags=['test_tag'], description='test_description')
-  response = client.post(url, json=update_metadata.dict())
+  response = client.post(url, json=update_metadata.model_dump())
   assert response.status_code == 200
 
   # Make sure list shows us the new concept.
   url = '/api/v1/concepts/'
   response = client.get(url)
   assert response.status_code == 200
-  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  response_concepts = _remove_lilac_concepts(adapter.validate_python(response.json()))
   assert response_concepts == [
     ConceptInfo(
       namespace='concept_namespace',
@@ -168,10 +170,11 @@ def test_concept_delete() -> None:
   client.post(
     '/api/v1/concepts/create',
     json=CreateConceptOptions(namespace='concept_namespace', name='concept',
-                              type=ConceptType.TEXT).dict())
+                              type=ConceptType.TEXT).model_dump())
 
+  adapter = TypeAdapter(list[ConceptInfo])
   response = client.get('/api/v1/concepts/')
-  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  response_concepts = _remove_lilac_concepts(adapter.validate_python(response.json()))
   assert len(response_concepts) == 1
 
   # Delete the concept.
@@ -181,18 +184,19 @@ def test_concept_delete() -> None:
 
   # Make sure list shows no concepts.
   response = client.get('/api/v1/concepts/')
-  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  response_concepts = _remove_lilac_concepts(adapter.validate_python(response.json()))
   assert response_concepts == []
 
 
 def test_concept_edits(mocker: MockerFixture) -> None:
   mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
+  adapter = TypeAdapter(list[ConceptInfo])
 
   # Create the concept.
   response = client.post(
     '/api/v1/concepts/create',
     json=CreateConceptOptions(namespace='concept_namespace', name='concept',
-                              type=ConceptType.TEXT).dict())
+                              type=ConceptType.TEXT).model_dump())
 
   # Make sure we can add an example.
   mock_uuid.return_value = fake_uuid(b'1')
@@ -204,9 +208,9 @@ def test_concept_edits(mocker: MockerFixture) -> None:
       origin=ExampleOrigin(
         dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'))
   ])
-  response = client.post(url, json=concept_update.dict())
+  response = client.post(url, json=concept_update.model_dump())
   assert response.status_code == 200
-  assert Concept.parse_obj(response.json()) == Concept(
+  assert Concept.model_validate(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
     type=ConceptType.TEXT,
@@ -224,7 +228,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   response = client.get(url)
 
   assert response.status_code == 200
-  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  response_concepts = _remove_lilac_concepts(adapter.validate_python(response.json()))
   assert response_concepts == [
     ConceptInfo(
       namespace='concept_namespace',
@@ -245,9 +249,9 @@ def test_concept_edits(mocker: MockerFixture) -> None:
       origin=ExampleOrigin(
         dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d2'))
   ])
-  response = client.post(url, json=concept_update.dict())
+  response = client.post(url, json=concept_update.model_dump())
   assert response.status_code == 200
-  assert Concept.parse_obj(response.json()) == Concept(
+  assert Concept.model_validate(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
     type=ConceptType.TEXT,
@@ -275,9 +279,9 @@ def test_concept_edits(mocker: MockerFixture) -> None:
     # Switch the text.
     Example(id=fake_uuid(b'2').hex, label=True, text='hello world'),
   ])
-  response = client.post(url, json=concept_update.dict())
+  response = client.post(url, json=concept_update.model_dump())
   assert response.status_code == 200
-  assert Concept.parse_obj(response.json()) == Concept(
+  assert Concept.model_validate(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
     type=ConceptType.TEXT,
@@ -290,9 +294,9 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   # Delete the first example.
   url = '/api/v1/concepts/concept_namespace/concept'
   concept_update = ConceptUpdate(remove=[fake_uuid(b'1').hex])
-  response = client.post(url, json=concept_update.dict())
+  response = client.post(url, json=concept_update.model_dump())
   assert response.status_code == 200
-  assert Concept.parse_obj(response.json()) == Concept(
+  assert Concept.model_validate(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
     type=ConceptType.TEXT,
@@ -304,7 +308,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
   response = client.get(url)
 
   assert response.status_code == 200
-  response_concepts = _remove_lilac_concepts(parse_obj_as(list[ConceptInfo], response.json()))
+  response_concepts = _remove_lilac_concepts(adapter.validate_python(response.json()))
   assert response_concepts == [
     ConceptInfo(
       namespace='concept_namespace',
@@ -323,7 +327,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   response = client.post(
     '/api/v1/concepts/create',
     json=CreateConceptOptions(namespace='concept_namespace', name='concept',
-                              type=ConceptType.TEXT).dict())
+                              type=ConceptType.TEXT).model_dump())
 
   # Add examples, some drafts.
   mock_uuid.side_effect = [fake_uuid(b'1'), fake_uuid(b'2'), fake_uuid(b'3'), fake_uuid(b'4')]
@@ -334,7 +338,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
     ExampleIn(label=False, text='in concept', draft='test_draft'),
     ExampleIn(label=False, text='out of concept draft', draft='test_draft')
   ])
-  response = client.post(url, json=concept_update.dict())
+  response = client.post(url, json=concept_update.model_dump())
   assert response.status_code == 200
 
   # Make sure list shows us the drafts
@@ -342,8 +346,9 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   response = client.get(url)
   assert response.status_code == 200
   # Remove lilac concepts for the test.
+  adapter = TypeAdapter(list[ConceptInfo])
   concepts = list(
-    filter(lambda c: c.namespace != 'lilac', parse_obj_as(list[ConceptInfo], response.json())))
+    filter(lambda c: c.namespace != 'lilac', adapter.validate_python(response.json())))
 
   assert concepts == [
     ConceptInfo(
@@ -359,7 +364,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   url = '/api/v1/concepts/concept_namespace/concept'
   response = client.get(url)
   assert response.status_code == 200
-  assert Concept.parse_obj(response.json()) == Concept(
+  assert Concept.model_validate(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
     type=ConceptType.TEXT,
@@ -374,7 +379,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   url = '/api/v1/concepts/concept_namespace/concept?draft=test_draft'
   response = client.get(url)
   assert response.status_code == 200
-  assert Concept.parse_obj(response.json()) == Concept(
+  assert Concept.model_validate(response.json()) == Concept(
     namespace='concept_namespace',
     concept_name='concept',
     type=ConceptType.TEXT,
@@ -392,14 +397,14 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
   # Merge the draft.
   response = client.post(
     '/api/v1/concepts/concept_namespace/concept/merge_draft',
-    json=MergeConceptDraftOptions(draft='test_draft').dict())
+    json=MergeConceptDraftOptions(draft='test_draft').model_dump())
   assert response.status_code == 200
 
   # Make sure we get the merged drafts.
   url = '/api/v1/concepts/concept_namespace/concept'
   response = client.get(url)
   assert response.status_code == 200
-  assert Concept.parse_obj(response.json()).dict() == Concept(
+  assert Concept.model_validate(response.json()).model_dump() == Concept(
     namespace='concept_namespace',
     concept_name='concept',
     type=ConceptType.TEXT,
@@ -411,7 +416,7 @@ def test_concept_drafts(mocker: MockerFixture) -> None:
       fake_uuid(b'4').hex: Example(
         id=fake_uuid(b'4').hex, label=False, text='out of concept draft')
     },
-    version=2).dict()
+    version=2).model_dump()
 
 
 def test_concept_model_sync(mocker: MockerFixture) -> None:
@@ -421,7 +426,7 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   response = client.post(
     '/api/v1/concepts/create',
     json=CreateConceptOptions(namespace='concept_namespace', name='concept',
-                              type=ConceptType.TEXT).dict())
+                              type=ConceptType.TEXT).model_dump())
 
   # Add two examples.
   mock_uuid.side_effect = [fake_uuid(b'1'), fake_uuid(b'2')]
@@ -438,7 +443,7 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
       origin=ExampleOrigin(
         dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d2'))
   ])
-  response = client.post(url, json=concept_update.dict())
+  response = client.post(url, json=concept_update.model_dump())
   assert response.status_code == 200
 
   # Get the concept model, without creating it.
@@ -451,7 +456,7 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   url = '/api/v1/concepts/concept_namespace/concept/model/test_embedding'
   response = client.get(url, params={'create_if_not_exists': True})
   assert response.status_code == 200
-  assert ConceptModelInfo.parse_obj(response.json()) == ConceptModelInfo(
+  assert ConceptModelInfo.model_validate(response.json()) == ConceptModelInfo(
     namespace='concept_namespace',
     concept_name='concept',
     embedding_name='test_embedding',
@@ -463,7 +468,7 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   mock_score_emb.return_value = np.array([0.9, 1.0])
   url = '/api/v1/concepts/concept_namespace/concept/model/test_embedding/score'
   score_body = ScoreBody(examples=[ScoreExample(text='hello world'), ScoreExample(text='hello')])
-  response = client.post(url, json=score_body.dict())
+  response = client.post(url, json=score_body.model_dump())
   assert response.status_code == 200
   assert response.json() == [[lilac_span(0, 11, {'score': 0.9})],
                              [lilac_span(0, 5, {'score': 1.0})]]
@@ -478,7 +483,7 @@ def test_concept_edits_error_before_create(mocker: MockerFixture) -> None:
       origin=ExampleOrigin(
         dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'))
   ])
-  response = client.post(url, json=concept_update.dict())
+  response = client.post(url, json=concept_update.model_dump())
   assert response.is_error is True
   assert response.status_code == 500
 
@@ -488,7 +493,7 @@ def test_concept_edits_wrong_type(mocker: MockerFixture) -> None:
   response = client.post(
     '/api/v1/concepts/create',
     json=CreateConceptOptions(
-      namespace='concept_namespace', name='concept', type=ConceptType.IMAGE).dict())
+      namespace='concept_namespace', name='concept', type=ConceptType.IMAGE).model_dump())
 
   url = '/api/v1/concepts/concept_namespace/concept'
   concept_update = ConceptUpdate(insert=[
@@ -498,6 +503,6 @@ def test_concept_edits_wrong_type(mocker: MockerFixture) -> None:
       origin=ExampleOrigin(
         dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'))
   ])
-  response = client.post(url, json=concept_update.dict())
+  response = client.post(url, json=concept_update.model_dump())
   assert response.is_error is True
   assert response.status_code == 500

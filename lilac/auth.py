@@ -57,7 +57,7 @@ class AuthenticationInfo(BaseModel):
   access: UserAccess
   auth_enabled: bool
   # The HuggingFace space ID if the server is running on a HF space.
-  huggingface_space_id: Optional[str]
+  huggingface_space_id: Optional[str] = None
 
 
 def get_session_user(request: Request) -> Optional[UserInfo]:
@@ -67,7 +67,7 @@ def get_session_user(request: Request) -> Optional[UserInfo]:
   user_info_dict = request.session.get('user', None)
   if user_info_dict:
     try:
-      return UserInfo.parse_obj(user_info_dict)
+      return UserInfo.model_validate(user_info_dict)
     except ValidationError:
       return None
   return None
