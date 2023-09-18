@@ -45,7 +45,7 @@
       .map((l, i) => ({id: `label_${i}`, text: l})) || [];
   $: labelItems = [...(comboBoxText != '' ? [newLabelItem] : []), ...missingLabelItems];
 
-  const addLabels = $datasetStore.schema != null ? addLabelsMutation($datasetStore.schema) : null;
+  $: addLabels = $datasetStore.schema != null ? addLabelsMutation($datasetStore.schema) : null;
 
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
