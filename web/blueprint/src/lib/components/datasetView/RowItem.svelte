@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {addLabelsMutation, removeLabelsMutation} from '$lib/queries/datasetQueries';
+  import {removeLabelsMutation} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
@@ -8,19 +8,14 @@
     L,
     ROWID,
     getRowLabels,
-    getSchemaLabels,
     serializePath,
     valueAtPath,
-    type AddLabelsOptions,
     type LilacField,
     type LilacValueNode,
     type RemoveLabelsOptions
   } from '$lilac';
-  import {ComboBox, SkeletonText, Tag} from 'carbon-components-svelte';
-  import {Add} from 'carbon-icons-svelte';
-  import {hoverTooltip} from '../common/HoverTooltip';
   import RemovableTag from '../common/RemovableTag.svelte';
-  import {clickOutside} from '../common/clickOutside';
+  import AddLabel from './AddLabel.svelte';
   import ItemMedia from './ItemMedia.svelte';
   import ItemMetadata from './ItemMetadata.svelte';
 
@@ -41,65 +36,12 @@
   const MIN_METADATA_HEIGHT_PX = 320;
   let mediaHeight = 0;
 
-  interface LabelItem {
-    id: 'new-label' | string;
-    text: string;
-  }
-
-  // ComboBox for labeling.
-  let labelMenuOpen = false;
-  let labelItems: LabelItem[] = [];
-  let comboBox: ComboBox;
-  let comboBoxText = '';
-  const addLabels = addLabelsMutation();
   const removeLabels = removeLabelsMutation();
 
   $: selectRowsSchema = $datasetStore.selectRowsSchema?.data;
 
-  $: schemaLabels = $datasetStore.schema && getSchemaLabels($datasetStore.schema);
   $: rowLabels = getRowLabels(row);
-  $: newLabelItem = {
-    id: 'new-label',
-    text: comboBoxText
-  };
-  $: missingLabelItems =
-    schemaLabels
-      ?.filter(l => !rowLabels.includes(l))
-      .map((l, i) => ({id: `label_${i}`, text: l})) || [];
-  $: labelItems = [...(comboBoxText != '' ? [newLabelItem] : []), ...missingLabelItems];
-
-  function addLabel() {
-    labelMenuOpen = true;
-    requestAnimationFrame(() => {
-      comboBox.clear({focus: true});
-    });
-  }
-
-  const rowId = L.value(valueAtPath(row, [ROWID])!, 'string')!;
-
-  const selectLabelItem = (
-    e: CustomEvent<{
-      selectedId: LabelItem['id'];
-      selectedItem: LabelItem;
-    }>
-  ) => {
-    const selectedItem = e.detail.selectedItem;
-    const body: AddLabelsOptions = {
-      label_name: selectedItem.text,
-      row_ids: [rowId]
-    };
-    $addLabels.mutate([namespace, datasetName, body], {
-      onSuccess: () => {
-        notificationStore.addNotification({
-          kind: 'success',
-          title: `Added label "${body.label_name}"`,
-          message: `Document id: ${rowId}`
-        });
-        labelMenuOpen = false;
-      }
-    });
-    comboBox.clear();
-  };
+  $: rowId = L.value(valueAtPath(row, [ROWID])!, 'string')!;
 
   const removeLabel = (label: string) => {
     const body: RemoveLabelsOptions = {
@@ -141,58 +83,7 @@
         </RemovableTag>
       {/each}
       <div class="relative h-8">
-        <div
-          class="w-full"
-          use:hoverTooltip={{
-            text: !canEditLabels ? 'You do not have access to add labels.' : undefined
-          }}
-        >
-          <button
-            disabled={!canEditLabels}
-            class:opacity-30={!canEditLabels}
-            on:click={addLabel}
-            use:hoverTooltip={{text: 'Add label'}}
-            class="flex items-center gap-x-2 border border-gray-300"
-            class:hidden={labelMenuOpen}
-            ><Add />
-          </button>
-        </div>
-        <div
-          class="absolute left-0 top-0 w-60"
-          class:hidden={!labelMenuOpen}
-          use:clickOutside={() => (labelMenuOpen = false)}
-        >
-          {#if $addLabels.isLoading}
-            <SkeletonText />
-          {:else}
-            <ComboBox
-              size="sm"
-              open={labelMenuOpen}
-              bind:this={comboBox}
-              items={labelItems}
-              bind:value={comboBoxText}
-              on:select={selectLabelItem}
-              shouldFilterItem={(item, value) =>
-                item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-label'}
-              placeholder="Select or add a new label"
-              let:item={it}
-            >
-              {@const item = labelItems.find(p => p.id === it.id)}
-              {#if item == null}
-                <div />
-              {:else if item.id === 'new-label'}
-                <div class="new-concept flex flex-row items-center justify-items-center">
-                  <Tag><Add /></Tag>
-                  <div class="ml-2">
-                    New label: {comboBoxText}
-                  </div>
-                </div>
-              {:else}
-                <div class="flex justify-between gap-x-8">{item.text}</div>
-              {/if}
-            </ComboBox>
-          {/if}
-        </div>
+        <AddLabel addLabelsQuery={{row_ids: [rowId]}} hideLabels={rowLabels} />
       </div>
     </div>
     {#if mediaFields.length > 0}

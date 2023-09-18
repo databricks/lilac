@@ -1235,6 +1235,8 @@ class DatasetDuckDB(Dataset):
     else:
       insert_row_ids = row_ids or []
 
+    print('insert row ids', insert_row_ids)
+
     # Check if the label file exists.
     labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
     if labels_filepath not in self._label_file_lock:
