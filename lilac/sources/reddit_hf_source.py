@@ -20,9 +20,7 @@ class RedditDataset(Source):
   name = 'reddit'
 
   subreddits: Optional[list[str]] = PydanticField(
-    required=False,
-    description='If defined, only loads the subset of reddit data in these subreddit.',
-  )
+    description='If defined, only loads the subset of reddit data in these subreddit.')
 
   _hf_dataset: HuggingFaceSource
 

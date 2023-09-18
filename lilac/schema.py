@@ -16,6 +16,7 @@ from pydantic import (
   StrictInt,
   StrictStr,
   field_validator,
+  model_validator,
 )
 from typing_extensions import TypedDict
 
@@ -137,28 +138,13 @@ class Field(BaseModel):
 
   @field_validator('fields')
   @classmethod
-  def either_fields_or_repeated_field_is_defined(
-      cls, fields: Optional[dict[str, 'Field']],
-      info: FieldValidationInfo) -> Optional[dict[str, 'Field']]:
-    """Error if both `fields` and `repeated_fields` are defined."""
+  def validate_fields(cls, fields: Optional[dict[str, 'Field']]) -> Optional[dict[str, 'Field']]:
+    """Validate the fields."""
     if not fields:
       return fields
-    if info.data.get('repeated_field'):
-      raise ValueError('Both "fields" and "repeated_field" should not be defined')
     if VALUE_KEY in fields:
       raise ValueError(f'{VALUE_KEY} is a reserved field name.')
     return fields
-
-  @field_validator('dtype', mode='before')
-  @classmethod
-  def infer_default_dtype(cls, dtype: Optional[DataType],
-                          info: FieldValidationInfo) -> Optional[DataType]:
-    """Infers the default value for dtype if not explicitly provided."""
-    if dtype and info.data.get('repeated_field'):
-      raise ValueError('dtype and repeated_field cannot both be defined.')
-    if not info.data.get('repeated_field') and not info.data.get('fields') and not dtype:
-      raise ValueError('One of "fields", "repeated_field", or "dtype" should be defined')
-    return dtype
 
   @field_validator('bins')
   @classmethod
@@ -189,6 +175,20 @@ class Field(BaseModel):
     if categorical and is_float(info.data['dtype']):
       raise ValueError('Categorical fields cannot be float dtypes.')
     return categorical
+
+  @model_validator(mode='after')
+  def validate_field(self) -> 'Field':
+    """Validate the field model."""
+    if self.fields and self.repeated_field:
+      raise ValueError('Both "fields" and "repeated_field" should not be defined')
+
+    if self.dtype and self.repeated_field:
+      raise ValueError('dtype and repeated_field cannot both be defined.')
+
+    if not self.repeated_field and not self.fields and not self.dtype:
+      raise ValueError('One of "fields", "repeated_field", or "dtype" should be defined')
+
+    return self
 
   def __str__(self) -> str:
     return _str_field(self, indent=0)

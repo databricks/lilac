@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from pandas.api.types import is_object_dtype
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
 
 from ..auth import UserInfo
@@ -1789,7 +1789,7 @@ class SignalManifest(BaseModel):
   parquet_id: str
 
   data_schema: Schema
-  signal: Signal
+  signal: SerializeAsAny[Signal]
 
   # The column path that this signal is derived from.
   enriched_path: PathTuple
@@ -1797,7 +1797,7 @@ class SignalManifest(BaseModel):
   # The name of the vector store. Present when the signal is an embedding.
   vector_store: Optional[str] = None
 
-  @field_validator('signal', mode="before")
+  @field_validator('signal', mode='before')
   @classmethod
   def parse_signal(cls, signal: dict) -> Signal:
     """Parse a signal to its specific subclass instance."""

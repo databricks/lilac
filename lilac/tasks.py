@@ -26,7 +26,7 @@ import psutil
 from dask import config as cfg
 from dask.distributed import Client
 from distributed import Future, get_client, get_worker, wait
-from pydantic import BaseModel, parse_obj_as
+from pydantic import BaseModel, TypeAdapter
 from tqdm import tqdm
 
 from .utils import log, pretty_timedelta
@@ -107,6 +107,7 @@ class TaskManager:
       asynchronous=True, memory_limit=f'{total_memory_gb} GB', processes=False)
 
   async def _update_tasks(self) -> None:
+    adapter = TypeAdapter(list[TaskStepInfo])
     for task_id, task in list(self._tasks.items()):
       if task.status == TaskStatus.COMPLETED:
         continue
@@ -122,7 +123,7 @@ class TaskManager:
 
       if step_events:
         _, log_message = step_events[-1]
-        steps = parse_obj_as(list[TaskStepInfo], log_message[STEPS_LOG_KEY])
+        steps = adapter.validate_python(log_message[STEPS_LOG_KEY])
         task.steps = steps
         if steps:
           cur_step = 0

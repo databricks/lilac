@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional, Union
 import yaml
 from pydantic import ConfigDict
 from pydantic import Field as PydanticField
-from pydantic import field_serializer, field_validator
+from pydantic import SerializeAsAny, field_serializer, field_validator
 
 if TYPE_CHECKING:
   pass
@@ -31,7 +31,7 @@ def _serializable_path(path: PathTuple) -> Union[str, list]:
 class SignalConfig(BaseModel):
   """Configures a signal on a source path."""
   path: PathTuple
-  signal: Signal
+  signal: SerializeAsAny[Signal]
   model_config = ConfigDict(extra='forbid')
 
   @field_validator('path', mode='before')

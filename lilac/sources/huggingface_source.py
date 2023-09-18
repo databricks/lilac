@@ -127,9 +127,7 @@ class HuggingFaceSource(Source):
   name = 'huggingface'
 
   dataset_name: str = PydanticField(
-    required=True,
-    description='Either in the format `user/dataset` or `dataset`.',
-  )
+    description='Either in the format `user/dataset` or `dataset`.',)
   config_name: Optional[str] = PydanticField(
     title='Dataset config name', description='Some datasets require this.', default=None)
   split: Optional[str] = PydanticField(

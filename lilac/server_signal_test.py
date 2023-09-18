@@ -1,7 +1,7 @@
 """Test the public REST API for signals."""
 import os
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 import pytest
 from fastapi.testclient import TestClient
@@ -32,8 +32,8 @@ class TestQueryAndLengthSignal(Signal):
   """A test signal."""
 
   # Pydantic fields
-  name = 'test_signal'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'test_signal'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   query: str
 

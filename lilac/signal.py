@@ -56,10 +56,10 @@ class Signal(BaseModel):
   # The input type is used to populate the UI to determine what the signal accepts as input.
   input_type: ClassVar[SignalInputType]
 
-  @model_serializer(mode='wrap')
-  def serialize_model(self, next: Callable[[Any], dict[str, Any]]) -> dict[str, Any]:
+  @model_serializer(mode='wrap', when_used='always')
+  def serialize_model(self, serializer: Callable[..., dict[str, Any]]) -> dict[str, Any]:
     """Serialize the model to a dictionary."""
-    res = next(self)
+    res = serializer(self)
     res['signal_name'] = self.name
     return res
 
@@ -279,7 +279,6 @@ def resolve_signal(signal: Union[dict, Signal]) -> Signal:
   if isinstance(signal, Signal):
     # The signal config is already parsed.
     return signal
-
   signal_name = signal.pop('signal_name')
   if not signal_name:
     raise ValueError('"signal_name" needs to be defined in the json dict.')

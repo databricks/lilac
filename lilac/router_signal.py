@@ -4,7 +4,7 @@ import math
 from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, SerializeAsAny, field_validator
 
 from .auth import UserInfo, get_session_user
 from .router_utils import RouteErrorHandler, server_compute_concept
@@ -54,7 +54,7 @@ def get_embeddings() -> list[SignalInfo]:
 
 class SignalComputeOptions(BaseModel):
   """The request for the standalone compute signal endpoint."""
-  signal: Signal
+  signal: SerializeAsAny[Signal]
   # The inputs to compute.
   inputs: list[str]
 
@@ -86,7 +86,7 @@ def compute(
 
 class SignalSchemaOptions(BaseModel):
   """The request for the signal schema endpoint."""
-  signal: Signal
+  signal: SerializeAsAny[Signal]
 
   @field_validator('signal', mode='before')
   @classmethod

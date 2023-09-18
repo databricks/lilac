@@ -5,7 +5,7 @@ from urllib.parse import unquote
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.params import Depends
 from fastapi.responses import ORJSONResponse
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, SerializeAsAny, field_validator
 
 from .auth import UserInfo, get_session_user, get_user_access
 from .config import DatasetSettings
@@ -60,7 +60,7 @@ def get_manifest(namespace: str, dataset_name: str) -> WebManifest:
 
 class ComputeSignalOptions(BaseModel):
   """The request for the compute signal endpoint."""
-  signal: Signal
+  signal: SerializeAsAny[Signal]
 
   # The leaf path to compute the signal on.
   leaf_path: Path
