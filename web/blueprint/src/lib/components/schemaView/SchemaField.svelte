@@ -132,7 +132,7 @@
         <div class="flex">
           <svelte:component
             this={DTYPE_TO_ICON[field.repeated_field.dtype]}
-            title={field.dtype}
+            title={field.dtype || undefined}
           />[]
         </div>
       {:else}
