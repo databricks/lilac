@@ -15,7 +15,7 @@ import type { UnaryFilter } from './UnaryFilter';
  */
 export type AddLabelsOptions = {
     label_name: string;
-    label_value?: string;
+    label_value?: (string | null);
     row_ids?: Array<string>;
     searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch)>;
     filters?: Array<(BinaryFilter | UnaryFilter | ListFilter)>;
