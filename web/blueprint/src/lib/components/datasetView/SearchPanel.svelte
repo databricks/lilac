@@ -216,7 +216,7 @@
           namespaceConcept.concepts.map(c => ({
             id: {namespace: c.namespace, name: c.name, type: 'concept'} as ConceptId,
             text: conceptDisplayName(c.namespace, c.name, $authInfo.data),
-            description: c.metadata.description,
+            description: c.metadata.description || undefined,
             disabled: searches.some(
               s =>
                 s.type === 'concept' &&

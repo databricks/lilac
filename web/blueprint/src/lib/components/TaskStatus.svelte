@@ -82,7 +82,7 @@
               <div class="progress-container mt-3">
                 <ProgressBar
                   labelText={task.message || ''}
-                  helperText={task.status != 'completed' ? task.details : ''}
+                  helperText={task.status != 'completed' ? task.details || undefined : ''}
                   value={task.status === 'completed' ? 1.0 : progressValue}
                   max={1.0}
                   size={'sm'}

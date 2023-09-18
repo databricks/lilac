@@ -81,7 +81,7 @@
                 <div class="text-base">Description</div>
 
                 <TextArea
-                  value={metadata.description}
+                  value={metadata.description || undefined}
                   on:input={descriptionChange}
                   cols={50}
                   placeholder="Enter a description..."
