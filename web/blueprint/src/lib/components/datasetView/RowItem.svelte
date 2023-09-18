@@ -1,5 +1,6 @@
 <script lang="ts">
-  import {addLabelsMutation} from '$lib/queries/datasetQueries';
+  import {addLabelsMutation, removeLabelsMutation} from '$lib/queries/datasetQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
@@ -11,13 +12,14 @@
     serializePath,
     valueAtPath,
     type AddLabelsOptions,
-    type BinaryFilter,
     type LilacField,
-    type LilacValueNode
+    type LilacValueNode,
+    type RemoveLabelsOptions
   } from '$lilac';
   import {ComboBox, SkeletonText, Tag} from 'carbon-components-svelte';
   import {Add} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
+  import RemovableTag from '../common/RemovableTag.svelte';
   import {clickOutside} from '../common/clickOutside';
   import ItemMedia from './ItemMedia.svelte';
   import ItemMetadata from './ItemMetadata.svelte';
@@ -33,6 +35,9 @@
   $: namespace = $datasetViewStore.namespace;
   $: datasetName = $datasetViewStore.datasetName;
 
+  const authInfo = queryAuthInfo();
+  $: canEditLabels = $authInfo.data?.access.dataset.edit_labels;
+
   const MIN_METADATA_HEIGHT_PX = 320;
   let mediaHeight = 0;
 
@@ -47,6 +52,7 @@
   let comboBox: ComboBox;
   let comboBoxText = '';
   const addLabels = addLabelsMutation();
+  const removeLabels = removeLabelsMutation();
 
   $: selectRowsSchema = $datasetStore.selectRowsSchema?.data;
 
@@ -69,6 +75,8 @@
     });
   }
 
+  const rowId = L.value(valueAtPath(row, [ROWID])!, 'string')!;
+
   const selectLabelItem = (
     e: CustomEvent<{
       selectedId: LabelItem['id'];
@@ -76,12 +84,9 @@
     }>
   ) => {
     const selectedItem = e.detail.selectedItem;
-    const rowId = L.value(valueAtPath(row, [ROWID])!, 'string')!;
-    const filter: BinaryFilter = {path: ROWID, op: 'equals', value: rowId};
     const body: AddLabelsOptions = {
       label_name: selectedItem.text,
-      label_value: 'true',
-      filters: [filter]
+      row_ids: [rowId]
     };
     $addLabels.mutate([namespace, datasetName, body], {
       onSuccess: () => {
@@ -95,24 +100,63 @@
     });
     comboBox.clear();
   };
+
+  const removeLabel = (label: string) => {
+    const body: RemoveLabelsOptions = {
+      label_name: label,
+      row_ids: [rowId]
+    };
+    $removeLabels.mutate([namespace, datasetName, body], {
+      onSuccess: () => {
+        notificationStore.addNotification({
+          kind: 'success',
+          title: `Removed label "${body.label_name}"`,
+          message: `Document id: ${rowId}`
+        });
+      }
+    });
+  };
 </script>
 
 <div class="flex flex-col rounded border border-neutral-300 md:flex-row">
   <div class="flex flex-col gap-y-1 p-4 md:w-2/3" bind:clientHeight={mediaHeight}>
     <div class="flex flex-wrap gap-x-2 gap-y-2">
       {#each rowLabels as label}
-        <div class="flex items-center rounded-full bg-neutral-200 px-3 py-1 text-neutral-600">
+        <RemovableTag
+          class="hover:cursor-pointer"
+          type="teal"
+          removeDisabled={!canEditLabels}
+          removeDisabledHelperText="You do not have access to remove labels."
+          closeHelperText={`Remove label "${label}"`}
+          clickHelperText={`View documents with label "${label}"`}
+          on:click={() =>
+            datasetViewStore.addFilter({
+              path: [label, 'label'],
+              op: 'equals',
+              value: 'true'
+            })}
+          on:remove={() => removeLabel(label)}
+        >
           {label}
-        </div>
+        </RemovableTag>
       {/each}
       <div class="relative h-8">
-        <button
-          on:click={addLabel}
-          use:hoverTooltip={{text: 'Add label'}}
-          class="flex items-center gap-x-2 border border-gray-300"
-          class:hidden={labelMenuOpen}
-          ><Add />
-        </button>
+        <div
+          class="w-full"
+          use:hoverTooltip={{
+            text: !canEditLabels ? 'You do not have access to add labels.' : undefined
+          }}
+        >
+          <button
+            disabled={!canEditLabels}
+            class:opacity-30={!canEditLabels}
+            on:click={addLabel}
+            use:hoverTooltip={{text: 'Add label'}}
+            class="flex items-center gap-x-2 border border-gray-300"
+            class:hidden={labelMenuOpen}
+            ><Add />
+          </button>
+        </div>
         <div
           class="absolute left-0 top-0 w-60"
           class:hidden={!labelMenuOpen}

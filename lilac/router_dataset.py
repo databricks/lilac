@@ -320,7 +320,8 @@ def update_settings(namespace: str, dataset_name: str, settings: DatasetSettings
 class AddLabelsOptions(BaseModel):
   """The request for the add labels endpoint."""
   label_name: str
-  label_value: str
+  label_value: Optional[str] = 'true'
+  row_ids: Optional[Sequence[str]] = None
   searches: Optional[Sequence[Search]] = None
   filters: Optional[Sequence[Filter]] = None
 
@@ -328,7 +329,7 @@ class AddLabelsOptions(BaseModel):
 @router.post('/{namespace}/{dataset_name}/labels', response_model_exclude_none=True)
 def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions) -> None:
   """"Add a label to the dataset."""
-  if not get_user_access().dataset.add_labels:
+  if not get_user_access().dataset.edit_labels:
     raise HTTPException(401, 'User does not have access to add labels to this dataset.')
 
   sanitized_filters = [
@@ -339,5 +340,32 @@ def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions) -> 
   dataset.add_labels(
     name=options.label_name,
     value=options.label_value,
+    row_ids=options.row_ids,
+    searches=options.searches,
+    filters=sanitized_filters)
+
+
+class RemoveLabelsOptions(BaseModel):
+  """The request for the remove labels endpoint."""
+  label_name: str
+  row_ids: Optional[Sequence[str]] = None
+  searches: Optional[Sequence[Search]] = None
+  filters: Optional[Sequence[Filter]] = None
+
+
+@router.delete('/{namespace}/{dataset_name}/labels', response_model_exclude_none=True)
+def remove_labels(namespace: str, dataset_name: str, options: RemoveLabelsOptions) -> None:
+  """"Add a label to the dataset."""
+  if not get_user_access().dataset.edit_labels:
+    raise HTTPException(401, 'User does not have access to remove labels from this dataset.')
+
+  sanitized_filters = [
+    PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
+  ]
+
+  dataset = get_dataset(namespace, dataset_name)
+  dataset.remove_labels(
+    name=options.label_name,
+    row_ids=options.row_ids,
     searches=options.searches,
     filters=sanitized_filters)

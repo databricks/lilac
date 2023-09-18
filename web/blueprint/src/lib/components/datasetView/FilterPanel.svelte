@@ -91,11 +91,12 @@
   // Explicit user selection of sort.
   $: selectedSortBy = $datasetViewStore.query.sort_by;
 
+  $: schema = $datasetStore?.selectRowsSchema?.data?.schema;
   $: sortItems =
-    $datasetStore.selectRowsSchema?.data?.schema != null
+    schema != null
       ? [
           {path: [''], text: 'None', disabled: selectedSortBy == null && sortById !== ''},
-          ...petals($datasetStore.selectRowsSchema.data.schema)
+          ...petals(schema)
             .filter(f => f.dtype != 'embedding' && f.dtype != 'string_span')
             .map(field => {
               return {
@@ -132,7 +133,7 @@
 </script>
 
 <div class="mx-5 my-2 flex flex-col gap-y-2">
-  {#if searchTypeOrder.length > 0}
+  {#if searchTypeOrder.length > 0 && schema != null}
     <div class="flex w-full flex-row gap-x-4">
       <!-- Search groups -->
       {#each searchTypeOrder as searchType}
@@ -153,7 +154,7 @@
           <div class="text-xs font-light">Filters</div>
           <div class="flex flex-row gap-x-1">
             {#each filters as filter}
-              <FilterPill {filter} />
+              <FilterPill {schema} {filter} />
             {/each}
           </div>
         </div>

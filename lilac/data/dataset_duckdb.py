@@ -175,7 +175,6 @@ class DatasetDuckDB(Dataset):
     self._config_lock = threading.Lock()
     self._vector_index_lock = threading.Lock()
     self._label_file_lock: dict[str, threading.Lock] = {}
-    self._label_sqlite_cons: dict[str, sqlite3.Connection] = {}
 
     # Create a join table from all the parquet files.
     manifest = self.manifest()
@@ -1211,11 +1210,6 @@ class DatasetDuckDB(Dataset):
     return SelectRowsSchemaResult(
       data_schema=new_schema, udfs=udfs, search_results=search_results, sorts=sort_results or None)
 
-  def _label_sqlite_con(self, labels_filepath: str) -> sqlite3.Connection:
-    if labels_filepath not in self._label_sqlite_cons:
-      self._label_sqlite_cons[labels_filepath] = sqlite3.connect(labels_filepath)
-    return self._label_sqlite_cons[labels_filepath]
-
   @override
   def add_labels(self,
                  name: str,
@@ -1252,7 +1246,8 @@ class DatasetDuckDB(Dataset):
         pass
 
     with self._label_file_lock[labels_filepath]:
-      sqlite_con = self._label_sqlite_con(labels_filepath)
+      # We don't cache sqlite connections as they cannot be shared across threads.
+      sqlite_con = sqlite3.connect(labels_filepath)
       sqlite_cur = sqlite_con.cursor()
 
       # Create the table if it doesn't exist.
@@ -1272,6 +1267,7 @@ class DatasetDuckDB(Dataset):
             ON CONFLICT({ROWID}) DO UPDATE SET label=excluded.label;
           """, (row_id, value, created.isoformat()))
       sqlite_con.commit()
+      sqlite_con.close()
 
   @override
   def remove_labels(self,
@@ -1305,7 +1301,7 @@ class DatasetDuckDB(Dataset):
       self._label_file_lock[labels_filepath] = threading.Lock()
 
     with self._label_file_lock[labels_filepath]:
-      sqlite_con = self._label_sqlite_con(labels_filepath)
+      sqlite_con = sqlite3.connect(labels_filepath)
       sqlite_cur = sqlite_con.cursor()
 
       for row_id in remove_row_ids:
