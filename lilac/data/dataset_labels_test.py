@@ -1,9 +1,13 @@
 """Tests for dataset.compute_signal()."""
 
 from datetime import datetime
+from typing import Iterable
 
+import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
+
+from lilac.sources.source_registry import clear_source_registry, register_source
 
 from ..schema import PATH_WILDCARD, ROWID, Item, field, schema
 from .dataset import DatasetManifest, SelectGroupsResult, SortOrder
@@ -26,6 +30,16 @@ TEST_ITEMS: list[Item] = [
 
 TEST_TIME = datetime(2023, 8, 15, 1, 23, 45)
 
+@pytest.fixture(scope='module', autouse=True)
+def setup_teardown() -> Iterable[None]:
+  # Setup.
+  register_source(TestSource)
+
+  # Unit test runs.
+  yield
+
+  # Teardown.
+  clear_source_registry()
 
 @freeze_time(TEST_TIME)
 def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:

@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
+from lilac.sources.source_registry import clear_source_registry, register_source
+
 from ..concepts.concept import ExampleIn
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..schema import (
@@ -186,6 +188,7 @@ class ComputedKeySignal(TextSignal):
 def setup_teardown() -> Iterable[None]:
   # Setup.
   clear_signal_registry()
+  register_source(TestSource)
   register_signal(TestSparseSignal)
   register_signal(TestSparseRichSignal)
   register_signal(TestParamSignal)
@@ -198,6 +201,7 @@ def setup_teardown() -> Iterable[None]:
   # Unit test runs.
   yield
   # Teardown.
+  clear_source_registry()
   clear_signal_registry()
 
 

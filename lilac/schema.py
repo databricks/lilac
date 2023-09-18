@@ -254,6 +254,11 @@ class Schema(BaseModel):
     self._all_fields = result
     return result
 
+  def __eq__(self, other: Any) -> bool:
+    if not isinstance(other, Schema):
+      return False
+    return self.model_dump() == other.model_dump()
+
   def has_field(self, path: PathTuple) -> bool:
     """Returns if the field is found at the given path."""
     if path == (ROWID,):

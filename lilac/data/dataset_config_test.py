@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
+from lilac.sources.source_registry import clear_source_registry, register_source
+
 from ..config import (
   DatasetConfig,
   DatasetSettings,
@@ -68,12 +70,14 @@ class TestEmbedding2(TextEmbeddingSignal):
 def setup_teardown() -> Iterable[None]:
   # Setup.
   clear_signal_registry()
+  register_source(TestSource)
   register_signal(TestEmbedding)
   register_signal(TestEmbedding2)
 
   # Unit test runs.
   yield
   # Teardown.
+  clear_source_registry()
   clear_signal_registry()
 
 

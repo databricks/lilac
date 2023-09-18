@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
+from lilac.sources.source_registry import clear_source_registry, register_source
+
 from ..config import DatasetConfig, EmbeddingConfig, SignalConfig
 from ..schema import EMBEDDING_KEY, ROWID, Field, Item, RichData, field, lilac_embedding, schema
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
@@ -83,6 +85,7 @@ class TestSignal(TextSignal):
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
+  register_source(TestSource)
   register_signal(TestSignal)
   register_signal(TestEmbedding)
   register_signal(LengthSignal)
@@ -93,6 +96,7 @@ def setup_teardown() -> Iterable[None]:
   yield
 
   # Teardown.
+  clear_source_registry()
   clear_signal_registry()
 
 
@@ -285,7 +289,7 @@ def test_select_ids(make_test_data: TestDataMaker) -> None:
 
 
 def test_select_ids_with_limit_and_offset(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{i: i} for i in range(10)]
+  items: list[Item] = [{str(i): i} for i in range(10)]
   dataset = make_test_data(items)
 
   result = dataset.select_rows([ROWID], offset=1, limit=3)
