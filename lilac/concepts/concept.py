@@ -5,7 +5,7 @@ from typing import Callable, Literal, Optional, Union
 
 import numpy as np
 from joblib import Parallel, delayed
-from pydantic import field_validator, BaseModel
+from pydantic import BaseModel, field_validator
 from scipy.interpolate import interp1d
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression

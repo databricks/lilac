@@ -8,7 +8,8 @@ from datetime import datetime
 from time import sleep
 from typing import TYPE_CHECKING, Any, Iterable, Optional
 
-from pydantic import ConfigDict, Field as PydanticField
+from pydantic import ConfigDict
+from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..env import get_project_dir

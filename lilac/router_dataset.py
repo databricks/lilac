@@ -1,5 +1,6 @@
 """Router for the dataset database."""
-from typing import Annotated, Literal, Optional, Sequence, Union, cast
+from copy import copy
+from typing import Annotated, Any, Literal, Optional, Sequence, Union, cast
 from urllib.parse import unquote
 
 from fastapi import APIRouter, HTTPException, Response
@@ -208,17 +209,27 @@ class SelectRowsResponse(BaseModel):
   total_num_rows: int
 
 
+def _exclude_none(obj: Any) -> Any:
+  if isinstance(obj, dict):
+    return {k: _exclude_none(v) for k, v in obj.items() if v is not None}
+  if isinstance(obj, list):
+    return [_exclude_none(v) for v in obj]
+  return copy(obj)
+
+
 # SQL adds {"x": None} for `SELECT x` where x is sparse, thus exclude none to keep response small.
-@router.get('/{namespace}/{dataset_name}/select_rows_download', response_model_exclude_none=True)
+@router.get('/{namespace}/{dataset_name}/select_rows_download')
 def select_rows_download(
     namespace: str, dataset_name: str, url_safe_options: str,
     user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> list[dict]:
   """Select rows from the dataset database and downloads them."""
   options = SelectRowsOptions.model_validate_json(unquote(url_safe_options))
-  return select_rows(namespace, dataset_name, options, user).rows
+
+  rows = select_rows(namespace, dataset_name, options, user).rows
+  return [_exclude_none(row) for row in rows]
 
 
-@router.post('/{namespace}/{dataset_name}/select_rows', response_model_exclude_none=True)
+@router.post('/{namespace}/{dataset_name}/select_rows')
 def select_rows(
     namespace: str, dataset_name: str, options: SelectRowsOptions,
     user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> SelectRowsResponse:
@@ -240,7 +251,8 @@ def select_rows(
     combine_columns=options.combine_columns or False,
     user=user)
 
-  return SelectRowsResponse(rows=list(res), total_num_rows=res.total_num_rows)
+  rows = [_exclude_none(row) for row in res]
+  return SelectRowsResponse(rows=rows, total_num_rows=res.total_num_rows)
 
 
 @router.post('/{namespace}/{dataset_name}/select_rows_schema', response_model_exclude_none=True)

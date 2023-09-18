@@ -30,6 +30,7 @@ TEST_ITEMS: list[Item] = [
 
 TEST_TIME = datetime(2023, 8, 15, 1, 23, 45)
 
+
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
@@ -40,6 +41,7 @@ def setup_teardown() -> Iterable[None]:
 
   # Teardown.
   clear_source_registry()
+
 
 @freeze_time(TEST_TIME)
 def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
