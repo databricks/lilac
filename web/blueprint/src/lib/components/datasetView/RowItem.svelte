@@ -99,7 +99,7 @@
 
 <div class="flex flex-col rounded border border-neutral-300 md:flex-row">
   <div class="flex flex-col gap-y-1 p-4 md:w-2/3" bind:clientHeight={mediaHeight}>
-    <div class="flex h-20 flex-wrap gap-x-2 gap-y-2">
+    <div class="flex flex-wrap gap-x-2 gap-y-2">
       {#each rowLabels as label}
         <div class="flex items-center rounded-full bg-neutral-200 px-3 py-1 text-neutral-600">
           {label}
