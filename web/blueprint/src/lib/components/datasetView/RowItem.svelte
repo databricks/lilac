@@ -123,8 +123,8 @@
     <div class="flex flex-wrap gap-x-2 gap-y-2">
       {#each rowLabels as label}
         <RemovableTag
+          type="cool-gray"
           class="hover:cursor-pointer"
-          type="teal"
           removeDisabled={!canEditLabels}
           removeDisabledHelperText="You do not have access to remove labels."
           closeHelperText={`Remove label "${label}"`}
