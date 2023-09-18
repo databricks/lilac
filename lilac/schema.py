@@ -46,8 +46,8 @@ Item = Any
 #  ['article', 'field'] represents {'article': {'field': VALUES}}
 #  ['article', '*', 'field'] represents {'article': [{'field': VALUES}, {'field': VALUES}]}
 #  ['article', '0', 'field'] represents {'article': {'field': VALUES}}
-PathTuple = tuple[StrictStr, ...]
-Path = Union[PathTuple, StrictStr]
+PathTuple = tuple[str, ...]
+Path = Union[PathTuple, str]
 
 PathKeyedItem = tuple[Path, Item]
 

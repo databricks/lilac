@@ -182,12 +182,15 @@ class Column(DBColumn):
   signal_udf: Optional[AllSignalTypes] = None
 
 
+ColumnOrPath = Union[Column, Path]
+
+
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
-  columns: Optional[Sequence[Union[Path, Column]]] = None
-  searches: Optional[Sequence[Search]] = None
-  filters: Optional[Sequence[Filter]] = None
-  sort_by: Optional[Sequence[Path]] = None
+  columns: Sequence[Union[Column, Path]] = []
+  searches: Sequence[Search] = []
+  filters: Sequence[Filter] = []
+  sort_by: Sequence[Path] = []
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int] = None
   offset: Optional[int] = None
@@ -196,9 +199,9 @@ class SelectRowsOptions(BaseModel):
 
 class SelectRowsSchemaOptions(BaseModel):
   """The request for the select rows schema endpoint."""
-  columns: Optional[Sequence[Union[Path, Column]]] = None
-  searches: Optional[Sequence[Search]] = None
-  sort_by: Optional[Sequence[Path]] = None
+  columns: Sequence[Union[Path, Column]] = []
+  searches: Sequence[Search] = []
+  sort_by: Sequence[Path] = []
   sort_order: Optional[SortOrder] = SortOrder.DESC
   combine_columns: Optional[bool] = None
 
@@ -271,7 +274,7 @@ def select_rows_schema(namespace: str, dataset_name: str,
 class SelectGroupsOptions(BaseModel):
   """The request for the select groups endpoint."""
   leaf_path: Path
-  filters: Optional[Sequence[Filter]] = None
+  filters: Sequence[Filter] = []
   sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int] = 100
@@ -333,8 +336,8 @@ class AddLabelsOptions(BaseModel):
   """The request for the add labels endpoint."""
   label_name: str
   label_value: str
-  searches: Optional[Sequence[Search]] = None
-  filters: Optional[Sequence[Filter]] = None
+  searches: Sequence[Search] = []
+  filters: Sequence[Filter] = []
 
 
 @router.post('/{namespace}/{dataset_name}/labels', response_model_exclude_none=True)
