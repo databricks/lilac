@@ -55,7 +55,7 @@ def get_manifest(namespace: str, dataset_name: str) -> WebManifest:
   dataset = get_dataset(namespace, dataset_name)
   res = WebManifest(dataset_manifest=dataset.manifest())
   # Avoids the error that Signal abstract class is not serializable.
-  return cast(WebManifest, ORJSONResponse(res.dict(exclude_none=True)))
+  return cast(WebManifest, ORJSONResponse(res.model_dump(exclude_none=True)))
 
 
 class ComputeSignalOptions(BaseModel):
@@ -293,7 +293,7 @@ def get_config(namespace: str, dataset_name: str,
                format: Union[Literal['yaml'], Literal['json']]) -> Union[str, dict]:
   """Get the config for the dataset."""
   dataset = get_dataset(namespace, dataset_name)
-  config_dict = dataset.config().dict(exclude_defaults=True, exclude_none=True)
+  config_dict = dataset.config().model_dump(exclude_defaults=True, exclude_none=True)
   if format == 'yaml':
     return to_yaml(config_dict)
   elif format == 'json':

@@ -194,7 +194,7 @@ class Field(BaseModel):
     return _str_field(self, indent=0)
 
   def __repr__(self) -> str:
-    return f' {self.__class__.__name__}::{self.json(exclude_none=True, indent=2)}'
+    return f' {self.__class__.__name__}::{self.model_dump_json(exclude_none=True, indent=2)}'
 
 
 class Schema(BaseModel):
@@ -294,7 +294,7 @@ class Schema(BaseModel):
     return _str_fields(self.fields, indent=0)
 
   def __repr__(self) -> str:
-    return self.json(exclude_none=True, indent=2)
+    return self.model_dump_json(exclude_none=True, indent=2)
 
 
 def schema(schema_like: object) -> Schema:

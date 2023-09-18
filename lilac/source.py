@@ -59,9 +59,9 @@ class Source(BaseModel):
   router: ClassVar[Optional[APIRouter]] = None
 
   @model_serializer(mode='wrap')
-  def serialize_model(self, next: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+  def serialize_model(self, next: Callable[[Any], dict[str, Any]]) -> dict[str, Any]:
     """Serialize the model to a dictionary."""
-    res = next()
+    res = next(self)
     res['source_name'] = self.name
     return res
 

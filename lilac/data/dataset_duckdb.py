@@ -225,7 +225,7 @@ class DatasetDuckDB(Dataset):
   @functools.cache
   def _recompute_joint_table(self, latest_mtime_micro_sec: int) -> DatasetManifest:
     del latest_mtime_micro_sec  # This is used as the cache key.
-    merged_schema = self._source_manifest.data_schema.copy(deep=True)
+    merged_schema = self._source_manifest.data_schema.model_copy(deep=True)
     self._signal_manifests = []
     self._label_schemas = {}
     # Make a joined view of all the column groups.
@@ -414,7 +414,7 @@ class DatasetDuckDB(Dataset):
       parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True))
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
     with open_file(signal_manifest_filepath, 'w') as f:
-      f.write(signal_manifest.json(exclude_none=True, indent=2))
+      f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
 
     log(f'Wrote signal output to {output_dir}')
 
@@ -461,7 +461,7 @@ class DatasetDuckDB(Dataset):
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
 
     with open_file(signal_manifest_filepath, 'w') as f:
-      f.write(signal_manifest.json(exclude_none=True, indent=2))
+      f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
 
     log(f'Wrote embedding index to {output_dir}')
 
@@ -1753,7 +1753,7 @@ def read_source_manifest(dataset_path: str) -> SourceManifest:
         if dataset_config.source:
           source_manifest.source = dataset_config.source
       with open_file(os.path.join(dataset_path, MANIFEST_FILENAME), 'w') as f:
-        f.write(source_manifest.json(indent=2, exclude_none=True))
+        f.write(source_manifest.model_dump_json(indent=2, exclude_none=True))
 
   return source_manifest
 

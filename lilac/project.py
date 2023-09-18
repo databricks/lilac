@@ -174,7 +174,7 @@ def read_project_config(project_dir: Union[str, pathlib.Path]) -> Config:
 def _write_project_config(project_dir: Union[str, pathlib.Path], config: Config) -> None:
   """Writes the project config."""
   with open(os.path.join(project_dir, PROJECT_CONFIG_FILENAME), 'w') as f:
-    yaml_config = to_yaml(config.dict(exclude_defaults=True, exclude_none=True))
+    yaml_config = to_yaml(config.model_dump(exclude_defaults=True, exclude_none=True))
     f.write('# Lilac project config.\n' +
             '# See https://lilacml.com/api_reference/index.html#lilac.Config '
             'for details.\n\n' + yaml_config)

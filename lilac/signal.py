@@ -57,9 +57,9 @@ class Signal(BaseModel):
   input_type: ClassVar[SignalInputType]
 
   @model_serializer(mode='wrap')
-  def serialize_model(self, next: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+  def serialize_model(self, next: Callable[[Any], dict[str, Any]]) -> dict[str, Any]:
     """Serialize the model to a dictionary."""
-    res = next()
+    res = next(self)
     res['signal_name'] = self.name
     return res
 
@@ -98,7 +98,7 @@ class Signal(BaseModel):
       is_computed_signal: True when the signal is computed over the column and written to
         disk. False when the signal is used as a preview UDF.
     """
-    args_dict = self.dict(exclude_unset=True, exclude_defaults=True)
+    args_dict = self.model_dump(exclude_unset=True, exclude_defaults=True)
     # If a user explicitly defines a signal name for whatever reason, remove it as it's redundant.
     if 'signal_name' in args_dict:
       del args_dict['signal_name']
@@ -114,7 +114,7 @@ class Signal(BaseModel):
     pass
 
   def __str__(self) -> str:
-    return f' {self.__class__.__name__}({self.json(exclude_none=True)})'
+    return f' {self.__class__.__name__}({self.model_dump_json(exclude_none=True)})'
 
 
 def _args_key_from_dict(args_dict: dict[str, Any]) -> str:
@@ -144,7 +144,7 @@ class TextSignal(Signal):
 
   @override
   def key(self, is_computed_signal: Optional[bool] = False) -> str:
-    args_dict = self.dict(exclude_unset=True, exclude_defaults=True)
+    args_dict = self.model_dump(exclude_unset=True, exclude_defaults=True)
     if 'signal_name' in args_dict:
       del args_dict['signal_name']
     return self.name + _args_key_from_dict(args_dict)

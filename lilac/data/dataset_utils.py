@@ -97,7 +97,7 @@ def _merge_field_into(schema: Field, destination: Field) -> None:
     destination.fields = destination.fields or {}
     for field_name, subfield in schema.fields.items():
       if field_name not in destination.fields:
-        destination.fields[field_name] = subfield.copy(deep=True)
+        destination.fields[field_name] = subfield.model_copy(deep=True)
       else:
         _merge_field_into(subfield, destination.fields[field_name])
   elif schema.repeated_field:
@@ -201,7 +201,7 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
                            filename_prefix: str, shard_index: int,
                            num_shards: int) -> tuple[str, int]:
   """Write a set of items to a parquet file, in columnar format."""
-  schema = schema.copy(deep=True)
+  schema = schema.model_copy(deep=True)
   # Add a rowid column.
   schema.fields[ROWID] = Field(dtype=DataType.STRING)
 

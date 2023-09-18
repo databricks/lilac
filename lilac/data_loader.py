@@ -82,7 +82,7 @@ def process_source(project_dir: Union[str, pathlib.Path],
   manifest = SourceManifest(
     files=filenames, data_schema=data_schema, images=None, source=config.source)
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
-    f.write(manifest.json(indent=2, exclude_none=True))
+    f.write(manifest.model_dump_json(indent=2, exclude_none=True))
 
   if not config.settings:
     dataset = get_dataset(config.namespace, config.name, project_dir)
