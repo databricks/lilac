@@ -4,10 +4,10 @@
 </script>
 
 <script lang="ts">
-  import {addLabelsMutation} from '$lib/queries/datasetQueries';
+  import {addLabelsMutation, infiniteQuerySelectRows} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {getSchemaLabels, type AddLabelsOptions} from '$lilac';
   import {ComboBox, SkeletonText} from 'carbon-components-svelte';
@@ -47,6 +47,17 @@
 
   const addLabels = addLabelsMutation();
 
+  $: selectOptions = getSelectRowsOptions($datasetViewStore);
+  $: selectRowsSchema = $datasetStore.selectRowsSchema;
+  // Query rows to get the total count for the notification.
+  // TODO(nsthorat): Add this to the response of add_labels instead of making a query.
+  $: rows = infiniteQuerySelectRows(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    selectOptions || {},
+    selectRowsSchema?.isSuccess ? selectRowsSchema.data.schema : undefined
+  );
+
   function addLabel() {
     labelMenuOpen = true;
     requestAnimationFrame(() => {
@@ -74,11 +85,12 @@
     };
     $addLabels.mutate([namespace, datasetName, addLabelsOptions], {
       onSuccess: () => {
+        const totalNumRows = $rows.data?.pages[0].total_num_rows;
+
         const message =
           addLabelsOptions.row_ids != null
             ? `Document id: ${addLabelsOptions.row_ids}`
-            : `Filters: ${JSON.stringify(addLabelsOptions.filters, null, 2)}\n\n` +
-              ` Searches: ${addLabelsOptions.searches}`;
+            : `${totalNumRows} rows labeled`;
 
         notificationStore.addNotification({
           kind: 'success',
