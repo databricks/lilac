@@ -8,6 +8,8 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
+from lilac.sources.source_registry import clear_source_registry, register_source
+
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   EMBEDDING_KEY,
@@ -110,6 +112,7 @@ class TestEmbeddingSumSignal(VectorSignal):
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
+  register_source(TestSource)
   register_signal(TestSplitter)
   register_signal(TestEmbedding)
   register_signal(TestEmbeddingSumSignal)
@@ -117,6 +120,7 @@ def setup_teardown() -> Iterable[None]:
   # Unit test runs.
   yield
   # Teardown.
+  clear_source_registry()
   clear_signal_registry()
 
 

@@ -64,7 +64,7 @@ class SelectRowsResult:
     self.total_num_rows = total_num_rows
 
   def __iter__(self) -> Iterator:
-    return (row.to_dict() for _, row in self._df.iterrows())
+    return (row._asdict() for row in self._df.itertuples(index=False))
 
   def df(self) -> pd.DataFrame:
     """Convert the result to a pandas DataFrame."""

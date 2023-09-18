@@ -6,6 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
+from lilac.sources.source_registry import clear_source_registry, register_source
+
 from .config import DatasetSettings
 from .data.dataset import Dataset, DatasetManifest, SelectRowsSchemaResult, SelectRowsSchemaUDF
 from .data.dataset_duckdb import DatasetDuckDB
@@ -75,10 +77,12 @@ TEST_DATA: list[Item] = [{
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
+  register_source(TestSource)
   register_signal(LengthSignal)
   # Unit test runs.
   yield
   # Teardown.
+  clear_source_registry()
   clear_signal_registry()
 
 
