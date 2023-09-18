@@ -124,8 +124,7 @@ def test_select_rows_no_options() -> None:
   options = SelectRowsOptions()
   response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
-  assert SelectRowsResponse.model_validate(response.json()) == SelectRowsResponse(
-    rows=TEST_DATA, total_num_rows=3)
+  assert response.json() == {'rows': TEST_DATA, 'total_num_rows': 3}
 
 
 def test_select_rows_with_cols_and_limit() -> None:

@@ -5,6 +5,7 @@ import abc
 import enum
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
+from copy import copy
 from datetime import datetime
 from typing import Any, Iterator, Literal, Optional, Sequence, Union
 
@@ -55,6 +56,14 @@ SAMPLE_AVG_TEXT_LENGTH = 1000
 MAX_TEXT_LEN_DISTINCT_COUNT = 250
 
 
+def _exclude_none(obj: Any) -> Any:
+  if isinstance(obj, dict):
+    return {k: _exclude_none(v) for k, v in obj.items() if v is not None}
+  if isinstance(obj, list):
+    return [_exclude_none(v) for v in obj]
+  return copy(obj)
+
+
 class SelectRowsResult:
   """The result of a select rows query."""
 
@@ -64,7 +73,7 @@ class SelectRowsResult:
     self.total_num_rows = total_num_rows
 
   def __iter__(self) -> Iterator:
-    return (row._asdict() for row in self._df.itertuples(index=False))
+    return (_exclude_none(row.to_dict()) for _, row in self._df.iterrows())
 
   def df(self) -> pd.DataFrame:
     """Convert the result to a pandas DataFrame."""
