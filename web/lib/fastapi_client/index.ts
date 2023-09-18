@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -16,7 +17,8 @@ export type { Concept } from './models/Concept';
 export type { ConceptACL } from './models/ConceptACL';
 export type { ConceptInfo } from './models/ConceptInfo';
 export type { ConceptLabelsSignal } from './models/ConceptLabelsSignal';
-export type { ConceptMetadata } from './models/ConceptMetadata';
+export type { ConceptMetadata_Input } from './models/ConceptMetadata_Input';
+export type { ConceptMetadata_Output } from './models/ConceptMetadata_Output';
 export type { ConceptMetrics } from './models/ConceptMetrics';
 export type { ConceptModelInfo } from './models/ConceptModelInfo';
 export type { ConceptSearch } from './models/ConceptSearch';
@@ -27,13 +29,16 @@ export type { ConceptUserAccess } from './models/ConceptUserAccess';
 export type { CreateConceptOptions } from './models/CreateConceptOptions';
 export type { DatasetInfo } from './models/DatasetInfo';
 export type { DatasetManifest } from './models/DatasetManifest';
-export type { DatasetSettings } from './models/DatasetSettings';
-export type { DatasetUISettings } from './models/DatasetUISettings';
+export type { DatasetSettings_Input } from './models/DatasetSettings_Input';
+export type { DatasetSettings_Output } from './models/DatasetSettings_Output';
+export type { DatasetUISettings_Input } from './models/DatasetUISettings_Input';
+export type { DatasetUISettings_Output } from './models/DatasetUISettings_Output';
 export type { DatasetUserAccess } from './models/DatasetUserAccess';
 export type { DataType } from './models/DataType';
 export type { DeleteSignalOptions } from './models/DeleteSignalOptions';
 export type { DeleteSignalResponse } from './models/DeleteSignalResponse';
-export type { Example } from './models/Example';
+export type { Example_Input } from './models/Example_Input';
+export type { Example_Output } from './models/Example_Output';
 export type { ExampleIn } from './models/ExampleIn';
 export type { ExampleOrigin } from './models/ExampleOrigin';
 export type { Field } from './models/Field';

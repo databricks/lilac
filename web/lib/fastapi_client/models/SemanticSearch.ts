@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -9,6 +10,6 @@ export type SemanticSearch = {
     path: (Array<string> | string);
     query: string;
     embedding: string;
-    type?: 'semantic';
+    type?: any;
 };
 

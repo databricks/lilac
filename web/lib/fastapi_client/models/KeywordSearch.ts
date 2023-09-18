@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -8,6 +9,6 @@
 export type KeywordSearch = {
     path: (Array<string> | string);
     query: string;
-    type?: 'keyword';
+    type?: any;
 };
 

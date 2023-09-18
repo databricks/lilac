@@ -1,9 +1,10 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { Concept } from '../models/Concept';
 import type { ConceptInfo } from '../models/ConceptInfo';
-import type { ConceptMetadata } from '../models/ConceptMetadata';
+import type { ConceptMetadata_Input } from '../models/ConceptMetadata_Input';
 import type { ConceptModelInfo } from '../models/ConceptModelInfo';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
 import type { CreateConceptOptions } from '../models/CreateConceptOptions';
@@ -41,7 +42,7 @@ export class ConceptsService {
     public static getConcept(
         namespace: string,
         conceptName: string,
-        draft?: ('main' | string),
+        draft?: (string | null),
     ): CancelablePromise<Concept> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -146,7 +147,7 @@ export class ConceptsService {
     public static editConceptMetadata(
         namespace: string,
         conceptName: string,
-        requestBody: ConceptMetadata,
+        requestBody: ConceptMetadata_Input,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -224,7 +225,7 @@ export class ConceptsService {
      * @param conceptName
      * @param embeddingName
      * @param createIfNotExists
-     * @returns ConceptModelInfo Successful Response
+     * @returns any Successful Response
      * @throws ApiError
      */
     public static getConceptModel(
@@ -232,7 +233,7 @@ export class ConceptsService {
         conceptName: string,
         embeddingName: string,
         createIfNotExists: boolean = false,
-    ): CancelablePromise<ConceptModelInfo> {
+    ): CancelablePromise<(ConceptModelInfo | null)> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/concepts/{namespace}/{concept_name}/model/{embedding_name}',

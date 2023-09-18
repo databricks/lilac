@@ -4,11 +4,11 @@
 /* eslint-disable */
 
 /**
- * Information about a step of the task..
+ * Metadata associated with a concept.
  */
-export type TaskStepInfo = {
-    progress: (number | null);
+export type ConceptMetadata_Output = {
+    is_public: boolean;
+    tags: Array<string>;
     description: (string | null);
-    details: (string | null);
 };
 

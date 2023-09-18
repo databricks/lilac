@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -7,7 +8,7 @@
  */
 export type UnaryFilter = {
     path: (Array<string> | string);
-    op: 'exists';
+    op: any;
     value?: null;
 };
 

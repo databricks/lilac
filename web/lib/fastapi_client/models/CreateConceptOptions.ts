@@ -1,8 +1,9 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ConceptMetadata } from './ConceptMetadata';
+import type { ConceptMetadata_Input } from './ConceptMetadata_Input';
 import type { ConceptType } from './ConceptType';
 
 /**
@@ -12,6 +13,6 @@ export type CreateConceptOptions = {
     namespace: string;
     name: string;
     type: ConceptType;
-    metadata?: ConceptMetadata;
+    metadata?: (ConceptMetadata_Input | null);
 };
 

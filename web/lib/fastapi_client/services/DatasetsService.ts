@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5,7 +6,8 @@ import type { AddLabelsOptions } from '../models/AddLabelsOptions';
 import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
 import type { ComputeSignalResponse } from '../models/ComputeSignalResponse';
 import type { DatasetInfo } from '../models/DatasetInfo';
-import type { DatasetSettings } from '../models/DatasetSettings';
+import type { DatasetSettings_Input } from '../models/DatasetSettings_Input';
+import type { DatasetSettings_Output } from '../models/DatasetSettings_Output';
 import type { DeleteSignalOptions } from '../models/DeleteSignalOptions';
 import type { DeleteSignalResponse } from '../models/DeleteSignalResponse';
 import type { GetStatsOptions } from '../models/GetStatsOptions';
@@ -336,7 +338,7 @@ export class DatasetsService {
     public static getConfig(
         namespace: string,
         datasetName: string,
-        format: ('yaml' | 'json'),
+        format: ,
     ): CancelablePromise<(string | Record<string, any>)> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -359,13 +361,13 @@ export class DatasetsService {
      * Get the settings for the dataset.
      * @param namespace
      * @param datasetName
-     * @returns DatasetSettings Successful Response
+     * @returns DatasetSettings_Output Successful Response
      * @throws ApiError
      */
     public static getSettings(
         namespace: string,
         datasetName: string,
-    ): CancelablePromise<DatasetSettings> {
+    ): CancelablePromise<DatasetSettings_Output> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/settings',
@@ -391,7 +393,7 @@ export class DatasetsService {
     public static updateSettings(
         namespace: string,
         datasetName: string,
-        requestBody: DatasetSettings,
+        requestBody: DatasetSettings_Input,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
