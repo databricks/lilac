@@ -4,7 +4,7 @@
 /* eslint-disable */
 import type { Concept } from '../models/Concept';
 import type { ConceptInfo } from '../models/ConceptInfo';
-import type { ConceptMetadata_Input } from '../models/ConceptMetadata_Input';
+import type { ConceptMetadata } from '../models/ConceptMetadata';
 import type { ConceptModelInfo } from '../models/ConceptModelInfo';
 import type { ConceptUpdate } from '../models/ConceptUpdate';
 import type { CreateConceptOptions } from '../models/CreateConceptOptions';
@@ -147,7 +147,7 @@ export class ConceptsService {
     public static editConceptMetadata(
         namespace: string,
         conceptName: string,
-        requestBody: ConceptMetadata_Input,
+        requestBody: ConceptMetadata,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',

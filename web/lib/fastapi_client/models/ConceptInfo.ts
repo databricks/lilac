@@ -4,7 +4,7 @@
 /* eslint-disable */
 
 import type { ConceptACL } from './ConceptACL';
-import type { ConceptMetadata_Output } from './ConceptMetadata_Output';
+import type { ConceptMetadata } from './ConceptMetadata';
 import type { ConceptType } from './ConceptType';
 
 /**
@@ -14,7 +14,7 @@ export type ConceptInfo = {
     namespace: string;
     name: string;
     type: ConceptType;
-    metadata: ConceptMetadata_Output;
+    metadata: ConceptMetadata;
     drafts: Array<string>;
     acls: ConceptACL;
 };

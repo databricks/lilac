@@ -9,6 +9,6 @@
 export type SelectGroupsResult = {
     too_many_distinct: boolean;
     counts: Array<any[]>;
-    bins: (Array<any[]> | null);
+    bins?: (Array<any[]> | null);
 };
 

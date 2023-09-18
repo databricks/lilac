@@ -13,8 +13,8 @@ import type { SortResult } from './SortResult';
  */
 export type SelectRowsSchemaResult = {
     data_schema: Schema;
-    udfs: Array<SelectRowsSchemaUDF>;
-    search_results: Array<SearchResultInfo>;
-    sorts: (Array<SortResult> | null);
+    udfs?: Array<SelectRowsSchemaUDF>;
+    search_results?: Array<SearchResultInfo>;
+    sorts?: (Array<SortResult> | null);
 };
 

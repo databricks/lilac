@@ -9,6 +9,6 @@
 export type SearchResultInfo = {
     search_path: Array<string>;
     result_path: Array<string>;
-    alias: (string | null);
+    alias?: (string | null);
 };
 

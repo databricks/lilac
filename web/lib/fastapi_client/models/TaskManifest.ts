@@ -10,6 +10,6 @@ import type { TaskInfo } from './TaskInfo';
  */
 export type TaskManifest = {
     tasks: Record<string, TaskInfo>;
-    progress: (number | null);
+    progress?: (number | null);
 };
 

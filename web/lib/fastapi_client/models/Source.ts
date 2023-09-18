@@ -6,4 +6,7 @@
 /**
  * Interface for sources to implement. A source processes a set of shards and writes files.
  */
-export type Source = Record<string, any>;
+export type Source = {
+    source_name: string;
+};
+

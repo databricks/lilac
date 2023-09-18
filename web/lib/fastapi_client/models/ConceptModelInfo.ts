@@ -13,6 +13,6 @@ export type ConceptModelInfo = {
     concept_name: string;
     embedding_name: string;
     version: number;
-    metrics: (ConceptMetrics | null);
+    metrics?: (ConceptMetrics | null);
 };
 

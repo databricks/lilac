@@ -9,7 +9,7 @@
 export type DatasetInfo = {
     namespace: string;
     dataset_name: string;
-    description: (string | null);
-    tags: Array<string>;
+    description?: (string | null);
+    tags?: Array<string>;
 };
 

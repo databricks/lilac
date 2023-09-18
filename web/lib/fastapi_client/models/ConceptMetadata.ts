@@ -6,9 +6,9 @@
 /**
  * Metadata associated with a concept.
  */
-export type ConceptMetadata_Output = {
-    is_public: boolean;
-    tags: Array<string>;
-    description: (string | null);
+export type ConceptMetadata = {
+    is_public?: boolean;
+    tags?: Array<string>;
+    description?: (string | null);
 };
 

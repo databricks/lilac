@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { Example_Input } from './Example_Input';
+import type { Example } from './Example';
 import type { ExampleIn } from './ExampleIn';
 
 /**
@@ -11,7 +11,7 @@ import type { ExampleIn } from './ExampleIn';
  */
 export type ConceptUpdate = {
     insert?: (Array<ExampleIn> | null);
-    update?: (Array<Example_Input> | null);
+    update?: (Array<Example> | null);
     remove?: (Array<string> | null);
 };
 

@@ -7,8 +7,8 @@
  * Information about a step of the task..
  */
 export type TaskStepInfo = {
-    progress: (number | null);
-    description: (string | null);
-    details: (string | null);
+    progress?: (number | null);
+    description?: (string | null);
+    details?: (string | null);
 };
 

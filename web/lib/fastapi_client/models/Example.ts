@@ -8,7 +8,7 @@ import type { ExampleOrigin } from './ExampleOrigin';
 /**
  * A single example in a concept used for training a concept model.
  */
-export type Example_Input = {
+export type Example = {
     label: boolean;
     text?: (string | null);
     img?: (Blob | null);

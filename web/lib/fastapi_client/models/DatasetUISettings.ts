@@ -6,8 +6,8 @@
 /**
  * The UI persistent settings for a dataset.
  */
-export type DatasetUISettings_Output = {
-    media_paths: Array<(string | Array<string>)>;
-    markdown_paths: Array<(string | Array<string>)>;
+export type DatasetUISettings = {
+    media_paths?: Array<Array<string>>;
+    markdown_paths?: Array<Array<string>>;
 };
 

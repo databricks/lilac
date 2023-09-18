@@ -301,15 +301,14 @@ def get_media(namespace: str, dataset_name: str, item_id: str, leaf_path: str) -
 
 
 @router.get('/{namespace}/{dataset_name}/config')
-def get_config(namespace: str, dataset_name: str,
-               format: Union[Literal['yaml'], Literal['json']]) -> Union[str, dict]:
+def get_config(namespace: str, dataset_name: str, format: Literal['yaml',
+                                                                  'json']) -> Union[str, dict]:
   """Get the config for the dataset."""
   dataset = get_dataset(namespace, dataset_name)
   config_dict = dataset.config().model_dump(exclude_defaults=True, exclude_none=True)
   if format == 'yaml':
     return to_yaml(config_dict)
-  elif format == 'json':
-    return config_dict
+  return config_dict
 
 
 @router.get('/{namespace}/{dataset_name}/settings')

@@ -100,7 +100,7 @@ BINARY_OPS = set(['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'le
 UNARY_OPS = set(['exists'])
 LIST_OPS = set(['in'])
 
-SearchType = Union[Literal['keyword'], Literal['semantic'], Literal['concept']]
+SearchType = Literal['keyword', 'semantic', 'concept']
 
 
 class SortOrder(str, enum.Enum):

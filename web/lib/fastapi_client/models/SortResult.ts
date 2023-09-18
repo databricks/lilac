@@ -11,7 +11,7 @@ import type { SortOrder } from './SortOrder';
 export type SortResult = {
     path: Array<string>;
     order: SortOrder;
-    alias: (string | null);
-    search_index: (number | null);
+    alias?: (string | null);
+    search_index?: (number | null);
 };
 

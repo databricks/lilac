@@ -3,13 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { DatasetUISettings_Input } from './DatasetUISettings_Input';
+import type { DatasetUISettings } from './DatasetUISettings';
 
 /**
  * The persistent settings for a dataset.
  */
-export type DatasetSettings_Input = {
-    ui?: (DatasetUISettings_Input | null);
+export type DatasetSettings = {
+    ui?: (DatasetUISettings | null);
     preferred_embedding?: (string | null);
 };
 

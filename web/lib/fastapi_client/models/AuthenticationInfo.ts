@@ -10,9 +10,9 @@ import type { UserInfo } from './UserInfo';
  * Authentication information for the user.
  */
 export type AuthenticationInfo = {
-    user: (UserInfo | null);
+    user?: (UserInfo | null);
     access: UserAccess;
     auth_enabled: boolean;
-    huggingface_space_id: (string | null);
+    huggingface_space_id?: (string | null);
 };
 
