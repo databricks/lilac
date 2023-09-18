@@ -67,7 +67,7 @@ class SignalComputeOptions(BaseModel):
 
 class SignalComputeResponse(BaseModel):
   """The response for the standalone compute signal endpoint."""
-  items: list[Optional[Any]]
+  items: list[Any]
 
 
 @router.post('/compute', response_model_exclude_none=True)

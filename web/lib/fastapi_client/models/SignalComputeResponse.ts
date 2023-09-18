@@ -7,6 +7,6 @@
  * The response for the standalone compute signal endpoint.
  */
 export type SignalComputeResponse = {
-    items: Array<null>;
+    items: Array<any>;
 };
 
