@@ -7,6 +7,7 @@ from typing import TypedDict
 import yaml
 from huggingface_hub import scan_cache_dir, snapshot_download
 
+from lilac import load
 from lilac.concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
 from lilac.env import env, get_project_dir
 from lilac.project import PROJECT_CONFIG_FILENAME
@@ -107,6 +108,14 @@ def main() -> None:
     shutil.rmtree(persistent_output_dir, ignore_errors=True)
     shutil.copytree(spaces_concept_output_dir, persistent_output_dir, dirs_exist_ok=True)
     shutil.rmtree(spaces_concept_output_dir, ignore_errors=True)
+
+  # We explicitly call load() here before the server starts because the docker image spins up the
+  # FastAPI server through guvicorn, which doesn't call load because each worker would call it.
+  if env('LILAC_LOAD_ON_START', False):
+    load(
+      project_dir=get_project_dir(),
+      overwrite=False,
+      config=os.path.join(spaces_data_dir, PROJECT_CONFIG_FILENAME))
 
 
 if __name__ == '__main__':

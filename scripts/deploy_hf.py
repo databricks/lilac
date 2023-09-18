@@ -210,10 +210,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 
   # Create an .env.local to set HF-specific flags.
   with open(f'{repo_basedir}/.env.demo', 'w') as f:
-    f.write(f"""LILAC_PROJECT_DIR='/data'
-HF_HOME=/data/.huggingface
-TRANSFORMERS_CACHE=/data/.cache
-XDG_CACHE_HOME=/data/.cache
+    f.write(f"""
 {'GOOGLE_ANALYTICS_ENABLED=true' if not disable_google_analytics else ''}
 """)
 
