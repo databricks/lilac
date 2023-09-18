@@ -58,7 +58,7 @@
 </script>
 
 <div class="flex flex-col rounded border border-neutral-300 md:flex-row">
-  {#if row == null}
+  {#if row == null || $metadataQuery?.isFetching}
     <SkeletonText lines={4} />
   {:else}
     <div class="flex flex-col gap-y-1 p-4 md:w-2/3" bind:clientHeight={mediaHeight}>
