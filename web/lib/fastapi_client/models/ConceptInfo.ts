@@ -15,7 +15,7 @@ export type ConceptInfo = {
     name: string;
     type: ConceptType;
     metadata: ConceptMetadata;
-    drafts: Array<('main' | string)>;
+    drafts: Array<string>;
     acls: ConceptACL;
 };
 

@@ -7,6 +7,6 @@
  * Merge a draft into main.
  */
 export type MergeConceptDraftOptions = {
-    draft: ('main' | string);
+    draft: string;
 };
 

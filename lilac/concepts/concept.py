@@ -1,7 +1,7 @@
 """Defines the concept and the concept models."""
 import dataclasses
 from enum import Enum
-from typing import Callable, Literal, Optional, Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -47,7 +47,7 @@ class ExampleOrigin(BaseModel):
   dataset_row_id: str
 
 
-DraftId = Union[Literal['main', None], str]
+DraftId = str
 DRAFT_MAIN = 'main'
 
 
