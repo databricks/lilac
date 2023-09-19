@@ -285,7 +285,11 @@ class DiskConceptModelDB(ConceptModelDB):
       return None
 
     with open_file(concept_model_path, 'rb') as f:
-      return pickle.load(f)
+      try:
+        return pickle.load(f)
+      except BaseException:
+        # Pickle serialization failed. We fallback to re-creating the model.
+        return None
 
   def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
