@@ -35,9 +35,11 @@
   $: canEditLabels = $authInfo.data?.access.dataset.edit_labels;
 
   $: schemaLabels = $datasetStore.schema && getSchemaLabels($datasetStore.schema);
+  $: newLabelAllowed = /^[A-Za-z0-9_-]+$/.test(comboBoxText);
   $: newLabelItem = {
     id: 'new-label',
-    text: comboBoxText
+    text: comboBoxText,
+    disabled: !newLabelAllowed
   };
   $: missingLabelItems =
     schemaLabels

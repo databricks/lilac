@@ -239,9 +239,18 @@ function invalidateQueriesLabelEdit(
   options: AddLabelsOptions | RemoveLabelsOptions
 ) {
   const schemaLabels = getSchemaLabels(schema);
-  if (!schemaLabels.includes(options.label_name)) {
+  const labelExists = schemaLabels.includes(options.label_name);
+  if (!labelExists) {
+    console.log('INVALIDATING MANIFEST AND SELECT ROWS SCHEMA');
     queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
     queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
+    queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
+    queryClient.invalidateQueries([
+      DATASETS_TAG,
+      namespace,
+      datasetName,
+      DATASET_ITEM_METADATA_TAG
+    ]);
   }
 
   if (options.row_ids != null) {

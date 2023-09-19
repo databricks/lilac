@@ -26,9 +26,12 @@
 
   const embeddings = queryEmbeddings();
 
-  function makeRenderNode(node: LilacValueNode): RenderNode {
-    const field = L.field(node)!;
-    const path = L.path(node)!;
+  function makeRenderNode(node: LilacValueNode): RenderNode | null {
+    const field = L.field(node);
+    const path = L.path(node);
+    if (field == null || path == null) {
+      return null;
+    }
     let value = L.value(node);
     if (field.dtype === 'string_span') {
       const stringValues = [];
@@ -83,10 +86,11 @@
     const expanded = highlightedFields.some(highlightedField => {
       return pathIncludes(highlightedField.path, path);
     });
+    const children = (
+      Array.isArray(node) ? node.map(makeRenderNode) : getChildren(node).map(makeRenderNode)
+    ).filter(x => x != null) as RenderNode[];
     return {
-      children: Array.isArray(node)
-        ? node.map(makeRenderNode)
-        : getChildren(node).map(makeRenderNode),
+      children,
       fieldName: path[path.length - 1],
       field,
       path,

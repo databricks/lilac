@@ -297,7 +297,9 @@ class DatasetDuckDB(Dataset):
     use_views = env('DUCKDB_USE_VIEWS', 0) or 0
     if int(use_views):
       view_or_table = 'VIEW'
-    sql_cmd = f"""CREATE OR REPLACE {view_or_table} t AS (SELECT {select_sql} FROM {join_sql})"""
+    sql_cmd = f"""
+      CREATE OR REPLACE {view_or_table} t AS (SELECT {select_sql} FROM {join_sql} ORDER BY {ROWID})
+    """
     self.con.execute(sql_cmd)
 
     # Get the total size of the table.
@@ -1240,11 +1242,6 @@ class DatasetDuckDB(Dataset):
     if labels_filepath not in self._label_file_lock:
       self._label_file_lock[labels_filepath] = threading.Lock()
 
-    if not os.path.exists(labels_filepath):
-      # Create an empty labels file.
-      with open(labels_filepath, 'w') as f:
-        pass
-
     with self._label_file_lock[labels_filepath]:
       # We don't cache sqlite connections as they cannot be shared across threads.
       sqlite_con = sqlite3.connect(labels_filepath)
@@ -1252,7 +1249,7 @@ class DatasetDuckDB(Dataset):
 
       # Create the table if it doesn't exist.
       sqlite_cur.execute(f"""
-        CREATE TABLE IF NOT EXISTS {name}(
+        CREATE TABLE IF NOT EXISTS "{name}" (
           {ROWID} VARCHAR NOT NULL PRIMARY KEY,
           label VARCHAR NOT NULL,
           created DATETIME)
@@ -1263,7 +1260,7 @@ class DatasetDuckDB(Dataset):
         # overwrite the existing label with the new label.
         sqlite_cur.execute(
           f"""
-            INSERT INTO {name} VALUES (?, ?, ?)
+            INSERT INTO "{name}" VALUES (?, ?, ?)
             ON CONFLICT({ROWID}) DO UPDATE SET label=excluded.label;
           """, (row_id, value, created.isoformat()))
       sqlite_con.commit()

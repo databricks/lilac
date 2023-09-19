@@ -20,6 +20,7 @@
   import {
     childFields,
     deserializePath,
+    getSchemaLabels,
     getSignalInfo,
     isNumeric,
     pathIncludes,
@@ -172,8 +173,13 @@
     op?: Op;
     sort?: 'ASC' | 'DESC';
   }
+  interface LabelId {
+    type: 'label';
+    name: string;
+  }
   interface SearchItem {
     id:
+      | LabelId
       | ConceptId
       | FieldId
       | 'new-concept'
@@ -204,6 +210,8 @@
     text: 'Compute embedding',
     disabled: isIndexing
   } as SearchItem;
+  $: labels = $datasetStore.schema != null ? getSchemaLabels($datasetStore.schema) : [];
+
   $: searchItems = $concepts?.data
     ? [
         ...(searchText != '' ? [keywordSearchItem] : []),
@@ -211,6 +219,11 @@
           ? [semanticSearchItem]
           : []),
         ...(isEmbeddingComputed ? [newConceptItem] : [computeEmbeddingItem]),
+        ...labels.map(label => ({
+          id: {type: 'label', name: label} as LabelId,
+          text: label,
+          description: `Find documents labeled "${label}"`
+        })),
         ...fieldSearchItems,
         ...namespaceConcepts.flatMap(namespaceConcept =>
           namespaceConcept.concepts.map(c => ({
@@ -254,6 +267,14 @@
       embedding: selectedEmbedding
     });
     comboBox.clear();
+  };
+
+  const searchLabel = (label: string) => {
+    datasetViewStore.addFilter({
+      path: [label, 'label'],
+      op: 'equals',
+      value: 'true'
+    });
   };
 
   const selectSearchItem = (
@@ -304,6 +325,8 @@
       computeEmbedding();
     } else if (e.detail.selectedId.type === 'concept') {
       searchConcept(e.detail.selectedId.namespace, e.detail.selectedId.name);
+    } else if (e.detail.selectedId.type === 'label') {
+      searchLabel(e.detail.selectedId.name);
     } else if (e.detail.selectedId.type === 'field') {
       const searchItem = e.detail.selectedId as FieldId;
       if (searchItem.sort != null) {
@@ -396,6 +419,7 @@
           item.id.isSignal}
         {@const isConcept =
           item != null && typeof item.id === 'object' && item.id.type === 'concept'}
+        {@const isLabel = item != null && typeof item.id === 'object' && item.id.type === 'label'}
         {#if item == null}
           <div />
         {:else if item.id === 'new-concept'}
@@ -428,7 +452,7 @@
             <div class="ml-2">Compute embeddings to enable concept search.</div>
           </div>
         {:else}
-          <div class="flex justify-between gap-x-8" class:isSignal class:isConcept>
+          <div class="flex justify-between gap-x-8" class:isSignal class:isConcept class:isLabel>
             <div>{item.text}</div>
             {#if item.description}
               <div class="truncate text-xs text-gray-500">{item.description}</div>
@@ -468,6 +492,9 @@
   }
   :global(.bx--list-box__menu-item:not(.bx--list-box__menu-item--highlighted):has(.isConcept)) {
     @apply bg-emerald-100;
+  }
+  :global(.bx--list-box__menu-item:not(.bx--list-box__menu-item--highlighted):has(.isLabel)) {
+    @apply bg-teal-100;
   }
   :global(.search-container .bx--list-box__menu) {
     max-height: 26rem !important;
