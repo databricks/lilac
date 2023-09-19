@@ -1,4 +1,3 @@
-/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -12,11 +11,11 @@ export type OpenAPIConfig = {
     VERSION: string;
     WITH_CREDENTIALS: boolean;
     CREDENTIALS: 'include' | 'omit' | 'same-origin';
-    TOKEN?: string | Resolver<string> | undefined;
-    USERNAME?: string | Resolver<string> | undefined;
-    PASSWORD?: string | Resolver<string> | undefined;
-    HEADERS?: Headers | Resolver<Headers> | undefined;
-    ENCODE_PATH?: ((path: string) => string) | undefined;
+    TOKEN?: string | Resolver<string>;
+    USERNAME?: string | Resolver<string>;
+    PASSWORD?: string | Resolver<string>;
+    HEADERS?: Headers | Resolver<Headers>;
+    ENCODE_PATH?: (path: string) => string;
 };
 
 export const OpenAPI: OpenAPIConfig = {
