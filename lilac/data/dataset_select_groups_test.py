@@ -158,15 +158,15 @@ def test_nested_struct(make_test_data: TestDataMaker) -> None:
 
 def test_named_bins(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [{
-    'age': 34,
+    'age': 34.,
   }, {
-    'age': 45,
+    'age': 45.,
   }, {
-    'age': 17,
+    'age': 17.,
   }, {
-    'age': 80
+    'age': 80.
   }, {
-    'age': 55
+    'age': 55.
   }, {
     'age': float('nan')
   }]

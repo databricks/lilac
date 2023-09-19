@@ -240,7 +240,7 @@ def log(*args: Any) -> None:
     return
 
   print(*args)
-  logging.info([' '.join(args)])
+  logging.info([' '.join(str(args))])
 
 
 class DebugTimer:
