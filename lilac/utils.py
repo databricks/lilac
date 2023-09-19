@@ -234,7 +234,7 @@ def is_primitive(obj: object) -> bool:
   return True
 
 
-def log(*args: str) -> None:
+def log(*args: Any) -> None:
   """Print and logs a message so it shows up in the logs on cloud."""
   if env('DISABLE_LOGS'):
     return

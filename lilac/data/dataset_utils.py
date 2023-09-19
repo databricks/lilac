@@ -7,7 +7,7 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Any, Callable, Iterator, Optional, Sequence, TypeVar, Union, cast
+from typing import Any, Callable, Iterator, Optional, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -87,35 +87,6 @@ def _wrap_in_dicts(input: Union[object, Iterable[object]],
 def wrap_in_dicts(input: Iterable[object], spec: list[PathTuple]) -> Iterable[object]:
   """Wraps an object or iterable in a dict according to the spec."""
   return [_wrap_in_dicts(elem, spec) for elem in input]
-
-
-def _merge_field_into(schema: Field, destination: Field) -> None:
-  if isinstance(schema, Field):
-    destination.signal = destination.signal or schema.signal
-    destination.dtype = destination.dtype or schema.dtype
-  if schema.fields:
-    destination.fields = destination.fields or {}
-    for field_name, subfield in schema.fields.items():
-      if field_name not in destination.fields:
-        destination.fields[field_name] = subfield.model_copy(deep=True)
-      else:
-        _merge_field_into(subfield, destination.fields[field_name])
-  elif schema.repeated_field:
-    if not destination.repeated_field:
-      raise ValueError('Failed to merge schemas. Origin schema is repeated, but destination is not')
-    _merge_field_into(schema.repeated_field, destination.repeated_field)
-  else:
-    if destination.dtype != schema.dtype:
-      raise ValueError(f'Failed to merge schemas. Origin schema has dtype {schema.dtype}, '
-                       f'but destination has dtype {destination.dtype}')
-
-
-def merge_schemas(schemas: Sequence[Union[Schema, Field]]) -> Schema:
-  """Merge a list of schemas."""
-  merged_schema = Schema(fields={})
-  for s in schemas:
-    _merge_field_into(cast(Field, s), cast(Field, merged_schema))
-  return merged_schema
 
 
 def schema_contains_path(schema: Schema, path: PathTuple) -> bool:

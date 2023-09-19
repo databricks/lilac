@@ -111,7 +111,7 @@ def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
     # Fix NaN values.
     for field_name in replace_nan_fields:
       item_value = item.get(field_name)
-      if item_value and pd.isna(item_value):
+      if item_value and not isinstance(item_value, Iterable) and pd.isna(item_value):
         item[field_name] = None
 
     yield item
