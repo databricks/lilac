@@ -62,6 +62,11 @@ PY_DIST_DIR = 'dist'
   is_flag=True,
   default=False)
 @click.option(
+  '--skip_data_upload',
+  help='When true, only uploads the wheel files without any other changes.',
+  is_flag=True,
+  default=False)
+@click.option(
   '--use_pip',
   help='When true, uses the public pip package. When false, builds and uses a local wheel.',
   is_flag=True,
@@ -73,22 +78,18 @@ PY_DIST_DIR = 'dist'
   default=False)
 def deploy_hf_command(project_dir: str, hf_username: Optional[str], hf_space: Optional[str],
                       dataset: list[str], concept: list[str], skip_build: bool, skip_cache: bool,
-                      make_datasets_public: bool, use_pip: bool,
+                      make_datasets_public: bool, skip_data_upload: bool, use_pip: bool,
                       disable_google_analytics: bool) -> None:
   """Generate the huggingface space app."""
   deploy_hf(hf_username, hf_space, dataset, concept, skip_build, skip_cache, project_dir,
-            make_datasets_public, use_pip, disable_google_analytics)
+            make_datasets_public, skip_data_upload, use_pip, disable_google_analytics)
 
 
 def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: list[str],
               concepts: list[str], skip_build: bool, skip_cache: bool, project_dir: Optional[str],
-              make_datasets_public: bool, use_pip: bool, disable_google_analytics: bool) -> None:
+              make_datasets_public: bool, skip_data_upload: bool, use_pip: bool,
+              disable_google_analytics: bool) -> None:
   """Generate the huggingface space app."""
-  project_dir = project_dir or get_project_dir()
-  if not project_dir:
-    raise ValueError(
-      '--project_dir or the environment variable `LILAC_PROJECT_DIR` must be defined.')
-
   hf_username = hf_username or env('HF_USERNAME')
   if not hf_username:
     raise ValueError('Must specify --hf_username or set env.HF_USERNAME')
@@ -128,6 +129,37 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
     run(f'poetry version "{temp_new_version}"')
     run('poetry build -f wheel')
     run(f'poetry version "{current_lilac_version}"')
+
+  print('Uploading wheel files...')
+  # Upload the wheel files.
+  hf_api.upload_folder(
+    folder_path=PY_DIST_DIR,
+    path_in_repo=PY_DIST_DIR,
+    repo_id=hf_space,
+    repo_type='space',
+    # Delete all data on the server.
+    delete_patterns='*')
+
+  print('Copying root files...')
+  # Copy a subset of root files.
+  copy_files = [
+    '.dockerignore', '.env', 'Dockerfile', 'LICENSE', 'docker_start.sh', 'docker_start.py'
+  ]
+  for copy_file in copy_files:
+    hf_api.upload_file(
+      path_or_fileobj=copy_file,
+      path_in_repo=copy_file,
+      repo_id=hf_space,
+      repo_type='space',
+    )
+
+  if skip_data_upload:
+    return
+
+  project_dir = project_dir or get_project_dir()
+  if not project_dir:
+    raise ValueError(
+      '--project_dir or the environment variable `LILAC_PROJECT_DIR` must be defined.')
 
   lilac_hf_datasets: list[str] = []
 
@@ -192,14 +224,6 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
   # Clear out the repo.
   run(f'rm -rf {repo_basedir}/*')
 
-  print('Copying root files...')
-  # Copy a subset of root files.
-  copy_files = [
-    '.dockerignore', '.env', 'Dockerfile', 'LICENSE', 'docker_start.sh', 'docker_start.py'
-  ]
-  for copy_file in copy_files:
-    shutil.copyfile(copy_file, os.path.join(repo_basedir, copy_file))
-
   # Copy the lilac.yml
   repo_data_dir = os.path.join(repo_basedir, 'data')
   if not os.path.exists(repo_data_dir):
@@ -244,16 +268,6 @@ XDG_CACHE_HOME=/data/.cache
       (git diff-index --quiet --cached HEAD ||
         (git commit -a -m "Push" --quiet && git push)) && \
       popd > /dev/null""")
-
-  print('Uploading wheel files...')
-  # Upload the wheel files.
-  hf_api.upload_folder(
-    folder_path=PY_DIST_DIR,
-    path_in_repo=PY_DIST_DIR,
-    repo_id=hf_space,
-    repo_type='space',
-    # Delete all data on the server.
-    delete_patterns='*')
 
   print('Uploading cache files...')
   # Upload the cache files.
