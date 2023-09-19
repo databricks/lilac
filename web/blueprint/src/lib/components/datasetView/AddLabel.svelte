@@ -45,7 +45,7 @@
       .map((l, i) => ({id: `label_${i}`, text: l})) || [];
   $: labelItems = [...(comboBoxText != '' ? [newLabelItem] : []), ...missingLabelItems];
 
-  const addLabels = addLabelsMutation();
+  $: addLabels = $datasetStore.schema != null ? addLabelsMutation($datasetStore.schema) : null;
 
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
   $: selectRowsSchema = $datasetStore.selectRowsSchema;
@@ -83,7 +83,7 @@
       ...addLabelsQuery,
       label_name: selectedItem.text
     };
-    $addLabels.mutate([namespace, datasetName, addLabelsOptions], {
+    $addLabels!.mutate([namespace, datasetName, addLabelsOptions], {
       onSuccess: () => {
         const totalNumRows = $rows.data?.pages[0].total_num_rows;
 
@@ -128,7 +128,7 @@
   class:hidden={!labelMenuOpen}
   use:clickOutside={() => (labelMenuOpen = false)}
 >
-  {#if $addLabels.isLoading}
+  {#if $addLabels == null || $addLabels.isLoading}
     <SkeletonText />
   {:else}
     <ComboBox
