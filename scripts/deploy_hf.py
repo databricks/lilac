@@ -82,7 +82,7 @@ def deploy_hf_command(project_dir: str, hf_username: Optional[str], hf_space: Op
                       disable_google_analytics: bool) -> None:
   """Generate the huggingface space app."""
   deploy_hf(hf_username, hf_space, dataset, concept, skip_build, skip_cache, project_dir,
-            make_datasets_public, wheel_only, use_pip, disable_google_analytics)
+            make_datasets_public, skip_data_upload, use_pip, disable_google_analytics)
 
 
 def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: list[str],
