@@ -62,7 +62,7 @@ PY_DIST_DIR = 'dist'
   is_flag=True,
   default=False)
 @click.option(
-  '--skip_upload',
+  '--skip_data_upload',
   help='When true, only uploads the wheel files without any other changes.',
   is_flag=True,
   default=False)
@@ -78,7 +78,7 @@ PY_DIST_DIR = 'dist'
   default=False)
 def deploy_hf_command(project_dir: str, hf_username: Optional[str], hf_space: Optional[str],
                       dataset: list[str], concept: list[str], skip_build: bool, skip_cache: bool,
-                      make_datasets_public: bool, skip_upload: bool, use_pip: bool,
+                      make_datasets_public: bool, skip_data_upload: bool, use_pip: bool,
                       disable_google_analytics: bool) -> None:
   """Generate the huggingface space app."""
   deploy_hf(hf_username, hf_space, dataset, concept, skip_build, skip_cache, project_dir,
@@ -87,7 +87,7 @@ def deploy_hf_command(project_dir: str, hf_username: Optional[str], hf_space: Op
 
 def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: list[str],
               concepts: list[str], skip_build: bool, skip_cache: bool, project_dir: Optional[str],
-              make_datasets_public: bool, skip_upload: bool, use_pip: bool,
+              make_datasets_public: bool, skip_data_upload: bool, use_pip: bool,
               disable_google_analytics: bool) -> None:
   """Generate the huggingface space app."""
   hf_username = hf_username or env('HF_USERNAME')
@@ -153,7 +153,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
       repo_type='space',
     )
 
-  if skip_upload:
+  if skip_data_upload:
     return
 
   project_dir = project_dir or get_project_dir()

@@ -25,7 +25,7 @@ poetry run python -m scripts.deploy_demo \
   --use_pip=false \
   --skip_sync \
   --skip_load \
-  --skip_upload \
+  --skip_data_upload \
   --use_pip=false \
   --hf_space=lilacai/lilac-staging
 """
@@ -69,7 +69,7 @@ from .deploy_hf import deploy_hf
   is_flag=True,
   default=False)
 @click.option(
-  '--skip_upload',
+  '--skip_data_upload',
   help='Skip uploading data. This just uploads the wheel file from the local build.',
   type=bool,
   is_flag=True,
@@ -90,7 +90,7 @@ from .deploy_hf import deploy_hf
   help='When true, uses the public pip package. When false, builds and uses a local wheel.',
   default=True)
 def deploy_demo(config: str, hf_space: str, project_dir: str, overwrite: bool, skip_sync: bool,
-                skip_load: bool, skip_build: bool, skip_upload: bool, skip_deploy: bool,
+                skip_load: bool, skip_build: bool, skip_data_upload: bool, skip_deploy: bool,
                 make_datasets_public: bool, use_pip: bool) -> None:
   """Deploys the public demo."""
   hf_space_org, hf_space_name = hf_space.split('/')
@@ -118,7 +118,7 @@ def deploy_demo(config: str, hf_space: str, project_dir: str, overwrite: bool, s
 
   if not skip_deploy:
     datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(project_dir)
-               ] if not skip_upload else []
+               ] if not skip_data_upload else []
     deploy_hf(
       # Take this from the env variable.
       hf_username=None,
@@ -129,7 +129,7 @@ def deploy_demo(config: str, hf_space: str, project_dir: str, overwrite: bool, s
       skip_build=skip_build,
       skip_cache=False,
       project_dir=project_dir,
-      skip_upload=skip_upload,
+      skip_data_upload=skip_data_upload,
       make_datasets_public=make_datasets_public,
       # The public demo uses the public pip package.
       use_pip=use_pip,
