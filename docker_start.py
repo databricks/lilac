@@ -61,13 +61,16 @@ def main() -> None:
 
   # Download the huggingface space data. This includes code and datasets, so we move the datasets
   # alone to the data directory.
+
+  datasets_dir = get_datasets_dir(get_project_dir())
+  os.makedirs(datasets_dir, exist_ok=True)
   for lilac_hf_dataset in hf_config['datasets']:
     print('Downloading dataset from HuggingFace: ', lilac_hf_dataset)
     snapshot_download(
       repo_id=lilac_hf_dataset,
       repo_type='dataset',
       token=env('HF_ACCESS_TOKEN'),
-      local_dir=get_datasets_dir(get_project_dir()),
+      local_dir=datasets_dir,
       ignore_patterns=['.gitattributes', 'README.md'])
 
   snapshot_dir = snapshot_download(repo_id=repo_id, repo_type='space', token=env('HF_ACCESS_TOKEN'))
