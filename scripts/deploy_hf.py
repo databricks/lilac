@@ -139,6 +139,20 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
     repo_type='space',
     # Delete all data on the server.
     delete_patterns='*')
+
+  print('Copying root files...')
+  # Copy a subset of root files.
+  copy_files = [
+    '.dockerignore', '.env', 'Dockerfile', 'LICENSE', 'docker_start.sh', 'docker_start.py'
+  ]
+  for copy_file in copy_files:
+    hf_api.upload_file(
+      path_or_fileobj=copy_file,
+      path_in_repo=copy_file,
+      repo_id=hf_space,
+      repo_type='space',
+    )
+
   if skip_upload:
     return
 
@@ -209,14 +223,6 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 
   # Clear out the repo.
   run(f'rm -rf {repo_basedir}/*')
-
-  print('Copying root files...')
-  # Copy a subset of root files.
-  copy_files = [
-    '.dockerignore', '.env', 'Dockerfile', 'LICENSE', 'docker_start.sh', 'docker_start.py'
-  ]
-  for copy_file in copy_files:
-    shutil.copyfile(copy_file, os.path.join(repo_basedir, copy_file))
 
   # Copy the lilac.yml
   repo_data_dir = os.path.join(repo_basedir, 'data')
