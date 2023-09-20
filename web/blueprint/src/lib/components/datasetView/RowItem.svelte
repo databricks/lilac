@@ -59,7 +59,7 @@
 
 <div class="flex flex-col rounded border border-neutral-300 md:flex-row">
   {#if row == null || $metadataQuery?.isFetching}
-    <SkeletonText lines={4} />
+    <SkeletonText lines={6} paragraph />
   {:else}
     <div class="flex flex-col gap-y-1 p-4 md:w-2/3" bind:clientHeight={mediaHeight}>
       <div class="flex flex-wrap gap-x-2 gap-y-2">

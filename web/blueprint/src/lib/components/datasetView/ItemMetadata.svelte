@@ -103,7 +103,7 @@
       formattedValue
     };
   }
-  $: renderNode = makeRenderNode(row);
+  $: renderNode = makeRenderNode(row)!;
 </script>
 
 {#each renderNode.children || [] as child}

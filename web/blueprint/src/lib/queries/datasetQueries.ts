@@ -153,15 +153,13 @@ export const queryRowMetadata = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): CreateQueryResult<Awaited<Record<string, any>>, ApiError> =>
   createApiQuery(
-    async function selectRows(
-      namespace: string,
-      datasetName: string,
-      selectRowsOptions: SelectRowsOptions
-    ) {
-      const res = await DatasetsService.selectRows(namespace, datasetName, selectRowsOptions);
-      return schema == null ? res.rows[0] : deserializeRow(res.rows[0], schema);
-    },
-    [DATASETS_TAG, namespace, datasetName, DATASET_ITEM_METADATA_TAG, rowId]
+    DatasetsService.selectRows,
+    [DATASETS_TAG, namespace, datasetName, DATASET_ITEM_METADATA_TAG, rowId],
+    {
+      select: res => {
+        return schema == null ? res.rows[0] : deserializeRow(res.rows[0], schema);
+      }
+    }
   )(namespace, datasetName, {
     filters: [{path: [ROWID], op: 'equals', value: rowId}],
     columns: [PATH_WILDCARD, ROWID],
@@ -240,8 +238,8 @@ function invalidateQueriesLabelEdit(
 ) {
   const schemaLabels = getSchemaLabels(schema);
   const labelExists = schemaLabels.includes(options.label_name);
+
   if (!labelExists) {
-    console.log('INVALIDATING MANIFEST AND SELECT ROWS SCHEMA');
     queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
     queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
     queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
