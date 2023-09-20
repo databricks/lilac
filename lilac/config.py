@@ -122,7 +122,7 @@ class DatasetConfig(BaseModel):
     description='A list of tags for the dataset to organize in the UI.', default=[])
 
   # The source configuration.
-  source: Source = PydanticField(
+  source: SerializeAsAny[Source] = PydanticField(
     description=
     'The source configuration. This config determines where data is loaded from for the dataset.')
 

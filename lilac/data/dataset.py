@@ -11,6 +11,7 @@ from typing import Any, ClassVar, Iterator, Literal, Optional, Sequence, Union
 import pandas as pd
 from pydantic import (
   BaseModel,
+  SerializeAsAny,
   StrictBool,
   StrictBytes,
   StrictFloat,
@@ -194,7 +195,7 @@ class SourceManifest(BaseModel):
   files: list[str]
   # The data schema.
   data_schema: Schema
-  source: Source = NoSource()
+  source: SerializeAsAny[Source] = NoSource()
 
   # Image information for the dataset.
   images: Optional[list[ImageInfo]] = None
@@ -211,7 +212,7 @@ class DatasetManifest(BaseModel):
   namespace: str
   dataset_name: str
   data_schema: Schema
-  source: Source
+  source: SerializeAsAny[Source]
   # Number of items in the dataset.
   num_items: int
 

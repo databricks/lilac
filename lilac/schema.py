@@ -5,7 +5,7 @@ import io
 from collections import deque
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, Union, cast
+from typing import Any, Optional, Sequence, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -20,7 +20,7 @@ from pydantic import (
 )
 from typing_extensions import TypedDict
 
-from lilac.utils import is_primitive
+from lilac.utils import is_primitive, log
 
 MANIFEST_FILENAME = 'manifest.json'
 PARQUET_FILENAME_PREFIX = 'data'
@@ -448,7 +448,7 @@ def _str_field(field: Field, indent: int) -> str:
   return f' {cast(DataType, field.dtype).value}'
 
 
-def dtype_to_arrow_schema(dtype: DataType) -> Union[pa.Schema, pa.DataType]:
+def dtype_to_arrow_schema(dtype: Optional[DataType]) -> Union[pa.Schema, pa.DataType]:
   """Convert the dtype to an arrow dtype."""
   if dtype == DataType.STRING:
     return pa.string()
@@ -500,6 +500,8 @@ def dtype_to_arrow_schema(dtype: DataType) -> Union[pa.Schema, pa.DataType]:
     })
   elif dtype == DataType.NULL:
     return pa.null()
+  elif dtype is None:
+    return pa.null()
   else:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
 
@@ -517,7 +519,7 @@ def _schema_to_arrow_schema_impl(schema: Union[Schema, Field]) -> Union[pa.Schem
     arrow_fields: dict[str, Union[pa.Schema, pa.DataType]] = {}
     for name, field in schema.fields.items():
       if name == ROWID:
-        arrow_schema = dtype_to_arrow_schema(cast(DataType, field.dtype))
+        arrow_schema = dtype_to_arrow_schema(field.dtype)
       else:
         arrow_schema = _schema_to_arrow_schema_impl(field)
       arrow_fields[name] = arrow_schema
@@ -539,7 +541,7 @@ def _schema_to_arrow_schema_impl(schema: Union[Schema, Field]) -> Union[pa.Schem
   if field.repeated_field:
     return pa.list_(_schema_to_arrow_schema_impl(field.repeated_field))
 
-  return dtype_to_arrow_schema(cast(DataType, field.dtype))
+  return dtype_to_arrow_schema(field.dtype)
 
 
 def arrow_dtype_to_dtype(arrow_dtype: pa.DataType) -> DataType:
@@ -652,7 +654,7 @@ def _infer_dtype(value: Item) -> DataType:
     raise ValueError(f'Cannot infer dtype of primitive value: {value}')
 
 
-def _infer_field(item: Item) -> Field:
+def _infer_field(item: Item, diallow_pedals: bool = False) -> Field:
   """Infer the schema from the items."""
   if isinstance(item, dict):
     fields: dict[str, Field] = {}
@@ -662,21 +664,106 @@ def _infer_field(item: Item) -> Field:
     if VALUE_KEY in fields:
       dtype = fields[VALUE_KEY].dtype
       del fields[VALUE_KEY]
+    if not fields:
+      # The object is an empty dict. We need a dummy child to represent this with parquet.
+      return Field(fields={'__empty__': Field(dtype=DataType.NULL)})
     return Field(fields=fields, dtype=dtype)
   elif is_primitive(item):
     return Field(dtype=_infer_dtype(item))
   elif isinstance(item, list):
-    return Field(repeated_field=_infer_field(item[0]))
+    inferred_fields = [_infer_field(subitem) for subitem in item]
+    merged_field = merge_fields(inferred_fields, diallow_pedals)
+    return Field(repeated_field=merged_field)
   else:
     raise ValueError(f'Cannot infer schema of item: {item}')
 
 
 def infer_schema(items: list[Item]) -> Schema:
   """Infer the schema from a list of items."""
-  schema = Schema(fields={})
-  for item in items:
-    field = _infer_field(item)
-    if not field.fields:
-      raise ValueError(f'Invalid schema of item. Expected an object, but got: {item}')
-    schema.fields = {**schema.fields, **field.fields}
-  return schema
+  merged_field = merge_fields([_infer_field(item, diallow_pedals=True) for item in items],
+                              disallow_pedals=True)
+  if not merged_field.fields:
+    raise ValueError(f'Failed to infer schema. Got {merged_field}')
+  return Schema(fields=merged_field.fields)
+
+
+def _print_fields(field: Field, destination: Field) -> None:
+  log('New field:')
+  log(field)
+  log('Destination field:')
+  log(destination)
+
+
+def _merge_field_into(field: Field, destination: Field, disallow_pedals: bool = False) -> None:
+  destination.signal = destination.signal or field.signal
+  if field.fields:
+    if destination.repeated_field:
+      _print_fields(field, destination)
+      raise ValueError('Failed to merge fields. New field has fields, but destination is '
+                       'repeated')
+    if disallow_pedals and destination.dtype:
+      _print_fields(field, destination)
+      raise ValueError('Failed to merge fields. New field has fields, but destination has dtype')
+    destination.fields = destination.fields or {}
+    if destination.dtype == DataType.NULL:
+      destination.dtype = None
+    for field_name, subfield in field.fields.items():
+      if field_name not in destination.fields:
+        destination.fields[field_name] = subfield.model_copy(deep=True)
+      else:
+        _merge_field_into(subfield, destination.fields[field_name], disallow_pedals)
+  elif field.repeated_field:
+    if destination.fields:
+      _print_fields(field, destination)
+      raise ValueError('Failed to merge fields. New field is repeated, but destination has '
+                       'fields')
+    if destination.dtype and destination.dtype != DataType.NULL:
+      _print_fields(field, destination)
+      raise ValueError('Failed to merge fields. New field is repeated, but destination has '
+                       'dtype')
+    if not destination.repeated_field:
+      _print_fields(field, destination)
+      raise ValueError('Failed to merge fields. New field is repeated, but destination is not')
+    _merge_field_into(field.repeated_field, destination.repeated_field, disallow_pedals)
+  elif field.dtype:
+    if field.dtype == DataType.NULL:
+      return
+    if destination.repeated_field:
+      _print_fields(field, destination)
+      raise ValueError('Failed to merge fields. New field has dtype, but destination is '
+                       'repeated')
+    if disallow_pedals and destination.fields:
+      _print_fields(field, destination)
+      raise ValueError('Failed to merge fields. New field has dtype, but destination has fields')
+
+    if (destination.dtype != DataType.NULL and destination.dtype is not None and
+        destination.dtype != field.dtype):
+      raise ValueError(f'Failed to merge fields. New field has dtype {field.dtype}, but '
+                       f'destination has dtype {destination.dtype}')
+    destination.dtype = field.dtype
+  else:
+    _print_fields(field, destination)
+    raise ValueError('Failed to merge fields.')
+
+
+def merge_fields(fields: Sequence[Field], disallow_pedals: bool = False) -> Field:
+  """Merge a list of fields.
+
+  Args:
+    fields: A list of fields to merge.
+    disallow_pedals: If True, merging a field with dtype into a field with fields will raise an
+                     error.
+  """
+  if not fields:
+    return Field(dtype=DataType.NULL)
+  merged_field = fields[0].model_copy(deep=True)
+  for field in fields[1:]:
+    _merge_field_into(field, merged_field, disallow_pedals)
+  return merged_field
+
+
+def merge_schemas(schemas: Sequence[Union[Schema, Field]]) -> Schema:
+  """Merge a list of schemas."""
+  merged_field = merge_fields([Field(fields=s.fields) for s in schemas])
+  assert merged_field.fields, 'Merged field should have fields'
+  return Schema(fields=merged_field.fields)

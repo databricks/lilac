@@ -54,6 +54,7 @@ from ..schema import (
   is_integer,
   is_ordinal,
   is_temporal,
+  merge_schemas,
   normalize_path,
   signal_type_supports_dtype,
 )
@@ -102,7 +103,6 @@ from .dataset_utils import (
   count_primitives,
   create_signal_schema,
   flatten_keys,
-  merge_schemas,
   schema_contains_path,
   sparse_to_dense_compute,
   wrap_in_dicts,
