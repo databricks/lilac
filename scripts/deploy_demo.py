@@ -22,7 +22,6 @@ Add:
 To deploy staging with the same datasets as the public demo:
 
 poetry run python -m scripts.deploy_demo \
-  --use_pip=false \
   --skip_sync \
   --skip_load \
   --skip_data_upload \
