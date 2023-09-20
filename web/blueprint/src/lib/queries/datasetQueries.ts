@@ -141,6 +141,7 @@ export const queryRowMetadata = (
   namespace: string,
   datasetName: string,
   rowId: string,
+  selectRowsOptions: SelectRowsOptions,
   schema?: LilacSchema | undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): CreateQueryResult<Awaited<Record<string, any>>, ApiError> =>
@@ -154,6 +155,7 @@ export const queryRowMetadata = (
     }
   )(namespace, datasetName, {
     filters: [{path: [ROWID], op: 'equals', value: rowId}],
+    searches: selectRowsOptions.searches,
     columns: [PATH_WILDCARD, ROWID],
     combine_columns: true
   });

@@ -2,7 +2,7 @@
   import {queryRowMetadata, removeLabelsMutation} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {getRowLabels, serializePath, type LilacField, type RemoveLabelsOptions} from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
@@ -33,9 +33,10 @@
 
   $: selectRowsSchema = $datasetStore.selectRowsSchema?.data;
 
+  $: selectOptions = getSelectRowsOptions($datasetViewStore);
   $: metadataQuery =
     selectRowsSchema != null
-      ? queryRowMetadata(namespace, datasetName, rowId, selectRowsSchema.schema)
+      ? queryRowMetadata(namespace, datasetName, rowId, selectOptions, selectRowsSchema.schema)
       : null;
   $: row = $metadataQuery?.data != null ? $metadataQuery.data : null;
   $: rowLabels = row != null ? getRowLabels(row) : [];
