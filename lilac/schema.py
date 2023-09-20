@@ -725,7 +725,8 @@ def _merge_field_into(field: Field, destination: Field, disallow_pedals: bool = 
       _print_fields(field, destination)
       raise ValueError('Failed to merge fields. New field is repeated, but destination is not')
     _merge_field_into(field.repeated_field, destination.repeated_field, disallow_pedals)
-  elif field.dtype:
+
+  if field.dtype:
     if field.dtype == DataType.NULL:
       return
     if destination.repeated_field:
@@ -741,9 +742,6 @@ def _merge_field_into(field: Field, destination: Field, disallow_pedals: bool = 
       raise ValueError(f'Failed to merge fields. New field has dtype {field.dtype}, but '
                        f'destination has dtype {destination.dtype}')
     destination.dtype = field.dtype
-  else:
-    _print_fields(field, destination)
-    raise ValueError('Failed to merge fields.')
 
 
 def merge_fields(fields: Sequence[Field], disallow_pedals: bool = False) -> Field:

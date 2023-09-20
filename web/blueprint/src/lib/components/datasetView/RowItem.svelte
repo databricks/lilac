@@ -92,7 +92,7 @@
           <div
             class:border-b={i < mediaFields.length - 1}
             class:pb-2={i < mediaFields.length - 1}
-            class="flex h-full w-full border-neutral-200"
+            class="flex h-full w-full flex-col border-neutral-200"
           >
             <ItemMedia {row} path={mediaField.path} field={mediaField} {highlightedFields} />
           </div>

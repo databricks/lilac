@@ -865,15 +865,20 @@ class DatasetDuckDB(Dataset):
     offset = offset or 0
     schema = manifest.data_schema
 
-    if combine_columns:
-      schema = self.select_rows_schema(
-        columns, sort_by, sort_order, searches, combine_columns=True).data_schema
-
-    self._validate_columns(cols, manifest.data_schema, schema)
     self._normalize_searches(searches, manifest)
     search_udfs = self._search_udfs(searches, manifest)
+
     cols.extend([search_udf.udf for search_udf in search_udfs])
     udf_columns = [col for col in cols if col.signal_udf]
+    if combine_columns:
+      schema = self.select_rows_schema(
+        [Column(path=PATH_WILDCARD)] + udf_columns,
+        sort_by,
+        sort_order,
+        searches,
+        combine_columns=True).data_schema
+
+    self._validate_columns(cols, manifest.data_schema, schema)
 
     temp_rowid_selected = False
     for col in cols:
