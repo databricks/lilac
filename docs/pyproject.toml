@@ -6,7 +6,7 @@ description = "Documentation for Lilac"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
-autodoc-pydantic = "^1.9.0"
+autodoc-pydantic = "^2.0.1"
 sphinx = "^7.1.0"
 furo = "^2023.5.20"
 lilac = { path = "..", develop = true }
