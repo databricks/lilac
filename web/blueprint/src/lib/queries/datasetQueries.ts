@@ -234,7 +234,6 @@ function invalidateQueriesLabelEdit(
   if (!labelExists) {
     queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
     queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
-    queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
     queryClient.invalidateQueries([
       DATASETS_TAG,
       namespace,
