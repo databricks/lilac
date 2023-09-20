@@ -289,7 +289,7 @@ def test_select_ids(make_test_data: TestDataMaker) -> None:
 
 
 def test_select_ids_with_limit_and_offset(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{str(i): i} for i in range(10)]
+  items: list[Item] = [{str(i): i} for i in range(9)]
   dataset = make_test_data(items)
 
   result = dataset.select_rows([ROWID], offset=1, limit=3)
@@ -298,10 +298,10 @@ def test_select_ids_with_limit_and_offset(make_test_data: TestDataMaker) -> None
   result = dataset.select_rows([ROWID], offset=7, limit=2)
   assert list(result) == [{ROWID: '8'}, {ROWID: '9'}]
 
-  result = dataset.select_rows([ROWID], offset=9, limit=200)
-  assert list(result) == [{ROWID: '10'}]
+  result = dataset.select_rows([ROWID], offset=8, limit=200)
+  assert list(result) == [{ROWID: '9'}]
 
-  result = dataset.select_rows([ROWID], offset=10, limit=200)
+  result = dataset.select_rows([ROWID], offset=9, limit=200)
   assert list(result) == []
 
 
