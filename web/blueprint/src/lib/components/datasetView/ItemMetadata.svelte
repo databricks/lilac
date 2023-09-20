@@ -26,12 +26,9 @@
 
   const embeddings = queryEmbeddings();
 
-  function makeRenderNode(node: LilacValueNode): RenderNode | null {
-    const field = L.field(node);
-    const path = L.path(node);
-    if (field == null || path == null) {
-      return null;
-    }
+  function makeRenderNode(node: LilacValueNode): RenderNode {
+    const field = L.field(node)!;
+    const path = L.path(node)!;
     let value = L.value(node);
     if (field.dtype === 'string_span') {
       const stringValues = [];
@@ -86,11 +83,10 @@
     const expanded = highlightedFields.some(highlightedField => {
       return pathIncludes(highlightedField.path, path);
     });
-    const children = (
-      Array.isArray(node) ? node.map(makeRenderNode) : getChildren(node).map(makeRenderNode)
-    ).filter(x => x != null) as RenderNode[];
     return {
-      children,
+      children: Array.isArray(node)
+        ? node.map(makeRenderNode)
+        : getChildren(node).map(makeRenderNode),
       fieldName: path[path.length - 1],
       field,
       path,
@@ -103,7 +99,7 @@
       formattedValue
     };
   }
-  $: renderNode = makeRenderNode(row)!;
+  $: renderNode = makeRenderNode(row);
 </script>
 
 {#each renderNode.children || [] as child}
