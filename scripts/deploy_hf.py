@@ -212,47 +212,23 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 
   hf_space_dir = os.path.join(project_dir, HF_SPACE_DIR)
 
-  run(f'mkdir -p {hf_space_dir}')
+  # Upload the lilac.yml.
+  hf_api.upload_file(
+    path_or_fileobj=os.path.join(project_dir, PROJECT_CONFIG_FILENAME),
+    path_in_repo=os.path.join('data', PROJECT_CONFIG_FILENAME),
+    repo_id=hf_space,
+    repo_type='space',
+  )
 
-  # Clone the HuggingFace spaces repo.
-  print(f'Cloning {hf_space} to {hf_space_dir}...')
-  repo_basedir = os.path.join(hf_space_dir, hf_space)
-  run(f'rm -rf {repo_basedir}')
-  run(f'git clone https://{hf_username}@huggingface.co/spaces/{hf_space} {repo_basedir} '
-      '--depth 1 --quiet --no-checkout')
-
-  # Clear out the repo.
-  run(f'rm -rf {repo_basedir}/*')
-
-  # Copy the lilac.yml
-  repo_data_dir = os.path.join(repo_basedir, 'data')
-  if not os.path.exists(repo_data_dir):
-    os.makedirs(repo_data_dir)
-  shutil.copyfile(
-    os.path.join(project_dir, PROJECT_CONFIG_FILENAME),
-    os.path.join(repo_data_dir, PROJECT_CONFIG_FILENAME))
-
-  # Create an .env.local to set HF-specific flags.
-  with open(f'{repo_basedir}/.env.demo', 'w') as f:
-    f.write(f"""LILAC_PROJECT_DIR='/data'
+  # Upload files.
+  files: dict[str, str] = {
+    '.env.demo': f"""LILAC_PROJECT_DIR='/data'
 HF_HOME=/data/.huggingface
 TRANSFORMERS_CACHE=/data/.cache
 XDG_CACHE_HOME=/data/.cache
 {'GOOGLE_ANALYTICS_ENABLED=true' if not disable_google_analytics else ''}
-""")
-
-  # Create a .gitignore to avoid uploading unnecessary files.
-  with open(f'{repo_basedir}/.gitignore', 'w') as f:
-    f.write("""__pycache__/
-**/*.pyc
-**/*.pyo
-**/*.pyd
-**/*_test.py
-""")
-
-  # Create the huggingface README.
-  with open(f'{repo_basedir}/README.md', 'w') as f:
-    config = {
+""",
+    'README.md': '---\n' + to_yaml({
       'title': 'Lilac',
       'emoji': '🌷',
       'colorFrom': 'purple',
@@ -260,14 +236,22 @@ XDG_CACHE_HOME=/data/.cache
       'sdk': 'docker',
       'app_port': 5432,
       'datasets': [d for d in lilac_hf_datasets],
-    }
-    f.write(f'---\n{to_yaml(config)}\n---')
+    }) + '\n---',
+    '.gitignore': """__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*_test.py
+"""
+  }
 
-  run(f"""pushd {repo_basedir} > /dev/null && \
-      git add . && \
-      (git diff-index --quiet --cached HEAD ||
-        (git commit -a -m "Push" --quiet && git push)) && \
-      popd > /dev/null""")
+  for filename, file_contents in files.items():
+    hf_api.upload_file(
+      path_or_fileobj=file_contents.encode(),
+      path_in_repo=filename,
+      repo_id=hf_space,
+      repo_type='space',
+    )
 
   print('Uploading cache files...')
   # Upload the cache files.
