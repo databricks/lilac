@@ -768,10 +768,14 @@ class DatasetDuckDB(Dataset):
   def _topk_udf_to_sort_by(
     self,
     udf_columns: list[Column],
+    filters: list[Filter],
     sort_by: list[PathTuple],
     limit: Optional[int],
     sort_order: Optional[SortOrder],
   ) -> Optional[Column]:
+    for f in filters:
+      if f.path == (ROWID,) and f.op == 'equals':
+        return None
     if (sort_order != SortOrder.DESC) or (not limit) or (not sort_by):
       return None
     if len(sort_by) < 1:
@@ -914,7 +918,7 @@ class DatasetDuckDB(Dataset):
     total_num_rows = manifest.num_items
     con = self.con.cursor()
 
-    topk_udf_col = self._topk_udf_to_sort_by(udf_columns, sort_by, limit, sort_order)
+    topk_udf_col = self._topk_udf_to_sort_by(udf_columns, filters, sort_by, limit, sort_order)
     if topk_udf_col:
       path_keys: Optional[list[PathKey]] = None
       if where_query:

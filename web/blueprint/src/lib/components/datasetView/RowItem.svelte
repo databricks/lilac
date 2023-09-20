@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {queryRowMetadata, removeLabelsMutation} from '$lib/queries/datasetQueries';
+  import {queryRowMetadata as queryRow, removeLabelsMutation} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
@@ -34,11 +34,11 @@
   $: selectRowsSchema = $datasetStore.selectRowsSchema?.data;
 
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
-  $: metadataQuery =
+  $: rowQuery =
     selectRowsSchema != null
-      ? queryRowMetadata(namespace, datasetName, rowId, selectOptions, selectRowsSchema.schema)
+      ? queryRow(namespace, datasetName, rowId, selectOptions, selectRowsSchema.schema)
       : null;
-  $: row = $metadataQuery?.data != null ? $metadataQuery.data : null;
+  $: row = $rowQuery?.data != null ? $rowQuery.data : null;
   $: rowLabels = row != null ? getRowLabels(row) : [];
 
   const removeLabel = (label: string) => {
@@ -59,8 +59,8 @@
 </script>
 
 <div class="flex flex-col rounded border border-neutral-300 md:flex-row">
-  {#if row == null || $metadataQuery?.isFetching}
-    <SkeletonText lines={6} paragraph />
+  {#if row == null || $rowQuery?.isFetching}
+    <SkeletonText lines={4} paragraph class="w-full" />
   {:else}
     <div class="flex flex-col gap-y-1 p-4 md:w-2/3" bind:clientHeight={mediaHeight}>
       <div class="flex flex-wrap gap-x-2 gap-y-2">
