@@ -40,7 +40,7 @@
 
   $: valueNodes = getValueNodes(row, path);
 
-  function findSimilar(searchText: DataTypeCasted, path: Path) {
+  function findSimilar(searchText: DataTypeCasted) {
     let embedding = computedEmbeddings[0];
 
     if ($settings.data?.preferred_embedding != null) {
@@ -56,7 +56,7 @@
       }
     }
     datasetViewStore.addSearch({
-      path,
+      path: field.path,
       type: 'semantic',
       query: searchText as string,
       embedding
@@ -83,7 +83,7 @@
             >
               <button
                 disabled={noEmbeddings}
-                on:click={() => findSimilar(value, path)}
+                on:click={() => findSimilar(value)}
                 use:hoverTooltip={{text: 'More like this'}}
                 ><Search size={16} />
               </button>
@@ -97,6 +97,7 @@
           text={formatValue(value)}
           {row}
           {path}
+          {field}
           {markdown}
           spanPaths={spanValuePaths.spanPaths}
           valuePaths={spanValuePaths.valuePaths}

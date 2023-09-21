@@ -289,10 +289,10 @@ class Schema(BaseModel):
         field = field.fields[name]
       elif field.repeated_field:
         if name != PATH_WILDCARD:
-          raise ValueError(f'Invalid path {path}')
+          raise ValueError(f'Invalid path for a schema field: {path}')
         field = field.repeated_field
       else:
-        raise ValueError(f'Invalid path {path}')
+        raise ValueError(f'Invalid path for a schema field: {path}')
     return field
 
   def __str__(self) -> str:
@@ -365,21 +365,6 @@ def _parse_field_like(field_like: object, dtype: Optional[Union[DataType, str]] 
     return Field(repeated_field=_parse_field_like(field_like[0], dtype=dtype))
   else:
     raise ValueError(f'Cannot parse field like: {field_like}')
-
-
-def child_item_from_column_path(item: Item, path: Path) -> Item:
-  """Return the last (child) item from a column path."""
-  child_item_value = item
-  for path_part in path:
-    if path_part == PATH_WILDCARD:
-      raise ValueError(
-        'child_item_from_column_path cannot be called with a path that contains a repeated '
-        f'wildcard: "{path}"')
-    # path_part can either be an integer or a string for a dictionary, both of which we can
-    # directly index with.
-    child_path = int(path_part) if path_part.isdigit() else path_part
-    child_item_value = child_item_value[child_path]
-  return child_item_value
 
 
 def column_paths_match(path_match: Path, specific_path: Path) -> bool:

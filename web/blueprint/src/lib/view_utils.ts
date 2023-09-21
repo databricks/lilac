@@ -669,7 +669,7 @@ export function shortFieldName(path: Path): string {
   return [...path].reverse().find(p => p !== PATH_WILDCARD)!;
 }
 
-export function displayPath(path: Path): string {
+export function displayPath(path: Path | string): string {
   if (!Array.isArray(path)) {
     path = [path];
   }
