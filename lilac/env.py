@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
 
+# The project directory defaults to the current working directory.
+DEFAULT_PROJECT_DIR = '.'
+
 
 # NOTE: This is created for documentation, but isn't parsed by pydantic until we update to 2.0.
 class LilacEnvironment(BaseModel):
@@ -108,9 +111,9 @@ def env(key: str, default: Optional[Any] = None) -> Any:
 
 def get_project_dir() -> str:
   """Return the base path for data."""
-  project_dir = env('LILAC_PROJECT_DIR', None)
+  project_dir = env('LILAC_PROJECT_DIR', DEFAULT_PROJECT_DIR)
   if not project_dir:
-    project_dir = env('LILAC_DATA_PATH', None)
+    project_dir = env('LILAC_DATA_PATH', DEFAULT_PROJECT_DIR)
   if not project_dir:
     raise ValueError('`LILAC_PROJECT_DIR` environment variable must be set. ')
   return project_dir
