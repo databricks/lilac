@@ -1,5 +1,6 @@
 <script lang="ts">
-  import {serializePath, type KeywordSearch, type Search, type SemanticSearch} from '$lilac';
+  import {displayPath} from '$lib/view_utils';
+  import type {KeywordSearch, Search, SemanticSearch} from '$lilac';
   import {Tag} from 'carbon-components-svelte';
   import EmbeddingBadge from './EmbeddingBadge.svelte';
 
@@ -17,7 +18,7 @@
 <div class="flex items-center justify-items-center">
   <div class="whitespace-nowrap">
     <Tag type={tagType}>
-      {serializePath(search.path)}: {search.type}
+      {displayPath(search.path)}: {search.type}
     </Tag>
   </div>
   {#if search.type === 'semantic' || search.type === 'concept'}
