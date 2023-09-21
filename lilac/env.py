@@ -111,7 +111,7 @@ def env(key: str, default: Optional[Any] = None) -> Any:
 
 def get_project_dir() -> str:
   """Return the base path for data."""
-  project_dir = env('LILAC_PROJECT_DIR', DEFAULT_PROJECT_DIR)
+  project_dir = env('LILAC_PROJECT_DIR', None)
   if not project_dir:
     project_dir = env('LILAC_DATA_PATH', DEFAULT_PROJECT_DIR)
   if not project_dir:
