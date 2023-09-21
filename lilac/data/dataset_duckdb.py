@@ -431,6 +431,7 @@ class DatasetDuckDB(Dataset):
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
+    print('signal schema=', signal_schema)
     parquet_filename, _ = write_items_to_parquet(
       items=output_items,
       output_dir=output_dir,
