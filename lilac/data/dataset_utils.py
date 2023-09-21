@@ -156,6 +156,8 @@ def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_it
             EMBEDDING_KEY in input[0])
 
   signal_items_0, signal_items_1 = itertools.tee(signal_items, 2)
+  # for signal_item in signal_items_0:
+
   # print('INPUT ITEMS:', list(signal_items_0))
   # path_keys = flatten_keys(rowids, signal_items_0, is_primitive_predicate=embedding_predicate)
   path_embedding_items = (
