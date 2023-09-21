@@ -1,11 +1,24 @@
 """A signal to search for a substring in a document."""
-import re
-from typing import Any, ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 from typing_extensions import override
 
 from ..schema import Field, Item, RichData, SignalInputType, field, lilac_span
 from ..signal import Signal
+
+
+def _find_all(text: str, subtext: str) -> Iterable[tuple[int, int]]:
+  # Ignore casing.
+  text = text.lower()
+  subtext = subtext.lower()
+  subtext_len = len(subtext)
+  start = 0
+  while True:
+    start = text.find(subtext, start)
+    if start == -1:
+      return
+    yield start, start + subtext_len
+    start += subtext_len
 
 
 class SubstringSignal(Signal):
@@ -15,12 +28,6 @@ class SubstringSignal(Signal):
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   query: str
-
-  _regex: re.Pattern[str]
-
-  def __init__(self, **kwargs: Any):
-    super().__init__(**kwargs)
-    self._regex = re.compile(self.query, re.IGNORECASE)
 
   @override
   def fields(self) -> Field:
@@ -32,4 +39,4 @@ class SubstringSignal(Signal):
       if not isinstance(text, str):
         yield None
         continue
-      yield [lilac_span(m.start(), m.end()) for m in self._regex.finditer(text)]
+      yield [lilac_span(start, end) for start, end in _find_all(text, self.query)]
