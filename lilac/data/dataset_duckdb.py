@@ -2,6 +2,7 @@
 import functools
 import gc
 import glob
+import itertools
 import math
 import os
 import pathlib
@@ -360,6 +361,29 @@ class DatasetDuckDB(Dataset):
       self._vector_indices[index_key] = vector_index
       return vector_index
 
+  def _select_iterable_values(self, path: PathTuple) -> Iterable[tuple[str, RichData]]:
+    # Fetch the data from DuckDB.
+    con = self.con.cursor()
+
+    manifest = self.manifest()
+
+    duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
+
+    sql = _select_sql(duckdb_path, flatten=True, unnest=True, empty=False)
+    result = con.execute(f"""
+      SELECT {ROWID}, {sql} as values FROM t
+    """)
+
+    is_empty = False
+    while not is_empty:
+      df_chunk = result.fetch_df_chunk()
+      row_ids = df_chunk[ROWID].tolist()
+      values = df_chunk['values'].tolist()
+      print('row_ids=', row_ids)
+      print('values=', values)
+      yield from zip(row_ids, values)
+      is_empty = df_chunk.empty
+
   @override
   def compute_signal(self,
                      signal: Signal,
@@ -374,31 +398,40 @@ class DatasetDuckDB(Dataset):
     add_project_signal_config(self.namespace, self.dataset_name,
                               SignalConfig(path=source_path, signal=signal), self.project_dir)
 
+    signal.setup()
+
     manifest = self.manifest()
 
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
       task_step_id = ('', 0)
 
-    # The manifest may have changed after computing the dependencies.
-    manifest = self.manifest()
+    chunked_values = self._select_iterable_values(source_path)
+
+    # Tee the results so we can zip the row ids with the outputs.
+    inputs_0, inputs_1, inputs_dbg = itertools.tee(chunked_values, 3)
+    inputs = (value for (_, value) in inputs_0)
+
+    print('inputs=', list(inputs_dbg))
+    values = signal.compute(inputs)
+    # TODO: REMOVE
+    values = list(values)
+    print('OUTPUT', values)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([ROWID, signal_col],
-                                          task_step_id=task_step_id,
-                                          resolve_span=True)
-    df = select_rows_result.df()
-    values = df['value']
-
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
+    print('enriched path=', enriched_path)
     spec = _split_path_into_subpaths_of_lists(enriched_path)
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
     enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
-    for rowid, item in zip(df[ROWID], enriched_signal_items):
+
+    for (rowid, _), item in zip(inputs_1, enriched_signal_items):
+      print('iterating', rowid, item)
       item[ROWID] = rowid
 
     enriched_signal_items = list(enriched_signal_items)
+    print('OUTPUT:', enriched_signal_items)
     parquet_filename, _ = write_items_to_parquet(
       items=enriched_signal_items,
       output_dir=output_dir,
