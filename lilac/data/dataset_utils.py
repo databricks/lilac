@@ -130,11 +130,10 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
 
 
 def _flat_embeddings(
-  input: Union[Item, Iterable[Item]], path: PathKey = ()) -> Iterator[tuple[PathKey, Item]]:
+  input: Union[Item, Iterable[Item]], path: PathKey = ()) -> Iterator[tuple[PathKey, list[Item]]]:
   if (isinstance(input, list) and len(input) > 0 and isinstance(input[0], dict) and
       EMBEDDING_KEY in input[0]):
-    for v in input:
-      yield path, v
+    yield path, input
   elif isinstance(input, dict):
     for k, v in input.items():
       yield from _flat_embeddings(v, path)
@@ -175,19 +174,20 @@ def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_it
   embedding_vectors: list[np.ndarray] = []
   all_spans: list[tuple[PathKey, list[tuple[int, int]]]] = []
   for path_item in path_embedding_items:
-    for path_key, embedding_item in path_item:
+    for path_key, embedding_items in path_item:
       print('path_key=', path_key)
-      if not path_key or not embedding_item:
+      if not path_key or not embedding_items:
         # Sparse embeddings may not have an embedding for every key.
         continue
 
       spans: list[tuple[int, int]] = []
-      print('embedding item:', embedding_item)
-      span = embedding_item[VALUE_KEY]
-      vector = embedding_item[EMBEDDING_KEY]
-      # We squeeze here because embedding functions can return outer dimensions of 1.
-      embedding_vectors.append(vector.reshape(-1))
-      spans.append((span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]))
+      print('embedding item:', embedding_items)
+      for e in embedding_items:
+        span = e[VALUE_KEY]
+        vector = e[EMBEDDING_KEY]
+        # We squeeze here because embedding functions can return outer dimensions of 1.
+        embedding_vectors.append(vector.reshape(-1))
+        spans.append((span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]))
       all_spans.append((path_key, spans))
   embedding_matrix = np.array(embedding_vectors, dtype=np.float32)
   del path_embedding_items, embedding_vectors
@@ -221,6 +221,7 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
   debug = env('DEBUG', False)
   num_items = 0
   for item in items:
+    print('WRITING', item)
     # Add a rowid column.
     if ROWID not in item:
       item[ROWID] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
@@ -231,8 +232,10 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
         raise ValueError(f'Error validating item: {json.dumps(item)}') from e
     writer.write(item)
     num_items += 1
+  print('iterateor is done')
   writer.close()
   f.close()
+  print('wrote', num_items)
   return out_filename, num_items
 
 

@@ -361,13 +361,12 @@ class DatasetDuckDB(Dataset):
       self._vector_indices[index_key] = vector_index
       return vector_index
 
-  def _select_iterable_values(self, path: PathTuple) -> Iterable[tuple[str, RichData]]:
+  def _select_iterable_values(self, path: PathTuple,
+                              data_schema: Schema) -> Iterable[tuple[str, RichData]]:
     # Fetch the data from DuckDB.
     con = self.con.cursor()
 
-    manifest = self.manifest()
-
-    duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
+    duckdb_path = self._leaf_path_to_duckdb_path(path, data_schema)
 
     sql = _select_sql(duckdb_path, flatten=False, unnest=False, empty=False)
     result = con.execute(f"""
@@ -382,12 +381,13 @@ class DatasetDuckDB(Dataset):
       yield from zip(row_ids, values)
       is_empty = df_chunk.empty
 
-  def _compute_signal_items(self, signal: Signal, path: Path) -> Iterable[Item]:
+  def _compute_signal_items(self, signal: Signal, path: Path,
+                            data_schema: Schema) -> Iterable[Item]:
     signal.setup()
 
     source_path = normalize_path(path)
 
-    source_values = self._select_iterable_values(source_path)
+    source_values = self._select_iterable_values(source_path, data_schema)
     # Tee the results so we can zip the row ids with the outputs.
     inputs_0, inputs_1, inputs_dbg = itertools.tee(source_values, 3)
 
@@ -395,10 +395,16 @@ class DatasetDuckDB(Dataset):
     input_values = (value for (_, value) in inputs_0)
     input_values_0, input_values_1 = itertools.tee(input_values, 2)
 
-    flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
-
-    signal_out = sparse_to_dense_compute(flat_input,
-                                         lambda x: signal.compute(cast(Iterable[RichData], x)))
+    if isinstance(signal, VectorSignal):
+      embedding_signal = signal
+      vector_store = self._get_vector_db_index(embedding_signal.embedding, source_path)
+      flat_keys = list(flatten_keys(df[ROWID], input))
+      signal_out = sparse_to_dense_compute(
+        iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store))
+    else:
+      flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+      signal_out = sparse_to_dense_compute(flat_input,
+                                           lambda x: signal.compute(cast(Iterable[RichData], x)))
 
     try:
       nested_out = deep_unflatten(signal_out, input_values_1)
@@ -429,12 +435,18 @@ class DatasetDuckDB(Dataset):
                               SignalConfig(path=source_path, signal=signal), self.project_dir)
 
     manifest = self.manifest()
+    field = manifest.data_schema.get_field(source_path)
+    if field.dtype != DataType.STRING:
+      raise ValueError('Cannot compute signal over a non-string field.')
 
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
       task_step_id = ('', 0)
 
-    output_items = self._compute_signal_items(signal, path)
+    output_items = self._compute_signal_items(signal, path, manifest.data_schema)
+
+    # output_items = list(output_items)
+    # print('OI:', output_items)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
@@ -449,6 +461,8 @@ class DatasetDuckDB(Dataset):
       filename_prefix='data',
       shard_index=0,
       num_shards=1)
+
+    print('PQ FILENAME', parquet_filename)
 
     signal_manifest = SignalManifest(
       files=[parquet_filename],
@@ -472,6 +486,9 @@ class DatasetDuckDB(Dataset):
                                  EmbeddingConfig(path=source_path, embedding=embedding),
                                  self.project_dir)
     manifest = self.manifest()
+    field = manifest.data_schema.get_field(source_path)
+    if field.dtype != DataType.STRING:
+      raise ValueError('Cannot compute embedding over a non-string field.')
 
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
@@ -479,7 +496,8 @@ class DatasetDuckDB(Dataset):
 
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
 
-    output_items = self._compute_signal_items(signal, path)
+    print('source path=', source_path)
+    output_items = self._compute_signal_items(signal, path, manifest.data_schema)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
 

@@ -114,6 +114,7 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
     for example in data:
+      print('example=', example)
       yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
@@ -301,56 +302,6 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
     udfs=[
       SelectRowsSchemaUDF(path=('text', add_space_signal.key())),
     ],
-  )
-
-
-def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'hello. hello2.',
-  }, {
-    'text': 'hello world. hello world2.',
-  }])
-
-  test_splitter = TestSplitter()
-  dataset.compute_signal(test_splitter, 'text')
-  test_embedding = TestEmbedding()
-  dataset.compute_signal(test_embedding, ('text', 'test_splitter', '*'))
-
-  embedding_sum_signal = TestEmbeddingSumSignal(embedding='test_embedding')
-  udf_col = Column(('text', 'test_splitter', '*'), signal_udf=embedding_sum_signal)
-  result = dataset.select_rows_schema([('text'), udf_col], combine_columns=True)
-
-  expected_schema = schema({
-    'text': field(
-      'string',
-      fields={
-        'test_splitter': field(
-          signal=test_splitter.model_dump(),
-          fields=[
-            field(
-              'string_span',
-              fields={
-                'test_embedding': field(
-                  signal=test_embedding.model_dump(),
-                  fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
-                embedding_sum_signal.key(): field(
-                  'float32', signal=embedding_sum_signal.model_dump())
-              })
-          ])
-      })
-  })
-  output_path = ('text', 'test_splitter', '*', embedding_sum_signal.key())
-  assert result == SelectRowsSchemaResult(
-    data_schema=expected_schema,
-    udfs=[SelectRowsSchemaUDF(path=output_path)],
-  )
-
-  # Alias the udf.
-  udf_col.alias = 'udf1'
-  result = dataset.select_rows_schema([('text'), udf_col], combine_columns=True)
-  assert result == SelectRowsSchemaResult(
-    data_schema=expected_schema,
-    udfs=[SelectRowsSchemaUDF(path=output_path, alias='udf1')],
   )
 
 
