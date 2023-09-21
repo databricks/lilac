@@ -15,7 +15,7 @@ if [ "$CI" ]; then
 fi
 
 # Disables log() statements.
-#export DISABLE_LOGS=True
+export DISABLE_LOGS=True
 export LILAC_TEST=True
 
 # -vv enables verbose outputs.

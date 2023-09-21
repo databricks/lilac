@@ -1,6 +1,7 @@
 """Utilities for working with datasets."""
 
 import gc
+import itertools
 import json
 import math
 import os
@@ -128,6 +129,22 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   return schema(enriched_schema.fields.copy())
 
 
+def _flat_embeddings(
+  input: Union[Item, Iterable[Item]], path: PathKey = ()) -> Iterator[tuple[PathKey, Item]]:
+  if isinstance(input, dict) and EMBEDDING_KEY in input:
+    yield path, input
+  elif isinstance(input, dict):
+    for k, v in input.items():
+      yield from _flat_embeddings(v, (*path, k))
+  elif isinstance(input, list):
+    for i, v in enumerate(input):
+      print('v=', v, i, 'i', (*path, i))
+      yield from _flat_embeddings(v, (*path, i))
+  else:
+    # Ignore other primitives.
+    pass
+
+
 def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_items: Iterable[Item],
                              output_dir: str) -> None:
   """Write a set of embeddings to disk."""
@@ -136,29 +153,42 @@ def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_it
     return (isinstance(input, list) and len(input) > 0 and isinstance(input[0], dict) and
             EMBEDDING_KEY in input[0])
 
-  path_keys = flatten_keys(rowids, signal_items, is_primitive_predicate=embedding_predicate)
-  all_embeddings = cast(Iterable[Item],
-                        deep_flatten(signal_items, is_primitive_predicate=embedding_predicate))
+  signal_items_0, signal_items_1 = itertools.tee(signal_items, 2)
+  # print('INPUT ITEMS:', list(signal_items_0))
+  # path_keys = flatten_keys(rowids, signal_items_0, is_primitive_predicate=embedding_predicate)
+  path_embedding_items = (
+    _flat_embeddings(signal_item, path=(signal_item[ROWID],)) for signal_item in signal_items)
 
+  # path_embedding_items = list(path_embedding_items)
+  # for i in range(len(path_embedding_items)):
+  #   path_embedding_items[i] = list(path_embedding_items[i])
+  #   print('pei:', path_embedding_items[i])
+
+  # path_keys = list(path_keys)
+  path_embedding_items = list(path_embedding_items)
+  print('all_embeddings', path_embedding_items)
   embedding_vectors: list[np.ndarray] = []
   all_spans: list[tuple[PathKey, list[tuple[int, int]]]] = []
-  for path_key, embeddings in zip(path_keys, all_embeddings):
-    if not path_key or not embeddings:
-      # Sparse embeddings may not have an embedding for every key.
-      continue
+  for path_item in path_embedding_items:
+    for path_key, embedding_item in path_item:
+      print('path_key=', path_key)
+      if not path_key or not embedding_item:
+        # Sparse embeddings may not have an embedding for every key.
+        continue
 
-    spans: list[tuple[int, int]] = []
-    for e in embeddings:
-      span = e[VALUE_KEY]
-      vector = e[EMBEDDING_KEY]
+      spans: list[tuple[int, int]] = []
+      span = embedding_item[VALUE_KEY]
+      vector = embedding_item[EMBEDDING_KEY]
       # We squeeze here because embedding functions can return outer dimensions of 1.
       embedding_vectors.append(vector.reshape(-1))
       spans.append((span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]))
-    all_spans.append((path_key, spans))
+      all_spans.append((path_key, spans))
   embedding_matrix = np.array(embedding_vectors, dtype=np.float32)
-  del path_keys, all_embeddings, embedding_vectors
+  del path_embedding_items, embedding_vectors
   gc.collect()
 
+  print('spans=', all_spans)
+  print('embedding matrix=', embedding_matrix)
   # Write to disk.
   vector_index = VectorDBIndex(vector_store)
   vector_index.add(all_spans, embedding_matrix)

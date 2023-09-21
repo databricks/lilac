@@ -215,7 +215,7 @@ def test_signal_output_validation(make_test_data: TestDataMaker) -> None:
   }])
 
   with pytest.raises(
-      ValueError, match='The signal generated 0 values but the input data had 2 values.'):
+      ValueError, match='The signal generated a different number of values than was input.'):
     dataset.compute_signal(signal, 'text')
 
 

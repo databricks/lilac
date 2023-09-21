@@ -382,6 +382,38 @@ class DatasetDuckDB(Dataset):
       yield from zip(row_ids, values)
       is_empty = df_chunk.empty
 
+  def _compute_signal_items(self, signal: Signal, path: Path) -> Iterable[Item]:
+    signal.setup()
+
+    source_path = normalize_path(path)
+
+    source_values = self._select_iterable_values(source_path)
+    # Tee the results so we can zip the row ids with the outputs.
+    inputs_0, inputs_1, inputs_dbg = itertools.tee(source_values, 3)
+
+    # Tee the values so we can use them for the deep flatten and the deep unflatten.
+    input_values = (value for (_, value) in inputs_0)
+    input_values_0, input_values_1 = itertools.tee(input_values, 2)
+
+    flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+
+    signal_out = sparse_to_dense_compute(flat_input,
+                                         lambda x: signal.compute(cast(Iterable[RichData], x)))
+
+    try:
+      nested_out = deep_unflatten(signal_out, input_values_1)
+    except StopIteration as e:
+      raise ValueError('The signal generated a different number of values than was input. '
+                       'Please yield `None` in signals when there is no value.') from e
+
+    signal_col = Column(path=source_path, alias='value', signal_udf=signal)
+    enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
+    spec = _split_path_into_subpaths_of_lists(enriched_path)
+    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(nested_out, spec))
+
+    for (rowid, _), item in zip(inputs_1, enriched_signal_items):
+      yield {**item, ROWID: rowid}
+
   @override
   def compute_signal(self,
                      signal: Signal,
@@ -396,42 +428,20 @@ class DatasetDuckDB(Dataset):
     add_project_signal_config(self.namespace, self.dataset_name,
                               SignalConfig(path=source_path, signal=signal), self.project_dir)
 
-    signal.setup()
-
     manifest = self.manifest()
 
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
       task_step_id = ('', 0)
 
-    input_values = self._select_iterable_values(source_path)
-    # Tee the results so we can zip the row ids with the outputs.
-    inputs_0, inputs_1, inputs_dbg = itertools.tee(input_values, 3)
-    inputs = (value for (_, value) in inputs_0)
-
-    flat_input = cast(Iterator[Optional[RichData]], deep_flatten(inputs))
-    signal_out = sparse_to_dense_compute(flat_input,
-                                         lambda x: signal.compute(cast(Iterable[RichData], x)))
-    nested_out = deep_unflatten(signal_out, inputs)
-    print('nested output=', nested_out)
+    output_items = self._compute_signal_items(signal, path)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
-    print('enriched path=', enriched_path)
-    spec = _split_path_into_subpaths_of_lists(enriched_path)
-    print('spec=', spec)
-    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(nested_out, spec))
-
-    output_items = ({
-      **item, ROWID: rowid
-    } for (rowid, _), item in zip(inputs_1, enriched_signal_items))
-
-    output_items = list(output_items)
-    print('OUTPUT=', output_items)
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
+
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
-    print('signal schema=', signal_schema)
     parquet_filename, _ = write_items_to_parquet(
       items=output_items,
       output_dir=output_dir,
@@ -468,21 +478,22 @@ class DatasetDuckDB(Dataset):
       task_step_id = ('', 0)
 
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
+
+    output_items = self._compute_signal_items(signal, path)
+
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([ROWID, signal_col],
-                                          task_step_id=task_step_id,
-                                          resolve_span=True)
-    df = select_rows_result.df()
-    values = df['value']
 
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
 
+    row_ids = (item[ROWID] for item in output_items)
     write_embeddings_to_disk(
-      vector_store=self.vector_store, rowids=df[ROWID], signal_items=values, output_dir=output_dir)
+      vector_store=self.vector_store,
+      rowids=row_ids,
+      signal_items=output_items,
+      output_dir=output_dir)
 
-    del select_rows_result, df, values
     gc.collect()
 
     signal_manifest = SignalManifest(
