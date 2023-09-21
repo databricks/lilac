@@ -369,7 +369,7 @@ class DatasetDuckDB(Dataset):
 
     duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
 
-    sql = _select_sql(duckdb_path, flatten=True, unnest=True, empty=False)
+    sql = _select_sql(duckdb_path, flatten=False, unnest=False, empty=False)
     result = con.execute(f"""
       SELECT {ROWID}, {sql} as values FROM t
     """)
@@ -379,8 +379,6 @@ class DatasetDuckDB(Dataset):
       df_chunk = result.fetch_df_chunk()
       row_ids = df_chunk[ROWID].tolist()
       values = df_chunk['values'].tolist()
-      print('row_ids=', row_ids)
-      print('values=', values)
       yield from zip(row_ids, values)
       is_empty = df_chunk.empty
 
@@ -406,34 +404,35 @@ class DatasetDuckDB(Dataset):
       # Make a dummy task step so we report progress via tqdm.
       task_step_id = ('', 0)
 
-    chunked_values = self._select_iterable_values(source_path)
-
+    input_values = self._select_iterable_values(source_path)
     # Tee the results so we can zip the row ids with the outputs.
-    inputs_0, inputs_1, inputs_dbg = itertools.tee(chunked_values, 3)
+    inputs_0, inputs_1, inputs_dbg = itertools.tee(input_values, 3)
     inputs = (value for (_, value) in inputs_0)
 
-    print('inputs=', list(inputs_dbg))
-    values = signal.compute(inputs)
-    # TODO: REMOVE
-    values = list(values)
-    print('OUTPUT', values)
+    flat_input = cast(Iterator[Optional[RichData]], deep_flatten(inputs))
+    signal_out = sparse_to_dense_compute(flat_input,
+                                         lambda x: signal.compute(cast(Iterable[RichData], x)))
+    nested_out = deep_unflatten(signal_out, inputs)
+    print('nested output=', nested_out)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
     print('enriched path=', enriched_path)
     spec = _split_path_into_subpaths_of_lists(enriched_path)
+    print('spec=', spec)
+    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(nested_out, spec))
+
+    output_items = ({
+      **item, ROWID: rowid
+    } for (rowid, _), item in zip(inputs_1, enriched_signal_items))
+
+    output_items = list(output_items)
+    print('OUTPUT=', output_items)
+
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
-    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
-
-    for (rowid, _), item in zip(inputs_1, enriched_signal_items):
-      print('iterating', rowid, item)
-      item[ROWID] = rowid
-
-    enriched_signal_items = list(enriched_signal_items)
-    print('OUTPUT:', enriched_signal_items)
     parquet_filename, _ = write_items_to_parquet(
-      items=enriched_signal_items,
+      items=output_items,
       output_dir=output_dir,
       schema=signal_schema,
       filename_prefix='data',
