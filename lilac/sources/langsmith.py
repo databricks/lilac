@@ -11,6 +11,8 @@ from ..source import Source, SourceSchema
 
 router = APIRouter()
 
+DEFAULT_LANGCHAIN_ENDPOINT = 'https://api.smith.langchain.com'
+
 
 @router.get('/datasets')
 def get_datasets() -> list[str]:
@@ -33,7 +35,7 @@ class LangSmithSource(Source):
   @override
   def setup(self) -> None:
     api_key = env('LANGCHAIN_API_KEY')
-    api_url = env('LANGCHAIN_ENDPOINT')
+    api_url = env('LANGCHAIN_ENDPOINT', DEFAULT_LANGCHAIN_ENDPOINT)
     if not api_key or not api_url:
       raise ValueError(
         '`LANGCHAIN_API_KEY` and `LANGCHAIN_ENDPOINT` environment variables must be set.')
