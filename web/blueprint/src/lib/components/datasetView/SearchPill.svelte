@@ -1,13 +1,8 @@
 <script lang="ts">
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {
-    serializePath,
-    type KeywordSearch,
-    type Search,
-    type SearchType,
-    type SemanticSearch
-  } from '$lilac';
+  import {displayPath} from '$lib/view_utils';
+  import type {KeywordSearch, Search, SearchType, SemanticSearch} from '$lilac';
   import type {Tag} from 'carbon-components-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import RemovableTag from '../common/RemovableTag.svelte';
@@ -47,6 +42,6 @@
     on:click
     on:remove={() =>
       datasetViewStore.removeSearch(search, $datasetStore.selectRowsSchema?.data || null)}
-    ><span class="font-mono">{serializePath(search.path)}</span> has "{pillText}"
+    ><span class="font-mono">{displayPath(search.path)}</span> has "{pillText}"
   </RemovableTag>
 </div>
