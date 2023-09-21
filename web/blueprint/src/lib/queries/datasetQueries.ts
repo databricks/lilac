@@ -157,7 +157,8 @@ export const queryRowMetadata = (
     filters: [{path: [ROWID], op: 'equals', value: rowId}],
     searches: selectRowsOptions.searches,
     columns: [PATH_WILDCARD, ROWID],
-    combine_columns: true
+    combine_columns: true,
+    limit: 1
   });
 
 export const querySelectRowsSchema = createApiQuery(
