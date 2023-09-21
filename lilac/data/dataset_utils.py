@@ -131,11 +131,13 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
 
 def _flat_embeddings(
   input: Union[Item, Iterable[Item]], path: PathKey = ()) -> Iterator[tuple[PathKey, Item]]:
-  if isinstance(input, dict) and EMBEDDING_KEY in input:
-    yield path, input
+  if (isinstance(input, list) and len(input) > 0 and isinstance(input[0], dict) and
+      EMBEDDING_KEY in input[0]):
+    for v in input:
+      yield path, v
   elif isinstance(input, dict):
     for k, v in input.items():
-      yield from _flat_embeddings(v, (*path, k))
+      yield from _flat_embeddings(v, path)
   elif isinstance(input, list):
     for i, v in enumerate(input):
       print('v=', v, i, 'i', (*path, i))
@@ -177,6 +179,7 @@ def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_it
         continue
 
       spans: list[tuple[int, int]] = []
+      print('embedding item:', embedding_item)
       span = embedding_item[VALUE_KEY]
       vector = embedding_item[EMBEDDING_KEY]
       # We squeeze here because embedding functions can return outer dimensions of 1.
