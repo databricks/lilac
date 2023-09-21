@@ -1229,9 +1229,6 @@ class DatasetDuckDB(Dataset):
                  searches: Optional[Sequence[Search]] = None,
                  filters: Optional[Sequence[FilterLike]] = None,
                  value: Optional[str] = 'true') -> None:
-    if not searches and not filters and not row_ids:
-      raise ValueError(
-        '`row_ids`, `searches` or `filters` must be specified when using `dataset.add_label`.')
 
     created = datetime.now()
 
@@ -1241,11 +1238,11 @@ class DatasetDuckDB(Dataset):
       filters.append(Filter(path=(ROWID,), op='in', value=list(row_ids)))
 
     insert_row_ids: Iterable[str]
-    if searches or filters:
+    if row_ids and not searches and not filters:
+      insert_row_ids = row_ids
+    else:
       insert_row_ids = (
         row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters))
-    else:
-      insert_row_ids = row_ids or []
 
     # Check if the label file exists.
     labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
@@ -1282,10 +1279,6 @@ class DatasetDuckDB(Dataset):
                     row_ids: Optional[Sequence[str]] = None,
                     searches: Optional[Sequence[Search]] = None,
                     filters: Optional[Sequence[FilterLike]] = None) -> None:
-    if not searches and not filters and not row_ids:
-      raise ValueError(
-        '`row_ids`, `searches` or `filters` must be specified when using `dataset.add_label`.')
-
     # Check if the label file exists.
     labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
 
@@ -1298,11 +1291,11 @@ class DatasetDuckDB(Dataset):
       filters.append(Filter(path=(ROWID,), op='in', value=list(row_ids)))
 
     remove_row_ids: Iterable[str]
-    if searches or filters:
+    if row_ids and not searches and not filters:
+      remove_row_ids = row_ids
+    else:
       remove_row_ids = (
         row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters))
-    else:
-      remove_row_ids = row_ids or []
 
     if labels_filepath not in self._label_file_lock:
       self._label_file_lock[labels_filepath] = threading.Lock()

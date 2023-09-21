@@ -6,11 +6,12 @@ import enum
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, ClassVar, Iterator, Literal, Optional, Sequence, Union
+from typing import Any, Callable, ClassVar, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
 from pydantic import (
   BaseModel,
+  ConfigDict,
   SerializeAsAny,
   StrictBool,
   StrictBytes,
@@ -258,11 +259,22 @@ FilterLike: TypeAlias = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListF
 SearchValue = StrictStr
 
 
+def _fix_const_in_schema(prop_name: str, value: str) -> Callable[[dict[str, Any]], None]:
+  """Fix the const value in the schema so typescript codegen works."""
+
+  def _schema_extra(schema: dict[str, Any]) -> None:
+    schema['properties'][prop_name] = {'enum': [value]}
+
+  return _schema_extra
+
+
 class KeywordSearch(BaseModel):
   """A keyword search query on a column."""
   path: Path
   query: SearchValue
-  type: Literal['keyword', None] = 'keyword'
+  type: Literal['keyword'] = 'keyword'
+
+  model_config = ConfigDict(json_schema_extra=_fix_const_in_schema('type', 'keyword'))
 
 
 class SemanticSearch(BaseModel):
@@ -270,7 +282,9 @@ class SemanticSearch(BaseModel):
   path: Path
   query: SearchValue
   embedding: str
-  type: Literal['semantic', None] = 'semantic'
+  type: Literal['semantic'] = 'semantic'
+
+  model_config = ConfigDict(json_schema_extra=_fix_const_in_schema('type', 'semantic'))
 
 
 class ConceptSearch(BaseModel):
@@ -279,7 +293,9 @@ class ConceptSearch(BaseModel):
   concept_namespace: str
   concept_name: str
   embedding: str
-  type: Literal['concept', None] = 'concept'
+  type: Literal['concept'] = 'concept'
+
+  model_config = ConfigDict(json_schema_extra=_fix_const_in_schema('type', 'concept'))
 
 
 Search = Union[ConceptSearch, SemanticSearch, KeywordSearch]
