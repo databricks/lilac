@@ -148,7 +148,7 @@ class DatasetConfig(BaseModel):
 class Config(BaseModel):
   """Configures a set of datasets for a lilac instance."""
   datasets: list[DatasetConfig] = PydanticField(
-    description='The configurations for the datasets in the project.')
+    description='The configurations for the datasets in the project.', default=[])
 
   # When defined, uses this list of signals to run over every dataset, over all media paths, unless
   # signals is overridden by a specific dataset.

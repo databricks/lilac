@@ -167,8 +167,9 @@ def read_project_config(project_dir: Union[str, pathlib.Path]) -> Config:
   if not os.path.exists(project_config_filepath):
     create_project(project_dir)
 
-  with open(os.path.join(project_dir, PROJECT_CONFIG_FILENAME), 'r') as f:
-    return Config(**yaml.safe_load(f.read()))
+  with open(project_config_filepath) as f:
+    config_dict = yaml.safe_load(f.read()) or {}
+    return Config(**config_dict)
 
 
 def _write_project_config(project_dir: Union[str, pathlib.Path], config: Config) -> None:
@@ -183,8 +184,7 @@ def _write_project_config(project_dir: Union[str, pathlib.Path], config: Config)
 def create_project(project_dir: Union[str, pathlib.Path]) -> None:
   """Creates an empty lilac project if it's not already a project."""
   if not dir_is_project(project_dir):
-    if not os.path.isdir(project_dir):
-      os.makedirs(project_dir)
+    os.makedirs(project_dir, exist_ok=True)
 
     _write_project_config(project_dir, Config(datasets=[]))
 
