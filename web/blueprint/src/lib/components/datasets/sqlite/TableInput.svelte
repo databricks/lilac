@@ -25,5 +25,5 @@
     {items}
   />
 {:else}
-  <TextInput bind:value {invalid} {invalidText} labelText="Tables" />
+  <TextInput bind:value {invalid} {invalidText} />
 {/if}
