@@ -46,7 +46,7 @@ def _deep_unflatten(flat_input: Iterator[list[object]], original_input: Union[It
 
 def deep_unflatten(flat_input: Union[Iterable, Iterator],
                    original_input: Union[Iterable, object],
-                   is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Iterable:
+                   is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Generator:
   """Unflattens a deeply flattened iterable according to the original iterable's structure."""
   flat_input_iter = iter(flat_input)
   if isinstance(original_input, Iterable) and not is_primitive_predicate(original_input):
@@ -54,7 +54,7 @@ def deep_unflatten(flat_input: Union[Iterable, Iterator],
       yield _deep_unflatten(flat_input_iter, o, is_primitive_predicate)
     return
 
-  yield cast(list, _deep_unflatten(iter(flat_input), original_input, is_primitive_predicate))
+  yield _deep_unflatten(iter(flat_input), original_input, is_primitive_predicate)
 
 
 TFlatten = TypeVar('TFlatten')

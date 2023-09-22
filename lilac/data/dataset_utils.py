@@ -8,7 +8,7 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Callable, Iterator, Optional, TypeVar, Union, cast
+from typing import Callable, Generator, Iterator, Optional, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -85,7 +85,7 @@ def _wrap_in_dicts(input: Union[object, Iterable[object]],
   return _wrap_value_in_dict(res, props)
 
 
-def wrap_in_dicts(input: Iterable[object], spec: list[PathTuple]) -> Iterable[object]:
+def wrap_in_dicts(input: Iterable[object], spec: list[PathTuple]) -> Generator:
   """Wraps an object or iterable in a dict according to the spec."""
   return (_wrap_in_dicts(elem, spec) for elem in input)
 
