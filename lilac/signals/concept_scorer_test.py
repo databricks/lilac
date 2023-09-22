@@ -30,7 +30,7 @@ ALL_VECTOR_STORES = ['numpy', 'hnsw']
 
 
 @pytest.fixture(autouse=True)
-def set_data_path(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
+def set_project_dir(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
   mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
 
 
