@@ -39,8 +39,8 @@ from ..signal import Signal
 from ..utils import chunks, is_primitive, log, open_file
 
 # The embedding write chunk sizes keeps the memory pressure lower as we iteratively write to the
-# vector store. Embeddings are float32, taking up 4 bytes, so this results in ~40MB of RAM pressure.
-EMBEDDINGS_WRITE_CHUNK_SIZE = 10_000
+# vector store. Embeddings are float32, taking up 4 bytes, so this results in ~64MB of RAM pressure.
+EMBEDDINGS_WRITE_CHUNK_SIZE = 16_384
 
 
 def _replace_embeddings_with_none(input: Union[Item, Item]) -> Union[Item, Item]:
