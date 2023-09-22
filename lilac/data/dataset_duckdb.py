@@ -394,13 +394,14 @@ class DatasetDuckDB(Dataset):
     source_values = self._select_iterable_values(source_path, data_schema)
 
     # Tee the results so we can zip the row ids with the outputs.
-    inputs_0, inputs_1, inputs_2 = itertools.tee(source_values, 3)
+    inputs_0, inputs_1 = itertools.tee(source_values, 2)
 
     # Tee the values so we can use them for the deep flatten and the deep unflatten.
     input_values = (value for (_, value) in inputs_0)
     input_values_0, input_values_1 = itertools.tee(input_values, 2)
 
     if isinstance(signal, VectorSignal):
+      inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
       embedding_signal = signal
       vector_store = self._get_vector_db_index(embedding_signal.embedding, source_path)
       flat_keys = list(flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0))
