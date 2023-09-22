@@ -1,32 +1,45 @@
-"""JSON source."""
+"""SQLite source."""
+
+import os
+import sqlite3
 from typing import ClassVar, Iterable, Optional, cast
 
 import duckdb
 import pyarrow as pa
-from pydantic import Field as PydanticField
+from fastapi import APIRouter
+from pydantic import Field
 from typing_extensions import override
+
+from lilac.utils import file_exists
 
 from ..schema import Item, arrow_schema_to_schema
 from ..source import Source, SourceSchema
-from ..utils import download_http_files
 from .duckdb_utils import duckdb_setup
 
+router = APIRouter()
 
-class JSONSource(Source):
-  """JSON data loader
 
-  Supports both JSON and JSONL.
+@router.get('/tables')
+def get_tables(db_file: str) -> list[str]:
+  """List the table names in sqlite."""
+  if not file_exists(db_file) or os.path.isdir(db_file):
+    return []
+  conn = sqlite3.connect(db_file)
+  cursor = conn.cursor()
+  cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+  res = [row[0] for row in cursor.fetchall()]
+  cursor.close()
+  conn.close()
+  return res
 
-  JSON files can live locally as a filepath, point to an external URL, or live on S3, GCS, or R2.
 
-  For more details on authorizing access to S3, GCS or R2, see:
-  https://duckdb.org/docs/guides/import/s3_import.html
-  """ # noqa: D415, D400
-  name: ClassVar[str] = 'json'
+class SQLiteSource(Source):
+  """SQLite data loader."""
+  name: ClassVar[str] = 'sqlite'
+  router: ClassVar[APIRouter] = router
 
-  filepaths: list[str] = PydanticField(
-    description='A list of filepaths to JSON files. '
-    'Paths can be local, point to an HTTP(s) url, or live on GCS, S3 or R2.')
+  db_file: str = Field(title='Database file', description='Path to the database file.')
+  table: str = Field(description='Table name to read from.')
 
   _source_schema: Optional[SourceSchema] = None
   _reader: Optional[pa.RecordBatchReader] = None
@@ -34,21 +47,16 @@ class JSONSource(Source):
 
   @override
   def setup(self) -> None:
-    # Download JSON files to local cache if they are via HTTP to speed up duckdb.
-    filepaths = download_http_files(self.filepaths)
-
     self._con = duckdb.connect(database=':memory:')
+    self._con.install_extension('sqlite')
+    self._con.load_extension('sqlite')
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
-    s3_filepaths = [path.replace('gs://', 's3://') for path in filepaths]
+    db_file = self.db_file.replace('gs://', 's3://')
 
-    # NOTE: We use duckdb here to increase parallelism for multiple files.
     self._con.execute(f"""
       {duckdb_setup(self._con)}
-      CREATE VIEW t as (SELECT * FROM read_json_auto(
-        {s3_filepaths},
-        IGNORE_ERRORS=true
-      ));
+      CREATE VIEW t as (SELECT * FROM sqlite_scan('{db_file}', '{self.table}'));
     """)
 
     res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
@@ -69,7 +77,7 @@ class JSONSource(Source):
   def process(self) -> Iterable[Item]:
     """Process the source upload request."""
     if not self._reader or not self._con:
-      raise RuntimeError('JSON source is not initialized.')
+      raise RuntimeError('SQLite source is not initialized.')
 
     for batch in self._reader:
       yield from batch.to_pylist()
