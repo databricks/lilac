@@ -15,6 +15,7 @@
     pathIsEqual,
     serializePath,
     type ConceptSignal,
+    type LilacField,
     type LilacValueNode,
     type LilacValueNodeCasted,
     type Path
@@ -39,6 +40,7 @@
   export let text: string;
   // The full row item.
   export let row: LilacValueNode;
+  export let field: LilacField | undefined = undefined;
   // Path of the spans for this item to render.
   export let spanPaths: Path[];
   export let path: Path | undefined = undefined;
@@ -156,9 +158,9 @@
   );
 
   const findSimilar = (embedding: string, text: string) => {
-    if (datasetViewStore == null || path == null) return;
+    if (datasetViewStore == null || field == null) return;
     datasetViewStore.addSearch({
-      path: [serializePath(path)],
+      path: field.path,
       type: 'semantic',
       query: text,
       embedding

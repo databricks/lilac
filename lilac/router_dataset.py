@@ -6,7 +6,7 @@ from urllib.parse import unquote
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.params import Depends
 from fastapi.responses import ORJSONResponse
-from pydantic import BaseModel, SerializeAsAny, field_validator
+from pydantic import BaseModel, Field, SerializeAsAny, field_validator
 
 from .auth import UserInfo, get_session_user, get_user_access
 from .config import DatasetSettings
@@ -184,11 +184,13 @@ class Column(DBColumn):
 
 ColumnOrPath = Union[Column, Path]
 
+SearchPy = Annotated[Search, Field(discriminator='type')]
+
 
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
   columns: Sequence[Union[Column, Path]] = []
-  searches: Sequence[Search] = []
+  searches: Sequence[SearchPy] = []
   filters: Sequence[Filter] = []
   sort_by: Sequence[Path] = []
   sort_order: Optional[SortOrder] = SortOrder.DESC
@@ -200,7 +202,7 @@ class SelectRowsOptions(BaseModel):
 class SelectRowsSchemaOptions(BaseModel):
   """The request for the select rows schema endpoint."""
   columns: Sequence[Union[Path, Column]] = []
-  searches: Sequence[Search] = []
+  searches: Sequence[SearchPy] = []
   sort_by: Sequence[Path] = []
   sort_order: Optional[SortOrder] = SortOrder.DESC
   combine_columns: Optional[bool] = None
@@ -337,7 +339,7 @@ class AddLabelsOptions(BaseModel):
   label_name: str
   label_value: Optional[str] = 'true'
   row_ids: Sequence[str] = []
-  searches: Sequence[Search] = []
+  searches: Sequence[SearchPy] = []
   filters: Sequence[Filter] = []
 
 
@@ -364,7 +366,7 @@ class RemoveLabelsOptions(BaseModel):
   """The request for the remove labels endpoint."""
   label_name: str
   row_ids: Sequence[str] = []
-  searches: Sequence[Search] = []
+  searches: Sequence[SearchPy] = []
   filters: Sequence[Filter] = []
 
 

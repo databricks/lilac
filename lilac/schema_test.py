@@ -12,7 +12,6 @@ from .schema import (
   Field,
   Item,
   arrow_schema_to_schema,
-  child_item_from_column_path,
   column_paths_match,
   field,
   schema,
@@ -199,18 +198,6 @@ def test_arrow_schema_to_schema() -> None:
 
 def test_simple_schema_str() -> None:
   assert str(schema({'person': 'string'})) == 'person: string'
-
-
-def test_child_item_from_column_path() -> None:
-  assert child_item_from_column_path(NESTED_TEST_ITEM,
-                                     ('addresses', '0', 'locations', '0', 'longitude')) == 3.8
-  assert child_item_from_column_path(NESTED_TEST_ITEM, ('addresses', '1', 'city')) == 'b'
-
-
-def test_child_item_from_column_path_raises_wildcard() -> None:
-  with pytest.raises(
-      ValueError, match='cannot be called with a path that contains a repeated wildcard'):
-    child_item_from_column_path(NESTED_TEST_ITEM, ('addresses', PATH_WILDCARD, 'city'))
 
 
 def test_column_paths_match() -> None:
