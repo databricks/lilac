@@ -1,16 +1,16 @@
 """SQLite source."""
 
 import sqlite3
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Optional, cast
 
 import duckdb
-import pandas as pd
+import pyarrow as pa
 from fastapi import APIRouter
 from pydantic import Field
 from typing_extensions import override
 
-from ..schema import Item
-from ..source import Source, SourceSchema, schema_from_df
+from ..schema import Item, arrow_schema_to_schema
+from ..source import Source, SourceSchema
 from .duckdb_utils import duckdb_setup
 
 router = APIRouter()
@@ -37,26 +37,30 @@ class SQLiteSource(Source):
   table: str = Field(description='The table name to read from.')
 
   _source_schema: Optional[SourceSchema] = None
-  _df: Optional[pd.DataFrame] = None
+  _reader: Optional[pa.RecordBatchReader] = None
+  _con: Optional[duckdb.DuckDBPyConnection] = None
 
   @override
   def setup(self) -> None:
-    con = duckdb.connect(database=':memory:')
-    con.install_extension('sqlite')
-    con.load_extension('sqlite')
+    self._con = duckdb.connect(database=':memory:')
+    self._con.install_extension('sqlite')
+    self._con.load_extension('sqlite')
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     db_file = self.db_file.replace('gs://', 's3://')
 
-    self._df = con.execute(f"""
-      {duckdb_setup(con)}
-      SELECT * FROM sqlite_scan('{db_file}', '{self.table}');
-    """).df()
-    for column_name in self._df.columns:
-      self._df.rename(columns={column_name: column_name}, inplace=True)
+    self._con.execute(f"""
+      {duckdb_setup(self._con)}
+      CREATE VIEW t as (SELECT * FROM sqlite_scan('{db_file}', '{self.table}'));
+    """)
 
+    res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
+    num_items = cast(tuple[int], res)[0]
+
+    self._reader = self._con.execute('SELECT * from t').fetch_record_batch(rows_per_batch=10_000)
     # Create the source schema in prepare to share it between process and source_schema.
-    self._source_schema = schema_from_df(self._df, LINE_NUMBER_COLUMN)
+    schema = arrow_schema_to_schema(self._reader.schema)
+    self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)
 
   @override
   def source_schema(self) -> SourceSchema:
@@ -67,11 +71,11 @@ class SQLiteSource(Source):
   @override
   def process(self) -> Iterable[Item]:
     """Process the source upload request."""
-    if self._df is None:
-      raise RuntimeError('CSV source is not initialized.')
+    if not self._reader or not self._con:
+      raise RuntimeError('SQLite source is not initialized.')
 
-    cols = self._df.columns.tolist()
-    yield from ({
-      LINE_NUMBER_COLUMN: idx,
-      **dict(zip(cols, item_vals)),
-    } for idx, *item_vals in self._df.itertuples())
+    for batch in self._reader:
+      yield from batch.to_pylist()
+
+    self._reader.close()
+    self._con.close()

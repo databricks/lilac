@@ -1,4 +1,4 @@
-"""CSV source."""
+"""JSON source."""
 from typing import ClassVar, Iterable, Optional, cast
 
 import duckdb
@@ -69,7 +69,7 @@ class JSONSource(Source):
   def process(self) -> Iterable[Item]:
     """Process the source upload request."""
     if not self._reader or not self._con:
-      raise RuntimeError('CSV source is not initialized.')
+      raise RuntimeError('JSON source is not initialized.')
 
     for batch in self._reader:
       yield from batch.to_pylist()
