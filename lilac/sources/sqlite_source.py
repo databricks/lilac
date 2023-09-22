@@ -18,8 +18,6 @@ from .duckdb_utils import duckdb_setup
 
 router = APIRouter()
 
-DEFAULT_LANGCHAIN_ENDPOINT = 'https://api.smith.langchain.com'
-
 
 @router.get('/tables')
 def get_tables(db_file: str) -> list[str]:
