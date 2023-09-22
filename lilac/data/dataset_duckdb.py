@@ -2,6 +2,7 @@
 import functools
 import gc
 import glob
+import itertools
 import math
 import os
 import pathlib
@@ -360,6 +361,72 @@ class DatasetDuckDB(Dataset):
       self._vector_indices[index_key] = vector_index
       return vector_index
 
+  def _select_iterable_values(self, path: PathTuple,
+                              data_schema: Schema) -> Iterable[tuple[str, RichData]]:
+    # Fetch the data from DuckDB.
+    con = self.con.cursor()
+
+    duckdb_path = self._leaf_path_to_duckdb_path(path, data_schema)
+
+    sql = _select_sql(duckdb_path, flatten=False, unnest=False, empty=False)
+    result = con.execute(f"""
+      SELECT {ROWID}, {sql} as values FROM t
+    """)
+
+    is_empty = False
+    while not is_empty:
+      df_chunk = result.fetch_df_chunk()
+      row_ids = df_chunk[ROWID].tolist()
+      values = df_chunk['values'].tolist()
+      yield from zip(row_ids, values)
+      is_empty = df_chunk.empty
+
+  def _compute_signal_items(self,
+                            signal: Signal,
+                            path: Path,
+                            data_schema: Schema,
+                            num_items: int,
+                            task_step_id: Optional[TaskStepId] = None) -> Iterable[Item]:
+    signal.setup()
+
+    source_path = normalize_path(path)
+
+    source_values = self._select_iterable_values(source_path, data_schema)
+
+    # Tee the results so we can zip the row ids with the outputs.
+    inputs_0, inputs_1 = itertools.tee(source_values, 2)
+
+    # Tee the values so we can use them for the deep flatten and the deep unflatten.
+    input_values = (value for (_, value) in inputs_0)
+    input_values_0, input_values_1 = itertools.tee(input_values, 2)
+
+    if isinstance(signal, VectorSignal):
+      inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
+      embedding_signal = signal
+      vector_store = self._get_vector_db_index(embedding_signal.embedding, source_path)
+      flat_keys = list(flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0))
+      signal_out = sparse_to_dense_compute(
+        iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store))
+    else:
+      flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+      signal_out = sparse_to_dense_compute(flat_input,
+                                           lambda x: signal.compute(cast(Iterable[RichData], x)))
+
+    nested_out = deep_unflatten(signal_out, input_values_1)
+
+    signal_col = Column(path=source_path, alias='value', signal_udf=signal)
+    enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
+    spec = _split_path_into_subpaths_of_lists(enriched_path)
+
+    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(nested_out, spec))
+
+    try:
+      for (rowid, _), item in zip(inputs_1, enriched_signal_items):
+        yield {**item, ROWID: rowid}
+    except Exception as e:
+      raise ValueError('The signal generated a different number of values than was input. '
+                       'Please yield `None` in signals when there is no value.') from e
+
   @override
   def compute_signal(self,
                      signal: Signal,
@@ -375,32 +442,43 @@ class DatasetDuckDB(Dataset):
                               SignalConfig(path=source_path, signal=signal), self.project_dir)
 
     manifest = self.manifest()
+    field = manifest.data_schema.get_field(source_path)
+    if field.dtype != DataType.STRING:
+      raise ValueError('Cannot compute signal over a non-string field.')
 
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
       task_step_id = ('', 0)
 
-    # The manifest may have changed after computing the dependencies.
-    manifest = self.manifest()
+    output_items = self._compute_signal_items(signal, path, manifest.data_schema,
+                                              manifest.num_items, task_step_id)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([ROWID, signal_col],
-                                          task_step_id=task_step_id,
-                                          resolve_span=True)
-    df = select_rows_result.df()
-    values = df['value']
-
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
-    spec = _split_path_into_subpaths_of_lists(enriched_path)
-    output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
-    signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
-    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
-    for rowid, item in zip(df[ROWID], enriched_signal_items):
-      item[ROWID] = rowid
 
-    enriched_signal_items = list(enriched_signal_items)
+    output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
+
+    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
+    # If the signal manifest already exists, delete it as it will be rewritten after the new signal
+    # outputs are run.
+    if os.path.exists(signal_manifest_filepath):
+      os.remove(signal_manifest_filepath)
+      # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
+      # existent file.
+      self.manifest()
+
+    signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
+
+    # Add progress.
+    if task_step_id is not None:
+      output_items = progress(
+        output_items,
+        task_step_id=task_step_id,
+        estimated_len=manifest.num_items,
+        step_description=f'Computing signal {signal} over {source_path}')
+
     parquet_filename, _ = write_items_to_parquet(
-      items=enriched_signal_items,
+      items=output_items,
       output_dir=output_dir,
       schema=signal_schema,
       filename_prefix='data',
@@ -413,7 +491,6 @@ class DatasetDuckDB(Dataset):
       signal=signal,
       enriched_path=source_path,
       parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True))
-    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
 
@@ -429,28 +506,50 @@ class DatasetDuckDB(Dataset):
                                  EmbeddingConfig(path=source_path, embedding=embedding),
                                  self.project_dir)
     manifest = self.manifest()
+    field = manifest.data_schema.get_field(source_path)
+    if field.dtype != DataType.STRING:
+      raise ValueError('Cannot compute embedding over a non-string field.')
 
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
       task_step_id = ('', 0)
 
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
+
+    output_items = self._compute_signal_items(signal, path, manifest.data_schema,
+                                              manifest.num_items, task_step_id)
+
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([ROWID, signal_col],
-                                          task_step_id=task_step_id,
-                                          resolve_span=True)
-    df = select_rows_result.df()
-    values = df['value']
 
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
 
-    write_embeddings_to_disk(
-      vector_store=self.vector_store, rowids=df[ROWID], signal_items=values, output_dir=output_dir)
+    row_ids = (item[ROWID] for item in output_items)
 
-    del select_rows_result, df, values
+    if task_step_id is not None:
+      output_items = progress(
+        output_items,
+        task_step_id=task_step_id,
+        estimated_len=manifest.num_items,
+        step_description=f'Computing embedding {signal} over {source_path}')
+
+    write_embeddings_to_disk(
+      vector_store=self.vector_store,
+      rowids=row_ids,
+      signal_items=output_items,
+      output_dir=output_dir)
+
     gc.collect()
+
+    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
+    # If the signal manifest already exists, delete it as it will be rewritten after the new signal
+    # outputs are run.
+    if os.path.exists(signal_manifest_filepath):
+      os.remove(signal_manifest_filepath)
+      # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
+      # existent file.
+      self.manifest()
 
     signal_manifest = SignalManifest(
       files=[],
@@ -459,7 +558,6 @@ class DatasetDuckDB(Dataset):
       enriched_path=source_path,
       parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True),
       vector_store=self.vector_store)
-    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
 
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
@@ -1083,7 +1181,7 @@ class DatasetDuckDB(Dataset):
               task_step_id=task_step_id,
               estimated_len=len(flat_keys),
               step_description=step_description)
-          df[signal_column] = deep_unflatten(signal_out, input)
+          df[signal_column] = list(deep_unflatten(signal_out, input))
         else:
           num_rich_data = count_primitives(input)
           flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input))
@@ -1110,7 +1208,7 @@ class DatasetDuckDB(Dataset):
               f"{num_rich_data} values. This means the signal either didn't generate a "
               '"None" for a sparse output, or generated too many items.')
 
-          df[signal_column] = deep_unflatten(signal_out_list, input)
+          df[signal_column] = list(deep_unflatten(signal_out_list, input))
 
         signal.teardown()
 
@@ -1152,7 +1250,7 @@ class DatasetDuckDB(Dataset):
         if combine_columns:
           dest_path = _col_destination_path(column)
           spec = _split_path_into_subpaths_of_lists(dest_path)
-          df[temp_col_name] = wrap_in_dicts(df[temp_col_name], spec)
+          df[temp_col_name] = list(wrap_in_dicts(df[temp_col_name], spec))
 
         # If the temp col name is the same as the final name, we can skip merging. This happens when
         # we select a source leaf column.

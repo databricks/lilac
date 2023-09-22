@@ -192,25 +192,3 @@ class NamedEntity(TextSignal):
         yield None
         continue
       yield [lilac_span(m.start(0), m.end(0)) for m in re.finditer(ENTITY_REGEX, text)]
-
-
-def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
-  text = 'Hello nik@test. Here are some other entities like pii@gmail and all@lilac.'
-  dataset = make_test_data([{'text': text}])
-  entity = NamedEntity()
-  dataset.compute_signal(TestSplitter(), 'text')
-  dataset.compute_signal(entity, ('text', 'test_splitter', '*'))
-
-  result = dataset.select_rows(['text'], combine_columns=True)
-  assert list(result) == [{
-    'text': enriched_item(
-      text, {
-        'test_splitter': [
-          lilac_span(0, 15, {'entity': [lilac_span(6, 14)]}),
-          lilac_span(16, 74, {'entity': [
-            lilac_span(50, 59),
-            lilac_span(64, 73),
-          ]}),
-        ]
-      })
-  }]

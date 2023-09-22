@@ -215,7 +215,7 @@ def test_signal_output_validation(make_test_data: TestDataMaker) -> None:
   }])
 
   with pytest.raises(
-      ValueError, match='The signal generated 0 values but the input data had 2 values.'):
+      ValueError, match='The signal generated a different number of values than was input.'):
     dataset.compute_signal(signal, 'text')
 
 
@@ -526,6 +526,36 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(combine_columns=True)
   expected_result = [{'text': 'hello.'}, {'text': 'hello2.'}]
   assert list(result) == expected_result
+
+
+def test_compute_embedding_over_non_string(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    'text': 'hello. hello2.',
+  }, {
+    'text': 'hello world. hello world2.',
+  }])
+
+  test_splitter = TestSplitSignal()
+  dataset.compute_signal(test_splitter, 'text')
+
+  test_embedding = TestEmbedding()
+  with pytest.raises(ValueError, match='Cannot compute embedding over a non-string field.'):
+    dataset.compute_signal(test_embedding, ('text', 'test_split', '*'))
+
+
+def test_compute_signal_over_non_string(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    'text': 'hello. hello2.',
+  }, {
+    'text': 'hello world. hello world2.',
+  }])
+
+  test_splitter = TestSplitSignal()
+  dataset.compute_signal(test_splitter, 'text')
+
+  test_embedding = TestEmbedding()
+  with pytest.raises(ValueError, match='Cannot compute signal over a non-string field.'):
+    dataset.compute_signal(test_splitter, ('text', 'test_split', '*'))
 
 
 def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
