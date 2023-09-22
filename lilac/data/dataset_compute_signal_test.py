@@ -542,6 +542,7 @@ def test_compute_embedding_over_non_string(make_test_data: TestDataMaker) -> Non
   with pytest.raises(ValueError, match='Cannot compute embedding over a non-string field.'):
     dataset.compute_signal(test_embedding, ('text', 'test_split', '*'))
 
+
 def test_compute_signal_over_non_string(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     'text': 'hello. hello2.',
@@ -553,7 +554,7 @@ def test_compute_signal_over_non_string(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(test_splitter, 'text')
 
   test_embedding = TestEmbedding()
-  with pytest.raises(ValueError, match='Cannot compute embedding over a non-string field.'):
+  with pytest.raises(ValueError, match='Cannot compute signal over a non-string field.'):
     dataset.compute_signal(test_splitter, ('text', 'test_split', '*'))
 
 

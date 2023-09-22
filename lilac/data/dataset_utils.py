@@ -8,7 +8,7 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Any, Callable, Iterator, Optional, TypeVar, Union, cast
+from typing import Callable, Iterator, Optional, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -87,7 +87,7 @@ def _wrap_in_dicts(input: Union[object, Iterable[object]],
 
 def wrap_in_dicts(input: Iterable[object], spec: list[PathTuple]) -> Iterable[object]:
   """Wraps an object or iterable in a dict according to the spec."""
-  return [_wrap_in_dicts(elem, spec) for elem in input]
+  return (_wrap_in_dicts(elem, spec) for elem in input)
 
 
 def schema_contains_path(schema: Schema, path: PathTuple) -> bool:
@@ -139,7 +139,6 @@ def _flat_embeddings(
       yield from _flat_embeddings(v, path)
   elif isinstance(input, list):
     for i, v in enumerate(input):
-      print('v=', v, i, 'i', (*path, i))
       yield from _flat_embeddings(v, (*path, i))
   else:
     # Ignore other primitives.
@@ -149,39 +148,18 @@ def _flat_embeddings(
 def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_items: Iterable[Item],
                              output_dir: str) -> None:
   """Write a set of embeddings to disk."""
-
-  def embedding_predicate(input: Any) -> bool:
-    return (isinstance(input, list) and len(input) > 0 and isinstance(input[0], dict) and
-            EMBEDDING_KEY in input[0])
-
-  signal_items_0, signal_items_1 = itertools.tee(signal_items, 2)
-  # for signal_item in signal_items_0:
-
-  # print('INPUT ITEMS:', list(signal_items_0))
-  # path_keys = flatten_keys(rowids, signal_items_0, is_primitive_predicate=embedding_predicate)
-  # print('path_keys = ', list(path_keys))
   path_embedding_items = (
     _flat_embeddings(signal_item, path=(signal_item[ROWID],)) for signal_item in signal_items)
 
-  # path_embedding_items = list(path_embedding_items)
-  # for i in range(len(path_embedding_items)):
-  #   path_embedding_items[i] = list(path_embedding_items[i])
-  #   print('pei:', path_embedding_items[i])
-
-  # path_keys = list(path_keys)
-  path_embedding_items = list(path_embedding_items)
-  print('all_embeddings', path_embedding_items)
   embedding_vectors: list[np.ndarray] = []
   all_spans: list[tuple[PathKey, list[tuple[int, int]]]] = []
   for path_item in path_embedding_items:
     for path_key, embedding_items in path_item:
-      print('path_key=', path_key)
       if not path_key or not embedding_items:
         # Sparse embeddings may not have an embedding for every key.
         continue
 
       spans: list[tuple[int, int]] = []
-      print('embedding item:', embedding_items)
       for e in embedding_items:
         span = e[VALUE_KEY]
         vector = e[EMBEDDING_KEY]
@@ -193,8 +171,6 @@ def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_it
   del path_embedding_items, embedding_vectors
   gc.collect()
 
-  print('spans=', all_spans)
-  print('embedding matrix=', embedding_matrix)
   # Write to disk.
   vector_index = VectorDBIndex(vector_store)
   vector_index.add(all_spans, embedding_matrix)
@@ -221,7 +197,6 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
   debug = env('DEBUG', False)
   num_items = 0
   for item in items:
-    print('WRITING', item)
     # Add a rowid column.
     if ROWID not in item:
       item[ROWID] = secrets.token_urlsafe(nbytes=12)  # 16 base64 characters.
@@ -232,10 +207,8 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
         raise ValueError(f'Error validating item: {json.dumps(item)}') from e
     writer.write(item)
     num_items += 1
-  print('iterateor is done')
   writer.close()
   f.close()
-  print('wrote', num_items)
   return out_filename, num_items
 
 
@@ -289,18 +262,20 @@ def sparse_to_dense_compute(
     sparse_input: Iterator[Optional[Tin]],
     func: Callable[[Iterable[Tin]], Iterable[Tout]]) -> Iterator[Optional[Tout]]:
   """Densifies the input before calling the provided `func` and sparsifies the output."""
-  locations: list[int] = []
   total_size: int = 0
 
-  def densify(x: Iterator[Optional[Tin]]) -> Iterator[Tin]:
-    nonlocal locations, total_size
+  def densify(x: Iterator[Optional[Tin]]) -> Iterator[tuple[int, Tin]]:
+    nonlocal total_size
     for i, value in enumerate(x):
       total_size += 1
       if value is not None:
-        locations.append(i)
-        yield value
+        yield i, value
 
-  dense_input = densify(sparse_input)
+  dense_input_with_locations = densify(sparse_input)
+  dense_input_with_locations_0, dense_input_with_locations_1 = itertools.tee(
+    dense_input_with_locations, 2)
+  dense_input = (value for (_, value) in dense_input_with_locations_0)
+
   dense_output = iter(func(dense_input))
   index = 0
 
@@ -309,7 +284,7 @@ def sparse_to_dense_compute(
   while True:
     try:
       out = next(dense_output)
-      out_index = locations[location_index]
+      out_index, _ = next(dense_input_with_locations_1)
       while index < out_index:
         yield None
         index += 1

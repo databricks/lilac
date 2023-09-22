@@ -16,7 +16,7 @@ def test_wrap_in_dicts_with_spec_of_one_repeated() -> None:
   a = [[1, 2], [3], [4, 5, 5]]
   spec: list[PathTuple] = [('a', 'b', 'c'), ('d',)]  # Corresponds to a.b.c.*.d.
   result = wrap_in_dicts(a, spec)
-  assert result == [{
+  assert list(result) == [{
     'a': {
       'b': {
         'c': [{
@@ -53,7 +53,7 @@ def test_wrap_in_dicts_with_spec_of_double_repeated() -> None:
   a = [[[1, 2], [3, 4, 5]], [[6]], [[7], [8], [9, 10]]]
   spec: list[PathTuple] = [('a', 'b'), tuple(), ('c',)]  # Corresponds to a.b.*.*.c.
   result = wrap_in_dicts(a, spec)
-  assert result == [{
+  assert list(result) == [{
     'a': {
       'b': [[{
         'c': 1

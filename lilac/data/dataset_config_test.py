@@ -109,7 +109,6 @@ def test_config_compute_signal(make_test_data: TestDataMaker) -> None:
     )],
     settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('text',)])))
 
-  print('computing the signal again')
   # Computing the same signal again should not change the config.
   dataset.compute_signal(TestSignal(), 'text')
 
