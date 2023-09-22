@@ -1,5 +1,6 @@
 """SQLite source."""
 
+import os
 import sqlite3
 from typing import ClassVar, Iterable, Optional, cast
 
@@ -8,6 +9,8 @@ import pyarrow as pa
 from fastapi import APIRouter
 from pydantic import Field
 from typing_extensions import override
+
+from lilac.utils import file_exists
 
 from ..schema import Item, arrow_schema_to_schema
 from ..source import Source, SourceSchema
@@ -21,11 +24,15 @@ DEFAULT_LANGCHAIN_ENDPOINT = 'https://api.smith.langchain.com'
 @router.get('/tables')
 def get_tables(db_file: str) -> list[str]:
   """List the table names in sqlite."""
+  if not file_exists(db_file) or os.path.isdir(db_file):
+    return []
   conn = sqlite3.connect(db_file)
   cursor = conn.cursor()
-  sql_query = "SELECT name FROM sqlite_master WHERE type='table';"
-  cursor.execute(sql_query)
-  return [row[0] for row in cursor.fetchall()]
+  cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+  res = [row[0] for row in cursor.fetchall()]
+  cursor.close()
+  conn.close()
+  return res
 
 
 class SQLiteSource(Source):
@@ -33,8 +40,8 @@ class SQLiteSource(Source):
   name: ClassVar[str] = 'sqlite'
   router: ClassVar[APIRouter] = router
 
-  db_file: str = Field(description='The path to the database file.')
-  table: str = Field(description='The table name to read from.')
+  db_file: str = Field(title='Database file', description='Path to the database file.')
+  table: str = Field(description='Table name to read from.')
 
   _source_schema: Optional[SourceSchema] = None
   _reader: Optional[pa.RecordBatchReader] = None
