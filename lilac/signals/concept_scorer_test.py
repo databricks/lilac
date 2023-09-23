@@ -2,7 +2,7 @@
 
 import os
 import pathlib
-from typing import Generator, Iterable, Type, cast
+from typing import ClassVar, Generator, Iterable, Type, cast
 
 import numpy as np
 import pytest
@@ -30,8 +30,8 @@ ALL_VECTOR_STORES = ['numpy', 'hnsw']
 
 
 @pytest.fixture(autouse=True)
-def set_data_path(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
-  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
+def set_project_dir(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
+  mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
 
 
 EMBEDDING_MAP: dict[str, list[float]] = {
@@ -45,7 +45,7 @@ EMBEDDING_MAP: dict[str, list[float]] = {
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

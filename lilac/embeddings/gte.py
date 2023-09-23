@@ -1,5 +1,5 @@
 """Gegeral Text Embeddings (GTE) model. Open-source model, designed to run on device."""
-from typing import TYPE_CHECKING, Iterable, cast
+from typing import TYPE_CHECKING, ClassVar, Iterable, cast
 
 from typing_extensions import override
 
@@ -36,8 +36,8 @@ class GTESmall(TextEmbeddingSignal):
   for details.
   """
 
-  name = 'gte-small'
-  display_name = 'Gegeral Text Embeddings (small)'
+  name: ClassVar[str] = 'gte-small'
+  display_name: ClassVar[str] = 'Gegeral Text Embeddings (small)'
 
   _model_name = GTE_SMALL
 
@@ -57,7 +57,7 @@ class GTEBase(GTESmall):
   <br>This embedding runs on-device. See the [model card](https://huggingface.co/thenlper/gte-base)
   for details.
   """
-  name = 'gte-base'
-  display_name = 'Gegeral Text Embeddings (base)'
+  name: ClassVar[str] = 'gte-base'
+  display_name: ClassVar[str] = 'Gegeral Text Embeddings (base)'
 
   _model_name = GTE_BASE

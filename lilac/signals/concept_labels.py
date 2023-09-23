@@ -1,5 +1,5 @@
 """A signal to compute span offsets of already labeled concept text."""
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 from typing_extensions import override
 
@@ -12,8 +12,8 @@ from ..signal import TextSignal
 
 class ConceptLabelsSignal(TextSignal):
   """Computes spans where text is labeled for the concept, either positive or negative."""
-  name = 'concept_labels'
-  display_name = 'Concept Labels'
+  name: ClassVar[str] = 'concept_labels'
+  display_name: ClassVar[str] = 'Concept Labels'
 
   namespace: str
   concept_name: str

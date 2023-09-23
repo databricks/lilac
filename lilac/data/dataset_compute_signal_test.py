@@ -1,10 +1,13 @@
 """Tests for dataset.compute_signal()."""
 
-from typing import Iterable, Optional, Union, cast
+from typing import ClassVar, Iterable, Optional, Union, cast
 
 import numpy as np
 import pytest
+from pytest_mock import MockerFixture
 from typing_extensions import override
+
+from lilac.sources.source_registry import clear_source_registry, register_source
 
 from ..concepts.concept import ExampleIn
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
@@ -27,6 +30,7 @@ from ..signal import (
   register_signal,
 )
 from ..signals.concept_scorer import ConceptSignal
+from . import dataset_utils as dataset_utils_module
 from .dataset import Column, DatasetManifest, GroupsSortBy, SortOrder
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
@@ -55,7 +59,7 @@ SIMPLE_ITEMS: list[Item] = [{
 
 
 class TestInvalidSignal(TextSignal):
-  name = 'test_invalid_signal'
+  name: ClassVar[str] = 'test_invalid_signal'
 
   @override
   def fields(self) -> Field:
@@ -68,7 +72,7 @@ class TestInvalidSignal(TextSignal):
 
 
 class TestSparseSignal(TextSignal):
-  name = 'test_sparse_signal'
+  name: ClassVar[str] = 'test_sparse_signal'
 
   @override
   def fields(self) -> Field:
@@ -86,7 +90,7 @@ class TestSparseSignal(TextSignal):
 
 class TestSparseRichSignal(TextSignal):
   """Find personally identifiable information (emails, phone numbers, etc)."""
-  name = 'test_sparse_rich_signal'
+  name: ClassVar[str] = 'test_sparse_rich_signal'
 
   @override
   def fields(self) -> Field:
@@ -103,7 +107,7 @@ class TestSparseRichSignal(TextSignal):
 
 
 class TestParamSignal(TextSignal):
-  name = 'param_signal'
+  name: ClassVar[str] = 'param_signal'
   param: str
 
   def fields(self) -> Field:
@@ -115,7 +119,7 @@ class TestParamSignal(TextSignal):
 
 
 class TestSignal(TextSignal):
-  name = 'test_signal'
+  name: ClassVar[str] = 'test_signal'
 
   @override
   def fields(self) -> Field:
@@ -128,7 +132,7 @@ class TestSignal(TextSignal):
 
 class TestSplitSignal(TextSplitterSignal):
   """Split documents into sentence by splitting on period, generating entities."""
-  name = 'test_split'
+  name: ClassVar[str] = 'test_split'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -156,7 +160,7 @@ STR_EMBEDDINGS: dict[str, Union[list[float], list[list[float]]]] = {
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -167,7 +171,7 @@ class TestEmbedding(TextEmbeddingSignal):
 
 
 class ComputedKeySignal(TextSignal):
-  name = 'computed_key'
+  name: ClassVar[str] = 'computed_key'
 
   @override
   def fields(self) -> Field:
@@ -186,6 +190,7 @@ class ComputedKeySignal(TextSignal):
 def setup_teardown() -> Iterable[None]:
   # Setup.
   clear_signal_registry()
+  register_source(TestSource)
   register_signal(TestSparseSignal)
   register_signal(TestSparseRichSignal)
   register_signal(TestParamSignal)
@@ -198,6 +203,7 @@ def setup_teardown() -> Iterable[None]:
   # Unit test runs.
   yield
   # Teardown.
+  clear_source_registry()
   clear_signal_registry()
 
 
@@ -211,7 +217,7 @@ def test_signal_output_validation(make_test_data: TestDataMaker) -> None:
   }])
 
   with pytest.raises(
-      ValueError, match='The signal generated 0 values but the input data had 2 values.'):
+      ValueError, match='The signal generated a different number of values than was input.'):
     dataset.compute_signal(signal, 'text')
 
 
@@ -279,7 +285,7 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_signal': field(
-            signal=test_signal.dict(), fields={
+            signal=test_signal.model_dump(), fields={
               'len': 'int32',
               'flen': 'float32'
             }),
@@ -359,8 +365,8 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
       'text': field(
         'string',
         fields={
-          'param_signal(param=a)': field('string', test_signal_a.dict()),
-          'param_signal(param=b)': field('string', test_signal_b.dict()),
+          'param_signal(param=a)': field('string', test_signal_a.model_dump()),
+          'param_signal(param=b)': field('string', test_signal_b.model_dump()),
         }),
     }),
     num_items=2,
@@ -395,7 +401,8 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
       'text': field(
-        'string', fields={'test_split': field(signal=signal.dict(), fields=[field('string_span')])})
+        'string',
+        fields={'test_split': field(signal=signal.model_dump(), fields=[field('string_span')])})
     }),
     num_items=2,
     source=TestSource())
@@ -434,7 +441,7 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              signal=test_signal.dict(), fields={
+              signal=test_signal.model_dump(), fields={
                 'len': 'int32',
                 'flen': 'float32'
               })
@@ -497,8 +504,11 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
   assert list(result) == expected_result
 
 
-def test_embedding_signal(make_test_data: TestDataMaker) -> None:
+def test_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
+
+  # Reduce the chunk size to 1 so we test iteratively writing to the embedding index.
+  mocker.patch(f'{dataset_utils_module.__name__}.EMBEDDINGS_WRITE_CHUNK_SIZE', 1)
 
   embedding_signal = TestEmbedding()
   dataset.compute_signal(embedding_signal, 'text')
@@ -511,7 +521,7 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_embedding': field(
-            signal=embedding_signal.dict(),
+            signal=embedding_signal.model_dump(),
             fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
         }),
     }),
@@ -521,6 +531,36 @@ def test_embedding_signal(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(combine_columns=True)
   expected_result = [{'text': 'hello.'}, {'text': 'hello2.'}]
   assert list(result) == expected_result
+
+
+def test_compute_embedding_over_non_string(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    'text': 'hello. hello2.',
+  }, {
+    'text': 'hello world. hello world2.',
+  }])
+
+  test_splitter = TestSplitSignal()
+  dataset.compute_signal(test_splitter, 'text')
+
+  test_embedding = TestEmbedding()
+  with pytest.raises(ValueError, match='Cannot compute embedding over a non-string field.'):
+    dataset.compute_signal(test_embedding, ('text', 'test_split', '*'))
+
+
+def test_compute_signal_over_non_string(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    'text': 'hello. hello2.',
+  }, {
+    'text': 'hello world. hello world2.',
+  }])
+
+  test_splitter = TestSplitSignal()
+  dataset.compute_signal(test_splitter, 'text')
+
+  test_embedding = TestEmbedding()
+  with pytest.raises(ValueError, match='Cannot compute signal over a non-string field.'):
+    dataset.compute_signal(test_splitter, ('text', 'test_split', '*'))
 
 
 def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
@@ -533,7 +573,7 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({
-      'text': field('string', fields={'key_True': field('int64', signal=signal.dict())}),
+      'text': field('string', fields={'key_True': field('int64', signal=signal.model_dump())}),
     }),
     num_items=2,
     source=TestSource())

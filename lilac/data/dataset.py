@@ -6,17 +6,19 @@ import enum
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, Iterator, Literal, Optional, Sequence, Union
+from typing import Any, Callable, ClassVar, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
 from pydantic import (
   BaseModel,
+  ConfigDict,
+  SerializeAsAny,
   StrictBool,
   StrictBytes,
   StrictFloat,
   StrictInt,
   StrictStr,
-  validator,
+  field_validator,
 )
 from typing_extensions import TypeAlias
 
@@ -29,7 +31,7 @@ from ..config import (
   SignalConfig,
   get_dataset_config,
 )
-from ..env import data_path
+from ..env import get_project_dir
 from ..project import read_project_config, update_project_dataset_settings
 from ..schema import (
   PATH_WILDCARD,
@@ -93,14 +95,14 @@ class MediaResult(BaseModel):
 
 
 BinaryOp = Literal['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal']
-UnaryOp = Literal['exists']
-ListOp = Literal['in']
+UnaryOp = Literal['exists', None]
+ListOp = Literal['in', None]
 
 BINARY_OPS = set(['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal'])
 UNARY_OPS = set(['exists'])
 LIST_OPS = set(['in'])
 
-SearchType = Union[Literal['keyword'], Literal['semantic'], Literal['concept']]
+SearchType = Literal['keyword', 'semantic', 'concept']
 
 
 class SortOrder(str, enum.Enum):
@@ -163,9 +165,6 @@ class Column(BaseModel):
   # Defined when the feature is another column.
   signal_udf: Optional[Signal] = None
 
-  class Config:
-    smart_union = True
-
   def __init__(self,
                path: Path,
                alias: Optional[str] = None,
@@ -174,7 +173,8 @@ class Column(BaseModel):
     """Initialize a column. We override __init__ to allow positional arguments for brevity."""
     super().__init__(path=normalize_path(path), alias=alias, signal_udf=signal_udf, **kwargs)
 
-  @validator('signal_udf', pre=True)
+  @field_validator('signal_udf', mode='before')
+  @classmethod
   def parse_signal_udf(cls, signal_udf: Optional[dict]) -> Optional[Signal]:
     """Parse a signal to its specific subclass instance."""
     if not signal_udf:
@@ -187,7 +187,7 @@ ColumnId = Union[Path, Column]
 
 class NoSource(Source):
   """A dummy source that is used when no source is defined, for backwards compat."""
-  name = 'no_source'
+  name: ClassVar[str] = 'no_source'
 
 
 class SourceManifest(BaseModel):
@@ -196,12 +196,13 @@ class SourceManifest(BaseModel):
   files: list[str]
   # The data schema.
   data_schema: Schema
-  source: Source = NoSource()
+  source: SerializeAsAny[Source] = NoSource()
 
   # Image information for the dataset.
   images: Optional[list[ImageInfo]] = None
 
-  @validator('source', pre=True)
+  @field_validator('source', mode='before')
+  @classmethod
   def parse_source(cls, source: dict) -> Source:
     """Parse a source to its specific subclass instance."""
     return resolve_source(source)
@@ -212,11 +213,12 @@ class DatasetManifest(BaseModel):
   namespace: str
   dataset_name: str
   data_schema: Schema
-  source: Source
+  source: SerializeAsAny[Source]
   # Number of items in the dataset.
   num_items: int
 
-  @validator('source', pre=True)
+  @field_validator('source', mode='before')
+  @classmethod
   def parse_source(cls, source: dict) -> Source:
     """Parse a source to its specific subclass instance."""
     return resolve_source(source)
@@ -225,7 +227,7 @@ class DatasetManifest(BaseModel):
 def column_from_identifier(column: ColumnId) -> Column:
   """Create a column from a column identifier."""
   if isinstance(column, Column):
-    return column.copy()
+    return column.model_copy()
   return Column(path=column)
 
 
@@ -257,11 +259,22 @@ FilterLike: TypeAlias = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListF
 SearchValue = StrictStr
 
 
+def _fix_const_in_schema(prop_name: str, value: str) -> Callable[[dict[str, Any]], None]:
+  """Fix the const value in the schema so typescript codegen works."""
+
+  def _schema_extra(schema: dict[str, Any]) -> None:
+    schema['properties'][prop_name] = {'enum': [value]}
+
+  return _schema_extra
+
+
 class KeywordSearch(BaseModel):
   """A keyword search query on a column."""
   path: Path
   query: SearchValue
   type: Literal['keyword'] = 'keyword'
+
+  model_config = ConfigDict(json_schema_extra=_fix_const_in_schema('type', 'keyword'))
 
 
 class SemanticSearch(BaseModel):
@@ -270,6 +283,8 @@ class SemanticSearch(BaseModel):
   query: SearchValue
   embedding: str
   type: Literal['semantic'] = 'semantic'
+
+  model_config = ConfigDict(json_schema_extra=_fix_const_in_schema('type', 'semantic'))
 
 
 class ConceptSearch(BaseModel):
@@ -280,8 +295,22 @@ class ConceptSearch(BaseModel):
   embedding: str
   type: Literal['concept'] = 'concept'
 
+  model_config = ConfigDict(json_schema_extra=_fix_const_in_schema('type', 'concept'))
+
 
 Search = Union[ConceptSearch, SemanticSearch, KeywordSearch]
+
+
+class DatasetLabel(BaseModel):
+  """A label for a row of a dataset."""
+  label: str
+  created: datetime
+
+  @field_validator('created')
+  @classmethod
+  def created_datetime_to_string(cls, created: datetime) -> str:
+    """Convert the datetime to a string for serialization."""
+    return created.isoformat()
 
 
 class Dataset(abc.ABC):
@@ -289,16 +318,22 @@ class Dataset(abc.ABC):
 
   namespace: str
   dataset_name: str
+  project_dir: Union[str, pathlib.Path]
 
-  def __init__(self, namespace: str, dataset_name: str):
+  def __init__(self,
+               namespace: str,
+               dataset_name: str,
+               project_dir: Optional[Union[str, pathlib.Path]] = None):
     """Initialize a dataset.
 
     Args:
       namespace: The dataset namespace.
       dataset_name: The dataset name.
+      project_dir: The path to the project directory.
     """
     self.namespace = namespace
     self.dataset_name = dataset_name
+    self.project_dir = project_dir or get_project_dir()
 
   @abc.abstractmethod
   def delete(self) -> None:
@@ -312,7 +347,7 @@ class Dataset(abc.ABC):
 
   def config(self) -> DatasetConfig:
     """Return the dataset config for this dataset."""
-    project_config = read_project_config(data_path())
+    project_config = read_project_config(get_project_dir())
     dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not dataset_config:
       raise ValueError('Dataset not found in project config.')
@@ -449,6 +484,25 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def add_labels(self,
+                 name: str,
+                 row_ids: Optional[Sequence[str]] = None,
+                 searches: Optional[Sequence[Search]] = None,
+                 filters: Optional[Sequence[FilterLike]] = None,
+                 value: Optional[str] = 'true') -> None:
+    """Adds a label to a row, or a set of rows defined by searches and filters."""
+    pass
+
+  @abc.abstractmethod
+  def remove_labels(self,
+                    name: str,
+                    row_ids: Optional[Sequence[str]] = None,
+                    searches: Optional[Sequence[Search]] = None,
+                    filters: Optional[Sequence[FilterLike]] = None) -> None:
+    """Removes labels from a row, or a set of rows defined by searches and filters."""
+    pass
+
+  @abc.abstractmethod
   def stats(self, leaf_path: Path) -> StatsResult:
     """Compute stats for a leaf path.
 
@@ -570,9 +624,9 @@ def dataset_config_from_manifest(manifest: DatasetManifest) -> DatasetConfig:
   )
 
 
-def make_parquet_id(signal: Signal,
-                    source_path: PathTuple,
-                    is_computed_signal: Optional[bool] = False) -> str:
+def make_signal_parquet_id(signal: Signal,
+                           source_path: PathTuple,
+                           is_computed_signal: Optional[bool] = False) -> str:
   """Return a unique identifier for this parquet table."""
   # Remove the wildcards from the parquet id since they are implicit.
   path = [*[p for p in source_path if p != PATH_WILDCARD], signal.key(is_computed_signal)]

@@ -50,7 +50,16 @@
    datasets/dataset_explore.md
    datasets/dataset_concepts.md
    datasets/dataset_signals.md
+   datasets/dataset_labels.md
+   datasets/dataset_query.md
    datasets/dataset_export.md
+
+.. toctree::
+   :caption: Projects
+   :hidden:
+   :maxdepth: 1
+
+   projects/projects.md
 
 .. toctree::
    :caption: Signals

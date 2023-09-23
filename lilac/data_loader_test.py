@@ -3,10 +3,13 @@
 import os
 import pathlib
 import uuid
-from typing import Iterable
+from typing import ClassVar, Iterable
 
+import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
+
+from lilac.sources.source_registry import clear_source_registry, register_source
 
 from .config import Config, DatasetConfig, DatasetSettings, DatasetUISettings
 from .data.dataset import SourceManifest
@@ -22,7 +25,7 @@ from .utils import DATASETS_DIR_NAME
 
 class TestSource(Source):
   """A test source."""
-  name = 'test_source'
+  name: ClassVar[str] = 'test_source'
 
   @override
   def setup(self) -> None:
@@ -38,8 +41,18 @@ class TestSource(Source):
     return [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}]
 
 
+@pytest.fixture(scope='module', autouse=True)
+def setup_teardown() -> Iterable[None]:
+  # Setup.
+  register_source(TestSource)
+  # Unit test runs.
+  yield
+  # Teardown.
+  clear_source_registry()
+
+
 def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
-  mocker.patch.dict(os.environ, {'LILAC_DATA_PATH': str(tmp_path)})
+  mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
 
   mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
   mock_uuid.side_effect = [fake_uuid(b'1'), fake_uuid(b'2')]

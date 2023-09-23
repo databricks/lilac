@@ -1,6 +1,6 @@
 """Language detection of a document."""
 import re
-from typing import Any, Iterable, Optional, cast
+from typing import Any, ClassVar, Iterable, Optional, cast
 
 from pydantic import Field as PydanticField
 from typing_extensions import override
@@ -20,10 +20,10 @@ class LangDetectionSignal(TextSignal):
   Supports 55 languages returning their
   [ISO 639-1 codes](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes).
   """
-  name = 'lang_detection'
-  display_name = 'Language detection'
+  name: ClassVar[str] = 'lang_detection'
+  display_name: ClassVar[str] = 'Language detection'
 
-  input_type = SignalInputType.TEXT
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   split_by_paragraph: bool = PydanticField(
     default=False, description='Compute language scores for each paragraph.')

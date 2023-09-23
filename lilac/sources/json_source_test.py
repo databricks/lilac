@@ -3,9 +3,18 @@ import json
 import os
 import pathlib
 
+import pytest
+from pytest_mock import MockerFixture
+
 from ..schema import schema
 from ..source import SourceSchema
-from .json_source import ROW_ID_COLUMN, JSONSource
+from .json_source import JSONSource
+
+
+@pytest.fixture(autouse=True)
+def set_project_path(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
+  # We need to set the project path so extensions like https will be installed in temp dir.
+  mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
 
 
 def test_simple_json(tmp_path: pathlib.Path) -> None:
@@ -22,22 +31,13 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
     fields=schema({
-      ROW_ID_COLUMN: 'int64',
       'x': 'int64',
       'y': 'string'
     }).fields, num_items=2)
 
   items = list(source.process())
 
-  assert items == [{
-    ROW_ID_COLUMN: 0,
-    'x': 1,
-    'y': 'ten'
-  }, {
-    ROW_ID_COLUMN: 1,
-    'x': 2,
-    'y': 'twenty'
-  }]
+  assert items == [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}]
 
 
 def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
@@ -56,19 +56,10 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
 
   assert source_schema == SourceSchema(
     fields=schema({
-      ROW_ID_COLUMN: 'int64',
       'x': 'int64',
       'y': 'string'
     }).fields, num_items=2)
 
   items = list(source.process())
 
-  assert items == [{
-    ROW_ID_COLUMN: 0,
-    'x': 1,
-    'y': 'ten'
-  }, {
-    ROW_ID_COLUMN: 1,
-    'x': 2,
-    'y': 'twenty'
-  }]
+  assert items == [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}]

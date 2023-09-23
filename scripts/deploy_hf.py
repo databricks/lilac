@@ -15,7 +15,7 @@ from huggingface_hub import HfApi
 
 from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from lilac.config import CONFIG_FILENAME, DatasetConfig
-from lilac.env import data_path, env
+from lilac.env import env, get_project_dir
 from lilac.project import PROJECT_CONFIG_FILENAME
 from lilac.sources.huggingface_source import HuggingFaceSource
 from lilac.utils import get_dataset_output_dir, get_hf_dataset_repo_id, get_lilac_cache_dir, to_yaml
@@ -25,6 +25,11 @@ PY_DIST_DIR = 'dist'
 
 
 @click.command()
+@click.option(
+  '--project_dir',
+  help='The project directory to use for the demo. Defaults to `env.LILAC_PROJECT_DIR`.',
+  type=str,
+  required=True)
 @click.option(
   '--hf_username', help='The huggingface username to use to authenticate for the space.', type=str)
 @click.option(
@@ -52,13 +57,13 @@ PY_DIST_DIR = 'dist'
   is_flag=True,
   default=False)
 @click.option(
-  '--data_dir',
-  help='The data directory to use for the demo. Defaults to `env.DATA_DIR`.',
-  type=str,
-  default=data_path())
-@click.option(
   '--make_datasets_public',
   help='When true, sets the huggingface datasets uploaded to public. Defaults to false.',
+  is_flag=True,
+  default=False)
+@click.option(
+  '--skip_data_upload',
+  help='When true, only uploads the wheel files without any other changes.',
   is_flag=True,
   default=False)
 @click.option(
@@ -71,21 +76,20 @@ PY_DIST_DIR = 'dist'
   help='When true, disables Google Analytics.',
   is_flag=True,
   default=False)
-def deploy_hf_command(hf_username: Optional[str], hf_space: Optional[str], dataset: list[str],
-                      concept: list[str], skip_build: bool, skip_cache: bool,
-                      data_dir: Optional[str], make_datasets_public: bool, use_pip: bool,
+def deploy_hf_command(project_dir: str, hf_username: Optional[str], hf_space: Optional[str],
+                      dataset: list[str], concept: list[str], skip_build: bool, skip_cache: bool,
+                      make_datasets_public: bool, skip_data_upload: bool, use_pip: bool,
                       disable_google_analytics: bool) -> None:
   """Generate the huggingface space app."""
-  deploy_hf(hf_username, hf_space, dataset, concept, skip_build, skip_cache, data_dir,
-            make_datasets_public, use_pip, disable_google_analytics)
+  deploy_hf(hf_username, hf_space, dataset, concept, skip_build, skip_cache, project_dir,
+            make_datasets_public, skip_data_upload, use_pip, disable_google_analytics)
 
 
 def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: list[str],
-              concepts: list[str], skip_build: bool, skip_cache: bool, data_dir: Optional[str],
-              make_datasets_public: bool, use_pip: bool, disable_google_analytics: bool) -> None:
+              concepts: list[str], skip_build: bool, skip_cache: bool, project_dir: Optional[str],
+              make_datasets_public: bool, skip_data_upload: bool, use_pip: bool,
+              disable_google_analytics: bool) -> None:
   """Generate the huggingface space app."""
-  data_dir = data_dir or data_path()
-
   hf_username = hf_username or env('HF_USERNAME')
   if not hf_username:
     raise ValueError('Must specify --hf_username or set env.HF_USERNAME')
@@ -116,7 +120,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
   if not use_pip:
     # We have to change the version to a dev version so that the huggingface demo does not try to
     # install the public pip package.
-    current_lilac_version = run('poetry version -s').stdout.strip()
+    current_lilac_version = run('poetry version -s', capture_output=True).stdout.strip()
     # Bump the version temporarily so that the install uses this pip.
     version_parts = current_lilac_version.split('.')
     version_parts[-1] = str(int(version_parts[-1]) + 1)
@@ -125,6 +129,37 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
     run(f'poetry version "{temp_new_version}"')
     run('poetry build -f wheel')
     run(f'poetry version "{current_lilac_version}"')
+
+  print('Uploading wheel files...')
+  # Upload the wheel files.
+  hf_api.upload_folder(
+    folder_path=PY_DIST_DIR,
+    path_in_repo=PY_DIST_DIR,
+    repo_id=hf_space,
+    repo_type='space',
+    # Delete all data on the server.
+    delete_patterns='*')
+
+  print('Copying root files...')
+  # Copy a subset of root files.
+  copy_files = [
+    '.dockerignore', '.env', 'Dockerfile', 'LICENSE', 'docker_start.sh', 'docker_start.py'
+  ]
+  for copy_file in copy_files:
+    hf_api.upload_file(
+      path_or_fileobj=copy_file,
+      path_in_repo=copy_file,
+      repo_id=hf_space,
+      repo_type='space',
+    )
+
+  if skip_data_upload:
+    return
+
+  project_dir = project_dir or get_project_dir()
+  if not project_dir:
+    raise ValueError(
+      '--project_dir or the environment variable `LILAC_PROJECT_DIR` must be defined.')
 
   lilac_hf_datasets: list[str] = []
 
@@ -141,7 +176,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 
     hf_api.create_repo(
       dataset_repo_id, repo_type='dataset', private=not make_datasets_public, exist_ok=True)
-    dataset_output_dir = get_dataset_output_dir(data_dir, namespace, name)
+    dataset_output_dir = get_dataset_output_dir(project_dir, namespace, name)
     hf_api.upload_folder(
       folder_path=dataset_output_dir,
       path_in_repo=os.path.join(namespace, name),
@@ -155,7 +190,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
       dataset_config_yaml = f.read()
 
     dataset_link = ''
-    dataset_config = DatasetConfig.parse_obj(yaml.safe_load(dataset_config_yaml))
+    dataset_config = DatasetConfig.model_validate(yaml.safe_load(dataset_config_yaml))
     if isinstance(dataset_config.source, HuggingFaceSource):
       dataset_link = f'https://huggingface.co/datasets/{dataset_config.source.dataset_name}'
 
@@ -175,57 +210,25 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 
     lilac_hf_datasets.append(dataset_repo_id)
 
-  hf_space_dir = os.path.join(data_dir, HF_SPACE_DIR)
+  hf_space_dir = os.path.join(project_dir, HF_SPACE_DIR)
 
-  run(f'mkdir -p {hf_space_dir}')
+  # Upload the lilac.yml.
+  hf_api.upload_file(
+    path_or_fileobj=os.path.join(project_dir, PROJECT_CONFIG_FILENAME),
+    path_in_repo=os.path.join('data', PROJECT_CONFIG_FILENAME),
+    repo_id=hf_space,
+    repo_type='space',
+  )
 
-  # Clone the HuggingFace spaces repo.
-  print(f'Cloning {hf_space} to {hf_space_dir}...')
-  repo_basedir = os.path.join(hf_space_dir, hf_space)
-  run(f'rm -rf {repo_basedir}')
-  run(f'git clone https://{hf_username}@huggingface.co/spaces/{hf_space} {repo_basedir} '
-      '--depth 1 --quiet --no-checkout')
-
-  # Clear out the repo.
-  run(f'rm -rf {repo_basedir}/*')
-
-  print('Copying root files...')
-  # Copy a subset of root files.
-  copy_files = [
-    '.dockerignore', '.env', 'Dockerfile', 'LICENSE', 'docker_start.sh', 'docker_start.py'
-  ]
-  for copy_file in copy_files:
-    shutil.copyfile(copy_file, os.path.join(repo_basedir, copy_file))
-
-  # Copy the lilac.yml
-  repo_data_dir = os.path.join(repo_basedir, 'data')
-  if not os.path.exists(repo_data_dir):
-    os.makedirs(repo_data_dir)
-  shutil.copyfile(
-    os.path.join(data_dir, PROJECT_CONFIG_FILENAME),
-    os.path.join(repo_data_dir, PROJECT_CONFIG_FILENAME))
-
-  # Create an .env.local to set HF-specific flags.
-  with open(f'{repo_basedir}/.env.demo', 'w') as f:
-    f.write(f"""LILAC_DATA_PATH='/data'
+  # Upload files.
+  files: dict[str, str] = {
+    '.env.demo': f"""LILAC_PROJECT_DIR='/data'
 HF_HOME=/data/.huggingface
 TRANSFORMERS_CACHE=/data/.cache
 XDG_CACHE_HOME=/data/.cache
 {'GOOGLE_ANALYTICS_ENABLED=true' if not disable_google_analytics else ''}
-""")
-
-  # Create a .gitignore to avoid uploading unnecessary files.
-  with open(f'{repo_basedir}/.gitignore', 'w') as f:
-    f.write("""__pycache__/
-**/*.pyc
-**/*.pyo
-**/*.pyd
-**/*_test.py
-""")
-
-  # Create the huggingface README.
-  with open(f'{repo_basedir}/README.md', 'w') as f:
-    config = {
+""",
+    'README.md': '---\n' + to_yaml({
       'title': 'Lilac',
       'emoji': '🌷',
       'colorFrom': 'purple',
@@ -233,28 +236,26 @@ XDG_CACHE_HOME=/data/.cache
       'sdk': 'docker',
       'app_port': 5432,
       'datasets': [d for d in lilac_hf_datasets],
-    }
-    f.write(f'---\n{to_yaml(config)}\n---')
+    }) + '\n---',
+    '.gitignore': """__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*_test.py
+"""
+  }
 
-  run(f"""pushd {repo_basedir} > /dev/null && \
-      git add . && \
-      (git diff-index --quiet --cached HEAD ||
-        (git commit -a -m "Push" --quiet && git push)) && \
-      popd > /dev/null""")
-
-  print('Uploading wheel files...')
-  # Upload the wheel files.
-  hf_api.upload_folder(
-    folder_path=PY_DIST_DIR,
-    path_in_repo=PY_DIST_DIR,
-    repo_id=hf_space,
-    repo_type='space',
-    # Delete all data on the server.
-    delete_patterns='*')
+  for filename, file_contents in files.items():
+    hf_api.upload_file(
+      path_or_fileobj=file_contents.encode(),
+      path_in_repo=filename,
+      repo_id=hf_space,
+      repo_type='space',
+    )
 
   print('Uploading cache files...')
   # Upload the cache files.
-  cache_dir = get_lilac_cache_dir(data_dir)
+  cache_dir = get_lilac_cache_dir(project_dir)
   if not skip_cache and os.path.exists(cache_dir):
     hf_api.upload_folder(
       folder_path=cache_dir,
@@ -268,7 +269,7 @@ XDG_CACHE_HOME=/data/.cache
   print('Uploading concepts...')
   disk_concepts = [
     # Remove lilac concepts as they're checked in, and not in the
-    f'{c.namespace}/{c.name}' for c in DiskConceptDB(data_dir).list() if c.namespace != 'lilac'
+    f'{c.namespace}/{c.name}' for c in DiskConceptDB(project_dir).list() if c.namespace != 'lilac'
   ]
   for c in concepts:
     if c not in disk_concepts:
@@ -277,7 +278,7 @@ XDG_CACHE_HOME=/data/.cache
   for c in concepts:
     namespace, name = c.split('/')
     hf_api.upload_folder(
-      folder_path=get_concept_output_dir(data_dir, namespace, name),
+      folder_path=get_concept_output_dir(project_dir, namespace, name),
       path_in_repo=get_concept_output_dir('data', namespace, name),
       repo_id=hf_space,
       repo_type='space',
@@ -285,9 +286,9 @@ XDG_CACHE_HOME=/data/.cache
       delete_patterns='*')
 
 
-def run(cmd: str) -> subprocess.CompletedProcess[str]:
+def run(cmd: str, capture_output=False) -> subprocess.CompletedProcess[str]:
   """Run a command and return the result."""
-  return subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+  return subprocess.run(cmd, shell=True, check=True, capture_output=capture_output, text=True)
 
 
 if __name__ == '__main__':

@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -15,7 +16,7 @@ import type { TextSignal } from './TextSignal';
  */
 export type Column = {
     path: Array<string>;
-    alias?: string;
-    signal_udf?: (ConceptSignal | ConceptLabelsSignal | SubstringSignal | SemanticSimilaritySignal | TextEmbeddingSignal | TextSignal | Signal);
+    alias?: (string | null);
+    signal_udf?: (ConceptSignal | ConceptLabelsSignal | SubstringSignal | SemanticSimilaritySignal | TextEmbeddingSignal | TextSignal | Signal | null);
 };
 

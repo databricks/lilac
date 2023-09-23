@@ -95,7 +95,7 @@ function castLilacValueNode<D extends DataType = DataType>(
  * schema.
  */
 export function deserializeSchema(rawSchema: Schema): LilacSchema {
-  const lilacFields = deserializeField(rawSchema);
+  const lilacFields = deserializeField(rawSchema as Field);
 
   if (!lilacFields.fields) {
     return {fields: {}, path: []};
@@ -230,6 +230,33 @@ export function isSignalRootField(field: LilacField) {
   return field.signal != null;
 }
 
+/** If a field is produced by a label, returns the label name. Otherwise returns null. */
+export function getLabel(field: LilacField): string | null {
+  if (field.label) {
+    return field.label;
+  }
+  if (field.parent) {
+    return getLabel(field.parent);
+  }
+  return null;
+}
+
+export function isLabelField(field: LilacField): boolean {
+  return getLabel(field) != null;
+}
+
+export function getSchemaLabels(schema: LilacSchema | LilacField): string[] {
+  return childFields(schema)
+    .map(f => f.label)
+    .filter(l => l != null) as string[];
+}
+
+export function getRowLabels(node: LilacValueNode): string[] {
+  return listValueNodes(node)
+    .map(n => L.field(n)?.label)
+    .filter(l => l != null) as string[];
+}
+
 export const L = {
   path: (value: LilacValueNode): Path | undefined => {
     if (!value) return undefined;
@@ -246,7 +273,7 @@ export const L = {
     if (!value) return undefined;
     return castLilacValueNode(value)[SCHEMA_FIELD_KEY];
   },
-  dtype: (value: LilacValueNode): DataType | undefined => {
+  dtype: (value: LilacValueNode): DataType | undefined | null => {
     const _field = L.field(value);
     return _field?.dtype;
   }

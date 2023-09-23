@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -8,6 +9,6 @@
 export type SearchResultInfo = {
     search_path: Array<string>;
     result_path: Array<string>;
-    alias?: string;
+    alias?: (string | null);
 };
 

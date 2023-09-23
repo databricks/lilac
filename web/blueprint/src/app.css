@@ -90,7 +90,7 @@ button:disabled {
 }
 /** Modals */
 .bx--modal-container {
-  @apply rounded;
+  @apply rounded !bg-white;
 }
 .bx--modal-content.bx--modal-content--with-form {
   @apply my-0 pb-4 pt-0;

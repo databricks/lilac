@@ -16,10 +16,30 @@ To build the docs:
 ./scripts/build_docs.sh
 ```
 
-To deploy the website:
+## Deployment
 
-One time setup: `npm install -g firebase-tools`
+### One time setup (skip to [Deploy](#Deploy))
+
+Install firebase cli:
 
 ```bash
-./scripts/deploy_website.sh
+npm install -g firebase-tools
+```
+
+Generate a deployment token:
+
+```bash
+firebase login:ci
+```
+
+Add the generated token to `.env.local`:
+
+```bash
+FIREBASE_TOKEN=...
+```
+
+### Deploy
+
+```bash
+poetry run python -m scripts.deploy_website
 ```

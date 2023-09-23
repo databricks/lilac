@@ -27,6 +27,9 @@ machine, we are sampling to 100,000 so we can get started quickly.
 ```python
 import lilac as ll
 
+# Set the global project directory to where project files will be stored.
+ll.set_project_dir('~/my_project')
+
 source = ll.HuggingFaceSource(dataset_name='Open-Orca/OpenOrca', sample_size=100_000)
 config = ll.DatasetConfig(namespace='local', name='open-orca-100k', source=source)
 dataset = ll.create_dataset(config)

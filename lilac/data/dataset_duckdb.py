@@ -2,37 +2,35 @@
 import functools
 import gc
 import glob
+import itertools
 import math
 import os
 import pathlib
 import re
 import shutil
+import sqlite3
 import threading
-from typing import Any, Iterable, Iterator, Optional, Sequence, Union, cast
+from datetime import datetime
+from typing import Any, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
 
 import duckdb
 import numpy as np
 import pandas as pd
 import yaml
 from pandas.api.types import is_object_dtype
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
 
 from ..auth import UserInfo
 from ..batch_utils import deep_flatten, deep_unflatten
-from ..config import (
-  CONFIG_FILENAME,
-  DatasetConfig,
-  EmbeddingConfig,
-  SignalConfig,
-  get_dataset_config,
-)
+from ..config import DatasetConfig, EmbeddingConfig, SignalConfig, get_dataset_config
 from ..embeddings.vector_store import VectorDBIndex
-from ..env import data_path, env
+from ..env import env
 from ..project import (
   add_project_dataset_config,
   add_project_embedding_config,
   add_project_signal_config,
+  delete_project_dataset_config,
   delete_project_signal_config,
   read_project_config,
 )
@@ -57,6 +55,7 @@ from ..schema import (
   is_integer,
   is_ordinal,
   is_temporal,
+  merge_schemas,
   normalize_path,
   signal_type_supports_dtype,
 )
@@ -99,13 +98,12 @@ from .dataset import (
   StatsResult,
   column_from_identifier,
   dataset_config_from_manifest,
-  make_parquet_id,
+  make_signal_parquet_id,
 )
 from .dataset_utils import (
   count_primitives,
   create_signal_schema,
   flatten_keys,
-  merge_schemas,
   schema_contains_path,
   sparse_to_dense_compute,
   wrap_in_dicts,
@@ -114,8 +112,12 @@ from .dataset_utils import (
 )
 
 SIGNAL_MANIFEST_FILENAME = 'signal_manifest.json'
+LABELS_SQLITE_SUFFIX = '.labels.sqlite'
 DATASET_SETTINGS_FILENAME = 'settings.json'
 SOURCE_VIEW_NAME = 'source'
+
+SQLITE_LABEL_COLNAME = 'label'
+SQLITE_CREATED_COLNAME = 'created'
 
 NUM_AUTO_BINS = 15
 
@@ -147,15 +149,25 @@ class DuckDBSearchUDFs(BaseModel):
 class DatasetDuckDB(Dataset):
   """The DuckDB implementation of the dataset database."""
 
-  def __init__(self, namespace: str, dataset_name: str, vector_store: str = 'hnsw'):
-    super().__init__(namespace, dataset_name)
-
-    self.dataset_path = get_dataset_output_dir(data_path(), namespace, dataset_name)
+  def __init__(self,
+               namespace: str,
+               dataset_name: str,
+               vector_store: str = 'hnsw',
+               project_dir: Optional[Union[str, pathlib.Path]] = None):
+    super().__init__(namespace, dataset_name, project_dir)
+    self.dataset_path = get_dataset_output_dir(self.project_dir, namespace, dataset_name)
 
     # TODO: Infer the manifest from the parquet files so this is lighter weight.
     self._source_manifest = read_source_manifest(self.dataset_path)
     self._signal_manifests: list[SignalManifest] = []
+    self._label_schemas: dict[str, Schema] = {}
     self.con = duckdb.connect(database=':memory:')
+
+    # Install sqlite for labels.
+    self.con.execute("""
+      INSTALL sqlite;
+      LOAD sqlite;
+    """)
 
     # Maps a path and embedding to the vector index. This is lazily generated as needed.
     self._vector_indices: dict[tuple[PathKey, str], VectorDBIndex] = {}
@@ -163,13 +175,14 @@ class DatasetDuckDB(Dataset):
     self._manifest_lock = threading.Lock()
     self._config_lock = threading.Lock()
     self._vector_index_lock = threading.Lock()
+    self._label_file_lock: dict[str, threading.Lock] = {}
 
     # Create a join table from all the parquet files.
     manifest = self.manifest()
 
     # NOTE: This block is only for backwards compatibility.
     # Make sure the project reflects the dataset.
-    project_config = read_project_config(data_path())
+    project_config = read_project_config(self.project_dir)
     existing_dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not existing_dataset_config:
       dataset_config = dataset_config_from_manifest(manifest)
@@ -180,17 +193,31 @@ class DatasetDuckDB(Dataset):
           old_config = DatasetConfig(**yaml.safe_load(f))
         dataset_config.settings = old_config.settings
 
-      add_project_dataset_config(dataset_config)
+      add_project_dataset_config(dataset_config, self.project_dir)
 
   @override
   def delete(self) -> None:
     """Deletes the dataset."""
     self.con.close()
     shutil.rmtree(self.dataset_path, ignore_errors=True)
+    delete_project_dataset_config(self.namespace, self.dataset_name, self.project_dir)
 
-  def _create_view(self, view_name: str, files: list[str]) -> None:
+  def _create_view(self, view_name: str, files: list[str], type: Literal['parquet',
+                                                                         'sqlite']) -> None:
+    inner_select: str
+    if type == 'parquet':
+      inner_select = f'SELECT * FROM read_parquet({files})'
+    elif type == 'sqlite':
+      if len(files) > 1:
+        raise ValueError('Only one sqlite file is supported.')
+      inner_select = f"""
+        SELECT * FROM sqlite_scan('{files[0]}', '{view_name}')
+      """
+    else:
+      raise ValueError(f'Unknown type: {type}')
+
     self.con.execute(f"""
-      CREATE OR REPLACE VIEW {_escape_col_name(view_name)} AS (SELECT * FROM read_parquet({files}));
+      CREATE OR REPLACE VIEW {_escape_col_name(view_name)} AS ({inner_select});
     """)
 
   # NOTE: This is cached, but when the latest mtime of any file in the dataset directory changes
@@ -198,27 +225,41 @@ class DatasetDuckDB(Dataset):
   @functools.cache
   def _recompute_joint_table(self, latest_mtime_micro_sec: int) -> DatasetManifest:
     del latest_mtime_micro_sec  # This is used as the cache key.
-    merged_schema = self._source_manifest.data_schema.copy(deep=True)
+    merged_schema = self._source_manifest.data_schema.model_copy(deep=True)
     self._signal_manifests = []
+    self._label_schemas = {}
     # Make a joined view of all the column groups.
-    self._create_view(SOURCE_VIEW_NAME,
-                      [os.path.join(self.dataset_path, f) for f in self._source_manifest.files])
+    self._create_view(
+      SOURCE_VIEW_NAME, [os.path.join(self.dataset_path, f) for f in self._source_manifest.files],
+      type='parquet')
 
     # Add the signal column groups.
     for root, _, files in os.walk(self.dataset_path):
       for file in files:
-        if not file.endswith(SIGNAL_MANIFEST_FILENAME):
-          continue
-
-        with open_file(os.path.join(root, file)) as f:
-          signal_manifest = SignalManifest.parse_raw(f.read())
-        self._signal_manifests.append(signal_manifest)
-        signal_files = [os.path.join(root, f) for f in signal_manifest.files]
-        if signal_files:
-          self._create_view(signal_manifest.parquet_id, signal_files)
+        if file.endswith(SIGNAL_MANIFEST_FILENAME):
+          with open_file(os.path.join(root, file)) as f:
+            signal_manifest = SignalManifest.model_validate_json(f.read())
+          self._signal_manifests.append(signal_manifest)
+          signal_files = [os.path.join(root, f) for f in signal_manifest.files]
+          if signal_files:
+            self._create_view(signal_manifest.parquet_id, signal_files, type='parquet')
+        elif file.endswith(LABELS_SQLITE_SUFFIX):
+          label_name = file[0:-len(LABELS_SQLITE_SUFFIX)]
+          self._create_view(label_name, [os.path.join(root, file)], type='sqlite')
+          # This mirrors the structure in DuckDBDatasetLabel.
+          self._label_schemas[label_name] = Schema(
+            fields={
+              label_name: Field(
+                fields={
+                  'label': Field(dtype=DataType.STRING),
+                  'created': Field(dtype=DataType.TIMESTAMP),
+                },
+                label=label_name)
+            })
 
     merged_schema = merge_schemas([self._source_manifest.data_schema] +
-                                  [m.data_schema for m in self._signal_manifests])
+                                  [m.data_schema for m in self._signal_manifests] +
+                                  list(self._label_schemas.values()))
 
     # The logic below generates the following example query:
     # CREATE OR REPLACE VIEW t AS (
@@ -229,21 +270,37 @@ class DatasetDuckDB(Dataset):
     #   FROM source JOIN "parquet_id1" USING (rowid,) JOIN "parquet_id2" USING (rowid,)
     # );
     # NOTE: "root_column" for each signal is defined as the top-level column.
-    select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + [(
-      f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
-      f'AS {_escape_col_name(manifest.parquet_id)}')
-                                                        for manifest in self._signal_manifests
-                                                        if manifest.files])
-    join_sql = ' '.join([SOURCE_VIEW_NAME] + [
-      f'LEFT JOIN {_escape_col_name(manifest.parquet_id)} USING ({ROWID})'
+    signal_column_selects = [
+      (f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
+       f'AS {_escape_col_name(manifest.parquet_id)}')
       for manifest in self._signal_manifests
       if manifest.files
-    ])
+    ]
+    label_column_selects = []
+    for label_name in self._label_schemas.keys():
+      col_name = _escape_col_name(label_name)
+      # We use a case here because labels are sparse and we don't want to return an object at all
+      # when there is no label.
+      label_column_selects.append(f"""
+        (CASE WHEN {col_name}.{SQLITE_LABEL_COLNAME} IS NULL THEN NULL ELSE {{
+          {SQLITE_LABEL_COLNAME}: {col_name}.{SQLITE_LABEL_COLNAME},
+          {SQLITE_CREATED_COLNAME}: {col_name}.{SQLITE_CREATED_COLNAME}
+        }} END) as {col_name}
+      """)
+
+    select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + signal_column_selects + label_column_selects)
+    parquet_ids = [manifest.parquet_id for manifest in self._signal_manifests if manifest.files
+                  ] + list(self._label_schemas.keys())
+    join_sql = ' '.join(
+      [SOURCE_VIEW_NAME] +
+      [f'LEFT JOIN {_escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids])
     view_or_table = 'TABLE'
     use_views = env('DUCKDB_USE_VIEWS', 0) or 0
     if int(use_views):
       view_or_table = 'VIEW'
-    sql_cmd = f"""CREATE OR REPLACE {view_or_table} t AS (SELECT {select_sql} FROM {join_sql})"""
+    sql_cmd = f"""
+      CREATE OR REPLACE {view_or_table} t AS (SELECT {select_sql} FROM {join_sql} ORDER BY {ROWID})
+    """
     self.con.execute(sql_cmd)
 
     # Get the total size of the table.
@@ -304,6 +361,72 @@ class DatasetDuckDB(Dataset):
       self._vector_indices[index_key] = vector_index
       return vector_index
 
+  def _select_iterable_values(self, path: PathTuple,
+                              data_schema: Schema) -> Iterable[tuple[str, RichData]]:
+    # Fetch the data from DuckDB.
+    con = self.con.cursor()
+
+    duckdb_path = self._leaf_path_to_duckdb_path(path, data_schema)
+
+    sql = _select_sql(duckdb_path, flatten=False, unnest=False, empty=False)
+    result = con.execute(f"""
+      SELECT {ROWID}, {sql} as values FROM t
+    """)
+
+    is_empty = False
+    while not is_empty:
+      df_chunk = result.fetch_df_chunk()
+      row_ids = df_chunk[ROWID].tolist()
+      values = df_chunk['values'].tolist()
+      yield from zip(row_ids, values)
+      is_empty = df_chunk.empty
+
+  def _compute_signal_items(self,
+                            signal: Signal,
+                            path: Path,
+                            data_schema: Schema,
+                            num_items: int,
+                            task_step_id: Optional[TaskStepId] = None) -> Iterable[Item]:
+    signal.setup()
+
+    source_path = normalize_path(path)
+
+    source_values = self._select_iterable_values(source_path, data_schema)
+
+    # Tee the results so we can zip the row ids with the outputs.
+    inputs_0, inputs_1 = itertools.tee(source_values, 2)
+
+    # Tee the values so we can use them for the deep flatten and the deep unflatten.
+    input_values = (value for (_, value) in inputs_0)
+    input_values_0, input_values_1 = itertools.tee(input_values, 2)
+
+    if isinstance(signal, VectorSignal):
+      inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
+      embedding_signal = signal
+      vector_store = self._get_vector_db_index(embedding_signal.embedding, source_path)
+      flat_keys = list(flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0))
+      signal_out = sparse_to_dense_compute(
+        iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store))
+    else:
+      flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+      signal_out = sparse_to_dense_compute(flat_input,
+                                           lambda x: signal.compute(cast(Iterable[RichData], x)))
+
+    nested_out = deep_unflatten(signal_out, input_values_1)
+
+    signal_col = Column(path=source_path, alias='value', signal_udf=signal)
+    enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
+    spec = _split_path_into_subpaths_of_lists(enriched_path)
+
+    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(nested_out, spec))
+
+    try:
+      for (rowid, _), item in zip(inputs_1, enriched_signal_items):
+        yield {**item, ROWID: rowid}
+    except Exception as e:
+      raise ValueError('The signal generated a different number of values than was input. '
+                       'Please yield `None` in signals when there is no value.') from e
+
   @override
   def compute_signal(self,
                      signal: Signal,
@@ -316,35 +439,46 @@ class DatasetDuckDB(Dataset):
 
     # Update the project config before computing the signal.
     add_project_signal_config(self.namespace, self.dataset_name,
-                              SignalConfig(path=source_path, signal=signal))
+                              SignalConfig(path=source_path, signal=signal), self.project_dir)
 
     manifest = self.manifest()
+    field = manifest.data_schema.get_field(source_path)
+    if field.dtype != DataType.STRING:
+      raise ValueError('Cannot compute signal over a non-string field.')
 
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
       task_step_id = ('', 0)
 
-    # The manifest may have changed after computing the dependencies.
-    manifest = self.manifest()
+    output_items = self._compute_signal_items(signal, path, manifest.data_schema,
+                                              manifest.num_items, task_step_id)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([ROWID, signal_col],
-                                          task_step_id=task_step_id,
-                                          resolve_span=True)
-    df = select_rows_result.df()
-    values = df['value']
-
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
-    spec = _split_path_into_subpaths_of_lists(enriched_path)
-    output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
-    signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
-    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(values, spec))
-    for rowid, item in zip(df[ROWID], enriched_signal_items):
-      item[ROWID] = rowid
 
-    enriched_signal_items = list(enriched_signal_items)
+    output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
+
+    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
+    # If the signal manifest already exists, delete it as it will be rewritten after the new signal
+    # outputs are run.
+    if os.path.exists(signal_manifest_filepath):
+      os.remove(signal_manifest_filepath)
+      # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
+      # existent file.
+      self.manifest()
+
+    signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
+
+    # Add progress.
+    if task_step_id is not None:
+      output_items = progress(
+        output_items,
+        task_step_id=task_step_id,
+        estimated_len=manifest.num_items,
+        step_description=f'Computing signal {signal} over {source_path}')
+
     parquet_filename, _ = write_items_to_parquet(
-      items=enriched_signal_items,
+      items=output_items,
       output_dir=output_dir,
       schema=signal_schema,
       filename_prefix='data',
@@ -356,10 +490,9 @@ class DatasetDuckDB(Dataset):
       data_schema=signal_schema,
       signal=signal,
       enriched_path=source_path,
-      parquet_id=make_parquet_id(signal, source_path, is_computed_signal=True))
-    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
+      parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True))
     with open_file(signal_manifest_filepath, 'w') as f:
-      f.write(signal_manifest.json(exclude_none=True, indent=2))
+      f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
 
     log(f'Wrote signal output to {output_dir}')
 
@@ -370,42 +503,64 @@ class DatasetDuckDB(Dataset):
                         task_step_id: Optional[TaskStepId] = None) -> None:
     source_path = normalize_path(path)
     add_project_embedding_config(self.namespace, self.dataset_name,
-                                 EmbeddingConfig(path=source_path, embedding=embedding))
+                                 EmbeddingConfig(path=source_path, embedding=embedding),
+                                 self.project_dir)
     manifest = self.manifest()
+    field = manifest.data_schema.get_field(source_path)
+    if field.dtype != DataType.STRING:
+      raise ValueError('Cannot compute embedding over a non-string field.')
 
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
       task_step_id = ('', 0)
 
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
+
+    output_items = self._compute_signal_items(signal, path, manifest.data_schema,
+                                              manifest.num_items, task_step_id)
+
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    select_rows_result = self.select_rows([ROWID, signal_col],
-                                          task_step_id=task_step_id,
-                                          resolve_span=True)
-    df = select_rows_result.df()
-    values = df['value']
 
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
 
-    write_embeddings_to_disk(
-      vector_store=self.vector_store, rowids=df[ROWID], signal_items=values, output_dir=output_dir)
+    row_ids = (item[ROWID] for item in output_items)
 
-    del select_rows_result, df, values
+    if task_step_id is not None:
+      output_items = progress(
+        output_items,
+        task_step_id=task_step_id,
+        estimated_len=manifest.num_items,
+        step_description=f'Computing embedding {signal} over {source_path}')
+
+    write_embeddings_to_disk(
+      vector_store=self.vector_store,
+      rowids=row_ids,
+      signal_items=output_items,
+      output_dir=output_dir)
+
     gc.collect()
+
+    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
+    # If the signal manifest already exists, delete it as it will be rewritten after the new signal
+    # outputs are run.
+    if os.path.exists(signal_manifest_filepath):
+      os.remove(signal_manifest_filepath)
+      # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
+      # existent file.
+      self.manifest()
 
     signal_manifest = SignalManifest(
       files=[],
       data_schema=signal_schema,
       signal=signal,
       enriched_path=source_path,
-      parquet_id=make_parquet_id(signal, source_path, is_computed_signal=True),
+      parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True),
       vector_store=self.vector_store)
-    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
 
     with open_file(signal_manifest_filepath, 'w') as f:
-      f.write(signal_manifest.json(exclude_none=True, indent=2))
+      f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
 
     log(f'Wrote embedding index to {output_dir}')
 
@@ -424,7 +579,8 @@ class DatasetDuckDB(Dataset):
       raise ValueError(f'{signal_path} is not a signal.')
 
     delete_project_signal_config(self.namespace, self.dataset_name,
-                                 SignalConfig(path=source_path, signal=resolve_signal(signal)))
+                                 SignalConfig(path=source_path, signal=resolve_signal(signal)),
+                                 self.project_dir)
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(signal_path))
     shutil.rmtree(output_dir, ignore_errors=True)
@@ -704,15 +860,21 @@ class DatasetDuckDB(Dataset):
     if is_temporal(leaf.dtype):
       # Replace any NaT with None and pd.Timestamp to native datetime objects.
       counts = [(None if pd.isnull(val) else val.to_pydatetime(), count) for val, count in counts]
+
     return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)
 
   def _topk_udf_to_sort_by(
     self,
     udf_columns: list[Column],
+    filters: list[Filter],
     sort_by: list[PathTuple],
     limit: Optional[int],
     sort_order: Optional[SortOrder],
   ) -> Optional[Column]:
+    # If the user provides a specific row id, avoid sorting as we know it is a single row result.
+    for f in filters:
+      if f.path == (ROWID,) and f.op == 'equals':
+        return None
     if (sort_order != SortOrder.DESC) or (not limit) or (not sort_by):
       return None
     if len(sort_by) < 1:
@@ -801,15 +963,20 @@ class DatasetDuckDB(Dataset):
     offset = offset or 0
     schema = manifest.data_schema
 
-    if combine_columns:
-      schema = self.select_rows_schema(
-        columns, sort_by, sort_order, searches, combine_columns=True).data_schema
-
-    self._validate_columns(cols, manifest.data_schema, schema)
     self._normalize_searches(searches, manifest)
     search_udfs = self._search_udfs(searches, manifest)
+
     cols.extend([search_udf.udf for search_udf in search_udfs])
     udf_columns = [col for col in cols if col.signal_udf]
+    if combine_columns:
+      schema = self.select_rows_schema(
+        [Column(path=PATH_WILDCARD)] + udf_columns,
+        sort_by,
+        sort_order,
+        searches,
+        combine_columns=True).data_schema
+
+    self._validate_columns(cols, manifest.data_schema, schema)
 
     temp_rowid_selected = False
     for col in cols:
@@ -855,7 +1022,7 @@ class DatasetDuckDB(Dataset):
     total_num_rows = manifest.num_items
     con = self.con.cursor()
 
-    topk_udf_col = self._topk_udf_to_sort_by(udf_columns, sort_by, limit, sort_order)
+    topk_udf_col = self._topk_udf_to_sort_by(udf_columns, filters, sort_by, limit, sort_order)
     if topk_udf_col:
       path_keys: Optional[list[PathKey]] = None
       if where_query:
@@ -1014,7 +1181,7 @@ class DatasetDuckDB(Dataset):
               task_step_id=task_step_id,
               estimated_len=len(flat_keys),
               step_description=step_description)
-          df[signal_column] = deep_unflatten(signal_out, input)
+          df[signal_column] = list(deep_unflatten(signal_out, input))
         else:
           num_rich_data = count_primitives(input)
           flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input))
@@ -1041,7 +1208,7 @@ class DatasetDuckDB(Dataset):
               f"{num_rich_data} values. This means the signal either didn't generate a "
               '"None" for a sparse output, or generated too many items.')
 
-          df[signal_column] = deep_unflatten(signal_out_list, input)
+          df[signal_column] = list(deep_unflatten(signal_out_list, input))
 
         signal.teardown()
 
@@ -1083,7 +1250,7 @@ class DatasetDuckDB(Dataset):
         if combine_columns:
           dest_path = _col_destination_path(column)
           spec = _split_path_into_subpaths_of_lists(dest_path)
-          df[temp_col_name] = wrap_in_dicts(df[temp_col_name], spec)
+          df[temp_col_name] = list(wrap_in_dicts(df[temp_col_name], spec))
 
         # If the temp col name is the same as the final name, we can skip merging. This happens when
         # we select a source leaf column.
@@ -1130,7 +1297,7 @@ class DatasetDuckDB(Dataset):
       if col.signal_udf:
         udfs.append(SelectRowsSchemaUDF(path=dest_path, alias=col.alias))
         field = col.signal_udf.fields()
-        field.signal = col.signal_udf.dict()
+        field.signal = col.signal_udf.model_dump()
       elif manifest.data_schema.has_field(dest_path):
         field = manifest.data_schema.get_field(dest_path)
       else:
@@ -1154,6 +1321,98 @@ class DatasetDuckDB(Dataset):
       data_schema=new_schema, udfs=udfs, search_results=search_results, sorts=sort_results or None)
 
   @override
+  def add_labels(self,
+                 name: str,
+                 row_ids: Optional[Sequence[str]] = None,
+                 searches: Optional[Sequence[Search]] = None,
+                 filters: Optional[Sequence[FilterLike]] = None,
+                 value: Optional[str] = 'true') -> None:
+
+    created = datetime.now()
+
+    # If filters and searches are defined with row_ids, add this as a filter.
+    if row_ids and (searches or filters):
+      filters = list(filters) if filters else []
+      filters.append(Filter(path=(ROWID,), op='in', value=list(row_ids)))
+
+    insert_row_ids: Iterable[str]
+    if row_ids and not searches and not filters:
+      insert_row_ids = row_ids
+    else:
+      insert_row_ids = (
+        row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters))
+
+    # Check if the label file exists.
+    labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
+    if labels_filepath not in self._label_file_lock:
+      self._label_file_lock[labels_filepath] = threading.Lock()
+
+    with self._label_file_lock[labels_filepath]:
+      # We don't cache sqlite connections as they cannot be shared across threads.
+      sqlite_con = sqlite3.connect(labels_filepath)
+      sqlite_cur = sqlite_con.cursor()
+
+      # Create the table if it doesn't exist.
+      sqlite_cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS "{name}" (
+          {ROWID} VARCHAR NOT NULL PRIMARY KEY,
+          label VARCHAR NOT NULL,
+          created DATETIME)
+      """)
+
+      for row_id in insert_row_ids:
+        # We use ON CONFLICT to resolve the same row UUID being labeled again. In this case, we
+        # overwrite the existing label with the new label.
+        sqlite_cur.execute(
+          f"""
+            INSERT INTO "{name}" VALUES (?, ?, ?)
+            ON CONFLICT({ROWID}) DO UPDATE SET label=excluded.label;
+          """, (row_id, value, created.isoformat()))
+      sqlite_con.commit()
+      sqlite_con.close()
+
+  @override
+  def remove_labels(self,
+                    name: str,
+                    row_ids: Optional[Sequence[str]] = None,
+                    searches: Optional[Sequence[Search]] = None,
+                    filters: Optional[Sequence[FilterLike]] = None) -> None:
+    # Check if the label file exists.
+    labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
+
+    if not os.path.exists(labels_filepath):
+      raise ValueError(f'Label with name "{name}" does not exist.')
+
+    # If filters and searches are defined with row_ids, add this as a filter.
+    if row_ids and (searches or filters):
+      filters = list(filters) if filters else []
+      filters.append(Filter(path=(ROWID,), op='in', value=list(row_ids)))
+
+    remove_row_ids: Iterable[str]
+    if row_ids and not searches and not filters:
+      remove_row_ids = row_ids
+    else:
+      remove_row_ids = (
+        row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters))
+
+    if labels_filepath not in self._label_file_lock:
+      self._label_file_lock[labels_filepath] = threading.Lock()
+
+    with self._label_file_lock[labels_filepath]:
+      sqlite_con = sqlite3.connect(labels_filepath)
+      sqlite_cur = sqlite_con.cursor()
+
+      for row_id in remove_row_ids:
+        # We use ON CONFLICT to resolve the same row UUID being labeled again. In this case, we
+        # overwrite the existing label with the new label.
+        sqlite_cur.execute(
+          f"""
+            DELETE FROM {name}
+            WHERE {ROWID} = ?
+          """, (row_id,))
+      sqlite_con.commit()
+
+  @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
@@ -1175,6 +1434,10 @@ class DatasetDuckDB(Dataset):
                               combine_columns: bool,
                               select_leaf: bool = False) -> list[tuple[str, PathTuple]]:
     path = column.path
+    if path[0] in self._label_schemas:
+      # This is a label column if it exists in label schemas.
+      return [(path[0], path)]
+
     parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
       self._source_manifest, *self._signal_manifests
     ]
@@ -1571,7 +1834,7 @@ def read_source_manifest(dataset_path: str) -> SourceManifest:
   # TODO(nsthorat): Overwrite the source manifest with a "source" added if the source is not defined
   # by reading the config yml.
   with open_file(os.path.join(dataset_path, MANIFEST_FILENAME), 'r') as f:
-    source_manifest = SourceManifest.parse_raw(f.read())
+    source_manifest = SourceManifest.model_validate_json(f.read())
 
   # For backwards compatibility, check if the config.yml has the source and write it back to the
   # source manifest.
@@ -1584,7 +1847,7 @@ def read_source_manifest(dataset_path: str) -> SourceManifest:
         if dataset_config.source:
           source_manifest.source = dataset_config.source
       with open_file(os.path.join(dataset_path, MANIFEST_FILENAME), 'w') as f:
-        f.write(source_manifest.json(indent=2, exclude_none=True))
+        f.write(source_manifest.model_dump_json(indent=2, exclude_none=True))
 
   return source_manifest
 
@@ -1620,7 +1883,7 @@ class SignalManifest(BaseModel):
   parquet_id: str
 
   data_schema: Schema
-  signal: Signal
+  signal: SerializeAsAny[Signal]
 
   # The column path that this signal is derived from.
   enriched_path: PathTuple
@@ -1628,7 +1891,8 @@ class SignalManifest(BaseModel):
   # The name of the vector store. Present when the signal is an embedding.
   vector_store: Optional[str] = None
 
-  @validator('signal', pre=True)
+  @field_validator('signal', mode='before')
+  @classmethod
   def parse_signal(cls, signal: dict) -> Signal:
     """Parse a signal to its specific subclass instance."""
     return resolve_signal(signal)
@@ -1688,7 +1952,7 @@ def merge_series(destination: pd.Series, source: pd.Series) -> list[Item]:
 def _unique_alias(column: Column) -> str:
   """Get a unique alias for a selection column."""
   if column.signal_udf:
-    return make_parquet_id(column.signal_udf, column.path)
+    return make_signal_parquet_id(column.signal_udf, column.path)
   return '.'.join(map(str, column.path))
 
 
@@ -1825,6 +2089,6 @@ def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
   return bins
 
 
-def get_config_filepath(namespace: str, dataset_name: str) -> str:
-  """Gets the config yaml filepath."""
-  return os.path.join(get_dataset_output_dir(data_path(), namespace, dataset_name), CONFIG_FILENAME)
+def get_labels_sqlite_filename(dataset_output_dir: str, label_name: str) -> str:
+  """Get the filepath to the labels file."""
+  return os.path.join(dataset_output_dir, f'{label_name}{LABELS_SQLITE_SUFFIX}')

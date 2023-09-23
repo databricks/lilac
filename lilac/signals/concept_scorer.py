@@ -1,5 +1,5 @@
 """A signal to compute a score along a concept."""
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 import numpy as np
 from typing_extensions import override
@@ -16,10 +16,10 @@ from ..signal import VectorSignal
 
 class ConceptSignal(VectorSignal):
   """Compute scores along a given concept for documents."""
-  name = 'concept_score'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'concept_score'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
-  display_name = 'Concept'
+  display_name: ClassVar[str] = 'Concept'
 
   namespace: str
   concept_name: str

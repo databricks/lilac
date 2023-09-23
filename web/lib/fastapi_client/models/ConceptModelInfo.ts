@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -12,6 +13,6 @@ export type ConceptModelInfo = {
     concept_name: string;
     embedding_name: string;
     version: number;
-    metrics?: ConceptMetrics;
+    metrics?: (ConceptMetrics | null);
 };
 

@@ -1,6 +1,6 @@
 """Huggingface source."""
 import multiprocessing
-from typing import Iterable, Optional, Union
+from typing import ClassVar, Iterable, Optional, Union
 
 import numpy as np
 from datasets import (
@@ -124,12 +124,10 @@ class HuggingFaceSource(Source):
   For documentation on dataset loading see:
       [huggingface.co/docs/datasets/index](https://huggingface.co/docs/datasets/index)
   """ # noqa: D415, D400
-  name = 'huggingface'
+  name: ClassVar[str] = 'huggingface'
 
   dataset_name: str = PydanticField(
-    required=True,
-    description='Either in the format `user/dataset` or `dataset`.',
-  )
+    description='Either in the format `user/dataset` or `dataset`.',)
   config_name: Optional[str] = PydanticField(
     title='Dataset config name', description='Some datasets require this.', default=None)
   split: Optional[str] = PydanticField(

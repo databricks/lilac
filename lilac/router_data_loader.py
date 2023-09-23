@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from .auth import get_user_access
 from .config import DatasetConfig
 from .data_loader import process_source
-from .env import data_path
+from .env import get_project_dir
 from .router_utils import RouteErrorHandler
 from .sources.source_registry import get_source_cls, registered_sources
 from .tasks import TaskId, TaskType, get_task_manager
@@ -49,7 +49,7 @@ def get_source_schema(source_name: str) -> dict[str, Any]:
   source_cls = get_source_cls(source_name)
   if source_cls is None:
     raise ValueError(f'Unknown source: {source_name}')
-  return source_cls.schema()
+  return source_cls.model_json_schema()
 
 
 class LoadDatasetOptions(BaseModel):
@@ -81,7 +81,7 @@ async def load(source_name: str, options: LoadDatasetOptions,
     type=TaskType.DATASET_LOAD,
     description=f'Loader: {source.name}. \n Config: {source}')
   get_task_manager().execute(
-    task_id, process_source, data_path(),
+    task_id, process_source, get_project_dir(),
     DatasetConfig(namespace=options.namespace, name=options.dataset_name, source=source),
     (task_id, 0))
 

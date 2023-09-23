@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -15,13 +16,13 @@ import type { UnaryFilter } from './UnaryFilter';
  * The request for the select rows endpoint.
  */
 export type SelectRowsOptions = {
-    columns?: Array<(Array<string> | string | Column)>;
+    columns?: Array<(Column | Array<string> | string)>;
     searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch)>;
     filters?: Array<(BinaryFilter | UnaryFilter | ListFilter)>;
     sort_by?: Array<(Array<string> | string)>;
-    sort_order?: SortOrder;
-    limit?: number;
-    offset?: number;
-    combine_columns?: boolean;
+    sort_order?: (SortOrder | null);
+    limit?: (number | null);
+    offset?: (number | null);
+    combine_columns?: (boolean | null);
 };
 

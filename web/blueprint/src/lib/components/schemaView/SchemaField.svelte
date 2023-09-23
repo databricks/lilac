@@ -8,6 +8,7 @@
     PATH_WILDCARD,
     VALUE_KEY,
     childFields,
+    isLabelField,
     isSignalField,
     isSignalRootField,
     isSortableField,
@@ -37,7 +38,8 @@
 
   $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
-  $: isSourceField = !isSignal;
+  $: isLabel = isLabelField(field);
+  $: isSourceField = !isSignal && !isLabel;
 
   const signalMutation = computeSignalMutation();
   const datasetViewStore = getDatasetViewContext();
@@ -109,11 +111,12 @@
   $: isExpandable = isSortableField(field) && !isPreview;
 </script>
 
-<div class="border-gray-300" class:border-b={!isSignal}>
+<div class="border-gray-300" class:border-b={isSourceField}>
   <div
     class="flex w-full flex-row items-center gap-x-2 border-gray-300 px-4 hover:bg-gray-100"
     class:bg-blue-50={isSignal}
     class:bg-emerald-100={isPreview}
+    class:bg-teal-100={isLabel}
     class:hover:bg-blue-100={isSignal}
   >
     <div
@@ -129,7 +132,7 @@
         <div class="flex">
           <svelte:component
             this={DTYPE_TO_ICON[field.repeated_field.dtype]}
-            title={field.dtype}
+            title={field.dtype || undefined}
           />[]
         </div>
       {:else}
@@ -176,7 +179,7 @@
     {/if}
     {#if isFiltered}
       {#each filters as filter}
-        <FilterPill {filter} hidePath />
+        <FilterPill {schema} {filter} hidePath />
       {/each}
     {/if}
     {#each searches as search}

@@ -1,4 +1,5 @@
 import {
+  ROWID,
   isColumn,
   pathIncludes,
   pathIsEqual,
@@ -249,7 +250,7 @@ export function getDatasetViewContext() {
  * based on the current state of the dataset view store
  */
 export function getSelectRowsOptions(datasetViewStore: DatasetViewState): SelectRowsOptions {
-  const columns = ['*', ...(datasetViewStore.query.columns ?? [])];
+  const columns = ['*', ROWID, ...(datasetViewStore.query.columns ?? [])];
 
   return {
     ...datasetViewStore.query,

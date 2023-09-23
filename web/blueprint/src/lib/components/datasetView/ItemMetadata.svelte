@@ -4,10 +4,12 @@
   import {
     L,
     PATH_KEY,
+    ROWID,
     SCHEMA_FIELD_KEY,
     VALUE_KEY,
     formatValue,
     getField,
+    isLabelField,
     isSignalRootField,
     pathIncludes,
     valueAtPath,
@@ -48,6 +50,7 @@
     const isEmbeddingSignal =
       $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) || false;
     const isSignal = isSignalRootField(field);
+    const isLabel = isLabelField(field);
     let formattedValue: string | null;
     if (
       isEmbeddingSignal ||
@@ -64,9 +67,17 @@
 
     function getChildren(node: LilacValueNode): LilacValueNode[] {
       // Strip internal values.
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const {[VALUE_KEY]: _value, [PATH_KEY]: _path, [SCHEMA_FIELD_KEY]: _field, ...rest} = node;
-      return Object.values(rest);
+      /* eslint-disable @typescript-eslint/no-unused-vars */
+      const {
+        [VALUE_KEY]: _value,
+        [PATH_KEY]: _path,
+        [SCHEMA_FIELD_KEY]: _field,
+        [ROWID]: _rowid,
+        ...rest
+      } = node;
+      /* eslint-enable @typescript-eslint/no-unused-vars */
+      // Filter out any label fields.
+      return Object.values(rest).filter(n => L.field(n)?.label == null);
     }
     // Expand any parents of highlighted fields.
     const expanded = highlightedFields.some(highlightedField => {
@@ -81,6 +92,7 @@
       path,
       expanded,
       isSignal,
+      isLabel,
       isPreviewSignal: selectRowsSchema != null ? isPreviewSignal(selectRowsSchema, path) : false,
       isEmbeddingSignal,
       value,

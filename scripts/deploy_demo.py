@@ -8,7 +8,7 @@ This script will, in order:
 
 Usage:
 poetry run python -m scripts.deploy_demo \
-  --data_dir=./demo_data \
+  --project_dir=./demo_data \
   --config=./lilac_hf_space.yml \
   --hf_space=lilacai/lilac \
   --make_datasets_public
@@ -18,6 +18,15 @@ Add:
   --skip_load to skip loading the data.
   --skip_build to skip building the web server TypeScript.
   --skip_deploy to skip deploying to HuggingFace. Useful to test locally.
+
+To deploy staging with the same datasets as the public demo:
+
+poetry run python -m scripts.deploy_demo \
+  --skip_sync \
+  --skip_load \
+  --skip_data_upload \
+  --use_pip=false \
+  --hf_space=lilacai/lilac-staging
 """
 import subprocess
 
@@ -36,7 +45,7 @@ from .deploy_hf import deploy_hf
 @click.command()
 @click.option('--config', help='The Lilac config path.', type=str)
 @click.option('--hf_space', help='The huggingface space.', type=str)
-@click.option('--data_dir', help='The local output dir to use to sync the data.', type=str)
+@click.option('--project_dir', help='The local output dir to use to sync the data.', type=str)
 @click.option(
   '--overwrite',
   help='When True, runs all all data from scratch, overwriting existing data. When false, only'
@@ -59,6 +68,12 @@ from .deploy_hf import deploy_hf
   is_flag=True,
   default=False)
 @click.option(
+  '--skip_data_upload',
+  help='Skip uploading data. This just uploads the wheel file from the local build.',
+  type=bool,
+  is_flag=True,
+  default=False)
+@click.option(
   '--skip_deploy',
   help='Skip deploying to HuggingFace. Useful to test locally.',
   type=bool,
@@ -69,9 +84,13 @@ from .deploy_hf import deploy_hf
   help='When true, sets the huggingface datasets uploaded to public. Defaults to false.',
   is_flag=True,
   default=False)
-def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip_sync: bool,
-                skip_load: bool, skip_build: bool, skip_deploy: bool,
-                make_datasets_public: bool) -> None:
+@click.option(
+  '--use_pip',
+  help='When true, uses the public pip package. When false, builds and uses a local wheel.',
+  default=True)
+def deploy_demo(config: str, hf_space: str, project_dir: str, overwrite: bool, skip_sync: bool,
+                skip_load: bool, skip_build: bool, skip_data_upload: bool, skip_deploy: bool,
+                make_datasets_public: bool, use_pip: bool) -> None:
   """Deploys the public demo."""
   hf_space_org, hf_space_name = hf_space.split('/')
 
@@ -90,14 +109,15 @@ def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip
         repo_id=repo_id,
         repo_type='dataset',
         token=env('HF_ACCESS_TOKEN'),
-        local_dir=get_datasets_dir(data_dir),
+        local_dir=get_datasets_dir(project_dir),
         ignore_patterns=['.gitattributes', 'README.md'])
 
   if not skip_load:
-    load(data_dir, config, overwrite)
+    load(project_dir, config, overwrite)
 
   if not skip_deploy:
-    datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(data_dir)]
+    datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(project_dir)
+               ] if not skip_data_upload else []
     deploy_hf(
       # Take this from the env variable.
       hf_username=None,
@@ -107,10 +127,11 @@ def deploy_demo(config: str, hf_space: str, data_dir: str, overwrite: bool, skip
       concepts=[],
       skip_build=skip_build,
       skip_cache=False,
-      data_dir=data_dir,
+      project_dir=project_dir,
+      skip_data_upload=skip_data_upload,
       make_datasets_public=make_datasets_public,
       # The public demo uses the public pip package.
-      use_pip=True,
+      use_pip=use_pip,
       # Enable Google Analytics on the public demo.
       disable_google_analytics=False)
 

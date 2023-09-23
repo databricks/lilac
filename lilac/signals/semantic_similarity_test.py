@@ -1,6 +1,6 @@
 """Test the semantic search signal."""
 
-from typing import Iterable, Optional, cast
+from typing import ClassVar, Iterable, Optional, cast
 
 import numpy as np
 import pytest
@@ -56,7 +56,7 @@ class TestVectorStore(VectorStore):
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

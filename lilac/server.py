@@ -33,9 +33,9 @@ from .auth import (
   get_session_user,
   get_user_access,
 )
-from .env import data_path, env
+from .env import env, get_project_dir
 from .load import load
-from .project import PROJECT_CONFIG_FILENAME, create_project_and_set_env
+from .project import create_project_and_set_env
 from .router_utils import RouteErrorHandler
 from .sources.default_sources import register_default_sources
 from .sources.source_registry import registered_sources
@@ -148,11 +148,7 @@ def load_config(background_tasks: BackgroundTasks) -> dict:
   """Loads from the lilac.yml."""
 
   async def _load() -> None:
-    load(
-      output_dir=data_path(),
-      config_path=os.path.join(data_path(), PROJECT_CONFIG_FILENAME),
-      overwrite=False,
-      task_manager=get_task_manager())
+    load(project_dir=get_project_dir(), overwrite=False, task_manager=get_task_manager())
 
   background_tasks.add_task(_load)
   return {}
@@ -169,7 +165,7 @@ def list_files(request: Request, path: str) -> Response:
   """List files in the data directory."""
   if env('LILAC_AUTH_ENABLED', False):
     return Response(status_code=401)
-  path = os.path.join(data_path(), f'.{path}')
+  path = os.path.join(get_project_dir(), f'.{path}')
   if not os.path.exists(path):
     return Response(status_code=404)
   if os.path.isfile(path):
@@ -212,7 +208,7 @@ SERVER: Optional[uvicorn.Server] = None
 def start_server(host: str = '127.0.0.1',
                  port: int = 5432,
                  open: bool = False,
-                 project_path: str = '',
+                 project_dir: str = '',
                  skip_load: bool = False) -> None:
   """Starts the Lilac web server.
 
@@ -220,11 +216,12 @@ def start_server(host: str = '127.0.0.1',
     host: The host to run the server on.
     port: The port to run the server on.
     open: Whether to open a browser tab upon startup.
-    project_path: The path to the Lilac project path. If not specified, the LILAC_DATA_PATH
-      will be used. If LILAC_DATA_PATH is not defined, will start in the current directory.
+    project_dir: The path to the Lilac project directory. If not specified, the `LILAC_PROJECT_DIR`
+      environment variable will be used (this can be set from `set_project_dir`). If
+      `LILAC_PROJECT_DIR` is not defined, will start in the current directory.
     skip_load: Whether to skip loading from the lilac.yml when the server boots up.
   """
-  create_project_and_set_env(project_path)
+  create_project_and_set_env(project_dir)
 
   global SERVER
   if SERVER:

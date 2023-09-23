@@ -3,15 +3,21 @@ from .dataset import (
   Column,
   ConceptSearch,
   Dataset,
+  DatasetManifest,
   Filter,
   FilterLike,
   KeywordSearch,
   ListOp,
+  Schema,
+  SelectGroupsResult,
+  SelectRowsResult,
   SemanticSearch,
   UnaryOp,
 )
 
 __all__ = [
+  'DatasetManifest',
+  'Schema',
   'Column',
   'KeywordSearch',
   'ConceptSearch',
@@ -21,5 +27,7 @@ __all__ = [
   'BinaryOp',
   'ListOp',
   'Dataset',
+  'SelectRowsResult',
+  'SelectGroupsResult',
   'FilterLike',
 ]

@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -10,7 +11,7 @@ import type { SortOrder } from './SortOrder';
 export type SortResult = {
     path: Array<string>;
     order: SortOrder;
-    alias?: string;
-    search_index?: number;
+    alias?: (string | null);
+    search_index?: (number | null);
 };
 

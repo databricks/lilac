@@ -4,7 +4,7 @@ from typing import Annotated, Iterable, Optional, cast
 
 from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
-from openai_function_call import OpenAISchema
+from instructor import OpenAISchema
 from pydantic import BaseModel, Field
 
 from .auth import UserInfo, get_session_user

@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -11,16 +12,16 @@ import type { TaskType } from './TaskType';
  */
 export type TaskInfo = {
     name: string;
-    type?: TaskType;
+    type?: (TaskType | null);
     status: TaskStatus;
-    progress?: number;
-    message?: string;
-    details?: string;
-    step_progress?: number;
-    steps?: Array<TaskStepInfo>;
-    description?: string;
+    progress?: (number | null);
+    message?: (string | null);
+    details?: (string | null);
+    step_progress?: (number | null);
+    steps?: (Array<TaskStepInfo> | null);
+    description?: (string | null);
     start_timestamp: string;
-    end_timestamp?: string;
-    error?: string;
+    end_timestamp?: (string | null);
+    error?: (string | null);
 };
 

@@ -3,6 +3,7 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     childFields,
+    isLabelField,
     isSignalField,
     isSignalRootField,
     petals,
@@ -27,12 +28,13 @@
 
   const datasetViewStore = getDatasetViewContext();
 
-  $: ({sourceFields, enrichedFields} = getFields(schema));
+  $: ({sourceFields, enrichedFields, labelFields} = getFields(schema));
 
   let checkedSourceFields: LilacField[] = [];
+  let checkedLabeledFields: LilacField[] = [];
   let checkedEnrichedFields: LilacField[] = [];
 
-  $: downloadFields = [...checkedSourceFields, ...checkedEnrichedFields];
+  $: downloadFields = [...checkedSourceFields, ...checkedLabeledFields, ...checkedEnrichedFields];
 
   $: previewRows =
     downloadFields.length > 0
@@ -43,16 +45,15 @@
         })
       : null;
 
-  function getFields(schema: LilacSchema | undefined) {
-    if (schema == null) {
-      return {sourceFields: null, enrichedFields: null};
-    }
+  function getFields(schema: LilacSchema) {
+    const allFields = childFields(schema);
     const petalFields = petals(schema).filter(field => ['embedding'].indexOf(field.dtype!) === -1);
-    const sourceFields = petalFields.filter(f => !isSignalField(f));
-    const enrichedFields = childFields(schema)
+    const sourceFields = petalFields.filter(f => !isSignalField(f) && !isLabelField(f));
+    const labelFields = allFields.filter(f => f.label != null);
+    const enrichedFields = allFields
       .filter(f => isSignalRootField(f))
       .filter(f => !childFields(f).some(f => f.dtype === 'embedding'));
-    return {sourceFields, enrichedFields};
+    return {sourceFields, enrichedFields, labelFields};
   }
 
   async function submit() {
@@ -79,24 +80,25 @@
 <ComposedModal size="lg" {open} on:submit={submit} on:close={() => (open = false)}>
   <ModalHeader title="Download data" />
   <ModalBody hasForm>
-    <section>
-      <h4>Select source fields</h4>
-      {#if sourceFields == null}
-        <SkeletonText />
-      {:else}
-        <DownloadFieldList fields={sourceFields} bind:checkedFields={checkedSourceFields} />
-      {/if}
-    </section>
-    {#if enrichedFields == null || enrichedFields.length > 0}
+    <div class="flex flex-wrap gap-x-12">
       <section>
-        <h4>Select enriched fields</h4>
-        {#if enrichedFields == null}
-          <SkeletonText />
-        {:else}
-          <DownloadFieldList fields={enrichedFields} bind:checkedFields={checkedEnrichedFields} />
-        {/if}
+        <h4>Source fields</h4>
+        <DownloadFieldList fields={sourceFields} bind:checkedFields={checkedSourceFields} />
       </section>
-    {/if}
+      {#if labelFields.length > 0}
+        <section>
+          <h4>Label fields</h4>
+          <DownloadFieldList fields={labelFields} bind:checkedFields={checkedLabeledFields} />
+        </section>
+      {/if}
+      {#if enrichedFields.length > 0}
+        <section>
+          <h4>Enriched fields</h4>
+          <DownloadFieldList fields={enrichedFields} bind:checkedFields={checkedEnrichedFields} />
+        </section>
+      {/if}
+    </div>
+
     <section>
       <h4>Download preview</h4>
       {#if downloadFields.length === 0}

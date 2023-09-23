@@ -1,5 +1,5 @@
 """OpenAI embeddings."""
-from typing import TYPE_CHECKING, Any, Iterable, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Iterable, cast
 
 import numpy as np
 from tenacity import retry, stop_after_attempt, wait_random_exponential
@@ -30,8 +30,8 @@ class OpenAI(TextEmbeddingSignal):
   <br>For details on pricing, see: https://openai.com/pricing.
   """
 
-  name = 'openai'
-  display_name = 'OpenAI Embeddings'
+  name: ClassVar[str] = 'openai'
+  display_name: ClassVar[str] = 'OpenAI Embeddings'
 
   _model: type['openai.Embedding']
 

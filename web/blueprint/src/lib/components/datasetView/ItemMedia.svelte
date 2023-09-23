@@ -6,18 +6,21 @@
    * Component that renders a single value from a row in the dataset row view
    * In the case of strings with string_spans, it will render the derived string spans as well
    */
+  import {getSettingsContext} from '$lib/stores/settingsStore';
   import {notEmpty} from '$lib/utils';
-  import {getComputedEmbeddings, getSpanValuePaths} from '$lib/view_utils';
+  import {displayPath, getComputedEmbeddings, getSpanValuePaths} from '$lib/view_utils';
   import {
     L,
     formatValue,
     getValueNodes,
     pathIsEqual,
-    serializePath,
+    type DataTypeCasted,
     type LilacField,
     type LilacValueNode,
     type Path
   } from '$lilac';
+  import {Search} from 'carbon-icons-svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 
   export let path: Path;
@@ -27,6 +30,7 @@
 
   const datasetViewStore = getDatasetViewContext();
   const datasetStore = getDatasetContext();
+  const appSettings = getSettingsContext();
 
   $: computedEmbeddings = getComputedEmbeddings($datasetStore.schema, path);
 
@@ -35,35 +39,72 @@
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: valueNodes = getValueNodes(row, path);
+
+  function findSimilar(searchText: DataTypeCasted) {
+    let embedding = computedEmbeddings[0];
+
+    if ($settings.data?.preferred_embedding != null) {
+      const preferred = $settings.data.preferred_embedding;
+      if (computedEmbeddings.some(v => v === preferred)) {
+        embedding = preferred;
+      }
+    }
+    if ($appSettings.embedding != null) {
+      const preferred = $appSettings.embedding;
+      if (computedEmbeddings.some(v => v === preferred)) {
+        embedding = preferred;
+      }
+    }
+    datasetViewStore.addSearch({
+      path: field.path,
+      type: 'semantic',
+      query: searchText as string,
+      embedding
+    });
+  }
 </script>
 
 {#each valueNodes as valueNode}
   {@const value = L.value(valueNode)}
+  {@const noEmbeddings = computedEmbeddings.length === 0}
   {#if notEmpty(value)}
     {@const path = L.path(valueNode) || []}
     {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
-    <div class="flex flex-row">
-      <div class="flex w-full flex-col">
-        <div
-          class="sticky top-0 z-10 w-full self-start border-t border-neutral-200 bg-neutral-100 px-2 py-2
-               pb-2 font-mono font-medium text-neutral-500"
-        >
-          {serializePath(path)}
+    <div class="flex w-full gap-x-4">
+      <div class="relative flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
+        <div class="sticky top-0 flex w-full items-center self-start">
+          <div title={displayPath(path)} class="w-full truncate">{displayPath(path)}</div>
+          <div>
+            <div
+              use:hoverTooltip={{
+                text: noEmbeddings ? '"More like this" requires an embedding index' : undefined
+              }}
+              class:opacity-50={noEmbeddings}
+            >
+              <button
+                disabled={noEmbeddings}
+                on:click={() => findSimilar(value)}
+                use:hoverTooltip={{text: 'More like this'}}
+                ><Search size={16} />
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div class="mx-4 font-normal">
-          <StringSpanHighlight
-            text={formatValue(value)}
-            {row}
-            {path}
-            {markdown}
-            spanPaths={spanValuePaths.spanPaths}
-            valuePaths={spanValuePaths.valuePaths}
-            {datasetViewStore}
-            datasetStore={$datasetStore}
-            embeddings={computedEmbeddings}
-          />
-        </div>
+      <div class="w-full grow-0 pt-1 font-normal">
+        <StringSpanHighlight
+          text={formatValue(value)}
+          {row}
+          {path}
+          {field}
+          {markdown}
+          spanPaths={spanValuePaths.spanPaths}
+          valuePaths={spanValuePaths.valuePaths}
+          {datasetViewStore}
+          datasetStore={$datasetStore}
+          embeddings={computedEmbeddings}
+        />
       </div>
     </div>
   {/if}

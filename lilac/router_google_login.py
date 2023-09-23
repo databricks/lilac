@@ -48,7 +48,7 @@ async def auth(request: Request) -> Response:
     email=userinfo['email'],
     name=userinfo['name'],
     given_name=userinfo['given_name'],
-    family_name=userinfo['family_name']).dict()
+    family_name=userinfo['family_name']).model_dump()
 
   return RedirectResponse(url='/')
 
