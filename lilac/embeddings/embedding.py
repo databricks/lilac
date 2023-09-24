@@ -1,6 +1,6 @@
 """Embedding registry."""
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable, Generator, Iterable, Iterator, Optional, Union, cast
+from typing import Callable, Generator, Iterable, Optional, Union, cast
 
 import numpy as np
 from pydantic import StrictStr
@@ -22,7 +22,7 @@ from ..utils import chunks
 
 EmbeddingId = Union[StrictStr, TextEmbeddingSignal]
 
-EmbedFn = Callable[[Iterable[RichData]], Iterator[list[SpanVector]]]
+EmbedFn = Callable[[Iterable[RichData]], Iterable[list[SpanVector]]]
 
 
 def get_embed_fn(embedding_name: str, split: bool) -> EmbedFn:
@@ -31,7 +31,7 @@ def get_embed_fn(embedding_name: str, split: bool) -> EmbedFn:
   embedding = embedding_cls(split=split)
   embedding.setup()
 
-  def _embed_fn(data: Iterable[RichData]) -> Iterator[list[SpanVector]]:
+  def _embed_fn(data: Iterable[RichData]) -> Iterable[list[SpanVector]]:
     items = embedding.compute(data)
 
     for item in items:
