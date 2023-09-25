@@ -13,7 +13,7 @@ from ..data.dataset_test_utils import TestDataMaker, enriched_item
 from ..schema import Item, RichData, lilac_embedding
 from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from . import clustering
-from .clustering import Clustering
+from .clustering import ClusteringSignal
 
 TEST_ITEMS: list[Item] = [{
   'text': 'a',
@@ -38,7 +38,9 @@ def set_project_dir(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
+  clear_signal_registry()
   register_signal(TestEmbedding)
+  register_signal(ClusteringSignal)
   # Unit test runs.
   yield
   # Teardown.
@@ -60,7 +62,7 @@ def test_clustering(make_test_data: TestDataMaker, mocker: MockerFixture) -> Non
   mocker.patch(f'{clustering.__name__}.MIN_SAMPLES', 2)
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}])
   dataset.compute_embedding('test_embedding', 'text')
-  signal = Clustering(embedding='test_embedding')
+  signal = ClusteringSignal(embedding='test_embedding')
   dataset.compute_signal(signal, 'text')
   signal_key = signal.key(is_computed_signal=True)
   result = dataset.select_rows(combine_columns=True)

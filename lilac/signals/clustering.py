@@ -6,6 +6,7 @@ from sklearn.cluster import DBSCAN
 from typing_extensions import override
 
 from lilac.embeddings.vector_store import VectorDBIndex
+from lilac.utils import DebugTimer
 
 from ..embeddings.embedding import get_embed_fn
 from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field
@@ -15,7 +16,7 @@ CLUSTER_IDS = 'cluster_ids'
 MIN_SAMPLES = 5
 
 
-class Clustering(VectorSignal):
+class ClusteringSignal(VectorSignal):
   """Find clusters of documents in a dataset."""
   name: ClassVar[str] = 'clustering'
   display_name: ClassVar[str] = 'Clustering of documents'
@@ -42,10 +43,11 @@ class Clustering(VectorSignal):
 
     span_sizes: list[int] = []
     all_vectors: list[np.ndarray] = []
-    for vectors in span_vectors:
-      span_sizes.append(len(vectors))
-      for vector in vectors:
-        all_vectors.append(vector['vector'])
+    with DebugTimer('getting vectors'):
+      for vectors in span_vectors:
+        span_sizes.append(len(vectors))
+        for vector in vectors:
+          all_vectors.append(vector['vector'])
 
     dbscan = DBSCAN(eps=0.05, min_samples=MIN_SAMPLES, metric='cosine', n_jobs=-1)
     dbscan.fit(all_vectors)

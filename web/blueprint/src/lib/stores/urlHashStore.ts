@@ -120,12 +120,12 @@ export function deserializeState(
   if (stateString == null || stateString == '') return defaultState;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const urlState: Record<string, any> = {};
-  const params = (decodeURIComponent(stateString) || '').split('&');
+  const params = (stateString || '').split('&');
   // Override with URL params.
   for (const param of params) {
     if (param == null) continue;
     const [key, value] = param.split('=');
-    urlState[key] = JSON.parse(value);
+    urlState[key] = JSON.parse(decodeURIComponent(value));
   }
   return mergeDeep(urlState, defaultState);
 }
