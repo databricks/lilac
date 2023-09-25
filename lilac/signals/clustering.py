@@ -14,6 +14,7 @@ from ..signal import VectorSignal
 
 CLUSTER_IDS = 'cluster_ids'
 MIN_SAMPLES = 5
+DBSCAN_EPS = 0.05
 
 
 class ClusteringSignal(VectorSignal):
@@ -49,7 +50,7 @@ class ClusteringSignal(VectorSignal):
         for vector in vectors:
           all_vectors.append(vector['vector'])
 
-    dbscan = DBSCAN(eps=0.05, min_samples=MIN_SAMPLES, metric='cosine', n_jobs=-1)
+    dbscan = DBSCAN(eps=DBSCAN_EPS, min_samples=MIN_SAMPLES, metric='cosine', n_jobs=-1)
     dbscan.fit(all_vectors)
     span_index = 0
     for num_spans in span_sizes:
