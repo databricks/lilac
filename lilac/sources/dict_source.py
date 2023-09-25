@@ -10,9 +10,11 @@ from typing_extensions import override
 from ..schema import Item, arrow_schema_to_schema
 from ..source import Source, SourceSchema
 
+_TMP_FILENAME = 'tmp.jsonl'
+
 
 class DictSource(Source):
-  """Source as a generator of dicts."""
+  """Loads data from an iterable of dict objects."""
   name: ClassVar[str] = 'dict'
 
   _items: Iterable[Item]
@@ -28,18 +30,26 @@ class DictSource(Source):
   @override
   def setup(self) -> None:
     assert self._items is not None, 'items must be set.'
-    self._con = duckdb.connect(database=':memory:')
+
+    # Write the items to a temporary jsonl file in memory so we can read it via duckdb.
     self._fs = fsspec.filesystem('memory')
-    with self._fs.open('tmp.json', 'w') as file:
+    with self._fs.open(_TMP_FILENAME, 'w') as file:
       for item in self._items:
         json.dump(item, file)
         file.write('\n')
     del self._items
 
     # Register the memory filesystem to query it.
+    self._con = duckdb.connect(database=':memory:')
     self._con.register_filesystem(self._fs)
-    self._con.execute("""
-      CREATE VIEW t as (SELECT * FROM read_json_auto('memory://tmp.json', IGNORE_ERRORS=true));
+    self._con.execute(f"""
+      CREATE VIEW t as (
+        SELECT * FROM read_json_auto(
+          'memory://{_TMP_FILENAME}',
+          IGNORE_ERRORS=true,
+          FORMAT='newline_delimited'
+        )
+      );
     """)
 
     res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
@@ -67,5 +77,5 @@ class DictSource(Source):
 
     self._reader.close()
     self._con.close()
-    self._fs.rm('tmp.json')
+    self._fs.rm(_TMP_FILENAME)
     del self._fs
