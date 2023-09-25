@@ -65,14 +65,6 @@ def custom_generate_unique_id(route: APIRoute) -> str:
   return route.name
 
 
-def _add_load_task(task_manager: TaskManager) -> None:
-  task_id = task_manager.task_id(
-    'Loading from project config... ',
-    description=
-    'This can be disabled by setting the environment variable LILAC_LOAD_ON_START_SERVER=false')
-  task_manager.execute(task_id, _load, task_id)
-
-
 def _load(load_task_id: str) -> None:
   load(
     project_dir=get_project_dir(),
@@ -86,8 +78,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
   """Context manager for the lifespan of the application."""
   if env('LILAC_LOAD_ON_START_SERVER', False):
     task_manager = get_task_manager()
-    loop = asyncio.get_running_loop()
-    loop.run_in_executor(None, _add_load_task, task_manager)
+    task_id = task_manager.task_id(
+      'Loading from project config... ',
+      description=
+      'This can be disabled by setting the environment variable LILAC_LOAD_ON_START_SERVER=false')
+    task_manager.execute(task_id, _load, task_id)
 
   yield
 
