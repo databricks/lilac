@@ -1,5 +1,5 @@
 """A signal to compute semantic search for a document."""
-from typing import Any, ClassVar, Iterable, Optional, Union
+from typing import Any, ClassVar, Iterable, Optional
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -33,11 +33,9 @@ class SemanticSimilaritySignal(VectorSignal):
   _interpolate_fn = interp1d([-1, 0.2, 1], [0, 0.5, 1])
   _search_text_embedding: Optional[np.ndarray] = None
 
-  def __init__(self, query: Union[str, bytes], embedding: str, **kwargs: Any):
-    if isinstance(query, bytes):
-      raise ValueError('Image queries are not yet supported for SemanticSimilarity.')
-    super().__init__(query=query, embedding=embedding, **kwargs)  # type: ignore
-    self._embed_fn = get_embed_fn(embedding, split=False)
+  def model_post_init(self, context: Any) -> None:
+    """Set the `_embed_fn` attribute."""
+    self._embed_fn = get_embed_fn(self.embedding, split=False)
 
   @override
   def fields(self) -> Field:

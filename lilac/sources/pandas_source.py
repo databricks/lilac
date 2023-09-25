@@ -34,7 +34,7 @@ class PandasSource(Source):
 
   @override
   def process(self) -> Iterable[Item]:
-    """Process the source upload request."""
+    """Process the source."""
     assert self._df is not None, 'df must be set.'
     cols = self._df.columns.tolist()
     yield from ({

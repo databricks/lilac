@@ -25,7 +25,7 @@
   /** Custom components to use for certain properties */
   export let customComponents: Record<string, typeof SvelteComponent>;
 
-  $: property = schema.getSchema(path, value || {});
+  $: property = schema.getSchema(path);
   $: propertyType = 'anyOf' in property ? property.anyOf[0].type : property.type;
   $: label = property.title ? `${property.title} ${required ? '*' : ''}` : '';
 
@@ -36,7 +36,7 @@
       path
   );
 
-  let numberValue: number | null | undefined = undefined;
+  $: numberValue = property?.default;
   $: {
     // Convert a null value to undefined for the json schema to validate.
     if (numberValue !== undefined) {

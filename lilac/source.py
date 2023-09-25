@@ -91,7 +91,7 @@ class Source(BaseModel):
     pass
 
   def process(self) -> Iterable[Item]:
-    """Process the source upload request.
+    """Process the source.
 
     Args:
       task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the

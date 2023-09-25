@@ -8,15 +8,22 @@ ENV PYTHONUNBUFFERED True
 RUN useradd -m -u 1000 user
 USER user
 ENV HOME=/home/user \
-	PATH=/home/user/.local/bin:$PATH
+  PATH=/home/user/.local/bin:$PATH
 
 # Set the working directory in the container.
 WORKDIR $HOME/app
 
 # Install the dependencies. This will look in ./dist for any wheels that match lilac. If they are
 # not found, it will use the public pip package.
+
+# Pip install lilac[all] and dependencies before trying to install the local image. This allows us
+# to get cache hits on dependency installations when using a local wheel. When using the public pip
+# package, the second call will be a no-op.
+RUN python -m pip install lilac[all]
+
+# Install from the local wheel inside ./dist. This will be a no-op if the wheel is not found.
 COPY --chown=user /dist ./dist/
-RUN python -m pip install --find-links=dist lilac[all]
+RUN python -m pip install --find-links=dist --upgrade lilac[all]
 
 COPY --chown=user .env .
 COPY --chown=user .env.demo .

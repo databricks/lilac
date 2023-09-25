@@ -75,7 +75,7 @@ class SQLiteSource(Source):
 
   @override
   def process(self) -> Iterable[Item]:
-    """Process the source upload request."""
+    """Process the source."""
     if not self._reader or not self._con:
       raise RuntimeError('SQLite source is not initialized.')
 

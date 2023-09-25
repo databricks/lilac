@@ -344,7 +344,7 @@ class AddLabelsOptions(BaseModel):
 
 
 @router.post('/{namespace}/{dataset_name}/labels', response_model_exclude_none=True)
-def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions) -> None:
+def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions) -> int:
   """"Add a label to the dataset."""
   if not get_user_access().dataset.edit_labels:
     raise HTTPException(401, 'User does not have access to add labels to this dataset.')
@@ -354,7 +354,7 @@ def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions) -> 
   ]
 
   dataset = get_dataset(namespace, dataset_name)
-  dataset.add_labels(
+  return dataset.add_labels(
     name=options.label_name,
     value=options.label_value,
     row_ids=options.row_ids,
@@ -371,7 +371,7 @@ class RemoveLabelsOptions(BaseModel):
 
 
 @router.delete('/{namespace}/{dataset_name}/labels', response_model_exclude_none=True)
-def remove_labels(namespace: str, dataset_name: str, options: RemoveLabelsOptions) -> None:
+def remove_labels(namespace: str, dataset_name: str, options: RemoveLabelsOptions) -> int:
   """"Add a label to the dataset."""
   if not get_user_access().dataset.edit_labels:
     raise HTTPException(401, 'User does not have access to remove labels from this dataset.')
@@ -381,7 +381,7 @@ def remove_labels(namespace: str, dataset_name: str, options: RemoveLabelsOption
   ]
 
   dataset = get_dataset(namespace, dataset_name)
-  dataset.remove_labels(
+  return dataset.remove_labels(
     name=options.label_name,
     row_ids=options.row_ids,
     searches=options.searches,

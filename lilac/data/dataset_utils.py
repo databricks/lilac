@@ -262,8 +262,7 @@ def _flatten_keys(rowid: str, nested_input: Iterable, location: list[int],
 def flatten_keys(
     rowids: Iterable[str],
     nested_input: Iterable,
-    is_primitive_predicate: Callable[[object],
-                                     bool] = is_primitive) -> Iterator[Optional[VectorKey]]:
+    is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Iterator[Optional[PathKey]]:
   """Flatten the rowids of a nested input."""
   for rowid, input in zip(rowids, nested_input):
     if input is None:

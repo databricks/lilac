@@ -63,7 +63,7 @@ class Signal(BaseModel):
     res['signal_name'] = self.name
     return res
 
-  model_config = ConfigDict(extra='forbid', json_schema_extra=_signal_schema_extra)
+  model_config = ConfigDict(extra='ignore', json_schema_extra=_signal_schema_extra)
 
   def fields(self) -> Field:
     """Return the fields schema for this signal.

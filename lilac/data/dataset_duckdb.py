@@ -299,7 +299,7 @@ class DatasetDuckDB(Dataset):
     if int(use_views):
       view_or_table = 'VIEW'
     sql_cmd = f"""
-      CREATE OR REPLACE {view_or_table} t AS (SELECT {select_sql} FROM {join_sql} ORDER BY {ROWID})
+      CREATE OR REPLACE {view_or_table} t AS (SELECT {select_sql} FROM {join_sql})
     """
     self.con.execute(sql_cmd)
 
@@ -1326,7 +1326,7 @@ class DatasetDuckDB(Dataset):
                  row_ids: Optional[Sequence[str]] = None,
                  searches: Optional[Sequence[Search]] = None,
                  filters: Optional[Sequence[FilterLike]] = None,
-                 value: Optional[str] = 'true') -> None:
+                 value: Optional[str] = 'true') -> int:
 
     created = datetime.now()
 
@@ -1360,6 +1360,7 @@ class DatasetDuckDB(Dataset):
           created DATETIME)
       """)
 
+      num_labels = 0
       for row_id in insert_row_ids:
         # We use ON CONFLICT to resolve the same row UUID being labeled again. In this case, we
         # overwrite the existing label with the new label.
@@ -1368,15 +1369,18 @@ class DatasetDuckDB(Dataset):
             INSERT INTO "{name}" VALUES (?, ?, ?)
             ON CONFLICT({ROWID}) DO UPDATE SET label=excluded.label;
           """, (row_id, value, created.isoformat()))
+        num_labels += 1
       sqlite_con.commit()
       sqlite_con.close()
+
+    return num_labels
 
   @override
   def remove_labels(self,
                     name: str,
                     row_ids: Optional[Sequence[str]] = None,
                     searches: Optional[Sequence[Search]] = None,
-                    filters: Optional[Sequence[FilterLike]] = None) -> None:
+                    filters: Optional[Sequence[FilterLike]] = None) -> int:
     # Check if the label file exists.
     labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
 
@@ -1398,6 +1402,7 @@ class DatasetDuckDB(Dataset):
     if labels_filepath not in self._label_file_lock:
       self._label_file_lock[labels_filepath] = threading.Lock()
 
+    num_labels = 0
     with self._label_file_lock[labels_filepath]:
       sqlite_con = sqlite3.connect(labels_filepath)
       sqlite_cur = sqlite_con.cursor()
@@ -1407,10 +1412,12 @@ class DatasetDuckDB(Dataset):
         # overwrite the existing label with the new label.
         sqlite_cur.execute(
           f"""
-            DELETE FROM {name}
+            DELETE FROM "{name}"
             WHERE {ROWID} = ?
           """, (row_id,))
+        num_labels += 1
       sqlite_con.commit()
+    return num_labels
 
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:

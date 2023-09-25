@@ -135,10 +135,9 @@ def delete_project_signal_config(dataset_namespace: str,
     dataset_config = get_dataset_config(config, dataset_namespace, dataset_name)
     if dataset_config is None:
       raise ValueError(f'{dataset_config} not found in project config.')
-    if signal_config not in dataset_config.signals:
-      raise ValueError(f'{signal_config} not found in project config.')
-
-    dataset_config.signals.remove(signal_config)
+    dataset_config.signals = [
+      s for s in dataset_config.signals if s.model_dump() != signal_config.model_dump()
+    ]
     _write_project_config(project_dir, config)
 
 
