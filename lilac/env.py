@@ -29,8 +29,6 @@ class LilacEnvironment(BaseModel):
     description='The Lilac project directory where datasets, concepts, caches are stored.'
     'This replaces `LILAC_PROJECT_DIR`, which is deprecated but as the same functionality. '
     'This can be set with `set_project_dir`.',)
-  LILAC_LOAD_ON_START: bool = PydanticField(
-    description='Whether to load from the project config when the server starts.', default=False)
 
   DEBUG: str = PydanticField(
     description='Turn on Lilac debug mode to log queries and timing information.')
