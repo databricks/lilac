@@ -1,4 +1,6 @@
 name: Backend
+env:
+  CUDA_VISIBLE_DEVICES: ''
 on:
   pull_request:
     types: [opened, reopened, synchronize]
@@ -38,7 +40,6 @@ jobs:
         # Re-install pytorch for cpu to avoid errors that cuda was not found
         run: |
           ./scripts/setup_py.sh
-          poetry run pip3 install torch==2+cpu
 
       # We run testing before linting since testing, surprisingly, is much faster.
       - name: Test python
