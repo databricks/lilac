@@ -17,10 +17,10 @@ MIN_SAMPLES = 5
 DBSCAN_EPS = 0.05
 
 
-class ClusteringSignal(VectorSignal):
-  """Find clusters of documents in a dataset."""
-  name: ClassVar[str] = 'clustering'
-  display_name: ClassVar[str] = 'Clustering of documents'
+class ClusterDBSCAN(VectorSignal):
+  """Find clusters of documents in a dataset using pre-computed embeddings and DBSCAN."""
+  name: ClassVar[str] = 'cluster_dbscan'
+  display_name: ClassVar[str] = 'Cluster with DBSCAN'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   @override

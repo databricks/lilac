@@ -104,7 +104,9 @@ export function serializeState(
     const jsonValue = JSON.stringify(state[stateKey]);
     flatFields.push([stateKey, jsonValue]);
   }
-  return flatFields.map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&');
+  return flatFields
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('&');
 }
 
 /**
@@ -125,7 +127,7 @@ export function deserializeState(
   for (const param of params) {
     if (param == null) continue;
     const [key, value] = param.split('=');
-    urlState[key] = JSON.parse(decodeURIComponent(value));
+    urlState[decodeURIComponent(key)] = JSON.parse(decodeURIComponent(value));
   }
   return mergeDeep(urlState, defaultState);
 }

@@ -12,8 +12,8 @@ from typing_extensions import override
 from ..data.dataset_test_utils import TestDataMaker, enriched_item
 from ..schema import Item, RichData, lilac_embedding
 from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
-from . import clustering
-from .clustering import ClusteringSignal
+from . import cluster_dbscan
+from .cluster_dbscan import ClusterDBSCAN
 
 TEST_ITEMS: list[Item] = [{
   'text': 'a',
@@ -40,7 +40,7 @@ def setup_teardown() -> Iterable[None]:
   # Setup.
   clear_signal_registry()
   register_signal(TestEmbedding)
-  register_signal(ClusteringSignal)
+  register_signal(ClusterDBSCAN)
   # Unit test runs.
   yield
   # Teardown.
@@ -58,11 +58,11 @@ class TestEmbedding(TextEmbeddingSignal):
       yield [lilac_embedding(0, len(example), np.array(EMBEDDINGS[cast(str, example)]))]
 
 
-def test_clustering(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  mocker.patch(f'{clustering.__name__}.MIN_SAMPLES', 2)
+def test_simple_data(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
+  mocker.patch(f'{cluster_dbscan.__name__}.MIN_SAMPLES', 2)
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}])
   dataset.compute_embedding('test_embedding', 'text')
-  signal = ClusteringSignal(embedding='test_embedding')
+  signal = ClusterDBSCAN(embedding='test_embedding')
   dataset.compute_signal(signal, 'text')
   signal_key = signal.key(is_computed_signal=True)
   result = dataset.select_rows(combine_columns=True)
