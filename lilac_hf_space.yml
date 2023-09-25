@@ -1,15 +1,4 @@
 datasets:
-  - name: langsmith-rag-finetuning
-    namespace: lilac
-    tags: [machine-learning]
-    settings:
-      ui:
-        media_paths:
-          - text
-      preferred_embedding: 'gte-small'
-    source:
-      source_name: huggingface
-      dataset_name: imdb
   - name: imdb
     namespace: lilac
     tags: [machine-learning]
