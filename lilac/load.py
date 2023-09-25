@@ -24,14 +24,22 @@ from .db_manager import get_dataset, list_datasets, remove_dataset_from_cache
 from .env import get_project_dir
 from .project import PROJECT_CONFIG_FILENAME
 from .schema import ROWID, PathTuple
-from .tasks import TaskManager, TaskStepId, TaskType
+from .tasks import (
+  TaskManager,
+  TaskStepId,
+  TaskStepInfo,
+  TaskType,
+  set_worker_next_step,
+  set_worker_steps,
+)
 from .utils import DebugTimer, get_datasets_dir, log
 
 
 def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
          config: Optional[Union[str, pathlib.Path, Config]] = None,
          overwrite: bool = False,
-         task_manager: Optional[TaskManager] = None) -> None:
+         task_manager: Optional[TaskManager] = None,
+         load_task_id: Optional[str] = None) -> None:
   """Load a project from a project configuration.
 
   Args:
@@ -44,6 +52,8 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
     overwrite: When True, runs all data from scratch, overwriting existing data. When false, only
       load new datasets, embeddings, and signals.
     task_manager: The task manager to use. If not defined, creates a new task manager.
+    load_task_id: The load task id if load is called from a task, which happens during server
+      bootup.
   """
   project_dir = project_dir or get_project_dir()
   if not project_dir:
@@ -71,6 +81,15 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
 
   existing_datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(project_dir)]
 
+  if load_task_id:
+    set_worker_steps(load_task_id, [
+      TaskStepInfo(description='Loading datasets...'),
+      TaskStepInfo(description='Updating dataset settings...'),
+      TaskStepInfo(description='Computing embeddings...'),
+      TaskStepInfo(description='Computing signals...'),
+      TaskStepInfo(description='Computing model caches...'),
+    ])
+
   log()
   log('*** Load datasets ***')
   if overwrite:
@@ -85,12 +104,16 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
     log('Skipping loaded datasets:', ', '.join([d.name for d in skipped_datasets]))
 
   with DebugTimer(f'Loading datasets: {", ".join([d.name for d in datasets_to_load])}'):
+    dataset_task_ids: list[str] = []
     for d in datasets_to_load:
       shutil.rmtree(os.path.join(project_dir, d.name), ignore_errors=True)
       task_id = task_manager.task_id(
         f'Load dataset {d.namespace}/{d.name}', type=TaskType.DATASET_LOAD)
       task_manager.execute(task_id, process_source, project_dir, d, (task_id, 0))
-    task_manager.wait()
+      dataset_task_ids.append(task_id)
+    print('waiting on dask...', dataset_task_ids)
+    task_manager.wait(dataset_task_ids)
+    print('done on dask...')
 
   log()
   total_num_rows = 0
@@ -105,6 +128,8 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
     total_num_rows += num_rows
 
   log(f'Done loading {len(datasets_to_load)} datasets with {total_num_rows:,} rows.')
+  if load_task_id:
+    set_worker_next_step(load_task_id)
 
   log('*** Dataset settings ***')
   for d in config.datasets:
@@ -113,12 +138,16 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
       dataset.update_settings(d.settings)
       del dataset
 
+  if load_task_id:
+    set_worker_next_step(load_task_id)
+
   log()
   log('*** Compute embeddings ***')
   with DebugTimer('Loading embeddings'):
     for d in config.datasets:
       dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
 
+      embedding_task_ids: list[str] = []
       # If embeddings are explicitly set, use only those.
       embeddings = d.embeddings or []
       # If embeddings are not explicitly set, use the media paths and preferred embedding from
@@ -134,6 +163,7 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
           task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {d.name}:{e.path}')
           task_manager.execute(task_id, _compute_embedding, d.namespace, d.name, e, project_dir,
                                (task_id, 0))
+          embedding_task_ids.append(task_id)
         else:
           log(f'Embedding {e.embedding} already exists for {d.name}:{e.path}. Skipping.')
 
@@ -141,7 +171,10 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
       gc.collect()
 
       # Wait for all embeddings for each dataset to reduce the memory pressure.
-      task_manager.wait()
+      task_manager.wait(embedding_task_ids)
+
+  if load_task_id:
+    set_worker_next_step(load_task_id)
 
   log()
   log('*** Compute signals ***')
@@ -171,11 +204,14 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
             task_manager.execute(task_id, _compute_signal, d.namespace, d.name, s, project_dir,
                                  (task_id, 0))
             # Wait for each signal to reduce memory pressure.
-            task_manager.wait()
+            task_manager.wait([task_id])
           else:
             print(f'Signal {s.signal} already exists for {d.name}:{s.path}. Skipping.')
 
       del dataset
+
+  if load_task_id:
+    set_worker_next_step(load_task_id)
 
   log()
   log('*** Compute model caches ***')
@@ -187,6 +223,9 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
         for embedding in config.concept_model_cache_embeddings:
           concept_model_db.sync(
             concept_info.namespace, concept_info.name, embedding_name=embedding, create=True)
+
+  if load_task_id:
+    set_worker_next_step(load_task_id)
 
   log()
   log('Done!')

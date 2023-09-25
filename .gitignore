@@ -18,6 +18,7 @@ dist/
 
 # Data to ignore.
 /data
+/data2
 demo_data/
 
 # Ignore pickled concept models.

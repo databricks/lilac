@@ -210,8 +210,6 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 
     lilac_hf_datasets.append(dataset_repo_id)
 
-  hf_space_dir = os.path.join(project_dir, HF_SPACE_DIR)
-
   # Upload the lilac.yml.
   hf_api.upload_file(
     path_or_fileobj=os.path.join(project_dir, PROJECT_CONFIG_FILENAME),
@@ -222,10 +220,7 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 
   # Upload files.
   files: dict[str, str] = {
-    '.env.demo': f"""LILAC_PROJECT_DIR='/data'
-HF_HOME=/data/.huggingface
-TRANSFORMERS_CACHE=/data/.cache
-XDG_CACHE_HOME=/data/.cache
+    '.env.demo': f"""
 {'GOOGLE_ANALYTICS_ENABLED=true' if not disable_google_analytics else ''}
 """,
     'README.md': '---\n' + to_yaml({

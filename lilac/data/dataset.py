@@ -574,6 +574,9 @@ class Dataset(abc.ABC):
     """
     pass
 
+  def teardown(self) -> None:
+    pass
+
 
 def default_settings(dataset: Dataset) -> DatasetSettings:
   """Gets the default settings for a dataset."""

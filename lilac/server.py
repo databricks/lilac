@@ -5,11 +5,13 @@ import logging
 import os
 import time
 import webbrowser
+from contextlib import asynccontextmanager
 from importlib import metadata
-from typing import Any, Optional
+from typing import Any, AsyncGenerator, Optional
 
 import requests
 import uvicorn
+from distributed import get_client
 from fastapi import APIRouter, BackgroundTasks, FastAPI, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, ORJSONResponse
 from fastapi.routing import APIRoute
@@ -39,7 +41,7 @@ from .project import create_project_and_set_env
 from .router_utils import RouteErrorHandler
 from .sources.default_sources import register_default_sources
 from .sources.source_registry import registered_sources
-from .tasks import get_task_manager
+from .tasks import TaskManager, get_task_manager
 
 register_default_sources()
 
@@ -65,10 +67,44 @@ def custom_generate_unique_id(route: APIRoute) -> str:
   return route.name
 
 
+def _add_load_task(task_manager: TaskManager) -> None:
+  task_id = task_manager.task_id(
+    'Loading from project config... ',
+    description='This can be disabled by setting the environment variable DISABLE_LOAD_ON_START=true'
+  )
+  task_manager.execute(task_id, _load, task_id)
+
+
+def _load(load_task_id: str) -> None:
+  print('LOADING!')
+
+  load(
+    project_dir=get_project_dir(),
+    overwrite=False,
+    task_manager=TaskManager(dask_client=get_client()),
+    load_task_id=load_task_id)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+  """Context manager for the lifespan of the application."""
+  task_manager = get_task_manager()
+
+  loop = asyncio.get_running_loop()
+  loop.run_in_executor(None, _add_load_task, task_manager)
+
+  print('lifespan...')
+  yield
+
+  # Clean up the ML models and release the resources
+  await get_task_manager().stop()
+
+
 app = FastAPI(
   default_response_class=ORJSONResponse,
   generate_unique_id_function=custom_generate_unique_id,
-  openapi_tags=tags_metadata)
+  openapi_tags=tags_metadata,
+  lifespan=lifespan)
 
 
 @app.exception_handler(ConceptAuthorizationException)
@@ -186,12 +222,6 @@ def catch_all() -> FileResponse:
 app.mount('/', StaticFiles(directory=DIST_PATH, html=True, check_dir=False))
 
 
-@app.on_event('shutdown')
-async def shutdown_event() -> None:
-  """Kill the task manager when FastAPI shuts down."""
-  await get_task_manager().stop()
-
-
 class GetTasksFilter(logging.Filter):
   """Task filter for /tasks."""
 
@@ -254,7 +284,8 @@ def start_server(host: str = '127.0.0.1',
             time.sleep(.1)
           try:
             # Load the config.
-            requests.post(f'http://{host}:{port}/load_config')
+            #requests.post(f'http://{host}:{port}/load_config')
+            pass
           except Exception as e:
             print('Error loading config: ', e)
 
