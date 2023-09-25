@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -41,7 +42,7 @@ export class ConceptsService {
     public static getConcept(
         namespace: string,
         conceptName: string,
-        draft?: ('main' | string),
+        draft?: (string | null),
     ): CancelablePromise<Concept> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -224,7 +225,7 @@ export class ConceptsService {
      * @param conceptName
      * @param embeddingName
      * @param createIfNotExists
-     * @returns ConceptModelInfo Successful Response
+     * @returns any Successful Response
      * @throws ApiError
      */
     public static getConceptModel(
@@ -232,7 +233,7 @@ export class ConceptsService {
         conceptName: string,
         embeddingName: string,
         createIfNotExists: boolean = false,
-    ): CancelablePromise<ConceptModelInfo> {
+    ): CancelablePromise<(ConceptModelInfo | null)> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/concepts/{namespace}/{concept_name}/model/{embedding_name}',

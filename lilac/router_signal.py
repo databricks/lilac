@@ -4,7 +4,7 @@ import math
 from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, SerializeAsAny, field_validator
 
 from .auth import UserInfo, get_session_user
 from .router_utils import RouteErrorHandler, server_compute_concept
@@ -28,7 +28,7 @@ class SignalInfo(BaseModel):
 def get_signals() -> list[SignalInfo]:
   """List the signals."""
   return [
-    SignalInfo(name=s.name, input_type=s.input_type, json_schema=s.schema())
+    SignalInfo(name=s.name, input_type=s.input_type, json_schema=s.model_json_schema())
     for s in SIGNAL_REGISTRY.values()
     if not issubclass(s, TextEmbeddingSignal)
   ]
@@ -38,7 +38,7 @@ def get_signals() -> list[SignalInfo]:
 def get_embeddings() -> list[SignalInfo]:
   """List the embeddings."""
   embedding_infos = [
-    SignalInfo(name=s.name, input_type=s.input_type, json_schema=s.schema())
+    SignalInfo(name=s.name, input_type=s.input_type, json_schema=s.model_json_schema())
     for s in SIGNAL_REGISTRY.values()
     if issubclass(s, TextEmbeddingSignal)
   ]
@@ -54,11 +54,12 @@ def get_embeddings() -> list[SignalInfo]:
 
 class SignalComputeOptions(BaseModel):
   """The request for the standalone compute signal endpoint."""
-  signal: Signal
+  signal: SerializeAsAny[Signal]
   # The inputs to compute.
   inputs: list[str]
 
-  @validator('signal', pre=True)
+  @field_validator('signal', mode='before')
+  @classmethod
   def parse_signal(cls, signal: dict) -> Signal:
     """Parse a signal to its specific subclass instance."""
     return resolve_signal(signal)
@@ -66,7 +67,7 @@ class SignalComputeOptions(BaseModel):
 
 class SignalComputeResponse(BaseModel):
   """The response for the standalone compute signal endpoint."""
-  items: list[Optional[Any]]
+  items: list[Any]
 
 
 @router.post('/compute', response_model_exclude_none=True)
@@ -85,9 +86,10 @@ def compute(
 
 class SignalSchemaOptions(BaseModel):
   """The request for the signal schema endpoint."""
-  signal: Signal
+  signal: SerializeAsAny[Signal]
 
-  @validator('signal', pre=True)
+  @field_validator('signal', mode='before')
+  @classmethod
   def parse_signal(cls, signal: dict) -> Signal:
     """Parse a signal to its specific subclass instance."""
     return resolve_signal(signal)

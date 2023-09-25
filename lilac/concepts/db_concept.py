@@ -285,7 +285,11 @@ class DiskConceptModelDB(ConceptModelDB):
       return None
 
     with open_file(concept_model_path, 'rb') as f:
-      return pickle.load(f)
+      try:
+        return pickle.load(f)
+      except BaseException:
+        # Pickle serialization failed. We fallback to re-creating the model.
+        return None
 
   def _save(self, model: ConceptModel) -> None:
     """Save the concept model."""
@@ -437,7 +441,7 @@ class DiskConceptDB(ConceptDB):
       obj: dict[str, Any] = json.load(f)
       if 'namespace' not in obj:
         obj['namespace'] = namespace
-      return Concept.parse_obj(obj)
+      return Concept.model_validate(obj)
 
   @override
   def create(self,
@@ -517,7 +521,7 @@ class DiskConceptDB(ConceptDB):
 
     for example in inserted_points:
       id = uuid.uuid4().hex
-      concept.data[id] = Example(id=id, **example.dict())
+      concept.data[id] = Example(id=id, **example.model_dump())
 
     for example in updated_points:
       if example.id not in concept.data:
@@ -525,7 +529,7 @@ class DiskConceptDB(ConceptDB):
 
       # Remove the old example and make a new one with a new id to keep it functional.
       concept.data.pop(example.id)
-      concept.data[example.id] = example.copy()
+      concept.data[example.id] = example.model_copy()
 
     concept.version += 1
 
@@ -537,7 +541,7 @@ class DiskConceptDB(ConceptDB):
     concept_json_path = _concept_json_path(self._get_project_dir(), concept.namespace,
                                            concept.concept_name)
     with open_file(concept_json_path, 'w') as f:
-      f.write(concept.json(exclude_none=True, indent=2, exclude_defaults=True))
+      f.write(concept.model_dump_json(exclude_none=True, indent=2, exclude_defaults=True))
 
   @override
   def remove(self, namespace: str, name: str, user: Optional[UserInfo] = None) -> None:

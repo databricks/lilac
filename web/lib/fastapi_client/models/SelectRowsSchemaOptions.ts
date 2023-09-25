@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -12,10 +13,10 @@ import type { SortOrder } from './SortOrder';
  * The request for the select rows schema endpoint.
  */
 export type SelectRowsSchemaOptions = {
-    columns?: Array<(Array<string> | string | Column)>;
+    columns?: Array<(Column | Array<string> | string)>;
     searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch)>;
     sort_by?: Array<(Array<string> | string)>;
-    sort_order?: SortOrder;
-    combine_columns?: boolean;
+    sort_order?: (SortOrder | null);
+    combine_columns?: (boolean | null);
 };
 

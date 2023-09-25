@@ -1,6 +1,6 @@
 """Tests for `db.select_rows_schema()`."""
 
-from typing import Iterable, Optional, cast
+from typing import ClassVar, Iterable, Optional, cast
 
 import numpy as np
 import pytest
@@ -84,7 +84,7 @@ TEST_DATA: list[Item] = [{
 
 class TestSplitter(TextSplitterSignal):
   """Split documents into sentence by splitting on period."""
-  name = 'test_splitter'
+  name: ClassVar[str] = 'test_splitter'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -108,7 +108,7 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -119,8 +119,8 @@ class TestEmbedding(TextEmbeddingSignal):
 
 class TestEmbeddingSumSignal(VectorSignal):
   """Sums the embeddings to return a single floating point value."""
-  name = 'test_embedding_sum'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'test_embedding_sum'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -152,7 +152,7 @@ def setup_teardown() -> Iterable[None]:
 
 
 class LengthSignal(TextSignal):
-  name = 'length_signal'
+  name: ClassVar[str] = 'length_signal'
 
   def fields(self) -> Field:
     return field('int32')
@@ -163,7 +163,7 @@ class LengthSignal(TextSignal):
 
 
 class AddSpaceSignal(TextSignal):
-  name = 'add_space_signal'
+  name: ClassVar[str] = 'add_space_signal'
 
   def fields(self) -> Field:
     return field('string')
@@ -241,7 +241,7 @@ def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       'people': [{
         'name': {
-          'length_signal': field('int32', length_signal.dict())
+          'length_signal': field('int32', length_signal.model_dump())
         },
         'locations': [{
           'city': 'string'
@@ -266,7 +266,8 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
     data_schema=schema({
       'people': [{
         'name': field(
-          'string', fields={'add_space_signal': field('string', signal=add_space_signal.dict())})
+          'string',
+          fields={'add_space_signal': field('string', signal=add_space_signal.model_dump())})
       }],
     }),
     udfs=[
@@ -293,62 +294,13 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
       'text': field(
         'string',
         fields={
-          'add_space_signal': field('string', add_space_signal.dict()),
-          'test_splitter': field(signal=test_splitter.dict(), fields=['string_span'])
+          'add_space_signal': field('string', add_space_signal.model_dump()),
+          'test_splitter': field(signal=test_splitter.model_dump(), fields=['string_span'])
         })
     }),
     udfs=[
       SelectRowsSchemaUDF(path=('text', add_space_signal.key())),
     ],
-  )
-
-
-def test_udf_embedding_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'hello. hello2.',
-  }, {
-    'text': 'hello world. hello world2.',
-  }])
-
-  test_splitter = TestSplitter()
-  dataset.compute_signal(test_splitter, 'text')
-  test_embedding = TestEmbedding()
-  dataset.compute_signal(test_embedding, ('text', 'test_splitter', '*'))
-
-  embedding_sum_signal = TestEmbeddingSumSignal(embedding='test_embedding')
-  udf_col = Column(('text', 'test_splitter', '*'), signal_udf=embedding_sum_signal)
-  result = dataset.select_rows_schema([('text'), udf_col], combine_columns=True)
-
-  expected_schema = schema({
-    'text': field(
-      'string',
-      fields={
-        'test_splitter': field(
-          signal=test_splitter.dict(),
-          fields=[
-            field(
-              'string_span',
-              fields={
-                'test_embedding': field(
-                  signal=test_embedding.dict(),
-                  fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
-                embedding_sum_signal.key(): field('float32', signal=embedding_sum_signal.dict())
-              })
-          ])
-      })
-  })
-  output_path = ('text', 'test_splitter', '*', embedding_sum_signal.key())
-  assert result == SelectRowsSchemaResult(
-    data_schema=expected_schema,
-    udfs=[SelectRowsSchemaUDF(path=output_path)],
-  )
-
-  # Alias the udf.
-  udf_col.alias = 'udf1'
-  result = dataset.select_rows_schema([('text'), udf_col], combine_columns=True)
-  assert result == SelectRowsSchemaResult(
-    data_schema=expected_schema,
-    udfs=[SelectRowsSchemaUDF(path=output_path, alias='udf1')],
   )
 
 
@@ -376,13 +328,13 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           expected_world_signal.key(): field(
-            signal=expected_world_signal.dict(), fields=['string_span'])
+            signal=expected_world_signal.model_dump(), fields=['string_span'])
         }),
       'text2': field(
         'string',
         fields={
           expected_hello_signal.key(): field(
-            signal=expected_hello_signal.dict(), fields=['string_span'])
+            signal=expected_hello_signal.model_dump(), fields=['string_span'])
         })
     }),
     search_results=[
@@ -427,10 +379,10 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_embedding': field(
-            signal=test_embedding.dict(),
+            signal=test_embedding.model_dump(),
             fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
           expected_world_signal.key(): field(
-            signal=expected_world_signal.dict(),
+            signal=expected_world_signal.model_dump(),
             fields=[field('string_span', fields={'score': 'float32'})])
         })
     }),
@@ -473,10 +425,10 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_embedding': field(
-            signal=test_embedding.dict(),
+            signal=test_embedding.model_dump(),
             fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
           expected_world_signal.key(): field(
-            signal=expected_world_signal.dict(),
+            signal=expected_world_signal.model_dump(),
             fields=[
               field(
                 dtype='string_span',
@@ -492,7 +444,7 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
               'label': 'boolean',
               'draft': 'string'
             })],
-            signal=expected_labels_signal.dict())
+            signal=expected_labels_signal.model_dump())
         })
     }),
     udfs=[

@@ -1,5 +1,5 @@
 """A source to compute semantic search for a document."""
-from typing import Iterable, cast
+from typing import ClassVar, Iterable, cast
 
 import pytest
 from typing_extensions import override
@@ -11,7 +11,7 @@ from .source_registry import clear_source_registry, get_source_cls, register_sou
 
 class TestSource(Source):
   """A test source."""
-  name = 'test_source'
+  name: ClassVar[str] = 'test_source'
 
   @override
   def setup(self) -> None:
@@ -52,4 +52,4 @@ def test_resolve_source() -> None:
   assert resolve_source(test_source) == test_source
 
   # Dicts resolve to the base class.
-  assert resolve_source(test_source.dict()) == test_source
+  assert resolve_source(test_source.model_dump()) == test_source

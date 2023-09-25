@@ -1,5 +1,5 @@
 """Compute named entity recognition with SpaCy."""
-from typing import TYPE_CHECKING, Iterable, Optional
+from typing import TYPE_CHECKING, ClassVar, Iterable, Optional
 
 from pydantic import Field as PydanticField
 from typing_extensions import override
@@ -16,12 +16,11 @@ class SpacyNER(TextSignal):
 
   For details see: [spacy.io/models](https://spacy.io/models).
   """
-  name = 'spacy_ner'
-  display_name = 'Named Entity Recognition'
+  name: ClassVar[str] = 'spacy_ner'
+  display_name: ClassVar[str] = 'Named Entity Recognition'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   model: str = PydanticField(title='SpaCy package name or model path.', default='en_core_web_sm')
-
-  input_type = SignalInputType.TEXT
 
   _nlp: Optional['spacy.language.Language'] = None
 

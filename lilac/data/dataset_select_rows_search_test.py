@@ -1,6 +1,6 @@
 """Tests for dataset.select_rows(searches=[...])."""
 
-from typing import Iterable, cast
+from typing import ClassVar, Iterable, cast
 
 import numpy as np
 import pytest
@@ -148,7 +148,7 @@ def test_search_keyword_with_filters(make_test_data: TestDataMaker) -> None:
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

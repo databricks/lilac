@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -14,9 +15,9 @@ import type { UnaryFilter } from './UnaryFilter';
 export type SelectGroupsOptions = {
     leaf_path: (Array<string> | string);
     filters?: Array<(BinaryFilter | UnaryFilter | ListFilter)>;
-    sort_by?: GroupsSortBy;
-    sort_order?: SortOrder;
-    limit?: number;
-    bins?: Array<Array<any>>;
+    sort_by?: (GroupsSortBy | null);
+    sort_order?: (SortOrder | null);
+    limit?: (number | null);
+    bins?: (Array<any[]> | null);
 };
 

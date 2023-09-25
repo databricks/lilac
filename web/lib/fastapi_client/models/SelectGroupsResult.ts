@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -7,7 +8,7 @@
  */
 export type SelectGroupsResult = {
     too_many_distinct: boolean;
-    counts: Array<Array<any>>;
-    bins?: Array<Array<any>>;
+    counts: Array<any[]>;
+    bins?: (Array<any[]> | null);
 };
 

@@ -1,5 +1,5 @@
 """Loads reddit data from Huggingface."""
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 from pydantic import Field as PydanticField
 from typing_extensions import override
@@ -17,12 +17,10 @@ class RedditDataset(Source):
 
   Loads data from [huggingface.co/datasets/reddit](https://huggingface.co/datasets/reddit).
   """ # noqa: D415, D400
-  name = 'reddit'
+  name: ClassVar[str] = 'reddit'
 
   subreddits: Optional[list[str]] = PydanticField(
-    required=False,
-    description='If defined, only loads the subset of reddit data in these subreddit.',
-  )
+    description='If defined, only loads the subset of reddit data in these subreddit.')
 
   _hf_dataset: HuggingFaceSource
 

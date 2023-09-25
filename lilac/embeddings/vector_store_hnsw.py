@@ -57,27 +57,37 @@ class HNSWVectorStore(VectorStore):
 
   @override
   def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
-    assert self._index is None, (
-      'Embeddings already exist in this store. Upsert is not yet supported.')
+    dim = embeddings.shape[1]
+
+    current_size = self.size() if self._index is not None else 0
+    if self._index is None:
+      with DebugTimer('hnswlib index creation'):
+        index = hnswlib.Index(space=SPACE, dim=dim)
+        index.set_num_threads(multiprocessing.cpu_count())
+        index.init_index(max_elements=len(keys), ef_construction=CONSTRUCTION_EF, M=M)
+        self._index = index
+    else:
+      with DebugTimer('hnswlib index resize'):
+        self._index.resize_index(current_size + len(keys))
 
     if len(keys) != embeddings.shape[0]:
       raise ValueError(
         f'Length of keys ({len(keys)}) does not match number of embeddings {embeddings.shape[0]}.')
 
-    dim = embeddings.shape[1]
-    with DebugTimer('hnswlib index creation'):
-      index = hnswlib.Index(space=SPACE, dim=dim)
-      index.set_num_threads(multiprocessing.cpu_count())
-      index.init_index(max_elements=len(keys), ef_construction=CONSTRUCTION_EF, M=M)
-
+    with DebugTimer('hnswlib add items'):
       # Cast to float32 since dot product with float32 is 40-50x faster than float16 and 2.5x faster
       # than float64.
       embeddings = embeddings.astype(np.float32)
-      row_indices = np.arange(len(keys), dtype=np.int32)
-      self._key_to_label = pd.Series(row_indices, index=keys, dtype=np.int32)
+      row_indices = np.arange(current_size, current_size + len(keys), dtype=np.int32)
+
+      new_key_to_label = pd.Series(row_indices, index=keys, dtype=np.int32)
+      if self._key_to_label is not None:
+        self._key_to_label = pd.concat([self._key_to_label, new_key_to_label])
+      else:
+        self._key_to_label = new_key_to_label
+
       self._key_to_label.name = str(dim)
-      index.add_items(embeddings, row_indices)
-      self._index = index
+      self._index.add_items(embeddings, row_indices)
       self._index.set_ef(min(QUERY_EF, self.size()))
 
   @override

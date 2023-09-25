@@ -1,10 +1,12 @@
 """Implementation-agnostic tests of the Dataset DB API."""
 
-from typing import Iterable, Optional, cast
+from typing import ClassVar, Iterable, Optional, cast
 
 import numpy as np
 import pytest
 from typing_extensions import override
+
+from lilac.sources.source_registry import clear_source_registry, register_source
 
 from ..config import DatasetConfig, EmbeddingConfig, SignalConfig
 from ..schema import EMBEDDING_KEY, ROWID, Field, Item, RichData, field, lilac_embedding, schema
@@ -45,7 +47,7 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -55,7 +57,7 @@ class TestEmbedding(TextEmbeddingSignal):
 
 
 class LengthSignal(TextSignal):
-  name = 'length_signal'
+  name: ClassVar[str] = 'length_signal'
 
   _call_count: int = 0
 
@@ -69,7 +71,7 @@ class LengthSignal(TextSignal):
 
 
 class TestSignal(TextSignal):
-  name = 'test_signal'
+  name: ClassVar[str] = 'test_signal'
 
   @override
   def fields(self) -> Field:
@@ -83,6 +85,7 @@ class TestSignal(TextSignal):
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
+  register_source(TestSource)
   register_signal(TestSignal)
   register_signal(TestEmbedding)
   register_signal(LengthSignal)
@@ -93,6 +96,7 @@ def setup_teardown() -> Iterable[None]:
   yield
 
   # Teardown.
+  clear_source_registry()
   clear_signal_registry()
 
 
@@ -285,7 +289,7 @@ def test_select_ids(make_test_data: TestDataMaker) -> None:
 
 
 def test_select_ids_with_limit_and_offset(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{i: i} for i in range(10)]
+  items: list[Item] = [{str(i): i} for i in range(9)]
   dataset = make_test_data(items)
 
   result = dataset.select_rows([ROWID], offset=1, limit=3)
@@ -294,10 +298,10 @@ def test_select_ids_with_limit_and_offset(make_test_data: TestDataMaker) -> None
   result = dataset.select_rows([ROWID], offset=7, limit=2)
   assert list(result) == [{ROWID: '8'}, {ROWID: '9'}]
 
-  result = dataset.select_rows([ROWID], offset=9, limit=200)
-  assert list(result) == [{ROWID: '10'}]
+  result = dataset.select_rows([ROWID], offset=8, limit=200)
+  assert list(result) == [{ROWID: '9'}]
 
-  result = dataset.select_rows([ROWID], offset=10, limit=200)
+  result = dataset.select_rows([ROWID], offset=9, limit=200)
   assert list(result) == []
 
 
@@ -447,9 +451,9 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
         field(
           'string',
           fields={
-            'length_signal': field('int32', length_signal.dict()),
+            'length_signal': field('int32', length_signal.model_dump()),
             'test_signal': field(
-              signal=test_signal.dict(), fields={
+              signal=test_signal.model_dump(), fields={
                 'len': 'int32',
                 'flen': 'float32'
               })
@@ -653,7 +657,7 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_signal': field(
-            signal=test_signal.dict(), fields={
+            signal=test_signal.model_dump(), fields={
               'len': 'int32',
               'flen': 'float32'
             })
@@ -745,7 +749,7 @@ def test_signal_with_quote(make_test_data: TestDataMaker) -> None:
 
 
 class SignalWithQuoteInIt(TextSignal):
-  name = "test'signal"
+  name: ClassVar[str] = "test'signal"
 
   @override
   def fields(self) -> Field:
@@ -758,7 +762,7 @@ class SignalWithQuoteInIt(TextSignal):
 
 
 class SignalWithDoubleQuoteInIt(TextSignal):
-  name = 'test"signal'
+  name: ClassVar[str] = 'test"signal'
 
   @override
   def fields(self) -> Field:
@@ -783,12 +787,12 @@ def test_dataset_config_from_manifest(make_test_data: TestDataMaker) -> None:
         'string',
         fields={
           'test_signal': field(
-            signal=TestSignal().dict(), fields={
+            signal=TestSignal().model_dump(), fields={
               'len': 'int32',
               'flen': 'float32'
             }),
           'test_embedding': field(
-            signal=TestEmbedding().dict(),
+            signal=TestEmbedding().model_dump(),
             fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
         })
     }),

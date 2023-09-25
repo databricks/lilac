@@ -1,7 +1,7 @@
 """Implementation-agnostic tests of the Dataset DB API working with projects."""
 
 from pathlib import Path
-from typing import Iterable, Optional, cast
+from typing import ClassVar, Iterable, Optional, cast
 
 import numpy as np
 import pytest
@@ -49,7 +49,7 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in
 
 class TestSource(Source):
   """A test source."""
-  name = 'test_source'
+  name: ClassVar[str] = 'test_source'
 
   @override
   def source_schema(self) -> SourceSchema:
@@ -71,7 +71,7 @@ class TestSource(Source):
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -81,7 +81,7 @@ class TestEmbedding(TextEmbeddingSignal):
 
 
 class TestSignal(TextSignal):
-  name = 'test_signal'
+  name: ClassVar[str] = 'test_signal'
 
   _call_count: int = 0
 

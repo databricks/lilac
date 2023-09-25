@@ -153,7 +153,7 @@
                     <SelectSkeleton />
                   {:else}
                     <Select
-                      selected={$settings.data?.preferred_embedding}
+                      selected={$settings.data?.preferred_embedding || undefined}
                       on:change={embeddingChanged}
                     >
                       <SelectItem value={undefined} text="None" />

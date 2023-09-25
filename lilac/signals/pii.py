@@ -1,6 +1,6 @@
 """Compute text statistics for a document."""
 import re
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 from typing_extensions import override
 
@@ -20,10 +20,10 @@ EMAIL_REGEX = re.compile(
 
 class PIISignal(TextSignal):
   """Find personally identifiable information (emails, phone numbers, secret keys, etc)."""
-  name = 'pii'
-  display_name = 'Personal Information (PII)'
+  name: ClassVar[str] = 'pii'
+  display_name: ClassVar[str] = 'Personal Information (PII)'
 
-  input_type = SignalInputType.TEXT
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:

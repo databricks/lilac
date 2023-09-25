@@ -1,4 +1,5 @@
 """Test batch_utils.py."""
+import itertools
 from typing import Iterable
 
 import numpy as np
@@ -67,19 +68,29 @@ def test_deep_flatten_np() -> None:
 def test_deep_unflatten() -> None:
   a = [[1, 2], [[3]], [4, 5, 5]]
   flat_a = list(deep_flatten(a))
-  result = deep_unflatten(flat_a, a)
-  assert result == [[1, 2], [[3]], [4, 5, 5]]
+  flat_f_a = [a * 2 for a in flat_a]
+  result = list(deep_unflatten(flat_f_a, a))
+  assert result == [[2, 4], [[6]], [8, 10, 10]]
+
+
+def test_deep_unflatten_generator() -> None:
+  a = ([1, 2], [[3]], [4, 5, 5])
+  a_0, a_1 = itertools.tee(a, 2)
+  flat_a = list(deep_flatten(a_0))
+  flat_f_a = [a * 2 for a in flat_a]
+  result = list(deep_unflatten(flat_f_a, a_1))
+  assert result == [[2, 4], [[6]], [8, 10, 10]]
 
 
 def test_deep_unflatten_primitive() -> None:
   original = 'hello'
-  result = deep_unflatten(['hello'], original)
+  result = next(iter(deep_unflatten(['hello'], original)))
   assert result == 'hello'
 
 
 def test_deep_unflatten_primitive_list() -> None:
   original = ['hello', 'world']
-  result = deep_unflatten(['hello', 'world'], original)
+  result = list(deep_unflatten(['hello', 'world'], original))
   assert result == ['hello', 'world']
 
 

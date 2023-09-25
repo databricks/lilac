@@ -42,18 +42,25 @@ class NumpyVectorStore(VectorStore):
 
   @override
   def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
-    if self._embeddings or self._key_to_index:
-      raise ValueError('Embeddings already exist in this store. Upsert is not yet supported.')
-
     if len(keys) != embeddings.shape[0]:
       raise ValueError(
         f'Length of keys ({len(keys)}) does not match number of embeddings {embeddings.shape[0]}.')
 
+    current_size = self.size() if self._embeddings is not None else 0
+
     # Cast to float32 since dot product with float32 is 40-50x faster than float16 and 2.5x faster
     # than float64.
-    self._embeddings = embeddings.astype(np.float32)
-    row_indices = np.arange(len(embeddings), dtype=np.uint32)
-    self._key_to_index = pd.Series(row_indices, index=keys, dtype=np.uint32)
+    if self._embeddings is None:
+      self._embeddings = embeddings.astype(np.float32)
+    else:
+      self._embeddings = np.concatenate([self._embeddings, embeddings.astype(np.float32)], axis=0)
+
+    row_indices = np.arange(current_size, current_size + len(keys), dtype=np.int32)
+    new_key_to_label = pd.Series(row_indices, index=keys, dtype=np.int32)
+    if self._key_to_index is not None:
+      self._key_to_index = pd.concat([self._key_to_index, new_key_to_label])
+    else:
+      self._key_to_index = new_key_to_label
 
   @override
   def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:

@@ -58,7 +58,7 @@
         <div class="mt-6">
           <ProgressBar
             labelText={task.message || ''}
-            helperText={task.status != 'completed' ? task.details : ''}
+            helperText={task.status != 'completed' ? task.details || undefined : ''}
             value={task.status === 'completed' ? 1.0 : progressValue}
             max={1.0}
             status={taskToProgressStatus[task.status]}
@@ -82,7 +82,7 @@
           fullWidth
           lowContrast
           title="Error loading dataset"
-          caption={task.error}
+          caption={task.error || undefined}
         />
       {/if}
     {/if}

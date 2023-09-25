@@ -95,7 +95,7 @@ function castLilacValueNode<D extends DataType = DataType>(
  * schema.
  */
 export function deserializeSchema(rawSchema: Schema): LilacSchema {
-  const lilacFields = deserializeField(rawSchema);
+  const lilacFields = deserializeField(rawSchema as Field);
 
   if (!lilacFields.fields) {
     return {fields: {}, path: []};
@@ -273,7 +273,7 @@ export const L = {
     if (!value) return undefined;
     return castLilacValueNode(value)[SCHEMA_FIELD_KEY];
   },
-  dtype: (value: LilacValueNode): DataType | undefined => {
+  dtype: (value: LilacValueNode): DataType | undefined | null => {
     const _field = L.field(value);
     return _field?.dtype;
   }

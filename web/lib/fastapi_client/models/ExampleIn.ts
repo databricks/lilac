@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -9,9 +10,9 @@ import type { ExampleOrigin } from './ExampleOrigin';
  */
 export type ExampleIn = {
     label: boolean;
-    text?: string;
-    img?: Blob;
-    origin?: ExampleOrigin;
-    draft?: ('main' | string);
+    text?: (string | null);
+    img?: (Blob | null);
+    origin?: (ExampleOrigin | null);
+    draft?: (string | null);
 };
 

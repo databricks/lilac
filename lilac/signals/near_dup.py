@@ -1,5 +1,5 @@
 """Compute near duplicates for a dataset."""
-from typing import Iterable, Optional, cast
+from typing import ClassVar, Iterable, Optional, cast
 
 from pydantic import Field as PydanticField
 from typing_extensions import override
@@ -20,10 +20,9 @@ class NearDuplicateSignal(TextSignal):
   [minhash LSH](https://en.wikipedia.org/wiki/MinHash). Documents are assigned the same cluster id
   if their Jaccard similarity is above the provided threshold.
   """
-  name = 'near_dup'
-  display_name = 'Near duplicate documents'
-
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'near_dup'
+  display_name: ClassVar[str] = 'Near duplicate documents'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   threshold: float = PydanticField(
     default=0.85,

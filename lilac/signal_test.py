@@ -1,5 +1,5 @@
 """Test signal base class."""
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 import pytest
 from typing_extensions import override
@@ -22,8 +22,8 @@ class TestSignal(Signal):
   """A test signal."""
 
   # Pydantic fields
-  name = 'test_signal'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'test_signal'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   query: str
 
@@ -39,7 +39,7 @@ class TestSignal(Signal):
 
 class TestTextSplitter(TextSplitterSignal):
   """A test text splitter."""
-  name = 'test_splitter'
+  name: ClassVar[str] = 'test_splitter'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -49,7 +49,7 @@ class TestTextSplitter(TextSplitterSignal):
 
 class TestTextEmbedding(TextEmbeddingSignal):
   """A test text embedding."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -75,7 +75,7 @@ def test_signal_serialization() -> None:
   signal = TestSignal(query='test')
 
   # The class variables should not be included.
-  assert signal.dict() == {'signal_name': 'test_signal', 'query': 'test'}
+  assert signal.model_dump() == {'signal_name': 'test_signal', 'query': 'test'}
 
 
 def test_get_signal_cls() -> None:
@@ -91,7 +91,7 @@ def test_resolve_signal() -> None:
   assert resolve_signal(test_signal) == test_signal
 
   # Dicts resolve to the base class.
-  assert resolve_signal(test_signal.dict()) == test_signal
+  assert resolve_signal(test_signal.model_dump()) == test_signal
 
 
 def test_get_signal_by_type() -> None:
@@ -114,14 +114,14 @@ def test_get_signals_by_type() -> None:
 
 
 class TestSignalNoDisplayName(Signal):
-  name = 'signal_no_name'
+  name: ClassVar[str] = 'signal_no_name'
 
 
 class TestSignalDisplayName(Signal):
-  name = 'signal_display_name'
-  display_name = 'test display name'
+  name: ClassVar[str] = 'signal_display_name'
+  display_name: ClassVar[str] = 'test display name'
 
 
 def test_signal_title_schema() -> None:
-  assert TestSignalNoDisplayName.schema()['title'] == TestSignalNoDisplayName.__name__
-  assert TestSignalDisplayName.schema()['title'] == 'test display name'
+  assert TestSignalNoDisplayName.model_json_schema()['title'] == TestSignalNoDisplayName.__name__
+  assert TestSignalDisplayName.model_json_schema()['title'] == 'test display name'

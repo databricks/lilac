@@ -1,5 +1,5 @@
 """A signal to compute semantic search for a document."""
-from typing import Any, Iterable, Optional, Union
+from typing import Any, ClassVar, Iterable, Optional, Union
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -21,9 +21,9 @@ class SemanticSimilaritySignal(VectorSignal):
   This is done by embedding the query with the same embedding as the document and computing a
   a similarity score between them.
   """
-  name = 'semantic_similarity'
-  display_name = 'Semantic Similarity'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'semantic_similarity'
+  display_name: ClassVar[str] = 'Semantic Similarity'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   query: str
 

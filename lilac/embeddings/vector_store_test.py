@@ -1,5 +1,6 @@
 """Tests the vector store interface."""
 
+import pathlib
 from typing import Type, cast
 
 import numpy as np
@@ -16,6 +17,15 @@ ALL_STORES = [NumpyVectorStore, HNSWVectorStore]
 @pytest.mark.parametrize('store_cls', ALL_STORES)
 class VectorStoreSuite:
 
+  def test_add_chunks(self, store_cls: Type[VectorStore]) -> None:
+    store = store_cls()
+
+    store.add([('a',), ('b',)], np.array([[1, 2], [3, 4]]))
+    store.add([('c',)], np.array([[5, 6]]))
+
+    np.testing.assert_array_equal(
+      store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]]))
+
   def test_get_all(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()
 
@@ -30,6 +40,21 @@ class VectorStoreSuite:
     store.add([('a',), ('b',), ('c',)], np.array([[1, 2], [3, 4], [5, 6]]))
 
     np.testing.assert_array_equal(store.get([('b',), ('c',)]), np.array([[3, 4], [5, 6]]))
+
+  def test_save_load(self, store_cls: Type[VectorStore], tmp_path: pathlib.Path) -> None:
+    store = store_cls()
+
+    store.add([('a',), ('b',), ('c',)], np.array([[1, 2], [3, 4], [5, 6]]))
+
+    store.save(str(tmp_path))
+
+    del store
+
+    store = store_cls()
+    store.load((str(tmp_path)))
+
+    np.testing.assert_array_equal(
+      store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]]))
 
   def test_topk(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()

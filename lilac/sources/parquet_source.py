@@ -1,5 +1,5 @@
 """Parquet source."""
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -18,7 +18,7 @@ class ParquetSource(Source):
   For more details on authentication with private objects, see:
   https://arrow.apache.org/docs/python/filesystems.html
   """ # noqa: D415, D400
-  name = 'parquet'
+  name: ClassVar[str] = 'parquet'
   filepaths: list[str] = Field(
     description=
     'A list of paths to parquet files which live locally or remotely on GCS, S3, or Hadoop.')

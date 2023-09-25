@@ -1,14 +1,13 @@
 """Tests for concept."""
 
-from ..schema import SignalInputType
-from .concept import DRAFT_MAIN, Concept, Example, draft_examples
+from .concept import DRAFT_MAIN, Concept, ConceptType, Example, draft_examples
 
 
 def test_draft_examples_main() -> None:
   concept = Concept(
     namespace='test_namespace',
     concept_name='test_name',
-    type=SignalInputType.TEXT,
+    type=ConceptType.TEXT,
     data={
       '0': Example(id='0', label=True, text='hello'),
       '1': Example(id='1', label=False, text='world'),
@@ -25,7 +24,7 @@ def test_draft_examples_simple_draft() -> None:
   concept = Concept(
     namespace='test_namespace',
     concept_name='test_name',
-    type=SignalInputType.TEXT,
+    type=ConceptType.TEXT,
     data={
       '0': Example(id='0', label=True, text='hello'),
       '1': Example(id='1', label=False, text='world'),
@@ -60,7 +59,7 @@ def test_draft_examples_draft_dedupe() -> None:
   concept = Concept(
     namespace='test_namespace',
     concept_name='test_name',
-    type=SignalInputType.TEXT,
+    type=ConceptType.TEXT,
     data={
       '0': Example(id='0', label=True, text='hello'),
       '1': Example(id='1', label=False, text='world'),

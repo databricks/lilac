@@ -40,7 +40,7 @@
 
   $: valueNodes = getValueNodes(row, path);
 
-  function findSimilar(searchText: DataTypeCasted, path: Path) {
+  function findSimilar(searchText: DataTypeCasted) {
     let embedding = computedEmbeddings[0];
 
     if ($settings.data?.preferred_embedding != null) {
@@ -56,7 +56,7 @@
       }
     }
     datasetViewStore.addSearch({
-      path,
+      path: field.path,
       type: 'semantic',
       query: searchText as string,
       embedding
@@ -70,7 +70,7 @@
   {#if notEmpty(value)}
     {@const path = L.path(valueNode) || []}
     {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
-    <div class="flex gap-x-4">
+    <div class="flex w-full gap-x-4">
       <div class="relative flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
         <div class="sticky top-0 flex w-full items-center self-start">
           <div title={displayPath(path)} class="w-full truncate">{displayPath(path)}</div>
@@ -83,7 +83,7 @@
             >
               <button
                 disabled={noEmbeddings}
-                on:click={() => findSimilar(value, path)}
+                on:click={() => findSimilar(value)}
                 use:hoverTooltip={{text: 'More like this'}}
                 ><Search size={16} />
               </button>
@@ -92,11 +92,12 @@
         </div>
       </div>
 
-      <div class="w-full pt-1 font-normal">
+      <div class="w-full grow-0 pt-1 font-normal">
         <StringSpanHighlight
           text={formatValue(value)}
           {row}
           {path}
+          {field}
           {markdown}
           spanPaths={spanValuePaths.spanPaths}
           valuePaths={spanValuePaths.valuePaths}

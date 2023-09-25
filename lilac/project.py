@@ -14,7 +14,7 @@ from .config import (
   SignalConfig,
   get_dataset_config,
 )
-from .env import env, get_project_dir
+from .env import env, get_project_dir, set_project_dir
 from .utils import log, to_yaml
 
 PROJECT_CONFIG_FILENAME = 'lilac.yml'
@@ -167,14 +167,15 @@ def read_project_config(project_dir: Union[str, pathlib.Path]) -> Config:
   if not os.path.exists(project_config_filepath):
     create_project(project_dir)
 
-  with open(os.path.join(project_dir, PROJECT_CONFIG_FILENAME), 'r') as f:
-    return Config(**yaml.safe_load(f.read()))
+  with open(project_config_filepath) as f:
+    config_dict = yaml.safe_load(f.read()) or {}
+    return Config(**config_dict)
 
 
 def _write_project_config(project_dir: Union[str, pathlib.Path], config: Config) -> None:
   """Writes the project config."""
   with open(os.path.join(project_dir, PROJECT_CONFIG_FILENAME), 'w') as f:
-    yaml_config = to_yaml(config.dict(exclude_defaults=True, exclude_none=True))
+    yaml_config = to_yaml(config.model_dump(exclude_defaults=True, exclude_none=True))
     f.write('# Lilac project config.\n' +
             '# See https://lilacml.com/api_reference/index.html#lilac.Config '
             'for details.\n\n' + yaml_config)
@@ -183,8 +184,7 @@ def _write_project_config(project_dir: Union[str, pathlib.Path], config: Config)
 def create_project(project_dir: Union[str, pathlib.Path]) -> None:
   """Creates an empty lilac project if it's not already a project."""
   if not dir_is_project(project_dir):
-    if not os.path.isdir(project_dir):
-      os.makedirs(project_dir)
+    os.makedirs(project_dir, exist_ok=True)
 
     _write_project_config(project_dir, Config(datasets=[]))
 
@@ -193,5 +193,4 @@ def create_project_and_set_env(project_dir_arg: str) -> None:
   """Creates a Lilac project if it doesn't exist and set the environment variable."""
   project_dir = project_dir_from_args(project_dir_arg)
   create_project(project_dir)
-
-  os.environ['LILAC_PROJECT_DIR'] = project_dir
+  set_project_dir(project_dir)

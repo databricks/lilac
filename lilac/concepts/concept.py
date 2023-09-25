@@ -1,11 +1,11 @@
 """Defines the concept and the concept models."""
 import dataclasses
 from enum import Enum
-from typing import Callable, Literal, Optional, Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 from joblib import Parallel, delayed
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from scipy.interpolate import interp1d
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
@@ -47,7 +47,7 @@ class ExampleOrigin(BaseModel):
   dataset_row_id: str
 
 
-DraftId = Union[Literal['main'], str]
+DraftId = str
 DRAFT_MAIN = 'main'
 
 
@@ -60,7 +60,8 @@ class ExampleIn(BaseModel):
   # The name of the draft to put the example in. If None, puts it in the main draft.
   draft: Optional[DraftId] = DRAFT_MAIN
 
-  @validator('text')
+  @field_validator('text')
+  @classmethod
   def parse_text(cls, text: str) -> str:
     """Fixes surrogate errors in text: https://github.com/ijl/orjson/blob/master/README.md#str ."""
     return text.encode('utf-8', 'replace').decode('utf-8')

@@ -82,7 +82,7 @@ def process_source(project_dir: Union[str, pathlib.Path],
   manifest = SourceManifest(
     files=filenames, data_schema=data_schema, images=None, source=config.source)
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
-    f.write(manifest.json(indent=2, exclude_none=True))
+    f.write(manifest.model_dump_json(indent=2, exclude_none=True))
 
   if not config.settings:
     dataset = get_dataset(config.namespace, config.name, project_dir)
@@ -111,7 +111,7 @@ def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
     # Fix NaN values.
     for field_name in replace_nan_fields:
       item_value = item.get(field_name)
-      if item_value and pd.isna(item_value):
+      if item_value and not isinstance(item_value, Iterable) and pd.isna(item_value):
         item[field_name] = None
 
     yield item

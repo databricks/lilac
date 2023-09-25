@@ -1,11 +1,12 @@
 """Router for the dataset database."""
-from typing import Annotated, Literal, Optional, Sequence, Union, cast
+from copy import copy
+from typing import Annotated, Any, Literal, Optional, Sequence, Union, cast
 from urllib.parse import unquote
 
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.params import Depends
 from fastapi.responses import ORJSONResponse
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, SerializeAsAny, field_validator
 
 from .auth import UserInfo, get_session_user, get_user_access
 from .config import DatasetSettings
@@ -55,17 +56,18 @@ def get_manifest(namespace: str, dataset_name: str) -> WebManifest:
   dataset = get_dataset(namespace, dataset_name)
   res = WebManifest(dataset_manifest=dataset.manifest())
   # Avoids the error that Signal abstract class is not serializable.
-  return cast(WebManifest, ORJSONResponse(res.dict(exclude_none=True)))
+  return cast(WebManifest, ORJSONResponse(res.model_dump(exclude_none=True)))
 
 
 class ComputeSignalOptions(BaseModel):
   """The request for the compute signal endpoint."""
-  signal: Signal
+  signal: SerializeAsAny[Signal]
 
   # The leaf path to compute the signal on.
   leaf_path: Path
 
-  @validator('signal', pre=True)
+  @field_validator('signal', mode='before')
+  @classmethod
   def parse_signal(cls, signal: dict) -> Signal:
     """Parse a signal to its specific subclass instance."""
     return resolve_signal(signal)
@@ -96,8 +98,8 @@ def compute_signal(namespace: str, dataset_name: str,
 
   def _task_compute_signal(namespace: str, dataset_name: str, options_dict: dict,
                            task_id: TaskId) -> None:
-    # NOTE: We manually call .dict() to avoid the dask serializer, which doesn't call the underlying
-    # pydantic serializer.
+    # NOTE: We manually call .model_dump() to avoid the dask serializer, which doesn't call the
+    # underlying pydantic serializer.
     options = ComputeSignalOptions(**options_dict)
     dataset = get_dataset(namespace, dataset_name)
     dataset.compute_signal(options.signal, options.leaf_path, task_step_id=(task_id, 0))
@@ -106,8 +108,8 @@ def compute_signal(namespace: str, dataset_name: str,
   task_id = get_task_manager().task_id(
     name=f'[{namespace}/{dataset_name}] Compute signal "{options.signal.name}" on "{path_str}"',
     description=f'Config: {options.signal}')
-  get_task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name, options.dict(),
-                             task_id)
+  get_task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name,
+                             options.model_dump(), task_id)
 
   return ComputeSignalResponse(task_id=task_id)
 
@@ -180,12 +182,17 @@ class Column(DBColumn):
   signal_udf: Optional[AllSignalTypes] = None
 
 
+ColumnOrPath = Union[Column, Path]
+
+SearchPy = Annotated[Search, Field(discriminator='type')]
+
+
 class SelectRowsOptions(BaseModel):
   """The request for the select rows endpoint."""
-  columns: Optional[Sequence[Union[Path, Column]]] = None
-  searches: Optional[Sequence[Search]] = None
-  filters: Optional[Sequence[Filter]] = None
-  sort_by: Optional[Sequence[Path]] = None
+  columns: Sequence[Union[Column, Path]] = []
+  searches: Sequence[SearchPy] = []
+  filters: Sequence[Filter] = []
+  sort_by: Sequence[Path] = []
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int] = None
   offset: Optional[int] = None
@@ -194,9 +201,9 @@ class SelectRowsOptions(BaseModel):
 
 class SelectRowsSchemaOptions(BaseModel):
   """The request for the select rows schema endpoint."""
-  columns: Optional[Sequence[Union[Path, Column]]] = None
-  searches: Optional[Sequence[Search]] = None
-  sort_by: Optional[Sequence[Path]] = None
+  columns: Sequence[Union[Path, Column]] = []
+  searches: Sequence[SearchPy] = []
+  sort_by: Sequence[Path] = []
   sort_order: Optional[SortOrder] = SortOrder.DESC
   combine_columns: Optional[bool] = None
 
@@ -207,17 +214,27 @@ class SelectRowsResponse(BaseModel):
   total_num_rows: int
 
 
+def _exclude_none(obj: Any) -> Any:
+  if isinstance(obj, dict):
+    return {k: _exclude_none(v) for k, v in obj.items() if v is not None}
+  if isinstance(obj, list):
+    return [_exclude_none(v) for v in obj]
+  return copy(obj)
+
+
 # SQL adds {"x": None} for `SELECT x` where x is sparse, thus exclude none to keep response small.
-@router.get('/{namespace}/{dataset_name}/select_rows_download', response_model_exclude_none=True)
+@router.get('/{namespace}/{dataset_name}/select_rows_download')
 def select_rows_download(
     namespace: str, dataset_name: str, url_safe_options: str,
     user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> list[dict]:
   """Select rows from the dataset database and downloads them."""
-  options = SelectRowsOptions.parse_raw(unquote(url_safe_options))
-  return select_rows(namespace, dataset_name, options, user).rows
+  options = SelectRowsOptions.model_validate_json(unquote(url_safe_options))
+
+  rows = select_rows(namespace, dataset_name, options, user).rows
+  return [_exclude_none(row) for row in rows]
 
 
-@router.post('/{namespace}/{dataset_name}/select_rows', response_model_exclude_none=True)
+@router.post('/{namespace}/{dataset_name}/select_rows')
 def select_rows(
     namespace: str, dataset_name: str, options: SelectRowsOptions,
     user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> SelectRowsResponse:
@@ -239,7 +256,8 @@ def select_rows(
     combine_columns=options.combine_columns or False,
     user=user)
 
-  return SelectRowsResponse(rows=list(res), total_num_rows=res.total_num_rows)
+  rows = [_exclude_none(row) for row in res]
+  return SelectRowsResponse(rows=rows, total_num_rows=res.total_num_rows)
 
 
 @router.post('/{namespace}/{dataset_name}/select_rows_schema', response_model_exclude_none=True)
@@ -258,7 +276,7 @@ def select_rows_schema(namespace: str, dataset_name: str,
 class SelectGroupsOptions(BaseModel):
   """The request for the select groups endpoint."""
   leaf_path: Path
-  filters: Optional[Sequence[Filter]] = None
+  filters: Sequence[Filter] = []
   sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int] = 100
@@ -288,15 +306,14 @@ def get_media(namespace: str, dataset_name: str, item_id: str, leaf_path: str) -
 
 
 @router.get('/{namespace}/{dataset_name}/config')
-def get_config(namespace: str, dataset_name: str,
-               format: Union[Literal['yaml'], Literal['json']]) -> Union[str, dict]:
+def get_config(namespace: str, dataset_name: str, format: Literal['yaml',
+                                                                  'json']) -> Union[str, dict]:
   """Get the config for the dataset."""
   dataset = get_dataset(namespace, dataset_name)
-  config_dict = dataset.config().dict(exclude_defaults=True, exclude_none=True)
+  config_dict = dataset.config().model_dump(exclude_defaults=True, exclude_none=True)
   if format == 'yaml':
     return to_yaml(config_dict)
-  elif format == 'json':
-    return config_dict
+  return config_dict
 
 
 @router.get('/{namespace}/{dataset_name}/settings')
@@ -320,15 +337,16 @@ def update_settings(namespace: str, dataset_name: str, settings: DatasetSettings
 class AddLabelsOptions(BaseModel):
   """The request for the add labels endpoint."""
   label_name: str
-  label_value: str
-  searches: Optional[Sequence[Search]] = None
-  filters: Optional[Sequence[Filter]] = None
+  label_value: Optional[str] = 'true'
+  row_ids: Sequence[str] = []
+  searches: Sequence[SearchPy] = []
+  filters: Sequence[Filter] = []
 
 
 @router.post('/{namespace}/{dataset_name}/labels', response_model_exclude_none=True)
 def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions) -> None:
   """"Add a label to the dataset."""
-  if not get_user_access().dataset.add_labels:
+  if not get_user_access().dataset.edit_labels:
     raise HTTPException(401, 'User does not have access to add labels to this dataset.')
 
   sanitized_filters = [
@@ -339,5 +357,32 @@ def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions) -> 
   dataset.add_labels(
     name=options.label_name,
     value=options.label_value,
+    row_ids=options.row_ids,
+    searches=options.searches,
+    filters=sanitized_filters)
+
+
+class RemoveLabelsOptions(BaseModel):
+  """The request for the remove labels endpoint."""
+  label_name: str
+  row_ids: Sequence[str] = []
+  searches: Sequence[SearchPy] = []
+  filters: Sequence[Filter] = []
+
+
+@router.delete('/{namespace}/{dataset_name}/labels', response_model_exclude_none=True)
+def remove_labels(namespace: str, dataset_name: str, options: RemoveLabelsOptions) -> None:
+  """"Add a label to the dataset."""
+  if not get_user_access().dataset.edit_labels:
+    raise HTTPException(401, 'User does not have access to remove labels from this dataset.')
+
+  sanitized_filters = [
+    PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
+  ]
+
+  dataset = get_dataset(namespace, dataset_name)
+  dataset.remove_labels(
+    name=options.label_name,
+    row_ids=options.row_ids,
     searches=options.searches,
     filters=sanitized_filters)

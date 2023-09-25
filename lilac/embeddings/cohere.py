@@ -1,5 +1,5 @@
 """Cohere embeddings."""
-from typing import TYPE_CHECKING, Iterable, cast
+from typing import TYPE_CHECKING, ClassVar, Iterable, cast
 
 import numpy as np
 from typing_extensions import override
@@ -28,8 +28,8 @@ class Cohere(TextEmbeddingSignal):
   <br>For details on pricing, see: https://cohere.com/pricing.
   """
 
-  name = 'cohere'
-  display_name = 'Cohere Embeddings'
+  name: ClassVar[str] = 'cohere'
+  display_name: ClassVar[str] = 'Cohere Embeddings'
 
   _model: 'Client'
 

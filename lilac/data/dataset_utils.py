@@ -1,13 +1,14 @@
 """Utilities for working with datasets."""
 
 import gc
+import itertools
 import json
 import math
 import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Any, Callable, Iterator, Optional, Sequence, TypeVar, Union, cast
+from typing import Callable, Generator, Iterator, Optional, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -35,7 +36,12 @@ from ..schema import (
   schema_to_arrow_schema,
 )
 from ..signal import Signal
-from ..utils import is_primitive, log, open_file
+from ..utils import chunks, is_primitive, log, open_file
+
+# The embedding write chunk sizes keeps the memory pressure lower as we iteratively write to the
+# vector store. Embeddings are float32, taking up 4 bytes, so this results in ~130K * dims of RAM
+# pressure.
+EMBEDDINGS_WRITE_CHUNK_SIZE = 32_768
 
 
 def _replace_embeddings_with_none(input: Union[Item, Item]) -> Union[Item, Item]:
@@ -84,38 +90,9 @@ def _wrap_in_dicts(input: Union[object, Iterable[object]],
   return _wrap_value_in_dict(res, props)
 
 
-def wrap_in_dicts(input: Iterable[object], spec: list[PathTuple]) -> Iterable[object]:
+def wrap_in_dicts(input: Iterable[object], spec: list[PathTuple]) -> Generator:
   """Wraps an object or iterable in a dict according to the spec."""
-  return [_wrap_in_dicts(elem, spec) for elem in input]
-
-
-def _merge_field_into(schema: Field, destination: Field) -> None:
-  if isinstance(schema, Field):
-    destination.signal = destination.signal or schema.signal
-    destination.dtype = destination.dtype or schema.dtype
-  if schema.fields:
-    destination.fields = destination.fields or {}
-    for field_name, subfield in schema.fields.items():
-      if field_name not in destination.fields:
-        destination.fields[field_name] = subfield.copy(deep=True)
-      else:
-        _merge_field_into(subfield, destination.fields[field_name])
-  elif schema.repeated_field:
-    if not destination.repeated_field:
-      raise ValueError('Failed to merge schemas. Origin schema is repeated, but destination is not')
-    _merge_field_into(schema.repeated_field, destination.repeated_field)
-  else:
-    if destination.dtype != schema.dtype:
-      raise ValueError(f'Failed to merge schemas. Origin schema has dtype {schema.dtype}, '
-                       f'but destination has dtype {destination.dtype}')
-
-
-def merge_schemas(schemas: Sequence[Union[Schema, Field]]) -> Schema:
-  """Merge a list of schemas."""
-  merged_schema = Schema(fields={})
-  for s in schemas:
-    _merge_field_into(cast(Field, s), cast(Field, merged_schema))
-  return merged_schema
+  return (_wrap_in_dicts(elem, spec) for elem in input)
 
 
 def schema_contains_path(schema: Schema, path: PathTuple) -> bool:
@@ -141,7 +118,7 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
     raise ValueError(f'"{source_path}" is not a valid leaf path. Leaf paths: {leafs.keys()}')
 
   signal_schema = signal.fields()
-  signal_schema.signal = signal.dict()
+  signal_schema.signal = signal.model_dump()
 
   enriched_schema = field(fields={signal.key(is_computed_signal=True): signal_schema})
 
@@ -157,41 +134,65 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
   return schema(enriched_schema.fields.copy())
 
 
+def _flat_embeddings(
+  input: Union[Item, Iterable[Item]], path: PathKey = ()) -> Iterator[tuple[PathKey, list[Item]]]:
+  if (isinstance(input, list) and len(input) > 0 and isinstance(input[0], dict) and
+      EMBEDDING_KEY in input[0]):
+    yield path, input
+  elif isinstance(input, dict):
+    for k, v in input.items():
+      yield from _flat_embeddings(v, path)
+  elif isinstance(input, list):
+    for i, v in enumerate(input):
+      yield from _flat_embeddings(v, (*path, i))
+  else:
+    # Ignore other primitives.
+    pass
+
+
 def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_items: Iterable[Item],
                              output_dir: str) -> None:
   """Write a set of embeddings to disk."""
+  path_embedding_items = (
+    _flat_embeddings(signal_item, path=(signal_item[ROWID],)) for signal_item in signal_items)
 
-  def embedding_predicate(input: Any) -> bool:
-    return (isinstance(input, list) and len(input) > 0 and isinstance(input[0], dict) and
-            EMBEDDING_KEY in input[0])
+  def _get_span_vectors() -> Generator:
+    nonlocal path_embedding_items
+    for path_item in path_embedding_items:
+      for path_key, embedding_items in path_item:
+        if not path_key or not embedding_items:
+          # Sparse embeddings may not have an embedding for every key.
+          continue
 
-  path_keys = flatten_keys(rowids, signal_items, is_primitive_predicate=embedding_predicate)
-  all_embeddings = cast(Iterable[Item],
-                        deep_flatten(signal_items, is_primitive_predicate=embedding_predicate))
+        embedding_vectors: list[np.ndarray] = []
+        spans: list[tuple[int, int]] = []
 
-  embedding_vectors: list[np.ndarray] = []
-  all_spans: list[tuple[PathKey, list[tuple[int, int]]]] = []
-  for path_key, embeddings in zip(path_keys, all_embeddings):
-    if not path_key or not embeddings:
-      # Sparse embeddings may not have an embedding for every key.
-      continue
+        for e in embedding_items:
+          span = e[VALUE_KEY]
+          vector = e[EMBEDDING_KEY]
+          # We squeeze here because embedding functions can return outer dimensions of 1.
+          embedding_vectors.append(vector.reshape(-1))
+          spans.append((span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]))
 
-    spans: list[tuple[int, int]] = []
-    for e in embeddings:
-      span = e[VALUE_KEY]
-      vector = e[EMBEDDING_KEY]
-      # We squeeze here because embedding functions can return outer dimensions of 1.
-      embedding_vectors.append(vector.reshape(-1))
-      spans.append((span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]))
-    all_spans.append((path_key, spans))
-  embedding_matrix = np.array(embedding_vectors, dtype=np.float32)
-  del path_keys, all_embeddings, embedding_vectors
-  gc.collect()
+        yield (path_key, spans, embedding_vectors)
 
-  # Write to disk.
+  span_vectors = _get_span_vectors()
+
   vector_index = VectorDBIndex(vector_store)
-  vector_index.add(all_spans, embedding_matrix)
-  vector_index.save(output_dir)
+  for span_vectors_chunk in chunks(span_vectors, EMBEDDINGS_WRITE_CHUNK_SIZE):
+    chunk_spans: list[tuple[PathKey, list[tuple[int, int]]]] = []
+    chunk_embedding_vectors: list[np.ndarray] = []
+    for path_key, spans, vectors in span_vectors_chunk:
+      chunk_spans.append((path_key, spans))
+      chunk_embedding_vectors.extend(vectors)
+
+    embedding_matrix = np.array(chunk_embedding_vectors, dtype=np.float32)
+
+    vector_index.add(chunk_spans, embedding_matrix)
+    vector_index.save(output_dir)
+
+    del embedding_matrix, chunk_embedding_vectors, chunk_spans
+    gc.collect()
 
   del vector_index
   gc.collect()
@@ -201,7 +202,7 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
                            filename_prefix: str, shard_index: int,
                            num_shards: int) -> tuple[str, int]:
   """Write a set of items to a parquet file, in columnar format."""
-  schema = schema.copy(deep=True)
+  schema = schema.model_copy(deep=True)
   # Add a rowid column.
   schema.fields[ROWID] = Field(dtype=DataType.STRING)
 
@@ -279,18 +280,20 @@ def sparse_to_dense_compute(
     sparse_input: Iterator[Optional[Tin]],
     func: Callable[[Iterable[Tin]], Iterable[Tout]]) -> Iterator[Optional[Tout]]:
   """Densifies the input before calling the provided `func` and sparsifies the output."""
-  locations: list[int] = []
   total_size: int = 0
 
-  def densify(x: Iterator[Optional[Tin]]) -> Iterator[Tin]:
-    nonlocal locations, total_size
+  def densify(x: Iterator[Optional[Tin]]) -> Iterator[tuple[int, Tin]]:
+    nonlocal total_size
     for i, value in enumerate(x):
       total_size += 1
       if value is not None:
-        locations.append(i)
-        yield value
+        yield i, value
 
-  dense_input = densify(sparse_input)
+  dense_input_with_locations = densify(sparse_input)
+  dense_input_with_locations_0, dense_input_with_locations_1 = itertools.tee(
+    dense_input_with_locations, 2)
+  dense_input = (value for (_, value) in dense_input_with_locations_0)
+
   dense_output = iter(func(dense_input))
   index = 0
 
@@ -299,7 +302,7 @@ def sparse_to_dense_compute(
   while True:
     try:
       out = next(dense_output)
-      out_index = locations[location_index]
+      out_index, _ = next(dense_input_with_locations_1)
       while index < out_index:
         yield None
         index += 1

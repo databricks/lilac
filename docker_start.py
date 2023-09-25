@@ -8,7 +8,7 @@ import yaml
 from huggingface_hub import scan_cache_dir, snapshot_download
 
 from lilac import load
-from lilac.concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
+from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from lilac.env import env, get_project_dir
 from lilac.project import PROJECT_CONFIG_FILENAME
 from lilac.utils import get_datasets_dir, get_lilac_cache_dir, log
@@ -62,13 +62,16 @@ def main() -> None:
 
   # Download the huggingface space data. This includes code and datasets, so we move the datasets
   # alone to the data directory.
+
+  datasets_dir = get_datasets_dir(get_project_dir())
+  os.makedirs(datasets_dir, exist_ok=True)
   for lilac_hf_dataset in hf_config['datasets']:
     print('Downloading dataset from HuggingFace: ', lilac_hf_dataset)
     snapshot_download(
       repo_id=lilac_hf_dataset,
       repo_type='dataset',
       token=env('HF_ACCESS_TOKEN'),
-      local_dir=get_datasets_dir(get_project_dir()),
+      local_dir=datasets_dir,
       ignore_patterns=['.gitattributes', 'README.md'])
 
   snapshot_dir = snapshot_download(repo_id=repo_id, repo_type='space', token=env('HF_ACCESS_TOKEN'))
@@ -83,12 +86,6 @@ def main() -> None:
   cache_dir = get_lilac_cache_dir(get_project_dir())
   if os.path.exists(cache_dir):
     shutil.rmtree(cache_dir)
-
-  # NOTE: This is temporary during the move of concepts into the pip package. Once all the demos
-  # have been updated, this block can be deleted.
-  old_lilac_concepts_data_dir = os.path.join(get_project_dir(), CONCEPTS_DIR, 'lilac')
-  if os.path.exists(old_lilac_concepts_data_dir):
-    shutil.rmtree(old_lilac_concepts_data_dir)
 
   # Copy cache files from the space if they exist.
   spaces_cache_dir = get_lilac_cache_dir(spaces_data_dir)

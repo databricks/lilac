@@ -1,6 +1,6 @@
 """Tests for dataset.select_rows(sort_by=...)."""
 
-from typing import Iterable, Optional, Sequence, cast
+from typing import ClassVar, Iterable, Optional, Sequence, cast
 
 import numpy as np
 import pytest
@@ -31,7 +31,7 @@ from .dataset_test_utils import TestDataMaker, enriched_item
 
 
 class TestSignal(TextSignal):
-  name = 'test_signal'
+  name: ClassVar[str] = 'test_signal'
 
   def fields(self) -> Field:
     return field(fields={'len': 'int32', 'is_all_cap': 'boolean'})
@@ -42,7 +42,7 @@ class TestSignal(TextSignal):
 
 
 class TestPrimitiveSignal(TextSignal):
-  name = 'primitive_signal'
+  name: ClassVar[str] = 'primitive_signal'
 
   def fields(self) -> Field:
     return field('int32')
@@ -53,7 +53,7 @@ class TestPrimitiveSignal(TextSignal):
 
 
 class NestedArraySignal(TextSignal):
-  name = 'nested_array'
+  name: ClassVar[str] = 'nested_array'
 
   def fields(self) -> Field:
     return field(fields=[['int32']])
@@ -635,7 +635,7 @@ def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
 
 class TopKEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'topk_embedding'
+  name: ClassVar[str] = 'topk_embedding'
 
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
     """Call the embedding function."""
@@ -651,8 +651,8 @@ class TopKEmbedding(TextEmbeddingSignal):
 
 class TopKSignal(VectorSignal):
   """Compute scores along a given concept for documents."""
-  name = 'topk_signal'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'topk_signal'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   _query = np.array([1])
 

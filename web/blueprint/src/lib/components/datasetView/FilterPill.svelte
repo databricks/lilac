@@ -1,7 +1,15 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {displayPath, shortFieldName} from '$lib/view_utils';
-  import {deserializePath, formatValue, type Filter, type Op} from '$lilac';
+  import {
+    deserializePath,
+    formatValue,
+    getField,
+    getLabel,
+    type Filter,
+    type LilacSchema,
+    type Op
+  } from '$lilac';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import RemovableTag from '../common/RemovableTag.svelte';
@@ -19,6 +27,10 @@
 
   export let filter: Filter;
   export let hidePath = false;
+  export let schema: LilacSchema;
+
+  $: field = getField(schema, typeof filter.path === 'string' ? [filter.path] : filter.path);
+  $: label = field != null ? getLabel(field) : null;
 
   const datasetViewStore = getDatasetViewContext();
 
@@ -44,7 +56,9 @@
       })}
     on:remove={() => datasetViewStore.removeFilter(filter)}
   >
-    {#if filter.op === 'exists'}
+    {#if label != null}
+      is labeled {label}
+    {:else if filter.op === 'exists'}
       has <span class="font-mono">{hidePath ? '' : shortenPath}</span>
     {:else}
       <span class="font-mono">{hidePath ? '' : shortenPath}</span>

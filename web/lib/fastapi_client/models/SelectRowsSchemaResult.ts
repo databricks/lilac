@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -14,6 +15,6 @@ export type SelectRowsSchemaResult = {
     data_schema: Schema;
     udfs?: Array<SelectRowsSchemaUDF>;
     search_results?: Array<SearchResultInfo>;
-    sorts?: Array<SortResult>;
+    sorts?: (Array<SortResult> | null);
 };
 

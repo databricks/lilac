@@ -132,7 +132,7 @@
         <div class="flex">
           <svelte:component
             this={DTYPE_TO_ICON[field.repeated_field.dtype]}
-            title={field.dtype}
+            title={field.dtype || undefined}
           />[]
         </div>
       {:else}
@@ -179,7 +179,7 @@
     {/if}
     {#if isFiltered}
       {#each filters as filter}
-        <FilterPill {filter} hidePath />
+        <FilterPill {schema} {filter} hidePath />
       {/each}
     {/if}
     {#each searches as search}

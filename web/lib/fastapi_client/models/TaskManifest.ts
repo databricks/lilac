@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -9,6 +10,6 @@ import type { TaskInfo } from './TaskInfo';
  */
 export type TaskManifest = {
     tasks: Record<string, TaskInfo>;
-    progress?: number;
+    progress?: (number | null);
 };
 

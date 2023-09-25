@@ -1,5 +1,5 @@
 """Compute text statistics for a document."""
-from typing import TYPE_CHECKING, Iterable, Optional, cast
+from typing import TYPE_CHECKING, ClassVar, Iterable, Optional, cast
 
 from typing_extensions import override
 
@@ -23,8 +23,8 @@ if TYPE_CHECKING:
 
 class TextStatisticsSignal(TextSignal):
   """Compute text statistics for a document such as readability scores, type-token-ratio, etc.."""
-  name = 'text_statistics'
-  display_name = 'Text Statistics'
+  name: ClassVar[str] = 'text_statistics'
+  display_name: ClassVar[str] = 'Text Statistics'
 
   _lang: Optional['Language'] = None
 

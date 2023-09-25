@@ -6,6 +6,7 @@
   import HFNameInput from '$lib/components/datasets/huggingface/HFNameInput.svelte';
   import SplitsInput from '$lib/components/datasets/huggingface/SplitsInput.svelte';
   import LangsmithDatasetInput from '$lib/components/datasets/langsmith/DatasetInput.svelte';
+  import TableInput from '$lib/components/datasets/sqlite/TableInput.svelte';
   import {loadDatasetMutation, querySources, querySourcesSchema} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {datasetIdentifier} from '$lib/utils';
@@ -48,6 +49,9 @@
     },
     langsmith: {
       '/dataset_name': LangsmithDatasetInput
+    },
+    sqlite: {
+      '/table': TableInput
     }
   };
   $: {

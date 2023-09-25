@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -46,6 +47,7 @@ export type { LoadDatasetOptions } from './models/LoadDatasetOptions';
 export type { LoadDatasetResponse } from './models/LoadDatasetResponse';
 export type { MergeConceptDraftOptions } from './models/MergeConceptDraftOptions';
 export type { OverallScore } from './models/OverallScore';
+export type { RemoveLabelsOptions } from './models/RemoveLabelsOptions';
 export type { Schema } from './models/Schema';
 export type { ScoreBody } from './models/ScoreBody';
 export type { ScoreExample } from './models/ScoreExample';
@@ -93,4 +95,5 @@ export { DefaultService } from './services/DefaultService';
 export { GoogleLoginService } from './services/GoogleLoginService';
 export { LangsmithService } from './services/LangsmithService';
 export { SignalsService } from './services/SignalsService';
+export { SqliteService } from './services/SqliteService';
 export { TasksService } from './services/TasksService';

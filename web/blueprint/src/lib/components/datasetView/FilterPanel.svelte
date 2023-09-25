@@ -32,6 +32,7 @@
   } from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptView from '../concepts/ConceptView.svelte';
+  import AddLabel from './AddLabel.svelte';
   import FilterPill from './FilterPill.svelte';
   import SearchPill from './SearchPill.svelte';
 
@@ -91,11 +92,12 @@
   // Explicit user selection of sort.
   $: selectedSortBy = $datasetViewStore.query.sort_by;
 
+  $: schema = $datasetStore?.selectRowsSchema?.data?.schema;
   $: sortItems =
-    $datasetStore.selectRowsSchema?.data?.schema != null
+    schema != null
       ? [
           {path: [''], text: 'None', disabled: selectedSortBy == null && sortById !== ''},
-          ...petals($datasetStore.selectRowsSchema.data.schema)
+          ...petals(schema)
             .filter(f => f.dtype != 'embedding' && f.dtype != 'string_span')
             .map(field => {
               return {
@@ -132,7 +134,7 @@
 </script>
 
 <div class="mx-5 my-2 flex flex-col gap-y-2">
-  {#if searchTypeOrder.length > 0}
+  {#if searchTypeOrder.length > 0 && schema != null}
     <div class="flex w-full flex-row gap-x-4">
       <!-- Search groups -->
       {#each searchTypeOrder as searchType}
@@ -153,7 +155,7 @@
           <div class="text-xs font-light">Filters</div>
           <div class="flex flex-row gap-x-1">
             {#each filters as filter}
-              <FilterPill {filter} />
+              <FilterPill {schema} {filter} />
             {/each}
           </div>
         </div>
@@ -161,58 +163,67 @@
     </div>
   {/if}
   <!-- Number of rows and sort. -->
-  <div class="flex w-full flex-row items-center justify-between">
-    <div class="py-1">
-      {#if totalNumRows && manifest}
-        {#if totalNumRows == manifest.dataset_manifest.num_items}
-          {formatValue(totalNumRows)} rows
-        {:else}
-          {formatValue(totalNumRows)} of {formatValue(manifest.dataset_manifest.num_items)} rows
-        {/if}
-      {/if}
+  <div class="flex w-full flex-row items-end justify-between">
+    <div class="relative flex h-8 flex-col items-end justify-end">
+      <AddLabel
+        addLabelsQuery={{searches, filters}}
+        buttonText={'Label all'}
+        helperText={'Apply label to all results within the current filter set.'}
+      />
     </div>
-    <div class="sort-container flex w-44 flex-row items-center gap-x-1 md:w-fit">
-      <div class="mr-1 whitespace-nowrap">Sort by</div>
-      <Select noLabel size="sm" class="w-80" selected={sortById} on:update={selectSort}>
-        {#each Object.entries(sortGroups) as [groupName, items]}
-          <SelectItemGroup label={groupName}>
-            {#each items as item}
-              <SelectItem
-                value={item.path != null ? serializePath(item.path) : undefined}
-                text={item.text}
-                disabled={item.disabled}
-              />
-            {/each}
-          </SelectItemGroup>
-        {/each}
-      </Select>
-      {#if selectedSortBy != null}
-        <button
-          use:hoverTooltip={{text: 'Clear sort'}}
-          disabled={sort == null}
-          on:click={clearSorts}
-        >
-          <Close />
-        </button>
-      {/if}
-      <button
-        use:hoverTooltip={{
-          text:
-            sort?.order === 'ASC'
-              ? 'Sorted ascending. Toggle to switch to descending.'
-              : 'Sorted descending. Toggle to switch to ascending.'
-        }}
-        disabled={sort == null}
-        on:click={toggleSortOrder}
-      >
-        {#if sort?.order == null}
-          <SortRemove />
-        {:else if sort?.order === 'ASC'}
-          <SortAscending />
-        {:else if sort?.order === 'DESC'}
-          <SortDescending />
+    <div class="flex flex-col">
+      <div class="flex justify-end py-2">
+        {#if totalNumRows && manifest}
+          {#if totalNumRows == manifest.dataset_manifest.num_items}
+            {formatValue(totalNumRows)} rows
+          {:else}
+            {formatValue(totalNumRows)} of {formatValue(manifest.dataset_manifest.num_items)} rows
+          {/if}
         {/if}
-      </button>
+      </div>
+      <div class="sort-container flex flex-row items-center gap-x-1 pt-2 md:w-fit">
+        <div class="mr-1 whitespace-nowrap">Sort by</div>
+        <Select noLabel size="sm" class="w-60" selected={sortById} on:update={selectSort}>
+          {#each Object.entries(sortGroups) as [groupName, items]}
+            <SelectItemGroup label={groupName}>
+              {#each items as item}
+                <SelectItem
+                  value={item.path != null ? serializePath(item.path) : undefined}
+                  text={item.text}
+                  disabled={item.disabled}
+                />
+              {/each}
+            </SelectItemGroup>
+          {/each}
+        </Select>
+        {#if selectedSortBy != null}
+          <button
+            use:hoverTooltip={{text: 'Clear sort'}}
+            disabled={sort == null}
+            on:click={clearSorts}
+          >
+            <Close />
+          </button>
+        {/if}
+        <button
+          use:hoverTooltip={{
+            text:
+              sort?.order === 'ASC'
+                ? 'Sorted ascending. Toggle to switch to descending.'
+                : 'Sorted descending. Toggle to switch to ascending.'
+          }}
+          disabled={sort == null}
+          on:click={toggleSortOrder}
+        >
+          {#if sort?.order == null}
+            <SortRemove />
+          {:else if sort?.order === 'ASC'}
+            <SortAscending />
+          {:else if sort?.order === 'DESC'}
+            <SortDescending />
+          {/if}
+        </button>
+      </div>
     </div>
   </div>
 </div>

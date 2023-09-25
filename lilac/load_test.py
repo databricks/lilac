@@ -2,7 +2,7 @@
 
 import os
 import pathlib
-from typing import Iterable, Optional, cast
+from typing import ClassVar, Iterable, Optional, cast
 
 import numpy as np
 import pytest
@@ -54,7 +54,7 @@ def task_manager() -> TaskManager:
 
 class TestSource(Source):
   """A test source."""
-  name = 'test_source'
+  name: ClassVar[str] = 'test_source'
 
   @override
   def source_schema(self) -> SourceSchema:
@@ -76,7 +76,7 @@ class TestSource(Source):
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -86,7 +86,7 @@ class TestEmbedding(TextEmbeddingSignal):
 
 
 class TestSignal(TextSignal):
-  name = 'test_signal'
+  name: ClassVar[str] = 'test_signal'
 
   _call_count: int = 0
 
@@ -150,7 +150,7 @@ def test_load_project_config_yml(tmp_path: pathlib.Path, task_manager: TaskManag
   # Simulate the user manually editing the project config.
   project_config = Config(
     datasets=[DatasetConfig(namespace='namespace', name='test', source=TestSource())])
-  project_config_yml = to_yaml(project_config.dict())
+  project_config_yml = to_yaml(project_config.model_dump())
   config_path = os.path.join(tmp_path, PROJECT_CONFIG_FILENAME)
 
   # Write the project_config as yml to project dir.
@@ -185,7 +185,7 @@ def test_load_config_yml_outside_project(tmp_path: pathlib.Path, task_manager: T
   project_config = Config(
     datasets=[DatasetConfig(namespace='namespace', name='test', source=TestSource())])
 
-  project_config_yml = to_yaml(project_config.dict())
+  project_config_yml = to_yaml(project_config.model_dump())
 
   # Write the project_config as yml to project dir.
   with open(config_path, 'w') as f:
@@ -232,9 +232,10 @@ def test_load_signals(tmp_path: pathlib.Path, task_manager: TaskManager) -> None
     namespace='namespace',
     dataset_name='test',
     data_schema=schema({
-      'str': field('string', fields={
-        'test_signal': field('int32', signal=test_signal.dict()),
-      }),
+      'str': field(
+        'string', fields={
+          'test_signal': field('int32', signal=test_signal.model_dump()),
+        }),
       'int': 'int32',
       'bool': 'boolean',
       'float': 'float32'
@@ -270,7 +271,7 @@ def test_load_embeddings(tmp_path: pathlib.Path, task_manager: TaskManager) -> N
         'string',
         fields={
           'test_embedding': field(
-            signal=TestEmbedding().dict(),
+            signal=TestEmbedding().model_dump(),
             fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
         }),
       'int': 'int32',

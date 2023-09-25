@@ -1,7 +1,7 @@
 """Test the public REST API for signals."""
 import os
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 import pytest
 from fastapi.testclient import TestClient
@@ -32,8 +32,8 @@ class TestQueryAndLengthSignal(Signal):
   """A test signal."""
 
   # Pydantic fields
-  name = 'test_signal'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'test_signal'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   query: str
 
@@ -66,9 +66,9 @@ def test_compute() -> None:
   url = '/api/v1/signals/compute'
   create_signal = SignalComputeOptions(
     signal=TestQueryAndLengthSignal(query='hi'), inputs=['hello', 'hello2'])
-  response = client.post(url, json=create_signal.dict())
+  response = client.post(url, json=create_signal.model_dump())
   assert response.status_code == 200
-  assert SignalComputeResponse.parse_obj(
+  assert SignalComputeResponse.model_validate(
     response.json()) == SignalComputeResponse(items=['hi_5', 'hi_6'])
 
 
@@ -77,7 +77,7 @@ def test_schema() -> None:
   url = '/api/v1/signals/schema'
   signal = TestQueryAndLengthSignal(query='hi')
   create_signal = SignalSchemaOptions(signal=signal)
-  response = client.post(url, json=create_signal.dict())
+  response = client.post(url, json=create_signal.model_dump())
   assert response.status_code == 200
-  assert SignalSchemaResponse.parse_obj(
+  assert SignalSchemaResponse.model_validate(
     response.json()) == SignalSchemaResponse(fields=signal.fields())

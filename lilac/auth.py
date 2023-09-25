@@ -23,8 +23,8 @@ class DatasetUserAccess(BaseModel):
   delete_signals: bool
   # Whether the user can update settings.
   update_settings: bool
-  # Whether the user can add labels.
-  add_labels: bool
+  # Whether the user can add or remove labels.
+  edit_labels: bool
 
 
 class ConceptUserAccess(BaseModel):
@@ -57,7 +57,7 @@ class AuthenticationInfo(BaseModel):
   access: UserAccess
   auth_enabled: bool
   # The HuggingFace space ID if the server is running on a HF space.
-  huggingface_space_id: Optional[str]
+  huggingface_space_id: Optional[str] = None
 
 
 def get_session_user(request: Request) -> Optional[UserInfo]:
@@ -67,7 +67,7 @@ def get_session_user(request: Request) -> Optional[UserInfo]:
   user_info_dict = request.session.get('user', None)
   if user_info_dict:
     try:
-      return UserInfo.parse_obj(user_info_dict)
+      return UserInfo.model_validate(user_info_dict)
     except ValidationError:
       return None
   return None
@@ -86,7 +86,7 @@ def get_user_access() -> UserAccess:
         delete_dataset=False,
         delete_signals=False,
         update_settings=False,
-        add_labels=False),
+        edit_labels=False),
       concept=ConceptUserAccess(delete_any_concept=False))
   return UserAccess(
     create_dataset=True,
@@ -95,5 +95,5 @@ def get_user_access() -> UserAccess:
       delete_dataset=True,
       delete_signals=True,
       update_settings=True,
-      add_labels=True),
+      edit_labels=True),
     concept=ConceptUserAccess(delete_any_concept=True))

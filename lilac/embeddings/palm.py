@@ -1,5 +1,5 @@
 """PaLM embeddings."""
-from typing import TYPE_CHECKING, Iterable, cast
+from typing import TYPE_CHECKING, ClassVar, Iterable, cast
 
 import numpy as np
 from tenacity import retry, stop_after_attempt, wait_random_exponential
@@ -28,8 +28,8 @@ class PaLM(TextEmbeddingSignal):
   [makersuite.google.com](https://makersuite.google.com/app/apikey) and add it to your .env.local.
   """
 
-  name = 'palm'
-  display_name = 'PaLM Embeddings'
+  name: ClassVar[str] = 'palm'
+  display_name: ClassVar[str] = 'PaLM Embeddings'
 
   _model: 'palm.generate_embeddings'
 

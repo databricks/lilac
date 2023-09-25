@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -9,6 +10,7 @@ import type { DatasetSettings } from '../models/DatasetSettings';
 import type { DeleteSignalOptions } from '../models/DeleteSignalOptions';
 import type { DeleteSignalResponse } from '../models/DeleteSignalResponse';
 import type { GetStatsOptions } from '../models/GetStatsOptions';
+import type { RemoveLabelsOptions } from '../models/RemoveLabelsOptions';
 import type { SelectGroupsOptions } from '../models/SelectGroupsOptions';
 import type { SelectGroupsResult } from '../models/SelectGroupsResult';
 import type { SelectRowsOptions } from '../models/SelectRowsOptions';
@@ -336,7 +338,7 @@ export class DatasetsService {
     public static getConfig(
         namespace: string,
         datasetName: string,
-        format: ('yaml' | 'json'),
+        format: 'yaml' | 'json',
     ): CancelablePromise<(string | Record<string, any>)> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -424,6 +426,35 @@ export class DatasetsService {
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/labels',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Remove Labels
+     * "Add a label to the dataset.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static removeLabels(
+        namespace: string,
+        datasetName: string,
+        requestBody: RemoveLabelsOptions,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/labels',
             path: {
                 'namespace': namespace,

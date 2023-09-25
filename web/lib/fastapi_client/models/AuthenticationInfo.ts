@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -9,9 +10,9 @@ import type { UserInfo } from './UserInfo';
  * Authentication information for the user.
  */
 export type AuthenticationInfo = {
-    user?: UserInfo;
+    user?: (UserInfo | null);
     access: UserAccess;
     auth_enabled: boolean;
-    huggingface_space_id?: string;
+    huggingface_space_id?: (string | null);
 };
 

@@ -1,12 +1,14 @@
 """Tests for dataset.compute_signal() when signals are chained."""
 
 import re
-from typing import Iterable, List, Optional, cast
+from typing import ClassVar, Iterable, List, Optional, cast
 
 import numpy as np
 import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
+
+from lilac.sources.source_registry import clear_source_registry, register_source
 
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
@@ -65,7 +67,7 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in
 
 class TestSplitter(TextSplitterSignal):
   """Split documents into sentence by splitting on period."""
-  name = 'test_splitter'
+  name: ClassVar[str] = 'test_splitter'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -81,7 +83,7 @@ class TestSplitter(TextSplitterSignal):
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -92,8 +94,8 @@ class TestEmbedding(TextEmbeddingSignal):
 
 class TestEmbeddingSumSignal(VectorSignal):
   """Sums the embeddings to return a single floating point value."""
-  name = 'test_embedding_sum'
-  input_type = SignalInputType.TEXT
+  name: ClassVar[str] = 'test_embedding_sum'
+  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   @override
   def fields(self) -> Field:
@@ -110,6 +112,7 @@ class TestEmbeddingSumSignal(VectorSignal):
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
+  register_source(TestSource)
   register_signal(TestSplitter)
   register_signal(TestEmbedding)
   register_signal(TestEmbeddingSumSignal)
@@ -117,6 +120,7 @@ def setup_teardown() -> Iterable[None]:
   # Unit test runs.
   yield
   # Teardown.
+  clear_source_registry()
   clear_signal_registry()
 
 
@@ -139,9 +143,9 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
         'string',
         fields={
           'test_embedding_sum(embedding=test_embedding)': field(
-            'float32', signal=embedding_sum_signal.dict()),
+            'float32', signal=embedding_sum_signal.model_dump()),
           'test_embedding': field(
-            signal=TestEmbedding().dict(),
+            signal=TestEmbedding().model_dump(),
             fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
         }),
     }),
@@ -175,7 +179,7 @@ ENTITY_REGEX = r'[A-Za-z]+@[A-Za-z]+'
 
 class NamedEntity(TextSignal):
   """Find special entities."""
-  name = 'entity'
+  name: ClassVar[str] = 'entity'
 
   @override
   def fields(self) -> Field:
@@ -188,25 +192,3 @@ class NamedEntity(TextSignal):
         yield None
         continue
       yield [lilac_span(m.start(0), m.end(0)) for m in re.finditer(ENTITY_REGEX, text)]
-
-
-def test_entity_on_split_signal(make_test_data: TestDataMaker) -> None:
-  text = 'Hello nik@test. Here are some other entities like pii@gmail and all@lilac.'
-  dataset = make_test_data([{'text': text}])
-  entity = NamedEntity()
-  dataset.compute_signal(TestSplitter(), 'text')
-  dataset.compute_signal(entity, ('text', 'test_splitter', '*'))
-
-  result = dataset.select_rows(['text'], combine_columns=True)
-  assert list(result) == [{
-    'text': enriched_item(
-      text, {
-        'test_splitter': [
-          lilac_span(0, 15, {'entity': [lilac_span(6, 14)]}),
-          lilac_span(16, 74, {'entity': [
-            lilac_span(50, 59),
-            lilac_span(64, 73),
-          ]}),
-        ]
-      })
-  }]

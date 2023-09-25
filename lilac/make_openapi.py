@@ -21,6 +21,7 @@ def main(output: str) -> None:
         title=app.title,
         version=app.version,
         openapi_version=app.openapi_version,
+        separate_input_output_schemas=False,
         description=app.description,
         routes=app.routes), f)
 

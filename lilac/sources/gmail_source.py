@@ -6,8 +6,9 @@ import random
 import re
 from datetime import datetime
 from time import sleep
-from typing import TYPE_CHECKING, Any, Iterable, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Iterable, Optional
 
+from pydantic import ConfigDict
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
@@ -46,7 +47,7 @@ class GmailSource(Source):
   for details.
   """
 
-  name = 'gmail'
+  name: ClassVar[str] = 'gmail'
 
   credentials_file: str = PydanticField(
     description=
@@ -55,10 +56,7 @@ class GmailSource(Source):
     default_factory=lambda: os.path.join(_gmail_config_dir(), _CREDS_FILENAME))
 
   _creds: Optional['Credentials'] = None
-
-  class Config:
-    # `credentials_file` is required even though it has a default value.
-    schema_extra = {'required': ['credentials_file']}
+  model_config = ConfigDict(json_schema_extra={'required': ['credentials_file']})
 
   @override
   def setup(self) -> None:

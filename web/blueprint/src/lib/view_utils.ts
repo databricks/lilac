@@ -384,7 +384,7 @@ export function getSpanValuePaths(
   if (highlightedFields != null) {
     // Keep only spans that have visible children.
     spanFields = spanFields.filter(f =>
-      childFields(f).some(c => highlightedFields.some(v => pathIsEqual(v.path, c.path)))
+      childFields(f).some(c => highlightedFields.some(v => pathIncludes(c.path, v.path)))
     );
   }
 
@@ -669,7 +669,7 @@ export function shortFieldName(path: Path): string {
   return [...path].reverse().find(p => p !== PATH_WILDCARD)!;
 }
 
-export function displayPath(path: Path): string {
+export function displayPath(path: Path | string): string {
   if (!Array.isArray(path)) {
     path = [path];
   }

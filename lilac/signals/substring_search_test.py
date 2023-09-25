@@ -1,5 +1,7 @@
 """Test the Substring Search signal."""
 
+from typing import cast
+
 import pytest
 from pydantic import ValidationError
 
@@ -15,7 +17,7 @@ def test_substring_fields() -> None:
 
 def test_query_is_required() -> None:
   with pytest.raises(ValidationError):
-    SubstringSignal()
+    SubstringSignal(query=cast(str, None))
 
 
 def test_compute() -> None:

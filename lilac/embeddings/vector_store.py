@@ -112,7 +112,6 @@ class VectorDBIndex:
       all_spans: The spans to initialize the index with.
       embeddings: The embeddings to initialize the index with.
     """
-    assert not self._id_to_spans, 'Cannot add to a non-empty index.'
     self._id_to_spans.update(all_spans)
     vector_keys = [(*path_key, i) for path_key, spans in all_spans for i in range(len(spans))]
     assert len(vector_keys) == len(embeddings), (

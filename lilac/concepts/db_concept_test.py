@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Generator, Iterable, Type, cast
+from typing import ClassVar, Generator, Iterable, Type, cast
 
 import numpy as np
 import pytest
@@ -40,7 +40,7 @@ ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
 
 
 @pytest.fixture(autouse=True)
-def set_data_path(tmp_path: Path, mocker: MockerFixture) -> None:
+def set_project_dir(tmp_path: Path, mocker: MockerFixture) -> None:
   mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
 
 
@@ -55,7 +55,7 @@ EMBEDDING_MAP: dict[str, list[float]] = {
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
-  name = 'test_embedding'
+  name: ClassVar[str] = 'test_embedding'
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
@@ -414,7 +414,7 @@ class ConceptDBSuite:
     assert concept is not None
     keys = list(concept.data.keys())
 
-    assert concept.dict() == Concept(
+    assert concept.model_dump() == Concept(
       namespace='test',
       concept_name='test_concept',
       type=ConceptType.TEXT,
@@ -428,7 +428,7 @@ class ConceptDBSuite:
         keys[4]: Example(id=keys[4], label=False, text='hello', draft='draft2'),
         keys[5]: Example(id=keys[5], label=True, text='world draft 2', draft='draft2'),
       },
-      version=2).dict()
+      version=2).model_dump()
 
     db.merge_draft(namespace, concept_name, 'draft2')
 

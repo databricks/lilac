@@ -1,5 +1,5 @@
 """Sentence-BERT embeddings. Open-source models, designed to run on device."""
-from typing import Iterable, cast
+from typing import ClassVar, Iterable, cast
 
 from typing_extensions import override
 
@@ -25,8 +25,8 @@ _OPTIMAL_BATCH_SIZES: dict[str, dict[str, int]] = {
 class SBERT(TextEmbeddingSignal):
   """Computes embeddings using Sentence-BERT library."""
 
-  name = 'sbert'
-  display_name = 'SBERT Embeddings'
+  name: ClassVar[str] = 'sbert'
+  display_name: ClassVar[str] = 'SBERT Embeddings'
 
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:

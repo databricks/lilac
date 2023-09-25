@@ -1,10 +1,26 @@
 #!/bin/bash
+# Usage:
+#  ./scripts/publish_pip.sh [version_type]
+#
+# Args:
+#  version_type: Default: patch. The type of version bump to do. The version should be a valid poetry semver version
+#  type, taken from: https://python-poetry.org/docs/cli/#version.
+#
 # Important!
 # Make sure you have `gh` installed and are logged in with:
 #  $ brew install gh
 #  $ gh auth login
 
 set -e # Fail if any of the commands below fail.
+
+VERSION_TYPE="$1"
+if [[ $VERSION_TYPE == "" ]]; then
+  VERSION_TYPE="patch"
+fi
+
+# Make sure the version type argument is valid.
+echo "Dry run bumping version..."
+poetry version --dry-run $VERSION_TYPE
 
 # Make sure the user is logged into github and has `gh` installed.
 gh auth status || exit 1
@@ -38,7 +54,7 @@ echo "Building webserver..."
 ./scripts/build_server_prod.sh
 
 # Upgrade the version in pyproject.
-poetry version patch
+poetry version $VERSION_TYPE
 
 NEW_VERSION=`poetry version --short`
 TAG_ID="v$NEW_VERSION"

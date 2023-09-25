@@ -1,5 +1,5 @@
 """LangSmith source."""
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 from fastapi import APIRouter
 from pydantic import Field
@@ -10,6 +10,8 @@ from ..schema import Item, infer_schema
 from ..source import Source, SourceSchema
 
 router = APIRouter()
+
+DEFAULT_LANGCHAIN_ENDPOINT = 'https://api.smith.langchain.com'
 
 
 @router.get('/datasets')
@@ -22,8 +24,8 @@ def get_datasets() -> list[str]:
 
 class LangSmithSource(Source):
   """LangSmith data loader."""
-  name = 'langsmith'
-  router = router
+  name: ClassVar[str] = 'langsmith'
+  router: ClassVar[APIRouter] = router
 
   dataset_name: str = Field(description='LangSmith dataset name')
 
@@ -33,7 +35,7 @@ class LangSmithSource(Source):
   @override
   def setup(self) -> None:
     api_key = env('LANGCHAIN_API_KEY')
-    api_url = env('LANGCHAIN_ENDPOINT')
+    api_url = env('LANGCHAIN_ENDPOINT', DEFAULT_LANGCHAIN_ENDPOINT)
     if not api_key or not api_url:
       raise ValueError(
         '`LANGCHAIN_API_KEY` and `LANGCHAIN_ENDPOINT` environment variables must be set.')

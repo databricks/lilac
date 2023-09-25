@@ -26,6 +26,7 @@
   export let customComponents: Record<string, typeof SvelteComponent>;
 
   $: property = schema.getSchema(path, value || {});
+  $: propertyType = 'anyOf' in property ? property.anyOf[0].type : property.type;
   $: label = property.title ? `${property.title} ${required ? '*' : ''}` : '';
 
   // FInd the validation error for this property using some pointer magic
@@ -63,7 +64,7 @@
 </script>
 
 {#if !hiddenProperties?.includes(path)}
-  {#if property.type === 'object'}
+  {#if propertyType === 'object'}
     {#if property.description && showDescription}
       <div class="description mb-4">
         <SvelteMarkdown source={property.description} />
@@ -85,7 +86,7 @@
       invalid={!!validation.length}
       invalidText={validationText}
     />
-  {:else if property.type == 'error'}
+  {:else if propertyType == 'error'}
     <!-- Error -->
     <div class="text-red-600">{property.message}</div>
   {:else if property.enum}
@@ -97,7 +98,7 @@
         <SelectItem value={item} />
       {/each}
     </Select>
-  {:else if property.type == 'string'}
+  {:else if propertyType == 'string'}
     <!-- Text Input -->
     <TextInput
       bind:value
@@ -108,7 +109,7 @@
       hideLabel={true}
       placeholder={!required ? '(optional)' : ''}
     />
-  {:else if property.type == 'number' || property.type == 'integer'}
+  {:else if propertyType == 'number' || propertyType == 'integer'}
     <!-- Number Input -->
     <NumberInput
       allowEmpty={!required}
@@ -118,7 +119,7 @@
       hideLabel={true}
       invalid={!value && required}
     />
-  {:else if property.type == 'boolean'}
+  {:else if propertyType == 'boolean'}
     <!-- Boolean Input -->
     <div>
       <Toggle
@@ -129,7 +130,7 @@
         bind:toggled={value}
       />
     </div>
-  {:else if property.type == 'array'}
+  {:else if propertyType == 'array'}
     <!-- List of inputs -->
     <JsonSchemaArrayInput
       {path}
@@ -139,7 +140,7 @@
       {customComponents}
       {rootValue}
     />
-  {:else if property.type == 'object'}
+  {:else if propertyType == 'object'}
     <!-- Object -->
     {@const properties = Object.keys(property.properties ?? {}).filter(
       key => !hiddenProperties?.includes(path + '/' + key)
