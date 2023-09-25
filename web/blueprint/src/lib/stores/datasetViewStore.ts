@@ -48,7 +48,8 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
     query: {
       // Add * as default field when supported here
       columns: [],
-      combine_columns: true
+      combine_columns: true,
+      sort_by: [ROWID]
     },
     schemaCollapsed: true,
     insightsOpen: false

@@ -489,8 +489,11 @@ class Dataset(abc.ABC):
                  row_ids: Optional[Sequence[str]] = None,
                  searches: Optional[Sequence[Search]] = None,
                  filters: Optional[Sequence[FilterLike]] = None,
-                 value: Optional[str] = 'true') -> None:
-    """Adds a label to a row, or a set of rows defined by searches and filters."""
+                 value: Optional[str] = 'true') -> int:
+    """Adds a label to a row, or a set of rows defined by searches and filters.
+
+    Returns the number of added labels.
+    """
     pass
 
   @abc.abstractmethod
@@ -498,8 +501,11 @@ class Dataset(abc.ABC):
                     name: str,
                     row_ids: Optional[Sequence[str]] = None,
                     searches: Optional[Sequence[Search]] = None,
-                    filters: Optional[Sequence[FilterLike]] = None) -> None:
-    """Removes labels from a row, or a set of rows defined by searches and filters."""
+                    filters: Optional[Sequence[FilterLike]] = None) -> int:
+    """Removes labels from a row, or a set of rows defined by searches and filters.
+
+    Returns the number of removed labels.
+    """
     pass
 
   @abc.abstractmethod
