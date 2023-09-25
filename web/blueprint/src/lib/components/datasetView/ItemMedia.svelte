@@ -34,7 +34,6 @@
 
   $: computedEmbeddings = getComputedEmbeddings($datasetStore.schema, path);
 
-  $: console.log('HVCP', highlightedFields, field);
   $: spanValuePaths = getSpanValuePaths(field, highlightedFields);
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
