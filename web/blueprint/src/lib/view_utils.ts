@@ -381,7 +381,6 @@ export function getSpanValuePaths(
     .filter(f => f.dtype === 'string_span')
     // Ignore embedding spans.
     .filter(f => !childFields(f).some(c => c.dtype === 'embedding'));
-
   if (highlightedFields != null) {
     // Keep only spans that have visible children.
     spanFields = spanFields.filter(f =>
