@@ -40,7 +40,7 @@ ALL_CONCEPT_MODEL_DBS = [DiskConceptModelDB]
 
 
 @pytest.fixture(autouse=True)
-def set_data_path(tmp_path: Path, mocker: MockerFixture) -> None:
+def set_project_dir(tmp_path: Path, mocker: MockerFixture) -> None:
   mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
 
 

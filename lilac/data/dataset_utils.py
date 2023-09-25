@@ -36,7 +36,12 @@ from ..schema import (
   schema_to_arrow_schema,
 )
 from ..signal import Signal
-from ..utils import is_primitive, log, open_file
+from ..utils import chunks, is_primitive, log, open_file
+
+# The embedding write chunk sizes keeps the memory pressure lower as we iteratively write to the
+# vector store. Embeddings are float32, taking up 4 bytes, so this results in ~130K * dims of RAM
+# pressure.
+EMBEDDINGS_WRITE_CHUNK_SIZE = 32_768
 
 
 def _replace_embeddings_with_none(input: Union[Item, Item]) -> Union[Item, Item]:
@@ -151,30 +156,43 @@ def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_it
   path_embedding_items = (
     _flat_embeddings(signal_item, path=(signal_item[ROWID],)) for signal_item in signal_items)
 
-  embedding_vectors: list[np.ndarray] = []
-  all_spans: list[tuple[PathKey, list[tuple[int, int]]]] = []
-  for path_item in path_embedding_items:
-    for path_key, embedding_items in path_item:
-      if not path_key or not embedding_items:
-        # Sparse embeddings may not have an embedding for every key.
-        continue
+  def _get_span_vectors() -> Generator:
+    nonlocal path_embedding_items
+    for path_item in path_embedding_items:
+      for path_key, embedding_items in path_item:
+        if not path_key or not embedding_items:
+          # Sparse embeddings may not have an embedding for every key.
+          continue
 
-      spans: list[tuple[int, int]] = []
-      for e in embedding_items:
-        span = e[VALUE_KEY]
-        vector = e[EMBEDDING_KEY]
-        # We squeeze here because embedding functions can return outer dimensions of 1.
-        embedding_vectors.append(vector.reshape(-1))
-        spans.append((span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]))
-      all_spans.append((path_key, spans))
-  embedding_matrix = np.array(embedding_vectors, dtype=np.float32)
-  del path_embedding_items, embedding_vectors
-  gc.collect()
+        embedding_vectors: list[np.ndarray] = []
+        spans: list[tuple[int, int]] = []
 
-  # Write to disk.
+        for e in embedding_items:
+          span = e[VALUE_KEY]
+          vector = e[EMBEDDING_KEY]
+          # We squeeze here because embedding functions can return outer dimensions of 1.
+          embedding_vectors.append(vector.reshape(-1))
+          spans.append((span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]))
+
+        yield (path_key, spans, embedding_vectors)
+
+  span_vectors = _get_span_vectors()
+
   vector_index = VectorDBIndex(vector_store)
-  vector_index.add(all_spans, embedding_matrix)
-  vector_index.save(output_dir)
+  for span_vectors_chunk in chunks(span_vectors, EMBEDDINGS_WRITE_CHUNK_SIZE):
+    chunk_spans: list[tuple[PathKey, list[tuple[int, int]]]] = []
+    chunk_embedding_vectors: list[np.ndarray] = []
+    for path_key, spans, vectors in span_vectors_chunk:
+      chunk_spans.append((path_key, spans))
+      chunk_embedding_vectors.extend(vectors)
+
+    embedding_matrix = np.array(chunk_embedding_vectors, dtype=np.float32)
+
+    vector_index.add(chunk_spans, embedding_matrix)
+    vector_index.save(output_dir)
+
+    del embedding_matrix, chunk_embedding_vectors, chunk_spans
+    gc.collect()
 
   del vector_index
   gc.collect()

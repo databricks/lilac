@@ -7,6 +7,7 @@ from .langsmith import LangSmithSource
 from .pandas_source import PandasSource
 from .parquet_source import ParquetSource
 from .source_registry import register_source
+from .sqlite_source import SQLiteSource
 
 
 def register_default_sources() -> None:
@@ -18,3 +19,4 @@ def register_default_sources() -> None:
   register_source(GmailSource)
   register_source(ParquetSource)
   register_source(LangSmithSource)
+  register_source(SQLiteSource)

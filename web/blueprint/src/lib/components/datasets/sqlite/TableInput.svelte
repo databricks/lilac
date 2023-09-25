@@ -1,13 +1,16 @@
 <script lang="ts">
-  import {queryDatasets} from '$lib/queries/langsmithQueries';
+  import {queryTables} from '$lib/queries/sqliteQueries';
   import {ComboBox, TextInput} from 'carbon-components-svelte';
 
   export let value: string | undefined;
   export let invalid: boolean;
   export let invalidText: string;
+  export let rootValue: {db_file?: string};
 
-  $: datasetsQuery = queryDatasets();
-  $: items = $datasetsQuery.data?.map(s => ({
+  $: dbFile = rootValue.db_file;
+
+  $: tablesQuery = dbFile != null && dbFile !== '' ? queryTables(dbFile) : null;
+  $: items = $tablesQuery?.data?.map(s => ({
     id: s,
     text: s
   }));
@@ -18,9 +21,7 @@
     on:select={e => (value = e.detail.selectedId)}
     on:clear={() => (value = undefined)}
     {invalid}
-    {invalidText}
-    warn={items.length === 0}
-    warnText={'No datasets found'}
+    invalidText={items.length === 0 ? `No tables found in ${dbFile}` : invalidText}
     {items}
   />
 {:else}

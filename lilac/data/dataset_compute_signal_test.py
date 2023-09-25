@@ -4,6 +4,7 @@ from typing import ClassVar, Iterable, Optional, Union, cast
 
 import numpy as np
 import pytest
+from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from lilac.sources.source_registry import clear_source_registry, register_source
@@ -29,6 +30,7 @@ from ..signal import (
   register_signal,
 )
 from ..signals.concept_scorer import ConceptSignal
+from . import dataset_utils as dataset_utils_module
 from .dataset import Column, DatasetManifest, GroupsSortBy, SortOrder
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
@@ -502,8 +504,11 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
   assert list(result) == expected_result
 
 
-def test_embedding_signal(make_test_data: TestDataMaker) -> None:
+def test_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
+
+  # Reduce the chunk size to 1 so we test iteratively writing to the embedding index.
+  mocker.patch(f'{dataset_utils_module.__name__}.EMBEDDINGS_WRITE_CHUNK_SIZE', 1)
 
   embedding_signal = TestEmbedding()
   dataset.compute_signal(embedding_signal, 'text')

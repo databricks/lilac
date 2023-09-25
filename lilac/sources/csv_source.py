@@ -1,13 +1,13 @@
 """CSV source."""
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Optional, cast
 
 import duckdb
-import pandas as pd
+import pyarrow as pa
 from pydantic import Field
 from typing_extensions import override
 
-from ..schema import Item
-from ..source import Source, SourceSchema, schema_from_df
+from ..schema import Item, arrow_schema_to_schema
+from ..source import Source, SourceSchema
 from ..utils import download_http_files
 from .duckdb_utils import duckdb_setup
 
@@ -33,23 +33,25 @@ class CSVSource(Source):
     default=None, description='Provide header names if the file does not contain a header.')
 
   _source_schema: Optional[SourceSchema] = None
-  _df: Optional[pd.DataFrame] = None
+  _reader: Optional[pa.RecordBatchReader] = None
+  _con: Optional[duckdb.DuckDBPyConnection] = None
 
   @override
   def setup(self) -> None:
     # Download CSV files to /tmp if they are via HTTP to speed up duckdb.
     filepaths = download_http_files(self.filepaths)
 
-    con = duckdb.connect(database=':memory:')
+    self._con = duckdb.connect(database=':memory:')
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     s3_filepaths = [path.replace('gs://', 's3://') for path in filepaths]
 
     # NOTE: We use duckdb here to increase parallelism for multiple files.
     # NOTE: We turn off the parallel reader because of https://github.com/lilacai/lilac/issues/373.
-    self._df = con.execute(f"""
-      {duckdb_setup(con)}
-      SELECT * FROM read_csv_auto(
+    self._con.execute(f"""
+      {duckdb_setup(self._con)}
+      CREATE SEQUENCE serial START 1;
+      CREATE VIEW t as (SELECT nextval('serial') as "{LINE_NUMBER_COLUMN}", * FROM read_csv_auto(
         {s3_filepaths},
         SAMPLE_SIZE=500000,
         HEADER={self.header},
@@ -57,13 +59,16 @@ class CSVSource(Source):
         DELIM='{self.delim or ','}',
         IGNORE_ERRORS=true,
         PARALLEL=false
-    )
-    """).df()
-    for column_name in self._df.columns:
-      self._df.rename(columns={column_name: column_name}, inplace=True)
+    ));
+    """)
 
+    res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
+    num_items = cast(tuple[int], res)[0]
+
+    self._reader = self._con.execute('SELECT * from t').fetch_record_batch(rows_per_batch=10_000)
     # Create the source schema in prepare to share it between process and source_schema.
-    self._source_schema = schema_from_df(self._df, LINE_NUMBER_COLUMN)
+    schema = arrow_schema_to_schema(self._reader.schema)
+    self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)
 
   @override
   def source_schema(self) -> SourceSchema:
@@ -74,11 +79,11 @@ class CSVSource(Source):
   @override
   def process(self) -> Iterable[Item]:
     """Process the source upload request."""
-    if self._df is None:
+    if not self._reader or not self._con:
       raise RuntimeError('CSV source is not initialized.')
 
-    cols = self._df.columns.tolist()
-    yield from ({
-      LINE_NUMBER_COLUMN: idx,
-      **dict(zip(cols, item_vals)),
-    } for idx, *item_vals in self._df.itertuples())
+    for batch in self._reader:
+      yield from batch.to_pylist()
+
+    self._reader.close()
+    self._con.close()

@@ -14,7 +14,7 @@ from .config import (
   SignalConfig,
   get_dataset_config,
 )
-from .env import env, get_project_dir
+from .env import env, get_project_dir, set_project_dir
 from .utils import log, to_yaml
 
 PROJECT_CONFIG_FILENAME = 'lilac.yml'
@@ -193,5 +193,4 @@ def create_project_and_set_env(project_dir_arg: str) -> None:
   """Creates a Lilac project if it doesn't exist and set the environment variable."""
   project_dir = project_dir_from_args(project_dir_arg)
   create_project(project_dir)
-
-  os.environ['LILAC_PROJECT_DIR'] = project_dir
+  set_project_dir(project_dir)
