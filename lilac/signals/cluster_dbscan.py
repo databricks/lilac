@@ -2,6 +2,7 @@
 from typing import ClassVar, Iterable, Optional
 
 import numpy as np
+from pydantic import Field as PyField
 from sklearn.cluster import DBSCAN
 from typing_extensions import override
 
@@ -17,11 +18,17 @@ MIN_SAMPLES = 5
 DBSCAN_EPS = 0.05
 
 
+# TODO(smilkov): Explore OPTICS for scale: https://scikit-learn.org/dev/modules/generated/sklearn.cluster.OPTICS.html
 class ClusterDBSCAN(VectorSignal):
   """Find clusters of documents in a dataset using pre-computed embeddings and DBSCAN."""
   name: ClassVar[str] = 'cluster_dbscan'
   display_name: ClassVar[str] = 'Cluster with DBSCAN'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
+
+  eps: float = PyField(
+    default=DBSCAN_EPS,
+    description=
+    'The maximum distance between points so they are considered to be in the same neighborhood.')
 
   @override
   def fields(self) -> Field:

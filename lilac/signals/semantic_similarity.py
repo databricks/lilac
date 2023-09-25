@@ -36,7 +36,8 @@ class SemanticSimilaritySignal(VectorSignal):
   def __init__(self, query: Union[str, bytes], embedding: str, **kwargs: Any):
     if isinstance(query, bytes):
       raise ValueError('Image queries are not yet supported for SemanticSimilarity.')
-    super().__init__(query=query, embedding=embedding, **kwargs)  # type: ignore
+    super().__init__(embedding=embedding, **kwargs)
+    self.query = query
     self._embed_fn = get_embed_fn(embedding, split=False)
 
   @override
