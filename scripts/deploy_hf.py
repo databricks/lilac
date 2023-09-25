@@ -16,7 +16,7 @@ from huggingface_hub import HfApi
 from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from lilac.config import CONFIG_FILENAME, DatasetConfig
 from lilac.env import env, get_project_dir
-from lilac.project import PROJECT_CONFIG_FILENAME
+from lilac.project import PROJECT_CONFIG_FILENAME, read_project_config
 from lilac.sources.huggingface_source import HuggingFaceSource
 from lilac.utils import get_dataset_output_dir, get_hf_dataset_repo_id, get_lilac_cache_dir, to_yaml
 
@@ -210,13 +210,19 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 
     lilac_hf_datasets.append(dataset_repo_id)
 
-  # Upload the lilac.yml.
-  hf_api.upload_file(
-    path_or_fileobj=os.path.join(project_dir, PROJECT_CONFIG_FILENAME),
-    path_in_repo=os.path.join('data', PROJECT_CONFIG_FILENAME),
-    repo_id=hf_space,
-    repo_type='space',
-  )
+  # Upload the lilac.yml and filter out any datasets that aren't explicitly defined.
+  project_config = read_project_config(project_dir)
+  project_config.datasets = [
+    dataset for dataset in project_config.datasets
+    if f'{dataset.namespace}/{dataset.name}' in datasets
+  ]
+
+  # hf_api.upload_file(
+  #   path_or_fileobj=os.path.join(project_dir, PROJECT_CONFIG_FILENAME),
+  #   path_in_repo=os.path.join('data', PROJECT_CONFIG_FILENAME),
+  #   repo_id=hf_space,
+  #   repo_type='space',
+  # )
 
   # Upload files.
   files: dict[str, str] = {
@@ -237,7 +243,8 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
 **/*.pyo
 **/*.pyd
 **/*_test.py
-"""
+""",
+    f'data/{PROJECT_CONFIG_FILENAME}': to_yaml(project_config.model_dump())
   }
 
   for filename, file_contents in files.items():
