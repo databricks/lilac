@@ -1,6 +1,4 @@
 name: Backend
-env:
-  CUDA_VISIBLE_DEVICES: ''
 on:
   pull_request:
     types: [opened, reopened, synchronize]
