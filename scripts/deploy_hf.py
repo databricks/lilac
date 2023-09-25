@@ -217,13 +217,6 @@ def deploy_hf(hf_username: Optional[str], hf_space: Optional[str], datasets: lis
     if f'{dataset.namespace}/{dataset.name}' in datasets
   ]
 
-  # hf_api.upload_file(
-  #   path_or_fileobj=os.path.join(project_dir, PROJECT_CONFIG_FILENAME),
-  #   path_in_repo=os.path.join('data', PROJECT_CONFIG_FILENAME),
-  #   repo_id=hf_space,
-  #   repo_type='space',
-  # )
-
   # Upload files.
   files: dict[str, str] = {
     '.env.demo': f"""

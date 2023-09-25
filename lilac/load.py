@@ -111,9 +111,7 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
         f'Load dataset {d.namespace}/{d.name}', type=TaskType.DATASET_LOAD)
       task_manager.execute(task_id, process_source, project_dir, d, (task_id, 0))
       dataset_task_ids.append(task_id)
-    print('waiting on dask...', dataset_task_ids)
     task_manager.wait(dataset_task_ids)
-    print('done on dask...')
 
   log()
   total_num_rows = 0
@@ -212,7 +210,7 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
             # Wait for each signal to reduce memory pressure.
             task_manager.wait([task_id])
           else:
-            print(f'Signal {s.signal} already exists for {d.name}:{s.path}. Skipping.')
+            log(f'Signal {s.signal} already exists for {d.name}:{s.path}. Skipping.')
 
       del dataset
       gc.collect()
