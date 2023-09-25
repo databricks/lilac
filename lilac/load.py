@@ -146,6 +146,7 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
   with DebugTimer('Loading embeddings'):
     for d in config.datasets:
       dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
+      manifest = dataset.manifest()
 
       embedding_task_ids: list[str] = []
       # If embeddings are explicitly set, use only those.
@@ -159,7 +160,9 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
               embeddings.append(
                 EmbeddingConfig(path=path, embedding=d.settings.preferred_embedding))
       for e in embeddings:
-        if e not in dataset.config().embeddings or overwrite:
+        field = manifest.data_schema.get_field(e.path)
+        embedding_field = (field.fields or {}).get(e.embedding)
+        if embedding_field is None or overwrite:
           task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {d.name}:{e.path}')
           task_manager.execute(task_id, _compute_embedding, d.namespace, d.name, e, project_dir,
                                (task_id, 0))
@@ -181,6 +184,7 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
   with DebugTimer('Computing signals'):
     for d in config.datasets:
       dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
+      manifest = dataset.manifest()
 
       # If signals are explicitly set, use only those.
       signals = d.signals or []
@@ -199,7 +203,9 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
 
       for path, signals in path_signals.items():
         for s in signals:
-          if s not in dataset.config().signals or overwrite:
+          field = manifest.data_schema.get_field(s.path)
+          signal_field = (field.fields or {}).get(s.signal.key())
+          if signal_field is None or signal_field.signal != s.signal.model_dump() or overwrite:
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
             task_manager.execute(task_id, _compute_signal, d.namespace, d.name, s, project_dir,
                                  (task_id, 0))
@@ -209,6 +215,7 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
             print(f'Signal {s.signal} already exists for {d.name}:{s.path}. Skipping.')
 
       del dataset
+      gc.collect()
 
   if load_task_id:
     set_worker_next_step(load_task_id)

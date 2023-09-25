@@ -53,7 +53,6 @@ def remove_dataset_from_cache(namespace: str,
   cache_key = _dataset_cache_key(namespace, dataset_name, project_dir)
   with _db_lock:
     if cache_key in _CACHED_DATASETS:
-      _CACHED_DATASETS[cache_key].teardown()
       del _CACHED_DATASETS[cache_key]
 
 
