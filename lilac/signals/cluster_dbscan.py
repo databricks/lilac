@@ -26,9 +26,14 @@ class ClusterDBSCAN(VectorSignal):
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   eps: float = PyField(
+    title='Epsilon',
     default=DBSCAN_EPS,
     description=
     'The maximum distance between points so they are considered to be in the same neighborhood.')
+  min_samples: int = PyField(
+    title='Minimum samples',
+    default=MIN_SAMPLES,
+    description='The minimum number of samples in a neighborhood.')
 
   @override
   def fields(self) -> Field:
