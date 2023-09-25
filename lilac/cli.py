@@ -20,8 +20,13 @@ from .server import start_server
   default='127.0.0.1',
   type=str)
 @click.option('--port', help='The port number of the web-server', type=int, default=5432)
-@click.option('--skip_load', help='Skip loading the data.', type=bool, is_flag=True, default=False)
-def start(project_dir: str, host: str, port: int, skip_load: bool) -> None:
+@click.option(
+  '--load',
+  help='Load from the project config upon bootup.',
+  type=bool,
+  is_flag=True,
+  default=False)
+def start(project_dir: str, host: str, port: int, load: bool) -> None:
   """Starts the Lilac web server."""
   project_dir = project_dir_from_args(project_dir)
   if not dir_is_project(project_dir):
@@ -32,7 +37,7 @@ def start(project_dir: str, host: str, port: int, skip_load: bool) -> None:
     if value == 'n':
       exit()
 
-  start_server(host=host, port=port, open=True, project_dir=project_dir, skip_load=skip_load)
+  start_server(host=host, port=port, open=True, project_dir=project_dir, load=load)
 
 
 @click.command()
