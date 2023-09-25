@@ -42,7 +42,7 @@ class ParquetSource(Source):
 
   @override
   def process(self) -> Iterable[Item]:
-    """Process the source upload request."""
+    """Process the source."""
     assert self._table is not None, 'setup() must be called first.'
     for row in self._table.to_pylist():
       yield row

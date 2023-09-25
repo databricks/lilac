@@ -78,7 +78,7 @@ class CSVSource(Source):
 
   @override
   def process(self) -> Iterable[Item]:
-    """Process the source upload request."""
+    """Process the source."""
     if not self._reader or not self._con:
       raise RuntimeError('CSV source is not initialized.')
 
