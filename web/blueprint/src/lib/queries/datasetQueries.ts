@@ -48,7 +48,7 @@ export const DATASETS_SETTINGS_TAG = 'settings';
 
 export const DATASET_ITEM_METADATA_TAG = 'item_metadata';
 
-export const DEFAULT_SELECT_ROWS_LIMIT = 20;
+export const DEFAULT_SELECT_ROWS_LIMIT = 1;
 
 export const queryDatasets = createApiQuery(DatasetsService.getDatasets, DATASETS_TAG);
 export const queryDatasetManifest = createApiQuery(DatasetsService.getManifest, DATASETS_TAG, {});
