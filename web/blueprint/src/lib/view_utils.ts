@@ -640,6 +640,7 @@ export function mergeSpans(
       paths: []
     });
   }
+
   return mergedSpans;
 }
 
