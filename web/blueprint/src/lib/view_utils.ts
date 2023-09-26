@@ -1,7 +1,6 @@
 import {
   L,
   PATH_WILDCARD,
-  VALUE_KEY,
   childFields,
   getField,
   isConceptSignal,
@@ -545,8 +544,8 @@ export function mergeSpans(
   // Sort spans by start index.
   for (const spanSet of spanSetKeys) {
     inputSpanSets[spanSet].sort((a, b) => {
-      const aStart = a[VALUE_KEY]?.start || 0;
-      const bStart = b[VALUE_KEY]?.start || 0;
+      const aStart = L.span(a)?.start || 0;
+      const bStart = L.span(b)?.start || 0;
       return aStart - bStart;
     });
   }
@@ -566,7 +565,7 @@ export function mergeSpans(
     let curEndIndex = textLength;
     for (const spans of Object.values(spanSetWorkingSpans)) {
       for (const span of spans) {
-        const spanValue = (span || {})[VALUE_KEY];
+        const spanValue = L.span(span);
         if (spanValue == null) continue;
         if (spanValue.start < curEndIndex && spanValue.start > curStartIdx) {
           curEndIndex = spanValue.start;
@@ -582,12 +581,10 @@ export function mergeSpans(
       Object.entries(spanSetWorkingSpans).map(([spanSet, spans]) => [
         spanSet,
         spans.filter(span => {
-          return (
-            span != null &&
-            span[VALUE_KEY] != null &&
-            span[VALUE_KEY].start < curEndIndex &&
-            span[VALUE_KEY].end > curStartIdx
-          );
+          if (span == null) return false;
+          const spanValue = L.span(span);
+          if (spanValue == null) return false;
+          return spanValue.start < curEndIndex && spanValue.end > curStartIdx;
         })
       ])
     );
@@ -613,7 +610,7 @@ export function mergeSpans(
     // Advance the spans that have the span end index.
     for (const spanSet of Object.keys(spanSetIndices)) {
       const spanSetIdx = spanSetIndices[spanSet];
-      const span = (spanSetWorkingSpans[spanSet][0] || {})[VALUE_KEY];
+      const span = L.span(spanSetWorkingSpans[spanSet][0]);
       if (span == null || spanSetIdx == null) continue;
       if (span.end <= curEndIndex) {
         if (spanSetIdx > inputSpanSets[spanSet].length) {

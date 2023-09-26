@@ -15,6 +15,7 @@ import type {
 } from '../fastapi_client';
 import {
   PATH_WILDCARD,
+  SPAN_KEY,
   VALUE_KEY,
   pathIsMatching,
   type DataTypeCasted,
@@ -62,6 +63,7 @@ export type LilacValueNode = {
 export type LilacValueNodeCasted<D extends DataType = DataType> = {
   /** Holds the actual value of the node */
   [VALUE_KEY]: DataTypeCasted<D>;
+  [SPAN_KEY]?: DataTypeCasted<'string_span'>;
   /** Holds the path property of the node */
   [PATH_KEY]: Path;
   /** Holds a reference to the schema field */
@@ -160,9 +162,15 @@ export function listValueNodes(row: LilacValueNode): LilacValueNode[] {
     result = [...row, ...row.flatMap(listValueNodes)];
   } else {
     // Strip the internal properties
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const {[VALUE_KEY]: value, [PATH_KEY]: path, [SCHEMA_FIELD_KEY]: field, ...rest} = row;
-
+    /* eslint-disable @typescript-eslint/no-unused-vars */
+    const {
+      [SPAN_KEY]: span,
+      [VALUE_KEY]: value,
+      [PATH_KEY]: path,
+      [SCHEMA_FIELD_KEY]: field,
+      ...rest
+    } = row;
+    /* eslint-enable @typescript-eslint/no-unused-vars */
     const childProperties = Object.values(rest || {});
     result = [];
     for (const childProperty of childProperties) {
@@ -258,16 +266,23 @@ export function getRowLabels(node: LilacValueNode): string[] {
 }
 
 export const L = {
-  path: (value: LilacValueNode): Path | undefined => {
-    if (!value) return undefined;
-    const path = castLilacValueNode(value)[PATH_KEY];
-    if (path == null) throw Error(`Item does not have a path defined: ${JSON.stringify(value)}`);
+  path: (item: LilacValueNode): Path | undefined => {
+    if (!item) return undefined;
+    const path = castLilacValueNode(item)[PATH_KEY];
+    if (path == null) throw Error(`Item does not have a path defined: ${JSON.stringify(item)}`);
     return path;
   },
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  value: <D extends DataType>(value: LilacValueNode, dtype?: D): DataTypeCasted<D> => {
-    if (!value) return null;
-    return castLilacValueNode(value)[VALUE_KEY] as DataTypeCasted<D>;
+  value: <D extends DataType>(item: LilacValueNode, dtype?: D): DataTypeCasted<D> => {
+    if (!item) return null;
+    return castLilacValueNode(item)[VALUE_KEY] as DataTypeCasted<D>;
+  },
+  span: (
+    item: LilacValueNode | LilacValueNodeCasted
+  ): DataTypeCasted<'string_span'> | undefined => {
+    item = item as LilacValueNode;
+    if (!item || L.dtype(item) !== 'string_span') return null;
+    return castLilacValueNode<'string_span'>(item)[SPAN_KEY] || L.value<'string_span'>(item);
   },
   field: (value: LilacValueNode): LilacField | undefined => {
     if (!value) return undefined;
