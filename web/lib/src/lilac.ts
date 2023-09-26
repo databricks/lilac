@@ -122,6 +122,7 @@ export function deserializeRow(
     return rootNode;
   }
 
+  castLilacValueNode(rootNode)[SPAN_KEY] = null;
   castLilacValueNode(rootNode)[VALUE_KEY] = null;
   castLilacValueNode(rootNode)[PATH_KEY] = [];
   castLilacValueNode(rootNode)[SCHEMA_FIELD_KEY] = schema;
@@ -336,7 +337,7 @@ function lilacValueNodeFromRawValue(
     castLilacValueNode(ret)[SCHEMA_FIELD_KEY] = field;
     return ret;
   } else if (rawFieldValue != null && typeof rawFieldValue === 'object') {
-    const {[VALUE_KEY]: value, ...rest} = rawFieldValue;
+    const {[VALUE_KEY]: value, [SPAN_KEY]: span, ...rest} = rawFieldValue;
 
     ret = Object.entries(rest).reduce<Record<string, LilacValueNode>>((acc, [key, value]) => {
       acc[key] = lilacValueNodeFromRawValue(value, fields, [...path, key]);
@@ -344,6 +345,7 @@ function lilacValueNodeFromRawValue(
     }, {});
     // TODO(nikhil,jonas): Fix this type cast.
     castLilacValueNode(ret)[VALUE_KEY] = value as LeafValue;
+    castLilacValueNode(ret)[SPAN_KEY] = span as DataTypeCasted<'string_span'>;
   } else {
     castLilacValueNode(ret)[VALUE_KEY] = rawFieldValue;
   }
