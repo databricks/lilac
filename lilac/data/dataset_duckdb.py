@@ -38,6 +38,7 @@ from ..schema import (
   MANIFEST_FILENAME,
   PATH_WILDCARD,
   ROWID,
+  SPAN_KEY,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
   VALUE_KEY,
@@ -1200,7 +1201,7 @@ class DatasetDuckDB(Dataset):
             nested_spans: Iterable[Item] = df[offset_column_name]
             flat_spans = deep_flatten(nested_spans)
             for span, item in zip(flat_spans, signal_out_list):
-              _offset_any_span(cast(int, span[VALUE_KEY][TEXT_SPAN_START_FEATURE]), item, field)
+              _offset_any_span(cast(int, span[SPAN_KEY][TEXT_SPAN_START_FEATURE]), item, field)
 
           if len(signal_out_list) != num_rich_data:
             raise ValueError(
@@ -1425,9 +1426,7 @@ class DatasetDuckDB(Dataset):
 
   def _get_span_from(self, path: PathTuple, manifest: DatasetManifest) -> Optional[PathTuple]:
     leafs = manifest.data_schema.leafs
-    # Remove the value key so we can check the dtype from leafs.
-    span_path = path[:-1] if path[-1] == VALUE_KEY else path
-    is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
+    is_span = (path in leafs and leafs[path].dtype == DataType.STRING_SPAN)
     return _derived_from_path(path, manifest.data_schema) if is_span else None
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple, schema: Schema) -> PathTuple:
@@ -1785,8 +1784,8 @@ def _inner_select(sub_paths: list[PathTuple],
   if len(sub_paths) == 1:
     if span_from:
       derived_col = _select_sql(span_from, flatten=False, unnest=False)
-      path_key = (f'{derived_col}[{path_key}.{VALUE_KEY}.{TEXT_SPAN_START_FEATURE}+1:'
-                  f'{path_key}.{VALUE_KEY}.{TEXT_SPAN_END_FEATURE}]')
+      path_key = (f'{derived_col}[{path_key}.{SPAN_KEY}.{TEXT_SPAN_START_FEATURE}+1:'
+                  f'{path_key}.{SPAN_KEY}.{TEXT_SPAN_END_FEATURE}]')
     return 'NULL' if empty else path_key
   return (f'list_transform({path_key}, {lambda_var} -> '
           f'{_inner_select(sub_paths[1:], lambda_var, empty, span_from)})')
@@ -1994,13 +1993,7 @@ def _col_destination_path(column: Column, is_computed_signal: Optional[bool] = F
     return source_path
 
   signal_key = column.signal_udf.key(is_computed_signal=is_computed_signal)
-  # If we are enriching a value we should store the signal data in the value's parent.
-  if source_path[-1] == VALUE_KEY:
-    dest_path = (*source_path[:-1], signal_key)
-  else:
-    dest_path = (*source_path, signal_key)
-
-  return dest_path
+  return (*source_path, signal_key)
 
 
 def _root_column(manifest: SignalManifest) -> str:
@@ -2047,8 +2040,8 @@ def _offset_any_span(offset: int, item: Item, schema: Field) -> None:
   """Offsets any spans inplace by the given parent offset."""
   if schema.dtype == DataType.STRING_SPAN:
     item = cast(dict, item)
-    item[VALUE_KEY][TEXT_SPAN_START_FEATURE] += offset
-    item[VALUE_KEY][TEXT_SPAN_END_FEATURE] += offset
+    item[SPAN_KEY][TEXT_SPAN_START_FEATURE] += offset
+    item[SPAN_KEY][TEXT_SPAN_END_FEATURE] += offset
   if schema.fields:
     item = cast(dict, item)
     for key, sub_schema in schema.fields.items():

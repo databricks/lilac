@@ -36,7 +36,6 @@ from ..project import read_project_config, update_project_dataset_settings
 from ..schema import (
   PATH_WILDCARD,
   ROWID,
-  VALUE_KEY,
   Bin,
   DataType,
   ImageInfo,
@@ -636,7 +635,4 @@ def make_signal_parquet_id(signal: Signal,
   """Return a unique identifier for this parquet table."""
   # Remove the wildcards from the parquet id since they are implicit.
   path = [*[p for p in source_path if p != PATH_WILDCARD], signal.key(is_computed_signal)]
-  # Don't use the VALUE_KEY as part of the parquet id to reduce the size of paths.
-  if path[-1] == VALUE_KEY:
-    path = path[:-1]
   return '.'.join(path)

@@ -29,6 +29,7 @@ PARQUET_FILENAME_PREFIX = 'data'
 # https://docs.oracle.com/cd/B19306_01/server.102/b14200/pseudocolumns008.htm
 ROWID = '__rowid__'
 PATH_WILDCARD = '*'
+SPAN_KEY = '__span__'
 VALUE_KEY = '__value__'
 SIGNAL_METADATA_KEY = '__metadata__'
 TEXT_SPAN_START_FEATURE = 'start'
@@ -142,6 +143,8 @@ class Field(BaseModel):
     """Validate the fields."""
     if not fields:
       return fields
+    if SPAN_KEY in fields:
+      raise ValueError(f'{SPAN_KEY} is a reserved field name.')
     if VALUE_KEY in fields:
       raise ValueError(f'{VALUE_KEY} is a reserved field name.')
     return fields
@@ -341,7 +344,7 @@ class SpanVector(TypedDict):
 
 def lilac_span(start: int, end: int, metadata: dict[str, Any] = {}) -> Item:
   """Creates a lilac span item, representing a pointer to a slice of text."""
-  return {VALUE_KEY: {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}, **metadata}
+  return {SPAN_KEY: {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}, **metadata}
 
 
 def lilac_embedding(start: int, end: int, embedding: Optional[np.ndarray]) -> Item:
@@ -478,7 +481,7 @@ def dtype_to_arrow_schema(dtype: Optional[DataType]) -> Union[pa.Schema, pa.Data
     return pa.null()
   elif dtype == DataType.STRING_SPAN:
     return pa.struct({
-      VALUE_KEY: pa.struct({
+      SPAN_KEY: pa.struct({
         TEXT_SPAN_START_FEATURE: pa.int32(),
         TEXT_SPAN_END_FEATURE: pa.int32()
       })
@@ -510,15 +513,15 @@ def _schema_to_arrow_schema_impl(schema: Union[Schema, Field]) -> Union[pa.Schem
       arrow_fields[name] = arrow_schema
 
     if isinstance(schema, Schema):
-      # Top-level schemas do not have __value__ fields.
       return pa.schema(arrow_fields)
     else:
       # When nodes have both dtype and children, we add __value__ alongside the fields.
       if schema.dtype:
         value_schema = dtype_to_arrow_schema(schema.dtype)
         if schema.dtype == DataType.STRING_SPAN:
-          value_schema = value_schema[VALUE_KEY].type
-        arrow_fields[VALUE_KEY] = value_schema
+          arrow_fields[SPAN_KEY] = value_schema[SPAN_KEY].type
+        else:
+          arrow_fields[VALUE_KEY] = value_schema
 
       return pa.struct(arrow_fields)
 
@@ -649,6 +652,9 @@ def _infer_field(item: Item, diallow_pedals: bool = False) -> Field:
     if VALUE_KEY in fields:
       dtype = fields[VALUE_KEY].dtype
       del fields[VALUE_KEY]
+    elif SPAN_KEY in fields:
+      dtype = DataType.STRING_SPAN
+      del fields[SPAN_KEY]
     if not fields:
       # The object is an empty dict. We need a dummy child to represent this with parquet.
       return Field(fields={'__empty__': Field(dtype=DataType.NULL)})

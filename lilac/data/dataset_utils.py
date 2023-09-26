@@ -21,9 +21,9 @@ from ..schema import (
   EMBEDDING_KEY,
   PATH_WILDCARD,
   ROWID,
+  SPAN_KEY,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
-  VALUE_KEY,
   DataType,
   Field,
   Item,
@@ -168,7 +168,7 @@ def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_it
         spans: list[tuple[int, int]] = []
 
         for e in embedding_items:
-          span = e[VALUE_KEY]
+          span = e[SPAN_KEY]
           vector = e[EMBEDDING_KEY]
           # We squeeze here because embedding functions can return outer dimensions of 1.
           embedding_vectors.append(vector.reshape(-1))

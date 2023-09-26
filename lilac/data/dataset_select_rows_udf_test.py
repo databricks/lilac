@@ -14,6 +14,7 @@ from lilac.signals.concept_scorer import ConceptSignal
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   ROWID,
+  SPAN_KEY,
   Field,
   Item,
   RichData,
@@ -379,7 +380,7 @@ def test_sparse_embedding_index_with_asc_sort(make_test_data: TestDataMaker) -> 
   }, {
     'text': 'hello.',
     'udf': [{
-      '__value__': {
+      SPAN_KEY: {
         'start': 0,
         'end': 6
       },
@@ -388,7 +389,7 @@ def test_sparse_embedding_index_with_asc_sort(make_test_data: TestDataMaker) -> 
   }, {
     'text': 'hello world.',
     'udf': [{
-      '__value__': {
+      SPAN_KEY: {
         'start': 0,
         'end': 12
       },
