@@ -10,7 +10,7 @@ from huggingface_hub import scan_cache_dir, snapshot_download
 from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from lilac.env import env, get_project_dir
 from lilac.project import PROJECT_CONFIG_FILENAME
-from lilac.utils import DebugTimer, get_datasets_dir, get_lilac_cache_dir, log
+from lilac.utils import get_datasets_dir, get_lilac_cache_dir, log
 
 
 def delete_old_files() -> None:
@@ -52,8 +52,7 @@ def main() -> None:
   if not repo_id:
     return
 
-  with DebugTimer('Deleting old files'):
-    delete_old_files()
+  delete_old_files()
 
   with open(os.path.abspath('README.md')) as f:
     # Strip the '---' for the huggingface readme config.
@@ -65,49 +64,46 @@ def main() -> None:
 
   datasets_dir = get_datasets_dir(get_project_dir())
   os.makedirs(datasets_dir, exist_ok=True)
-  with DebugTimer('Downloading datasets from HuggingFace'):
-    for lilac_hf_dataset in hf_config['datasets']:
-      print('Downloading dataset from HuggingFace: ', lilac_hf_dataset)
-      snapshot_download(
-        repo_id=lilac_hf_dataset,
-        repo_type='dataset',
-        token=env('HF_ACCESS_TOKEN'),
-        local_dir=datasets_dir,
-        ignore_patterns=['.gitattributes', 'README.md'])
+  for lilac_hf_dataset in hf_config['datasets']:
+    print('Downloading dataset from HuggingFace: ', lilac_hf_dataset)
+    snapshot_download(
+      repo_id=lilac_hf_dataset,
+      repo_type='dataset',
+      token=env('HF_ACCESS_TOKEN'),
+      local_dir=datasets_dir,
+      ignore_patterns=['.gitattributes', 'README.md'])
 
-  with DebugTimer('Downloading project files'):
-    snapshot_dir = snapshot_download(
-      repo_id=repo_id, repo_type='space', token=env('HF_ACCESS_TOKEN'))
+  snapshot_dir = snapshot_download(repo_id=repo_id, repo_type='space', token=env('HF_ACCESS_TOKEN'))
 
-    spaces_data_dir = os.path.join(snapshot_dir, 'data')
-    # Copy the config file.
-    project_config_file = os.path.join(spaces_data_dir, PROJECT_CONFIG_FILENAME)
-    if os.path.exists(project_config_file):
-      shutil.copy(project_config_file, os.path.join(get_project_dir(), PROJECT_CONFIG_FILENAME))
+  spaces_data_dir = os.path.join(snapshot_dir, 'data')
+  # Copy the config file.
+  project_config_file = os.path.join(spaces_data_dir, PROJECT_CONFIG_FILENAME)
+  if os.path.exists(project_config_file):
+    shutil.copy(project_config_file, os.path.join(get_project_dir(), PROJECT_CONFIG_FILENAME))
 
-    # Delete cache files from persistent storage.
-    cache_dir = get_lilac_cache_dir(get_project_dir())
-    if os.path.exists(cache_dir):
-      shutil.rmtree(cache_dir)
+  # Delete cache files from persistent storage.
+  cache_dir = get_lilac_cache_dir(get_project_dir())
+  if os.path.exists(cache_dir):
+    shutil.rmtree(cache_dir)
 
-    # Copy cache files from the space if they exist.
-    spaces_cache_dir = get_lilac_cache_dir(spaces_data_dir)
-    if os.path.exists(spaces_cache_dir):
-      shutil.copytree(spaces_cache_dir, cache_dir)
+  # Copy cache files from the space if they exist.
+  spaces_cache_dir = get_lilac_cache_dir(spaces_data_dir)
+  if os.path.exists(spaces_cache_dir):
+    shutil.copytree(spaces_cache_dir, cache_dir)
 
-    # Copy concepts.
-    concepts = DiskConceptDB(spaces_data_dir).list()
-    for concept in concepts:
-      # Ignore lilac concepts, they're already part of the source code.
-      if concept.namespace == 'lilac':
-        continue
-      spaces_concept_output_dir = get_concept_output_dir(spaces_data_dir, concept.namespace,
-                                                         concept.name)
-      persistent_output_dir = get_concept_output_dir(get_project_dir(), concept.namespace,
-                                                     concept.name)
-      shutil.rmtree(persistent_output_dir, ignore_errors=True)
-      shutil.copytree(spaces_concept_output_dir, persistent_output_dir, dirs_exist_ok=True)
-      shutil.rmtree(spaces_concept_output_dir, ignore_errors=True)
+  # Copy concepts.
+  concepts = DiskConceptDB(spaces_data_dir).list()
+  for concept in concepts:
+    # Ignore lilac concepts, they're already part of the source code.
+    if concept.namespace == 'lilac':
+      continue
+    spaces_concept_output_dir = get_concept_output_dir(spaces_data_dir, concept.namespace,
+                                                       concept.name)
+    persistent_output_dir = get_concept_output_dir(get_project_dir(), concept.namespace,
+                                                   concept.name)
+    shutil.rmtree(persistent_output_dir, ignore_errors=True)
+    shutil.copytree(spaces_concept_output_dir, persistent_output_dir, dirs_exist_ok=True)
+    shutil.rmtree(spaces_concept_output_dir, ignore_errors=True)
 
 
 if __name__ == '__main__':
