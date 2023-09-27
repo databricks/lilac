@@ -1832,7 +1832,8 @@ def _inner_select(sub_paths: list[PathTuple],
   if len(sub_paths) == 1:
     if span_from:
       manifest, span_path = span_from
-      # The older signal manifests (w/o py version) used to store the span under `VALUE_KEY`.
+      # Older signal manifests (w/o py_version) store spans under `VALUE_KEY` instead of `SPAN_KEY`.
+      # TODO(smilkov): Remove this once we bump the semver to breaking.
       span_key = SPAN_KEY if manifest.py_version else VALUE_KEY
       derived_col = _select_sql(span_path, flatten=False, unnest=False)
       path_key = (f'{derived_col}[{path_key}.{span_key}.{TEXT_SPAN_START_FEATURE}+1:'
