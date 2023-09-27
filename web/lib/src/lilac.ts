@@ -62,7 +62,7 @@ export type LilacValueNode = {
  */
 export type LilacValueNodeCasted<D extends DataType = DataType> = {
   /** Holds the actual value of the node */
-  [VALUE_KEY]: DataTypeCasted<D>;
+  [VALUE_KEY]?: DataTypeCasted<D>;
   [SPAN_KEY]?: DataTypeCasted<'string_span'>;
   /** Holds the path property of the node */
   [PATH_KEY]: Path;
@@ -282,8 +282,9 @@ export const L = {
     item: LilacValueNode | LilacValueNodeCasted
   ): DataTypeCasted<'string_span'> | undefined => {
     item = item as LilacValueNode;
-    if (!item || L.dtype(item) !== 'string_span') return null;
-    return castLilacValueNode<'string_span'>(item)[SPAN_KEY] || L.value<'string_span'>(item);
+    if (!item) return null;
+    const spanItem = castLilacValueNode<'string_span'>(item);
+    return spanItem[SPAN_KEY] || L.value<'string_span'>(item);
   },
   field: (value: LilacValueNode): LilacField | undefined => {
     if (!value) return undefined;
