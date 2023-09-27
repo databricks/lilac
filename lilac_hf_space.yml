@@ -84,20 +84,6 @@ datasets:
       dataset_name: argilla/databricks-dolly-15k-curated-en
       source_name: huggingface
 
-  - name: piqa
-    namespace: lilac
-    tags: [machine-learning]
-    settings:
-      ui:
-        media_paths:
-          - sol1
-          - sol2
-          - goal
-      preferred_embedding: 'gte-small'
-    source:
-      dataset_name: piqa
-      source_name: huggingface
-
   - name: 'OpenOrca-100k'
     namespace: lilac
     tags: [machine-learning]
