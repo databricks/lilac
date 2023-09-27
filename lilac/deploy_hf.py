@@ -1,7 +1,7 @@
 """Deploy to a huggingface space.
 
 Usage:
-  poetry run python -m scripts.deploy_hf*
+  poetry run lilac deploy_hf
 
 """
 import os
@@ -10,7 +10,6 @@ import subprocess
 from importlib import resources
 from typing import Any, Optional, Union
 
-import click
 import yaml
 
 from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
@@ -22,70 +21,6 @@ from lilac.utils import get_dataset_output_dir, get_hf_dataset_repo_id, get_lila
 
 HF_SPACE_DIR = '.hf_spaces'
 PY_DIST_DIR = 'dist'
-
-
-@click.command()
-@click.option(
-  '--project_dir',
-  help='The project directory to use for the demo. Defaults to `env.LILAC_PROJECT_DIR`.',
-  type=str,
-  required=True)
-@click.option(
-  '--hf_username', help='The huggingface username to use to authenticate for the space.', type=str)
-@click.option(
-  '--hf_space',
-  help='The huggingface space. Defaults to env.HF_STAGING_DEMO_REPO. '
-  'Should be formatted like `SPACE_ORG/SPACE_NAME`.',
-  type=str)
-@click.option('--dataset', help='The name of a dataset to upload', type=str, multiple=True)
-@click.option(
-  '--concept',
-  help='The name of a concept to upload. By default all lilac/ concepts are uploaded.',
-  type=str,
-  multiple=True)
-@click.option(
-  '--skip_build',
-  help='Skip building the web server TypeScript. '
-  'Useful to speed up the build if you are only changing python or data.',
-  type=bool,
-  is_flag=True,
-  default=False)
-@click.option(
-  '--skip_cache',
-  help='Skip uploading the cache files from .cache/lilac which contain cached concept pkl models.',
-  type=bool,
-  is_flag=True,
-  default=False)
-@click.option(
-  '--make_datasets_public',
-  help='When true, sets the huggingface datasets uploaded to public. Defaults to false.',
-  is_flag=True,
-  default=False)
-@click.option(
-  '--skip_data_upload',
-  help='When true, only uploads the wheel files without any other changes.',
-  is_flag=True,
-  default=False)
-@click.option(
-  '--use_pip',
-  help='When true, uses the public pip package. When false, builds and uses a local wheel.',
-  is_flag=True,
-  default=False)
-def deploy_hf_command(project_dir: str, hf_username: Optional[str], hf_space: Optional[str],
-                      dataset: list[str], concept: list[str], skip_build: bool, skip_cache: bool,
-                      make_datasets_public: bool, skip_data_upload: bool, use_pip: bool) -> None:
-  """Generate the huggingface space app."""
-  deploy_hf(
-    project_dir=project_dir,
-    hf_username=hf_username,
-    hf_space=hf_space,
-    datasets=dataset,
-    concepts=concept,
-    skip_build=skip_build,
-    skip_cache=skip_cache,
-    make_datasets_public=make_datasets_public,
-    skip_data_upload=skip_data_upload,
-    use_pip=use_pip)
 
 
 def deploy_hf(project_dir: Optional[str], hf_username: Optional[str], hf_space: Optional[str],
