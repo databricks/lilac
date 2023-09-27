@@ -8,9 +8,9 @@ from sklearn.preprocessing import normalize
 
 from ..schema import (
   EMBEDDING_KEY,
+  SPAN_KEY,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
-  VALUE_KEY,
   Item,
   RichData,
   SpanVector,
@@ -41,7 +41,7 @@ def get_embed_fn(embedding_name: str, split: bool) -> EmbedFn:
       yield [{
         'vector': item_val[EMBEDDING_KEY].reshape(-1),
         'span':
-          (item_val[VALUE_KEY][TEXT_SPAN_START_FEATURE], item_val[VALUE_KEY][TEXT_SPAN_END_FEATURE])
+          (item_val[SPAN_KEY][TEXT_SPAN_START_FEATURE], item_val[SPAN_KEY][TEXT_SPAN_END_FEATURE])
       } for item_val in item]
 
   return _embed_fn

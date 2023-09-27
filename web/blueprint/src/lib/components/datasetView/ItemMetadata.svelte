@@ -6,6 +6,7 @@
     PATH_KEY,
     ROWID,
     SCHEMA_FIELD_KEY,
+    SPAN_KEY,
     VALUE_KEY,
     formatValue,
     getField,
@@ -30,7 +31,10 @@
     const field = L.field(node)!;
     const path = L.path(node)!;
     let value = L.value(node);
+    let span = L.span(node);
     if (field.dtype === 'string_span') {
+      // We default to __value__ for back compat.
+      span = span || (value as {start: number; end: number});
       const stringValues = [];
       // Get the parent that is dtype string to resolve the span.
       for (let i = path.length - 1; i >= 0; i--) {
@@ -38,9 +42,8 @@
         const parent = getField(selectRowsSchema!.schema, parentPath)!;
 
         if (parent.dtype === 'string') {
-          const v = L.value<'string'>(valueAtPath(row, parentPath)!)!;
-          const {start, end} = value as {start: number; end: number};
-          stringValues.push(v.slice(start, end));
+          const text = L.value<'string'>(valueAtPath(row, parentPath)!)!;
+          stringValues.push(text.slice(span.start, span.end));
           break;
         }
       }
@@ -69,6 +72,7 @@
       // Strip internal values.
       /* eslint-disable @typescript-eslint/no-unused-vars */
       const {
+        [SPAN_KEY]: _span,
         [VALUE_KEY]: _value,
         [PATH_KEY]: _path,
         [SCHEMA_FIELD_KEY]: _field,

@@ -89,7 +89,8 @@ export function getRenderSpans(
           if (valueNode == null) continue;
 
           const value = L.value(valueNode);
-          if (value == null) continue;
+          const span = L.span(valueNode);
+          if (value == null && span == null) continue;
 
           if (valueInfo.dtype === 'float32') {
             const floatValue = L.value<'float32'>(valueNode);

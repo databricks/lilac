@@ -11,6 +11,7 @@ import shutil
 import sqlite3
 import threading
 from datetime import datetime
+from importlib import metadata
 from typing import Any, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
 
 import duckdb
@@ -38,6 +39,7 @@ from ..schema import (
   MANIFEST_FILENAME,
   PATH_WILDCARD,
   ROWID,
+  SPAN_KEY,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
   VALUE_KEY,
@@ -144,6 +146,33 @@ class DuckDBSearchUDFs(BaseModel):
   udfs: list[Column]
   output_paths: list[PathTuple]
   sorts: list[tuple[PathTuple, SortOrder]]
+
+
+class SignalManifest(BaseModel):
+  """The manifest that describes a signal computation including schema and parquet files."""
+  # List of a parquet filepaths storing the data. The paths are relative to the manifest.
+  files: list[str]
+
+  # An identifier for this parquet table. Will be used as the view name in SQL.
+  parquet_id: str
+
+  data_schema: Schema
+  signal: SerializeAsAny[Signal]
+
+  # The column path that this signal is derived from.
+  enriched_path: PathTuple
+
+  # The name of the vector store. Present when the signal is an embedding.
+  vector_store: Optional[str] = None
+
+  # The lilac python version that produced this signal.
+  py_version: Optional[str] = None
+
+  @field_validator('signal', mode='before')
+  @classmethod
+  def parse_signal(cls, signal: dict) -> Signal:
+    """Parse a signal to its specific subclass instance."""
+    return resolve_signal(signal)
 
 
 class DatasetDuckDB(Dataset):
@@ -490,7 +519,8 @@ class DatasetDuckDB(Dataset):
       data_schema=signal_schema,
       signal=signal,
       enriched_path=source_path,
-      parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True))
+      parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True),
+      py_version=metadata.version('lilac'))
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
 
@@ -557,7 +587,8 @@ class DatasetDuckDB(Dataset):
       signal=signal,
       enriched_path=source_path,
       parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True),
-      vector_store=self.vector_store)
+      vector_store=self.vector_store,
+      py_version=metadata.version('lilac'))
 
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
@@ -719,7 +750,7 @@ class DatasetDuckDB(Dataset):
 
     duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
     inner_select = _select_sql(
-      duckdb_path, flatten=True, unnest=True, span_from=self._get_span_from(path, manifest))
+      duckdb_path, flatten=True, unnest=True, span_from=self._resolve_span(path, manifest))
 
     # Compute the average length of text fields.
     avg_text_length: Optional[int] = None
@@ -839,7 +870,7 @@ class DatasetDuckDB(Dataset):
     limit_query = f'LIMIT {limit}' if limit else ''
     duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
     inner_select = _select_sql(
-      duckdb_path, flatten=True, unnest=True, span_from=self._get_span_from(path, manifest))
+      duckdb_path, flatten=True, unnest=True, span_from=self._resolve_span(path, manifest))
 
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
     filter_queries = self._create_where(manifest, filters, searches=[])
@@ -1069,7 +1100,7 @@ class DatasetDuckDB(Dataset):
         columns_to_merge[final_col_name] = {}
 
       duckdb_paths = self._column_to_duckdb_paths(column, schema, combine_columns)
-      span_from = self._get_span_from(path, manifest) if resolve_span or column.signal_udf else None
+      span_from = self._resolve_span(path, manifest) if resolve_span or column.signal_udf else None
 
       for parquet_id, duckdb_path in duckdb_paths:
         sql = _select_sql(
@@ -1200,7 +1231,7 @@ class DatasetDuckDB(Dataset):
             nested_spans: Iterable[Item] = df[offset_column_name]
             flat_spans = deep_flatten(nested_spans)
             for span, item in zip(flat_spans, signal_out_list):
-              _offset_any_span(cast(int, span[VALUE_KEY][TEXT_SPAN_START_FEATURE]), item, field)
+              _offset_any_span(cast(int, span[SPAN_KEY][TEXT_SPAN_START_FEATURE]), item, field)
 
           if len(signal_out_list) != num_rich_data:
             raise ValueError(
@@ -1423,12 +1454,28 @@ class DatasetDuckDB(Dataset):
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
-  def _get_span_from(self, path: PathTuple, manifest: DatasetManifest) -> Optional[PathTuple]:
-    leafs = manifest.data_schema.leafs
-    # Remove the value key so we can check the dtype from leafs.
-    span_path = path[:-1] if path[-1] == VALUE_KEY else path
+  def _resolve_span(self, span_path: PathTuple,
+                    manifest: DatasetManifest) -> Optional[tuple[SignalManifest, PathTuple]]:
+    schema = manifest.data_schema
+    leafs = schema.leafs
     is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
-    return _derived_from_path(path, manifest.data_schema) if is_span else None
+    if not is_span:
+      return None
+
+    # Find the signal manifest that contains the span path.
+    signal_manifest = next(
+      filter(lambda s: schema_contains_path(s.data_schema, span_path), self._signal_manifests))
+
+    # Find the original text, which is the closest parent of `path` above the signal root.
+    text_path: PathTuple
+    for i in reversed(range(len(span_path))):
+      sub_path = span_path[:i]
+      if schema.get_field(sub_path).signal is not None:
+        # Skip the signal name at the end to get the source path that was enriched.
+        text_path = sub_path[:-1]
+        return (signal_manifest, text_path)
+
+    raise ValueError('Cannot find the source path for the enriched path: {path}')
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple, schema: Schema) -> PathTuple:
     ((_, duckdb_path),) = self._column_to_duckdb_paths(
@@ -1623,7 +1670,7 @@ class DatasetDuckDB(Dataset):
     for f in filters:
       duckdb_path = self._leaf_path_to_duckdb_path(f.path, manifest.data_schema)
       select_str = _select_sql(
-        duckdb_path, flatten=True, unnest=False, span_from=self._get_span_from(f.path, manifest))
+        duckdb_path, flatten=True, unnest=False, span_from=self._resolve_span(f.path, manifest))
       is_array = any(subpath == PATH_WILDCARD for subpath in f.path)
 
       nan_filter = ''
@@ -1772,7 +1819,7 @@ def _escape_like_value(value: str) -> str:
 def _inner_select(sub_paths: list[PathTuple],
                   inner_var: Optional[str] = None,
                   empty: bool = False,
-                  span_from: Optional[PathTuple] = None) -> str:
+                  span_from: Optional[tuple[SignalManifest, PathTuple]] = None) -> str:
   """Recursively generate the inner select statement for a list of sub paths."""
   current_sub_path = sub_paths[0]
   lambda_var = inner_var + 'x' if inner_var else 'x'
@@ -1784,9 +1831,13 @@ def _inner_select(sub_paths: list[PathTuple],
   path_key = inner_var + ''.join([f'[{_escape_string_literal(p)}]' for p in current_sub_path])
   if len(sub_paths) == 1:
     if span_from:
-      derived_col = _select_sql(span_from, flatten=False, unnest=False)
-      path_key = (f'{derived_col}[{path_key}.{VALUE_KEY}.{TEXT_SPAN_START_FEATURE}+1:'
-                  f'{path_key}.{VALUE_KEY}.{TEXT_SPAN_END_FEATURE}]')
+      manifest, span_path = span_from
+      # Older signal manifests (w/o py_version) store spans under `VALUE_KEY` instead of `SPAN_KEY`.
+      # TODO(smilkov): Remove this once we bump the semver to breaking.
+      span_key = SPAN_KEY if manifest.py_version else VALUE_KEY
+      derived_col = _select_sql(span_path, flatten=False, unnest=False)
+      path_key = (f'{derived_col}[{path_key}.{span_key}.{TEXT_SPAN_START_FEATURE}+1:'
+                  f'{path_key}.{span_key}.{TEXT_SPAN_END_FEATURE}]')
     return 'NULL' if empty else path_key
   return (f'list_transform({path_key}, {lambda_var} -> '
           f'{_inner_select(sub_paths[1:], lambda_var, empty, span_from)})')
@@ -1812,7 +1863,7 @@ def _select_sql(path: PathTuple,
                 flatten: bool,
                 unnest: bool,
                 empty: bool = False,
-                span_from: Optional[PathTuple] = None) -> str:
+                span_from: Optional[tuple[SignalManifest, PathTuple]] = None) -> str:
   """Create a select column for a path.
 
   Args:
@@ -1879,30 +1930,6 @@ def _bytes_to_blob_literal(bytes: bytes) -> str:
   """Convert bytes to a blob literal."""
   escaped_hex = re.sub(r'(.{2})', r'\\x\1', bytes.hex())
   return f"'{escaped_hex}'::BLOB"
-
-
-class SignalManifest(BaseModel):
-  """The manifest that describes a signal computation including schema and parquet files."""
-  # List of a parquet filepaths storing the data. The paths are relative to the manifest.
-  files: list[str]
-
-  # An identifier for this parquet table. Will be used as the view name in SQL.
-  parquet_id: str
-
-  data_schema: Schema
-  signal: SerializeAsAny[Signal]
-
-  # The column path that this signal is derived from.
-  enriched_path: PathTuple
-
-  # The name of the vector store. Present when the signal is an embedding.
-  vector_store: Optional[str] = None
-
-  @field_validator('signal', mode='before')
-  @classmethod
-  def parse_signal(cls, signal: dict) -> Signal:
-    """Parse a signal to its specific subclass instance."""
-    return resolve_signal(signal)
 
 
 def _merge_cells(dest_cell: Item, source_cell: Item) -> Item:
@@ -1994,13 +2021,7 @@ def _col_destination_path(column: Column, is_computed_signal: Optional[bool] = F
     return source_path
 
   signal_key = column.signal_udf.key(is_computed_signal=is_computed_signal)
-  # If we are enriching a value we should store the signal data in the value's parent.
-  if source_path[-1] == VALUE_KEY:
-    dest_path = (*source_path[:-1], signal_key)
-  else:
-    dest_path = (*source_path, signal_key)
-
-  return dest_path
+  return (*source_path, signal_key)
 
 
 def _root_column(manifest: SignalManifest) -> str:
@@ -2010,16 +2031,6 @@ def _root_column(manifest: SignalManifest) -> str:
     raise ValueError('Expected at most two fields in signal manifest, '
                      f'the rowid and root this signal is enriching. Got {field_keys}.')
   return next(filter(lambda field: field != ROWID, manifest.data_schema.fields.keys()))
-
-
-def _derived_from_path(path: PathTuple, schema: Schema) -> PathTuple:
-  # Find the closest parent of `path` that is a signal root.
-  for i in reversed(range(len(path))):
-    sub_path = path[:i]
-    if schema.get_field(sub_path).signal is not None:
-      # Skip the signal name at the end to get the source path that was enriched.
-      return sub_path[:-1]
-  raise ValueError('Cannot find the source path for the enriched path: {path}')
 
 
 def _make_schema_from_path(path: PathTuple, field: Field) -> Schema:
@@ -2047,8 +2058,8 @@ def _offset_any_span(offset: int, item: Item, schema: Field) -> None:
   """Offsets any spans inplace by the given parent offset."""
   if schema.dtype == DataType.STRING_SPAN:
     item = cast(dict, item)
-    item[VALUE_KEY][TEXT_SPAN_START_FEATURE] += offset
-    item[VALUE_KEY][TEXT_SPAN_END_FEATURE] += offset
+    item[SPAN_KEY][TEXT_SPAN_START_FEATURE] += offset
+    item[SPAN_KEY][TEXT_SPAN_END_FEATURE] += offset
   if schema.fields:
     item = cast(dict, item)
     for key, sub_schema in schema.fields.items():
