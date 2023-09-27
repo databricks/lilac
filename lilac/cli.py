@@ -7,6 +7,7 @@ import click
 from . import __version__
 from .concepts.db_concept import DISK_CONCEPT_DB
 from .env import get_project_dir
+from .hf_docker_start import hf_docker_start as hf_docker_start_fn
 from .load import load
 from .project import dir_is_project, init, project_dir_from_args
 from .server import start_server
@@ -88,6 +89,12 @@ def version() -> None:
 
 
 @click.command()
+def hf_docker_start() -> None:
+  """Prepares the binary by downloading datasets for the HuggingFace docker image."""
+  hf_docker_start_fn()
+
+
+@click.command()
 def concepts() -> None:
   """Lists lilac concepts."""
   print(DISK_CONCEPT_DB.list())
@@ -104,6 +111,8 @@ cli.add_command(version)
 cli.add_command(init_command, name='init')
 cli.add_command(load_command, name='load')
 cli.add_command(start)
+
+cli.add_command(hf_docker_start)
 
 cli.add_command(concepts)
 

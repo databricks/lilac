@@ -83,7 +83,6 @@ def _init_env() -> None:
 
   if not in_test:  # Skip local environment variables when testing.
     load_dotenv('.env.local')
-  load_dotenv('.env.demo')
   load_dotenv('.env')
 
   auth_enabled = os.environ.get('LILAC_AUTH_ENABLED', False) == 'true'

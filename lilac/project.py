@@ -80,7 +80,7 @@ def update_project_dataset_settings(dataset_namespace: str,
     config = read_project_config(project_dir)
     dataset_config = get_dataset_config(config, dataset_namespace, dataset_name)
     if dataset_config is None:
-      raise ValueError('Dataset not found in project config.')
+      raise ValueError(f'Dataset "{dataset_namespace}/{dataset_name}" not found in project config.')
     dataset_config.settings = settings
     _write_project_config(project_dir, config)
 
@@ -96,7 +96,7 @@ def add_project_signal_config(dataset_namespace: str,
     config = read_project_config(get_project_dir())
     dataset_config = get_dataset_config(config, dataset_namespace, dataset_name)
     if dataset_config is None:
-      raise ValueError('Dataset not found in project config.')
+      raise ValueError(f'Dataset "{dataset_namespace}/{dataset_name}" not found in project config.')
     if signal_config in dataset_config.signals:
       return
     dataset_config.signals.append(signal_config)
@@ -114,7 +114,7 @@ def add_project_embedding_config(dataset_namespace: str,
     config = read_project_config(project_dir)
     dataset_config = get_dataset_config(config, dataset_namespace, dataset_name)
     if dataset_config is None:
-      raise ValueError('Dataset not found in project config.')
+      raise ValueError(f'Dataset "{dataset_namespace}/{dataset_name}" not found in project config.')
 
     if embedding_config in dataset_config.embeddings:
       return

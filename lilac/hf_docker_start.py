@@ -1,20 +1,25 @@
-"""Startup work before running the web server."""
+"""Startup work before running the web server on HuggingFace."""
 
 import os
 import shutil
 from typing import TypedDict
 
 import yaml
-from huggingface_hub import scan_cache_dir, snapshot_download
 
-from lilac.concepts.db_concept import DiskConceptDB, get_concept_output_dir
-from lilac.env import env, get_project_dir
-from lilac.project import PROJECT_CONFIG_FILENAME
-from lilac.utils import get_datasets_dir, get_lilac_cache_dir, log
+from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
+from .env import env, get_project_dir
+from .project import PROJECT_CONFIG_FILENAME
+from .utils import DebugTimer, get_datasets_dir, get_lilac_cache_dir, log
 
 
 def delete_old_files() -> None:
   """Delete old files from the cache."""
+  try:
+    from huggingface_hub import scan_cache_dir
+  except ImportError:
+    raise ImportError('Could not import the "huggingface_hub" python package. '
+                      'Please install it with `pip install "huggingface_hub".')
+
   # Scan cache
   try:
     scan = scan_cache_dir()
@@ -45,8 +50,20 @@ class HfSpaceConfig(TypedDict):
   datasets: list[str]
 
 
-def main() -> None:
+def hf_docker_start() -> None:
   """Download dataset files from the HF space that was uploaded before building the image."""
+  log('Setting up data dependencies for the server...')
+  with DebugTimer('Huggingface docker start'):
+    _hf_docker_start()
+
+
+def _hf_docker_start() -> None:
+  try:
+    from huggingface_hub import snapshot_download
+  except ImportError:
+    raise ImportError('Could not import the "huggingface_hub" python package. '
+                      'Please install it with `pip install "huggingface_hub".')
+
   # SPACE_ID is the HuggingFace Space ID environment variable that is automatically set by HF.
   repo_id = env('SPACE_ID', None)
   if not repo_id:
@@ -104,7 +121,3 @@ def main() -> None:
     shutil.rmtree(persistent_output_dir, ignore_errors=True)
     shutil.copytree(spaces_concept_output_dir, persistent_output_dir, dirs_exist_ok=True)
     shutil.rmtree(spaces_concept_output_dir, ignore_errors=True)
-
-
-if __name__ == '__main__':
-  main()

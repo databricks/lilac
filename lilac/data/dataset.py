@@ -350,7 +350,8 @@ class Dataset(abc.ABC):
     project_config = read_project_config(get_project_dir())
     dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not dataset_config:
-      raise ValueError('Dataset not found in project config.')
+      raise ValueError(
+        f'Dataset "{self.namespace}/{self.dataset_name}" not found in project config.')
     return dataset_config
 
   def settings(self) -> DatasetSettings:
@@ -360,7 +361,7 @@ class Dataset(abc.ABC):
 
   def update_settings(self, settings: DatasetSettings) -> None:
     """Update the persistent settings for the dataset."""
-    update_project_dataset_settings(self.namespace, self.dataset_name, settings)
+    update_project_dataset_settings(self.namespace, self.dataset_name, settings, self.project_dir)
 
   @abc.abstractmethod
   def compute_signal(self,
