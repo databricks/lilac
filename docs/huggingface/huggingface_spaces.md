@@ -4,6 +4,9 @@ Lilac projects can be deployed to HuggingFace spaces out of the box.
 
 You can either use our Python API / CLI, or Duplicate our public space.
 
+The accompanying IPython notebook can be found
+[here](https://github.com/lilacai/lilac/blob/main/notebooks/MigrateEmbedding.ipynb).
+
 ## Option 1: Deploy from Python / CLI
 
 This requires:
