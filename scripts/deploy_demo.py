@@ -35,11 +35,10 @@ from huggingface_hub import HfApi, snapshot_download
 
 from lilac.config import read_config
 from lilac.db_manager import list_datasets
+from lilac.deploy_project import deploy_project
 from lilac.env import env
 from lilac.load import load
 from lilac.utils import get_datasets_dir, get_hf_dataset_repo_id
-
-from .deploy_hf import deploy_hf
 
 
 @click.command()
@@ -47,7 +46,7 @@ from .deploy_hf import deploy_hf
 @click.option('--hf_space', help='The huggingface space.', type=str)
 @click.option('--project_dir', help='The local output dir to use to sync the data.', type=str)
 @click.option(
-  '--overwrite',
+  '--load_overwrite',
   help='When True, runs all all data from scratch, overwriting existing data. When false, only'
   'load new datasets, embeddings, and signals.',
   type=bool,
@@ -60,13 +59,6 @@ from .deploy_hf import deploy_hf
   is_flag=True,
   default=False)
 @click.option('--skip_load', help='Skip loading the data.', type=bool, is_flag=True, default=False)
-@click.option(
-  '--skip_build',
-  help='Skip building the web server TypeScript. '
-  'Useful to speed up the build if you are only changing python or data.',
-  type=bool,
-  is_flag=True,
-  default=False)
 @click.option(
   '--skip_data_upload',
   help='Skip uploading data. This just uploads the wheel file from the local build.',
@@ -85,12 +77,14 @@ from .deploy_hf import deploy_hf
   is_flag=True,
   default=False)
 @click.option(
-  '--use_pip',
-  help='When true, uses the public pip package. When false, builds and uses a local wheel.',
-  default=True)
-def deploy_demo(config: str, hf_space: str, project_dir: str, overwrite: bool, skip_sync: bool,
-                skip_load: bool, skip_build: bool, skip_data_upload: bool, skip_deploy: bool,
-                make_datasets_public: bool, use_pip: bool) -> None:
+  '--create_space',
+  help='When True, creates the HuggingFace space if it doesnt exist. The space will be created '
+  'with small persistent storage.',
+  is_flag=True,
+  default=False)
+def deploy_demo(config: str, hf_space: str, project_dir: str, load_overwrite: bool, skip_sync: bool,
+                skip_load: bool, skip_data_upload: bool, skip_deploy: bool,
+                make_datasets_public: bool, create_space: bool) -> None:
   """Deploys the public demo."""
   hf_space_org, hf_space_name = hf_space.split('/')
 
@@ -113,27 +107,30 @@ def deploy_demo(config: str, hf_space: str, project_dir: str, overwrite: bool, s
         ignore_patterns=['.gitattributes', 'README.md'])
 
   if not skip_load:
-    load(project_dir, config, overwrite)
+    load(project_dir, config, load_overwrite)
 
   if not skip_deploy:
     datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(project_dir)
                ] if not skip_data_upload else []
-    deploy_hf(
-      # Take this from the env variable.
-      hf_username=None,
+    deploy_project(
       hf_space=hf_space,
+      project_dir=project_dir,
       datasets=datasets,
+      make_datasets_public=make_datasets_public,
       # No extra concepts. lilac concepts are pushed by default.
       concepts=[],
-      skip_build=skip_build,
-      skip_cache=False,
-      project_dir=project_dir,
+      # Always upload local cache files.
+      skip_cache_upload=False,
       skip_data_upload=skip_data_upload,
-      make_datasets_public=make_datasets_public,
-      # The public demo uses the public pip package.
-      use_pip=use_pip,
-      # Enable Google Analytics on the public demo.
-      disable_google_analytics=False)
+      # We only use public concepts in demos.
+      skip_concept_upload=True,
+      create_space=create_space,
+      hf_space_storage='small',
+      load_on_space=False)
+
+  # Enable google analytics.
+  hf_api = HfApi()
+  hf_api.add_space_variable(hf_space, 'GOOGLE_ANALYTICS_ENABLED', True)
 
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:
