@@ -10,13 +10,14 @@ Usage:
 poetry run python -m scripts.deploy_demo \
   --project_dir=./demo_data \
   --config=./lilac_hf_space.yml \
-  --hf_space=lilacai/lilac \
-  --make_datasets_public
+  --hf_space=lilacai/lilac
 
 Add:
   --skip_sync to skip syncing data from the HuggingFace space data.
   --skip_load to skip loading the data.
+  --load_overwrite to run all data from scratch, overwriting existing data.
   --skip_build to skip building the web server TypeScript.
+  --skip_data_upload to skip uploading data. This will use the datasets already on the space.
   --skip_deploy to skip deploying to HuggingFace. Useful to test locally.
 
 To deploy staging with the same datasets as the public demo:
@@ -42,9 +43,10 @@ from lilac.utils import get_datasets_dir, get_hf_dataset_repo_id
 
 
 @click.command()
-@click.option('--config', help='The Lilac config path.', type=str)
-@click.option('--hf_space', help='The huggingface space.', type=str)
-@click.option('--project_dir', help='The local output dir to use to sync the data.', type=str)
+@click.option('--config', help='The Lilac config path.', type=str, required=True)
+@click.option('--hf_space', help='The huggingface space.', type=str, required=True)
+@click.option(
+  '--project_dir', help='The local output dir to use to sync the data.', type=str, required=True)
 @click.option(
   '--load_overwrite',
   help='When True, runs all all data from scratch, overwriting existing data. When false, only'
@@ -72,11 +74,6 @@ from lilac.utils import get_datasets_dir, get_hf_dataset_repo_id
   is_flag=True,
   default=False)
 @click.option(
-  '--make_datasets_public',
-  help='When true, sets the huggingface datasets uploaded to public. Defaults to false.',
-  is_flag=True,
-  default=False)
-@click.option(
   '--create_space',
   help='When True, creates the HuggingFace space if it doesnt exist. The space will be created '
   'with small persistent storage.',
@@ -84,7 +81,7 @@ from lilac.utils import get_datasets_dir, get_hf_dataset_repo_id
   default=False)
 def deploy_demo(config: str, hf_space: str, project_dir: str, load_overwrite: bool, skip_sync: bool,
                 skip_load: bool, skip_data_upload: bool, skip_deploy: bool,
-                make_datasets_public: bool, create_space: bool) -> None:
+                create_space: bool) -> None:
   """Deploys the public demo."""
   hf_space_org, hf_space_name = hf_space.split('/')
 
@@ -116,7 +113,8 @@ def deploy_demo(config: str, hf_space: str, project_dir: str, load_overwrite: bo
       hf_space=hf_space,
       project_dir=project_dir,
       datasets=datasets,
-      make_datasets_public=make_datasets_public,
+      # Always make datasets public for demos.
+      make_datasets_public=True,
       # No extra concepts. lilac concepts are pushed by default.
       concepts=[],
       # Always upload local cache files.
