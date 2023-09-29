@@ -27,7 +27,7 @@
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: selectOptions = getSelectRowsOptions($datasetViewStore);
+  $: selectOptions = getSelectRowsOptions($datasetViewStore, true /* implicitSortByRowID */);
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
