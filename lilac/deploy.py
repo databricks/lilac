@@ -35,7 +35,8 @@ def deploy_project(
   skip_concept_upload: Optional[bool] = False,
   create_space: Optional[bool] = False,
   load_on_space: Optional[bool] = False,
-  hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None
+  hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None,
+  hf_token: Optional[str] = None,
 ) -> None:
   """Deploy a project to huggingface.
 
@@ -58,6 +59,8 @@ def deploy_project(
     hf_space_storage: If defined, sets the HuggingFace space persistent storage type. NOTE: This
       only actually sets the space storage type when creating the space. For more details, see
       https://huggingface.co/docs/hub/spaces-storage
+    hf_token: The HuggingFace access token to use when making datasets private. This can also be set
+      via the `HF_ACCESS_TOKEN` environment flag.
 
   """
   try:
@@ -85,7 +88,8 @@ def deploy_project(
     skip_concept_upload=skip_concept_upload,
     create_space=create_space,
     load_on_space=load_on_space,
-    hf_space_storage=hf_space_storage)
+    hf_space_storage=hf_space_storage,
+    hf_token=hf_token)
 
   # Atomically commit all the operations so we don't kick the server multiple times.
   hf_api.create_commit(
@@ -98,20 +102,20 @@ def deploy_project(
   log(f'Done! View your space at https://huggingface.co/spaces/{hf_space}')
 
 
-def deploy_project_operations(
-  api: Any,
-  project_dir: str,
-  hf_space: str,
-  datasets: Optional[list[str]] = None,
-  make_datasets_public: Optional[bool] = False,
-  concepts: Optional[list[str]] = None,
-  skip_cache_upload: Optional[bool] = False,
-  skip_data_upload: Optional[bool] = False,
-  skip_concept_upload: Optional[bool] = False,
-  create_space: Optional[bool] = False,
-  load_on_space: Optional[bool] = False,
-  hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None
-) -> list:
+def deploy_project_operations(api: Any,
+                              project_dir: str,
+                              hf_space: str,
+                              datasets: Optional[list[str]] = None,
+                              make_datasets_public: Optional[bool] = False,
+                              concepts: Optional[list[str]] = None,
+                              skip_cache_upload: Optional[bool] = False,
+                              skip_data_upload: Optional[bool] = False,
+                              skip_concept_upload: Optional[bool] = False,
+                              create_space: Optional[bool] = False,
+                              load_on_space: Optional[bool] = False,
+                              hf_space_storage: Optional[Union[Literal['small'], Literal['medium'],
+                                                               Literal['large']]] = None,
+                              hf_token: Optional[str] = None) -> list:
   """The commit operations for a project deployment."""
   try:
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
@@ -254,7 +258,16 @@ def deploy_project_operations(
   else:
     hf_api.delete_space_variable(hf_space, 'LILAC_LOAD_ON_START_SERVER')
 
-  hf_api.add_space_secret(hf_space, 'HF_ACCESS_TOKEN', env('HF_ACCESS_TOKEN'))
+  # When datasets aren't public and we're not loading on the space, we need to set the HF access
+  # token.
+  if not make_datasets_public and not load_on_space:
+    token = env('HF_ACCESS_TOKEN', hf_token)
+    if not token:
+      raise ValueError(
+        'When datasets are made public, please set the `HF_ACCESS_TOKEN` environment flag or '
+        'pass --hf_token. The token is required so that the space can sync datasets when it '
+        'boots up.')
+    hf_api.add_space_secret(hf_space, 'HF_ACCESS_TOKEN', env('HF_ACCESS_TOKEN'))
 
   return operations
 
