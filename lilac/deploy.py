@@ -127,6 +127,14 @@ def deploy_project_operations(
 
   hf_api: HfApi = api
 
+  if not make_datasets_public and not load_on_space:
+    hf_token = env('HF_ACCESS_TOKEN', hf_token)
+    if not hf_token:
+      raise ValueError(
+        'When datasets are made private, please set the `HF_ACCESS_TOKEN` environment flag or '
+        'pass --hf_token. The token is required so that the space can sync datasets when it '
+        'boots up.')
+
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
 
   try:
@@ -259,15 +267,7 @@ def deploy_project_operations(
   else:
     hf_api.delete_space_variable(hf_space, 'LILAC_LOAD_ON_START_SERVER')
 
-  # When datasets aren't public and we're not loading on the space, we need to set the HF access
-  # token.
-  if not make_datasets_public and not load_on_space:
-    token = env('HF_ACCESS_TOKEN', hf_token)
-    if not token:
-      raise ValueError(
-        'When datasets are made private, please set the `HF_ACCESS_TOKEN` environment flag or '
-        'pass --hf_token. The token is required so that the space can sync datasets when it '
-        'boots up.')
+  if hf_token:
     hf_api.add_space_secret(hf_space, 'HF_ACCESS_TOKEN', env('HF_ACCESS_TOKEN'))
 
   return operations
