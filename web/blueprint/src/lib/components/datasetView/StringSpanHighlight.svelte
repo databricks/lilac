@@ -83,7 +83,6 @@
 
   // Merge all the spans for different features into a single span array.
   $: mergedSpans = mergeSpans(text, pathToSpans);
-  $: console.log('number of merged spans', mergedSpans.length);
 
   // Span hover tracking.
   let pathsHovered: Set<string> = new Set();
@@ -96,7 +95,6 @@
     pathsHovered = pathsHovered;
   };
   $: renderSpans = getRenderSpans(mergedSpans, spanPathToValueInfos, pathsHovered);
-  $: console.log('number of render spans', renderSpans.length);
 
   // Map each of the paths to their render spans so we can highlight neighbors on hover when there
   // is overlap.
@@ -118,7 +116,7 @@
         (span?.paths || []).some(selectedSpanPath => pathIsEqual(selectedSpanPath, s))
       )
     );
-    const fullText = spansUnderClick.map(s => s.text).join('');
+    const fullText = spansUnderClick.map(s => s.snippetText).join('');
     const spanDetails: SpanDetails = {
       conceptName: null,
       conceptNamespace: null,
@@ -175,7 +173,7 @@
 <div class="relative overflow-x-hidden text-ellipsis whitespace-break-spaces">
   {#each snippetSpans as snippetSpan}
     {@const renderSpan = snippetSpan.renderSpan}
-    {#if snippetSpan.isShown}
+    {#if !snippetSpan.isEllipsis}
       <span
         use:spanHover={{
           namedValues: renderSpan.namedValues,
@@ -212,12 +210,14 @@
           {renderSpan.snippetText}
         {/if}
       </span>
-    {:else if snippetSpan.isEllipsis}<span
+    {:else}
+      <span
         use:hoverTooltip={{
           text: 'Some text was hidden to improve readability. \nClick "Show all" to show the entire document.'
         }}
-        class="highlight-span text-sm leading-5">...</span
-      >{#if snippetSpan.hasNewline}<span><br /></span>{/if}
+        class="highlight-span text-sm leading-5"
+        >...
+      </span>
     {/if}
   {/each}
   {#if someSnippetsHidden || isExpanded}
