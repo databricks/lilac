@@ -192,6 +192,7 @@
           disabled: renderSpan.paths.length === 0 || embeddings.length === 0
         }}
         class="hover:cursor-poiner highlight-span break-words text-sm leading-5"
+        class:highlighted={renderSpan.isShownSnippet}
         class:hover:cursor-pointer={spanPaths.length > 0}
         class:font-bold={renderSpan.isBlackBolded}
         class:font-medium={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded}
@@ -266,7 +267,21 @@
     background-color: inherit;
   }
   :global(.highlight-span p) {
-    @apply text-sm;
+    @apply mt-3 text-sm;
     font-weight: inherit;
+  }
+  :global(.highlight-span ul) {
+    @apply mt-3 list-inside list-disc;
+  }
+  /** Inline the last paragraph that preceeds the highlight. */
+  :global(.highlight-span:has(+ .highlighted) p:last-child) {
+    @apply !inline;
+  }
+  /** Inline the first paragraph that succeeds the highlight. */
+  :global(.highlighted + .highlight-span p:first-child) {
+    @apply !inline;
+  }
+  :global(.highlighted p) {
+    @apply !inline;
   }
 </style>
