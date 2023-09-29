@@ -35,7 +35,8 @@ def deploy_project(
   skip_concept_upload: Optional[bool] = False,
   create_space: Optional[bool] = False,
   load_on_space: Optional[bool] = False,
-  hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None
+  hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None,
+  hf_token: Optional[str] = None,
 ) -> None:
   """Deploy a project to huggingface.
 
@@ -58,6 +59,8 @@ def deploy_project(
     hf_space_storage: If defined, sets the HuggingFace space persistent storage type. NOTE: This
       only actually sets the space storage type when creating the space. For more details, see
       https://huggingface.co/docs/hub/spaces-storage
+    hf_token: The HuggingFace access token to use when making datasets private. This can also be set
+      via the `HF_ACCESS_TOKEN` environment flag.
 
   """
   try:
@@ -85,7 +88,8 @@ def deploy_project(
     skip_concept_upload=skip_concept_upload,
     create_space=create_space,
     load_on_space=load_on_space,
-    hf_space_storage=hf_space_storage)
+    hf_space_storage=hf_space_storage,
+    hf_token=hf_token)
 
   # Atomically commit all the operations so we don't kick the server multiple times.
   hf_api.create_commit(
@@ -110,7 +114,8 @@ def deploy_project_operations(
   skip_concept_upload: Optional[bool] = False,
   create_space: Optional[bool] = False,
   load_on_space: Optional[bool] = False,
-  hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None
+  hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None,
+  hf_token: Optional[str] = None,
 ) -> list:
   """The commit operations for a project deployment."""
   try:
@@ -121,6 +126,14 @@ def deploy_project_operations(
                       'Please install it with `pip install "huggingface_hub".') from e
 
   hf_api: HfApi = api
+
+  if not make_datasets_public and not load_on_space:
+    hf_token = env('HF_ACCESS_TOKEN', hf_token)
+    if not hf_token:
+      raise ValueError(
+        'When datasets are made private, please set the `HF_ACCESS_TOKEN` environment flag or '
+        'pass --hf_token. The token is required so that the space can sync datasets when it '
+        'boots up.')
 
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
 
@@ -254,7 +267,8 @@ def deploy_project_operations(
   else:
     hf_api.delete_space_variable(hf_space, 'LILAC_LOAD_ON_START_SERVER')
 
-  hf_api.add_space_secret(hf_space, 'HF_ACCESS_TOKEN', env('HF_ACCESS_TOKEN'))
+  if hf_token:
+    hf_api.add_space_secret(hf_space, 'HF_ACCESS_TOKEN', env('HF_ACCESS_TOKEN'))
 
   return operations
 
@@ -455,7 +469,8 @@ def deploy_config(
   hf_space: str,
   config: Config,
   create_space: Optional[bool] = False,
-  hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None
+  hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None,
+  hf_token: Optional[str] = None,
 ) -> None:
   """Deploys a Lilac config object to a HuggingFace Space.
 
@@ -470,6 +485,8 @@ def deploy_config(
     hf_space_storage: If defined, sets the HuggingFace space persistent storage type. NOTE: This
       only actually sets the space storage type when creating the space. For more details, see
       https://huggingface.co/docs/hub/spaces-storage
+    hf_token: The HuggingFace access token to use when making datasets private. This can also be set
+      via the `HF_ACCESS_TOKEN` environment flag.
   """
   with tempfile.TemporaryDirectory() as tmp_project_dir:
     # Write the project config to the temp directory.
@@ -480,7 +497,8 @@ def deploy_config(
       project_dir=tmp_project_dir,
       create_space=create_space,
       load_on_space=True,
-      hf_space_storage=hf_space_storage)
+      hf_space_storage=hf_space_storage,
+      hf_token=hf_token)
 
 
 def run(cmd: str, capture_output: bool = False) -> subprocess.CompletedProcess[str]:

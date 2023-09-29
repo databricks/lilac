@@ -148,11 +148,24 @@ def hf_docker_start_command() -> None:
   'For more details, see https://huggingface.co/docs/hub/spaces-storage',
   type=click.Choice(['small', 'medium', 'large'], case_sensitive=False),
   default=None)
+@click.option(
+  '--hf_token',
+  help='The HuggingFace access token to use when making datasets private. '
+  'This can also be set via the `HF_ACCESS_TOKEN` environment flag.',
+  type=str)
 def deploy_project_command(
-    project_dir: str, hf_space: str, dataset: Optional[list[str]], make_datasets_public: bool,
-    concept: Optional[list[str]], skip_cache: bool, skip_data_upload: bool, create_space: bool,
-    load_on_space: bool, hf_space_storage: Optional[Union[Literal['small'], Literal['medium'],
-                                                          Literal['large']]]) -> None:
+  project_dir: str,
+  hf_space: str,
+  dataset: Optional[list[str]],
+  make_datasets_public: bool,
+  concept: Optional[list[str]],
+  skip_cache: bool,
+  skip_data_upload: bool,
+  create_space: bool,
+  load_on_space: bool,
+  hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]],
+  hf_token: Optional[str],
+) -> None:
   """Deploy a project directory to a HuggingFace Space."""
   # When datasets aren't define, set to None so we upload all datasets.
   if not dataset:
@@ -171,7 +184,8 @@ def deploy_project_command(
     skip_data_upload=skip_data_upload,
     create_space=create_space,
     load_on_space=load_on_space,
-    hf_space_storage=hf_space_storage)
+    hf_space_storage=hf_space_storage,
+    hf_token=hf_token)
 
 
 @click.command()
