@@ -50,7 +50,7 @@ def add_project_dataset_config(dataset_config: DatasetConfig,
       raise ValueError(f'{dataset_config} has already been added.')
 
     config.datasets.append(dataset_config)
-    _write_project_config(project_dir, config)
+    write_project_config(project_dir, config)
 
 
 def delete_project_dataset_config(namespace: str,
@@ -66,7 +66,7 @@ def delete_project_dataset_config(namespace: str,
       raise ValueError(f'{dataset_config} not found in project config.')
 
     config.datasets.remove(dataset_config)
-    _write_project_config(project_dir, config)
+    write_project_config(project_dir, config)
 
 
 def update_project_dataset_settings(dataset_namespace: str,
@@ -82,7 +82,7 @@ def update_project_dataset_settings(dataset_namespace: str,
     if dataset_config is None:
       raise ValueError(f'Dataset "{dataset_namespace}/{dataset_name}" not found in project config.')
     dataset_config.settings = settings
-    _write_project_config(project_dir, config)
+    write_project_config(project_dir, config)
 
 
 def add_project_signal_config(dataset_namespace: str,
@@ -100,7 +100,7 @@ def add_project_signal_config(dataset_namespace: str,
     if signal_config in dataset_config.signals:
       return
     dataset_config.signals.append(signal_config)
-    _write_project_config(get_project_dir(), config)
+    write_project_config(get_project_dir(), config)
 
 
 def add_project_embedding_config(dataset_namespace: str,
@@ -120,7 +120,7 @@ def add_project_embedding_config(dataset_namespace: str,
       return
 
     dataset_config.embeddings.append(embedding_config)
-    _write_project_config(project_dir, config)
+    write_project_config(project_dir, config)
 
 
 def delete_project_signal_config(dataset_namespace: str,
@@ -138,7 +138,7 @@ def delete_project_signal_config(dataset_namespace: str,
     dataset_config.signals = [
       s for s in dataset_config.signals if s.model_dump() != signal_config.model_dump()
     ]
-    _write_project_config(project_dir, config)
+    write_project_config(project_dir, config)
 
 
 def project_dir_from_args(project_dir_arg: str) -> str:
@@ -171,7 +171,7 @@ def read_project_config(project_dir: Union[str, pathlib.Path]) -> Config:
     return Config(**config_dict)
 
 
-def _write_project_config(project_dir: Union[str, pathlib.Path], config: Config) -> None:
+def write_project_config(project_dir: Union[str, pathlib.Path], config: Config) -> None:
   """Writes the project config."""
   with open(os.path.join(project_dir, PROJECT_CONFIG_FILENAME), 'w') as f:
     yaml_config = to_yaml(config.model_dump(exclude_defaults=True, exclude_none=True))
@@ -185,7 +185,7 @@ def create_project(project_dir: Union[str, pathlib.Path]) -> None:
   if not dir_is_project(project_dir):
     os.makedirs(project_dir, exist_ok=True)
 
-    _write_project_config(project_dir, Config(datasets=[]))
+    write_project_config(project_dir, Config(datasets=[]))
 
 
 def create_project_and_set_env(project_dir_arg: str) -> None:

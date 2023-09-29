@@ -1,4 +1,83 @@
-# Duplicate the HuggingFace demo
+# Deploying on HuggingFace spaces
+
+Lilac projects can be deployed to HuggingFace spaces out of the box.
+
+You can either use our Python API / CLI, or Duplicate our public space.
+
+The accompanying IPython notebook can be found
+[here](https://github.com/lilacai/lilac/blob/main/notebooks/MigrateEmbedding.ipynb).
+
+## Option 1: Deploy from Python / CLI
+
+This requires:
+
+- You to be logged in with HuggingFace with `huggingface-cli login`.
+- Have the `huggingface_hub` pip package installed.
+
+### Python
+
+#### Deploy a project
+
+To deploy a project directory that you've loaded locally, you can use the [](#ll.deploy_project)
+method. For more information on Lilac projects, see [Lilac Projects](../projects/projects.md).
+
+```python
+ll.deploy_project(
+  hf_space='my_hf_org/my_hf_space',
+  project_dir='~/my_project',
+  create_space=True  # Create the HuggingFace space if it doesn't exist.
+)
+```
+
+This will upload all datasets, concepts, model caches. Locally run datasets will be uploaded to
+HuggingFace datasets with signals, concepts, embeddings uploaded. These will be downloaded when the
+space boots up.
+
+See the Reference for more options for [](#deploy_project).
+
+#### Deploy a `Config`
+
+If you just want to deploy a config, and not run anything locally, you can use [](#deploy_config).
+This will push the config to HuggingFace spaces and will load all the data when the server boots up
+on HuggingFace.
+
+NOTE: Embeddings, signals, concepts will be computed on HuggingFace, which could be expensive.
+
+Deploy the [glue](https://huggingface.co/datasets/glue) HuggingFace dataset with `config=ax` to
+HuggingFace, and load the dataset in the space.
+
+```python
+ll.deploy_config(
+  hf_space='my_hf_org/my_hf_space',
+  create_space=True,
+  config=ll.Config(datasets=[
+    ll.DatasetConfig(
+      namespace='local',
+      name='glue_ax',
+      source=ll.HuggingFaceSource(dataset_name='glue', config_name='ax'))
+  ]))
+```
+
+### CLI
+
+You can also deploy a project directly from the CLI:
+
+```sh
+lilac deploy-project \
+  --hf_space=my_hf_org/my_hf_space \
+  --create_space
+  --project_dir=~/my_project
+```
+
+This will deploy all datasets, concepts, and caches from your project to the HuggingFace space.
+
+If you only want to deploy a subset of datasets, you can pass:
+`--dataset local/dataset1 --dataset local/dataset2`
+
+If you only want to deploy a subset of concepts, you can pass:
+`--concept local/concept1 --concept local/concept1`
+
+## Option 2: Duplicate the HuggingFace demo
 
 Lilac hosts a [HuggingFace spaces demo](https://lilacai-lilac.hf.space/) so you can try Lilac before
 installing it.

@@ -37,23 +37,23 @@ datasets:
       dataset_name: wikitext
       source_name: huggingface
 
-  - name: squad_v2
+  - name: textbook_quality_programming
     namespace: lilac
     tags: [machine-learning]
+    source:
+      dataset_name: vikp/textbook_quality_programming
+      source_name: huggingface
     settings:
       ui:
         media_paths:
-          - context
-          - question
-          - [answers, text, '*']
-      preferred_embedding: 'gte-small'
-    source:
-      dataset_name: squad_v2
-      source_name: huggingface
-    # Don't run embeddings for question and answers.
-    embeddings:
-      - path: context
-        embedding: gte-small
+          - - outline
+            - '*'
+          - - concepts
+            - '*'
+          - markdown
+        markdown_paths:
+          - markdown
+      preferred_embedding: gte-small
 
   - name: databricks-dolly-15k-curated-en
     namespace: lilac
@@ -82,20 +82,6 @@ datasets:
         embedding: gte-small
     source:
       dataset_name: argilla/databricks-dolly-15k-curated-en
-      source_name: huggingface
-
-  - name: piqa
-    namespace: lilac
-    tags: [machine-learning]
-    settings:
-      ui:
-        media_paths:
-          - sol1
-          - sol2
-          - goal
-      preferred_embedding: 'gte-small'
-    source:
-      dataset_name: piqa
       source_name: huggingface
 
   - name: 'OpenOrca-100k'
@@ -127,34 +113,6 @@ datasets:
       source_name: huggingface
       split: validation
 
-  # Legal datasets.
-  - name: mmlu_professional_law
-    namespace: lilac
-    tags: [legal]
-    settings:
-      ui:
-        media_paths:
-          - question
-          - [choices, '*']
-      preferred_embedding: 'gte-small'
-    source:
-      config_name: professional_law
-      dataset_name: cais/mmlu
-      source_name: huggingface
-
-  - name: pile-of-law-r-legaladvice
-    namespace: lilac
-    tags: [legal]
-    settings:
-      ui:
-        media_paths:
-          - text
-      preferred_embedding: 'gte-small'
-    source:
-      config_name: r_legaladvice
-      dataset_name: pile-of-law/pile-of-law
-      source_name: huggingface
-
   # Science datasets
   - name: science-qa-derek-thomas
     namespace: lilac
@@ -166,8 +124,6 @@ datasets:
     source:
       dataset_name: derek-thomas/ScienceQA
       source_name: huggingface
-
-  # Medical datasets
 
   # Business datasets.
   - name: enron-emails

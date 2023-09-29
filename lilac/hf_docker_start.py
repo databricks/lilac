@@ -73,7 +73,12 @@ def _hf_docker_start() -> None:
 
   with open(os.path.abspath('README.md')) as f:
     # Strip the '---' for the huggingface readme config.
-    readme = f.read().strip().strip('---')
+    readme_contents = f.read()
+    dashes = '---'
+    first_dashes = readme_contents.find(dashes)
+    second_dashes = readme_contents.find(dashes, first_dashes + len(dashes))
+
+    readme = readme_contents[first_dashes + len(dashes):second_dashes]
     hf_config: HfSpaceConfig = yaml.safe_load(readme)
 
   # Download the huggingface space data. This includes code and datasets, so we move the datasets
@@ -81,7 +86,7 @@ def _hf_docker_start() -> None:
 
   datasets_dir = get_datasets_dir(get_project_dir())
   os.makedirs(datasets_dir, exist_ok=True)
-  for lilac_hf_dataset in hf_config['datasets']:
+  for lilac_hf_dataset in hf_config.get('datasets', []):
     print('Downloading dataset from HuggingFace: ', lilac_hf_dataset)
     snapshot_download(
       repo_id=lilac_hf_dataset,
