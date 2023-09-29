@@ -30,7 +30,8 @@
     '/datasets/loading': 'datasets/loading',
     '/concepts': 'concepts',
     '/signals': 'signals',
-    '/settings': 'settings'
+    '/settings': 'settings',
+    '/rag': 'rag'
   };
 
   $: currentPage = $page.route.id != null ? routeToPage[$page.route.id] : 'home';

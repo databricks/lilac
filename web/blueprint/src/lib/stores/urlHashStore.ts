@@ -8,7 +8,8 @@ export type AppPage =
   | 'datasets'
   | 'signals'
   | 'settings'
-  | 'datasets/loading';
+  | 'datasets/loading'
+  | 'rag';
 interface UrlHashState {
   hash: string;
   page: AppPage | null;
