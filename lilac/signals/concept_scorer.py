@@ -23,6 +23,8 @@ class ConceptSignal(VectorSignal):
 
   namespace: str
   concept_name: str
+  # This will get filled out during setup.
+  version: Optional[int] = None
 
   # The draft version of the concept to use. If not provided, the latest version is used.
   draft: str = DRAFT_MAIN
@@ -68,6 +70,11 @@ class ConceptSignal(VectorSignal):
     return [lilac_span(start, end, {'score': score}) for score, (start, end) in zip(scores, spans)]
 
   @override
+  def setup(self) -> None:
+    concept_model = self._get_concept_model()
+    self.version = concept_model.version
+
+  @override
   def compute(self, examples: Iterable[RichData]) -> Iterable[Optional[Item]]:
     """Get the scores for the provided examples."""
     embed_fn = get_embed_fn(self.embedding, split=True)
@@ -94,7 +101,7 @@ class ConceptSignal(VectorSignal):
 
   @override
   def key(self, is_computed_signal: Optional[bool] = False) -> str:
+    suffix = '/preview' if not is_computed_signal else ''
     # NOTE: The embedding is a value so already exists in the path structure. This means we do not
     # need to provide the name as part of the key, which still guarantees uniqueness.
-    version = f'/v{self._get_concept_model().version}' if is_computed_signal else ''
-    return f'{self.namespace}/{self.concept_name}/{self.embedding}{version}'
+    return f'{self.namespace}/{self.concept_name}/{self.embedding}{suffix}'

@@ -416,8 +416,6 @@ class DatasetDuckDB(Dataset):
                             data_schema: Schema,
                             num_items: int,
                             task_step_id: Optional[TaskStepId] = None) -> Iterable[Item]:
-    signal.setup()
-
     source_path = normalize_path(path)
 
     source_values = self._select_iterable_values(source_path, data_schema)
@@ -479,6 +477,7 @@ class DatasetDuckDB(Dataset):
       # Make a dummy task step so we report progress via tqdm.
       task_step_id = ('', 0)
 
+    signal.setup()
     output_items = self._compute_signal_items(signal, path, manifest.data_schema,
                                               manifest.num_items, task_step_id)
 
@@ -498,6 +497,7 @@ class DatasetDuckDB(Dataset):
 
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
 
+    print('signal', signal.model_dump())
     # Add progress.
     if task_step_id is not None:
       output_items = progress(
@@ -546,6 +546,7 @@ class DatasetDuckDB(Dataset):
 
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
 
+    signal.setup()
     output_items = self._compute_signal_items(signal, path, manifest.data_schema,
                                               manifest.num_items, task_step_id)
 

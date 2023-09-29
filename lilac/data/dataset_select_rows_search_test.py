@@ -236,7 +236,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
       'text': enriched_item(
         'hello world2.', {
           expected_signal_udf.key(): [lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})],
-          'test_namespace/test_concept/labels': [lilac_span(0, 13, {'label': True})]
+          'test_namespace/test_concept/labels/preview': [lilac_span(0, 13, {'label': True})]
         })
     },
     {
@@ -244,7 +244,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
       'text': enriched_item(
         'hello world.', {
           expected_signal_udf.key(): [lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})],
-          'test_namespace/test_concept/labels': [lilac_span(0, 12, {'label': False})]
+          'test_namespace/test_concept/labels/preview': [lilac_span(0, 12, {'label': False})]
         })
     },
   ]
@@ -291,17 +291,17 @@ def test_concept_search_without_rowid(make_test_data: TestDataMaker) -> None:
     # Results are sorted by score desc.
     {
       'text': 'hello world2.',
-      'text.test_namespace/test_concept/test_embedding': [
+      'text.test_namespace/test_concept/test_embedding/preview': [
         lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})
       ],
-      'text.test_namespace/test_concept/labels': [lilac_span(0, 13, {'label': True})]
+      'text.test_namespace/test_concept/labels/preview': [lilac_span(0, 13, {'label': True})]
     },
     {
       'text': 'hello world.',
-      'text.test_namespace/test_concept/test_embedding': [
+      'text.test_namespace/test_concept/test_embedding/preview': [
         lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})
       ],
-      'text.test_namespace/test_concept/labels': [lilac_span(0, 12, {'label': False})]
+      'text.test_namespace/test_concept/labels/preview': [lilac_span(0, 12, {'label': False})]
     },
   ]
 
@@ -321,17 +321,17 @@ def test_concept_search_without_rowid(make_test_data: TestDataMaker) -> None:
     {
       'text': enriched_item(
         'hello world2.', {
-          'test_namespace/test_concept/test_embedding':
+          'test_namespace/test_concept/test_embedding/preview':
             [lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})],
-          'test_namespace/test_concept/labels': [lilac_span(0, 13, {'label': True})]
+          'test_namespace/test_concept/labels/preview': [lilac_span(0, 13, {'label': True})]
         })
     },
     {
       'text': enriched_item(
         'hello world.', {
-          'test_namespace/test_concept/test_embedding':
+          'test_namespace/test_concept/test_embedding/preview':
             [lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})],
-          'test_namespace/test_concept/labels': [lilac_span(0, 12, {'label': False})]
+          'test_namespace/test_concept/labels/preview': [lilac_span(0, 12, {'label': False})]
         })
     },
   ]
@@ -372,17 +372,17 @@ def test_concept_search_sort_by_rowid(make_test_data: TestDataMaker) -> None:
     # Results are sorted by rowid.
     {
       'text': 'hello world.',
-      'text.test_namespace/test_concept/test_embedding': [
+      'text.test_namespace/test_concept/test_embedding/preview': [
         lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})
       ],
-      'text.test_namespace/test_concept/labels': [lilac_span(0, 12, {'label': False})]
+      'text.test_namespace/test_concept/labels/preview': [lilac_span(0, 12, {'label': False})]
     },
     {
       'text': 'hello world2.',
-      'text.test_namespace/test_concept/test_embedding': [
+      'text.test_namespace/test_concept/test_embedding/preview': [
         lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})
       ],
-      'text.test_namespace/test_concept/labels': [lilac_span(0, 13, {'label': True})]
+      'text.test_namespace/test_concept/labels/preview': [lilac_span(0, 13, {'label': True})]
     }
   ]
 

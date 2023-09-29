@@ -14,6 +14,7 @@ export type ConceptSignal = {
     embedding: 'cohere' | 'sbert' | 'openai' | 'palm' | 'gte-small' | 'gte-base';
     namespace: string;
     concept_name: string;
+    version?: (number | null);
     draft?: string;
 };
 

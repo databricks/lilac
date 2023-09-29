@@ -439,7 +439,7 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
                   )
                 })
             ]),
-          'test_namespace/test_concept/labels': field(
+          'test_namespace/test_concept/labels/preview': field(
             fields=[field('string_span', fields={
               'label': 'boolean',
               'draft': 'string'
