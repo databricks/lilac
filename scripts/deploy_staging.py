@@ -4,7 +4,7 @@ This is used for PR demos during development.
 
 Usage:
 
-poetry run python -m scripts.deploy_local
+poetry run python -m scripts.deploy_staging
 
 Args:
   --hf_space: The huggingface space. Defaults to env.HF_STAGING_DEMO_REPO. Should be formatted like
@@ -76,13 +76,13 @@ from lilac.utils import log
   help='When true, only uploads the wheel files without any other changes.',
   is_flag=True,
   default=False)
-def deploy_local(hf_space: Optional[str] = None,
-                 dataset: Optional[list[str]] = None,
-                 concept: Optional[list[str]] = None,
-                 skip_cache_upload: Optional[bool] = False,
-                 skip_ts_build: Optional[bool] = False,
-                 skip_data_upload: Optional[bool] = False,
-                 create_space: Optional[bool] = False) -> None:
+def deploy_staging(hf_space: Optional[str] = None,
+                   dataset: Optional[list[str]] = None,
+                   concept: Optional[list[str]] = None,
+                   skip_cache_upload: Optional[bool] = False,
+                   skip_ts_build: Optional[bool] = False,
+                   skip_data_upload: Optional[bool] = False,
+                   create_space: Optional[bool] = False) -> None:
   """Generate the huggingface space app."""
   hf_space = hf_space or env('HF_STAGING_DEMO_REPO')
   if not hf_space:
@@ -163,4 +163,4 @@ def run(cmd: str, capture_output=False) -> subprocess.CompletedProcess[str]:
 
 
 if __name__ == '__main__':
-  deploy_local()
+  deploy_staging()

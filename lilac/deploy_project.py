@@ -165,7 +165,7 @@ def deploy_project_operations(
         path_in_repo=upload_file, path_or_fileobj=str(os.path.join(hf_docker_dir, upload_file))))
 
   ##
-  ##  Create the empty wheel directory. If uploading a local wheel, use deploy_local.
+  ##  Create the empty wheel directory. If uploading a local wheel, use scripts.deploy_staging.
   ##
   operations.extend(_make_wheel_dir(hf_api, hf_space))
 
