@@ -256,10 +256,10 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB], model_db_cls: Type
   assert draft_scores != scores
 
 
-def test_concept_score_key() -> None:
+def test_concept_score_preview_key() -> None:
   signal = ConceptSignal(
     namespace='test', concept_name='test_concept', embedding=TestEmbedding.name)
-  assert signal.key() == 'test/test_concept/test_embedding'
+  assert signal.key() == 'test/test_concept/test_embedding/preview'
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)

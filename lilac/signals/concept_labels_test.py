@@ -114,7 +114,7 @@ def test_concept_labels_key(concept_db_cls: Type[ConceptDB]) -> None:
   concept_db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
 
   signal = ConceptLabelsSignal(namespace='test', concept_name='test_concept')
-  assert signal.key() == 'test/test_concept/labels'
+  assert signal.key() == 'test/test_concept/labels/preview'
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
@@ -125,4 +125,4 @@ def test_concept_labels_compute_signal_key(concept_db_cls: Type[ConceptDB]) -> N
   concept_db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
 
   signal = ConceptLabelsSignal(namespace='test', concept_name='test_concept')
-  assert signal.key(is_computed_signal=True) == 'test/test_concept/labels/v0'
+  assert signal.key(is_computed_signal=True) == 'test/test_concept/labels'
