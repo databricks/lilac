@@ -64,11 +64,8 @@
         fieldTitle = `${conceptSignal.concept_name}`;
         fieldHoverDetails =
           `Concept '${conceptSignal.namespace}/${conceptSignal.concept_name}' arguments:\n\n` +
-            `embedding: '${conceptSignal.embedding}'` +
-            conceptSignal.version !=
-          null
-            ? `\nversion: ${conceptSignal.version}`
-            : '';
+          `embedding: '${conceptSignal.embedding}'` +
+          (conceptSignal.version != null ? `\nversion: ${conceptSignal.version}` : '');
       } else {
         const signalInfo = $signals.data.find(s => s.name === field.signal?.signal_name);
         if (signalInfo != null) {
