@@ -36,7 +36,7 @@ from huggingface_hub import HfApi, snapshot_download
 
 from lilac.config import read_config
 from lilac.db_manager import list_datasets
-from lilac.deploy_project import deploy_project
+from lilac.deploy import deploy_project
 from lilac.env import env
 from lilac.load import load
 from lilac.utils import get_datasets_dir, get_hf_dataset_repo_id

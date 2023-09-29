@@ -28,7 +28,7 @@ from typing import Optional, Union
 import click
 from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
 
-from lilac.deploy_project import PY_DIST_DIR, deploy_project_operations
+from lilac.deploy import PY_DIST_DIR, deploy_project_operations
 from lilac.env import env
 from lilac.utils import log
 

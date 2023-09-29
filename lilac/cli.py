@@ -7,7 +7,7 @@ import click
 
 from . import __version__
 from .concepts.db_concept import DISK_CONCEPT_DB
-from .deploy_project import deploy_project
+from .deploy import deploy_project
 from .env import get_project_dir
 from .hf_docker_start import hf_docker_start
 from .load import load

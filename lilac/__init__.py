@@ -6,7 +6,7 @@ from .data import *  # noqa: F403
 from .data.dataset_duckdb import DatasetDuckDB
 from .data_loader import create_dataset
 from .db_manager import get_dataset, set_default_dataset_cls
-from .deploy_project import deploy_config, deploy_project
+from .deploy import deploy_config, deploy_project
 from .embeddings import *  # noqa: F403
 from .embeddings.default_vector_stores import register_default_vector_stores
 from .env import *  # noqa: F403
