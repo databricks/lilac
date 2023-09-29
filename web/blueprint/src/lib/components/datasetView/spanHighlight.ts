@@ -169,6 +169,7 @@ export function getSnippetSpans(
       someSnippetsHidden: false
     };
   }
+  let someSnippetsHidden = false;
   // If the doc is not expanded, we need to do snippetting.
   const snippetSpans: SnippetSpan[] = [];
   for (let i = 0; i < renderSpans.length; i++) {
@@ -185,6 +186,7 @@ export function getSnippetSpans(
           renderSpan: prevRenderSpan,
           isEllipsis: true
         });
+        someSnippetsHidden = true;
       }
       snippetSpans.push({
         renderSpan: {
@@ -214,6 +216,7 @@ export function getSnippetSpans(
           renderSpan: nextRenderSpan,
           isEllipsis: true
         });
+        someSnippetsHidden = true;
       }
     }
   }
@@ -233,7 +236,8 @@ export function getSnippetSpans(
         renderSpan: nextRenderSpan,
         isEllipsis: true
       });
+      someSnippetsHidden = true;
     }
   }
-  return {snippetSpans, someSnippetsHidden: true};
+  return {snippetSpans, someSnippetsHidden};
 }
