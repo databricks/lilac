@@ -79,7 +79,6 @@
       }
     }
   }
-  $: console.log(fieldHoverDetails);
 
   $: children = childDisplayFields(field);
 
