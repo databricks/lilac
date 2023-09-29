@@ -33,7 +33,8 @@ class ConceptLabelsSignal(TextSignal):
   @override
   def setup(self) -> None:
     concept = self._concept_db.get(self.namespace, self.concept_name, self._user)
-    self.version = concept.version
+    if concept:
+      self.version = concept.version
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
