@@ -62,7 +62,13 @@
       if (field.signal.signal_name === 'concept_score') {
         const conceptSignal = field.signal as ConceptSignal;
         fieldTitle = `${conceptSignal.concept_name}`;
-        fieldHoverDetails = `Concept '${conceptSignal.concept_name}' arguments:\n\nembedding: '${conceptSignal.embedding}'`;
+        fieldHoverDetails =
+          `Concept '${conceptSignal.namespace}/${conceptSignal.concept_name}' arguments:\n\n` +
+            `embedding: '${conceptSignal.embedding}'` +
+            conceptSignal.version !=
+          null
+            ? `\nversion: ${conceptSignal.version}`
+            : '';
       } else {
         const signalInfo = $signals.data.find(s => s.name === field.signal?.signal_name);
         if (signalInfo != null) {

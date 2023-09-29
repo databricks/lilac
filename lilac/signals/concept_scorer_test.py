@@ -271,4 +271,4 @@ def test_concept_score_compute_signal_key(concept_db_cls: Type[ConceptDB]) -> No
 
   signal = ConceptSignal(
     namespace='test', concept_name='test_concept', embedding=TestEmbedding.name)
-  assert signal.key(is_computed_signal=True) == 'test/test_concept/test_embedding/v0'
+  assert signal.key(is_computed_signal=True) == 'test/test_concept/test_embedding'
