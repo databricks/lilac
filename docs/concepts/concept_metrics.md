@@ -22,7 +22,7 @@ The human readable scores are based on this score:
 - `Great`: 0.95 to 1.0
 - `Very good`: 0.9 to 0.95
 - `Good`: 0.8 to 0.9
-- `OK`: 0.5 to 0.9
+- `OK`: 0.5 to 0.8
 - `Not good`: 0.0 to 0.5
 
 ## From the UI
