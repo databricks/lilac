@@ -83,6 +83,7 @@
 
   // Merge all the spans for different features into a single span array.
   $: mergedSpans = mergeSpans(text, pathToSpans);
+  $: console.log('number of merged spans', mergedSpans.length);
 
   // Span hover tracking.
   let pathsHovered: Set<string> = new Set();
@@ -95,6 +96,7 @@
     pathsHovered = pathsHovered;
   };
   $: renderSpans = getRenderSpans(mergedSpans, spanPathToValueInfos, pathsHovered);
+  $: console.log('number of render spans', renderSpans.length);
 
   // Map each of the paths to their render spans so we can highlight neighbors on hover when there
   // is overlap.
@@ -256,16 +258,10 @@
   :global(.highlight-span pre) {
     @apply bg-slate-200;
     @apply text-sm;
+    @apply p-2;
   }
-  :global(.highlight-span p),
   :global(.highlight-span pre) {
     @apply my-3;
-  }
-  :global(.highlight-span p:first-child) {
-    @apply !inline;
-  }
-  :global(.highlight-span p:last-child) {
-    @apply !inline;
   }
   :global(.highlight-span p),
   :global(.highlight-span h1) {

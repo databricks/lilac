@@ -483,27 +483,6 @@ export interface MergedSpan {
   paths: string[];
 }
 
-// Split a merged span up into smaller chunks to help with snippeting.
-function chunkText(text: string): MergedSpan[] {
-  const splitBy = '\n';
-  const splits = text.split(splitBy);
-  const splitSpans: MergedSpan[] = [];
-  let lastEnd = 0;
-  for (let i = 0; i < splits.length; i++) {
-    const text = splits[i] + (i < splits.length - 1 ? splitBy : '');
-    const end = lastEnd + stringLength(text);
-    const span = {start: lastEnd, end};
-    splitSpans.push({
-      text,
-      span,
-      originalSpans: {},
-      paths: []
-    });
-    lastEnd = end;
-  }
-  return splitSpans;
-}
-
 /**
  * Merge a set of spans on a single item into a single list of spans, each with points back to
  * the original spans.
@@ -530,7 +509,14 @@ export function mergeSpans(
 
   const spanSetKeys = Object.keys(inputSpanSets);
   if (spanSetKeys.length === 0) {
-    return chunkText(text);
+    return [
+      {
+        text,
+        span: {start: 0, end: stringLength(text)},
+        originalSpans: {},
+        paths: []
+      }
+    ];
   }
   const textChars = getChars(text);
   const textLength = textChars.length;

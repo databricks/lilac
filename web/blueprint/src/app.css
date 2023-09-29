@@ -156,6 +156,44 @@ button:disabled {
   }
 }
 
+h1 {
+  @apply text-2xl;
+}
+span:not(:first-child) h1 {
+  @apply mt-6;
+}
+h2 {
+  @apply text-xl;
+}
+span:not(:first-child) h2 {
+  @apply mt-4;
+}
+h3 {
+  @apply text-lg;
+}
+span:not(:first-child) h3 {
+  @apply mt-3;
+}
+
+h4 {
+  @apply text-base;
+}
+span:not(:first-child) h4 {
+  @apply mt-2;
+}
+
+h5 {
+  @apply text-sm;
+}
+
+p {
+  @apply text-base;
+  @apply mt-3;
+}
+.highlight-span ul {
+  @apply mt-3 list-inside list-disc;
+}
+
 /** Reset CSS set by carbon components and that clashes with tailwind */
 
 html,

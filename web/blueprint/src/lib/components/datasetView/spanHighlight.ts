@@ -15,8 +15,8 @@ import type {SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
 import {colorFromScore} from './colors';
 
 // When the text length exceeds this number we start to snippet.
-const SNIPPET_LEN_BUDGET = 500;
-const MAX_RENDER_SPAN_LENGTH = 100;
+const SNIPPET_LEN_BUDGET = 300;
+const SURROUNDING_SNIPPET_LEN = 50;
 
 export interface SpanValueInfo {
   path: Path;
@@ -167,6 +167,18 @@ export function getSnippetSpans(
   renderSpans: RenderSpan[],
   isExpanded: boolean
 ): {snippetSpans: SnippetSpan[]; someSnippetsHidden: boolean} {
+  if (isExpanded) {
+    // If the span is expanded, we don't need to do any snippetting.
+    return {
+      snippetSpans: renderSpans.map(renderSpan => ({renderSpan, isShown: true})),
+      someSnippetsHidden: false
+    };
+  }
+  // If the doc is not expanded, we need to do snippetting.
+  // const snippetSpans: SnippetSpan[] = renderSpans.map((renderSpan, i) => {
+  //   return {renderSpan, }
+  // });
+
   // First, cut any snippet shown render spans that are too long.
   renderSpans = renderSpans
     .map(renderSpan => {
