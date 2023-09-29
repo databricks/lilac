@@ -159,26 +159,26 @@ button:disabled {
 h1 {
   @apply text-2xl;
 }
-span:not(:first-child) h1 {
+h1:not(:first-child) {
   @apply mt-6;
 }
 h2 {
   @apply text-xl;
 }
-span:not(:first-child) h2 {
+h2:not(:first-child) {
   @apply mt-4;
 }
 h3 {
   @apply text-lg;
 }
-span:not(:first-child) h3 {
+h3:not(:first-child) {
   @apply mt-3;
 }
 
 h4 {
   @apply text-base;
 }
-span:not(:first-child) h4 {
+h4:not(:first-child) {
   @apply mt-2;
 }
 

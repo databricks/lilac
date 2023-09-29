@@ -256,9 +256,7 @@
     padding-bottom: 1.5px;
   }
   :global(.highlight-span pre) {
-    @apply bg-slate-200;
-    @apply text-sm;
-    @apply p-2;
+    @apply overflow-x-auto bg-slate-200 p-2 text-sm;
   }
   :global(.highlight-span pre) {
     @apply my-3;

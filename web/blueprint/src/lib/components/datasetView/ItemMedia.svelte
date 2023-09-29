@@ -92,7 +92,7 @@
         </div>
       </div>
 
-      <div class="w-full grow-0 pt-1 font-normal">
+      <div class="w-full grow-0 overflow-x-auto pt-1 font-normal">
         <StringSpanHighlight
           text={formatValue(value)}
           {row}
