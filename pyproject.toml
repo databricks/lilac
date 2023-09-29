@@ -137,7 +137,7 @@ optional = true
 bokeh = ">=2.4.2,<3"                                      # Required for Dask monitoring.
 google-api-python-client-stubs = "^1.13.0"
 httpx = "^0.24.0"
-huggingface-hub = "^0.15.1"
+huggingface-hub = "^0.17.1"
 isort = "^5.12.0"
 matplotlib = "^3.7.1"
 mypy = "^1.5.1"

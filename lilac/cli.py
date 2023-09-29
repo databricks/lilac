@@ -1,13 +1,15 @@
 """Lilac CLI."""
 
 from os.path import abspath
+from typing import Literal, Optional, Union
 
 import click
 
 from . import __version__
 from .concepts.db_concept import DISK_CONCEPT_DB
+from .deploy import deploy_project
 from .env import get_project_dir
-from .hf_docker_start import hf_docker_start as hf_docker_start_fn
+from .hf_docker_start import hf_docker_start
 from .load import load
 from .project import dir_is_project, init, project_dir_from_args
 from .server import start_server
@@ -89,9 +91,87 @@ def version() -> None:
 
 
 @click.command()
-def hf_docker_start() -> None:
+def hf_docker_start_command() -> None:
   """Prepares the binary by downloading datasets for the HuggingFace docker image."""
-  hf_docker_start_fn()
+  hf_docker_start()
+
+
+@click.command()
+@click.option(
+  '--project_dir',
+  help='The project directory to use for the demo. Defaults to `env.LILAC_PROJECT_DIR`.',
+  type=str)
+@click.option(
+  '--hf_space',
+  help='The huggingface space. Should be formatted like `SPACE_ORG/SPACE_NAME`.',
+  type=str,
+  required=True)
+@click.option('--dataset', help='The name of a dataset to upload', type=str, multiple=True)
+@click.option(
+  '--make_datasets_public',
+  help='When true, sets the huggingface datasets uploaded to public. Defaults to false.',
+  is_flag=True,
+  default=False)
+@click.option(
+  '--concept',
+  help='The name of a concept to upload. By default all lilac/ concepts are uploaded.',
+  type=str,
+  multiple=True)
+@click.option(
+  '--skip_cache',
+  help='Skip uploading the cache files from .cache/lilac which contain cached concept pkl models.',
+  type=bool,
+  is_flag=True,
+  default=False)
+@click.option(
+  '--skip_data_upload',
+  help='When true, only uploads the wheel files without any other changes.',
+  is_flag=True,
+  default=False)
+@click.option(
+  '--create_space',
+  help='When True, creates the HuggingFace space if it doesnt exist. The space will be created '
+  'with the storage type defined by --hf_space_storage.',
+  is_flag=True,
+  default=False)
+@click.option(
+  '--load_on_space',
+  help='When True, loads the datasets from your project in the space and does not upload data. '
+  'NOTE: This could be expensive if your project config locally has embeddings as they will be '
+  'recomputed in HuggingFace.',
+  is_flag=True,
+  default=False)
+@click.option(
+  '--hf_space_storage',
+  help='If defined, sets the HuggingFace space persistent storage type. '
+  'NOTE: This only actually sets the space storage type when creating the space. '
+  'For more details, see https://huggingface.co/docs/hub/spaces-storage',
+  type=click.Choice(['small', 'medium', 'large'], case_sensitive=False),
+  default=None)
+def deploy_project_command(
+    project_dir: str, hf_space: str, dataset: Optional[list[str]], make_datasets_public: bool,
+    concept: Optional[list[str]], skip_cache: bool, skip_data_upload: bool, create_space: bool,
+    load_on_space: bool, hf_space_storage: Optional[Union[Literal['small'], Literal['medium'],
+                                                          Literal['large']]]) -> None:
+  """Deploy a project directory to a HuggingFace Space."""
+  # When datasets aren't define, set to None so we upload all datasets.
+  if not dataset:
+    dataset = None
+  # When datasets aren't defined, set to None so we upload all datasets.
+  if not concept:
+    concept = None
+
+  deploy_project(
+    project_dir=project_dir,
+    hf_space=hf_space,
+    datasets=dataset,
+    concepts=concept,
+    skip_cache_upload=skip_cache,
+    make_datasets_public=make_datasets_public,
+    skip_data_upload=skip_data_upload,
+    create_space=create_space,
+    load_on_space=load_on_space,
+    hf_space_storage=hf_space_storage)
 
 
 @click.command()
@@ -112,7 +192,8 @@ cli.add_command(init_command, name='init')
 cli.add_command(load_command, name='load')
 cli.add_command(start)
 
-cli.add_command(hf_docker_start)
+cli.add_command(deploy_project_command, name='deploy-project')
+cli.add_command(hf_docker_start_command, name='hf-docker-start')
 
 cli.add_command(concepts)
 
