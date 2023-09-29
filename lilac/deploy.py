@@ -469,7 +469,8 @@ def deploy_config(
   hf_space: str,
   config: Config,
   create_space: Optional[bool] = False,
-  hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None
+  hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None,
+  hf_token: Optional[str] = None,
 ) -> None:
   """Deploys a Lilac config object to a HuggingFace Space.
 
@@ -484,6 +485,8 @@ def deploy_config(
     hf_space_storage: If defined, sets the HuggingFace space persistent storage type. NOTE: This
       only actually sets the space storage type when creating the space. For more details, see
       https://huggingface.co/docs/hub/spaces-storage
+    hf_token: The HuggingFace access token to use when making datasets private. This can also be set
+      via the `HF_ACCESS_TOKEN` environment flag.
   """
   with tempfile.TemporaryDirectory() as tmp_project_dir:
     # Write the project config to the temp directory.
@@ -494,7 +497,8 @@ def deploy_config(
       project_dir=tmp_project_dir,
       create_space=create_space,
       load_on_space=True,
-      hf_space_storage=hf_space_storage)
+      hf_space_storage=hf_space_storage,
+      hf_token=hf_token)
 
 
 def run(cmd: str, capture_output: bool = False) -> subprocess.CompletedProcess[str]:

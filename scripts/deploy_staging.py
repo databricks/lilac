@@ -131,10 +131,9 @@ def deploy_staging(hf_space: Optional[str] = None,
   # We have to change the version to a dev version so that the huggingface demo does not try to
   # install the public pip package.
   current_lilac_version = run('poetry version -s', capture_output=True).stdout.strip()
-  # Bump the version temporarily so that the install uses this pip.
-  version_parts = current_lilac_version.split('.')
-  version_parts[-1] = str(int(version_parts[-1]) + 1)
-  temp_new_version = '.'.join(version_parts)
+  # Bump the version to something extremely large so we never accidentally install the same version
+  # when a bump happens.
+  temp_new_version = '1337.0.0'
 
   run(f'poetry version "{temp_new_version}"')
   run('poetry build -f wheel')
