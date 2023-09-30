@@ -35,11 +35,11 @@ export interface RenderSpan {
   isBlackBolded: boolean;
   isHighlightBolded: boolean;
 
-  // Whether this span needs to be shown as a snippet.
-  isShownSnippet: boolean;
+  // Whether this span is highlighted and needs to always be shown.
+  isHighlighted: boolean;
   snippetScore: number;
-  // The text post-processed for snippets.
-  snippetText: string;
+  // The text for this render span.
+  text: string;
 
   namedValues: SpanHoverNamedValue[];
   // Whether the hover matches any path in this render span. Used for highlighting.
@@ -138,11 +138,11 @@ export function getRenderSpans(
       backgroundColor: colorFromScore(maxScore),
       isBlackBolded: isKeywordSearch || hasNonNumericMetadata || isLeafSpan,
       isHighlightBolded: isLabeled,
-      isShownSnippet,
+      isHighlighted: isShownSnippet,
       snippetScore: maxScore,
       namedValues: firstNamedValues,
       paths: mergedSpan.paths,
-      snippetText: mergedSpan.text,
+      text: mergedSpan.text,
       originalSpans: mergedSpan.originalSpans,
       isHovered,
       isFirstHover
@@ -151,12 +151,13 @@ export function getRenderSpans(
   return renderSpans;
 }
 
-export interface SnippetSpan {
-  renderSpan: RenderSpan;
-  // When the snippet is hidden, whether it should be replaced with ellipsis. We only do this once
-  // for a continuous set of hidden snippets.
-  isEllipsis?: boolean;
-}
+export type SnippetSpan =
+  | {
+      renderSpan: RenderSpan;
+      snippetText: string;
+      isEllipsis?: false;
+    }
+  | {isEllipsis: true};
 
 export function getSnippetSpans(
   renderSpans: RenderSpan[],
@@ -165,77 +166,77 @@ export function getSnippetSpans(
   if (isExpanded) {
     // If the span is expanded, we don't need to do any snippetting.
     return {
-      snippetSpans: renderSpans.map(renderSpan => ({renderSpan, isShown: true})),
+      snippetSpans: renderSpans.map(renderSpan => ({renderSpan, snippetText: renderSpan.text})),
       someSnippetsHidden: false
     };
   }
   let someSnippetsHidden = false;
+  let someSnippetsHighlighted = false;
   // If the doc is not expanded, we need to do snippetting.
-  const snippetSpans: SnippetSpan[] = [];
+  let snippetSpans: SnippetSpan[] = [];
   for (let i = 0; i < renderSpans.length; i++) {
     const renderSpan = renderSpans[i];
-    if (!renderSpan.isShownSnippet) {
+    const prevRenderSpan = i - 1 >= 0 ? renderSpans[i - 1] : null;
+    const nextRenderSpan = i + 1 < renderSpans.length ? renderSpans[i + 1] : null;
+    const lastSnippetWasEllipsis = snippetSpans.at(-1)?.isEllipsis;
+    if (!renderSpan.isHighlighted) {
+      if (lastSnippetWasEllipsis) {
+        continue;
+      }
+      if (prevRenderSpan?.isHighlighted || nextRenderSpan?.isHighlighted) {
+        continue;
+      }
+      someSnippetsHidden = true;
+      snippetSpans.push({isEllipsis: true});
       continue;
     }
-    const prevRenderSpan: RenderSpan | null = renderSpans[i - 1] || null;
-    const addLeftContext = prevRenderSpan != null && !prevRenderSpan.isShownSnippet;
+    someSnippetsHighlighted = true;
+    const addLeftContext = prevRenderSpan != null && !prevRenderSpan.isHighlighted;
     if (addLeftContext) {
-      const addLeftElipsis = prevRenderSpan.snippetText.length > SURROUNDING_SNIPPET_LEN;
-      if (addLeftElipsis) {
-        snippetSpans.push({
-          renderSpan: prevRenderSpan,
-          isEllipsis: true
-        });
+      const addLeftEllipsis =
+        !lastSnippetWasEllipsis && prevRenderSpan.text.length > SURROUNDING_SNIPPET_LEN;
+      if (addLeftEllipsis) {
+        snippetSpans.push({isEllipsis: true});
         someSnippetsHidden = true;
       }
       snippetSpans.push({
-        renderSpan: {
-          ...prevRenderSpan,
-          snippetText: prevRenderSpan.snippetText.slice(-SURROUNDING_SNIPPET_LEN)
-        }
+        renderSpan: prevRenderSpan,
+        snippetText: prevRenderSpan.text.slice(-SURROUNDING_SNIPPET_LEN)
       });
     }
 
     snippetSpans.push({
-      renderSpan
+      renderSpan,
+      snippetText: renderSpan.text
     });
 
-    const nextRenderSpan: RenderSpan | null = renderSpans[i + 1] || null;
-    const addRightContext = nextRenderSpan != null && !nextRenderSpan.isShownSnippet;
-
+    const addRightContext = nextRenderSpan != null && !nextRenderSpan.isHighlighted;
     if (addRightContext) {
       snippetSpans.push({
-        renderSpan: {
-          ...nextRenderSpan,
-          snippetText: nextRenderSpan.snippetText.slice(0, SURROUNDING_SNIPPET_LEN)
-        }
+        renderSpan: nextRenderSpan,
+        snippetText: nextRenderSpan.text.slice(0, SURROUNDING_SNIPPET_LEN)
       });
-      const addRightElipsis = nextRenderSpan.snippetText.length > SURROUNDING_SNIPPET_LEN;
-      if (addRightElipsis) {
-        snippetSpans.push({
-          renderSpan: nextRenderSpan,
-          isEllipsis: true
-        });
+      const addRightEllipsis =
+        !lastSnippetWasEllipsis && nextRenderSpan.text.length > SURROUNDING_SNIPPET_LEN;
+      if (addRightEllipsis) {
+        snippetSpans.push({isEllipsis: true});
         someSnippetsHidden = true;
       }
     }
   }
-  if (snippetSpans.length === 0) {
+  if (!someSnippetsHighlighted) {
+    snippetSpans = [];
+    someSnippetsHidden = false;
     // Nothing is highlighted, so just show the beginning of the doc.
     snippetSpans.push({
-      renderSpan: {
-        ...renderSpans[0],
-        snippetText: renderSpans[0].snippetText.slice(0, SNIPPET_LEN_BUDGET)
-      }
+      renderSpan: renderSpans[0],
+      snippetText: renderSpans[0].text.slice(0, SNIPPET_LEN_BUDGET)
     });
     const nextRenderSpan: RenderSpan | null = renderSpans[1] || null;
     const addRightEllipsis =
-      nextRenderSpan != null || renderSpans[0].snippetText.length > SNIPPET_LEN_BUDGET;
+      nextRenderSpan != null || renderSpans[0].text.length > SNIPPET_LEN_BUDGET;
     if (addRightEllipsis) {
-      snippetSpans.push({
-        renderSpan: nextRenderSpan,
-        isEllipsis: true
-      });
+      snippetSpans.push({isEllipsis: true});
       someSnippetsHidden = true;
     }
   }

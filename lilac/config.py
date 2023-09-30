@@ -19,7 +19,7 @@ from .signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_sig
 from .source import Source
 from .sources.source_registry import resolve_source
 
-CONFIG_FILENAME = 'config.yml'
+OLD_CONFIG_FILENAME = 'config.yml'
 
 
 def _serializable_path(path: PathTuple) -> Union[str, list]:

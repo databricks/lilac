@@ -24,7 +24,13 @@ from typing_extensions import override
 
 from ..auth import UserInfo
 from ..batch_utils import deep_flatten, deep_unflatten
-from ..config import DatasetConfig, EmbeddingConfig, SignalConfig, get_dataset_config
+from ..config import (
+  OLD_CONFIG_FILENAME,
+  DatasetConfig,
+  EmbeddingConfig,
+  SignalConfig,
+  get_dataset_config,
+)
 from ..embeddings.vector_store import VectorDBIndex
 from ..env import env
 from ..project import (
@@ -215,8 +221,8 @@ class DatasetDuckDB(Dataset):
     existing_dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not existing_dataset_config:
       dataset_config = dataset_config_from_manifest(manifest)
-      # Check if the old config.yml file exists so we remember settings.
-      old_config_filepath = os.path.join(self.dataset_path, 'config.yml')
+      # Check if the old config file exists so we remember settings.
+      old_config_filepath = os.path.join(self.dataset_path, OLD_CONFIG_FILENAME)
       if os.path.exists(old_config_filepath):
         with open(old_config_filepath) as f:
           old_config = DatasetConfig(**yaml.safe_load(f))
@@ -1895,11 +1901,11 @@ def read_source_manifest(dataset_path: str) -> SourceManifest:
   with open_file(os.path.join(dataset_path, MANIFEST_FILENAME), 'r') as f:
     source_manifest = SourceManifest.model_validate_json(f.read())
 
-  # For backwards compatibility, check if the config.yml has the source and write it back to the
+  # For backwards compatibility, check if the config has the source and write it back to the
   # source manifest.
   # This can be deleted after some time of migrating people.
   if source_manifest.source == NoSource():
-    config_path = os.path.join(dataset_path, 'config.yml')
+    config_path = os.path.join(dataset_path, OLD_CONFIG_FILENAME)
     if os.path.exists(config_path):
       with open_file(config_path, 'r') as f:
         dataset_config = DatasetConfig(**yaml.safe_load(f))

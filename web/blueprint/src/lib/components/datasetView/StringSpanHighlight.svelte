@@ -116,7 +116,7 @@
         (span?.paths || []).some(selectedSpanPath => pathIsEqual(selectedSpanPath, s))
       )
     );
-    const fullText = spansUnderClick.map(s => s.snippetText).join('');
+    const fullText = spansUnderClick.map(s => s.text).join('');
     const spanDetails: SpanDetails = {
       conceptName: null,
       conceptNamespace: null,
@@ -172,8 +172,8 @@
 
 <div class="relative overflow-x-hidden text-ellipsis whitespace-break-spaces">
   {#each snippetSpans as snippetSpan}
-    {@const renderSpan = snippetSpan.renderSpan}
     {#if !snippetSpan.isEllipsis}
+      {@const renderSpan = snippetSpan.renderSpan}
       <span
         use:spanHover={{
           namedValues: renderSpan.namedValues,
@@ -192,7 +192,7 @@
           disabled: renderSpan.paths.length === 0 || embeddings.length === 0
         }}
         class="hover:cursor-poiner highlight-span break-words text-sm leading-5"
-        class:highlighted={renderSpan.isShownSnippet}
+        class:highlighted={renderSpan.isHighlighted}
         class:hover:cursor-pointer={spanPaths.length > 0}
         class:font-bold={renderSpan.isBlackBolded}
         class:font-medium={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded}
@@ -206,9 +206,9 @@
         on:mouseleave={() => spanMouseLeave(renderSpan)}
       >
         {#if markdown}
-          <SvelteMarkdown source={renderSpan.snippetText} />
+          <SvelteMarkdown source={snippetSpan.snippetText} />
         {:else}
-          {renderSpan.snippetText}
+          {snippetSpan.snippetText}
         {/if}
       </span>
     {:else}
