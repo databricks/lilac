@@ -425,7 +425,7 @@ def _upload_datasets(api: Any,
     dataset_repo_id = get_hf_dataset_repo_id(hf_space_org, hf_space_name, namespace, name)
 
     print(f'Uploading "{d}" to HuggingFace dataset repo '
-          'https://huggingface.co/datasets/{dataset_repo_id}\n')
+          f'https://huggingface.co/datasets/{dataset_repo_id}\n')
 
     hf_api.create_repo(
       dataset_repo_id, repo_type='dataset', private=not make_datasets_public, exist_ok=True)
