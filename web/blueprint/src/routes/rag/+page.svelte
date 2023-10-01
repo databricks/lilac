@@ -130,7 +130,14 @@
       <!-- Input question -->
       <div class="flex w-1/2 flex-col gap-y-4">
         <div class="font-medium">Question</div>
-        <div class="flex w-full flex-row items-end">
+        <div class="question-input flex w-full flex-row items-end">
+          <button
+            class="z-10 -mr-10 mb-2"
+            class:opacity-10={$ragViewStore.datasetName == null}
+            disabled={$ragViewStore.datasetName == null}
+            on:click={() => answerQuestion()}
+            ><Search size={16} />
+          </button>
           <TextInput
             on:input={questionTextChanged}
             on:change={answerQuestion}
@@ -141,13 +148,6 @@
               ? 'Enter a question'
               : 'Choose a dataset'}
           />
-          <button
-            class="mb-1 ml-1"
-            class:opacity-10={$ragViewStore.datasetName == null}
-            disabled={$ragViewStore.datasetName == null}
-            on:click={() => answerQuestion()}
-            ><Search size={24} />
-          </button>
         </div>
       </div>
       <div class="flex w-1/2 flex-col gap-y-4">
@@ -181,5 +181,8 @@
 <style lang="postcss">
   .dataset-selector {
     width: 34rem;
+  }
+  :global(.question-input .bx--text-input) {
+    @apply pl-11;
   }
 </style>
