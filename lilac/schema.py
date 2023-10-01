@@ -12,9 +12,9 @@ import pyarrow as pa
 from pydantic import (
   BaseModel,
   ConfigDict,
-  FieldValidationInfo,
   StrictInt,
   StrictStr,
+  ValidationInfo,
   field_validator,
   model_validator,
 )
@@ -173,7 +173,7 @@ class Field(BaseModel):
 
   @field_validator('categorical')
   @classmethod
-  def validate_categorical(cls, categorical: bool, info: FieldValidationInfo) -> bool:
+  def validate_categorical(cls, categorical: bool, info: ValidationInfo) -> bool:
     """Validate the categorical field."""
     if categorical and is_float(info.data['dtype']):
       raise ValueError('Categorical fields cannot be float dtypes.')
