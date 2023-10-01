@@ -23,6 +23,7 @@ from . import (
   router_data_loader,
   router_dataset,
   router_google_login,
+  router_rag,
   router_signal,
   router_tasks,
 )
@@ -134,6 +135,7 @@ v1_router.include_router(router_concept.router, prefix='/concepts', tags=['conce
 v1_router.include_router(router_data_loader.router, prefix='/data_loaders', tags=['data_loaders'])
 v1_router.include_router(router_signal.router, prefix='/signals', tags=['signals'])
 v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
+v1_router.include_router(router_rag.router, prefix='/rag', tags=['rag'])
 
 for source_name, source in registered_sources().items():
   if source.router:

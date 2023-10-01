@@ -11,6 +11,7 @@
   import Commands from './commands/Commands.svelte';
   import {hoverTooltip} from './common/HoverTooltip';
 
+  export let hideTasks = false;
   const authInfo = queryAuthInfo();
   $: navStore = getNavigationContext();
 
@@ -60,7 +61,9 @@
             />
           </OverflowMenu>
         </div>
-        <TaskStatus />
+        {#if !hideTasks}
+          <TaskStatus />
+        {/if}
         {#if $authInfo.data?.auth_enabled}
           {#if $authInfo.data?.user != null}
             <div class="flex h-9 flex-row items-center rounded border border-neutral-200">

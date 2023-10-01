@@ -94,6 +94,7 @@ export { DatasetsService } from './services/DatasetsService';
 export { DefaultService } from './services/DefaultService';
 export { GoogleLoginService } from './services/GoogleLoginService';
 export { LangsmithService } from './services/LangsmithService';
+export { RagService } from './services/RagService';
 export { SignalsService } from './services/SignalsService';
 export { SqliteService } from './services/SqliteService';
 export { TasksService } from './services/TasksService';
