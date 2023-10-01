@@ -8,7 +8,7 @@ from pytest_mock import MockerFixture
 
 from ..schema import Item, field, schema
 from . import dataset as dataset_module
-from .dataset import GroupsSortBy
+from .dataset import GroupsSortBy, SortOrder
 from .dataset_test_utils import TestDataMaker
 
 
@@ -96,6 +96,10 @@ def test_order_by_value(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_groups(leaf_path='active', sort_by=GroupsSortBy.VALUE)
   assert result.counts == [(True, 1), (False, 3), (None, 1)]
+
+  result = dataset.select_groups(
+    leaf_path='active', sort_by=GroupsSortBy.VALUE, sort_order=SortOrder.ASC)
+  assert result.counts == [(False, 3), (True, 1), (None, 1)]
 
 
 def test_list_of_structs(make_test_data: TestDataMaker) -> None:
