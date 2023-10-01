@@ -90,7 +90,8 @@ STEPS_LOG_KEY = 'steps'
 class TaskManager:
   """Manage FastAPI background tasks."""
   _tasks: dict[str, TaskInfo] = {}
-  _futures: list[Future] = []
+  # Maps task_ids to their futures.
+  _futures: dict[str, Future] = {}
 
   def __init__(self, dask_client: Optional[Client] = None) -> None:
     """By default, use a dask multi-processing client.
@@ -126,11 +127,7 @@ class TaskManager:
         steps = adapter.validate_python(log_message[STEPS_LOG_KEY])
         task.steps = steps
         if steps:
-          cur_step = 0
-          for i, step in enumerate(reversed(steps)):
-            if step.progress is not None:
-              cur_step = len(steps) - i - 1
-              break
+          cur_step = get_current_step_id(steps)
           task.details = steps[cur_step].details
           task.step_progress = steps[cur_step].progress
           task.progress = (sum([step.progress or 0.0 for step in steps])) / len(steps)
@@ -156,10 +153,15 @@ class TaskManager:
       tasks=self._tasks,
       progress=sum(tasks_with_progress) / len(tasks_with_progress) if tasks_with_progress else None)
 
-  def wait(self) -> None:
+  def wait(self, task_ids: Optional[list[str]] = None) -> None:
     """Wait until all tasks are completed."""
-    if self._futures:
-      wait(self._futures)
+    if task_ids is not None:
+      futures = [self._futures[task_id] for task_id in task_ids]
+    else:
+      futures = list(self._futures.values())
+
+    if futures:
+      wait(futures)
 
   def task_id(self,
               name: str,
@@ -214,7 +216,7 @@ class TaskManager:
     task_future.add_done_callback(
       lambda task_future: self._set_task_completed(task_id, task_future))
 
-    self._futures.append(task_future)
+    self._futures[task_id] = task_future
 
   async def stop(self) -> None:
     """Stop the task manager and close the dask client."""
@@ -238,6 +240,18 @@ def _progress_event_topic(task_id: TaskId) -> str:
 
 
 TProgress = TypeVar('TProgress')
+
+
+def get_current_step_id(steps: list[TaskStepInfo]) -> int:
+  """Gets the current step."""
+  cur_step = 0
+  for i, step in enumerate(reversed(steps)):
+    if step.progress is not None:
+      cur_step = len(steps) - i - 1
+      if steps[cur_step].progress == 1.0:
+        cur_step = min(cur_step + 1, len(steps) - 1)
+      break
+  return cur_step
 
 
 def progress(it: Union[Iterator[TProgress], Iterable[TProgress]],
@@ -311,6 +325,15 @@ def get_worker_steps(task_id: TaskId) -> list[TaskStepInfo]:
   (_, last_event) = events[-1]
   last_info = last_event.get(STEPS_LOG_KEY)
   return [TaskStepInfo(**step_info) for step_info in last_info]
+
+
+def set_worker_next_step(task_id: TaskId) -> None:
+  """Progresses the worker to the next step."""
+  steps = get_worker_steps(task_id)
+  if steps:
+    cur_step = get_current_step_id(steps)
+    steps[cur_step].progress = 1.0
+    set_worker_steps(task_id, steps)
 
 
 def set_worker_task_progress(task_step_id: TaskStepId, it_idx: int, elapsed_sec: float,

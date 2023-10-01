@@ -4,6 +4,7 @@
   import {DTYPE_TO_ICON, getSearches, isPreviewSignal} from '$lib/view_utils';
 
   import {computeSignalMutation} from '$lib/queries/datasetQueries';
+  import {querySignals} from '$lib/queries/signalQueries';
   import {
     PATH_WILDCARD,
     VALUE_KEY,
@@ -14,6 +15,7 @@
     isSortableField,
     pathIsEqual,
     serializePath,
+    type ConceptSignal,
     type LilacField,
     type LilacSchema,
     type TextEmbeddingSignal
@@ -49,8 +51,37 @@
 
   $: expandedStats = $datasetViewStore.expandedStats[serializePath(path)] || false;
 
+  const signals = querySignals();
+
   $: isRepeatedField = path.at(-1) === PATH_WILDCARD ? true : false;
-  $: fieldName = isRepeatedField ? path.at(-2) : path.at(-1);
+  $: fieldTitle = isRepeatedField ? path.at(-2) : path.at(-1);
+  let fieldHoverDetails: string | null = null;
+  // If the field is a signal root, use the signal name to define the title.
+  $: {
+    if (field.signal && $signals.data != null) {
+      if (field.signal.signal_name === 'concept_score') {
+        const conceptSignal = field.signal as ConceptSignal;
+        fieldTitle = `${conceptSignal.concept_name}`;
+        fieldHoverDetails =
+          `Concept '${conceptSignal.namespace}/${conceptSignal.concept_name}' arguments:\n\n` +
+          `embedding: '${conceptSignal.embedding}'` +
+          (conceptSignal.version != null ? `\nversion: ${conceptSignal.version}` : '');
+      } else {
+        const signalInfo = $signals.data.find(s => s.name === field.signal?.signal_name);
+        if (signalInfo != null) {
+          fieldTitle = signalInfo.json_schema.title;
+
+          const argumentDetails = Object.entries(field.signal || {})
+            .filter(([arg, _]) => arg != 'signal_name')
+            .map(([k, v]) => `${k}: ${v}`);
+
+          if (argumentDetails.length > 0) {
+            fieldHoverDetails = `Signal '${signalInfo.name}' arguments: \n\n${argumentDetails}`;
+          }
+        }
+      }
+    }
+  }
 
   $: children = childDisplayFields(field);
 
@@ -139,22 +170,24 @@
         <span class="font-mono">{'{}'}</span>
       {/if}
     </div>
-    <button
-      class="ml-2 grow cursor-pointer truncate whitespace-nowrap text-left text-gray-900"
-      class:cursor-default={!isExpandable}
-      disabled={!isExpandable}
-      on:click={() => {
-        if (isExpandable) {
-          if (expandedStats) {
-            datasetViewStore.removeExpandedColumn(path);
-          } else {
-            datasetViewStore.addExpandedColumn(path);
+    <div class="grow" use:hoverTooltip={{text: fieldHoverDetails || ''}}>
+      <button
+        class="ml-2 w-full cursor-pointer truncate whitespace-nowrap text-left text-gray-900"
+        class:cursor-default={!isExpandable}
+        disabled={!isExpandable}
+        on:click={() => {
+          if (isExpandable) {
+            if (expandedStats) {
+              datasetViewStore.removeExpandedColumn(path);
+            } else {
+              datasetViewStore.addExpandedColumn(path);
+            }
           }
-        }
-      }}
-    >
-      {fieldName}
-    </button>
+        }}
+      >
+        {fieldTitle}
+      </button>
+    </div>
     {#if isSortedBy}
       <RemovableTag
         interactive

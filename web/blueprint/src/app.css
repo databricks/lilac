@@ -156,6 +156,35 @@ button:disabled {
   }
 }
 
+h1 {
+  @apply text-2xl;
+}
+h1:not(:first-child) {
+  @apply mt-6;
+}
+h2 {
+  @apply text-xl;
+}
+h2:not(:first-child) {
+  @apply mt-4;
+}
+h3 {
+  @apply text-lg;
+}
+h3:not(:first-child) {
+  @apply mt-3;
+}
+
+h4 {
+  @apply text-base;
+}
+h4:not(:first-child) {
+  @apply mt-2;
+}
+h5 {
+  @apply text-sm;
+}
+
 /** Reset CSS set by carbon components and that clashes with tailwind */
 
 html,

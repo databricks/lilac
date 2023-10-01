@@ -616,7 +616,7 @@ def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> Non
     embedding='test_embedding',
     path='text')
 
-  concept_key = 'test_namespace/test_concept/test_embedding/v1'
+  concept_key = 'test_namespace/test_concept/test_embedding'
   result = dataset.select_groups(f'text.{concept_key}.*.score')
   assert result.counts == [('Not in concept', 2), ('In concept', 1)]
 

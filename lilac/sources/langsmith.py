@@ -6,8 +6,9 @@ from pydantic import Field
 from typing_extensions import override
 
 from ..env import env
-from ..schema import Item, infer_schema
+from ..schema import Item
 from ..source import Source, SourceSchema
+from .dict_source import DictSource
 
 router = APIRouter()
 
@@ -29,8 +30,7 @@ class LangSmithSource(Source):
 
   dataset_name: str = Field(description='LangSmith dataset name')
 
-  _source_schema: Optional[SourceSchema] = None
-  _items: Optional[Item] = None
+  _dict_source: Optional[DictSource] = None
 
   @override
   def setup(self) -> None:
@@ -46,25 +46,22 @@ class LangSmithSource(Source):
                         'Please install the dependency via `pip install lilac[langsmith]`.')
     client = Client(api_key=api_key, api_url=api_url)
 
-    self._items = [{
+    items = [{
       **example.inputs,
       **(example.outputs or {})
     } for example in client.list_examples(dataset_name=self.dataset_name)]
 
-    # Create the source schema in prepare to share it between process and source_schema.
-    schema = infer_schema(self._items)
-    self._source_schema = SourceSchema(fields=schema.fields, num_items=len(self._items))
+    self._dict_source = DictSource(items)
+    self._dict_source.setup()
 
   @override
   def source_schema(self) -> SourceSchema:
     """Return the source schema."""
-    assert self._source_schema is not None
-    return self._source_schema
+    assert self._dict_source is not None
+    return self._dict_source.source_schema()
 
   @override
   def process(self) -> Iterable[Item]:
-    """Process the source upload request."""
-    if self._items is None:
-      raise RuntimeError('The langsmith source is not initialized.')
-
-    yield from self._items
+    """Process the source."""
+    assert self._dict_source is not None
+    return self._dict_source.process()

@@ -69,14 +69,14 @@ export function getCandidates(
     const labeledSpans: NonNullable<DataTypeCasted<'string_span'>>[] = [];
     if (labelNodes != null) {
       for (const labelNode of labelNodes) {
-        const span = L.value(labelNode, 'string_span');
+        const span = L.span(labelNode);
         if (span != null) {
           labeledSpans.push(span);
         }
       }
     }
     for (const spanNode of spanNodes) {
-      const span = L.value(spanNode, 'string_span');
+      const span = L.span(spanNode);
       if (span == null) {
         continue;
       }

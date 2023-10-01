@@ -416,14 +416,14 @@ export class DatasetsService {
      * @param namespace
      * @param datasetName
      * @param requestBody
-     * @returns any Successful Response
+     * @returns number Successful Response
      * @throws ApiError
      */
     public static addLabels(
         namespace: string,
         datasetName: string,
         requestBody: AddLabelsOptions,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<number> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/labels',
@@ -445,14 +445,14 @@ export class DatasetsService {
      * @param namespace
      * @param datasetName
      * @param requestBody
-     * @returns any Successful Response
+     * @returns number Successful Response
      * @throws ApiError
      */
     public static removeLabels(
         namespace: string,
         datasetName: string,
         requestBody: RemoveLabelsOptions,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<number> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/labels',

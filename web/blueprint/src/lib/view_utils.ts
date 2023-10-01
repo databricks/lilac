@@ -1,7 +1,6 @@
 import {
   L,
   PATH_WILDCARD,
-  VALUE_KEY,
   childFields,
   getField,
   isConceptSignal,
@@ -484,27 +483,6 @@ export interface MergedSpan {
   paths: string[];
 }
 
-// Split a merged span up into smaller chunks to help with snippeting.
-function chunkText(text: string): MergedSpan[] {
-  const splitBy = '\n';
-  const splits = text.split(splitBy);
-  const splitSpans: MergedSpan[] = [];
-  let lastEnd = 0;
-  for (let i = 0; i < splits.length; i++) {
-    const text = splits[i] + (i < splits.length - 1 ? splitBy : '');
-    const end = lastEnd + stringLength(text);
-    const span = {start: lastEnd, end};
-    splitSpans.push({
-      text,
-      span,
-      originalSpans: {},
-      paths: []
-    });
-    lastEnd = end;
-  }
-  return splitSpans;
-}
-
 /**
  * Merge a set of spans on a single item into a single list of spans, each with points back to
  * the original spans.
@@ -531,7 +509,14 @@ export function mergeSpans(
 
   const spanSetKeys = Object.keys(inputSpanSets);
   if (spanSetKeys.length === 0) {
-    return chunkText(text);
+    return [
+      {
+        text,
+        span: {start: 0, end: stringLength(text)},
+        originalSpans: {},
+        paths: []
+      }
+    ];
   }
   const textChars = getChars(text);
   const textLength = textChars.length;
@@ -545,8 +530,8 @@ export function mergeSpans(
   // Sort spans by start index.
   for (const spanSet of spanSetKeys) {
     inputSpanSets[spanSet].sort((a, b) => {
-      const aStart = a[VALUE_KEY]?.start || 0;
-      const bStart = b[VALUE_KEY]?.start || 0;
+      const aStart = L.span(a)?.start || 0;
+      const bStart = L.span(b)?.start || 0;
       return aStart - bStart;
     });
   }
@@ -566,7 +551,7 @@ export function mergeSpans(
     let curEndIndex = textLength;
     for (const spans of Object.values(spanSetWorkingSpans)) {
       for (const span of spans) {
-        const spanValue = (span || {})[VALUE_KEY];
+        const spanValue = L.span(span);
         if (spanValue == null) continue;
         if (spanValue.start < curEndIndex && spanValue.start > curStartIdx) {
           curEndIndex = spanValue.start;
@@ -582,12 +567,10 @@ export function mergeSpans(
       Object.entries(spanSetWorkingSpans).map(([spanSet, spans]) => [
         spanSet,
         spans.filter(span => {
-          return (
-            span != null &&
-            span[VALUE_KEY] != null &&
-            span[VALUE_KEY].start < curEndIndex &&
-            span[VALUE_KEY].end > curStartIdx
-          );
+          if (span == null) return false;
+          const spanValue = L.span(span);
+          if (spanValue == null) return false;
+          return spanValue.start < curEndIndex && spanValue.end > curStartIdx;
         })
       ])
     );
@@ -613,7 +596,7 @@ export function mergeSpans(
     // Advance the spans that have the span end index.
     for (const spanSet of Object.keys(spanSetIndices)) {
       const spanSetIdx = spanSetIndices[spanSet];
-      const span = (spanSetWorkingSpans[spanSet][0] || {})[VALUE_KEY];
+      const span = L.span(spanSetWorkingSpans[spanSet][0]);
       if (span == null || spanSetIdx == null) continue;
       if (span.end <= curEndIndex) {
         if (spanSetIdx > inputSpanSets[spanSet].length) {

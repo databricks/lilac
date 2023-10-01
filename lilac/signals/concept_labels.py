@@ -17,6 +17,8 @@ class ConceptLabelsSignal(TextSignal):
 
   namespace: str
   concept_name: str
+  # This will get filled out during setup.
+  version: Optional[int] = None
 
   # The draft version of the concept to use. If not provided, the latest version is used.
   draft: str = DRAFT_MAIN
@@ -27,6 +29,12 @@ class ConceptLabelsSignal(TextSignal):
   @override
   def fields(self) -> Field:
     return field(fields=[field('string_span', fields={'label': 'boolean', 'draft': 'string'})])
+
+  @override
+  def setup(self) -> None:
+    concept = self._concept_db.get(self.namespace, self.concept_name, self._user)
+    if concept:
+      self.version = concept.version
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -74,11 +82,5 @@ class ConceptLabelsSignal(TextSignal):
 
   @override
   def key(self, is_computed_signal: Optional[bool] = False) -> str:
-    version = ''
-    if is_computed_signal:
-      concept = self._concept_db.get(self.namespace, self.concept_name)
-      if not concept:
-        raise ValueError(f'Concept "{self.namespace}/{self.concept_name}" does not exist.')
-      version = f'/v{concept.version}'
-
-    return f'{self.namespace}/{self.concept_name}/labels{version}'
+    suffix = '/preview' if not is_computed_signal else ''
+    return f'{self.namespace}/{self.concept_name}/labels{suffix}'

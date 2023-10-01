@@ -25,14 +25,15 @@ RUN python -m pip install lilac[all]
 COPY --chown=user /dist ./dist/
 RUN python -m pip install --find-links=dist --upgrade lilac[all]
 
-COPY --chown=user .env .
-COPY --chown=user .env.demo .
+# Install the huggingface hub, used to download files.
+RUN pip install huggingface_hub
+
 # Copy the README so we can read the datasets from the HuggingFace config.
 COPY --chown=user README.md .
 # Copy the license just in case.
 COPY --chown=user LICENSE .
 
-COPY --chown=user docker_start.sh docker_start.py ./
+COPY --chown=user docker_start.sh ./
 
 # Make a local data directory for non-persistent storage demos.
 RUN mkdir -p ./data

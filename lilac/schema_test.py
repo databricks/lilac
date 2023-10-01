@@ -5,6 +5,7 @@ import pytest
 
 from .schema import (
   PATH_WILDCARD,
+  SPAN_KEY,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
   VALUE_KEY,
@@ -87,6 +88,8 @@ def test_field_ctor_validation() -> None:
 
   with pytest.raises(ValueError, match=f'{VALUE_KEY} is a reserved field name'):
     Field(fields={VALUE_KEY: Field(dtype=DataType.STRING)},)
+  with pytest.raises(ValueError, match=f'{SPAN_KEY} is a reserved field name'):
+    Field(fields={SPAN_KEY: Field(dtype=DataType.STRING)},)
 
 
 def test_schema_leafs() -> None:
@@ -126,7 +129,7 @@ def test_schema_to_arrow_schema() -> None:
       'name': pa.string(),
       # The dtype for STRING_SPAN is implemented as a struct with a {start, end}.
       'last_name': pa.struct({
-        VALUE_KEY: pa.struct({
+        SPAN_KEY: pa.struct({
           TEXT_SPAN_START_FEATURE: pa.int32(),
           TEXT_SPAN_END_FEATURE: pa.int32(),
         })
@@ -137,7 +140,7 @@ def test_schema_to_arrow_schema() -> None:
         'sentences': pa.list_(
           pa.struct({
             'len': pa.int32(),
-            VALUE_KEY: pa.struct({
+            SPAN_KEY: pa.struct({
               TEXT_SPAN_START_FEATURE: pa.int32(),
               TEXT_SPAN_END_FEATURE: pa.int32(),
             })

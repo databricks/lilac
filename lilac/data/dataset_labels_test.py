@@ -51,8 +51,8 @@ def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) 
 
   dataset = make_test_data(TEST_ITEMS)
 
-  dataset.add_labels('test_label', filters=[(ROWID, 'equals', '1')])
-
+  num_labels = dataset.add_labels('test_label', filters=[(ROWID, 'equals', '1')])
+  assert num_labels == 1
   assert dataset.manifest() == DatasetManifest(
     source=TestSource(),
     namespace='test_namespace',
@@ -104,8 +104,8 @@ def test_add_row_labels(make_test_data: TestDataMaker, mocker: MockerFixture) ->
 
   dataset = make_test_data(TEST_ITEMS)
 
-  dataset.add_labels('test_label', row_ids=['1', '2'])
-
+  num_labels = dataset.add_labels('test_label', row_ids=['1', '2'])
+  assert num_labels == 2
   assert list(dataset.select_rows([PATH_WILDCARD])) == [{
     'str': 'a',
     'int': 1,
@@ -135,8 +135,8 @@ def test_add_row_labels_no_filters(make_test_data: TestDataMaker, mocker: Mocker
 
   dataset = make_test_data(TEST_ITEMS)
 
-  dataset.add_labels('test_label')
-
+  num_labels = dataset.add_labels('test_label')
+  assert num_labels == 3
   assert list(dataset.select_rows([PATH_WILDCARD])) == [{
     'str': 'a',
     'int': 1,
@@ -169,9 +169,12 @@ def test_remove_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> 
 
   dataset = make_test_data(TEST_ITEMS)
 
-  dataset.add_labels('test_label', row_ids=['1', '2', '3'])
+  num_labels = dataset.add_labels('test_label', row_ids=['1', '2', '3'])
+  assert num_labels == 3
+
   # Remove the first label.
-  dataset.remove_labels('test_label', row_ids=['1'])
+  num_labels = dataset.remove_labels('test_label', row_ids=['1'])
+  assert num_labels == 1
 
   assert list(dataset.select_rows([PATH_WILDCARD], sort_by=['int'], sort_order=SortOrder.ASC)) == [{
     'str': 'a',
@@ -219,9 +222,12 @@ def test_remove_labels_no_filters(make_test_data: TestDataMaker, mocker: MockerF
   dataset = make_test_data(TEST_ITEMS)
 
   # Add all labels.
-  dataset.add_labels('test_label')
+  num_labels = dataset.add_labels('test_label')
+  assert num_labels == 3
+
   # Remove all labels.
-  dataset.remove_labels('test_label')
+  num_labels = dataset.remove_labels('test_label')
+  assert num_labels == 3
 
   assert list(dataset.select_rows([PATH_WILDCARD], sort_by=['int'], sort_order=SortOrder.ASC)) == [{
     'str': 'a',
@@ -246,9 +252,11 @@ def test_label_overwrites(make_test_data: TestDataMaker, mocker: MockerFixture) 
 
   dataset = make_test_data(TEST_ITEMS)
 
-  dataset.add_labels('test_label', value='yes', filters=[(ROWID, 'equals', '1')])
+  num_labels = dataset.add_labels('test_label', value='yes', filters=[(ROWID, 'equals', '1')])
+  assert num_labels == 1
   # Overwrite the value.
-  dataset.add_labels('test_label', value='no', filters=[(ROWID, 'equals', '1')])
+  num_labels = dataset.add_labels('test_label', value='no', filters=[(ROWID, 'equals', '1')])
+  assert num_labels == 1
 
   assert list(dataset.select_rows([PATH_WILDCARD])) == [{
     'str': 'a',
@@ -276,10 +284,12 @@ def test_add_multiple_labels(make_test_data: TestDataMaker, mocker: MockerFixtur
 
   dataset = make_test_data(TEST_ITEMS)
 
-  # Add a 'yes' for every item with int=2.
-  dataset.add_labels('test_label', value='yes', filters=[('int', 'greater_equal', 2)])
+  # Add a 'yes' for every item with int >= 2.
+  num_labels = dataset.add_labels('test_label', value='yes', filters=[('int', 'greater_equal', 2)])
+  assert num_labels == 2
   # Add a 'no' for every item with int < 2.
-  dataset.add_labels('test_label', value='no', filters=[('int', 'less', 2)])
+  num_labels = dataset.add_labels('test_label', value='no', filters=[('int', 'less', 2)])
+  assert num_labels == 1
 
   assert dataset.manifest() == DatasetManifest(
     source=TestSource(),
@@ -327,10 +337,13 @@ def test_labels_select_groups(make_test_data: TestDataMaker, mocker: MockerFixtu
 
   dataset = make_test_data(TEST_ITEMS)
 
-  # Add a 'yes' for every item with int=2.
-  dataset.add_labels('test_label', value='yes', filters=[('int', 'greater_equal', 2)])
+  # Add a 'yes' for every item with int >= 2.
+  num_labels = dataset.add_labels('test_label', value='yes', filters=[('int', 'greater_equal', 2)])
+  assert num_labels == 2
+
   # Add a 'no' for every item with int < 2.
-  dataset.add_labels('test_label', value='no', filters=[('int', 'less', 2)])
+  num_labels = dataset.add_labels('test_label', value='no', filters=[('int', 'less', 2)])
+  assert num_labels == 1
 
   assert dataset.select_groups(('test_label', 'label')) == SelectGroupsResult(
     too_many_distinct=False, counts=[('yes', 2), ('no', 1)])

@@ -1,4 +1,4 @@
-import {PATH_KEY, VALUE_KEY, type LilacValueNodeCasted} from '$lilac';
+import {PATH_KEY, SPAN_KEY, type LilacValueNodeCasted} from '$lilac';
 import {describe, expect, it} from 'vitest';
 import {mergeSpans} from './view_utils';
 
@@ -6,9 +6,9 @@ describe('mergeSpans', () => {
   it('merge one span set', () => {
     const inputSpans: {[spanSet: string]: LilacValueNodeCasted<'string_span'>[]} = {
       set1: [
-        {id: 0, [VALUE_KEY]: {start: 0, end: 3}, [PATH_KEY]: ['0']},
-        {id: 1, [VALUE_KEY]: {start: 4, end: 7}, [PATH_KEY]: ['1']},
-        {id: 2, [VALUE_KEY]: {start: 6, end: 10}, [PATH_KEY]: ['2']}
+        {id: 0, [SPAN_KEY]: {start: 0, end: 3}, [PATH_KEY]: ['0']},
+        {id: 1, [SPAN_KEY]: {start: 4, end: 7}, [PATH_KEY]: ['1']},
+        {id: 2, [SPAN_KEY]: {start: 6, end: 10}, [PATH_KEY]: ['2']}
       ]
     };
     const mergedSpans = mergeSpans('0123456789extra', inputSpans);
@@ -59,15 +59,15 @@ describe('mergeSpans', () => {
       set1: [
         {
           id: 0,
-          [VALUE_KEY]: {start: 0, end: 4},
+          [SPAN_KEY]: {start: 0, end: 4},
           [PATH_KEY]: ['0', '0']
         },
-        {id: 1, [VALUE_KEY]: {start: 1, end: 5}, [PATH_KEY]: ['0', '1']},
-        {id: 2, [VALUE_KEY]: {start: 7, end: 10}, [PATH_KEY]: ['0', '2']}
+        {id: 1, [SPAN_KEY]: {start: 1, end: 5}, [PATH_KEY]: ['0', '1']},
+        {id: 2, [SPAN_KEY]: {start: 7, end: 10}, [PATH_KEY]: ['0', '2']}
       ],
       set2: [
-        {id: 3, [VALUE_KEY]: {start: 0, end: 2}, [PATH_KEY]: ['1', '0']},
-        {id: 4, [VALUE_KEY]: {start: 8, end: 10}, [PATH_KEY]: ['1', '1']}
+        {id: 3, [SPAN_KEY]: {start: 0, end: 2}, [PATH_KEY]: ['1', '0']},
+        {id: 4, [SPAN_KEY]: {start: 8, end: 10}, [PATH_KEY]: ['1', '1']}
       ]
     };
     const mergedSpans = mergeSpans('0123456789extra', inputSpans);

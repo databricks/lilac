@@ -1,54 +1,55 @@
-"""JSON source."""
-from typing import ClassVar, Iterable, Optional, cast
+"""Dictionary source."""
+import json
+from typing import Any, ClassVar, Iterable, Optional, cast
 
 import duckdb
+import fsspec
 import pyarrow as pa
-from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..schema import Item, arrow_schema_to_schema
 from ..source import Source, SourceSchema
-from ..utils import download_http_files
-from .duckdb_utils import duckdb_setup
+
+_TMP_FILENAME = 'tmp.jsonl'
 
 
-class JSONSource(Source):
-  """JSON data loader
+class DictSource(Source):
+  """Loads data from an iterable of dict objects."""
+  name: ClassVar[str] = 'dict'
 
-  Supports both JSON and JSONL.
-
-  JSON files can live locally as a filepath, point to an external URL, or live on S3, GCS, or R2.
-
-  For more details on authorizing access to S3, GCS or R2, see:
-  https://duckdb.org/docs/guides/import/s3_import.html
-  """ # noqa: D415, D400
-  name: ClassVar[str] = 'json'
-
-  filepaths: list[str] = PydanticField(
-    description='A list of filepaths to JSON files. '
-    'Paths can be local, point to an HTTP(s) url, or live on GCS, S3 or R2.')
-
+  _items: Iterable[Item]
   _source_schema: Optional[SourceSchema] = None
   _reader: Optional[pa.RecordBatchReader] = None
   _con: Optional[duckdb.DuckDBPyConnection] = None
+  _fs: fsspec.AbstractFileSystem
+
+  def __init__(self, items: Iterable[Item], **kwargs: Any):
+    super().__init__(**kwargs)
+    self._items = items
 
   @override
   def setup(self) -> None:
-    # Download JSON files to local cache if they are via HTTP to speed up duckdb.
-    filepaths = download_http_files(self.filepaths)
+    assert self._items is not None, 'items must be set.'
 
+    # Write the items to a temporary jsonl file in memory so we can read it via duckdb.
+    self._fs = fsspec.filesystem('memory')
+    with self._fs.open(_TMP_FILENAME, 'w') as file:
+      for item in self._items:
+        json.dump(item, file)
+        file.write('\n')
+    del self._items
+
+    # Register the memory filesystem to query it.
     self._con = duckdb.connect(database=':memory:')
-
-    # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
-    s3_filepaths = [path.replace('gs://', 's3://') for path in filepaths]
-
-    # NOTE: We use duckdb here to increase parallelism for multiple files.
+    self._con.register_filesystem(self._fs)
     self._con.execute(f"""
-      {duckdb_setup(self._con)}
-      CREATE VIEW t as (SELECT * FROM read_json_auto(
-        {s3_filepaths},
-        IGNORE_ERRORS=true
-      ));
+      CREATE VIEW t as (
+        SELECT * FROM read_json_auto(
+          'memory://{_TMP_FILENAME}',
+          IGNORE_ERRORS=true,
+          FORMAT='newline_delimited'
+        )
+      );
     """)
 
     res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
@@ -67,7 +68,7 @@ class JSONSource(Source):
 
   @override
   def process(self) -> Iterable[Item]:
-    """Process the source."""
+    """Process the source request."""
     if not self._reader or not self._con:
       raise RuntimeError('JSON source is not initialized.')
 
@@ -76,3 +77,5 @@ class JSONSource(Source):
 
     self._reader.close()
     self._con.close()
+    self._fs.rm(_TMP_FILENAME)
+    del self._fs

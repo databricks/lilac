@@ -29,6 +29,7 @@ class LilacEnvironment(BaseModel):
     description='The Lilac project directory where datasets, concepts, caches are stored.'
     'This replaces `LILAC_PROJECT_DIR`, which is deprecated but as the same functionality. '
     'This can be set with `set_project_dir`.',)
+
   DEBUG: str = PydanticField(
     description='Turn on Lilac debug mode to log queries and timing information.')
   DISABLE_LOGS: str = PydanticField(description='Disable log() statements to the console.')
@@ -72,8 +73,8 @@ class LilacEnvironment(BaseModel):
   # Other settings.
   GOOGLE_ANALYTICS_ENABLED: str = PydanticField(
     description='Set to to true to enable Google analytics.')
-  DISABLE_LOAD_ON_START: str = PydanticField(
-    description='When true, will not try to load from lilac.yml upon startup.')
+  LILAC_LOAD_ON_START_SERVER: str = PydanticField(
+    description='When true, will load from lilac.yml upon startup.')
 
 
 def _init_env() -> None:
@@ -82,7 +83,6 @@ def _init_env() -> None:
 
   if not in_test:  # Skip local environment variables when testing.
     load_dotenv('.env.local')
-  load_dotenv('.env.demo')
   load_dotenv('.env')
 
   auth_enabled = os.environ.get('LILAC_AUTH_ENABLED', False) == 'true'

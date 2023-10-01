@@ -36,7 +36,6 @@ from ..project import read_project_config, update_project_dataset_settings
 from ..schema import (
   PATH_WILDCARD,
   ROWID,
-  VALUE_KEY,
   Bin,
   DataType,
   ImageInfo,
@@ -350,7 +349,8 @@ class Dataset(abc.ABC):
     project_config = read_project_config(get_project_dir())
     dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not dataset_config:
-      raise ValueError('Dataset not found in project config.')
+      raise ValueError(
+        f'Dataset "{self.namespace}/{self.dataset_name}" not found in project config.')
     return dataset_config
 
   def settings(self) -> DatasetSettings:
@@ -360,7 +360,7 @@ class Dataset(abc.ABC):
 
   def update_settings(self, settings: DatasetSettings) -> None:
     """Update the persistent settings for the dataset."""
-    update_project_dataset_settings(self.namespace, self.dataset_name, settings)
+    update_project_dataset_settings(self.namespace, self.dataset_name, settings, self.project_dir)
 
   @abc.abstractmethod
   def compute_signal(self,
@@ -489,8 +489,11 @@ class Dataset(abc.ABC):
                  row_ids: Optional[Sequence[str]] = None,
                  searches: Optional[Sequence[Search]] = None,
                  filters: Optional[Sequence[FilterLike]] = None,
-                 value: Optional[str] = 'true') -> None:
-    """Adds a label to a row, or a set of rows defined by searches and filters."""
+                 value: Optional[str] = 'true') -> int:
+    """Adds a label to a row, or a set of rows defined by searches and filters.
+
+    Returns the number of added labels.
+    """
     pass
 
   @abc.abstractmethod
@@ -498,8 +501,11 @@ class Dataset(abc.ABC):
                     name: str,
                     row_ids: Optional[Sequence[str]] = None,
                     searches: Optional[Sequence[Search]] = None,
-                    filters: Optional[Sequence[FilterLike]] = None) -> None:
-    """Removes labels from a row, or a set of rows defined by searches and filters."""
+                    filters: Optional[Sequence[FilterLike]] = None) -> int:
+    """Removes labels from a row, or a set of rows defined by searches and filters.
+
+    Returns the number of removed labels.
+    """
     pass
 
   @abc.abstractmethod
@@ -630,7 +636,4 @@ def make_signal_parquet_id(signal: Signal,
   """Return a unique identifier for this parquet table."""
   # Remove the wildcards from the parquet id since they are implicit.
   path = [*[p for p in source_path if p != PATH_WILDCARD], signal.key(is_computed_signal)]
-  # Don't use the VALUE_KEY as part of the parquet id to reduce the size of paths.
-  if path[-1] == VALUE_KEY:
-    path = path[:-1]
   return '.'.join(path)

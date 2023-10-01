@@ -3,13 +3,13 @@
 import asyncio
 import logging
 import os
-import time
 import webbrowser
+from contextlib import asynccontextmanager
 from importlib import metadata
-from typing import Any, Optional
+from typing import Any, AsyncGenerator, Optional
 
-import requests
 import uvicorn
+from distributed import get_client
 from fastapi import APIRouter, BackgroundTasks, FastAPI, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, ORJSONResponse
 from fastapi.routing import APIRoute
@@ -39,7 +39,7 @@ from .project import create_project_and_set_env
 from .router_utils import RouteErrorHandler
 from .sources.default_sources import register_default_sources
 from .sources.source_registry import registered_sources
-from .tasks import get_task_manager
+from .tasks import TaskManager, get_task_manager
 
 register_default_sources()
 
@@ -65,10 +65,36 @@ def custom_generate_unique_id(route: APIRoute) -> str:
   return route.name
 
 
+def _load(load_task_id: str) -> None:
+  load(
+    project_dir=get_project_dir(),
+    overwrite=False,
+    task_manager=TaskManager(dask_client=get_client()),
+    load_task_id=load_task_id)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+  """Context manager for the lifespan of the application."""
+  if env('LILAC_LOAD_ON_START_SERVER', False):
+    task_manager = get_task_manager()
+    task_id = task_manager.task_id(
+      'Loading from project config... ',
+      description=
+      'This can be disabled by setting the environment variable LILAC_LOAD_ON_START_SERVER=false')
+    task_manager.execute(task_id, _load, task_id)
+
+  yield
+
+  # Clean up the ML models and release the resources
+  await get_task_manager().stop()
+
+
 app = FastAPI(
   default_response_class=ORJSONResponse,
   generate_unique_id_function=custom_generate_unique_id,
-  openapi_tags=tags_metadata)
+  openapi_tags=tags_metadata,
+  lifespan=lifespan)
 
 
 @app.exception_handler(ConceptAuthorizationException)
@@ -186,12 +212,6 @@ def catch_all() -> FileResponse:
 app.mount('/', StaticFiles(directory=DIST_PATH, html=True, check_dir=False))
 
 
-@app.on_event('shutdown')
-async def shutdown_event() -> None:
-  """Kill the task manager when FastAPI shuts down."""
-  await get_task_manager().stop()
-
-
 class GetTasksFilter(logging.Filter):
   """Task filter for /tasks."""
 
@@ -209,7 +229,7 @@ def start_server(host: str = '127.0.0.1',
                  port: int = 5432,
                  open: bool = False,
                  project_dir: str = '',
-                 skip_load: bool = False) -> None:
+                 load: bool = False) -> None:
   """Starts the Lilac web server.
 
   Args:
@@ -219,13 +239,17 @@ def start_server(host: str = '127.0.0.1',
     project_dir: The path to the Lilac project directory. If not specified, the `LILAC_PROJECT_DIR`
       environment variable will be used (this can be set from `set_project_dir`). If
       `LILAC_PROJECT_DIR` is not defined, will start in the current directory.
-    skip_load: Whether to skip loading from the lilac.yml when the server boots up.
+    load: Whether to load from the lilac.yml when the server boots up. This will diff the config
+      with the fields that are computed and compute them when the server boots up.
   """
   create_project_and_set_env(project_dir)
 
   global SERVER
   if SERVER:
     raise ValueError('Server is already running')
+
+  if load:
+    os.environ['LILAC_LOAD_ON_START_SERVER'] = 'true'
 
   config = uvicorn.Config(
     app,
@@ -240,26 +264,6 @@ def start_server(host: str = '127.0.0.1',
     @app.on_event('startup')
     def open_browser() -> None:
       webbrowser.open(f'http://{host}:{port}')
-
-      if not skip_load:
-
-        def _post_load() -> None:
-          server_ready = False
-          while not server_ready:
-            try:
-              server_ready = requests.get((f'http://{host}:{port}/status'),
-                                          timeout=.200).status_code == 200
-            except Exception as e:
-              server_ready = False
-            time.sleep(.1)
-          try:
-            # Load the config.
-            requests.post(f'http://{host}:{port}/load_config')
-          except Exception as e:
-            print('Error loading config: ', e)
-
-        loop = asyncio.get_running_loop()
-        loop.run_in_executor(None, _post_load)
 
   try:
     loop = asyncio.get_event_loop()
