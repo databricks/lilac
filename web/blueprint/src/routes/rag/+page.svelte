@@ -153,17 +153,19 @@
       <div class="flex w-1/2 flex-col gap-y-4">
         <div class="font-medium">Answer</div>
 
-        {#if answerFetching || retrievalIsFetching}
-          <SkeletonText />
-        {:else if answer != null}
-          <div class="whitespace-break-spaces leading-5">
-            {answer}
-          </div>
-        {:else}
-          <div class="whitespace-break-spaces font-light italic leading-5">
-            Press the search button to answer the question.
-          </div>
-        {/if}
+        <div class="pt-4">
+          {#if answerFetching || retrievalIsFetching}
+            <SkeletonText />
+          {:else if answer != null}
+            <div class="whitespace-break-spacesleading-5">
+              {answer}
+            </div>
+          {:else}
+            <div class="whitespace-break-spaces font-light italic leading-5">
+              Press the search button to answer the question.
+            </div>
+          {/if}
+        </div>
       </div>
     </div>
 

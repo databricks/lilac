@@ -67,7 +67,7 @@
       <button on:click={() => (promptTemplateModalOpen = true)}><Edit /></button>
     </div>
   </div>
-  <div class="h-96 overflow-y-scroll whitespace-break-spaces font-mono leading-6">
+  <div class="h-96 overflow-y-scroll whitespace-break-spaces leading-6">
     {pendingPrompt}
   </div>
 </div>
