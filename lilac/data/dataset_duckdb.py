@@ -890,7 +890,7 @@ class DatasetDuckDB(Dataset):
       SELECT {outer_select} AS {value_column}, COUNT() AS {count_column}
       FROM (SELECT {inner_select} AS {inner_val} FROM t {where_query})
       GROUP BY {value_column}
-      ORDER BY {sort_by.value} {sort_order.value}
+      ORDER BY {sort_by.value} {sort_order.value}, {GroupsSortBy.VALUE}
       {limit_query}
     """
     df = self._query_df(query)
