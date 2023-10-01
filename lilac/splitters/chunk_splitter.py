@@ -31,7 +31,7 @@ https://github.com/hwchase17/langchain/blob/master/langchain/text_splitter.py
 
 from typing import Callable, ClassVar, Iterable, Optional
 
-from pydantic import FieldValidationInfo, field_validator
+from pydantic import ValidationInfo, field_validator
 from typing_extensions import override
 
 from ..schema import Item, RichData, lilac_span
@@ -59,7 +59,7 @@ class ChunkSplitter(TextSplitterSignal):
 
   @field_validator('chunk_overlap')
   @classmethod
-  def check_overlap_smaller_than_chunk(cls, chunk_overlap: int, info: FieldValidationInfo) -> int:
+  def check_overlap_smaller_than_chunk(cls, chunk_overlap: int, info: ValidationInfo) -> int:
     """Check that the chunk overlap is smaller than the chunk size."""
     chunk_size: int = info.data['chunk_size']
     if chunk_overlap > chunk_size:

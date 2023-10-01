@@ -8,6 +8,7 @@ from pytest_mock import MockerFixture
 
 from ..schema import Item, field, schema
 from . import dataset as dataset_module
+from .dataset import GroupsSortBy, SortOrder
 from .dataset_test_utils import TestDataMaker
 
 
@@ -39,10 +40,11 @@ def test_flat_data(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(items)
 
   result = dataset.select_groups(leaf_path='name')
-  assert result.counts == [('Name1', 1), ('Name2', 1), (None, 1), ('Name3', 1), ('Name4', 1)]
+
+  assert result.counts == [('Name1', 1), ('Name2', 1), ('Name3', 1), ('Name4', 1), (None, 1)]
 
   result = dataset.select_groups(leaf_path='age', bins=[20, 50, 60])
-  assert result.counts == [('1', 2), ('0', 1), (None, 1), ('2', 1)]
+  assert result.counts == [('1', 2), ('0', 1), ('2', 1), (None, 1)]
 
   result = dataset.select_groups(leaf_path='active')
   assert result.counts == [
@@ -72,6 +74,32 @@ def test_result_counts(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_groups(leaf_path='active')
   assert result.counts == [(True, 3), (False, 1), (None, 1)]
+
+
+def test_order_by_value(make_test_data: TestDataMaker) -> None:
+  items: list[Item] = [
+    {
+      'active': False
+    },
+    {
+      'active': False
+    },
+    {
+      'active': True
+    },
+    {
+      'active': False
+    },
+    {}  # Missing "active".
+  ]
+  dataset = make_test_data(items, schema=schema({'active': 'boolean'}))
+
+  result = dataset.select_groups(leaf_path='active', sort_by=GroupsSortBy.VALUE)
+  assert result.counts == [(True, 1), (False, 3), (None, 1)]
+
+  result = dataset.select_groups(
+    leaf_path='active', sort_by=GroupsSortBy.VALUE, sort_order=SortOrder.ASC)
+  assert result.counts == [(False, 3), (True, 1), (None, 1)]
 
 
 def test_list_of_structs(make_test_data: TestDataMaker) -> None:
@@ -153,7 +181,7 @@ def test_nested_struct(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(items)
 
   result = dataset.select_groups(leaf_path='nested_struct.struct.name')
-  assert result.counts == [('c', 1), ('b', 1), ('a', 1)]
+  assert result.counts == [('a', 1), ('b', 1), ('c', 1)]
 
 
 def test_named_bins(make_test_data: TestDataMaker) -> None:
@@ -180,7 +208,7 @@ def test_named_bins(make_test_data: TestDataMaker) -> None:
       ('middle-aged', 50, 65),
       ('senior', 65, None),
     ])
-  assert result.counts == [('adult', 2), ('young', 1), ('senior', 1), ('middle-aged', 1), (None, 1)]
+  assert result.counts == [('adult', 2), ('middle-aged', 1), ('senior', 1), ('young', 1), (None, 1)]
 
 
 def test_schema_with_bins(make_test_data: TestDataMaker) -> None:
@@ -210,7 +238,7 @@ def test_schema_with_bins(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(items, data_schema)
 
   result = dataset.select_groups(leaf_path='age')
-  assert result.counts == [('adult', 2), ('young', 1), ('senior', 1), ('middle-aged', 1), (None, 1)]
+  assert result.counts == [('adult', 2), ('middle-aged', 1), ('senior', 1), ('young', 1), (None, 1)]
 
 
 def test_filters(make_test_data: TestDataMaker) -> None:
@@ -242,7 +270,7 @@ def test_filters(make_test_data: TestDataMaker) -> None:
 
   # active = True.
   result = dataset.select_groups(leaf_path='name', filters=[('active', 'equals', True)])
-  assert result.counts == [('Name2', 1), (None, 1), ('Name3', 1)]
+  assert result.counts == [('Name2', 1), ('Name3', 1), (None, 1)]
 
   # age < 35.
   result = dataset.select_groups(leaf_path='name', filters=[('age', 'less', 35)])
@@ -340,6 +368,6 @@ def test_auto_bins_for_float(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(items)
 
   res = dataset.select_groups('feature')
-  assert res.counts == [('0', 1), ('3', 1), ('7', 1), ('11', 1), ('14', 1), (None, 1)]
+  assert res.counts == [('0', 1), ('11', 1), ('14', 1), ('3', 1), ('7', 1), (None, 1)]
   assert res.too_many_distinct is False
   assert res.bins

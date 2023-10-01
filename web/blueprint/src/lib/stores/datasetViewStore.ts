@@ -48,8 +48,7 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
     query: {
       // Add * as default field when supported here
       columns: [],
-      combine_columns: true,
-      sort_by: [ROWID]
+      combine_columns: true
     },
     schemaCollapsed: true,
     insightsOpen: false
@@ -250,11 +249,24 @@ export function getDatasetViewContext() {
  * Get the options to pass to the selectRows API call
  * based on the current state of the dataset view store
  */
-export function getSelectRowsOptions(datasetViewStore: DatasetViewState): SelectRowsOptions {
+export function getSelectRowsOptions(
+  datasetViewStore: DatasetViewState,
+  implicitSortByRowId?: boolean
+): SelectRowsOptions {
   const columns = ['*', ROWID, ...(datasetViewStore.query.columns ?? [])];
-
+  const options: SelectRowsOptions = datasetViewStore.query;
+  // If we are not sorting explicitly, and not searching for a concept or semantic, sort by rowid
+  // to get stable results.
+  if (implicitSortByRowId) {
+    if (
+      options.sort_by == null &&
+      !options.searches?.find(v => v.type == 'concept' || v.type == 'semantic')
+    ) {
+      options.sort_by = [ROWID];
+    }
+  }
   return {
-    ...datasetViewStore.query,
+    ...options,
     columns
   };
 }
@@ -262,7 +274,7 @@ export function getSelectRowsOptions(datasetViewStore: DatasetViewState): Select
 export function getSelectRowsSchemaOptions(
   datasetViewStore: DatasetViewState
 ): SelectRowsSchemaOptions {
-  const options = getSelectRowsOptions(datasetViewStore);
+  const options = getSelectRowsOptions(datasetViewStore, true /* implicitSortByRowId */);
   return {
     columns: options.columns,
     searches: options.searches,

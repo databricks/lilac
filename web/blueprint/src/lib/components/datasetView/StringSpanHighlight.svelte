@@ -172,8 +172,8 @@
 
 <div class="relative overflow-x-hidden text-ellipsis whitespace-break-spaces">
   {#each snippetSpans as snippetSpan}
-    {@const renderSpan = snippetSpan.renderSpan}
-    {#if snippetSpan.isShown}
+    {#if !snippetSpan.isEllipsis}
+      {@const renderSpan = snippetSpan.renderSpan}
       <span
         use:spanHover={{
           namedValues: renderSpan.namedValues,
@@ -192,6 +192,7 @@
           disabled: renderSpan.paths.length === 0 || embeddings.length === 0
         }}
         class="hover:cursor-poiner highlight-span break-words text-sm leading-5"
+        class:highlighted={renderSpan.isHighlighted}
         class:hover:cursor-pointer={spanPaths.length > 0}
         class:font-bold={renderSpan.isBlackBolded}
         class:font-medium={renderSpan.isHighlightBolded && !renderSpan.isBlackBolded}
@@ -205,17 +206,19 @@
         on:mouseleave={() => spanMouseLeave(renderSpan)}
       >
         {#if markdown}
-          <SvelteMarkdown source={renderSpan.snippetText} />
+          <SvelteMarkdown source={snippetSpan.snippetText} />
         {:else}
-          {renderSpan.snippetText}
+          {snippetSpan.snippetText}
         {/if}
       </span>
-    {:else if snippetSpan.isEllipsis}<span
+    {:else}
+      <span
         use:hoverTooltip={{
           text: 'Some text was hidden to improve readability. \nClick "Show all" to show the entire document.'
         }}
-        class="highlight-span text-sm leading-5">...</span
-      >{#if snippetSpan.hasNewline}<span><br /></span>{/if}
+        class="highlight-span text-sm leading-5"
+        >...
+      </span>
     {/if}
   {/each}
   {#if someSnippetsHidden || isExpanded}
@@ -254,25 +257,31 @@
     padding-bottom: 1.5px;
   }
   :global(.highlight-span pre) {
-    @apply bg-slate-200;
-    @apply text-sm;
+    @apply overflow-x-auto bg-slate-200 p-2 text-sm;
   }
-  :global(.highlight-span p),
   :global(.highlight-span pre) {
     @apply my-3;
-  }
-  :global(.highlight-span p:first-child) {
-    @apply !inline;
-  }
-  :global(.highlight-span p:last-child) {
-    @apply !inline;
   }
   :global(.highlight-span p),
   :global(.highlight-span h1) {
     background-color: inherit;
   }
   :global(.highlight-span p) {
-    @apply text-sm;
+    @apply mt-3 text-sm;
     font-weight: inherit;
+  }
+  :global(.highlight-span ul) {
+    @apply mt-3 list-inside list-disc;
+  }
+  /** Inline the last paragraph that preceeds the highlight. */
+  :global(.highlight-span:has(+ .highlighted) p:last-child) {
+    @apply !inline;
+  }
+  /** Inline the first paragraph that succeeds the highlight. */
+  :global(.highlighted + .highlight-span p:first-child) {
+    @apply !inline;
+  }
+  :global(.highlighted p) {
+    @apply !inline;
   }
 </style>

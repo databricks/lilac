@@ -15,8 +15,8 @@ import type {SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
 import {colorFromScore} from './colors';
 
 // When the text length exceeds this number we start to snippet.
-const SNIPPET_LEN_BUDGET = 500;
-const MAX_RENDER_SPAN_LENGTH = 100;
+const SNIPPET_LEN_BUDGET = 300;
+const SURROUNDING_SNIPPET_LEN = 50;
 
 export interface SpanValueInfo {
   path: Path;
@@ -29,18 +29,17 @@ export interface SpanValueInfo {
 
 export interface RenderSpan {
   paths: string[];
-  text: string;
   originalSpans: {[spanSet: string]: LilacValueNodeCasted<'string_span'>[]};
 
   backgroundColor: string;
   isBlackBolded: boolean;
   isHighlightBolded: boolean;
 
-  // Whether this span needs to be shown as a snippet.
-  isShownSnippet: boolean;
+  // Whether this span is highlighted and needs to always be shown.
+  isHighlighted: boolean;
   snippetScore: number;
-  // The text post-processed for snippets.
-  snippetText: string;
+  // The text for this render span.
+  text: string;
 
   namedValues: SpanHoverNamedValue[];
   // Whether the hover matches any path in this render span. Used for highlighting.
@@ -139,12 +138,11 @@ export function getRenderSpans(
       backgroundColor: colorFromScore(maxScore),
       isBlackBolded: isKeywordSearch || hasNonNumericMetadata || isLeafSpan,
       isHighlightBolded: isLabeled,
-      isShownSnippet,
+      isHighlighted: isShownSnippet,
       snippetScore: maxScore,
       namedValues: firstNamedValues,
       paths: mergedSpan.paths,
       text: mergedSpan.text,
-      snippetText: mergedSpan.text,
       originalSpans: mergedSpan.originalSpans,
       isHovered,
       isFirstHover
@@ -153,95 +151,92 @@ export function getRenderSpans(
   return renderSpans;
 }
 
-export interface SnippetSpan {
-  renderSpan: RenderSpan;
-  isShown: boolean;
-  // When the snippet is hidden, whether it should be replaced with ellipsis. We only do this once
-  // for a continuous set of hidden snippets.
-  isEllipsis?: boolean;
-  // When the snippet is hidden, whether the original text had a new-line so it can be preserved.
-  hasNewline?: boolean;
-}
+export type SnippetSpan =
+  | {
+      renderSpan: RenderSpan;
+      snippetText: string;
+      isEllipsis?: false;
+    }
+  | {isEllipsis: true};
 
 export function getSnippetSpans(
   renderSpans: RenderSpan[],
   isExpanded: boolean
 ): {snippetSpans: SnippetSpan[]; someSnippetsHidden: boolean} {
-  // First, cut any snippet shown render spans that are too long.
-  renderSpans = renderSpans
-    .map(renderSpan => {
-      if (renderSpan.text.length > MAX_RENDER_SPAN_LENGTH) {
-        const shownRenderSpan = {
-          ...renderSpan,
-          text: renderSpan.text.slice(0, MAX_RENDER_SPAN_LENGTH),
-          snippetText: renderSpan.snippetText.slice(0, MAX_RENDER_SPAN_LENGTH)
-        };
-        // Split the hidden parts by '\n' so that don't use the whole budget for a single span.
-        const hiddenSpanLines = renderSpan.text.slice(MAX_RENDER_SPAN_LENGTH).split('\n');
-        const hiddenRenderSpans = hiddenSpanLines.map((line, i) => {
-          const addNewline = i !== hiddenSpanLines.length - 1;
-          const lineText = line + (addNewline ? '\n' : '');
-          return {
-            ...renderSpan,
-            text: lineText,
-            snippetText: lineText,
-            isShownSnippet: false,
-            // The hover metadata is already displayed in the shown span.
-            namedValues: []
-          };
-        });
-
-        return [shownRenderSpan, ...hiddenRenderSpans];
-      } else {
-        return [renderSpan];
-      }
-    })
-    .flat();
-  // Map the merged spans to the information needed to render each span.
   if (isExpanded) {
+    // If the span is expanded, we don't need to do any snippetting.
     return {
-      snippetSpans: renderSpans.map(renderSpan => ({renderSpan, isShown: true})),
+      snippetSpans: renderSpans.map(renderSpan => ({renderSpan, snippetText: renderSpan.text})),
       someSnippetsHidden: false
     };
   }
-  const snippetSpans: SnippetSpan[] = [];
-  // Find all the spans that are shown snippets and not shown snippets.
-  let shownSnippetTotalLength = 0;
-  for (const renderSpan of renderSpans) {
-    if (renderSpan.isShownSnippet) {
-      shownSnippetTotalLength += renderSpan.text.length;
-    }
-  }
-
-  // If there is more budget, sort the rest of the spans by the snippet score and add until we
-  // reach the budget.
-  const belowThresholdSpans: RenderSpan[] = renderSpans
-    .filter(renderSpan => !renderSpan.isShownSnippet)
-    .sort((a, b) => b.snippetScore - a.snippetScore);
-  for (const renderSpan of belowThresholdSpans) {
-    renderSpan.isShownSnippet = true;
-    shownSnippetTotalLength += renderSpan.text.length;
-    if (shownSnippetTotalLength > SNIPPET_LEN_BUDGET) {
-      break;
-    }
-  }
   let someSnippetsHidden = false;
-  for (const [i, renderSpan] of renderSpans.entries()) {
-    if (renderSpan.isShownSnippet) {
+  let someSnippetsHighlighted = false;
+  // If the doc is not expanded, we need to do snippetting.
+  let snippetSpans: SnippetSpan[] = [];
+  for (let i = 0; i < renderSpans.length; i++) {
+    const renderSpan = renderSpans[i];
+    const prevRenderSpan = i - 1 >= 0 ? renderSpans[i - 1] : null;
+    const nextRenderSpan = i + 1 < renderSpans.length ? renderSpans[i + 1] : null;
+    const lastSnippetWasEllipsis = snippetSpans.at(-1)?.isEllipsis;
+    if (!renderSpan.isHighlighted) {
+      if (lastSnippetWasEllipsis) {
+        continue;
+      }
+      if (prevRenderSpan?.isHighlighted || nextRenderSpan?.isHighlighted) {
+        continue;
+      }
+      someSnippetsHidden = true;
+      snippetSpans.push({isEllipsis: true});
+      continue;
+    }
+    someSnippetsHighlighted = true;
+    const addLeftContext = prevRenderSpan != null && !prevRenderSpan.isHighlighted;
+    if (addLeftContext) {
+      const addLeftEllipsis =
+        !lastSnippetWasEllipsis && prevRenderSpan.text.length > SURROUNDING_SNIPPET_LEN;
+      if (addLeftEllipsis) {
+        snippetSpans.push({isEllipsis: true});
+        someSnippetsHidden = true;
+      }
       snippetSpans.push({
-        renderSpan,
-        isShown: true
+        renderSpan: prevRenderSpan,
+        snippetText: prevRenderSpan.text.slice(-SURROUNDING_SNIPPET_LEN)
       });
-    } else {
-      const isLeftEllipsis = renderSpans[i + 1]?.isShownSnippet === true;
-      const isRightEllipsis = renderSpans[i - 1]?.isShownSnippet === true;
-      const isPreviousShown = snippetSpans[snippetSpans.length - 1]?.isShown === true;
+    }
+
+    snippetSpans.push({
+      renderSpan,
+      snippetText: renderSpan.text
+    });
+
+    const addRightContext = nextRenderSpan != null && !nextRenderSpan.isHighlighted;
+    if (addRightContext) {
       snippetSpans.push({
-        renderSpan,
-        isShown: false,
-        isEllipsis: (isLeftEllipsis || isRightEllipsis) && isPreviousShown,
-        hasNewline: renderSpan.text.includes('\n')
+        renderSpan: nextRenderSpan,
+        snippetText: nextRenderSpan.text.slice(0, SURROUNDING_SNIPPET_LEN)
       });
+      const addRightEllipsis =
+        !lastSnippetWasEllipsis && nextRenderSpan.text.length > SURROUNDING_SNIPPET_LEN;
+      if (addRightEllipsis) {
+        snippetSpans.push({isEllipsis: true});
+        someSnippetsHidden = true;
+      }
+    }
+  }
+  if (!someSnippetsHighlighted) {
+    snippetSpans = [];
+    someSnippetsHidden = false;
+    // Nothing is highlighted, so just show the beginning of the doc.
+    snippetSpans.push({
+      renderSpan: renderSpans[0],
+      snippetText: renderSpans[0].text.slice(0, SNIPPET_LEN_BUDGET)
+    });
+    const nextRenderSpan: RenderSpan | null = renderSpans[1] || null;
+    const addRightEllipsis =
+      nextRenderSpan != null || renderSpans[0].text.length > SNIPPET_LEN_BUDGET;
+    if (addRightEllipsis) {
+      snippetSpans.push({isEllipsis: true});
       someSnippetsHidden = true;
     }
   }
