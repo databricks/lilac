@@ -161,34 +161,38 @@
   {#if retrievalResults != null}
     <div class="flex h-96 flex-col overflow-y-scroll">
       {#each retrievalResults as retrievalResult}
+        {@const prefix = retrievalResult.text.slice(
+          retrievalResult.windowSpan?.start,
+          retrievalResult.span?.start
+        )}
+        {@const suffix = retrievalResult.text.slice(
+          retrievalResult.span?.end,
+          retrievalResult.windowSpan?.end
+        )}
         <div class="flex flex-row gap-x-2 border-b border-b-neutral-200 py-2 text-sm">
           <div class="w-16">
             <span class="px-0.5" style:background-color={colorFromScore(retrievalResult.score)}
               >{retrievalResult.score.toFixed(2)}</span
             >
           </div>
-          <div class="grow whitespace-break-spaces">
+          <div class="grow">
             <!-- Prefix context window -->
-            <span
-              >{retrievalResult.text.slice(
-                retrievalResult.windowSpan?.start,
-                retrievalResult.span?.start
-              )}</span
-            >
+            {#if prefix != ''}
+              <span class="whitespace-break-spaces">{prefix}</span>
+            {/if}
             <!-- Retrieval chunk -->
-            <span style:background-color={colorFromScore(retrievalResult.score)}
+            <span
+              class="whitespace-break-spaces"
+              style:background-color={colorFromScore(retrievalResult.score)}
               >{retrievalResult.text.slice(
                 retrievalResult.span?.start,
                 retrievalResult.span?.end
               )}</span
             >
             <!-- Suffix context window -->
-            <span
-              >{retrievalResult.text.slice(
-                retrievalResult.span?.end,
-                retrievalResult.windowSpan?.end
-              )}</span
-            >
+            {#if suffix != ''}
+              <span class="whitespace-break-spaces">{suffix}</span>
+            {/if}
           </div>
         </div>
       {/each}
