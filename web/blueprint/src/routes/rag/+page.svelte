@@ -79,7 +79,7 @@
     if (prompt != null) {
       answerFetching = true;
       answer = null;
-      RagService.generateAnswer(prompt).then(result => {
+      RagService.generateCompletion(prompt).then(result => {
         answer = result;
         answerFetching = false;
       });

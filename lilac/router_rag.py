@@ -16,9 +16,9 @@ class Completion(OpenAISchema):
                           description='The answer to the question, given the context and query.')
 
 
-@router.get('/generate_answer')
-def generate_answer(prompt: str) -> str:
-  """Generate positive examples for a given concept using an LLM model."""
+@router.get('/generate_completion')
+def generate_completion(prompt: str) -> str:
+  """Generate the completion for a prompt."""
   try:
     import openai
   except ImportError:
