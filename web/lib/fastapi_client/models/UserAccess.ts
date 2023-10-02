@@ -10,6 +10,7 @@ import type { DatasetUserAccess } from './DatasetUserAccess';
  * User access.
  */
 export type UserAccess = {
+    is_admin?: boolean;
     create_dataset: boolean;
     dataset: DatasetUserAccess;
     concept: ConceptUserAccess;

@@ -70,7 +70,9 @@
               <div
                 class="ml-2 mr-1 flex"
                 use:hoverTooltip={{
-                  text: `Logged into Google as ${$authInfo.data?.user.name} with email ${$authInfo.data?.user.email}`
+                  text:
+                    `Logged into Google as ${$authInfo.data?.user.name} with email ${$authInfo.data?.user.email}.` +
+                    ($authInfo.data?.access.is_admin ? `\n\nLogged in as an adminstrator.` : '')
                 }}
               >
                 {$authInfo.data?.user.given_name}
