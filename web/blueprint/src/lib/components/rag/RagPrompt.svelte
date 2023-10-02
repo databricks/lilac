@@ -1,5 +1,9 @@
 <script lang="ts">
-  import {getRagViewContext} from '$lib/stores/ragViewStore';
+  import {
+    CONTEXT_TEMPLATE_VAR,
+    QUERY_TEMPLATE_VAR,
+    getRagViewContext
+  } from '$lib/stores/ragViewStore';
   import {
     ComposedModal,
     ModalBody,
@@ -16,9 +20,6 @@
   export let questionInputText: string;
   // Results from the retrieval component.
   export let retrievalResults: RagRetrievalResult[] | undefined;
-
-  const QUERY_TEMPLATE_VAR = '{query_str}';
-  const CONTEXT_TEMPLATE_VAR = '{context_str}';
 
   const ragViewStore = getRagViewContext();
   const dispatch = createEventDispatcher();

@@ -125,10 +125,10 @@
     {/if}
   </div>
 
-  <div class="mx-4 mb-8 mt-2 flex h-full w-full flex-col gap-y-24 px-4">
-    <div class="mt-6 flex w-full flex-row gap-x-10">
+  <div class="mx-4 mb-8 mt-2 flex h-full w-full flex-col items-start gap-y-24 px-4">
+    <div class="mt-6 flex w-1/2 flex-col gap-y-10">
       <!-- Input question -->
-      <div class="flex w-1/2 flex-col gap-y-4">
+      <div class="flex flex-col gap-y-4">
         <div class="font-medium">Question</div>
         <div class="question-input flex w-full flex-row items-end">
           <button
@@ -150,7 +150,7 @@
           />
         </div>
       </div>
-      <div class="flex w-1/2 flex-col gap-y-4">
+      <div class="flex flex-col gap-y-4">
         <div class="font-medium">Answer</div>
 
         <div class="pt-4">

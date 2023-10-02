@@ -4,6 +4,9 @@ import {writable} from 'svelte/store';
 
 const RAG_VIEW_CONTEXT = 'RAG_VIEW_CONTEXT';
 
+export const QUERY_TEMPLATE_VAR = '{query_str}';
+export const CONTEXT_TEMPLATE_VAR = '{context_str}';
+
 export interface RagViewState {
   datasetNamespace: string | null;
   datasetName: string | null;
@@ -13,7 +16,8 @@ export interface RagViewState {
   query: string | null;
   promptTemplate: string;
   topK: number;
-  semanticSimilarityThreshold: number;
+  // The size of the window, in chunks, around the retrieved text that will be passed into the
+  // context of the generation prompt.
   windowSizeChunks: number;
 }
 export type RagViewStore = ReturnType<typeof createRagViewStore>;
@@ -27,14 +31,13 @@ export function defaultRagViewState(): RagViewState {
     query: null,
     promptTemplate: `Context information is below.
 ---------------------
-{context_str}
+${CONTEXT_TEMPLATE_VAR}
 ---------------------
 Given the context information and not prior knowledge, answer the query.
-Query: {query_str}
+Query: ${QUERY_TEMPLATE_VAR}
 Answer: \
 `,
     topK: 10,
-    semanticSimilarityThreshold: 0.9,
     windowSizeChunks: 1
   };
 }

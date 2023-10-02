@@ -10,9 +10,10 @@ from .router_utils import RouteErrorHandler
 router = APIRouter(route_class=RouteErrorHandler)
 
 
-class Answer(OpenAISchema):
-  """Generated text examples."""
-  answer: str = Field(..., description='The answer to the question, given the context and query.')
+class Completion(OpenAISchema):
+  """Generated completion of a prompt."""
+  completion: str = Field(...,
+                          description='The answer to the question, given the context and query.')
 
 
 @router.get('/generate_answer')
@@ -25,13 +26,15 @@ def generate_answer(prompt: str) -> str:
                       'Please install it with `pip install openai`.')
 
   openai.api_key = env('OPENAI_API_KEY')
+  if not openai.api_key:
+    raise ValueError('The `OPENAI_API_KEY` environment flag is not set.')
   completion = openai.ChatCompletion.create(
     model='gpt-3.5-turbo-0613',
-    functions=[Answer.openai_schema],
+    functions=[Completion.openai_schema],
     messages=[
       {
         'role': 'system',
-        'content': 'You must call the `Answer` function with the generated examples',
+        'content': 'You must call the `Completion` function with the generated completion.',
       },
       {
         'role': 'user',
@@ -39,5 +42,5 @@ def generate_answer(prompt: str) -> str:
       },
     ],
   )
-  result = Answer.from_response(completion)
-  return result.answer
+  result = Completion.from_response(completion)
+  return result.completion
