@@ -94,7 +94,6 @@
 </script>
 
 <div
-  class="w-full"
   use:hoverTooltip={{
     text: !canEditLabels ? 'You do not have access to add labels.' : ''
   }}
