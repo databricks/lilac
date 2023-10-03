@@ -10,10 +10,10 @@ from lilac.embeddings.vector_store import VectorDBIndex
 from lilac.utils import DebugTimer
 
 from ..embeddings.embedding import get_embed_fn
-from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field
+from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, lilac_span
 from ..signal import VectorSignal
 
-CLUSTER_IDS = 'cluster_ids'
+CLUSTER_ID = 'cluster_id'
 MIN_SAMPLES = 5
 DBSCAN_EPS = 0.05
 
@@ -37,7 +37,8 @@ class ClusterDBSCAN(VectorSignal):
 
   @override
   def fields(self) -> Field:
-    return field(fields={CLUSTER_IDS: [field('int32', categorical=True)]})
+    return field(
+      fields=[field(dtype='string_span', fields={CLUSTER_ID: field('int32', categorical=True)})])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -54,21 +55,25 @@ class ClusterDBSCAN(VectorSignal):
   def _cluster_span_vectors(self,
                             span_vectors: Iterable[list[SpanVector]]) -> Iterable[Optional[Item]]:
 
-    span_sizes: list[int] = []
+    all_spans: list[list[tuple[int, int]]] = []
     all_vectors: list[np.ndarray] = []
-    with DebugTimer('getting vectors'):
+    with DebugTimer('DBSCAN: Reading from vector store'):
       for vectors in span_vectors:
-        span_sizes.append(len(vectors))
+        all_spans.append([vector['span'] for vector in vectors])
         for vector in vectors:
           all_vectors.append(vector['vector'])
 
     dbscan = DBSCAN(eps=DBSCAN_EPS, min_samples=MIN_SAMPLES, metric='cosine', n_jobs=-1)
     dbscan.fit(all_vectors)
     span_index = 0
-    for num_spans in span_sizes:
-      cluster_ids: list[int] = []
-      for _ in range(num_spans):
-        cluster_id = int(dbscan.labels_[span_index])
-        cluster_ids.append(cluster_id)
+    for spans in all_spans:
+      span_clusters: list[Item] = []
+      for span in spans:
+        cluster_id: Optional[int] = int(dbscan.labels_[span_index])
+        start, end = span
+        if cluster_id == -1:
+          cluster_id = None
+        span_clusters.append(lilac_span(start, end, {CLUSTER_ID: cluster_id}))
         span_index += 1
-      yield {CLUSTER_IDS: cluster_ids}
+
+      yield span_clusters

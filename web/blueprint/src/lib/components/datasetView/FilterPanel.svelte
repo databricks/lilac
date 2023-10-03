@@ -36,6 +36,7 @@
   import AddLabel from './AddLabel.svelte';
   import FilterPill from './FilterPill.svelte';
   import GroupByDropdown from './GroupByDropdown.svelte';
+  import GroupByPanel from './GroupByPanel.svelte';
   import SearchPill from './SearchPill.svelte';
 
   export let totalNumRows: number | undefined;
@@ -57,7 +58,8 @@
   const searchTypeDisplay: {[searchType in SearchType]: string} = {
     keyword: 'Keyword',
     semantic: 'Semantic',
-    concept: 'Concepts'
+    concept: 'Concepts',
+    metadata: 'Metadata'
   };
 
   // Separate the searches by type.
@@ -230,6 +232,7 @@
     </div>
     <GroupByDropdown />
   </div>
+  <!-- Number of results. -->
   <div class="flex py-2">
     {#if totalNumRows && manifest}
       {#if totalNumRows == manifest.dataset_manifest.num_items}
@@ -240,6 +243,10 @@
     {/if}
   </div>
 </div>
+
+{#if $datasetViewStore.groupBy && $datasetStore.schema}
+  <GroupByPanel schema={$datasetStore.schema} groupBy={$datasetViewStore.groupBy} />
+{/if}
 
 {#if openedConcept}
   <Modal open modalHeading={''} passiveModal on:close={() => (openedConcept = null)} size="lg">

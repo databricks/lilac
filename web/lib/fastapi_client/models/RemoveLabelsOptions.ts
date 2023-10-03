@@ -7,6 +7,7 @@ import type { BinaryFilter } from './BinaryFilter';
 import type { ConceptSearch } from './ConceptSearch';
 import type { KeywordSearch } from './KeywordSearch';
 import type { ListFilter } from './ListFilter';
+import type { MetadataSearch } from './MetadataSearch';
 import type { SemanticSearch } from './SemanticSearch';
 import type { UnaryFilter } from './UnaryFilter';
 
@@ -16,7 +17,7 @@ import type { UnaryFilter } from './UnaryFilter';
 export type RemoveLabelsOptions = {
     label_name: string;
     row_ids?: Array<string>;
-    searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch)>;
+    searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch | MetadataSearch)>;
     filters?: Array<(BinaryFilter | UnaryFilter | ListFilter)>;
 };
 

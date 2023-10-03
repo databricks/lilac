@@ -46,6 +46,7 @@ export type { ListFilter } from './models/ListFilter';
 export type { LoadDatasetOptions } from './models/LoadDatasetOptions';
 export type { LoadDatasetResponse } from './models/LoadDatasetResponse';
 export type { MergeConceptDraftOptions } from './models/MergeConceptDraftOptions';
+export type { MetadataSearch } from './models/MetadataSearch';
 export type { OverallScore } from './models/OverallScore';
 export type { RemoveLabelsOptions } from './models/RemoveLabelsOptions';
 export type { Schema } from './models/Schema';

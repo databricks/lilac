@@ -3,27 +3,38 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {displayPath} from '$lib/view_utils';
-  import {getFieldsByDtype, serializePath, type StatsResult} from '$lilac';
+  import {childFields, isNumeric, serializePath, type StatsResult} from '$lilac';
   import {Dropdown, DropdownSkeleton} from 'carbon-components-svelte';
   import type {
     DropdownItem,
     DropdownItemId
   } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
   import {CicsSystemGroup} from 'carbon-icons-svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
 
   const datasetStore = getDatasetContext();
   const datasetViewStore = getDatasetViewContext();
   let open = false;
   const NONE_ID = '__none__';
-  let selectedId = NONE_ID;
-
+  $: selectedId = $datasetViewStore.groupBy
+    ? serializePath($datasetViewStore.groupBy.path)
+    : NONE_ID;
+  $: selectedPath = $datasetViewStore.groupBy?.path;
   $: schema = $datasetStore.schema;
-  $: stringFields = schema ? getFieldsByDtype('string', schema) : null;
-  $: stats = stringFields
+  $: categoricalFields = schema
+    ? childFields(schema).filter(
+        f =>
+          (f.categorical || !isNumeric(f.dtype!)) &&
+          f.dtype != null &&
+          f.dtype !== 'string_span' &&
+          f.dtype !== 'embedding'
+      )
+    : null;
+  $: stats = categoricalFields
     ? queryManyDatasetStats(
         $datasetViewStore.namespace,
         $datasetViewStore.datasetName,
-        stringFields.map(f => f.path)
+        categoricalFields.map(f => f.path)
       )
     : null;
 
@@ -49,13 +60,22 @@
       selectedItem: DropdownItem;
     }>
   ) {
+    if (e.detail.selectedId === NONE_ID) {
+      datasetViewStore.setGroupBy(null, null);
+      return;
+    }
+    const groupByItem = e.detail.selectedItem as GroupByItem;
+    datasetViewStore.setGroupBy(groupByItem.stats.path, null);
     selectedId = e.detail.selectedId;
   }
 </script>
 
 <div
-  class="groupby-dropdown flex items-center gap-x-1 px-2 py-1"
+  class="groupby-dropdown flex items-center gap-x-1 px-2"
   class:active={selectedId !== NONE_ID}
+  use:hoverTooltip={selectedPath && !open
+    ? {text: `Grouping by ${displayPath(selectedPath)}`}
+    : {text: ''}}
 >
   {#if items}
     <CicsSystemGroup title={'Group by'} />
@@ -74,8 +94,8 @@
           <span title={groupByItem.text} class="truncate text-sm">{groupByItem.text}</span>
           {#if groupByItem.stats}
             {@const count = groupByItem.stats.approx_count_distinct}
-            <span class="text-xs text-gray-400">
-              {count.toLocaleString()} group{count === 1 ? '' : 's'}
+            <span class="text-xs text-gray-800">
+              ~{count.toLocaleString()} group{count === 1 ? '' : 's'}
             </span>
           {/if}
         </div>
@@ -94,5 +114,14 @@
     max-height: 26rem !important;
     width: unset;
     right: unset;
+  }
+  :global(.groupby-dropdown .bx--dropdown) {
+    @apply !max-w-xs;
+  }
+  :global(.groupby-dropdown .bx--dropdown__wrapper--inline) {
+    @apply !gap-0;
+  }
+  :global(.groupby-dropdown .bx--list-box__menu-item__option) {
+    @apply pr-0;
   }
 </style>

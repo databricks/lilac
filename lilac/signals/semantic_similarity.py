@@ -1,5 +1,6 @@
 """A signal to compute semantic search for a document."""
-from typing import Any, ClassVar, Iterable, Optional
+from functools import cached_property
+from typing import ClassVar, Iterable, Optional
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -27,15 +28,14 @@ class SemanticSimilaritySignal(VectorSignal):
 
   query: str
 
-  _embed_fn: EmbedFn
+  @cached_property
+  def _embed_fn(self) -> EmbedFn:
+    return get_embed_fn(self.embedding, split=False)
+
   # Dot products are in the range [-1, 1]. We want to map this to [0, 1] for the similarity score
   # with a slight bias towards 1 since dot product of <0.2 is not really relevant.
   _interpolate_fn = interp1d([-1, 0.2, 1], [0, 0.5, 1])
   _search_text_embedding: Optional[np.ndarray] = None
-
-  def model_post_init(self, context: Any) -> None:
-    """Set the `_embed_fn` attribute."""
-    self._embed_fn = get_embed_fn(self.embedding, split=False)
 
   @override
   def fields(self) -> Field:

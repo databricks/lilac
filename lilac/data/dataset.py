@@ -101,8 +101,6 @@ BINARY_OPS = set(['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'le
 UNARY_OPS = set(['exists'])
 LIST_OPS = set(['in'])
 
-SearchType = Literal['keyword', 'semantic', 'concept']
-
 
 class SortOrder(str, enum.Enum):
   """The sort order for a database query."""
@@ -297,7 +295,17 @@ class ConceptSearch(BaseModel):
   model_config = ConfigDict(json_schema_extra=_fix_const_in_schema('type', 'concept'))
 
 
-Search = Union[ConceptSearch, SemanticSearch, KeywordSearch]
+class MetadataSearch(BaseModel):
+  """A metadata search query on a column."""
+  path: Path
+  op: FilterOp
+  value: Optional[Union[FeatureValue, FeatureListValue]] = None
+  type: Literal['metadata'] = 'metadata'
+
+  model_config = ConfigDict(json_schema_extra=_fix_const_in_schema('type', 'metadata'))
+
+
+Search = Union[ConceptSearch, SemanticSearch, KeywordSearch, MetadataSearch]
 
 
 class DatasetLabel(BaseModel):
