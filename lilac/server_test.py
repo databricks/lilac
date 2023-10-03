@@ -41,6 +41,7 @@ def test_compute_signal_auth_admin(mocker: MockerFixture) -> None:
         delete_dataset=True,
         delete_signals=True,
         update_settings=True,
+        create_label_type=True,
         edit_labels=True),
       concept=ConceptUserAccess(delete_any_concept=True)),
     auth_enabled=True)
@@ -70,6 +71,39 @@ def test_compute_signal_auth_nonadmin(mocker: MockerFixture) -> None:
         delete_dataset=False,
         delete_signals=False,
         update_settings=False,
+        create_label_type=False,
         edit_labels=False),
+      concept=ConceptUserAccess(delete_any_concept=False)),
+    auth_enabled=True)
+
+
+def test_compute_signal_auth_nonadmin_edit_labels(mocker: MockerFixture) -> None:
+  mocker.patch.dict(os.environ, {'LILAC_AUTH_ENABLED': 'True'})
+  mocker.patch.dict(os.environ, {'LILAC_AUTH_ADMIN_EMAILS': 'admin@test.com'})
+  mocker.patch.dict(os.environ, {'LILAC_AUTH_USER_EDIT_LABELS': 'True'})
+
+  # Override the session user so we make them an admin.
+  def user() -> UserInfo:
+    return UserInfo(
+      id='1', email='test@test.com', name='test', given_name='test', family_name='test')
+
+  app.dependency_overrides[get_session_user] = user
+
+  url = '/auth_info'
+  response = client.get(url)
+  assert response.status_code == 200
+  assert AuthenticationInfo.model_validate(response.json()) == AuthenticationInfo(
+    user=user(),
+    access=UserAccess(
+      is_admin=False,
+      create_dataset=False,
+      dataset=DatasetUserAccess(
+        compute_signals=False,
+        delete_dataset=False,
+        delete_signals=False,
+        update_settings=False,
+        create_label_type=False,
+        # Users can edit labels (add and remove) but not create label types.
+        edit_labels=True),
       concept=ConceptUserAccess(delete_any_concept=False)),
     auth_enabled=True)

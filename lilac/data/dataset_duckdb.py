@@ -1382,6 +1382,7 @@ class DatasetDuckDB(Dataset):
 
     # Check if the label file exists.
     labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
+
     if labels_filepath not in self._label_file_lock:
       self._label_file_lock[labels_filepath] = threading.Lock()
 
@@ -1412,6 +1413,11 @@ class DatasetDuckDB(Dataset):
       sqlite_con.close()
 
     return num_labels
+
+  @override
+  def get_label_names(self) -> list[str]:
+    self.manifest()
+    return list(self._label_schemas.keys())
 
   @override
   def remove_labels(self,

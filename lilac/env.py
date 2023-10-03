@@ -67,6 +67,9 @@ class LilacEnvironment(BaseModel):
     'with the `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment flags to authenticate '
     'users.')
 
+  LILAC_AUTH_USER_EDIT_LABELS: str = PydanticField(
+    description='Set to true to allow non-admin users to edit labels.')
+
   GOOGLE_CLIENT_ID: str = PydanticField(
     description=
     'The Google OAuth client ID. Required when `LILAC_AUTH_ENABLED=true`. Details can be found at '

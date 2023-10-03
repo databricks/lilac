@@ -32,10 +32,11 @@
   $: datasetName = $datasetViewStore.datasetName;
 
   const authInfo = queryAuthInfo();
+  $: canCreateLabelTypes = $authInfo.data?.access.dataset.create_label_type;
   $: canEditLabels = $authInfo.data?.access.dataset.edit_labels;
 
   $: schemaLabels = $datasetStore.schema && getSchemaLabels($datasetStore.schema);
-  $: newLabelAllowed = /^[A-Za-z0-9_-]+$/.test(comboBoxText);
+  $: newLabelAllowed = /^[A-Za-z0-9_-]+$/.test(comboBoxText) && canCreateLabelTypes;
   $: newLabelItem = {
     id: 'new-label',
     text: comboBoxText,

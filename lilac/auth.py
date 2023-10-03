@@ -23,6 +23,8 @@ class DatasetUserAccess(BaseModel):
   delete_signals: bool
   # Whether the user can update settings.
   update_settings: bool
+  # Whether the user can create a new label type.
+  create_label_type: bool
   # Whether the user can add or remove labels.
   edit_labels: bool
 
@@ -101,7 +103,8 @@ def get_user_access(user_info: Optional[UserInfo]) -> UserAccess:
         delete_dataset=False,
         delete_signals=False,
         update_settings=False,
-        edit_labels=False),
+        create_label_type=False,
+        edit_labels=bool(env('LILAC_AUTH_USER_EDIT_LABELS', False))),
       concept=ConceptUserAccess(delete_any_concept=False))
   return UserAccess(
     is_admin=is_admin,
@@ -111,5 +114,6 @@ def get_user_access(user_info: Optional[UserInfo]) -> UserAccess:
       delete_dataset=True,
       delete_signals=True,
       update_settings=True,
+      create_label_type=True,
       edit_labels=True),
     concept=ConceptUserAccess(delete_any_concept=True))
