@@ -48,7 +48,7 @@
 
   $: filterField = (field: LilacField) => {
     if (!field.dtype) return false;
-    if (!signalInfo?.input_type) {
+    if (!signalInfo?.input_type || signalInfo.input_type === 'any') {
       return true;
     }
     const validDtypes = SIGNAL_INPUT_TYPE_TO_VALID_DTYPES[signalInfo.input_type];
