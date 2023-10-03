@@ -95,6 +95,8 @@ def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) 
       }
     }]
 
+  assert dataset.get_label_names() == ['test_label']
+
 
 @freeze_time(TEST_TIME)
 def test_add_row_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
@@ -125,6 +127,7 @@ def test_add_row_labels(make_test_data: TestDataMaker, mocker: MockerFixture) ->
     'int': 3,
     'test_label': None
   }]
+  assert dataset.get_label_names() == ['test_label']
 
 
 @freeze_time(TEST_TIME)
@@ -159,6 +162,8 @@ def test_add_row_labels_no_filters(make_test_data: TestDataMaker, mocker: Mocker
       'created': TEST_TIME
     }
   }]
+
+  assert dataset.get_label_names() == ['test_label']
 
 
 @freeze_time(TEST_TIME)
@@ -212,6 +217,8 @@ def test_remove_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> 
     'test_label': None
   }]
 
+  assert dataset.get_label_names() == ['test_label']
+
 
 @freeze_time(TEST_TIME)
 def test_remove_labels_no_filters(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
@@ -242,6 +249,8 @@ def test_remove_labels_no_filters(make_test_data: TestDataMaker, mocker: MockerF
     'int': 3,
     'test_label': None
   }]
+
+  assert dataset.get_label_names() == ['test_label']
 
 
 @freeze_time(TEST_TIME)
@@ -274,6 +283,8 @@ def test_label_overwrites(make_test_data: TestDataMaker, mocker: MockerFixture) 
     'int': 3,
     'test_label': None
   }]
+
+  assert dataset.get_label_names() == ['test_label']
 
 
 @freeze_time(TEST_TIME)
@@ -328,6 +339,8 @@ def test_add_multiple_labels(make_test_data: TestDataMaker, mocker: MockerFixtur
     }
   }]
 
+  assert dataset.get_label_names() == ['test_label']
+
 
 @freeze_time(TEST_TIME)
 def test_labels_select_groups(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
@@ -347,3 +360,5 @@ def test_labels_select_groups(make_test_data: TestDataMaker, mocker: MockerFixtu
 
   assert dataset.select_groups(('test_label', 'label')) == SelectGroupsResult(
     too_many_distinct=False, counts=[('yes', 2), ('no', 1)])
+
+  assert dataset.get_label_names() == ['test_label']
