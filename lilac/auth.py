@@ -92,7 +92,6 @@ def get_user_access(user_info: Optional[UserInfo]) -> UserAccess:
   admin_emails = get_admin_emails()
   is_admin = not auth_enabled or (user_info is not None and user_info.email in admin_emails)
 
-  print('auth_enabled', auth_enabled, 'is_admin', is_admin)
   if auth_enabled and not is_admin:
     return UserAccess(
       is_admin=is_admin,

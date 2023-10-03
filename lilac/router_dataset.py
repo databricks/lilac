@@ -96,7 +96,6 @@ def compute_signal(
     namespace: str, dataset_name: str, options: ComputeSignalOptions,
     user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> ComputeSignalResponse:
   """Compute a signal for a dataset."""
-  print('user=', user)
   if not get_user_access(user).dataset.compute_signals:
     raise HTTPException(401, 'User does not have access to compute signals over this dataset.')
 
