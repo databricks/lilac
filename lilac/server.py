@@ -6,11 +6,11 @@ import os
 import webbrowser
 from contextlib import asynccontextmanager
 from importlib import metadata
-from typing import Any, AsyncGenerator, Optional
+from typing import Annotated, Any, AsyncGenerator, Optional
 
 import uvicorn
 from distributed import get_client
-from fastapi import APIRouter, BackgroundTasks, FastAPI, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, ORJSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
@@ -23,6 +23,7 @@ from . import (
   router_data_loader,
   router_dataset,
   router_google_login,
+  router_rag,
   router_signal,
   router_tasks,
 )
@@ -134,6 +135,7 @@ v1_router.include_router(router_concept.router, prefix='/concepts', tags=['conce
 v1_router.include_router(router_data_loader.router, prefix='/data_loaders', tags=['data_loaders'])
 v1_router.include_router(router_signal.router, prefix='/signals', tags=['signals'])
 v1_router.include_router(router_tasks.router, prefix='/tasks', tags=['tasks'])
+v1_router.include_router(router_rag.router, prefix='/rag', tags=['rag'])
 
 for source_name, source in registered_sources().items():
   if source.router:
@@ -141,16 +143,16 @@ for source_name, source in registered_sources().items():
 
 
 @app.get('/auth_info')
-def auth_info(request: Request) -> AuthenticationInfo:
+def auth_info(user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> AuthenticationInfo:
   """Returns the user's ACL.
 
   NOTE: Validation happens server-side as well. This is just used for UI treatment.
   """
-  user_info: Optional[UserInfo] = get_session_user(request)
+  auth_enabled = bool(env('LILAC_AUTH_ENABLED', False))
   return AuthenticationInfo(
-    user=user_info,
-    access=get_user_access(),
-    auth_enabled=env('LILAC_AUTH_ENABLED', False),
+    user=user,
+    access=get_user_access(user),
+    auth_enabled=auth_enabled,
     # See: https://huggingface.co/docs/hub/spaces-overview#helper-environment-variables
     huggingface_space_id=env('SPACE_ID', None))
 

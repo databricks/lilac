@@ -133,6 +133,7 @@ def split_text(text: str,
                separators: list[str] = DEFAULT_SEPARATORS,
                length_function: Callable[[str], int] = len) -> list[TextChunk]:
   """Split incoming text and return chunks."""
+  text = str(text)
 
   def _merge_splits(splits: Iterable[TextChunk], separator: str) -> list[TextChunk]:
     # We now want to combine these smaller pieces into medium size chunks to send to the LLM.

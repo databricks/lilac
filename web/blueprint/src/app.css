@@ -113,8 +113,14 @@ button:disabled {
   @apply align-middle;
 }
 
+/** Rag components */
+.rag-section-header {
+  @apply w-full border-b border-neutral-200 pb-4 font-medium;
+}
+
 .header {
-  @apply h-16 flex-shrink-0;
+  @apply flex-shrink-0;
+  min-height: 4rem;
 }
 
 .lilac-container {

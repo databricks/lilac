@@ -29,6 +29,7 @@ from distributed import Future, get_client, get_worker, wait
 from pydantic import BaseModel, TypeAdapter
 from tqdm import tqdm
 
+from .env import env
 from .utils import log, pretty_timedelta
 
 # Disable the heartbeats of the dask workers to avoid dying after computer goes to sleep.
@@ -105,7 +106,7 @@ class TaskManager:
 
     total_memory_gb = psutil.virtual_memory().total / (1024**3)
     self._dask_client = dask_client or Client(
-      asynchronous=True, memory_limit=f'{total_memory_gb} GB', processes=False)
+      asynchronous=not env('LILAC_TEST'), memory_limit=f'{total_memory_gb} GB', processes=False)
 
   async def _update_tasks(self) -> None:
     adapter = TypeAdapter(list[TaskStepInfo])

@@ -8,7 +8,8 @@ export type AppPage =
   | 'datasets'
   | 'signals'
   | 'settings'
-  | 'datasets/loading';
+  | 'datasets/loading'
+  | 'rag';
 interface UrlHashState {
   hash: string;
   page: AppPage | null;
@@ -141,15 +142,23 @@ export function persistedHashStore<T extends object>(
   store: Writable<T>,
   urlHashStore: UrlHashStateStore,
   stateFromHash: (hashState: string) => T,
-  hashFromState: (state: T) => string
+  hashFromState: (state: T) => string,
+  // Calls the user back when a load from the URL happens.
+  loadFromUrlCallback?: () => void
 ) {
-  let skipUpdate = false;
+  // Skip the first update which happens on store initialization.
+  let skipUpdate = true;
   urlHashStore.subscribe(urlHashState => {
     if (urlHashState.page === page && urlHashState.identifier === identifier) {
       // Skip the URL update when the state change came from the URL.
       skipUpdate = true;
+
       // The original store needs to be updated so it reflects the changes from the URL.
       store.set(stateFromHash(urlHashState.hashState!));
+
+      if (loadFromUrlCallback) {
+        loadFromUrlCallback();
+      }
     }
   });
 

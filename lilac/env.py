@@ -59,6 +59,14 @@ class LilacEnvironment(BaseModel):
     description='Set to true to enable read-only mode, disabling the ability to add datasets & '
     'compute dataset signals. When enabled, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and '
     '`LILAC_OAUTH_SECRET_KEY` should also be set.')
+
+  LILAC_AUTH_ADMIN_EMAILS: str = PydanticField(
+    description=
+    'A comma-separated list of Google emails that are allowed full edit-access, as if the '
+    '`LILAC_AUTH_ENABLED` environment flag was disabled. These email addresses are used in concert'
+    'with the `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment flags to authenticate '
+    'users.')
+
   GOOGLE_CLIENT_ID: str = PydanticField(
     description=
     'The Google OAuth client ID. Required when `LILAC_AUTH_ENABLED=true`. Details can be found at '

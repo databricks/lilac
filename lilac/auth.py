@@ -35,6 +35,8 @@ class ConceptUserAccess(BaseModel):
 
 class UserAccess(BaseModel):
   """User access."""
+  is_admin: bool = False
+
   create_dataset: bool
 
   # TODO(nsthorat): Make this keyed to each dataset and concept.
@@ -73,13 +75,26 @@ def get_session_user(request: Request) -> Optional[UserInfo]:
   return None
 
 
-def get_user_access() -> UserAccess:
+def get_admin_emails() -> list[str]:
+  """Return the admin emails."""
+  admin_emails = env('LILAC_AUTH_ADMIN_EMAILS', None)
+  if admin_emails:
+    return admin_emails.split(',')
+  return []
+
+
+def get_user_access(user_info: Optional[UserInfo]) -> UserAccess:
   """Get the user access."""
   auth_enabled = env('LILAC_AUTH_ENABLED')
   if isinstance(auth_enabled, str):
     auth_enabled = auth_enabled.lower() == 'true'
-  if auth_enabled:
+
+  admin_emails = get_admin_emails()
+  is_admin = not auth_enabled or (user_info is not None and user_info.email in admin_emails)
+
+  if auth_enabled and not is_admin:
     return UserAccess(
+      is_admin=is_admin,
       create_dataset=False,
       dataset=DatasetUserAccess(
         compute_signals=False,
@@ -89,6 +104,7 @@ def get_user_access() -> UserAccess:
         edit_labels=False),
       concept=ConceptUserAccess(delete_any_concept=False))
   return UserAccess(
+    is_admin=is_admin,
     create_dataset=True,
     dataset=DatasetUserAccess(
       compute_signals=True,

@@ -7,12 +7,13 @@ poetry run python -m lilac.datasets.loader \
   --output_dir=./data/ \
   --config_path=./datasets/the_movies_dataset.json
 """
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from typing_extensions import Annotated
 
-from .auth import get_user_access
+from .auth import UserInfo, get_session_user, get_user_access
 from .config import DatasetConfig
 from .data_loader import process_source
 from .env import get_project_dir
@@ -65,10 +66,11 @@ class LoadDatasetResponse(BaseModel):
 
 
 @router.post('/{source_name}/load')
-async def load(source_name: str, options: LoadDatasetOptions,
-               request: Request) -> LoadDatasetResponse:
+async def load(
+    source_name: str, options: LoadDatasetOptions,
+    user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> LoadDatasetResponse:
   """Load a dataset."""
-  if not get_user_access().create_dataset:
+  if not get_user_access(user).create_dataset:
     raise HTTPException(401, 'User does not have access to load a dataset.')
 
   source_cls = get_source_cls(source_name)

@@ -1,12 +1,10 @@
-"""Test our public REST API."""
+"""Test our public dataset REST API."""
 import os
 from typing import ClassVar, Iterable, Optional, Type
 
 import pytest
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
-
-from lilac.sources.source_registry import clear_source_registry, register_source
 
 from .config import DatasetSettings
 from .data.dataset import Dataset, DatasetManifest, SelectRowsSchemaResult, SelectRowsSchemaUDF
@@ -30,6 +28,7 @@ from .router_dataset import (
 from .schema import Field, Item, RichData, field, schema
 from .server import app
 from .signal import TextSignal, clear_signal_registry, register_signal
+from .sources.source_registry import clear_source_registry, register_source
 
 client = TestClient(app)
 

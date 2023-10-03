@@ -74,9 +74,11 @@ class ComputeSignalOptions(BaseModel):
 
 
 @router.delete('/{namespace}/{dataset_name}')
-def delete_dataset(namespace: str, dataset_name: str) -> None:
+def delete_dataset(namespace: str, dataset_name: str,
+                   user: Annotated[Optional[UserInfo],
+                                   Depends(get_session_user)]) -> None:
   """Delete the dataset."""
-  if not get_user_access().dataset.delete_dataset:
+  if not get_user_access(user).dataset.delete_dataset:
     raise HTTPException(401, 'User does not have access to delete this dataset.')
 
   dataset = get_dataset(namespace, dataset_name)
@@ -90,10 +92,11 @@ class ComputeSignalResponse(BaseModel):
 
 
 @router.post('/{namespace}/{dataset_name}/compute_signal')
-def compute_signal(namespace: str, dataset_name: str,
-                   options: ComputeSignalOptions) -> ComputeSignalResponse:
+def compute_signal(
+    namespace: str, dataset_name: str, options: ComputeSignalOptions,
+    user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> ComputeSignalResponse:
   """Compute a signal for a dataset."""
-  if not get_user_access().dataset.compute_signals:
+  if not get_user_access(user).dataset.compute_signals:
     raise HTTPException(401, 'User does not have access to compute signals over this dataset.')
 
   def _task_compute_signal(namespace: str, dataset_name: str, options_dict: dict,
@@ -126,10 +129,11 @@ class DeleteSignalResponse(BaseModel):
 
 
 @router.delete('/{namespace}/{dataset_name}/delete_signal')
-def delete_signal(namespace: str, dataset_name: str,
-                  options: DeleteSignalOptions) -> DeleteSignalResponse:
+def delete_signal(
+    namespace: str, dataset_name: str, options: DeleteSignalOptions,
+    user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> DeleteSignalResponse:
   """Delete a signal from a dataset."""
-  if not get_user_access().dataset.delete_signals:
+  if not get_user_access(user).dataset.delete_signals:
     raise HTTPException(401, 'User does not have access to delete this signal.')
 
   dataset = get_dataset(namespace, dataset_name)
@@ -324,9 +328,11 @@ def get_settings(namespace: str, dataset_name: str) -> DatasetSettings:
 
 
 @router.post('/{namespace}/{dataset_name}/settings', response_model_exclude_none=True)
-def update_settings(namespace: str, dataset_name: str, settings: DatasetSettings) -> None:
+def update_settings(namespace: str, dataset_name: str, settings: DatasetSettings,
+                    user: Annotated[Optional[UserInfo],
+                                    Depends(get_session_user)]) -> None:
   """Update settings for the dataset."""
-  if not get_user_access().dataset.compute_signals:
+  if not get_user_access(user).dataset.compute_signals:
     raise HTTPException(401, 'User does not have access to update the settings of this dataset.')
 
   dataset = get_dataset(namespace, dataset_name)
@@ -344,9 +350,10 @@ class AddLabelsOptions(BaseModel):
 
 
 @router.post('/{namespace}/{dataset_name}/labels', response_model_exclude_none=True)
-def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions) -> int:
+def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions,
+               user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> int:
   """"Add a label to the dataset."""
-  if not get_user_access().dataset.edit_labels:
+  if not get_user_access(user).dataset.edit_labels:
     raise HTTPException(401, 'User does not have access to add labels to this dataset.')
 
   sanitized_filters = [
@@ -371,9 +378,10 @@ class RemoveLabelsOptions(BaseModel):
 
 
 @router.delete('/{namespace}/{dataset_name}/labels', response_model_exclude_none=True)
-def remove_labels(namespace: str, dataset_name: str, options: RemoveLabelsOptions) -> int:
+def remove_labels(namespace: str, dataset_name: str, options: RemoveLabelsOptions,
+                  user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> int:
   """"Add a label to the dataset."""
-  if not get_user_access().dataset.edit_labels:
+  if not get_user_access(user).dataset.edit_labels:
     raise HTTPException(401, 'User does not have access to remove labels from this dataset.')
 
   sanitized_filters = [

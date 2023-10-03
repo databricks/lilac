@@ -11,6 +11,7 @@
   import Commands from './commands/Commands.svelte';
   import {hoverTooltip} from './common/HoverTooltip';
 
+  export let hideTasks = false;
   const authInfo = queryAuthInfo();
   $: navStore = getNavigationContext();
 
@@ -60,14 +61,18 @@
             />
           </OverflowMenu>
         </div>
-        <TaskStatus />
+        {#if !hideTasks}
+          <TaskStatus />
+        {/if}
         {#if $authInfo.data?.auth_enabled}
           {#if $authInfo.data?.user != null}
             <div class="flex h-9 flex-row items-center rounded border border-neutral-200">
               <div
                 class="ml-2 mr-1 flex"
                 use:hoverTooltip={{
-                  text: `Logged into Google as ${$authInfo.data?.user.name} with email ${$authInfo.data?.user.email}`
+                  text:
+                    `Logged into Google as ${$authInfo.data?.user.name} with email ${$authInfo.data?.user.email}.` +
+                    ($authInfo.data?.access.is_admin ? `\n\nLogged in as an adminstrator.` : '')
                 }}
               >
                 {$authInfo.data?.user.given_name}

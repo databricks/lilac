@@ -59,7 +59,7 @@ export const queryDatasetSchema = createApiQuery(DatasetsService.getManifest, DA
 
 export const maybeQueryDatasetSchema = createApiQuery(
   function getManifest(namespace?: string, datasetName?: string) {
-    return namespace && datasetName
+    return namespace != null && datasetName != null
       ? DatasetsService.getManifest(namespace, datasetName)
       : Promise.resolve(undefined);
   },
