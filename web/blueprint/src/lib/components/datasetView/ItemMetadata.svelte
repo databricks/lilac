@@ -35,19 +35,21 @@
     if (field.dtype === 'string_span') {
       // We default to __value__ for back compat.
       span = span || (value as {start: number; end: number});
-      const stringValues = [];
-      // Get the parent that is dtype string to resolve the span.
-      for (let i = path.length - 1; i >= 0; i--) {
-        const parentPath = path.slice(0, i);
-        const parent = getField(selectRowsSchema!.schema, parentPath)!;
+      if (span != null) {
+        const stringValues = [];
+        // Get the parent that is dtype string to resolve the span.
+        for (let i = path.length - 1; i >= 0; i--) {
+          const parentPath = path.slice(0, i);
+          const parent = getField(selectRowsSchema!.schema, parentPath)!;
 
-        if (parent.dtype === 'string') {
-          const text = L.value<'string'>(valueAtPath(row, parentPath)!)!;
-          stringValues.push(text.slice(span.start, span.end));
-          break;
+          if (parent.dtype === 'string') {
+            const text = L.value<'string'>(valueAtPath(row, parentPath)!)!;
+            stringValues.push(text.slice(span.start, span.end));
+            break;
+          }
         }
+        value = stringValues as unknown as DataTypeCasted;
       }
-      value = stringValues as unknown as DataTypeCasted;
     }
 
     const isEmbeddingSignal =

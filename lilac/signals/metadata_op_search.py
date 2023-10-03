@@ -33,9 +33,9 @@ class MetadataOpSignal(Signal):
 
   @override
   def fields(self) -> Field:
-    return field(fields=['string_span'])
+    return field(dtype='boolean')
 
   @override
   def compute(self, values: Iterable[Any]) -> Iterable[Optional[Item]]:
     for value in values:
-      yield value == self.value
+      yield True if value == self.value else None

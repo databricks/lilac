@@ -25,7 +25,7 @@
   const authInfo = queryAuthInfo();
   $: canEditLabels = $authInfo.data?.access.dataset.edit_labels;
 
-  const MIN_METADATA_HEIGHT_PX = 320;
+  const MIN_METADATA_HEIGHT_PX = 165;
   let mediaHeight = 0;
 
   const removeLabels =
@@ -103,7 +103,7 @@
       <div class="sticky top-0 w-full self-start">
         <div
           style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
-          class="overflow-y-auto py-2"
+          class="overflow-y-auto"
         >
           <ItemMetadata {row} {selectRowsSchema} {highlightedFields} />
         </div>
