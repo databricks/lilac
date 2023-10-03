@@ -6,4 +6,4 @@
 /**
  * Enum holding the signal input type.
  */
-export type SignalInputType = 'text' | 'text_embedding' | 'image';
+export type SignalInputType = 'text' | 'text_embedding' | 'image' | 'any';
