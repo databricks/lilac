@@ -361,6 +361,10 @@ def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions,
   ]
 
   dataset = get_dataset(namespace, dataset_name)
+  if (not get_user_access(user).dataset.create_label_type and
+      options.label_name not in dataset.get_label_names()):
+    raise HTTPException(401, 'User does not have access to create label types in this dataset.')
+
   return dataset.add_labels(
     name=options.label_name,
     value=options.label_value,

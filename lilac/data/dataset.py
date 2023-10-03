@@ -497,6 +497,11 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def get_label_names(self) -> list[str]:
+    """Returns the list of label names that have been added to the dataset."""
+    pass
+
+  @abc.abstractmethod
   def remove_labels(self,
                     name: str,
                     row_ids: Optional[Sequence[str]] = None,
