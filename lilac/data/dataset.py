@@ -256,8 +256,8 @@ FilterLike: TypeAlias = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListF
 SearchValue = StrictStr
 
 
-def _fix_const_in_schema(prop_name: str, value: str) -> Callable[[dict[str, Any]], None]:
-  """Fix the const value in the schema so typescript codegen works."""
+def _change_const_to_enum(prop_name: str, value: str) -> Callable[[dict[str, Any]], None]:
+  """Replace the const value in the schema to an enum with 1 value so typescript codegen works."""
 
   def _schema_extra(schema: dict[str, Any]) -> None:
     schema['properties'][prop_name] = {'enum': [value]}
@@ -271,7 +271,7 @@ class KeywordSearch(BaseModel):
   query: SearchValue
   type: Literal['keyword'] = 'keyword'
 
-  model_config = ConfigDict(json_schema_extra=_fix_const_in_schema('type', 'keyword'))
+  model_config = ConfigDict(json_schema_extra=_change_const_to_enum('type', 'keyword'))
 
 
 class SemanticSearch(BaseModel):
@@ -281,7 +281,7 @@ class SemanticSearch(BaseModel):
   embedding: str
   type: Literal['semantic'] = 'semantic'
 
-  model_config = ConfigDict(json_schema_extra=_fix_const_in_schema('type', 'semantic'))
+  model_config = ConfigDict(json_schema_extra=_change_const_to_enum('type', 'semantic'))
 
 
 class ConceptSearch(BaseModel):
@@ -292,7 +292,7 @@ class ConceptSearch(BaseModel):
   embedding: str
   type: Literal['concept'] = 'concept'
 
-  model_config = ConfigDict(json_schema_extra=_fix_const_in_schema('type', 'concept'))
+  model_config = ConfigDict(json_schema_extra=_change_const_to_enum('type', 'concept'))
 
 
 class MetadataSearch(BaseModel):
@@ -302,7 +302,7 @@ class MetadataSearch(BaseModel):
   value: Optional[Union[FeatureValue, FeatureListValue]] = None
   type: Literal['metadata'] = 'metadata'
 
-  model_config = ConfigDict(json_schema_extra=_fix_const_in_schema('type', 'metadata'))
+  model_config = ConfigDict(json_schema_extra=_change_const_to_enum('type', 'metadata'))
 
 
 Search = Union[ConceptSearch, SemanticSearch, KeywordSearch, MetadataSearch]

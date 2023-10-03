@@ -504,7 +504,6 @@ class DatasetDuckDB(Dataset):
 
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
 
-    print('signal', signal.model_dump())
     # Add progress.
     if task_step_id is not None:
       output_items = progress(

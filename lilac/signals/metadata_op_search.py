@@ -1,4 +1,4 @@
-"""A signal to filter metadata based on an operation."""
+"""Filters metadata based on an operatio. Internal use only for highlighting search results."""
 from typing import Any, ClassVar, Iterable, Optional, Union
 
 from typing_extensions import override
@@ -6,20 +6,6 @@ from typing_extensions import override
 from ..data.dataset import FeatureListValue, FeatureValue, FilterOp
 from ..schema import Field, Item, SignalInputType, field
 from ..signal import Signal
-
-
-def _find_all(text: str, subtext: str) -> Iterable[tuple[int, int]]:
-  # Ignore casing.
-  text = text.lower()
-  subtext = subtext.lower()
-  subtext_len = len(subtext)
-  start = 0
-  while True:
-    start = text.find(subtext, start)
-    if start == -1:
-      return
-    yield start, start + subtext_len
-    start += subtext_len
 
 
 class MetadataOpSignal(Signal):
@@ -38,4 +24,6 @@ class MetadataOpSignal(Signal):
   @override
   def compute(self, values: Iterable[Any]) -> Iterable[Optional[Item]]:
     for value in values:
+      if self.op != 'equals':
+        raise ValueError(f'Metadata search does not support "{self.op}" op yet.')
       yield True if value == self.value else None

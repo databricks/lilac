@@ -274,7 +274,8 @@ export function getSelectRowsOptions(
   implicitSortByRowId?: boolean
 ): SelectRowsOptions {
   const columns = ['*', ROWID, ...(viewState.query.columns ?? [])];
-  const options: SelectRowsOptions = {...viewState.query};
+  // Deep clone the query so we don't mutate the original.
+  const options: SelectRowsOptions = JSON.parse(JSON.stringify(viewState.query));
   // If we are not sorting explicitly, and not searching for a concept or semantic, sort by rowid
   // to get stable results.
   if (implicitSortByRowId) {
@@ -293,12 +294,6 @@ export function getSelectRowsOptions(
       value: viewState.groupBy.value,
       type: 'metadata'
     } as MetadataSearch);
-    // options.filters = options.filters || [];
-    // options.filters.push({
-    //   op: 'equals',
-    //   path: viewState.groupBy.path,
-    //   value: viewState.groupBy.value
-    // });
   }
   return {
     ...options,
