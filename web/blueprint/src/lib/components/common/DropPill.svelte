@@ -2,8 +2,8 @@
 <script lang="ts">
   import {Dropdown, DropdownSkeleton} from 'carbon-components-svelte';
   import type {
-      DropdownItem,
-      DropdownItemId
+    DropdownItem,
+    DropdownItemId
   } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
   import {createEventDispatcher} from 'svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
