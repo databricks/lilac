@@ -1,4 +1,4 @@
-"""CSV source."""
+"""Loads files from GitHub using the LlamaIndex GithubRepositoryReader."""
 import os
 from typing import ClassVar, Iterable, Optional
 
