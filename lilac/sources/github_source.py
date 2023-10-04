@@ -81,6 +81,7 @@ class GithubSource(Source):
       github_token=github_token)
 
     self._llama_index_docs_source = LlamaIndexDocsSource(loader.load_data(branch=self.branch))
+    self._llama_index_docs_source.setup()
 
   @override
   def source_schema(self) -> SourceSchema:

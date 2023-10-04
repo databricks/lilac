@@ -27,7 +27,7 @@ class LlamaIndexDocsSource(Source):
   # Used to infer the schema.
   _infer_schema_docs: Iterator[Document]
 
-  _dict_source: DictSource
+  _dict_source: Optional[DictSource] = None
 
   def __init__(self, documents: Optional[Iterable[Document]] = None, **kwargs: Any):
     super().__init__(**kwargs)
