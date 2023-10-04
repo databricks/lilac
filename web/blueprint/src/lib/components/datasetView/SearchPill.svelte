@@ -15,7 +15,8 @@
   } = {
     keyword: 'outline',
     semantic: 'teal',
-    concept: 'green'
+    concept: 'green',
+    metadata: 'magenta'
   };
 
   const datasetViewStore = getDatasetViewContext();

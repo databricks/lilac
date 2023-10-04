@@ -29,7 +29,6 @@
     type Op,
     type Path,
     type SignalInfoWithTypedSchema,
-    type StatsResult,
     type UnaryFilter
   } from '$lilac';
   import {ComboBox, Dropdown, Tag} from 'carbon-components-svelte';
@@ -59,11 +58,10 @@
 
   function getFieldSearchItems(
     searchPath: Path | undefined,
-    stats: StatsResult[] | null,
     schema: LilacSchema | null,
     embeddings: SignalInfoWithTypedSchema[] | undefined
   ): SearchItem[] {
-    if (schema == null || stats == null || searchPath == null) {
+    if (schema == null || searchPath == null) {
       return [];
     }
     const allFields = schema ? childFields(schema) : [];
@@ -120,12 +118,7 @@
     return items;
   }
 
-  $: fieldSearchItems = getFieldSearchItems(
-    searchPath,
-    $datasetStore.stats,
-    $datasetStore.schema,
-    $embeddings.data
-  );
+  $: fieldSearchItems = getFieldSearchItems(searchPath, $datasetStore.schema, $embeddings.data);
 
   const signalMutation = computeSignalMutation();
 

@@ -58,7 +58,7 @@ export function getRenderSpans(
   // Keep a list of paths seen so we don't show the same information twice.
   const pathsProcessed: Set<string> = new Set();
   for (const mergedSpan of mergedSpans) {
-    let isShownSnippet = false;
+    let isHighlighted = false;
     // Keep track of the paths that haven't been seen before. This is where we'll show metadata
     // and hover info.
     const newPaths: string[] = [];
@@ -110,10 +110,10 @@ export function getRenderSpans(
           namedValues.push(namedValue);
           if (valueInfo.type === 'concept_score' || valueInfo.type === 'semantic_similarity') {
             if ((value as number) > 0.5) {
-              isShownSnippet = true;
+              isHighlighted = true;
             }
           } else {
-            isShownSnippet = true;
+            isHighlighted = true;
           }
         }
       }
@@ -138,7 +138,7 @@ export function getRenderSpans(
       backgroundColor: colorFromScore(maxScore),
       isBlackBolded: isKeywordSearch || hasNonNumericMetadata || isLeafSpan,
       isHighlightBolded: isLabeled,
-      isHighlighted: isShownSnippet,
+      isHighlighted,
       snippetScore: maxScore,
       namedValues: firstNamedValues,
       paths: mergedSpan.paths,

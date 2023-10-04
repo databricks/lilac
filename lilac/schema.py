@@ -105,6 +105,7 @@ class SignalInputType(str, Enum):
   TEXT = 'text'
   TEXT_EMBEDDING = 'text_embedding'
   IMAGE = 'image'
+  ANY = 'any'
 
   def __repr__(self) -> str:
     return self.value
@@ -118,6 +119,8 @@ SIGNAL_TYPE_TO_VALID_DTYPES: dict[SignalInputType, list[DataType]] = {
 
 def signal_type_supports_dtype(input_type: SignalInputType, dtype: DataType) -> bool:
   """Returns True if the signal compute type supports the dtype."""
+  if input_type == SignalInputType.ANY:
+    return True
   return dtype in SIGNAL_TYPE_TO_VALID_DTYPES[input_type]
 
 

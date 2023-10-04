@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
+from .auth import UserInfo, get_session_user
 from .config import DatasetSettings
 from .data.dataset import Dataset, DatasetManifest, SelectRowsSchemaResult, SelectRowsSchemaUDF
 from .data.dataset_duckdb import DatasetDuckDB
@@ -17,6 +18,7 @@ from .data.dataset_test_utils import (
   make_dataset,
 )
 from .router_dataset import (
+  AddLabelsOptions,
   Column,
   ComputeSignalOptions,
   DeleteSignalOptions,
@@ -312,3 +314,70 @@ def test_update_settings_auth(mocker: MockerFixture) -> None:
   assert response.status_code == 401
   assert response.is_error is True
   assert 'User does not have access to update the settings of this dataset.' in response.text
+
+
+def test_add_labels_auth(mocker: MockerFixture) -> None:
+  mocker.patch.dict(os.environ, {'LILAC_AUTH_ENABLED': 'True'})
+
+  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/labels'
+  response = client.post(url, json=AddLabelsOptions(label_name='test_label').model_dump())
+  assert response.status_code == 401
+  assert response.is_error is True
+  assert 'User does not have access to add labels to this dataset.' in response.text
+
+  # Set the user as an admin, they should now be able to create the labels.
+  mocker.patch.dict(os.environ, {'LILAC_AUTH_ADMIN_EMAILS': 'admin@test.com,test2@test2.com'})
+
+  # Override the session user so we make them an admin.
+  def admin_user() -> UserInfo:
+    return UserInfo(
+      id='1', email='admin@test.com', name='test', given_name='test', family_name='test')
+
+  app.dependency_overrides[get_session_user] = admin_user
+
+  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/labels'
+  response = client.post(url, json=AddLabelsOptions(label_name='test_label').model_dump())
+  assert response.status_code == 200
+  assert response.is_error is False
+
+  # Label again to make sure that existing labels can be written.
+  response = client.post(url, json=AddLabelsOptions(label_name='test_label').model_dump())
+  assert response.status_code == 200
+  assert response.is_error is False
+
+
+def test_add_labels_auth_user_edit_labels(mocker: MockerFixture) -> None:
+  mocker.patch.dict(os.environ, {'LILAC_AUTH_ENABLED': 'True'})
+  mocker.patch.dict(os.environ, {'LILAC_AUTH_ADMIN_EMAILS': 'admin@test.com,test2@test2.com'})
+  mocker.patch.dict(os.environ, {'LILAC_AUTH_USER_EDIT_LABELS': 'True'})
+
+  # Override the session user so we make them an admin.
+  def admin_user() -> UserInfo:
+    return UserInfo(
+      id='1', email='admin@test.com', name='test', given_name='test', family_name='test')
+
+  app.dependency_overrides[get_session_user] = admin_user
+
+  # Create the test_label as an administrator.
+  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/labels'
+  response = client.post(url, json=AddLabelsOptions(label_name='test_label').model_dump())
+  assert response.status_code == 200
+
+  # Make the user a non-admin user.
+  def user() -> UserInfo:
+    return UserInfo(
+      id='1', email='user@test.com', name='test', given_name='test', family_name='test')
+
+  app.dependency_overrides[get_session_user] = user
+
+  # The user can label results with the same label.
+  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/labels'
+  response = client.post(url, json=AddLabelsOptions(label_name='test_label').model_dump())
+  assert response.status_code == 200
+
+  # THe user cannot create new label types.
+  url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/labels'
+  response = client.post(url, json=AddLabelsOptions(label_name='new_label').model_dump())
+  assert response.status_code == 401
+  assert response.is_error is True
+  assert 'User does not have access to create label types in this dataset.' in response.text

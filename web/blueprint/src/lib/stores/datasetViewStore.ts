@@ -6,7 +6,9 @@ import {
   serializePath,
   type Column,
   type Filter,
+  type LeafValue,
   type LilacSelectRowsSchema,
+  type MetadataSearch,
   type Path,
   type Search,
   type SelectRowsOptions,
@@ -19,6 +21,11 @@ import {writable} from 'svelte/store';
 
 const DATASET_VIEW_CONTEXT = 'DATASET_VIEW_CONTEXT';
 
+export interface GroupByState {
+  path: Path;
+  value: LeafValue;
+}
+
 export interface DatasetViewState {
   namespace: string;
   datasetName: string;
@@ -26,6 +33,9 @@ export interface DatasetViewState {
   // Maps a path to whether the stats are expanded.
   expandedStats: {[path: string]: boolean};
   query: SelectRowsOptions;
+
+  // Whether the group by view is active.
+  groupBy?: GroupByState;
 
   // View.
   schemaCollapsed: boolean;
@@ -147,6 +157,16 @@ export function createDatasetViewStore(
         }
         return state;
       }),
+    setGroupBy(path: Path | null, value: LeafValue) {
+      update(state => {
+        if (path == null) {
+          state.groupBy = undefined;
+        } else {
+          state.groupBy = {path, value};
+        }
+        return state;
+      });
+    },
     addSortBy: (column: Path) =>
       update(state => {
         state.query.sort_by = [...(state.query.sort_by || []), column];
@@ -250,11 +270,12 @@ export function getDatasetViewContext() {
  * based on the current state of the dataset view store
  */
 export function getSelectRowsOptions(
-  datasetViewStore: DatasetViewState,
+  viewState: DatasetViewState,
   implicitSortByRowId?: boolean
 ): SelectRowsOptions {
-  const columns = ['*', ROWID, ...(datasetViewStore.query.columns ?? [])];
-  const options: SelectRowsOptions = datasetViewStore.query;
+  const columns = ['*', ROWID, ...(viewState.query.columns ?? [])];
+  // Deep clone the query so we don't mutate the original.
+  const options: SelectRowsOptions = JSON.parse(JSON.stringify(viewState.query));
   // If we are not sorting explicitly, and not searching for a concept or semantic, sort by rowid
   // to get stable results.
   if (implicitSortByRowId) {
@@ -264,6 +285,15 @@ export function getSelectRowsOptions(
     ) {
       options.sort_by = [ROWID];
     }
+  }
+  if (viewState.groupBy?.value != null) {
+    options.searches = options.searches || [];
+    options.searches.push({
+      path: viewState.groupBy.path,
+      op: 'equals',
+      value: viewState.groupBy.value,
+      type: 'metadata'
+    } as MetadataSearch);
   }
   return {
     ...options,

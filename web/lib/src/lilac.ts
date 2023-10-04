@@ -6,6 +6,7 @@ import type {
   Field,
   KeywordSearch,
   ListFilter,
+  MetadataSearch,
   Schema,
   SelectRowsSchemaResult,
   SemanticSearch,
@@ -29,10 +30,10 @@ export const SCHEMA_FIELD_KEY = '__field__';
 // The search type is not an explicitly exported type so we extract the type from the different
 // search types automatically for type-safety.
 export type SearchType = Exclude<
-  (ConceptSearch | SemanticSearch | KeywordSearch)['type'],
+  (ConceptSearch | SemanticSearch | KeywordSearch | MetadataSearch)['type'],
   undefined
 >;
-export type Search = ConceptSearch | SemanticSearch | KeywordSearch;
+export type Search = ConceptSearch | SemanticSearch | KeywordSearch | MetadataSearch;
 
 export type Op = BinaryFilter['op'] | UnaryFilter['op'] | ListFilter['op'];
 export type Filter = BinaryFilter | UnaryFilter | ListFilter;

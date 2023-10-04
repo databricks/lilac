@@ -7,6 +7,7 @@ import type { BinaryFilter } from './BinaryFilter';
 import type { ConceptSearch } from './ConceptSearch';
 import type { KeywordSearch } from './KeywordSearch';
 import type { ListFilter } from './ListFilter';
+import type { MetadataSearch } from './MetadataSearch';
 import type { SemanticSearch } from './SemanticSearch';
 import type { UnaryFilter } from './UnaryFilter';
 
@@ -17,7 +18,7 @@ export type AddLabelsOptions = {
     label_name: string;
     label_value?: (string | null);
     row_ids?: Array<string>;
-    searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch)>;
+    searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch | MetadataSearch)>;
     filters?: Array<(BinaryFilter | UnaryFilter | ListFilter)>;
 };
 

@@ -18,7 +18,10 @@ export const ROWID = '__rowid__';
 export const VALUE_KEY = '__value__';
 export const SPAN_KEY = '__span__';
 
-export const SIGNAL_INPUT_TYPE_TO_VALID_DTYPES: Record<SignalInputType, DataType[]> = {
+export const SIGNAL_INPUT_TYPE_TO_VALID_DTYPES: Record<
+  Exclude<SignalInputType, 'any'>,
+  DataType[]
+> = {
   text: ['string', 'string_span'],
   text_embedding: ['embedding'],
   image: ['binary']

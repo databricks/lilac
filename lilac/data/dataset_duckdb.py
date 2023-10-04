@@ -70,6 +70,7 @@ from ..schema import (
 from ..signal import Signal, TextEmbeddingSignal, VectorSignal, get_signal_by_type, resolve_signal
 from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptSignal
+from ..signals.filter_mask import FilterMaskSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
 from ..tasks import TaskStepId, progress
@@ -503,7 +504,6 @@ class DatasetDuckDB(Dataset):
 
     signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
 
-    print('signal', signal.model_dump())
     # Add progress.
     if task_step_id is not None:
       output_items = progress(
@@ -1382,6 +1382,7 @@ class DatasetDuckDB(Dataset):
 
     # Check if the label file exists.
     labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
+
     if labels_filepath not in self._label_file_lock:
       self._label_file_lock[labels_filepath] = threading.Lock()
 
@@ -1412,6 +1413,11 @@ class DatasetDuckDB(Dataset):
       sqlite_con.close()
 
     return num_labels
+
+  @override
+  def get_label_names(self) -> list[str]:
+    self.manifest()
+    return list(self._label_schemas.keys())
 
   @override
   def remove_labels(self,
@@ -1579,13 +1585,6 @@ class DatasetDuckDB(Dataset):
     if not searches:
       return
 
-    for search in searches:
-      search.path = normalize_path(search.path)
-      field = manifest.data_schema.get_field(search.path)
-      if field.dtype != DataType.STRING:
-        raise ValueError(f'Invalid search path: {search.path}. '
-                         f'Must be a string field, got dtype {field.dtype}')
-
   def _search_udfs(self, searches: Optional[Sequence[Search]],
                    manifest: DatasetManifest) -> list[DuckDBSearchUDF]:
     searches = searches or []
@@ -1600,6 +1599,11 @@ class DatasetDuckDB(Dataset):
             udf=udf,
             search_path=search_path,
             output_path=(*_col_destination_path(udf), PATH_WILDCARD)))
+      elif search.type == 'metadata':
+        udf = Column(
+          path=search_path, signal_udf=FilterMaskSignal(op=search.op, value=search.value))
+        search_udfs.append(
+          DuckDBSearchUDF(udf=udf, search_path=search_path, output_path=_col_destination_path(udf)))
       elif search.type == 'semantic' or search.type == 'concept':
         embedding = search.embedding
         if not embedding:
@@ -1657,21 +1661,22 @@ class DatasetDuckDB(Dataset):
 
     # Add search where queries.
     for search in searches:
-      duckdb_path = self._leaf_path_to_duckdb_path(
-        normalize_path(search.path), manifest.data_schema)
+      search_path = normalize_path(search.path)
+      duckdb_path = self._leaf_path_to_duckdb_path(search_path, manifest.data_schema)
       select_str = _select_sql(duckdb_path, flatten=False, unnest=False)
       if search.type == 'keyword':
         sql_op = 'ILIKE'
         query_val = _escape_like_value(search.query)
+        sql_filter_queries.append(f'{select_str} {sql_op} {query_val}')
       elif search.type == 'semantic' or search.type == 'concept':
         # Semantic search and concepts don't yet filter.
         continue
+      elif search.type == 'metadata':
+        # Make a regular filter query.
+        filter = Filter(path=search_path, op=search.op, value=search.value)
+        filters.append(filter)
       else:
         raise ValueError(f'Unknown search operator {search.type}.')
-
-      filter_query = f'{select_str} {sql_op} {query_val}'
-
-      sql_filter_queries.append(filter_query)
 
     # Add filter where queries.
     for f in filters:

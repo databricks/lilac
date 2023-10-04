@@ -26,6 +26,7 @@
   import {
     ArrowUpRight,
     Close,
+    Filter,
     SortAscending,
     SortDescending,
     SortRemove
@@ -34,6 +35,8 @@
   import ConceptView from '../concepts/ConceptView.svelte';
   import AddLabel from './AddLabel.svelte';
   import FilterPill from './FilterPill.svelte';
+  import GroupByDropdown from './GroupByDropdown.svelte';
+  import GroupByPanel from './GroupByPanel.svelte';
   import SearchPill from './SearchPill.svelte';
 
   export let totalNumRows: number | undefined;
@@ -55,7 +58,8 @@
   const searchTypeDisplay: {[searchType in SearchType]: string} = {
     keyword: 'Keyword',
     semantic: 'Semantic',
-    concept: 'Concepts'
+    concept: 'Concepts',
+    metadata: 'Metadata'
   };
 
   // Separate the searches by type.
@@ -133,56 +137,77 @@
   };
 </script>
 
-<div class="mx-5 my-2 flex flex-col gap-y-2">
-  {#if searchTypeOrder.length > 0 && schema != null}
-    <div class="flex w-full flex-row gap-x-4">
-      <!-- Search groups -->
-      {#each searchTypeOrder as searchType}
-        {#if searchesByType[searchType]}
-          <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
-            <div class="text-xs font-light">{searchTypeDisplay[searchType]}</div>
-            <div class="flex flex-row gap-x-1">
-              {#each searchesByType[searchType] as search}
-                <SearchPill {search} on:click={() => openSearchPill(search)} />
-              {/each}
+<div class="mx-5 my-2 flex items-center justify-between">
+  <div class="flex items-center gap-x-8 gap-y-2">
+    <AddLabel
+      addLabelsQuery={{searches, filters}}
+      buttonText={'Label all'}
+      helperText={'Apply label to all results within the current filter set.'}
+    />
+    <!-- Filters -->
+    <div class="flex items-center gap-x-1">
+      <div><Filter /></div>
+      {#if searches.length > 0 || (filters && filters.length > 0)}
+        <div class="flex flex-grow flex-row gap-x-4">
+          <!-- Search groups -->
+          {#each searchTypeOrder as searchType}
+            {#if searchesByType[searchType]}
+              <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
+                <div class="text-xs font-light">{searchTypeDisplay[searchType]}</div>
+                <div class="flex flex-row gap-x-1">
+                  {#each searchesByType[searchType] as search}
+                    <SearchPill {search} on:click={() => openSearchPill(search)} />
+                  {/each}
+                </div>
+              </div>
+            {/if}
+          {/each}
+          <!-- Filters group -->
+          {#if filters != null && filters.length > 0}
+            <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
+              <div class="text-xs font-light">Filters</div>
+              <div class="flex flex-row gap-x-1">
+                {#if schema}
+                  {#each filters as filter}
+                    <FilterPill {schema} {filter} />
+                  {/each}
+                {:else}
+                  <SkeletonText />
+                {/if}
+              </div>
             </div>
-          </div>
-        {/if}
-      {/each}
-      <!-- Filters group -->
-      {#if filters != null && filters.length > 0}
-        <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
-          <div class="text-xs font-light">Filters</div>
-          <div class="flex flex-row gap-x-1">
-            {#each filters as filter}
-              <FilterPill {schema} {filter} />
-            {/each}
-          </div>
+          {/if}
         </div>
+      {:else}
+        Filters
       {/if}
     </div>
-  {/if}
-  <!-- Number of rows and sort. -->
-  <div class="flex w-full flex-row items-end justify-between">
-    <div class="relative flex h-8 flex-col items-end justify-end">
-      <AddLabel
-        addLabelsQuery={{searches, filters}}
-        buttonText={'Label all'}
-        helperText={'Apply label to all results within the current filter set.'}
-      />
-    </div>
-    <div class="flex flex-col">
-      <div class="flex justify-end py-2">
-        {#if totalNumRows && manifest}
-          {#if totalNumRows == manifest.dataset_manifest.num_items}
-            {formatValue(totalNumRows)} rows
-          {:else}
-            {formatValue(totalNumRows)} of {formatValue(manifest.dataset_manifest.num_items)} rows
-          {/if}
+
+    <GroupByDropdown />
+
+    <!-- Sorting -->
+    <div class="sort-container flex flex-row items-center gap-x-1 md:w-fit">
+      <button
+        use:hoverTooltip={{
+          text:
+            sort?.order === 'ASC'
+              ? 'Sorted ascending. Toggle to switch to descending.'
+              : 'Sorted descending. Toggle to switch to ascending.'
+        }}
+        disabled={sort == null}
+        on:click={toggleSortOrder}
+      >
+        {#if sort?.order == null}
+          <SortRemove />
+        {:else if sort?.order === 'ASC'}
+          <SortAscending />
+        {:else if sort?.order === 'DESC'}
+          <SortDescending />
         {/if}
-      </div>
-      <div class="sort-container flex flex-row items-center gap-x-1 pt-2 md:w-fit">
-        <div class="mr-1 whitespace-nowrap">Sort by</div>
+      </button>
+      {#if sortById === ''}
+        Sort by
+      {:else}
         <Select noLabel size="sm" class="w-60" selected={sortById} on:update={selectSort}>
           {#each Object.entries(sortGroups) as [groupName, items]}
             <SelectItemGroup label={groupName}>
@@ -196,37 +221,33 @@
             </SelectItemGroup>
           {/each}
         </Select>
-        {#if selectedSortBy != null}
-          <button
-            use:hoverTooltip={{text: 'Clear sort'}}
-            disabled={sort == null}
-            on:click={clearSorts}
-          >
-            <Close />
-          </button>
-        {/if}
+      {/if}
+      {#if selectedSortBy != null}
         <button
-          use:hoverTooltip={{
-            text:
-              sort?.order === 'ASC'
-                ? 'Sorted ascending. Toggle to switch to descending.'
-                : 'Sorted descending. Toggle to switch to ascending.'
-          }}
+          use:hoverTooltip={{text: 'Clear sort'}}
           disabled={sort == null}
-          on:click={toggleSortOrder}
+          on:click={clearSorts}
         >
-          {#if sort?.order == null}
-            <SortRemove />
-          {:else if sort?.order === 'ASC'}
-            <SortAscending />
-          {:else if sort?.order === 'DESC'}
-            <SortDescending />
-          {/if}
+          <Close />
         </button>
-      </div>
+      {/if}
     </div>
   </div>
+  <!-- Number of results. -->
+  <div class="flex py-2">
+    {#if totalNumRows && manifest}
+      {#if totalNumRows == manifest.dataset_manifest.num_items}
+        {formatValue(totalNumRows)} rows
+      {:else}
+        {formatValue(totalNumRows)} of {formatValue(manifest.dataset_manifest.num_items)} rows
+      {/if}
+    {/if}
+  </div>
 </div>
+
+{#if $datasetViewStore.groupBy && $datasetStore.schema}
+  <GroupByPanel schema={$datasetStore.schema} groupBy={$datasetViewStore.groupBy} />
+{/if}
 
 {#if openedConcept}
   <Modal open modalHeading={''} passiveModal on:close={() => (openedConcept = null)} size="lg">
@@ -253,6 +274,6 @@
 <style lang="postcss">
   .filter-group {
     min-width: 6rem;
-    @apply flex flex-row items-center gap-x-2 border border-gray-200 px-2 py-2 shadow-sm;
+    @apply flex flex-row items-center gap-x-2 border border-gray-200 px-2 py-1 shadow-sm;
   }
 </style>

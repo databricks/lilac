@@ -32,10 +32,11 @@
   $: datasetName = $datasetViewStore.datasetName;
 
   const authInfo = queryAuthInfo();
+  $: canCreateLabelTypes = $authInfo.data?.access.dataset.create_label_type;
   $: canEditLabels = $authInfo.data?.access.dataset.edit_labels;
 
   $: schemaLabels = $datasetStore.schema && getSchemaLabels($datasetStore.schema);
-  $: newLabelAllowed = /^[A-Za-z0-9_-]+$/.test(comboBoxText);
+  $: newLabelAllowed = /^[A-Za-z0-9_-]+$/.test(comboBoxText) && canCreateLabelTypes;
   $: newLabelItem = {
     id: 'new-label',
     text: comboBoxText,
@@ -94,7 +95,6 @@
 </script>
 
 <div
-  class="w-full"
   use:hoverTooltip={{
     text: !canEditLabels ? 'You do not have access to add labels.' : ''
   }}
@@ -113,7 +113,7 @@
   </button>
 </div>
 <div
-  class="absolute left-0 top-0 w-60"
+  class="absolute left-0 top-0 z-50 w-60"
   class:hidden={!labelMenuOpen}
   use:clickOutside={() => (labelMenuOpen = false)}
 >

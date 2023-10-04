@@ -11,6 +11,7 @@ export type DatasetUserAccess = {
     delete_dataset: boolean;
     delete_signals: boolean;
     update_settings: boolean;
+    create_label_type: boolean;
     edit_labels: boolean;
 };
 
