@@ -202,7 +202,7 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
       for path, signals in path_signals.items():
         for s in signals:
           field = manifest.data_schema.get_field(s.path)
-          signal_field = (field.fields or {}).get(s.signal.key())
+          signal_field = (field.fields or {}).get(s.signal.key(is_computed_signal=True))
           if signal_field is None or overwrite:
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
             task_manager.execute(task_id, _compute_signal, d.namespace, d.name, s, project_dir,
