@@ -18,7 +18,7 @@
   }));
 </script>
 
-{#if items && datasetExists}
+{#if (items && datasetExists) || $datasetExistsQuery.isError}
   <ComboBox
     on:select={e => (value = e.detail.selectedId.split('/')[1])}
     on:clear={() => (value = undefined)}

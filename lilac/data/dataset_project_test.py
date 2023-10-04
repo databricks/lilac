@@ -15,9 +15,9 @@ from ..config import (
   EmbeddingConfig,
   SignalConfig,
 )
-from ..data_loader import create_dataset
 from ..db_manager import get_dataset
 from ..env import get_project_dir
+from ..load_dataset import create_dataset
 from ..project import create_project_and_set_env, read_project_config
 from ..schema import Field, Item, RichData, field, lilac_embedding
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal

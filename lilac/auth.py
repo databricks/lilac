@@ -27,6 +27,8 @@ class DatasetUserAccess(BaseModel):
   create_label_type: bool
   # Whether the user can add or remove labels.
   edit_labels: bool
+  # Whether the user can use the label all feature.
+  label_all: bool
 
 
 class ConceptUserAccess(BaseModel):
@@ -104,8 +106,11 @@ def get_user_access(user_info: Optional[UserInfo]) -> UserAccess:
         delete_signals=False,
         update_settings=False,
         create_label_type=False,
-        edit_labels=bool(env('LILAC_AUTH_USER_EDIT_LABELS', False))),
+        edit_labels=bool(env('LILAC_AUTH_USER_EDIT_LABELS', False)),
+        label_all=not bool(env('LILAC_AUTH_USER_DISABLE_LABEL_ALL', False)),
+      ),
       concept=ConceptUserAccess(delete_any_concept=False))
+
   return UserAccess(
     is_admin=is_admin,
     create_dataset=True,
@@ -115,5 +120,6 @@ def get_user_access(user_info: Optional[UserInfo]) -> UserAccess:
       delete_signals=True,
       update_settings=True,
       create_label_type=True,
-      edit_labels=True),
+      edit_labels=True,
+      label_all=True),
     concept=ConceptUserAccess(delete_any_concept=True))

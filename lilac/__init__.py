@@ -4,7 +4,6 @@ from .concepts import *  # noqa: F403
 from .config import Config, DatasetConfig, DatasetSettings, EmbeddingConfig, SignalConfig
 from .data import *  # noqa: F403
 from .data.dataset_duckdb import DatasetDuckDB
-from .data_loader import create_dataset
 from .db_manager import get_dataset, set_default_dataset_cls
 from .deploy import deploy_config, deploy_project
 from .embeddings import *  # noqa: F403
@@ -12,6 +11,7 @@ from .embeddings.default_vector_stores import register_default_vector_stores
 from .env import *  # noqa: F403
 from .env import LilacEnvironment, get_project_dir, set_project_dir
 from .load import load
+from .load_dataset import create_dataset
 from .project import init
 from .schema import *  # noqa: F403
 from .schema import Field

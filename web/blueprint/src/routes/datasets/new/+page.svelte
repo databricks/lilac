@@ -26,8 +26,10 @@
   import type {JSONError} from 'json-schema-library';
   import type {SvelteComponent} from 'svelte';
 
+  const IGNORE_SOURCES = ['pandas', 'llama_index_docs'];
+
   const sourcesQuery = querySources();
-  $: sources = $sourcesQuery.data?.sources.filter(s => s !== 'pandas');
+  $: sources = $sourcesQuery.data?.sources.filter(s => !IGNORE_SOURCES.includes(s));
   const loadDataset = loadDatasetMutation();
 
   const authInfo = queryAuthInfo();

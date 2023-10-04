@@ -1,5 +1,6 @@
 <script lang="ts">
   import {queryConcept} from '$lib/queries/conceptQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {conceptLink} from '$lib/utils';
@@ -20,6 +21,8 @@
 
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();
+  const authInfo = queryAuthInfo();
+  $: canLabelAll = $authInfo.data?.access.dataset.label_all;
 
   $: schema = $datasetStore?.selectRowsSchema?.data?.schema;
 
@@ -64,6 +67,8 @@
 <div class="mx-5 my-2 flex items-center justify-between">
   <div class="flex items-center gap-x-6 gap-y-2">
     <AddLabel
+      disabled={!canLabelAll}
+      disabledMessage={!canLabelAll ? 'User does not have access to label all.' : ''}
       addLabelsQuery={{searches, filters}}
       buttonText={'Label all'}
       helperText={'Apply label to all results within the current filter set.'}

@@ -1,9 +1,11 @@
 """Registers all available default sources."""
 from .csv_source import CSVSource
+from .github_source import GithubSource
 from .gmail_source import GmailSource
 from .huggingface_source import HuggingFaceSource
 from .json_source import JSONSource
 from .langsmith import LangSmithSource
+from .llama_index_docs_source import LlamaIndexDocsSource
 from .pandas_source import PandasSource
 from .parquet_source import ParquetSource
 from .source_registry import register_source
@@ -20,3 +22,5 @@ def register_default_sources() -> None:
   register_source(ParquetSource)
   register_source(LangSmithSource)
   register_source(SQLiteSource)
+  register_source(GithubSource)
+  register_source(LlamaIndexDocsSource)

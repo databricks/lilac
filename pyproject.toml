@@ -73,7 +73,11 @@ regex = "^2023.6.3"
 langdetect = { version = "^1.0.9", optional = true }
 
 # Langsmith source ingestion.
-langsmith = { version = "^0.0.29", optional = true }
+langsmith = { version = "^0.0.41", optional = true }
+
+# LlamaIndex and LlamaHub for some source ingestion.
+llama-hub = "^0.0.34"
+llama-index = "^0.8.38"
 
 [tool.poetry.extras]
 all = [
@@ -111,6 +115,7 @@ gmail = [
   "google-auth-oauthlib",
 ]
 langsmith = ["langsmith"]
+github = ["llama_index"]
 
 # Signals.
 signals = ["textacy", "detect-secrets", "langdetect", "spacy"]

@@ -47,7 +47,10 @@ def add_project_dataset_config(dataset_config: DatasetConfig,
     existing_dataset_config = get_dataset_config(config, dataset_config.namespace,
                                                  dataset_config.name)
     if existing_dataset_config is not None:
-      raise ValueError(f'{dataset_config} has already been added.')
+      raise ValueError(
+        f'{dataset_config} has already been added. You can delete it with: \n\n'
+        f'dataset = get_dataset("{dataset_config.namespace}", "{dataset_config.name}")\n'
+        'dataset.delete()')
 
     config.datasets.append(dataset_config)
     write_project_config(project_dir, config)

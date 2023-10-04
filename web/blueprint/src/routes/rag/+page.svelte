@@ -18,6 +18,7 @@
   import {RagService, type Path} from '$lilac';
   import {SkeletonText, TextInput} from 'carbon-components-svelte';
   import {Search} from 'carbon-icons-svelte';
+  import SvelteMarkdown from 'svelte-markdown';
 
   const ragViewStore = createRagViewStore();
   setRagViewContext(ragViewStore);
@@ -125,56 +126,58 @@
     {/if}
   </div>
 
-  <div class="mx-4 mb-8 mt-2 flex h-full w-full flex-col items-start gap-y-24 px-4">
-    <div class="mt-6 flex w-1/2 flex-col gap-y-10">
-      <!-- Input question -->
-      <div class="flex flex-col gap-y-4">
-        <div class="font-medium">Question</div>
-        <div class="question-input flex w-full flex-row items-end">
-          <button
-            class="z-10 -mr-10 mb-2"
-            class:opacity-10={$ragViewStore.datasetName == null}
-            disabled={$ragViewStore.datasetName == null}
-            on:click={() => answerQuestion()}
-            ><Search size={16} />
-          </button>
-          <TextInput
-            on:input={questionTextChanged}
-            on:change={answerQuestion}
-            value={questionInputText}
-            size="xl"
-            disabled={$ragViewStore.datasetName == null}
-            placeholder={$ragViewStore.datasetName != null
-              ? 'Enter a question'
-              : 'Choose a dataset'}
-          />
+  <div class="h-full w-full overflow-x-hidden overflow-y-scroll">
+    <div class="mx-4 mb-8 mt-2 flex h-full w-full flex-col items-start gap-y-24 px-4">
+      <div class="mt-6 flex w-1/2 flex-col gap-y-10">
+        <!-- Input question -->
+        <div class="flex flex-col gap-y-4">
+          <div class="font-medium">Question</div>
+          <div class="question-input flex w-full flex-row items-end">
+            <button
+              class="z-10 -mr-10 mb-2"
+              class:opacity-10={$ragViewStore.datasetName == null}
+              disabled={$ragViewStore.datasetName == null}
+              on:click={() => answerQuestion()}
+              ><Search size={16} />
+            </button>
+            <TextInput
+              on:input={questionTextChanged}
+              on:change={answerQuestion}
+              value={questionInputText}
+              size="xl"
+              disabled={$ragViewStore.datasetName == null}
+              placeholder={$ragViewStore.datasetName != null
+                ? 'Enter a question'
+                : 'Choose a dataset'}
+            />
+          </div>
+        </div>
+        <div class="flex flex-col gap-y-4">
+          <div class="font-medium">Answer</div>
+
+          <div class="pt-4">
+            {#if answerFetching || retrievalIsFetching}
+              <SkeletonText />
+            {:else if answer != null}
+              <div class="markdown whitespace-break-spaces leading-5">
+                <SvelteMarkdown source={answer} />
+              </div>
+            {:else}
+              <div class="whitespace-break-spaces font-light italic leading-5">
+                Press the search button to answer the question.
+              </div>
+            {/if}
+          </div>
         </div>
       </div>
-      <div class="flex flex-col gap-y-4">
-        <div class="font-medium">Answer</div>
 
-        <div class="pt-4">
-          {#if answerFetching || retrievalIsFetching}
-            <SkeletonText />
-          {:else if answer != null}
-            <div class="whitespace-break-spacesleading-5">
-              {answer}
-            </div>
-          {:else}
-            <div class="whitespace-break-spaces font-light italic leading-5">
-              Press the search button to answer the question.
-            </div>
-          {/if}
+      <div class="flex grow flex-row gap-x-8">
+        <div class="w-1/2">
+          <RagRetrieval bind:retrievalResults bind:isFetching={retrievalIsFetching} />
         </div>
-      </div>
-    </div>
-
-    <div class="flex grow flex-row gap-x-8">
-      <div class="w-1/2">
-        <RagRetrieval bind:retrievalResults bind:isFetching={retrievalIsFetching} />
-      </div>
-      <div class="w-1/2">
-        <RagPrompt {questionInputText} {retrievalResults} on:prompt={e => (prompt = e.detail)} />
+        <div class="w-1/2">
+          <RagPrompt {questionInputText} {retrievalResults} on:prompt={e => (prompt = e.detail)} />
+        </div>
       </div>
     </div>
   </div>
@@ -186,5 +189,39 @@
   }
   :global(.question-input .bx--text-input) {
     @apply pl-11;
+  }
+
+  .markdown {
+    /** Add a tiny bit of padding so that the hover doesn't flicker between rows. */
+    padding-top: 1.5px;
+    padding-bottom: 1.5px;
+  }
+  :global(.markdown pre) {
+    @apply overflow-x-auto bg-slate-200 p-2 text-sm;
+  }
+  :global(.markdown pre) {
+    @apply my-3;
+  }
+  :global(.markdown p),
+  :global(.markdown h1) {
+    background-color: inherit;
+  }
+  :global(.markdown p) {
+    @apply mt-3 text-sm;
+    font-weight: inherit;
+  }
+  :global(.markdown ul) {
+    @apply mt-3 list-inside list-disc;
+  }
+  /** Inline the last paragraph that preceeds the highlight. */
+  :global(.markdown:has(+ .highlighted) p:last-child) {
+    @apply !inline;
+  }
+  /** Inline the first paragraph that succeeds the highlight. */
+  :global(.highlighted + .markdown p:first-child) {
+    @apply !inline;
+  }
+  :global(.highlighted p) {
+    @apply !inline;
   }
 </style>
