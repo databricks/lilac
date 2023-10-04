@@ -94,7 +94,6 @@ all = [
   "spacy",
   "langsmith",
   "github",
-  "llama-index",
 ]
 
 embeddings = [
