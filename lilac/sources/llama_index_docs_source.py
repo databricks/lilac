@@ -1,7 +1,9 @@
 """A source that reads from an Iterable of LlamaIndex Documents."""
-from typing import Any, ClassVar, Iterable, Iterator, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Iterable, Iterator, Optional
 
-from llama_index import Document
+if TYPE_CHECKING:
+  from llama_index import Document
+
 from typing_extensions import override
 
 from ..schema import Item
@@ -16,8 +18,29 @@ class LlamaIndexDocsSource(Source):
 
   Usage:
   ```python
-  from llama_index import Document, DocumentMetadata
+    from llama_index import download_loader
+
+    # See: https://llamahub.ai/l/papers-arxiv
+    ArxivReader = download_loader("ArxivReader")
+
+    loader = ArxivReader()
+    documents = loader.load_data(search_query='au:Karpathy')
+
+    # Create the dataset
+    ll.create_dataset(
+    config=ll.DatasetConfig(
+      namespace='local',
+      name='arxiv-karpathy',
+      source=ll.LlamaIndexDocsSource(
+        # documents comes from the loader.load_data call in the previous cell.
+        documents=documents
+        )
+      )
+    )
   ```
+
+  A detailed example notebook
+  [can be found here](https://github.com/lilacai/lilac/blob/main/notebooks/LlamaIndexLoader.ipynb)
   """ # noqa: D415, D400
   name: ClassVar[str] = 'llama_index_docs'
 
@@ -45,8 +68,6 @@ class LlamaIndexDocsSource(Source):
       raise ValueError('cls argument `documents` is not defined.')
 
     for doc in self._documents:
-      if not isinstance(doc, Document):
-        continue
       yield {'doc_id': str(doc.doc_id), 'text': doc.text, **doc.metadata}
 
   @override
