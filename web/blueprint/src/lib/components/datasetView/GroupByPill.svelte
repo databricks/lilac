@@ -8,7 +8,7 @@
     DropdownItem,
     DropdownItemId
   } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
-  import {CicsSystemGroup} from 'carbon-icons-svelte';
+  import {Folder} from 'carbon-icons-svelte';
   import DropdownPill from '../common/DropdownPill.svelte';
 
   const datasetStore = getDatasetContext();
@@ -74,7 +74,7 @@
   tooltip={selectedPath ? `Grouping by ${displayPath(selectedPath)}` : null}
   let:item
 >
-  <div slot="icon"><CicsSystemGroup title="Group by" /></div>
+  <div slot="icon"><Folder title="Group by" /></div>
   {@const groupByItem = items?.find(x => x === item)}
   {#if groupByItem}
     <div class="flex items-center justify-between gap-x-1">
