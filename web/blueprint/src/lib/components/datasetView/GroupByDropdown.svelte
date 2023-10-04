@@ -3,7 +3,7 @@
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {displayPath} from '$lib/view_utils';
-  import {childFields, isNumeric, serializePath, type StatsResult} from '$lilac';
+  import {childFields, isNumeric, serializePath, type Path, type StatsResult} from '$lilac';
   import {Dropdown, DropdownSkeleton} from 'carbon-components-svelte';
   import type {
     DropdownItem,
@@ -42,12 +42,19 @@
     stats: StatsResult;
   }
 
+  function shortPath(path: Path): string {
+    if (path.length <= 2) {
+      return displayPath(path);
+    }
+    return displayPath([path[0], '...', path[path.length - 1]]);
+  }
+
   function makeItems(stats: StatsResult[], open: boolean): GroupByItem[] {
     const items = stats
       .filter(s => s.total_count > 0)
       .map(s => ({
         id: serializePath(s.path),
-        text: displayPath(s.path),
+        text: open ? displayPath(s.path) : shortPath(s.path),
         stats: s
       }));
     return [{id: NONE_ID, text: open ? 'None' : 'Group by', stats: null!}, ...items];

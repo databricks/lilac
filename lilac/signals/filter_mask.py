@@ -8,7 +8,7 @@ from ..schema import Field, Item, SignalInputType, field
 from ..signal import Signal
 
 
-class MetadataOpSignal(Signal):
+class FilterMaskSignal(Signal):
   """Find a substring in a document."""
   name: ClassVar[str] = 'metadata_search'
   display_name: ClassVar[str] = 'Metadata Search'

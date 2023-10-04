@@ -20,6 +20,7 @@ import {
   type LilacSelectRowsSchema,
   type LilacValueNode,
   type LilacValueNodeCasted,
+  type MetadataSearch,
   type Path,
   type Search,
   type SelectRowsOptions,
@@ -171,9 +172,18 @@ export function isPreviewSignal(
 }
 
 /** Gets the search type for a column, if defined. The path is the *input* path to the search. */
-export function getSearches(store: DatasetViewState, path?: Path | null): Search[] {
-  if (path == null) return store.query.searches || [];
-  return (store.query.searches || []).filter(s => pathIsEqual(s.path, path));
+export function getSearches(viewState: DatasetViewState, path?: Path | null): Search[] {
+  const searches = [...(viewState.query.searches || [])];
+  if (viewState.groupBy?.value != null) {
+    searches.push({
+      path: viewState.groupBy.path,
+      op: 'equals',
+      value: viewState.groupBy.value,
+      type: 'metadata'
+    } as MetadataSearch);
+  }
+  if (path == null) return searches;
+  return searches.filter(s => pathIsEqual(s.path, path));
 }
 
 export function getDefaultSearchPath(

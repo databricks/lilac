@@ -11,7 +11,7 @@
     type SortOrder
   } from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
-  import {ArrowLeft, ArrowRight} from 'carbon-icons-svelte';
+  import {ChevronLeft, ChevronRight} from 'carbon-icons-svelte';
 
   export let groupBy: GroupByState;
   export let schema: LilacSchema;
@@ -30,10 +30,6 @@
   });
   $: allCounts = $groupsQuery.data?.counts.filter(c => c[0] != null);
   $: valueIndex = allCounts?.findIndex(c => c[0] === value);
-  $: valueCount =
-    valueIndex != null && valueIndex >= 0 && allCounts != null && allCounts[valueIndex] != null
-      ? (allCounts[valueIndex][1] as number)
-      : null;
 
   $: {
     if (value == null && allCounts != null && allCounts[0] != null && allCounts[0][0] != null) {
@@ -52,26 +48,34 @@
   }
 </script>
 
-<div class="mx-5 my-2 flex items-center justify-between">
+<div
+  class="mx-5 my-2 flex items-center justify-between rounded-lg border border-neutral-300 bg-neutral-100 py-2"
+>
   <div class="flex-0">
     {#if valueIndex != null && valueIndex > 0}
-      <button on:click={() => updateValue(false)}><ArrowLeft /></button>
+      <button on:click={() => updateValue(false)}
+        ><ChevronLeft title="Previous group" size={24} /></button
+      >
     {/if}
   </div>
 
-  <div class="flex overflow-x-hidden">
-    <div class="flex-0"><code>{shortFieldName(groupBy.path)}</code>&nbsp;is&nbsp;</div>
-    <div class="min-w-0 max-w-lg truncate">
+  <div class="flex-col items-center justify-items-center">
+    <div class="min-w-0 max-w-lg truncate text-center text-lg">
       {#if value != null}
-        "{formatValue(value)}" ({valueCount} items)
+        {formatValue(value)}
       {:else}
         <SkeletonText class="!w-40" />
       {/if}
     </div>
+    <div class="flex-0 text-center text-gray-600">
+      <code>{shortFieldName(groupBy.path)}</code>
+    </div>
   </div>
   <div class="flex-0">
     {#if valueIndex != null && allCounts && valueIndex < allCounts.length - 1}
-      <button on:click={() => updateValue(true)}><ArrowRight /></button>
+      <button on:click={() => updateValue(true)}
+        ><ChevronRight title="Next group" size={24} /></button
+      >
     {/if}
   </div>
 </div>

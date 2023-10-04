@@ -70,7 +70,7 @@ from ..schema import (
 from ..signal import Signal, TextEmbeddingSignal, VectorSignal, get_signal_by_type, resolve_signal
 from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptSignal
-from ..signals.metadata_op_search import MetadataOpSignal
+from ..signals.filter_mask import FilterMaskSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
 from ..tasks import TaskStepId, progress
@@ -1601,7 +1601,7 @@ class DatasetDuckDB(Dataset):
             output_path=(*_col_destination_path(udf), PATH_WILDCARD)))
       elif search.type == 'metadata':
         udf = Column(
-          path=search_path, signal_udf=MetadataOpSignal(op=search.op, value=search.value))
+          path=search_path, signal_udf=FilterMaskSignal(op=search.op, value=search.value))
         search_udfs.append(
           DuckDBSearchUDF(udf=udf, search_path=search_path, output_path=_col_destination_path(udf)))
       elif search.type == 'semantic' or search.type == 'concept':
