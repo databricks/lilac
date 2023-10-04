@@ -15,7 +15,7 @@ from typing_extensions import Annotated
 
 from .auth import UserInfo, get_session_user, get_user_access
 from .config import DatasetConfig
-from .data_loader import process_source
+from .load_dataset import process_source
 from .env import get_project_dir
 from .router_utils import RouteErrorHandler
 from .sources.source_registry import get_source_cls, registered_sources

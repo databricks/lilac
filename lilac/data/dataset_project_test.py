@@ -15,7 +15,7 @@ from ..config import (
   EmbeddingConfig,
   SignalConfig,
 )
-from ..data_loader import create_dataset
+from ..load_dataset import create_dataset
 from ..db_manager import get_dataset
 from ..env import get_project_dir
 from ..project import create_project_and_set_env, read_project_config
