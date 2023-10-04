@@ -10,10 +10,10 @@
   import ConceptView from '../concepts/ConceptView.svelte';
   import AddLabel from './AddLabel.svelte';
   import FilterPill from './FilterPill.svelte';
-  import GroupByDropPill from './GroupByDropPill.svelte';
   import GroupByPanel from './GroupByPanel.svelte';
+  import GroupByPill from './GroupByPill.svelte';
   import SearchPill from './SearchPill.svelte';
-  import SortDropPill from './SortDropPill.svelte';
+  import SortPill from './SortPill.svelte';
 
   export let totalNumRows: number | undefined;
   export let manifest: WebManifest | undefined;
@@ -107,8 +107,8 @@
       {/if}
     </div>
 
-    <GroupByDropPill />
-    <SortDropPill />
+    <GroupByPill />
+    <SortPill />
   </div>
   <!-- Number of results. -->
   <div class="flex py-2">

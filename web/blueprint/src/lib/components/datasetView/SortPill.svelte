@@ -18,7 +18,7 @@
     DropdownItemId
   } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
   import {SortAscending, SortDescending} from 'carbon-icons-svelte';
-  import DropPill from '../common/DropPill.svelte';
+  import DropdownPill from '../common/DropdownPill.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
 
   let datasetViewStore = getDatasetViewContext();
@@ -95,7 +95,7 @@
 </script>
 
 <div class="sort-container flex flex-row items-center gap-x-1 md:w-fit">
-  <DropPill bind:open title="Sort" on:select={selectSort} {selectedId} {items} let:item>
+  <DropdownPill bind:open title="Sort" on:select={selectSort} {selectedId} {items} let:item>
     <div slot="icon">
       <button
         use:hoverTooltip={{
@@ -120,5 +120,5 @@
     {#if sortItem}
       <div title={sortItem.text} class="truncate text-sm">{sortItem.text}</div>
     {/if}
-  </DropPill>
+  </DropdownPill>
 </div>

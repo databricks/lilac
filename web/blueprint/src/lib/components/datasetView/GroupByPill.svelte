@@ -9,7 +9,7 @@
     DropdownItemId
   } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
   import {CicsSystemGroup} from 'carbon-icons-svelte';
-  import DropPill from '../common/DropPill.svelte';
+  import DropdownPill from '../common/DropdownPill.svelte';
 
   const datasetStore = getDatasetContext();
   const datasetViewStore = getDatasetViewContext();
@@ -65,7 +65,7 @@
   }
 </script>
 
-<DropPill
+<DropdownPill
   title="Group by"
   {items}
   bind:open
@@ -87,4 +87,4 @@
       {/if}
     </div>
   {/if}
-</DropPill>
+</DropdownPill>

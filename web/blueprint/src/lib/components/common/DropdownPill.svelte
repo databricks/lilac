@@ -6,7 +6,7 @@
     DropdownItemId
   } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
   import {createEventDispatcher} from 'svelte';
-  import {hoverTooltip} from '../common/HoverTooltip';
+  import {hoverTooltip} from './HoverTooltip';
 
   export let title: string;
   export let selectedId: string | null | undefined = null;
