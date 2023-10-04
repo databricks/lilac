@@ -159,6 +159,8 @@ signals:
   - signal_name: text_statistics
   - signal_name: near_dup
   - signal_name: lang_detection
+  - signal_name: cluster_dbscan
+    embedding: gte-small
   - signal_name: concept_score
     namespace: lilac
     concept_name: legal-termination
