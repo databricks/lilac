@@ -183,6 +183,8 @@
       {/if}
     </div>
 
+    <GroupByDropdown />
+
     <!-- Sorting -->
     <div class="sort-container flex flex-row items-center gap-x-1 md:w-fit">
       <button
@@ -230,7 +232,6 @@
         </button>
       {/if}
     </div>
-    <GroupByDropdown />
   </div>
   <!-- Number of results. -->
   <div class="flex py-2">

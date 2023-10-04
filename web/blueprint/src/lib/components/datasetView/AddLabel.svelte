@@ -113,7 +113,7 @@
   </button>
 </div>
 <div
-  class="absolute left-0 top-0 w-60"
+  class="absolute left-0 top-0 z-50 w-60"
   class:hidden={!labelMenuOpen}
   use:clickOutside={() => (labelMenuOpen = false)}
 >
