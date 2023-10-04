@@ -93,7 +93,7 @@ all = [
   "langdetect",
   "spacy",
   "langsmith",
-  "github",
+  "llama-index",
 ]
 
 embeddings = [
