@@ -64,7 +64,7 @@ Lilac can be used from our UI or from Python.
       <p style="color:rgb(75,75,75)">Curate a set of concepts for your business needs</p>
       <p><a href="https://lilacai-lilac.hf.space/concepts#lilac/profanity">Try a concept→</a></p>
     </td>
-    <td><video loop muted autoplay controls src="docs/_static/welcome/concepts.mp4"></video></td>
+    <td><video loop muted autoplay controls src="./docs/_static/welcome/concepts.mp4"></video></td>
   </tr>
 </table>
 
@@ -77,7 +77,7 @@ Lilac can be used from our UI or from Python.
       <h4>Download the enriched data</h4>
       <p style="color:rgb(75,75,75)">Continue working in your favorite data stack</p>
     </td>
-    <td><video loop muted autoplay controls src="docs/_static/welcome/download.mp4"></video></td>
+    <td><video loop muted autoplay controls src="./docs/_static/welcome/download.mp4"></video></td>
   </tr>
 </table>
 
