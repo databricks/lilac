@@ -2,13 +2,13 @@
 import os
 from typing import ClassVar, Iterable, Optional
 
-from llama_index import Document, GithubRepositoryReader
+from llama_index import GithubRepositoryReader
 from pydantic import Field, field_serializer
 from typing_extensions import override
 
-from ..schema import Item, field
+from ..schema import Item
 from ..source import Source, SourceSchema
-from ..utils import log
+from .llama_index_docs_source import LlamaIndexDocsSource
 
 # We currently don't support images or videos, so we filter them out to reduce the load time.
 IGNORE_MEDIA_EXTENSIONS = [
@@ -44,7 +44,7 @@ class GithubSource(Source):
 
   repo: str = Field(description='The GitHub repository to load from. Format: <owner>/<repo>.')
   branch: Optional[str] = Field(
-    default=None, description='The branch to load from. Defaults to the main branch.')
+    default='main', description='The branch to load from. Defaults to the main branch.')
   ignore_directories: list[str] = Field(
     description='A list of directories to load from. If not specified, loads from '
     'all directories.')
@@ -60,7 +60,7 @@ class GithubSource(Source):
     del github_token
     return ''
 
-  _loader: GithubRepositoryReader
+  _llama_index_docs_source: LlamaIndexDocsSource
 
   @override
   def setup(self) -> None:
@@ -71,7 +71,7 @@ class GithubSource(Source):
 
     owner, repo = self.repo.split('/')
 
-    self._loader = GithubRepositoryReader(
+    loader = GithubRepositoryReader(
       owner=owner,
       repo=repo,
       ignore_directories=self.ignore_directories,
@@ -80,31 +80,14 @@ class GithubSource(Source):
       concurrent_requests=10,
       github_token=github_token)
 
+    self._llama_index_docs_source = LlamaIndexDocsSource(loader.load_data(branch=self.branch))
+
   @override
   def source_schema(self) -> SourceSchema:
     """Return the source schema."""
-    return SourceSchema(
-      fields={
-        'file_path': field('string'),
-        'file_name': field('string'),
-        'url': field('string'),
-        'content': field('string'),
-      })
+    return self._llama_index_docs_source.source_schema()
 
   @override
   def process(self) -> Iterable[Item]:
     """Read from GitHub."""
-    docs = self._loader.load_data(branch=self.branch)
-    for doc in docs:
-      if not isinstance(doc, Document):
-        log('Ignoring non-document: ', doc.doc_id)
-        continue
-
-      metadata = doc.metadata
-
-      yield {
-        'file_path': metadata.get('file_path'),
-        'file_name': metadata.get('file_name'),
-        'url': metadata.get('url'),
-        'content': doc.get_content(),
-      }
+    return self._llama_index_docs_source.process()
