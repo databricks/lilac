@@ -417,12 +417,8 @@ class DatasetDuckDB(Dataset):
       yield from zip(row_ids, values)
       is_empty = df_chunk.empty
 
-  def _compute_signal_items(self,
-                            signal: Signal,
-                            path: Path,
-                            data_schema: Schema,
-                            num_items: int,
-                            task_step_id: Optional[TaskStepId] = None) -> Iterable[Item]:
+  def _compute_signal_items(self, signal: Signal, path: Path,
+                            data_schema: Schema) -> Iterable[Item]:
     source_path = normalize_path(path)
 
     source_values = self._select_iterable_values(source_path, data_schema)
@@ -485,8 +481,7 @@ class DatasetDuckDB(Dataset):
       task_step_id = ('', 0)
 
     signal.setup()
-    output_items = self._compute_signal_items(signal, path, manifest.data_schema,
-                                              manifest.num_items, task_step_id)
+    output_items = self._compute_signal_items(signal, path, manifest.data_schema)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
@@ -553,8 +548,7 @@ class DatasetDuckDB(Dataset):
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
 
     signal.setup()
-    output_items = self._compute_signal_items(signal, path, manifest.data_schema,
-                                              manifest.num_items, task_step_id)
+    output_items = self._compute_signal_items(signal, path, manifest.data_schema)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
 

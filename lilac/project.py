@@ -96,14 +96,16 @@ def add_project_signal_config(dataset_namespace: str,
   project_dir = project_dir or get_project_dir()
 
   with PROJECT_CONFIG_LOCK:
-    config = read_project_config(get_project_dir())
+    config = read_project_config(project_dir)
     dataset_config = get_dataset_config(config, dataset_namespace, dataset_name)
     if dataset_config is None:
-      raise ValueError(f'Dataset "{dataset_namespace}/{dataset_name}" not found in project config.')
+      raise ValueError(
+        f'Dataset "{dataset_namespace}/{dataset_name}" not found in project config in '
+        f'project dir: {project_dir}.')
     if signal_config in dataset_config.signals:
       return
     dataset_config.signals.append(signal_config)
-    write_project_config(get_project_dir(), config)
+    write_project_config(project_dir, config)
 
 
 def add_project_embedding_config(dataset_namespace: str,

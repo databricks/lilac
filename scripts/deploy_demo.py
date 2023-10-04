@@ -26,7 +26,6 @@ poetry run python -m scripts.deploy_demo \
   --skip_sync \
   --skip_load \
   --skip_data_upload \
-  --use_pip=false \
   --hf_space=lilacai/lilac-staging
 """
 import subprocess
@@ -128,7 +127,7 @@ def deploy_demo(config: str, hf_space: str, project_dir: str, load_overwrite: bo
 
   # Enable google analytics.
   hf_api = HfApi()
-  hf_api.add_space_variable(hf_space, 'GOOGLE_ANALYTICS_ENABLED', True)
+  hf_api.add_space_variable(hf_space, 'GOOGLE_ANALYTICS_ENABLED', 'True')
 
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:

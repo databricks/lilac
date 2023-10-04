@@ -116,7 +116,7 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
   log()
   total_num_rows = 0
   for d in datasets_to_load:
-    dataset = DatasetDuckDB(d.namespace, d.name)
+    dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
     num_rows = dataset.select_rows([ROWID], limit=1).total_num_rows
     log(f'{d.namespace}/{d.name} loaded with {num_rows:,} rows.')
 
@@ -203,7 +203,7 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
         for s in signals:
           field = manifest.data_schema.get_field(s.path)
           signal_field = (field.fields or {}).get(s.signal.key())
-          if signal_field is None or signal_field.signal != s.signal.model_dump() or overwrite:
+          if signal_field is None or overwrite:
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
             task_manager.execute(task_id, _compute_signal, d.namespace, d.name, s, project_dir,
                                  (task_id, 0))
@@ -222,7 +222,7 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
   log('*** Compute model caches ***')
   with DebugTimer('Computing model caches'):
     concept_db = DiskConceptDB(project_dir)
-    concept_model_db = DiskConceptModelDB(concept_db)
+    concept_model_db = DiskConceptModelDB(concept_db, project_dir=project_dir)
     if config.concept_model_cache_embeddings:
       for concept_info in concept_db.list():
         for embedding in config.concept_model_cache_embeddings:
