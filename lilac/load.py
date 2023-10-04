@@ -226,6 +226,7 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
     if config.concept_model_cache_embeddings:
       for concept_info in concept_db.list():
         for embedding in config.concept_model_cache_embeddings:
+          log('Syncing concept model cache:', concept_info, embedding)
           concept_model_db.sync(
             concept_info.namespace, concept_info.name, embedding_name=embedding, create=True)
 
