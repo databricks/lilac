@@ -19,6 +19,9 @@
   export let hideLabels: string[] | undefined = undefined;
   export let buttonText: string | undefined = undefined;
   export let helperText = 'Add label';
+  export let disabled = false;
+  export let disabledMessage = 'User does not have access to add labels.';
+
   $: labelMenuOpen = false;
   let comboBox: ComboBox;
   let comboBoxText = '';
@@ -96,12 +99,12 @@
 
 <div
   use:hoverTooltip={{
-    text: !canEditLabels ? 'You do not have access to add labels.' : ''
+    text: !canEditLabels ? 'You do not have access to add labels.' : disabled ? disabledMessage : ''
   }}
 >
   <button
-    disabled={!canEditLabels}
-    class:opacity-30={!canEditLabels}
+    disabled={!canEditLabels || disabled}
+    class:opacity-30={!canEditLabels || disabled}
     on:click={addLabel}
     use:hoverTooltip={{text: helperText}}
     class="flex items-center gap-x-2 border border-gray-300"

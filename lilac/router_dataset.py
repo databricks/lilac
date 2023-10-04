@@ -356,6 +356,9 @@ def add_labels(namespace: str, dataset_name: str, options: AddLabelsOptions,
   if not get_user_access(user).dataset.edit_labels:
     raise HTTPException(401, 'User does not have access to add labels to this dataset.')
 
+  if options.searches or options.filters and not get_user_access(user).dataset.label_all:
+    raise HTTPException(401, 'User does not have access to use the label-all feature.')
+
   sanitized_filters = [
     PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
   ]

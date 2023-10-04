@@ -66,9 +66,10 @@ class LilacEnvironment(BaseModel):
     '`LILAC_AUTH_ENABLED` environment flag was disabled. These email addresses are used in concert'
     'with the `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment flags to authenticate '
     'users.')
-
   LILAC_AUTH_USER_EDIT_LABELS: str = PydanticField(
     description='Set to true to allow non-admin users to edit labels.')
+  LILAC_AUTH_USER_DISABLE_LABEL_ALL: str = PydanticField(
+    description='Set to true to disable non-admin users to use the label-all feature in the UI.')
 
   GOOGLE_CLIENT_ID: str = PydanticField(
     description=
