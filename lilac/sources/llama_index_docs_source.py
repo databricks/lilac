@@ -44,13 +44,13 @@ class LlamaIndexDocsSource(Source):
   """ # noqa: D415, D400
   name: ClassVar[str] = 'llama_index_docs'
 
-  _documents: Optional[Iterable[Document]]
+  _documents: Optional[Iterable['Document']]
   # Used to infer the schema.
-  _infer_schema_docs: Iterator[Document]
+  _infer_schema_docs: Iterator['Document']
 
   _dict_source: Optional[DictSource] = None
 
-  def __init__(self, documents: Optional[Iterable[Document]] = None, **kwargs: Any):
+  def __init__(self, documents: Optional[Iterable['Document']] = None, **kwargs: Any):
     super().__init__(**kwargs)
     self._documents = documents
 
