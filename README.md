@@ -22,7 +22,7 @@ Lilac can be used from our UI or from Python.
       <p style="color:rgb(75,75,75)">Query large datasets instantaneously</p>
       <p><a href="https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca-100k&query=%7B%22searches%22%3A%5B%7B%22path%22%3A%5B%22response%22%5D%2C%22type%22%3A%22semantic%22%2C%22query%22%3A%22hacking%20a%20computer%22%2C%22embedding%22%3A%22gte-small%22%7D%5D%7D">Try it →</a></p>
     </td>
-    <td>https://github.com/lilacai/lilac/raw/ds-improve-readme/docs/_static/welcome/semantic-search.mp4</td>
+    <td>https://github.com/lilacai/lilac/assets/2294279/d7e918bf-6b10-4055-b5cf-8de4c3cef7a1</td>
   </tr>
 </table>
 
