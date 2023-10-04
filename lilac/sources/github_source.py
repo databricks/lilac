@@ -2,7 +2,6 @@
 import os
 from typing import ClassVar, Iterable, Optional
 
-from llama_index import GithubRepositoryReader
 from pydantic import Field, field_serializer
 from typing_extensions import override
 
@@ -64,6 +63,14 @@ class GithubSource(Source):
 
   @override
   def setup(self) -> None:
+    try:
+      from llama_index import GithubRepositoryReader, download_loader
+    except ImportError:
+      raise ImportError('Could not import dependencies for the "github" source. '
+                        'Please install with pip install lilac[github]')
+
+    download_loader('GithubRepositoryReader')
+
     github_token = os.getenv('GITHUB_TOKEN', self.github_token)
     if not github_token:
       raise ValueError(

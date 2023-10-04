@@ -75,9 +75,8 @@ langdetect = { version = "^1.0.9", optional = true }
 # Langsmith source ingestion.
 langsmith = { version = "^0.0.41", optional = true }
 
-# LlamaIndex and LlamaHub for some source ingestion.
-llama-hub = "^0.0.34"
-llama-index = "^0.8.38"
+# LlamaIndex for GitHub source ingestion.
+llama-index = { version = "^0.8.38", optional = true }
 
 [tool.poetry.extras]
 all = [
@@ -94,6 +93,7 @@ all = [
   "langdetect",
   "spacy",
   "langsmith",
+  "llama-index",
 ]
 
 embeddings = [
@@ -115,7 +115,7 @@ gmail = [
   "google-auth-oauthlib",
 ]
 langsmith = ["langsmith"]
-github = ["llama_index"]
+github = ["llama-index"]
 
 # Signals.
 signals = ["textacy", "detect-secrets", "langdetect", "spacy"]

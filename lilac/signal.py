@@ -2,26 +2,11 @@
 
 import abc
 import copy
-from typing import (
-  TYPE_CHECKING,
-  Any,
-  Callable,
-  ClassVar,
-  Iterable,
-  Optional,
-  Sequence,
-  Type,
-  TypeVar,
-  Union,
-)
+from typing import Any, Callable, ClassVar, Iterable, Optional, Sequence, Type, TypeVar, Union
 
 from pydantic import BaseModel, ConfigDict
 from pydantic import Field as PydanticField
 from pydantic import model_serializer
-
-if TYPE_CHECKING:
-  pass
-
 from typing_extensions import override
 
 from .embeddings.vector_store import VectorDBIndex
