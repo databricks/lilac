@@ -8,8 +8,6 @@ from ..schema import Item
 from ..source import Source, SourceSchema
 from .dict_source import DictSource
 
-INFER_SCHEMA_SAMPLE_SIZE = 100
-
 
 class LlamaIndexDocsSource(Source):
   """LlamaIndex document source
