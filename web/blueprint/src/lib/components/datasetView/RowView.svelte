@@ -72,7 +72,7 @@
     title="Could not fetch schema:"
     subtitle={selectRowsSchema.error.body?.detail || selectRowsSchema?.error.message}
   />
-{:else if $rows?.isFetching || $schema.isFetching || selectRowsSchema?.isFetching || $settings.isFetching}
+{:else if $rows?.isFetching}
   <SkeletonText paragraph lines={3} />
 {:else if $rows?.isSuccess && rowIds && rowIds.length === 0}
   <div class="mx-4 mt-8 w-full text-gray-600">No results.</div>

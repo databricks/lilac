@@ -10,7 +10,7 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {getSchemaLabels, type AddLabelsOptions} from '$lilac';
-  import {ComboBox, SkeletonText} from 'carbon-components-svelte';
+  import {ComboBox} from 'carbon-components-svelte';
   import {Add, Tag} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import {clickOutside} from '../common/clickOutside';
@@ -53,6 +53,12 @@
 
   $: addLabels = $datasetStore.schema != null ? addLabelsMutation($datasetStore.schema) : null;
 
+  $: disableLabels =
+    disabled ||
+    !canEditLabels ||
+    $addLabels?.isLoading ||
+    $datasetStore.selectRowsSchema?.isFetching;
+
   function addLabel() {
     labelMenuOpen = true;
     requestAnimationFrame(() => {
@@ -78,6 +84,7 @@
       ...addLabelsQuery,
       label_name: selectedItem.text
     };
+    labelMenuOpen = false;
     $addLabels!.mutate([namespace, datasetName, addLabelsOptions], {
       onSuccess: numRows => {
         const message =
@@ -90,7 +97,6 @@
           title: `Added label "${addLabelsOptions.label_name}"`,
           message
         });
-        labelMenuOpen = false;
       }
     });
     comboBox.clear();
@@ -103,8 +109,8 @@
   }}
 >
   <button
-    disabled={!canEditLabels || disabled}
-    class:opacity-30={!canEditLabels || disabled}
+    disabled={disableLabels}
+    class:opacity-30={disableLabels}
     on:click={addLabel}
     use:hoverTooltip={{text: helperText}}
     class="flex items-center gap-x-2 border border-gray-300"
@@ -120,34 +126,30 @@
   class:hidden={!labelMenuOpen}
   use:clickOutside={() => (labelMenuOpen = false)}
 >
-  {#if $addLabels == null || $addLabels.isLoading}
-    <SkeletonText />
-  {:else}
-    <ComboBox
-      size="sm"
-      open={labelMenuOpen}
-      bind:this={comboBox}
-      items={labelItems}
-      bind:value={comboBoxText}
-      on:select={selectLabelItem}
-      shouldFilterItem={(item, value) =>
-        item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-label'}
-      placeholder="Select or type a new label"
-      let:item={it}
-    >
-      {@const item = labelItems.find(p => p.id === it.id)}
-      {#if item == null}
-        <div />
-      {:else if item.id === 'new-label'}
-        <div class="new-concept flex flex-row items-center justify-items-center">
-          <Tag><Add /></Tag>
-          <div class="ml-2">
-            New label: {comboBoxText}
-          </div>
+  <ComboBox
+    size="sm"
+    open={labelMenuOpen}
+    bind:this={comboBox}
+    items={labelItems}
+    bind:value={comboBoxText}
+    on:select={selectLabelItem}
+    shouldFilterItem={(item, value) =>
+      item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-label'}
+    placeholder="Select or type a new label"
+    let:item={it}
+  >
+    {@const item = labelItems.find(p => p.id === it.id)}
+    {#if item == null}
+      <div />
+    {:else if item.id === 'new-label'}
+      <div class="new-concept flex flex-row items-center justify-items-center">
+        <Tag />
+        <div class="ml-2">
+          New label: {comboBoxText}
         </div>
-      {:else}
-        <div class="flex justify-between gap-x-8">{item.text}</div>
-      {/if}
-    </ComboBox>
-  {/if}
+      </div>
+    {:else}
+      <div class="flex justify-between gap-x-8">{item.text}</div>
+    {/if}
+  </ComboBox>
 </div>
