@@ -53,11 +53,7 @@
 
   $: addLabels = $datasetStore.schema != null ? addLabelsMutation($datasetStore.schema) : null;
 
-  $: disableLabels =
-    disabled ||
-    !canEditLabels ||
-    $addLabels?.isLoading ||
-    $datasetStore.selectRowsSchema?.isFetching;
+  $: disableLabels = disabled || !canEditLabels;
 
   function addLabel() {
     labelMenuOpen = true;

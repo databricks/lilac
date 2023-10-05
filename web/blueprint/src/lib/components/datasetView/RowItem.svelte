@@ -52,8 +52,7 @@
       : null;
   $: row = $rowQuery?.data;
   $: rowLabels = row != null ? getRowLabels(row) : [];
-  $: disableLabels =
-    !canEditLabels || $removeLabels?.isLoading || $datasetStore.selectRowsSchema?.isFetching;
+  $: disableLabels = !canEditLabels;
 
   $: schemaLabels = $datasetStore.schema && getSchemaLabels($datasetStore.schema);
   $: addLabels = $datasetStore.schema != null ? addLabelsMutation($datasetStore.schema) : null;
