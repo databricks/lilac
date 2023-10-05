@@ -28,7 +28,7 @@
   const MIN_METADATA_HEIGHT_PX = 165;
   let mediaHeight = 0;
 
-  const removeLabels =
+  $: removeLabels =
     $datasetStore.schema != null ? removeLabelsMutation($datasetStore.schema) : null;
 
   $: selectRowsSchema = $datasetStore.selectRowsSchema?.data;

@@ -22,7 +22,7 @@
   let datasetViewStore = getDatasetViewContext();
   let datasetStore = getDatasetContext();
   const authInfo = queryAuthInfo();
-  $: canLabelAll = $authInfo.data?.access.dataset.label_all;
+  $: canLabelAll = $authInfo.data?.access.dataset.label_all || false;
 
   $: schema = $datasetStore?.selectRowsSchema?.data?.schema;
 
@@ -64,7 +64,7 @@
   }
 </script>
 
-<div class="mx-5 my-2 flex items-center justify-between">
+<div class="relative mx-5 my-2 flex items-center justify-between">
   <div class="flex items-center gap-x-6 gap-y-2">
     <AddLabel
       disabled={!canLabelAll}

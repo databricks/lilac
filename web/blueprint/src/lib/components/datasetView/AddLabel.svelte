@@ -132,7 +132,7 @@
       on:select={selectLabelItem}
       shouldFilterItem={(item, value) =>
         item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-label'}
-      placeholder="Select or add a new label"
+      placeholder="Select or type a new label"
       let:item={it}
     >
       {@const item = labelItems.find(p => p.id === it.id)}

@@ -206,18 +206,15 @@ def test_remove_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> 
   assert list(dataset.select_rows([PATH_WILDCARD], sort_by=['int'], sort_order=SortOrder.ASC)) == [{
     'str': 'a',
     'int': 1,
-    'test_label': None
   }, {
     'str': 'b',
     'int': 2,
-    'test_label': None
   }, {
     'str': 'c',
     'int': 3,
-    'test_label': None
   }]
 
-  assert dataset.get_label_names() == ['test_label']
+  assert dataset.get_label_names() == []
 
 
 @freeze_time(TEST_TIME)
@@ -239,18 +236,15 @@ def test_remove_labels_no_filters(make_test_data: TestDataMaker, mocker: MockerF
   assert list(dataset.select_rows([PATH_WILDCARD], sort_by=['int'], sort_order=SortOrder.ASC)) == [{
     'str': 'a',
     'int': 1,
-    'test_label': None
   }, {
     'str': 'b',
     'int': 2,
-    'test_label': None
   }, {
     'str': 'c',
     'int': 3,
-    'test_label': None
   }]
 
-  assert dataset.get_label_names() == ['test_label']
+  assert dataset.get_label_names() == []
 
 
 @freeze_time(TEST_TIME)

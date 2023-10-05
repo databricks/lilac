@@ -10,6 +10,7 @@ import re
 import shutil
 import sqlite3
 import threading
+from contextlib import closing
 from datetime import datetime
 from importlib import metadata
 from typing import Any, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
@@ -74,7 +75,7 @@ from ..signals.filter_mask import FilterMaskSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
 from ..tasks import TaskStepId, progress
-from ..utils import DebugTimer, get_dataset_output_dir, log, open_file
+from ..utils import DebugTimer, delete_file, get_dataset_output_dir, log, open_file
 from . import dataset
 from .dataset import (
   BINARY_OPS,
@@ -1430,32 +1431,30 @@ class DatasetDuckDB(Dataset):
       filters = list(filters) if filters else []
       filters.append(Filter(path=(ROWID,), op='in', value=list(row_ids)))
 
-    remove_row_ids: Iterable[str]
+    remove_row_ids: Sequence[str]
     if row_ids and not searches and not filters:
       remove_row_ids = row_ids
     else:
-      remove_row_ids = (
-        row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters))
+      remove_row_ids = [
+        row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters)
+      ]
 
     if labels_filepath not in self._label_file_lock:
       self._label_file_lock[labels_filepath] = threading.Lock()
 
-    num_labels = 0
     with self._label_file_lock[labels_filepath]:
-      sqlite_con = sqlite3.connect(labels_filepath)
-      sqlite_cur = sqlite_con.cursor()
-
-      for row_id in remove_row_ids:
-        # We use ON CONFLICT to resolve the same row UUID being labeled again. In this case, we
-        # overwrite the existing label with the new label.
-        sqlite_cur.execute(
+      with closing(sqlite3.connect(labels_filepath)) as conn:
+        conn.executemany(
           f"""
             DELETE FROM "{name}"
             WHERE {ROWID} = ?
-          """, (row_id,))
-        num_labels += 1
-      sqlite_con.commit()
-    return num_labels
+          """, [(x,) for x in remove_row_ids])
+        conn.commit()
+        count = conn.execute(f'SELECT COUNT(*) FROM "{name}"').fetchone()[0]
+        if count == 0:
+          delete_file(labels_filepath)
+
+    return len(remove_row_ids)
 
   @override
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:

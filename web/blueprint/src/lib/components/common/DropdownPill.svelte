@@ -53,7 +53,7 @@
       {/if}
     </Dropdown>
   {:else}
-    <DropdownSkeleton inline />
+    <div class="h-6 w-16 overflow-hidden"><DropdownSkeleton inline /></div>
   {/if}
 </div>
 
