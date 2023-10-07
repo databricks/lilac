@@ -2,7 +2,6 @@
   import Dataset from '$lib/components/datasetView/Dataset.svelte';
   import {
     queryDatasetSchema,
-    queryManyDatasetStats,
     querySelectRowsSchema,
     querySettings
   } from '$lib/queries/datasetQueries';
@@ -20,7 +19,6 @@
     persistedHashStore,
     serializeState
   } from '$lib/stores/urlHashStore';
-  import {getFieldsByDtype} from '$lilac';
 
   let namespace: string | undefined = undefined;
   let datasetName: string | undefined = undefined;
@@ -82,21 +80,6 @@
   $: {
     if (datasetStore && $schema?.data) {
       datasetStore.setSchema($schema.data);
-    }
-  }
-
-  $: stringFields = $schema?.data ? getFieldsByDtype('string', $schema.data) : null;
-  $: stats =
-    namespace && datasetName && stringFields
-      ? queryManyDatasetStats(
-          namespace,
-          datasetName,
-          stringFields.map(f => f.path)
-        )
-      : null;
-  $: {
-    if (datasetStore && $stats?.data && !$stats.isFetching) {
-      datasetStore.setStats($stats.data);
     }
   }
 
