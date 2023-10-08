@@ -22,7 +22,7 @@ DBSCAN_EPS = 0.05
 class ClusterHDBScan(VectorSignal):
   """Find clusters of documents in a dataset using pre-computed embeddings and DBSCAN."""
   name: ClassVar[str] = 'cluster_hdbscan'
-  display_name: ClassVar[str] = 'Cluster with HDDBSCAN'
+  display_name: ClassVar[str] = 'Cluster with HDBSCAN'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   min_cluster_size: int = PyField(
