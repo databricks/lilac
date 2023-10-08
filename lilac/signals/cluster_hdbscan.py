@@ -3,8 +3,6 @@ from typing import ClassVar, Iterable, Optional
 
 import numpy as np
 import umap
-
-# from hdbscan import HDBSCAN
 from pydantic import Field as PyField
 from sklearn.cluster import HDBSCAN
 from typing_extensions import override
