@@ -2,8 +2,11 @@
 from typing import ClassVar, Iterable, Optional
 
 import numpy as np
+import umap
+
+# from hdbscan import HDBSCAN
 from pydantic import Field as PyField
-from sklearn.cluster import DBSCAN
+from sklearn.cluster import HDBSCAN
 from typing_extensions import override
 
 from lilac.embeddings.vector_store import VectorDBIndex
@@ -14,27 +17,19 @@ from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector
 from ..signal import VectorSignal
 
 CLUSTER_ID = 'cluster_id'
-MIN_SAMPLES = 5
+MIN_CLUSTER_SIZE = 5
 DBSCAN_EPS = 0.05
 
 
-class ClusterDBSCAN(VectorSignal):
-  """Find clusters of documents in a dataset using pre-computed embeddings and DBSCAN.
-
-  NOTE: This is deprecated in favor of ClusterHDBSCAN.
-  """
-  name: ClassVar[str] = 'cluster_dbscan'
-  display_name: ClassVar[str] = 'Cluster with DBSCAN'
+class ClusterHDBScan(VectorSignal):
+  """Find clusters of documents in a dataset using pre-computed embeddings and DBSCAN."""
+  name: ClassVar[str] = 'cluster_hdbscan'
+  display_name: ClassVar[str] = 'Cluster with HDDBSCAN'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
-  eps: float = PyField(
-    title='Epsilon',
-    default=DBSCAN_EPS,
-    description=
-    'The maximum distance between points so they are considered to be in the same neighborhood.')
-  min_samples: int = PyField(
-    title='Minimum samples',
-    default=MIN_SAMPLES,
+  min_cluster_size: int = PyField(
+    title='Minimum cluster size',
+    default=MIN_CLUSTER_SIZE,
     description='The minimum number of samples in a neighborhood.')
 
   @override
@@ -65,13 +60,20 @@ class ClusterDBSCAN(VectorSignal):
         for vector in vectors:
           all_vectors.append(vector['vector'])
 
-    dbscan = DBSCAN(eps=DBSCAN_EPS, min_samples=MIN_SAMPLES, metric='cosine', n_jobs=-1)
-    dbscan.fit(all_vectors)
+    # Use UMAP to reduce the dimensionality before hdbscan to speed up clustering.
+    # For details on hyperparameters, see:
+    # https://umap-learn.readthedocs.io/en/latest/clustering.html
+    reducer = umap.UMAP(n_components=10, n_neighbors=30, min_dist=0.0)
+    all_vectors = reducer.fit_transform(all_vectors)
+
+    hdbscan = HDBSCAN(min_cluster_size=self.min_cluster_size, n_jobs=-1)
+    hdbscan.fit(np.array(all_vectors))
+
     span_index = 0
     for spans in all_spans:
       span_clusters: list[Item] = []
       for span in spans:
-        cluster_id: Optional[int] = int(dbscan.labels_[span_index])
+        cluster_id: Optional[int] = int(hdbscan.labels_[span_index])
         start, end = span
         if cluster_id == -1:
           cluster_id = None

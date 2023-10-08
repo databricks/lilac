@@ -73,7 +73,8 @@
 
           const argumentDetails = Object.entries(field.signal || {})
             .filter(([arg, _]) => arg != 'signal_name')
-            .map(([k, v]) => `${k}: ${v}`);
+            .map(([k, v]) => `${k}: ${v}`)
+            .join('\n');
 
           if (argumentDetails.length > 0) {
             fieldHoverDetails = `Signal '${signalInfo.name}' arguments: \n\n${argumentDetails}`;
