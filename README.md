@@ -1,5 +1,5 @@
 <h1 align="center">🌸 Lilac</h1>
-<h3 align="center">Curate better data for LLMs</h3>
+<div align="center" style="font-size: 20px; margin-bottom: 4px">Curate better data for LLMs</div>
 <p align="center">
   <a style="padding: 4px;"  href="https://lilacai-lilac.hf.space/">
     <span style="margin-right: 4px; font-size: 12px">🔗</span> <span style="font-size: 14px">Try the Lilac web demo!</span>
@@ -23,7 +23,7 @@
     </a>
 </p>
 
-Lilac helps you **curate better data** for LLMs, from RAGs to fine-tuning datasets.
+Lilac helps you **curate data** for LLMs, from RAGs to fine-tuning datasets.
 
 Lilac runs **on-device** using open-source LLMs with a UI and Python API for:
 
