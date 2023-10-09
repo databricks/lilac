@@ -48,8 +48,6 @@ class SQLiteSource(Source):
   @override
   def setup(self) -> None:
     self._con = duckdb.connect(database=':memory:')
-    self._con.install_extension('sqlite')
-    self._con.load_extension('sqlite')
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     db_file = self.db_file.replace('gs://', 's3://')
