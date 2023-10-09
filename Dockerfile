@@ -13,8 +13,7 @@ WORKDIR /app
 RUN python -m pip install lilac[all]
 
 # Install from the local wheel inside ./dist. This will be a no-op if the wheel is not found.
-RUN mkdir -p ./dist
-COPY --chown=user /dist ./dist/
+COPY --chown=user /dis[t] ./dist/
 RUN python -m pip install --find-links=dist --upgrade lilac[all]
 
 COPY LICENSE .
