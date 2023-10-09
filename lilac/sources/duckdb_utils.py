@@ -12,9 +12,6 @@ def duckdb_setup(con: duckdb.DuckDBPyConnection) -> str:
     SET extension_directory='{os.path.join(get_project_dir(), '.duckdb')}';
   """)
 
-  con.install_extension('httpfs')
-  con.load_extension('httpfs')
-
   if env('GCS_REGION'):
     return f"""
         SET s3_region='{env('GCS_REGION')}';

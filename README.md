@@ -68,6 +68,27 @@ ll.start_server(project_dir='~/my_project')
 This will open start a webserver at http://localhost:5432/ where you can now load datasets and
 explore them.
 
+### Run via Docker
+
+Build the image after cloning the repo:
+
+```sh
+docker build -t lilac .
+```
+
+The container runs on the virtual port `8000`, this command maps it to the host machine port `5432`.
+
+If you have an existing lilac project, mount it and set the `LILAC_PROJECT_DIR` environment
+variable:
+
+```sh
+docker run -it \
+  -p 5432:8000 \
+  --volume /host/path/to/data:/data \
+  -e LILAC_PROJECT_DIR="/data" \
+  lilac
+```
+
 ### 📊 Load data
 
 Datasets can be loaded directly from HuggingFace, CSV, JSON,
