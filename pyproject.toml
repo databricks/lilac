@@ -79,7 +79,7 @@ langsmith = { version = "^0.0.41", optional = true }
 llama-index = { version = "^0.8.38", optional = true }
 
 # For HDBScan to reduce dimensionality before running clustering.
-umap-learn = { version = "^0.5.4", optional = true }
+umap-learn = { version = "^0.5.4" }
 
 [tool.poetry.extras]
 all = [
@@ -98,7 +98,6 @@ all = [
   "langsmith",
   "llama-index",
   "hdbscan",
-  "umap-learn",
 ]
 
 embeddings = [
@@ -130,7 +129,6 @@ lang_detection = ["langdetect"]   # Language detection.
 ner = ["spacy"]                   # Named entity recognition.
 pii = ["detect-secrets", "regex"] # PII.
 text_stats = ["textacy", "spacy"] # Text statistics.
-hdbscan = ["umap-learn"]          # Clustering.
 
 # Individual embeddings.
 gte = ["sentence-transformers"]

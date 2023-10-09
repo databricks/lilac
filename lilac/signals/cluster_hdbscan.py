@@ -16,11 +16,15 @@ from ..signal import VectorSignal
 
 CLUSTER_ID = 'cluster_id'
 MIN_CLUSTER_SIZE = 5
-DBSCAN_EPS = 0.05
+UMAP_N_COMPONENTS = 10
 
 
 class ClusterHDBScan(VectorSignal):
-  """Find clusters of documents in a dataset using pre-computed embeddings and DBSCAN."""
+  """Find clusters of documents in a dataset using pre-computed embeddings and HDBSCAN.
+
+  This signal requires a pre-computed embedding. It uses UMAP to reduce the dimensionality
+  of the embedding before clustering with HDBSCAN.
+  """
   name: ClassVar[str] = 'cluster_hdbscan'
   display_name: ClassVar[str] = 'Cluster with HDBSCAN'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
@@ -29,6 +33,12 @@ class ClusterHDBScan(VectorSignal):
     title='Minimum cluster size',
     default=MIN_CLUSTER_SIZE,
     description='The minimum number of samples in a neighborhood.')
+
+  umap_n_components: int = PyField(
+    title='Dimensionality of reduced embedding by UMAP',
+    default=UMAP_N_COMPONENTS,
+    description='The n_components argument for UMAP. This refers to the dimensionality of the '
+    'reduced embedding by UMAP before it is passed to HDBScan.')
 
   @override
   def fields(self) -> Field:
@@ -49,7 +59,6 @@ class ClusterHDBScan(VectorSignal):
 
   def _cluster_span_vectors(self,
                             span_vectors: Iterable[list[SpanVector]]) -> Iterable[Optional[Item]]:
-
     all_spans: list[list[tuple[int, int]]] = []
     all_vectors: list[np.ndarray] = []
     with DebugTimer('DBSCAN: Reading from vector store'):
@@ -61,11 +70,11 @@ class ClusterHDBScan(VectorSignal):
     # Use UMAP to reduce the dimensionality before hdbscan to speed up clustering.
     # For details on hyperparameters, see:
     # https://umap-learn.readthedocs.io/en/latest/clustering.html
-    reducer = umap.UMAP(n_components=10, n_neighbors=30, min_dist=0.0)
+    reducer = umap.UMAP(n_components=self.umap_n_components, n_neighbors=30, min_dist=0.0)
     all_vectors = reducer.fit_transform(all_vectors)
 
     hdbscan = HDBSCAN(min_cluster_size=self.min_cluster_size, n_jobs=-1)
-    hdbscan.fit(np.array(all_vectors))
+    hdbscan.fit(all_vectors)
 
     span_index = 0
     for spans in all_spans:

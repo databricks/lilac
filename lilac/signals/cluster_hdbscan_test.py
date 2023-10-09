@@ -12,7 +12,6 @@ from typing_extensions import override
 from ..data.dataset_test_utils import TestDataMaker, enriched_item
 from ..schema import Item, RichData, lilac_embedding, lilac_span
 from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
-from . import cluster_dbscan
 from .cluster_hdbscan import ClusterHDBScan
 
 TEST_ITEMS: list[Item] = [{
@@ -60,10 +59,9 @@ class TestEmbedding(TextEmbeddingSignal):
 
 
 def test_simple_data(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  mocker.patch(f'{cluster_dbscan.__name__}.MIN_SAMPLES', 2)
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}, {'text': 'd'}])
   dataset.compute_embedding('test_embedding', 'text')
-  signal = ClusterHDBScan(embedding='test_embedding', min_cluster_size=2)
+  signal = ClusterHDBScan(embedding='test_embedding', min_cluster_size=2, umap_n_components=2)
   dataset.compute_signal(signal, 'text')
   signal_key = signal.key(is_computed_signal=True)
   result = dataset.select_rows(combine_columns=True)

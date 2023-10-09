@@ -3111,7 +3111,7 @@ urllib3 = "<2"
 name = "llvmlite"
 version = "0.41.0"
 description = "lightweight wrapper around basic LLVM functionality"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "llvmlite-0.41.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:acc81c1279f858e5eab460844cc381e30d6666bc8eea04724b54d4eeb1fd1e54"},
@@ -3822,7 +3822,7 @@ test = ["pytest", "pytest-console-scripts", "pytest-jupyter", "pytest-tornasync"
 name = "numba"
 version = "0.58.0"
 description = "compiling Python code using LLVM"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "numba-0.58.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:2f146c11af62ad25021d93fccf48715a96d1ea76d43c1c3bc97dca561c6a2693"},
@@ -4788,7 +4788,7 @@ plugins = ["importlib-metadata"]
 name = "pynndescent"
 version = "0.5.10"
 description = "Nearest Neighbor Descent"
-optional = true
+optional = false
 python-versions = "*"
 files = [
     {file = "pynndescent-0.5.10.tar.gz", hash = "sha256:5d5dc683c03ef55fe3ddf693859720ca18f85c6e6e5bb0b4f14870278d5288ad"},
@@ -6886,7 +6886,7 @@ files = [
 name = "umap-learn"
 version = "0.5.4"
 description = "Uniform Manifold Approximation and Projection"
-optional = true
+optional = false
 python-versions = "*"
 files = [
     {file = "umap-learn-0.5.4.tar.gz", hash = "sha256:8cb2fa20b2493f9adbff3bfa3b3e3787f6d67d1547e688ea2bdc272b37d89e18"},
@@ -7469,13 +7469,12 @@ docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.link
 testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-ignore-flaky", "pytest-mypy (>=0.9.1)", "pytest-ruff"]
 
 [extras]
-all = ["cohere", "detect-secrets", "email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "google-generativeai", "langdetect", "langsmith", "llama-index", "openai", "sentence-transformers", "spacy", "textacy", "umap-learn"]
+all = ["cohere", "detect-secrets", "email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "google-generativeai", "langdetect", "langsmith", "llama-index", "openai", "sentence-transformers", "spacy", "textacy"]
 cohere = ["cohere"]
 embeddings = ["cohere", "google-generativeai", "openai", "sentence-transformers"]
 github = ["llama-index"]
 gmail = ["email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib"]
 gte = ["sentence-transformers"]
-hdbscan = ["umap-learn"]
 lang-detection = ["langdetect"]
 langsmith = ["langsmith"]
 llms = ["openai"]
@@ -7491,4 +7490,4 @@ text-stats = ["spacy", "textacy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "d9e143fe2d9e15c64bea9714b507acfe7741f7456e973cb8e98b30e9abc60a91"
+content-hash = "9eff8581b23b5b00ae9e0a23b6e6f29b0388180d9fb6031b16a808454e5dbbdc"
