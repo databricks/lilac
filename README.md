@@ -70,7 +70,7 @@ ll.start_server(project_dir='~/my_project')
 This will open start a webserver at http://localhost:5432/ where you can now load datasets and
 explore them.
 
-### 📊 Load a dataset
+### 📊 Load data
 
 Datasets can be loaded directly from HuggingFace, CSV, JSON,
 [LangSmith from LangChain](https://www.langchain.com/langsmith), SQLite,
@@ -94,7 +94,9 @@ If you prefer, you can load datasets directly from the UI without writing any Py
 
 <img width="600" alt="image" src="https://github.com/lilacai/lilac/assets/1100749/d5d385ce-f11c-47e6-9c00-ea29983e24f0">
 
-### 🔎 Exploring
+### 🔎 Explore
+
+> [🔗 Try OpenOrca-100K before installing!](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca-100k)
 
 Once we've loaded a dataset, we can explore it from the UI and get a sense for what's in the data.
 More documentation [here](https://lilacml.com/datasets/dataset_explore.html).
@@ -102,6 +104,8 @@ More documentation [here](https://lilacml.com/datasets/dataset_explore.html).
 <img alt="image" src="docs/_static/dataset/dataset_explore.png">
 
 ### ⚡ Annotate with Signals (PII, Text Statistics, Language Detection, Neardup, etc)
+
+Annotating data with signals will produce another column in your data.
 
 ```python
 import lilac as ll
@@ -130,15 +134,99 @@ We can also compute signals from the UI:
 
 <img width="600" alt="image" src="docs/_static/dataset/dataset_compute_signal_modal.png">
 
-### 🔎 Searching data
+### 🔎 Search
+
+Semantic and conceptual search requires computing an embedding first:
+
+```python
+dataset.compute_embedding('gte-small', path='text')
+```
 
 #### Semantic search
 
-In the UI, we can search by semantic similarity or by classic keyword search
+In the UI, we can search by semantic similarity or by classic keyword search to find chunks of
+documents similar to a query:
 
-<img width="480" alt="image" src="https://github.com/lilacai/lilac/assets/1100749/4adb603e-8dca-43a3-a492-fd862e194a5a">
+<img width="600" alt="image" src="https://github.com/lilacai/lilac/assets/1100749/4adb603e-8dca-43a3-a492-fd862e194a5a">
 
-<img alt="image" src="https://github.com/lilacai/lilac/assets/1100749/fdee2127-250b-4e06-9ff9-b1023c03b72f">
+<img width="600" alt="image" src="https://github.com/lilacai/lilac/assets/1100749/fdee2127-250b-4e06-9ff9-b1023c03b72f">
+
+We can run the same search in Python:
+
+```python
+rows = dataset.select_rows(
+  columns=['text', 'label'],
+  searches=[
+    ll.SemanticSearch(
+      path='text',
+      embedding='gte-small')
+  ],
+  limit=1)
+
+print(list(rows))
+```
+
+#### Conceptual search
+
+Conceptual search is a much more controllable and powerful version of semantic search, where
+"concepts" can be taught to Lilac by providing positive and negative examples of that concept.
+
+Lilac provides a set of built-in concepts, but you can create your own for very specif
+
+<img width="600" alt="image" src="https://github.com/lilacai/lilac/assets/1100749/9941024b-7c24-4d87-ae46-925f8da435e1">
+
+We can create a concept in Python with a few examples, and search by it:
+
+```python
+concept_db = ll.DiskConceptDB()
+db.create(namespace='local', name='spam')
+# Add examples of spam and not-spam.
+db.edit('local', 'spam', ll.concepts.ConceptUpdate(
+  insert=[
+    ll.concepts.ExampleIn(label=False, text='This is normal text.'),
+    ll.concepts.ExampleIn(label=True, text='asdgasdgkasd;lkgajsdl'),
+    ll.concepts.ExampleIn(label=True, text='11757578jfdjja')
+  ]
+))
+
+# Search by the spam concept.
+rows = dataset.select_rows(
+  columns=['text', 'label'],
+  searches=[
+    ll.ConceptSearch(
+      path='text',
+      concept_namespace='lilac',
+      concept_name='spam',
+      embedding='gte-small')
+  ],
+  limit=1)
+
+print(list(rows))
+```
+
+### 🏷️ Labeling
+
+Lilac allows you to label individual points, or slices of data:
+<img width="600" alt="image" src="docs/_static/dataset/dataset_add_label_tag.png">
+
+We can also label all data given a filter. In this case, adding the label "short" to all text with a
+small amount of characters. This field was produced by the automatic `text_statistics` signal.
+
+<img width="600" alt="image" src="docs/_static/dataset/dataset_add_label_all_short.png">
+
+We can do the same in Python:
+
+```python
+dataset.add_labels(
+  'short',
+  filters=[
+    (('text', 'text_statistics', 'num_characters'), 'less', 1000)
+  ]
+)
+```
+
+Labels can be exported for downstream tasks. Detailed documentation
+[here](https://lilacml.com/datasets/dataset_labels.html).
 
 ## 💬 Contact
 
