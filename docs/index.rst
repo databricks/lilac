@@ -1,5 +1,8 @@
 🌸 Lilac
 =================
+
+.. rst-class:: center
+
 .. meta::
    :description: Analyze, structure and clean unstructured data with AI
    :keywords: datasets, AI, machine learning, unstructured, lilac

@@ -1,3 +1,8 @@
 video {
   width: 100%;
 }
+
+section#lilac > h1:first-of-type {
+  text-align: center;
+  margin-left: 3.5rem;
+}
