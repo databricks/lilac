@@ -22,8 +22,8 @@
     </a>
 </p>
 
-[Lilac](http://lilacml.com) is an open-source product that uses AI to help you **curate better
-data** for LLMs, from RAGs to fine-tuning datasets.
+[Lilac](http://lilacml.com) is a product that helps you **curate better data** for LLMs, from RAGs
+to fine-tuning datasets.
 
 Lilac runs **on-device** using open-source LLMs with a UI and Python API for:
 
