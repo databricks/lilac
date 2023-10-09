@@ -46,6 +46,25 @@ ll.start_server(project_dir='~/my_project')
 
 This will open start a webserver at http://localhost:5432/.
 
+### Run via Docker
+
+We haven't yet published a docker image, but you can build one locally:
+
+```sh
+docker build -t lilac .
+```
+
+The docker runs on the virtual port `8000`. If you have an existing lilac data direcotry you will
+have to mount it and set the `LILAC_PROJECT_DIR` environment variable:
+
+```sh
+docker run -it \
+  -p 8000:8000 \
+  --volume /host/path/to/data:/data \
+  -e LILAC_PROJECT_DIR="/data" \
+  lilac
+```
+
 ## 📁 Documentation
 
 Visit our website: [lilacml.com](http://lilacml.com)

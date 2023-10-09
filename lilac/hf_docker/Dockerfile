@@ -3,6 +3,10 @@ FROM python:3.11-slim-bullseye
 # Allow statements and log messages to immediately appear in the Knative logs
 ENV PYTHONUNBUFFERED True
 
+# Adds GCC and other build tools so we can compile hnswlib and other native/C++ deps.
+RUN apt-get update --fix-missing && apt-get install -y --fix-missing build-essential && \
+  rm -rf /var/lib/apt/lists/*
+
 # See: https://huggingface.co/docs/hub/spaces-sdks-docker#permissions
 RUN useradd -m -u 1000 user
 USER user
@@ -38,5 +42,5 @@ COPY --chown=user docker_start.sh ./
 RUN mkdir -p ./data
 RUN chown -R user ./data
 
-EXPOSE 5432
+EXPOSE 8000
 CMD ["bash", "docker_start.sh"]

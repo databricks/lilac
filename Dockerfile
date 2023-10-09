@@ -13,11 +13,11 @@ WORKDIR /app
 RUN python -m pip install lilac[all]
 
 # Install from the local wheel inside ./dist. This will be a no-op if the wheel is not found.
+RUN mkdir -p ./dist
 COPY --chown=user /dist ./dist/
 RUN python -m pip install --find-links=dist --upgrade lilac[all]
 
 COPY LICENSE .
 
 EXPOSE 8000
-# CMD ["gunicorn", "lilac.server:app", "-k uvicorn.workers.UvicornWorker", "-t 120"]
 CMD ["uvicorn", "lilac.server:app", "--host", "0.0.0.0", "--port", "8000"]

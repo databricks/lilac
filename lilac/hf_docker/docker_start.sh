@@ -5,6 +5,6 @@ set -e
 
 lilac hf-docker-start
 gunicorn lilac.server:app \
-  --bind 0.0.0.0:5432 \
+  --bind 0.0.0.0:8000 \
   --preload -k uvicorn.workers.UvicornWorker \
   --timeout 120
