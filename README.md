@@ -1,5 +1,5 @@
 <h1 align="center">🌸 Lilac</h1>
-<div align="center" style="font-size: 20px; margin-bottom: 4px">Curate better data for LLMs</div>
+<h4 align="center" style="font-size: 20px; margin-bottom: 4px">Curate better data for LLMs</h4>
 <p align="center">
   <a style="padding: 4px;"  href="https://lilacai-lilac.hf.space/">
     <span style="margin-right: 4px; font-size: 12px">🔗</span> <span style="font-size: 14px">Try the Lilac web demo!</span>
