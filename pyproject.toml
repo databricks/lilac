@@ -78,6 +78,9 @@ langsmith = { version = "^0.0.41", optional = true }
 # LlamaIndex for GitHub source ingestion.
 llama-index = { version = "^0.8.38", optional = true }
 
+# For HDBScan to reduce dimensionality before running clustering.
+umap-learn = { version = "^0.5.4" }
+
 [tool.poetry.extras]
 all = [
   "cohere",
@@ -94,6 +97,7 @@ all = [
   "spacy",
   "langsmith",
   "llama-index",
+  "hdbscan",
 ]
 
 embeddings = [
@@ -118,7 +122,7 @@ langsmith = ["langsmith"]
 github = ["llama-index"]
 
 # Signals.
-signals = ["textacy", "detect-secrets", "langdetect", "spacy"]
+signals = ["textacy", "detect-secrets", "langdetect", "spacy", "hdbscan"]
 
 ## Individual signals.
 lang_detection = ["langdetect"]   # Language detection.
