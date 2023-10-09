@@ -49,7 +49,7 @@ If you prefer no local installation, you can fork the
 [fork the HuggingFace Spaces demo](https://lilacai-lilac.hf.space/). Documentation
 [here](https://lilacml.com/huggingface/huggingface_spaces.html).
 
-### 🔥 Start a server
+### 🌐 Start a webserver
 
 Start a Lilac webserver from the CLI:
 
