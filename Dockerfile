@@ -10,6 +10,7 @@ RUN apt-get update --fix-missing && apt-get install -y --fix-missing build-essen
 # Set the working directory in the container.
 WORKDIR /app
 
+# To reduce the image size, replace lilac[all] with lilac[...] optional deps.
 RUN python -m pip install lilac[all]
 
 # Install from the local wheel inside ./dist. This will be a no-op if the wheel is not found.
