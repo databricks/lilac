@@ -22,12 +22,10 @@
     </a>
 </p>
 
-## 👋 Welcome
-
 [Lilac](http://lilacml.com) is an open-source product that uses AI to help you **curate better
 data** for LLMs, from RAGs to fine-tuning datasets.
 
-Lilac runs **on-device** using open-source LLMs and combines an interactive UI and a Python API for:
+Lilac runs **on-device** using open-source LLMs with a UI and Python API for:
 
 - **Exploring** datasets with natural language (documents)
 - **Annotating & structuring** data (e.g. PII detection, profanity, text statistics)
@@ -44,7 +42,7 @@ https://github.com/lilacai/lilac/assets/2294279/cb1378f8-92c1-4f2a-9524-ce5ddd8e
 ### 💻 Install
 
 ```sh
-pip install lilac
+pip install lilac[all]
 ```
 
 If you prefer no local installation, you can fork the
