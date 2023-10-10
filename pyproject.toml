@@ -22,7 +22,7 @@ fastapi = "^0.103.1"
 fsspec = "^2023.9.2"
 gcsfs = "^2023.4.0"
 google-cloud-storage = "^2.5.0"
-gunicorn = "^20.1.0"
+gunicorn = "^21.2.0"
 hnswlib = "^0.7.0"                                       # Fast KNN vector store.
 httpx = "^0.24.1"
 instructor = "^0.2.7"
@@ -43,7 +43,7 @@ tenacity = "^8.2.2"
 tqdm = "^4.65.0"
 types-psutil = "^5.9.5.12"
 typing-extensions = "^4.7.1"
-uvicorn = { extras = ["standard"], version = "^0.22.0" }
+uvicorn = { extras = ["standard"], version = "^0.23.2" }
 
 ### Optional dependencies. ###
 
@@ -78,6 +78,9 @@ langsmith = { version = "^0.0.41", optional = true }
 # LlamaIndex for GitHub source ingestion.
 llama-index = { version = "^0.8.38", optional = true }
 
+# For HDBScan to reduce dimensionality before running clustering.
+umap-learn = { version = "^0.5.4" }
+
 [tool.poetry.extras]
 all = [
   "cohere",
@@ -94,6 +97,7 @@ all = [
   "spacy",
   "langsmith",
   "llama-index",
+  "hdbscan",
 ]
 
 embeddings = [
@@ -118,7 +122,7 @@ langsmith = ["langsmith"]
 github = ["llama-index"]
 
 # Signals.
-signals = ["textacy", "detect-secrets", "langdetect", "spacy"]
+signals = ["textacy", "detect-secrets", "langdetect", "spacy", "hdbscan"]
 
 ## Individual signals.
 lang_detection = ["langdetect"]   # Language detection.

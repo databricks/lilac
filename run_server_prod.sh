@@ -6,7 +6,8 @@ set -e
 ./scripts/build_server_prod.sh
 
 # Run the node server.
-poetry run uvicorn lilac.server:app --port 5432 --host 0.0.0.0 &
+export LILAC_PROJECT_DIR='./data'
+poetry run uvicorn lilac.server:app --port 6432 --host 0.0.0.0 &
 pid[0]=$!
 
 # When control+c is pressed, kill all process ids.

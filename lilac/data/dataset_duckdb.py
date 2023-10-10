@@ -200,12 +200,6 @@ class DatasetDuckDB(Dataset):
     self._label_schemas: dict[str, Schema] = {}
     self.con = duckdb.connect(database=':memory:')
 
-    # Install sqlite for labels.
-    self.con.execute("""
-      INSTALL sqlite;
-      LOAD sqlite;
-    """)
-
     # Maps a path and embedding to the vector index. This is lazily generated as needed.
     self._vector_indices: dict[tuple[PathKey, str], VectorDBIndex] = {}
     self.vector_store = vector_store
