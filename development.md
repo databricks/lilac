@@ -73,6 +73,8 @@ Details can be found at
 All docker images are published under the [lilacai](https://hub.docker.com/u/lilacai) account on
 Docker Hub. We build docker images for two platforms `linux/amd64` and `linux/arm64`.
 
+> NOTE: `./scripts/publish_pip.sh` will do this automatically.
+
 **Building on Google Cloud**
 
 ```sh
