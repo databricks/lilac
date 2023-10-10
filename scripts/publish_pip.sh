@@ -25,6 +25,9 @@ poetry version --dry-run $VERSION_TYPE
 # Make sure the user is logged into github and has `gh` installed.
 gh auth status || exit 1
 
+# Make sure the user is logged in and can see the cloud builds.
+gcloud builds list --project lilac-386213 || exit 1
+
 set -o allexport
 source .env.local
 set +o allexport
@@ -94,3 +97,9 @@ gh release create "$TAG_ID" ./dist/*.whl \
   --latest \
   --title "$TAG_ID" \
   --verify-tag
+
+# Building the docker images.
+gcloud builds submit \
+  --config cloudbuild.yml \
+  --substitutions=_VERSION=$(poetry version -s) \
+  --async .
