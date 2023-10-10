@@ -1,9 +1,10 @@
 <script lang="ts">
-  import {queryManyDatasetStats} from '$lib/queries/datasetQueries';
+  import {queryBatchStats} from '$lib/queries/datasetQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {displayPath, shortPath} from '$lib/view_utils';
   import {childFields, isNumeric, serializePath, type StatsResult} from '$lilac';
+  import type {QueryObserverResult} from '@tanstack/svelte-query';
   import type {
     DropdownItem,
     DropdownItemId
@@ -26,28 +27,32 @@
           f.dtype !== 'embedding'
       )
     : null;
-  $: stats = categoricalFields
-    ? queryManyDatasetStats(
-        $datasetViewStore.namespace,
-        $datasetViewStore.datasetName,
-        categoricalFields.map(f => f.path)
-      )
-    : null;
+
+  $: manyStats = queryBatchStats(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    categoricalFields?.map(f => f.path),
+    categoricalFields != null /* enabled */
+  );
 
   interface GroupByItem extends DropdownItem {
     stats: StatsResult;
   }
 
-  function makeItems(stats: StatsResult[], open: boolean): GroupByItem[] {
+  function makeItems(
+    stats: QueryObserverResult<StatsResult, unknown>[],
+    open: boolean
+  ): GroupByItem[] {
     return stats
-      .filter(s => s.total_count > 0)
+      .filter(s => s.data != null && s.data.total_count > 0)
+      .map(s => s.data!)
       .map(s => ({
         id: serializePath(s.path),
         text: open ? displayPath(s.path) : shortPath(s.path),
         stats: s
       }));
   }
-  $: items = $stats?.data && makeItems($stats.data, open);
+  $: items = makeItems($manyStats, open);
 
   function selectItem(
     e: CustomEvent<{

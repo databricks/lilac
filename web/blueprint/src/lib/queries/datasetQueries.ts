@@ -17,6 +17,7 @@ import {
 import {
   QueryClient,
   createInfiniteQuery,
+  createQueries,
   type CreateInfiniteQueryResult,
   type CreateQueryResult
 } from '@tanstack/svelte-query';
@@ -111,15 +112,23 @@ export const deleteSignalMutation = createApiMutation(DatasetsService.deleteSign
 });
 
 export const queryDatasetStats = createApiQuery(DatasetsService.getStats, DATASETS_TAG);
-export const queryManyDatasetStats = createApiQuery(function getStats(
+
+export function queryBatchStats(
   namespace: string,
   datasetName: string,
-  leafs: Path[]
+  leafs?: Path[],
+  enabled = true
 ) {
-  const ps = leafs.map(leaf => DatasetsService.getStats(namespace, datasetName, {leaf_path: leaf}));
-  return Promise.all(ps);
-},
-DATASETS_TAG);
+  const queries = (leafs || []).map(leaf => ({
+    queryKey: [DATASETS_TAG, 'getStats', namespace, datasetName, leaf],
+    queryFn: () => DatasetsService.getStats(namespace, datasetName, {leaf_path: leaf}),
+    // Allow the result of the query to contain non-serializable data, such as `LilacField` which
+    // has pointers to parents: https://tanstack.com/query/v4/docs/react/reference/useQuery
+    structuralSharing: false,
+    enabled
+  }));
+  return createQueries(queries);
+}
 
 /** Queries the /select_rows endpoint with all options. */
 export const querySelectRows = (

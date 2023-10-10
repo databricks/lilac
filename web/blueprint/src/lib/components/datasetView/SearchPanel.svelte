@@ -1,7 +1,7 @@
 <script lang="ts">
   import {queryConcepts} from '$lib/queries/conceptQueries';
 
-  import {computeSignalMutation, querySettings} from '$lib/queries/datasetQueries';
+  import {computeSignalMutation, queryBatchStats, querySettings} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
@@ -11,7 +11,6 @@
     conceptDisplayName,
     displayPath,
     getComputedEmbeddings,
-    getDefaultSearchPath,
     getSearchEmbedding,
     getSearches,
     getSortedConcepts,
@@ -29,8 +28,10 @@
     type Op,
     type Path,
     type SignalInfoWithTypedSchema,
+    type StatsResult,
     type UnaryFilter
   } from '$lilac';
+  import type {QueryObserverResult} from '@tanstack/svelte-query';
   import {ComboBox, Dropdown, Tag} from 'carbon-components-svelte';
   import {Add, AssemblyCluster, Chip, Search, SearchAdvanced} from 'carbon-icons-svelte';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
@@ -47,10 +48,49 @@
   let searchPath: Path | undefined;
 
   $: mediaPaths = $settings.data?.ui?.media_paths?.map(p => (Array.isArray(p) ? p : [p]));
+  $: mediaStats = queryBatchStats(
+    namespace,
+    datasetName,
+    mediaPaths,
+    mediaPaths != null /* enabled */
+  );
+  $: schema = $datasetStore.schema;
+
+  function getDefaultSearchPath(
+    schema: LilacSchema,
+    mediaStats: QueryObserverResult<StatsResult, unknown>[]
+  ): Path | undefined {
+    // The longest visible path that has an embedding is auto-selected.
+    let paths = mediaStats
+      .filter(s => s.data != null)
+      .map(s => s.data!)
+      .map(stat => {
+        return {
+          path: stat.path,
+          embeddings: getComputedEmbeddings(schema, stat.path),
+          avgTextLength: stat.avg_text_length
+        };
+      });
+    paths = paths.sort((a, b) => {
+      if (a.embeddings.length > 0 && b.embeddings.length === 0) {
+        return -1;
+      } else if (a.embeddings.length === 0 && b.embeddings.length > 0) {
+        return 1;
+      } else if (a.avgTextLength != null && b.avgTextLength != null) {
+        return b.avgTextLength - a.avgTextLength;
+      } else {
+        return b.embeddings.length - a.embeddings.length;
+      }
+    });
+    if (paths.length === 0) {
+      return undefined;
+    }
+    return paths[0].path;
+  }
 
   $: {
-    if (searchPath == null && mediaPaths != null) {
-      searchPath = getDefaultSearchPath($datasetStore, mediaPaths);
+    if (searchPath == null && schema != null) {
+      searchPath = getDefaultSearchPath(schema, $mediaStats);
     }
   }
 
@@ -118,7 +158,7 @@
     return items;
   }
 
-  $: fieldSearchItems = getFieldSearchItems(searchPath, $datasetStore.schema, $embeddings.data);
+  $: fieldSearchItems = getFieldSearchItems(searchPath, schema, $embeddings.data);
 
   const signalMutation = computeSignalMutation();
 
@@ -134,7 +174,7 @@
   );
 
   // Populate existing embeddings for the selected field.
-  $: existingEmbeddings = getComputedEmbeddings($datasetStore.schema, searchPath);
+  $: existingEmbeddings = getComputedEmbeddings(schema, searchPath);
 
   $: isEmbeddingComputed =
     existingEmbeddings != null && !!existingEmbeddings.includes(selectedEmbedding || '');
@@ -203,7 +243,7 @@
     text: 'Compute embedding',
     disabled: isIndexing
   } as SearchItem;
-  $: labels = $datasetStore.schema != null ? getSchemaLabels($datasetStore.schema) : [];
+  $: labels = schema != null ? getSchemaLabels(schema) : [];
 
   $: searchItems = $concepts?.data
     ? [
@@ -347,7 +387,7 @@
     id: serializePath(p),
     text: displayPath(p),
     path: p,
-    embeddings: getComputedEmbeddings($datasetStore.schema, p)
+    embeddings: getComputedEmbeddings(schema, p)
   }));
 </script>
 

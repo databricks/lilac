@@ -1,11 +1,5 @@
 /** The store for runtime information about the dataset, like the schema and stats. */
-import type {
-  ApiError,
-  DatasetSettings,
-  LilacSchema,
-  LilacSelectRowsSchema,
-  StatsResult
-} from '$lilac';
+import type {ApiError, DatasetSettings, LilacSchema, LilacSelectRowsSchema} from '$lilac';
 import type {QueryObserverResult} from '@tanstack/svelte-query';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable, type Readable, type Writable} from 'svelte/store';
@@ -16,7 +10,6 @@ export const datasetStores: {[key: string]: DatasetStore} = {};
 
 export interface DatasetState {
   schema: LilacSchema | null;
-  stats: StatsResult[] | null;
   selectRowsSchema: QueryObserverResult<LilacSelectRowsSchema, ApiError> | null;
   settings: DatasetSettings | null;
 }
@@ -26,7 +19,6 @@ export type DatasetStore = ReturnType<typeof createDatasetStore>;
 export const createDatasetStore = (namespace: string, datasetName: string) => {
   const initialState: DatasetState = {
     schema: null,
-    stats: null,
     selectRowsSchema: null,
     settings: null
   };
@@ -44,11 +36,6 @@ export const createDatasetStore = (namespace: string, datasetName: string) => {
     setSchema: (schema: LilacSchema) =>
       update(state => {
         state.schema = schema;
-        return state;
-      }),
-    setStats: (stats: StatsResult[]) =>
-      update(state => {
-        state.stats = stats;
         return state;
       }),
     setSelectRowsSchema: (

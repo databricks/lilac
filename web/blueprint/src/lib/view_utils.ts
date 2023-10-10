@@ -185,41 +185,6 @@ export function getSearches(viewState: DatasetViewState, path?: Path | null): Se
   return searches.filter(s => pathIsEqual(s.path, path));
 }
 
-export function getDefaultSearchPath(
-  datasetStore: DatasetState,
-  mediaPaths: Path[]
-): Path | undefined {
-  if (datasetStore.stats == null || datasetStore.stats.length === 0) {
-    return undefined;
-  }
-  // The longest visible path that has an embedding is auto-selected.
-  const mediaPathsStats = datasetStore.stats.filter(s =>
-    mediaPaths.some(p => pathIsEqual(s.path, p))
-  );
-  if (mediaPathsStats.length === 0) {
-    return undefined;
-  }
-  let paths = mediaPathsStats.map(stat => {
-    return {
-      path: stat.path,
-      embeddings: getComputedEmbeddings(datasetStore.schema, stat.path),
-      avgTextLength: stat.avg_text_length
-    };
-  });
-  paths = paths.sort((a, b) => {
-    if (a.embeddings.length > 0 && b.embeddings.length === 0) {
-      return -1;
-    } else if (a.embeddings.length === 0 && b.embeddings.length > 0) {
-      return 1;
-    } else if (a.avgTextLength != null && b.avgTextLength != null) {
-      return b.avgTextLength - a.avgTextLength;
-    } else {
-      return b.embeddings.length - a.embeddings.length;
-    }
-  });
-  return paths[0].path;
-}
-
 export function getTaggedDatasets(
   selectedDataset: {namespace: string; datasetName: string} | null,
   datasets: DatasetInfo[]
