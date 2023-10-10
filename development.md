@@ -71,8 +71,20 @@ Details can be found at
 #### Publishing docker images
 
 All docker images are published under the [lilacai](https://hub.docker.com/u/lilacai) account on
-Docker Hub. We build docker images for two platforms `linux/amd64` and `linux/arm64`. To build the
-image for both platforms, as a one time setup do:
+Docker Hub. We build docker images for two platforms `linux/amd64` and `linux/arm64`.
+
+**Building on Google Cloud**
+
+```sh
+gcloud builds submit \
+  --config cloudbuild.yml \
+  --substitutions=_VERSION=$(poetry version -s) \
+  --async .
+```
+
+**Building locally**
+
+To build the image for both platforms, as a one time setup do:
 
 ```sh
 docker buildx create --name mybuilder --node mybuilder0 --bootstrap --use

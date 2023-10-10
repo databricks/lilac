@@ -1,0 +1,35 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker login --username=$$USERNAME --password=$$PASSWORD']
+    secretEnv: ['USERNAME', 'PASSWORD']
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - buildx
+      - create
+      - '--name'
+      - buildxbuilder
+      - '--use'
+      - '--bootstrap'
+    id: create-builder
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      [
+        '-c',
+        'docker buildx build --platform $_DOCKER_BUILDX_PLATFORMS -t $$USERNAME/lilac -t
+        $$USERNAME/lilac:$_VERSION --cache-from $$USERNAME/lilac . --push'
+      ]
+    secretEnv: ['USERNAME']
+options:
+  env:
+    - DOCKER_CLI_EXPERIMENTAL=enabled
+substitutions:
+  _PROJECT_ID: 'lilac-386213'
+  _DOCKER_BUILDX_PLATFORMS: 'linux/amd64,linux/arm64'
+availableSecrets:
+  secretManager:
+    - versionName: projects/$_PROJECT_ID/secrets/DOCKER_PASSWORD_SECRET_NAME/versions/1
+      env: 'PASSWORD'
+    - versionName: projects/$_PROJECT_ID/secrets/DOCKER_USERNAME_SECRET_NAME/versions/1
+      env: 'USERNAME'
