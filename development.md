@@ -68,18 +68,24 @@ Details can be found at
    # --hf_username and --hf_space are optional and can override the ENV for local uploading.
    ```
 
-#### Deployment
+#### Publishing docker images
 
-To build the docker image:
+All docker images are published under the [lilacai](https://hub.docker.com/u/lilacai) account on
+Docker Hub. We build docker images for two platforms `linux/amd64` and `linux/arm64`. To build the
+image for both platforms, as a one time setup do:
 
 ```sh
-./scripts/build_docker.sh
+docker buildx create --name mybuilder --node mybuilder0 --bootstrap --use
 ```
 
-To run the docker image locally:
+Make sure you have Docker Desktop running and you are logged as the lilacai account. To build and
+push the image:
 
 ```sh
-docker run -p 5432:5432 lilac_blueprint
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t lilacai/lilac \
+  -t lilacai/lilac:$(poetry version -s) \
+  --push .
 ```
 
 #### Authentication
