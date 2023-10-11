@@ -9,6 +9,7 @@ Add:
 
 import os
 import subprocess
+from typing import Optional
 
 import click
 
@@ -22,13 +23,17 @@ from lilac.env import env
   help='If true, it deploys to a staging environment.',
   default=False,
   type=bool)
-def main(staging: bool) -> None:
+@click.option(
+  '--firebase_token',
+  help='The firebase token for authentication. Generate this with `firebase login:ci`.',
+  type=str,
+  required=False)
+def main(staging: bool, firebase_token: Optional[str] = None) -> None:
   """Generate a web client from the OpenAPI spec."""
-  firebase_token = env('FIREBASE_TOKEN')
+  firebase_token = firebase_token or env('FIREBASE_TOKEN')
   if not firebase_token:
-    raise ValueError(
-      'Missing `FIREBASE_TOKEN` environment variable. Generate it with `firebase login:ci` '
-      'and add it to .env.local')
+    run('firebase login:ci --no-localhost')
+    firebase_token = click.prompt('Paste the firebase token from above', type=str)
 
   run('./scripts/build_docs.sh')
 
