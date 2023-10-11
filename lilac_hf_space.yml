@@ -74,12 +74,6 @@ datasets:
             - value
             - '*'
       preferred_embedding: 'gte-small'
-    # Only run embeddings for original-context and new-context.
-    embeddings:
-      - path: original-context
-        embedding: gte-small
-      - path: [new-context, value, '*']
-        embedding: gte-small
     source:
       dataset_name: argilla/databricks-dolly-15k-curated-en
       source_name: huggingface
@@ -159,7 +153,7 @@ signals:
   - signal_name: text_statistics
   - signal_name: near_dup
   - signal_name: lang_detection
-  - signal_name: cluster_dbscan
+  - signal_name: cluster_hdbscan
     embedding: gte-small
   - signal_name: concept_score
     namespace: lilac
