@@ -148,6 +148,7 @@ export const querySelectRows = (
 
 // Create a cache of the batcher so we reuse the same batcher for the same dataset and options.
 let batchedRowMetadataCache: Record<string, Batcher> = {};
+function getRowMetadataBatcher() {}
 const batchedRowMetadata = create({
   fetcher: async (rowIds: string[]) => {
     const selectRowsResponse = await DatasetsService.selectRows(namespace, datasetName, {
