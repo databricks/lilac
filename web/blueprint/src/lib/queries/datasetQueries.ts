@@ -21,6 +21,7 @@ import {
   type CreateInfiniteQueryResult,
   type CreateQueryResult
 } from '@tanstack/svelte-query';
+import {create, keyResolver, windowScheduler} from '@yornaath/batshit';
 import type {JSONSchema7} from 'json-schema';
 import {watchTask} from '../stores/taskMonitoringStore';
 import {queryClient} from './queryClient';
@@ -144,6 +145,23 @@ export const querySelectRows = (
       total_num_rows: data.total_num_rows
     })
   })(namespace, datasetName, selectRowsOptions);
+
+// Create a cache of the batcher so we reuse the same batcher for the same dataset and options.
+let batchedRowMetadataCache: Record<string, Batcher> = {};
+const batchedRowMetadata = create({
+  fetcher: async (rowIds: string[]) => {
+    const selectRowsResponse = await DatasetsService.selectRows(namespace, datasetName, {
+      filters: [{path: [ROWID], op: 'in', value: rowIds}],
+      searches: selectRowsOptions.searches,
+      columns: [PATH_WILDCARD, ROWID],
+      combine_columns: true,
+      limit: 1
+    });
+    return selectRowsResponse.rows;
+  },
+  resolver: keyResolver('id'),
+  scheduler: windowScheduler(10) // Default and can be omitted.
+});
 
 /** Gets the metadata for a single row. */
 export const queryRowMetadata = (
