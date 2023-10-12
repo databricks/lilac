@@ -22,7 +22,12 @@ import {
   type CreateInfiniteQueryResult,
   type CreateQueryResult
 } from '@tanstack/svelte-query';
-import {create, keyResolver, windowScheduler, type Batcher} from '@yornaath/batshit';
+import {
+  create as createBatcher,
+  keyResolver,
+  windowScheduler,
+  type Batcher
+} from '@yornaath/batshit';
 import type {JSONSchema7} from 'json-schema';
 import {watchTask} from '../stores/taskMonitoringStore';
 import {queryClient} from './queryClient';
@@ -157,7 +162,7 @@ function getRowMetadataBatcher(
 ): Batcher<SelectRowsResponse['rows'], string> {
   const key = `${namespace}/${datasetName}/${JSON.stringify(selectRowsOptions)}`;
   if (batchedRowMetadataCache[key] == null) {
-    batchedRowMetadataCache[key] = create({
+    batchedRowMetadataCache[key] = createBatcher({
       fetcher: async (rowIds: string[]) => {
         const selectRowsResponse = await DatasetsService.selectRows(namespace, datasetName, {
           filters: [{path: [ROWID], op: 'in', value: rowIds}],
