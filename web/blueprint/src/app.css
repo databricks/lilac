@@ -2,11 +2,20 @@ body {
   @apply font-sans;
 }
 /** Dropdowns, text inputs, selects. */
-.bx--select-input,
 .bx--dropdown,
-.bx--text-input,
 .bx--search-input {
   @apply rounded border-0 bg-neutral-50;
+}
+.bx--select-input,
+.bx--text-input,
+.bx--number input[type='number'] {
+  @apply border border-solid border-neutral-300  !bg-neutral-100 outline-0;
+}
+.bx--number__control-btn {
+  @apply border-0;
+}
+.bx--list-box__field .bx--text-input {
+  @apply border-0;
 }
 .bx--select-input:focus,
 .bx--dropdown:focus,

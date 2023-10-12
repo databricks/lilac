@@ -1,29 +1,38 @@
 <script context="module" lang="ts">
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  export interface AddLabelsQuery extends Omit<AddLabelsOptions, 'label_name'> {}
+  export interface LabelsQuery extends Omit<AddLabelsOptions, 'label_name'> {}
 </script>
 
 <script lang="ts">
-  import {addLabelsMutation, queryDatasetSchema} from '$lib/queries/datasetQueries';
+  import {
+    addLabelsMutation,
+    queryDatasetSchema,
+    removeLabelsMutation
+  } from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
-  import {getSchemaLabels, type AddLabelsOptions} from '$lilac';
-  import {ComboBox} from 'carbon-components-svelte';
-  import {Add, Tag} from 'carbon-icons-svelte';
+  import {getSchemaLabels, type AddLabelsOptions, type RemoveLabelsOptions} from '$lilac';
+  import {ComboBox, InlineLoading, Modal} from 'carbon-components-svelte';
+  import {Tag, type CarbonIcon} from 'carbon-icons-svelte';
+  import {createEventDispatcher} from 'svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import {clickOutside} from '../common/clickOutside';
 
-  export let addLabelsQuery: AddLabelsQuery;
+  export let labelsQuery: LabelsQuery;
   export let hideLabels: string[] | undefined = undefined;
-  export let buttonText: string | undefined = undefined;
   export let helperText = 'Add label';
   export let disabled = false;
   export let disabledMessage = 'User does not have access to add labels.';
+  export let icon: typeof CarbonIcon;
+  export let remove = false;
+  export let totalNumRows: number | undefined = undefined;
+  const dispatch = createEventDispatcher();
 
-  $: labelMenuOpen = false;
+  let labelMenuOpen = false;
   let comboBox: ComboBox;
   let comboBoxText = '';
+  let selectedLabel: string | null = null;
 
   const notificationStore = getNotificationsContext();
 
@@ -48,9 +57,12 @@
     schemaLabels
       ?.filter(l => !(hideLabels || []).includes(l))
       .map((l, i) => ({id: `label_${i}`, text: l})) || [];
-  $: labelItems = [...(comboBoxText != '' ? [newLabelItem] : []), ...missingLabelItems];
+  $: labelItems = [...(comboBoxText != '' && !remove ? [newLabelItem] : []), ...missingLabelItems];
 
   $: addLabels = $schema.data != null ? addLabelsMutation($schema.data) : null;
+  $: removeLabels = $schema.data != null ? removeLabelsMutation($schema.data) : null;
+
+  $: inProgress = $addLabels?.isLoading || $removeLabels?.isLoading;
 
   $: disableLabels = disabled || !canEditLabels;
 
@@ -68,34 +80,57 @@
     text: string;
   }
 
-  const selectLabelItem = (
-    e: CustomEvent<{
-      selectedId: LabelItem['id'];
-      selectedItem: LabelItem;
-    }>
-  ) => {
-    const selectedItem = e.detail.selectedItem;
-    const addLabelsOptions: AddLabelsOptions = {
-      ...addLabelsQuery,
-      label_name: selectedItem.text
+  function editLabels() {
+    if (selectedLabel == null) {
+      return;
+    }
+    const options: AddLabelsOptions | RemoveLabelsOptions = {
+      ...labelsQuery,
+      label_name: selectedLabel
     };
     labelMenuOpen = false;
-    $addLabels!.mutate([namespace, datasetName, addLabelsOptions], {
-      onSuccess: numRows => {
-        const message =
-          addLabelsOptions.row_ids != null
-            ? `Document id: ${addLabelsOptions.row_ids}`
-            : `${numRows.toLocaleString()} rows labeled`;
 
-        notificationStore.addNotification({
-          kind: 'success',
-          title: `Added label "${addLabelsOptions.label_name}"`,
-          message
-        });
-      }
-    });
+    function message(numRows: number): string {
+      return options.row_ids != null
+        ? `Document id: ${options.row_ids}`
+        : `${numRows.toLocaleString()} rows updated`;
+    }
+
+    if (!remove) {
+      $addLabels!.mutate([namespace, datasetName, options], {
+        onSuccess: numRows => {
+          notificationStore.addNotification({
+            kind: 'success',
+            title: `Added label "${options.label_name}"`,
+            message: message(numRows)
+          });
+        }
+      });
+    } else {
+      $removeLabels!.mutate([namespace, datasetName, options], {
+        onSuccess: numRows => {
+          notificationStore.addNotification({
+            kind: 'success',
+            title: `Removed label "${options.label_name}"`,
+            message: message(numRows)
+          });
+        }
+      });
+    }
+    selectedLabel = null;
+  }
+
+  function selectLabelItem(
+    e: CustomEvent<{
+      selectedItem: LabelItem;
+    }>
+  ) {
+    selectedLabel = e.detail.selectedItem.text;
     comboBox.clear();
-  };
+    if (totalNumRows == null) {
+      editLabels();
+    }
+  }
 </script>
 
 <div
@@ -104,20 +139,22 @@
   }}
 >
   <button
-    disabled={disableLabels}
+    disabled={disableLabels || inProgress}
     class:opacity-30={disableLabels}
+    class:text-red-600={remove}
     on:click={addLabel}
     use:hoverTooltip={{text: helperText}}
     class="flex items-center gap-x-2 border border-gray-300"
     class:hidden={labelMenuOpen}
-    ><Add />
-    {#if buttonText != null}
-      <span class="mr-1">{buttonText}</span>
+  >
+    {#if inProgress}
+      <InlineLoading />
     {/if}
+    <svelte:component this={icon} />
   </button>
 </div>
 <div
-  class="absolute left-0 top-0 z-50 w-60"
+  class="z-50 w-60"
   class:hidden={!labelMenuOpen}
   use:clickOutside={() => (labelMenuOpen = false)}
 >
@@ -130,7 +167,7 @@
     on:select={selectLabelItem}
     shouldFilterItem={(item, value) =>
       item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-label'}
-    placeholder="Select or type a new label"
+    placeholder={!remove ? 'Select or type a new label' : 'Select a label to remove'}
     let:item={it}
   >
     {@const item = labelItems.find(p => p.id === it.id)}
@@ -148,3 +185,35 @@
     {/if}
   </ComboBox>
 </div>
+
+<Modal
+  size="xs"
+  open={selectedLabel != null && totalNumRows != null}
+  modalHeading="Label"
+  primaryButtonText="Confirm"
+  secondaryButtonText="Cancel"
+  selectorPrimaryFocus=".bx--btn--primary"
+  on:submit={editLabels}
+  on:click:button--secondary={() => {
+    selectedLabel = null;
+    dispatch('close');
+  }}
+  on:close={(selectedLabel = null)}
+>
+  <p>
+    {#if remove}
+      Remove label <span class="font-mono font-bold">{selectedLabel}</span> from {totalNumRows?.toLocaleString()}
+      rows?
+    {:else}
+      Add label <span class="font-mono font-bold">{selectedLabel}</span> to {totalNumRows?.toLocaleString()}
+      rows?
+    {/if}
+  </p>
+</Modal>
+
+<style lang="postcss">
+  :global(.bx--inline-loading) {
+    width: unset !important;
+    min-height: unset !important;
+  }
+</style>
