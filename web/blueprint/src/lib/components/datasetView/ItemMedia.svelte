@@ -1,6 +1,5 @@
 <script lang="ts">
-  import {querySettings} from '$lib/queries/datasetQueries';
-  import {getDatasetContext} from '$lib/stores/datasetStore';
+  import {queryDatasetSchema, querySettings} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   /**
    * Component that renders a single value from a row in the dataset row view
@@ -29,10 +28,11 @@
   export let highlightedFields: LilacField[];
 
   const datasetViewStore = getDatasetViewContext();
-  const datasetStore = getDatasetContext();
   const appSettings = getSettingsContext();
 
-  $: computedEmbeddings = getComputedEmbeddings($datasetStore.schema, path);
+  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
+
+  $: computedEmbeddings = getComputedEmbeddings($schema.data, path);
 
   $: spanValuePaths = getSpanValuePaths(field, highlightedFields);
 
@@ -102,7 +102,6 @@
           spanPaths={spanValuePaths.spanPaths}
           valuePaths={spanValuePaths.valuePaths}
           {datasetViewStore}
-          datasetStore={$datasetStore}
           embeddings={computedEmbeddings}
         />
       </div>

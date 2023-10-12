@@ -1,15 +1,8 @@
 <script lang="ts">
   import Dataset from '$lib/components/datasetView/Dataset.svelte';
   import {
-    queryDatasetSchema,
-    querySelectRowsSchema,
-    querySettings
-  } from '$lib/queries/datasetQueries';
-  import {createDatasetStore, setDatasetContext} from '$lib/stores/datasetStore';
-  import {
     createDatasetViewStore,
     defaultDatasetViewState,
-    getSelectRowsSchemaOptions,
     setDatasetViewContext,
     type DatasetViewState
   } from '$lib/stores/datasetViewStore';
@@ -57,40 +50,6 @@
   $: {
     if (datasetViewStore != null) {
       setDatasetViewContext(datasetViewStore);
-    }
-  }
-
-  $: datasetStore = namespace && datasetName ? createDatasetStore(namespace, datasetName) : null;
-  $: {
-    if (datasetStore != null) {
-      setDatasetContext(datasetStore);
-    }
-  }
-
-  // Settings.
-  $: settings = namespace && datasetName ? querySettings(namespace, datasetName) : null;
-  $: {
-    if (datasetStore && $settings?.data) {
-      datasetStore.setSettings($settings.data);
-    }
-  }
-
-  // Schema.
-  $: schema = namespace && datasetName ? queryDatasetSchema(namespace, datasetName) : null;
-  $: {
-    if (datasetStore && $schema?.data) {
-      datasetStore.setSchema($schema.data);
-    }
-  }
-
-  // Get the resulting schema including UDF columns.
-  $: selectRowsSchema =
-    namespace && datasetName && $datasetViewStore
-      ? querySelectRowsSchema(namespace, datasetName, getSelectRowsSchemaOptions($datasetViewStore))
-      : null;
-  $: {
-    if (datasetStore && $selectRowsSchema?.data) {
-      datasetStore.setSelectRowsSchema($selectRowsSchema);
     }
   }
 </script>

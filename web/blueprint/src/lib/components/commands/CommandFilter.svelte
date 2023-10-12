@@ -1,6 +1,5 @@
 <script lang="ts">
-  import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
-  import {getDatasetContext} from '$lib/stores/datasetStore';
+  import {queryDatasetSchema, querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {childFields, getField, pathIsEqual, type Filter, type LilacField, type Op} from '$lilac';
   import {
@@ -22,10 +21,10 @@
   export let command: EditFilterCommand;
 
   const datasetViewStore = getDatasetViewContext();
-  const datasetStore = getDatasetContext();
 
   const dispatch = createEventDispatcher();
 
+  $: schema = queryDatasetSchema(command.namespace, command.datasetName);
   $: selectRowsSchema = querySelectRowsSchema(
     command.namespace,
     command.datasetName,
@@ -34,8 +33,8 @@
 
   // Create list of fields, and include current count of filters
   $: fields =
-    $selectRowsSchema?.isSuccess && $datasetStore.schema
-      ? childFields($datasetStore.schema).map(f => {
+    $selectRowsSchema?.isSuccess && $schema.data
+      ? childFields($schema.data).map(f => {
           const filters = stagedFilters.filter(filter => pathIsEqual(filter.path, f.path));
           return {
             title: f.path.join('.'),

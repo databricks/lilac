@@ -1,8 +1,11 @@
 <script lang="ts">
-  import {deleteSignalMutation} from '$lib/queries/datasetQueries';
+  import {
+    deleteSignalMutation,
+    queryDatasetSchema,
+    querySelectRowsSchema
+  } from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
-  import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {getComputedEmbeddings, isPreviewSignal} from '$lib/view_utils';
   import {
     isFilterableField,
@@ -26,15 +29,21 @@
   $: namespace = $datasetViewStore.namespace;
   $: datasetName = $datasetViewStore.datasetName;
 
-  const datasetStore = getDatasetContext();
+  $: schema = queryDatasetSchema(namespace, datasetName);
+  $: selectRowsSchema = querySelectRowsSchema(
+    namespace,
+    datasetName,
+    getSelectRowsSchemaOptions($datasetViewStore)
+  );
+
   const deleteSignal = deleteSignalMutation();
 
   $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
 
-  $: computedEmbeddings = getComputedEmbeddings($datasetStore.schema, field.path);
+  $: computedEmbeddings = getComputedEmbeddings($schema.data, field.path);
 
-  $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, field.path);
+  $: isPreview = isPreviewSignal($selectRowsSchema?.data || null, field.path);
   $: hasMenu =
     (isSortableField(field) || isFilterableField(field) || !isSignal || isSignalRoot) && !isPreview;
 

@@ -1,6 +1,10 @@
 <script lang="ts">
-  import {getDatasetContext, type DatasetState} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext, type DatasetViewState} from '$lib/stores/datasetViewStore';
+  import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
+  import {
+    getDatasetViewContext,
+    getSelectRowsSchemaOptions,
+    type DatasetViewState
+  } from '$lib/stores/datasetViewStore';
   import {displayPath, shortPath} from '$lib/view_utils';
   import {
     ROWID,
@@ -22,10 +26,15 @@
   import {hoverTooltip} from '../common/HoverTooltip';
 
   let datasetViewStore = getDatasetViewContext();
-  let datasetStore = getDatasetContext();
+  $: selectRowsSchema = querySelectRowsSchema(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    getSelectRowsSchemaOptions($datasetViewStore)
+  );
+
   let open = false;
 
-  function getSort(state: DatasetState, viewState: DatasetViewState): SortResult | null {
+  function getSort(viewState: DatasetViewState): SortResult | null {
     // Explicit user selection of sort.
     if (viewState.query.sort_by && viewState.query.sort_by.length > 0) {
       return {
@@ -34,17 +43,17 @@
       };
     }
     // Implicit sort from select rows schema.
-    const sort = (state.selectRowsSchema?.data?.sorts || [])[0];
+    const sort = ($selectRowsSchema?.data?.sorts || [])[0];
     if (sort == null || pathIsEqual(sort.path, [ROWID])) {
       return null;
     }
     return sort;
   }
 
-  $: sort = getSort($datasetStore, $datasetViewStore);
+  $: sort = getSort($datasetViewStore);
   let pathToSearchResult: {[path: string]: SearchResultInfo} = {};
   $: {
-    for (const search of $datasetStore.selectRowsSchema?.data?.search_results || []) {
+    for (const search of $selectRowsSchema?.data?.search_results || []) {
       pathToSearchResult[serializePath(search.result_path)] = search;
     }
   }
@@ -54,8 +63,6 @@
   }
 
   $: selectedId = sort?.path && serializePath(sort.path);
-
-  $: schema = $datasetStore?.selectRowsSchema?.data?.schema;
 
   function makeItems(schema: LilacSchema, open: boolean): SortByItem[] {
     return petals(schema)
@@ -69,7 +76,7 @@
         };
       });
   }
-  $: items = schema && makeItems(schema, open);
+  $: items = $selectRowsSchema.data && makeItems($selectRowsSchema.data.schema, open);
 
   const selectSort = (
     ev: CustomEvent<{

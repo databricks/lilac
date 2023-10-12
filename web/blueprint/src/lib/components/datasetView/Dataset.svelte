@@ -152,12 +152,7 @@
   </div>
 
   {#if $schema.data}
-    <DatasetSettingsModal
-      bind:open={settingsOpen}
-      schema={$schema.data}
-      {namespace}
-      name={datasetName}
-    />
+    <DatasetSettingsModal bind:open={settingsOpen} {namespace} name={datasetName} />
     <DownloadModal bind:open={downloadOpen} schema={$schema.data} />
     <ComposedModal
       size="lg"

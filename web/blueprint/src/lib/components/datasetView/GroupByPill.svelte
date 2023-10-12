@@ -1,6 +1,5 @@
 <script lang="ts">
-  import {queryBatchStats} from '$lib/queries/datasetQueries';
-  import {getDatasetContext} from '$lib/stores/datasetStore';
+  import {queryBatchStats, queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {displayPath, shortPath} from '$lib/view_utils';
   import {childFields, isNumeric, serializePath, type StatsResult} from '$lilac';
@@ -12,14 +11,14 @@
   import {Folder} from 'carbon-icons-svelte';
   import DropdownPill from '../common/DropdownPill.svelte';
 
-  const datasetStore = getDatasetContext();
   const datasetViewStore = getDatasetViewContext();
   let open = false;
   $: selectedId = $datasetViewStore.groupBy ? serializePath($datasetViewStore.groupBy.path) : null;
   $: selectedPath = $datasetViewStore.groupBy?.path;
-  $: schema = $datasetStore.schema;
-  $: categoricalFields = schema
-    ? childFields(schema).filter(
+  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
+
+  $: categoricalFields = $schema.data
+    ? childFields($schema.data).filter(
         f =>
           (f.categorical || !isNumeric(f.dtype!)) &&
           f.dtype != null &&

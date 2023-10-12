@@ -40,7 +40,6 @@ import {
 } from 'carbon-icons-svelte';
 import type {NavigationGroupItem, NavigationTagGroup} from './components/NavigationGroup.svelte';
 import type {SpanValueInfo} from './components/datasetView/spanHighlight';
-import type {DatasetState} from './stores/datasetStore';
 import type {DatasetViewState} from './stores/datasetViewStore';
 import type {SettingsState} from './stores/settingsStore';
 import {conceptLink, datasetLink} from './utils';
@@ -111,7 +110,7 @@ function isPathHighlighted(
 export function getSearchEmbedding(
   datasetSettings: DatasetSettings | undefined,
   appSettings: SettingsState,
-  datasetStore: DatasetState,
+  schema: LilacSchema | null | undefined,
   searchPath: Path | undefined,
   embeddings: string[]
 ): string | null {
@@ -123,7 +122,7 @@ export function getSearchEmbedding(
   }
   if (searchPath == null) return null;
 
-  const existingEmbeddings = getComputedEmbeddings(datasetStore.schema, searchPath);
+  const existingEmbeddings = getComputedEmbeddings(schema, searchPath);
   // Sort embeddings by what have already been precomputed first.
   const sortedEmbeddings =
     existingEmbeddings != null

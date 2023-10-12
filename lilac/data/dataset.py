@@ -55,6 +55,8 @@ TOO_MANY_DISTINCT = 1_000_000
 SAMPLE_AVG_TEXT_LENGTH = 1000
 MAX_TEXT_LEN_DISTINCT_COUNT = 250
 
+DEFAULT_EMBEDDING = 'gte-small'
+
 
 class SelectRowsResult:
   """The result of a select rows query."""
@@ -609,7 +611,8 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
   if sorted_stats:
     media_paths = [sorted_stats[-1].path]
 
-  return DatasetSettings(ui=DatasetUISettings(media_paths=media_paths))
+  return DatasetSettings(
+    ui=DatasetUISettings(media_paths=media_paths), preferred_embedding=DEFAULT_EMBEDDING)
 
 
 def dataset_config_from_manifest(manifest: DatasetManifest) -> DatasetConfig:

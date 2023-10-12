@@ -5,13 +5,10 @@
   import ConceptSettingsModal from '$lib/components/concepts/ConceptSettingsModal.svelte';
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
-  import {datasetStores} from '$lib/stores/datasetStore';
-  import {datasetViewStores} from '$lib/stores/datasetViewStore';
   import {getUrlHashContext} from '$lib/stores/urlHashStore';
   import {conceptIdentifier, conceptLink} from '$lib/utils';
   import {Modal, SkeletonText, Tag} from 'carbon-components-svelte';
   import {InProgress, Settings, Share} from 'carbon-icons-svelte';
-  import {get} from 'svelte/store';
   import {fade} from 'svelte/transition';
 
   let namespace: string;
@@ -45,10 +42,6 @@
     const {namespace, name} = deleteConceptInfo;
     $deleteConcept.mutate([namespace, name], {
       onSuccess: () => {
-        for (const [datasetKey, store] of Object.entries(datasetViewStores)) {
-          const selectRowsSchema = get(datasetStores[datasetKey]).selectRowsSchema?.data;
-          store.deleteConcept(namespace, name, selectRowsSchema);
-        }
         deleteConceptInfo = null;
         goto('/');
       }

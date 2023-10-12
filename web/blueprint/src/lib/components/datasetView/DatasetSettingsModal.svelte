@@ -1,99 +1,34 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
-  import {
-    deleteDatasetMutation,
-    querySettings,
-    updateDatasetSettingsMutation
-  } from '$lib/queries/datasetQueries';
-  import {queryEmbeddings} from '$lib/queries/signalQueries';
-  import {getSettingsContext} from '$lib/stores/settingsStore';
+  import {deleteDatasetMutation, updateDatasetSettingsMutation} from '$lib/queries/datasetQueries';
   import {datasetIdentifier} from '$lib/utils';
-  import {
-    ROWID,
-    isSignalField,
-    pathIsEqual,
-    petals,
-    type DatasetSettings,
-    type LilacField,
-    type LilacSchema
-  } from '$lilac';
+  import type {DatasetSettings} from '$lilac';
   import {
     ComposedModal,
     ModalBody,
     ModalFooter,
     ModalHeader,
-    Select,
-    SelectItem,
-    SelectSkeleton,
-    SkeletonText,
     TextInput
   } from 'carbon-components-svelte';
   import {TrashCan} from 'carbon-icons-svelte';
   import CommandSelectList from '../commands/selectors/CommandSelectList.svelte';
-  import DownloadFieldList from './DownloadFieldList.svelte';
+  import DatasetSettingsFields from './DatasetSettingsFields.svelte';
 
   export let namespace: string;
   export let name: string;
 
   export let open = false;
-  export let schema: LilacSchema;
 
-  const appSettings = getSettingsContext();
-  const embeddings = queryEmbeddings();
   const updateSettings = updateDatasetSettingsMutation();
 
-  $: settings = querySettings(namespace, name);
   $: identifier = datasetIdentifier(namespace, name);
 
   let settingsPage: 'fields' | 'administration' = 'fields';
 
-  let selectedMediaFields: LilacField[] | null = null;
-  let markdownMediaFields: LilacField[] | null = null;
-  let preferredEmbedding: string | undefined = $appSettings.embedding;
-
-  $: mediaFields = petals(schema).filter(
-    f => f.dtype === 'string' && !pathIsEqual(f.path, [ROWID]) && !isSignalField(f)
-  );
-
-  $: {
-    if (selectedMediaFields == null) {
-      const mediaPathsFromSettings = ($settings.data?.ui?.media_paths || []).map(p =>
-        Array.isArray(p) ? p : [p]
-      );
-      selectedMediaFields = mediaFields.filter(f =>
-        mediaPathsFromSettings.some(path => pathIsEqual(f.path, path))
-      );
-    }
-  }
-
-  $: {
-    if (markdownMediaFields == null) {
-      const mardownPathsFromSettings = ($settings.data?.ui?.markdown_paths || []).map(p =>
-        Array.isArray(p) ? p : [p]
-      );
-      markdownMediaFields = mediaFields.filter(f =>
-        mardownPathsFromSettings.some(path => pathIsEqual(f.path, path))
-      );
-    }
-  }
-
-  function embeddingChanged(e: Event) {
-    const embedding = (e.target as HTMLSelectElement).value;
-    preferredEmbedding = embedding;
-    if (preferredEmbedding === '') {
-      preferredEmbedding = undefined;
-    }
-  }
-
+  let newSettings: DatasetSettings | undefined = undefined;
+  // TODO: bind settings to newSettings
   function submit() {
-    if (selectedMediaFields == null) return;
-    const newSettings: DatasetSettings = {
-      ui: {
-        media_paths: selectedMediaFields.map(f => f.path),
-        markdown_paths: markdownMediaFields?.map(f => f.path)
-      },
-      preferred_embedding: preferredEmbedding
-    };
+    if (newSettings == null) return;
     $updateSettings.mutate([namespace, name, newSettings], {
       onSuccess: () => {
         open = false;
@@ -124,60 +59,7 @@
       </div>
       <div class="flex w-full flex-col gap-y-6 rounded border border-gray-300 bg-white p-4">
         {#if settingsPage === 'fields'}
-          {#if $settings.isFetching}
-            <SkeletonText />
-          {:else}
-            <div class="flex flex-col gap-y-6">
-              <section class="flex flex-col gap-y-1">
-                <div class="text-lg text-gray-700">Media fields</div>
-                <div class="text-sm text-gray-500">
-                  These fields will be presented differently from the rest of the metadata fields.
-                </div>
-                {#if selectedMediaFields != null}
-                  <DownloadFieldList
-                    fields={mediaFields}
-                    bind:checkedFields={selectedMediaFields}
-                  />
-                {:else}
-                  <SelectSkeleton />
-                {/if}
-              </section>
-
-              <section class="flex flex-col gap-y-1">
-                <div class="text-lg text-gray-700">Preferred embedding</div>
-                <div class="text-sm text-gray-500">
-                  This embedding will be used by default when indexing and querying the data.
-                </div>
-                <div class="w-60">
-                  {#if $embeddings.isFetching}
-                    <SelectSkeleton />
-                  {:else}
-                    <Select
-                      selected={$settings.data?.preferred_embedding || undefined}
-                      on:change={embeddingChanged}
-                    >
-                      <SelectItem value={undefined} text="None" />
-                      {#each $embeddings.data || [] as emdField}
-                        <SelectItem value={emdField.name} />
-                      {/each}
-                    </Select>
-                  {/if}
-                </div>
-              </section>
-
-              <section class="flex flex-col gap-y-1">
-                <div class="text-lg text-gray-700">Render as markdown</div>
-                {#if selectedMediaFields != null && markdownMediaFields != null}
-                  <DownloadFieldList
-                    fields={selectedMediaFields}
-                    bind:checkedFields={markdownMediaFields}
-                  />
-                {:else}
-                  <SelectSkeleton />
-                {/if}
-              </section>
-            </div>
-          {/if}
+          <DatasetSettingsFields {namespace} datasetName={name} bind:settings={newSettings} />
         {:else if settingsPage === 'administration'}
           <div class="flex flex-col gap-y-6">
             <section class="flex flex-col gap-y-1">
@@ -216,7 +98,7 @@
     danger={settingsPage === 'administration'}
     primaryButtonText="Save"
     secondaryButtonText="Cancel"
-    on:click:button--secondary={close}
+    on:click:button--secondary={() => (open = false)}
     primaryButtonDisabled={settingsPage === 'administration'}
   />
 </ComposedModal>

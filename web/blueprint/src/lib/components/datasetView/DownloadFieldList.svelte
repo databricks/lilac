@@ -30,7 +30,6 @@
   <div class="flex items-center">
     <div class="mr-2">
       <Checkbox
-        labelText="Download"
         hideLabel
         checked={checkedFields.find(f => pathIsEqual(f.path, field.path)) != null}
         on:change={e => checkboxClicked(field, e)}

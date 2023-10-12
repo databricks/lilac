@@ -1,12 +1,17 @@
 <script lang="ts">
   import {
     addLabelsMutation,
+    queryDatasetSchema,
     queryRowMetadata as queryRow,
+    querySelectRowsSchema,
     removeLabelsMutation
   } from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
-  import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
+  import {
+    getDatasetViewContext,
+    getSelectRowsOptions,
+    getSelectRowsSchemaOptions
+  } from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {
     getRowLabels,
@@ -26,7 +31,6 @@
   export let mediaFields: LilacField[];
   export let highlightedFields: LilacField[];
 
-  const datasetStore = getDatasetContext();
   const datasetViewStore = getDatasetViewContext();
   const notificationStore = getNotificationsContext();
 
@@ -40,22 +44,25 @@
   let labelsInProgress = new Set<string>();
   let mediaHeight = 0;
 
-  $: removeLabels =
-    $datasetStore.schema != null ? removeLabelsMutation($datasetStore.schema) : null;
-
-  $: selectRowsSchema = $datasetStore.selectRowsSchema?.data;
+  $: schema = queryDatasetSchema(namespace, datasetName);
+  $: selectRowsSchema = querySelectRowsSchema(
+    namespace,
+    datasetName,
+    getSelectRowsSchemaOptions($datasetViewStore)
+  );
+  $: removeLabels = $schema.data != null ? removeLabelsMutation($schema.data) : null;
 
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
   $: rowQuery =
-    selectRowsSchema != null
-      ? queryRow(namespace, datasetName, rowId, selectOptions, selectRowsSchema.schema)
+    $selectRowsSchema.data != null
+      ? queryRow(namespace, datasetName, rowId, selectOptions, $selectRowsSchema.data.schema)
       : null;
   $: row = $rowQuery?.data;
   $: rowLabels = row != null ? getRowLabels(row) : [];
   $: disableLabels = !canEditLabels;
 
-  $: schemaLabels = $datasetStore.schema && getSchemaLabels($datasetStore.schema);
-  $: addLabels = $datasetStore.schema != null ? addLabelsMutation($datasetStore.schema) : null;
+  $: schemaLabels = $schema.data && getSchemaLabels($schema.data);
+  $: addLabels = $schema.data != null ? addLabelsMutation($schema.data) : null;
 
   $: isStale = $rowQuery?.isStale;
   $: {
@@ -151,7 +158,7 @@
           style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
           class="overflow-y-auto"
         >
-          <ItemMetadata {row} {selectRowsSchema} {highlightedFields} />
+          <ItemMetadata {row} selectRowsSchema={$selectRowsSchema.data} {highlightedFields} />
         </div>
       </div>
     </div>

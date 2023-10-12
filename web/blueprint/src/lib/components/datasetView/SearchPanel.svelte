@@ -1,10 +1,14 @@
 <script lang="ts">
   import {queryConcepts} from '$lib/queries/conceptQueries';
 
-  import {computeSignalMutation, queryBatchStats, querySettings} from '$lib/queries/datasetQueries';
+  import {
+    computeSignalMutation,
+    queryBatchStats,
+    queryDatasetSchema,
+    querySettings
+  } from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
-  import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getSettingsContext} from '$lib/stores/settingsStore';
   import {
@@ -38,7 +42,6 @@
   import {hoverTooltip} from '../common/HoverTooltip';
 
   const datasetViewStore = getDatasetViewContext();
-  const datasetStore = getDatasetContext();
   const appSettings = getSettingsContext();
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
@@ -54,7 +57,7 @@
     mediaPaths,
     mediaPaths != null /* enabled */
   );
-  $: schema = $datasetStore.schema;
+  $: schema = queryDatasetSchema(namespace, datasetName);
 
   function getDefaultSearchPath(
     schema: LilacSchema,
@@ -89,8 +92,8 @@
   }
 
   $: {
-    if (searchPath == null && schema != null) {
-      searchPath = getDefaultSearchPath(schema, $mediaStats);
+    if (searchPath == null && $schema.data != null) {
+      searchPath = getDefaultSearchPath($schema.data, $mediaStats);
     }
   }
 
@@ -158,7 +161,8 @@
     return items;
   }
 
-  $: fieldSearchItems = getFieldSearchItems(searchPath, schema, $embeddings.data);
+  $: fieldSearchItems =
+    $schema.data != null ? getFieldSearchItems(searchPath, $schema.data, $embeddings.data) : [];
 
   const signalMutation = computeSignalMutation();
 
@@ -168,13 +172,14 @@
   $: selectedEmbedding = getSearchEmbedding(
     $settings.data,
     $appSettings,
-    $datasetStore,
+    $schema.data,
     searchPath,
     ($embeddings.data || []).map(e => e.name)
   );
 
   // Populate existing embeddings for the selected field.
-  $: existingEmbeddings = getComputedEmbeddings(schema, searchPath);
+  $: existingEmbeddings =
+    $schema.data != null ? getComputedEmbeddings($schema.data, searchPath) : [];
 
   $: isEmbeddingComputed =
     existingEmbeddings != null && !!existingEmbeddings.includes(selectedEmbedding || '');
@@ -243,7 +248,7 @@
     text: 'Compute embedding',
     disabled: isIndexing
   } as SearchItem;
-  $: labels = schema != null ? getSchemaLabels(schema) : [];
+  $: labels = $schema.data != null ? getSchemaLabels($schema.data) : [];
 
   $: searchItems = $concepts?.data
     ? [
@@ -387,7 +392,7 @@
     id: serializePath(p),
     text: displayPath(p),
     path: p,
-    embeddings: getComputedEmbeddings(schema, p)
+    embeddings: $schema.data != null ? getComputedEmbeddings($schema.data, p) : []
   }));
 </script>
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
+  import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {displayPath} from '$lib/view_utils';
   import type {KeywordSearch, Search, SearchType, SemanticSearch} from '$lilac';
   import type {Tag} from 'carbon-components-svelte';
@@ -20,7 +20,11 @@
   };
 
   const datasetViewStore = getDatasetViewContext();
-  const datasetStore = getDatasetContext();
+  $: selectRowsSchema = querySelectRowsSchema(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    getSelectRowsSchemaOptions($datasetViewStore)
+  );
 
   $: pillText =
     search.type === 'concept'
@@ -41,8 +45,7 @@
     interactive
     type={tagType}
     on:click
-    on:remove={() =>
-      datasetViewStore.removeSearch(search, $datasetStore.selectRowsSchema?.data || null)}
+    on:remove={() => datasetViewStore.removeSearch(search, $selectRowsSchema?.data || null)}
     ><span class="font-mono">{displayPath(search.path)}</span> has "{pillText}"
   </RemovableTag>
 </div>

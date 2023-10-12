@@ -1,9 +1,8 @@
 <script lang="ts">
-  import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {DTYPE_TO_ICON, getSearches, isPreviewSignal} from '$lib/view_utils';
 
-  import {computeSignalMutation} from '$lib/queries/datasetQueries';
+  import {computeSignalMutation, querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {querySignals} from '$lib/queries/signalQueries';
   import {
     PATH_WILDCARD,
@@ -45,7 +44,12 @@
 
   const signalMutation = computeSignalMutation();
   const datasetViewStore = getDatasetViewContext();
-  const datasetStore = getDatasetContext();
+
+  $: selectRowsSchema = querySelectRowsSchema(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    getSelectRowsSchemaOptions($datasetViewStore)
+  );
 
   $: path = field.path;
 
@@ -127,7 +131,7 @@
     );
   }
 
-  $: isPreview = isPreviewSignal($datasetStore.selectRowsSchema?.data || null, path);
+  $: isPreview = isPreviewSignal($selectRowsSchema.data || null, path);
 
   $: searches = getSearches($datasetViewStore, path);
 

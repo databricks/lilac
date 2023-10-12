@@ -1,7 +1,7 @@
 <script lang="ts">
   import {queryConcept} from '$lib/queries/conceptQueries';
+  import {queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
-  import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {conceptLink} from '$lib/utils';
   import {getSearches} from '$lib/view_utils';
@@ -20,11 +20,10 @@
   export let manifest: WebManifest | undefined;
 
   let datasetViewStore = getDatasetViewContext();
-  let datasetStore = getDatasetContext();
   const authInfo = queryAuthInfo();
   $: canLabelAll = $authInfo.data?.access.dataset.label_all || false;
 
-  $: schema = $datasetStore?.selectRowsSchema?.data?.schema;
+  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   let openedConcept: {namespace: string; name: string} | null = null;
   $: concept = openedConcept
@@ -96,9 +95,9 @@
             <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
               <div class="text-xs font-light">Filters</div>
               <div class="flex flex-row gap-x-1">
-                {#if schema}
+                {#if $schema.data}
                   {#each filters as filter}
-                    <FilterPill {schema} {filter} />
+                    <FilterPill schema={$schema.data} {filter} />
                   {/each}
                 {:else}
                   <SkeletonText />
@@ -127,8 +126,8 @@
   </div>
 </div>
 
-{#if $datasetViewStore.groupBy && $datasetStore.schema}
-  <GroupByPanel schema={$datasetStore.schema} groupBy={$datasetViewStore.groupBy} />
+{#if $datasetViewStore.groupBy && $schema.data}
+  <GroupByPanel schema={$schema.data} groupBy={$datasetViewStore.groupBy} />
 {/if}
 
 {#if openedConcept}

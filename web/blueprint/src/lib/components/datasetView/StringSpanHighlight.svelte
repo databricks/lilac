@@ -4,9 +4,9 @@
    * layer, meant to be rendered on top of the source text.
    */
   import {editConceptMutation} from '$lib/queries/conceptQueries';
-  import type {DatasetState} from '$lib/stores/datasetStore';
   import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
+  import {getUrlHashContext} from '$lib/stores/urlHashStore';
   import {ITEM_SCROLL_CONTAINER_CTX_KEY, mergeSpans, type MergedSpan} from '$lib/view_utils';
   import {
     L,
@@ -52,7 +52,7 @@
 
   // When defined, enables semantic search on spans.
   export let datasetViewStore: DatasetViewStore | undefined = undefined;
-  export let datasetStore: DatasetState | undefined = undefined;
+  const urlHashContext = getUrlHashContext();
 
   const spanHoverOpacity = 0.9;
 
@@ -183,8 +183,8 @@
         }}
         use:spanClick={{
           details: () => getSpanDetails(renderSpan),
-          // Disable similarity search when there's no dataset store.
-          findSimilar: datasetStore != null ? findSimilar : null,
+          // Disable similarity search when not on the datasets page.
+          findSimilar: $urlHashContext.page === 'datasets' ? findSimilar : null,
           embeddings,
           addConceptLabel,
           addNotification:

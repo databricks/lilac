@@ -3,10 +3,14 @@
     infiniteQuerySelectRows,
     queryDatasetManifest,
     queryDatasetSchema,
+    querySelectRowsSchema,
     querySettings
   } from '$lib/queries/datasetQueries';
-  import {getDatasetContext} from '$lib/stores/datasetStore';
-  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
+  import {
+    getDatasetViewContext,
+    getSelectRowsOptions,
+    getSelectRowsSchemaOptions
+  } from '$lib/stores/datasetViewStore';
   import {
     ITEM_SCROLL_CONTAINER_CTX_KEY,
     getHighlightedFields,
@@ -21,7 +25,6 @@
   import RowItem from './RowItem.svelte';
 
   const datasetViewStore = getDatasetViewContext();
-  const datasetStore = getDatasetContext();
 
   $: manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
@@ -31,7 +34,11 @@
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: selectRowsSchema = $datasetStore.selectRowsSchema;
+  $: selectRowsSchema = querySelectRowsSchema(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    getSelectRowsSchemaOptions($datasetViewStore)
+  );
 
   $: highlightedFields = getHighlightedFields($datasetViewStore.query, selectRowsSchema?.data);
 
@@ -39,7 +46,7 @@
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
     {...selectOptions, columns: [ROWID]} || {},
-    selectRowsSchema?.isSuccess ? selectRowsSchema.data.schema : undefined
+    $selectRowsSchema?.isSuccess ? $selectRowsSchema.data.schema : undefined
   );
 
   $: totalNumRows = $rows.data?.pages[0].total_num_rows;
@@ -49,7 +56,7 @@
     .map(row => L.value(valueAtPath(row, [ROWID])!, 'string')!);
 
   $: mediaFields = $settings.data
-    ? getMediaFields($datasetStore.selectRowsSchema?.data?.schema, $settings.data)
+    ? getMediaFields($selectRowsSchema?.data?.schema, $settings.data)
     : [];
   // Pass the item scroll container to children so they can handle scroll events.
   let itemScrollContainer: HTMLDivElement | null = null;
@@ -66,11 +73,11 @@
     title="Could not fetch rows:"
     subtitle={$rows.error.body?.detail || $rows.error.message}
   />
-{:else if selectRowsSchema?.isError}
+{:else if $selectRowsSchema?.isError}
   <InlineNotification
     lowContrast
     title="Could not fetch schema:"
-    subtitle={selectRowsSchema.error.body?.detail || selectRowsSchema?.error.message}
+    subtitle={$selectRowsSchema.error.body?.detail || $selectRowsSchema?.error.message}
   />
 {:else if $rows?.isFetching}
   <SkeletonText paragraph lines={3} />
