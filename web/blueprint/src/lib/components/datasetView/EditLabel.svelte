@@ -10,7 +10,7 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {getSchemaLabels, type AddLabelsOptions, type RemoveLabelsOptions} from '$lilac';
-  import {ComboBox} from 'carbon-components-svelte';
+  import {ComboBox, InlineLoading} from 'carbon-components-svelte';
   import {Tag, type CarbonIcon} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import {clickOutside} from '../common/clickOutside';
@@ -56,6 +56,8 @@
   $: removeLabels =
     $datasetStore.schema != null ? removeLabelsMutation($datasetStore.schema) : null;
 
+  $: inProgress = $addLabels?.isLoading || $removeLabels?.isLoading;
+
   $: disableLabels = disabled || !canEditLabels;
 
   function addLabel() {
@@ -84,7 +86,6 @@
       label_name: selectedItem.text
     };
     labelMenuOpen = false;
-
     function message(numRows: number): string {
       return options.row_ids != null
         ? `Document id: ${options.row_ids}`
@@ -122,7 +123,7 @@
   }}
 >
   <button
-    disabled={disableLabels}
+    disabled={disableLabels || inProgress}
     class:opacity-30={disableLabels}
     class:bg-red-100={remove}
     on:click={addLabel}
@@ -130,6 +131,9 @@
     class="flex items-center gap-x-2 border border-gray-300"
     class:hidden={labelMenuOpen}
   >
+    {#if inProgress}
+      <InlineLoading />
+    {/if}
     <svelte:component this={icon} />
   </button>
 </div>
@@ -165,3 +169,10 @@
     {/if}
   </ComboBox>
 </div>
+
+<style lang="postcss">
+  :global(.bx--inline-loading) {
+    width: unset;
+    min-height: unset;
+  }
+</style>
