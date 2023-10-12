@@ -12,7 +12,7 @@ from typing_extensions import override
 from lilac.sources.source_registry import clear_source_registry, register_source
 
 from .config import Config, DatasetConfig, DatasetSettings, DatasetUISettings
-from .data.dataset import DEFAULT_EMBEDDING, SourceManifest
+from .data.dataset import SourceManifest
 from .data.dataset_duckdb import read_source_manifest
 from .data.dataset_utils import parquet_filename
 from .load_dataset import process_source
@@ -97,6 +97,5 @@ def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
       name='test_dataset',
       source=source,
       # 'y' is the longest path, so should be set as the default setting.
-      settings=DatasetSettings(
-        ui=DatasetUISettings(media_paths=[('y',)]), preferred_embedding=DEFAULT_EMBEDDING))
+      settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('y',)])))
   ])

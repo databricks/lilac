@@ -2,22 +2,20 @@
 
 import json
 import pathlib
-from typing import TYPE_CHECKING, Optional, Union
+from typing import Optional, Union
 
 import yaml
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
 from pydantic import Field as PydanticField
-from pydantic import SerializeAsAny, field_serializer, field_validator
+from pydantic import SerializeAsAny, ValidationError, field_serializer, field_validator
 
-if TYPE_CHECKING:
-  pass
-
-from pydantic import BaseModel, ValidationError
-
+from .embeddings.embedding import EMBEDDING_SORT_PRIORITIES
 from .schema import Path, PathTuple, normalize_path
 from .signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
 from .source import Source
 from .sources.source_registry import resolve_source
+
+DEFAULT_EMBEDDING = EMBEDDING_SORT_PRIORITIES[0]
 
 OLD_CONFIG_FILENAME = 'config.yml'
 
@@ -110,7 +108,7 @@ class DatasetUISettings(BaseModel):
 class DatasetSettings(BaseModel):
   """The persistent settings for a dataset."""
   ui: Optional[DatasetUISettings] = None
-  preferred_embedding: Optional[str] = None
+  preferred_embedding: Optional[str] = DEFAULT_EMBEDDING
   model_config = ConfigDict(extra='forbid')
 
 

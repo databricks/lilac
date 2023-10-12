@@ -20,6 +20,8 @@ from ..signal import TextEmbeddingSignal, get_signal_by_type
 from ..splitters.chunk_splitter import TextChunk
 from ..utils import chunks
 
+EMBEDDING_SORT_PRIORITIES = ['gte-small', 'gte-base', 'openai', 'sbert']
+
 EmbeddingId = Union[StrictStr, TextEmbeddingSignal]
 
 EmbedFn = Callable[[Iterable[RichData]], Iterable[list[SpanVector]]]

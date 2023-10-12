@@ -7,14 +7,13 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, SerializeAsAny, field_validator
 
 from .auth import UserInfo, get_session_user
+from .embeddings.embedding import EMBEDDING_SORT_PRIORITIES
 from .router_utils import RouteErrorHandler, server_compute_concept
 from .schema import Field, SignalInputType
 from .signal import SIGNAL_REGISTRY, Signal, TextEmbeddingSignal, resolve_signal
 from .signals.concept_scorer import ConceptSignal
 
 router = APIRouter(route_class=RouteErrorHandler)
-
-EMBEDDING_SORT_PRIORITIES = ['gte-small', 'gte-base', 'openai', 'sbert']
 
 
 class SignalInfo(BaseModel):
