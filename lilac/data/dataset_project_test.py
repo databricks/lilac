@@ -23,6 +23,7 @@ from ..schema import Field, Item, RichData, field, lilac_embedding
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from ..source import Source, SourceSchema
 from ..sources.source_registry import clear_source_registry, register_source
+from .dataset import DEFAULT_EMBEDDING
 
 SIMPLE_ITEMS: list[Item] = [{
   'str': 'a',
@@ -126,7 +127,9 @@ def test_load_dataset_updates_project() -> None:
       name='test',
       source=TestSource(),
       # Settings are automatically computed when not provided.
-      settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])))
+      settings=DatasetSettings(
+        ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[]),
+        preferred_embedding=DEFAULT_EMBEDDING))
   ])
 
 
@@ -149,7 +152,9 @@ def test_compute_signal_updates_project() -> None:
       name='test',
       source=TestSource(),
       # Settings are automatically computed when not provided.
-      settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
+      settings=DatasetSettings(
+        ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[]),
+        preferred_embedding=DEFAULT_EMBEDDING),
       signals=[SignalConfig(path=('str',), signal=TestSignal())])
   ])
 
@@ -166,7 +171,9 @@ def test_delete_signal_updates_project() -> None:
       name='test',
       source=TestSource(),
       # Settings are automatically computed when not provided.
-      settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
+      settings=DatasetSettings(
+        ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[]),
+        preferred_embedding=DEFAULT_EMBEDDING),
       signals=[SignalConfig(path=('str',), signal=TestSignal())])
   ])
 
@@ -180,7 +187,9 @@ def test_delete_signal_updates_project() -> None:
       name='test',
       source=TestSource(),
       # Settings are automatically computed when not provided.
-      settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
+      settings=DatasetSettings(
+        ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[]),
+        preferred_embedding=DEFAULT_EMBEDDING),
       # Signals should be deleted.
       signals=[])
   ])
@@ -198,6 +207,8 @@ def test_compute_embedding_updates_project() -> None:
       name='test',
       source=TestSource(),
       # Settings are automatically computed when not provided.
-      settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
+      settings=DatasetSettings(
+        ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[]),
+        preferred_embedding=DEFAULT_EMBEDDING),
       embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding')])
   ])
