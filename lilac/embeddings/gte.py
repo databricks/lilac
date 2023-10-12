@@ -1,5 +1,5 @@
 """Gegeral Text Embeddings (GTE) model. Open-source model, designed to run on device."""
-from typing import TYPE_CHECKING, ClassVar, Iterable, cast
+from typing import ClassVar, Iterable, cast
 
 from typing_extensions import override
 
@@ -8,9 +8,6 @@ from ..signal import TextEmbeddingSignal
 from ..splitters.chunk_splitter import split_text
 from .embedding import compute_split_embeddings
 from .transformer_utils import get_model
-
-if TYPE_CHECKING:
-  pass
 
 # See https://huggingface.co/spaces/mteb/leaderboard for leaderboard of models.
 GTE_SMALL = 'thenlper/gte-small'

@@ -1,15 +1,12 @@
 """Interface for implementing a source."""
 
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Iterable, Optional, Type
+from typing import Any, Callable, ClassVar, Iterable, Optional, Type
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, model_serializer
-
-if TYPE_CHECKING:
-  pass
 
 from .schema import (
   Field,
