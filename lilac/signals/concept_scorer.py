@@ -23,7 +23,7 @@ class ConceptSignal(VectorSignal):
 
   namespace: str
   concept_name: str
-  # This will get filled out during setup.
+  # This is set during setup and used in the UI to show the concept version on hover.
   version: Optional[int] = None
 
   # The draft version of the concept to use. If not provided, the latest version is used.

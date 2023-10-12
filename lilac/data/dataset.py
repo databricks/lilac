@@ -51,7 +51,7 @@ from ..sources.source_registry import resolve_source
 from ..tasks import TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
-TOO_MANY_DISTINCT = 500_000
+TOO_MANY_DISTINCT = 1_000_000
 SAMPLE_AVG_TEXT_LENGTH = 1000
 MAX_TEXT_LEN_DISTINCT_COUNT = 250
 

@@ -42,5 +42,5 @@ COPY --chown=user docker_start.sh ./
 RUN mkdir -p ./data
 RUN chown -R user ./data
 
-EXPOSE 8000
+EXPOSE 5432
 CMD ["bash", "docker_start.sh"]

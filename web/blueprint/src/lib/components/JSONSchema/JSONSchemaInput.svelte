@@ -36,12 +36,9 @@
       path
   );
 
-  $: numberValue = property?.default;
+  // Convert a null value to undefined for the json schema to validate.
   $: {
-    // Convert a null value to undefined for the json schema to validate.
-    if (numberValue !== undefined) {
-      value = numberValue === null ? undefined : numberValue;
-    }
+    value = value === null ? undefined : value;
   }
 
   // Map common validation errors to user friendly messages
@@ -113,7 +110,7 @@
     <!-- Number Input -->
     <NumberInput
       allowEmpty={!required}
-      bind:value={numberValue}
+      bind:value
       name={path}
       {label}
       hideLabel={true}

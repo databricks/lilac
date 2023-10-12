@@ -3,8 +3,7 @@
 This script will, in order:
 1) Sync from the HuggingFace space data (only datasets). (--skip_sync to skip syncing)
 2) Load the data from the lilac_hf_space.yml config. (--skip_load to skip loading)
-3) Build the web server TypeScript. (--skip_build to skip building)
-4) Push code & data to the HuggingFace space.
+3) Push data to the HuggingFace space.
 
 Usage:
 poetry run python -m scripts.deploy_demo \
@@ -16,7 +15,6 @@ Add:
   --skip_sync to skip syncing data from the HuggingFace space data.
   --skip_load to skip loading the data.
   --load_overwrite to run all data from scratch, overwriting existing data.
-  --skip_build to skip building the web server TypeScript.
   --skip_data_upload to skip uploading data. This will use the datasets already on the space.
   --skip_deploy to skip deploying to HuggingFace. Useful to test locally.
 

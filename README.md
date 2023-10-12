@@ -70,11 +70,8 @@ explore them.
 
 ### Run via Docker
 
-Build the image after cloning the repo:
-
-```sh
-docker build -t lilac .
-```
+We publish images for `linux/amd64` and `linux/arm64` on Docker Hub under
+[lilacai](https://hub.docker.com/u/lilacai).
 
 The container runs on the virtual port `8000`, this command maps it to the host machine port `5432`.
 
@@ -86,7 +83,14 @@ docker run -it \
   -p 5432:8000 \
   --volume /host/path/to/data:/data \
   -e LILAC_PROJECT_DIR="/data" \
-  lilac
+  --gpus all \ # Remove if you don't have a GPU, or on MacOS.
+  lilacai/lilac
+```
+
+To build your own custom image run the following command, otherwise skip to the next step.
+
+```sh
+docker build -t lilac .
 ```
 
 ### 📊 Load data

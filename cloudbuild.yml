@@ -1,0 +1,36 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker login --username=$_HUB_REPO --password=$$PASSWORD']
+    secretEnv: ['PASSWORD']
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - buildx
+      - create
+      - '--name'
+      - buildxbuilder
+      - '--use'
+      - '--bootstrap'
+    id: create-builder
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker pull docker.io/$_HUB_REPO/lilac:latest || exit 0']
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      [
+        '-c',
+        'docker buildx build --platform $_DOCKER_BUILDX_PLATFORMS -t $_HUB_REPO/lilac:latest -t
+        $_HUB_REPO/lilac:$_VERSION --cache-from docker.io/$_HUB_REPO/lilac:latest . --push'
+      ]
+options:
+  env:
+    - DOCKER_CLI_EXPERIMENTAL=enabled
+substitutions:
+  _PROJECT_ID: 'lilac-386213'
+  _DOCKER_BUILDX_PLATFORMS: 'linux/amd64,linux/arm64'
+  _HUB_REPO: 'lilacai'
+availableSecrets:
+  secretManager:
+    - versionName: projects/$_PROJECT_ID/secrets/DOCKER_PASSWORD_SECRET_NAME/versions/1
+      env: 'PASSWORD'

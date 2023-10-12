@@ -1,0 +1,13 @@
+.git/
+.github/
+.ruff_cache/
+.vscode/
+.mypy_cache/
+.pytest_cache/
+.venv/
+__pycache__/
+web/
+lilac/
+notebooks/
+docs/
+scripts/

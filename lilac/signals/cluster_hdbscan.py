@@ -70,11 +70,14 @@ class ClusterHDBScan(VectorSignal):
     # Use UMAP to reduce the dimensionality before hdbscan to speed up clustering.
     # For details on hyperparameters, see:
     # https://umap-learn.readthedocs.io/en/latest/clustering.html
-    reducer = umap.UMAP(n_components=self.umap_n_components, n_neighbors=30, min_dist=0.0)
-    all_vectors = reducer.fit_transform(all_vectors)
+    with DebugTimer(f'UMAP: Reducing dimensionality of {len(all_vectors)} vectors '
+                    f'of dimensionality {all_vectors[0].size} to {self.umap_n_components}'):
+      reducer = umap.UMAP(n_components=self.umap_n_components, n_neighbors=30, min_dist=0.0)
+      all_vectors = reducer.fit_transform(all_vectors)
 
-    hdbscan = HDBSCAN(min_cluster_size=self.min_cluster_size, n_jobs=-1)
-    hdbscan.fit(all_vectors)
+    with DebugTimer('HDBSCAN: Clustering'):
+      hdbscan = HDBSCAN(min_cluster_size=self.min_cluster_size, n_jobs=-1)
+      hdbscan.fit(all_vectors)
 
     span_index = 0
     for spans in all_spans:
