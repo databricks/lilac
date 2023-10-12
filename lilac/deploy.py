@@ -287,6 +287,7 @@ def _make_wheel_dir(api: Any, hf_space: str) -> list:
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
 
   # Make an empty readme in py_dist_dir.
+  os.makedirs(PY_DIST_DIR, exist_ok=True)
   with open(os.path.join(PY_DIST_DIR, 'README.md'), 'w') as f:
     f.write('This directory is used for locally built whl files.\n'
             'We write a README.md to ensure an empty folder is uploaded when there is no whl.')
