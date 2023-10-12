@@ -23,8 +23,6 @@ class ConceptSignal(VectorSignal):
 
   namespace: str
   concept_name: str
-  # This will get filled out during setup.
-  version: Optional[int] = None
 
   # The draft version of the concept to use. If not provided, the latest version is used.
   draft: str = DRAFT_MAIN
@@ -68,11 +66,6 @@ class ConceptSignal(VectorSignal):
     spans = [sv['span'] for sv in span_vectors]
     scores = concept_model.score_embeddings(self.draft, np.array(vectors)).tolist()
     return [lilac_span(start, end, {'score': score}) for score, (start, end) in zip(scores, spans)]
-
-  @override
-  def setup(self) -> None:
-    concept_model = self._get_concept_model()
-    self.version = concept_model.version
 
   @override
   def compute(self, examples: Iterable[RichData]) -> Iterable[Optional[Item]]:
