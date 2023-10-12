@@ -40,7 +40,7 @@
     getSelectRowsSchemaOptions($datasetViewStore)
   );
 
-  $: highlightedFields = getHighlightedFields($datasetViewStore.query, selectRowsSchema?.data);
+  $: highlightedFields = getHighlightedFields($datasetViewStore.query, $selectRowsSchema?.data);
 
   $: rows = infiniteQuerySelectRows(
     $datasetViewStore.namespace,
