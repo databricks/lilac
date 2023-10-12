@@ -68,19 +68,21 @@
   <div class="flex items-center gap-x-6 gap-y-2">
     <div class="flex items-center gap-x-2">
       <EditLabel
+        {totalNumRows}
         icon={TagGroup}
         disabled={!canLabelAll}
         disabledMessage={!canLabelAll ? 'User does not have access to label all.' : ''}
         labelsQuery={{searches, filters}}
-        helperText={'Apply label to all items in the current filter.'}
+        helperText={'Label all items in the current filter'}
       />
       <EditLabel
+        {totalNumRows}
         remove
         icon={TagNone}
         disabled={!canLabelAll}
         disabledMessage={!canLabelAll ? 'User does not have access to label all.' : ''}
         labelsQuery={{searches, filters}}
-        helperText={'Remove label from all items in the current filter.'}
+        helperText={'Remove label from all items in the current filter'}
       />
     </div>
     <!-- Filters -->

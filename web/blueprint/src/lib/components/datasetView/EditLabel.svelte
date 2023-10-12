@@ -10,8 +10,9 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {getSchemaLabels, type AddLabelsOptions, type RemoveLabelsOptions} from '$lilac';
-  import {ComboBox, InlineLoading} from 'carbon-components-svelte';
+  import {ComboBox, InlineLoading, Modal} from 'carbon-components-svelte';
   import {Tag, type CarbonIcon} from 'carbon-icons-svelte';
+  import {createEventDispatcher} from 'svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import {clickOutside} from '../common/clickOutside';
 
@@ -22,10 +23,13 @@
   export let disabledMessage = 'User does not have access to add labels.';
   export let icon: typeof CarbonIcon;
   export let remove = false;
+  export let totalNumRows: number | undefined = undefined;
+  const dispatch = createEventDispatcher();
 
-  $: labelMenuOpen = false;
+  let labelMenuOpen = false;
   let comboBox: ComboBox;
   let comboBoxText = '';
+  let selectedLabel: string | null = null;
 
   const notificationStore = getNotificationsContext();
 
@@ -74,18 +78,16 @@
     text: string;
   }
 
-  const selectLabelItem = (
-    e: CustomEvent<{
-      selectedId: LabelItem['id'];
-      selectedItem: LabelItem;
-    }>
-  ) => {
-    const selectedItem = e.detail.selectedItem;
+  function editLabels() {
+    if (selectedLabel == null) {
+      return;
+    }
     const options: AddLabelsOptions | RemoveLabelsOptions = {
       ...labelsQuery,
-      label_name: selectedItem.text
+      label_name: selectedLabel
     };
     labelMenuOpen = false;
+
     function message(numRows: number): string {
       return options.row_ids != null
         ? `Document id: ${options.row_ids}`
@@ -113,8 +115,20 @@
         }
       });
     }
+    selectedLabel = null;
+  }
+
+  function selectLabelItem(
+    e: CustomEvent<{
+      selectedItem: LabelItem;
+    }>
+  ) {
+    selectedLabel = e.detail.selectedItem.text;
     comboBox.clear();
-  };
+    if (totalNumRows == null) {
+      editLabels();
+    }
+  }
 </script>
 
 <div
@@ -170,9 +184,34 @@
   </ComboBox>
 </div>
 
+<Modal
+  size="xs"
+  open={selectedLabel != null && totalNumRows != null}
+  modalHeading="Label"
+  primaryButtonText="Confirm"
+  secondaryButtonText="Cancel"
+  selectorPrimaryFocus=".bx--btn--primary"
+  on:submit={editLabels}
+  on:click:button--secondary={() => {
+    selectedLabel = null;
+    dispatch('close');
+  }}
+  on:close={(selectedLabel = null)}
+>
+  <p>
+    {#if remove}
+      Remove label <span class="font-mono font-bold">{selectedLabel}</span> from {totalNumRows?.toLocaleString()}
+      rows?
+    {:else}
+      Add label <span class="font-mono font-bold">{selectedLabel}</span> to {totalNumRows?.toLocaleString()}
+      rows?
+    {/if}
+  </p>
+</Modal>
+
 <style lang="postcss">
   :global(.bx--inline-loading) {
-    width: unset;
-    min-height: unset;
+    width: unset !important;
+    min-height: unset !important;
   }
 </style>
