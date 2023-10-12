@@ -7,9 +7,9 @@
   import {getSearches} from '$lib/view_utils';
   import {formatValue, type Search, type SearchType, type WebManifest} from '$lilac';
   import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
-  import {ArrowUpRight, Filter} from 'carbon-icons-svelte';
+  import {ArrowUpRight, Filter, TagGroup, TagNone} from 'carbon-icons-svelte';
   import ConceptView from '../concepts/ConceptView.svelte';
-  import AddLabel from './AddLabel.svelte';
+  import EditLabel from './EditLabel.svelte';
   import FilterPill from './FilterPill.svelte';
   import GroupByPanel from './GroupByPanel.svelte';
   import GroupByPill from './GroupByPill.svelte';
@@ -66,13 +66,23 @@
 
 <div class="relative mx-5 my-2 flex items-center justify-between">
   <div class="flex items-center gap-x-6 gap-y-2">
-    <AddLabel
-      disabled={!canLabelAll}
-      disabledMessage={!canLabelAll ? 'User does not have access to label all.' : ''}
-      addLabelsQuery={{searches, filters}}
-      buttonText={'Label all'}
-      helperText={'Apply label to all results within the current filter set.'}
-    />
+    <div class="flex items-center gap-x-2">
+      <EditLabel
+        icon={TagGroup}
+        disabled={!canLabelAll}
+        disabledMessage={!canLabelAll ? 'User does not have access to label all.' : ''}
+        labelsQuery={{searches, filters}}
+        helperText={'Apply label to all items in the current filter.'}
+      />
+      <EditLabel
+        remove
+        icon={TagNone}
+        disabled={!canLabelAll}
+        disabledMessage={!canLabelAll ? 'User does not have access to label all.' : ''}
+        labelsQuery={{searches, filters}}
+        helperText={'Remove label from all items in the current filter.'}
+      />
+    </div>
     <!-- Filters -->
     <div class="flex items-center gap-x-1">
       <div><Filter /></div>

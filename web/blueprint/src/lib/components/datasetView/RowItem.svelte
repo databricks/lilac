@@ -17,7 +17,8 @@
     type RemoveLabelsOptions
   } from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
-  import AddLabel from './AddLabel.svelte';
+  import {Tag} from 'carbon-icons-svelte';
+  import EditLabel from './EditLabel.svelte';
   import ItemMedia from './ItemMedia.svelte';
   import ItemMetadata from './ItemMetadata.svelte';
   import LabelPill from './LabelPill.svelte';
@@ -130,7 +131,7 @@
           </div>
         {/each}
         <div class="relative h-8">
-          <AddLabel addLabelsQuery={{row_ids: [rowId]}} hideLabels={rowLabels} />
+          <EditLabel icon={Tag} labelsQuery={{row_ids: [rowId]}} hideLabels={rowLabels} />
         </div>
       </div>
       {#if mediaFields.length > 0}

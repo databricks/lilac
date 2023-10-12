@@ -1,26 +1,27 @@
 <script context="module" lang="ts">
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  export interface AddLabelsQuery extends Omit<AddLabelsOptions, 'label_name'> {}
+  export interface LabelsQuery extends Omit<AddLabelsOptions, 'label_name'> {}
 </script>
 
 <script lang="ts">
-  import {addLabelsMutation} from '$lib/queries/datasetQueries';
+  import {addLabelsMutation, removeLabelsMutation} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetContext} from '$lib/stores/datasetStore';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
-  import {getSchemaLabels, type AddLabelsOptions} from '$lilac';
+  import {getSchemaLabels, type AddLabelsOptions, type RemoveLabelsOptions} from '$lilac';
   import {ComboBox} from 'carbon-components-svelte';
-  import {Add, Tag} from 'carbon-icons-svelte';
+  import {Tag, type CarbonIcon} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import {clickOutside} from '../common/clickOutside';
 
-  export let addLabelsQuery: AddLabelsQuery;
+  export let labelsQuery: LabelsQuery;
   export let hideLabels: string[] | undefined = undefined;
-  export let buttonText: string | undefined = undefined;
   export let helperText = 'Add label';
   export let disabled = false;
   export let disabledMessage = 'User does not have access to add labels.';
+  export let icon: typeof CarbonIcon;
+  export let remove = false;
 
   $: labelMenuOpen = false;
   let comboBox: ComboBox;
@@ -49,9 +50,11 @@
     schemaLabels
       ?.filter(l => !(hideLabels || []).includes(l))
       .map((l, i) => ({id: `label_${i}`, text: l})) || [];
-  $: labelItems = [...(comboBoxText != '' ? [newLabelItem] : []), ...missingLabelItems];
+  $: labelItems = [...(comboBoxText != '' && !remove ? [newLabelItem] : []), ...missingLabelItems];
 
   $: addLabels = $datasetStore.schema != null ? addLabelsMutation($datasetStore.schema) : null;
+  $: removeLabels =
+    $datasetStore.schema != null ? removeLabelsMutation($datasetStore.schema) : null;
 
   $: disableLabels = disabled || !canEditLabels;
 
@@ -76,25 +79,39 @@
     }>
   ) => {
     const selectedItem = e.detail.selectedItem;
-    const addLabelsOptions: AddLabelsOptions = {
-      ...addLabelsQuery,
+    const options: AddLabelsOptions | RemoveLabelsOptions = {
+      ...labelsQuery,
       label_name: selectedItem.text
     };
     labelMenuOpen = false;
-    $addLabels!.mutate([namespace, datasetName, addLabelsOptions], {
-      onSuccess: numRows => {
-        const message =
-          addLabelsOptions.row_ids != null
-            ? `Document id: ${addLabelsOptions.row_ids}`
-            : `${numRows.toLocaleString()} rows labeled`;
 
-        notificationStore.addNotification({
-          kind: 'success',
-          title: `Added label "${addLabelsOptions.label_name}"`,
-          message
-        });
-      }
-    });
+    function message(numRows: number): string {
+      return options.row_ids != null
+        ? `Document id: ${options.row_ids}`
+        : `${numRows.toLocaleString()} rows updated`;
+    }
+
+    if (!remove) {
+      $addLabels!.mutate([namespace, datasetName, options], {
+        onSuccess: numRows => {
+          notificationStore.addNotification({
+            kind: 'success',
+            title: `Added label "${options.label_name}"`,
+            message: message(numRows)
+          });
+        }
+      });
+    } else {
+      $removeLabels!.mutate([namespace, datasetName, options], {
+        onSuccess: numRows => {
+          notificationStore.addNotification({
+            kind: 'success',
+            title: `Removed label "${options.label_name}"`,
+            message: message(numRows)
+          });
+        }
+      });
+    }
     comboBox.clear();
   };
 </script>
@@ -107,18 +124,17 @@
   <button
     disabled={disableLabels}
     class:opacity-30={disableLabels}
+    class:bg-red-100={remove}
     on:click={addLabel}
     use:hoverTooltip={{text: helperText}}
     class="flex items-center gap-x-2 border border-gray-300"
     class:hidden={labelMenuOpen}
-    ><Add />
-    {#if buttonText != null}
-      <span class="mr-1">{buttonText}</span>
-    {/if}
+  >
+    <svelte:component this={icon} />
   </button>
 </div>
 <div
-  class="absolute left-0 top-0 z-50 w-60"
+  class="z-50 w-60"
   class:hidden={!labelMenuOpen}
   use:clickOutside={() => (labelMenuOpen = false)}
 >
@@ -131,7 +147,7 @@
     on:select={selectLabelItem}
     shouldFilterItem={(item, value) =>
       item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-label'}
-    placeholder="Select or type a new label"
+    placeholder={!remove ? 'Select or type a new label' : 'Select a label to remove'}
     let:item={it}
   >
     {@const item = labelItems.find(p => p.id === it.id)}
