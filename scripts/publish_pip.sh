@@ -23,9 +23,11 @@ echo "Dry run bumping version..."
 poetry version --dry-run $VERSION_TYPE
 
 # Make sure the user is logged into github and has `gh` installed.
+echo "Checking github auth..."
 gh auth status || exit 1
 
 # Make sure the user is logged in and can see the cloud builds.
+echo "Checking Google Cloud authentication..."
 gcloud builds list --project lilac-386213 || exit 1
 
 set -o allexport
