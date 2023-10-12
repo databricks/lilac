@@ -139,7 +139,7 @@
   <button
     disabled={disableLabels || inProgress}
     class:opacity-30={disableLabels}
-    class:bg-red-100={remove}
+    class:text-red-600={remove}
     on:click={addLabel}
     use:hoverTooltip={{text: helperText}}
     class="flex items-center gap-x-2 border border-gray-300"
