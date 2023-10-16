@@ -45,10 +45,6 @@ def setup_teardown() -> Iterable[None]:
 
 @freeze_time(TEST_TIME)
 def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  test_datetime = datetime.now()
-  mock_datetime = mocker.patch.object(datetime, 'now', autospec=True)
-  mock_datetime.return_value = test_datetime
-
   dataset = make_test_data(TEST_ITEMS)
 
   num_labels = dataset.add_labels('test_label', filters=[(ROWID, 'equals', '1')])
@@ -100,10 +96,6 @@ def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) 
 
 @freeze_time(TEST_TIME)
 def test_add_row_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  test_datetime = datetime.now()
-  mock_datetime = mocker.patch.object(datetime, 'now', autospec=True)
-  mock_datetime.return_value = test_datetime
-
   dataset = make_test_data(TEST_ITEMS)
 
   num_labels = dataset.add_labels('test_label', row_ids=['1', '2'])
@@ -132,10 +124,6 @@ def test_add_row_labels(make_test_data: TestDataMaker, mocker: MockerFixture) ->
 
 @freeze_time(TEST_TIME)
 def test_add_row_labels_no_filters(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  test_datetime = datetime.now()
-  mock_datetime = mocker.patch.object(datetime, 'now', autospec=True)
-  mock_datetime.return_value = test_datetime
-
   dataset = make_test_data(TEST_ITEMS)
 
   num_labels = dataset.add_labels('test_label')
@@ -168,10 +156,6 @@ def test_add_row_labels_no_filters(make_test_data: TestDataMaker, mocker: Mocker
 
 @freeze_time(TEST_TIME)
 def test_remove_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  test_datetime = datetime.now()
-  mock_datetime = mocker.patch.object(datetime, 'now', autospec=True)
-  mock_datetime.return_value = test_datetime
-
   dataset = make_test_data(TEST_ITEMS)
 
   num_labels = dataset.add_labels('test_label', row_ids=['1', '2', '3'])
@@ -219,10 +203,6 @@ def test_remove_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> 
 
 @freeze_time(TEST_TIME)
 def test_remove_labels_no_filters(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  test_datetime = datetime.now()
-  mock_datetime = mocker.patch.object(datetime, 'now', autospec=True)
-  mock_datetime.return_value = test_datetime
-
   dataset = make_test_data(TEST_ITEMS)
 
   # Add all labels.
@@ -249,10 +229,6 @@ def test_remove_labels_no_filters(make_test_data: TestDataMaker, mocker: MockerF
 
 @freeze_time(TEST_TIME)
 def test_label_overwrites(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  test_datetime = datetime.now()
-  mock_datetime = mocker.patch.object(datetime, 'now', autospec=True)
-  mock_datetime.return_value = test_datetime
-
   dataset = make_test_data(TEST_ITEMS)
 
   num_labels = dataset.add_labels('test_label', value='yes', filters=[(ROWID, 'equals', '1')])
@@ -283,10 +259,6 @@ def test_label_overwrites(make_test_data: TestDataMaker, mocker: MockerFixture) 
 
 @freeze_time(TEST_TIME)
 def test_add_multiple_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  test_datetime = datetime.now()
-  mock_datetime = mocker.patch.object(datetime, 'now', autospec=True)
-  mock_datetime.return_value = test_datetime
-
   dataset = make_test_data(TEST_ITEMS)
 
   # Add a 'yes' for every item with int >= 2.
@@ -338,10 +310,6 @@ def test_add_multiple_labels(make_test_data: TestDataMaker, mocker: MockerFixtur
 
 @freeze_time(TEST_TIME)
 def test_labels_select_groups(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  test_datetime = datetime.now()
-  mock_datetime = mocker.patch.object(datetime, 'now', autospec=True)
-  mock_datetime.return_value = test_datetime
-
   dataset = make_test_data(TEST_ITEMS)
 
   # Add a 'yes' for every item with int >= 2.

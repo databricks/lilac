@@ -644,7 +644,7 @@ class DatasetDuckDB(Dataset):
         current_field = current_field.repeated_field
         filter.path = (*filter.path, PATH_WILDCARD)
 
-      if not current_field.dtype:
+      if filter.op in BINARY_OPS and not current_field.dtype:
         raise ValueError(f'Unable to filter on path {filter.path}. The field has no value.')
 
   def _validate_udfs(self, udf_cols: Sequence[Column], source_schema: Schema) -> None:
@@ -1753,12 +1753,22 @@ class DatasetDuckDB(Dataset):
 
   def _get_selection(self,
                      columns: Optional[Sequence[ColumnId]] = None,
-                     filters: Optional[Sequence[FilterLike]] = None) -> str:
+                     filters: Optional[Sequence[FilterLike]] = None,
+                     include_labels: Optional[Sequence[str]] = None,
+                     exclude_labels: Optional[Sequence[str]] = None) -> str:
     """Get the selection clause for download a dataset."""
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema, combine_columns=False)
     schema = manifest.data_schema
     self._validate_columns(cols, manifest.data_schema, schema)
+
+    filters = list(filters or [])
+    include_labels = include_labels or []
+    exclude_labels = exclude_labels or []
+    for label in include_labels:
+      filters.append(Filter(path=(label,), op='exists'))
+    for label in exclude_labels:
+      filters.append(Filter(path=(label,), op='not_exists'))
 
     where_query = ''
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
@@ -1786,8 +1796,10 @@ class DatasetDuckDB(Dataset):
               filepath: Union[str, pathlib.Path],
               jsonl: bool = True,
               columns: Optional[Sequence[ColumnId]] = None,
-              filters: Optional[Sequence[FilterLike]] = None) -> None:
-    selection = self._get_selection(columns, filters)
+              filters: Optional[Sequence[FilterLike]] = None,
+              include_labels: Optional[Sequence[str]] = None,
+              exclude_labels: Optional[Sequence[str]] = None) -> None:
+    selection = self._get_selection(columns, filters, include_labels, exclude_labels)
     self._execute(f"COPY ({selection}) TO '{filepath}' "
                   f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})")
     log(f'Dataset exported to {filepath}')
@@ -1795,16 +1807,20 @@ class DatasetDuckDB(Dataset):
   @override
   def to_pandas(self,
                 columns: Optional[Sequence[ColumnId]] = None,
-                filters: Optional[Sequence[FilterLike]] = None) -> pd.DataFrame:
-    selection = self._get_selection(columns, filters)
+                filters: Optional[Sequence[FilterLike]] = None,
+                include_labels: Optional[Sequence[str]] = None,
+                exclude_labels: Optional[Sequence[str]] = None) -> pd.DataFrame:
+    selection = self._get_selection(columns, filters, include_labels, exclude_labels)
     return self._query_df(f'{selection}')
 
   @override
   def to_csv(self,
              filepath: Union[str, pathlib.Path],
              columns: Optional[Sequence[ColumnId]] = None,
-             filters: Optional[Sequence[FilterLike]] = None) -> None:
-    selection = self._get_selection(columns, filters)
+             filters: Optional[Sequence[FilterLike]] = None,
+             include_labels: Optional[Sequence[str]] = None,
+             exclude_labels: Optional[Sequence[str]] = None) -> None:
+    selection = self._get_selection(columns, filters, include_labels, exclude_labels)
     self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT CSV, HEADER)")
     log(f'Dataset exported to {filepath}')
 
@@ -1812,8 +1828,10 @@ class DatasetDuckDB(Dataset):
   def to_parquet(self,
                  filepath: Union[str, pathlib.Path],
                  columns: Optional[Sequence[ColumnId]] = None,
-                 filters: Optional[Sequence[FilterLike]] = None) -> None:
-    selection = self._get_selection(columns, filters)
+                 filters: Optional[Sequence[FilterLike]] = None,
+                 include_labels: Optional[Sequence[str]] = None,
+                 exclude_labels: Optional[Sequence[str]] = None) -> None:
+    selection = self._get_selection(columns, filters, include_labels, exclude_labels)
     self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT PARQUET)")
     log(f'Dataset exported to {filepath}')
 

@@ -3,11 +3,13 @@
 import csv
 import json
 import pathlib
+from datetime import datetime
 from typing import ClassVar, Iterable, Optional
 
 import numpy as np
 import pandas as pd
 import pytest
+from freezegun import freeze_time
 from typing_extensions import override
 
 from ..schema import ROWID, Field, Item, RichData, field
@@ -163,3 +165,43 @@ def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
   # Invalid columns.
   with pytest.raises(ValueError, match="Unable to select path \\('text', 'test_signal2'\\)"):
     dataset.to_pandas(['text', 'text.test_signal2'])
+
+
+TEST_TIME = datetime(2023, 8, 15, 1, 23, 45)
+
+
+@freeze_time(TEST_TIME)
+def test_label_and_export_by_excluding(make_test_data: TestDataMaker,
+                                       tmp_path: pathlib.Path) -> None:
+  dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}])
+  dataset.add_labels('delete', ['2', '3'])
+
+  # Download all, except the 'deleted' label.
+  filepath = tmp_path / 'dataset.json'
+  dataset.to_json(filepath, exclude_labels=['delete'])
+
+  with open(filepath) as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  assert parsed_items == [{'delete': None, 'text': 'a'}]
+
+  # Download only the 'deleted' label.
+  filepath = tmp_path / 'dataset.json'
+  dataset.to_json(filepath, include_labels=['delete'])
+
+  with open(filepath) as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  assert parsed_items == [{
+    'delete': {
+      'created': str(TEST_TIME),
+      'label': 'true'
+    },
+    'text': 'b'
+  }, {
+    'delete': {
+      'created': str(TEST_TIME),
+      'label': 'true'
+    },
+    'text': 'c'
+  }]
