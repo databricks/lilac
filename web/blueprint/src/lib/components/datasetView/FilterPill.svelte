@@ -22,7 +22,8 @@
     greater: '>',
     greater_equal: '≥',
     in: 'in',
-    exists: 'exists'
+    exists: 'exists',
+    not_exists: 'not exists'
   };
 
   export let filter: Filter;
@@ -39,6 +40,8 @@
   $: tooltip =
     filter.op === 'exists'
       ? `has ${displayPath(path)}`
+      : filter.op === 'not_exists'
+      ? `lacks ${displayPath(path)}`
       : `${displayPath(path)} ${FILTER_SHORTHANDS[filter.op]} ${formattedValue}`;
   $: shortenPath = shortFieldName(path);
 </script>
@@ -60,6 +63,8 @@
       is labeled {label}
     {:else if filter.op === 'exists'}
       has <span class="font-mono">{hidePath ? '' : shortenPath}</span>
+    {:else if filter.op === 'not_exists'}
+      lacks <span class="font-mono">{hidePath ? '' : shortenPath}</span>
     {:else}
       <span class="font-mono">{hidePath ? '' : shortenPath}</span>
       {FILTER_SHORTHANDS[filter.op]}

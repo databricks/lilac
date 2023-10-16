@@ -2,7 +2,7 @@
 
 import pytest
 
-from ..schema import ROWID, Item, schema
+from ..schema import ROWID, Item
 from .dataset import BinaryFilterTuple, ListFilterTuple, UnaryFilterTuple
 from .dataset_test_utils import TestDataMaker
 
@@ -160,14 +160,7 @@ def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
     'name': 'C',
     'ages': [[1, 2], [3, 4]]
   }]
-  dataset = make_test_data(
-    items, schema=schema({
-      'name': 'string',
-      'info': {
-        'lang': 'string'
-      },
-      'ages': [['int32']]
-    }))
+  dataset = make_test_data(items)
 
   exists_filter: UnaryFilterTuple = ('name', 'exists')
   result = dataset.select_rows(['name'], filters=[exists_filter])
@@ -183,3 +176,36 @@ def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
 
   with pytest.raises(ValueError, match='Unable to filter on path'):
     dataset.select_rows(['name'], filters=[('info', 'exists')])
+
+
+def test_filter_by_not_exists(make_test_data: TestDataMaker) -> None:
+  items: list[Item] = [{
+    'name': 'A',
+    'info': {
+      'lang': 'en'
+    },
+    'ages': []
+  }, {
+    'info': {
+      'lang': 'fr'
+    },
+  }, {
+    'name': 'C',
+    'ages': [[1, 2], [3, 4]],
+  }]
+  dataset = make_test_data(items)
+
+  not_exists_filter: UnaryFilterTuple = ('name', 'not_exists')
+  result = dataset.select_rows(['info'], filters=[not_exists_filter])
+  assert list(result) == [{'info': {'lang': 'fr'}}]
+
+  not_exists_filter = ('info.lang', 'not_exists')
+  result = dataset.select_rows(['name'], filters=[not_exists_filter])
+  assert list(result) == [{'name': 'C'}]
+
+  not_exists_filter = ('ages', 'not_exists')
+  result = dataset.select_rows(['name'], filters=[not_exists_filter])
+  assert list(result) == [{'name': 'A'}, {'name': None}]
+
+  with pytest.raises(ValueError, match='Unable to filter on path'):
+    dataset.select_rows(['name'], filters=[('info', 'not_exists')])

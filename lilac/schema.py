@@ -711,10 +711,15 @@ def _merge_field_into(field: Field, destination: Field, disallow_pedals: bool = 
       _print_fields(field, destination)
       raise ValueError('Failed to merge fields. New field is repeated, but destination has '
                        'fields')
-    if destination.dtype and destination.dtype != DataType.NULL:
-      _print_fields(field, destination)
-      raise ValueError('Failed to merge fields. New field is repeated, but destination has '
-                       'dtype')
+    if destination.dtype:
+      if destination.dtype != DataType.NULL:
+        _print_fields(field, destination)
+        raise ValueError('Failed to merge fields. New field is repeated, but destination has '
+                         'dtype')
+      else:
+        destination.dtype = None
+        destination.repeated_field = field.repeated_field.model_copy(deep=True)
+        return
     if not destination.repeated_field:
       _print_fields(field, destination)
       raise ValueError('Failed to merge fields. New field is repeated, but destination is not')

@@ -1694,7 +1694,11 @@ class DatasetDuckDB(Dataset):
           filter_query = f'{nan_filter} {select_str} {sql_op} {filter_val}'
       elif f.op in UNARY_OPS:
         if f.op == 'exists':
-          filter_query = f'len({select_str}) > 0' if is_array else f'{select_str} IS NOT NULL'
+          filter_query = (f'ifnull(len({select_str}), 0) > 0'
+                          if is_array else f'{select_str} IS NOT NULL')
+        elif f.op == 'not_exists':
+          filter_query = (f'ifnull(len({select_str}), 0) = 0'
+                          if is_array else f'{select_str} IS NULL')
         else:
           raise ValueError(f'Unary op: {f.op} is not yet supported')
       elif f.op in LIST_OPS:
@@ -1747,12 +1751,20 @@ class DatasetDuckDB(Dataset):
       f'{_escape_col_name(path_comp)}' if quote_each_part else str(path_comp) for path_comp in path
     ])
 
-  def _get_selection(self, columns: Optional[Sequence[ColumnId]] = None) -> str:
+  def _get_selection(self,
+                     columns: Optional[Sequence[ColumnId]] = None,
+                     filters: Optional[Sequence[FilterLike]] = None) -> str:
     """Get the selection clause for download a dataset."""
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema, combine_columns=False)
     schema = manifest.data_schema
     self._validate_columns(cols, manifest.data_schema, schema)
+
+    where_query = ''
+    filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
+    filter_queries = self._create_where(manifest, filters)
+    if filter_queries:
+      where_query = f"WHERE {' AND '.join(filter_queries)}"
 
     select_queries: list[str] = []
     for column in cols:
@@ -1766,37 +1778,43 @@ class DatasetDuckDB(Dataset):
       _, duckdb_path = duckdb_paths[0]
       sql = _select_sql(duckdb_path, flatten=False, unnest=False)
       select_queries.append(f'{sql} AS {_escape_string_literal(col_name)}')
-    return ', '.join(select_queries)
+    selection = ', '.join(select_queries)
+    return f'SELECT {selection} FROM t {where_query}'
 
   @override
   def to_json(self,
               filepath: Union[str, pathlib.Path],
               jsonl: bool = True,
-              columns: Optional[Sequence[ColumnId]] = None) -> None:
-    selection = self._get_selection(columns)
-    self._execute(f"COPY (SELECT {selection} FROM t) TO '{filepath}' "
+              columns: Optional[Sequence[ColumnId]] = None,
+              filters: Optional[Sequence[FilterLike]] = None) -> None:
+    selection = self._get_selection(columns, filters)
+    self._execute(f"COPY ({selection}) TO '{filepath}' "
                   f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})")
     log(f'Dataset exported to {filepath}')
 
   @override
-  def to_pandas(self, columns: Optional[Sequence[ColumnId]] = None) -> pd.DataFrame:
-    selection = self._get_selection(columns)
-    return self._query_df(f'SELECT {selection} FROM t')
+  def to_pandas(self,
+                columns: Optional[Sequence[ColumnId]] = None,
+                filters: Optional[Sequence[FilterLike]] = None) -> pd.DataFrame:
+    selection = self._get_selection(columns, filters)
+    return self._query_df(f'{selection}')
 
   @override
   def to_csv(self,
              filepath: Union[str, pathlib.Path],
-             columns: Optional[Sequence[ColumnId]] = None) -> None:
-    selection = self._get_selection(columns)
-    self._execute(f"COPY (SELECT {selection} FROM t) TO '{filepath}' (FORMAT CSV, HEADER)")
+             columns: Optional[Sequence[ColumnId]] = None,
+             filters: Optional[Sequence[FilterLike]] = None) -> None:
+    selection = self._get_selection(columns, filters)
+    self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT CSV, HEADER)")
     log(f'Dataset exported to {filepath}')
 
   @override
   def to_parquet(self,
                  filepath: Union[str, pathlib.Path],
-                 columns: Optional[Sequence[ColumnId]] = None) -> None:
-    selection = self._get_selection(columns)
-    self._execute(f"COPY (SELECT {selection} FROM t) TO '{filepath}' (FORMAT PARQUET)")
+                 columns: Optional[Sequence[ColumnId]] = None,
+                 filters: Optional[Sequence[FilterLike]] = None) -> None:
+    selection = self._get_selection(columns, filters)
+    self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT PARQUET)")
     log(f'Dataset exported to {filepath}')
 
 
