@@ -62,6 +62,26 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
     }
   }]
 
+  # Download a subset of columns with filter.
+  filepath = tmp_path / 'dataset2.json'
+  dataset.to_json(
+    filepath,
+    columns=['text', 'text.test_signal.flen'],
+    filters=[('text.test_signal.len', 'greater', '6')])
+
+  with open(filepath) as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  assert parsed_items == [{'text': 'everybody', 'text.test_signal.flen': 9.0}]
+
+  filepath = tmp_path / 'dataset3.json'
+  dataset.to_json(filepath, filters=[('text.test_signal.flen', 'less_equal', '5')])
+
+  with open(filepath) as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  assert parsed_items == [{'text': 'hello', 'text.test_signal': {'len': 5, 'flen': 5.0}}]
+
 
 def test_export_to_csv(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
   dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
