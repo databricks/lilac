@@ -59,7 +59,7 @@
 
   $: currentFieldFilters = stagedFilters.filter(f => pathIsEqual(f.path, selectedField?.path));
 
-  // Ensure that (not) exists ops have null value
+  // Ensure that unary ops have no value.
   $: {
     for (const filter of stagedFilters) {
       if (filter.op === 'exists' || filter.op === 'not_exists') {
