@@ -40,6 +40,21 @@ Let's export all the columns to a JSONL file:
 dataset.to_json('imdb.jsonl', jsonl=True)
 ```
 
+### Labels
+
+If you have manually labeled some of the rows, you can choose to only export rows that **include** a
+certain label:
+
+```python
+dataset.to_json('imdb.jsonl', jsonl=True, include_labels=['good_data'])
+```
+
+or rows that **exclude** a certain label:
+
+```python
+dataset.to_json('imdb.jsonl', jsonl=True, exclude_labels=['bad_data'])
+```
+
 ### Filtering
 
 We can also filter the rows we export. The filter API is the same as in
@@ -54,19 +69,4 @@ or where the toxicity is < 0.3:
 
 ```python
 dataset.to_json('imdb.jsonl', jsonl=True, filters=[('text.lilac/toxicity/gte-small.score', 'less', 0.3)])
-```
-
-### Labels
-
-If you have manually labeled some of the rows, you can choose to only export rows that **include** a
-certain label:
-
-```python
-dataset.to_json('imdb.jsonl', jsonl=True, include_labels=['good_data'])
-```
-
-or rows that **exclude** a certain label:
-
-```python
-dataset.to_json('imdb.jsonl', jsonl=True, exclude_labels=['bad_data'])
 ```
