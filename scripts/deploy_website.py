@@ -23,12 +23,14 @@ import click
 def main(staging: bool) -> None:
   """Generate a web client from the OpenAPI spec."""
   run('./scripts/build_docs.sh')
-
   os.chdir('docs')
+
+  run('firebase login --reauth')
   if staging:
     run('firebase hosting:channel:deploy staging')
   else:
     run('firebase deploy --only hosting:')
+
   os.chdir('..')
 
 
