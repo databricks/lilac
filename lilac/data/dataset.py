@@ -547,6 +547,19 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def map(self, function: ) -> MediaResult:
+    """Return the media for a leaf path.
+
+    Args:
+      item_id: The item id to get media for.
+      leaf_path: The leaf path for the media.
+
+    Returns
+      A MediaResult.
+    """
+    pass
+
+  @abc.abstractmethod
   def to_json(self,
               filepath: Union[str, pathlib.Path],
               jsonl: bool = True,
