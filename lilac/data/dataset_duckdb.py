@@ -1478,15 +1478,12 @@ class DatasetDuckDB(Dataset):
     raise ValueError('Cannot find the source path for the enriched path: {path}')
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple, schema: Schema) -> PathTuple:
-    ((_, duckdb_path),) = self._column_to_duckdb_paths(
-      Column(leaf_path), schema, combine_columns=False, select_leaf=True)
+    [(_, duckdb_path), *rest] = self._column_to_duckdb_paths(
+      Column(leaf_path), schema, combine_columns=False)
     return duckdb_path
 
-  def _column_to_duckdb_paths(self,
-                              column: Column,
-                              schema: Schema,
-                              combine_columns: bool,
-                              select_leaf: bool = False) -> list[tuple[str, PathTuple]]:
+  def _column_to_duckdb_paths(self, column: Column, schema: Schema,
+                              combine_columns: bool) -> list[tuple[str, PathTuple]]:
     path = column.path
     if path[0] in self._label_schemas:
       # This is a label column if it exists in label schemas.
@@ -1497,8 +1494,6 @@ class DatasetDuckDB(Dataset):
     ]
     duckdb_paths: list[tuple[str, PathTuple]] = []
     source_has_path = False
-
-    select_leaf = select_leaf or column.signal_udf is not None
 
     if path == (ROWID,):
       return [('source', path)]
@@ -1518,7 +1513,7 @@ class DatasetDuckDB(Dataset):
         continue
 
       # Skip this parquet file if the path doesn't have a dtype.
-      if select_leaf and not m.data_schema.get_field(path).dtype:
+      if column.signal_udf and not m.data_schema.get_field(path).dtype:
         continue
 
       duckdb_path = path
