@@ -2,8 +2,6 @@
 
 from typing import ClassVar, Iterable, Optional
 
-import pytest
-
 from ..schema import ROWID, Field, Item, RichData, field
 from ..signal import TextSignal
 from .dataset import BinaryFilterTuple, ListFilterTuple, UnaryFilterTuple
@@ -242,5 +240,5 @@ def test_filter_by_not_exists(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(['name'], filters=[not_exists_filter])
   assert list(result) == [{'name': 'A'}, {'name': None}]
 
-  with pytest.raises(ValueError, match='Unable to filter on path'):
-    dataset.select_rows(['name'], filters=[('info', 'not_exists')])
+  result = dataset.select_rows(['name'], filters=[('info', 'not_exists')])
+  assert list(result) == [{'name': 'C'}]
