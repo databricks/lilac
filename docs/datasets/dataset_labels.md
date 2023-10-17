@@ -149,9 +149,15 @@ dataset.add_labels(
 )
 ```
 
+### Exporting data
+
+Now that we've added labels to individual rows, we can download the dataset by excluding or
+including some of the labels. See [Labels section in Export data](./dataset_export.md#labels) for
+more info.
+
 ### Querying the labels
 
-Now that we've added labels to individual rows, we can query them just as any other field.
+You can also query the labels directly from Python, just like any other field.
 
 For the example of `short` above, we'll have a new path added: `('short', 'label')` which has a
 `string` dtype.
