@@ -26,16 +26,19 @@ Install firebase cli:
 npm install -g firebase-tools
 ```
 
-Generate a deployment token:
+Logout if you are already logged in:
 
 ```bash
-firebase login:ci
+firebase logout
 ```
 
-Add the generated token to `.env.local`:
+[Create a service account key](https://console.cloud.google.com/iam-admin/serviceaccounts/details/107201639375342680258/keys?project=lilac-386213)
+for firebase and save it to your home directory at `~/.config/gcloud/lilac-firebase-key.json`.
+
+Then set the environment variable (or add it to your `.bashrc` or `.zshrc`):
 
 ```bash
-FIREBASE_TOKEN=...
+export GOOGLE_APPLICATION_CREDENTIALS='~/.config/gcloud/lilac-firebase-key.json'
 ```
 
 ### Deploy
@@ -43,3 +46,5 @@ FIREBASE_TOKEN=...
 ```bash
 poetry run python -m scripts.deploy_website
 ```
+
+Append the `--staging` flag to deploy to the staging site instead of production.
