@@ -7,10 +7,9 @@ description = "Documentation for Lilac"
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
 autodoc-pydantic = "^2.0.1"
-sphinx = "^7.1.0"
-furo = "^2023.5.20"
+sphinx = "^7.2.0"
+furo = "^2023.9.10"
 lilac = { path = "..", develop = true }
 sphinx-autobuild = "^2021.3.14"
 myst-parser = "^2.0.0"
-hnswlib = "^0.7.0"                                        # For some reason, this is needed for the docs to build.
-enum-tools = { extras = ["sphinx"], version = "^0.10.0" }
+enum-tools = { extras = ["sphinx"], version = "^0.11.0" }

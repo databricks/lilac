@@ -18,7 +18,7 @@ This requires:
 
 #### Deploy a project
 
-To deploy a project directory that you've loaded locally, you can use the [](#ll.deploy_project)
+To deploy a project directory that you've loaded locally, you can use the [](#lilac.deploy_project)
 method. For more information on Lilac projects, see [Lilac Projects](../projects/projects.md).
 
 ```python
