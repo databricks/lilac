@@ -2,7 +2,9 @@
 import functools
 import gc
 import glob
+import inspect
 import itertools
+import json
 import math
 import os
 import pathlib
@@ -13,9 +15,10 @@ import threading
 from contextlib import closing
 from datetime import datetime
 from importlib import metadata
-from typing import Any, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
+from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
 
 import duckdb
+import fsspec
 import numpy as np
 import pandas as pd
 import yaml
@@ -54,11 +57,13 @@ from ..schema import (
   DataType,
   Field,
   Item,
+  MapInfo,
   Path,
   PathKey,
   PathTuple,
   RichData,
   Schema,
+  arrow_schema_to_schema,
   column_paths_match,
   is_float,
   is_integer,
@@ -122,6 +127,7 @@ from .dataset_utils import (
 )
 
 SIGNAL_MANIFEST_FILENAME = 'signal_manifest.json'
+MAP_MANIFEST_SUFFIX = 'map_manifest.json'
 LABELS_SQLITE_SUFFIX = '.labels.sqlite'
 DATASET_SETTINGS_FILENAME = 'settings.json'
 SOURCE_VIEW_NAME = 'source'
@@ -183,6 +189,20 @@ class SignalManifest(BaseModel):
     return resolve_signal(signal)
 
 
+class MapManifest(BaseModel):
+  """The manifest that describes a signal computation including schema and parquet files."""
+  # List of a parquet filepaths storing the data. The paths are relative to the manifest.
+  files: list[str]
+
+  # An identifier for this parquet table. Will be used as the view name in SQL.
+  parquet_id: str
+
+  data_schema: Schema
+
+  # The lilac python version that produced this map output.
+  py_version: Optional[str] = None
+
+
 class DatasetDuckDB(Dataset):
   """The DuckDB implementation of the dataset database."""
 
@@ -197,6 +217,7 @@ class DatasetDuckDB(Dataset):
     # TODO: Infer the manifest from the parquet files so this is lighter weight.
     self._source_manifest = read_source_manifest(self.dataset_path)
     self._signal_manifests: list[SignalManifest] = []
+    self._map_manifests: list[MapManifest] = []
     self._label_schemas: dict[str, Schema] = {}
     self.con = duckdb.connect(database=':memory:')
 
@@ -259,6 +280,7 @@ class DatasetDuckDB(Dataset):
     merged_schema = self._source_manifest.data_schema.model_copy(deep=True)
     self._signal_manifests = []
     self._label_schemas = {}
+    self._map_manifests = []
     # Make a joined view of all the column groups.
     self._create_view(
       SOURCE_VIEW_NAME, [os.path.join(self.dataset_path, f) for f in self._source_manifest.files],
@@ -287,10 +309,18 @@ class DatasetDuckDB(Dataset):
                 },
                 label=label_name)
             })
+        elif file.endswith(MAP_MANIFEST_SUFFIX):
+          with open_file(os.path.join(root, file)) as f:
+            map_manifest = MapManifest.model_validate_json(f.read())
+          map_files = [os.path.join(root, f) for f in map_manifest.files]
+          self._create_view(map_manifest.parquet_id, map_files, type='parquet')
+          if map_files:
+            self._map_manifests.append(map_manifest)
 
-    merged_schema = merge_schemas([self._source_manifest.data_schema] +
-                                  [m.data_schema for m in self._signal_manifests] +
-                                  list(self._label_schemas.values()))
+    merged_schema = merge_schemas(
+      [self._source_manifest.data_schema] +
+      [m.data_schema for m in self._signal_manifests + self._map_manifests] +
+      list(self._label_schemas.values()))
 
     # The logic below generates the following example query:
     # CREATE OR REPLACE VIEW t AS (
@@ -307,6 +337,12 @@ class DatasetDuckDB(Dataset):
       for manifest in self._signal_manifests
       if manifest.files
     ]
+    map_column_selects = [
+      (f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
+       f'AS {_escape_col_name(manifest.parquet_id)}')
+      for manifest in self._map_manifests
+      if manifest.files
+    ]
     label_column_selects = []
     for label_name in self._label_schemas.keys():
       col_name = _escape_col_name(label_name)
@@ -319,9 +355,15 @@ class DatasetDuckDB(Dataset):
         }} END) as {col_name}
       """)
 
-    select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + signal_column_selects + label_column_selects)
-    parquet_ids = [manifest.parquet_id for manifest in self._signal_manifests if manifest.files
-                  ] + list(self._label_schemas.keys())
+    select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + signal_column_selects + map_column_selects +
+                           label_column_selects)
+
+    # Get parquet ids for signals, maps, and labels.
+    parquet_ids = [
+      manifest.parquet_id
+      for manifest in self._signal_manifests + self._map_manifests
+      if manifest.files
+    ] + list(self._label_schemas.keys())
     join_sql = ' '.join(
       [SOURCE_VIEW_NAME] +
       [f'LEFT JOIN {_escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids])
@@ -333,7 +375,6 @@ class DatasetDuckDB(Dataset):
       CREATE OR REPLACE {view_or_table} t AS (SELECT {select_sql} FROM {join_sql})
     """
     self.con.execute(sql_cmd)
-
     # Get the total size of the table.
     size_query = 'SELECT COUNT() as count FROM t'
     size_query_result = cast(Any, self._query(size_query)[0])
@@ -404,13 +445,13 @@ class DatasetDuckDB(Dataset):
       SELECT {ROWID}, {sql} as values FROM t
     """)
 
-    is_empty = False
-    while not is_empty:
+    while True:
       df_chunk = result.fetch_df_chunk()
+      if df_chunk.empty:
+        break
       row_ids = df_chunk[ROWID].tolist()
       values = df_chunk['values'].tolist()
       yield from zip(row_ids, values)
-      is_empty = df_chunk.empty
 
   def _compute_signal_items(self, signal: Signal, path: Path,
                             data_schema: Schema) -> Iterable[Item]:
@@ -460,14 +501,14 @@ class DatasetDuckDB(Dataset):
     if isinstance(signal, TextEmbeddingSignal):
       return self.compute_embedding(signal.name, path, task_step_id)
 
-    source_path = normalize_path(path)
+    input_path = normalize_path(path)
 
     # Update the project config before computing the signal.
     add_project_signal_config(self.namespace, self.dataset_name,
-                              SignalConfig(path=source_path, signal=signal), self.project_dir)
+                              SignalConfig(path=input_path, signal=signal), self.project_dir)
 
     manifest = self.manifest()
-    field = manifest.data_schema.get_field(source_path)
+    field = manifest.data_schema.get_field(input_path)
     if field.dtype != DataType.STRING:
       raise ValueError('Cannot compute signal over a non-string field.')
 
@@ -478,7 +519,7 @@ class DatasetDuckDB(Dataset):
     signal.setup()
     output_items = self._compute_signal_items(signal, path, manifest.data_schema)
 
-    signal_col = Column(path=source_path, alias='value', signal_udf=signal)
+    signal_col = Column(path=input_path, alias='value', signal_udf=signal)
     enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
@@ -492,7 +533,7 @@ class DatasetDuckDB(Dataset):
       # existent file.
       self.manifest()
 
-    signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
+    signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
     # Add progress.
     if task_step_id is not None:
@@ -500,7 +541,7 @@ class DatasetDuckDB(Dataset):
         output_items,
         task_step_id=task_step_id,
         estimated_len=manifest.num_items,
-        step_description=f'Computing signal {signal} over {source_path}')
+        step_description=f'Computing signal {signal} over {input_path}')
 
     parquet_filename, _ = write_items_to_parquet(
       items=output_items,
@@ -514,8 +555,8 @@ class DatasetDuckDB(Dataset):
       files=[parquet_filename],
       data_schema=signal_schema,
       signal=signal,
-      enriched_path=source_path,
-      parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True),
+      enriched_path=input_path,
+      parquet_id=make_signal_parquet_id(signal, input_path, is_computed_signal=True),
       py_version=metadata.version('lilac'))
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
@@ -1293,7 +1334,7 @@ class DatasetDuckDB(Dataset):
     con.close()
 
     if combine_columns:
-      # Since we aliased every column to `*`, the object with have only '*' as the key. We need to
+      # Since we aliased every column to `*`, the object will have only '*' as the key. We need to
       # elevate the all the columns under '*'.
       df = pd.DataFrame.from_records(df['*'])
 
@@ -1492,11 +1533,15 @@ class DatasetDuckDB(Dataset):
       # This is a label column if it exists in label schemas.
       return [(path[0], path)]
 
-    parquet_manifests: list[Union[SourceManifest, SignalManifest]] = [
-      self._source_manifest, *self._signal_manifests
+    # NOTE: The order of this array matters as we check the source and map manifests for fields
+    # before reading signal manifests, via source_or_map_has_path.
+    parquet_manifests: list[Union[SourceManifest, SignalManifest, MapManifest]] = [
+      self._source_manifest,
+      *self._map_manifests,
+      *self._signal_manifests,
     ]
     duckdb_paths: list[tuple[str, PathTuple]] = []
-    source_has_path = False
+    source_or_map_has_path = False
 
     select_leaf = select_leaf or column.signal_udf is not None
 
@@ -1510,10 +1555,10 @@ class DatasetDuckDB(Dataset):
       if not schema_contains_path(m.data_schema, path):
         continue
 
-      if isinstance(m, SourceManifest):
-        source_has_path = True
+      if isinstance(m, SourceManifest) or isinstance(m, MapManifest):
+        source_or_map_has_path = True
 
-      if isinstance(m, SignalManifest) and source_has_path and not combine_columns:
+      if isinstance(m, SignalManifest) and source_or_map_has_path and not combine_columns:
         # Skip this signal if the source already has the path and we are not combining columns.
         continue
 
@@ -1525,6 +1570,9 @@ class DatasetDuckDB(Dataset):
       parquet_id = 'source'
 
       if isinstance(m, SignalManifest):
+        duckdb_path = (m.parquet_id, *path[1:])
+        parquet_id = m.parquet_id
+      elif isinstance(m, MapManifest):
         duckdb_path = (m.parquet_id, *path[1:])
         parquet_id = m.parquet_id
 
@@ -1769,6 +1817,172 @@ class DatasetDuckDB(Dataset):
     return ', '.join(select_queries)
 
   @override
+  def map(self,
+          map_fn: Callable[[Item], Item],
+          output_path: Path,
+          input_paths: Optional[Sequence[Path]] = None,
+          combine_columns: bool = False,
+          resolve_span: bool = False,
+          task_step_id: Optional[TaskStepId] = None) -> None:
+    output_path = normalize_path(output_path)
+    if len(output_path) > 1:
+      raise ValueError('Mapping to a nested path is not yet supported. If you need this, please '
+                       'file and issue and we will fix it. For now, please map to a leaf path.')
+
+    output_column = output_path[0]
+    escaped_output_column = _escape_col_name(output_column)
+    manifest = self.manifest()
+
+    if manifest.data_schema.has_field(output_path):
+      raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
+
+    if task_step_id is None:
+      # Make a dummy task step so we report progress via tqdm.
+      task_step_id = ('', 0)
+
+    if not input_paths:
+      input_paths = [PATH_WILDCARD, ROWID]
+
+    schema = manifest.data_schema
+    if schema.has_field((escaped_output_column,)):
+      raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
+
+    cols = self._normalize_columns(input_paths, schema, combine_columns)
+
+    select_queries: list[str] = []
+
+    columns_to_merge: dict[str, dict[str, Column]] = {}
+    for column in cols:
+      path = column.path
+
+      select_sqls: list[str] = []
+      final_col_name = column.alias or _unique_alias(column)
+      if final_col_name not in columns_to_merge:
+        columns_to_merge[final_col_name] = {}
+
+      duckdb_paths = self._column_to_duckdb_paths(column, schema, combine_columns)
+      span_from = self._resolve_span(path, manifest) if resolve_span or column.signal_udf else None
+
+      for parquet_id, duckdb_path in duckdb_paths:
+        sql = _select_sql(
+          duckdb_path, flatten=False, unnest=False, empty=False, span_from=span_from)
+        temp_column_name = (
+          final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}')
+        select_sqls.append(f'{sql} AS {_escape_string_literal(temp_column_name)}')
+        columns_to_merge[final_col_name][temp_column_name] = column
+
+      if select_sqls:
+        select_queries.append(', '.join(select_sqls))
+
+    if combine_columns:
+      all_columns: dict[str, Column] = {}
+      for col_dict in columns_to_merge.values():
+        all_columns.update(col_dict)
+      columns_to_merge = {'*': all_columns}
+
+    con = self.con.cursor()
+
+    def _rows() -> Iterable[Item]:
+      nonlocal select_queries
+      result = con.execute(f"""
+        SELECT {ROWID}, {', '.join(select_queries)} FROM t
+      """)
+      while True:
+        df_chunk = result.fetch_df_chunk()
+        if df_chunk.empty:
+          break
+
+        for final_col_name, temp_columns in columns_to_merge.items():
+          for temp_col_name, column in temp_columns.items():
+            if combine_columns:
+              dest_path = _col_destination_path(column)
+              spec = _split_path_into_subpaths_of_lists(dest_path)
+              df_chunk[temp_col_name] = list(wrap_in_dicts(df_chunk[temp_col_name], spec))
+
+            # If the temp col name is the same as the final name, we can skip merging. This happens when
+            # we select a source leaf column.
+            if temp_col_name == final_col_name:
+              continue
+
+            if final_col_name not in df_chunk:
+              df_chunk[final_col_name] = df_chunk[temp_col_name]
+            else:
+              df_chunk[final_col_name] = merge_series(df_chunk[final_col_name],
+                                                      df_chunk[temp_col_name])
+            del df_chunk[temp_col_name]
+
+        if combine_columns:
+          # Since we aliased every column to `*`, the object will have only '*' as the key. We need
+          # to elevate the all the columns under '*'.
+          df_chunk = pd.DataFrame.from_records(df_chunk['*'])
+        yield from df_chunk.to_dict('records')
+
+    outputs = ({ROWID: row[ROWID], output_column: map_fn(row)} for row in _rows())
+
+    json_outputs, parquet_outputs = itertools.tee(outputs, 2)
+
+    # Write the output rows to a temporary file to infer the schema from duckdb.
+    fs = fsspec.filesystem('memory')
+    tmp_json_filename = 'tmp.jsonl'
+    with fs.open(tmp_json_filename, 'w') as file:
+      for item in json_outputs:
+        json.dump(item, file)
+        file.write('\n')
+
+    tmp_con = duckdb.connect(database=':memory:')
+    tmp_con.register_filesystem(fs)
+    tmp_con.execute(f"""
+      CREATE VIEW tmp_output as (
+        SELECT * FROM read_json_auto(
+          'memory://{tmp_json_filename}',
+          IGNORE_ERRORS=true,
+          FORMAT='newline_delimited'
+        )
+      );
+    """)
+    reader = tmp_con.execute('SELECT * from tmp_output').fetch_record_batch(rows_per_batch=10_000)
+    # Create the source schema in prepare to share it between process and source_schema.
+    output_schema = arrow_schema_to_schema(reader.schema)
+    output_schema.fields[output_column].map = MapInfo(
+      fn_name=map_fn.__name__,
+      fn_source=inspect.getsource(map_fn),
+      date_created=datetime.now(),
+    )
+
+    del output_schema.fields[ROWID]
+    reader.close()
+    tmp_con.close()
+
+    # Add progress.
+    if task_step_id is not None:
+      parquet_outputs = progress(
+        parquet_outputs,
+        task_step_id=task_step_id,
+        estimated_len=manifest.num_items,
+        step_description=f'Computing map over {input_paths}')
+
+    parquet_filename, _ = write_items_to_parquet(
+      items=parquet_outputs,
+      output_dir=self.dataset_path,
+      schema=output_schema,
+      filename_prefix=output_column,
+      shard_index=0,
+      num_shards=1)
+
+    # Write the map data to the root of the dataset.
+    map_manifest_filepath = os.path.join(self.dataset_path,
+                                         f'{output_column}.{MAP_MANIFEST_SUFFIX}')
+    map_manifest = MapManifest(
+      files=[parquet_filename],
+      data_schema=output_schema,
+      parquet_id=output_column,
+      py_version=metadata.version('lilac'))
+    with open_file(map_manifest_filepath, 'w') as f:
+      f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
+
+    log(f'Wrote map output to {map_manifest_filepath}')
+
+  @override
   def to_json(self,
               filepath: Union[str, pathlib.Path],
               jsonl: bool = True,
@@ -1910,6 +2124,12 @@ def read_source_manifest(dataset_path: str) -> SourceManifest:
 
 
 def _signal_dir(enriched_path: PathTuple) -> str:
+  """Get the filename prefix for a signal parquet file."""
+  path_without_wildcards = (p for p in enriched_path if p != PATH_WILDCARD)
+  return os.path.join(*path_without_wildcards)
+
+
+def _map_dir(enriched_path: PathTuple) -> str:
   """Get the filename prefix for a signal parquet file."""
   path_without_wildcards = (p for p in enriched_path if p != PATH_WILDCARD)
   return os.path.join(*path_without_wildcards)
