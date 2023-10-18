@@ -26,20 +26,10 @@ Install firebase cli:
 npm install -g firebase-tools
 ```
 
-Generate a deployment token:
-
-```bash
-firebase login:ci
-```
-
-Add the generated token to `.env.local`:
-
-```bash
-FIREBASE_TOKEN=...
-```
-
 ### Deploy
 
 ```bash
 poetry run python -m scripts.deploy_website
 ```
+
+Append the `--staging` flag to deploy to the staging site instead of production.

@@ -685,7 +685,7 @@ class DatasetDuckDB(Dataset):
         current_field = current_field.repeated_field
         filter.path = (*filter.path, PATH_WILDCARD)
 
-      if not current_field.dtype:
+      if filter.op in BINARY_OPS and not current_field.dtype:
         raise ValueError(f'Unable to filter on path {filter.path}. The field has no value.')
 
   def _validate_udfs(self, udf_cols: Sequence[Column], source_schema: Schema) -> None:
@@ -1519,15 +1519,12 @@ class DatasetDuckDB(Dataset):
     raise ValueError('Cannot find the source path for the enriched path: {path}')
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple, schema: Schema) -> PathTuple:
-    ((_, duckdb_path),) = self._column_to_duckdb_paths(
-      Column(leaf_path), schema, combine_columns=False, select_leaf=True)
+    [(_, duckdb_path), *rest] = self._column_to_duckdb_paths(
+      Column(leaf_path), schema, combine_columns=False)
     return duckdb_path
 
-  def _column_to_duckdb_paths(self,
-                              column: Column,
-                              schema: Schema,
-                              combine_columns: bool,
-                              select_leaf: bool = False) -> list[tuple[str, PathTuple]]:
+  def _column_to_duckdb_paths(self, column: Column, schema: Schema,
+                              combine_columns: bool) -> list[tuple[str, PathTuple]]:
     path = column.path
     if path[0] in self._label_schemas:
       # This is a label column if it exists in label schemas.
@@ -1542,8 +1539,6 @@ class DatasetDuckDB(Dataset):
     ]
     duckdb_paths: list[tuple[str, PathTuple]] = []
     source_or_map_has_path = False
-
-    select_leaf = select_leaf or column.signal_udf is not None
 
     if path == (ROWID,):
       return [('source', path)]
@@ -1563,7 +1558,7 @@ class DatasetDuckDB(Dataset):
         continue
 
       # Skip this parquet file if the path doesn't have a dtype.
-      if select_leaf and not m.data_schema.get_field(path).dtype:
+      if column.signal_udf and not m.data_schema.get_field(path).dtype:
         continue
 
       duckdb_path = path
@@ -1742,7 +1737,11 @@ class DatasetDuckDB(Dataset):
           filter_query = f'{nan_filter} {select_str} {sql_op} {filter_val}'
       elif f.op in UNARY_OPS:
         if f.op == 'exists':
-          filter_query = f'len({select_str}) > 0' if is_array else f'{select_str} IS NOT NULL'
+          filter_query = (f'ifnull(len({select_str}), 0) > 0'
+                          if is_array else f'{select_str} IS NOT NULL')
+        elif f.op == 'not_exists':
+          filter_query = (f'ifnull(len({select_str}), 0) = 0'
+                          if is_array else f'{select_str} IS NULL')
         else:
           raise ValueError(f'Unary op: {f.op} is not yet supported')
       elif f.op in LIST_OPS:
@@ -1795,12 +1794,30 @@ class DatasetDuckDB(Dataset):
       f'{_escape_col_name(path_comp)}' if quote_each_part else str(path_comp) for path_comp in path
     ])
 
-  def _get_selection(self, columns: Optional[Sequence[ColumnId]] = None) -> str:
+  def _get_selection(self,
+                     columns: Optional[Sequence[ColumnId]] = None,
+                     filters: Optional[Sequence[FilterLike]] = None,
+                     include_labels: Optional[Sequence[str]] = None,
+                     exclude_labels: Optional[Sequence[str]] = None) -> str:
     """Get the selection clause for download a dataset."""
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema, combine_columns=False)
     schema = manifest.data_schema
     self._validate_columns(cols, manifest.data_schema, schema)
+
+    filters = list(filters or [])
+    include_labels = include_labels or []
+    exclude_labels = exclude_labels or []
+    for label in include_labels:
+      filters.append(Filter(path=(label,), op='exists'))
+    for label in exclude_labels:
+      filters.append(Filter(path=(label,), op='not_exists'))
+
+    where_query = ''
+    filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
+    filter_queries = self._create_where(manifest, filters)
+    if filter_queries:
+      where_query = f"WHERE {' AND '.join(filter_queries)}"
 
     select_queries: list[str] = []
     for column in cols:
@@ -1814,7 +1831,8 @@ class DatasetDuckDB(Dataset):
       _, duckdb_path = duckdb_paths[0]
       sql = _select_sql(duckdb_path, flatten=False, unnest=False)
       select_queries.append(f'{sql} AS {_escape_string_literal(col_name)}')
-    return ', '.join(select_queries)
+    selection = ', '.join(select_queries)
+    return f'SELECT {selection} FROM t {where_query}'
 
   @override
   def map(self,
@@ -1986,31 +2004,44 @@ class DatasetDuckDB(Dataset):
   def to_json(self,
               filepath: Union[str, pathlib.Path],
               jsonl: bool = True,
-              columns: Optional[Sequence[ColumnId]] = None) -> None:
-    selection = self._get_selection(columns)
-    self._execute(f"COPY (SELECT {selection} FROM t) TO '{filepath}' "
+              columns: Optional[Sequence[ColumnId]] = None,
+              filters: Optional[Sequence[FilterLike]] = None,
+              include_labels: Optional[Sequence[str]] = None,
+              exclude_labels: Optional[Sequence[str]] = None) -> None:
+    selection = self._get_selection(columns, filters, include_labels, exclude_labels)
+    self._execute(f"COPY ({selection}) TO '{filepath}' "
                   f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})")
     log(f'Dataset exported to {filepath}')
 
   @override
-  def to_pandas(self, columns: Optional[Sequence[ColumnId]] = None) -> pd.DataFrame:
-    selection = self._get_selection(columns)
-    return self._query_df(f'SELECT {selection} FROM t')
+  def to_pandas(self,
+                columns: Optional[Sequence[ColumnId]] = None,
+                filters: Optional[Sequence[FilterLike]] = None,
+                include_labels: Optional[Sequence[str]] = None,
+                exclude_labels: Optional[Sequence[str]] = None) -> pd.DataFrame:
+    selection = self._get_selection(columns, filters, include_labels, exclude_labels)
+    return self._query_df(f'{selection}')
 
   @override
   def to_csv(self,
              filepath: Union[str, pathlib.Path],
-             columns: Optional[Sequence[ColumnId]] = None) -> None:
-    selection = self._get_selection(columns)
-    self._execute(f"COPY (SELECT {selection} FROM t) TO '{filepath}' (FORMAT CSV, HEADER)")
+             columns: Optional[Sequence[ColumnId]] = None,
+             filters: Optional[Sequence[FilterLike]] = None,
+             include_labels: Optional[Sequence[str]] = None,
+             exclude_labels: Optional[Sequence[str]] = None) -> None:
+    selection = self._get_selection(columns, filters, include_labels, exclude_labels)
+    self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT CSV, HEADER)")
     log(f'Dataset exported to {filepath}')
 
   @override
   def to_parquet(self,
                  filepath: Union[str, pathlib.Path],
-                 columns: Optional[Sequence[ColumnId]] = None) -> None:
-    selection = self._get_selection(columns)
-    self._execute(f"COPY (SELECT {selection} FROM t) TO '{filepath}' (FORMAT PARQUET)")
+                 columns: Optional[Sequence[ColumnId]] = None,
+                 filters: Optional[Sequence[FilterLike]] = None,
+                 include_labels: Optional[Sequence[str]] = None,
+                 exclude_labels: Optional[Sequence[str]] = None) -> None:
+    selection = self._get_selection(columns, filters, include_labels, exclude_labels)
+    self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT PARQUET)")
     log(f'Dataset exported to {filepath}')
 
 

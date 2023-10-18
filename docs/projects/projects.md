@@ -37,7 +37,7 @@ ll.start_server(project_dir='~/my_project')
 In both cases, if `~/my_project` doesn't exist, a directory will be created with an empty project
 configuration:
 
-```yml
+```yaml
 # Lilac project config.
 # See https://lilacml.com/api_reference/index.html#lilac.Config for details.
 
@@ -84,7 +84,7 @@ The `lilac.yml` file in the root of the project directory is a yaml instance of 
 
 An example configuration:
 
-```yml
+```yaml
 # Lilac project config.
 # See https://lilacml.com/api_reference/index.html#lilac.Config for details.
 

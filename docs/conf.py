@@ -26,7 +26,7 @@ extensions = [
 ]
 
 myst_enable_extensions = ['attrs_block', 'attrs_inline']
-myst_heading_anchors = 3
+myst_heading_anchors = 4
 
 autodoc_pydantic_model_show_json = False
 autodoc_pydantic_field_list_validators = False

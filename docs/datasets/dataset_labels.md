@@ -108,10 +108,10 @@ print(first_row[0])
 
 Output:
 
-```json
+```py
 {
   '__rowid__': '0003076800f1471f8f4c8a1b2deda742',
-  'text': 'If you want to truly experience the magic (?) of Don Dohler, then check out "Alien Factor" or maybe "Fiend", but not this. Alien Factor is actually rather imaginative considering the low budget and it\'s fairly creepy, but "Nightbeast", which I guess is sort of an updating of Alien Factor, is just plain dumb. Actors sleepwalk through their roles, especially Mr. Monotone sheriff, and the monster is some dumb Halloween-mask kind of thing instead of the wildly imaginative (but kind of stupid) looking critters from Alien Factor. A spaceship crashes on Earth and there\'s a critter inside, of course, who runs around vaporizing people. And ripping off arms, etc. And he has a cool ray gun that he uses to vaporize people too, until it gets shot out of his hand. And that\'s really about it. "Alien Factor" beats this mess hands down, if you really want to see a good Don Dohler movie, check that out instead. And RIP Don Dohler, 12/2/06.',
+  'text': 'If you want to truly experience the magic (?) of Don Dohler, then check out "Alien Factor" or maybe "Fiend"...',
   'label': 'neg',
   '__hfsplit__': 'test',
   'good': {
@@ -149,9 +149,15 @@ dataset.add_labels(
 )
 ```
 
+### Exporting data
+
+Now that we've added labels to individual rows, we can download the dataset by excluding or
+including some of the labels. See [Labels section in Export data](./dataset_export.md#labels) for
+more info.
+
 ### Querying the labels
 
-Now that we've added labels to individual rows, we can query them just as any other field.
+You can also query the labels directly from Python, just like any other field.
 
 For the example of `short` above, we'll have a new path added: `('short', 'label')` which has a
 `string` dtype.
@@ -174,10 +180,10 @@ print(short_rows[0])
 
 Output:
 
-```json
+```py
 {
   '__rowid__': '0003076800f1471f8f4c8a1b2deda742',
-  'text': 'If you want to truly experience the magic (?) of Don Dohler, then check out "Alien Factor" or maybe "Fiend", but not this. Alien Factor is actually rather imaginative considering the low budget and it\'s fairly creepy, but "Nightbeast", which I guess is sort of an updating of Alien Factor, is just plain dumb. Actors sleepwalk through their roles, especially Mr. Monotone sheriff, and the monster is some dumb Halloween-mask kind of thing instead of the wildly imaginative (but kind of stupid) looking critters from Alien Factor. A spaceship crashes on Earth and there\'s a critter inside, of course, who runs around vaporizing people. And ripping off arms, etc. And he has a cool ray gun that he uses to vaporize people too, until it gets shot out of his hand. And that\'s really about it. "Alien Factor" beats this mess hands down, if you really want to see a good Don Dohler movie, check that out instead. And RIP Don Dohler, 12/2/06.',
+  'text': 'If you want to truly experience the magic (?) of Don Dohler, then check out Alien Factor or maybe Fiend...',
   'label': 'neg',
   '__hfsplit__': 'test',
   'good': {

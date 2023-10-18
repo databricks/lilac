@@ -9,11 +9,8 @@ Add:
 
 import os
 import subprocess
-from typing import Optional
 
 import click
-
-from lilac.env import env
 
 
 @click.command()
@@ -23,25 +20,17 @@ from lilac.env import env
   help='If true, it deploys to a staging environment.',
   default=False,
   type=bool)
-@click.option(
-  '--firebase_token',
-  help='The firebase token for authentication. Generate this with `firebase login:ci`.',
-  type=str,
-  required=False)
-def main(staging: bool, firebase_token: Optional[str] = None) -> None:
+def main(staging: bool) -> None:
   """Generate a web client from the OpenAPI spec."""
-  firebase_token = firebase_token or env('FIREBASE_TOKEN')
-  if not firebase_token:
-    run('firebase login:ci --no-localhost')
-    firebase_token = click.prompt('Paste the firebase token from above', type=str)
-
   run('./scripts/build_docs.sh')
-
   os.chdir('docs')
+
+  run('firebase login --reauth')
   if staging:
-    run(f'firebase hosting:channel:deploy staging --token "{firebase_token}"')
+    run('firebase hosting:channel:deploy staging')
   else:
-    run(f'firebase deploy --only hosting --token "{firebase_token}"')
+    run('firebase deploy --only hosting:')
+
   os.chdir('..')
 
 

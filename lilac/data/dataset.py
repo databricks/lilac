@@ -95,11 +95,11 @@ class MediaResult(BaseModel):
 
 
 BinaryOp = Literal['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal']
-UnaryOp = Literal['exists', None]
+UnaryOp = Literal['exists', 'not_exists', None]
 ListOp = Literal['in', None]
 
 BINARY_OPS = set(['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal'])
-UNARY_OPS = set(['exists'])
+UNARY_OPS = set(['exists', 'not_exists'])
 LIST_OPS = set(['in'])
 
 
@@ -575,46 +575,71 @@ class Dataset(abc.ABC):
   def to_json(self,
               filepath: Union[str, pathlib.Path],
               jsonl: bool = True,
-              columns: Optional[Sequence[ColumnId]] = None) -> None:
+              columns: Optional[Sequence[ColumnId]] = None,
+              filters: Optional[Sequence[FilterLike]] = None,
+              include_labels: Optional[Sequence[str]] = None,
+              exclude_labels: Optional[Sequence[str]] = None) -> None:
     """Export the dataset to a JSON file.
 
     Args:
       filepath: The path to the file to export to.
       jsonl: Whether to export to JSONL or JSON.
       columns: The columns to export.
+      filters: The filters to apply to the query.
+      include_labels: The labels to include in the export.
+      exclude_labels: The labels to exclude in the export.
     """
     pass
 
   @abc.abstractmethod
-  def to_pandas(self, columns: Optional[Sequence[ColumnId]] = None) -> pd.DataFrame:
+  def to_pandas(self,
+                columns: Optional[Sequence[ColumnId]] = None,
+                filters: Optional[Sequence[FilterLike]] = None,
+                include_labels: Optional[Sequence[str]] = None,
+                exclude_labels: Optional[Sequence[str]] = None) -> pd.DataFrame:
     """Export the dataset to a pandas DataFrame.
 
     Args:
       columns: The columns to export.
+      filters: The filters to apply to the query.
+      include_labels: The labels to include in the export.
+      exclude_labels: The labels to exclude in the export.
     """
     pass
 
   @abc.abstractmethod
   def to_parquet(self,
                  filepath: Union[str, pathlib.Path],
-                 columns: Optional[Sequence[ColumnId]] = None) -> None:
+                 columns: Optional[Sequence[ColumnId]] = None,
+                 filters: Optional[Sequence[FilterLike]] = None,
+                 include_labels: Optional[Sequence[str]] = None,
+                 exclude_labels: Optional[Sequence[str]] = None) -> None:
     """Export the dataset to a parquet file.
 
     Args:
       filepath: The path to the file to export to.
       columns: The columns to export.
+      filters: The filters to apply to the query.
+      include_labels: The labels to include in the export.
+      exclude_labels: The labels to exclude in the export.
     """
     pass
 
   @abc.abstractmethod
   def to_csv(self,
              filepath: Union[str, pathlib.Path],
-             columns: Optional[Sequence[ColumnId]] = None) -> None:
+             columns: Optional[Sequence[ColumnId]] = None,
+             filters: Optional[Sequence[FilterLike]] = None,
+             include_labels: Optional[Sequence[str]] = None,
+             exclude_labels: Optional[Sequence[str]] = None) -> None:
     """Export the dataset to a csv file.
 
     Args:
       filepath: The path to the file to export to.
       columns: The columns to export.
+      filters: The filters to apply to the query.
+      include_labels: The labels to include in the export.
+      exclude_labels: The labels to exclude in the export.
     """
     pass
 

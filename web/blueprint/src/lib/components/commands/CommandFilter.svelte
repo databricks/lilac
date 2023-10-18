@@ -59,10 +59,10 @@
 
   $: currentFieldFilters = stagedFilters.filter(f => pathIsEqual(f.path, selectedField?.path));
 
-  // Ensure that exists ops have null value
+  // Ensure that unary ops have no value.
   $: {
     for (const filter of stagedFilters) {
-      if (filter.op === 'exists') {
+      if (filter.op === 'exists' || filter.op === 'not_exists') {
         filter.value = null;
       }
     }
@@ -82,7 +82,8 @@
     ['less', 'less than (<)'],
     ['less_equal', 'less or equal (<=)'],
     ['in', 'in'],
-    ['exists', 'exists']
+    ['exists', 'exists'],
+    ['not_exists', 'not exists']
   ];
 
   function close() {
@@ -116,7 +117,7 @@
                   <SelectItem value={op[0]} text={op[1]} />
                 {/each}
               </Select>
-              {#if filter.op === 'exists'}
+              {#if filter.op === 'exists' || filter.op === 'not_exists'}
                 <!-- Dont show any seconday input -->
               {:else if filter.op === 'in'}
                 <span>In operator not yet implemented</span>
