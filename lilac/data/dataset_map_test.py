@@ -1,4 +1,4 @@
-"""Tests for dataset.compute_signal()."""
+"""Tests for dataset.map()."""
 
 import inspect
 from datetime import datetime
