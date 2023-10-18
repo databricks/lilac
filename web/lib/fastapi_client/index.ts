@@ -34,6 +34,7 @@ export type { DatasetUserAccess } from './models/DatasetUserAccess';
 export type { DataType } from './models/DataType';
 export type { DeleteSignalOptions } from './models/DeleteSignalOptions';
 export type { DeleteSignalResponse } from './models/DeleteSignalResponse';
+export type { DownloadOptions } from './models/DownloadOptions';
 export type { Example } from './models/Example';
 export type { ExampleIn } from './models/ExampleIn';
 export type { ExampleOrigin } from './models/ExampleOrigin';

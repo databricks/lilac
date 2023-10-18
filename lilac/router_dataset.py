@@ -186,8 +186,6 @@ class Column(DBColumn):
   signal_udf: Optional[AllSignalTypes] = None
 
 
-ColumnOrPath = Union[Column, Path]
-
 SearchPy = Annotated[Search, Field(discriminator='type')]
 
 
@@ -307,6 +305,33 @@ def get_media(namespace: str, dataset_name: str, item_id: str, leaf_path: str) -
   result = dataset.media(item_id, path)
   # Return the response via HTTP.
   return Response(content=result.data)
+
+
+class DownloadOptions(BaseModel):
+  """The request for the download dataset endpoint."""
+  format: Literal['csv', 'json', 'parquet']
+  filepath: str
+  jsonl: Optional[bool] = False
+  columns: Sequence[Path] = []
+  include_labels: Sequence[str] = []
+  exclude_labels: Sequence[str] = []
+
+
+@router.post('/{namespace}/{dataset_name}/download')
+def download_dataset(namespace: str, dataset_name: str, options: DownloadOptions) -> None:
+  """Download the dataset."""
+  dataset = get_dataset(namespace, dataset_name)
+  if options.format == 'csv':
+    dataset.to_csv(options.filepath, options.columns, [], options.include_labels,
+                   options.exclude_labels)
+  elif options.format == 'json':
+    dataset.to_json(options.filepath, options.jsonl or False, options.columns, [],
+                    options.include_labels, options.exclude_labels)
+  elif options.format == 'parquet':
+    dataset.to_parquet(options.filepath, options.columns, [], options.include_labels,
+                       options.exclude_labels)
+  else:
+    raise ValueError(f'Unknown format: {options.format}')
 
 
 @router.get('/{namespace}/{dataset_name}/config')

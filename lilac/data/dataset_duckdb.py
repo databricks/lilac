@@ -1795,6 +1795,7 @@ class DatasetDuckDB(Dataset):
               include_labels: Optional[Sequence[str]] = None,
               exclude_labels: Optional[Sequence[str]] = None) -> None:
     selection = self._get_selection(columns, filters, include_labels, exclude_labels)
+    filepath = os.path.expanduser(filepath)
     self._execute(f"COPY ({selection}) TO '{filepath}' "
                   f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})")
     log(f'Dataset exported to {filepath}')
@@ -1816,6 +1817,7 @@ class DatasetDuckDB(Dataset):
              include_labels: Optional[Sequence[str]] = None,
              exclude_labels: Optional[Sequence[str]] = None) -> None:
     selection = self._get_selection(columns, filters, include_labels, exclude_labels)
+    filepath = os.path.expanduser(filepath)
     self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT CSV, HEADER)")
     log(f'Dataset exported to {filepath}')
 
@@ -1827,6 +1829,7 @@ class DatasetDuckDB(Dataset):
                  include_labels: Optional[Sequence[str]] = None,
                  exclude_labels: Optional[Sequence[str]] = None) -> None:
     selection = self._get_selection(columns, filters, include_labels, exclude_labels)
+    filepath = os.path.expanduser(filepath)
     self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT PARQUET)")
     log(f'Dataset exported to {filepath}')
 

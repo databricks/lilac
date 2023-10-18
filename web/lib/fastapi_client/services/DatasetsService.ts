@@ -9,6 +9,7 @@ import type { DatasetInfo } from '../models/DatasetInfo';
 import type { DatasetSettings } from '../models/DatasetSettings';
 import type { DeleteSignalOptions } from '../models/DeleteSignalOptions';
 import type { DeleteSignalResponse } from '../models/DeleteSignalResponse';
+import type { DownloadOptions } from '../models/DownloadOptions';
 import type { GetStatsOptions } from '../models/GetStatsOptions';
 import type { RemoveLabelsOptions } from '../models/RemoveLabelsOptions';
 import type { SelectGroupsOptions } from '../models/SelectGroupsOptions';
@@ -320,6 +321,35 @@ export class DatasetsService {
                 'item_id': itemId,
                 'leaf_path': leafPath,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Download Dataset
+     * Download the dataset.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static downloadDataset(
+        namespace: string,
+        datasetName: string,
+        requestBody: DownloadOptions,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/download',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
