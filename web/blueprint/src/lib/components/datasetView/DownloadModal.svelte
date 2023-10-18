@@ -1,9 +1,8 @@
 <script lang="ts">
-  import {querySelectRows} from '$lib/queries/datasetQueries';
+  import {downloadDatasetMutation, querySelectRows} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {displayPath} from '$lib/view_utils';
   import {
-    DatasetsService,
     childFields,
     isLabelField,
     isSignalField,
@@ -16,6 +15,7 @@
   import {
     Checkbox,
     ComposedModal,
+    InlineNotification,
     ModalBody,
     ModalFooter,
     ModalHeader,
@@ -38,6 +38,7 @@
   let jsonl = false;
 
   const dispatch = createEventDispatcher();
+  const downloadDataset = downloadDatasetMutation();
 
   const datasetViewStore = getDatasetViewContext();
 
@@ -95,7 +96,7 @@
       include_labels: labelFields.filter((_, i) => includeOnlyLabels[i]).map(x => x.path[0]),
       exclude_labels: labelFields.filter((_, i) => excludeLabels[i]).map(x => x.path[0])
     };
-    await DatasetsService.downloadDataset(namespace, datasetName, options);
+    $downloadDataset.mutate([namespace, datasetName, options]);
   }
 
   function close() {
@@ -196,6 +197,14 @@
               <Toggle bind:toggled={jsonl} labelText="JSONL" />
             </div>
           {/if}
+        {/if}
+        {#if $downloadDataset.isError}
+          <InlineNotification
+            kind="error"
+            title="Error"
+            subtitle={$downloadDataset.error.body.detail}
+            hideCloseButton
+          />
         {/if}
       </section>
       <section>
