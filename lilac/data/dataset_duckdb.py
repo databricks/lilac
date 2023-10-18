@@ -1917,8 +1917,8 @@ class DatasetDuckDB(Dataset):
               spec = _split_path_into_subpaths_of_lists(dest_path)
               df_chunk[temp_col_name] = list(wrap_in_dicts(df_chunk[temp_col_name], spec))
 
-            # If the temp col name is the same as the final name, we can skip merging. This happens when
-            # we select a source leaf column.
+            # If the temp col name is the same as the final name, we can skip merging. This happens
+            # when we select a source leaf column.
             if temp_col_name == final_col_name:
               continue
 
@@ -2274,7 +2274,7 @@ def _col_destination_path(column: Column, is_computed_signal: Optional[bool] = F
   return (*source_path, signal_key)
 
 
-def _root_column(manifest: SignalManifest) -> str:
+def _root_column(manifest: Union[SignalManifest, MapManifest]) -> str:
   """Returns the root column of a signal manifest."""
   field_keys = list(manifest.data_schema.fields.keys())
   if len(field_keys) > 2:
