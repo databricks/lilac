@@ -13,6 +13,7 @@ from typing import (
   Awaitable,
   Callable,
   Coroutine,
+  Generator,
   Iterable,
   Iterator,
   Optional,
@@ -259,7 +260,7 @@ def progress(it: Union[Iterator[TProgress], Iterable[TProgress]],
              task_step_id: Optional[TaskStepId],
              estimated_len: Optional[int],
              step_description: Optional[str] = None,
-             emit_every_s: float = 1.) -> Iterator[TProgress]:
+             emit_every_s: float = 1.) -> Generator[TProgress, None, None]:
   """An iterable wrapper that emits progress and yields the original iterable."""
   if not task_step_id or task_step_id[0] == '':
     yield from tqdm(it, desc=step_description, total=estimated_len)
