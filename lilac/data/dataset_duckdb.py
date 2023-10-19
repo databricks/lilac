@@ -1946,13 +1946,11 @@ class DatasetDuckDB(Dataset):
         estimated_len=manifest.num_items,
         step_description=f'Computing map over {input_paths}')
 
-    json_outputs, parquet_outputs = itertools.tee(outputs, 2)
-
     # Write the output rows to a temporary file to infer the schema from duckdb.
     fs = fsspec.filesystem('memory')
     tmp_json_filename = 'tmp.jsonl'
     with fs.open(tmp_json_filename, 'w') as file:
-      for item in json_outputs:
+      for item in outputs:
         json.dump(item, file)
         file.write('\n')
 
