@@ -14,7 +14,7 @@ from lilac.sources.source_registry import clear_source_registry, register_source
 from .config import Config, DatasetConfig, DatasetSettings, DatasetUISettings
 from .data.dataset import SourceManifest
 from .data.dataset_duckdb import read_source_manifest
-from .data.dataset_utils import parquet_filename
+from .data.dataset_utils import get_parquet_filename
 from .load_dataset import process_source
 from .project import read_project_config
 from .schema import PARQUET_FILENAME_PREFIX, ROWID, Item, schema
@@ -71,7 +71,7 @@ def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
   source_manifest = read_source_manifest(output_dir)
 
   assert source_manifest == SourceManifest(
-    files=[parquet_filename(PARQUET_FILENAME_PREFIX, 0, 1)],
+    files=[get_parquet_filename(PARQUET_FILENAME_PREFIX, 0, 1)],
     data_schema=schema({
       'x': 'int64',
       'y': 'string'

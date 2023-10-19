@@ -119,6 +119,7 @@ from .dataset_utils import (
   count_primitives,
   create_signal_schema,
   flatten_keys,
+  get_parquet_filename,
   schema_contains_path,
   sparse_to_dense_compute,
   wrap_in_dicts,
@@ -1845,7 +1846,8 @@ class DatasetDuckDB(Dataset):
     output_path = normalize_path(output_path)
     if len(output_path) > 1:
       raise ValueError('Mapping to a nested path is not yet supported. If you need this, please '
-                       'file and issue and we will fix it. For now, please map to a leaf path.')
+                       'file an issue and we will fix it. '
+                       'For now, the output path needs to be a top-level column.')
 
     output_column = output_path[0]
     escaped_output_column = _escape_col_name(output_column)
@@ -1936,6 +1938,13 @@ class DatasetDuckDB(Dataset):
         yield from df_chunk.to_dict('records')
 
     outputs = ({ROWID: row[ROWID], output_column: map_fn(row)} for row in _rows())
+    # Add progress.
+    if task_step_id is not None:
+      outputs = progress(
+        outputs,
+        task_step_id=task_step_id,
+        estimated_len=manifest.num_items,
+        step_description=f'Computing map over {input_paths}')
 
     json_outputs, parquet_outputs = itertools.tee(outputs, 2)
 
@@ -1967,25 +1976,13 @@ class DatasetDuckDB(Dataset):
       date_created=datetime.now(),
     )
 
+    parquet_filename = get_parquet_filename(output_column, shard_index=0, num_shards=1)
+    parquet_filepath = os.path.join(self.dataset_path, parquet_filename)
+    tmp_con.execute(f"COPY tmp_output TO '{parquet_filepath}' (FORMAT PARQUET);")
+
     del output_schema.fields[ROWID]
     reader.close()
     tmp_con.close()
-
-    # Add progress.
-    if task_step_id is not None:
-      parquet_outputs = progress(
-        parquet_outputs,
-        task_step_id=task_step_id,
-        estimated_len=manifest.num_items,
-        step_description=f'Computing map over {input_paths}')
-
-    parquet_filename, _ = write_items_to_parquet(
-      items=parquet_outputs,
-      output_dir=self.dataset_path,
-      schema=output_schema,
-      filename_prefix=output_column,
-      shard_index=0,
-      num_shards=1)
 
     # Write the map data to the root of the dataset.
     map_manifest_filepath = os.path.join(self.dataset_path,

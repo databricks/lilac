@@ -207,7 +207,7 @@ def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schem
   schema.fields[ROWID] = Field(dtype=DataType.STRING)
 
   arrow_schema = schema_to_arrow_schema(schema)
-  out_filename = parquet_filename(filename_prefix, shard_index, num_shards)
+  out_filename = get_parquet_filename(filename_prefix, shard_index, num_shards)
   filepath = os.path.join(output_dir, out_filename)
   f = open_file(filepath, mode='wb')
   writer = ParquetWriter(schema)
@@ -243,7 +243,7 @@ def _validate(item: Item, schema: pa.Schema) -> None:
     raise  # Re-raise the same exception, same stacktrace.
 
 
-def parquet_filename(prefix: str, shard_index: int, num_shards: int) -> str:
+def get_parquet_filename(prefix: str, shard_index: int, num_shards: int) -> str:
   """Return the filename for a parquet file."""
   return f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.parquet'
 
