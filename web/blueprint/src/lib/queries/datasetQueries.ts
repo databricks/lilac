@@ -247,7 +247,7 @@ export const updateDatasetSettingsMutation = createApiMutation(DatasetsService.u
     queryClient.invalidateQueries([DATASETS_CONFIG_TAG]);
   }
 });
-export const downloadDatasetMutation = createApiMutation(DatasetsService.downloadDataset);
+export const exportDatasetMutation = createApiMutation(DatasetsService.exportDataset);
 
 export const addLabelsMutation = (schema: LilacSchema) =>
   createApiMutation(DatasetsService.addLabels, {

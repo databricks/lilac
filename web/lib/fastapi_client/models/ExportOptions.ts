@@ -6,7 +6,7 @@
 /**
  * The request for the download dataset endpoint.
  */
-export type DownloadOptions = {
+export type ExportOptions = {
     format: 'csv' | 'json' | 'parquet';
     filepath: string;
     jsonl?: (boolean | null);

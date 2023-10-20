@@ -225,18 +225,6 @@ def _exclude_none(obj: Any) -> Any:
   return copy(obj)
 
 
-# SQL adds {"x": None} for `SELECT x` where x is sparse, thus exclude none to keep response small.
-@router.get('/{namespace}/{dataset_name}/select_rows_download')
-def select_rows_download(
-    namespace: str, dataset_name: str, url_safe_options: str,
-    user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> list[dict]:
-  """Select rows from the dataset database and downloads them."""
-  options = SelectRowsOptions.model_validate_json(unquote(url_safe_options))
-
-  rows = select_rows(namespace, dataset_name, options, user).rows
-  return [_exclude_none(row) for row in rows]
-
-
 @router.post('/{namespace}/{dataset_name}/select_rows')
 def select_rows(
     namespace: str, dataset_name: str, options: SelectRowsOptions,
@@ -308,7 +296,7 @@ def get_media(namespace: str, dataset_name: str, item_id: str, leaf_path: str) -
   return Response(content=result.data)
 
 
-class DownloadOptions(BaseModel):
+class ExportOptions(BaseModel):
   """The request for the download dataset endpoint."""
   format: Literal['csv', 'json', 'parquet']
   filepath: str
@@ -325,9 +313,9 @@ def serve_dataset_file(filepath: str) -> FileResponse:
   return FileResponse(filepath)
 
 
-@router.post('/{namespace}/{dataset_name}/download')
-def download_dataset(namespace: str, dataset_name: str, options: DownloadOptions) -> str:
-  """Download the dataset."""
+@router.post('/{namespace}/{dataset_name}/export')
+def export_dataset(namespace: str, dataset_name: str, options: ExportOptions) -> str:
+  """Export the dataset to one of the supported file formats."""
   dataset = get_dataset(namespace, dataset_name)
   if options.format == 'csv':
     dataset.to_csv(options.filepath, options.columns, [], options.include_labels,

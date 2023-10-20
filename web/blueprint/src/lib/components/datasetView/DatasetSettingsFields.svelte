@@ -11,7 +11,7 @@
     type LilacField
   } from '$lilac';
   import {Select, SelectItem, SelectSkeleton, SkeletonText} from 'carbon-components-svelte';
-  import DownloadFieldList from './DownloadFieldList.svelte';
+  import FieldList from './FieldList.svelte';
 
   export let namespace: string;
   export let datasetName: string;
@@ -105,7 +105,7 @@
         fields on which you can compute signals, embeddings, search, and label.
       </div>
       {#if selectedMediaFields != null && mediaFields != null}
-        <DownloadFieldList fields={mediaFields} bind:checkedFields={selectedMediaFields} />
+        <FieldList fields={mediaFields} bind:checkedFields={selectedMediaFields} />
       {:else}
         <SelectSkeleton />
       {/if}
@@ -139,7 +139,7 @@
         These media fields will be rendered as markdown in the dataset viewer.
       </div>
       {#if selectedMediaFields != null && markdownMediaFields != null}
-        <DownloadFieldList fields={selectedMediaFields} bind:checkedFields={markdownMediaFields} />
+        <FieldList fields={selectedMediaFields} bind:checkedFields={markdownMediaFields} />
       {:else}
         <SelectSkeleton />
       {/if}

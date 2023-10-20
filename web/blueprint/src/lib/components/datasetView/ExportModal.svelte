@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {downloadDatasetMutation, querySelectRows} from '$lib/queries/datasetQueries';
+  import {exportDatasetMutation, querySelectRows} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {displayPath} from '$lib/view_utils';
   import {
@@ -8,7 +8,7 @@
     isSignalField,
     isSignalRootField,
     petals,
-    type DownloadOptions,
+    type ExportOptions,
     type LilacField,
     type LilacSchema
   } from '$lilac';
@@ -29,19 +29,17 @@
   } from 'carbon-components-svelte';
   import {Tag} from 'carbon-icons-svelte';
   import {createEventDispatcher} from 'svelte';
-  import DownloadFieldList from './DownloadFieldList.svelte';
-  ('./DownloadFieldList.svelte');
-
+  import FieldList from './FieldList.svelte';
   export let open = false;
   export let schema: LilacSchema;
 
-  const formats: DownloadOptions['format'][] = ['json', 'csv', 'parquet'];
-  let selectedFormat: DownloadOptions['format'] = 'json';
+  const formats: ExportOptions['format'][] = ['json', 'csv', 'parquet'];
+  let selectedFormat: ExportOptions['format'] = 'json';
   let filepath = '';
   let jsonl = false;
 
   const dispatch = createEventDispatcher();
-  const downloadDataset = downloadDatasetMutation();
+  const exportDataset = exportDatasetMutation();
 
   const datasetViewStore = getDatasetViewContext();
 
@@ -53,12 +51,12 @@
   let includeOnlyLabels: boolean[] = [];
   let excludeLabels: boolean[] = [];
 
-  $: downloadFields = [...checkedSourceFields, ...checkedLabeledFields, ...checkedEnrichedFields];
+  $: exportFields = [...checkedSourceFields, ...checkedLabeledFields, ...checkedEnrichedFields];
 
   $: previewRows =
-    downloadFields.length > 0
+    exportFields.length > 0
       ? querySelectRows($datasetViewStore.namespace, $datasetViewStore.datasetName, {
-          columns: downloadFields.map(x => x.path),
+          columns: exportFields.map(x => x.path),
           limit: 3,
           combine_columns: false
         })
@@ -78,15 +76,15 @@
   async function submit() {
     const namespace = $datasetViewStore.namespace;
     const datasetName = $datasetViewStore.datasetName;
-    const options: DownloadOptions = {
+    const options: ExportOptions = {
       format: selectedFormat,
       filepath,
       jsonl,
-      columns: downloadFields.map(x => x.path),
+      columns: exportFields.map(x => x.path),
       include_labels: labelFields.filter((_, i) => includeOnlyLabels[i]).map(x => x.path[0]),
       exclude_labels: labelFields.filter((_, i) => excludeLabels[i]).map(x => x.path[0])
     };
-    $downloadDataset.mutate([namespace, datasetName, options]);
+    $exportDataset.mutate([namespace, datasetName, options]);
   }
 
   function close() {
@@ -102,7 +100,7 @@
   }
 
   function downloadUrl(): string {
-    return `/api/v1/datasets/serve_dataset?filepath=${$downloadDataset.data}`;
+    return `/api/v1/datasets/serve_dataset?filepath=${$exportDataset.data}`;
   }
 </script>
 
@@ -111,25 +109,22 @@
   <ModalBody hasForm>
     <div class="flex flex-col gap-y-10">
       <section>
-        <h2>Step 1: Fields to download</h2>
+        <h2>Step 1: Fields to export</h2>
         <div class="flex flex-wrap gap-x-12">
           <section>
             <h4>Source fields</h4>
-            <DownloadFieldList fields={sourceFields} bind:checkedFields={checkedSourceFields} />
+            <FieldList fields={sourceFields} bind:checkedFields={checkedSourceFields} />
           </section>
           {#if labelFields.length > 0}
             <section>
               <h4>Labels</h4>
-              <DownloadFieldList fields={labelFields} bind:checkedFields={checkedLabeledFields} />
+              <FieldList fields={labelFields} bind:checkedFields={checkedLabeledFields} />
             </section>
           {/if}
           {#if enrichedFields.length > 0}
             <section>
               <h4>Enriched fields</h4>
-              <DownloadFieldList
-                fields={enrichedFields}
-                bind:checkedFields={checkedEnrichedFields}
-              />
+              <FieldList fields={enrichedFields} bind:checkedFields={checkedEnrichedFields} />
             </section>
           {/if}
         </div>
@@ -168,7 +163,7 @@
         </section>
       {/if}
       <section>
-        <h2>Step {labelFields.length > 0 ? 3 : 2}: Download format</h2>
+        <h2>Step {labelFields.length > 0 ? 3 : 2}: Export format</h2>
         <div>
           <RadioButtonGroup bind:selected={selectedFormat}>
             {#each formats as format}
@@ -178,11 +173,11 @@
         </div>
         <div class="mt-4 max-w-lg pt-2">
           <TextInput
-            labelText="Output path"
+            labelText="Output filepath"
             bind:value={filepath}
             invalid={filepath.length === 0}
             invalidText="The output path is required"
-            placeholder="Enter output path"
+            placeholder="Enter the filename path for the exported dataset"
           />
         </div>
         {#if selectedFormat === 'json'}
@@ -190,17 +185,17 @@
             <Toggle bind:toggled={jsonl} labelText="JSONL" />
           </div>
         {/if}
-        {#if $downloadDataset.isError}
+        {#if $exportDataset.isError}
           <InlineNotification
             kind="error"
             title="Error"
-            subtitle={$downloadDataset.error.body.detail}
+            subtitle={$exportDataset.error.body.detail}
             hideCloseButton
           />
-        {:else if $downloadDataset.data}
+        {:else if $exportDataset.data}
           <InlineNotification kind="success" lowContrast hideCloseButton title="Dataset exported">
             <div slot="subtitle">
-              Saved to <a href={downloadUrl()}>{$downloadDataset.data}</a>
+              Saved to <a href={downloadUrl()}>{$exportDataset.data}</a>
             </div>
             <svelte:fragment slot="actions">
               <NotificationActionButton on:click={() => window.open(downloadUrl(), '_blank')}>
@@ -212,7 +207,7 @@
       </section>
       <section>
         <h2>Step {labelFields.length > 0 ? 4 : 3}: JSON preview</h2>
-        {#if downloadFields.length === 0}
+        {#if exportFields.length === 0}
           <p class="text-gray-600">
             No fields selected. Please select at least one field to preview in JSON.
           </p>
@@ -221,6 +216,10 @@
           {#if $previewRows && $previewRows.isFetching}
             <SkeletonText paragraph />
           {:else if previewRows && $previewRows}
+            <p>
+              This is a <span class="italic">JSON</span> preview of the exported data, not representing
+              the actual output format.
+            </p>
             <TextArea
               value={JSON.stringify($previewRows.data, null, 2)}
               readonly
@@ -234,8 +233,8 @@
     </div>
   </ModalBody>
   <ModalFooter
-    primaryButtonText="Download"
-    primaryButtonDisabled={downloadFields.length === 0 || filepath.length === 0}
+    primaryButtonText="Export dataset"
+    primaryButtonDisabled={exportFields.length === 0 || filepath.length === 0}
     secondaryButtonText="Cancel"
     on:click:button--secondary={close}
   />

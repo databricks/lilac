@@ -9,7 +9,7 @@ import type { DatasetInfo } from '../models/DatasetInfo';
 import type { DatasetSettings } from '../models/DatasetSettings';
 import type { DeleteSignalOptions } from '../models/DeleteSignalOptions';
 import type { DeleteSignalResponse } from '../models/DeleteSignalResponse';
-import type { DownloadOptions } from '../models/DownloadOptions';
+import type { ExportOptions } from '../models/ExportOptions';
 import type { GetStatsOptions } from '../models/GetStatsOptions';
 import type { RemoveLabelsOptions } from '../models/RemoveLabelsOptions';
 import type { SelectGroupsOptions } from '../models/SelectGroupsOptions';
@@ -178,36 +178,6 @@ export class DatasetsService {
     }
 
     /**
-     * Select Rows Download
-     * Select rows from the dataset database and downloads them.
-     * @param namespace
-     * @param datasetName
-     * @param urlSafeOptions
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static selectRowsDownload(
-        namespace: string,
-        datasetName: string,
-        urlSafeOptions: string,
-    ): CancelablePromise<Array<Record<string, any>>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/v1/datasets/{namespace}/{dataset_name}/select_rows_download',
-            path: {
-                'namespace': namespace,
-                'dataset_name': datasetName,
-            },
-            query: {
-                'url_safe_options': urlSafeOptions,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
      * Select Rows
      * Select rows from the dataset database.
      * @param namespace
@@ -350,22 +320,22 @@ export class DatasetsService {
     }
 
     /**
-     * Download Dataset
-     * Download the dataset.
+     * Export Dataset
+     * Export the dataset to one of the supported file formats.
      * @param namespace
      * @param datasetName
      * @param requestBody
      * @returns string Successful Response
      * @throws ApiError
      */
-    public static downloadDataset(
+    public static exportDataset(
         namespace: string,
         datasetName: string,
-        requestBody: DownloadOptions,
+        requestBody: ExportOptions,
     ): CancelablePromise<string> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/v1/datasets/{namespace}/{dataset_name}/download',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/export',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,
