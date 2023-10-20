@@ -11,6 +11,9 @@ from ..source import Source, SourceSchema
 from ..sources.duckdb_utils import duckdb_setup
 from ..utils import download_http_files
 
+# Number of rows to read per batch.
+ROWS_PER_BATCH_READ = 10_000
+
 
 class ParquetSource(Source):
   """Parquet data loader
@@ -63,7 +66,8 @@ class ParquetSource(Source):
     """)
     res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
     num_items = cast(tuple[int], res)[0]
-    self._reader = self._con.execute('SELECT * from t').fetch_record_batch(rows_per_batch=10_000)
+    self._reader = self._con.execute('SELECT * from t').fetch_record_batch(
+      rows_per_batch=ROWS_PER_BATCH_READ)
     # Create the source schema in prepare to share it between process and source_schema.
     schema = arrow_schema_to_schema(self._reader.schema)
     self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)
