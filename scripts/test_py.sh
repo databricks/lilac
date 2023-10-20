@@ -3,9 +3,6 @@
 # Fail if any of the commands below fail.
 set -e
 
-# Activate the current py virtual env.
-source $(poetry env info --path)/bin/activate
-
 echo "Testing python using non-github test script..."
 
 PYTEST_MARKS=""
@@ -27,4 +24,4 @@ if [ "$1" ]; then
 else
   TEST_PATH="lilac/"
 fi
-pytest -vv --capture=tee-sys -m "$PYTEST_MARKS" "$TEST_PATH"
+poetry run pytest -vv --capture=tee-sys -m "$PYTEST_MARKS" "$TEST_PATH"

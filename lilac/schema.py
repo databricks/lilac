@@ -395,7 +395,7 @@ def column_paths_match(path_match: Path, specific_path: Path) -> bool:
        testing the second specific path.
     specific_path: A column path that specifically identifies an field.
 
-  Returns
+  Returns:
     Whether specific_path matches the path_match. This will only match when the
     paths are equal length. If a user wants to enrich everything with an array, they must use the
     path wildcard '*' in their patch match.
