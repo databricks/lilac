@@ -1809,14 +1809,20 @@ class DatasetDuckDB(Dataset):
     filters = list(filters or [])
     include_labels = include_labels or []
     exclude_labels = exclude_labels or []
-    for label in include_labels:
-      filters.append(Filter(path=(label,), op='exists'))
+    include_labels_query = ''
+
+    if include_labels:
+      include_filters = [Filter(path=(label,), op='exists') for label in include_labels]
+      include_labels_query = f"({' OR '.join(self._create_where(manifest, include_filters))})"
+
     for label in exclude_labels:
       filters.append(Filter(path=(label,), op='not_exists'))
 
     where_query = ''
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
     filter_queries = self._create_where(manifest, filters)
+    if include_labels_query:
+      filter_queries.append(include_labels_query)
     if filter_queries:
       where_query = f"WHERE {' AND '.join(filter_queries)}"
 
