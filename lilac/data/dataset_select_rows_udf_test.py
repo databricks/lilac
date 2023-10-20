@@ -25,7 +25,6 @@ from ..schema import (
 from ..signal import (
   TextEmbeddingSignal,
   TextSignal,
-  TextSplitterSignal,
   VectorSignal,
   clear_signal_registry,
   register_signal,
@@ -297,9 +296,13 @@ def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
     dataset.select_rows(['text', signal_col])
 
 
-class TestSplitter(TextSplitterSignal):
+class TestSplitter(TextSignal):
   """Split documents into sentence by splitting on period."""
   name: ClassVar[str] = 'test_splitter'
+
+  @override
+  def fields(self) -> Field:
+    return field(fields=['string_span'])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
