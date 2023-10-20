@@ -9,8 +9,6 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from lilac.sources.source_registry import clear_source_registry, register_source
-
 from .config import Config, DatasetConfig, DatasetSettings, DatasetUISettings
 from .data.dataset import SourceManifest
 from .data.dataset_duckdb import read_source_manifest
@@ -19,6 +17,7 @@ from .load_dataset import process_source
 from .project import read_project_config
 from .schema import PARQUET_FILENAME_PREFIX, ROWID, Item, schema
 from .source import Source, SourceSchema
+from .sources.source_registry import clear_source_registry, register_source
 from .test_utils import fake_uuid, read_items
 from .utils import DATASETS_DIR_NAME
 

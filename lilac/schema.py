@@ -20,7 +20,7 @@ from pydantic import (
 )
 from typing_extensions import TypedDict
 
-from lilac.utils import is_primitive, log
+from .utils import is_primitive, log
 
 MANIFEST_FILENAME = 'manifest.json'
 PARQUET_FILENAME_PREFIX = 'data'

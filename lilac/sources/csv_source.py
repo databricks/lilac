@@ -42,6 +42,7 @@ class CSVSource(Source):
     filepaths = download_http_files(self.filepaths)
 
     self._con = duckdb.connect(database=':memory:')
+    duckdb_setup(self._con)
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     s3_filepaths = [path.replace('gs://', 's3://') for path in filepaths]
@@ -49,7 +50,6 @@ class CSVSource(Source):
     # NOTE: We use duckdb here to increase parallelism for multiple files.
     # NOTE: We turn off the parallel reader because of https://github.com/lilacai/lilac/issues/373.
     self._con.execute(f"""
-      {duckdb_setup(self._con)}
       CREATE SEQUENCE serial START 1;
       CREATE VIEW t as (SELECT nextval('serial') as "{LINE_NUMBER_COLUMN}", * FROM read_csv_auto(
         {s3_filepaths},

@@ -36,15 +36,14 @@ class JSONSource(Source):
   def setup(self) -> None:
     # Download JSON files to local cache if they are via HTTP to speed up duckdb.
     filepaths = download_http_files(self.filepaths)
-
     self._con = duckdb.connect(database=':memory:')
+    duckdb_setup(self._con)
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     s3_filepaths = [path.replace('gs://', 's3://') for path in filepaths]
 
     # NOTE: We use duckdb here to increase parallelism for multiple files.
     self._con.execute(f"""
-      {duckdb_setup(self._con)}
       CREATE VIEW t as (SELECT * FROM read_json_auto(
         {s3_filepaths},
         IGNORE_ERRORS=true
@@ -62,7 +61,7 @@ class JSONSource(Source):
   @override
   def source_schema(self) -> SourceSchema:
     """Return the source schema."""
-    assert self._source_schema is not None
+    assert self._source_schema is not None, 'setup() must be called first.'
     return self._source_schema
 
   @override

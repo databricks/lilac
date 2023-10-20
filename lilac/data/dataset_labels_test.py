@@ -7,9 +7,8 @@ import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
-from lilac.sources.source_registry import clear_source_registry, register_source
-
 from ..schema import PATH_WILDCARD, ROWID, Item, field, schema
+from ..sources.source_registry import clear_source_registry, register_source
 from .dataset import DatasetManifest, SelectGroupsResult, SortOrder
 from .dataset_test_utils import TestDataMaker, TestSource
 
