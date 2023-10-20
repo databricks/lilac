@@ -3,6 +3,7 @@
 from typing import Optional, Union
 
 from ..schema import SPAN_KEY, TEXT_SPAN_END_FEATURE, TEXT_SPAN_START_FEATURE, Item, lilac_span
+from .chunk_splitter import TextChunk
 
 
 def spans_to_text(text: str, spans: Optional[list[Item]]) -> list[str]:
@@ -15,8 +16,9 @@ def spans_to_text(text: str, spans: Optional[list[Item]]) -> list[str]:
   ]
 
 
-def text_to_expected_spans(text: str, splits: Union[list[str], list[tuple[str,
-                                                                          Item]]]) -> list[Item]:
+def text_to_expected_spans(text: str,
+                           splits: Union[list[str], list[tuple[str, Item]]],
+                           allowable_overlap: int = 0) -> list[Item]:
   """Convert text and a list of splits to a list of expected spans."""
   start_offset = 0
   expected_spans: list[Item] = []
@@ -31,6 +33,16 @@ def text_to_expected_spans(text: str, splits: Union[list[str], list[tuple[str,
     start = text.find(split, start_offset)
     end = start + len(split)
     expected_spans.append(lilac_span(start=start, end=end, metadata=item))
-    start_offset = end
+    start_offset = end - allowable_overlap
 
   return expected_spans
+
+
+def text_to_textchunk(text: str, splits: list[str], allowable_overlap: int = 0) -> list[TextChunk]:
+  """Convert text and a list of splits to a list of TextChunks."""
+  spans = text_to_expected_spans(text, splits, allowable_overlap=allowable_overlap)
+  expected_textchunks = []
+  for span in spans:
+    start, end = span[SPAN_KEY][TEXT_SPAN_START_FEATURE], span[SPAN_KEY][TEXT_SPAN_END_FEATURE]
+    expected_textchunks.append((text[start:end].strip(), (start, end)))
+  return expected_textchunks

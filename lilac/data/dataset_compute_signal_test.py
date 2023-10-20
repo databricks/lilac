@@ -22,13 +22,7 @@ from ..schema import (
   lilac_span,
   schema,
 )
-from ..signal import (
-  TextEmbeddingSignal,
-  TextSignal,
-  TextSplitterSignal,
-  clear_signal_registry,
-  register_signal,
-)
+from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from ..signals.concept_scorer import ConceptSignal
 from . import dataset_utils as dataset_utils_module
 from .dataset import Column, DatasetManifest, GroupsSortBy, SortOrder
@@ -130,9 +124,13 @@ class TestSignal(TextSignal):
     return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
 
 
-class TestSplitSignal(TextSplitterSignal):
+class TestSplitSignal(TextSignal):
   """Split documents into sentence by splitting on period, generating entities."""
   name: ClassVar[str] = 'test_split'
+
+  @override
+  def fields(self) -> Field:
+    return field(fields=['string_span'])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

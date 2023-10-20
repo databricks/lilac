@@ -39,6 +39,7 @@ from ..schema import (
   Bin,
   DataType,
   ImageInfo,
+  Item,
   Path,
   PathTuple,
   Schema,
@@ -543,6 +544,30 @@ class Dataset(abc.ABC):
 
     Returns
       A MediaResult.
+    """
+    pass
+
+  @abc.abstractmethod
+  def map(self,
+          map_fn: Callable[[Item], Item],
+          output_path: Path,
+          input_paths: Optional[Sequence[Path]] = None,
+          combine_columns: bool = False,
+          resolve_span: bool = False,
+          task_step_id: Optional[TaskStepId] = None) -> None:
+    """Maps a function over all rows in the dataset and writes the result to a new column.
+
+    Args:
+      map_fn: A callable that takes a full row item dictionary, and returns an Item for the
+        result. The result Item can be a primitive, like a string.
+      output_path: The output path to write the resulting column to.
+      input_paths: The input_paths to select. When not defined, selects all paths.
+      combine_columns: When true, the row passed to the map function will be a deeply nested object
+        reflecting the hierarchy of the data. When false, all columns will be flattened as top-level
+        fields.
+      resolve_span: Whether to resolve the spans into text before calling the map function.
+      task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
+        progress of the task.
     """
     pass
 

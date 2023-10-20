@@ -8,7 +8,6 @@ from .schema import Field, Item, RichData, SignalInputType, field
 from .signal import (
   Signal,
   TextEmbeddingSignal,
-  TextSplitterSignal,
   clear_signal_registry,
   get_signal_by_type,
   get_signal_cls,
@@ -37,16 +36,6 @@ class TestSignal(Signal):
     return []
 
 
-class TestTextSplitter(TextSplitterSignal):
-  """A test text splitter."""
-  name: ClassVar[str] = 'test_splitter'
-
-  @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    del data
-    return []
-
-
 class TestTextEmbedding(TextEmbeddingSignal):
   """A test text embedding."""
   name: ClassVar[str] = 'test_embedding'
@@ -61,7 +50,6 @@ class TestTextEmbedding(TextEmbeddingSignal):
 def setup_teardown() -> Iterable[None]:
   # Setup.
   register_signal(TestSignal)
-  register_signal(TestTextSplitter)
   register_signal(TestTextEmbedding)
 
   # Unit test runs.
@@ -95,21 +83,18 @@ def test_resolve_signal() -> None:
 
 
 def test_get_signal_by_type() -> None:
-  assert get_signal_by_type(TestTextSplitter.name, TextSplitterSignal) == TestTextSplitter
   assert get_signal_by_type(TestTextEmbedding.name, TextEmbeddingSignal) == TestTextEmbedding
 
 
 def test_get_signal_by_type_validation() -> None:
   with pytest.raises(ValueError, match='Signal "invalid_signal" not found in the registry'):
-    get_signal_by_type('invalid_signal', TextSplitterSignal)
+    get_signal_by_type('invalid_signal', TestTextEmbedding)
 
-  with pytest.raises(
-      ValueError, match=f'"{TestTextSplitter.name}" is a `{TestTextSplitter.__name__}`'):
-    get_signal_by_type(TestTextSplitter.name, TextEmbeddingSignal)
+  with pytest.raises(ValueError, match=f'"{TestSignal.name}" is a `{TestSignal.__name__}`'):
+    get_signal_by_type(TestSignal.name, TextEmbeddingSignal)
 
 
 def test_get_signals_by_type() -> None:
-  assert get_signals_by_type(TextSplitterSignal) == [TestTextSplitter]
   assert get_signals_by_type(TextEmbeddingSignal) == [TestTextEmbedding]
 
 
