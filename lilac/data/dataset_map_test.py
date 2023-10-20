@@ -5,13 +5,16 @@ from datetime import datetime
 from typing import ClassVar, Iterable, Optional
 
 import pytest
+from distributed import Client
+from distributed.utils_test import gen_cluster, inc
 from freezegun import freeze_time
+from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from lilac.sources.source_registry import clear_source_registry, register_source
-
+from .. import tasks
 from ..schema import PATH_WILDCARD, VALUE_KEY, Field, Item, MapInfo, RichData, field, schema
 from ..signal import TextSignal, clear_signal_registry, register_signal
+from ..sources.source_registry import clear_source_registry, register_source
 from .dataset import DatasetManifest
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
@@ -37,11 +40,15 @@ class TestFirstCharSignal(TextSignal):
 
 
 @pytest.fixture(scope='module', autouse=True)
-def setup_teardown() -> Iterable[None]:
+def setup_teardown(module_mocker: MockerFixture) -> Iterable[None]:
   # Setup.
   clear_signal_registry()
   register_source(TestSource)
   register_signal(TestFirstCharSignal)
+
+  # Fake that this is a worker so map doesn't spawn tasks.
+  #  mock_get_task_manager = module_mocker.patch.object(tasks, 'get_is_dask_worker', autospec=True)
+  #  mock_get_task_manager.return_value = True
 
   # Unit test runs.
   yield
@@ -51,7 +58,9 @@ def setup_teardown() -> Iterable[None]:
 
 
 @freeze_time(TEST_TIME)
-def test_map(make_test_data: TestDataMaker) -> None:
+def test_map(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
+  mock_get_task_manager = mocker.patch.object(tasks, 'get_is_dask_worker', autospec=True)
+  mock_get_task_manager.return_value = True
   dataset = make_test_data([{
     'text': 'a sentence',
   }, {
@@ -136,7 +145,8 @@ def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
     _map_fn,
     output_path='output_text',
     input_paths=[('text',), ('text', 'test_signal')],
-    combine_columns=False)
+    combine_columns=False,
+    disable_tasks=True)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,

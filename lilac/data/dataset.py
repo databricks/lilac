@@ -548,13 +548,16 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def map(self,
-          map_fn: Callable[[Item], Item],
-          output_path: Path,
-          input_paths: Optional[Sequence[Path]] = None,
-          combine_columns: bool = False,
-          resolve_span: bool = False,
-          task_step_id: Optional[TaskStepId] = None) -> None:
+  def map(
+    self,
+    map_fn: Callable[[Item], Item],
+    output_path: Path,
+    input_paths: Optional[Sequence[Path]] = None,
+    combine_columns: bool = False,
+    resolve_span: bool = False,
+    disable_output: Optional[bool] = False,
+    task_step_id: Optional[TaskStepId] = None,
+  ) -> None:
     """Maps a function over all rows in the dataset and writes the result to a new column.
 
     Args:
@@ -566,8 +569,9 @@ class Dataset(abc.ABC):
         reflecting the hierarchy of the data. When false, all columns will be flattened as top-level
         fields.
       resolve_span: Whether to resolve the spans into text before calling the map function.
-      task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
-        progress of the task.
+      disable_output: Whether to disable writing output files to disk. Useful for testing the map
+        without writing.
+      task_step_id: The task step id if this is running in a task.
     """
     pass
 

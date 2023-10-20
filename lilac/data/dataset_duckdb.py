@@ -1,4 +1,5 @@
 """The DuckDB implementation of the dataset database."""
+import collections
 import functools
 import gc
 import glob
@@ -15,13 +16,25 @@ import threading
 from contextlib import closing
 from datetime import datetime
 from importlib import metadata
-from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
+from typing import (
+  Any,
+  Callable,
+  Generator,
+  Iterable,
+  Iterator,
+  Literal,
+  Optional,
+  Sequence,
+  Union,
+  cast,
+)
 
 import duckdb
 import fsspec
 import numpy as np
 import pandas as pd
 import yaml
+from distributed import get_worker
 from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
@@ -79,7 +92,7 @@ from ..signals.concept_scorer import ConceptSignal
 from ..signals.filter_mask import FilterMaskSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
-from ..tasks import TaskStepId, progress
+from ..tasks import TaskStepId, get_is_dask_worker, get_task_manager, progress
 from ..utils import DebugTimer, delete_file, get_dataset_output_dir, log, open_file
 from . import dataset
 from .dataset import (
@@ -1836,13 +1849,19 @@ class DatasetDuckDB(Dataset):
     return f'SELECT {selection} FROM t {where_query}'
 
   @override
-  def map(self,
-          map_fn: Callable[[Item], Item],
-          output_path: Path,
-          input_paths: Optional[Sequence[Path]] = None,
-          combine_columns: bool = False,
-          resolve_span: bool = False,
-          task_step_id: Optional[TaskStepId] = None) -> None:
+  def map(
+    self,
+    map_fn: Callable[[Item], Item],
+    output_path: Path,
+    input_paths: Optional[Sequence[Path]] = None,
+    combine_columns: bool = False,
+    resolve_span: bool = False,
+    disable_output: bool = False,
+    task_step_id: Optional[TaskStepId] = None,
+  ) -> None:
+    manifest = self.manifest()
+    schema = manifest.data_schema
+
     output_path = normalize_path(output_path)
     if len(output_path) > 1:
       raise ValueError('Mapping to a nested path is not yet supported. If you need this, please '
@@ -1851,9 +1870,10 @@ class DatasetDuckDB(Dataset):
 
     output_column = output_path[0]
     escaped_output_column = _escape_col_name(output_column)
-    manifest = self.manifest()
 
     if manifest.data_schema.has_field(output_path):
+      raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
+    if schema.has_field((escaped_output_column,)):
       raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
 
     if task_step_id is None:
@@ -1862,10 +1882,6 @@ class DatasetDuckDB(Dataset):
 
     if not input_paths:
       input_paths = [PATH_WILDCARD, ROWID]
-
-    schema = manifest.data_schema
-    if schema.has_field((escaped_output_column,)):
-      raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
 
     cols = self._normalize_columns(input_paths, schema, combine_columns)
 
@@ -1945,6 +1961,12 @@ class DatasetDuckDB(Dataset):
         task_step_id=task_step_id,
         estimated_len=manifest.num_items,
         step_description=f'Computing map over {input_paths}')
+
+    # When we're not writing to disk, return.
+    if disable_output:
+      # Exhaust the iterator
+      collections.deque(outputs, maxlen=0)
+      return
 
     # Write the output rows to a temporary file to infer the schema from duckdb.
     fs = fsspec.filesystem('memory')
