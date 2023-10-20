@@ -8,8 +8,6 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from lilac.sources.source_registry import clear_source_registry, register_source
-
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   EMBEDDING_KEY,
@@ -30,6 +28,7 @@ from ..signal import (
   clear_signal_registry,
   register_signal,
 )
+from ..sources.source_registry import clear_source_registry, register_source
 from .dataset import DatasetManifest
 from .dataset_test_utils import (
   TEST_DATASET_NAME,

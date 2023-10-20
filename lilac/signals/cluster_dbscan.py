@@ -6,12 +6,11 @@ from pydantic import Field as PyField
 from sklearn.cluster import DBSCAN
 from typing_extensions import override
 
-from lilac.embeddings.vector_store import VectorDBIndex
-from lilac.utils import DebugTimer
-
 from ..embeddings.embedding import get_embed_fn
+from ..embeddings.vector_store import VectorDBIndex
 from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, lilac_span
 from ..signal import VectorSignal
+from ..utils import DebugTimer
 
 CLUSTER_ID = 'cluster_id'
 MIN_SAMPLES = 5

@@ -88,6 +88,16 @@ class LilacEnvironment(BaseModel):
   LILAC_LOAD_ON_START_SERVER: str = PydanticField(
     description='When true, will load from lilac.yml upon startup.')
 
+  GCS_REGION: str = PydanticField(description='The GCS region for GCS operations.')
+  GCS_ACCESS_KEY: str = PydanticField(description='The GCS access key for GCS operations.')
+  GCS_SECRET_KEY: str = PydanticField(description='The GCS secret key for GCS operations.')
+
+  S3_REGION: str = PydanticField(description='The S3 region for S3 operations.')
+  S3_ACCESS_KEY: str = PydanticField(description='The S3 access key for S3 operations.')
+  S3_SECRET_KEY: str = PydanticField(description='The S3 secret key for S3 operations.')
+  S3_ENDPOINT: str = PydanticField(
+    description='The S3 endpoint URL for S3-like operations, including GCS and Azure.')
+
 
 def _init_env() -> None:
   in_test = os.environ.get('LILAC_TEST', None)

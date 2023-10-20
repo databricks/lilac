@@ -7,10 +7,8 @@ import pytest
 from pytest import approx
 from typing_extensions import override
 
-from lilac.concepts.concept import ExampleIn
-from lilac.concepts.db_concept import ConceptUpdate, DiskConceptDB
-from lilac.signals.concept_scorer import ConceptSignal
-
+from ..concepts.concept import ExampleIn
+from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   ROWID,
@@ -31,6 +29,7 @@ from ..signal import (
   clear_signal_registry,
   register_signal,
 )
+from ..signals.concept_scorer import ConceptSignal
 from .dataset import BinaryFilterTuple, Column, SortOrder
 from .dataset_test_utils import TestDataMaker, enriched_item
 

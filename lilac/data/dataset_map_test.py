@@ -8,10 +8,9 @@ import pytest
 from freezegun import freeze_time
 from typing_extensions import override
 
-from lilac.sources.source_registry import clear_source_registry, register_source
-
 from ..schema import PATH_WILDCARD, VALUE_KEY, Field, Item, MapInfo, RichData, field, schema
 from ..signal import TextSignal, clear_signal_registry, register_signal
+from ..sources.source_registry import clear_source_registry, register_source
 from .dataset import DatasetManifest
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
