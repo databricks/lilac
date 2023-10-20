@@ -113,11 +113,9 @@
     <div class="flex flex-col gap-y-10">
       <section>
         <h2>Step 1: Fields to export</h2>
-        {#if exportFields.length === 0}
-          <p class="text-red-600">
-            No fields selected. Please select at least one field to export.
-          </p>
-        {/if}
+        <p class="text-red-600" class:invisible={exportFields.length > 0}>
+          No fields selected. Please select at least one field to export.
+        </p>
         <div class="flex flex-wrap gap-x-12">
           <section>
             <h4>Source fields</h4>

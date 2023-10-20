@@ -317,6 +317,8 @@ def serve_dataset_file(filepath: str) -> FileResponse:
 def export_dataset(namespace: str, dataset_name: str, options: ExportOptions) -> str:
   """Export the dataset to one of the supported file formats."""
   dataset = get_dataset(namespace, dataset_name)
+  os.makedirs(os.path.dirname(options.filepath), exist_ok=True)
+
   if options.format == 'csv':
     dataset.to_csv(options.filepath, options.columns, [], options.include_labels,
                    options.exclude_labels)
