@@ -328,19 +328,41 @@ export class DatasetsService {
     }
 
     /**
+     * Serve Dataset File
+     * Serve the exported dataset file.
+     * @param filepath
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static serveDatasetFile(
+        filepath: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/datasets/serve_dataset',
+            query: {
+                'filepath': filepath,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Download Dataset
      * Download the dataset.
      * @param namespace
      * @param datasetName
      * @param requestBody
-     * @returns any Successful Response
+     * @returns string Successful Response
      * @throws ApiError
      */
     public static downloadDataset(
         namespace: string,
         datasetName: string,
         requestBody: DownloadOptions,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<string> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/download',

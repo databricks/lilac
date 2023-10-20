@@ -19,6 +19,7 @@
     ModalBody,
     ModalFooter,
     ModalHeader,
+    NotificationActionButton,
     RadioButton,
     RadioButtonGroup,
     SkeletonText,
@@ -26,14 +27,16 @@
     TextInput,
     Toggle
   } from 'carbon-components-svelte';
+  import {Tag} from 'carbon-icons-svelte';
   import {createEventDispatcher} from 'svelte';
   import DownloadFieldList from './DownloadFieldList.svelte';
+  ('./DownloadFieldList.svelte');
 
   export let open = false;
   export let schema: LilacSchema;
 
-  const formats = ['json in browser', 'json', 'csv', 'parquet'];
-  let selectedFormat: 'json in browser' | 'json' | 'csv' | 'parquet' = 'json';
+  const formats: DownloadOptions['format'][] = ['json', 'csv', 'parquet'];
+  let selectedFormat: DownloadOptions['format'] = 'json';
   let filepath = '';
   let jsonl = false;
 
@@ -75,19 +78,6 @@
   async function submit() {
     const namespace = $datasetViewStore.namespace;
     const datasetName = $datasetViewStore.datasetName;
-    if (selectedFormat === 'json in browser') {
-      const options = {combine_columns: false, columns: downloadFields.map(x => x.path)};
-      const url =
-        `/api/v1/datasets/${namespace}/${datasetName}/select_rows_download` +
-        `?url_safe_options=${encodeURIComponent(JSON.stringify(options))}`;
-      const link = document.createElement('a');
-      link.download = `${namespace}_${datasetName}.json`;
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      return;
-    }
     const options: DownloadOptions = {
       format: selectedFormat,
       filepath,
@@ -110,6 +100,10 @@
       includeOnlyLabels[index] = false;
     }
   }
+
+  function downloadUrl(): string {
+    return `/api/v1/datasets/serve_dataset?filepath=${$downloadDataset.data}`;
+  }
 </script>
 
 <ComposedModal size="lg" {open} on:submit={submit} on:close={() => (open = false)}>
@@ -120,7 +114,7 @@
         <h2>Step 1: Fields to download</h2>
         <div class="flex flex-wrap gap-x-12">
           <section>
-            <h4>Source</h4>
+            <h4>Source fields</h4>
             <DownloadFieldList fields={sourceFields} bind:checkedFields={checkedSourceFields} />
           </section>
           {#if labelFields.length > 0}
@@ -131,7 +125,7 @@
           {/if}
           {#if enrichedFields.length > 0}
             <section>
-              <h4>Enriched</h4>
+              <h4>Enriched fields</h4>
               <DownloadFieldList
                 fields={enrichedFields}
                 bind:checkedFields={checkedEnrichedFields}
@@ -146,7 +140,7 @@
           <table>
             <thead>
               <tr>
-                <th>Label</th>
+                <th><Tag class="inline" /> Label</th>
                 <th>Include only</th>
                 <th>Exclude</th>
               </tr>
@@ -173,7 +167,7 @@
           </table>
         </section>
       {/if}
-      <section class="max-w-lg">
+      <section>
         <h2>Step {labelFields.length > 0 ? 3 : 2}: Download format</h2>
         <div>
           <RadioButtonGroup bind:selected={selectedFormat}>
@@ -182,21 +176,19 @@
             {/each}
           </RadioButtonGroup>
         </div>
-        {#if selectedFormat !== 'json in browser'}
-          <div class="mt-4 pt-2">
-            <TextInput
-              labelText="Output path"
-              bind:value={filepath}
-              invalid={filepath.length === 0}
-              invalidText="The output path is required"
-              placeholder="Enter output path"
-            />
+        <div class="mt-4 max-w-lg pt-2">
+          <TextInput
+            labelText="Output path"
+            bind:value={filepath}
+            invalid={filepath.length === 0}
+            invalidText="The output path is required"
+            placeholder="Enter output path"
+          />
+        </div>
+        {#if selectedFormat === 'json'}
+          <div class="mt-4 border-t border-gray-300 pt-2">
+            <Toggle bind:toggled={jsonl} labelText="JSONL" />
           </div>
-          {#if selectedFormat === 'json'}
-            <div class="mt-4 border-t border-gray-300 pt-2">
-              <Toggle bind:toggled={jsonl} labelText="JSONL" />
-            </div>
-          {/if}
         {/if}
         {#if $downloadDataset.isError}
           <InlineNotification
@@ -205,13 +197,24 @@
             subtitle={$downloadDataset.error.body.detail}
             hideCloseButton
           />
+        {:else if $downloadDataset.data}
+          <InlineNotification kind="success" lowContrast hideCloseButton title="Dataset exported">
+            <div slot="subtitle">
+              Saved to <a href={downloadUrl()}>{$downloadDataset.data}</a>
+            </div>
+            <svelte:fragment slot="actions">
+              <NotificationActionButton on:click={() => window.open(downloadUrl(), '_blank')}>
+                Download
+              </NotificationActionButton>
+            </svelte:fragment>
+          </InlineNotification>
         {/if}
       </section>
       <section>
-        <h4>Download preview</h4>
+        <h2>Step {labelFields.length > 0 ? 4 : 3}: JSON preview</h2>
         {#if downloadFields.length === 0}
           <p class="text-gray-600">
-            No fields selected. Please select at least one field to download.
+            No fields selected. Please select at least one field to preview in JSON.
           </p>
         {/if}
         <div class="preview">
@@ -221,7 +224,7 @@
             <TextArea
               value={JSON.stringify($previewRows.data, null, 2)}
               readonly
-              rows={30}
+              rows={20}
               placeholder="3 rows of data for previewing the response"
               class="mb-2 font-mono"
             />
@@ -240,13 +243,13 @@
 
 <style lang="postcss">
   h2 {
-    @apply mb-2;
+    @apply mb-2 border-b border-gray-300 pb-2;
   }
   h4 {
     @apply mb-2 mt-2;
   }
   .preview {
-    height: 30rem;
+    height: 26rem;
   }
   table th {
     @apply pr-5 text-left text-base;

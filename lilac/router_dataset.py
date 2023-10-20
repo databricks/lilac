@@ -1,11 +1,12 @@
 """Router for the dataset database."""
+import os
 from copy import copy
 from typing import Annotated, Any, Literal, Optional, Sequence, Union, cast
 from urllib.parse import unquote
 
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.params import Depends
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import FileResponse, ORJSONResponse
 from pydantic import BaseModel, Field, SerializeAsAny, field_validator
 
 from .auth import UserInfo, get_session_user, get_user_access
@@ -317,8 +318,15 @@ class DownloadOptions(BaseModel):
   exclude_labels: Sequence[str] = []
 
 
+@router.get('/serve_dataset')
+def serve_dataset_file(filepath: str) -> FileResponse:
+  """Serve the exported dataset file."""
+  filepath = os.path.expanduser(filepath)
+  return FileResponse(filepath)
+
+
 @router.post('/{namespace}/{dataset_name}/download')
-def download_dataset(namespace: str, dataset_name: str, options: DownloadOptions) -> None:
+def download_dataset(namespace: str, dataset_name: str, options: DownloadOptions) -> str:
   """Download the dataset."""
   dataset = get_dataset(namespace, dataset_name)
   if options.format == 'csv':
@@ -332,6 +340,7 @@ def download_dataset(namespace: str, dataset_name: str, options: DownloadOptions
                        options.exclude_labels)
   else:
     raise ValueError(f'Unknown format: {options.format}')
+  return options.filepath
 
 
 @router.get('/{namespace}/{dataset_name}/config')
