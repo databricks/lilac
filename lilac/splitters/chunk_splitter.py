@@ -29,13 +29,8 @@ https://github.com/hwchase17/langchain/blob/master/langchain/text_splitter.py
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from typing import Callable, ClassVar, Iterable, Optional
+from typing import Callable, Iterable, Optional
 
-from pydantic import ValidationInfo, field_validator
-from typing_extensions import override
-
-from ..schema import Item, RichData, lilac_span
-from ..signal import TextSplitterSignal
 from ..utils import log
 
 TextChunk = tuple[str, tuple[int, int]]
@@ -43,54 +38,6 @@ TextChunk = tuple[str, tuple[int, int]]
 DEFAULT_SEPARATORS = ['```', '\n\n', '\n', ' ', '']
 CHUNK_SIZE = 400
 CHUNK_OVERLAP = 50
-
-
-class ChunkSplitter(TextSplitterSignal):
-  """Recursively split documents by different characters to find one that works."""
-
-  name: ClassVar[str] = 'chunk'
-  display_name: ClassVar[str] = 'Chunk Splitter'
-
-  chunk_size: int = CHUNK_SIZE
-  chunk_overlap: int = CHUNK_OVERLAP
-  separators: list[str] = DEFAULT_SEPARATORS
-
-  _length_function: Callable[[str], int] = len
-
-  @field_validator('chunk_overlap')
-  @classmethod
-  def check_overlap_smaller_than_chunk(cls, chunk_overlap: int, info: ValidationInfo) -> int:
-    """Check that the chunk overlap is smaller than the chunk size."""
-    chunk_size: int = info.data['chunk_size']
-    if chunk_overlap > chunk_size:
-      raise ValueError(f'Got a larger chunk overlap ({chunk_overlap}) than chunk size '
-                       f'({chunk_size}), should be smaller.')
-    return chunk_overlap
-
-  @field_validator('separators')
-  @classmethod
-  def check_separators_are_strings(cls, separators: list[str]) -> list[str]:
-    """Check that the separators are strings."""
-    separators = list(separators) or DEFAULT_SEPARATORS
-    for sep in separators:
-      if not isinstance(sep, str):
-        raise ValueError(f'Got separator {sep} that is not a string.')
-    return separators
-
-  @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    for text in data:
-      if not isinstance(text, str):
-        yield None
-        continue
-
-      chunks = split_text(text, self.chunk_size, self.chunk_overlap, self.separators,
-                          self._length_function)
-      if not chunks:
-        yield None
-        continue
-
-      yield [lilac_span(start, end) for _, (start, end) in chunks]
 
 
 def _sep_split(text: str, separator: str) -> list[TextChunk]:

@@ -114,15 +114,6 @@ def _args_key_from_dict(args_dict: dict[str, Any]) -> str:
   return '' if not args_list else f'({args})'
 
 
-class TextSplitterSignal(Signal):
-  """An interface for signals that compute over text."""
-  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
-
-  @override
-  def fields(self) -> Field:
-    return field(fields=['string_span'])
-
-
 # Signal base classes, used for inferring the dependency chain required for computing a signal.
 class TextSignal(Signal):
   """An interface for signals that compute over text."""
