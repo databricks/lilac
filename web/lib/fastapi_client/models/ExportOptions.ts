@@ -4,7 +4,7 @@
 /* eslint-disable */
 
 /**
- * The request for the download dataset endpoint.
+ * The request for the export dataset endpoint.
  */
 export type ExportOptions = {
     format: 'csv' | 'json' | 'parquet';

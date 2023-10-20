@@ -297,7 +297,7 @@ def get_media(namespace: str, dataset_name: str, item_id: str, leaf_path: str) -
 
 
 class ExportOptions(BaseModel):
-  """The request for the download dataset endpoint."""
+  """The request for the export dataset endpoint."""
   format: Literal['csv', 'json', 'parquet']
   filepath: str
   jsonl: Optional[bool] = False

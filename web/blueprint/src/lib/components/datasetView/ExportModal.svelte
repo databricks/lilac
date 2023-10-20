@@ -22,6 +22,7 @@
     NotificationActionButton,
     RadioButton,
     RadioButtonGroup,
+    SkeletonPlaceholder,
     SkeletonText,
     TextArea,
     TextInput,
@@ -61,6 +62,8 @@
           combine_columns: false
         })
       : null;
+  $: exportDisabled =
+    exportFields.length === 0 || filepath.length === 0 || $exportDataset.isLoading;
 
   function getFields(schema: LilacSchema) {
     const allFields = childFields(schema);
@@ -105,11 +108,16 @@
 </script>
 
 <ComposedModal size="lg" {open} on:submit={submit} on:close={() => (open = false)}>
-  <ModalHeader title="Download data" />
+  <ModalHeader title="Export dataset" />
   <ModalBody hasForm>
     <div class="flex flex-col gap-y-10">
       <section>
         <h2>Step 1: Fields to export</h2>
+        {#if exportFields.length === 0}
+          <p class="text-red-600">
+            No fields selected. Please select at least one field to export.
+          </p>
+        {/if}
         <div class="flex flex-wrap gap-x-12">
           <section>
             <h4>Source fields</h4>
@@ -176,8 +184,8 @@
             labelText="Output filepath"
             bind:value={filepath}
             invalid={filepath.length === 0}
-            invalidText="The output path is required"
-            placeholder="Enter the filename path for the exported dataset"
+            invalidText="The file path is required"
+            placeholder="Enter a file path for the exported dataset"
           />
         </div>
         {#if selectedFormat === 'json'}
@@ -192,6 +200,8 @@
             subtitle={$exportDataset.error.body.detail}
             hideCloseButton
           />
+        {:else if $exportDataset.isLoading}
+          <SkeletonPlaceholder />
         {:else if $exportDataset.data}
           <InlineNotification kind="success" lowContrast hideCloseButton title="Dataset exported">
             <div slot="subtitle">
@@ -216,7 +226,7 @@
           {#if $previewRows && $previewRows.isFetching}
             <SkeletonText paragraph />
           {:else if previewRows && $previewRows}
-            <p>
+            <p class="text-gray-600">
               This is a <span class="italic">JSON</span> preview of the exported data, not representing
               the actual output format.
             </p>
@@ -234,7 +244,7 @@
   </ModalBody>
   <ModalFooter
     primaryButtonText="Export dataset"
-    primaryButtonDisabled={exportFields.length === 0 || filepath.length === 0}
+    primaryButtonDisabled={exportDisabled}
     secondaryButtonText="Cancel"
     on:click:button--secondary={close}
   />
