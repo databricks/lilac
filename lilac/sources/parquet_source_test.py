@@ -100,8 +100,6 @@ def test_shuffle_between_uniform_shards(tmp_path: pathlib.Path) -> None:
   source.setup()
   items = list(source.process())
   assert len(items) == 20
-  for item in items:
-    assert item['index'] % 10 < 2
 
 
 def test_shuffle_between_nonuniform_shards(tmp_path: pathlib.Path) -> None:

@@ -60,22 +60,20 @@ class ParquetSource(Source):
 
   def _setup_sampling(self, filepaths: list[str]) -> Schema:
     assert self._con, 'setup() must be called first.'
-    batch_size = ROWS_PER_BATCH_READ
-    files: list[str] = []
-    if self.sample_size:
+    if self.shuffle_between_shards and self.sample_size:
       # Find the number of files.
+      files: list[str] = []
       for filepath in filepaths:
         fs, _ = url_to_fs(filepath)
         files.extend(fs.glob(filepath))
-      batch_size = min(self.sample_size // len(files), batch_size)
-    if self.shuffle_between_shards:
+      batch_size = max(1, min(self.sample_size // len(files), ROWS_PER_BATCH_READ))
       for file in files:
         res = self._con.cursor().execute(f"""SELECT * FROM read_parquet('{file}')""")
         self._readers.append(res.fetch_record_batch(rows_per_batch=batch_size))
     else:
       sample_suffix = f'USING SAMPLE {self.sample_size}' if self.sample_size else ''
       res = self._con.execute(f"""SELECT * FROM read_parquet({filepaths}) {sample_suffix}""")
-      self._readers.append(res.fetch_record_batch(rows_per_batch=batch_size))
+      self._readers.append(res.fetch_record_batch(rows_per_batch=ROWS_PER_BATCH_READ))
     return arrow_schema_to_schema(self._readers[0].schema)
 
   @override
