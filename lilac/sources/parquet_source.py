@@ -1,17 +1,15 @@
 """Parquet source."""
 import random
-import urllib.parse
 from typing import ClassVar, Iterable, Optional, cast
 
 import duckdb
 import pyarrow as pa
-from fsspec.core import url_to_fs
 from pydantic import Field, field_validator
 from typing_extensions import override
 
 from ..schema import Item, Schema, arrow_schema_to_schema
 from ..source import Source, SourceSchema
-from ..sources.duckdb_utils import duckdb_setup
+from ..sources.duckdb_utils import convert_path_to_duckdb, duckdb_setup
 from ..utils import download_http_files
 
 # Number of rows to read per batch.
@@ -58,25 +56,22 @@ class ParquetSource(Source):
       raise ValueError('sample_size must be greater than 0.')
     return sample_size
 
-  def _setup_sampling(self, filepaths: list[str]) -> Schema:
+  def _setup_sampling(self, duckdb_paths: list[str]) -> Schema:
     assert self._con, 'setup() must be called first.'
     if self.shuffle_between_shards and self.sample_size:
-      # Find the number of files.
-      files: list[str] = []
-      for filepath in filepaths:
-        fs, _ = url_to_fs(filepath)
-        scheme = urllib.parse.urlparse(filepath).scheme
-        files.extend([f'{scheme}://{file}' for file in fs.glob(filepath)])
-      batch_size = max(1, min(self.sample_size // len(files), ROWS_PER_BATCH_READ))
-      for file in files:
-        duckdb_file = file.replace('gs://', 's3://')
+      # Find each individual file.
+      glob_res: list[tuple[str]] = self._con.execute(
+        f'SELECT * FROM GLOB({duckdb_paths})').fetchall()
+      duckdb_files: list[str] = list(set([row[0] for row in glob_res]))
+      batch_size = max(1, min(self.sample_size // len(duckdb_files), ROWS_PER_BATCH_READ))
+      print('duckdb files', duckdb_files)
+      for duckdb_file in duckdb_files:
         con = self._con.cursor()
         duckdb_setup(con)
         res = con.execute(f"""SELECT * FROM read_parquet('{duckdb_file}')""")
         self._readers.append(res.fetch_record_batch(rows_per_batch=batch_size))
     else:
       sample_suffix = f'USING SAMPLE {self.sample_size}' if self.sample_size else ''
-      duckdb_paths = [path.replace('gs://', 's3://') for path in filepaths]
       res = self._con.execute(f"""SELECT * FROM read_parquet({duckdb_paths}) {sample_suffix}""")
       self._readers.append(res.fetch_record_batch(rows_per_batch=ROWS_PER_BATCH_READ))
     return arrow_schema_to_schema(self._readers[0].schema)
@@ -88,13 +83,13 @@ class ParquetSource(Source):
     duckdb_setup(self._con)
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
-    duckdb_paths = [path.replace('gs://', 's3://') for path in filepaths]
+    duckdb_paths = [convert_path_to_duckdb(path) for path in filepaths]
     res = self._con.execute(f'SELECT COUNT(*) FROM read_parquet({duckdb_paths})').fetchone()
     num_items = cast(tuple[int], res)[0]
     if self.sample_size:
       self.sample_size = min(self.sample_size, num_items)
       num_items = self.sample_size
-    schema = self._setup_sampling(filepaths)
+    schema = self._setup_sampling(duckdb_paths)
     self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)
 
   @override
@@ -110,11 +105,13 @@ class ParquetSource(Source):
 
     items_yielded = 0
     done = False
+    print('num readers', len(self._readers))
     while not done:
       index = random.randint(0, len(self._readers) - 1)
       reader = self._readers[index]
       batch = None
       try:
+        print('reading from reader', index)
         batch = reader.read_next_batch()
       except StopIteration:
         del self._readers[index]
