@@ -1,6 +1,6 @@
 """Parquet source."""
-import os
 import random
+import urllib.parse
 from typing import ClassVar, Iterable, Optional, cast
 
 import duckdb
@@ -65,14 +65,19 @@ class ParquetSource(Source):
       files: list[str] = []
       for filepath in filepaths:
         fs, _ = url_to_fs(filepath)
-        files.extend(fs.glob(filepath))
+        scheme = urllib.parse.urlparse(filepath).scheme
+        files.extend([f'{scheme}://{file}' for file in fs.glob(filepath)])
       batch_size = max(1, min(self.sample_size // len(files), ROWS_PER_BATCH_READ))
       for file in files:
-        res = self._con.cursor().execute(f"""SELECT * FROM read_parquet('{file}')""")
+        duckdb_file = file.replace('gs://', 's3://')
+        con = self._con.cursor()
+        duckdb_setup(con)
+        res = con.execute(f"""SELECT * FROM read_parquet('{duckdb_file}')""")
         self._readers.append(res.fetch_record_batch(rows_per_batch=batch_size))
     else:
       sample_suffix = f'USING SAMPLE {self.sample_size}' if self.sample_size else ''
-      res = self._con.execute(f"""SELECT * FROM read_parquet({filepaths}) {sample_suffix}""")
+      duckdb_paths = [path.replace('gs://', 's3://') for path in filepaths]
+      res = self._con.execute(f"""SELECT * FROM read_parquet({duckdb_paths}) {sample_suffix}""")
       self._readers.append(res.fetch_record_batch(rows_per_batch=ROWS_PER_BATCH_READ))
     return arrow_schema_to_schema(self._readers[0].schema)
 
@@ -83,8 +88,8 @@ class ParquetSource(Source):
     duckdb_setup(self._con)
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
-    filepaths = [path.replace('gs://', 's3://') for path in filepaths]
-    res = self._con.execute(f'SELECT COUNT(*) FROM read_parquet({filepaths})').fetchone()
+    duckdb_paths = [path.replace('gs://', 's3://') for path in filepaths]
+    res = self._con.execute(f'SELECT COUNT(*) FROM read_parquet({duckdb_paths})').fetchone()
     num_items = cast(tuple[int], res)[0]
     if self.sample_size:
       self.sample_size = min(self.sample_size, num_items)
