@@ -9,7 +9,7 @@ from typing_extensions import override
 from ..schema import Item, arrow_schema_to_schema
 from ..source import Source, SourceSchema
 from ..utils import download_http_files
-from .duckdb_utils import duckdb_setup
+from .duckdb_utils import convert_path_to_duckdb, duckdb_setup
 
 LINE_NUMBER_COLUMN = '__line_number__'
 
@@ -45,14 +45,14 @@ class CSVSource(Source):
     duckdb_setup(self._con)
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
-    s3_filepaths = [path.replace('gs://', 's3://') for path in filepaths]
+    duckdb_paths = [convert_path_to_duckdb(path) for path in filepaths]
 
     # NOTE: We use duckdb here to increase parallelism for multiple files.
     # NOTE: We turn off the parallel reader because of https://github.com/lilacai/lilac/issues/373.
     self._con.execute(f"""
       CREATE SEQUENCE serial START 1;
       CREATE VIEW t as (SELECT nextval('serial') as "{LINE_NUMBER_COLUMN}", * FROM read_csv_auto(
-        {s3_filepaths},
+        {duckdb_paths},
         SAMPLE_SIZE=500000,
         HEADER={self.header},
         {f'NAMES={self.names},' if self.names else ''}
