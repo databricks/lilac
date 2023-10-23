@@ -4,7 +4,7 @@ from typing import ClassVar, Iterable, Optional, cast
 
 import duckdb
 import pyarrow as pa
-from pydantic import Field, field_validator
+from pydantic import Field, ValidationInfo, field_validator
 from typing_extensions import override
 
 from ..schema import Item, Schema, arrow_schema_to_schema
@@ -13,7 +13,7 @@ from ..sources.duckdb_utils import convert_path_to_duckdb, duckdb_setup
 from ..utils import download_http_files
 
 # Number of rows to read per batch.
-ROWS_PER_BATCH_READ = 10_000
+ROWS_PER_BATCH_READ = 50_000
 
 
 class ParquetSource(Source):
@@ -30,11 +30,10 @@ class ParquetSource(Source):
     'A list of paths to parquet files which live locally or remotely on GCS, S3, or Hadoop.')
   sample_size: Optional[int] = Field(
     title='Sample size', description='Number of rows to sample from the dataset', default=None)
-  shuffle_between_shards: bool = Field(
+  shuffle_before_sampling: bool = Field(
     default=False,
     description=
-    'If true, the sampling method will stream data from  shards, but not shuffle inside each shard.'
-  )
+    'If true, the dataset will be shuffled before sampling, requiring a pass over the entire data.')
 
   _source_schema: Optional[SourceSchema] = None
   _readers: list[pa.RecordBatchReader] = []
@@ -56,15 +55,23 @@ class ParquetSource(Source):
       raise ValueError('sample_size must be greater than 0.')
     return sample_size
 
+  @field_validator('shuffle_before_sampling')
+  @classmethod
+  def validate_shuffle_before_sampling(cls, shuffle_before_sampling: bool,
+                                       info: ValidationInfo) -> bool:
+    """Validate shuffle before sampling."""
+    if shuffle_before_sampling and not info.data['sample_size']:
+      raise ValueError('`shuffle_before_sampling` requires `sample_size` to be set.')
+    return shuffle_before_sampling
+
   def _setup_sampling(self, duckdb_paths: list[str]) -> Schema:
     assert self._con, 'setup() must be called first.'
-    if self.shuffle_between_shards and self.sample_size:
+    if not self.shuffle_before_sampling and self.sample_size:
       # Find each individual file.
       glob_res: list[tuple[str]] = self._con.execute(
         f'SELECT * FROM GLOB({duckdb_paths})').fetchall()
       duckdb_files: list[str] = list(set([row[0] for row in glob_res]))
       batch_size = max(1, min(self.sample_size // len(duckdb_files), ROWS_PER_BATCH_READ))
-      print('duckdb files', duckdb_files)
       for duckdb_file in duckdb_files:
         con = self._con.cursor()
         duckdb_setup(con)
@@ -105,13 +112,11 @@ class ParquetSource(Source):
 
     items_yielded = 0
     done = False
-    print('num readers', len(self._readers))
     while not done:
       index = random.randint(0, len(self._readers) - 1)
       reader = self._readers[index]
       batch = None
       try:
-        print('reading from reader', index)
         batch = reader.read_next_batch()
       except StopIteration:
         del self._readers[index]

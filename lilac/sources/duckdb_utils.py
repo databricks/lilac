@@ -41,4 +41,6 @@ def convert_path_to_duckdb(filepath: str) -> str:
       options['s3_secret_access_key'] = env('S3_SECRET_KEY')
   else:
     raise ValueError(f'Unsupported scheme: {scheme}')
-  return f'{filepath}?{urllib.parse.urlencode(options, safe="+/")}'
+  if options:
+    return f'{filepath}?{urllib.parse.urlencode(options, safe="+/")}'
+  return filepath
