@@ -26,6 +26,7 @@
     SkeletonText,
     TextArea,
     TextInput,
+    ToastNotification,
     Toggle
   } from 'carbon-components-svelte';
   import {Tag} from 'carbon-icons-svelte';
@@ -224,10 +225,15 @@
           {#if $previewRows && $previewRows.isFetching}
             <SkeletonText paragraph />
           {:else if previewRows && $previewRows}
-            <p class="text-gray-600">
-              This is a <span class="italic">JSON</span> preview of the exported data, not representing
-              the actual output format.
-            </p>
+            <ToastNotification
+              hideCloseButton
+              kind="info"
+              fullWidth
+              lowContrast
+              title={'Preview'}
+              caption={`The JSON representation of the selection below is not identical to the ` +
+                `contents of the exported file, which depends on the format selected above.`}
+            />
             <TextArea
               value={JSON.stringify($previewRows.data, null, 2)}
               readonly
