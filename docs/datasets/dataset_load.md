@@ -82,8 +82,9 @@ ll.set_project_dir('~/my_project')
 
 You can load any HuggingFace dataset by passing the dataset name and config name. We use the HF
 dataset loader, which will fetch and cache the dataset in your HF cache dir. Then Lilac will convert
-that to our internal format and store it in the Lilac project dir. Private datasets are not yet
-supported (tracking https://github.com/lilacai/lilac/issues/779).
+that to our internal format and store it in the Lilac project dir. To read private datasets, either
+login via the [`huggingface-cli`](https://huggingface.co/docs/huggingface_hub/quick-start#login) or
+provide a `token` to the `HuggingFaceSource`.
 
 ```python
 config = ll.DatasetConfig(
@@ -96,8 +97,8 @@ dataset = ll.create_dataset(config)
 
 #### CSV
 
-The CSV reader can read from local files, S3 or GCS. If your dataset is sharded, you can use a glob
-pattern to load multiple files.
+The CSV reader can read from local files, S3, GCS and HTTP. If your dataset is sharded, you can use
+a glob pattern to load multiple files.
 
 ```python
 url = 'https://storage.googleapis.com/lilac-data/datasets/the_movies_dataset/the_movies_dataset.csv'
@@ -108,18 +109,19 @@ dataset = ll.create_dataset(config)
 
 #### Parquet
 
-The parquet reader can read from local files, S3 or GCS. If your dataset is sharded, you can use a
-glob pattern to load multiple files.
+The parquet reader can read from local files, S3, GCS and HTTP. If your dataset is sharded, you can
+use a glob pattern to load multiple files.
 
 **Sampling**
 
-The `ParquetSource` takes two optional arguments related to sampling:
+The `ParquetSource` takes a few optional arguments related to sampling:
 
 - `sample_size`, the number of rows to sample.
 - `approximate_shuffle`, defaulting to `False`. When `False`, we take an entire pass over the
   dataset with reservoir sampling. When `True`, we read a fraction of rows from the start of each
   shard, to avoid shard skew, without doing a full pass over the entire dataset. This is useful when
   your dataset is very large and consists of a large number of shards.
+- `seed`, the random seed to use for sampling.
 
 ```python
 source = ll.ParquetSource(
@@ -132,8 +134,8 @@ dataset = ll.create_dataset(config)
 
 #### JSON
 
-The JSON reader can read from local files, S3 or GCS. If your dataset is sharded, you can use a glob
-pattern to load multiple files. The reader supports both JSON and JSONL files.
+The JSON reader can read from local files, S3, GCS and HTTP. If your dataset is sharded, you can use
+a glob pattern to load multiple files. The reader supports both JSON and JSONL files.
 
 If the format is JSON, we expect the dataset to be an array of objects:
 
