@@ -39,6 +39,15 @@ def test_long_spans_default_split() -> None:
   assert split_items == expected_spans
 
 
+def test_long_spans_preferred_splits() -> None:
+  text = 'Blah. blah. bla. bl.'
+  expected_spans = text_to_textchunk(text, ['Blah.', 'blah.', 'bla.', 'bl.'])
+  # Even though target_num_groups = 1, the max len constraint causes breaking.
+  split_items = clustering_spacy_chunker(
+    text, embed_fn=dummy_embbedder, target_num_groups=1, max_len=6, filter_short=1)
+  assert clean_textchunks(split_items) == expected_spans
+
+
 def test_similar_spans_grouped() -> None:
   text = 'Blah1. Blah2. Blah2.'
   expected_spans = text_to_textchunk(text, ['Blah1.', 'Blah2. Blah2.'])
