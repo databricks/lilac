@@ -28,7 +28,7 @@
     TextInput,
     Toggle
   } from 'carbon-components-svelte';
-  import {Tag} from 'carbon-icons-svelte';
+  import {Download, Tag} from 'carbon-icons-svelte';
   import {createEventDispatcher} from 'svelte';
   import FieldList from './FieldList.svelte';
   export let open = false;
@@ -201,16 +201,20 @@
         {:else if $exportDataset.isLoading}
           <SkeletonPlaceholder />
         {:else if $exportDataset.data}
-          <InlineNotification kind="success" lowContrast hideCloseButton title="Dataset exported">
-            <div slot="subtitle">
-              Saved to <a href={downloadUrl()}>{$exportDataset.data}</a>
-            </div>
-            <svelte:fragment slot="actions">
-              <NotificationActionButton on:click={() => window.open(downloadUrl(), '_blank')}>
-                Download
-              </NotificationActionButton>
-            </svelte:fragment>
-          </InlineNotification>
+          <div class="export-success">
+            <InlineNotification kind="success" lowContrast hideCloseButton>
+              <div slot="title" class="inline">
+                Dataset exported to <a href={downloadUrl()}>{$exportDataset.data}</a>
+              </div>
+              <svelte:fragment slot="actions">
+                <div class="my-auto">
+                  <NotificationActionButton on:click={() => window.open(downloadUrl(), '_blank')}>
+                    Download <span class="ml-2"><Download /></span>
+                  </NotificationActionButton>
+                </div>
+              </svelte:fragment>
+            </InlineNotification>
+          </div>
         {/if}
       </section>
       <section>
@@ -224,10 +228,13 @@
           {#if $previewRows && $previewRows.isFetching}
             <SkeletonText paragraph />
           {:else if previewRows && $previewRows}
-            <p class="text-gray-600">
-              This is a <span class="italic">JSON</span> preview of the exported data, not representing
-              the actual output format.
-            </p>
+            <InlineNotification
+              hideCloseButton
+              kind="info"
+              lowContrast
+              title={`The preview below is not identical to the exported file which depends on ` +
+                `the format selected above.`}
+            />
             <TextArea
               value={JSON.stringify($previewRows.data, null, 2)}
               readonly
@@ -249,6 +256,9 @@
 </ComposedModal>
 
 <style lang="postcss">
+  :global(.export-success .bx--inline-notification__text-wrapper) {
+    @apply w-full;
+  }
   h2 {
     @apply mb-2 border-b border-gray-300 pb-2;
   }

@@ -27,11 +27,11 @@ def _ngrams(sequence: List[str], n: int, min_ngram_size: int) -> Iterable:
   """Directly taken from nltk package to avoid dependency.
 
   Args:
-    sequence The sequence of items to be n-grammed.
-    n The order of the n-grams to be extracted.
-    min_ngram_size The minimum size of n-grams.
+    sequence: The sequence of items to be n-grammed.
+    n: The order of the n-grams to be extracted.
+    min_ngram_size: The minimum size of n-grams.
 
-  Returns
+  Returns:
     The n-grams generated from the sequence.
   """
   if len(sequence) < min_ngram_size:
@@ -60,15 +60,15 @@ def _embed_func(
   """Combined with some datasketch code to better parallelize computation.
 
   Args:
-    content The content to be embedded.
-    idx The index of the content.
-    num_perm The number of permutations.
-    ngram_size The size of n-grams.
-    hashranges The ranges of hash values.
-    permutations The permutations for the minhash.
-    min_ngram_size The minimum size of n-grams.
+    content: The content to be embedded.
+    idx: The index of the content.
+    num_perm: The number of permutations.
+    ngram_size: The size of n-grams.
+    hashranges: The ranges of hash values.
+    permutations: The permutations for the minhash.
+    min_ngram_size: The minimum size of n-grams.
 
-  Returns
+  Returns:
     The hash values in each range and the index.
   """
   hashvalues = np.ones(num_perm, dtype=np.uint64) * MAX_HASH
@@ -91,13 +91,13 @@ def _optimal_param(threshold: float,
 
   Taken from datasketch.
 
-  Args
-    threshold The threshold for similarity.
-    num_perm The number of permutations.
-    false_positive_weight The weight of false positive.
-    false_negative_weight The weight of false negative.
+  Args:
+    threshold: The threshold for similarity.
+    num_perm: The number of permutations.
+    false_positive_weight: The weight of false positive.
+    false_negative_weight: The weight of false negative.
 
-  Returns
+  Returns:
     The optimal `b` and `r` parameters.
     The number of bands, and the number of rows per band respectively.
   """

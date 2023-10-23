@@ -51,7 +51,7 @@ class VectorStore(abc.ABC):
     Args:
       keys: The keys to return the embeddings for. If None, return all embeddings.
 
-    Returns
+    Returns:
       The embeddings for the given keys.
     """
     pass
@@ -67,7 +67,7 @@ class VectorStore(abc.ABC):
       k: The number of results to return.
       keys: Optional keys to restrict the search to.
 
-    Returns
+    Returns:
       A list of (key, score) tuples.
     """
     raise NotImplementedError
@@ -128,7 +128,7 @@ class VectorDBIndex:
     Args:
       keys: The keys to return the vectors for.
 
-    Returns
+    Returns:
       The span vectors for the given keys.
     """
     all_spans: list[list[tuple[int, int]]] = []
@@ -157,7 +157,7 @@ class VectorDBIndex:
       k: The number of results to return.
       path_keys: Optional key prefixes to restrict the search to.
 
-    Returns
+    Returns:
       A list of (key, score) tuples.
     """
     total_num_span_keys = self._vector_store.size()

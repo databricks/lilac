@@ -433,7 +433,7 @@ class Dataset(abc.ABC):
       limit: The maximum number of rows to return.
       bins: The bins to use when bucketizing a float column.
 
-    Returns
+    Returns:
       A `SelectGroupsResult` iterator where each row is a group.
     """
     raise NotImplementedError
@@ -477,7 +477,7 @@ class Dataset(abc.ABC):
       user: The authenticated user, if auth is enabled and the user is logged in. This is used to
         apply ACL to the query, especially for concepts.
 
-    Returns
+    Returns:
       A `SelectRowsResult` iterator with rows of `Item`s.
     """
     pass
@@ -529,7 +529,7 @@ class Dataset(abc.ABC):
     Args:
       leaf_path: The leaf path to compute stats for.
 
-    Returns
+    Returns:
       A StatsResult.
     """
     pass
@@ -542,7 +542,7 @@ class Dataset(abc.ABC):
       item_id: The item id to get media for.
       leaf_path: The leaf path for the media.
 
-    Returns
+    Returns:
       A MediaResult.
     """
     pass

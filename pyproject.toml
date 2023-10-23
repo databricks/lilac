@@ -153,7 +153,7 @@ pytest = "^7.2.0"
 pytest-asyncio = "^0.20.2"
 pytest-cov = "^4.0.0"
 pytest-mock = "^3.10.0"
-ruff = "^0.0.219"
+ruff = "^0.1.0"
 setuptools = "^65.5.0"
 toml = "^0.10.2"
 types-Pillow = "^9.3.0.4"
@@ -189,6 +189,7 @@ ignore = [
   "D203", # 1 blank line required before class docstring.
   "D204", # 1 blank line required after class docstring.
   "D213", # Multi-line docstring summary should start at the second line.
+  "D401", # First line of docstring should be in imperative mood: "{first_line}"
   "D407", # Missing dashed underline after section.
   "F841", # Unused variable rules.
   "I001", # Delegate sorting to isort.
