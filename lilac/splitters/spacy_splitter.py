@@ -1,5 +1,6 @@
 """SpaCy-based chunk splitting algorithms."""
 import bisect
+import functools
 from typing import Callable, Optional, Sequence
 
 import numpy as np
@@ -7,21 +8,17 @@ import spacy
 
 from .chunk_splitter import TextChunk
 
-# Make one lazy global instance; SpaCy sentencizers take 75ms merely to construct.
-__SPACY_SENTENCIZER = None
 
-
+@functools.cache
 def get_spacy() -> spacy.Language:
   """Lazily instantiate and return a singeton SpaCy sentencizer object."""
-  global __SPACY_SENTENCIZER
-  if __SPACY_SENTENCIZER is None:
-    __SPACY_SENTENCIZER = spacy.blank('en')
-    # This includes colon as a sentence boundary; LLM datasets tend to contain a lot of semantic
-    # markers with a colon, like "Teacher: ... " or "Answer the following question: ..."
-    __SPACY_SENTENCIZER.add_pipe('sentencizer', config={'punct_chars': [':', ';', '.', '!', '?']})
-    # Increase the number of characters of the tokenizer as we're not using a parser or NER.
-    __SPACY_SENTENCIZER.max_length = 10_000_000
-  return __SPACY_SENTENCIZER
+  sentencizer = spacy.blank('en')
+  # This includes colon as a sentence boundary; LLM datasets tend to contain a lot of semantic
+  # markers with a colon, like "Teacher: ... " or "Answer the following question: ..."
+  sentencizer.add_pipe('sentencizer', config={'punct_chars': [':', ';', '.', '!', '?']})
+  # Increase the number of characters of the tokenizer as we're not using a parser or NER.
+  sentencizer.max_length = 10_000_000
+  return sentencizer
 
 
 def simple_spacy_chunker(text: str, filter_short: int = 4) -> list[TextChunk]:
@@ -51,6 +48,8 @@ def group_by_embedding(fulltext: str, chunks: list[TextChunk], embed_fn: Callabl
   # Center the embeddings for all sentences; this accentuates sentence semantics,
   # especially if the entire passage is roughly about the same topic
   embeddings -= np.mean(embeddings, axis=0)
+  embeddings += np.random.uniform(size=embeddings.shape) * 1e-6
+  embeddings /= np.linalg.norm(embeddings, axis=-1, keepdims=True)
 
   neighbor_distances: Sequence[float] = (embeddings[:-1] * embeddings[1:]).sum(axis=1)
   potential_breaks: np.ndarray = np.array([c[1][1] for c in chunks[:-1]])  # end index of each chunk
@@ -65,6 +64,7 @@ def group_by_embedding(fulltext: str, chunks: list[TextChunk], embed_fn: Callabl
         return (i, j)
     return None
 
+  # Recursively break long spans until there are no more.
   while (span := _find_long_spans(breakpoints)) is not None:
     i, j = span
     for potential_break in priority_sort_breaks:
@@ -91,6 +91,8 @@ def clustering_spacy_chunker(
     return chunks
 
   if target_num_groups is None:
-    target_num_groups = int(
-      (len(text)**0.33) / 1.5)  ## 1/3 power is eyeballed from texts spanning 50-5000 in len.
+    # A rough heuristic for picking a number of target chunks.
+    # These magic numbers were chosen by manually chunking 40 texts spanning 50-5000 characters in
+    # length, and eyeballing a best-fit line from #num chunks vs. #length on a log-log plot.
+    target_num_groups = max(1, int((len(text)**0.33) / 1.5))
   return group_by_embedding(text, chunks, embed_fn, target_num_groups, max_len)

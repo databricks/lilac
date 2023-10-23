@@ -1,7 +1,7 @@
 """Tests the chunk splitter."""
 
 from .chunk_splitter import split_text
-from .text_splitter_test_utils import clean_textchunks, text_to_textchunk
+from .text_splitter_test_utils import text_to_textchunk
 
 
 def test_paragraphs_no_overlap() -> None:
@@ -29,29 +29,3 @@ def test_newlines_with_overlap() -> None:
   expected_chunks = text_to_textchunk(
     text, ['Hello.', 'World.', 'This will', 'will get', 'get split.'], allowable_overlap=5)
   assert split_items == expected_chunks
-
-
-# DISABLED: seems like this deprecated splitter has some whitespace token counting issues.
-# The test started failing after I cleaned up some whitespace equality comparisons, and it's not
-# worth fixing this test for deprecated code.
-def disabled_test_split_code() -> None:
-  text = """
-    We expected the entire code to be one span.
-
-    ```python
-    def hello():
-      echo('hello')
-    ```
-
-    This is the rest of the text.
-  """
-  split_items = split_text(text, chunk_size=60, chunk_overlap=0)
-  expected_chunks = text_to_textchunk(text, [
-    """We expected the entire code to be one span.""",
-    """```python
-    def hello():
-      echo('hello')
-    ```""",
-    """This is the rest of the text.""",
-  ])
-  assert clean_textchunks(split_items) == expected_chunks
