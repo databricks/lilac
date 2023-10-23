@@ -21,13 +21,17 @@
     shortFieldName
   } from '$lib/view_utils';
   import {
+    PATH_WILDCARD,
     childFields,
     deserializePath,
     getSchemaLabels,
     getSignalInfo,
     isNumeric,
+    isSignalRootField,
     pathIncludes,
     serializePath,
+    type BinaryFilter,
+    type ConceptSignal,
     type LilacSchema,
     type Op,
     type Path,
@@ -110,8 +114,10 @@
     const allFields = schema ? childFields(schema) : [];
     const items: SearchItem[] = [];
     for (const field of allFields) {
-      if (field.dtype == null) {
-        // Ignore non-pedals.
+      const signal = getSignalInfo(field);
+
+      if (field.dtype == null && signal?.signal_name != 'concept_score') {
+        // Ignore non-petals, except for concepts which are rendered from the root.
         continue;
       }
       if (field.dtype === 'embedding' || field.dtype === 'binary') {
@@ -122,9 +128,23 @@
         // Ignore any fields unrelated to the current search path.
         continue;
       }
-      const signal = getSignalInfo(field);
+
       if (signal?.signal_name === 'concept_score') {
-        // Ignore any concept scores since they are handled seperately via preview.
+        const conceptSignal = signal as ConceptSignal;
+        if (isSignalRootField(field)) {
+          items.push({
+            id: {
+              type: 'field',
+              path: [...field.path, PATH_WILDCARD, 'score'],
+              op: 'greater',
+              opValue: 0.5,
+              sort: 'DESC',
+              isSignal: signal != null
+            } as FieldId,
+            text: conceptSignal.concept_name,
+            description: `Find documents with ${conceptSignal.concept_name}`
+          });
+        }
         continue;
       }
       const isEmbedding = embeddings?.some(e => e.name === signal?.signal_name);
@@ -132,10 +152,11 @@
         // Ignore any embeddings since they are special "index" fields.
         continue;
       }
-      const shortName = shortFieldName(field.path);
       const text = displayPath(field.path.slice(searchPath.length));
+
+      const shortName = shortFieldName(field.path);
       // Suggest sorting for numeric fields.
-      if (isNumeric(field.dtype)) {
+      if (isNumeric(field.dtype!)) {
         items.push({
           id: {type: 'field', path: field.path, sort: 'DESC', isSignal: signal != null} as FieldId,
           text,
@@ -209,6 +230,7 @@
     path: Path;
     isSignal: boolean;
     op?: Op;
+    opValue?: BinaryFilter['value'];
     sort?: 'ASC' | 'DESC';
   }
   interface LabelId {
@@ -295,7 +317,7 @@
   }
 
   let comboBox: ComboBox;
-  const searchConcept = (namespace: string, name: string) => {
+  const searchConceptPreview = (namespace: string, name: string) => {
     if (searchPath == null || selectedEmbedding == null) return;
     datasetViewStore.addSearch({
       path: searchPath,
@@ -338,7 +360,7 @@
         conceptName,
         dataset: {namespace, name: datasetName},
         path: searchPath,
-        onCreate: e => searchConcept(e.detail.namespace, e.detail.name)
+        onCreate: e => searchConceptPreview(e.detail.namespace, e.detail.name)
       });
     } else if (e.detail.selectedId === 'keyword-search') {
       if (searchText == '') {
@@ -362,7 +384,7 @@
     } else if (e.detail.selectedId == 'compute-embedding') {
       computeEmbedding();
     } else if (e.detail.selectedId.type === 'concept') {
-      searchConcept(e.detail.selectedId.namespace, e.detail.selectedId.name);
+      searchConceptPreview(e.detail.selectedId.namespace, e.detail.selectedId.name);
     } else if (e.detail.selectedId.type === 'label') {
       searchLabel(e.detail.selectedId.name);
     } else if (e.detail.selectedId.type === 'field') {
@@ -370,13 +392,13 @@
       if (searchItem.sort != null) {
         datasetViewStore.setSortBy(searchItem.path);
         datasetViewStore.setSortOrder(searchItem.sort);
-      } else if (searchItem.op != null) {
+      }
+      if (searchItem.op != null) {
         datasetViewStore.addFilter({
           path: searchItem.path,
-          op: searchItem.op
-        } as UnaryFilter);
-      } else {
-        throw new Error(`Unknown search type ${e.detail.selectedId}`);
+          op: searchItem.op,
+          value: searchItem.opValue
+        } as UnaryFilter | BinaryFilter);
       }
     } else {
       throw new Error(`Unknown search type ${e.detail.selectedId}`);

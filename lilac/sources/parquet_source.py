@@ -1,18 +1,19 @@
 """Parquet source."""
+import random
 from typing import ClassVar, Iterable, Optional, cast
 
 import duckdb
 import pyarrow as pa
-from pydantic import Field, field_validator
+from pydantic import Field, ValidationInfo, field_validator
 from typing_extensions import override
 
-from ..schema import Item, arrow_schema_to_schema
+from ..schema import Item, Schema, arrow_schema_to_schema
 from ..source import Source, SourceSchema
-from ..sources.duckdb_utils import duckdb_setup
+from ..sources.duckdb_utils import convert_path_to_duckdb, duckdb_setup
 from ..utils import download_http_files
 
 # Number of rows to read per batch.
-ROWS_PER_BATCH_READ = 10_000
+ROWS_PER_BATCH_READ = 50_000
 
 
 class ParquetSource(Source):
@@ -27,11 +28,16 @@ class ParquetSource(Source):
   filepaths: list[str] = Field(
     description=
     'A list of paths to parquet files which live locally or remotely on GCS, S3, or Hadoop.')
+  seed: Optional[int] = Field(description='Random seed for sampling', default=None)
   sample_size: Optional[int] = Field(
     title='Sample size', description='Number of rows to sample from the dataset', default=None)
+  approximate_shuffle: bool = Field(
+    default=False,
+    description='If true, the reader will read a fraction of rows from each shard, '
+    'avoiding a pass over the entire dataset.')
 
   _source_schema: Optional[SourceSchema] = None
-  _reader: Optional[pa.RecordBatchReader] = None
+  _readers: list[pa.RecordBatchReader] = []
   _con: Optional[duckdb.DuckDBPyConnection] = None
 
   @field_validator('filepaths')
@@ -50,6 +56,43 @@ class ParquetSource(Source):
       raise ValueError('sample_size must be greater than 0.')
     return sample_size
 
+  @field_validator('approximate_shuffle')
+  @classmethod
+  def validate_approximate_shuffle(cls, approximate_shuffle: bool, info: ValidationInfo) -> bool:
+    """Validate shuffle before sampling."""
+    if approximate_shuffle and not info.data['sample_size']:
+      raise ValueError('`approximate_shuffle` requires `sample_size` to be set.')
+    return approximate_shuffle
+
+  def _setup_sampling(self, duckdb_paths: list[str]) -> Schema:
+    assert self._con, 'setup() must be called first.'
+    if self.approximate_shuffle:
+      assert self.sample_size, 'approximate_shuffle requires sample_size to be set.'
+      # Find each individual file.
+      glob_rows: list[tuple[str]] = self._con.execute(
+        f'SELECT * FROM GLOB({duckdb_paths})').fetchall()
+      duckdb_files: list[str] = list(set([row[0] for row in glob_rows]))
+      batch_size = max(1, min(self.sample_size // len(duckdb_files), ROWS_PER_BATCH_READ))
+      for duckdb_file in duckdb_files:
+        # Since we are not fetching the entire results immediately, we need a seperate cursor
+        # for each file to avoid each cursor overwriting the previous one.
+        con = self._con.cursor()
+        duckdb_setup(con)
+        res = con.execute(f"""SELECT * FROM read_parquet('{duckdb_file}')""")
+        self._readers.append(res.fetch_record_batch(rows_per_batch=batch_size))
+    else:
+      sample_suffix = ''
+      if self.sample_size:
+        sample_suffix = f'USING SAMPLE {self.sample_size}'
+        if self.seed is not None:
+          sample_suffix += f' (reservoir, {self.seed})'
+      res = self._con.execute(f"""SELECT * FROM read_parquet({duckdb_paths}) {sample_suffix}""")
+      batch_size = ROWS_PER_BATCH_READ
+      if self.sample_size:
+        batch_size = min(self.sample_size, ROWS_PER_BATCH_READ)
+      self._readers.append(res.fetch_record_batch(rows_per_batch=batch_size))
+    return arrow_schema_to_schema(self._readers[0].schema)
+
   @override
   def setup(self) -> None:
     filepaths = download_http_files(self.filepaths)
@@ -57,19 +100,13 @@ class ParquetSource(Source):
     duckdb_setup(self._con)
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
-    s3_filepaths = [path.replace('gs://', 's3://') for path in filepaths]
-
-    # NOTE: We use duckdb here to increase parallelism for multiple files.
-    sample_suffix = f'USING SAMPLE {self.sample_size}' if self.sample_size else ''
-    self._con.execute(f"""
-      CREATE VIEW t as (SELECT * FROM read_parquet({s3_filepaths}) {sample_suffix});
-    """)
-    res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
+    duckdb_paths = [convert_path_to_duckdb(path) for path in filepaths]
+    res = self._con.execute(f'SELECT COUNT(*) FROM read_parquet({duckdb_paths})').fetchone()
     num_items = cast(tuple[int], res)[0]
-    self._reader = self._con.execute('SELECT * from t').fetch_record_batch(
-      rows_per_batch=ROWS_PER_BATCH_READ)
-    # Create the source schema in prepare to share it between process and source_schema.
-    schema = arrow_schema_to_schema(self._reader.schema)
+    if self.sample_size:
+      self.sample_size = min(self.sample_size, num_items)
+      num_items = self.sample_size
+    schema = self._setup_sampling(duckdb_paths)
     self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)
 
   @override
@@ -81,10 +118,33 @@ class ParquetSource(Source):
   @override
   def process(self) -> Iterable[Item]:
     """Process the source."""
-    assert self._reader and self._con, 'setup() must be called first.'
+    assert self._con, 'setup() must be called first.'
 
-    for batch in self._reader:
-      yield from batch.to_pylist()
+    items_yielded = 0
+    done = False
 
-    self._reader.close()
+    if self.seed is not None:
+      random.seed(self.seed)
+
+    while not done:
+      index = random.randint(0, len(self._readers) - 1)
+      reader = self._readers[index]
+      batch = None
+      try:
+        batch = reader.read_next_batch()
+      except StopIteration:
+        reader.close()
+        del self._readers[index]
+        if not self._readers:
+          done = True
+          break
+        continue
+      items = batch.to_pylist()
+      for item in items:
+        yield item
+        items_yielded += 1
+        if self.sample_size and items_yielded == self.sample_size:
+          done = True
+          break
+
     self._con.close()
