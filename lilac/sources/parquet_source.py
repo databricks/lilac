@@ -30,10 +30,10 @@ class ParquetSource(Source):
     'A list of paths to parquet files which live locally or remotely on GCS, S3, or Hadoop.')
   sample_size: Optional[int] = Field(
     title='Sample size', description='Number of rows to sample from the dataset', default=None)
-  shuffle_before_sampling: bool = Field(
+  approximate_shuffle: bool = Field(
     default=False,
-    description=
-    'If true, the dataset will be shuffled before sampling, requiring a pass over the entire data.')
+    description='If true, the reader will read a fraction of rows from each shard, '
+    'avoiding a pass over the entire dataset.')
 
   _source_schema: Optional[SourceSchema] = None
   _readers: list[pa.RecordBatchReader] = []
@@ -55,24 +55,26 @@ class ParquetSource(Source):
       raise ValueError('sample_size must be greater than 0.')
     return sample_size
 
-  @field_validator('shuffle_before_sampling')
+  @field_validator('approximate_shuffle')
   @classmethod
-  def validate_shuffle_before_sampling(cls, shuffle_before_sampling: bool,
-                                       info: ValidationInfo) -> bool:
+  def validate_approximate_shuffle(cls, approximate_shuffle: bool, info: ValidationInfo) -> bool:
     """Validate shuffle before sampling."""
-    if shuffle_before_sampling and not info.data['sample_size']:
-      raise ValueError('`shuffle_before_sampling` requires `sample_size` to be set.')
-    return shuffle_before_sampling
+    if approximate_shuffle and not info.data['sample_size']:
+      raise ValueError('`approximate_shuffle` requires `sample_size` to be set.')
+    return approximate_shuffle
 
   def _setup_sampling(self, duckdb_paths: list[str]) -> Schema:
     assert self._con, 'setup() must be called first.'
-    if not self.shuffle_before_sampling and self.sample_size:
+    if self.approximate_shuffle:
+      assert self.sample_size, 'approximate_shuffle requires sample_size to be set.'
       # Find each individual file.
-      glob_res: list[tuple[str]] = self._con.execute(
+      glob_rows: list[tuple[str]] = self._con.execute(
         f'SELECT * FROM GLOB({duckdb_paths})').fetchall()
-      duckdb_files: list[str] = list(set([row[0] for row in glob_res]))
+      duckdb_files: list[str] = list(set([row[0] for row in glob_rows]))
       batch_size = max(1, min(self.sample_size // len(duckdb_files), ROWS_PER_BATCH_READ))
       for duckdb_file in duckdb_files:
+        # Since we are not fetching the entire results immediately, we need a seperate cursor
+        # for each file to avoid each cursor overwriting the previous one.
         con = self._con.cursor()
         duckdb_setup(con)
         res = con.execute(f"""SELECT * FROM read_parquet('{duckdb_file}')""")
@@ -80,7 +82,10 @@ class ParquetSource(Source):
     else:
       sample_suffix = f'USING SAMPLE {self.sample_size}' if self.sample_size else ''
       res = self._con.execute(f"""SELECT * FROM read_parquet({duckdb_paths}) {sample_suffix}""")
-      self._readers.append(res.fetch_record_batch(rows_per_batch=ROWS_PER_BATCH_READ))
+      batch_size = ROWS_PER_BATCH_READ
+      if self.sample_size:
+        batch_size = min(self.sample_size, ROWS_PER_BATCH_READ)
+      self._readers.append(res.fetch_record_batch(rows_per_batch=batch_size))
     return arrow_schema_to_schema(self._readers[0].schema)
 
   @override
@@ -119,6 +124,7 @@ class ParquetSource(Source):
       try:
         batch = reader.read_next_batch()
       except StopIteration:
+        reader.close()
         del self._readers[index]
         if not self._readers:
           done = True
@@ -132,6 +138,4 @@ class ParquetSource(Source):
           done = True
           break
 
-    for reader in self._readers:
-      reader.close()
     self._con.close()

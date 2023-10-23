@@ -67,7 +67,8 @@ You will be redirected to the dataset view once your data is loaded.
 
 You can create a dataset from Python using [](#lilac.create_dataset). Lilac supports variety of data
 sources, including CSV, JSON, HuggingFace datasets, Parquet, Pandas and more. See [](#lilac.sources)
-for details on available sources.
+for details on available sources. All the file based readers support reading from local files, S3
+(`s3://...`), GCS (`gs://...`) and HTTP(S) URLs.
 
 Before we load any dataset, we should set the project directory which will be used to store all the
 datasets we import. If not set, it defaults to the current working directory.
@@ -79,7 +80,10 @@ ll.set_project_dir('~/my_project')
 
 #### Huggingface
 
-This example loads the `glue` dataset with the `ax` config from HuggingFace:
+You can load any HuggingFace dataset by passing the dataset name and config name. We use the HF
+dataset loader, which will fetch and cache the dataset in your HF cache dir. Then Lilac will convert
+that to our internal format and store it in the Lilac project dir. Private datasets are not yet
+supported (tracking https://github.com/lilacai/lilac/issues/779).
 
 ```python
 config = ll.DatasetConfig(
@@ -91,6 +95,9 @@ dataset = ll.create_dataset(config)
 ```
 
 #### CSV
+
+The CSV reader can read from local files, S3 or GCS. If your dataset is sharded, you can use a glob
+pattern to load multiple files.
 
 ```python
 url = 'https://storage.googleapis.com/lilac-data/datasets/the_movies_dataset/the_movies_dataset.csv'
@@ -106,18 +113,19 @@ glob pattern to load multiple files.
 
 **Sampling**
 
-The `sample_size` and `shuffle_before_sampling` arguments are optional. When
-`shuffle_before_sampling` is `True`, the reader will shuffle the entire dataset before sampling, but
-this requires fetching the entire dataset. If your dataset is massive and you only want to load the
-first `sample_size` rows, set `shuffle_before_sampling` to `False`. When you have many shards and
-`shuffle_before_sampling` is `False`, the reader will try to sample a few rows from each shard, to
-avoid any shard skew.
+The `ParquetSource` takes two optional arguments related to sampling:
+
+- `sample_size`, the number of rows to sample.
+- `approximate_shuffle`, defaulting to `False`. When `False`, we take an entire pass over the
+  dataset with reservoir sampling. When `True`, we read a fraction of rows from the start of each
+  shard, to avoid shard skew, without doing a full pass over the entire dataset. This is useful when
+  your dataset is very large and consists of a large number of shards.
 
 ```python
 source = ll.ParquetSource(
   filepaths=['s3://lilac-public-data/test-*.parquet'],
   sample_size=100,
-  shuffle_before_sampling=False)
+  approximate_shuffle=True)
 config = ll.DatasetConfig(namespace='local', name='parquet-test', source=source)
 dataset = ll.create_dataset(config)
 ```
@@ -127,12 +135,28 @@ dataset = ll.create_dataset(config)
 The JSON reader can read from local files, S3 or GCS. If your dataset is sharded, you can use a glob
 pattern to load multiple files. The reader supports both JSON and JSONL files.
 
+If the format is JSON, we expect the dataset to be an array of objects:
+
+```json
+[
+  {"id": 1, "text": "hello world"},
+  {"id": 2, "text": "goodbye world"}
+]
+```
+
+If the format is JSONL, we expect each line to be a JSON object:
+
+```json
+{"id": 1, "text": "hello world"}
+{"id": 2, "text": "goodbye world"}
+```
+
 ```python
 config = ll.DatasetConfig(
   namespace='local',
   name='news_headlines',
   source=ll.JSONSource(filepaths=[
-    'https://raw.githubusercontent.com/explosion/prodigy-recipes/master/example-datasets/news_headlines.jsonl'
+    'https://storage.googleapis.com/lilac-data/datasets/langsmith-finetuning-rag/rag.jsonl'
   ]))
 dataset = ll.create_dataset(config)
 ```
@@ -140,8 +164,7 @@ dataset = ll.create_dataset(config)
 #### Pandas
 
 ```python
-url = 'https://storage.googleapis.com/lilac-data-us-east1/datasets/csv_datasets/the_movies_dataset/the_movies_dataset.csv'
-df = pd.read_csv(url, low_memory=False)
+df = pd.DataFrame({'test': ['a', 'b', 'c']})
 config = ll.DatasetConfig(namespace='local', name='the_movies_dataset2', source=ll.PandasSource(df))
 dataset = ll.create_dataset(config)
 ```
