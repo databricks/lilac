@@ -28,6 +28,7 @@ class ParquetSource(Source):
   filepaths: list[str] = Field(
     description=
     'A list of paths to parquet files which live locally or remotely on GCS, S3, or Hadoop.')
+  seed: Optional[int] = Field(description='Random seed for sampling', default=None)
   sample_size: Optional[int] = Field(
     title='Sample size', description='Number of rows to sample from the dataset', default=None)
   approximate_shuffle: bool = Field(
@@ -80,7 +81,11 @@ class ParquetSource(Source):
         res = con.execute(f"""SELECT * FROM read_parquet('{duckdb_file}')""")
         self._readers.append(res.fetch_record_batch(rows_per_batch=batch_size))
     else:
-      sample_suffix = f'USING SAMPLE {self.sample_size}' if self.sample_size else ''
+      sample_suffix = ''
+      if self.sample_size:
+        sample_suffix = f'USING SAMPLE {self.sample_size}'
+        if self.seed is not None:
+          sample_suffix += f' (reservoir, {self.seed})'
       res = self._con.execute(f"""SELECT * FROM read_parquet({duckdb_paths}) {sample_suffix}""")
       batch_size = ROWS_PER_BATCH_READ
       if self.sample_size:
@@ -117,6 +122,10 @@ class ParquetSource(Source):
 
     items_yielded = 0
     done = False
+
+    if self.seed is not None:
+      random.seed(self.seed)
+
     while not done:
       index = random.randint(0, len(self._readers) - 1)
       reader = self._readers[index]

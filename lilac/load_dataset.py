@@ -27,7 +27,7 @@ from .utils import get_dataset_output_dir, log, open_file
 
 def create_dataset(config: DatasetConfig,
                    project_dir: Optional[Union[str, pathlib.Path]] = None,
-                   overwrite=False) -> Dataset:
+                   overwrite: bool = False) -> Dataset:
   """Load a dataset from a given source configuration.
 
   Args:

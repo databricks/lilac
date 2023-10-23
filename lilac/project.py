@@ -34,7 +34,7 @@ def init(project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
 
 def add_project_dataset_config(dataset_config: DatasetConfig,
                                project_dir: Optional[Union[str, pathlib.Path]] = None,
-                               overwrite=False) -> None:
+                               overwrite: bool = False) -> None:
   """Add a dataset to the project config.
 
   Args:
