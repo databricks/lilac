@@ -57,7 +57,7 @@ export function getCandidates(
     }
     const conceptId = `${concept.namespace}/${concept.concept_name}`;
     const spanNodes = valueAtPath(textNode, [
-      `${conceptId}/${embedding}`
+      `${conceptId}/${embedding}/preview`
     ]) as unknown as LilacValueNode[];
     if (spanNodes == null) {
       continue;
