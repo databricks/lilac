@@ -137,7 +137,10 @@ class HuggingFaceSource(Source):
     description='Number of rows to sample from the dataset, for each split.',
     default=None)
   token: Optional[str] = PydanticField(
-    title='Huggingface token', description='Huggingface token for private datasets.', default=None)
+    title='Huggingface token',
+    description='Huggingface token for private datasets.',
+    default=None,
+    exclude=True)
   revision: Optional[str] = PydanticField(title='Dataset revision', default=None)
   load_from_disk: Optional[bool] = PydanticField(
     description='Load from local disk instead of the hub.', default=False)
