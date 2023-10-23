@@ -8,7 +8,7 @@ from .text_splitter_test_utils import clean_textchunks, text_to_textchunk
 
 def dummy_embbedder(chunks: list[str], embed_dim: int = 4) -> list[np.ndarray]:
 
-  def _single_embed(str) -> np.ndarray:
+  def _single_embed(str: str) -> np.ndarray:
     np.random.seed(hash(str) % (2**32 - 1))
     return np.random.random(size=(1, embed_dim))
 
