@@ -44,5 +44,18 @@ def text_to_textchunk(text: str, splits: list[str], allowable_overlap: int = 0) 
   expected_textchunks = []
   for span in spans:
     start, end = span[SPAN_KEY][TEXT_SPAN_START_FEATURE], span[SPAN_KEY][TEXT_SPAN_END_FEATURE]
-    expected_textchunks.append((text[start:end].strip(), (start, end)))
+    expected_textchunks.append((text[start:end], (start, end)))
   return expected_textchunks
+
+
+def clean_textchunks(chunks: list[TextChunk]) -> list[TextChunk]:
+  """Strip whitespace from TextChunks."""
+
+  def clean_chunk(chunk: TextChunk) -> TextChunk:
+    text, (start, _) = chunk
+    stripped_text = text.strip()
+    new_start = text.find(stripped_text) + start
+    new_end = new_start + len(stripped_text)
+    return stripped_text, (new_start, new_end)
+
+  return [clean_chunk(chunk) for chunk in chunks]
