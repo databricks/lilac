@@ -136,6 +136,11 @@ class HuggingFaceSource(Source):
     title='Sample size',
     description='Number of rows to sample from the dataset, for each split.',
     default=None)
+  token: Optional[str] = PydanticField(
+    title='Huggingface token',
+    description='Huggingface token for private datasets.',
+    default=None,
+    exclude=True)
   revision: Optional[str] = PydanticField(title='Dataset revision', default=None)
   load_from_disk: Optional[bool] = PydanticField(
     description='Load from local disk instead of the hub.', default=False)
@@ -153,7 +158,8 @@ class HuggingFaceSource(Source):
         self.dataset_name,
         self.config_name,
         num_proc=multiprocessing.cpu_count(),
-        ignore_verifications=True)
+        verification_mode='no_checks',
+        token=self.token)
     self._dataset_dict = hf_dataset_dict
     self._schema_info = hf_schema_to_schema(self._dataset_dict, self.split, self.sample_size)
 
