@@ -1,5 +1,4 @@
 """OpenAI embeddings."""
-import functools
 from typing import TYPE_CHECKING, Any, ClassVar, Iterable, cast
 
 import numpy as np
@@ -64,7 +63,6 @@ class OpenAI(TextEmbeddingSignal):
       return [np.array(embedding['embedding'], dtype=np.float32) for embedding in response['data']]
 
     docs = cast(Iterable[str], docs)
-    split_fn = functools.partial(
-      clustering_spacy_chunker, embed_fn=embed_fn) if self._split else None
+    split_fn = clustering_spacy_chunker if self._split else None
     yield from compute_split_embeddings(
       docs, OPENAI_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=NUM_PARALLEL_REQUESTS)

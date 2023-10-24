@@ -20,6 +20,7 @@ def get_tokenizer() -> tiktoken.Encoding:
 
 
 def embed_tokenizer_BoW(texts: list[str]) -> np.ndarray:
+  """Encode a list of texts as a bag-of-words vector."""
   tokenizer = get_tokenizer()
   out = np.zeros((len(texts), BOW_VECTOR_SIZE), dtype=np.float32)
   for i, text in enumerate(texts):
@@ -65,7 +66,7 @@ def group_by_embedding(fulltext: str, chunks: list[TextChunk], embed_fn: Callabl
   """
   texts = [c[0] for c in chunks]
 
-  embeddings = np.array(embed_tokenizer_BoW(texts))
+  embeddings = embed_tokenizer_BoW(texts)
   # Center the embeddings for all sentences; this accentuates sentence semantics,
   # especially if the entire passage is roughly about the same topic
   embeddings -= np.mean(embeddings, axis=0)
