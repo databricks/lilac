@@ -1,11 +1,12 @@
 """Gegeral Text Embeddings (GTE) model. Open-source model, designed to run on device."""
+import functools
 from typing import ClassVar, Iterable, cast
 
 from typing_extensions import override
 
 from ..schema import Item, RichData
 from ..signal import TextEmbeddingSignal
-from ..splitters.chunk_splitter import split_text
+from ..splitters.spacy_splitter import clustering_spacy_chunker
 from .embedding import compute_split_embeddings
 from .transformer_utils import get_model
 
@@ -43,7 +44,8 @@ class GTESmall(TextEmbeddingSignal):
     """Call the embedding function."""
     batch_size, model = get_model(self._model_name, _OPTIMAL_BATCH_SIZES[self._model_name])
     embed_fn = model.encode
-    split_fn = split_text if self._split else None
+    split_fn = functools.partial(
+      clustering_spacy_chunker, embed_fn=embed_fn) if self._split else None
     docs = cast(Iterable[str], docs)
     yield from compute_split_embeddings(docs, batch_size, embed_fn=embed_fn, split_fn=split_fn)
 

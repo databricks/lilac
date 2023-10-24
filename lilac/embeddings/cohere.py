@@ -1,4 +1,5 @@
 """Cohere embeddings."""
+import functools
 from typing import TYPE_CHECKING, ClassVar, Iterable, cast
 
 import numpy as np
@@ -7,7 +8,7 @@ from typing_extensions import override
 from ..env import env
 from ..schema import Item, RichData
 from ..signal import TextEmbeddingSignal
-from ..splitters.chunk_splitter import split_text
+from ..splitters.spacy_splitter import clustering_spacy_chunker
 from .embedding import compute_split_embeddings
 
 if TYPE_CHECKING:
@@ -54,6 +55,7 @@ class Cohere(TextEmbeddingSignal):
       return self._model.embed(texts, truncate='END').embeddings
 
     docs = cast(Iterable[str], docs)
-    split_fn = split_text if self._split else None
+    split_fn = functools.partial(
+      clustering_spacy_chunker, embed_fn=embed_fn) if self._split else None
     yield from compute_split_embeddings(
       docs, COHERE_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=NUM_PARALLEL_REQUESTS)
