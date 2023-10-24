@@ -5,8 +5,27 @@ from typing import Callable, Optional, Sequence
 
 import numpy as np
 import spacy
+import tiktoken
 
 from .chunk_splitter import TextChunk
+
+# Vector size to use for chunk comparisons.
+BOW_VECTOR_SIZE = 128
+
+
+@functools.cache
+def get_tokenizer() -> tiktoken.Encoding:
+  """Lazily instantiate and return a singleton TikToken tokenizer object."""
+  return tiktoken.get_encoding('cl100k_base')
+
+
+def embed_tokenizer_BoW(texts: list[str]) -> np.ndarray:
+  tokenizer = get_tokenizer()
+  out = np.zeros((len(texts), BOW_VECTOR_SIZE), dtype=np.float32)
+  for i, text in enumerate(texts):
+    token_ids = np.array(tokenizer.encode(text)) % BOW_VECTOR_SIZE
+    out[i] = np.bincount(token_ids, minlength=BOW_VECTOR_SIZE)
+  return out
 
 
 @functools.cache
@@ -44,7 +63,9 @@ def group_by_embedding(fulltext: str, chunks: list[TextChunk], embed_fn: Callabl
     target_num_groups: Target number of chunks in final output.
     max_len: Maximum size of a combined chunk.
   """
-  embeddings = np.array(embed_fn([c[0] for c in chunks]))
+  texts = [c[0] for c in chunks]
+
+  embeddings = np.array(embed_tokenizer_BoW(texts))
   # Center the embeddings for all sentences; this accentuates sentence semantics,
   # especially if the entire passage is roughly about the same topic
   embeddings -= np.mean(embeddings, axis=0)
