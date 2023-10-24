@@ -1,7 +1,7 @@
 """SpaCy-based chunk splitting algorithms."""
 import bisect
 import functools
-from typing import Callable, Optional, Sequence
+from typing import Optional, Sequence
 
 import numpy as np
 import spacy
@@ -52,9 +52,8 @@ def simple_spacy_chunker(text: str, filter_short: int = 4) -> list[TextChunk]:
   return chunks
 
 
-def group_by_embedding(fulltext: str, chunks: list[TextChunk], embed_fn: Callable[[list[str]],
-                                                                                  list[np.ndarray]],
-                       target_num_groups: int, max_len: int) -> list[TextChunk]:
+def group_by_embedding(fulltext: str, chunks: list[TextChunk], target_num_groups: int,
+                       max_len: int) -> list[TextChunk]:
   """Take a series of smaller chunks and cluster them together.
 
   Args:
@@ -65,11 +64,11 @@ def group_by_embedding(fulltext: str, chunks: list[TextChunk], embed_fn: Callabl
     max_len: Maximum size of a combined chunk.
   """
   texts = [c[0] for c in chunks]
-
   embeddings = embed_tokenizer_BoW(texts)
   # Center the embeddings for all sentences; this accentuates sentence semantics,
   # especially if the entire passage is roughly about the same topic
   embeddings -= np.mean(embeddings, axis=0)
+  # Add a small amount of noise to prevent division by zero.
   embeddings += np.random.uniform(size=embeddings.shape) * 1e-6
   embeddings /= np.linalg.norm(embeddings, axis=-1, keepdims=True)
 
@@ -101,20 +100,16 @@ def group_by_embedding(fulltext: str, chunks: list[TextChunk], embed_fn: Callabl
   ]
 
 
-def clustering_spacy_chunker(
-    text: str,
-    filter_short: int = 4,
-    max_len: int = 512,
-    target_num_groups: Optional[int] = None,
-    embed_fn: Optional[Callable[[list[str]], list[np.ndarray]]] = None) -> list[TextChunk]:
+def clustering_spacy_chunker(text: str,
+                             filter_short: int = 4,
+                             max_len: int = 512,
+                             target_num_groups: Optional[int] = None) -> list[TextChunk]:
   """Split text into sentence-based chunks, with semantic clustering to join related sentences."""
   chunks = simple_spacy_chunker(text, filter_short=filter_short)
-  if embed_fn is None:
-    return chunks
 
   if target_num_groups is None:
     # A rough heuristic for picking a number of target chunks.
     # These magic numbers were chosen by manually chunking 40 texts spanning 50-5000 characters in
     # length, and eyeballing a best-fit line from #num chunks vs. #length on a log-log plot.
     target_num_groups = max(1, int((len(text)**0.33) / 1.5))
-  return group_by_embedding(text, chunks, embed_fn, target_num_groups, max_len)
+  return group_by_embedding(text, chunks, target_num_groups, max_len)
