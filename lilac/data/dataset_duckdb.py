@@ -1852,29 +1852,31 @@ class DatasetDuckDB(Dataset):
   def map(
     self,
     map_fn: Callable[[Item], Item],
-    output_path: Path,
+    output_path: Optional[Path],
     input_paths: Optional[Sequence[Path]] = None,
     combine_columns: bool = False,
     resolve_span: bool = False,
-    disable_output: bool = False,
     task_step_id: Optional[TaskStepId] = None,
-  ) -> None:
+  ) -> Iterable[Item]:
     manifest = self.manifest()
     schema = manifest.data_schema
 
-    output_path = normalize_path(output_path)
-    if len(output_path) > 1:
-      raise ValueError('Mapping to a nested path is not yet supported. If you need this, please '
-                       'file an issue and we will fix it. '
-                       'For now, the output path needs to be a top-level column.')
+    if output_path:
+      output_path = normalize_path(output_path)
+      if len(output_path) > 1:
+        raise ValueError('Mapping to a nested path is not yet supported. If you need this, please '
+                         'file an issue and we will fix it. '
+                         'For now, the output path needs to be a top-level column.')
 
-    output_column = output_path[0]
-    escaped_output_column = _escape_col_name(output_column)
+      output_column = output_path[0]
+      escaped_output_column = _escape_col_name(output_column)
 
-    if manifest.data_schema.has_field(output_path):
-      raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
-    if schema.has_field((escaped_output_column,)):
-      raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
+      if manifest.data_schema.has_field(output_path):
+        raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
+      if schema.has_field((escaped_output_column,)):
+        raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
+    else:
+      output_column = map_fn.__name__
 
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
@@ -1954,6 +1956,7 @@ class DatasetDuckDB(Dataset):
         yield from df_chunk.to_dict('records')
 
     outputs = ({ROWID: row[ROWID], output_column: map_fn(row)} for row in _rows())
+
     # Add progress.
     if task_step_id is not None:
       outputs = progress(
@@ -1961,12 +1964,6 @@ class DatasetDuckDB(Dataset):
         task_step_id=task_step_id,
         estimated_len=manifest.num_items,
         step_description=f'Computing map over {input_paths}')
-
-    # When we're not writing to disk, return.
-    if disable_output:
-      # Exhaust the iterator
-      collections.deque(outputs, maxlen=0)
-      return
 
     # Write the output rows to a temporary file to infer the schema from duckdb.
     fs = fsspec.filesystem('memory')
@@ -1987,7 +1984,15 @@ class DatasetDuckDB(Dataset):
         )
       );
     """)
-    reader = tmp_con.execute('SELECT * from tmp_output').fetch_record_batch(rows_per_batch=10_000)
+    reader = tmp_con.execute('SELECT output_column from tmp_output').fetch_record_batch(
+      rows_per_batch=10_000)
+
+    # When we're not writing to disk, return the reader.
+    if output_path is None:
+      for batch in reader:
+        yield from batch.to_pylist()
+      return
+
     # Create the source schema in prepare to share it between process and source_schema.
     output_schema = arrow_schema_to_schema(reader.schema)
     output_schema.fields[output_column].map = MapInfo(
