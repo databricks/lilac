@@ -46,6 +46,7 @@ cfg.set({'distributed.scheduler.worker-ttl': None})
 # ID for the step of a task.
 TaskStepId = tuple[str, int]
 TaskFn = Union[Callable[..., Any], Callable[..., Awaitable[Any]]]
+TaskId = str
 
 
 class TaskStatus(str, Enum):

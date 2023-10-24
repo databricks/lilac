@@ -551,7 +551,7 @@ class Dataset(abc.ABC):
   def map(
     self,
     map_fn: Callable[[Item], Item],
-    output_path: Optional[Path],
+    output_path: Optional[Path] = None,
     input_paths: Optional[Sequence[Path]] = None,
     combine_columns: bool = False,
     resolve_span: bool = False,

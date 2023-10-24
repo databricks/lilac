@@ -1852,7 +1852,7 @@ class DatasetDuckDB(Dataset):
   def map(
     self,
     map_fn: Callable[[Item], Item],
-    output_path: Optional[Path],
+    output_path: Optional[Path] = None,
     input_paths: Optional[Sequence[Path]] = None,
     combine_columns: bool = False,
     resolve_span: bool = False,
@@ -1984,7 +1984,7 @@ class DatasetDuckDB(Dataset):
         )
       );
     """)
-    reader = tmp_con.execute('SELECT output_column from tmp_output').fetch_record_batch(
+    reader = tmp_con.execute(f'SELECT "{output_column}".* from tmp_output').fetch_record_batch(
       rows_per_batch=10_000)
 
     # When we're not writing to disk, return the reader.
