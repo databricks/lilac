@@ -82,6 +82,7 @@ def test_multi_shard(tmp_path: pathlib.Path) -> None:
   source = ParquetSource(filepaths=[str(tmp_path / 'test-*.parquet')])
   source.setup()
   items = list(source.process())
+  items.sort(key=lambda x: x['name'])
   assert items == source_items
 
 
