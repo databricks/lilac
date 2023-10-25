@@ -41,3 +41,16 @@ def test_similar_spans_grouped() -> None:
   expected_spans = text_to_textchunk(text, ['Blah1.', 'Blah2. Blah2.'])
   split_items = clustering_spacy_chunker(text, target_num_groups=2)
   assert clean_textchunks(split_items) == expected_spans
+
+
+def test_fewer_than_desired_groups() -> None:
+  text = 'blah blah blah'
+  expected_spans = text_to_textchunk(text, ['blah blah blah'])
+  split_items = clustering_spacy_chunker(text, target_num_groups=4)
+  assert clean_textchunks(split_items) == expected_spans
+
+
+def test_no_chunks_emitted() -> None:
+  text = ''
+  split_items = clustering_spacy_chunker(text, target_num_groups=4)
+  assert split_items == []

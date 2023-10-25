@@ -63,6 +63,9 @@ def group_by_embedding(fulltext: str, chunks: list[TextChunk], target_num_groups
     target_num_groups: Target number of chunks in final output.
     max_len: Maximum size of a combined chunk.
   """
+  if not chunks:
+    return []
+
   texts = [c[0] for c in chunks]
   embeddings = embed_tokenizer_BoW(texts)
   # Center the embeddings for all sentences; this accentuates sentence semantics,
