@@ -32,10 +32,14 @@ Lilac runs **on-device** using open-source LLMs with a UI and Python API for:
 - **Conceptual search** to find and tag results that match a fuzzy concept (e.g. low command of
   English language)
 - **Clustering** data semantically for understanding & deduplication
-- **Labeling** and **Bulk Labeling** to curate data
+- **Labeling** and **Bulk Labeling** to curate data <br>
 
+<div align="center">
+  <iframe width="672" height="378" src="https://www.youtube.com/embed/RrcvVC3VYzQ?si=K-qRY2fZ_RAjFfMw" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+</div>
 <br>
-
+<br>
+<h3>Core features</h3>
 <table style="border-spacing:0">
   <tr>
     <td style="width:200px;padding-right:10px;">
