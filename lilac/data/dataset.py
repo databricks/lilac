@@ -6,7 +6,18 @@ import enum
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, Callable, ClassVar, Iterable, Iterator, Literal, Optional, Sequence, Union
+from typing import (
+  Any,
+  Callable,
+  ClassVar,
+  Generator,
+  Iterable,
+  Iterator,
+  Literal,
+  Optional,
+  Sequence,
+  Union,
+)
 
 import pandas as pd
 from pydantic import (
@@ -64,12 +75,19 @@ class SelectRowsResult:
     """Initialize the result."""
     self._df = df
     self.total_num_rows = total_num_rows
+    self._next_iter: Optional[Iterator] = None
 
   def __iter__(self) -> Iterator:
     return (row.to_dict() for _, row in self._df.iterrows())
 
   def __next__(self) -> Item:
-    return self.__iter__().__next__()
+    if not self._next_iter:
+      self._next_iter = self.__iter__()
+    try:
+      return next(self._next_iter)
+    except StopIteration:
+      self._next_iter = None
+      raise
 
   def df(self) -> pd.DataFrame:
     """Convert the result to a pandas DataFrame."""

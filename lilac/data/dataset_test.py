@@ -324,6 +324,44 @@ def test_columns(make_test_data: TestDataMaker) -> None:
   }]
 
 
+def test_select_rows_iter(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(SIMPLE_ITEMS)
+
+  result = dataset.select_rows()
+
+  def _get_rows() -> list[Item]:
+    nonlocal result
+    rows: list[Item] = []
+    for r in result:
+      rows.append(r)
+    return rows
+
+  # Make sure we can iterate twice.
+  assert _get_rows() == SIMPLE_ITEMS
+  assert _get_rows() == SIMPLE_ITEMS
+
+
+def test_select_rows_next(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(SIMPLE_ITEMS)
+
+  result = dataset.select_rows()
+
+  def _get_rows() -> list[Item]:
+    nonlocal result
+    rows: list[Item] = []
+    while True:
+      try:
+        rows.append(next(result))
+      except StopIteration:
+        break
+
+    return rows
+
+  # Make sure we can iterate with next() twice.
+  assert _get_rows() == SIMPLE_ITEMS
+  assert _get_rows() == SIMPLE_ITEMS
+
+
 def test_merge_values(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
   test_signal = TestSignal()

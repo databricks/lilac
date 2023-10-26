@@ -33,6 +33,7 @@ import duckdb
 import fsspec
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 import yaml
 from distributed import get_worker
 from pandas.api.types import is_object_dtype
@@ -215,6 +216,21 @@ class MapManifest(BaseModel):
 
   # The lilac python version that produced this map output.
   py_version: Optional[str] = None
+
+
+class DuckDBMapOutput:
+
+  def __init__(self, pyarrow_reader: pa.RecordBatchReader, output_column: str):
+    self.pyarrow_reader = pyarrow_reader
+    self.output_column = output_column
+
+  def __iter__(self) -> Iterator[Item]:
+    for batch in self.pyarrow_reader:
+      yield from (row[self.output_column] for row in batch.to_pylist())
+
+    # TODO(nsthorat): Implement next() and allow multiple iterations once we actually write to JSONL.
+    # We can't do this now because the memory connection to the jsonl file does not persist.
+    self.pyarrow_reader.close()
 
 
 class DatasetDuckDB(Dataset):
@@ -2025,15 +2041,7 @@ class DatasetDuckDB(Dataset):
 
       log(f'Wrote map output to {map_manifest_filepath}')
 
-    def _generate_output() -> Generator[Item, None, None]:
-      nonlocal reader
-      for batch in reader:
-        yield from (row[output_column] for row in batch.to_pylist())
-      reader.close()
-
-    # Return an iterator from the generator so that the outputs are written before returning a new
-    # iterable.
-    return iter(_generate_output())
+    return DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)
 
   @override
   def to_json(self,
