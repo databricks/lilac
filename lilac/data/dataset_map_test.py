@@ -40,15 +40,11 @@ class TestFirstCharSignal(TextSignal):
 
 
 @pytest.fixture(scope='module', autouse=True)
-def setup_teardown(module_mocker: MockerFixture) -> Iterable[None]:
+def setup_teardown() -> Iterable[None]:
   # Setup.
   clear_signal_registry()
   register_source(TestSource)
   register_signal(TestFirstCharSignal)
-
-  # Fake that this is a worker so map doesn't spawn tasks.
-  #  mock_get_task_manager = module_mocker.patch.object(tasks, 'get_is_dask_worker', autospec=True)
-  #  mock_get_task_manager.return_value = True
 
   # Unit test runs.
   yield
@@ -58,9 +54,7 @@ def setup_teardown(module_mocker: MockerFixture) -> Iterable[None]:
 
 
 @freeze_time(TEST_TIME)
-def test_map(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  mock_get_task_manager = mocker.patch.object(tasks, 'get_is_dask_worker', autospec=True)
-  mock_get_task_manager.return_value = True
+def test_map(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     'text': 'a sentence',
   }, {
@@ -124,9 +118,7 @@ def test_map(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
 
 
 @freeze_time(TEST_TIME)
-def test_map_overwrite(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  mock_get_task_manager = mocker.patch.object(tasks, 'get_is_dask_worker', autospec=True)
-  mock_get_task_manager.return_value = True
+def test_map_overwrite(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     'text': 'a',
   }, {
@@ -188,9 +180,7 @@ def test_map_overwrite(make_test_data: TestDataMaker, mocker: MockerFixture) -> 
 
 
 @freeze_time(TEST_TIME)
-def test_map_no_output_col(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  mock_get_task_manager = mocker.patch.object(tasks, 'get_is_dask_worker', autospec=True)
-  mock_get_task_manager.return_value = True
+def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     'text': 'a sentence',
   }, {
