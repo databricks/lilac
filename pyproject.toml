@@ -22,7 +22,6 @@ fastapi = "^0.103.1"
 fsspec = "^2023.9.2"
 gcsfs = "^2023.9.2"
 google-cloud-storage = "^2.5.0"
-greenlet = "3.0.0"
 gunicorn = "^21.2.0"
 hnswlib = "^0.7.0"                                       # Fast KNN vector store.
 httpx = "^0.24.1"
