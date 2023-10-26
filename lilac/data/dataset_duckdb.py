@@ -1854,12 +1854,19 @@ class DatasetDuckDB(Dataset):
     map_fn: Callable[[Item], Item],
     output_path: Optional[Path] = None,
     input_paths: Optional[Sequence[Path]] = None,
+    overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> Iterable[Item]:
+    raise ValueError('hi')
+    print('here')
     manifest = self.manifest()
     schema = manifest.data_schema
+
+    print('-----got output path', output_path)
+    yield {}
+    return
 
     if output_path:
       output_path = normalize_path(output_path)
@@ -1869,12 +1876,14 @@ class DatasetDuckDB(Dataset):
                          'For now, the output path needs to be a top-level column.')
 
       output_column = output_path[0]
-      escaped_output_column = _escape_col_name(output_column)
 
       if manifest.data_schema.has_field(output_path):
-        raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
-      if schema.has_field((escaped_output_column,)):
-        raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
+        if overwrite:
+          field = manifest.data_schema.get_field(output_path)
+          if field.map is None:
+            raise ValueError(f'{output_path} is not a map column so it cannot be overwritten.')
+        else:
+          raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
     else:
       output_column = map_fn.__name__
 
@@ -1973,10 +1982,11 @@ class DatasetDuckDB(Dataset):
         json.dump(item, file)
         file.write('\n')
 
+    jsonl_view_name = 'tmp_output'
     tmp_con = duckdb.connect(database=':memory:')
     tmp_con.register_filesystem(fs)
     tmp_con.execute(f"""
-      CREATE VIEW tmp_output as (
+      CREATE VIEW {jsonl_view_name} as (
         SELECT * FROM read_json_auto(
           'memory://{tmp_json_filename}',
           IGNORE_ERRORS=true,
@@ -1984,43 +1994,42 @@ class DatasetDuckDB(Dataset):
         )
       );
     """)
-    reader = tmp_con.execute(f'SELECT "{output_column}".* from tmp_output').fetch_record_batch(
-      rows_per_batch=10_000)
+    reader = tmp_con.execute('SELECT * from tmp_output').fetch_record_batch(rows_per_batch=10_000)
+    print('OP=', output_path)
+    if output_path:
+      print('WRITING')
+      # Create the source schema in prepare to share it between process and source_schema.
+      output_schema = arrow_schema_to_schema(reader.schema)
+      output_schema.fields[output_column].map = MapInfo(
+        fn_name=map_fn.__name__,
+        fn_source=inspect.getsource(map_fn),
+        date_created=datetime.now(),
+      )
 
-    # When we're not writing to disk, return the reader.
-    if output_path is None:
-      for batch in reader:
-        yield from batch.to_pylist()
-      return
+      parquet_filename = get_parquet_filename(output_column, shard_index=0, num_shards=1)
+      parquet_filepath = os.path.join(self.dataset_path, parquet_filename)
+      tmp_con.execute(f"COPY {jsonl_view_name} TO '{parquet_filepath}' (FORMAT PARQUET);")
 
-    # Create the source schema in prepare to share it between process and source_schema.
-    output_schema = arrow_schema_to_schema(reader.schema)
-    output_schema.fields[output_column].map = MapInfo(
-      fn_name=map_fn.__name__,
-      fn_source=inspect.getsource(map_fn),
-      date_created=datetime.now(),
-    )
+      del output_schema.fields[ROWID]
+      tmp_con.close()
 
-    parquet_filename = get_parquet_filename(output_column, shard_index=0, num_shards=1)
-    parquet_filepath = os.path.join(self.dataset_path, parquet_filename)
-    tmp_con.execute(f"COPY tmp_output TO '{parquet_filepath}' (FORMAT PARQUET);")
+      # Write the map data to the root of the dataset.
+      map_manifest_filepath = os.path.join(self.dataset_path,
+                                           f'{output_column}.{MAP_MANIFEST_SUFFIX}')
+      map_manifest = MapManifest(
+        files=[parquet_filename],
+        data_schema=output_schema,
+        parquet_id=output_column,
+        py_version=metadata.version('lilac'))
+      with open_file(map_manifest_filepath, 'w') as f:
+        f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
 
-    del output_schema.fields[ROWID]
+      log(f'Wrote map output to {map_manifest_filepath}')
+
+    for batch in reader:
+      yield from (row[output_column] for row in batch.to_pylist())
+
     reader.close()
-    tmp_con.close()
-
-    # Write the map data to the root of the dataset.
-    map_manifest_filepath = os.path.join(self.dataset_path,
-                                         f'{output_column}.{MAP_MANIFEST_SUFFIX}')
-    map_manifest = MapManifest(
-      files=[parquet_filename],
-      data_schema=output_schema,
-      parquet_id=output_column,
-      py_version=metadata.version('lilac'))
-    with open_file(map_manifest_filepath, 'w') as f:
-      f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
-
-    log(f'Wrote map output to {map_manifest_filepath}')
 
   @override
   def to_json(self,

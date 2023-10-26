@@ -553,6 +553,7 @@ class Dataset(abc.ABC):
     map_fn: Callable[[Item], Item],
     output_path: Optional[Path] = None,
     input_paths: Optional[Sequence[Path]] = None,
+    overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
     task_step_id: Optional[TaskStepId] = None,
@@ -565,6 +566,8 @@ class Dataset(abc.ABC):
       output_path: The output path to write the resulting column to. If not defined, does not
         serialize the output to disk, and returns the result as an iterator.
       input_paths: The input_paths to select. When not defined, selects all paths.
+      overwrite: Set to true to overwrite this column if it already exists. If this bit is False,
+        an error will be thrown if the column already exists.
       combine_columns: When true, the row passed to the map function will be a deeply nested object
         reflecting the hierarchy of the data. When false, all columns will be flattened as top-level
         fields.
@@ -572,7 +575,8 @@ class Dataset(abc.ABC):
       task_step_id: The task step id if this is running in a task.
 
     Returns
-      An iterable of items that are the result of map.
+      An iterable of items that are the result of map. The result item does not have the column name
+      as part of the dictionary, it is exactly what is returned from the map.
     """
     pass
 

@@ -124,6 +124,71 @@ def test_map(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
 
 
 @freeze_time(TEST_TIME)
+def test_map_no_output_col(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
+  mock_get_task_manager = mocker.patch.object(tasks, 'get_is_dask_worker', autospec=True)
+  mock_get_task_manager.return_value = True
+  dataset = make_test_data([{
+    'text': 'a sentence',
+  }, {
+    'text': 'b sentence',
+  }])
+
+  signal = TestFirstCharSignal()
+  dataset.compute_signal(signal, 'text')
+
+  def _map_fn(row: Item) -> Item:
+    return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
+
+  dataset.map(_map_fn, combine_columns=False)
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema({
+      'text': field(
+        'string',
+        fields={
+          'test_signal': field(
+            fields={
+              'len': 'int32',
+              'firstchar': 'string'
+            }, signal={'signal_name': 'test_signal'})
+        },
+      ),
+      'output_text': field(
+        fields={'result': 'string'},
+        map=MapInfo(
+          fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME))
+    }),
+    num_items=2,
+    source=TestSource())
+
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {
+      'text': 'a sentence',
+      'text.test_signal': {
+        'firstchar': 'a',
+        'len': 10
+      },
+      'output_text': {
+        'result': 'a_10'
+      }
+    },
+    {
+      'text': 'b sentence',
+      'text.test_signal': {
+        'firstchar': 'b',
+        'len': 10
+      },
+      'output_text': {
+        'result': 'b_10'
+      }
+    },
+  ]
+
+
+@freeze_time(TEST_TIME)
 def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     'text': 'a sentence',
@@ -145,8 +210,7 @@ def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
     _map_fn,
     output_path='output_text',
     input_paths=[('text',), ('text', 'test_signal')],
-    combine_columns=False,
-    disable_tasks=True)
+    combine_columns=False)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
