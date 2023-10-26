@@ -37,7 +37,7 @@ Lilac runs **on-device** using open-source LLMs with a UI and Python API for:
 
 ### 3 minute walkthrough
 
-[![Lilac: 3 minute walkthrough](https://img.youtube.com/vi/RrcvVC3VYzQ/0.jpg)](https://www.youtube.com/watch?v=RrcvVC3VYzQ)
+[![Lilac: 3 minute walkthrough](https://i.ytimg.com/vi/RrcvVC3VYzQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=RrcvVC3VYzQ)
 
 ## 🔥 Getting started
 
