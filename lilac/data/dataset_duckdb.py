@@ -1,5 +1,4 @@
 """The DuckDB implementation of the dataset database."""
-import collections
 import functools
 import gc
 import glob
@@ -16,18 +15,7 @@ import threading
 from contextlib import closing
 from datetime import datetime
 from importlib import metadata
-from typing import (
-  Any,
-  Callable,
-  Generator,
-  Iterable,
-  Iterator,
-  Literal,
-  Optional,
-  Sequence,
-  Union,
-  cast,
-)
+from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
 
 import duckdb
 import fsspec
@@ -35,7 +23,6 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import yaml
-from distributed import get_worker
 from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
@@ -93,7 +80,7 @@ from ..signals.concept_scorer import ConceptSignal
 from ..signals.filter_mask import FilterMaskSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
-from ..tasks import TaskStepId, get_is_dask_worker, get_task_manager, progress
+from ..tasks import TaskStepId, progress
 from ..utils import DebugTimer, delete_file, get_dataset_output_dir, log, open_file
 from . import dataset
 from .dataset import (
@@ -219,6 +206,7 @@ class MapManifest(BaseModel):
 
 
 class DuckDBMapOutput:
+  """The output of a map computation."""
 
   def __init__(self, pyarrow_reader: pa.RecordBatchReader, output_column: str):
     self.pyarrow_reader = pyarrow_reader
@@ -228,8 +216,8 @@ class DuckDBMapOutput:
     for batch in self.pyarrow_reader:
       yield from (row[self.output_column] for row in batch.to_pylist())
 
-    # TODO(nsthorat): Implement next() and allow multiple iterations once we actually write to JSONL.
-    # We can't do this now because the memory connection to the jsonl file does not persist.
+    # TODO(nsthorat): Implement next() and allow multiple iterations once we actually write to
+    # JSONL. We can't do this now because the memory connection to the jsonl file does not persist.
     self.pyarrow_reader.close()
 
 
