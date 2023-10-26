@@ -151,6 +151,7 @@
   },
   "version": 32,
   "metadata": {
+    "is_public": true,
     "description": "Text where a language model references itself, e.g. \"As a language model...\""
   }
 }
