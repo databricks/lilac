@@ -37,12 +37,6 @@ from .utils import log, pretty_timedelta
 # Disable the heartbeats of the dask workers to avoid dying after computer goes to sleep.
 cfg.set({'distributed.scheduler.worker-ttl': None})
 
-# class TaskId(BaseModel):
-#   """A pydantic model that contains the task id."""
-#   id: str
-
-#   def step(self): TaskStepId:
-
 # ID for the step of a task.
 TaskStepId = tuple[str, int]
 TaskFn = Union[Callable[..., Any], Callable[..., Awaitable[Any]]]
@@ -230,23 +224,6 @@ class TaskManager:
   async def stop(self) -> None:
     """Stop the task manager and close the dask client."""
     await cast(Coroutine, self._dask_client.close())
-
-
-@contextmanager
-def task(name: str,
-         type: Optional[TaskType] = None,
-         description: Optional[str] = None,
-         steps: Optional[int] = 1) -> Generator[TaskId, None, None]:
-  """A context manager for a task."""
-  # Code to acquire resource, e.g.:
-  task_id = get_task_manager().task_id(name=name, type=type, description=description)
-
-  # resource = acquire_resource(*args, **kwds)
-  try:
-    yield task_id
-  finally:
-    # Code to release resource, e.g.:
-    release_resource(resource)
 
 
 def get_is_dask_worker() -> bool:
