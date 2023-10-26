@@ -1859,14 +1859,8 @@ class DatasetDuckDB(Dataset):
     resolve_span: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> Iterable[Item]:
-    raise ValueError('hi')
-    print('here')
     manifest = self.manifest()
     schema = manifest.data_schema
-
-    print('-----got output path', output_path)
-    yield {}
-    return
 
     if output_path:
       output_path = normalize_path(output_path)
@@ -1995,9 +1989,7 @@ class DatasetDuckDB(Dataset):
       );
     """)
     reader = tmp_con.execute('SELECT * from tmp_output').fetch_record_batch(rows_per_batch=10_000)
-    print('OP=', output_path)
     if output_path:
-      print('WRITING')
       # Create the source schema in prepare to share it between process and source_schema.
       output_schema = arrow_schema_to_schema(reader.schema)
       output_schema.fields[output_column].map = MapInfo(
@@ -2026,10 +2018,15 @@ class DatasetDuckDB(Dataset):
 
       log(f'Wrote map output to {map_manifest_filepath}')
 
-    for batch in reader:
-      yield from (row[output_column] for row in batch.to_pylist())
+    def _generate_output() -> Generator[Item, None, None]:
+      nonlocal reader
+      for batch in reader:
+        yield from (row[output_column] for row in batch.to_pylist())
+      reader.close()
 
-    reader.close()
+    # Return an iterator from the generator so that the outputs are written before returning a new
+    # iterable.
+    return iter(_generate_output())
 
   @override
   def to_json(self,

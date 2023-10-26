@@ -141,6 +141,7 @@ def test_map_no_output_col(make_test_data: TestDataMaker, mocker: MockerFixture)
 
   dataset.map(_map_fn, combine_columns=False)
 
+  # The manifest should contain no new columns.
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
@@ -154,11 +155,7 @@ def test_map_no_output_col(make_test_data: TestDataMaker, mocker: MockerFixture)
               'firstchar': 'string'
             }, signal={'signal_name': 'test_signal'})
         },
-      ),
-      'output_text': field(
-        fields={'result': 'string'},
-        map=MapInfo(
-          fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME))
+      )
     }),
     num_items=2,
     source=TestSource())
@@ -171,9 +168,6 @@ def test_map_no_output_col(make_test_data: TestDataMaker, mocker: MockerFixture)
         'firstchar': 'a',
         'len': 10
       },
-      'output_text': {
-        'result': 'a_10'
-      }
     },
     {
       'text': 'b sentence',
@@ -181,9 +175,6 @@ def test_map_no_output_col(make_test_data: TestDataMaker, mocker: MockerFixture)
         'firstchar': 'b',
         'len': 10
       },
-      'output_text': {
-        'result': 'b_10'
-      }
     },
   ]
 
