@@ -12,9 +12,14 @@ from .transformer_utils import get_model
 # See https://huggingface.co/spaces/mteb/leaderboard for leaderboard of models.
 GTE_SMALL = 'thenlper/gte-small'
 GTE_BASE = 'thenlper/gte-base'
+GTE_TINY = 'TaylorAI/gte-tiny'
 
 # Maps a tuple of model name and device to the optimal batch size, found empirically.
 _OPTIMAL_BATCH_SIZES: dict[str, dict[str, int]] = {
+  GTE_TINY: {
+    '': 64,  # Default batch size.
+    'mps': 512,
+  },
   GTE_SMALL: {
     '': 64,  # Default batch size.
     'mps': 256,
@@ -58,3 +63,12 @@ class GTEBase(GTESmall):
   display_name: ClassVar[str] = 'Gegeral Text Embeddings (base)'
 
   _model_name = GTE_BASE
+
+
+class GTETiny(GTESmall):
+  """Computes Gegeral Text Embeddings (GTE)."""
+
+  name: ClassVar[str] = 'gte-tiny'
+  display_name: ClassVar[str] = 'Gegeral Text Embeddings (tiny)'
+
+  _model_name = GTE_TINY

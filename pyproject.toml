@@ -80,6 +80,7 @@ llama-index = { version = "^0.8.38", optional = true }
 
 # For HDBScan to reduce dimensionality before running clustering.
 umap-learn = { version = "^0.5.4" }
+tiktoken = "^0.5.1"
 
 [tool.poetry.extras]
 all = [
@@ -165,6 +166,7 @@ watchdog = { extras = ["watchmedo"], version = "^3.0.0" }
 wheel = "^0.37.1"
 yapf = "^0.32.0"
 freezegun = "^1.2.2"
+line-profiler = "^4.1.1"
 pytest-repeat = "^0.9.3"
 
 [tool.poetry.scripts]
