@@ -28,6 +28,18 @@ npm run format --workspace web/lib
 npm run format --workspace web/blueprint
 ```
 
+### Debug Lilac using pdb
+
+To attach PDB to the Lilac server:
+
+```sh
+./run_server_pdb.sh
+```
+
+This starts the Lilac webserver in a single-threaded mode, ready to accept requests and respond to
+PDB breakpoints. Pro-tip: Chrome's inspector can take logged network requests and Copy > Copy as
+CURL command, which can be used to replay an API call to the Lilac server.
+
 ### Testing
 
 Run all the checks before mailing:
