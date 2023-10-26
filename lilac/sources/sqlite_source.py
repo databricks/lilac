@@ -10,11 +10,10 @@ from fastapi import APIRouter
 from pydantic import Field
 from typing_extensions import override
 
-from lilac.utils import file_exists
-
 from ..schema import Item, arrow_schema_to_schema
 from ..source import Source, SourceSchema
-from .duckdb_utils import duckdb_setup
+from ..utils import file_exists
+from .duckdb_utils import convert_path_to_duckdb, duckdb_setup
 
 router = APIRouter()
 
@@ -48,13 +47,12 @@ class SQLiteSource(Source):
   @override
   def setup(self) -> None:
     self._con = duckdb.connect(database=':memory:')
+    duckdb_setup(self._con)
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
-    db_file = self.db_file.replace('gs://', 's3://')
-
+    duckdb_path = convert_path_to_duckdb(self.db_file)
     self._con.execute(f"""
-      {duckdb_setup(self._con)}
-      CREATE VIEW t as (SELECT * FROM sqlite_scan('{db_file}', '{self.table}'));
+      CREATE VIEW t as (SELECT * FROM sqlite_scan('{duckdb_path}', '{self.table}'));
     """)
 
     res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()

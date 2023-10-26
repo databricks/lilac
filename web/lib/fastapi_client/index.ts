@@ -37,6 +37,7 @@ export type { DeleteSignalResponse } from './models/DeleteSignalResponse';
 export type { Example } from './models/Example';
 export type { ExampleIn } from './models/ExampleIn';
 export type { ExampleOrigin } from './models/ExampleOrigin';
+export type { ExportOptions } from './models/ExportOptions';
 export type { Field } from './models/Field';
 export type { GetStatsOptions } from './models/GetStatsOptions';
 export type { GroupsSortBy } from './models/GroupsSortBy';

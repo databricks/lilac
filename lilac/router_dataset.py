@@ -1,11 +1,11 @@
 """Router for the dataset database."""
+import os
 from copy import copy
 from typing import Annotated, Any, Literal, Optional, Sequence, Union, cast
-from urllib.parse import unquote
 
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.params import Depends
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import FileResponse, ORJSONResponse
 from pydantic import BaseModel, Field, SerializeAsAny, field_validator
 
 from .auth import UserInfo, get_session_user, get_user_access
@@ -186,8 +186,6 @@ class Column(DBColumn):
   signal_udf: Optional[AllSignalTypes] = None
 
 
-ColumnOrPath = Union[Column, Path]
-
 SearchPy = Annotated[Search, Field(discriminator='type')]
 
 
@@ -224,18 +222,6 @@ def _exclude_none(obj: Any) -> Any:
   if isinstance(obj, list):
     return [_exclude_none(v) for v in obj]
   return copy(obj)
-
-
-# SQL adds {"x": None} for `SELECT x` where x is sparse, thus exclude none to keep response small.
-@router.get('/{namespace}/{dataset_name}/select_rows_download')
-def select_rows_download(
-    namespace: str, dataset_name: str, url_safe_options: str,
-    user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> list[dict]:
-  """Select rows from the dataset database and downloads them."""
-  options = SelectRowsOptions.model_validate_json(unquote(url_safe_options))
-
-  rows = select_rows(namespace, dataset_name, options, user).rows
-  return [_exclude_none(row) for row in rows]
 
 
 @router.post('/{namespace}/{dataset_name}/select_rows')
@@ -307,6 +293,43 @@ def get_media(namespace: str, dataset_name: str, item_id: str, leaf_path: str) -
   result = dataset.media(item_id, path)
   # Return the response via HTTP.
   return Response(content=result.data)
+
+
+class ExportOptions(BaseModel):
+  """The request for the export dataset endpoint."""
+  format: Literal['csv', 'json', 'parquet']
+  filepath: str
+  jsonl: Optional[bool] = False
+  columns: Sequence[Path] = []
+  include_labels: Sequence[str] = []
+  exclude_labels: Sequence[str] = []
+
+
+@router.get('/serve_dataset')
+def serve_dataset_file(filepath: str) -> FileResponse:
+  """Serve the exported dataset file."""
+  filepath = os.path.expanduser(filepath)
+  return FileResponse(filepath)
+
+
+@router.post('/{namespace}/{dataset_name}/export')
+def export_dataset(namespace: str, dataset_name: str, options: ExportOptions) -> str:
+  """Export the dataset to one of the supported file formats."""
+  dataset = get_dataset(namespace, dataset_name)
+  os.makedirs(os.path.dirname(options.filepath), exist_ok=True)
+
+  if options.format == 'csv':
+    dataset.to_csv(options.filepath, options.columns, [], options.include_labels,
+                   options.exclude_labels)
+  elif options.format == 'json':
+    dataset.to_json(options.filepath, options.jsonl or False, options.columns, [],
+                    options.include_labels, options.exclude_labels)
+  elif options.format == 'parquet':
+    dataset.to_parquet(options.filepath, options.columns, [], options.include_labels,
+                       options.exclude_labels)
+  else:
+    raise ValueError(f'Unknown format: {options.format}')
+  return options.filepath
 
 
 @router.get('/{namespace}/{dataset_name}/config')

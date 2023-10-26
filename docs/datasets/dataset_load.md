@@ -63,6 +63,117 @@ You will be redirected to the dataset view once your data is loaded.
 
 ## From Python
 
+### Creating a dataset
+
+You can create a dataset from Python using [](#lilac.create_dataset). Lilac supports variety of data
+sources, including CSV, JSON, HuggingFace datasets, Parquet, Pandas and more. See [](#lilac.sources)
+for details on available sources. All the file based readers support reading from local files, S3
+(`s3://...`), GCS (`gs://...`) and HTTP(S) URLs.
+
+Before we load any dataset, we should set the project directory which will be used to store all the
+datasets we import. If not set, it defaults to the current working directory.
+
+```python
+import lilac as ll
+ll.set_project_dir('~/my_project')
+```
+
+#### Huggingface
+
+You can load any HuggingFace dataset by passing the dataset name and config name. We use the HF
+dataset loader, which will fetch and cache the dataset in your HF cache dir. Then Lilac will convert
+that to our internal format and store it in the Lilac project dir. To read private datasets, either
+login via the [`huggingface-cli`](https://huggingface.co/docs/huggingface_hub/quick-start#login) or
+provide a `token` to the `HuggingFaceSource`.
+
+```python
+config = ll.DatasetConfig(
+  namespace='local',
+  name='glue',
+  source=ll.HuggingFaceSource(dataset_name='glue', config_name='ax'))
+# NOTE: You can pass a `project_dir` to `create_dataset` as the second argument.
+dataset = ll.create_dataset(config)
+```
+
+#### CSV
+
+The CSV reader can read from local files, S3, GCS and HTTP. If your dataset is sharded, you can use
+a glob pattern to load multiple files.
+
+```python
+url = 'https://storage.googleapis.com/lilac-data/datasets/the_movies_dataset/the_movies_dataset.csv'
+config = ll.DatasetConfig(
+  namespace='local', name='the_movies_dataset', source=ll.CSVSource(filepaths=[url]))
+dataset = ll.create_dataset(config)
+```
+
+#### Parquet
+
+The parquet reader can read from local files, S3, GCS and HTTP. If your dataset is sharded, you can
+use a glob pattern to load multiple files.
+
+**Sampling**
+
+The `ParquetSource` takes a few optional arguments related to sampling:
+
+- `sample_size`, the number of rows to sample.
+- `approximate_shuffle`, defaulting to `False`. When `False`, we take an entire pass over the
+  dataset with reservoir sampling. When `True`, we read a fraction of rows from the start of each
+  shard, to avoid shard skew, without doing a full pass over the entire dataset. This is useful when
+  your dataset is very large and consists of a large number of shards.
+- `seed`, the random seed to use for sampling.
+
+```python
+source = ll.ParquetSource(
+  filepaths=['s3://lilac-public-data/test-*.parquet'],
+  sample_size=100,
+  approximate_shuffle=True)
+config = ll.DatasetConfig(namespace='local', name='parquet-test', source=source)
+dataset = ll.create_dataset(config)
+```
+
+#### JSON
+
+The JSON reader can read from local files, S3, GCS and HTTP. If your dataset is sharded, you can use
+a glob pattern to load multiple files. The reader supports both JSON and JSONL files.
+
+If the format is JSON, we expect the dataset to be an array of objects:
+
+```json
+[
+  {"id": 1, "text": "hello world"},
+  {"id": 2, "text": "goodbye world"}
+]
+```
+
+If the format is JSONL, we expect each line to be a JSON object:
+
+```json
+{"id": 1, "text": "hello world"}
+{"id": 2, "text": "goodbye world"}
+```
+
+```python
+config = ll.DatasetConfig(
+  namespace='local',
+  name='news_headlines',
+  source=ll.JSONSource(filepaths=[
+    'https://storage.googleapis.com/lilac-data/datasets/langsmith-finetuning-rag/rag.jsonl'
+  ]))
+dataset = ll.create_dataset(config)
+```
+
+#### Pandas
+
+```python
+df = pd.DataFrame({'test': ['a', 'b', 'c']})
+config = ll.DatasetConfig(namespace='local', name='the_movies_dataset2', source=ll.PandasSource(df))
+dataset = ll.create_dataset(config)
+```
+
+For details on all the source loaders, see [](#lilac.sources). For details on the dataset config,
+see [](#lilac.DatasetConfig).
+
 ### Loading from lilac.yml
 
 When you start a webserver, Lilac will automatically create a project for you in the given project
@@ -99,24 +210,3 @@ Or from the CLI:
 ```sh
 lilac load --project_dir=~/my_lilac
 ```
-
-### Loading an individual dataset
-
-This example loads the `glue` dataset with the `ax` config from HuggingFace:
-
-```python
-# Set the global project directory to where project files will be stored.
-ll.set_project_dir('~/my_project')
-
-config = ll.DatasetConfig(
-  namespace='local',
-  name='glue',
-  source=ll.HuggingFaceSource(dataset_name='glue', config_name='ax'))
-
-# NOTE: If you don't want to set a global project directory, you can pass the `project_dir` to `create_dataset` as the second argument.
-dataset = ll.create_dataset(config)
-```
-
-For details on all the source loaders, see [](#lilac.sources).
-
-For details on the dataset config, see [](#lilac.DatasetConfig).

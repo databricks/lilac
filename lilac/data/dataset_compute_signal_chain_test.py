@@ -8,8 +8,6 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from lilac.sources.source_registry import clear_source_registry, register_source
-
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   EMBEDDING_KEY,
@@ -26,11 +24,11 @@ from ..schema import (
 from ..signal import (
   TextEmbeddingSignal,
   TextSignal,
-  TextSplitterSignal,
   VectorSignal,
   clear_signal_registry,
   register_signal,
 )
+from ..sources.source_registry import clear_source_registry, register_source
 from .dataset import DatasetManifest
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
@@ -65,9 +63,13 @@ EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
 
-class TestSplitter(TextSplitterSignal):
+class TestSplitter(TextSignal):
   """Split documents into sentence by splitting on period."""
   name: ClassVar[str] = 'test_splitter'
+
+  @override
+  def fields(self) -> Field:
+    return field(fields=['string_span'])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

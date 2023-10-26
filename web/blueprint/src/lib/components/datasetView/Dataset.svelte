@@ -20,7 +20,7 @@
     TextArea
   } from 'carbon-components-svelte';
   import {
-    Download,
+    Export,
     IbmWatsonKnowledgeStudio,
     Information,
     Settings,
@@ -29,7 +29,7 @@
   } from 'carbon-icons-svelte';
   import {fade} from 'svelte/transition';
   import DatasetSettingsModal from './DatasetSettingsModal.svelte';
-  import DownloadModal from './DownloadModal.svelte';
+  import ExportModal from './ExportModal.svelte';
   import Insights from './insights/Insights.svelte';
 
   export let namespace: string;
@@ -45,7 +45,7 @@
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   let settingsOpen = false;
-  let downloadOpen = false;
+  let exportOpen = false;
 
   const authInfo = queryAuthInfo();
   $: canUpdateSettings = $authInfo.data?.access.dataset.update_settings;
@@ -119,9 +119,9 @@
           >
         </div>
 
-        <button use:hoverTooltip={{text: 'Download data'}} on:click={() => (downloadOpen = true)}
-          ><Download /></button
-        >
+        <button use:hoverTooltip={{text: 'Export data'}} on:click={() => (exportOpen = true)}>
+          <Export />
+        </button>
         <div
           use:hoverTooltip={{
             text: !canUpdateSettings
@@ -153,7 +153,7 @@
 
   {#if $schema.data}
     <DatasetSettingsModal bind:open={settingsOpen} {namespace} name={datasetName} />
-    <DownloadModal bind:open={downloadOpen} schema={$schema.data} />
+    <ExportModal bind:open={exportOpen} schema={$schema.data} />
     <ComposedModal
       size="lg"
       open={$datasetViewStore.insightsOpen}

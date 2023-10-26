@@ -26,13 +26,15 @@ from .utils import get_dataset_output_dir, log, open_file
 
 
 def create_dataset(config: DatasetConfig,
-                   project_dir: Optional[Union[str, pathlib.Path]] = None) -> Dataset:
+                   project_dir: Optional[Union[str, pathlib.Path]] = None,
+                   overwrite: bool = False) -> Dataset:
   """Load a dataset from a given source configuration.
 
   Args:
     config: The dataset configuration to load.
     project_dir: The path to the project directory for where to create the dataset. If not defined,
       uses the project directory from `LILAC_PROJECT_DIR` or [deprecated] `LILAC_DATA_PATH`.
+    overwrite: Whether to overwrite the dataset if it already exists.
   """
   project_dir = project_dir or get_project_dir()
   if not project_dir:
@@ -40,7 +42,7 @@ def create_dataset(config: DatasetConfig,
                      'globally with `set_project_dir(path)`')
 
   # Update the config before processing the source.
-  add_project_dataset_config(config, project_dir)
+  add_project_dataset_config(config, project_dir, overwrite)
 
   process_source(project_dir, config)
   return get_dataset(config.namespace, config.name, project_dir)

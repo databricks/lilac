@@ -7,7 +7,7 @@ repository = "https://github.com/lilacai/lilac"
 packages = [{ include = "lilac" }]
 include = ["lilac/web/**/*"]                    # Include the web app assets.
 readme = "README.md"
-version = "0.1.9"
+version = "0.1.10"
 
 [tool.poetry.dependencies]
 
@@ -20,7 +20,7 @@ distributed = "^2023.3.2.1"
 duckdb = "^0.9.0"
 fastapi = "^0.103.1"
 fsspec = "^2023.9.2"
-gcsfs = "^2023.4.0"
+gcsfs = "^2023.9.2"
 google-cloud-storage = "^2.5.0"
 gunicorn = "^21.2.0"
 hnswlib = "^0.7.0"                                       # Fast KNN vector store.
@@ -153,7 +153,7 @@ pytest = "^7.2.0"
 pytest-asyncio = "^0.20.2"
 pytest-cov = "^4.0.0"
 pytest-mock = "^3.10.0"
-ruff = "^0.0.219"
+ruff = "^0.1.0"
 setuptools = "^65.5.0"
 toml = "^0.10.2"
 types-Pillow = "^9.3.0.4"
@@ -165,6 +165,7 @@ watchdog = { extras = ["watchmedo"], version = "^3.0.0" }
 wheel = "^0.37.1"
 yapf = "^0.32.0"
 freezegun = "^1.2.2"
+pytest-repeat = "^0.9.3"
 
 [tool.poetry.scripts]
 lilac = "lilac.cli:cli"
@@ -189,6 +190,7 @@ ignore = [
   "D203", # 1 blank line required before class docstring.
   "D204", # 1 blank line required after class docstring.
   "D213", # Multi-line docstring summary should start at the second line.
+  "D401", # First line of docstring should be in imperative mood: "{first_line}"
   "D407", # Missing dashed underline after section.
   "F841", # Unused variable rules.
   "I001", # Delegate sorting to isort.

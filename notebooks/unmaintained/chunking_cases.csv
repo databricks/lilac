@@ -1,0 +1,613 @@
+source,input,output(s),,,,,,,,,,
+"OpenOrca100k Question, random sampling","Select from the following.
+ (1). Yes
+ (2). No
+Given those answer options, answer the question: Title: Fast download to PC Review: This reader really shines with a fast card. I was able to transfer files from a full 1GB card (Lexar 80X) in 1 minute and 43 seconds.The only issue I have with the reader is that it gets warm, much warmer than my older Sandisk USB reader. Even with no card attached, it's warm. I've made it a routine to remove the card as soon as the download is finished. Is this product review negative?
+A:","Select from the following.
+ (1). Yes
+ (2). No
+Given those answer options, answer the question:
+","Title: Fast download to PC
+","Review: This reader really shines with a fast card. I was able to transfer files from a full 1GB card (Lexar 80X) in 1 minute and 43 seconds.
+","The only issue I have with the reader is that it gets warm, much warmer than my older Sandisk USB reader. Even with no card attached, it's warm. I've made it a routine to remove the card as soon as the download is finished.
+","Is this product review negative?
+A:
+",,,,,,
+"OpenOrca100k Question, random sampling","Generate a context and a hypothesis.
+","Generate a context and a hypothesis.
+",,,,,,,,,,
+"OpenOrca100k Question, random sampling","Answer the following question:
+
+who got pregnant in gossip girl season 5?",Answer the following question:,who got pregnant in gossip girl season 5?,,,,,,,,,
+"OpenOrca100k Question, random sampling","Dylan Tombides was diagnosed with testicular cancer in 2011. He fought the disease for three years having surgery and chemotherapy. The Australian footballer died today with his family at his bedside. Back to Mail Online home. Back to the page you came from.
+
+Write an article based on these highlights.",Dylan Tombides was diagnosed with testicular cancer in 2011. He fought the disease for three years having surgery and chemotherapy.,The Australian footballer died today with his family at his bedside.,Back to Mail Online home. Back to the page you came from.,Write an article based on these highlights.,,,,,,,
+"OpenOrca100k Question, random sampling","Please answer the following question about this movie plot. If it's un-answerable, please output ""No answer"".  Question: Who followed the boys? Movie plot title: Red Movie plot: Ajith is Red (it stands for Revolution, Education, Development), an orphan who has since grown up to be the local don in Madurai. Naturally he possesses a heart of gold and when not bashing up bad guys, he spends his time forcing schools to accept students without donations and taking care of orphans. Cheeni (Salim Ghouse) is his biggest enemy. Red falls for Gayatri (Priya Gill), the daughter of his friend and confidante Narayanan (Manivannan) and helps her without her knowledge. She too likes him but wants him to give up his life of violence. Meanwhile, a reporter (Rajesh) for Ananda Vikatan begins to serialise Red's story under the name Aadi and it becomes quite the rage among readers.
+A:","Please answer the following question about this movie plot. If it's un-answerable, please output ""No answer"".
+","Question: Who followed the boys?
+","Movie plot title: Red Movie
+","plot: Ajith is Red (it stands for Revolution, Education, Development), an orphan who has since grown up to be the local don in Madurai. Naturally he possesses a heart of gold and when not bashing up bad guys, he spends his time forcing schools to accept students without donations and taking care of orphans. Cheeni (Salim Ghouse) is his biggest enemy.
+","Red falls for Gayatri (Priya Gill), the daughter of his friend and confidante Narayanan (Manivannan) and helps her without her knowledge. She too likes him but wants him to give up his life of violence.
+","Meanwhile, a reporter (Rajesh) for Ananda Vikatan begins to serialise Red's story under the name Aadi and it becomes quite the rage among readers.",A:,,,,
+"OpenOrca100k Question, random sampling","Is this product review positive? Title: Weber Smokey Mountain Cooker/Smoker Review: I have been cooking on a trailer mounted commercial style smoker for several years. I wanted something smaller and easier to use for my patio. This smoker works great and is simple to operate. I have used regular charcoal, lump charcoal and hickory/oak wood. Burns fine, litte mess and clean-up is a breeze. I especially like the 3 adjustable air vents on the bottom and the 1 located on the dome. I have smoked hams, turkey's, beef brisket, chicken and Boston butts. I am proud to say that everything tasted great. Answer:
+Answer:","Is this product review positive?
+",Title: Weber Smokey Mountain Cooker/Smoker,"Review: I have been cooking on a trailer mounted commercial style smoker for several years. I wanted something smaller and easier to use for my patio. This smoker works great and is simple to operate. I have used regular charcoal, lump charcoal and hickory/oak wood. Burns fine, litte mess and clean-up is a breeze. I especially like the 3 adjustable air vents on the bottom and the 1 located on the dome. I have smoked hams, turkey's, beef brisket, chicken and Boston butts. I am proud to say that everything tasted great.","Answer:
+Answer:
+",,,,,,,
+"OpenOrca100k Question, random sampling","Generate a question that has the following answer:  Van Gein  for the following movie plot:  At the Kibbutz Stein in Israel in 1956, school teacher Rachel (Clarice van Houten) is reunited with Ronnie (Halina Reijn), a friend from The Hague during World War II. After Ronnie leaves, Rachel reflects on her adventures during the final days of the war.In 1944, Rachel hides from the Nazis in a farm in the Dutch countryside. In exchange for hiding her, they expect her to learn Bible verses. One day, a crippled Allied bomber drops its payload on the farmhouse, killing everyone except Rachel. Rob (Michiel Heisman), a young man from a neighboring farm, hides her in the family's greenhouse. That night, Van Gein (Peter Blok), a police officer, arrives to tell them that the Nazis know that Rachel is in the area and will hunt her down. He agrees to help Rachel and Rob escape to the Allied controlled southern part of Holland. Rachel visits her father's lawyer, Smaal (Dolf de Vries). He gives her enough money and jewels to live on for a year but warns her not to trust people so easily. Van Gein leads Rachel and Rob to a dock where other Jews wait to leave. Rachel is reunited with her parents and brother, who is recovering from an emergency appendectomy. Van Gein does not accompany the Jews on the boat trip. That evening, the boat is ambushed by a Nazi patrol boat. The Nazis immediately open fire; only Rachel survives the massacre. Before drifting down the river, she sees the Nazis loot the corpses.Rachel is found by Resistance fighters who smuggle her into The Hague by disguising her as a typhoid victim and placing her in a coffin that if properly ""sealed"" has sizable air holes. She is taken to a soup kitchen run by another member of the Resistance, Gerben Kuipers (Derek de Lint) and given the new name of Ellis de Vries. Eventually she is made a part of the Resistance's plans to smuggle in British guns and rations. The smugglers are led by Hans Akkermans (Thom Hoffman), an expert marksman. He and Ellis are to pose as husband and wife so the Nazis will not search their luggage on the train; the luggage is actually...","Generate a question that has the following answer:  Van Gein
+","for the following movie plot:  At the Kibbutz Stein in Israel in 1956, school teacher Rachel (Clarice van Houten) is reunited with Ronnie (Halina Reijn), a friend from The Hague during World War II. After Ronnie leaves, Rachel reflects on her adventures during the final days of the war.In 1944, Rachel hides from the Nazis in a farm in the Dutch countryside. In exchange for hiding her, they expect her to learn Bible verses.
+","One day, a crippled Allied bomber drops its payload on the farmhouse, killing everyone except Rachel. Rob (Michiel Heisman), a young man from a neighboring farm, hides her in the family's greenhouse. That night, Van Gein (Peter Blok), a police officer, arrives to tell them that the Nazis know that Rachel is in the area and will hunt her down. He agrees to help Rachel and Rob escape to the Allied controlled southern part of Holland.","Rachel visits her father's lawyer, Smaal (Dolf de Vries). He gives her enough money and jewels to live on for a year but warns her not to trust people so easily. Van Gein leads Rachel and Rob to a dock where other Jews wait to leave. Rachel is reunited with her parents and brother, who is recovering from an emergency appendectomy. Van Gein does not accompany the Jews on the boat trip. ","That evening, the boat is ambushed by a Nazi patrol boat. The Nazis immediately open fire; only Rachel survives the massacre. Before drifting down the river, she sees the Nazis loot the corpses.","Rachel is found by Resistance fighters who smuggle her into The Hague by disguising her as a typhoid victim and placing her in a coffin that if properly ""sealed"" has sizable air holes.","She is taken to a soup kitchen run by another member of the Resistance, Gerben Kuipers (Derek de Lint) and given the new name of Ellis de Vries. Eventually she is made a part of the Resistance's plans to smuggle in British guns and rations. The smugglers are led by Hans Akkermans (Thom Hoffman), an expert marksman. He and Ellis are to pose as husband and wife so the Nazis will not search their luggage on the train; the luggage is actually...",,,,
+"OpenOrca100k Question, random sampling","Translate the following.
+
+English: The difference is that Denis has to make all the decisions alone. “While Anne became a different person, because of the effects of HD, I also had to learn to become a different person.
+
+Spanish:",Translate the following.,"English: The difference is that Denis has to make all the decisions alone. “While Anne became a different person, because of the effects of HD, I also had to learn to become a different person.",Spanish:,,,,,,,,
+"OpenOrca100k Question, random sampling","Q: Question: what is david from the bible diet? Would ""David is central to Jewish , Christian , and Islamic doctrine and culture."" be a reasonable answer?
+The answer is:",Q: Question: what is david from the bible diet?,"Would ""David is central to Jewish , Christian , and Islamic doctrine and culture."" be a reasonable answer?",The answer is:,,,,,,,,
+"OpenOrca100k Question, random sampling","Teacher:In this task you will be given a string of characters. You should remove all vowels from the given string. Vowels are: i,e,a,u,o. The character 'y' or 'Y' does not count as a vowel.
+Teacher: Now, understand the problem? Solve this instance: aetUb
+Student:","Teacher:In this task you will be given a string of characters. You should remove all vowels from the given string. Vowels are: i,e,a,u,o. The character 'y' or 'Y' does not count as a vowel.","Teacher: Now, understand the problem? Solve this instance:",Student:,,,,,,,,
+"OpenOrca100k Question, random sampling","1. Upper Austria is a municipality in the Wernstein am Inn district in the Austrian province of Schärding .
+2. Wernstein am Inn is a municipality in the district of Schärding in the Austrian federal state of Upper Austria .
+
+Are these two sentences paraphrases of each other?
+","1. Upper Austria is a municipality in the Wernstein am Inn district in the Austrian province of Schärding .
+2. Wernstein am Inn is a municipality in the district of Schärding in the Austrian federal state of Upper Austria .
+","Are these two sentences paraphrases of each other?
+",,,,,,,,,
+"OpenOrca100k Question, random sampling","A row broke out after Cage described Mohamed Emwazi, known as Islamic State extremist Jihadi John, as an ""extremely kind"" and ""beautiful young man"".
+Cage claimed the commission should not have sought to block its funding.
+The High Court case judge called for proper discussions in future to avoid wasting taxpayer and charity money.
+The case was brought by Cage and the Joseph Rowntree Charitable Trust.
+Cage's research director Asim Qureshi claimed in February that former London student Emwazi - identified as the man in a number of Islamic State beheading videos - had been driven to extremism after UK security services harassed him.
+Cage later said it had made ""mistakes"" in its comments about Emwazi, a former client.
+The Charity Commission had urged the Joseph Rowntree Trust and the Roddick Foundation not to make any future donations to Cage, which offers support to Muslims suspected of terrorism offences.
+Cage and the trust told the High Court the commission had issued a direction it had no power to make, as well as unlawfully fettering the trust's discretion over whether or not to fund Cage should circumstances change.
+The commission, which disputed the accusation, said it had been acting within its powers to give advice and seek assurances from the charities that they would not offer future funding to Cage.
+The case was settled after a day-long hearing with all sides agreeing that Joseph Rowntree's trustees ""must be free to exercise their powers and duties in the light of circumstances existing at the time"".
+And the commission stated it was not seeking to fetter the charity's discretion to fund Cage ""for all time regardless of changing circumstances"".
+The case was heard by Lord Thomas - the Lord Chief Justice - and Mr Justice Ouseley.
+What is a summary of this text?
+","A row broke out after Cage described Mohamed Emwazi, known as Islamic State extremist Jihadi John, as an ""extremely kind"" and ""beautiful young man"".","Cage claimed the commission should not have sought to block its funding.
+The High Court case judge called for proper discussions in future to avoid wasting taxpayer and charity money.
+The case was brought by Cage and the Joseph Rowntree Charitable Trust.","Cage's research director Asim Qureshi claimed in February that former London student Emwazi - identified as the man in a number of Islamic State beheading videos - had been driven to extremism after UK security services harassed him.
+Cage later said it had made ""mistakes"" in its comments about Emwazi, a former client.
+","The Charity Commission had urged the Joseph Rowntree Trust and the Roddick Foundation not to make any future donations to Cage, which offers support to Muslims suspected of terrorism offences.
+","Cage and the trust told the High Court the commission had issued a direction it had no power to make, as well as unlawfully fettering the trust's discretion over whether or not to fund Cage should circumstances change.
+The commission, which disputed the accusation, said it had been acting within its powers to give advice and seek assurances from the charities that they would not offer future funding to Cage.
+","The case was settled after a day-long hearing with all sides agreeing that Joseph Rowntree's trustees ""must be free to exercise their powers and duties in the light of circumstances existing at the time"".
+And the commission stated it was not seeking to fetter the charity's discretion to fund Cage ""for all time regardless of changing circumstances"".
+The case was heard by Lord Thomas - the Lord Chief Justice - and Mr Justice Ouseley.
+","What is a summary of this text?
+",,,,
+"OpenOrca100k Question, random sampling","Generate a short movie review that has ""I."" sentiment (Possible answers:
+I. negative.
+II. positive.).
+","Generate a short movie review that has ""I."" sentiment (Possible answers:
+I. negative.
+II. positive.).",,,,,,,,,,
+"OpenOrca100k Question, random sampling","Please answer the following question: Formulate an answer to this elaborate question: Are Meet the Deedles and Cinderella both Disney films?
+Answer:
+",Please answer the following question:,Formulate an answer to this elaborate question:,"Are Meet the Deedles and Cinderella both Disney films?
+","Answer:
+",,,,,,,
+"OpenOrca100k Question, random sampling","In this task, you are given one English sentence. The major part of the sentences talk about health-related topics, but some of the them describe an organization and its activities. Your job is to translate the given sentences into Swedish.
+
+Keeping links with partners in public health training may facilitate consistency with the public health training framework.
+","In this task, you are given one English sentence.","The major part of the sentences talk about health-related topics, but some of the them describe an organization and its activities.
+",Your job is to translate the given sentences into Swedish.,Keeping links with partners in public health training may facilitate consistency with the public health training framework.,,,,,,,
+"OpenOrca100k Question, random sampling","Please answer the following question: Malone is a village in Franklin County New York in the United States. Its population was 5911 at the 2010 census. The village is located in the center of the town of Malone. Malone is the county seat of Franklin County and is home to a campus of North Country Community College. Given a list of categories: company, educational institution, artist, athlete, office holder, mean of transportation, building, natural place, village, animal, plant, album, film or written work, what category does the paragraph belong to?
+A:
+",Please answer the following question:,"Malone is a village in Franklin County New York in the United States. Its population was 5911 at the 2010 census. The village is located in the center of the town of Malone. Malone is the county seat of Franklin County and is home to a campus of North Country Community College.
+","Given a list of categories: company, educational institution, artist, athlete, office holder, mean of transportation, building, natural place, village, animal, plant, album, film or written work, what category does the paragraph belong to?
+A:
+",,,,,,,,
+"OpenOrca100k Question, random sampling","When they acted as if she had n't been burnt to ashes in the bowls of the rocket . These people had been her friends . If not her friends , at least her coworkers , people she had seen every day and had been on friendly terms with . Shera tried to get along with everyone .
+
+Choose your answer from:
+ 1). They do n't want to deal with it .
+ 2). They did n't like her .
+ 3). They know she did n't really burn .
+ 4). They have n't let it sink in yet .
+Answer the following question: What may be the reason why they ignored what happened ?
+","When they acted as if she had n't been burnt to ashes in the bowls of the rocket . These people had been her friends . If not her friends , at least her coworkers , people she had seen every day and had been on friendly terms with .",Shera tried to get along with everyone .,"Choose your answer from:
+ 1). They do n't want to deal with it .
+ 2). They did n't like her .
+ 3). They know she did n't really burn .
+ 4). They have n't let it sink in yet .
+Answer the following question: What may be the reason why they ignored what happened ?",,,,,,,,
+"OpenOrca100k Question, random sampling","Write an article based on this ""Saido Berahino was put ""on the naughty chair"" by his West Brom manager Tony Pulis after the striker said that ""he hoped to move on to bigger things"".""
+","Write an article based on this
+","""Saido Berahino was put ""on the naughty chair"" by his West Brom manager Tony Pulis after the striker said that ""he hoped to move on to bigger things"".""",,,,,,,,,
+"OpenOrca100k Question, random sampling","Instructions: In this task, you will be presented with a text and a pronoun. You should write the name that the pronoun refers to. Position of the pronoun in the text is showed within two ""_""s.
+Input: Dudley's son, John H. Dean, also played football for Harvard and was captain of the 1933 team. Dudley became friends with Joseph P. Kennedy as the two men spent summers together in Cohasset, Massachusetts. In 1922, Dudley led an unsuccessful campaign to have Kennedy admitted to the Cohasset Golf Club, and several of _his_ letters lobbying for Kennedy's admission were published in the book, The Fitzgeralds and the Kennedys, by Doris Kearns Goodwin. <sep>, Pronoun: his
+Output:
+","Instructions: In this task, you will be presented with a text and a pronoun. You should write the name that the pronoun refers to. Position of the pronoun in the text is showed within two ""_""s.","Input: Dudley's son, John H. Dean, also played football for Harvard and was captain of the 1933 team. Dudley became friends with Joseph P. Kennedy as the two men spent summers together in Cohasset, Massachusetts. In 1922, Dudley led an unsuccessful campaign to have Kennedy admitted to the Cohasset Golf Club, and several of _his_ letters lobbying for Kennedy's admission were published in the book, The Fitzgeralds and the Kennedys, by Doris Kearns Goodwin. <sep>, Pronoun: his",Output:,,,,,,,,
+"OpenOrca100k Question, random sampling","Student: Given the sentence ""A man in a red shirt holds a beer can and hammers while a man in a white shirt looks on."" is it true that ""The man has a beer can.""?.
+Teacher: Let's think:","Student: Given the sentence ""A man in a red shirt holds a beer can and hammers while a man in a white shirt looks on."" is it true that ""The man has a beer can.""?.
+",Teacher: Let's think:,,,,,,,,,
+"OpenOrca100k Response, random sampling","For example, they published ""On the summability of Fourier series,"" two papers: ""On a theorem of Hahn-Steinhaus"" and ""On a theorem of Paley and Wiener,"" as well as ""On the theory of linear integral equations.""
+","For example, they published ""On the summability of Fourier series,"" two papers: ""On a theorem of Hahn-Steinhaus"" and ""On a theorem of Paley and Wiener,"" as well as ""On the theory of linear integral equations.""",,,,,,,,,,
+"OpenOrca100k Response, random sampling","Based on the given movie plot, here's a question to generate: How does Captain Chuck Yeager overcome his physical injury to successfully break the sound barrier in the X-1, and what role does his friend Jack Ridley play in assisting him to achieve this milestone?","Based on the given movie plot, here's a question to generate:","How does Captain Chuck Yeager overcome his physical injury to successfully break the sound barrier in the X-1, and what role does his friend Jack Ridley play in assisting him to achieve this milestone?",,,,,,,,,
+"OpenOrca100k Response, random sampling","Yes, the claim above is correct and can be verified by human common sense without a web search.
+
+Chain of thought and solution for this question is:
+
+1. Eurovision Song Contest is an international song competition that has been held annually since 1956. It is a well-known and well-established event.
+2. In order for the event to be broadcasted and enjoyed by millions of viewers, songs performed by the participating countries must be used legally, ensuring no copyright infringement.
+3. It is common sense that the organizers of such a high-profile event would be diligent in obtaining the proper permissions, licenses, and agreements from the songwriters, composers, and other rights holders of the music performed to avoid legal complications and ensure the event runs smoothly.
+4. Thus, based on this understanding, the claim that Eurovision Song Contest acquired permission to use songs for its broadcast can be deemed accurate.
+","Yes, the claim above is correct and can be verified by human common sense without a web search.
+
+Chain of thought and solution for this question is:","1. Eurovision Song Contest is an international song competition that has been held annually since 1956. It is a well-known and well-established event.
+","2. In order for the event to be broadcasted and enjoyed by millions of viewers, songs performed by the participating countries must be used legally, ensuring no copyright infringement.
+3. It is common sense that the organizers of such a high-profile event would be diligent in obtaining the proper permissions, licenses, and agreements from the songwriters, composers, and other rights holders of the music performed to avoid legal complications and ensure the event runs smoothly.
+4. Thus, based on this understanding, the claim that Eurovision Song Contest acquired permission to use songs for its broadcast can be deemed accurate.
+",,,,,,,,
+"OpenOrca100k Response, random sampling","To determine the best explanation for the wedding's budget, I will analyze the cost-related details mentioned in the passage.
+
+1. Tacky decorations from Oriental Trading: This indicates that the wedding decorations were inexpensive and low-cost.
+2. Reception held at the community center: Hosting a wedding at a community center is usually more affordable than renting a private venue.
+3. Reception lasting for 45 minutes with punch and snacks: This is a short duration for a reception, and only serving punch, mixed nuts, and mints suggests cost-saving measures were taken with regard to food and beverages.
+4. A non-alcoholic toast: Not serving alcohol also reduces the expenses associated with the wedding.
+5. Guests watch the bride and groom open their presents: This might indicate the lack of professional entertainment at the event, which can be an expense.
+
+After examining the factors listed above, it is clear that the wedding's budget was likely limited or lower than average. The cost-saving measures, such as purchasing inexpensive decorations, having the reception at a community center, serving simple snacks and non-alcoholic beverages, and having no professional entertainment, indicate that the couple had a frugal or limited budget for their wedding.","To determine the best explanation for the wedding's budget, I will analyze the cost-related details mentioned in the passage.
+","1. Tacky decorations from Oriental Trading: This indicates that the wedding decorations were inexpensive and low-cost.
+2. Reception held at the community center: Hosting a wedding at a community center is usually more affordable than renting a private venue.
+","3. Reception lasting for 45 minutes with punch and snacks: This is a short duration for a reception, and only serving punch, mixed nuts, and mints suggests cost-saving measures were taken with regard to food and beverages.
+4. A non-alcoholic toast: Not serving alcohol also reduces the expenses associated with the wedding.
+5. Guests watch the bride and groom open their presents: This might indicate the lack of professional entertainment at the event, which can be an expense.","After examining the factors listed above, it is clear that the wedding's budget was likely limited or lower than average. The cost-saving measures, such as purchasing inexpensive decorations, having the reception at a community center, serving simple snacks and non-alcoholic beverages, and having no professional entertainment, indicate that the couple had a frugal or limited budget for their wedding.",,,,,,,
+"OpenOrca100k Response, random sampling","Sure, sweetie, let's break this sentence down, just like we break down a toy to see what's inside. The sentence says some things about a place called 'Blue Spice'. We're told what it is, where it is, and how much it might cost to eat there. If we want to write this down in a really neat and easy way, we might do it like this:
+
+{
+  ""name"": ""Blue Spice"",
+  ""type"": ""restaurant"",
+  ""priceRange"": ""more than £30"",
+  ""area"": ""riverside""
+}
+
+This looks a little strange, doesn't it? But all it does is give each piece of information a label, like putting a toy in the right box. ""name"" tells us the place is called Blue Spice, ""type"" tells us it's a restaurant, ""priceRange"" tells us it might be a bit expensive, and ""area"" tells us it's by the riverside. Together, these create a picture about 'Blue Spice' without making it confusing.","Sure, sweetie, let's break this sentence down, just like we break down a toy to see what's inside. The sentence says some things about a place called 'Blue Spice'. We're told what it is, where it is, and how much it might cost to eat there. If we want to write this down in a really neat and easy way, we might do it like this:","{
+  ""name"": ""Blue Spice"",
+  ""type"": ""restaurant"",
+  ""priceRange"": ""more than £30"",
+  ""area"": ""riverside""
+}
+","This looks a little strange, doesn't it? But all it does is give each piece of information a label, like putting a toy in the right box. ""name"" tells us the place is called Blue Spice, ""type"" tells us it's a restaurant, ""priceRange"" tells us it might be a bit expensive, and ""area"" tells us it's by the riverside. Together, these create a picture about 'Blue Spice' without making it confusing.",,,,,,,,
+"OpenOrca100k Response, random sampling","He is a failure in physics
+","He is a failure in physics
+",,,,,,,,,,
+"OpenOrca100k Response, random sampling","The text is mainly about D) the opinions on health risk of volcanic ash.
+
+The passage presents different perspectives from the World Health Organization (WHO) and other experts on the potential health risks associated with exposure to volcanic ash from Iceland's volcano. The WHO warns that the ash, if inhaled, can cause breathing problems and recommends staying indoors or wearing a mask outdoors as the ash starts to settle in some areas. However, other experts, like Ken Donaldson and Dr. Stephen Spiro, argue that the health effects of volcanic ash are often minimal and do not warrant such precautions, especially when compared to other pollutants like cigarette smoke and pollution. They emphasize that not all particles are equally harmful, and the risks of exposure decrease as the particles travel farther away from the source of the eruption. In fact, they consider the recommendations to wear masks or stay indoors as ""over the top"" and ""a bit hysterical.""",The text is mainly about D) the opinions on health risk of volcanic ash. ,"The passage presents different perspectives from the World Health Organization (WHO) and other experts on the potential health risks associated with exposure to volcanic ash from Iceland's volcano. The WHO warns that the ash, if inhaled, can cause breathing problems and recommends staying indoors or wearing a mask outdoors as the ash starts to settle in some areas. ","However, other experts, like Ken Donaldson and Dr. Stephen Spiro, argue that the health effects of volcanic ash are often minimal and do not warrant such precautions, especially when compared to other pollutants like cigarette smoke and pollution. They emphasize that not all particles are equally harmful, and the risks of exposure decrease as the particles travel farther away from the source of the eruption.","In fact, they consider the recommendations to wear masks or stay indoors as ""over the top"" and ""a bit hysterical.""",,,,,,,
+"OpenOrca100k Response, random sampling","Aromi is a family-friendly pub in the city centre where people can eat, but it has a low customer rating, which means not everyone likes it very much.
+",Aromi is a family-friendly pub in the city centre where people can eat,"it has a low customer rating, which means not everyone likes it very much",,,,,,,,,
+"OpenOrca100k Response, random sampling","Yes, the statement is true. The Porsche 911 is a high-performance luxury sports car known for its speed and agility. It can indeed move quickly down the highway, but the specific speed depends on the model, year, and the engine configuration.
+
+Typical Porsche 911 models are equipped with engines that produce power output in the range of 379 to 640 horsepower and subsequently provide impressive performance numbers. For instance, the 2022 Porsche 911 Carrera model has a top speed of approximately 182 miles per hour (mph) or 293 kilometers per hour (km/h), while the more powerful 2022 Porsche 911 GT2 RS can reach a top speed of around 211 mph or 340 km/h.
+
+These top speeds and acceleration times make the Porsche 911 one of the quickest cars on the road. However, public roads have speed limits, and it's important to obey traffic laws and prioritize safety while driving.
+","Yes, the statement is true.","The Porsche 911 is a high-performance luxury sports car known for its speed and agility. It can indeed move quickly down the highway, but the specific speed depends on the model, year, and the engine configuration.","Typical Porsche 911 models are equipped with engines that produce power output in the range of 379 to 640 horsepower and subsequently provide impressive performance numbers. For instance, the 2022 Porsche 911 Carrera model has a top speed of approximately 182 miles per hour (mph) or 293 kilometers per hour (km/h), while the more powerful 2022 Porsche 911 GT2 RS can reach a top speed of around 211 mph or 340 km/h.
+
+These top speeds and acceleration times make the Porsche 911 one of the quickest cars on the road.","However, public roads have speed limits, and it's important to obey traffic laws and prioritize safety while driving.",,,,,,,
+"OpenOrca100k Response, random sampling","The War of 1812 was a military conflict fought between the United States of America and the British Empire, specifically, the British North American colonies, which later became modern-day Canada. The conflict took place between June 1812 and February 1815, and although it originated due to trade issues and political tensions, it significantly impacted the nations involved, their territories, and the indigenous populations in the region.
+
+The primary parties involved in the War of 1812 include:
+
+1. United States of America: The U.S. was a young and growing nation at the beginning of the 19th century, seeking to assert its sovereignty, protect its international trade rights, and possibly expand its territories. It declared war on Britain because of various grievances, including Britain's attempts to restrict U.S. trade, the impressment of American sailors into the British Royal Navy, and Britain's support of Native American tribes against American expansion.
+
+2. British Empire (Britain and British North American Colonies): Britain was, at that time, engaged in the Napoleonic Wars with France, and its primary concern was its ongoing conflict on the European continent. However, it maintained a presence in North America, especially in the British North American colonies, which later became Canada. The colonies included Upper Canada (now Ontario), Lower Canada (now Quebec), Nova Scotia, and New Brunswick, among others. British forces in North America had to defend their territories from the Americans and maintain control over the lucrative fur trade, which required the support of indigenous tribes in the region.
+
+3. Native American Tribes: Several Native American tribes sided with the British during the War of 1812. They did so primarily because they hoped to create a Native American buffer state between the United States and Canada, which would protect their lands from American expansion. Key tribes that fought alongside the British included the Shawnee, led by Tecumseh, the Creek, the Ojibwa, the Ottawa, and the Wyandot. Throughout the war, they engaged in several battles against American forces.
+
+The War of 1812 included various theaters of conflict, such as land battles on the U.S.-Canada border, naval battles on the Great Lakes and the Atlantic Ocean, and military engagements in the American South. Notable battles include the Battle of Queenston Heights, the Burning of Washington, the Battle of Baltimore, the Battle of New Orleans, and the Battle of Lake Erie.
+
+The war concluded with the signing of the Treaty of Ghent in December 1814, which essentially restored the status quo ante bellum (the state of affairs before the war). Neither the British nor the Americans gained or lost significant territories, and many of the issues that led to the war, such as trade restrictions and impressment, were resolved or faded away as the global context changed with the end of the Napoleonic Wars.
+
+In summary, in the War of 1812, the United States of America fought against the British Empire (Britain and its North American colonies, including present-day Canada) and various Native American tribes. The conflict stemmed from unresolved tensions over trade, territorial disputes, and perceived British support for Native American resistance against American expansion.","The War of 1812 was a military conflict fought between the United States of America and the British Empire, specifically, the British North American colonies, which later became modern-day Canada. The conflict took place between June 1812 and February 1815, and although it originated due to trade issues and political tensions, it significantly impacted the nations involved, their territories, and the indigenous populations in the region.",The primary parties involved in the War of 1812 include:,"1. United States of America: The U.S. was a young and growing nation at the beginning of the 19th century, seeking to assert its sovereignty, protect its international trade rights, and possibly expand its territories. It declared war on Britain because of various grievances, including Britain's attempts to restrict U.S. trade, the impressment of American sailors into the British Royal Navy, and Britain's support of Native American tribes against American expansion.","2. British Empire (Britain and British North American Colonies): Britain was, at that time, engaged in the Napoleonic Wars with France, and its primary concern was its ongoing conflict on the European continent. However, it maintained a presence in North America, especially in the British North American colonies, which later became Canada. The colonies included Upper Canada (now Ontario), Lower Canada (now Quebec), Nova Scotia, and New Brunswick, among others. British forces in North America had to defend their territories from the Americans and maintain control over the lucrative fur trade, which required the support of indigenous tribes in the region.","3. Native American Tribes: Several Native American tribes sided with the British during the War of 1812. They did so primarily because they hoped to create a Native American buffer state between the United States and Canada, which would protect their lands from American expansion. Key tribes that fought alongside the British included the Shawnee, led by Tecumseh, the Creek, the Ojibwa, the Ottawa, and the Wyandot. Throughout the war, they engaged in several battles against American forces.","The War of 1812 included various theaters of conflict, such as land battles on the U.S.-Canada border, naval battles on the Great Lakes and the Atlantic Ocean, and military engagements in the American South. Notable battles include the Battle of Queenston Heights, the Burning of Washington, the Battle of Baltimore, the Battle of New Orleans, and the Battle of Lake Erie.","The War of 1812 included various theaters of conflict, such as land battles on the U.S.-Canada border, naval battles on the Great Lakes and the Atlantic Ocean, and military engagements in the American South. Notable battles include the Battle of Queenston Heights, the Burning of Washington, the Battle of Baltimore, the Battle of New Orleans, and the Battle of Lake Erie.","In summary, in the War of 1812, the United States of America fought against the British Empire (Britain and its North American colonies, including present-day Canada) and various Native American tribes. The conflict stemmed from unresolved tensions over trade, territorial disputes, and perceived British support for Native American resistance against American expansion.",,,
+Lilac markdown docs,"## Create from Python
+
+Creating a concept can be done in a few lines of code from Python.
+
+First, we need an instance of the [](#DiskConceptDB) which will allow us to create and write a
+concept to disk.
+
+```python
+import lilac as ll
+
+db = ll.DiskConceptDB()
+```
+
+Creating a concept can be done with ""db.create"":
+
+```python
+db.create(namespace='test', name='test_concept')
+```
+
+Once the concept is created, we can add example data points to the concept:
+
+```python
+examples = [
+  ll.concepts.ExampleIn(label=False, text='The quick brown fox jumps over the lazy dog.'),
+  ll.concepts.ExampleIn(label=True, text='This product is amazing!'),
+  ll.concepts.ExampleIn(label=True, text='Thank you for your awesome work on this UI.')
+]
+db.edit('local', 'positive-product-reviews', ll.concepts.ConceptUpdate(insert=examples))
+```","## Create from Python
+
+Creating a concept can be done in a few lines of code from Python.","First, we need an instance of the [](#DiskConceptDB) which will allow us to create and write a
+concept to disk.
+","```python
+import lilac as ll
+
+db = ll.DiskConceptDB()
+```
+","Creating a concept can be done with ""db.create"":
+","```python
+db.create(namespace='test', name='test_concept')
+```
+","Once the concept is created, we can add example data points to the concept:
+","```python
+examples = [
+  ll.concepts.ExampleIn(label=False, text='The quick brown fox jumps over the lazy dog.'),
+  ll.concepts.ExampleIn(label=True, text='This product is amazing!'),
+  ll.concepts.ExampleIn(label=True, text='Thank you for your awesome work on this UI.')
+]
+db.edit('local', 'positive-product-reviews', ll.concepts.ConceptUpdate(insert=examples))
+```",,,,
+Lilac markdown docs,"## Queries
+
+Datasets have two top-level methods for querying:
+
+- [](#Dataset.select_rows): Select individual rows according to searches, filters, sorts, limits,
+  and offsets.
+- [](#Dataset.select_groups): Select groups and their counts. This is similar to the SQL
+  `GROUP BY feature COUNT(*)`. This method gives us a histogram of feature values and their counts,
+  with filters applied.
+
+### select_rows
+
+[](#Dataset.select_rows) will return individual rows, applying searches, filters, sorts, and limits.
+
+The result of `select_rows` is a [](#SelectRowsResult), a generator that yields an iterable of
+dictionaries for each row. We can also get the result as a Pandas Dataframe by calling
+[](#SelectRowsResult.df).
+
+Let's take a look at each parameter to `select_rows`.
+","## Queries
+
+Datasets have two top-level methods for querying:","- [](#Dataset.select_rows): Select individual rows according to searches, filters, sorts, limits,
+  and offsets.
+","- [](#Dataset.select_groups): Select groups and their counts. This is similar to the SQL
+  `GROUP BY feature COUNT(*)`. This method gives us a histogram of feature values and their counts,
+  with filters applied.",### select_rows,"[](#Dataset.select_rows) will return individual rows, applying searches, filters, sorts, and limits.","The result of `select_rows` is a [](#SelectRowsResult), a generator that yields an iterable of
+dictionaries for each row. We can also get the result as a Pandas Dataframe by calling
+[](#SelectRowsResult.df).
+
+Let's take a look at each parameter to `select_rows`.
+",,,,,
+Lilac markdown docs,"### Load a dataset
+
+To load a dataset from the UI, click the ""Add dataset"" button from the ""Getting Started"" homepage.
+
+<img src=""../_static/dataset/dataset_getting_started.png""></img>
+
+This will open the dataset loader UI:
+
+<img src=""../_static/dataset/dataset_load.png""></img>","### Load a dataset
+","To load a dataset from the UI, click the ""Add dataset"" button from the ""Getting Started"" homepage.
+","<img src=""../_static/dataset/dataset_getting_started.png""></img>",This will open the dataset loader UI:,"<img src=""../_static/dataset/dataset_load.png""></img>",,,,,,
+Lilac markdown docs,"# Introducing Lilac
+
+August 21, 2023 <br/> _Daniel Smilkov & Nikhil Thorat_
+
+Lilac is an **open-source** tool that enables AI practitioners to see and quantify their datasets.
+
+For an end-to-end example, see our [Quick Start](../getting_started/quickstart.md) guide.
+
+For a detailed documentation, [visit our website](https://lilacml.com/).
+
+<video loop muted autoplay controls src=""https://github-production-user-asset-6210df.s3.amazonaws.com/2294279/260771834-cb1378f8-92c1-4f2a-9524-ce5ddd8e0c53.mp4""></video>
+
+Lilac allows users to:
+
+- Browse datasets with unstructured data.
+- Enrich unstructured fields with structured metadata using
+  [Lilac Signals](https://lilacml.com/signals/signals.html), for instance **near-duplicate** and
+  **personal information detection**. Structured metadata allows us to compute statistics, find
+  problematic slices, and eventually measure _changes_ over time.
+- Create and refine **[Lilac Concepts](https://lilacml.com/concepts/concepts.html)** which are
+  customizable AI models that can be used to find and score text that matches a concept you may have
+  in your mind.
+- Download the results of the enrichment for downstream applications.
+
+Out of the box, Lilac comes with a set of generally useful **Signals** and **Concepts**, however
+this list is not exhaustive and we will continue to work with the OSS community to continue to add
+more useful enrichments.","# Introducing Lilac
+
+August 21, 2023 <br/> _Daniel Smilkov & Nikhil Thorat_","Lilac is an **open-source** tool that enables AI practitioners to see and quantify their datasets.
+","For an end-to-end example, see our [Quick Start](../getting_started/quickstart.md) guide.
+","For a detailed documentation, [visit our website](https://lilacml.com/).
+","<video loop muted autoplay controls src=""https://github-production-user-asset-6210df.s3.amazonaws.com/2294279/260771834-cb1378f8-92c1-4f2a-9524-ce5ddd8e0c53.mp4""></video>
+","Lilac allows users to:
+","- Browse datasets with unstructured data.
+","- Enrich unstructured fields with structured metadata using
+  [Lilac Signals](https://lilacml.com/signals/signals.html), for instance **near-duplicate** and
+  **personal information detection**. Structured metadata allows us to compute statistics, find
+  problematic slices, and eventually measure _changes_ over time.
+","- Create and refine **[Lilac Concepts](https://lilacml.com/concepts/concepts.html)** which are
+  customizable AI models that can be used to find and score text that matches a concept you may have
+  in your mind.
+","- Download the results of the enrichment for downstream applications.
+","Out of the box, Lilac comes with a set of generally useful **Signals** and **Concepts**, however
+this list is not exhaustive and we will continue to work with the OSS community to continue to add
+more useful enrichments."
+Lilac markdown docs,"# Installation
+
+Lilac is published on pip under [lilac](https://pypi.org/project/lilac/). You can install it with:
+
+```bash
+pip install lilac[all]
+```
+
+```{note}
+To skip optional dependencies, run `pip install lilac` instead. You will have to manually install any
+dependencies. For example to install GTE embedding, do `pip install lilac[gte]`.
+```
+
+To make sure the installation works, start a new lilac project:
+
+```{note}
+If this is a fresh virtual env, it might take a dozen seconds to see the initial output.
+```
+
+```bash
+❯ lilac start ~/my_project
+Lilac will create a project in `/Users/me/my-project`. Do you want to continue? (y/n): y
+
+INFO:     Started server process [33100]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:5432 (Press CTRL+C to quit)
+```
+
+This should start a web server at [http://localhost:5432](http://localhost:5432).
+
+To check the current version:
+
+```bash
+lilac version
+```","# Installation
+","Lilac is published on pip under [lilac](https://pypi.org/project/lilac/). You can install it with:
+","```bash
+pip install lilac[all]
+```
+","```{note}
+To skip optional dependencies, run `pip install lilac` instead. You will have to manually install any
+dependencies. For example to install GTE embedding, do `pip install lilac[gte]`.
+```","To make sure the installation works, start a new lilac project:
+","```{note}
+If this is a fresh virtual env, it might take a dozen seconds to see the initial output.
+```
+","```bash
+❯ lilac start ~/my_project
+Lilac will create a project in `/Users/me/my-project`. Do you want to continue? (y/n): y
+
+INFO:     Started server process [33100]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:5432 (Press CTRL+C to quit)
+```
+","This should start a web server at [http://localhost:5432](http://localhost:5432).
+","To check the current version:
+","```bash
+lilac version
+```",
+Lilac python code,"@click.command()
+@click.argument('project_dir', default='')
+@click.option(
+  '--host',
+  help='The host address where the web server will listen to.',
+  default='127.0.0.1',
+  type=str)
+@click.option('--port', help='The port number of the web-server', type=int, default=5432)
+@click.option(
+  '--load',
+  help='Load from the project config upon bootup.',
+  type=bool,
+  is_flag=True,
+  default=False)
+def start(project_dir: str, host: str, port: int, load: bool) -> None:
+  """"""Starts the Lilac web server.""""""
+  project_dir = project_dir_from_args(project_dir)
+  if not dir_is_project(project_dir):
+    value = str(
+      click.prompt(
+        f'Lilac will create a project in `{abspath(project_dir)}`. Do you want to continue? (y/n)',
+        type=str)).lower()
+    if value == 'n':
+      exit()
+
+  start_server(host=host, port=port, open=True, project_dir=project_dir, load=load)","@click.command()
+","@click.argument('project_dir', default='')
+","@click.option(
+  '--host',
+  help='The host address where the web server will listen to.',
+  default='127.0.0.1',
+  type=str)
+","@click.option('--port', help='The port number of the web-server', type=int, default=5432)
+","@click.option(
+  '--load',
+  help='Load from the project config upon bootup.',
+  type=bool,
+  is_flag=True,
+  default=False)
+","def start(project_dir: str, host: str, port: int, load: bool) -> None:
+  """"""Starts the Lilac web server.""""""
+","  project_dir = project_dir_from_args(project_dir)
+  if not dir_is_project(project_dir):
+    value = str(
+      click.prompt(
+        f'Lilac will create a project in `{abspath(project_dir)}`. Do you want to continue? (y/n)',
+        type=str)).lower()","    if value == 'n':
+      exit()
+","  start_server(host=host, port=port, open=True, project_dir=project_dir, load=load)","@click.command()
+@click.argument('project_dir', default='')
+@click.option(
+  '--host',
+  help='The host address where the web server will listen to.',
+  default='127.0.0.1',
+  type=str)
+@click.option('--port', help='The port number of the web-server', type=int, default=5432)
+@click.option(
+  '--load',
+  help='Load from the project config upon bootup.',
+  type=bool,
+  is_flag=True,
+  default=False)","def start(project_dir: str, host: str, port: int, load: bool) -> None:
+  """"""Starts the Lilac web server.""""""
+  project_dir = project_dir_from_args(project_dir)
+  if not dir_is_project(project_dir):
+    value = str(
+      click.prompt(
+        f'Lilac will create a project in `{abspath(project_dir)}`. Do you want to continue? (y/n)',
+        type=str)).lower()
+    if value == 'n':
+      exit()
+
+  start_server(host=host, port=port, open=True, project_dir=project_dir, load=load)"
+Lilac python code,"""""""Utils for transformer embeddings.""""""
+
+import functools
+from typing import TYPE_CHECKING, Optional
+
+from ..utils import log
+
+if TYPE_CHECKING:
+  from sentence_transformers import SentenceTransformer
+
+
+@functools.cache
+def _get_model(model_name: str, preferred_device: Optional[str]) -> 'SentenceTransformer':
+  try:
+    from sentence_transformers import SentenceTransformer
+  except ImportError:
+    raise ImportError('Could not import the ""sentence_transformers"" python package. '
+                      'Please install it with `pip install ""lilac[gte]"".')
+  return SentenceTransformer(model_name, device=preferred_device)
+
+
+def get_model(model_name: str,
+              optimal_batch_sizes: dict[str, int] = {}) -> tuple[int, 'SentenceTransformer']:
+  """"""Get a transformer model and the optimal batch size for it.""""""
+  try:
+    import torch.backends.mps
+  except ImportError:
+    raise ImportError('Could not import the ""sentence_transformers"" python package. '
+                      'Please install it with `pip install ""lilac[gte]"".')
+  preferred_device: Optional[str] = None
+  if torch.backends.mps.is_available():
+    preferred_device = 'mps'
+  elif not torch.backends.mps.is_built():
+    log('MPS not available because the current PyTorch install was not built with MPS enabled.')
+
+  batch_size = optimal_batch_sizes[preferred_device or '']
+  return batch_size, _get_model(model_name, preferred_device)","""""""Utils for transformer embeddings.""""""
+","import functools
+from typing import TYPE_CHECKING, Optional
+
+from ..utils import log
+","if TYPE_CHECKING:
+  from sentence_transformers import SentenceTransformer
+","@functools.cache
+def _get_model(model_name: str, preferred_device: Optional[str]) -> 'SentenceTransformer':
+  try:
+    from sentence_transformers import SentenceTransformer
+  except ImportError:
+    raise ImportError('Could not import the ""sentence_transformers"" python package. '
+                      'Please install it with `pip install ""lilac[gte]"".')
+  return SentenceTransformer(model_name, device=preferred_device)
+","def _get_model(model_name: str, preferred_device: Optional[str]) -> 'SentenceTransformer':
+","  try:
+    from sentence_transformers import SentenceTransformer
+  except ImportError:
+    raise ImportError('Could not import the ""sentence_transformers"" python package. '
+                      'Please install it with `pip install ""lilac[gte]"".')
+","  return SentenceTransformer(model_name, device=preferred_device)
+","def get_model(model_name: str,
+              optimal_batch_sizes: dict[str, int] = {}) -> tuple[int, 'SentenceTransformer']:
+  """"""Get a transformer model and the optimal batch size for it.""""""
+","  try:
+    import torch.backends.mps
+  except ImportError:
+    raise ImportError('Could not import the ""sentence_transformers"" python package. '
+                      'Please install it with `pip install ""lilac[gte]"".')
+","  preferred_device: Optional[str] = None
+  if torch.backends.mps.is_available():
+    preferred_device = 'mps'
+  elif not torch.backends.mps.is_built():
+    log('MPS not available because the current PyTorch install was not built with MPS enabled.')
+","  batch_size = optimal_batch_sizes[preferred_device or '']
+  return batch_size, _get_model(model_name, preferred_device)
+"
+Lilac python code,"class PandasSource(Source):
+  """"""Pandas source.""""""
+  name: ClassVar[str] = 'pandas'
+
+  _df: Optional[pd.DataFrame] = None
+  _source_schema: SourceSchema
+
+  def __init__(self, df: Optional[pd.DataFrame] = None, **kwargs: Any):
+    super().__init__(**kwargs)
+    self._df = df
+
+  @override
+  def setup(self) -> None:
+    assert self._df is not None, 'df must be set.'
+    # Create the source schema in prepare to share it between process and source_schema.
+    self._source_schema = schema_from_df(self._df, PANDAS_INDEX_COLUMN)
+
+  @override
+  def source_schema(self) -> SourceSchema:
+    """"""Return the source schema.""""""
+    return self._source_schema
+
+  @override
+  def process(self) -> Iterable[Item]:
+    """"""Process the source.""""""
+    assert self._df is not None, 'df must be set.'
+    cols = self._df.columns.tolist()
+    yield from ({
+      PANDAS_INDEX_COLUMN: idx,
+      **dict(zip(cols, item_vals)),
+    } for idx, *item_vals in self._df.itertuples())","class PandasSource(Source):
+  """"""Pandas source.""""""
+","  name: ClassVar[str] = 'pandas'
+
+  _df: Optional[pd.DataFrame] = None
+  _source_schema: SourceSchema
+","  def __init__(self, df: Optional[pd.DataFrame] = None, **kwargs: Any):
+    super().__init__(**kwargs)
+    self._df = df
+","  @override
+  def setup(self) -> None:
+    assert self._df is not None, 'df must be set.'
+    # Create the source schema in prepare to share it between process and source_schema.
+    self._source_schema = schema_from_df(self._df, PANDAS_INDEX_COLUMN)
+","  @override
+  def source_schema(self) -> SourceSchema:
+    """"""Return the source schema.""""""
+    return self._source_schema
+","  @override
+  def process(self) -> Iterable[Item]:
+    """"""Process the source.""""""
+    assert self._df is not None, 'df must be set.'
+    cols = self._df.columns.tolist()
+    yield from ({
+      PANDAS_INDEX_COLUMN: idx,
+      **dict(zip(cols, item_vals)),
+    } for idx, *item_vals in self._df.itertuples())","    cols = self._df.columns.tolist()
+    yield from ({
+      PANDAS_INDEX_COLUMN: idx,
+      **dict(zip(cols, item_vals)),
+    } for idx, *item_vals in self._df.itertuples())",,,,

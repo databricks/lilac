@@ -1,13 +1,19 @@
 """Parquet source."""
-from typing import ClassVar, Iterable, Optional
+import random
+from typing import ClassVar, Iterable, Optional, cast
 
+import duckdb
 import pyarrow as pa
-import pyarrow.parquet as pq
-from pydantic import Field
+from pydantic import Field, ValidationInfo, field_validator
 from typing_extensions import override
 
-from ..schema import Item, arrow_schema_to_schema
+from ..schema import Item, Schema, arrow_schema_to_schema
 from ..source import Source, SourceSchema
+from ..sources.duckdb_utils import convert_path_to_duckdb, duckdb_setup
+from ..utils import download_http_files
+
+# Number of rows to read per batch.
+ROWS_PER_BATCH_READ = 50_000
 
 
 class ParquetSource(Source):
@@ -22,17 +28,86 @@ class ParquetSource(Source):
   filepaths: list[str] = Field(
     description=
     'A list of paths to parquet files which live locally or remotely on GCS, S3, or Hadoop.')
+  seed: Optional[int] = Field(description='Random seed for sampling', default=None)
+  sample_size: Optional[int] = Field(
+    title='Sample size', description='Number of rows to sample from the dataset', default=None)
+  approximate_shuffle: bool = Field(
+    default=False,
+    description='If true, the reader will read a fraction of rows from each shard, '
+    'avoiding a pass over the entire dataset.')
 
   _source_schema: Optional[SourceSchema] = None
-  _table: Optional[pa.Table] = None
+  _readers: list[pa.RecordBatchReader] = []
+  _con: Optional[duckdb.DuckDBPyConnection] = None
+
+  @field_validator('filepaths')
+  @classmethod
+  def validate_filepaths(cls, filepaths: list[str]) -> list[str]:
+    """Validate filepaths."""
+    if not filepaths:
+      raise ValueError('filepaths must be non-empty.')
+    return filepaths
+
+  @field_validator('sample_size')
+  @classmethod
+  def validate_sample_size(cls, sample_size: int) -> int:
+    """Validate sample size."""
+    if sample_size < 1:
+      raise ValueError('sample_size must be greater than 0.')
+    return sample_size
+
+  @field_validator('approximate_shuffle')
+  @classmethod
+  def validate_approximate_shuffle(cls, approximate_shuffle: bool, info: ValidationInfo) -> bool:
+    """Validate shuffle before sampling."""
+    if approximate_shuffle and not info.data['sample_size']:
+      raise ValueError('`approximate_shuffle` requires `sample_size` to be set.')
+    return approximate_shuffle
+
+  def _setup_sampling(self, duckdb_paths: list[str]) -> Schema:
+    assert self._con, 'setup() must be called first.'
+    if self.approximate_shuffle:
+      assert self.sample_size, 'approximate_shuffle requires sample_size to be set.'
+      # Find each individual file.
+      glob_rows: list[tuple[str]] = self._con.execute(
+        f'SELECT * FROM GLOB({duckdb_paths})').fetchall()
+      duckdb_files: list[str] = list(set([row[0] for row in glob_rows]))
+      batch_size = max(1, min(self.sample_size // len(duckdb_files), ROWS_PER_BATCH_READ))
+      for duckdb_file in duckdb_files:
+        # Since we are not fetching the entire results immediately, we need a seperate cursor
+        # for each file to avoid each cursor overwriting the previous one.
+        con = self._con.cursor()
+        duckdb_setup(con)
+        res = con.execute(f"""SELECT * FROM read_parquet('{duckdb_file}')""")
+        self._readers.append(res.fetch_record_batch(rows_per_batch=batch_size))
+    else:
+      sample_suffix = ''
+      if self.sample_size:
+        sample_suffix = f'USING SAMPLE {self.sample_size}'
+        if self.seed is not None:
+          sample_suffix += f' (reservoir, {self.seed})'
+      res = self._con.execute(f"""SELECT * FROM read_parquet({duckdb_paths}) {sample_suffix}""")
+      batch_size = ROWS_PER_BATCH_READ
+      if self.sample_size:
+        batch_size = min(self.sample_size, ROWS_PER_BATCH_READ)
+      self._readers.append(res.fetch_record_batch(rows_per_batch=batch_size))
+    return arrow_schema_to_schema(self._readers[0].schema)
 
   @override
   def setup(self) -> None:
-    assert self.filepaths, 'filepaths must be specified.'
-    self._table = pa.concat_tables([pq.read_table(f) for f in self.filepaths])
-    self._source_schema = SourceSchema(
-      fields=arrow_schema_to_schema(pq.read_schema(self.filepaths[0])).fields,
-      num_items=self._table.num_rows)
+    filepaths = download_http_files(self.filepaths)
+    self._con = duckdb.connect(database=':memory:')
+    duckdb_setup(self._con)
+
+    # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
+    duckdb_paths = [convert_path_to_duckdb(path) for path in filepaths]
+    res = self._con.execute(f'SELECT COUNT(*) FROM read_parquet({duckdb_paths})').fetchone()
+    num_items = cast(tuple[int], res)[0]
+    if self.sample_size:
+      self.sample_size = min(self.sample_size, num_items)
+      num_items = self.sample_size
+    schema = self._setup_sampling(duckdb_paths)
+    self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)
 
   @override
   def source_schema(self) -> SourceSchema:
@@ -43,6 +118,33 @@ class ParquetSource(Source):
   @override
   def process(self) -> Iterable[Item]:
     """Process the source."""
-    assert self._table is not None, 'setup() must be called first.'
-    for row in self._table.to_pylist():
-      yield row
+    assert self._con, 'setup() must be called first.'
+
+    items_yielded = 0
+    done = False
+
+    if self.seed is not None:
+      random.seed(self.seed)
+
+    while not done:
+      index = random.randint(0, len(self._readers) - 1)
+      reader = self._readers[index]
+      batch = None
+      try:
+        batch = reader.read_next_batch()
+      except StopIteration:
+        reader.close()
+        del self._readers[index]
+        if not self._readers:
+          done = True
+          break
+        continue
+      items = batch.to_pylist()
+      for item in items:
+        yield item
+        items_yielded += 1
+        if self.sample_size and items_yielded == self.sample_size:
+          done = True
+          break
+
+    self._con.close()

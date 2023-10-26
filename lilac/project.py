@@ -33,13 +33,15 @@ def init(project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
 
 
 def add_project_dataset_config(dataset_config: DatasetConfig,
-                               project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
+                               project_dir: Optional[Union[str, pathlib.Path]] = None,
+                               overwrite: bool = False) -> None:
   """Add a dataset to the project config.
 
   Args:
     dataset_config: The dataset configuration to load.
     project_dir: The path to the project directory for where to create the dataset. If not defined,
       uses the project directory from `LILAC_PROJECT_DIR` or [deprecated] `LILAC_DATA_PATH`.
+    overwrite: Whether to overwrite the dataset if it already exists.
   """
   project_dir = project_dir or get_project_dir()
   with PROJECT_CONFIG_LOCK:
@@ -47,10 +49,13 @@ def add_project_dataset_config(dataset_config: DatasetConfig,
     existing_dataset_config = get_dataset_config(config, dataset_config.namespace,
                                                  dataset_config.name)
     if existing_dataset_config is not None:
-      raise ValueError(
-        f'{dataset_config} has already been added. You can delete it with: \n\n'
-        f'dataset = get_dataset("{dataset_config.namespace}", "{dataset_config.name}")\n'
-        'dataset.delete()')
+      if overwrite:
+        config.datasets.remove(existing_dataset_config)
+      else:
+        raise ValueError(
+          f'{dataset_config} has already been added. You can delete it with: \n\n'
+          f'dataset = get_dataset("{dataset_config.namespace}", "{dataset_config.name}")\n'
+          'dataset.delete()')
 
     config.datasets.append(dataset_config)
     write_project_config(project_dir, config)

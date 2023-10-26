@@ -7,10 +7,8 @@ import pytest
 from pytest import approx
 from typing_extensions import override
 
-from lilac.concepts.concept import ExampleIn
-from lilac.concepts.db_concept import ConceptUpdate, DiskConceptDB
-from lilac.signals.concept_scorer import ConceptSignal
-
+from ..concepts.concept import ExampleIn
+from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   ROWID,
@@ -27,11 +25,11 @@ from ..schema import (
 from ..signal import (
   TextEmbeddingSignal,
   TextSignal,
-  TextSplitterSignal,
   VectorSignal,
   clear_signal_registry,
   register_signal,
 )
+from ..signals.concept_scorer import ConceptSignal
 from .dataset import BinaryFilterTuple, Column, SortOrder
 from .dataset_test_utils import TestDataMaker, enriched_item
 
@@ -298,9 +296,13 @@ def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
     dataset.select_rows(['text', signal_col])
 
 
-class TestSplitter(TextSplitterSignal):
+class TestSplitter(TextSignal):
   """Split documents into sentence by splitting on period."""
   name: ClassVar[str] = 'test_splitter'
+
+  @override
+  def fields(self) -> Field:
+    return field(fields=['string_span'])
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Item]:

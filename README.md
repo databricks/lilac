@@ -8,7 +8,7 @@
   <a href="https://lilacml.com/">
         <img alt="Site" src="https://img.shields.io/badge/Site-lilacml.com-ed2dd0?link=https%3A%2F%2Flilacml.com"/>
     </a>
-    <a href="https://dcbadge.vercel.app/api/server/jNzw9mC8pp?compact=true&style=flat">
+    <a href="https://discord.gg/jNzw9mC8pp">
         <img alt="Discord" src="https://img.shields.io/badge/Join-important.svg?color=ed2dd0&label=Discord&logo=slack" />
     </a>
     <a href="https://github.com/lilacai/lilac/blob/main/LICENSE">

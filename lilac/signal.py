@@ -67,7 +67,7 @@ class Signal(BaseModel):
       user: User information, if the user is logged in. This is useful if signals are access
       controlled, like concepts.
 
-    Returns
+    Returns:
       An iterable of items. Sparse signals should return "None" for skipped inputs.
     """
     raise NotImplementedError
@@ -112,15 +112,6 @@ def _args_key_from_dict(args_dict: dict[str, Any]) -> str:
 
   args = ','.join(args_list)
   return '' if not args_list else f'({args})'
-
-
-class TextSplitterSignal(Signal):
-  """An interface for signals that compute over text."""
-  input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
-
-  @override
-  def fields(self) -> Field:
-    return field(fields=['string_span'])
 
 
 # Signal base classes, used for inferring the dependency chain required for computing a signal.
@@ -193,7 +184,7 @@ class VectorSignal(Signal, abc.ABC):
       keys: An iterable of value ids (at row-level or lower) to lookup precomputed embeddings.
       vector_index: The vector index to lookup pre-computed embeddings.
 
-    Returns
+    Returns:
       An iterable of items. Sparse signals should return "None" for skipped inputs.
     """
     raise NotImplementedError
@@ -213,7 +204,7 @@ class VectorSignal(Signal, abc.ABC):
       vector_index: The vector index to lookup pre-computed embeddings.
       keys: Optional iterable of row ids to restrict the search to.
 
-    Returns
+    Returns:
       A list of (key, signal_output) tuples containing the `topk` items. Sparse signals should
       return "None" for skipped inputs.
     """

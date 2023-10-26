@@ -15,8 +15,8 @@
   <StructuredList>
     <StructuredListBody>
       <StructuredListRow>
-        <StructuredListCell>message</StructuredListCell>
-        <StructuredListCell>{error.message}</StructuredListCell>
+        <StructuredListCell>details</StructuredListCell>
+        <StructuredListCell class="whitespace-break-spaces">{error.body.detail}</StructuredListCell>
       </StructuredListRow>
       <StructuredListRow>
         <StructuredListCell>url</StructuredListCell>
@@ -37,10 +37,6 @@
         <StructuredListCell class="whitespace-pre"
           >{JSON.stringify(error.request.body, null, 2)}</StructuredListCell
         >
-      </StructuredListRow>
-      <StructuredListRow>
-        <StructuredListCell>details</StructuredListCell>
-        <StructuredListCell class="whitespace-break-spaces">{error.body.detail}</StructuredListCell>
       </StructuredListRow>
     </StructuredListBody>
   </StructuredList>

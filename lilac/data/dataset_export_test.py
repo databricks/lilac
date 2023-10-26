@@ -205,3 +205,50 @@ def test_label_and_export_by_excluding(make_test_data: TestDataMaker,
     },
     'text': 'c'
   }]
+
+
+def test_include_multiple_labels(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
+  dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}, {'text': 'd'}])
+  dataset.add_labels('good', ['2', '3'])
+  dataset.add_labels('very_good', ['3', '4'])
+
+  # Include good and very_good when we export.
+  filepath = tmp_path / 'dataset.json'
+  dataset.to_json(filepath, columns=['text'], include_labels=['good', 'very_good'])
+
+  with open(filepath) as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  parsed_items = sorted(parsed_items, key=lambda x: x['text'])
+  assert parsed_items == [{'text': 'b'}, {'text': 'c'}, {'text': 'd'}]
+
+
+def test_exclude_multiple_labels(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
+  dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}, {'text': 'd'}])
+  dataset.add_labels('bad', ['2'])
+  dataset.add_labels('very_bad', ['2', '3'])
+
+  # Include good and very_good when we export.
+  filepath = tmp_path / 'dataset.json'
+  dataset.to_json(filepath, columns=['text'], exclude_labels=['bad', 'very_bad'])
+
+  with open(filepath) as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  parsed_items = sorted(parsed_items, key=lambda x: x['text'])
+  assert parsed_items == [{'text': 'a'}, {'text': 'd'}]
+
+
+def test_exclude_trumps_include(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
+  dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}, {'text': 'd'}])
+  dataset.add_labels('good', ['2', '3', '4'])
+  dataset.add_labels('bad', ['3', '4'])
+
+  # Include good and very_good when we export.
+  filepath = tmp_path / 'dataset.json'
+  dataset.to_json(filepath, columns=['text'], include_labels=['good'], exclude_labels=['bad'])
+
+  with open(filepath) as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  assert parsed_items == [{'text': 'b'}]
