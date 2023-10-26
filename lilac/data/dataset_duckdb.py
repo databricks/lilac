@@ -1883,7 +1883,8 @@ class DatasetDuckDB(Dataset):
           if field.map is None:
             raise ValueError(f'{output_path} is not a map column so it cannot be overwritten.')
         else:
-          raise ValueError(f'Cannot map to path {output_path} which already exists in the dataset.')
+          raise ValueError(
+            f'Cannot map to path "{output_path}" which already exists in the dataset.')
     else:
       output_column = map_fn.__name__
 

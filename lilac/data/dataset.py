@@ -68,6 +68,9 @@ class SelectRowsResult:
   def __iter__(self) -> Iterator:
     return (row.to_dict() for _, row in self._df.iterrows())
 
+  def __next__(self) -> Item:
+    return self.__iter__().__next__()
+
   def df(self) -> pd.DataFrame:
     """Convert the result to a pandas DataFrame."""
     return self._df
