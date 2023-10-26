@@ -366,7 +366,8 @@ def lilac_span(start: int, end: int, metadata: dict[str, Any] = {}) -> Item:
 
 def lilac_embedding(start: int, end: int, embedding: Optional[np.ndarray]) -> Item:
   """Creates a lilac embedding item, representing a vector with a pointer to a slice of text."""
-  return lilac_span(start, end, {EMBEDDING_KEY: embedding})
+  # Cast to int; we've had issues where start/end were np.int64, which caused downstream sadness.
+  return lilac_span(int(start), int(end), {EMBEDDING_KEY: embedding})
 
 
 def _parse_field_like(field_like: object, dtype: Optional[Union[DataType, str]] = None) -> Field:
