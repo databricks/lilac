@@ -29,7 +29,7 @@ def main(staging: bool) -> None:
   if staging:
     run('firebase hosting:channel:deploy staging')
   else:
-    run('firebase deploy --only hosting:')
+    run('firebase deploy --only hosting')
 
   os.chdir('..')
 
