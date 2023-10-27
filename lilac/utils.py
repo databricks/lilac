@@ -107,9 +107,9 @@ def get_dataset_output_dir(project_dir: Union[str, pathlib.Path], namespace: str
   return os.path.join(get_datasets_dir(project_dir), namespace, dataset_name)
 
 
-def get_lilac_cache_dir(base_dir: Union[str, pathlib.Path]) -> str:
+def get_lilac_cache_dir(project_dir: Union[str, pathlib.Path]) -> str:
   """Return the output directory for a dataset."""
-  return os.path.join(base_dir, '.cache', 'lilac')
+  return os.path.join(project_dir, '.cache', 'lilac')
 
 
 class CopyRequest(BaseModel):

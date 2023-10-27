@@ -560,7 +560,7 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def map(
     self,
-    map_fn: Callable[[Item], Item],
+    map_fn: Callable[[Item], Optional[Item]],
     output_path: Optional[Path] = None,
     input_paths: Optional[Sequence[Path]] = None,
     overwrite: bool = False,

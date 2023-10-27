@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import yaml
+from datasets import fingerprint
 from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
@@ -81,7 +82,14 @@ from ..signals.filter_mask import FilterMaskSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
 from ..tasks import TaskStepId, progress
-from ..utils import DebugTimer, delete_file, get_dataset_output_dir, log, open_file
+from ..utils import (
+  DebugTimer,
+  delete_file,
+  get_dataset_output_dir,
+  get_lilac_cache_dir,
+  log,
+  open_file,
+)
 from . import dataset
 from .dataset import (
   BINARY_OPS,
@@ -1861,7 +1869,7 @@ class DatasetDuckDB(Dataset):
   @override
   def map(
     self,
-    map_fn: Callable[[Item], Item],
+    map_fn: Callable[[Item], Optional[Item]],
     output_path: Optional[Path] = None,
     input_paths: Optional[Sequence[Path]] = None,
     overwrite: bool = False,
@@ -1978,6 +1986,11 @@ class DatasetDuckDB(Dataset):
         task_step_id=task_step_id,
         estimated_len=manifest.num_items,
         step_description=f'Computing map over {input_paths}')
+
+    #map_hash = fingerprint.Hasher.hash(map_fn)
+    if output_path:
+      print('MAP CASCHE:',
+            _map_cache_filepath(self.project_dir, self.namespace, self.dataset_name, output_path))
 
     # Write the output rows to a temporary file to infer the schema from duckdb.
     fs = fsspec.filesystem('memory')
@@ -2194,10 +2207,16 @@ def _signal_dir(enriched_path: PathTuple) -> str:
   return os.path.join(*path_without_wildcards)
 
 
-def _map_dir(enriched_path: PathTuple) -> str:
-  """Get the filename prefix for a signal parquet file."""
-  path_without_wildcards = (p for p in enriched_path if p != PATH_WILDCARD)
-  return os.path.join(*path_without_wildcards)
+def _map_cache_filepath(project_dir: Union[str, pathlib.Path], namespace: str, dataset_name: str,
+                        output_path: Path) -> str:
+  """Get the filepath for a map function's cache file."""
+  filename = '.'.join(normalize_path(output_path))
+  return os.path.join(
+    get_lilac_cache_dir(project_dir),
+    namespace,
+    dataset_name,
+    f'{filename}.jsonl',
+  )
 
 
 def split_column_name(column: str, split_name: str) -> str:
