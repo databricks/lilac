@@ -67,7 +67,9 @@ class SelectRowsResult:
     self._next_iter: Optional[Iterator] = None
 
   def __iter__(self) -> Iterator:
-    return (row.to_dict() for _, row in self._df.iterrows())
+    # Replace NaT timestamps with Nones.
+    df = self._df.replace({pd.NaT: None})  # type: ignore
+    return (row.to_dict() for _, row in df.iterrows())
 
   def __next__(self) -> Item:
     if not self._next_iter:
