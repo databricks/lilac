@@ -677,8 +677,8 @@ class TopKSignal(VectorSignal):
       self,
       topk: int,
       vector_index: VectorDBIndex,
-      keys: Optional[Iterable[VectorKey]] = None) -> Sequence[tuple[VectorKey, Optional[Item]]]:
-    return vector_index.topk(self._query, topk, keys)
+      rowids: Optional[Iterable[str]] = None) -> Sequence[tuple[VectorKey, Optional[Item]]]:
+    return vector_index.topk(self._query, topk, rowids)
 
 
 def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:

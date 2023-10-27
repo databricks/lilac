@@ -77,7 +77,7 @@ class SemanticSimilaritySignal(VectorSignal):
       self,
       topk: int,
       vector_index: VectorDBIndex,
-      keys: Optional[Iterable[PathKey]] = None) -> list[tuple[PathKey, Optional[Item]]]:
+      rowids: Optional[Iterable[str]] = None) -> list[tuple[PathKey, Optional[Item]]]:
     query = self._get_search_embedding()
-    topk_keys = [key for key, _ in vector_index.topk(query, topk, keys)]
+    topk_keys = [key for key, _ in vector_index.topk(query, topk, rowids)]
     return list(zip(topk_keys, self.vector_compute(topk_keys, vector_index)))

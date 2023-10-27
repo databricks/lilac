@@ -2,7 +2,7 @@
   import {
     addLabelsMutation,
     queryDatasetSchema,
-    queryRowMetadata as queryRow,
+    queryRowMetadata,
     querySelectRowsSchema,
     removeLabelsMutation
   } from '$lib/queries/datasetQueries';
@@ -56,7 +56,13 @@
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
   $: rowQuery =
     $selectRowsSchema.data != null
-      ? queryRow(namespace, datasetName, rowId, selectOptions, $selectRowsSchema.data.schema)
+      ? queryRowMetadata(
+          namespace,
+          datasetName,
+          rowId,
+          selectOptions,
+          $selectRowsSchema.data.schema
+        )
       : null;
   $: row = $rowQuery?.data;
   $: rowLabels = row != null ? getRowLabels(row) : [];
