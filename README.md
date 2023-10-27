@@ -35,7 +35,9 @@ Lilac runs **on-device** using open-source LLMs with a UI and Python API for:
 - **Clustering** data semantically for understanding & deduplication
 - **Labeling** and **Bulk Labeling** to curate data
 
-https://github.com/lilacai/lilac/assets/2294279/cb1378f8-92c1-4f2a-9524-ce5ddd8e0c53
+### 3 minute walkthrough
+
+[![Lilac: 3 minute walkthrough](https://i.ytimg.com/vi/RrcvVC3VYzQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=RrcvVC3VYzQ)
 
 ## 🔥 Getting started
 

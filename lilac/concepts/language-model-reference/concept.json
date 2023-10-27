@@ -1,0 +1,202 @@
+{
+  "namespace": "lilac",
+  "concept_name": "language-model-reference",
+  "type": "text",
+  "data": {
+    "8cfd409ca603415cba0d5b23d9b7e8d3": {
+      "label": true,
+      "text": "As a language model I am unable to talk about politics.",
+      "id": "8cfd409ca603415cba0d5b23d9b7e8d3"
+    },
+    "c142895a7d70460db9b15fc885c5a975": {
+      "label": true,
+      "text": "Being a language model, I can't generate images.",
+      "id": "c142895a7d70460db9b15fc885c5a975"
+    },
+    "d497214b75e84073b9ad37256d224f84": {
+      "label": false,
+      "text": "Bees fly using a different mechanism from airplanes.",
+      "id": "d497214b75e84073b9ad37256d224f84"
+    },
+    "c9cdf2a9d2514ba4bfa294e84e0e9ff7": {
+      "label": false,
+      "text": "If Charles' left wing, commanded by Nauendorf, united with Hotze's force, approaching from the east, Masséna would prepare for Charles to attack and very likely push him out of Zürich.",
+      "id": "c9cdf2a9d2514ba4bfa294e84e0e9ff7"
+    },
+    "32dfd6fb72984acab3927889f8bdc152": {
+      "label": false,
+      "text": "Thought this was super cool, and a really important step in the preservation of all the physical books.",
+      "id": "32dfd6fb72984acab3927889f8bdc152"
+    },
+    "0d32c40c2a5940a79bf7355b13025704": {
+      "label": false,
+      "text": "I couldn’t bring myself to throw it away, not out of affection to her, but rather the fondness of all the memories surrounding that time period.",
+      "id": "0d32c40c2a5940a79bf7355b13025704"
+    },
+    "a7de1f22f0724430950df63604613eab": {
+      "label": false,
+      "text": "After quoting Abraham Lincoln, he portrayed the American public's violent tendencies as undermining its national ideals.",
+      "id": "a7de1f22f0724430950df63604613eab"
+    },
+    "bcbc8e2ed8ca4075a1ff1fef574ebadc": {
+      "label": false,
+      "text": "Some dogs like to scratch their ears.",
+      "id": "bcbc8e2ed8ca4075a1ff1fef574ebadc"
+    },
+    "b25f023ec2d04dc2a840838891b372e4": {
+      "label": false,
+      "text": "I couldn’t bring myself to throw it away, out of affection to her.",
+      "id": "b25f023ec2d04dc2a840838891b372e4"
+    },
+    "e47d208ebe1044c3a0c6907b8635e8a9": {
+      "label": false,
+      "text": "Notorious B.I.G. passed away.",
+      "id": "e47d208ebe1044c3a0c6907b8635e8a9"
+    },
+    "d290e62e8b1a44beb54d54d5d846f501": {
+      "label": false,
+      "text": "Putin is so entrenched within Russia’s ruling system that many of its members can imagine no other leader than themselves.",
+      "id": "d290e62e8b1a44beb54d54d5d846f501"
+    },
+    "b485dda6be3a43ada43a929dd6ff8646": {
+      "label": false,
+      "text": "Missouri lawmakers are considering a government boycott of companies that boycott Israel.",
+      "id": "b485dda6be3a43ada43a929dd6ff8646"
+    },
+    "ab4f851dfba94c40a4c71def4c6095fa": {
+      "label": false,
+      "text": "Part #4: Input sentence cannot have two languages at a time\nUsage: \"I love gå på promenader.\" This sentence does not meet the criterion because it mixes English (\"I love\") and Swedish (\"gå på promenader\") words together, while the task requires the input sentence to be in one language only.",
+      "id": "ab4f851dfba94c40a4c71def4c6095fa"
+    },
+    "035580033a4e4d2b8dfc2081f1d1a77f": {
+      "label": false,
+      "text": "The Eagles were behind by 14 points at the end of the first quarter. The Lions had taken a lead with two touchdowns by Theo Riddick which accumulated 14 points (7 points each, generally in American Football - 6 points for the touchdown and 1 point for the extra point conversion) and the Eagles had not yet scored any points. Thus, the difference in score between the two teams, i.e., the points by",
+      "id": "035580033a4e4d2b8dfc2081f1d1a77f"
+    },
+    "5ddc10e19efc4759910e6563f3269748": {
+      "label": true,
+      "text": "As an AI language model, I do not have the capability to make phone calls or provide spoken directions. Additionally, I am unable to provide context or conversation history as I do not have access to your previous interactions.",
+      "id": "5ddc10e19efc4759910e6563f3269748"
+    },
+    "7b6183436dc24598b7d12f9dd1557a6a": {
+      "label": true,
+      "text": "Note: As I am an AI language model and only provide information and guidelines in simple steps, I cannot perform the translation myself. However, I can provide you with steps on how to perform the task.",
+      "id": "7b6183436dc24598b7d12f9dd1557a6a"
+    },
+    "91c70b07ce3f46cc8603347faaabccf0": {
+      "label": false,
+      "text": "Next, I need to have a good understanding of Igbo language vocabulary to properly translate the English words into their corresponding Igbo words.",
+      "id": "91c70b07ce3f46cc8603347faaabccf0"
+    },
+    "ddaf310ff0674cf1815e73dbbdd2e115": {
+      "label": false,
+      "text": "contextual responses, and interact with users efficiently. I do not have a specific individual, nor a group of people, who transcribe text for me; it is all done through machine learning and artificial intelligence.",
+      "id": "ddaf310ff0674cf1815e73dbbdd2e115"
+    },
+    "986c7fe8119345cfbef1b1cde84c5685": {
+      "label": false,
+      "text": "Note: As I am not capable to translate into Gujarati, I am unable to provide the output for this task.",
+      "id": "986c7fe8119345cfbef1b1cde84c5685"
+    },
+    "b2a9fe2b0bbf4f418bcd71d1d934dad6": {
+      "label": true,
+      "text": "As an AI language model, I do not experience the concept of being busy. My purpose is to assist and respond to user inquiries promptly and efficiently. If you have any questions or require assistance, feel free to ask, and I will gladly help you.",
+      "id": "b2a9fe2b0bbf4f418bcd71d1d934dad6"
+    },
+    "04c1e222755842c98d471de6aab25678": {
+      "label": false,
+      "text": "The translated sentence in Spanish is: \"Soy un asistente de inteligencia artificial.\"\n\nI have chosen Spanish and created a sentence with the message \"I am an AI assistant\" in that language. The translation is accurate and the meaning of the sentence remains consistent with the intended message.",
+      "id": "04c1e222755842c98d471de6aab25678"
+    },
+    "1f3a417e5336406586f868967f1d61f1": {
+      "label": true,
+      "text": "As an AI language model, I am not able to browse the internet and provide real-time information. However, if you provide me with the necessary context or background about Vicente Henriques, I will be happy to help to the best of my capabilities.",
+      "id": "1f3a417e5336406586f868967f1d61f1"
+    },
+    "6613c8faafc6446bb02c8966429ec4fa": {
+      "label": true,
+      "text": "As an AI language model, I do not have the capability to make phone calls or provide spoken directions. Additionally, I am unable to provide context or conversation history as I do not have access to your previous interactions.",
+      "id": "6613c8faafc6446bb02c8966429ec4fa"
+    },
+    "c2303e5d879b44bb8dec98ef5f16b9aa": {
+      "label": false,
+      "text": "Step 3: Answer the questions based on the available knowledge\nSince I'm unable to access real-time information, I'll provide answers based on my general knowledge of SEO and its significance in a growing market like India.",
+      "id": "c2303e5d879b44bb8dec98ef5f16b9aa"
+    },
+    "b347443762ab4bd085c7019ee4c397df": {
+      "label": false,
+      "text": "In the end, the film becomes a symbol of the power of friendship, determination, and the importance of supporting our loved ones' dreams.",
+      "id": "b347443762ab4bd085c7019ee4c397df"
+    },
+    "b1a8d553a3f14344aa5b6cd1b5ef644a": {
+      "label": false,
+      "text": "There is no information provided about the languages spoken or written by any of the mentioned subjects or objects.",
+      "id": "b1a8d553a3f14344aa5b6cd1b5ef644a"
+    },
+    "71d387d272414056af859c655adcf59f": {
+      "label": false,
+      "text": "3. Integrate the model into the project: Next, integrate the trained AI model into the smart home project. You can use Firebase Functions or Cloud Run to deploy the model as a REST API. The API can be called from Flutter or Arduino to get predictions or perform actions based on the AI model's output.",
+      "id": "71d387d272414056af859c655adcf59f"
+    },
+    "36e8528c47c5483d854d42ed7e9fc968": {
+      "label": true,
+      "text": "I apologize for the repeated instruction. As an AI language model, I do not have the ability to remember previous interactions. ",
+      "id": "36e8528c47c5483d854d42ed7e9fc968"
+    },
+    "12067f10409c452b99e22664bd2c2097": {
+      "label": true,
+      "text": "As an AI language model, I don't have any needs or requirements. I am here to assist you with any task or question you may have. If you have any further questions or need any additional assistance, please let me know.<|im_end|>",
+      "id": "12067f10409c452b99e22664bd2c2097"
+    },
+    "1840ffd25a074aa0aac23b6f0be48044": {
+      "label": true,
+      "text": "As an AI language model, my purpose is to assist and provide value while prioritizing ethical guidelines.",
+      "id": "1840ffd25a074aa0aac23b6f0be48044"
+    },
+    "642b95a25d2145d187c86d7266e98fe7": {
+      "label": false,
+      "text": " Therefore, I will not be able to provide a recent answer or perform real-time tasks for you.",
+      "id": "642b95a25d2145d187c86d7266e98fe7"
+    },
+    "c5a18003d17c4ccb8219ed9e630a315a": {
+      "label": true,
+      "text": "As an AI, I don't have the ability to access specific real-life information or events in real-time.",
+      "id": "c5a18003d17c4ccb8219ed9e630a315a"
+    },
+    "70c9e001331c4f5f9be0195f83c3bba7": {
+      "label": true,
+      "text": "As an AI, I don't have real-time access to all information.",
+      "id": "70c9e001331c4f5f9be0195f83c3bba7"
+    },
+    "147efc69a58d466fb9e06bbbedbd0711": {
+      "label": true,
+      "text": "As an AI, I don't have personal emotions or preferences, so I don't \"like\" anything or play games myself.",
+      "id": "147efc69a58d466fb9e06bbbedbd0711"
+    },
+    "85bdad747b3d4059896ff86f713ba426": {
+      "label": true,
+      "text": " I intend to follow ethical guidelines for AI, which include avoiding spreading negativity or engaging in any interactions that may promote harm or discontent.",
+      "id": "85bdad747b3d4059896ff86f713ba426"
+    },
+    "4660ca811daa435f9ee6aeda338963a3": {
+      "label": true,
+      "text": "As an AI language model, I cannot provide current or real-time information.",
+      "id": "4660ca811daa435f9ee6aeda338963a3"
+    },
+    "4793ce652ea041db9172ea845fe6e17d": {
+      "label": true,
+      "text": "As an AI language model, I don't have personal opinions or emotions.",
+      "id": "4793ce652ea041db9172ea845fe6e17d"
+    },
+    "f1f37c350b004eeab95cdc0fe14651a1": {
+      "label": false,
+      "text": "The fast cheetah quickly sprinted across the sunlit savannah, skillfully capturing its prey with incredible precision and strength.\"",
+      "id": "f1f37c350b004eeab95cdc0fe14651a1"
+    }
+  },
+  "version": 41,
+  "metadata": {
+    "is_public": true,
+    "description": "Text where a language model references itself, e.g. \"As a language model...\""
+  }
+}
