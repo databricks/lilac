@@ -92,6 +92,9 @@ git push origin main
 echo "Tagging with $TAG_ID..."
 git tag "$TAG_ID" && git push --tags
 
+# Sleep for 2 seconds because the release script fails if the tag is not found.
+sleep 2
+
 # Create the release with auto-generated release notes.
 echo "Creating release..."
 gh release create "$TAG_ID" ./dist/*.whl \

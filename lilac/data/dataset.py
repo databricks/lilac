@@ -6,7 +6,7 @@ import enum
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, Callable, ClassVar, Iterator, Literal, Optional, Sequence, Union
+from typing import Any, Callable, ClassVar, Iterable, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
 from pydantic import (
@@ -64,9 +64,19 @@ class SelectRowsResult:
     """Initialize the result."""
     self._df = df
     self.total_num_rows = total_num_rows
+    self._next_iter: Optional[Iterator] = None
 
   def __iter__(self) -> Iterator:
     return (row.to_dict() for _, row in self._df.iterrows())
+
+  def __next__(self) -> Item:
+    if not self._next_iter:
+      self._next_iter = self.__iter__()
+    try:
+      return next(self._next_iter)
+    except StopIteration:
+      self._next_iter = None
+      raise
 
   def df(self) -> pd.DataFrame:
     """Convert the result to a pandas DataFrame."""
@@ -548,26 +558,35 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def map(self,
-          map_fn: Callable[[Item], Item],
-          output_path: Path,
-          input_paths: Optional[Sequence[Path]] = None,
-          combine_columns: bool = False,
-          resolve_span: bool = False,
-          task_step_id: Optional[TaskStepId] = None) -> None:
+  def map(
+    self,
+    map_fn: Callable[[Item], Item],
+    output_path: Optional[Path] = None,
+    input_paths: Optional[Sequence[Path]] = None,
+    overwrite: bool = False,
+    combine_columns: bool = False,
+    resolve_span: bool = False,
+    task_step_id: Optional[TaskStepId] = None,
+  ) -> Iterable[Item]:
     """Maps a function over all rows in the dataset and writes the result to a new column.
 
     Args:
       map_fn: A callable that takes a full row item dictionary, and returns an Item for the
         result. The result Item can be a primitive, like a string.
-      output_path: The output path to write the resulting column to.
+      output_path: The output path to write the resulting column to. If not defined, does not
+        serialize the output to disk, and returns the result as an iterator.
       input_paths: The input_paths to select. When not defined, selects all paths.
+      overwrite: Set to true to overwrite this column if it already exists. If this bit is False,
+        an error will be thrown if the column already exists.
       combine_columns: When true, the row passed to the map function will be a deeply nested object
         reflecting the hierarchy of the data. When false, all columns will be flattened as top-level
         fields.
       resolve_span: Whether to resolve the spans into text before calling the map function.
-      task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
-        progress of the task.
+      task_step_id: The task step id if this is running in a task.
+
+    Returns:
+      An iterable of items that are the result of map. The result item does not have the column name
+      as part of the dictionary, it is exactly what is returned from the map.
     """
     pass
 

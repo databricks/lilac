@@ -1,6 +1,6 @@
 """Registers all available default signals."""
 from ..embeddings.cohere import Cohere
-from ..embeddings.gte import GTEBase, GTESmall
+from ..embeddings.gte import GTEBase, GTESmall, GTETiny
 from ..embeddings.openai import OpenAI
 from ..embeddings.palm import PaLM
 from ..embeddings.sbert import SBERT
@@ -34,5 +34,6 @@ def register_default_signals() -> None:
   register_signal(SBERT)
   register_signal(OpenAI)
   register_signal(PaLM)
+  register_signal(GTETiny)
   register_signal(GTESmall)
   register_signal(GTEBase)

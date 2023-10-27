@@ -114,6 +114,122 @@ def test_map(make_test_data: TestDataMaker) -> None:
 
 
 @freeze_time(TEST_TIME)
+def test_map_overwrite(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    'text': 'a',
+  }, {
+    'text': 'b',
+  }])
+
+  prefix = '0'
+
+  def _map_fn(row: Item) -> Item:
+    nonlocal prefix
+    return prefix + row['text']
+
+  # Write the output to a new column.
+  dataset.map(_map_fn, output_path='map_text', combine_columns=False)
+
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {
+      'text': 'a',
+      'map_text': '0a'
+    },
+    {
+      'text': 'b',
+      'map_text': '0b'
+    },
+  ]
+
+  with pytest.raises(ValueError, match=' which already exists in the dataset'):
+    dataset.map(_map_fn, output_path='map_text', combine_columns=False)
+
+  prefix = '1'
+  # Overwrite the output
+  dataset.map(_map_fn, output_path='map_text', combine_columns=False, overwrite=True)
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema({
+      'text': 'string',
+      'map_text': field(
+        dtype='string',
+        map=MapInfo(
+          fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME))
+    }),
+    num_items=2,
+    source=TestSource())
+
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {
+      'text': 'a',
+      'map_text': '1a'
+    },
+    {
+      'text': 'b',
+      'map_text': '1b'
+    },
+  ]
+
+
+@freeze_time(TEST_TIME)
+def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    'text': 'a sentence',
+  }, {
+    'text': 'b sentence',
+  }])
+
+  signal = TestFirstCharSignal()
+  dataset.compute_signal(signal, 'text')
+
+  def _map_fn(row: Item) -> Item:
+    return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
+
+  dataset.map(_map_fn, combine_columns=False)
+
+  # The manifest should contain no new columns.
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema({
+      'text': field(
+        'string',
+        fields={
+          'test_signal': field(
+            fields={
+              'len': 'int32',
+              'firstchar': 'string'
+            }, signal={'signal_name': 'test_signal'})
+        },
+      )
+    }),
+    num_items=2,
+    source=TestSource())
+
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {
+      'text': 'a sentence',
+      'text.test_signal': {
+        'firstchar': 'a',
+        'len': 10
+      },
+    },
+    {
+      'text': 'b sentence',
+      'text.test_signal': {
+        'firstchar': 'b',
+        'len': 10
+      },
+    },
+  ]
+
+
+@freeze_time(TEST_TIME)
 def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     'text': 'a sentence',

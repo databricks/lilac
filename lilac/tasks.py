@@ -36,10 +36,10 @@ from .utils import log, pretty_timedelta
 # Disable the heartbeats of the dask workers to avoid dying after computer goes to sleep.
 cfg.set({'distributed.scheduler.worker-ttl': None})
 
-TaskId = str
 # ID for the step of a task.
 TaskStepId = tuple[str, int]
-Task = Union[Callable[..., Any], Callable[..., Awaitable[Any]]]
+TaskFn = Union[Callable[..., Any], Callable[..., Awaitable[Any]]]
+TaskId = str
 
 
 class TaskStatus(str, Enum):
@@ -208,7 +208,7 @@ class TaskManager:
     log(f'Task completed "{task_id}": "{self._tasks[task_id].name}" in '
         f'{elapsed_formatted}.')
 
-  def execute(self, task_id: str, task: Task, *args: Any) -> None:
+  def execute(self, task_id: str, task: TaskFn, *args: Any) -> None:
     """Execute a task."""
     log(f'Scheduling task "{task_id}": "{self._tasks[task_id].name}".')
 
@@ -225,13 +225,22 @@ class TaskManager:
     await cast(Coroutine, self._dask_client.close())
 
 
+def get_is_dask_worker() -> bool:
+  """Returns True if the current process is a dask worker."""
+  try:
+    get_worker()
+    return True
+  except Exception:
+    return False
+
+
 @functools.cache
 def get_task_manager() -> TaskManager:
   """The global singleton for the task manager."""
   return TaskManager()
 
 
-def _execute_task(task: Task, task_info: TaskInfo, task_id: str, *args: Any) -> None:
+def _execute_task(task: TaskFn, task_info: TaskInfo, task_id: str, *args: Any) -> None:
   annotations = cast(dict, get_worker().state.tasks[task_id].annotations)
   annotations['task_info'] = task_info
   task(*args)
