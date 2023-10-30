@@ -2221,7 +2221,7 @@ protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.1 || >4.21.1,<4
 name = "grpcio"
 version = "1.59.0"
 description = "HTTP/2-based RPC framework"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "grpcio-1.59.0-cp310-cp310-linux_armv7l.whl", hash = "sha256:225e5fa61c35eeaebb4e7491cd2d768cd8eb6ed00f2664fa83a58f29418b39fd"},
@@ -3191,6 +3191,62 @@ files = [
 [package.dependencies]
 pydantic = ">=1,<3"
 requests = ">=2,<3"
+
+[[package]]
+name = "line-profiler"
+version = "4.1.1"
+description = "Line-by-line profiler"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "line_profiler-4.1.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:a33d728098af1c0d24a7d6cb121bf4627d423fcd6bc6759525df4b1713fcf7cb"},
+    {file = "line_profiler-4.1.1-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:832fb1b2fcec6f466d1b28456ea6bd5208784326202569631100b7281331ca3c"},
+    {file = "line_profiler-4.1.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:86851d76cbc3c74c6cb1685cb22802e75b61f8c1d5cf4c1e7c9f3d8c7a032053"},
+    {file = "line_profiler-4.1.1-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:99991e9af0b94aa41e3bf7745a21ea194076bd18640d63fdd6f2a535aaa030d0"},
+    {file = "line_profiler-4.1.1-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:b0707458ce16be63855c12f42790bef520ec9674a7373cbb2eec28e3c00dffeb"},
+    {file = "line_profiler-4.1.1-cp310-cp310-win_amd64.whl", hash = "sha256:1e750b1575e1e8c16da4a045ba4d566eb119a40b0a4ec9c4290cde6f7b2aa292"},
+    {file = "line_profiler-4.1.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:b46c0c4367077cb77187aca50ee79df1e09348d05dbf0a15341f50741101daa3"},
+    {file = "line_profiler-4.1.1-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:14944cf27c355f37e577d5c9a19192d9225766065fc3ea6bfc244ea10f6a4b9b"},
+    {file = "line_profiler-4.1.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:33c00f4740640aa729fe7118d0dd3c2b96af201c20afcbb5c5f71e1a3cfa10d8"},
+    {file = "line_profiler-4.1.1-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:e9712fcae893ada6217586e3a4d73eaf7a1146596bb9e8152c963413eeb06384"},
+    {file = "line_profiler-4.1.1-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:9f7fec0d06f96e963cc30647f65442e5264f31c80d0f60dcd4a059973bf24281"},
+    {file = "line_profiler-4.1.1-cp311-cp311-win_amd64.whl", hash = "sha256:521eae25a5629e30e3f93a1aedfd20e423352316af29ba1805f8a60fe2b8ec37"},
+    {file = "line_profiler-4.1.1-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:d89030daef504e4d329f9405e1aae5e1191d8bb51c2bb75f8842b2b910544521"},
+    {file = "line_profiler-4.1.1-cp36-cp36m-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:7cbaa08adac1df3b16440ed00b73645cba008355e6e36ffd44f114e91ae554f6"},
+    {file = "line_profiler-4.1.1-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b3e6c83a2a5cee7fb3b313141b3be12ff4eb1ba7ec31fb6739ac16a2f45cd001"},
+    {file = "line_profiler-4.1.1-cp36-cp36m-musllinux_1_1_i686.whl", hash = "sha256:6e9873556c851423c4ef112d5391b4d51b8e9f57f031d54a64687f36e17d5efd"},
+    {file = "line_profiler-4.1.1-cp36-cp36m-musllinux_1_1_x86_64.whl", hash = "sha256:b3ed8a4150f7005c477853a97e3d7d36359d0bbdf5992b22cc050eb2b915a9a0"},
+    {file = "line_profiler-4.1.1-cp36-cp36m-win_amd64.whl", hash = "sha256:d231d8ebda1c0daa8b5c9467932a30602855e6cec7d3e8bd1593a3be0f7e4764"},
+    {file = "line_profiler-4.1.1-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:b4d3b9026d2ee110a67b696783f5ad6c198d707701d563401a99d0dd386c5339"},
+    {file = "line_profiler-4.1.1-cp37-cp37m-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:dea7e688ede3bf1ab85fa71963847472ab5e88ca0d70d46ad5acdd788af584e0"},
+    {file = "line_profiler-4.1.1-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7f67eed9a168293b7ebc5082ec003b4f72c5bd16853a57188d1060e5b6bb2232"},
+    {file = "line_profiler-4.1.1-cp37-cp37m-musllinux_1_1_i686.whl", hash = "sha256:66288d7b28c65a647186d5127593041f4ffe9e78649bc4fc2b309d74d2ca6c1f"},
+    {file = "line_profiler-4.1.1-cp37-cp37m-musllinux_1_1_x86_64.whl", hash = "sha256:b987232d30f659591c978a40192e66f3815c9be8300cc927d264af9cd9eb73b8"},
+    {file = "line_profiler-4.1.1-cp37-cp37m-win_amd64.whl", hash = "sha256:7e37b62e47814081e36e33c9aee27c966e22ae4ac05b45515e45e5992d121698"},
+    {file = "line_profiler-4.1.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:93401ea36653105568824becebe21e2a3c0c3e14b671268692b0af979ffa3cda"},
+    {file = "line_profiler-4.1.1-cp38-cp38-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1c0f4953090cb280ea6ab3d1fe1b194c4233deb1ee13ce5dc7701b6351fc244f"},
+    {file = "line_profiler-4.1.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1ebea1e3a07f5f2925e6acc52007f041f173fe925b4876ce8c8b169620bf04f3"},
+    {file = "line_profiler-4.1.1-cp38-cp38-musllinux_1_1_i686.whl", hash = "sha256:508f5b6fd43047b0da2cf746f89b56064f23ac9040a1bdc258323634a1e17789"},
+    {file = "line_profiler-4.1.1-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:d161a6e34a8998cd7b94cd7e59c0501a4c06e32a9b0211125f03cbe7643c8142"},
+    {file = "line_profiler-4.1.1-cp38-cp38-win_amd64.whl", hash = "sha256:b432ab2424763103ab01cd7cd38d02de921530b05bc488240be587b29d64fa94"},
+    {file = "line_profiler-4.1.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:ec5850c0fdcd7d2b55065c4c3fa92578e0d1331d610431f19af99ed056ef53dd"},
+    {file = "line_profiler-4.1.1-cp39-cp39-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:afa938b78de445f418825017732d4d4ff7a04398c02b57b15803e7936dfd0b39"},
+    {file = "line_profiler-4.1.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8ada23285e774adfec4088ca8a53565fcd55397d0c2287a03835f9e319785b3e"},
+    {file = "line_profiler-4.1.1-cp39-cp39-musllinux_1_1_i686.whl", hash = "sha256:924ab02db0d4572dd5f4945c1e0239ec300003fdce47a8ae1775a72477442d92"},
+    {file = "line_profiler-4.1.1-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:fc9703f7aeff1e445661e3cc5b65f139e5e9a0f0666d0cde173586b841401fda"},
+    {file = "line_profiler-4.1.1-cp39-cp39-win_amd64.whl", hash = "sha256:583f3e6282a47f5f1c2aeb1234114f0d49d2eba0bb9c1f05c268d1543fe85794"},
+    {file = "line_profiler-4.1.1.tar.gz", hash = "sha256:2fa73d2ac736902e0a6d1e74cf663244218d9c238a7aa5b5acfd6ac6d4672830"},
+]
+
+[package.extras]
+all = ["Cython (==3.0.0a11)", "Cython (>=0.29.24,<=3.0.0a11)", "IPython (>=7.14.0)", "IPython (>=7.18.0)", "IPython (>=8.12.2)", "IPython (>=8.14.0)", "cibuildwheel (>=2.11.2)", "cibuildwheel (>=2.11.2)", "cibuildwheel (>=2.11.2)", "cibuildwheel (>=2.11.2)", "cibuildwheel (>=2.11.2)", "cibuildwheel (>=2.8.1)", "cmake (>=3.21.2)", "coverage[toml] (>=5.3)", "ninja (>=1.10.2)", "pytest (>=4.6.0)", "pytest (>=4.6.0)", "pytest (>=4.6.0,<=4.6.11)", "pytest (>=4.6.0,<=4.6.11)", "pytest (>=4.6.0,<=6.1.2)", "pytest (>=6.2.5)", "pytest-cov (>=2.8.1)", "pytest-cov (>=2.8.1)", "pytest-cov (>=2.9.0)", "pytest-cov (>=3.0.0)", "rich (>=12.3.0)", "scikit-build (>=0.11.1)", "ubelt (>=1.3.3)", "xdoctest (>=1.1.1)"]
+all-strict = ["Cython (==0.29.24)", "Cython (==3.0.0a11)", "IPython (==7.14.0)", "IPython (==7.18.0)", "IPython (==8.12.2)", "IPython (==8.14.0)", "cibuildwheel (==2.11.2)", "cibuildwheel (==2.11.2)", "cibuildwheel (==2.11.2)", "cibuildwheel (==2.11.2)", "cibuildwheel (==2.11.2)", "cibuildwheel (==2.8.1)", "cmake (==3.21.2)", "coverage[toml] (==5.3)", "ninja (==1.10.2)", "pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==6.2.5)", "pytest-cov (==2.8.1)", "pytest-cov (==2.8.1)", "pytest-cov (==2.9.0)", "pytest-cov (==3.0.0)", "rich (==12.3.0)", "scikit-build (==0.11.1)", "ubelt (==1.3.3)", "xdoctest (==1.1.1)"]
+ipython = ["IPython (>=7.14.0)", "IPython (>=7.18.0)", "IPython (>=8.12.2)", "IPython (>=8.14.0)"]
+ipython-strict = ["IPython (==7.14.0)", "IPython (==7.18.0)", "IPython (==8.12.2)", "IPython (==8.14.0)"]
+optional = ["IPython (>=7.14.0)", "IPython (>=7.18.0)", "IPython (>=8.12.2)", "IPython (>=8.14.0)", "rich (>=12.3.0)"]
+optional-strict = ["IPython (==7.14.0)", "IPython (==7.18.0)", "IPython (==8.12.2)", "IPython (==8.14.0)", "rich (==12.3.0)"]
+tests = ["coverage[toml] (>=5.3)", "pytest (>=4.6.0)", "pytest (>=4.6.0)", "pytest (>=4.6.0,<=4.6.11)", "pytest (>=4.6.0,<=4.6.11)", "pytest (>=4.6.0,<=6.1.2)", "pytest (>=6.2.5)", "pytest-cov (>=2.8.1)", "pytest-cov (>=2.8.1)", "pytest-cov (>=2.9.0)", "pytest-cov (>=3.0.0)", "ubelt (>=1.3.3)", "xdoctest (>=1.1.1)"]
+tests-strict = ["coverage[toml] (==5.3)", "pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==6.2.5)", "pytest-cov (==2.8.1)", "pytest-cov (==2.8.1)", "pytest-cov (==2.9.0)", "pytest-cov (==3.0.0)", "ubelt (==1.3.3)", "xdoctest (==1.1.1)"]
 
 [[package]]
 name = "llama-index"
@@ -6474,7 +6530,7 @@ files = [
 name = "tiktoken"
 version = "0.5.1"
 description = "tiktoken is a fast BPE tokeniser for use with OpenAI's models"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "tiktoken-0.5.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:2b0bae3fd56de1c0a5874fb6577667a3c75bf231a6cef599338820210c16e40a"},
@@ -7705,4 +7761,4 @@ text-stats = ["spacy", "textacy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "a0afd5f399d12138bbe61c75419d872d0468d8e8f0b7595e51f39ff2eeb5ccaf"
+content-hash = "dabb31f0fdafee739d3fd002a3e04834f4e2deb5747a590540a6ba6c85f9ef65"
