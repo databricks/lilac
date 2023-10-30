@@ -957,10 +957,11 @@ class DatasetDuckDB(Dataset):
     limit: Optional[int],
     sort_order: Optional[SortOrder],
   ) -> Optional[Column]:
-    # If the user provides a specific row id, avoid sorting as we know it is a single row result.
     for f in filters:
-      if f.path == (ROWID,) and f.op == 'equals':
-        return None
+      # If the user provides a list of row ids, avoid sorting.
+      if f.path == (ROWID,):
+        if f.op in ('equals', 'in'):
+          return None
     if (sort_order != SortOrder.DESC) or (not limit) or (not sort_by):
       return None
     if len(sort_by) < 1:

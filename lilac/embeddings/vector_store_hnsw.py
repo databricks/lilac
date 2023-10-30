@@ -120,14 +120,9 @@ class HNSWVectorStore(VectorStore):
     try:
       locs, dists = self._index.knn_query(query, k=k, filter=filter_func if labels else None)
     except RuntimeError:
-      # If K is too large compared to M and construction-time ef, HNSW will throw an error. This
-      # also happens if we are filtering by a tiny subset of keys, where the vector store index
-      # is not able to find enough neighbors. In this case we return dummy results, which is ok
-      # for the caller of this method (VectorIndex).
-      if keys:
-        return [(key, 0.5) for key in keys]
-      else:
-        return []
+      # If K is too large compared to M and construction-time ef, HNSW will throw an error.
+      # In this case we return no results, which is ok for the caller of this method (VectorIndex).
+      return []
     locs = locs[0]
     dists = dists[0]
     topk_keys = self._key_to_label.index.values[locs]

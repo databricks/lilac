@@ -16,7 +16,7 @@ from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
-from .dataset import ConceptSearch, KeywordSearch, SemanticSearch, SortOrder
+from .dataset import ConceptSearch, Filter, KeywordSearch, SemanticSearch, SortOrder
 from .dataset_duckdb import DatasetDuckDB
 from .dataset_test_utils import TestDataMaker, enriched_item
 
@@ -385,6 +385,84 @@ def test_concept_search_sort_by_rowid(make_test_data: TestDataMaker) -> None:
       'text.test_namespace/test_concept/labels/preview': [lilac_span(0, 13, {'label': True})]
     }
   ]
+
+
+def test_concept_search_over_repeated_string(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    'text': ['hello.', 'hello world.'],
+  }, {
+    'text': ['hello2.', 'hello world2.'],
+  }])
+  dataset.compute_embedding('test_embedding', ('text', '*'))
+
+  concept_db = DiskConceptDB()
+  concept_db.create(namespace='test_namespace', name='test_concept', type=SignalInputType.TEXT)
+  concept_db.edit(
+    'test_namespace', 'test_concept',
+    ConceptUpdate(insert=[
+      ExampleIn(label=False, text='hello world.'),
+      ExampleIn(label=True, text='hello world2.')
+    ]))
+
+  result = dataset.select_rows(
+    columns=['text'],
+    searches=[
+      ConceptSearch(
+        path=('text', '*'),
+        concept_namespace='test_namespace',
+        concept_name='test_concept',
+        embedding='test_embedding')
+    ],
+    filters=[Filter(path=(ROWID,), op='in', value=['1', '2'])])
+  assert list(result) == [{
+    'text': ['hello.', 'hello world.'],
+    'text.test_namespace/test_concept/labels/preview': [
+      None, [{
+        '__span__': {
+          'end': 12,
+          'start': 0
+        },
+        'label': False
+      }]
+    ],
+    'text.test_namespace/test_concept/test_embedding/preview': [[{
+      '__span__': {
+        'end': 6,
+        'start': 0
+      },
+      'score': approx(0.93, abs=0.01)
+    }], [{
+      '__span__': {
+        'end': 12,
+        'start': 0
+      },
+      'score': approx(0.26, abs=0.01)
+    }]]
+  }, {
+    'text': ['hello2.', 'hello world2.'],
+    'text.test_namespace/test_concept/labels/preview': [
+      None, [{
+        '__span__': {
+          'end': 13,
+          'start': 0
+        },
+        'label': True
+      }]
+    ],
+    'text.test_namespace/test_concept/test_embedding/preview': [[{
+      '__span__': {
+        'end': 7,
+        'start': 0
+      },
+      'score': approx(0.68, abs=0.01)
+    }], [{
+      '__span__': {
+        'end': 13,
+        'start': 0
+      },
+      'score': approx(0.82, abs=0.01)
+    }]]
+  }]
 
 
 def test_sort_override_search(make_test_data: TestDataMaker) -> None:
