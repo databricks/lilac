@@ -21,11 +21,11 @@ GCP_EMBEDDING_MODEL = 'textembedding-gecko@001'
 class PaLM(TextEmbeddingSignal):
   """Computes embeddings using PaLM's embedding API.
 
-    <br>**Important**: This will send data to an external server!
+  <br>**Important**: This will send data to an external server!
 
-    <br>To use this signal, you must get a PaLM API key from
-    [makersuite.google.com](https://makersuite.google.com/app/apikey) and add it to your .env.local.
-    """
+  <br>To use this signal, you must get a PaLM API key from
+  [makersuite.google.com](https://makersuite.google.com/app/apikey) and add it to your .env.local.
+  """
 
   name: ClassVar[str] = 'palm'
   display_name: ClassVar[str] = 'PaLM Embeddings'
