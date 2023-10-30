@@ -177,9 +177,7 @@ def test_select_rows_with_cols_and_combine() -> None:
           'city': 'city1'
         }]
       }]
-    }, {
-      'people': None
-    }],
+    }, {}],
     total_num_rows=3)
 
 

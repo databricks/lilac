@@ -68,7 +68,7 @@ class SelectRowsResult:
 
   def __iter__(self) -> Iterator:
     # Replace NaT timestamps with Nones.
-    df = self._df.replace({pd.NaT: None})  # type: ignore
+    df = self._df.replace({pd.NaT: None})
     return (row.to_dict() for _, row in df.iterrows())
 
   def __next__(self) -> Item:
