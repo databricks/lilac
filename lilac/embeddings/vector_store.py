@@ -183,8 +183,8 @@ class VectorDBIndex:
       k = min(k, len(span_keys))
     span_k = k
     path_key_scores: dict[PathKey, float] = {}
-    rowid_scores: dict[str, float] = {}
-    while (len(rowid_scores) < k and span_k <= total_num_span_keys and
+    seen_rowids: dict[str, bool] = {}
+    while (len(seen_rowids) < k and span_k <= total_num_span_keys and
            (not span_keys or span_k <= len(span_keys))):
       span_k += k
       vector_key_scores = self._vector_store.topk(query, span_k, span_keys)
@@ -193,10 +193,10 @@ class VectorDBIndex:
         if path_key not in path_key_scores:
           path_key_scores[path_key] = score
         rowid = cast(str, path_key[0])
-        if rowid not in rowid_scores:
-          rowid_scores[rowid] = score
+        if rowid not in seen_rowids:
+          seen_rowids[rowid] = True
 
-    top_rowids = set(list(rowid_scores.keys())[:k])
+    top_rowids = set(list(seen_rowids.keys())[:k])
     top_path_keys = [(key, s) for (key, s) in path_key_scores.items() if key[0] in top_rowids]
     return list(top_path_keys)
 
