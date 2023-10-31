@@ -957,10 +957,11 @@ class DatasetDuckDB(Dataset):
     limit: Optional[int],
     sort_order: Optional[SortOrder],
   ) -> Optional[Column]:
-    # If the user provides a specific row id, avoid sorting as we know it is a single row result.
     for f in filters:
-      if f.path == (ROWID,) and f.op == 'equals':
-        return None
+      # If the user provides a list of row ids, avoid sorting.
+      if f.path == (ROWID,):
+        if f.op in ('equals', 'in'):
+          return None
     if (sort_order != SortOrder.DESC) or (not limit) or (not sort_by):
       return None
     if len(sort_by) < 1:
@@ -1110,15 +1111,14 @@ class DatasetDuckDB(Dataset):
 
     topk_udf_col = self._topk_udf_to_sort_by(udf_columns, filters, sort_by, limit, sort_order)
     if topk_udf_col:
-      path_keys: Optional[list[PathKey]] = None
+      rowids: Optional[list[str]] = None
       if where_query:
         # If there are filters, we need to send rowids to the top k query.
         df = con.execute(f'SELECT {ROWID} FROM t {where_query}').df()
         total_num_rows = len(df)
-        # Convert rowids to path keys.
-        path_keys = [(rowid,) for rowid in df[ROWID]]
+        rowids = [rowid for rowid in df[ROWID]]
 
-      if path_keys is not None and len(path_keys) == 0:
+      if rowids is not None and len(rowids) == 0:
         where_query = 'WHERE false'
       else:
         topk_signal = cast(VectorSignal, topk_udf_col.signal_udf)
@@ -1128,7 +1128,7 @@ class DatasetDuckDB(Dataset):
         path_id = f'{self.namespace}/{self.dataset_name}:{topk_udf_col.path}'
         with DebugTimer(f'Computing topk on {path_id} with embedding "{topk_signal.embedding}" '
                         f'and vector store "{vector_index._vector_store.name}"'):
-          topk = topk_signal.vector_compute_topk(k, vector_index, path_keys)
+          topk = topk_signal.vector_compute_topk(k, vector_index, rowids)
         topk_rowids = list(dict.fromkeys([cast(str, rowid) for (rowid, *_), _ in topk]))
         # Update the offset to account for the number of unique rowids.
         offset = len(dict.fromkeys([cast(str, rowid) for (rowid, *_), _ in topk[:offset]]))

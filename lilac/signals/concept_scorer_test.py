@@ -202,7 +202,7 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
     assert id == expected_id
 
   # Compute topk with id restriction.
-  topk_result = signal.vector_compute_topk(3, vector_index, keys=[('1',), ('2',)])
+  topk_result = signal.vector_compute_topk(3, vector_index, rowids=['1', '2'])
   expected_result = [('1',), ('2',)]
   assert len(topk_result) == len(expected_result)
   for (id, _), expected_id in zip(topk_result, expected_result):

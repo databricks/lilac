@@ -193,7 +193,7 @@ class VectorSignal(Signal, abc.ABC):
       self,
       topk: int,
       vector_index: VectorDBIndex,
-      keys: Optional[Iterable[PathKey]] = None) -> Sequence[tuple[PathKey, Optional[Item]]]:
+      rowids: Optional[Iterable[str]] = None) -> Sequence[tuple[PathKey, Optional[Item]]]:
     """Return signal results only for the top k documents or images.
 
     Signals decide how to rank each document/image in the dataset, usually by a similarity score
@@ -202,7 +202,7 @@ class VectorSignal(Signal, abc.ABC):
     Args:
       topk: The number of items to return, ranked by the signal.
       vector_index: The vector index to lookup pre-computed embeddings.
-      keys: Optional iterable of row ids to restrict the search to.
+      rowids: Optional iterable of row ids to restrict the search to.
 
     Returns:
       A list of (key, signal_output) tuples containing the `topk` items. Sparse signals should
