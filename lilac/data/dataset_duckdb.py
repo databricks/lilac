@@ -1942,10 +1942,33 @@ class DatasetDuckDB(Dataset):
 
     con = self.con.cursor()
 
+    use_jsonl_cache = False
+    jsonl_cache_filepath: Optional[str] = None
+    if output_path:
+      jsonl_cache_filepath = _map_cache_filepath(self.project_dir, self.namespace,
+                                                 self.dataset_name, output_path)
+      if not overwrite and os.path.exists(jsonl_cache_filepath):
+        with open(jsonl_cache_filepath, 'r') as f:
+          # Read the first line of the file
+          first_line = f.readline()
+
+        # Don't use the cache if it's empty. This can happen if the first call to map() throws.
+        use_jsonl_cache = True if first_line.strip() else False
+
     def _rows() -> Iterable[Item]:
-      nonlocal select_queries
+      nonlocal select_queries, con
+
+      # Anti-join removes rows that are already in the cache.
+      anti_join = ''
+      if use_jsonl_cache:
+        anti_join = f"""
+          ANTI JOIN (
+            SELECT * FROM read_json_auto('{jsonl_cache_filepath}', IGNORE_ERRORS=true)) as cache
+          ON t.{ROWID} = cache.{ROWID}
+        """
       result = con.execute(f"""
         SELECT {ROWID}, {', '.join(select_queries)} FROM t
+        {anti_join}
       """)
       while True:
         df_chunk = result.fetch_df_chunk()
@@ -1987,15 +2010,27 @@ class DatasetDuckDB(Dataset):
         estimated_len=manifest.num_items,
         step_description=f'Computing map over {input_paths}')
 
-    #map_hash = fingerprint.Hasher.hash(map_fn)
     if output_path:
-      print('MAP CASCHE:',
-            _map_cache_filepath(self.project_dir, self.namespace, self.dataset_name, output_path))
+      # Use a local disk filesystem.
+      fs = fsspec.filesystem('file')
+      assert jsonl_cache_filepath is not None
+      jsonl_filepath = jsonl_cache_filepath
 
-    # Write the output rows to a temporary file to infer the schema from duckdb.
-    fs = fsspec.filesystem('memory')
-    tmp_json_filename = 'tmp.jsonl'
-    with fs.open(tmp_json_filename, 'w') as file:
+      os.makedirs(os.path.dirname(jsonl_filepath), exist_ok=True)
+      # Overwrite the file if overwrite is True.
+      if overwrite:
+        open(jsonl_filepath, 'w').close()
+
+      duckdb_filepath = jsonl_filepath
+      write_mode = 'a'
+    else:
+      # Write the output rows to a temporary file to infer the schema from duckdb.
+      fs = fsspec.filesystem('memory')
+      jsonl_filepath = 'tmp.jsonl'
+      duckdb_filepath = f'memory://{jsonl_filepath}'
+      write_mode = 'w'
+
+    with fs.open(jsonl_filepath, write_mode) as file:
       for item in outputs:
         json.dump(item, file)
         file.write('\n')
@@ -2006,7 +2041,7 @@ class DatasetDuckDB(Dataset):
     tmp_con.execute(f"""
       CREATE VIEW {jsonl_view_name} as (
         SELECT * FROM read_json_auto(
-          'memory://{tmp_json_filename}',
+          '{duckdb_filepath}',
           IGNORE_ERRORS=true,
           FORMAT='newline_delimited'
         )

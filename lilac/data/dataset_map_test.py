@@ -114,6 +114,158 @@ def test_map(make_test_data: TestDataMaker) -> None:
 
 
 @freeze_time(TEST_TIME)
+def test_map_continuation(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    'id': 0,
+    'text': 'a sentence',
+  }, {
+    'id': 1,
+    'text': 'b sentence',
+  }])
+
+  first_run = True
+  map_call_ids = []
+
+  def _map_fn(row: Item) -> Item:
+    nonlocal first_run, map_call_ids
+    map_call_ids.append(row['id'])
+
+    if first_run and row['id'] == 1:
+      raise ValueError('Throwing')
+
+    return row['id']
+
+  # Write the output to a new column.
+  with pytest.raises(ValueError, match='Throwing'):
+    dataset.map(_map_fn, output_path='map_id', combine_columns=False)
+
+  # Map should be called twice. The second time it throws.
+  assert map_call_ids == [0, 1]
+  # The schema should not reflect the output of the map as it didn't finish.
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema({
+      'text': 'string',
+      'id': 'int32'
+    }),
+    num_items=2,
+    source=TestSource())
+  # The rows should not reflect the output of the unfinished map.
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {
+      'text': 'a sentence',
+      'id': 0
+    },
+    {
+      'text': 'b sentence',
+      'id': 1
+    },
+  ]
+
+  first_run = False
+  map_call_ids = []
+  dataset.map(_map_fn, output_path='map_id', combine_columns=False)
+
+  # Map should only be called one more time for the remaining row id.
+  assert map_call_ids == [1]
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema({
+      'text': 'string',
+      'id': 'int32',
+      'map_id': field(
+        dtype='int64',
+        map=MapInfo(
+          fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME))
+    }),
+    num_items=2,
+    source=TestSource())
+
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {
+      'text': 'a sentence',
+      'id': 0,
+      'map_id': 0
+    },
+    {
+      'text': 'b sentence',
+      'id': 1,
+      'map_id': 1
+    },
+  ]
+
+
+@freeze_time(TEST_TIME)
+def test_map_continuation_overwrite(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{
+    'id': 0,
+    'text': 'a sentence',
+  }, {
+    'id': 1,
+    'text': 'b sentence',
+  }])
+
+  first_run = True
+  map_call_ids = []
+
+  def _map_fn(row: Item) -> Item:
+    nonlocal first_run, map_call_ids
+    map_call_ids.append(row['id'])
+
+    if first_run and row['id'] == 1:
+      raise ValueError('Throwing')
+
+    return row['id']
+
+  # Write the output to a new column.
+  with pytest.raises(ValueError, match='Throwing'):
+    dataset.map(_map_fn, output_path='map_id', combine_columns=False)
+
+  # Map should be called twice. The second time it throws.
+  assert map_call_ids == [0, 1]
+
+  first_run = False
+  map_call_ids = []
+  dataset.map(_map_fn, output_path='map_id', combine_columns=False, overwrite=True)
+
+  # Map should be called again for both ids.
+  assert map_call_ids == [0, 1]
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema({
+      'text': 'string',
+      'id': 'int32',
+      'map_id': field(
+        dtype='int64',
+        map=MapInfo(
+          fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME))
+    }),
+    num_items=2,
+    source=TestSource())
+
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {
+      'text': 'a sentence',
+      'id': 0,
+      'map_id': 0
+    },
+    {
+      'text': 'b sentence',
+      'id': 1,
+      'map_id': 1
+    },
+  ]
+
+
+@freeze_time(TEST_TIME)
 def test_map_overwrite(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{
     'text': 'a',
