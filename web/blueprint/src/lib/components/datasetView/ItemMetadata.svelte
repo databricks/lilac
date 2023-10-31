@@ -28,11 +28,11 @@
   const embeddings = queryEmbeddings();
 
   function makeRenderNode(node: LilacValueNode): RenderNode {
-    const field = L.field(node)!;
+    const field = L.field(node);
     const path = L.path(node)!;
     let value = L.value(node);
     let span = L.span(node);
-    if (field.dtype === 'string_span') {
+    if (field?.dtype === 'string_span') {
       // We default to __value__ for back compat.
       span = span || (value as {start: number; end: number});
       if (span != null) {
@@ -53,15 +53,15 @@
     }
 
     const isEmbeddingSignal =
-      $embeddings.data?.some(embedding => embedding.name === field.signal?.signal_name) || false;
-    const isSignal = isSignalRootField(field);
-    const isLabel = isLabelField(field);
+      $embeddings.data?.some(embedding => embedding.name === field?.signal?.signal_name) || false;
+    const isSignal = field ? isSignalRootField(field) : false;
+    const isLabel = field ? isLabelField(field) : false;
     let formattedValue: string | null;
     if (
       isEmbeddingSignal ||
-      (isSignal && field.dtype == null) ||
-      field.dtype === 'embedding' ||
-      field.repeated_field != null
+      (isSignal && field?.dtype == null) ||
+      field?.dtype === 'embedding' ||
+      field?.repeated_field != null
     ) {
       formattedValue = '';
     } else if (value == null) {
@@ -94,7 +94,7 @@
         ? node.map(makeRenderNode)
         : getChildren(node).map(makeRenderNode),
       fieldName: path[path.length - 1],
-      field,
+      field: field!,
       path,
       expanded,
       isSignal,

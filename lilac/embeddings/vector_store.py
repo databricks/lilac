@@ -3,7 +3,7 @@
 import abc
 import os
 import pickle
-from typing import Iterable, Optional, Type
+from typing import Iterable, Optional, Type, cast
 
 import numpy as np
 
@@ -89,12 +89,17 @@ class VectorDBIndex:
     self._vector_store: VectorStore = get_vector_store_cls(vector_store)()
     # Map a path key to spans for that path.
     self._id_to_spans: dict[PathKey, list[tuple[int, int]]] = {}
+    self._rowid_to_path_keys: dict[str, list[PathKey]] = {}
 
   def load(self, base_path: str) -> None:
     """Load the vector index from disk."""
     assert not self._id_to_spans, 'Cannot load into a non-empty index.'
     with open_file(os.path.join(base_path, _SPANS_PICKLE_NAME), 'rb') as f:
-      self._id_to_spans.update(pickle.load(f))
+      all_spans: list[tuple[PathKey, list[tuple[int, int]]]] = pickle.load(f)
+      self._id_to_spans.update(all_spans)
+      for path_key, _ in all_spans:
+        rowid = cast(str, path_key[0])
+        self._rowid_to_path_keys.setdefault(rowid, []).append(path_key)
     self._vector_store.load(os.path.join(base_path, self._vector_store.name))
 
   def save(self, base_path: str) -> None:
@@ -112,10 +117,15 @@ class VectorDBIndex:
       all_spans: The spans to initialize the index with.
       embeddings: The embeddings to initialize the index with.
     """
-    self._id_to_spans.update(all_spans)
     vector_keys = [(*path_key, i) for path_key, spans in all_spans for i in range(len(spans))]
     assert len(vector_keys) == len(embeddings), (
       f'Number of spans ({len(vector_keys)}) and embeddings ({len(embeddings)}) must match.')
+
+    self._id_to_spans.update(all_spans)
+    for path_key, _ in all_spans:
+      rowid = cast(str, path_key[0])
+      self._rowid_to_path_keys.setdefault(rowid, []).append(path_key)
+
     self._vector_store.add(vector_keys, embeddings)
 
   def get_vector_store(self) -> VectorStore:
@@ -149,28 +159,32 @@ class VectorDBIndex:
   def topk(self,
            query: np.ndarray,
            k: int,
-           path_keys: Optional[Iterable[PathKey]] = None) -> list[tuple[PathKey, float]]:
+           rowids: Optional[Iterable[str]] = None) -> list[tuple[PathKey, float]]:
     """Return the top k most similar vectors.
 
     Args:
       query: The query vector.
       k: The number of results to return.
-      path_keys: Optional key prefixes to restrict the search to.
+      rowids: Optional row ids to restrict the search to.
 
     Returns:
-      A list of (key, score) tuples.
+      A list of (rowid, score) tuples.
     """
     total_num_span_keys = self._vector_store.size()
     k = min(k, total_num_span_keys)
     span_keys: Optional[list[VectorKey]] = None
-    if path_keys is not None:
-      span_keys = [
-        (*path_key, i) for path_key in path_keys for i in range(len(self._id_to_spans[path_key]))
-      ]
+    if rowids is not None:
+      span_keys = []
+      for rowid in rowids:
+        path_keys = self._rowid_to_path_keys[rowid]
+        span_keys.extend([
+          (*path_key, i) for path_key in path_keys for i in range(len(self._id_to_spans[path_key]))
+        ])
       k = min(k, len(span_keys))
     span_k = k
     path_key_scores: dict[PathKey, float] = {}
-    while (len(path_key_scores) < k and span_k <= total_num_span_keys and
+    seen_rowids: dict[str, bool] = {}
+    while (len(seen_rowids) < k and span_k <= total_num_span_keys and
            (not span_keys or span_k <= len(span_keys))):
       span_k += k
       vector_key_scores = self._vector_store.topk(query, span_k, span_keys)
@@ -178,8 +192,13 @@ class VectorDBIndex:
         path_key = tuple(path_key_list)
         if path_key not in path_key_scores:
           path_key_scores[path_key] = score
+        rowid = cast(str, path_key[0])
+        if rowid not in seen_rowids:
+          seen_rowids[rowid] = True
 
-    return list(path_key_scores.items())[:k]
+    top_rowids = set(list(seen_rowids.keys())[:k])
+    top_path_keys = [(key, s) for (key, s) in path_key_scores.items() if key[0] in top_rowids]
+    return list(top_path_keys)
 
 
 VECTOR_STORE_REGISTRY: dict[str, Type[VectorStore]] = {}
