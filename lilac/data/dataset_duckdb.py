@@ -2024,7 +2024,8 @@ class DatasetDuckDB(Dataset):
       duckdb_filepath = jsonl_filepath
       write_mode = 'a'
     else:
-      # Write the output rows to a temporary file to infer the schema from duckdb.
+      # Write the output rows to a temporary file to avoid writing to disk as these results are not
+      # cached.
       fs = fsspec.filesystem('memory')
       jsonl_filepath = 'tmp.jsonl'
       duckdb_filepath = f'memory://{jsonl_filepath}'
