@@ -1948,7 +1948,7 @@ class DatasetDuckDB(Dataset):
       jsonl_cache_filepath = _map_cache_filepath(self.project_dir, self.namespace,
                                                  self.dataset_name, output_path)
       if not overwrite and os.path.exists(jsonl_cache_filepath):
-        with open(jsonl_cache_filepath, 'r') as f:
+        with open_file(jsonl_cache_filepath, 'r') as f:
           # Read the first line of the file
           first_line = f.readline()
 
