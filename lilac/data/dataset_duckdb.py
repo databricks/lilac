@@ -23,7 +23,6 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import yaml
-from datasets import fingerprint
 from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
@@ -1963,7 +1962,10 @@ class DatasetDuckDB(Dataset):
       if use_jsonl_cache:
         anti_join = f"""
           ANTI JOIN (
-            SELECT * FROM read_json_auto('{jsonl_cache_filepath}', IGNORE_ERRORS=true)) as cache
+            SELECT * FROM read_json_auto(
+              '{jsonl_cache_filepath}',
+              IGNORE_ERRORS=true,
+              format='newline_delimited')) as cache
           ON t.{ROWID} = cache.{ROWID}
         """
       result = con.execute(f"""
