@@ -70,7 +70,7 @@ class PaLM(TextEmbeddingSignal):
         response = self._model(model=API_EMBEDDING_MODEL, text=texts[0])
         return [np.array(response['embedding'], dtype=np.float32)]
 
-    if self._connector == 'vertex':
+    elif self._connector == 'vertex':
 
       @retry(wait=wait_fixed(5), stop=stop_after_attempt(15))
       def embed_fn(texts: list[str]) -> list[np.ndarray]:
