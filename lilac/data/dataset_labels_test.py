@@ -12,11 +12,7 @@ from ..sources.source_registry import clear_source_registry, register_source
 from .dataset import DatasetManifest, SelectGroupsResult, SortOrder
 from .dataset_test_utils import TestDataMaker, TestSource
 
-TEST_ITEMS: list[Item] = [
-  {'str': 'a', 'int': 1},
-  {'str': 'b', 'int': 2},
-  {'str': 'c', 'int': 3},
-]
+TEST_ITEMS: list[Item] = [{'str': 'a', 'int': 1}, {'str': 'b', 'int': 2}, {'str': 'c', 'int': 3}]
 
 TEST_TIME = datetime(2023, 8, 15, 1, 23, 45)
 
@@ -116,18 +112,9 @@ def test_remove_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> 
   # Remove by a filter.
   dataset.remove_labels('test_label', filters=[('int', 'greater_equal', 2)])
   assert list(dataset.select_rows([PATH_WILDCARD], sort_by=['int'], sort_order=SortOrder.ASC)) == [
-    {
-      'str': 'a',
-      'int': 1,
-    },
-    {
-      'str': 'b',
-      'int': 2,
-    },
-    {
-      'str': 'c',
-      'int': 3,
-    },
+    {'str': 'a', 'int': 1},
+    {'str': 'b', 'int': 2},
+    {'str': 'c', 'int': 3},
   ]
 
   assert dataset.get_label_names() == []
@@ -146,18 +133,9 @@ def test_remove_labels_no_filters(make_test_data: TestDataMaker, mocker: MockerF
   assert num_labels == 3
 
   assert list(dataset.select_rows([PATH_WILDCARD], sort_by=['int'], sort_order=SortOrder.ASC)) == [
-    {
-      'str': 'a',
-      'int': 1,
-    },
-    {
-      'str': 'b',
-      'int': 2,
-    },
-    {
-      'str': 'c',
-      'int': 3,
-    },
+    {'str': 'a', 'int': 1},
+    {'str': 'b', 'int': 2},
+    {'str': 'c', 'int': 3},
   ]
 
   assert dataset.get_label_names() == []

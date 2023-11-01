@@ -193,12 +193,7 @@ def test_concept_model_topk_score(
     namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True
   )
   vector_index = make_vector_index(
-    vector_store,
-    {
-      ('1',): [[0.1, 0.2, 0.3]],
-      ('2',): [[0.1, 0.87, 0.0]],
-      ('3',): [[1.0, 0.0, 0.0]],
-    },
+    vector_store, {('1',): [[0.1, 0.2, 0.3]], ('2',): [[0.1, 0.87, 0.0]], ('3',): [[1.0, 0.0, 0.0]]}
   )
 
   # Compute topk without id restriction.
@@ -244,10 +239,7 @@ def test_concept_model_draft(
 
   signal = ConceptSignal(namespace='test', concept_name='test_concept', embedding='test_embedding')
   draft_signal = ConceptSignal(
-    namespace='test',
-    concept_name='test_concept',
-    embedding='test_embedding',
-    draft='test_draft',
+    namespace='test', concept_name='test_concept', embedding='test_embedding', draft='test_draft'
   )
 
   # Explicitly sync the model with the concept.
@@ -256,12 +248,7 @@ def test_concept_model_draft(
   )
 
   vector_index = make_vector_index(
-    vector_store,
-    {
-      ('1',): [[1.0, 0.0, 0.0]],
-      ('2',): [[0.9, 0.1, 0.0]],
-      ('3',): [[0.1, 0.9, 0.0]],
-    },
+    vector_store, {('1',): [[1.0, 0.0, 0.0]], ('2',): [[0.9, 0.1, 0.0]], ('3',): [[0.1, 0.9, 0.0]]}
   )
 
   scores = cast(list[Item], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_index)))
@@ -271,12 +258,7 @@ def test_concept_model_draft(
 
   # Make sure the draft signal works. It has different values than the original signal.
   vector_index = make_vector_index(
-    vector_store,
-    {
-      ('1',): [[1.0, 0.0, 0.0]],
-      ('2',): [[0.9, 0.1, 0.0]],
-      ('3',): [[0.1, 0.2, 0.3]],
-    },
+    vector_store, {('1',): [[1.0, 0.0, 0.0]], ('2',): [[0.9, 0.1, 0.0]], ('3',): [[0.1, 0.2, 0.3]]}
   )
   draft_scores = draft_signal.vector_compute([('1',), ('2',), ('3',)], vector_index)
   assert draft_scores != scores

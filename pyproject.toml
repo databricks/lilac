@@ -237,7 +237,7 @@ target-version = "py39"
 [tool.ruff.format]
 quote-style = "single"
 indent-style = "space"
-skip-magic-trailing-comma = true
+skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.ruff.mccabe]
@@ -254,16 +254,6 @@ inline-quotes = "single"
 [tool.ruff.pep8-naming]
 # Allow Pydantic's `@validator` decorator to trigger class method treatment.
 classmethod-decorators = ["classmethod", "pydantic.validator"]
-
-[tool.yapf]
-allow_split_before_dict_value = false
-based_on_style = "google"
-coalesce_brackets = true
-column_limit = 100
-continuation_indent_width = 2
-indent_width = 2
-split_before_expression_after_opening_paren = true
-
 
 # Consider enabling these options for more compact code.
 # split_before_named_assigns = false

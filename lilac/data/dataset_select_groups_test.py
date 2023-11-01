@@ -108,15 +108,9 @@ def test_nested_struct(make_test_data: TestDataMaker) -> None:
 
 def test_named_bins(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
-    {
-      'age': 34.0,
-    },
-    {
-      'age': 45.0,
-    },
-    {
-      'age': 17.0,
-    },
+    {'age': 34.0},
+    {'age': 45.0},
+    {'age': 17.0},
     {'age': 80.0},
     {'age': 55.0},
     {'age': float('nan')},
@@ -125,33 +119,16 @@ def test_named_bins(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_groups(
     leaf_path='age',
-    bins=[
-      ('young', None, 20),
-      ('adult', 20, 50),
-      ('middle-aged', 50, 65),
-      ('senior', 65, None),
-    ],
+    bins=[('young', None, 20), ('adult', 20, 50), ('middle-aged', 50, 65), ('senior', 65, None)],
   )
-  assert result.counts == [
-    ('adult', 2),
-    ('middle-aged', 1),
-    ('senior', 1),
-    ('young', 1),
-    (None, 1),
-  ]
+  assert result.counts == [('adult', 2), ('middle-aged', 1), ('senior', 1), ('young', 1), (None, 1)]
 
 
 def test_schema_with_bins(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
-    {
-      'age': 34,
-    },
-    {
-      'age': 45,
-    },
-    {
-      'age': 17,
-    },
+    {'age': 34},
+    {'age': 45},
+    {'age': 17},
     {'age': 80},
     {'age': 55},
     {'age': float('nan')},
@@ -172,13 +149,7 @@ def test_schema_with_bins(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(items, data_schema)
 
   result = dataset.select_groups(leaf_path='age')
-  assert result.counts == [
-    ('adult', 2),
-    ('middle-aged', 1),
-    ('senior', 1),
-    ('young', 1),
-    (None, 1),
-  ]
+  assert result.counts == [('adult', 2), ('middle-aged', 1), ('senior', 1), ('young', 1), (None, 1)]
 
 
 def test_filters(make_test_data: TestDataMaker) -> None:
@@ -213,7 +184,7 @@ def test_datetime(make_test_data: TestDataMaker) -> None:
     {'id': 3, 'date': datetime(2023, 2, 1)},
     {'id': 4, 'date': datetime(2023, 3, 1)},
     {
-      'id': 5,
+      'id': 5
       # Missing datetime.
     },
   ]

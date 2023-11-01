@@ -51,16 +51,7 @@ def setup_teardown() -> Iterable[None]:
 
 @freeze_time(TEST_TIME)
 def test_map(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'a sentence',
-      },
-      {
-        'text': 'b sentence',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
@@ -80,17 +71,14 @@ def test_map(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              fields={'len': 'int32', 'firstchar': 'string'},
-              signal={'signal_name': 'test_signal'},
+              fields={'len': 'int32', 'firstchar': 'string'}, signal={'signal_name': 'test_signal'}
             )
           },
         ),
         'output_text': field(
           fields={'result': 'string'},
           map=MapInfo(
-            fn_name='_map_fn',
-            fn_source=inspect.getsource(_map_fn),
-            date_created=TEST_TIME,
+            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
           ),
         ),
       }
@@ -116,18 +104,7 @@ def test_map(make_test_data: TestDataMaker) -> None:
 
 @freeze_time(TEST_TIME)
 def test_map_continuation(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'id': 0,
-        'text': 'a sentence',
-      },
-      {
-        'id': 1,
-        'text': 'b sentence',
-      },
-    ]
-  )
+  dataset = make_test_data([{'id': 0, 'text': 'a sentence'}, {'id': 1, 'text': 'b sentence'}])
 
   first_run = True
   map_call_ids = []
@@ -157,10 +134,7 @@ def test_map_continuation(make_test_data: TestDataMaker) -> None:
   )
   # The rows should not reflect the output of the unfinished map.
   rows = list(dataset.select_rows([PATH_WILDCARD]))
-  assert rows == [
-    {'text': 'a sentence', 'id': 0},
-    {'text': 'b sentence', 'id': 1},
-  ]
+  assert rows == [{'text': 'a sentence', 'id': 0}, {'text': 'b sentence', 'id': 1}]
 
   first_run = False
   map_call_ids = []
@@ -179,9 +153,7 @@ def test_map_continuation(make_test_data: TestDataMaker) -> None:
         'map_id': field(
           dtype='int64',
           map=MapInfo(
-            fn_name='_map_fn',
-            fn_source=inspect.getsource(_map_fn),
-            date_created=TEST_TIME,
+            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
           ),
         ),
       }
@@ -199,18 +171,7 @@ def test_map_continuation(make_test_data: TestDataMaker) -> None:
 
 @freeze_time(TEST_TIME)
 def test_map_continuation_overwrite(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'id': 0,
-        'text': 'a sentence',
-      },
-      {
-        'id': 1,
-        'text': 'b sentence',
-      },
-    ]
-  )
+  dataset = make_test_data([{'id': 0, 'text': 'a sentence'}, {'id': 1, 'text': 'b sentence'}])
 
   first_run = True
   map_call_ids = []
@@ -248,9 +209,7 @@ def test_map_continuation_overwrite(make_test_data: TestDataMaker) -> None:
         'map_id': field(
           dtype='int64',
           map=MapInfo(
-            fn_name='_map_fn',
-            fn_source=inspect.getsource(_map_fn),
-            date_created=TEST_TIME,
+            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
           ),
         ),
       }
@@ -268,16 +227,7 @@ def test_map_continuation_overwrite(make_test_data: TestDataMaker) -> None:
 
 @freeze_time(TEST_TIME)
 def test_map_overwrite(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'a',
-      },
-      {
-        'text': 'b',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'a'}, {'text': 'b'}])
 
   prefix = '0'
 
@@ -289,10 +239,7 @@ def test_map_overwrite(make_test_data: TestDataMaker) -> None:
   dataset.map(_map_fn, output_path='map_text', combine_columns=False)
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
-  assert rows == [
-    {'text': 'a', 'map_text': '0a'},
-    {'text': 'b', 'map_text': '0b'},
-  ]
+  assert rows == [{'text': 'a', 'map_text': '0a'}, {'text': 'b', 'map_text': '0b'}]
 
   with pytest.raises(ValueError, match=' which already exists in the dataset'):
     dataset.map(_map_fn, output_path='map_text', combine_columns=False)
@@ -310,9 +257,7 @@ def test_map_overwrite(make_test_data: TestDataMaker) -> None:
         'map_text': field(
           dtype='string',
           map=MapInfo(
-            fn_name='_map_fn',
-            fn_source=inspect.getsource(_map_fn),
-            date_created=TEST_TIME,
+            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
           ),
         ),
       }
@@ -322,24 +267,12 @@ def test_map_overwrite(make_test_data: TestDataMaker) -> None:
   )
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
-  assert rows == [
-    {'text': 'a', 'map_text': '1a'},
-    {'text': 'b', 'map_text': '1b'},
-  ]
+  assert rows == [{'text': 'a', 'map_text': '1a'}, {'text': 'b', 'map_text': '1b'}]
 
 
 @freeze_time(TEST_TIME)
 def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'a sentence',
-      },
-      {
-        'text': 'b sentence',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
@@ -359,8 +292,7 @@ def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              fields={'len': 'int32', 'firstchar': 'string'},
-              signal={'signal_name': 'test_signal'},
+              fields={'len': 'int32', 'firstchar': 'string'}, signal={'signal_name': 'test_signal'}
             )
           },
         )
@@ -372,28 +304,14 @@ def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
-    {
-      'text': 'a sentence',
-      'text.test_signal': {'firstchar': 'a', 'len': 10},
-    },
-    {
-      'text': 'b sentence',
-      'text.test_signal': {'firstchar': 'b', 'len': 10},
-    },
+    {'text': 'a sentence', 'text.test_signal': {'firstchar': 'a', 'len': 10}},
+    {'text': 'b sentence', 'text.test_signal': {'firstchar': 'b', 'len': 10}},
   ]
 
 
 @freeze_time(TEST_TIME)
 def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {'text': 'a sentence', 'extra': 1},
-      {
-        'text': 'b sentence',
-        'extra': 2,
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'a sentence', 'extra': 1}, {'text': 'b sentence', 'extra': 2}])
 
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
@@ -419,8 +337,7 @@ def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              fields={'len': 'int32', 'firstchar': 'string'},
-              signal={'signal_name': 'test_signal'},
+              fields={'len': 'int32', 'firstchar': 'string'}, signal={'signal_name': 'test_signal'}
             )
           },
         ),
@@ -428,9 +345,7 @@ def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
         'output_text': field(
           fields={'result': 'string'},
           map=MapInfo(
-            fn_name='_map_fn',
-            fn_source=inspect.getsource(_map_fn),
-            date_created=TEST_TIME,
+            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
           ),
         ),
       }
@@ -458,16 +373,7 @@ def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
 
 @freeze_time(TEST_TIME)
 def test_map_chained(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'a sentence',
-      },
-      {
-        'text': 'b sentence',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   def _split_fn(row: Item) -> Item:
     return row['text'].split(' ')
@@ -494,9 +400,7 @@ def test_map_chained(make_test_data: TestDataMaker) -> None:
         'splits': field(
           fields=['string'],
           map=MapInfo(
-            fn_name='_split_fn',
-            fn_source=inspect.getsource(_split_fn),
-            date_created=TEST_TIME,
+            fn_name='_split_fn', fn_source=inspect.getsource(_split_fn), date_created=TEST_TIME
           ),
         ),
         'rearrange': field(
@@ -516,16 +420,7 @@ def test_map_chained(make_test_data: TestDataMaker) -> None:
 
 @freeze_time(TEST_TIME)
 def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'a sentence',
-      },
-      {
-        'text': 'b sentence',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
@@ -546,17 +441,14 @@ def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              fields={'len': 'int32', 'firstchar': 'string'},
-              signal={'signal_name': 'test_signal'},
+              fields={'len': 'int32', 'firstchar': 'string'}, signal={'signal_name': 'test_signal'}
             )
           },
         ),
         'output_text': field(
           fields={'result': 'string'},
           map=MapInfo(
-            fn_name='_map_fn',
-            fn_source=inspect.getsource(_map_fn),
-            date_created=TEST_TIME,
+            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
           ),
         ),
       }
@@ -582,16 +474,7 @@ def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
 
 @freeze_time(TEST_TIME)
 def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'abcd',
-      },
-      {
-        'text': 'efghi',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
 
   def _map_fn(row: Item) -> Item:
     return row['text'] + ' ' + row['text']
@@ -612,14 +495,11 @@ def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              fields={'len': 'int32', 'firstchar': 'string'},
-              signal={'signal_name': 'test_signal'},
+              fields={'len': 'int32', 'firstchar': 'string'}, signal={'signal_name': 'test_signal'}
             )
           },
           map=MapInfo(
-            fn_name='_map_fn',
-            fn_source=inspect.getsource(_map_fn),
-            date_created=TEST_TIME,
+            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
           ),
         ),
       }
@@ -630,16 +510,8 @@ def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
-    {
-      'text': 'abcd',
-      'double': 'abcd abcd',
-      'double.test_signal': {'firstchar': 'a', 'len': 9},
-    },
-    {
-      'text': 'efghi',
-      'double': 'efghi efghi',
-      'double.test_signal': {'firstchar': 'e', 'len': 11},
-    },
+    {'text': 'abcd', 'double': 'abcd abcd', 'double.test_signal': {'firstchar': 'a', 'len': 9}},
+    {'text': 'efghi', 'double': 'efghi efghi', 'double.test_signal': {'firstchar': 'e', 'len': 11}},
   ]
 
   # combine_columns=True.
@@ -647,36 +519,17 @@ def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
   assert rows == [
     {
       'text': 'abcd',
-      'double': enriched_item(
-        'abcd abcd',
-        {
-          signal.key(): {'firstchar': 'a', 'len': 9},
-        },
-      ),
+      'double': enriched_item('abcd abcd', {signal.key(): {'firstchar': 'a', 'len': 9}}),
     },
     {
       'text': 'efghi',
-      'double': enriched_item(
-        'efghi efghi',
-        {
-          signal.key(): {'firstchar': 'e', 'len': 11},
-        },
-      ),
+      'double': enriched_item('efghi efghi', {signal.key(): {'firstchar': 'e', 'len': 11}}),
     },
   ]
 
 
 def test_map_non_root_output_errors(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'abcd',
-      },
-      {
-        'text': 'efghi',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
 
   def _map_fn(row: Item) -> Item:
     return row['text'] + ' ' + row['text']

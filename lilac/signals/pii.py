@@ -30,11 +30,7 @@ class PIISignal(TextSignal):
   @override
   def fields(self) -> Field:
     return field(
-      fields={
-        EMAILS_KEY: ['string_span'],
-        IPS_KEY: ['string_span'],
-        SECRETS_KEY: ['string_span'],
-      }
+      fields={EMAILS_KEY: ['string_span'], IPS_KEY: ['string_span'], SECRETS_KEY: ['string_span']}
     )
 
   @override
@@ -54,8 +50,4 @@ class PIISignal(TextSignal):
       emails = [lilac_span(m.start(0), m.end(0)) for m in EMAIL_REGEX.finditer(text)]
       ips = list(find_ip_addresses(text))
       secrets = list(find_secrets(text))
-      yield {
-        EMAILS_KEY: emails,
-        IPS_KEY: ips,
-        SECRETS_KEY: secrets,
-      }
+      yield {EMAILS_KEY: emails, IPS_KEY: ips, SECRETS_KEY: secrets}

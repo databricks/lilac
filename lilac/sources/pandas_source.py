@@ -39,9 +39,6 @@ class PandasSource(Source):
     assert self._df is not None, 'df must be set.'
     cols = self._df.columns.tolist()
     yield from (
-      {
-        PANDAS_INDEX_COLUMN: idx,
-        **dict(zip(cols, item_vals)),
-      }
+      {PANDAS_INDEX_COLUMN: idx, **dict(zip(cols, item_vals))}
       for idx, *item_vals in self._df.itertuples()
     )

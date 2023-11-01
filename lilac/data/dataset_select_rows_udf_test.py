@@ -216,16 +216,7 @@ def test_udf_deeply_nested(make_test_data: TestDataMaker) -> None:
 
 
 def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello.',
-      },
-      {
-        'text': 'hello2.',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
 
   dataset.compute_signal(TestEmbedding(), 'text')
 
@@ -249,14 +240,7 @@ def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
 
 def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(
-    [
-      {
-        'text': ['hello.', 'hello world.'],
-      },
-      {
-        'text': ['hello world2.', 'hello2.'],
-      },
-    ]
+    [{'text': ['hello.', 'hello world.']}, {'text': ['hello world2.', 'hello2.']}]
   )
 
   dataset.compute_signal(TestEmbedding(), ('text', '*'))
@@ -277,16 +261,7 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
 
 
 def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello.',
-      },
-      {
-        'text': 'hello2.',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
 
   # Embedding is not precomputed, yet we ask for the embedding.
 
@@ -320,14 +295,7 @@ class TestSplitter(TextSignal):
 
 def test_udf_after_precomputed_split(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(
-    [
-      {
-        'text': 'sentence 1. sentence 2 is longer',
-      },
-      {
-        'text': 'sentence 1 is longer. sent2 is short',
-      },
-    ]
+    [{'text': 'sentence 1. sentence 2 is longer'}, {'text': 'sentence 1 is longer. sent2 is short'}]
   )
   dataset.compute_signal(TestSplitter(), 'text')
   udf = Column('text', signal_udf=LengthSignal())
@@ -349,16 +317,7 @@ def test_udf_after_precomputed_split(make_test_data: TestDataMaker) -> None:
 
 
 def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello.',
-      },
-      {
-        'text': 'hello2.',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
 
   signal_col = Column('text', signal_udf=ComputedKeySignal())
   result = dataset.select_rows(['text', signal_col])
@@ -379,10 +338,7 @@ def test_sparse_embedding_index_with_asc_sort(make_test_data: TestDataMaker) -> 
     'test_namespace',
     'test_concept',
     ConceptUpdate(
-      insert=[
-        ExampleIn(label=False, text='hello.'),
-        ExampleIn(label=True, text='hello world.'),
-      ]
+      insert=[ExampleIn(label=False, text='hello.'), ExampleIn(label=True, text='hello world.')]
     ),
   )
 

@@ -165,10 +165,7 @@ def test_approx_shuffle_with_seed(tmp_path: pathlib.Path) -> None:
     pq.write_table(table, out_file)
 
   source = ParquetSource(
-    filepaths=[str(tmp_path / 'test-*.parquet')],
-    approximate_shuffle=True,
-    sample_size=20,
-    seed=42,
+    filepaths=[str(tmp_path / 'test-*.parquet')], approximate_shuffle=True, sample_size=20, seed=42
   )
   source.setup()
   items = list(source.process())

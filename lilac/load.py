@@ -172,13 +172,7 @@ def load(
         if embedding_field is None or overwrite:
           task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {d.name}:{e.path}')
           task_manager.execute(
-            task_id,
-            _compute_embedding,
-            d.namespace,
-            d.name,
-            e,
-            project_dir,
-            (task_id, 0),
+            task_id, _compute_embedding, d.namespace, d.name, e, project_dir, (task_id, 0)
           )
           embedding_task_ids.append(task_id)
         else:
@@ -222,13 +216,7 @@ def load(
           if signal_field is None or overwrite:
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
             task_manager.execute(
-              task_id,
-              _compute_signal,
-              d.namespace,
-              d.name,
-              s,
-              project_dir,
-              (task_id, 0),
+              task_id, _compute_signal, d.namespace, d.name, s, project_dir, (task_id, 0)
             )
             # Wait for each signal to reduce memory pressure.
             task_manager.wait([task_id])
@@ -251,10 +239,7 @@ def load(
         for embedding in config.concept_model_cache_embeddings:
           log('Syncing concept model cache:', concept_info, embedding)
           concept_model_db.sync(
-            concept_info.namespace,
-            concept_info.name,
-            embedding_name=embedding,
-            create=True,
+            concept_info.namespace, concept_info.name, embedding_name=embedding, create=True
           )
 
   if load_task_id:

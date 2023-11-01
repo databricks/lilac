@@ -199,16 +199,7 @@ def setup_teardown() -> Iterable[None]:
 def test_signal_output_validation(make_test_data: TestDataMaker) -> None:
   signal = TestInvalidSignal()
 
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello',
-      },
-      {
-        'text': 'hello world',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
 
   with pytest.raises(
     ValueError, match='The signal generated a different number of values than was input.'
@@ -217,16 +208,7 @@ def test_signal_output_validation(make_test_data: TestDataMaker) -> None:
 
 
 def test_sparse_signal(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello',
-      },
-      {
-        'text': 'hello world',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
 
   dataset.compute_signal(TestSparseSignal(), 'text')
 
@@ -238,16 +220,7 @@ def test_sparse_signal(make_test_data: TestDataMaker) -> None:
 
 
 def test_sparse_rich_signal(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello',
-      },
-      {
-        'text': 'hello world',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
 
   dataset.compute_signal(TestSparseRichSignal(), 'text')
 
@@ -268,14 +241,7 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema(
-      {
-        'str': 'string',
-        'int': 'int32',
-        'bool': 'boolean',
-        'float': 'float32',
-      }
-    ),
+    data_schema=schema({'str': 'string', 'int': 'int32', 'bool': 'boolean', 'float': 'float32'}),
     num_items=3,
     source=TestSource(),
   )
@@ -293,9 +259,8 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              signal=test_signal.model_dump(),
-              fields={'len': 'int32', 'flen': 'float32'},
-            ),
+              signal=test_signal.model_dump(), fields={'len': 'int32', 'flen': 'float32'}
+            )
           },
         ),
         'int': 'int32',
@@ -309,15 +274,9 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows(['str'], combine_columns=True)
   assert list(result) == [
-    {
-      'str': enriched_item('a', {'test_signal': {'len': 1, 'flen': 1.0}}),
-    },
-    {
-      'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}}),
-    },
-    {
-      'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}}),
-    },
+    {'str': enriched_item('a', {'test_signal': {'len': 1, 'flen': 1.0}})},
+    {'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}})},
+    {'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}})},
   ]
 
   # Select a specific signal leaf test_signal.flen with 'str'.
@@ -363,7 +322,7 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
             'param_signal(param=a)': field('string', test_signal_a.model_dump()),
             'param_signal(param=b)': field('string', test_signal_b.model_dump()),
           },
-        ),
+        )
       }
     ),
     num_items=2,
@@ -374,20 +333,13 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
   assert list(result) == [
     {
       'text': enriched_item(
-        'hello',
-        {
-          'param_signal(param=a)': 'hello_a',
-          'param_signal(param=b)': 'hello_b',
-        },
+        'hello', {'param_signal(param=a)': 'hello_a', 'param_signal(param=b)': 'hello_b'}
       )
     },
     {
       'text': enriched_item(
         'everybody',
-        {
-          'param_signal(param=a)': 'everybody_a',
-          'param_signal(param=b)': 'everybody_b',
-        },
+        {'param_signal(param=a)': 'everybody_a', 'param_signal(param=b)': 'everybody_b'},
       )
     },
   ]
@@ -396,12 +348,8 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
 def test_split_signal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(
     [
-      {
-        'text': '[1, 1] first sentence. [1, 1] second sentence.',
-      },
-      {
-        'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-      },
+      {'text': '[1, 1] first sentence. [1, 1] second sentence.'},
+      {'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.'},
     ]
   )
 
@@ -434,12 +382,7 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     {
       'text': enriched_item(
         'b2 [2, 1] first sentence. [2, 1] second sentence.',
-        {
-          'test_split': [
-            lilac_span(0, 25),
-            lilac_span(26, 49),
-          ]
-        },
+        {'test_split': [lilac_span(0, 25), lilac_span(26, 49)]},
       )
     },
   ]
@@ -447,16 +390,7 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
 
 
 def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': ['hello', 'everybody'],
-      },
-      {
-        'text': ['hello2', 'everybody2'],
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': ['hello', 'everybody']}, {'text': ['hello2', 'everybody2']}])
   test_signal = TestSignal()
   # Run the signal on the repeated field.
   dataset.compute_signal(test_signal, ('text', '*'))
@@ -473,8 +407,7 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
               'string',
               fields={
                 'test_signal': field(
-                  signal=test_signal.model_dump(),
-                  fields={'len': 'int32', 'flen': 'float32'},
+                  signal=test_signal.model_dump(), fields={'len': 'int32', 'flen': 'float32'}
                 )
               },
             )
@@ -507,12 +440,8 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
 def test_text_splitter(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(
     [
-      {
-        'text': '[1, 1] first sentence. [1, 1] second sentence.',
-      },
-      {
-        'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-      },
+      {'text': '[1, 1] first sentence. [1, 1] second sentence.'},
+      {'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.'},
     ]
   )
 
@@ -523,24 +452,14 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
     {
       'text': enriched_item(
         '[1, 1] first sentence. [1, 1] second sentence.',
-        {
-          'test_split': [
-            lilac_span(0, 22),
-            lilac_span(23, 46),
-          ]
-        },
-      ),
+        {'test_split': [lilac_span(0, 22), lilac_span(23, 46)]},
+      )
     },
     {
       'text': enriched_item(
         'b2 [2, 1] first sentence. [2, 1] second sentence.',
-        {
-          'test_split': [
-            lilac_span(0, 25),
-            lilac_span(26, 49),
-          ]
-        },
-      ),
+        {'test_split': [lilac_span(0, 25), lilac_span(26, 49)]},
+      )
     },
   ]
   assert list(result) == expected_result
@@ -568,7 +487,7 @@ def test_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) 
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
             )
           },
-        ),
+        )
       }
     ),
     num_items=2,
@@ -581,16 +500,7 @@ def test_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) 
 
 
 def test_compute_embedding_over_non_string(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello. hello2.',
-      },
-      {
-        'text': 'hello world. hello world2.',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello. hello2.'}, {'text': 'hello world. hello world2.'}])
 
   test_splitter = TestSplitSignal()
   dataset.compute_signal(test_splitter, 'text')
@@ -601,16 +511,7 @@ def test_compute_embedding_over_non_string(make_test_data: TestDataMaker) -> Non
 
 
 def test_compute_signal_over_non_string(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello. hello2.',
-      },
-      {
-        'text': 'hello world. hello world2.',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello. hello2.'}, {'text': 'hello world. hello world2.'}])
 
   test_splitter = TestSplitSignal()
   dataset.compute_signal(test_splitter, 'text')
@@ -630,9 +531,7 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema(
-      {
-        'text': field('string', fields={'key_True': field('int64', signal=signal.model_dump())}),
-      }
+      {'text': field('string', fields={'key_True': field('int64', signal=signal.model_dump())})}
     ),
     num_items=2,
     source=TestSource(),
@@ -648,19 +547,7 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
 
 
 def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello.',
-      },
-      {
-        'text': 'hello2.',
-      },
-      {
-        'text': 'hello3.',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}, {'text': 'hello3.'}])
 
   embedding_signal = TestEmbedding()
   dataset.compute_signal(embedding_signal, 'text')
@@ -680,10 +567,7 @@ def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> Non
   )
 
   dataset.compute_concept(
-    namespace='test_namespace',
-    concept_name='test_concept',
-    embedding='test_embedding',
-    path='text',
+    namespace='test_namespace', concept_name='test_concept', embedding='test_embedding', path='text'
   )
 
   concept_key = 'test_namespace/test_concept/test_embedding'

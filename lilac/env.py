@@ -25,12 +25,12 @@ class LilacEnvironment(BaseModel):
   # General Lilac environment variables.
   LILAC_DATA_PATH: str = PydanticField(
     description='[Deprecated] The Lilac data path where datasets, concepts, caches are stored. '
-    'This is deprecated in favor of `LILAC_PROJECT_DIR`, but will work for backwards compat.',
+    'This is deprecated in favor of `LILAC_PROJECT_DIR`, but will work for backwards compat.'
   )
   LILAC_PROJECT_DIR: str = PydanticField(
     description='The Lilac project directory where datasets, concepts, caches are stored.'
     'This replaces `LILAC_PROJECT_DIR`, which is deprecated but as the same functionality. '
-    'This can be set with `set_project_dir`.',
+    'This can be set with `set_project_dir`.'
   )
 
   DEBUG: str = PydanticField(

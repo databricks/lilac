@@ -15,17 +15,7 @@ from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from . import cluster_dbscan
 from .cluster_dbscan import ClusterDBSCAN
 
-TEST_ITEMS: list[Item] = [
-  {
-    'text': 'a',
-  },
-  {
-    'text': 'b',
-  },
-  {
-    'text': 'c',
-  },
-]
+TEST_ITEMS: list[Item] = [{'text': 'a'}, {'text': 'b'}, {'text': 'c'}]
 
 EMBEDDINGS: dict[str, list[float]] = {
   'a': [1.0, 0.0, 0.0],

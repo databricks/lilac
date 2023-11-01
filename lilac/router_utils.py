@@ -44,8 +44,7 @@ def server_compute_concept(
   concept = DISK_CONCEPT_DB.get(signal.namespace, signal.concept_name, user)
   if not concept:
     raise HTTPException(
-      status_code=404,
-      detail=f'Concept "{signal.namespace}/{signal.concept_name}" was not found',
+      status_code=404, detail=f'Concept "{signal.namespace}/{signal.concept_name}" was not found'
     )
   DISK_CONCEPT_MODEL_DB.sync(
     signal.namespace, signal.concept_name, signal.embedding, user=user, create=True

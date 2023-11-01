@@ -129,25 +129,11 @@ def test_select_subcols_with_escaped_dot(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(items)
 
   result = dataset.select_rows(['"people.new".*.name'])
-  assert list(result) == [
-    {
-      'people.new.*.name': ['A', 'B'],
-    },
-    {
-      'people.new.*.name': ['C'],
-    },
-  ]
+  assert list(result) == [{'people.new.*.name': ['A', 'B']}, {'people.new.*.name': ['C']}]
 
   # Escape name even though it does not need to be.
   result = dataset.select_rows(['"people.new".*."name"'])
-  assert list(result) == [
-    {
-      'people.new.*.name': ['A', 'B'],
-    },
-    {
-      'people.new.*.name': ['C'],
-    },
-  ]
+  assert list(result) == [{'people.new.*.name': ['A', 'B']}, {'people.new.*.name': ['C']}]
 
 
 def test_select_star(make_test_data: TestDataMaker) -> None:
@@ -165,16 +151,8 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
   # Select *, plus a redundant `info` column.
   result = dataset.select_rows(['*', 'info'])
   assert list(result) == [
-    {
-      'name': 'A',
-      'info': {'age': 40},
-      'info_2': {'age': 40},
-    },
-    {
-      'name': 'B',
-      'info': {'age': 42},
-      'info_2': {'age': 42},
-    },
+    {'name': 'A', 'info': {'age': 40}, 'info_2': {'age': 40}},
+    {'name': 'B', 'info': {'age': 42}, 'info_2': {'age': 42}},
   ]
 
   # Select * plus an inner `info.age` column.
@@ -299,7 +277,7 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
     {
       'text': enriched_item(
         'everybody', {'length_signal': 9, 'test_signal': {'len': 9, 'flen': 9.0}}
-      ),
+      )
     },
   ]
 
@@ -314,15 +292,14 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
 
   # Test subselection with combine_columns=True.
   result = dataset.select_rows(
-    ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')],
-    combine_columns=True,
+    ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')], combine_columns=True
   )
   assert list(result) == [
     {'text': enriched_item('hello', {'length_signal': 5, 'test_signal': {'len': 5, 'flen': 5.0}})},
     {
       'text': enriched_item(
         'everybody', {'length_signal': 9, 'test_signal': {'len': 9, 'flen': 9.0}}
-      ),
+      )
     },
   ]
 
@@ -376,12 +353,11 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
             fields={
               'length_signal': field('int32', length_signal.model_dump()),
               'test_signal': field(
-                signal=test_signal.model_dump(),
-                fields={'len': 'int32', 'flen': 'float32'},
+                signal=test_signal.model_dump(), fields={'len': 'int32', 'flen': 'float32'}
               ),
             },
           )
-        ],
+        ]
       }
     ),
     num_items=2,
@@ -394,14 +370,14 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
       'texts': [
         enriched_item('hello', {'length_signal': 5, 'test_signal': {'len': 5, 'flen': 5.0}}),
         enriched_item('everybody', {'length_signal': 9, 'test_signal': {'len': 9, 'flen': 9.0}}),
-      ],
+      ]
     },
     {
       'texts': [
         enriched_item('a', {'length_signal': 1, 'test_signal': {'len': 1, 'flen': 1.0}}),
         enriched_item('bc', {'length_signal': 2, 'test_signal': {'len': 2, 'flen': 2.0}}),
         enriched_item('def', {'length_signal': 3, 'test_signal': {'len': 3, 'flen': 3.0}}),
-      ],
+      ]
     },
   ]
 
@@ -480,14 +456,7 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema(
-      {
-        'str': 'string',
-        'int': 'int32',
-        'bool': 'boolean',
-        'float': 'float32',
-      }
-    ),
+    data_schema=schema({'str': 'string', 'int': 'int32', 'bool': 'boolean', 'float': 'float32'}),
     num_items=3,
     source=TestSource(),
   )
@@ -505,8 +474,7 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              signal=test_signal.model_dump(),
-              fields={'len': 'int32', 'flen': 'float32'},
+              signal=test_signal.model_dump(), fields={'len': 'int32', 'flen': 'float32'}
             )
           },
         ),
@@ -549,24 +517,13 @@ def test_invalid_column_paths(make_test_data: TestDataMaker) -> None:
 
 
 def test_signal_with_quote(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello',
-      },
-      {
-        'text': 'world',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'world'}])
   dataset.compute_signal(SignalWithQuoteInIt(), 'text')
   dataset.compute_signal(SignalWithDoubleQuoteInIt(), 'text')
   result = dataset.select_rows(['text'], combine_columns=True)
   assert list(result) == [
     {'text': enriched_item('hello', {"test'signal": True, 'test"signal': True})},
-    {
-      'text': enriched_item('world', {"test'signal": True, 'test"signal': True}),
-    },
+    {'text': enriched_item('world', {"test'signal": True, 'test"signal': True})},
   ]
 
   result = dataset.select_rows(
@@ -618,8 +575,7 @@ def test_dataset_config_from_manifest(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              signal=TestSignal().model_dump(),
-              fields={'len': 'int32', 'flen': 'float32'},
+              signal=TestSignal().model_dump(), fields={'len': 'int32', 'flen': 'float32'}
             ),
             'test_embedding': field(
               signal=TestEmbedding().model_dump(),

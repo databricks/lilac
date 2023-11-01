@@ -113,9 +113,7 @@ class TaskManager:
 
     total_memory_gb = psutil.virtual_memory().total / (1024**3)
     self._dask_client = dask_client or Client(
-      asynchronous=not env('LILAC_TEST'),
-      memory_limit=f'{total_memory_gb} GB',
-      processes=False,
+      asynchronous=not env('LILAC_TEST'), memory_limit=f'{total_memory_gb} GB', processes=False
     )
 
   async def _update_tasks(self) -> None:

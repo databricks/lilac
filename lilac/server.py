@@ -47,22 +47,10 @@ register_default_sources()
 DIST_PATH = os.path.join(os.path.dirname(__file__), 'web')
 
 tags_metadata: list[dict[str, Any]] = [
-  {
-    'name': 'datasets',
-    'description': 'API for querying a dataset.',
-  },
-  {
-    'name': 'concepts',
-    'description': 'API for managing concepts.',
-  },
-  {
-    'name': 'data_loaders',
-    'description': 'API for loading data.',
-  },
-  {
-    'name': 'signals',
-    'description': 'API for managing signals.',
-  },
+  {'name': 'datasets', 'description': 'API for querying a dataset.'},
+  {'name': 'concepts', 'description': 'API for managing concepts.'},
+  {'name': 'data_loaders', 'description': 'API for loading data.'},
+  {'name': 'signals', 'description': 'API for managing signals.'},
 ]
 
 
@@ -112,20 +100,14 @@ def concept_authorization_exception(
 ) -> JSONResponse:
   """Return a 401 JSON response when an authorization exception is thrown."""
   message = 'Oops! You are not authorized to do this.'
-  return JSONResponse(
-    status_code=401,
-    content={'detail': message, 'message': message},
-  )
+  return JSONResponse(status_code=401, content={'detail': message, 'message': message})
 
 
 @app.exception_handler(ModuleNotFoundError)
 def module_not_found_error(request: Request, exc: ModuleNotFoundError) -> JSONResponse:
   """Return a 500 JSON response when a module fails to import because of optional imports."""
   message = 'Oops! You are missing a python dependency. ' + str(exc)
-  return JSONResponse(
-    status_code=500,
-    content={'detail': message, 'message': message},
-  )
+  return JSONResponse(status_code=500, content={'detail': message, 'message': message})
 
 
 app.add_middleware(SessionMiddleware, secret_key=env('LILAC_OAUTH_SECRET_KEY'))
@@ -261,12 +243,7 @@ def start_server(
   if load:
     os.environ['LILAC_LOAD_ON_START_SERVER'] = 'true'
 
-  config = uvicorn.Config(
-    app,
-    host=host,
-    port=port,
-    access_log=False,
-  )
+  config = uvicorn.Config(app, host=host, port=port, access_log=False)
   SERVER = uvicorn.Server(config)
 
   if open:

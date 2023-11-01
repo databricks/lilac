@@ -37,11 +37,7 @@ def test_hf(tmp_path: pathlib.Path) -> None:
 def test_hf_sequence(tmp_path: pathlib.Path) -> None:
   dataset = Dataset.from_list(
     [
-      {
-        'scalar': 1,
-        'seq': [1, 0],
-        'seq_dict': {'x': [1, 2, 3], 'y': ['four', 'five', 'six']},
-      },
+      {'scalar': 1, 'seq': [1, 0], 'seq_dict': {'x': [1, 2, 3], 'y': ['four', 'five', 'six']}},
       {
         'scalar': 2,
         'seq': [2, 0],
@@ -72,10 +68,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
         HF_SPLIT_COLUMN: 'string',
         'scalar': 'int64',
         'seq': ['int64'],
-        'seq_dict': {
-          'x': ['int64'],
-          'y': ['string'],
-        },
+        'seq_dict': {'x': ['int64'], 'y': ['string']},
       }
     ).fields,
     num_items=2,
@@ -101,10 +94,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
 
 def test_hf_list(tmp_path: pathlib.Path) -> None:
   dataset = Dataset.from_list(
-    [
-      {'scalar': 1, 'list': [{'x': 1, 'y': 'two'}]},
-      {'scalar': 2, 'list': [{'x': 3, 'y': 'four'}]},
-    ],
+    [{'scalar': 1, 'list': [{'x': 1, 'y': 'two'}]}, {'scalar': 2, 'list': [{'x': 3, 'y': 'four'}]}],
     features=Features(
       {
         'scalar': Value(dtype='int64'),
@@ -124,16 +114,7 @@ def test_hf_list(tmp_path: pathlib.Path) -> None:
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
     fields=schema(
-      {
-        HF_SPLIT_COLUMN: 'string',
-        'scalar': 'int64',
-        'list': [
-          {
-            'x': 'int64',
-            'y': 'string',
-          }
-        ],
-      }
+      {HF_SPLIT_COLUMN: 'string', 'scalar': 'int64', 'list': [{'x': 'int64', 'y': 'string'}]}
     ).fields,
     num_items=2,
   )

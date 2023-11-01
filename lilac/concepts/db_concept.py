@@ -171,22 +171,14 @@ class ConceptModelDB(abc.ABC):
 
   @abc.abstractmethod
   def create(
-    self,
-    namespace: str,
-    concept_name: str,
-    embedding_name: str,
-    user: Optional[UserInfo] = None,
+    self, namespace: str, concept_name: str, embedding_name: str, user: Optional[UserInfo] = None
   ) -> ConceptModel:
     """Create the concept model."""
     pass
 
   @abc.abstractmethod
   def get(
-    self,
-    namespace: str,
-    concept_name: str,
-    embedding_name: str,
-    user: Optional[UserInfo] = None,
+    self, namespace: str, concept_name: str, embedding_name: str, user: Optional[UserInfo] = None
   ) -> Optional[ConceptModel]:
     """Get the model associated with the provided concept the embedding.
 
@@ -256,11 +248,7 @@ class DiskConceptModelDB(ConceptModelDB):
 
   @override
   def create(
-    self,
-    namespace: str,
-    concept_name: str,
-    embedding_name: str,
-    user: Optional[UserInfo] = None,
+    self, namespace: str, concept_name: str, embedding_name: str, user: Optional[UserInfo] = None
   ) -> ConceptModel:
     if self.get(namespace, concept_name, embedding_name, user=user):
       raise ValueError('Concept model already exists.')
@@ -275,11 +263,7 @@ class DiskConceptModelDB(ConceptModelDB):
 
   @override
   def get(
-    self,
-    namespace: str,
-    concept_name: str,
-    embedding_name: str,
-    user: Optional[UserInfo] = None,
+    self, namespace: str, concept_name: str, embedding_name: str, user: Optional[UserInfo] = None
   ) -> Optional[ConceptModel]:
     # Make sure the concept exists.
     concept = self._concept_db.get(namespace, concept_name, user=user)
@@ -313,11 +297,7 @@ class DiskConceptModelDB(ConceptModelDB):
 
   @override
   def remove(
-    self,
-    namespace: str,
-    concept_name: str,
-    embedding_name: str,
-    user: Optional[UserInfo] = None,
+    self, namespace: str, concept_name: str, embedding_name: str, user: Optional[UserInfo] = None
   ) -> None:
     concept_model_path = _concept_model_path(
       self._get_project_dir(), namespace, concept_name, embedding_name

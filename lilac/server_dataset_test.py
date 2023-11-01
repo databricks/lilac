@@ -43,10 +43,7 @@ TEST_DATA: list[Item] = [
       {
         'name': 'A',
         'zipcode': 0,
-        'locations': [
-          {'city': 'city1', 'state': 'state1'},
-          {'city': 'city2', 'state': 'state2'},
-        ],
+        'locations': [{'city': 'city1', 'state': 'state1'}, {'city': 'city2', 'state': 'state2'}],
       }
     ],
   },
@@ -56,11 +53,7 @@ TEST_DATA: list[Item] = [
       {
         'name': 'B',
         'zipcode': 1,
-        'locations': [
-          {'city': 'city3', 'state': 'state3'},
-          {'city': 'city4'},
-          {'city': 'city5'},
-        ],
+        'locations': [{'city': 'city3', 'state': 'state3'}, {'city': 'city4'}, {'city': 'city5'}],
       },
       {'name': 'C', 'zipcode': 2, 'locations': [{'city': 'city1', 'state': 'state1'}]},
     ],
@@ -158,33 +151,10 @@ def test_select_rows_with_cols_and_combine() -> None:
   assert response.status_code == 200
   assert SelectRowsResponse.model_validate(response.json()) == SelectRowsResponse(
     rows=[
+      {'people': [{'zipcode': 0, 'locations': [{'city': 'city1'}, {'city': 'city2'}]}]},
       {
         'people': [
-          {
-            'zipcode': 0,
-            'locations': [
-              {
-                'city': 'city1',
-              },
-              {
-                'city': 'city2',
-              },
-            ],
-          }
-        ]
-      },
-      {
-        'people': [
-          {
-            'zipcode': 1,
-            'locations': [
-              {
-                'city': 'city3',
-              },
-              {'city': 'city4'},
-              {'city': 'city5'},
-            ],
-          },
+          {'zipcode': 1, 'locations': [{'city': 'city3'}, {'city': 'city4'}, {'city': 'city5'}]},
           {'zipcode': 2, 'locations': [{'city': 'city1'}]},
         ]
       },
@@ -304,8 +274,7 @@ def test_compute_signal_auth(mocker: MockerFixture) -> None:
 
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/compute_signal'
   response = client.post(
-    url,
-    json=ComputeSignalOptions(signal=LengthSignal(), leaf_path=('people', 'name')).model_dump(),
+    url, json=ComputeSignalOptions(signal=LengthSignal(), leaf_path=('people', 'name')).model_dump()
   )
   assert response.status_code == 401
   assert response.is_error is True

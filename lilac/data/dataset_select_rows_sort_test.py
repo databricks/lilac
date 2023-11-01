@@ -80,16 +80,8 @@ def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
   dataset = make_test_data(
     [
       {'erased': True, 'score': 4.1, 'document': {'num_pages': 4, 'header': {'title': 'c'}}},
-      {
-        'erased': False,
-        'score': 3.5,
-        'document': {'num_pages': 5, 'header': {'title': 'b'}},
-      },
-      {
-        'erased': True,
-        'score': 3.7,
-        'document': {'num_pages': 3, 'header': {'title': 'a'}},
-      },
+      {'erased': False, 'score': 3.5, 'document': {'num_pages': 5, 'header': {'title': 'b'}}},
+      {'erased': True, 'score': 3.7, 'document': {'num_pages': 3, 'header': {'title': 'a'}}},
     ]
   )
 
@@ -236,15 +228,9 @@ def test_sort_by_udf_no_alias_no_repeated(make_test_data: TestDataMaker) -> None
     combine_columns=True,
   )
   assert list(result) == [
-    {
-      'text': enriched_item('HI', {'test_signal': {'len': 2, 'is_all_cap': True}}),
-    },
-    {
-      'text': enriched_item('HEY', {'test_signal': {'len': 3, 'is_all_cap': True}}),
-    },
-    {
-      'text': enriched_item('everyone', {'test_signal': {'len': 8, 'is_all_cap': False}}),
-    },
+    {'text': enriched_item('HI', {'test_signal': {'len': 2, 'is_all_cap': True}})},
+    {'text': enriched_item('HEY', {'test_signal': {'len': 3, 'is_all_cap': True}})},
+    {'text': enriched_item('everyone', {'test_signal': {'len': 8, 'is_all_cap': False}})},
   ]
 
   # Sort descending.
@@ -255,15 +241,9 @@ def test_sort_by_udf_no_alias_no_repeated(make_test_data: TestDataMaker) -> None
     combine_columns=True,
   )
   assert list(result) == [
-    {
-      'text': enriched_item('everyone', {'test_signal': {'len': 8, 'is_all_cap': False}}),
-    },
-    {
-      'text': enriched_item('HEY', {'test_signal': {'len': 3, 'is_all_cap': True}}),
-    },
-    {
-      'text': enriched_item('HI', {'test_signal': {'len': 2, 'is_all_cap': True}}),
-    },
+    {'text': enriched_item('everyone', {'test_signal': {'len': 8, 'is_all_cap': False}})},
+    {'text': enriched_item('HEY', {'test_signal': {'len': 3, 'is_all_cap': True}})},
+    {'text': enriched_item('HI', {'test_signal': {'len': 2, 'is_all_cap': True}})},
   ]
 
 
@@ -510,15 +490,7 @@ class TopKSignal(VectorSignal):
 
 
 def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'scores': '8_1',
-      },
-      {'scores': '3_5'},
-      {'scores': '9_7'},
-    ]
-  )
+  dataset = make_test_data([{'scores': '8_1'}, {'scores': '3_5'}, {'scores': '9_7'}])
 
   dataset.compute_signal(TopKEmbedding(), 'scores')
 
@@ -532,25 +504,13 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   assert list(result) == [
     {
       'scores': enriched_item(
-        '9_7',
-        {
-          signal.key(): [
-            lilac_span(0, 1, {'score': 9.0}),
-            lilac_span(2, 3, {'score': 7.0}),
-          ]
-        },
-      ),
+        '9_7', {signal.key(): [lilac_span(0, 1, {'score': 9.0}), lilac_span(2, 3, {'score': 7.0})]}
+      )
     },
     {
       'scores': enriched_item(
-        '8_1',
-        {
-          signal.key(): [
-            lilac_span(0, 1, {'score': 8.0}),
-            lilac_span(2, 3, {'score': 1.0}),
-          ]
-        },
-      ),
+        '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}), lilac_span(2, 3, {'score': 1.0})]}
+      )
     },
   ]
 
@@ -561,36 +521,18 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   assert list(result) == [
     {
       'scores': enriched_item(
-        '9_7',
-        {
-          signal.key(): [
-            lilac_span(0, 1, {'score': 9.0}),
-            lilac_span(2, 3, {'score': 7.0}),
-          ]
-        },
-      ),
+        '9_7', {signal.key(): [lilac_span(0, 1, {'score': 9.0}), lilac_span(2, 3, {'score': 7.0})]}
+      )
     },
     {
       'scores': enriched_item(
-        '8_1',
-        {
-          signal.key(): [
-            lilac_span(0, 1, {'score': 8.0}),
-            lilac_span(2, 3, {'score': 1.0}),
-          ]
-        },
-      ),
+        '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}), lilac_span(2, 3, {'score': 1.0})]}
+      )
     },
     {
       'scores': enriched_item(
-        '3_5',
-        {
-          signal.key(): [
-            lilac_span(0, 1, {'score': 3.0}),
-            lilac_span(2, 3, {'score': 5.0}),
-          ]
-        },
-      ),
+        '3_5', {signal.key(): [lilac_span(0, 1, {'score': 3.0}), lilac_span(2, 3, {'score': 5.0})]}
+      )
     },
   ]
 
@@ -624,25 +566,13 @@ def test_sort_by_topk_udf_with_filter(make_test_data: TestDataMaker) -> None:
     {
       'active': True,
       'scores': enriched_item(
-        '8_1',
-        {
-          signal.key(): [
-            lilac_span(0, 1, {'score': 8.0}),
-            lilac_span(2, 3, {'score': 1.0}),
-          ]
-        },
+        '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}), lilac_span(2, 3, {'score': 1.0})]}
       ),
     },
     {
       'active': True,
       'scores': enriched_item(
-        '3_5',
-        {
-          signal.key(): [
-            lilac_span(0, 1, {'score': 3.0}),
-            lilac_span(2, 3, {'score': 5.0}),
-          ]
-        },
+        '3_5', {signal.key(): [lilac_span(0, 1, {'score': 3.0}), lilac_span(2, 3, {'score': 5.0})]}
       ),
     },
   ]

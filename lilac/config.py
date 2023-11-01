@@ -174,8 +174,7 @@ class Config(BaseModel):
 
   # A list of embeddings to compute the model caches for, for all concepts.
   concept_model_cache_embeddings: list[str] = PydanticField(
-    description='The set of embeddings to compute model caches for for every concept.',
-    default=[],
+    description='The set of embeddings to compute model caches for for every concept.', default=[]
   )
   model_config = ConfigDict(extra='forbid')
 

@@ -12,12 +12,7 @@ from .dataset import StatsResult
 from .dataset_test_utils import TestDataMaker
 
 SIMPLE_ITEMS: list[Item] = [
-  {
-    'str': 'a',
-    'int': 1,
-    'bool': False,
-    'float': 3.0,
-  },
+  {'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},
   {'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
   {'str': 'b', 'int': 2, 'bool': True, 'float': 1.0},
   {'float': float('nan')},
@@ -102,7 +97,7 @@ def test_datetime(make_test_data: TestDataMaker) -> None:
     {'id': '2', 'date': datetime(2023, 2, 1)},
     {'id': '4', 'date': datetime(2023, 3, 1)},
     {
-      'id': '5',
+      'id': '5'
       # Missing datetime.
     },
   ]

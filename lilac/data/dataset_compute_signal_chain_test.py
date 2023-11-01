@@ -147,7 +147,7 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
             ),
           },
-        ),
+        )
       }
     ),
     num_items=2,
@@ -163,16 +163,7 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
 
 
 def test_missing_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello.',
-      },
-      {
-        'text': 'hello2.',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
 
   # The embedding is missing for 'text'.
   embedding_sum_signal = TestEmbeddingSumSignal(embedding=TestEmbedding.name)

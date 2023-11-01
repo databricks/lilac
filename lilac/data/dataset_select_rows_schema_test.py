@@ -51,10 +51,7 @@ TEST_DATA: list[Item] = [
       {
         'name': 'A',
         'zipcode': 0,
-        'locations': [
-          {'city': 'city1', 'state': 'state1'},
-          {'city': 'city2', 'state': 'state2'},
-        ],
+        'locations': [{'city': 'city1', 'state': 'state1'}, {'city': 'city2', 'state': 'state2'}],
       }
     ],
   },
@@ -64,11 +61,7 @@ TEST_DATA: list[Item] = [
       {
         'name': 'B',
         'zipcode': 1,
-        'locations': [
-          {'city': 'city3', 'state': 'state3'},
-          {'city': 'city4'},
-          {'city': 'city5'},
-        ],
+        'locations': [{'city': 'city3', 'state': 'state3'}, {'city': 'city4'}, {'city': 'city5'}],
       },
       {'name': 'C', 'zipcode': 2, 'locations': [{'city': 'city1', 'state': 'state1'}]},
     ],
@@ -200,8 +193,7 @@ def test_subselection_with_combine_cols(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
   result = dataset.select_rows_schema(
-    [('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
-    combine_columns=True,
+    [('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')], combine_columns=True
   )
   assert result == SelectRowsSchemaResult(
     data_schema=schema({'people': [{'zipcode': 'int32', 'locations': [{'city': 'string'}]}]})
@@ -251,12 +243,10 @@ def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
             'name': {'length_signal': field('int32', length_signal.model_dump())},
             'locations': [{'city': 'string'}],
           }
-        ],
+        ]
       }
     ),
-    udfs=[
-      SelectRowsSchemaUDF(path=('people', '*', 'name', length_signal.key())),
-    ],
+    udfs=[SelectRowsSchemaUDF(path=('people', '*', 'name', length_signal.key()))],
   )
 
 
@@ -279,26 +269,15 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
               fields={'add_space_signal': field('string', signal=add_space_signal.model_dump())},
             )
           }
-        ],
+        ]
       }
     ),
-    udfs=[
-      SelectRowsSchemaUDF(path=(*path, add_space_signal.key())),
-    ],
+    udfs=[SelectRowsSchemaUDF(path=(*path, add_space_signal.key()))],
   )
 
 
 def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello. hello2.',
-      },
-      {
-        'text': 'hello world. hello world2.',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello. hello2.'}, {'text': 'hello world. hello world2.'}])
 
   test_splitter = TestSplitter()
   dataset.compute_signal(test_splitter, ('text'))
@@ -319,21 +298,12 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
         )
       }
     ),
-    udfs=[
-      SelectRowsSchemaUDF(path=('text', add_space_signal.key())),
-    ],
+    udfs=[SelectRowsSchemaUDF(path=('text', add_space_signal.key()))],
   )
 
 
 def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello world',
-        'text2': 'hello world2',
-      }
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello world', 'text2': 'hello world2'}])
   query_world = 'world'
   query_hello = 'hello'
 
@@ -371,12 +341,10 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
     ),
     search_results=[
       SearchResultInfo(
-        search_path=('text',),
-        result_path=('text', expected_world_signal.key(), PATH_WILDCARD),
+        search_path=('text',), result_path=('text', expected_world_signal.key(), PATH_WILDCARD)
       ),
       SearchResultInfo(
-        search_path=('text2',),
-        result_path=('text2', expected_hello_signal.key(), PATH_WILDCARD),
+        search_path=('text2',), result_path=('text2', expected_hello_signal.key(), PATH_WILDCARD)
       ),
     ],
     udfs=[
@@ -387,22 +355,14 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
 
 
 def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello world.',
-      }
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello world.'}])
   query_world = 'world'
 
   test_embedding = TestEmbedding()
   dataset.compute_signal(test_embedding, ('text'))
 
   result = dataset.select_rows_schema(
-    searches=[
-      SemanticSearch(path='text', query=query_world, embedding='test_embedding'),
-    ],
+    searches=[SemanticSearch(path='text', query=query_world, embedding='test_embedding')],
     combine_columns=True,
   )
 
@@ -432,22 +392,14 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
     search_results=[SearchResultInfo(search_path=('text',), result_path=similarity_score_path)],
     sorts=[
       SortResult(
-        path=(*similarity_score_path, PATH_WILDCARD, 'score'),
-        order=SortOrder.DESC,
-        search_index=0,
+        path=(*similarity_score_path, PATH_WILDCARD, 'score'), order=SortOrder.DESC, search_index=0
       )
     ],
   )
 
 
 def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello world.',
-      }
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello world.'}])
 
   test_embedding = TestEmbedding()
   dataset.compute_signal(test_embedding, ('text'))
@@ -459,7 +411,7 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
         concept_namespace='test_namespace',
         concept_name='test_concept',
         embedding='test_embedding',
-      ),
+      )
     ],
     combine_columns=True,
   )
@@ -490,11 +442,7 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
                   dtype='string_span',
                   fields={
                     'score': field(
-                      'float32',
-                      bins=[
-                        ('Not in concept', None, 0.5),
-                        ('In concept', 0.5, None),
-                      ],
+                      'float32', bins=[('Not in concept', None, 0.5), ('In concept', 0.5, None)]
                     )
                   },
                 )
@@ -518,31 +466,21 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
     ],
     sorts=[
       SortResult(
-        path=(*concept_score_path, PATH_WILDCARD, 'score'),
-        order=SortOrder.DESC,
-        search_index=0,
+        path=(*concept_score_path, PATH_WILDCARD, 'score'), order=SortOrder.DESC, search_index=0
       )
     ],
   )
 
 
 def test_search_sort_override(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello world.',
-      }
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello world.'}])
   query_world = 'world'
 
   test_embedding = TestEmbedding()
   dataset.compute_signal(test_embedding, ('text'))
 
   result = dataset.select_rows_schema(
-    searches=[
-      SemanticSearch(path='text', query=query_world, embedding='test_embedding'),
-    ],
+    searches=[SemanticSearch(path='text', query=query_world, embedding='test_embedding')],
     # Explicit sort by overrides the semantic search.
     sort_by=[('text',)],
     sort_order=SortOrder.DESC,

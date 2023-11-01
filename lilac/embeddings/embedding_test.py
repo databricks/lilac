@@ -24,12 +24,7 @@ def test_split_and_combine_text_embeddings_batch_across_two_docs() -> None:
   result = list(compute_split_embeddings(docs, batch_size, embed_fn, char_splitter))
 
   # Each input to embed_fn is a batch of at most 3 letters.
-  assert embed_fn_inputs == [
-    ['T', 'h', 'i'],
-    ['s', ' ', 'i'],
-    ['s', '1', '2'],
-    ['3'],
-  ]
+  assert embed_fn_inputs == [['T', 'h', 'i'], ['s', ' ', 'i'], ['s', '1', '2'], ['3']]
 
   assert result == [
     [

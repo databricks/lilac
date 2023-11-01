@@ -265,12 +265,7 @@ class ConceptDBSuite:
       concept_name,
       ConceptUpdate(
         update=[
-          Example(
-            id=keys[3],
-            label=True,
-            text='really in concept, updated',
-            draft='test_draft',
-          )
+          Example(id=keys[3], label=True, text='really in concept, updated', draft='test_draft')
         ]
       ),
     )
@@ -402,11 +397,7 @@ class ConceptDBSuite:
       db.edit(
         namespace,
         concept_name,
-        ConceptUpdate(
-          insert=[
-            ExampleIn(label=False, text='not in concept'),
-          ]
-        ),
+        ConceptUpdate(insert=[ExampleIn(label=False, text='not in concept')]),
       )
 
   def test_edit_invalid_id(self, db_cls: Type[ConceptDB]) -> None:
@@ -548,10 +539,7 @@ class ConceptModelDBSuite:
     assert retrieved_model.version == model.version
 
   def test_sync_model(
-    self,
-    concept_db_cls: Type[ConceptDB],
-    model_db_cls: Type[ConceptModelDB],
-    mocker: MockerFixture,
+    self, concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB], mocker: MockerFixture
   ) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
@@ -574,10 +562,7 @@ class ConceptModelDBSuite:
     assert fit_mock.call_count == 1
 
   def test_out_of_sync_model(
-    self,
-    concept_db_cls: Type[ConceptDB],
-    model_db_cls: Type[ConceptModelDB],
-    mocker: MockerFixture,
+    self, concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB], mocker: MockerFixture
   ) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
@@ -634,10 +619,7 @@ class ConceptModelDBSuite:
     assert called_labels == [False, True, False]
 
   def test_out_of_sync_draft_model(
-    self,
-    concept_db_cls: Type[ConceptDB],
-    model_db_cls: Type[ConceptModelDB],
-    mocker: MockerFixture,
+    self, concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB], mocker: MockerFixture
   ) -> None:
     concept_db = concept_db_cls()
     model_db = model_db_cls(concept_db)
@@ -646,9 +628,7 @@ class ConceptModelDBSuite:
     main_model = TestLogisticModel()
     draft_model = TestLogisticModel()
     model = _make_test_concept_model(
-      concept_db,
-      model_db,
-      logistic_models={DRAFT_MAIN: main_model, 'test_draft': draft_model},
+      concept_db, model_db, logistic_models={DRAFT_MAIN: main_model, 'test_draft': draft_model}
     )
     model = model_db.sync(model.namespace, model.concept_name, model.embedding_name)
     assert model_db.in_sync(model) is True
@@ -726,9 +706,7 @@ class ConceptModelDBSuite:
 
     # Edit the concept.
     concept_db.edit(
-      'test',
-      'test_concept',
-      ConceptUpdate(insert=[ExampleIn(label=False, text='unknown text')]),
+      'test', 'test_concept', ConceptUpdate(insert=[ExampleIn(label=False, text='unknown text')])
     )
 
     # Make sure the model is out of sync.

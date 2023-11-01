@@ -223,10 +223,7 @@ def test_load_signals(tmp_path: pathlib.Path, task_manager: TaskManager) -> None
     data_schema=schema(
       {
         'str': field(
-          'string',
-          fields={
-            'test_signal': field('int32', signal=test_signal.model_dump()),
-          },
+          'string', fields={'test_signal': field('int32', signal=test_signal.model_dump())}
         ),
         'int': 'int32',
         'bool': 'boolean',
@@ -271,7 +268,7 @@ def test_load_embeddings(tmp_path: pathlib.Path, task_manager: TaskManager) -> N
             'test_embedding': field(
               signal=TestEmbedding().model_dump(),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
-            ),
+            )
           },
         ),
         'int': 'int32',

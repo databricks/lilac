@@ -21,14 +21,8 @@ from .dataset_duckdb import DatasetDuckDB
 from .dataset_test_utils import TestDataMaker, enriched_item
 
 TEST_DATA: list[Item] = [
-  {
-    'text': 'hello world',
-    'text2': 'again hello world',
-  },
-  {
-    'text': 'looking for world in text',
-    'text2': 'again looking for world in text',
-  },
+  {'text': 'hello world', 'text2': 'again hello world'},
+  {'text': 'looking for world in text', 'text2': 'again looking for world in text'},
   {'text': 'unrelated text', 'text2': 'again unrelated text'},
 ]
 
@@ -83,16 +77,7 @@ def test_search_keyword(make_test_data: TestDataMaker) -> None:
 
 
 def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'This is 100%',
-      },
-      {
-        'text': 'This has _underscore_',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'This is 100%'}, {'text': 'This has _underscore_'}])
 
   query = '100%'
   result = dataset.select_rows(
@@ -101,9 +86,7 @@ def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [
-    {
-      'text': enriched_item('This is 100%', {expected_signal_udf.key(): [lilac_span(8, 12)]}),
-    }
+    {'text': enriched_item('This is 100%', {expected_signal_udf.key(): [lilac_span(8, 12)]})}
   ]
 
   query = '_underscore_'
@@ -116,7 +99,7 @@ def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
     {
       'text': enriched_item(
         'This has _underscore_', {expected_signal_udf.key(): [lilac_span(9, 21)]}
-      ),
+      )
     }
   ]
 
@@ -140,14 +123,10 @@ def test_search_keyword_multiple(make_test_data: TestDataMaker) -> None:
   assert list(result) == [
     {
       'text': enriched_item(
-        'looking for world in text',
-        {
-          expected_world_udf.key(): [lilac_span(12, 17)],
-        },
+        'looking for world in text', {expected_world_udf.key(): [lilac_span(12, 17)]}
       ),
       'text2': enriched_item(
-        'again looking for world in text',
-        {expected_again_looking_udf.key(): [lilac_span(6, 23)]},
+        'again looking for world in text', {expected_again_looking_udf.key(): [lilac_span(6, 23)]}
       ),
     }
   ]
@@ -169,7 +148,7 @@ def test_search_keyword_with_filters(make_test_data: TestDataMaker) -> None:
     {
       'text': enriched_item('hello world', {expected_signal_udf.key(): [lilac_span(6, 11)]}),
       'text2': 'again hello world',
-    },
+    }
     # The second row doesn't match the rowid filter.
   ]
 
@@ -188,16 +167,7 @@ class TestEmbedding(TextEmbeddingSignal):
 
 
 def test_semantic_search(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello world.',
-      },
-      {
-        'text': 'hello world2.',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello world.'}, {'text': 'hello world2.'}])
 
   test_embedding = TestEmbedding()
   dataset.compute_signal(test_embedding, ('text'))
@@ -228,24 +198,12 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
 
   dataset = make_test_data(
     [
-      {
-        'text': 'hello world.',
-      },
-      {
-        'text': 'hello world2.',
-      },
-      {
-        'text': 'random negative 1',
-      },
-      {
-        'text': 'random negative 2',
-      },
-      {
-        'text': 'random negative 3',
-      },
-      {
-        'text': 'random negative 4',
-      },
+      {'text': 'hello world.'},
+      {'text': 'hello world2.'},
+      {'text': 'random negative 1'},
+      {'text': 'random negative 2'},
+      {'text': 'random negative 3'},
+      {'text': 'random negative 4'},
     ]
   )
 
@@ -316,16 +274,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
 
 
 def test_concept_search_without_rowid(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello world.',
-      },
-      {
-        'text': 'hello world2.',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello world.'}, {'text': 'hello world2.'}])
 
   test_embedding = TestEmbedding()
   dataset.compute_signal(test_embedding, ('text'))
@@ -414,16 +363,7 @@ def test_concept_search_without_rowid(make_test_data: TestDataMaker) -> None:
 
 
 def test_concept_search_sort_by_rowid(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello world.',
-      },
-      {
-        'text': 'hello world2.',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello world.'}, {'text': 'hello world2.'}])
 
   test_embedding = TestEmbedding()
   dataset.compute_signal(test_embedding, ('text'))
@@ -476,14 +416,7 @@ def test_concept_search_sort_by_rowid(make_test_data: TestDataMaker) -> None:
 
 def test_concept_search_over_repeated_string(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(
-    [
-      {
-        'text': ['hello.', 'hello world.'],
-      },
-      {
-        'text': ['hello2.', 'hello world2.'],
-      },
-    ]
+    [{'text': ['hello.', 'hello world.']}, {'text': ['hello2.', 'hello world2.']}]
   )
   dataset.compute_embedding('test_embedding', ('text', '*'))
 
@@ -585,16 +518,7 @@ def test_sort_override_search(make_test_data: TestDataMaker) -> None:
 
 
 def test_search_keyword_and_semantic(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {
-        'text': 'hello world.',
-      },
-      {
-        'text': 'hello world2.',
-      },
-    ]
-  )
+  dataset = make_test_data([{'text': 'hello world.'}, {'text': 'hello world2.'}])
 
   test_embedding = TestEmbedding()
   dataset.compute_signal(test_embedding, ('text'))
@@ -620,6 +544,6 @@ def test_search_keyword_and_semantic(make_test_data: TestDataMaker) -> None:
           expected_keyword_signal.key(): [lilac_span(8, 12)],
         },
       )
-    },
+    }
     # rowid '1' is not returned because it does not match the keyword query.
   ]

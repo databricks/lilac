@@ -362,10 +362,7 @@ class Dataset(abc.ABC):
   project_dir: Union[str, pathlib.Path]
 
   def __init__(
-    self,
-    namespace: str,
-    dataset_name: str,
-    project_dir: Optional[Union[str, pathlib.Path]] = None,
+    self, namespace: str, dataset_name: str, project_dir: Optional[Union[str, pathlib.Path]] = None
   ):
     """Initialize a dataset.
 
@@ -717,8 +714,7 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
   pool = ThreadPoolExecutor()
   stats: list[StatsResult] = list(pool.map(lambda leaf: dataset.stats(leaf), leaf_paths))
   sorted_stats = sorted(
-    [stat for stat in stats if stat.avg_text_length],
-    key=lambda stat: stat.avg_text_length or -1.0,
+    [stat for stat in stats if stat.avg_text_length], key=lambda stat: stat.avg_text_length or -1.0
   )
   media_paths: list[PathTuple] = []
   if sorted_stats:

@@ -221,9 +221,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
         label=True,
         text='hello',
         origin=ExampleOrigin(
-          dataset_namespace='dataset_namespace',
-          dataset_name='dataset',
-          dataset_row_id='d1',
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'
         ),
       )
     ]
@@ -240,9 +238,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
         label=True,
         text='hello',
         origin=ExampleOrigin(
-          dataset_namespace='dataset_namespace',
-          dataset_name='dataset',
-          dataset_row_id='d1',
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'
         ),
       )
     },
@@ -274,9 +270,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
         label=True,
         text='hello2',
         origin=ExampleOrigin(
-          dataset_namespace='dataset_namespace',
-          dataset_name='dataset',
-          dataset_row_id='d2',
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d2'
         ),
       )
     ]
@@ -293,9 +287,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
         label=True,
         text='hello',
         origin=ExampleOrigin(
-          dataset_namespace='dataset_namespace',
-          dataset_name='dataset',
-          dataset_row_id='d1',
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'
         ),
       ),
       fake_uuid(b'2').hex: Example(
@@ -303,9 +295,7 @@ def test_concept_edits(mocker: MockerFixture) -> None:
         label=True,
         text='hello2',
         origin=ExampleOrigin(
-          dataset_namespace='dataset_namespace',
-          dataset_name='dataset',
-          dataset_row_id='d2',
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d2'
         ),
       ),
     },
@@ -501,18 +491,14 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
         label=True,
         text='hello',
         origin=ExampleOrigin(
-          dataset_namespace='dataset_namespace',
-          dataset_name='dataset',
-          dataset_row_id='d1',
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'
         ),
       ),
       ExampleIn(
         label=False,
         text='hello world',
         origin=ExampleOrigin(
-          dataset_namespace='dataset_namespace',
-          dataset_name='dataset',
-          dataset_row_id='d2',
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d2'
         ),
       ),
     ]
@@ -559,9 +545,7 @@ def test_concept_edits_error_before_create(mocker: MockerFixture) -> None:
         label=True,
         text='hello',
         origin=ExampleOrigin(
-          dataset_namespace='dataset_namespace',
-          dataset_name='dataset',
-          dataset_row_id='d1',
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'
         ),
       )
     ]
@@ -587,9 +571,7 @@ def test_concept_edits_wrong_type(mocker: MockerFixture) -> None:
         label=True,
         text='hello',
         origin=ExampleOrigin(
-          dataset_namespace='dataset_namespace',
-          dataset_name='dataset',
-          dataset_row_id='d1',
+          dataset_namespace='dataset_namespace', dataset_name='dataset', dataset_row_id='d1'
         ),
       )
     ]

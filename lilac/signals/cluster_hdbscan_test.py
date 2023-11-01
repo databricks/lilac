@@ -14,17 +14,7 @@ from ..schema import Item, RichData, lilac_embedding, lilac_span
 from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .cluster_hdbscan import ClusterHDBScan
 
-TEST_ITEMS: list[Item] = [
-  {
-    'text': 'a',
-  },
-  {
-    'text': 'b',
-  },
-  {
-    'text': 'c',
-  },
-]
+TEST_ITEMS: list[Item] = [{'text': 'a'}, {'text': 'b'}, {'text': 'c'}]
 
 EMBEDDINGS: dict[str, list[float]] = {
   'a': [1.0, 0.0, 0.0],

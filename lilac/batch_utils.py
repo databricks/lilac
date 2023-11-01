@@ -22,8 +22,7 @@ def _deep_flatten(
 
 
 def deep_flatten(
-  input: Union[Iterator, Iterable],
-  is_primitive_predicate: Callable[[object], bool] = is_primitive,
+  input: Union[Iterator, Iterable], is_primitive_predicate: Callable[[object], bool] = is_primitive
 ) -> Iterator:
   """Flattens a deeply nested iterator.
 

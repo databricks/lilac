@@ -37,8 +37,7 @@ class TextStatisticsSignal(TextSignal):
         READABILITY: 'float32',
         TYPE_TOKEN_RATIO: 'float32',
         FRAC_NON_ASCII: field(
-          'float32',
-          bins=[('Low', None, 0.15), ('Medium', 0.15, 0.3), ('High', 0.3, None)],
+          'float32', bins=[('Low', None, 0.15), ('Medium', 0.15, 0.3), ('High', 0.3, None)]
         ),
       }
     )

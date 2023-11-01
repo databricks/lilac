@@ -89,9 +89,5 @@ class PaLM(TextEmbeddingSignal):
     docs = cast(Iterable[str], docs)
     split_fn = clustering_spacy_chunker if self._split else None
     yield from compute_split_embeddings(
-      docs,
-      PALM_BATCH_SIZE,
-      embed_fn,
-      split_fn,
-      num_parallel_requests=self._num_parallel_requests,
+      docs, PALM_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=self._num_parallel_requests
     )

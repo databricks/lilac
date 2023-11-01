@@ -103,9 +103,7 @@ def edit_concept_metadata(
 
 @router.delete('/{namespace}/{concept_name}')
 def delete_concept(
-  namespace: str,
-  concept_name: str,
-  user: Annotated[Optional[UserInfo], Depends(get_session_user)],
+  namespace: str, concept_name: str, user: Annotated[Optional[UserInfo], Depends(get_session_user)]
 ) -> None:
   """Deletes the concept from the database."""
   DISK_CONCEPT_DB.remove(namespace, concept_name, user)

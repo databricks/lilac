@@ -26,8 +26,7 @@ class NearDuplicateSignal(TextSignal):
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   threshold: float = PydanticField(
-    default=0.85,
-    description='The similarity threshold for detecting a near duplicate.',
+    default=0.85, description='The similarity threshold for detecting a near duplicate.'
   )
 
   @override

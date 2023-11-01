@@ -79,9 +79,7 @@ class ComputeSignalOptions(BaseModel):
 
 @router.delete('/{namespace}/{dataset_name}')
 def delete_dataset(
-  namespace: str,
-  dataset_name: str,
-  user: Annotated[Optional[UserInfo], Depends(get_session_user)],
+  namespace: str, dataset_name: str, user: Annotated[Optional[UserInfo], Depends(get_session_user)]
 ) -> None:
   """Delete the dataset."""
   if not get_user_access(user).dataset.delete_dataset:

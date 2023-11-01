@@ -25,11 +25,7 @@ from .server import start_server
 )
 @click.option('--port', help='The port number of the web-server', type=int, default=5432)
 @click.option(
-  '--load',
-  help='Load from the project config upon bootup.',
-  type=bool,
-  is_flag=True,
-  default=False,
+  '--load', help='Load from the project config upon bootup.', type=bool, is_flag=True, default=False
 )
 def start(project_dir: str, host: str, port: int, load: bool) -> None:
   """Starts the Lilac web server."""

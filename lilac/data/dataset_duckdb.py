@@ -732,10 +732,7 @@ class DatasetDuckDB(Dataset):
     shutil.rmtree(output_dir, ignore_errors=True)
 
   def _validate_filters(
-    self,
-    filters: Sequence[Filter],
-    col_aliases: dict[str, PathTuple],
-    manifest: DatasetManifest,
+    self, filters: Sequence[Filter], col_aliases: dict[str, PathTuple], manifest: DatasetManifest
   ) -> None:
     for filter in filters:
       if filter.path[0] in col_aliases:
@@ -1370,8 +1367,7 @@ class DatasetDuckDB(Dataset):
           vector_store = self._get_vector_db_index(embedding_signal.embedding, udf_col.path)
           flat_keys = list(flatten_keys(df[ROWID], input))
           signal_out = sparse_to_dense_compute(
-            iter(flat_keys),
-            lambda keys: embedding_signal.vector_compute(keys, vector_store),
+            iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store)
           )
           # Add progress.
           if task_step_id is not None:
@@ -1524,10 +1520,7 @@ class DatasetDuckDB(Dataset):
     self._validate_columns(cols, manifest.data_schema, new_schema)
 
     return SelectRowsSchemaResult(
-      data_schema=new_schema,
-      udfs=udfs,
-      search_results=search_results,
-      sorts=sort_results or None,
+      data_schema=new_schema, udfs=udfs, search_results=search_results, sorts=sort_results or None
     )
 
   @override
@@ -1889,10 +1882,7 @@ class DatasetDuckDB(Dataset):
     for f in filters:
       duckdb_path = self._leaf_path_to_duckdb_path(f.path, manifest.data_schema)
       select_str = _select_sql(
-        duckdb_path,
-        flatten=True,
-        unnest=False,
-        span_from=self._resolve_span(f.path, manifest),
+        duckdb_path, flatten=True, unnest=False, span_from=self._resolve_span(f.path, manifest)
       )
       is_array = any(subpath == PATH_WILDCARD for subpath in f.path)
 
@@ -2232,9 +2222,7 @@ class DatasetDuckDB(Dataset):
       # Create the source schema in prepare to share it between process and source_schema.
       output_schema = arrow_schema_to_schema(reader.schema)
       output_schema.fields[output_column].map = MapInfo(
-        fn_name=map_fn.__name__,
-        fn_source=inspect.getsource(map_fn),
-        date_created=datetime.now(),
+        fn_name=map_fn.__name__, fn_source=inspect.getsource(map_fn), date_created=datetime.now()
       )
 
       parquet_filename = get_parquet_filename(output_column, shard_index=0, num_shards=1)
@@ -2450,10 +2438,7 @@ def _map_cache_filepath(
   """Get the filepath for a map function's cache file."""
   filename = '.'.join(normalize_path(output_path))
   return os.path.join(
-    get_lilac_cache_dir(project_dir),
-    namespace,
-    dataset_name,
-    f'{filename}.jsonl',
+    get_lilac_cache_dir(project_dir), namespace, dataset_name, f'{filename}.jsonl'
   )
 
 

@@ -104,9 +104,7 @@ def test_filter_by_list_of_ids(make_test_data: TestDataMaker) -> None:
 def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
     {'name': 'A', 'info': {'lang': 'en'}, 'ages': []},
-    {
-      'info': {'lang': 'fr'},
-    },
+    {'info': {'lang': 'fr'}},
     {'name': 'C', 'ages': [[1, 2], [3, 4]]},
   ]
   dataset = make_test_data(items)
@@ -130,9 +128,7 @@ def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
 def test_filter_by_exists_on_enriched(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
     {'name': 'A', 'info': {'lang': 'en'}, 'ages': []},
-    {
-      'info': {'lang': 'fr'},
-    },
+    {'info': {'lang': 'fr'}},
     {'name': 'C', 'ages': [[1, 2], [3, 4]]},
   ]
   dataset = make_test_data(items)
@@ -155,13 +151,8 @@ def test_filter_by_exists_on_enriched(make_test_data: TestDataMaker) -> None:
 def test_filter_by_not_exists(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
     {'name': 'A', 'info': {'lang': 'en'}, 'ages': []},
-    {
-      'info': {'lang': 'fr'},
-    },
-    {
-      'name': 'C',
-      'ages': [[1, 2], [3, 4]],
-    },
+    {'info': {'lang': 'fr'}},
+    {'name': 'C', 'ages': [[1, 2], [3, 4]]},
   ]
   dataset = make_test_data(items)
 

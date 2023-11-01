@@ -53,19 +53,13 @@ NESTED_TEST_ITEM: Item = {
       'city': 'a',
       'zipcode': 1,
       'current': False,
-      'locations': [
-        {'latitude': 1.5, 'longitude': 3.8},
-        {'latitude': 2.9, 'longitude': 15.3},
-      ],
+      'locations': [{'latitude': 1.5, 'longitude': 3.8}, {'latitude': 2.9, 'longitude': 15.3}],
     },
     {
       'city': 'b',
       'zipcode': 2,
       'current': True,
-      'locations': [
-        {'latitude': 11.2, 'longitude': 20.1},
-        {'latitude': 30.1, 'longitude': 40.2},
-      ],
+      'locations': [{'latitude': 11.2, 'longitude': 20.1}, {'latitude': 30.1, 'longitude': 40.2}],
     },
   ],
 }
@@ -78,19 +72,12 @@ def test_field_ctor_validation() -> None:
     Field()
 
   with pytest.raises(ValueError, match='Both "fields" and "repeated_field" should not be defined'):
-    Field(
-      fields={'name': Field(dtype=DataType.STRING)},
-      repeated_field=Field(dtype=DataType.INT32),
-    )
+    Field(fields={'name': Field(dtype=DataType.STRING)}, repeated_field=Field(dtype=DataType.INT32))
 
   with pytest.raises(ValueError, match=f'{VALUE_KEY} is a reserved field name'):
-    Field(
-      fields={VALUE_KEY: Field(dtype=DataType.STRING)},
-    )
+    Field(fields={VALUE_KEY: Field(dtype=DataType.STRING)})
   with pytest.raises(ValueError, match=f'{SPAN_KEY} is a reserved field name'):
-    Field(
-      fields={SPAN_KEY: Field(dtype=DataType.STRING)},
-    )
+    Field(fields={SPAN_KEY: Field(dtype=DataType.STRING)})
 
 
 def test_schema_leafs() -> None:
@@ -140,10 +127,7 @@ def test_schema_to_arrow_schema() -> None:
           'last_name': pa.struct(
             {
               SPAN_KEY: pa.struct(
-                {
-                  TEXT_SPAN_START_FEATURE: pa.int32(),
-                  TEXT_SPAN_END_FEATURE: pa.int32(),
-                }
+                {TEXT_SPAN_START_FEATURE: pa.int32(), TEXT_SPAN_END_FEATURE: pa.int32()}
               )
             }
           ),
@@ -156,10 +140,7 @@ def test_schema_to_arrow_schema() -> None:
                   {
                     'len': pa.int32(),
                     SPAN_KEY: pa.struct(
-                      {
-                        TEXT_SPAN_START_FEATURE: pa.int32(),
-                        TEXT_SPAN_END_FEATURE: pa.int32(),
-                      }
+                      {TEXT_SPAN_START_FEATURE: pa.int32(), TEXT_SPAN_END_FEATURE: pa.int32()}
                     ),
                   }
                 )
@@ -209,12 +190,7 @@ def test_arrow_schema_to_schema() -> None:
           'city': 'string',
           'zipcode': 'int16',
           'current': 'boolean',
-          'locations': [
-            {
-              'latitude': 'float16',
-              'longitude': 'float64',
-            }
-          ],
+          'locations': [{'latitude': 'float16', 'longitude': 'float64'}],
         }
       ],
       'blob': 'binary',
@@ -259,13 +235,7 @@ def test_column_paths_match() -> None:
   # Sub-path matches always return False.
   assert column_paths_match(path_match=(PATH_WILDCARD,), specific_path=('person', 'name')) is False
   assert (
-    column_paths_match(
-      path_match=(
-        'person',
-        PATH_WILDCARD,
-      ),
-      specific_path=('person', '0', 'name'),
-    )
+    column_paths_match(path_match=('person', PATH_WILDCARD), specific_path=('person', '0', 'name'))
     is False
   )
 

@@ -41,8 +41,7 @@ class ConceptSignal(VectorSignal):
           dtype='string_span',
           fields={
             'score': field(
-              'float32',
-              bins=[('Not in concept', None, 0.5), ('In concept', 0.5, None)],
+              'float32', bins=[('Not in concept', None, 0.5), ('In concept', 0.5, None)]
             )
           },
         )
